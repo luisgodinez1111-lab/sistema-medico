@@ -1,0 +1,23 @@
+name: "🐛 Bug"
+description: "Comportamiento incorrecto (no clínico-crítico)"
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Qué ocurre vs. qué se espera
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Pasos para reproducir
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Entorno (dispositivo, navegador, release)
+  - type: markdown
+    attributes:
+      value: "⚠️ Si el bug tiene impacto en seguridad del paciente, usa **Clinical Safety** en su lugar."

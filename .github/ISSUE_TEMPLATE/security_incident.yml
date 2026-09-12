@@ -1,0 +1,37 @@
+name: "🔒 Security Incident / Vulnerability"
+description: "Vulnerabilidad o incidente de seguridad"
+labels: ["type:security", "priority:high"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **No publiques exploits funcionales ni detalles de extracción paso a paso.**
+        Describe la clase de problema. Para vulnerabilidades sensibles usa el canal privado de
+        seguridad, no un issue público.
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción (clase de problema, activo afectado)
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Categoría
+      options:
+        - "Cross-tenant / IDOR / BOLA"
+        - "AuthN / AuthZ"
+        - "Exposición de PHI / secreto"
+        - "Inyección"
+        - "Dependencia vulnerable"
+        - "Configuración / infra"
+        - "Otro"
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severidad (CVSS aprox.)
+      options: ["Crítica", "Alta", "Media", "Baja"]
+    validations:
+      required: true

@@ -1,0 +1,36 @@
+# CODEOWNERS — simula la separación de responsabilidades de ~30 especialistas (§5).
+# Reemplazar los placeholders por handles reales al crear la organización de GitHub.
+# Cada dominio requiere aprobación de su owner antes del merge (branch protection).
+
+# Gobierno / arquitectura
+/docs/adr/                       @medical-os/architecture
+/docs/compliance/                @medical-os/compliance
+/docs/clinical-governance/       @medical-os/clinical-product
+/docs/threat-models/             @medical-os/security
+
+# Dominio clínico
+/packages/clinical-domain/       @medical-os/backend-domain @medical-os/clinical-product
+/packages/clinical-content/      @medical-os/clinical-product @medical-os/clinical-safety
+
+# Datos / persistencia
+/packages/db/                    @medical-os/data @medical-os/backend-domain
+
+# Seguridad y autorización
+/packages/authz/                 @medical-os/security @medical-os/backend-domain
+/packages/security/              @medical-os/security
+/packages/audit/                 @medical-os/security @medical-os/compliance
+
+# Interoperabilidad
+/packages/interoperability/      @medical-os/interoperability
+
+# UI / UX
+/packages/design-system/         @medical-os/frontend-ux
+/apps/web/                        @medical-os/frontend-ux @medical-os/backend-domain
+
+# Observabilidad / SRE
+/packages/observability/         @medical-os/devops-sre
+/workers/                         @medical-os/devops-sre @medical-os/backend-domain
+/infra/                           @medical-os/devops-sre
+
+# CI/CD
+/.github/                         @medical-os/devops-sre @medical-os/security

@@ -1,0 +1,28 @@
+name: "🗄️ Schema Migration"
+description: "Cambio de esquema de base de datos"
+labels: ["type:migration"]
+body:
+  - type: textarea
+    id: change
+    attributes:
+      label: Cambio propuesto
+    validations:
+      required: true
+  - type: dropdown
+    id: destructive
+    attributes:
+      label: ¿Es destructiva? (rename/drop de columna o tabla)
+      options: ["No", "Sí — requiere expand-and-contract (§24)"]
+    validations:
+      required: true
+  - type: checkboxes
+    id: policy
+    attributes:
+      label: Política de migraciones (§24)
+      options:
+        - label: Backward compatible durante despliegue progresivo
+        - label: Patrón expand-and-contract si renombra/elimina
+        - label: Probada en branch de Neon con seed sintético
+        - label: Plan de rollback/restore documentado
+        - label: Estimación de locking incluida
+        - label: Revisión de seguridad/compliance si afecta audit/provenance
