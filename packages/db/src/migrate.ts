@@ -9,9 +9,10 @@ import { dirname, resolve } from 'node:path';
  * La URL de conexión se lee de entorno (§reglas): nunca se hardcodea.
  */
 async function main(): Promise<void> {
-  const url = process.env.DATABASE_URL;
+  // Las migraciones (DDL) usan la conexión directa, sin pooler (§16, .env.example).
+  const url = process.env.DIRECT_DATABASE_URL ?? process.env.DATABASE_URL;
   if (!url) {
-    throw new Error('DATABASE_URL no está definida; no se puede migrar.');
+    throw new Error('DIRECT_DATABASE_URL/DATABASE_URL no definidas; no se puede migrar.');
   }
 
   const here = dirname(fileURLToPath(import.meta.url));
