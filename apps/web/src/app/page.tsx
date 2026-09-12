@@ -17,8 +17,9 @@ export default function HomePage() {
       </p>
 
       <Alert severity="info" title="Prototipo R0 (NIVEL 1)">
-        Datos sintéticos. La verdad clínica real llega en NIVEL 3 (Clinical Data Foundation), detrás
-        de identidad, tenancy y autorización server-side (NIVEL 2).
+        Pacientes con datos sintéticos (NIVEL 3 traerá la verdad clínica real). La{' '}
+        <Link href="/org">organización y consultorios</Link> ya se leen desde Neon, tenant-scoped
+        (NIVEL 2).
       </Alert>
 
       <div style={{ height: 'var(--space-4)' }} />

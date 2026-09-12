@@ -13,6 +13,7 @@
     "clean": "rm -rf .next .turbo *.tsbuildinfo"
   },
   "dependencies": {
+    "@medical-os/db": "workspace:*",
     "@medical-os/design-system": "workspace:*",
     "@medical-os/shared": "workspace:*",
     "next": "^15.1.4",

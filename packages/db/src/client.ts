@@ -1,4 +1,5 @@
-import { drizzle as drizzleNeon } from 'drizzle-orm/neon-serverless';
+import { neon } from '@neondatabase/serverless';
+import { drizzle as drizzleNeon } from 'drizzle-orm/neon-http';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import * as schema from './schema';
 
@@ -19,5 +20,6 @@ export function createNeonDatabase(connectionString: string): Database {
   if (!connectionString) {
     throw new Error('createNeonDatabase: connectionString vacío');
   }
-  return drizzleNeon(connectionString, { schema }) as unknown as Database;
+  const sql = neon(connectionString);
+  return drizzleNeon(sql, { schema }) as unknown as Database;
 }

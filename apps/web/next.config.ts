@@ -3,7 +3,7 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Los paquetes del workspace exportan TS/TSX fuente: Next debe transpilarlos.
-  transpilePackages: ['@medical-os/design-system', '@medical-os/shared'],
+  transpilePackages: ['@medical-os/design-system', '@medical-os/shared', '@medical-os/db'],
   // Security headers base (§15, §25). CSP se endurecerá antes de producción.
   async headers() {
     return [

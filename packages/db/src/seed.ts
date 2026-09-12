@@ -1,0 +1,174 @@
+import { eq } from 'drizzle-orm';
+import {
+  newTenantId,
+  newOrganizationId,
+  newFacilityId,
+  newUserId,
+  newMembershipId,
+  newRoleId,
+  newPractitionerId,
+} from '@medical-os/shared';
+import { createNeonDatabase } from './client';
+import {
+  tenant,
+  organization,
+  facility,
+  appUser,
+  membership,
+  role,
+  permission,
+  rolePermission,
+  membershipRole,
+  practitioner,
+} from './schema';
+
+/**
+ * Seed mínimo y DETERMINISTA del vertical slice (paso 1, §28):
+ * tenant → organización → consultorio → usuario → membresía → rol admin → médico.
+ *
+ * Idempotente: se identifica por claves naturales (slug, email, key) y no
+ * duplica si ya existe. NO contiene PHI real (§16, §33): sólo datos de demo.
+ * Ejecutar con `pnpm --filter @medical-os/db db:seed` (con .env.local cargado).
+ */
+
+const DEMO = {
+  tenantSlug: 'velum-demo',
+  tenantName: 'VELUM Demo',
+  orgName: 'VELUM Medicina Estética',
+  facilityName: 'Consultorio Centro',
+  timezone: 'America/Mexico_City',
+  userEmail: 'demo@velum.local',
+  userName: 'Dr. Demo Godínez',
+  roleKey: 'admin',
+  roleName: 'Administrador clínico',
+  specialty: 'Medicina general',
+} as const;
+
+/** Permisos base del catálogo global (estables, no tenant-scoped). */
+const PERMISSIONS: ReadonlyArray<{ key: string; description: string }> = [
+  { key: 'patient.read', description: 'Ver pacientes' },
+  { key: 'patient.write', description: 'Crear/editar pacientes' },
+  { key: 'organization.manage', description: 'Administrar organizaciones y consultorios' },
+  { key: 'encounter.sign', description: 'Firmar encuentros clínicos' },
+];
+
+async function main(): Promise<void> {
+  const url = process.env.DATABASE_URL ?? process.env.DIRECT_DATABASE_URL;
+  if (!url) {
+    throw new Error('DATABASE_URL/DIRECT_DATABASE_URL no definidas; no se puede sembrar.');
+  }
+  const db = createNeonDatabase(url);
+
+  // 1) Tenant (por slug)
+  let [t] = await db.select().from(tenant).where(eq(tenant.slug, DEMO.tenantSlug)).limit(1);
+  if (!t) {
+    [t] = await db
+      .insert(tenant)
+      .values({ id: newTenantId(), name: DEMO.tenantName, slug: DEMO.tenantSlug })
+      .returning();
+  }
+  const tenantId = t!.id;
+
+  // 2) Organización (por nombre dentro del tenant)
+  let [org] = await db
+    .select()
+    .from(organization)
+    .where(eq(organization.tenantId, tenantId))
+    .limit(1);
+  if (!org) {
+    [org] = await db
+      .insert(organization)
+      .values({ id: newOrganizationId(), tenantId, name: DEMO.orgName })
+      .returning();
+  }
+  const organizationId = org!.id;
+
+  // 3) Consultorio / facility
+  let [fac] = await db.select().from(facility).where(eq(facility.tenantId, tenantId)).limit(1);
+  if (!fac) {
+    [fac] = await db
+      .insert(facility)
+      .values({
+        id: newFacilityId(),
+        tenantId,
+        organizationId,
+        name: DEMO.facilityName,
+        timezone: DEMO.timezone,
+      })
+      .returning();
+  }
+
+  // 4) Usuario global (por email)
+  let [user] = await db.select().from(appUser).where(eq(appUser.email, DEMO.userEmail)).limit(1);
+  if (!user) {
+    [user] = await db
+      .insert(appUser)
+      .values({
+        id: newUserId(),
+        email: DEMO.userEmail,
+        displayName: DEMO.userName,
+        status: 'active',
+      })
+      .returning();
+  }
+  const userId = user!.id;
+
+  // 5) Membresía usuario ↔ tenant
+  let [mem] = await db.select().from(membership).where(eq(membership.userId, userId)).limit(1);
+  if (!mem) {
+    [mem] = await db
+      .insert(membership)
+      .values({ id: newMembershipId(), tenantId, userId, status: 'active' })
+      .returning();
+  }
+  const membershipId = mem!.id;
+
+  // 6) Catálogo global de permisos (idempotente)
+  for (const p of PERMISSIONS) {
+    await db.insert(permission).values(p).onConflictDoNothing();
+  }
+
+  // 7) Rol admin tenant-scoped + todos los permisos
+  let [adminRole] = await db.select().from(role).where(eq(role.tenantId, tenantId)).limit(1);
+  if (!adminRole) {
+    [adminRole] = await db
+      .insert(role)
+      .values({ id: newRoleId(), tenantId, key: DEMO.roleKey, name: DEMO.roleName })
+      .returning();
+  }
+  const roleId = adminRole!.id;
+  for (const p of PERMISSIONS) {
+    await db
+      .insert(rolePermission)
+      .values({ tenantId, roleId, permissionKey: p.key })
+      .onConflictDoNothing();
+  }
+
+  // 8) Asignar rol a la membresía
+  await db.insert(membershipRole).values({ tenantId, membershipId, roleId }).onConflictDoNothing();
+
+  // 9) Practitioner (médico) para el usuario demo
+  const [existingPract] = await db
+    .select()
+    .from(practitioner)
+    .where(eq(practitioner.userId, userId))
+    .limit(1);
+  if (!existingPract) {
+    await db.insert(practitioner).values({
+      id: newPractitionerId(),
+      tenantId,
+      userId,
+      specialty: DEMO.specialty,
+    });
+  }
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `Seed OK · tenant=${DEMO.tenantSlug} org="${DEMO.orgName}" facility="${DEMO.facilityName}" user=${DEMO.userEmail}`,
+  );
+}
+
+main().catch((error: unknown) => {
+  console.error('Fallo al sembrar:', error);
+  process.exit(1);
+});

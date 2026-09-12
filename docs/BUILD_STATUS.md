@@ -38,6 +38,15 @@ Pendiente del gate: integración con IdP/sesión real, RLS en Neon, wiring de
 `authorization_decision_id` y `payload` sin PHI) y `provenance`; `AuditRepository`
 tenant-scoped con `recordCrossTenantDenied`.
 
+**Cableado app ↔ BD (2026-09-12):** Neon provisionado vía Vercel Marketplace;
+13 tablas migradas. `apps/web` consume `@medical-os/db` server-side
+(`src/server/db.ts` con `server-only`, `src/server/context.ts` resuelve el
+`TenantContext`). `resolveTenantContext` carga permisos efectivos desde la BD
+(membership→role→permission). Página `/org` muestra los PRIMEROS datos reales
+desde Neon (organización + consultorios) leídos con repositories tenant-aware.
+Seed determinista/idempotente (`db:seed`): tenant→org→facility→user→membership→
+rol admin+permisos→practitioner. Identidad demo PROVISIONAL hasta el IdP.
+
 ## Release R1 — Clinical Core
 
 | Nivel | Descripción                              | Estado |
@@ -68,7 +77,7 @@ tenant-scoped con `recordCrossTenantDenied`.
 
 El primer corte end-to-end que valida la columna vertebral:
 
-1. ⬜ Crear tenant, organización, consultorio y médico
+1. 🟨 Crear tenant, organización, consultorio y médico (vía seed; falta flujo UI)
 2. ⬜ Crear/buscar paciente con detección de duplicados
 3. ⬜ Abrir Patient Workspace
 4. ⬜ Crear encuentro de medicina general
