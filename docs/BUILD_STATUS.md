@@ -9,8 +9,8 @@ Leyenda: ⬜ pendiente · 🟨 en curso · ✅ completo (puerta de salida cruzad
 | ----- | ---------------------------------------- | ------ |
 | 0     | Gobierno, repositorio y CI               | ✅     |
 | 1     | Design System y arquitectura de info     | 🟨     |
-| 2     | Identidad, tenancy y autorización        | ⬜     |
-| —     | Audit/provenance skeleton                | ⬜     |
+| 2     | Identidad, tenancy y autorización        | 🟨     |
+| —     | Audit/provenance skeleton                | ✅     |
 
 **NIVEL 0 — puerta cruzada (2026-09-12):** monorepo pnpm+Turborepo con TS estricto,
 ESLint 9, Prettier, husky+lint-staged; ADR-0001/0002/0003; plantillas de issues;
@@ -22,6 +22,21 @@ theme-aware, primitivas (Button/Badge/Alert/ClinicalCard) y patrones de segurida
 (PatientHeader persistente, AllergyBanner). App Next.js con shell de 3 columnas (§2.1),
 Command Center y Patient Workspace navegables con datos sintéticos.
 Pendiente del gate: Storybook, Command Palette, verificación teclado/touch en 3 tamaños.
+
+**NIVEL 2 — en curso:** paquete `@medical-os/db` con Drizzle ORM. Esquema de
+identidad/tenancy (tenant, organization, facility, app_user, membership,
+practitioner, role/permission/role_permission/membership_role, relationship
+ReBAC) + skeleton de audit/provenance. `TenantContext` resuelto en servidor
+(nunca se confía en `tenant_id` del cliente) y repositories tenant-aware con
+scoping obligatorio (ADR-0002 §2). Gate parcial cumplido: 7 pruebas
+cross-tenant / IDOR / BOLA en verde (`tenant-isolation.test.ts`) contra Postgres
+real vía PGlite. Migraciones SQL generadas (`drizzle/0000_*.sql`).
+Pendiente del gate: integración con IdP/sesión real, RLS en Neon, wiring de
+`authorization_decision_id` en las operaciones sensibles de la app.
+
+**Audit/provenance skeleton — listo:** tablas `audit_event` (append-only, con
+`authorization_decision_id` y `payload` sin PHI) y `provenance`; `AuditRepository`
+tenant-scoped con `recordCrossTenantDenied`.
 
 ## Release R1 — Clinical Core
 
