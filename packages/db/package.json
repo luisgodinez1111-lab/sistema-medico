@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@medical-os/shared": "workspace:*",
-    "@neondatabase/serverless": "^0.10.4",
+    "@neondatabase/serverless": "^1.1.0",
     "drizzle-orm": "^0.38.3",
     "zod": "^3.24.1"
   },
