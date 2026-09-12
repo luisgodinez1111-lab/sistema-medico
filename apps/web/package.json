@@ -16,7 +16,7 @@
     "@medical-os/db": "workspace:*",
     "@medical-os/design-system": "workspace:*",
     "@medical-os/shared": "workspace:*",
-    "next": "^15.1.4",
+    "next": "^16.3.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
