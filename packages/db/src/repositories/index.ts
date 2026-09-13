@@ -5,4 +5,5 @@ export * from './allergy';
 export * from './condition';
 export * from './observation';
 export * from './related-person';
+export * from './history';
 export * from './audit';

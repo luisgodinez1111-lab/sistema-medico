@@ -8,6 +8,7 @@ import {
   ConditionRepository,
   ObservationRepository,
   RelatedPersonRepository,
+  HistoryRepository,
   hasPermission,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
@@ -240,4 +241,42 @@ export async function mergePatientAction(
 
   revalidatePath('/patients');
   redirect(`/patients/${winnerId}`);
+}
+
+/**
+ * Guarda una SECCIÓN de la historia clínica adaptativa (§NIVEL 5). Recibe los
+ * ítems de la sección (campos `item:<section>:<code>`) y hace upsert de cada uno
+ * (valor vacío = baja lógica del ítem). Autorización server-side + scoping.
+ */
+export async function saveHistorySectionAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para editar la historia.' };
+  }
+
+  const patientId = str(formData, 'patientId') as PatientId;
+  if (!patientId) return { status: 'error', message: 'Datos inválidos.' };
+
+  const repo = new HistoryRepository(getDb(), ctx);
+  // Campos de la forma "item:<section>:<code>".
+  for (const [key, raw] of formData.entries()) {
+    if (!key.startsWith('item:')) continue;
+    const parts = key.split(':');
+    if (parts.length < 3) continue;
+    const section = parts[1]!;
+    const code = parts.slice(2).join(':');
+    const value = raw.toString();
+    const result = await repo.setEntry({ patientId, section, code, value });
+    if (result === null && value.trim() !== '') {
+      // Sólo puede deberse a paciente inválido (el vacío no entra aquí).
+      return { status: 'error', message: 'No se pudo guardar (paciente no válido).' };
+    }
+  }
+
+  revalidatePath(`/patients/${patientId}`);
+  return { status: 'ok', message: 'Historia actualizada.' };
 }

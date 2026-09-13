@@ -6,16 +6,20 @@ import {
   ConditionRepository,
   ObservationRepository,
   RelatedPersonRepository,
+  HistoryRepository,
+  applicableHistorySections,
+  HISTORY_SCHEMA_VERSION,
   hasPermission,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
-import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
+import { fullPatientName, ageLabel, ageYears, sexLabel } from '@/lib/patient-format';
 import { AllergyManager } from './AllergyManager';
 import { ConditionManager } from './ConditionManager';
 import { VitalsManager } from './VitalsManager';
 import { ContactsManager } from './ContactsManager';
+import { HistoryManager } from './HistoryManager';
 import { MergeManager } from './MergeManager';
 
 export const dynamic = 'force-dynamic';
@@ -40,6 +44,16 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
   const conditions = await new ConditionRepository(db, ctx).listActive(patient.id);
   const vitals = await new ObservationRepository(db, ctx).listForPatient(patient.id, 'vital-signs');
   const contacts = await new RelatedPersonRepository(db, ctx).listForPatient(patient.id);
+
+  // Historia clínica adaptativa: secciones por edad/sexo + valores ya capturados.
+  const historySections = applicableHistorySections({
+    ageYears: ageYears(patient.birthDate),
+    sex: patient.sex,
+  });
+  const historyRows = await new HistoryRepository(db, ctx).listForPatient(patient.id);
+  const historyValues: Record<string, string> = {};
+  for (const row of historyRows) historyValues[`${row.section}:${row.code}`] = row.value;
+
   const reviewed = patient.allergiesReviewedAt !== null;
   const canWrite = hasPermission(ctx, 'patient.write');
 
@@ -137,6 +151,14 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
           <ClinicalCard title="Medicación actual">
             <p className="mos-muted">Disponible con prescripción estructurada (NIVEL 8).</p>
           </ClinicalCard>
+
+          <HistoryManager
+            patientId={patient.id}
+            sections={historySections}
+            values={historyValues}
+            schemaVersion={HISTORY_SCHEMA_VERSION}
+            canWrite={canWrite}
+          />
 
           <MergeManager patientId={patient.id} canWrite={canWrite} />
         </section>

@@ -4,6 +4,16 @@
  * (años), base de la historia adaptativa (§NIVEL 5).
  */
 
+/** Edad en años cumplidos desde una fecha ISO (para la historia adaptativa). */
+export function ageYears(birthDate: string, now: Date = new Date()): number {
+  const born = new Date(`${birthDate}T00:00:00`);
+  if (Number.isNaN(born.getTime())) return 0;
+  let years = now.getFullYear() - born.getFullYear();
+  const m = now.getMonth() - born.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < born.getDate())) years -= 1;
+  return Math.max(0, years);
+}
+
 export function fullPatientName(p: {
   givenNames: string;
   firstSurname: string;

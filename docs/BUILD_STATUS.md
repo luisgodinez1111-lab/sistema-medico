@@ -115,6 +115,21 @@ Pendiente del gate: timeline y "cambios desde la última visita" (dependen de
 encuentros, NIVEL 6), medicación (NIVEL 8), pendientes (NIVEL 9); drawer
 responsive de timeline/rail en tablet/móvil (§21).
 
+**NIVEL 5 — Adaptive Clinical History Engine — en curso:** historia clínica
+ESTRUCTURADA (tabla `history_entry`, una fila por ítem — NUNCA JSON gigante,
+§33 #1) tenant- y patient-scoped con baja lógica y unicidad por
+(tenant,patient,section,code) para upsert. Motor `applicableHistorySections`
+computa server-side las secciones por edad/sexo (adulto: heredofamiliares,
+personales patológicos/no patológicos, gineco-obstétricos si mujer; pediátrico:
+perinatales, desarrollo <5a, inmunizaciones), con `HISTORY_SCHEMA_VERSION` para
+gobernanza (§33 #8). `HistoryRepository.setEntry` hace upsert (valor vacío = baja
+lógica). UI `HistoryManager` en el workspace: secciones adaptativas con captura
+vía server action (permiso `patient.write`). Migración `drizzle/0006_*.sql`
+aplicada. 6 pruebas nuevas (motor adulto/pediátrico/femenino, upsert, vacío,
+aislamiento). db: 48/48 verde. Cubre §28 paso 5.
+Pendiente: completitud/score de historia, versión de contenido revisada por
+clínico, secciones por especialidad (R7).
+
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
 Dependabot ahora agrupa minor/patch e **ignora majors** (política de estabilidad,
@@ -136,7 +151,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | ----- | ---------------------------------------- | ------ |
 | 3     | Clinical Data Foundation                 | ✅     |
 | 4     | Patient Workspace                        | 🟨     |
-| 5     | Adaptive Clinical History Engine         | ⬜     |
+| 5     | Adaptive Clinical History Engine         | 🟨     |
 | 6     | Encounter Workspace + firma              | ⬜     |
 
 ## Release R2 — Safety Loop
@@ -164,7 +179,7 @@ El primer corte end-to-end que valida la columna vertebral:
 2. ✅ Crear/buscar paciente con detección de duplicados (UI + server action)
 3. ✅ Abrir Patient Workspace (identidad, alergias, problemas, vitales, contactos reales)
 4. ⬜ Crear encuentro de medicina general
-5. ⬜ Capturar historia adaptativa adulto/pediátrico mínima
+5. 🟨 Capturar historia adaptativa adulto/pediátrico mínima (motor + captura listos)
 6. 🟨 Registrar signos vitales y exploración (vitales listos; exploración pendiente)
 7. 🟨 Crear problema/diagnóstico y plan (Condition listo; plan pendiente)
 8. ⬜ Emitir receta estructurada

@@ -11,6 +11,7 @@ import {
 import type {
   AllergyId,
   ConditionId,
+  HistoryEntryId,
   ObservationId,
   PatientId,
   RelatedPersonId,
@@ -273,5 +274,45 @@ export const relatedPerson = pgTable(
   (t) => [
     index('related_person_tenant_idx').on(t.tenantId),
     index('related_person_tenant_patient_idx').on(t.tenantId, t.patientId),
+  ],
+);
+
+/**
+ * Historia clínica ESTRUCTURADA (§NIVEL 5). Cada ítem es una fila, NUNCA un JSON
+ * gigante ni un campo de texto único (§33, decisión prohibida #1). Qué secciones
+ * e ítems aplican se computa server-side de forma ADAPTATIVA según edad/sexo
+ * (motor en `clinical-history.ts`), con versión de contenido para gobernanza.
+ *
+ * - Tenant- y patient-scoped; baja lógica (`deleted_at`).
+ * - `section` y `code` identifican el ítem; único por paciente e ítem activo.
+ * - `schema_version` registra con qué versión del cuestionario se capturó.
+ */
+export const historyEntry = pgTable(
+  'history_entry',
+  {
+    id: text('id').primaryKey().$type<HistoryEntryId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+
+    /** Sección del cuestionario, p.ej. "heredofamiliares", "perinatales". */
+    section: text('section').notNull(),
+    /** Ítem dentro de la sección, p.ej. "diabetes", "parto". */
+    code: text('code').notNull(),
+    /** Respuesta/valor capturado (texto libre gobernado por el ítem). */
+    value: text('value').notNull(),
+    note: text('note'),
+    /** Versión del esquema adaptativo con que se capturó (gobernanza, §33 #8). */
+    schemaVersion: text('schema_version').notNull(),
+
+    recordedBy: text('recorded_by').$type<UserId>(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('history_entry_tenant_idx').on(t.tenantId),
+    index('history_entry_tenant_patient_idx').on(t.tenantId, t.patientId),
+    // Un ítem (section+code) por paciente: permite upsert determinista.
+    uniqueIndex('history_entry_patient_item_idx').on(t.tenantId, t.patientId, t.section, t.code),
   ],
 );
