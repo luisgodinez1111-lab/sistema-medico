@@ -158,6 +158,42 @@
   gap: var(--space-3);
 }
 
+/* --- Skeletons de carga (DoD §31) --- */
+@keyframes mos-skeleton-pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.mos-skeleton-row,
+.mos-skeleton-line,
+.mos-skeleton-card {
+  background: var(--color-border);
+  border-radius: var(--radius-md);
+  animation: mos-skeleton-pulse 1.2s ease-in-out infinite;
+}
+.mos-skeleton-row {
+  height: 3rem;
+}
+.mos-skeleton-line {
+  height: 0.9rem;
+}
+.mos-skeleton-card {
+  height: 8rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mos-skeleton-row,
+  .mos-skeleton-line,
+  .mos-skeleton-card {
+    animation: none;
+  }
+}
+
 /* --- Patient Workspace: shell de 3 columnas (§2.1) --- */
 .mos-workspace {
   display: grid;

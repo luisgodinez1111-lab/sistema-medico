@@ -106,6 +106,15 @@ aislamiento tenant). db: 43/43 verde. Verificado contra Neon real.
 observation, related_person + merge). Pendiente de releases posteriores:
 codificación ICD-10/SNOMED, adjuntos, FHIR export.
 
+**NIVEL 4 — Patient Workspace — en curso:** shell de 3 columnas con datos reales
+ya construido en NIVEL 3 (identidad, alergias con criticidad, problemas, signos
+vitales, contactos). Añadidos los estados robustos de la DoD (§31):
+`loading` (skeletons de lista y workspace), `error` boundary sin PHI (digest para
+correlación), `not-found` que no revela existencia cross-tenant (§27).
+Pendiente del gate: timeline y "cambios desde la última visita" (dependen de
+encuentros, NIVEL 6), medicación (NIVEL 8), pendientes (NIVEL 9); drawer
+responsive de timeline/rail en tablet/móvil (§21).
+
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
 Dependabot ahora agrupa minor/patch e **ignora majors** (política de estabilidad,
@@ -126,7 +135,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | Nivel | Descripción                              | Estado |
 | ----- | ---------------------------------------- | ------ |
 | 3     | Clinical Data Foundation                 | ✅     |
-| 4     | Patient Workspace                        | ⬜     |
+| 4     | Patient Workspace                        | 🟨     |
 | 5     | Adaptive Clinical History Engine         | ⬜     |
 | 6     | Encounter Workspace + firma              | ⬜     |
 
@@ -153,7 +162,7 @@ El primer corte end-to-end que valida la columna vertebral:
 
 1. 🟨 Crear tenant, organización, consultorio y médico (vía seed; falta flujo UI)
 2. ✅ Crear/buscar paciente con detección de duplicados (UI + server action)
-3. 🟨 Abrir Patient Workspace (demografía real; secciones clínicas pendientes)
+3. ✅ Abrir Patient Workspace (identidad, alergias, problemas, vitales, contactos reales)
 4. ⬜ Crear encuentro de medicina general
 5. ⬜ Capturar historia adaptativa adulto/pediátrico mínima
 6. 🟨 Registrar signos vitales y exploración (vitales listos; exploración pendiente)
