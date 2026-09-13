@@ -204,8 +204,19 @@ UI `/agenda` (enlazada en el topbar): agenda del día por fecha con check-in y
 cancelar, alta de cita por MRN; permiso `patient.write`. 4 pruebas nuevas
 (crear/listar por día, check-in no reaplicable, aislamiento). db: 68/68 verde.
 Verificado contra Neon (booked→check-in→arrived).
-Pendiente de R3: **billing básico** (en tablas separadas de las clínicas, §33
-#11), recordatorios, anti doble-booking por practitioner, vista semanal.
+**Billing básico (R3):** módulo `schema/billing.ts` SEPARADO de lo clínico
+(§33 #11): `invoice` + `invoice_item`, dinero en CENTAVOS enteros, moneda
+explícita (MXN). `BillingRepository`: createInvoice (líneas + total derivado),
+getItems, listForPatient, issue (draft→issued), markPaid (issued→paid), todo
+tenant/patient-scoped. Migración `drizzle/0012_*.sql` aplicada. UI
+`/patients/[id]/billing` (enlace en el rail): lista de facturas con estado,
+alta de factura y acciones emitir/pagar; permiso `patient.write`. Helper
+`formatMoney`/`pesosToCents`. 4 pruebas nuevas (total, validación, transiciones,
+aislamiento). db: 72/72 verde. Verificado contra Neon ($1,100.00 draft→issued→paid).
+
+**Release R3 — Agenda + check-in + billing básico: completo.**
+Pendiente de mejoras R3: recordatorios, anti doble-booking por practitioner,
+vista semanal de agenda, facturas multi-línea en UI, impresión/CFDI.
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
@@ -242,7 +253,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 
 | Release | Contenido                                | Estado |
 | ------- | ---------------------------------------- | ------ |
-| R3      | Agenda, check-in, billing básico         | 🟨     |
+| R3      | Agenda, check-in, billing básico         | ✅     |
 | R4      | Pathways, completeness, med safety       | ⬜     |
 | R5      | Documents, FHIR, external adapters       | ⬜     |
 | R6      | AI Copilot (human-in-the-loop)           | ⬜     |

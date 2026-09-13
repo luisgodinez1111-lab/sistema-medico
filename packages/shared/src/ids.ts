@@ -41,6 +41,9 @@ export type ConsentId = Branded<Ulid, 'ConsentId'>;
 
 // Agenda / operaciones (§NIVEL/R3)
 export type AppointmentId = Branded<Ulid, 'AppointmentId'>;
+// Billing (R3) — SEPARADO de lo clínico (§33 #11)
+export type InvoiceId = Branded<Ulid, 'InvoiceId'>;
+export type InvoiceItemId = Branded<Ulid, 'InvoiceItemId'>;
 
 // Gobernanza (§NIVEL 3, §19)
 export type AuditEventId = Branded<Ulid, 'AuditEventId'>;
@@ -78,5 +81,7 @@ export const newDocumentId = (): DocumentId => ulid() as DocumentId;
 export const newTaskId = (): TaskId => ulid() as TaskId;
 export const newConsentId = (): ConsentId => ulid() as ConsentId;
 export const newAppointmentId = (): AppointmentId => ulid() as AppointmentId;
+export const newInvoiceId = (): InvoiceId => ulid() as InvoiceId;
+export const newInvoiceItemId = (): InvoiceItemId => ulid() as InvoiceItemId;
 export const newAuditEventId = (): AuditEventId => ulid() as AuditEventId;
 export const newProvenanceId = (): ProvenanceId => ulid() as ProvenanceId;

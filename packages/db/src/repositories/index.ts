@@ -10,4 +10,5 @@ export * from './encounter';
 export * from './medication';
 export * from './orders';
 export * from './appointment';
+export * from './billing';
 export * from './audit';

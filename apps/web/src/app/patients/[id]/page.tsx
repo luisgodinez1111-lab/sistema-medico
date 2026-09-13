@@ -286,6 +286,10 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
           <Link className="mos-muted" href={`/patients/${patient.id}/audit`}>
             Ver historial de auditoría →
           </Link>
+          <br />
+          <Link className="mos-muted" href={`/patients/${patient.id}/billing`}>
+            Ver facturación →
+          </Link>
         </aside>
       </div>
     </div>
