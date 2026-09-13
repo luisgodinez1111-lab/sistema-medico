@@ -13,6 +13,7 @@ import { createNeonDatabase } from './client';
 import { createTenantContext } from './tenant-context';
 import { PatientRepository, type NewPatientInput } from './repositories/patient';
 import { AllergyRepository } from './repositories/allergy';
+import { ConditionRepository } from './repositories/condition';
 import {
   tenant,
   organization,
@@ -220,6 +221,21 @@ async function main(): Promise<void> {
     .where(and(eq(patient.tenantId, tenantId), eq(patient.mrn, '000456')))
     .limit(1);
   if (santiago) await allergyRepo.markReviewed(santiago.id);
+
+  // 12) Problemas activos demo (NIVEL 3) para María. Idempotente.
+  const conditionRepo = new ConditionRepository(db, ctx);
+  if (maria && (await conditionRepo.listAll(maria.id)).length === 0) {
+    await conditionRepo.create({
+      patientId: maria.id,
+      code: 'Diabetes mellitus tipo 2',
+      onsetDate: '2021-01-01',
+    });
+    await conditionRepo.create({
+      patientId: maria.id,
+      code: 'Hipertensión arterial',
+      onsetDate: '2022-01-01',
+    });
+  }
 
   // eslint-disable-next-line no-console
   console.log(

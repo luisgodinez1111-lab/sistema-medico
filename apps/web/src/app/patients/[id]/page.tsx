@@ -1,11 +1,17 @@
 import { notFound } from 'next/navigation';
 import { PatientHeader, AllergyBanner, ClinicalCard, Button } from '@medical-os/design-system';
-import { PatientRepository, AllergyRepository, hasPermission } from '@medical-os/db';
+import {
+  PatientRepository,
+  AllergyRepository,
+  ConditionRepository,
+  hasPermission,
+} from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
 import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
 import { AllergyManager } from './AllergyManager';
+import { ConditionManager } from './ConditionManager';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +32,7 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
   if (!patient) notFound();
 
   const allergies = await new AllergyRepository(db, ctx).listForPatient(patient.id);
+  const conditions = await new ConditionRepository(db, ctx).listActive(patient.id);
   const reviewed = patient.allergiesReviewedAt !== null;
   const canWrite = hasPermission(ctx, 'patient.write');
 
@@ -97,9 +104,15 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
             canWrite={canWrite}
           />
 
-          <ClinicalCard title="Problemas activos">
-            <p className="mos-muted">Se capturan en el encuentro clínico (NIVEL 6).</p>
-          </ClinicalCard>
+          <ConditionManager
+            patientId={patient.id}
+            conditions={conditions.map((c) => ({
+              id: c.id,
+              code: c.code,
+              onsetDate: c.onsetDate,
+            }))}
+            canWrite={canWrite}
+          />
 
           <ClinicalCard title="Medicación actual">
             <p className="mos-muted">Disponible con prescripción estructurada (NIVEL 8).</p>

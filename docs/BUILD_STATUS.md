@@ -70,8 +70,14 @@ y criticidad; alta de alergia y marcado NKDA vía server actions (permiso
 `patient.write`). 6 pruebas nuevas (aislamiento, patient-scoping, NKDA, soft-delete).
 Total db: 24/24 en verde. Seed: María con alergia a Penicilina (alta/anafilaxia),
 Santiago NKDA.
-Pendiente: merge real de duplicados, RelatedPerson,
-Condition/Observation (resto de NIVEL 3).
+**Condition (NIVEL 3):** tabla `condition` (FHIR Condition: code, codeSystem,
+clinical_status, onset_date) tenant- y patient-scoped, baja lógica.
+`ConditionRepository` valida patient-in-tenant; listActive/listAll, create,
+setStatus (p.ej. resolver), softDelete. Migración `drizzle/0003_*.sql` aplicada.
+Patient Workspace: "Problemas activos" con datos reales + alta vía server action
+(permiso `patient.write`) — cubre §28 paso 7. 5 pruebas nuevas. db: 29/29 verde.
+Seed: María con DM2 + HTA.
+Pendiente: Observation (signos vitales), RelatedPerson, merge real de duplicados.
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
@@ -124,7 +130,7 @@ El primer corte end-to-end que valida la columna vertebral:
 4. ⬜ Crear encuentro de medicina general
 5. ⬜ Capturar historia adaptativa adulto/pediátrico mínima
 6. ⬜ Registrar signos vitales y exploración
-7. ⬜ Crear problema/diagnóstico y plan
+7. 🟨 Crear problema/diagnóstico y plan (Condition listo; plan pendiente)
 8. ⬜ Emitir receta estructurada
 9. ⬜ Solicitar un laboratorio
 10. ⬜ Firmar encuentro (snapshot + provenance)

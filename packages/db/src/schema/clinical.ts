@@ -1,5 +1,5 @@
 import { pgTable, pgEnum, text, date, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
-import type { AllergyId, PatientId, TenantId, UserId } from '@medical-os/shared';
+import type { AllergyId, ConditionId, PatientId, TenantId, UserId } from '@medical-os/shared';
 
 /**
  * NIVEL 3 — Clinical Data Foundation (§NIVEL 3, ADR-0003).
@@ -122,5 +122,50 @@ export const allergy = pgTable(
   (t) => [
     index('allergy_tenant_idx').on(t.tenantId),
     index('allergy_tenant_patient_idx').on(t.tenantId, t.patientId),
+  ],
+);
+
+/**
+ * Problemas/diagnósticos del paciente (§NIVEL 3, alineado con FHIR Condition).
+ * Alimenta la lista de "Problemas activos" del Patient Workspace y, más
+ * adelante, el plan y la receta (§28 paso 7).
+ *
+ * - Tenant- y patient-scoped; baja lógica (`deleted_at`, ADR-0003 §8).
+ * - `code`/`codeSystem` permiten adjuntar codificación (ICD-10/SNOMED) después
+ *   sin migrar: hoy `code` guarda el texto clínico legible.
+ */
+export const conditionClinicalStatus = pgEnum('condition_clinical_status', [
+  'active',
+  'recurrence',
+  'relapse',
+  'inactive',
+  'remission',
+  'resolved',
+]);
+
+export const condition = pgTable(
+  'condition',
+  {
+    id: text('id').primaryKey().$type<ConditionId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+
+    /** Problema/diagnóstico legible, p.ej. "Diabetes mellitus tipo 2". */
+    code: text('code').notNull(),
+    /** Sistema de codificación opcional, p.ej. "ICD-10". */
+    codeSystem: text('code_system'),
+    clinicalStatus: conditionClinicalStatus('clinical_status').notNull().default('active'),
+    /** Fecha de inicio (onset), si se conoce. */
+    onsetDate: date('onset_date'),
+    note: text('note'),
+
+    recordedBy: text('recorded_by').$type<UserId>(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('condition_tenant_idx').on(t.tenantId),
+    index('condition_tenant_patient_idx').on(t.tenantId, t.patientId),
   ],
 );
