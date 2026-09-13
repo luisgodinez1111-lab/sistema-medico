@@ -65,6 +65,12 @@ export const appUser = pgTable(
     id: text('id').primaryKey().$type<UserId>(),
     email: text('email').notNull(),
     displayName: text('display_name').notNull(),
+    /**
+     * Hash de contraseña (bcrypt). NULL = usuario invitado que aún no la fijó.
+     * NUNCA se guarda la contraseña en claro ni se expone este campo al cliente
+     * (§NIVEL 2, §33). El login lo gobierna Auth.js (Credentials + JWT).
+     */
+    passwordHash: text('password_hash'),
     mfaEnabled: boolean('mfa_enabled').notNull().default(false),
     status: userStatus('status').notNull().default('invited'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

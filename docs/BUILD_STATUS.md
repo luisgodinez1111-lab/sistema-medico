@@ -46,12 +46,25 @@ authorization_decision_id y outcome allowed/denied) en cada operación sensible
 (prescribir, firmar encuentro, solicitar/revisar estudios). Audit trail por
 paciente en `/patients/[id]/audit` (§28 paso 15). Migración `drizzle/0010_*.sql`
 (columna `patient_id` en audit_event).
-Pendiente del gate: integración con IdP/sesión real; RLS en Neon DIFERIDA con
-rationale — el driver neon-http es stateless (sin sesión/transacción por
-request), así que el GUC por tenant que exige RLS no es viable hoy; la defensa en
-profundidad actual (scoping de repos obligatorio + constraints + pruebas
-cross-tenant + audit) es el control primario aceptado por ADR-0002. Revisar RLS
-al adoptar un driver con sesión o rol por tenant.
+**IdP real — listo (Auth.js v5, email + contraseña):** login propio self-hosted
+(sin proveedor externo). Credenciales verificadas contra `app_user` con hash
+**bcrypt** (`auth-credentials.ts`: `hashPassword`/`verifyPassword`/`authenticateUser`;
+la contraseña nunca en claro, `password_hash` nullable, migración `0014_*.sql`).
+Sesión **JWT**; el `uid` firmado viaja en el token y el tenant + permisos se
+resuelven server-side (`resolveTenantContextForUser`), NUNCA desde el cliente
+(ADR-0002). Split edge-safe: `auth.config.ts` (middleware, sin BD) + `auth.ts`
+(Node, Credentials). Middleware protege todo salvo `/login` y `/api/auth`. UI
+`/login` + logout en el topbar; el shell solo se muestra autenticado. `context.ts`
+lee la sesión real; el fallback demo queda detrás de `AUTH_DEMO_FALLBACK` (solo
+dev/tests). Seed fija contraseña del usuario demo (idempotente). 4 pruebas.
+**Requiere `AUTH_SECRET` en Vercel** (Production/Preview/Development). MFA/WebAuthn
+y tenant-switcher multi-membresía quedan como mejora futura.
+
+Pendiente del gate: **RLS en Neon DIFERIDA** con rationale — el driver neon-http
+es stateless (sin sesión/transacción por request), así que el GUC por tenant que
+exige RLS no es viable hoy; la defensa en profundidad actual (scoping de repos
+obligatorio + constraints + pruebas cross-tenant + audit) es el control primario
+aceptado por ADR-0002. Revisar RLS al adoptar un driver con sesión o rol por tenant.
 
 **Audit/provenance skeleton — listo:** tablas `audit_event` (append-only, con
 `authorization_decision_id` y `payload` sin PHI) y `provenance`; `AuditRepository`

@@ -33,6 +33,47 @@ export async function resolveTenantContext(
   if (!u || u.status !== 'active') return null;
   const userId = asId<UserId>(u.id);
 
+  return buildContextForMembership(db, tenantId, userId);
+}
+
+/**
+ * Resuelve el TenantContext a partir del USUARIO AUTENTICADO (por id, tras la
+ * verificación del IdP). Es la vía real de NIVEL 2: el userId proviene del JWT
+ * verificado en servidor, nunca del cliente.
+ *
+ * - Con `tenantId`: exige membresía activa en ESE tenant (para tenant switcher).
+ * - Sin `tenantId`: usa la única membresía activa del usuario; si tiene varias,
+ *   devuelve null (requiere elegir tenant explícitamente — sin adivinar).
+ */
+export async function resolveTenantContextForUser(
+  db: Database,
+  params: { userId: string; tenantId?: string },
+): Promise<TenantContext | null> {
+  const userId = asId<UserId>(params.userId);
+
+  const memberships = await db
+    .select({ id: membership.id, tenantId: membership.tenantId, status: membership.status })
+    .from(membership)
+    .where(eq(membership.userId, userId));
+
+  const active = memberships.filter((m) => m.status === 'active');
+  let chosen: (typeof active)[number] | undefined;
+  if (params.tenantId) {
+    chosen = active.find((m) => m.tenantId === params.tenantId);
+  } else if (active.length === 1) {
+    chosen = active[0];
+  }
+  if (!chosen) return null;
+
+  return buildContextForMembership(db, asId<TenantId>(chosen.tenantId), userId);
+}
+
+/** Carga permisos efectivos de una membresía activa y arma el contexto. */
+async function buildContextForMembership(
+  db: Database,
+  tenantId: TenantId,
+  userId: UserId,
+): Promise<TenantContext | null> {
   const [mem] = await db
     .select({ id: membership.id, status: membership.status })
     .from(membership)

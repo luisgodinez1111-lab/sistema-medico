@@ -11,6 +11,7 @@ import {
 import { ConflictError } from '@medical-os/shared';
 import { createNeonDatabase } from './client';
 import { createTenantContext } from './tenant-context';
+import { hashPassword } from './auth-credentials';
 import { PatientRepository, type NewPatientInput } from './repositories/patient';
 import { AllergyRepository } from './repositories/allergy';
 import { ConditionRepository } from './repositories/condition';
@@ -106,7 +107,11 @@ async function main(): Promise<void> {
       .returning();
   }
 
-  // 4) Usuario global (por email)
+  // 4) Usuario global (por email) con contraseña para el login (NIVEL 2).
+  // La contraseña demo se toma de entorno; el fallback es SOLO para desarrollo
+  // local y nunca debe usarse en producción.
+  const demoPassword = process.env.SEED_DEMO_PASSWORD ?? 'velum-demo-1234';
+  const demoPasswordHash = await hashPassword(demoPassword);
   let [user] = await db.select().from(appUser).where(eq(appUser.email, DEMO.userEmail)).limit(1);
   if (!user) {
     [user] = await db
@@ -116,8 +121,12 @@ async function main(): Promise<void> {
         email: DEMO.userEmail,
         displayName: DEMO.userName,
         status: 'active',
+        passwordHash: demoPasswordHash,
       })
       .returning();
+  } else if (!user.passwordHash) {
+    // Usuario preexistente sin contraseña: fijar la del seed (idempotente).
+    await db.update(appUser).set({ passwordHash: demoPasswordHash }).where(eq(appUser.id, user.id));
   }
   const userId = user!.id;
 
