@@ -29,6 +29,13 @@
       "when": 1789259574630,
       "tag": "0003_curly_electro",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789259914225,
+      "tag": "0004_odd_selene",
+      "breakpoints": true
     }
   ]
 }

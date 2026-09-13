@@ -14,6 +14,7 @@ import { createTenantContext } from './tenant-context';
 import { PatientRepository, type NewPatientInput } from './repositories/patient';
 import { AllergyRepository } from './repositories/allergy';
 import { ConditionRepository } from './repositories/condition';
+import { ObservationRepository } from './repositories/observation';
 import {
   tenant,
   organization,
@@ -234,6 +235,23 @@ async function main(): Promise<void> {
       patientId: maria.id,
       code: 'Hipertensión arterial',
       onsetDate: '2022-01-01',
+    });
+  }
+
+  // 13) Signos vitales demo (NIVEL 3) para María. Idempotente.
+  const observationRepo = new ObservationRepository(db, ctx);
+  if (maria && (await observationRepo.listForPatient(maria.id)).length === 0) {
+    await observationRepo.create({
+      patientId: maria.id,
+      code: 'blood-pressure',
+      valueText: '138/86',
+      unit: 'mmHg',
+    });
+    await observationRepo.create({
+      patientId: maria.id,
+      code: 'weight',
+      valueText: '72',
+      unit: 'kg',
     });
   }
 

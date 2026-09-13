@@ -75,9 +75,16 @@ clinical_status, onset_date) tenant- y patient-scoped, baja lógica.
 `ConditionRepository` valida patient-in-tenant; listActive/listAll, create,
 setStatus (p.ej. resolver), softDelete. Migración `drizzle/0003_*.sql` aplicada.
 Patient Workspace: "Problemas activos" con datos reales + alta vía server action
-(permiso `patient.write`) — cubre §28 paso 7. 5 pruebas nuevas. db: 29/29 verde.
-Seed: María con DM2 + HTA.
-Pendiente: Observation (signos vitales), RelatedPerson, merge real de duplicados.
+(permiso `patient.write`) — cubre §28 paso 7. 5 pruebas nuevas. Seed: María DM2 + HTA.
+
+**Observation / signos vitales (NIVEL 3):** tabla `observation` (FHIR Observation:
+category, code, value_text, unit, effective_at) tenant- y patient-scoped, baja
+lógica. `ObservationRepository` valida patient-in-tenant; listForPatient (por
+categoría), create, softDelete. Migración `drizzle/0004_*.sql` aplicada.
+Patient Workspace: tarjeta "Signos vitales" con datos reales + alta vía server
+action — cubre §28 paso 6. 5 pruebas nuevas. db: 34/34 verde.
+Seed: María TA 138/86 mmHg + peso 72 kg.
+Pendiente: RelatedPerson, merge real de duplicados.
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
@@ -129,7 +136,7 @@ El primer corte end-to-end que valida la columna vertebral:
 3. 🟨 Abrir Patient Workspace (demografía real; secciones clínicas pendientes)
 4. ⬜ Crear encuentro de medicina general
 5. ⬜ Capturar historia adaptativa adulto/pediátrico mínima
-6. ⬜ Registrar signos vitales y exploración
+6. 🟨 Registrar signos vitales y exploración (vitales listos; exploración pendiente)
 7. 🟨 Crear problema/diagnóstico y plan (Condition listo; plan pendiente)
 8. ⬜ Emitir receta estructurada
 9. ⬜ Solicitar un laboratorio

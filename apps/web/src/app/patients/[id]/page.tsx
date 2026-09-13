@@ -4,6 +4,7 @@ import {
   PatientRepository,
   AllergyRepository,
   ConditionRepository,
+  ObservationRepository,
   hasPermission,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
@@ -12,6 +13,7 @@ import { getDb } from '@/server/db';
 import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
 import { AllergyManager } from './AllergyManager';
 import { ConditionManager } from './ConditionManager';
+import { VitalsManager } from './VitalsManager';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +35,7 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
 
   const allergies = await new AllergyRepository(db, ctx).listForPatient(patient.id);
   const conditions = await new ConditionRepository(db, ctx).listActive(patient.id);
+  const vitals = await new ObservationRepository(db, ctx).listForPatient(patient.id, 'vital-signs');
   const reviewed = patient.allergiesReviewedAt !== null;
   const canWrite = hasPermission(ctx, 'patient.write');
 
@@ -110,6 +113,19 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
               id: c.id,
               code: c.code,
               onsetDate: c.onsetDate,
+            }))}
+            canWrite={canWrite}
+          />
+
+          <VitalsManager
+            patientId={patient.id}
+            vitals={vitals.map((v) => ({
+              id: v.id,
+              code: v.code,
+              valueText: v.valueText,
+              unit: v.unit,
+              effectiveAt:
+                v.effectiveAt instanceof Date ? v.effectiveAt.toISOString() : String(v.effectiveAt),
             }))}
             canWrite={canWrite}
           />

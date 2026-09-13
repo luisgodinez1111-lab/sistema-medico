@@ -1,7 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { AllergyRepository, ConditionRepository, hasPermission } from '@medical-os/db';
+import {
+  AllergyRepository,
+  ConditionRepository,
+  ObservationRepository,
+  hasPermission,
+} from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
@@ -105,4 +110,39 @@ export async function addConditionAction(
 
   revalidatePath(`/patients/${patientId}`);
   return { status: 'ok', message: 'Problema registrado.' };
+}
+
+/**
+ * Registra un signo vital del paciente (§NIVEL 3, §28 paso 6).
+ * Autorización server-side (`patient.write`) y scoping por tenant.
+ */
+export async function addVitalAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para registrar signos vitales.' };
+  }
+
+  const patientId = str(formData, 'patientId') as PatientId;
+  const code = str(formData, 'code');
+  const valueText = str(formData, 'valueText');
+  if (!patientId) return { status: 'error', message: 'Paciente inválido.' };
+  if (!code) return { status: 'error', message: 'Indica el signo vital.' };
+  if (!valueText) return { status: 'error', message: 'Indica el valor.' };
+
+  const unit = str(formData, 'unit');
+  const created = await new ObservationRepository(getDb(), ctx).create({
+    patientId,
+    code,
+    valueText,
+    category: 'vital-signs',
+    ...(unit ? { unit } : {}),
+  });
+  if (!created) return { status: 'error', message: 'No se pudo registrar (paciente no válido).' };
+
+  revalidatePath(`/patients/${patientId}`);
+  return { status: 'ok', message: 'Signo vital registrado.' };
 }

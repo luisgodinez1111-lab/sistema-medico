@@ -1,5 +1,12 @@
 import { pgTable, pgEnum, text, date, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
-import type { AllergyId, ConditionId, PatientId, TenantId, UserId } from '@medical-os/shared';
+import type {
+  AllergyId,
+  ConditionId,
+  ObservationId,
+  PatientId,
+  TenantId,
+  UserId,
+} from '@medical-os/shared';
 
 /**
  * NIVEL 3 — Clinical Data Foundation (§NIVEL 3, ADR-0003).
@@ -167,5 +174,48 @@ export const condition = pgTable(
   (t) => [
     index('condition_tenant_idx').on(t.tenantId),
     index('condition_tenant_patient_idx').on(t.tenantId, t.patientId),
+  ],
+);
+
+/**
+ * Observaciones del paciente (§NIVEL 3, alineado con FHIR Observation).
+ * Arranca con signos vitales; `category` permite extender a laboratorio/examen.
+ *
+ * - Tenant- y patient-scoped; baja lógica (`deleted_at`, ADR-0003 §8).
+ * - `value_text` + `unit` mantienen flexibilidad (p.ej. TA "138/86" mmHg). Una
+ *   columna numérica para tendencias se añadirá cuando NIVEL 5 la requiera.
+ * - `effective_at` = momento de la medición (distinto de `recorded_at`).
+ */
+export const observationCategory = pgEnum('observation_category', [
+  'vital-signs',
+  'laboratory',
+  'exam',
+  'other',
+]);
+
+export const observation = pgTable(
+  'observation',
+  {
+    id: text('id').primaryKey().$type<ObservationId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+
+    category: observationCategory('category').notNull().default('vital-signs'),
+    /** Qué se midió, p.ej. "blood-pressure", "weight", "temperature". */
+    code: text('code').notNull(),
+    /** Valor legible, p.ej. "138/86", "72", "36.7". */
+    valueText: text('value_text').notNull(),
+    unit: text('unit'),
+    note: text('note'),
+
+    effectiveAt: timestamp('effective_at', { withTimezone: true }).notNull().defaultNow(),
+    recordedBy: text('recorded_by').$type<UserId>(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('observation_tenant_idx').on(t.tenantId),
+    index('observation_tenant_patient_idx').on(t.tenantId, t.patientId),
   ],
 );
