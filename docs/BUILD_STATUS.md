@@ -227,8 +227,13 @@ Center. Permiso `patient.write`. Migración `drizzle/0009_*.sql` aplicada.
 4 pruebas nuevas (ciclo completo, inbox aislado, scoping de orden/resultado,
 revisión sin cruce de tenant). db: 64/64 verde. Verificado contra Neon.
 Cubre §28 pasos 9, 11-14.
-Pendiente: notificación/tareas, resultados estructurados (LOINC), adjuntos,
-escalamiento de críticos.
+**Resultados estructurados — listo:** `diagnostic_report` gana `unit`, `reference_low`,
+`reference_high` (migración `0019`). `classifyResult` (motor determinista) AUTOCLASIFICA
+la bandera de anormalidad del valor numérico contra el rango de referencia (§27: un
+resultado anormal no depende del marcado manual); si no hay datos numéricos, respeta la
+bandera provista. UI: captura de valor + unidad + rango; el listado muestra valor+unidad
+y "(ref: mín–máx)" con badge de anormalidad. 8 pruebas nuevas.
+Pendiente: notificación/tareas, adjuntos, escalamiento de críticos, códigos LOINC reales.
 
 **Release R3 — Agenda + check-in — en curso:** tabla `appointment` (FHIR
 Appointment) en módulo `schema/scheduling.ts` **separado de lo clínico** (§33

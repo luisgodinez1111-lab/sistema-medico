@@ -11,6 +11,7 @@ import {
 import type { Database } from '../client';
 import type { TenantContext } from '../tenant-context';
 import { serviceRequest, diagnosticReport, patient } from '../schema';
+import { classifyResult } from '../result-classify';
 
 export type ServiceRequestRow = (typeof serviceRequest)['$inferSelect'];
 export type DiagnosticReportRow = (typeof diagnosticReport)['$inferSelect'];
@@ -161,10 +162,23 @@ export class DiagnosticReportRepository {
     patientId: PatientId;
     code: string;
     value: string;
+    unit?: string;
+    referenceLow?: string;
+    referenceHigh?: string;
     abnormalFlag?: AbnormalFlag;
     serviceRequestId?: ServiceRequestId;
   }): Promise<DiagnosticReportRow | null> {
     if (!(await patientInTenant(this.db, this.ctx.tenantId, input.patientId))) return null;
+
+    // Auto-clasifica contra el rango de referencia (§27: no depender del marcado
+    // manual). Si no hay datos numéricos suficientes, respeta la bandera provista.
+    const auto = classifyResult({
+      value: input.value,
+      ...(input.referenceLow !== undefined ? { referenceLow: input.referenceLow } : {}),
+      ...(input.referenceHigh !== undefined ? { referenceHigh: input.referenceHigh } : {}),
+    });
+    const abnormalFlag: AbnormalFlag = auto ?? input.abnormalFlag ?? 'normal';
+
     const [created] = await this.db
       .insert(diagnosticReport)
       .values({
@@ -174,7 +188,10 @@ export class DiagnosticReportRepository {
         serviceRequestId: input.serviceRequestId ?? null,
         code: input.code,
         value: input.value,
-        abnormalFlag: input.abnormalFlag ?? 'normal',
+        unit: input.unit ?? null,
+        referenceLow: input.referenceLow ?? null,
+        referenceHigh: input.referenceHigh ?? null,
+        abnormalFlag,
       })
       .returning();
 

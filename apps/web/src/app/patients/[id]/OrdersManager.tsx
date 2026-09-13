@@ -22,6 +22,8 @@ export interface ReportView {
   id: string;
   code: string;
   value: string;
+  unit: string | null;
+  referenceRange: string;
   abnormalFlag: 'normal' | 'low' | 'high' | 'critical';
   reviewStatus: string;
 }
@@ -74,6 +76,10 @@ export function OrdersManager({
             <li key={r.id} className="mos-list__item">
               <span>
                 <strong>{r.code}</strong>: {r.value}
+                {r.unit ? ` ${r.unit}` : ''}
+                {r.referenceRange ? (
+                  <span className="mos-muted"> (ref: {r.referenceRange})</span>
+                ) : null}
                 {r.reviewStatus === 'pending' ? (
                   <>
                     <br />
@@ -140,8 +146,15 @@ export function OrdersManager({
                   <span>
                     <strong>{o.code}</strong> <span className="mos-muted">({o.priority})</span>
                   </span>
-                  <input name="value" placeholder="Resultado (p.ej. Hb 9.1)" required />
-                  <select name="abnormalFlag" defaultValue="normal">
+                  <input name="value" placeholder="Valor (p.ej. 9.1)" required />
+                  <input name="unit" placeholder="Unidad (g/dL)" />
+                  <input name="referenceLow" placeholder="Ref. mín." />
+                  <input name="referenceHigh" placeholder="Ref. máx." />
+                  <select
+                    name="abnormalFlag"
+                    defaultValue="normal"
+                    title="Se autoclasifica si das rango"
+                  >
                     <option value="normal">Normal</option>
                     <option value="low">Bajo</option>
                     <option value="high">Alto</option>

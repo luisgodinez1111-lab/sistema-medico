@@ -504,6 +504,11 @@ export const diagnosticReport = pgTable(
     status: reportStatus('status').notNull().default('final'),
     /** Valor/resumen del resultado, p.ej. "Hb 9.1 g/dL". */
     value: text('value').notNull(),
+    /** Unidad del valor numérico, p.ej. "g/dL" (resultado estructurado, §NIVEL 9). */
+    unit: text('unit'),
+    /** Límites del rango de referencia (texto para tolerar decimales/comas). */
+    referenceLow: text('reference_low'),
+    referenceHigh: text('reference_high'),
     abnormalFlag: reportAbnormalFlag('abnormal_flag').notNull().default('normal'),
     resultedAt: timestamp('resulted_at', { withTimezone: true }).notNull().defaultNow(),
 

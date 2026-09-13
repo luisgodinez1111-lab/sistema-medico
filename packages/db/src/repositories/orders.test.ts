@@ -116,4 +116,29 @@ describe('Orders, Results & Closed-Loop (NIVEL 9)', () => {
     // Sigue pendiente para A.
     expect(await new DiagnosticReportRepository(db, ctxA).listPendingReview()).toHaveLength(1);
   });
+
+  it('autoclasifica la bandera de anormalidad contra el rango de referencia (§27)', async () => {
+    const p = await new PatientRepository(db, ctxA).create(base);
+    const reports = new DiagnosticReportRepository(db, ctxA);
+    // Valor bajo el rango → 'low' aunque se envíe 'normal' por defecto.
+    const low = await reports.enterResult({
+      patientId: p.id,
+      code: 'Hemoglobina',
+      value: '9.1',
+      unit: 'g/dL',
+      referenceLow: '12',
+      referenceHigh: '16',
+    });
+    expect(low!.abnormalFlag).toBe('low');
+    expect(low!.unit).toBe('g/dL');
+
+    // Sin rango numérico, respeta la bandera manual.
+    const manual = await reports.enterResult({
+      patientId: p.id,
+      code: 'Cultivo',
+      value: 'positivo',
+      abnormalFlag: 'critical',
+    });
+    expect(manual!.abnormalFlag).toBe('critical');
+  });
 });

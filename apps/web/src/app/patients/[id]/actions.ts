@@ -690,11 +690,17 @@ export async function enterResultAction(
 
   const abnormalFlag = (str(formData, 'abnormalFlag') || 'normal') as
     'normal' | 'low' | 'high' | 'critical';
+  const unit = str(formData, 'unit');
+  const referenceLow = str(formData, 'referenceLow');
+  const referenceHigh = str(formData, 'referenceHigh');
   const created = await new DiagnosticReportRepository(getDb(), ctx).enterResult({
     patientId,
     code,
     value,
     abnormalFlag,
+    ...(unit ? { unit } : {}),
+    ...(referenceLow ? { referenceLow } : {}),
+    ...(referenceHigh ? { referenceHigh } : {}),
     ...(serviceRequestId ? { serviceRequestId } : {}),
   });
   if (!created) return { status: 'error', message: 'No se pudo registrar (paciente no válido).' };

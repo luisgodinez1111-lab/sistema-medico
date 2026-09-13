@@ -20,6 +20,7 @@ import {
   SpecialtyRepository,
   resolveSpecialtyPack,
   mergeHistorySections,
+  formatReferenceRange,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
@@ -304,6 +305,8 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
               id: r.id,
               code: r.code,
               value: r.value,
+              unit: r.unit,
+              referenceRange: formatReferenceRange(r.referenceLow, r.referenceHigh),
               abnormalFlag: r.abnormalFlag,
               reviewStatus: r.reviewStatus,
             }))}
