@@ -1,127 +1,94 @@
 import { notFound } from 'next/navigation';
-import {
-  PatientHeader,
-  AllergyBanner,
-  ClinicalCard,
-  Badge,
-  Button,
-} from '@medical-os/design-system';
-import { getMockPatient } from '@/lib/mock-data';
+import { PatientHeader, AllergyBanner, ClinicalCard, Button } from '@medical-os/design-system';
+import { PatientRepository } from '@medical-os/db';
+import type { PatientId } from '@medical-os/shared';
+import { getRequestContext } from '@/server/context';
+import { getDb } from '@/server/db';
+import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
+
+export const dynamic = 'force-dynamic';
 
 /**
- * Patient Workspace (§NIVEL 4) — shell de 3 columnas (§2.1):
- * timeline · workspace clínico · context rail.
- *
- * Puerta de salida NIVEL 4: desde la apertura del paciente el médico responde
- * en <30 s problemas activos, alergias, medicación, cambios y pendientes.
+ * Patient Workspace (§NIVEL 4) — shell de 3 columnas (§2.1).
+ * Datos demográficos reales desde Neon (NIVEL 3). Las secciones clínicas
+ * (problemas, medicación, resultados, timeline) se poblarán cuando existan sus
+ * tablas (Condition/Observation/MedicationRequest, §NIVEL 3+); hoy son honestos
+ * placeholders, no datos sintéticos.
  */
 export default async function PatientWorkspace({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const patient = getMockPatient(id);
+  const ctx = await getRequestContext();
+  if (!ctx) notFound();
+
+  const patient = await new PatientRepository(getDb(), ctx).findById(id as PatientId);
   if (!patient) notFound();
 
-  const criticalFlags = patient.allergies.length
-    ? [{ label: `Alergia: ${patient.allergies[0]}`, tone: 'critical' as const }]
-    : [];
+  // Las alergias aún no se capturan (llegan en NIVEL 3: Allergy). "No evaluadas".
+  const allergiesAssessed = false;
 
   return (
     <div>
       <PatientHeader
-        fullName={patient.fullName}
-        ageLabel={patient.ageLabel}
-        sexLabel={patient.sexLabel}
+        fullName={fullPatientName(patient)}
+        ageLabel={ageLabel(patient.birthDate)}
+        sexLabel={sexLabel(patient.sex)}
         mrn={patient.mrn}
-        criticalFlags={criticalFlags}
+        criticalFlags={[]}
         actions={<Button variant="primary">Iniciar consulta</Button>}
       />
-      <AllergyBanner allergies={patient.allergies} notAssessed={!patient.allergiesAssessed} />
+      <AllergyBanner allergies={[]} notAssessed={!allergiesAssessed} />
 
       <div className="mos-workspace">
-        {/* Columna 1: Timeline / navegación */}
         <aside className="mos-workspace__col mos-workspace__timeline" aria-label="Línea de tiempo">
           <p className="mos-section-label">Timeline</p>
-          {patient.timeline.map((e) => (
-            <div key={`${e.date}-${e.kind}`} className="mos-timeline-entry">
-              <div className="mos-timeline-entry__date">
-                {e.date} · {e.kind}
-              </div>
-              <div className="mos-timeline-entry__summary">{e.summary}</div>
-            </div>
-          ))}
+          <p className="mos-muted">Sin encuentros registrados (NIVEL 6).</p>
         </aside>
 
-        {/* Columna 2: Workspace clínico */}
         <section className="mos-workspace__col mos-workspace__main" aria-label="Resumen clínico">
-          <ClinicalCard title="Problemas activos">
+          <ClinicalCard title="Datos del paciente">
             <ul className="mos-list">
-              {patient.activeProblems.map((p) => (
-                <li key={p.label} className="mos-list__item">
-                  <span>{p.label}</span>
-                  <span className="mos-muted">desde {p.since}</span>
+              <li className="mos-list__item">
+                <span>Nombre</span>
+                <strong>{fullPatientName(patient)}</strong>
+              </li>
+              <li className="mos-list__item">
+                <span>Fecha de nacimiento</span>
+                <span>
+                  {patient.birthDate} ({ageLabel(patient.birthDate)})
+                </span>
+              </li>
+              <li className="mos-list__item">
+                <span>Sexo</span>
+                <span>{sexLabel(patient.sex)}</span>
+              </li>
+              <li className="mos-list__item">
+                <span>MRN</span>
+                <span>{patient.mrn}</span>
+              </li>
+              {patient.curp ? (
+                <li className="mos-list__item">
+                  <span>CURP</span>
+                  <span>{patient.curp}</span>
                 </li>
-              ))}
+              ) : null}
             </ul>
+          </ClinicalCard>
+
+          <ClinicalCard title="Problemas activos">
+            <p className="mos-muted">Se capturan en el encuentro clínico (NIVEL 6).</p>
           </ClinicalCard>
 
           <ClinicalCard title="Medicación actual">
-            <ul className="mos-list">
-              {patient.medications.map((m) => (
-                <li key={m.name} className="mos-list__item">
-                  <span>
-                    <strong>{m.name}</strong> {m.dose}
-                    <br />
-                    <span className="mos-muted">{m.sig}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </ClinicalCard>
-
-          <ClinicalCard title="Últimos resultados">
-            <ul className="mos-list">
-              {patient.recentResults.map((r) => (
-                <li key={r.name} className="mos-list__item">
-                  <span>
-                    {r.name}: <strong>{r.value}</strong>{' '}
-                    <span className="mos-muted">({r.date})</span>
-                  </span>
-                  {r.flag !== 'normal' ? (
-                    <Badge tone={r.flag === 'critical' ? 'critical' : 'warning'}>
-                      {r.flag === 'high' ? 'Alto' : r.flag === 'low' ? 'Bajo' : 'Crítico'}
-                    </Badge>
-                  ) : (
-                    <Badge tone="success">Normal</Badge>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <p className="mos-muted">Disponible con prescripción estructurada (NIVEL 8).</p>
           </ClinicalCard>
         </section>
 
-        {/* Columna 3: Context Rail (copilot / pendientes) */}
         <aside
           className="mos-workspace__col mos-workspace__rail"
           aria-label="Pendientes y contexto"
         >
           <p className="mos-section-label">Pendientes</p>
-          <ul className="mos-list">
-            {patient.pending.map((task) => (
-              <li key={task.label} className="mos-list__item">
-                <span>{task.label}</span>
-                <Badge
-                  tone={
-                    task.severity === 'critical'
-                      ? 'critical'
-                      : task.severity === 'warning'
-                        ? 'warning'
-                        : 'info'
-                  }
-                >
-                  {task.due}
-                </Badge>
-              </li>
-            ))}
-          </ul>
+          <p className="mos-muted">Sin pendientes (NIVEL 9).</p>
         </aside>
       </div>
     </div>

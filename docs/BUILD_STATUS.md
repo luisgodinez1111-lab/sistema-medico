@@ -55,8 +55,13 @@ LÓGICO y reversible (`deleted_at`), preparado para merge de duplicados
 (CURP como señal fuerte, nombre+fecha como `dedup_key`), búsqueda, soft-delete.
 Migración `drizzle/0001_*.sql` aplicada a Neon. 11 pruebas (aislamiento/IDOR,
 dedup, soft-delete). Seed con 2 pacientes demo.
-Pendiente: cablear `/patients` a Neon (hoy datos sintéticos), merge real,
-RelatedPerson, Condition/Observation/Allergy (resto de NIVEL 3).
+`/patients` cableado a Neon: lista + búsqueda (nombre/MRN/CURP) reales, y alta
+con flujo de duplicados en la UI (server action con verificación de permiso
+`patient.write`, `findDuplicates`, confirmación "crear de todas formas").
+Command Center y Patient Workspace (`/patients/[id]`) leen datos reales;
+eliminado `mock-data.ts` (sin PHI sintética dispersa).
+Pendiente: merge real de duplicados, RelatedPerson,
+Condition/Observation/Allergy (resto de NIVEL 3).
 
 ## Release R1 — Clinical Core
 
@@ -89,8 +94,8 @@ RelatedPerson, Condition/Observation/Allergy (resto de NIVEL 3).
 El primer corte end-to-end que valida la columna vertebral:
 
 1. 🟨 Crear tenant, organización, consultorio y médico (vía seed; falta flujo UI)
-2. 🟨 Crear/buscar paciente con detección de duplicados (repo+dedup listos; falta UI)
-3. ⬜ Abrir Patient Workspace
+2. ✅ Crear/buscar paciente con detección de duplicados (UI + server action)
+3. 🟨 Abrir Patient Workspace (demografía real; secciones clínicas pendientes)
 4. ⬜ Crear encuentro de medicina general
 5. ⬜ Capturar historia adaptativa adulto/pediátrico mínima
 6. ⬜ Registrar signos vitales y exploración

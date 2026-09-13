@@ -1,13 +1,19 @@
 import Link from 'next/link';
 import { ClinicalCard, Badge, Alert } from '@medical-os/design-system';
-import { listMockPatients } from '@/lib/mock-data';
+import { PatientRepository } from '@medical-os/db';
+import { getRequestContext } from '@/server/context';
+import { getDb } from '@/server/db';
+import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
+
+export const dynamic = 'force-dynamic';
 
 /**
- * Home / Command Center (§2.2): sólo lo accionable — agenda, resultados,
- * pendientes, riesgos. Prototipo navegable con datos sintéticos (gate NIVEL 1).
+ * Home / Command Center (§2.2): sólo lo accionable. La lista de pacientes ya
+ * se lee de Neon (NIVEL 3). Pendientes y resultados llegan con sus tablas
+ * (NIVEL 9 / NIVEL 3+); hoy placeholders honestos, no datos sintéticos.
  */
-export default function HomePage() {
-  const patients = listMockPatients();
+export default async function HomePage() {
+  const ctx = await getRequestContext();
 
   return (
     <div className="mos-page">
@@ -16,95 +22,73 @@ export default function HomePage() {
         Trabajo del día · {new Date().toLocaleDateString('es-MX')}
       </p>
 
-      <Alert severity="info" title="Prototipo R0 (NIVEL 1)">
-        Pacientes con datos sintéticos (NIVEL 3 traerá la verdad clínica real). La{' '}
-        <Link href="/org">organización y consultorios</Link> ya se leen desde Neon, tenant-scoped
-        (NIVEL 2).
+      {!ctx ? (
+        <Alert severity="critical" title="Sin contexto de tenant">
+          No hay una membresía activa resuelta en el servidor. Ejecuta el seed.
+        </Alert>
+      ) : (
+        <HomeContent ctx={ctx} />
+      )}
+    </div>
+  );
+}
+
+async function HomeContent({
+  ctx,
+}: {
+  ctx: NonNullable<Awaited<ReturnType<typeof getRequestContext>>>;
+}) {
+  const patients = await new PatientRepository(getDb(), ctx).listRecent(8);
+
+  return (
+    <>
+      <Alert severity="info" title="Medical OS · R0">
+        La <Link href="/org">organización</Link> y los <Link href="/patients">pacientes</Link> ya se
+        leen de Neon, tenant-scoped (NIVEL 2/3). El resto del expediente clínico llega en niveles
+        posteriores.
       </Alert>
 
       <div style={{ height: 'var(--space-4)' }} />
 
       <div className="mos-grid">
         <ClinicalCard
-          title="Pacientes de hoy"
+          title="Pacientes recientes"
           action={
             <Link className="mos-muted" href="/patients">
               Ver todos
             </Link>
           }
         >
-          <ul className="mos-list">
-            {patients.map((p) => (
-              <li key={p.id}>
-                <Link className="mos-link-row" href={`/patients/${p.id}`}>
-                  <span>
-                    <strong>{p.fullName}</strong>
-                    <br />
-                    <span className="mos-muted">
-                      {p.ageLabel} · {p.sexLabel}
+          {patients.length === 0 ? (
+            <p className="mos-muted">Aún no hay pacientes. Créalos en la sección Pacientes.</p>
+          ) : (
+            <ul className="mos-list">
+              {patients.map((p) => (
+                <li key={p.id}>
+                  <Link className="mos-link-row" href={`/patients/${p.id}`}>
+                    <span>
+                      <strong>{fullPatientName(p)}</strong>
+                      <br />
+                      <span className="mos-muted">
+                        {ageLabel(p.birthDate)} · {sexLabel(p.sex)} · MRN {p.mrn}
+                      </span>
                     </span>
-                  </span>
-                  {p.allergies.length > 0 ? (
-                    <Badge tone="critical">Alergia</Badge>
-                  ) : (
-                    <Badge tone="neutral">NKDA</Badge>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
+                    <Badge tone="neutral">Ver</Badge>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </ClinicalCard>
 
         <ClinicalCard title="Pendientes clínicos">
-          <ul className="mos-list">
-            {patients.flatMap((p) =>
-              p.pending.map((task) => (
-                <li key={`${p.id}-${task.label}`} className="mos-list__item">
-                  <span>
-                    {task.label}
-                    <br />
-                    <span className="mos-muted">
-                      {p.fullName} · {task.owner}
-                    </span>
-                  </span>
-                  <Badge
-                    tone={
-                      task.severity === 'critical'
-                        ? 'critical'
-                        : task.severity === 'warning'
-                          ? 'warning'
-                          : 'info'
-                    }
-                  >
-                    {task.due}
-                  </Badge>
-                </li>
-              )),
-            )}
-          </ul>
+          <p className="mos-muted">Obligaciones y tareas llegan en NIVEL 9 (Closed-Loop Safety).</p>
         </ClinicalCard>
 
         <ClinicalCard title="Resultados por revisar">
-          <ul className="mos-list">
-            {patients.flatMap((p) =>
-              p.recentResults
-                .filter((r) => r.flag !== 'normal')
-                .map((r) => (
-                  <li key={`${p.id}-${r.name}`} className="mos-list__item">
-                    <span>
-                      {r.name}: <strong>{r.value}</strong>
-                      <br />
-                      <span className="mos-muted">{p.fullName}</span>
-                    </span>
-                    <Badge tone={r.flag === 'critical' ? 'critical' : 'warning'}>
-                      {r.flag === 'high' ? 'Alto' : r.flag === 'low' ? 'Bajo' : 'Crítico'}
-                    </Badge>
-                  </li>
-                )),
-            )}
-          </ul>
+          <p className="mos-muted">El Result Inbox llega en NIVEL 9.</p>
         </ClinicalCard>
       </div>
-    </div>
+    </>
   );
 }
