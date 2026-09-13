@@ -224,8 +224,15 @@ score 0-100 y checklist del expediente mínimo (alergias evaluadas, historia
 capturada, signos vitales, contacto, encuentro) calculado de datos existentes
 (sin tabla nueva; "no evaluado" cuenta como faltante, §27). Medidor + checklist
 en el context rail del workspace (`role=meter`, accesible). 3 pruebas. db: 75/75.
-Pendiente de R4: **Pathways** (protocolos/guías con contenido clínico versionado)
-y **med safety avanzada** (interacciones fármaco-fármaco, dosis por peso/edad).
+**Med-safety avanzada (R4):** el motor `prescription-safety` añade interacciones
+fármaco-fármaco (código `drug-interaction`) con **catálogo DEMO marcado**
+(`INTERACTIONS_SOURCE = 'DEMO (no validado clínicamente)'`,
+`INTERACTIONS_DATASET_VERSION`); cada alerta lleva `source: 'rule' | 'demo'` y la
+UI marca las DEMO. **Sustituir por una base licenciada + reviewer antes de uso
+real** (§33 #8, DoD). 1 prueba nueva. db: 76/76. Verificado contra Neon
+(warfarina+ibuprofeno → crítica/demo).
+Pendiente de R4: **Pathways** (protocolos/guías con contenido clínico versionado +
+reviewer) y dosis por peso/edad (requiere catálogo).
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 

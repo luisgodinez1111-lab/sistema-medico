@@ -8,7 +8,29 @@
 
 export const SAFETY_RULESET_VERSION = '2026.09.1';
 
-export type SafetyAlertCode = 'allergy-contraindication' | 'duplicate-therapy';
+/**
+ * Catálogo de interacciones fármaco-fármaco. **CONTENIDO DEMO, NO VALIDADO
+ * CLÍNICAMENTE** (§33 #8: el contenido clínico real requiere fuente + versión +
+ * reviewer). Sustituir por una base licenciada antes de uso real.
+ */
+export const INTERACTIONS_DATASET_VERSION = 'demo-2026.09.1';
+export const INTERACTIONS_SOURCE = 'DEMO (no validado clínicamente)';
+
+interface InteractionRule {
+  a: string;
+  b: string;
+  severity: SafetySeverity;
+  note: string;
+}
+const DEMO_INTERACTIONS: ReadonlyArray<InteractionRule> = [
+  { a: 'warfarina', b: 'ibuprofeno', severity: 'critical', note: 'riesgo de sangrado (DEMO)' },
+  { a: 'warfarina', b: 'aspirina', severity: 'critical', note: 'riesgo de sangrado (DEMO)' },
+  { a: 'enalapril', b: 'espironolactona', severity: 'warning', note: 'hiperkalemia (DEMO)' },
+  { a: 'simvastatina', b: 'claritromicina', severity: 'critical', note: 'rabdomiólisis (DEMO)' },
+  { a: 'metformina', b: 'alcohol', severity: 'warning', note: 'acidosis láctica (DEMO)' },
+];
+
+export type SafetyAlertCode = 'allergy-contraindication' | 'duplicate-therapy' | 'drug-interaction';
 export type SafetySeverity = 'critical' | 'warning';
 
 export interface SafetyAlert {
@@ -16,6 +38,8 @@ export interface SafetyAlert {
   severity: SafetySeverity;
   message: string;
   rulesetVersion: string;
+  /** Origen de la regla: 'rule' (determinista) o 'demo' (catálogo no validado). */
+  source: 'rule' | 'demo';
 }
 
 function normalize(value: string): string {
@@ -55,6 +79,7 @@ export function checkPrescription(params: {
         severity: 'critical',
         message: `El paciente tiene alergia registrada a "${a.substance}", relacionada con "${drug}".`,
         rulesetVersion: SAFETY_RULESET_VERSION,
+        source: 'rule',
       });
     }
   }
@@ -66,7 +91,26 @@ export function checkPrescription(params: {
         severity: 'warning',
         message: `Ya existe una prescripción activa relacionada ("${m.drug}"). Revisa duplicidad.`,
         rulesetVersion: SAFETY_RULESET_VERSION,
+        source: 'rule',
       });
+    }
+  }
+
+  // Interacciones fármaco-fármaco con el catálogo DEMO (no validado).
+  for (const m of params.activeMedications) {
+    for (const rule of DEMO_INTERACTIONS) {
+      const hit =
+        (related(drug, rule.a) && related(m.drug, rule.b)) ||
+        (related(drug, rule.b) && related(m.drug, rule.a));
+      if (hit) {
+        alerts.push({
+          code: 'drug-interaction',
+          severity: rule.severity,
+          message: `Posible interacción con "${m.drug}": ${rule.note}.`,
+          rulesetVersion: INTERACTIONS_DATASET_VERSION,
+          source: 'demo',
+        });
+      }
     }
   }
 

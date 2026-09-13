@@ -73,7 +73,12 @@ export function MedicationManager({
               <ul className="mos-list" style={{ marginTop: 'var(--space-2)' }}>
                 {state.alerts!.map((a, i) => (
                   <li key={i} className="mos-list__item">
-                    <span>{a.message}</span>
+                    <span>
+                      {a.message}
+                      {a.source === 'demo' ? (
+                        <span className="mos-muted"> · contenido DEMO no validado</span>
+                      ) : null}
+                    </span>
                     <Badge tone={a.severity === 'critical' ? 'critical' : 'warning'}>
                       {a.code}
                     </Badge>

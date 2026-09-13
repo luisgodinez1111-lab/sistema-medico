@@ -72,6 +72,18 @@ describe('Prescripción y seguridad (NIVEL 8)', () => {
     ).toHaveLength(0);
   });
 
+  it('interacción fármaco-fármaco (catálogo DEMO) marcada con source=demo', () => {
+    const alerts = checkPrescription({
+      drug: 'Ibuprofeno 400mg',
+      allergies: [],
+      activeMedications: [{ drug: 'Warfarina 5mg' }],
+    });
+    const inter = alerts.find((a) => a.code === 'drug-interaction');
+    expect(inter).toBeTruthy();
+    expect(inter!.severity).toBe('critical');
+    expect(inter!.source).toBe('demo');
+  });
+
   // --- Repositorio (con BD) ---
   it('checkSafety usa las alergias reales del paciente (scoped)', async () => {
     const p = await new PatientRepository(db, ctxA).create(base);

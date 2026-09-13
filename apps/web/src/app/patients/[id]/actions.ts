@@ -31,6 +31,7 @@ export interface SafetyAlertView {
   code: string;
   severity: 'critical' | 'warning';
   message: string;
+  source?: 'rule' | 'demo';
 }
 export interface AllergyActionState {
   status: 'idle' | 'error' | 'ok' | 'alerts';
@@ -418,6 +419,7 @@ export async function prescribeMedicationAction(
     code: a.code,
     severity: a.severity,
     message: a.message,
+    source: a.source,
   }));
 
   // Una alerta crítica (alergia) bloquea salvo confirmación explícita.
