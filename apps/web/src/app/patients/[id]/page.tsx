@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { PatientHeader, AllergyBanner, ClinicalCard } from '@medical-os/design-system';
+import { PatientHeader, AllergyBanner, ClinicalCard, Badge } from '@medical-os/design-system';
 import {
   PatientRepository,
   AllergyRepository,
@@ -76,6 +76,28 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
     .filter((a) => a.criticality === 'high')
     .map((a) => ({ label: `Alergia: ${a.substance}`, tone: 'critical' as const }));
 
+  // "Cambios desde la última visita" (§NIVEL 4): compara contra la fecha de la
+  // última nota FIRMADA; cuenta lo registrado después en cada dominio clínico.
+  const signedEncounters = encounters.filter((e) => e.status === 'signed' && e.signedAt);
+  const lastVisitAt = signedEncounters.length
+    ? signedEncounters.reduce(
+        (max, e) => (e.signedAt! > max ? e.signedAt! : max),
+        signedEncounters[0]!.signedAt!,
+      )
+    : null;
+  const after = (d: Date | null | undefined): boolean => !!(lastVisitAt && d && d > lastVisitAt);
+  const changeLines: string[] = lastVisitAt
+    ? [
+        [allergies.filter((a) => after(a.recordedAt)).length, 'alergia(s)'] as const,
+        [conditions.filter((c) => after(c.recordedAt)).length, 'problema(s)'] as const,
+        [vitals.filter((v) => after(v.effectiveAt)).length, 'signo(s) vital(es)'] as const,
+        [medications.filter((m) => after(m.prescribedAt)).length, 'medicamento(s)'] as const,
+        [reports.filter((r) => after(r.resultedAt)).length, 'resultado(s)'] as const,
+      ]
+        .filter(([n]) => n > 0)
+        .map(([n, label]) => `${n} ${label}`)
+    : [];
+
   return (
     <div>
       <PatientHeader
@@ -115,6 +137,28 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
         </aside>
 
         <section className="mos-workspace__col mos-workspace__main" aria-label="Resumen clínico">
+          <ClinicalCard title="Cambios desde la última visita">
+            {!lastVisitAt ? (
+              <p className="mos-muted">Sin visitas firmadas previas (primera consulta).</p>
+            ) : changeLines.length === 0 ? (
+              <p className="mos-muted">
+                Sin cambios desde la última visita ({lastVisitAt.toISOString().slice(0, 10)}).
+              </p>
+            ) : (
+              <>
+                <p className="mos-muted">Desde {lastVisitAt.toISOString().slice(0, 10)}:</p>
+                <ul className="mos-list">
+                  {changeLines.map((line) => (
+                    <li key={line} className="mos-list__item">
+                      <span>{line}</span>
+                      <Badge tone="info">nuevo</Badge>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </ClinicalCard>
+
           <ClinicalCard title="Datos del paciente">
             <ul className="mos-list">
               <li className="mos-list__item">

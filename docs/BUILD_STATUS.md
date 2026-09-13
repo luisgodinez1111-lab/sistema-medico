@@ -127,9 +127,12 @@ vitales, contactos). Añadidos los estados robustos de la DoD (§31):
 correlación), `not-found` que no revela existencia cross-tenant (§27).
 Timeline **ya vive** (encendido por los encuentros de NIVEL 6): el workspace lista
 los encuentros reales con su estado (borrador/firmado) y enlaza a cada nota.
-Medicación (NIVEL 8) y resultados/Result Inbox (NIVEL 9) **ya están cableados** en
-el workspace. Pendiente del gate: "cambios desde la última visita" (requiere diff
-entre encuentros) y el drawer responsive de timeline/rail en tablet/móvil (§21).
+Medicación (NIVEL 8) y resultados/Result Inbox (NIVEL 9) cableados en el
+workspace. **Cerrado:** tarjeta "Cambios desde la última visita" (cuenta lo
+registrado tras la última nota firmada en alergias/problemas/vitales/medicación/
+resultados) y **responsive sin pérdida de contenido** — en tablet/móvil las
+columnas de timeline y rail (contactos, auditoría) se APILAN en lugar de ocultarse
+(§21). NIVEL 4 completo.
 
 **NIVEL 5 — Adaptive Clinical History Engine — en curso:** historia clínica
 ESTRUCTURADA (tabla `history_entry`, una fila por ítem — NUNCA JSON gigante,
@@ -212,7 +215,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | Nivel | Descripción                              | Estado |
 | ----- | ---------------------------------------- | ------ |
 | 3     | Clinical Data Foundation                 | ✅     |
-| 4     | Patient Workspace                        | 🟨     |
+| 4     | Patient Workspace                        | ✅     |
 | 5     | Adaptive Clinical History Engine         | 🟨     |
 | 6     | Encounter Workspace + firma              | 🟨     |
 

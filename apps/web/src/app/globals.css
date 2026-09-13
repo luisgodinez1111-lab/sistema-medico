@@ -339,20 +339,31 @@
   font-size: var(--text-sm);
 }
 
-/* Responsive por comportamiento (§NIVEL 1, §21) */
+/* Responsive por comportamiento (§NIVEL 1, §21). En pantallas angostas NO se
+   oculta contenido: las columnas se APILAN y la altura deja de ser fija para que
+   timeline, resumen y rail (contactos, auditoría) sigan accesibles. */
 @media (max-width: 90rem) {
   .mos-workspace {
     grid-template-columns: 1fr var(--rail-width);
   }
   .mos-workspace__timeline {
-    display: none; /* rail colapsable en laptop; timeline pasa a drawer (pendiente) */
+    grid-column: 1 / -1;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
   }
 }
 @media (max-width: 64rem) {
   .mos-workspace {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+  .mos-workspace__col {
+    overflow-y: visible;
   }
   .mos-workspace__rail {
-    display: none; /* en tablet/móvil el rail se vuelve sheet (pendiente NIVEL 4) */
+    grid-column: 1 / -1;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
   }
 }
