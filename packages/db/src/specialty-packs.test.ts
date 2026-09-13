@@ -8,6 +8,7 @@ import {
   SPECIALTY_PACK_SOURCE,
 } from './specialty-packs';
 import { applicableHistorySections } from './clinical-history';
+import { applicablePathways } from './pathways';
 
 describe('specialty-packs (R7)', () => {
   it('todo el contenido está marcado DEMO y versionado', () => {
@@ -50,5 +51,17 @@ describe('specialty-packs (R7)', () => {
     const base = applicableHistorySections({ ageYears: 30, sex: 'male' });
     const merged = mergeHistorySections(base, resolveSpecialtyPack('medicina-general'));
     expect(merged.length).toBe(base.length);
+  });
+
+  it('las pathways del pack se activan por problema activo, junto a las base', () => {
+    const pack = resolveSpecialtyPack('medicina-estetica');
+    // Problema de la especialidad → guía del pack.
+    const estetica = applicablePathways([{ code: 'Melasma' }], pack.pathways);
+    expect(estetica.some((p) => p.title === 'Melasma (DEMO)')).toBe(true);
+    // Problema base sigue activando su guía aunque el pack esté presente.
+    const dm2 = applicablePathways([{ code: 'diabetes' }], pack.pathways);
+    expect(dm2.some((p) => p.match === 'diabetes')).toBe(true);
+    // Sin el pack, la guía de especialidad no aparece.
+    expect(applicablePathways([{ code: 'Melasma' }])).toHaveLength(0);
   });
 });

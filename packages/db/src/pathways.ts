@@ -50,8 +50,23 @@ function normalize(value: string): string {
     .toLowerCase();
 }
 
-/** Guías aplicables según los problemas activos del paciente. */
-export function applicablePathways(conditions: ReadonlyArray<{ code: string }>): PathwayDef[] {
+/**
+ * Guías aplicables según los problemas activos del paciente. `extra` permite
+ * aportar guías del pack de especialidad activo (§R7); se combinan con las base
+ * sin duplicar por `match`+`title` y se filtran igual por problemas activos.
+ */
+export function applicablePathways(
+  conditions: ReadonlyArray<{ code: string }>,
+  extra: ReadonlyArray<PathwayDef> = [],
+): PathwayDef[] {
   const codes = conditions.map((c) => normalize(c.code));
-  return DEMO_PATHWAYS.filter((p) => codes.some((c) => c.includes(p.match)));
+  const seen = new Set<string>();
+  const all: PathwayDef[] = [];
+  for (const p of [...DEMO_PATHWAYS, ...extra]) {
+    const key = `${p.match}|${p.title}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    all.push(p);
+  }
+  return all.filter((p) => codes.some((c) => c.includes(p.match)));
 }

@@ -1,4 +1,5 @@
 import type { HistorySectionDef } from './clinical-history';
+import type { PathwayDef } from './pathways';
 
 /**
  * Specialty packs (Release R7). Paquetes de contenido clínico POR ESPECIALIDAD
@@ -40,6 +41,8 @@ export interface SpecialtyPack {
   observationTemplates: ReadonlyArray<ObservationTemplate>;
   /** Conjuntos de solicitudes frecuentes (order sets). */
   orderSets: ReadonlyArray<CodedItem>;
+  /** Guías de manejo propias de la especialidad (se filtran por problema activo). */
+  pathways: ReadonlyArray<PathwayDef>;
 }
 
 /** Línea base: sin secciones ni quick-picks específicos. */
@@ -57,6 +60,7 @@ const MEDICINA_GENERAL: SpecialtyPack = {
     { code: 'ta', label: 'Tensión arterial', unit: 'mmHg' },
   ],
   orderSets: [],
+  pathways: [],
 };
 
 /** Piloto: Medicina estética (VELUM Laser). Contenido DEMO. */
@@ -95,6 +99,24 @@ const MEDICINA_ESTETICA: SpecialtyPack = {
     { code: 'valoracion-facial', label: 'Valoración facial' },
     { code: 'consentimiento-laser', label: 'Consentimiento informado (láser)' },
     { code: 'foto-clinica', label: 'Fotografía clínica (antes/después)' },
+  ],
+  pathways: [
+    {
+      match: 'melasma',
+      title: 'Melasma (DEMO)',
+      items: [
+        { label: 'Fotoprotección estricta (SPF 50+)', cadence: 'diario' },
+        { label: 'Fotografía clínica de control', cadence: 'cada 4 semanas' },
+      ],
+    },
+    {
+      match: 'acne',
+      title: 'Acné (DEMO)',
+      items: [
+        { label: 'Evaluación de respuesta al tratamiento', cadence: 'cada 6-8 semanas' },
+        { label: 'Fotografía clínica de control', cadence: 'cada 8 semanas' },
+      ],
+    },
   ],
 };
 

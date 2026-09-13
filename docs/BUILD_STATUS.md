@@ -333,8 +333,12 @@ al pack (no acepta texto arbitrario), requiere `patient.write` (auditado) y deja
 provenance del pack en la nota. UI `OrderSetActions` (botón "Solicitar" por ítem,
 estado "Solicitada ✓"). Las plantillas de observación siguen informativas (una
 observación necesita valor medido).
-**Pendiente R7:** pathways por especialidad, prefill de vitals desde plantillas de
-observación, más packs (dermatología, nutrición…), contenido validado por clínico.
+**Pathways por especialidad:** el pack aporta guías propias (`pack.pathways`) que
+`applicablePathways(conditions, extra)` combina con las base sin duplicar y filtra
+por problema activo. Estética añade Melasma y Acné (DEMO). El workspace pasa las
+pathways del pack activo.
+**Pendiente R7:** prefill de vitals desde plantillas de observación, más packs
+(dermatología, nutrición…), contenido validado por clínico.
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 

@@ -95,7 +95,10 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
   });
 
   // Guías de manejo (R4, DEMO) según los problemas activos.
-  const pathways = applicablePathways(conditions.map((c) => ({ code: c.code })));
+  const pathways = applicablePathways(
+    conditions.map((c) => ({ code: c.code })),
+    specialtyPack.pathways,
+  );
 
   const allergyLabels = allergies.map((a) =>
     a.reaction ? `${a.substance} (${a.reaction})` : a.substance,
