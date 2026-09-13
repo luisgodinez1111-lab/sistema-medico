@@ -231,8 +231,16 @@ fármaco-fármaco (código `drug-interaction`) con **catálogo DEMO marcado**
 UI marca las DEMO. **Sustituir por una base licenciada + reviewer antes de uso
 real** (§33 #8, DoD). 1 prueba nueva. db: 76/76. Verificado contra Neon
 (warfarina+ibuprofeno → crítica/demo).
-Pendiente de R4: **Pathways** (protocolos/guías con contenido clínico versionado +
-reviewer) y dosis por peso/edad (requiere catálogo).
+**Pathways / guías de manejo (R4):** motor `applicablePathways` (`pathways.ts`)
+con `PATHWAYS_VERSION`/`PATHWAYS_SOURCE = 'DEMO (no validado clínicamente)'`:
+según los problemas activos sugiere ítems de seguimiento (DM2→HbA1c/pies/fondo de
+ojo; HTA→TA/creatinina). Sólo recomienda; no marca cumplimiento automático (§27).
+Tarjeta "Guías de manejo (DEMO)" en el workspace. 3 pruebas. db: 79/79.
+**Sustituir catálogo por guías aprobadas + reviewer antes de uso real** (§33 #8).
+
+**Release R4 — Pathways + completeness + med-safety avanzada: completo**
+(med-safety y pathways con contenido DEMO marcado, a validar).
+Pendiente: dosis por peso/edad (catálogo), cumplimiento de guías vs datos reales.
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
@@ -270,7 +278,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | Release | Contenido                                | Estado |
 | ------- | ---------------------------------------- | ------ |
 | R3      | Agenda, check-in, billing básico         | ✅     |
-| R4      | Pathways, completeness, med safety       | 🟨     |
+| R4      | Pathways, completeness, med safety       | ✅     |
 | R5      | Documents, FHIR, external adapters       | ⬜     |
 | R6      | AI Copilot (human-in-the-loop)           | ⬜     |
 | R7      | Specialty packs                          | ⬜     |

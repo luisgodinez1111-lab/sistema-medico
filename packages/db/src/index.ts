@@ -11,5 +11,6 @@ export * from './context-resolver';
 export * from './clinical-history';
 export * from './prescription-safety';
 export * from './completeness';
+export * from './pathways';
 export * from './repositories';
 export * as schemaTables from './schema';

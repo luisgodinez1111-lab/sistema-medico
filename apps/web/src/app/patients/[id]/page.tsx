@@ -14,6 +14,8 @@ import {
   applicableHistorySections,
   HISTORY_SCHEMA_VERSION,
   computeCompleteness,
+  applicablePathways,
+  PATHWAYS_SOURCE,
   hasPermission,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
@@ -78,6 +80,9 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
     hasContact: contacts.length > 0,
     hasEncounter: encounters.length > 0,
   });
+
+  // Guías de manejo (R4, DEMO) según los problemas activos.
+  const pathways = applicablePathways(conditions.map((c) => ({ code: c.code })));
 
   const allergyLabels = allergies.map((a) =>
     a.reaction ? `${a.substance} (${a.reaction})` : a.substance,
@@ -220,6 +225,25 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
             }))}
             canWrite={canWrite}
           />
+
+          {pathways.length > 0 ? (
+            <ClinicalCard title="Guías de manejo (DEMO)">
+              <p className="mos-muted">{PATHWAYS_SOURCE} · según problemas activos</p>
+              {pathways.map((pw) => (
+                <div key={pw.match} style={{ marginTop: 'var(--space-3)' }}>
+                  <p className="mos-section-label">{pw.title}</p>
+                  <ul className="mos-list">
+                    {pw.items.map((it) => (
+                      <li key={it.label} className="mos-list__item">
+                        <span>{it.label}</span>
+                        <span className="mos-muted">{it.cadence}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </ClinicalCard>
+          ) : null}
 
           <VitalsManager
             patientId={patient.id}
