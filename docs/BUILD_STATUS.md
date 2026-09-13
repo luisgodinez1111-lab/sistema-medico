@@ -91,7 +91,20 @@ lógica. `RelatedPersonRepository` valida patient-in-tenant; listForPatient
 Patient Workspace: contactos en el context rail + alta vía server action
 (permiso `patient.write`). 4 pruebas nuevas. db: 38/38 verde.
 Seed: Santiago (pediátrico) con su madre como contacto de emergencia.
-Pendiente: merge real de duplicados (ya modelado con `merged_into_id`).
+
+**Merge de duplicados (NIVEL 3, §28 paso 2):** `PatientRepository.merge` fusiona
+un duplicado en el superviviente reasignando alergias, problemas, signos vitales
+y contactos; marca el duplicado como `merged` + `merged_into_id` con baja lógica
+(nunca destructivo, ADR-0003 §8) y hereda la revisión de alergias (NKDA). Como
+neon-http no soporta transacciones, la operación es una secuencia de UPDATE
+atómicos e IDEMPOTENTES (re-ejecutable). UI en el Patient Workspace (fusionar por
+MRN del superviviente, con advertencia; redirige al expediente que sobrevive).
+5 pruebas nuevas (reasignación, idempotencia, herencia NKDA, self-merge,
+aislamiento tenant). db: 43/43 verde. Verificado contra Neon real.
+
+**NIVEL 3 — Clinical Data Foundation: completo** (patient, allergy, condition,
+observation, related_person + merge). Pendiente de releases posteriores:
+codificación ICD-10/SNOMED, adjuntos, FHIR export.
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
@@ -112,7 +125,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 
 | Nivel | Descripción                              | Estado |
 | ----- | ---------------------------------------- | ------ |
-| 3     | Clinical Data Foundation                 | 🟨     |
+| 3     | Clinical Data Foundation                 | ✅     |
 | 4     | Patient Workspace                        | ⬜     |
 | 5     | Adaptive Clinical History Engine         | ⬜     |
 | 6     | Encounter Workspace + firma              | ⬜     |

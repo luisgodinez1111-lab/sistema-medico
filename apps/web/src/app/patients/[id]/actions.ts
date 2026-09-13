@@ -1,7 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import {
+  PatientRepository,
   AllergyRepository,
   ConditionRepository,
   ObservationRepository,
@@ -9,6 +11,7 @@ import {
   hasPermission,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
+import { ValidationError } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
 
@@ -193,4 +196,48 @@ export async function addRelatedPersonAction(
 
   revalidatePath(`/patients/${patientId}`);
   return { status: 'ok', message: 'Contacto registrado.' };
+}
+
+/**
+ * Fusiona el paciente actual (duplicado) en el superviviente identificado por
+ * su MRN (§28 paso 2, NIVEL 3). Reasigna datos clínicos y marca el duplicado.
+ * En éxito navega al expediente superviviente.
+ */
+export async function mergePatientAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para fusionar pacientes.' };
+  }
+
+  const loserId = str(formData, 'loserId') as PatientId;
+  const winnerMrn = str(formData, 'winnerMrn');
+  if (!loserId) return { status: 'error', message: 'Paciente inválido.' };
+  if (!winnerMrn) return { status: 'error', message: 'Indica el MRN del paciente superviviente.' };
+
+  const repo = new PatientRepository(getDb(), ctx);
+  const matches = await repo.search(winnerMrn);
+  const winner = matches.find((p) => p.mrn === winnerMrn);
+  if (!winner) {
+    return { status: 'error', message: `No se encontró un paciente activo con MRN ${winnerMrn}.` };
+  }
+  if (winner.id === loserId) {
+    return { status: 'error', message: 'El MRN corresponde al mismo paciente.' };
+  }
+
+  let winnerId: string;
+  try {
+    const result = await repo.merge({ loserId, winnerId: winner.id });
+    if (!result) return { status: 'error', message: 'No se pudo fusionar (pacientes no válidos).' };
+    winnerId = result.winner.id;
+  } catch (error) {
+    if (error instanceof ValidationError) return { status: 'error', message: error.message };
+    throw error;
+  }
+
+  revalidatePath('/patients');
+  redirect(`/patients/${winnerId}`);
 }

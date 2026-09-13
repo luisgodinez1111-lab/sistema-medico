@@ -16,6 +16,7 @@ import { AllergyManager } from './AllergyManager';
 import { ConditionManager } from './ConditionManager';
 import { VitalsManager } from './VitalsManager';
 import { ContactsManager } from './ContactsManager';
+import { MergeManager } from './MergeManager';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,6 +137,8 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
           <ClinicalCard title="Medicación actual">
             <p className="mos-muted">Disponible con prescripción estructurada (NIVEL 8).</p>
           </ClinicalCard>
+
+          <MergeManager patientId={patient.id} canWrite={canWrite} />
         </section>
 
         <aside

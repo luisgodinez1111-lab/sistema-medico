@@ -1,8 +1,14 @@
 import { and, eq, isNull, or, ilike, desc } from 'drizzle-orm';
-import { newPatientId, type PatientId, ConflictError } from '@medical-os/shared';
+import { newPatientId, type PatientId, ConflictError, ValidationError } from '@medical-os/shared';
 import type { Database } from '../client';
 import type { TenantContext } from '../tenant-context';
-import { patient } from '../schema';
+import { patient, allergy, condition, observation, relatedPerson } from '../schema';
+
+/** Resultado de una fusión de pacientes duplicados. */
+export interface MergeResult {
+  winner: PatientRow;
+  moved: { allergies: number; conditions: number; observations: number; contacts: number };
+}
 
 export type PatientRow = (typeof patient)['$inferSelect'];
 
@@ -199,5 +205,95 @@ export class PatientRepository {
       )
       .returning();
     return Boolean(updated);
+  }
+
+  /**
+   * Fusiona un paciente duplicado (`loserId`) en el superviviente (`winnerId`),
+   * reasignando sus datos clínicos y marcando al duplicado como `merged` con
+   * baja lógica (§28 paso 2, ADR-0003 §8: nunca destructivo).
+   *
+   * neon-http no soporta transacciones multi-statement, así que la operación es
+   * una secuencia de UPDATE atómicos e IDEMPOTENTES: re-ejecutarla reasigna los
+   * rezagados y vuelve a marcar al perdedor sin efectos adversos.
+   *
+   * Devuelve null si alguno de los pacientes no existe o no es del tenant.
+   * Lanza ValidationError si se intenta fusionar un paciente consigo mismo.
+   */
+  async merge(params: { loserId: PatientId; winnerId: PatientId }): Promise<MergeResult | null> {
+    const { loserId, winnerId } = params;
+    if (loserId === winnerId) {
+      throw new ValidationError('No se puede fusionar un paciente consigo mismo.');
+    }
+
+    // El superviviente debe existir, estar activo y ser del tenant.
+    const winner = await this.findById(winnerId);
+    if (!winner) return null;
+
+    // El perdedor puede estar activo o ya fusionado en ESTE superviviente
+    // (re-ejecución idempotente). Si está borrado/fusionado en otro, no procede.
+    const loser = await this.findById(loserId, { includeDeleted: true });
+    if (!loser || loser.tenantId !== this.ctx.tenantId) return null;
+    const alreadyMerged = loser.deletedAt !== null;
+    if (alreadyMerged && loser.mergedIntoId !== winnerId) return null;
+
+    const tenantId = this.ctx.tenantId;
+
+    // 1) Reasignar datos clínicos del perdedor al superviviente (atómico por tabla).
+    const movedAllergies = await this.db
+      .update(allergy)
+      .set({ patientId: winnerId, updatedAt: new Date() })
+      .where(and(eq(allergy.tenantId, tenantId), eq(allergy.patientId, loserId)))
+      .returning({ id: allergy.id });
+    const movedConditions = await this.db
+      .update(condition)
+      .set({ patientId: winnerId, updatedAt: new Date() })
+      .where(and(eq(condition.tenantId, tenantId), eq(condition.patientId, loserId)))
+      .returning({ id: condition.id });
+    const movedObservations = await this.db
+      .update(observation)
+      .set({ patientId: winnerId, updatedAt: new Date() })
+      .where(and(eq(observation.tenantId, tenantId), eq(observation.patientId, loserId)))
+      .returning({ id: observation.id });
+    const movedContacts = await this.db
+      .update(relatedPerson)
+      .set({ patientId: winnerId, updatedAt: new Date() })
+      .where(and(eq(relatedPerson.tenantId, tenantId), eq(relatedPerson.patientId, loserId)))
+      .returning({ id: relatedPerson.id });
+
+    // 2) Si el perdedor tenía revisión de alergias y el superviviente no, heredarla.
+    if (winner.allergiesReviewedAt === null && loser.allergiesReviewedAt !== null) {
+      await this.db
+        .update(patient)
+        .set({ allergiesReviewedAt: loser.allergiesReviewedAt, updatedAt: new Date() })
+        .where(and(eq(patient.id, winnerId), eq(patient.tenantId, this.ctx.tenantId)));
+    }
+
+    // 3) Marcar al perdedor como fusionado (apunta al superviviente) + baja lógica.
+    await this.db
+      .update(patient)
+      .set({
+        status: 'merged',
+        mergedIntoId: winnerId,
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(patient.id, loserId),
+          eq(patient.tenantId, this.ctx.tenantId),
+          isNull(patient.deletedAt),
+        ),
+      );
+
+    const refreshedWinner = await this.findById(winnerId);
+    return {
+      winner: (refreshedWinner ?? winner) as PatientRow,
+      moved: {
+        allergies: movedAllergies.length,
+        conditions: movedConditions.length,
+        observations: movedObservations.length,
+        contacts: movedContacts.length,
+      },
+    };
   }
 }
