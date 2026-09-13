@@ -51,11 +51,16 @@ export function buildDedupKey(input: {
 }
 
 function isUniqueViolation(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) return false;
-  const code = (error as { code?: unknown }).code;
-  if (code === '23505') return true;
-  const msg = (error as { message?: unknown }).message;
-  return typeof msg === 'string' && /duplicate key|unique constraint/i.test(msg);
+  // drizzle <0.40 lanza el error de pg directo; >=0.45 lo envuelve y deja el
+  // error original en `cause`. Recorremos la cadena para detectar el 23505.
+  let current: unknown = error;
+  for (let depth = 0; depth < 5 && current && typeof current === 'object'; depth += 1) {
+    if ((current as { code?: unknown }).code === '23505') return true;
+    const msg = (current as { message?: unknown }).message;
+    if (typeof msg === 'string' && /duplicate key|unique constraint/i.test(msg)) return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
 }
 
 /**

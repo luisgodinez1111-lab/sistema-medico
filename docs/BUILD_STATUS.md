@@ -63,6 +63,21 @@ eliminado `mock-data.ts` (sin PHI sintética dispersa).
 Pendiente: merge real de duplicados, RelatedPerson,
 Condition/Observation/Allergy (resto de NIVEL 3).
 
+## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
+
+Dependabot ahora agrupa minor/patch e **ignora majors** (política de estabilidad,
+`.github/dependabot.yml`). Majors a abordar uno a uno, con prueba contra el código
+real (no merge a ciegas):
+
+- **next 15 → 16** — framework de la app; revisar breaking changes.
+- **@neondatabase/serverless 0.10 → 1.1** — driver de BD; verificar runtime.
+- **ulid 2 → 3** — falló typecheck (probable ESM-only/API); requiere ajuste.
+- **zod 3 → 4** — aún sin uso real en código; bajo valor hasta que se use.
+- **dev-tooling**: TypeScript, ESLint 10, Vitest 5 — grupo que falló; por separado.
+
+Ya aplicados (deliberados): drizzle-orm 0.45 (con fix de `isUniqueViolation`),
+GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
+
 ## Release R1 — Clinical Core
 
 | Nivel | Descripción                              | Estado |

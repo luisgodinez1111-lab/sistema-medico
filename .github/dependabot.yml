@@ -4,11 +4,26 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     groups:
+      # Minor/patch de producción en un solo PR (bajo riesgo).
+      production-minor-patch:
+        dependency-type: production
+        update-types: ["minor", "patch"]
+      # Herramientas de desarrollo en un solo PR.
       dev-dependencies:
         dependency-type: development
+        update-types: ["minor", "patch"]
+    ignore:
+      # Los majors se evalúan de forma deliberada, no automática (política de
+      # estabilidad). Las actualizaciones de SEGURIDAD siguen llegando aparte.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns: ["*"]
