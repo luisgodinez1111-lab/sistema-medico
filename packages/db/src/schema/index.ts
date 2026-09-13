@@ -7,3 +7,4 @@ export * from './audit';
 export * from './clinical';
 export * from './scheduling';
 export * from './billing';
+export * from './documents';

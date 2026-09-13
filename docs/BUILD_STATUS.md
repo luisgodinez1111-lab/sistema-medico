@@ -249,9 +249,19 @@ MedicationRequest, Encounter, ServiceRequest, DiagnosticReport y arma un Bundle
 `application/fhir+json`, no-store, 404 sin revelar existencia cross-tenant);
 enlace "Exportar FHIR (R4)" en el workspace. 5 pruebas. db: 84/84. Verificado
 contra Neon (Bundle con 6 recursos).
-Pendiente de R5: **Documents** (metadata + content hash en BD, archivo en object
-storage privado tras env var — ADR-0003 §10) y adaptadores externos (importación
-FHIR, conectores).
+**Documents (R5):** tabla `clinical_document` en módulo separado: guarda SOLO
+metadata + content hash + storage key; **nunca los bytes ni URLs públicas**
+(ADR-0003 §10, §33 #5). `DocumentRepository`: register (pending-upload),
+markStored (sella hash+clave cuando haya storage), listForPatient, softDelete.
+Migración `drizzle/0013_*.sql`. UI `/patients/[id]/documents` (enlace en el rail):
+lista + registro de metadata; `DOCUMENTS_STORAGE` (env) define el proveedor,
+hoy `unconfigured` → los documentos quedan "pendientes de carga". 3 pruebas.
+db: 87/87. Verificado contra Neon.
+**Pendiente para uso real:** conectar object storage privado (Vercel Blob / S3)
+y el pipeline de subida con signed URLs; importación FHIR / adaptadores externos.
+
+**Release R5 — Documents + FHIR export: núcleo completo** (almacenamiento de
+archivos y adaptadores externos pendientes de integración).
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
