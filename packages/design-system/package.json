@@ -12,7 +12,9 @@
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "clean": "rm -rf dist .turbo storybook-static *.tsbuildinfo"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -22,11 +24,15 @@
     "@medical-os/shared": "workspace:*"
   },
   "devDependencies": {
+    "@storybook/addon-a11y": "^9",
+    "@storybook/react-vite": "^9",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "storybook": "^9",
     "typescript": "^5.7.3",
+    "vite": "^6",
     "vitest": "^2.1.8"
   }
 }

@@ -9,6 +9,7 @@ build/
 out/
 *.tsbuildinfo
 .turbo/
+storybook-static/
 
 # Env & secrets — NUNCA commitear (ver §15, §33 del plan)
 .env

@@ -24,8 +24,13 @@ Command Center y Patient Workspace navegables con datos sintéticos.
 **Command Palette (⌘K / Ctrl+K) listo:** navegación + búsqueda de pacientes
 server-side (tenant-scoped vía `/api/patients/search`), accesible por teclado
 (flechas/Enter/Esc, `role=dialog`), montado en el layout con pista en el topbar.
-Pendiente del gate: Storybook (infra de componentes), verificación formal
-teclado/touch en 3 tamaños.
+**Storybook 9 (react-vite) listo:** stories de las 4 primitivas (Button/Alert/
+Badge/ClinicalCard) y los 2 patrones de seguridad (PatientHeader, AllergyBanner),
+con tokens+CSS reales cargados en `preview.ts` y **addon a11y** (`test: 'error'`)
+alineado con §2.3 (el riesgo nunca solo por color; estados NKDA / "no evaluado"
+explícitos). Scripts `storybook` / `build-storybook`; `build-storybook` compila en
+verde. Salida estática gitignoreada.
+Pendiente del gate: verificación formal teclado/touch en 3 tamaños.
 
 **NIVEL 2 — en curso:** paquete `@medical-os/db` con Drizzle ORM. Esquema de
 identidad/tenancy (tenant, organization, facility, app_user, membership,
@@ -289,9 +294,12 @@ SUGIERE, el clínico decide — **no escribe nada al expediente** (§14). Cada
 generación registra **provenance de IA** (engine/policy/contextHash, sin
 chain-of-thought ni PHI) en `audit_event`. UI `CopilotPanel` en el workspace con
 marca "DEMO (no IA)". 4 pruebas. db: 91/91. Verificado contra Neon.
-**Pendiente para IA real:** conectar Claude (API Anthropic vía AI Gateway de
-Vercel) detrás de env var, manteniendo el mismo contrato (contexto mínimo +
-provenance + human-in-the-loop).
+**R6 EN PAUSA (decisión del equipo, 2026-09-13):** el núcleo human-in-the-loop
+queda entregado y estable, pero la conexión a IA real (Claude vía AI Gateway de
+Vercel detrás de env var) se **deja pendiente hasta determinar el paso adecuado**
+(proveedor, política de datos y contrato definitivo). No se avanza R6 hasta esa
+definición; el contrato actual (contexto mínimo + provenance + human-in-the-loop)
+se mantiene listo para enchufar el motor real sin cambios.
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
@@ -331,7 +339,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | R3      | Agenda, check-in, billing básico         | ✅     |
 | R4      | Pathways, completeness, med safety       | ✅     |
 | R5      | Documents, FHIR export+import, storage   | ✅     |
-| R6      | AI Copilot (human-in-the-loop)           | 🟨     |
+| R6      | AI Copilot (núcleo ✅; IA real EN PAUSA)  | ⏸️     |
 | R7      | Specialty packs                          | ⬜     |
 
 ## Vertical slice objetivo (§28)
