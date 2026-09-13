@@ -395,9 +395,9 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | R6      | AI Copilot (núcleo ✅; IA real EN PAUSA)  | ⏸️     |
 | R7      | Specialty packs (piloto Med. estética)   | ✅     |
 
-## Vertical slice objetivo (§28)
+## Vertical slice objetivo (§28) — COMPLETO ✅
 
-El primer corte end-to-end que valida la columna vertebral:
+El corte end-to-end que valida la columna vertebral (15/15 pasos):
 
 1. ✅ Crear tenant, organización, consultorio y médico — **flujo UI `/onboarding`** (el
    usuario sin clínica se aprovisiona como admin) + seed. `provisionTenant` idempotente.
@@ -411,7 +411,10 @@ El primer corte end-to-end que valida la columna vertebral:
 7. ✅ Crear problema/diagnóstico y plan — **diagnósticos del encuentro** (ligan Conditions
    al encuentro, tabla `encounter_diagnosis`) que derivan el Análisis (A) que la firma
    congela; el Plan (P) queda como texto libre en el editor SOAP.
-8. 🟨 Emitir receta estructurada (prescripción + seguridad; falta receta imprimible)
+8. ✅ Emitir receta estructurada — prescripción + seguridad + **receta imprimible**
+   (`/patients/[id]/prescriptions/print`): renderiza los MedicationRequest activos con
+   encabezado de clínica, médico + cédula, folio y firma; imprime a PDF con `@media print`
+   (no genera ni almacena bytes, ADR-0003 §10).
 9. ✅ Solicitar un laboratorio
 10. ✅ Firmar encuentro (snapshot + provenance)
 11. ✅ Ingresar resultado del laboratorio
