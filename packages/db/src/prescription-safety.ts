@@ -30,8 +30,38 @@ const DEMO_INTERACTIONS: ReadonlyArray<InteractionRule> = [
   { a: 'metformina', b: 'alcohol', severity: 'warning', note: 'acidosis láctica (DEMO)' },
 ];
 
-export type SafetyAlertCode = 'allergy-contraindication' | 'duplicate-therapy' | 'drug-interaction';
-export type SafetySeverity = 'critical' | 'warning';
+/**
+ * Catálogo de dosificación pediátrica por peso. **CONTENIDO DEMO, NO VALIDADO
+ * CLÍNICAMENTE** (§33 #8). Rangos mg/kg orientativos; sustituir por una fuente
+ * licenciada antes de uso real. Es INFORMATIVO (human-in-the-loop): sugiere, no
+ * calcula la receta ni decide por el clínico.
+ */
+export const DOSING_DATASET_VERSION = 'demo-2026.09.1';
+export const DOSING_SOURCE = 'DEMO (no validado clínicamente)';
+
+/** Umbral de edad para aplicar verificación de dosis por peso (pediátrico). */
+const PEDIATRIC_AGE_MAX = 12;
+
+interface PediatricDoseRule {
+  drug: string;
+  minPerKg: number;
+  maxPerKg: number;
+  unit: string;
+  per: 'dosis' | 'día';
+}
+const DEMO_PEDIATRIC_DOSING: ReadonlyArray<PediatricDoseRule> = [
+  { drug: 'paracetamol', minPerKg: 10, maxPerKg: 15, unit: 'mg', per: 'dosis' },
+  { drug: 'ibuprofeno', minPerKg: 5, maxPerKg: 10, unit: 'mg', per: 'dosis' },
+  { drug: 'amoxicilina', minPerKg: 40, maxPerKg: 90, unit: 'mg', per: 'día' },
+];
+
+export type SafetyAlertCode =
+  | 'allergy-contraindication'
+  | 'duplicate-therapy'
+  | 'drug-interaction'
+  | 'weight-based-dose'
+  | 'missing-weight';
+export type SafetySeverity = 'critical' | 'warning' | 'info';
 
 export interface SafetyAlert {
   code: SafetyAlertCode;
@@ -68,6 +98,10 @@ export function checkPrescription(params: {
   drug: string;
   allergies: ReadonlyArray<{ substance: string }>;
   activeMedications: ReadonlyArray<{ drug: string }>;
+  /** Edad en años (para verificación pediátrica de dosis). */
+  ageYears?: number;
+  /** Peso en kg del paciente (para dosis por kg). */
+  weightKg?: number;
 }): SafetyAlert[] {
   const alerts: SafetyAlert[] = [];
   const { drug } = params;
@@ -108,6 +142,35 @@ export function checkPrescription(params: {
           severity: rule.severity,
           message: `Posible interacción con "${m.drug}": ${rule.note}.`,
           rulesetVersion: INTERACTIONS_DATASET_VERSION,
+          source: 'demo',
+        });
+      }
+    }
+  }
+
+  // Dosis pediátrica por peso (§NIVEL 8). Sólo para pacientes pediátricos y
+  // fármacos del catálogo DEMO. Informativo (human-in-the-loop).
+  const isPediatric = params.ageYears !== undefined && params.ageYears < PEDIATRIC_AGE_MAX;
+  if (isPediatric) {
+    const doseRule = DEMO_PEDIATRIC_DOSING.find((r) => related(drug, r.drug));
+    if (doseRule) {
+      if (params.weightKg === undefined || params.weightKg <= 0) {
+        alerts.push({
+          code: 'missing-weight',
+          severity: 'warning',
+          message:
+            'Paciente pediátrico sin peso registrado: no se puede verificar la dosis por kg. Registra el peso.',
+          rulesetVersion: SAFETY_RULESET_VERSION,
+          source: 'rule',
+        });
+      } else {
+        const min = Math.round(doseRule.minPerKg * params.weightKg);
+        const max = Math.round(doseRule.maxPerKg * params.weightKg);
+        alerts.push({
+          code: 'weight-based-dose',
+          severity: 'info',
+          message: `Dosis pediátrica sugerida (DEMO) para "${drug}": ${min}–${max} ${doseRule.unit} por ${doseRule.per} (${doseRule.minPerKg}–${doseRule.maxPerKg} ${doseRule.unit}/kg × ${params.weightKg} kg).`,
+          rulesetVersion: DOSING_DATASET_VERSION,
           source: 'demo',
         });
       }

@@ -79,7 +79,15 @@ export function MedicationManager({
                         <span className="mos-muted"> · contenido DEMO no validado</span>
                       ) : null}
                     </span>
-                    <Badge tone={a.severity === 'critical' ? 'critical' : 'warning'}>
+                    <Badge
+                      tone={
+                        a.severity === 'critical'
+                          ? 'critical'
+                          : a.severity === 'info'
+                            ? 'info'
+                            : 'warning'
+                      }
+                    >
                       {a.code}
                     </Badge>
                   </li>

@@ -7,8 +7,42 @@ import {
 } from '@medical-os/shared';
 import type { Database } from '../client';
 import type { TenantContext } from '../tenant-context';
-import { medicationRequest, allergy, patient } from '../schema';
+import { medicationRequest, allergy, patient, observation } from '../schema';
 import { checkPrescription, type SafetyAlert } from '../prescription-safety';
+
+/** Edad en años a partir de la fecha de nacimiento (YYYY-MM-DD). */
+function ageYearsFrom(birthDate: string): number {
+  const b = new Date(birthDate);
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return age;
+}
+
+/** ¿El código de la observación corresponde a peso? (tolerante a variantes). */
+function isWeightCode(code: string): boolean {
+  const c = code
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+  return c.includes('peso') || c.includes('weight');
+}
+
+/**
+ * Extrae el peso en kg de la primera observación de peso (lista ya ordenada de
+ * más reciente a más antigua). Devuelve undefined si no hay una parseable.
+ */
+function parseWeightKg(
+  rows: ReadonlyArray<{ code: string; valueText: string }>,
+): number | undefined {
+  for (const r of rows) {
+    if (!isWeightCode(r.code)) continue;
+    const n = parseFloat(r.valueText.replace(',', '.'));
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return undefined;
+}
 
 export type MedicationRequestRow = (typeof medicationRequest)['$inferSelect'];
 
@@ -85,7 +119,33 @@ export class MedicationRepository {
     const activeMedications = (await this.listActiveForPatient(patientId)).map((m) => ({
       drug: m.drug,
     }));
-    return checkPrescription({ drug, allergies, activeMedications });
+
+    // Edad (birthDate) y peso (última observación de peso) para dosis pediátrica.
+    const [pt] = await this.db
+      .select({ birthDate: patient.birthDate })
+      .from(patient)
+      .where(and(eq(patient.id, patientId), eq(patient.tenantId, this.ctx.tenantId)))
+      .limit(1);
+    const weightRows = await this.db
+      .select({ valueText: observation.valueText, code: observation.code })
+      .from(observation)
+      .where(
+        and(
+          eq(observation.tenantId, this.ctx.tenantId),
+          eq(observation.patientId, patientId),
+          isNull(observation.deletedAt),
+        ),
+      )
+      .orderBy(desc(observation.effectiveAt));
+    const weightKg = parseWeightKg(weightRows);
+
+    return checkPrescription({
+      drug,
+      allergies,
+      activeMedications,
+      ...(pt ? { ageYears: ageYearsFrom(pt.birthDate) } : {}),
+      ...(weightKg !== undefined ? { weightKg } : {}),
+    });
   }
 
   /**

@@ -40,7 +40,7 @@ import { auditedAuthorize } from '@/server/audit';
 
 export interface SafetyAlertView {
   code: string;
-  severity: 'critical' | 'warning';
+  severity: 'critical' | 'warning' | 'info';
   message: string;
   source?: 'rule' | 'demo';
 }
@@ -552,11 +552,14 @@ export async function prescribeMedicationAction(
     source: a.source,
   }));
 
-  // Una alerta crítica (alergia) bloquea salvo confirmación explícita.
-  if (hasCritical(alerts) && !confirm) {
+  // Cualquier alerta (crítica, advertencia o sugerencia de dosis) se muestra y
+  // requiere confirmación explícita antes de prescribir (human-in-the-loop).
+  if (alerts.length > 0 && !confirm) {
     return {
       status: 'alerts',
-      message: 'Alerta de seguridad: revisa antes de prescribir.',
+      message: hasCritical(alerts)
+        ? 'Alerta CRÍTICA de seguridad: revisa antes de prescribir.'
+        : 'Revisa las alertas y confirma para prescribir.',
       alerts: alertViews,
     };
   }

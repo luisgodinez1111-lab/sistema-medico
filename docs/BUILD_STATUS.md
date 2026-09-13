@@ -205,8 +205,15 @@ Permiso `patient.write`. Migración `drizzle/0008_*.sql` aplicada. 7 pruebas nue
 (motor crítico/duplicado/limpio, checkSafety real, prescribe, aislamiento, stop).
 db: 60/60 verde. Verificado contra Neon (Penicilina→crítica). Cubre §28 paso 8 y
 enciende la tarjeta "Medicación" del NIVEL 4.
-Pendiente: interacciones fármaco-fármaco, dosis por peso/edad (pediátrico),
-catálogo de medicamentos, receta imprimible.
+Interacciones fármaco-fármaco: hechas en R4 (catálogo DEMO). Receta imprimible:
+hecha (§28 paso 8). **Dosis por peso/edad (pediátrico) — lista:** `checkPrescription`
+gana `ageYears`/`weightKg`; catálogo DEMO (`DOSING_DATASET_VERSION`/`DOSING_SOURCE`,
+paracetamol/ibuprofeno/amoxicilina) sugiere rango mg/kg (alerta `weight-based-dose`,
+severidad `info`) sólo en pediátricos; si falta peso, alerta `missing-weight`
+(warning, determinista). `checkSafety` carga edad (birthDate) + peso (última
+observación). El flujo de prescripción muestra TODA alerta y exige confirmación
+(human-in-the-loop). 5 pruebas nuevas.
+Pendiente: catálogo estructurado de medicamentos (búsqueda), dosis por edad no-peso.
 
 **NIVEL 9 — Orders, Results & Closed-Loop Safety — en curso (R2):** tablas
 `service_request` (orden lab/imagen/procedimiento) y `diagnostic_report`
