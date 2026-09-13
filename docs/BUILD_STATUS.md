@@ -380,7 +380,6 @@ Dependabot ahora agrupa minor/patch e **ignora majors** (política de estabilida
 `.github/dependabot.yml`). Majors a abordar uno a uno, con prueba contra el código
 real (no merge a ciegas):
 
-- **next 15 → 16** — framework de la app; revisar breaking changes.
 - **@neondatabase/serverless 0.10 → 1.1** — driver de BD; RIESGO: las pruebas usan
   PGlite, no neon-http, así que un cambio del driver sólo se verifica en runtime
   (migrate/seed contra Neon + app desplegada). Abordar con cuidado.
@@ -391,7 +390,9 @@ Ya aplicados (deliberados): drizzle-orm 0.45 (fix `isUniqueViolation`),
 **Vitest 2 → 5** (4 paquetes; suite verde), **ESLint 9 → 10 + typescript-eslint**
 (la nueva regla `no-useless-assignment` detectó un code smell en el seed, corregido),
 **Storybook 9 → 10** (build-storybook verde), **ulid 2 → 3** (ESM ya OK con
-`moduleResolution: Bundler`; ejercitado por las 161 pruebas + web build), GitHub
+`moduleResolution: Bundler`; ejercitado por las 161 pruebas + web build),
+**Next 15 → 16** (build+typecheck verde; `middleware.ts` migrado a `proxy.ts` por la
+nueva convención de Next 16; protección de rutas verificada en prod con 307), GitHub
 Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3). **zod
 eliminado** (dependencia muerta).
 
