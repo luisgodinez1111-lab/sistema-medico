@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation';
 import { PatientHeader, AllergyBanner, ClinicalCard, Button } from '@medical-os/design-system';
-import { PatientRepository } from '@medical-os/db';
+import { PatientRepository, AllergyRepository, hasPermission } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
 import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
+import { AllergyManager } from './AllergyManager';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,11 +21,20 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
   const ctx = await getRequestContext();
   if (!ctx) notFound();
 
-  const patient = await new PatientRepository(getDb(), ctx).findById(id as PatientId);
+  const db = getDb();
+  const patient = await new PatientRepository(db, ctx).findById(id as PatientId);
   if (!patient) notFound();
 
-  // Las alergias aún no se capturan (llegan en NIVEL 3: Allergy). "No evaluadas".
-  const allergiesAssessed = false;
+  const allergies = await new AllergyRepository(db, ctx).listForPatient(patient.id);
+  const reviewed = patient.allergiesReviewedAt !== null;
+  const canWrite = hasPermission(ctx, 'patient.write');
+
+  const allergyLabels = allergies.map((a) =>
+    a.reaction ? `${a.substance} (${a.reaction})` : a.substance,
+  );
+  const criticalFlags = allergies
+    .filter((a) => a.criticality === 'high')
+    .map((a) => ({ label: `Alergia: ${a.substance}`, tone: 'critical' as const }));
 
   return (
     <div>
@@ -33,10 +43,10 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
         ageLabel={ageLabel(patient.birthDate)}
         sexLabel={sexLabel(patient.sex)}
         mrn={patient.mrn}
-        criticalFlags={[]}
+        criticalFlags={criticalFlags}
         actions={<Button variant="primary">Iniciar consulta</Button>}
       />
-      <AllergyBanner allergies={[]} notAssessed={!allergiesAssessed} />
+      <AllergyBanner allergies={allergyLabels} notAssessed={allergies.length === 0 && !reviewed} />
 
       <div className="mos-workspace">
         <aside className="mos-workspace__col mos-workspace__timeline" aria-label="Línea de tiempo">
@@ -73,6 +83,19 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
               ) : null}
             </ul>
           </ClinicalCard>
+
+          <AllergyManager
+            patientId={patient.id}
+            allergies={allergies.map((a) => ({
+              id: a.id,
+              substance: a.substance,
+              category: a.category,
+              criticality: a.criticality,
+              reaction: a.reaction,
+            }))}
+            reviewed={reviewed}
+            canWrite={canWrite}
+          />
 
           <ClinicalCard title="Problemas activos">
             <p className="mos-muted">Se capturan en el encuentro clínico (NIVEL 6).</p>

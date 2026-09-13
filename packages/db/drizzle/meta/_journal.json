@@ -15,6 +15,13 @@
       "when": 1789257465807,
       "tag": "0001_bumpy_expediter",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789259132345,
+      "tag": "0002_silent_micromax",
+      "breakpoints": true
     }
   ]
 }

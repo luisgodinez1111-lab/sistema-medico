@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import {
   newTenantId,
   newOrganizationId,
@@ -12,6 +12,7 @@ import { ConflictError } from '@medical-os/shared';
 import { createNeonDatabase } from './client';
 import { createTenantContext } from './tenant-context';
 import { PatientRepository, type NewPatientInput } from './repositories/patient';
+import { AllergyRepository } from './repositories/allergy';
 import {
   tenant,
   organization,
@@ -23,6 +24,7 @@ import {
   rolePermission,
   membershipRole,
   practitioner,
+  patient,
 } from './schema';
 
 /**
@@ -194,6 +196,30 @@ async function main(): Promise<void> {
       if (!(error instanceof ConflictError)) throw error;
     }
   }
+
+  // 11) Alergias demo (NIVEL 3). Idempotente: solo si el paciente no tiene ya.
+  const allergyRepo = new AllergyRepository(db, ctx);
+  const [maria] = await db
+    .select()
+    .from(patient)
+    .where(and(eq(patient.tenantId, tenantId), eq(patient.mrn, '000123')))
+    .limit(1);
+  if (maria && (await allergyRepo.listForPatient(maria.id)).length === 0) {
+    await allergyRepo.create({
+      patientId: maria.id,
+      substance: 'Penicilina',
+      category: 'medication',
+      criticality: 'high',
+      reaction: 'anafilaxia',
+    });
+  }
+  // Santiago: sin alergias conocidas (NKDA explícito).
+  const [santiago] = await db
+    .select()
+    .from(patient)
+    .where(and(eq(patient.tenantId, tenantId), eq(patient.mrn, '000456')))
+    .limit(1);
+  if (santiago) await allergyRepo.markReviewed(santiago.id);
 
   // eslint-disable-next-line no-console
   console.log(
