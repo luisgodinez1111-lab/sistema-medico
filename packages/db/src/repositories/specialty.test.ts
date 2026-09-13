@@ -33,8 +33,8 @@ describe('SpecialtyRepository (R7)', () => {
 
   it('fija y actualiza (upsert) la especialidad del tenant', async () => {
     const repo = new SpecialtyRepository(db, ctxA);
-    expect(await repo.setActivePack('medicina-estetica')).toBe(true);
-    expect(await repo.getActivePackId()).toBe('medicina-estetica');
+    expect(await repo.setActivePack('medicina-interna')).toBe(true);
+    expect(await repo.getActivePackId()).toBe('medicina-interna');
     // Cambiar: upsert, no duplica.
     expect(await repo.setActivePack('medicina-general')).toBe(true);
     expect(await repo.getActivePackId()).toBe('medicina-general');
@@ -47,7 +47,7 @@ describe('SpecialtyRepository (R7)', () => {
   });
 
   it('está aislada por tenant', async () => {
-    await new SpecialtyRepository(db, ctxA).setActivePack('medicina-estetica');
+    await new SpecialtyRepository(db, ctxA).setActivePack('medicina-interna');
     expect(await new SpecialtyRepository(db, ctxB).getActivePackId()).toBeNull();
   });
 });

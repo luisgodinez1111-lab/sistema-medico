@@ -42,13 +42,13 @@ import {
  */
 
 const DEMO = {
-  tenantSlug: 'velum-demo',
-  tenantName: 'VELUM Demo',
-  orgName: 'VELUM Medicina Estética',
+  tenantSlug: 'clinica-demo',
+  tenantName: 'Clínica Demo',
+  orgName: 'Consultorio de Medicina General',
   facilityName: 'Consultorio Centro',
   timezone: 'America/Mexico_City',
-  userEmail: 'demo@velum.local',
-  userName: 'Dr. Demo Godínez',
+  userEmail: 'demo@medicalos.local',
+  userName: 'Dr. Demo',
   roleKey: 'admin',
   roleName: 'Administrador clínico',
   specialty: 'Medicina general',
@@ -108,7 +108,7 @@ async function main(): Promise<void> {
   // 4) Usuario global (por email) con contraseña para el login (NIVEL 2).
   // La contraseña demo se toma de entorno; el fallback es SOLO para desarrollo
   // local y nunca debe usarse en producción.
-  const demoPassword = process.env.SEED_DEMO_PASSWORD ?? 'velum-demo-1234';
+  const demoPassword = process.env.SEED_DEMO_PASSWORD ?? 'medicalos-demo-1234';
   const demoPasswordHash = await hashPassword(demoPassword);
   let [user] = await db.select().from(appUser).where(eq(appUser.email, DEMO.userEmail)).limit(1);
   if (!user) {
@@ -177,9 +177,9 @@ async function main(): Promise<void> {
     });
   }
 
-  // 9b) Especialidad activa del tenant (R7): piloto Medicina estética (VELUM Laser).
+  // 9b) Especialidad activa del tenant (R7): medicina general (línea base).
   await new SpecialtyRepository(db, createTenantContext({ tenantId, userId })).setActivePack(
-    'medicina-estetica',
+    'medicina-general',
   );
 
   // 10) Pacientes demo (NIVEL 3). Idempotente vía MRN único por tenant.

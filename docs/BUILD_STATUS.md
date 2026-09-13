@@ -342,17 +342,18 @@ se mantiene listo para enchufar el motor real sin cambios.
 
 **Release R7 — Specialty packs — primer slice:** motor `specialty-packs.ts`
 (catálogo ESTRUCTURADO y VERSIONADO, `SPECIALTY_PACK_SCHEMA_VERSION`, contenido
-**DEMO no validado** `SPECIALTY_PACK_SOURCE`, §33 #8). Packs: Medicina general
-(línea base) y **Medicina estética (piloto VELUM Laser)** con secciones de historia
-extra (fototipo Fitzpatrick, exposición solar, tratamientos previos, expectativas),
-quick-picks de problemas, plantillas de observación y order sets. Especialidad
+**DEMO no validado** `SPECIALTY_PACK_SOURCE`, §33 #8). Sistema médico GENERAL y
+multi-especialidad. Packs: **Medicina general** (línea base), **Medicina interna**,
+**Ginecología y obstetricia**, **Neurología** y **Dermatología**, cada uno con
+secciones de historia extra, quick-picks de problemas, plantillas de observación,
+order sets y pathways. Catálogo extensible. Especialidad
 activa por tenant en `tenant_specialty` (PK tenant_id, migración `0015_*.sql`),
 `SpecialtyRepository` tenant-scoped (upsert idempotente, rechaza packs desconocidos).
 Integración: `mergeHistorySections` AÑADE las secciones del pack a las base por
 edad/sexo (§NIVEL 5) sin duplicar ni quitar obligatorias; UI `/org` con selector
 (gated `organization.manage`, auditado) y `SpecialtyPanel` informativo en el
-workspace. Seed activa el piloto en el tenant demo. 9 pruebas (engine + repo).
-db: 126/126. Verificado contra Neon.
+workspace. Seed activa Medicina general en el tenant demo. Pruebas de engine + repo.
+Verificado contra Neon.
 **Order sets accionables en UN CLIC:** `orderFromSpecialtyAction` crea una
 ServiceRequest desde un order set del pack activo; defensa: el code DEBE pertenecer
 al pack (no acepta texto arbitrario), requiere `patient.write` (auditado) y deja
@@ -361,8 +362,8 @@ estado "Solicitada ✓"). Las plantillas de observación siguen informativas (un
 observación necesita valor medido).
 **Pathways por especialidad:** el pack aporta guías propias (`pack.pathways`) que
 `applicablePathways(conditions, extra)` combina con las base sin duplicar y filtra
-por problema activo. Estética añade Melasma y Acné (DEMO). El workspace pasa las
-pathways del pack activo.
+por problema activo (p. ej. Neurología añade Epilepsia y Migraña; Ginecología,
+Control prenatal — DEMO). El workspace pasa las pathways del pack activo.
 **Prefill de vitals:** las plantillas de observación del pack aparecen como chips
 en `VitalsManager`; un clic rellena código + unidad y el clínico sólo teclea el
 valor (form controlado; el select combina vitales estándar + plantillas sin duplicar).
@@ -420,7 +421,7 @@ eliminado** (dependencia muerta).
 | R4      | Pathways, completeness, med safety       | ✅     |
 | R5      | Documents, FHIR export+import, storage   | ✅     |
 | R6      | AI Copilot (núcleo ✅; IA real EN PAUSA)  | ⏸️     |
-| R7      | Specialty packs (piloto Med. estética)   | ✅     |
+| R7      | Specialty packs (multi-especialidad)     | ✅     |
 
 ## Vertical slice objetivo (§28) — COMPLETO ✅
 

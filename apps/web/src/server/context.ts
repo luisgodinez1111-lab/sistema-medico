@@ -35,8 +35,8 @@ export async function getRequestContext(): Promise<TenantContext | null> {
   }
 
   if (process.env.AUTH_DEMO_FALLBACK === '1') {
-    const tenantSlug = process.env.DEMO_TENANT_SLUG ?? 'velum-demo';
-    const userEmail = process.env.DEMO_USER_EMAIL ?? 'demo@velum.local';
+    const tenantSlug = process.env.DEMO_TENANT_SLUG ?? 'clinica-demo';
+    const userEmail = process.env.DEMO_USER_EMAIL ?? 'demo@medicalos.local';
     return resolveTenantContext(getDb(), { tenantSlug, userEmail });
   }
 

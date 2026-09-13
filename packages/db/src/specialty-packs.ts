@@ -12,7 +12,9 @@ import type { PathwayDef } from './pathways';
  * acciones: alimentan la UI (quick-picks informativos) y el motor de historia;
  * el clínico decide y actúa por los flujos permisados existentes.
  *
- * El piloto es Medicina estética (VELUM Laser). Medicina general es la línea base.
+ * Medical OS es un sistema médico GENERAL y multi-especialidad: Medicina general
+ * es la línea base y cada especialidad (interna, gineco-obstetricia, neurología,
+ * dermatología, …) aporta su propio pack. El catálogo es extensible.
  */
 
 export const SPECIALTY_PACK_SCHEMA_VERSION = '2026.09.1';
@@ -63,59 +65,170 @@ const MEDICINA_GENERAL: SpecialtyPack = {
   pathways: [],
 };
 
-/** Piloto: Medicina estética (VELUM Laser). Contenido DEMO. */
-const MEDICINA_ESTETICA: SpecialtyPack = {
-  id: 'medicina-estetica',
-  name: 'Medicina estética',
-  description: 'Piloto VELUM Laser. Fototipo, exposición solar y valoración facial.',
+/** Medicina interna. Contenido DEMO. */
+const MEDICINA_INTERNA: SpecialtyPack = {
+  id: 'medicina-interna',
+  name: 'Medicina interna',
+  description: 'Enfermedades crónicas del adulto: control metabólico, cardiovascular y renal.',
   version: SPECIALTY_PACK_SCHEMA_VERSION,
   source: 'demo',
   extraHistorySections: [
     {
-      section: 'estetica-antecedentes',
-      title: 'Antecedentes estéticos (DEMO)',
+      section: 'interna-antecedentes',
+      title: 'Antecedentes de medicina interna (DEMO)',
       items: [
-        { code: 'fototipo-fitzpatrick', label: 'Fototipo Fitzpatrick (I–VI)' },
-        { code: 'exposicion-solar', label: 'Exposición solar habitual' },
-        { code: 'tratamientos-previos', label: 'Tratamientos estéticos previos' },
-        { code: 'cicatrizacion', label: 'Antecedente de cicatrización queloide' },
-        { code: 'expectativas', label: 'Expectativas del paciente' },
+        { code: 'apego-tratamiento', label: 'Apego al tratamiento' },
+        { code: 'hospitalizaciones-previas', label: 'Hospitalizaciones previas' },
+        { code: 'polifarmacia', label: 'Polifarmacia' },
+        { code: 'tamiz-cardiovascular', label: 'Riesgo cardiovascular' },
       ],
     },
   ],
   quickProblems: [
-    { code: 'acne', label: 'Acné' },
-    { code: 'melasma', label: 'Melasma' },
-    { code: 'rosacea', label: 'Rosácea' },
-    { code: 'fotoenvejecimiento', label: 'Fotoenvejecimiento' },
-    { code: 'cicatrices', label: 'Cicatrices' },
+    { code: 'diabetes', label: 'Diabetes mellitus tipo 2' },
+    { code: 'hipertension', label: 'Hipertensión arterial' },
+    { code: 'dislipidemia', label: 'Dislipidemia' },
+    { code: 'erc', label: 'Enfermedad renal crónica' },
+    { code: 'hipotiroidismo', label: 'Hipotiroidismo' },
   ],
   observationTemplates: [
     { code: 'peso', label: 'Peso', unit: 'kg' },
-    { code: 'fototipo', label: 'Fototipo Fitzpatrick' },
-    { code: 'area-tratada', label: 'Área a tratar' },
+    { code: 'talla', label: 'Talla', unit: 'cm' },
+    { code: 'imc', label: 'IMC', unit: 'kg/m²' },
+    { code: 'ta', label: 'Tensión arterial', unit: 'mmHg' },
+    { code: 'glucosa', label: 'Glucosa capilar', unit: 'mg/dL' },
   ],
   orderSets: [
-    { code: 'valoracion-facial', label: 'Valoración facial' },
-    { code: 'consentimiento-laser', label: 'Consentimiento informado (láser)' },
-    { code: 'foto-clinica', label: 'Fotografía clínica (antes/después)' },
+    { code: 'hba1c', label: 'Hemoglobina glucosilada (HbA1c)' },
+    { code: 'perfil-lipidico', label: 'Perfil de lípidos' },
+    { code: 'quimica-sanguinea', label: 'Química sanguínea' },
+    { code: 'ego', label: 'Examen general de orina' },
   ],
   pathways: [
     {
-      match: 'melasma',
-      title: 'Melasma (DEMO)',
+      match: 'diabetes',
+      title: 'Diabetes mellitus tipo 2 (DEMO)',
       items: [
-        { label: 'Fotoprotección estricta (SPF 50+)', cadence: 'diario' },
-        { label: 'Fotografía clínica de control', cadence: 'cada 4 semanas' },
+        { label: 'HbA1c', cadence: 'cada 3 meses' },
+        { label: 'Perfil lipídico', cadence: 'anual' },
+        { label: 'Examen de pies y fondo de ojo', cadence: 'anual' },
       ],
     },
     {
-      match: 'acne',
-      title: 'Acné (DEMO)',
+      match: 'hipertension',
+      title: 'Hipertensión arterial (DEMO)',
       items: [
-        { label: 'Evaluación de respuesta al tratamiento', cadence: 'cada 6-8 semanas' },
-        { label: 'Fotografía clínica de control', cadence: 'cada 8 semanas' },
+        { label: 'Tensión arterial', cadence: 'cada visita' },
+        { label: 'Creatinina y electrolitos', cadence: 'anual' },
       ],
+    },
+  ],
+};
+
+/** Ginecología y obstetricia. Contenido DEMO. */
+const GINECOLOGIA_OBSTETRICIA: SpecialtyPack = {
+  id: 'ginecologia-obstetricia',
+  name: 'Ginecología y obstetricia',
+  description: 'Salud de la mujer: control ginecológico, tamizajes y control prenatal.',
+  version: SPECIALTY_PACK_SCHEMA_VERSION,
+  source: 'demo',
+  extraHistorySections: [
+    {
+      section: 'gineco-obstetricos-especialidad',
+      title: 'Antecedentes gineco-obstétricos (DEMO)',
+      items: [
+        { code: 'menarca', label: 'Menarca (edad)' },
+        { code: 'fum', label: 'Fecha de última menstruación' },
+        { code: 'gestas-partos-cesareas', label: 'Gestas / partos / cesáreas / abortos' },
+        { code: 'metodo-anticonceptivo', label: 'Método anticonceptivo' },
+        { code: 'ultimo-papanicolaou', label: 'Último Papanicolaou' },
+      ],
+    },
+  ],
+  quickProblems: [
+    { code: 'embarazo', label: 'Embarazo' },
+    { code: 'sangrado-uterino-anormal', label: 'Sangrado uterino anormal' },
+    { code: 'sindrome-ovario-poliquistico', label: 'Síndrome de ovario poliquístico' },
+    { code: 'infeccion-vaginal', label: 'Infección vaginal' },
+    { code: 'climaterio', label: 'Climaterio / menopausia' },
+  ],
+  observationTemplates: [
+    { code: 'peso', label: 'Peso', unit: 'kg' },
+    { code: 'ta', label: 'Tensión arterial', unit: 'mmHg' },
+    { code: 'altura-uterina', label: 'Altura uterina', unit: 'cm' },
+    { code: 'fcf', label: 'Frecuencia cardiaca fetal', unit: 'lpm' },
+  ],
+  orderSets: [
+    { code: 'papanicolaou', label: 'Papanicolaou' },
+    { code: 'ultrasonido-pelvico', label: 'Ultrasonido pélvico' },
+    { code: 'ultrasonido-obstetrico', label: 'Ultrasonido obstétrico' },
+    { code: 'perfil-prenatal', label: 'Perfil prenatal (BH, glucosa, grupo y Rh, VDRL, VIH)' },
+  ],
+  pathways: [
+    {
+      match: 'embarazo',
+      title: 'Control prenatal (DEMO)',
+      items: [
+        { label: 'Tensión arterial y peso', cadence: 'cada consulta' },
+        { label: 'Altura uterina y FCF', cadence: 'cada consulta (según edad gestacional)' },
+        { label: 'Ultrasonido obstétrico', cadence: 'por trimestre' },
+      ],
+    },
+  ],
+};
+
+/** Neurología. Contenido DEMO. */
+const NEUROLOGIA: SpecialtyPack = {
+  id: 'neurologia',
+  name: 'Neurología',
+  description: 'Exploración neurológica, cefaleas, epilepsia y enfermedad cerebrovascular.',
+  version: SPECIALTY_PACK_SCHEMA_VERSION,
+  source: 'demo',
+  extraHistorySections: [
+    {
+      section: 'neurologia-antecedentes',
+      title: 'Antecedentes neurológicos (DEMO)',
+      items: [
+        { code: 'crisis-convulsivas', label: 'Crisis convulsivas' },
+        { code: 'cefalea-patron', label: 'Patrón de cefalea' },
+        { code: 'evc-previo', label: 'EVC / isquemia previa' },
+        { code: 'deterioro-cognitivo', label: 'Deterioro cognitivo' },
+        { code: 'trauma-craneo', label: 'Traumatismo craneoencefálico' },
+      ],
+    },
+  ],
+  quickProblems: [
+    { code: 'cefalea', label: 'Cefalea' },
+    { code: 'migrana', label: 'Migraña' },
+    { code: 'epilepsia', label: 'Epilepsia' },
+    { code: 'evc', label: 'Enfermedad vascular cerebral' },
+    { code: 'neuropatia', label: 'Neuropatía periférica' },
+  ],
+  observationTemplates: [
+    { code: 'ta', label: 'Tensión arterial', unit: 'mmHg' },
+    { code: 'glasgow', label: 'Escala de Glasgow', unit: 'pts' },
+    { code: 'fuerza-muscular', label: 'Fuerza muscular (0–5)' },
+    { code: 'nihss', label: 'Escala NIHSS', unit: 'pts' },
+  ],
+  orderSets: [
+    { code: 'resonancia-craneo', label: 'Resonancia magnética de cráneo' },
+    { code: 'tac-craneo', label: 'Tomografía de cráneo' },
+    { code: 'electroencefalograma', label: 'Electroencefalograma (EEG)' },
+    { code: 'electromiografia', label: 'Electromiografía' },
+  ],
+  pathways: [
+    {
+      match: 'epilepsia',
+      title: 'Epilepsia (DEMO)',
+      items: [
+        { label: 'Recuento de crisis y apego', cadence: 'cada consulta' },
+        { label: 'Niveles séricos del antiepiléptico (si aplica)', cadence: 'según fármaco' },
+      ],
+    },
+    {
+      match: 'migrana',
+      title: 'Migraña (DEMO)',
+      items: [{ label: 'Diario de cefalea (frecuencia/intensidad)', cadence: 'continuo' }],
     },
   ],
 };
@@ -174,7 +287,13 @@ const DERMATOLOGIA: SpecialtyPack = {
   ],
 };
 
-const PACKS: ReadonlyArray<SpecialtyPack> = [MEDICINA_GENERAL, MEDICINA_ESTETICA, DERMATOLOGIA];
+const PACKS: ReadonlyArray<SpecialtyPack> = [
+  MEDICINA_GENERAL,
+  MEDICINA_INTERNA,
+  GINECOLOGIA_OBSTETRICIA,
+  NEUROLOGIA,
+  DERMATOLOGIA,
+];
 const PACK_BY_ID = new Map(PACKS.map((p) => [p.id, p]));
 
 /** Id del pack por defecto cuando el tenant no ha elegido especialidad. */

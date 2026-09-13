@@ -29,7 +29,7 @@ describe('provisioning (onboarding §28 paso 1)', () => {
       tenantSlug: 'Clínica Nova',
       orgName: 'Nova Salud',
       facilityName: 'Sede Centro',
-      specialtyPackId: 'medicina-estetica',
+      specialtyPackId: 'medicina-interna',
       practitionerSpecialty: 'Dermatología',
     });
     expect(res.ok).toBe(true);
@@ -43,7 +43,7 @@ describe('provisioning (onboarding §28 paso 1)', () => {
     expect(ctx!.permissions.has('encounter.sign')).toBe(true);
 
     // La especialidad quedó activa.
-    expect(await new SpecialtyRepository(db, ctx!).getActivePackId()).toBe('medicina-estetica');
+    expect(await new SpecialtyRepository(db, ctx!).getActivePackId()).toBe('medicina-interna');
   });
 
   it('userHasActiveTenant refleja el alta', async () => {

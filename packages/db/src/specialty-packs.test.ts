@@ -19,11 +19,20 @@ describe('specialty-packs (R7)', () => {
     }
   });
 
-  it('incluye el piloto Medicina estética con secciones y quick-picks', () => {
-    const pack = getSpecialtyPack('medicina-estetica');
-    expect(pack?.name).toBe('Medicina estética');
+  it('incluye Medicina interna con secciones y quick-picks', () => {
+    const pack = getSpecialtyPack('medicina-interna');
+    expect(pack?.name).toBe('Medicina interna');
     expect(pack?.extraHistorySections.length).toBeGreaterThan(0);
-    expect(pack?.quickProblems.map((q) => q.code)).toContain('melasma');
+    expect(pack?.quickProblems.map((q) => q.code)).toContain('diabetes');
+  });
+
+  it('incluye packs multi-especialidad reales (interna, gineco, neuro)', () => {
+    const ids = listSpecialtyPacks().map((p) => p.id);
+    expect(ids).toEqual(
+      expect.arrayContaining(['medicina-interna', 'ginecologia-obstetricia', 'neurologia']),
+    );
+    // Ya no hay pack de medicina estética.
+    expect(getSpecialtyPack('medicina-estetica')).toBeUndefined();
   });
 
   it('incluye Dermatología con pathways de vigilancia de nevos', () => {
@@ -40,15 +49,15 @@ describe('specialty-packs (R7)', () => {
 
   it('mergeHistorySections AÑADE las del pack sin duplicar ni quitar base', () => {
     const base = applicableHistorySections({ ageYears: 40, sex: 'female' });
-    const pack = resolveSpecialtyPack('medicina-estetica');
+    const pack = resolveSpecialtyPack('medicina-interna');
     const merged = mergeHistorySections(base, pack);
 
     // No pierde ninguna base.
     for (const s of base) {
       expect(merged.some((m) => m.section === s.section)).toBe(true);
     }
-    // Añade la sección estética.
-    expect(merged.some((m) => m.section === 'estetica-antecedentes')).toBe(true);
+    // Añade la sección de la especialidad.
+    expect(merged.some((m) => m.section === 'interna-antecedentes')).toBe(true);
     // Sin duplicados por section.
     const sections = merged.map((m) => m.section);
     expect(new Set(sections).size).toBe(sections.length);
@@ -61,14 +70,14 @@ describe('specialty-packs (R7)', () => {
   });
 
   it('las pathways del pack se activan por problema activo, junto a las base', () => {
-    const pack = resolveSpecialtyPack('medicina-estetica');
-    // Problema de la especialidad → guía del pack.
-    const estetica = applicablePathways([{ code: 'Melasma' }], pack.pathways);
-    expect(estetica.some((p) => p.title === 'Melasma (DEMO)')).toBe(true);
+    const pack = resolveSpecialtyPack('neurologia');
+    // Problema de la especialidad → guía del pack (epilepsia no está en las base).
+    const epi = applicablePathways([{ code: 'Epilepsia' }], pack.pathways);
+    expect(epi.some((p) => p.title === 'Epilepsia (DEMO)')).toBe(true);
     // Problema base sigue activando su guía aunque el pack esté presente.
     const dm2 = applicablePathways([{ code: 'diabetes' }], pack.pathways);
     expect(dm2.some((p) => p.match === 'diabetes')).toBe(true);
     // Sin el pack, la guía de especialidad no aparece.
-    expect(applicablePathways([{ code: 'Melasma' }])).toHaveLength(0);
+    expect(applicablePathways([{ code: 'Epilepsia' }])).toHaveLength(0);
   });
 });
