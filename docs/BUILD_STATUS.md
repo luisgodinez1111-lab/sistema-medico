@@ -385,12 +385,14 @@ real (no merge a ciegas):
   PGlite, no neon-http, así que un cambio del driver sólo se verifica en runtime
   (migrate/seed contra Neon + app desplegada). Abordar con cuidado.
 - **ulid 2 → 3** — falló typecheck (probable ESM-only/API); requiere ajuste.
-- **dev-tooling**: TypeScript 5→7, ESLint 9→10, Vitest 2→5, @storybook 9→10 — uno a uno.
+- **TypeScript 5 → 7** — TS 7 (compilador nativo) aún temprano; salto grande.
 
 Ya aplicados (deliberados): drizzle-orm 0.45 (fix `isUniqueViolation`),
-**pglite 0.5.8 + drizzle-kit 0.31.10** (verificado: 161 pruebas + generate sin
-cambios), GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
-**zod eliminado** (dependencia muerta, no se importaba).
+**pglite 0.5.8 + drizzle-kit 0.31.10** (161 pruebas + generate sin cambios),
+**Vitest 2 → 5** (4 paquetes; suite verde), **ESLint 9 → 10 + typescript-eslint**
+(la nueva regla `no-useless-assignment` detectó un code smell en el seed, corregido),
+**Storybook 9 → 10** (build-storybook verde), GitHub Actions (checkout v7, setup-node
+v7, pnpm v6, codeql v4, gitleaks v3). **zod eliminado** (dependencia muerta).
 
 ## Release R1 — Clinical Core
 

@@ -93,19 +93,16 @@ async function main(): Promise<void> {
   }
   const organizationId = org!.id;
 
-  // 3) Consultorio / facility
-  let [fac] = await db.select().from(facility).where(eq(facility.tenantId, tenantId)).limit(1);
+  // 3) Consultorio / facility (idempotente; sólo se crea si falta)
+  const [fac] = await db.select().from(facility).where(eq(facility.tenantId, tenantId)).limit(1);
   if (!fac) {
-    [fac] = await db
-      .insert(facility)
-      .values({
-        id: newFacilityId(),
-        tenantId,
-        organizationId,
-        name: DEMO.facilityName,
-        timezone: DEMO.timezone,
-      })
-      .returning();
+    await db.insert(facility).values({
+      id: newFacilityId(),
+      tenantId,
+      organizationId,
+      name: DEMO.facilityName,
+      timezone: DEMO.timezone,
+    });
   }
 
   // 4) Usuario global (por email) con contraseña para el login (NIVEL 2).
