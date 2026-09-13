@@ -127,6 +127,13 @@
       "when": 1789331625162,
       "tag": "0017_careful_venus",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789333513534,
+      "tag": "0018_nice_smiling_tiger",
+      "breakpoints": true
     }
   ]
 }

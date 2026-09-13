@@ -21,6 +21,7 @@ import {
   composeExamObjective,
   EncounterDiagnosisRepository,
   composeAssessment,
+  EncounterAddendumRepository,
   generateSuggestions,
   hasCritical,
   hasPermission,
@@ -446,6 +447,39 @@ export async function saveEncounterDiagnosesAction(
 
   revalidatePath(`/patients/${patientId}/encounters/${encounterId}`);
   return { status: 'ok', message: 'Diagnósticos guardados.' };
+}
+
+/**
+ * Añade una enmienda (addendum) a un encuentro FIRMADO (§NIVEL 6, §33 #6). La nota
+ * original permanece inmutable; la enmienda se anexa fechada y atribuida. Requiere
+ * autoridad de firma (`encounter.sign`). Auditado vía provenance en el repositorio.
+ */
+export async function addAddendumAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'encounter.sign')) {
+    return { status: 'error', message: 'No tienes permiso para enmendar la nota.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const encounterId = str(formData, 'encounterId') as EncounterId;
+  const text = str(formData, 'text');
+  if (!patientId || !encounterId) return { status: 'error', message: 'Datos inválidos.' };
+  if (!text) return { status: 'error', message: 'Escribe la enmienda.' };
+
+  const created = await new EncounterAddendumRepository(getDb(), ctx).add(
+    encounterId,
+    patientId,
+    text,
+  );
+  if (!created) {
+    return { status: 'error', message: 'No se pudo enmendar (la nota debe estar firmada).' };
+  }
+
+  revalidatePath(`/patients/${patientId}/encounters/${encounterId}`);
+  return { status: 'ok', message: 'Enmienda agregada.' };
 }
 
 /**

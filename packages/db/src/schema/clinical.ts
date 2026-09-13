@@ -15,6 +15,7 @@ import type {
   DiagnosticReportId,
   EncounterId,
   EncounterDiagnosisId,
+  EncounterAddendumId,
   ExamFindingId,
   HistoryEntryId,
   MedicationRequestId,
@@ -571,5 +572,27 @@ export const encounterDiagnosis = pgTable(
   (t) => [
     index('encounter_diagnosis_tenant_idx').on(t.tenantId),
     uniqueIndex('encounter_diagnosis_unique_idx').on(t.tenantId, t.encounterId, t.conditionId),
+  ],
+);
+
+/**
+ * Enmiendas/addenda a un encuentro FIRMADO (§NIVEL 6, §33 #6). La nota firmada es
+ * INMUTABLE; una corrección o aclaración se AÑADE como addendum fechado y
+ * atribuido, nunca editando el original. Append-only: sin update ni delete.
+ */
+export const encounterAddendum = pgTable(
+  'encounter_addendum',
+  {
+    id: text('id').primaryKey().$type<EncounterAddendumId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+    encounterId: text('encounter_id').notNull().$type<EncounterId>(),
+    text: text('text').notNull(),
+    authorId: text('author_id').notNull().$type<UserId>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('encounter_addendum_tenant_idx').on(t.tenantId),
+    index('encounter_addendum_encounter_idx').on(t.tenantId, t.encounterId),
   ],
 );

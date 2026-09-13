@@ -185,7 +185,11 @@ hash al firmar), y **timeline real** del workspace listando encuentros.
 Migración `drizzle/0007_*.sql` aplicada. 5 pruebas nuevas (borrador/firma/
 inmutabilidad/provenance/aislamiento). db: 53/53 verde. Verificado contra Neon.
 Cubre §28 pasos 4 y 10.
-Pendiente: addenda/enmiendas post-firma, "cambios desde la última visita" (cierra
+**Addenda/enmiendas post-firma — listo:** tabla `encounter_addendum` (append-only,
+migración `0018`) + `EncounterAddendumRepository`: sólo sobre notas FIRMADAS, la nota
+original permanece inmutable (§33 #6), enmiendas fechadas y atribuidas con provenance
+`encounter-amend`. UI `AddendumManager` en la vista firmada, gated `encounter.sign`.
+Pendiente: "cambios desde la última visita" (cierra
 NIVEL 4), PDF/impresión de la nota.
 
 **NIVEL 8 — Medication & Prescription Safety — en curso (R2):** tabla

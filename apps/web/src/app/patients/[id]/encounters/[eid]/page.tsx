@@ -8,6 +8,7 @@ import {
   EXAM_SECTIONS,
   ConditionRepository,
   EncounterDiagnosisRepository,
+  EncounterAddendumRepository,
   hasPermission,
 } from '@medical-os/db';
 import type { PatientId, EncounterId } from '@medical-os/shared';
@@ -17,6 +18,7 @@ import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
 import { EncounterEditor } from './EncounterEditor';
 import { ExamManager } from './ExamManager';
 import { DiagnosisManager } from './DiagnosisManager';
+import { AddendumManager } from './AddendumManager';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +54,9 @@ export default async function EncounterPage({
   const encounterDiagnoses = signed
     ? []
     : await new EncounterDiagnosisRepository(db, ctx).listForEncounter(encounter.id);
+  const addenda = signed
+    ? await new EncounterAddendumRepository(db, ctx).listForEncounter(encounter.id)
+    : [];
 
   return (
     <div>
@@ -103,7 +108,26 @@ export default async function EncounterPage({
               </li>
             </ul>
           </ClinicalCard>
-        ) : (
+        ) : null}
+
+        {signed ? (
+          <>
+            <div style={{ height: 'var(--space-4)' }} />
+            <AddendumManager
+              patientId={patient.id}
+              encounterId={encounter.id}
+              addenda={addenda.map((a) => ({
+                id: a.id,
+                text: a.text,
+                createdAt:
+                  a.createdAt instanceof Date ? a.createdAt.toISOString() : String(a.createdAt),
+              }))}
+              canAmend={hasPermission(ctx, 'encounter.sign')}
+            />
+          </>
+        ) : null}
+
+        {signed ? null : (
           <>
             <EncounterEditor
               patientId={patient.id}
