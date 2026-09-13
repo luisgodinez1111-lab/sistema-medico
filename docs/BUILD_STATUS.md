@@ -82,9 +82,16 @@ category, code, value_text, unit, effective_at) tenant- y patient-scoped, baja
 lógica. `ObservationRepository` valida patient-in-tenant; listForPatient (por
 categoría), create, softDelete. Migración `drizzle/0004_*.sql` aplicada.
 Patient Workspace: tarjeta "Signos vitales" con datos reales + alta vía server
-action — cubre §28 paso 6. 5 pruebas nuevas. db: 34/34 verde.
-Seed: María TA 138/86 mmHg + peso 72 kg.
-Pendiente: RelatedPerson, merge real de duplicados.
+action — cubre §28 paso 6. 5 pruebas nuevas. Seed: María TA 138/86 mmHg + peso 72 kg.
+
+**RelatedPerson (NIVEL 3):** tabla `related_person` (FHIR RelatedPerson: name,
+relationship, phone, email, is_emergency_contact) tenant- y patient-scoped, baja
+lógica. `RelatedPersonRepository` valida patient-in-tenant; listForPatient
+(emergencia primero), create, softDelete. Migración `drizzle/0005_*.sql` aplicada.
+Patient Workspace: contactos en el context rail + alta vía server action
+(permiso `patient.write`). 4 pruebas nuevas. db: 38/38 verde.
+Seed: Santiago (pediátrico) con su madre como contacto de emergencia.
+Pendiente: merge real de duplicados (ya modelado con `merged_into_id`).
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 

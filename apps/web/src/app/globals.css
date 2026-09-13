@@ -144,6 +144,14 @@
   color: var(--color-critical, #b00020);
   font-size: var(--text-xs);
 }
+.mos-field--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}
+.mos-field--inline input {
+  width: auto;
+}
 .mos-form__actions {
   display: flex;
   justify-content: flex-end;

@@ -5,6 +5,7 @@ import {
   AllergyRepository,
   ConditionRepository,
   ObservationRepository,
+  RelatedPersonRepository,
   hasPermission,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
@@ -14,6 +15,7 @@ import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
 import { AllergyManager } from './AllergyManager';
 import { ConditionManager } from './ConditionManager';
 import { VitalsManager } from './VitalsManager';
+import { ContactsManager } from './ContactsManager';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +38,7 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
   const allergies = await new AllergyRepository(db, ctx).listForPatient(patient.id);
   const conditions = await new ConditionRepository(db, ctx).listActive(patient.id);
   const vitals = await new ObservationRepository(db, ctx).listForPatient(patient.id, 'vital-signs');
+  const contacts = await new RelatedPersonRepository(db, ctx).listForPatient(patient.id);
   const reviewed = patient.allergiesReviewedAt !== null;
   const canWrite = hasPermission(ctx, 'patient.write');
 
@@ -137,8 +140,20 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
 
         <aside
           className="mos-workspace__col mos-workspace__rail"
-          aria-label="Pendientes y contexto"
+          aria-label="Contactos, pendientes y contexto"
         >
+          <ContactsManager
+            patientId={patient.id}
+            contacts={contacts.map((c) => ({
+              id: c.id,
+              name: c.name,
+              relationship: c.relationship,
+              phone: c.phone,
+              isEmergencyContact: c.isEmergencyContact,
+            }))}
+            canWrite={canWrite}
+          />
+          <div style={{ height: 'var(--space-5)' }} />
           <p className="mos-section-label">Pendientes</p>
           <p className="mos-muted">Sin pendientes (NIVEL 9).</p>
         </aside>

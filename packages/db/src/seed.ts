@@ -15,6 +15,7 @@ import { PatientRepository, type NewPatientInput } from './repositories/patient'
 import { AllergyRepository } from './repositories/allergy';
 import { ConditionRepository } from './repositories/condition';
 import { ObservationRepository } from './repositories/observation';
+import { RelatedPersonRepository } from './repositories/related-person';
 import {
   tenant,
   organization,
@@ -222,6 +223,20 @@ async function main(): Promise<void> {
     .where(and(eq(patient.tenantId, tenantId), eq(patient.mrn, '000456')))
     .limit(1);
   if (santiago) await allergyRepo.markReviewed(santiago.id);
+
+  // Santiago es pediátrico: registrar a su madre como contacto de emergencia.
+  if (santiago) {
+    const relatedRepo = new RelatedPersonRepository(db, ctx);
+    if ((await relatedRepo.listForPatient(santiago.id)).length === 0) {
+      await relatedRepo.create({
+        patientId: santiago.id,
+        name: 'Laura Herrera López',
+        relationship: 'mother',
+        phone: '55-1234-5678',
+        isEmergencyContact: true,
+      });
+    }
+  }
 
   // 12) Problemas activos demo (NIVEL 3) para María. Idempotente.
   const conditionRepo = new ConditionRepository(db, ctx);

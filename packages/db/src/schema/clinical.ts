@@ -1,9 +1,19 @@
-import { pgTable, pgEnum, text, date, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  pgEnum,
+  text,
+  date,
+  boolean,
+  timestamp,
+  uniqueIndex,
+  index,
+} from 'drizzle-orm/pg-core';
 import type {
   AllergyId,
   ConditionId,
   ObservationId,
   PatientId,
+  RelatedPersonId,
   TenantId,
   UserId,
 } from '@medical-os/shared';
@@ -217,5 +227,51 @@ export const observation = pgTable(
   (t) => [
     index('observation_tenant_idx').on(t.tenantId),
     index('observation_tenant_patient_idx').on(t.tenantId, t.patientId),
+  ],
+);
+
+/**
+ * Personas relacionadas con el paciente (§NIVEL 3, alineado con FHIR
+ * RelatedPerson): tutor/padre/madre, contacto de emergencia, cuidador. Clave en
+ * pediatría y para consentimiento/contacto (§26).
+ *
+ * - Tenant- y patient-scoped; baja lógica (`deleted_at`, ADR-0003 §8).
+ * - `is_emergency_contact` permite resaltar a quién llamar primero.
+ */
+export const relationshipType = pgEnum('related_person_relationship', [
+  'mother',
+  'father',
+  'guardian',
+  'spouse',
+  'sibling',
+  'child',
+  'caregiver',
+  'emergency-contact',
+  'other',
+]);
+
+export const relatedPerson = pgTable(
+  'related_person',
+  {
+    id: text('id').primaryKey().$type<RelatedPersonId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+
+    /** Nombre completo de la persona relacionada (PHI). */
+    name: text('name').notNull(),
+    relationship: relationshipType('relationship').notNull().default('other'),
+    phone: text('phone'),
+    email: text('email'),
+    isEmergencyContact: boolean('is_emergency_contact').notNull().default(false),
+    note: text('note'),
+
+    recordedBy: text('recorded_by').$type<UserId>(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('related_person_tenant_idx').on(t.tenantId),
+    index('related_person_tenant_patient_idx').on(t.tenantId, t.patientId),
   ],
 );

@@ -5,6 +5,7 @@ import {
   AllergyRepository,
   ConditionRepository,
   ObservationRepository,
+  RelatedPersonRepository,
   hasPermission,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
@@ -145,4 +146,51 @@ export async function addVitalAction(
 
   revalidatePath(`/patients/${patientId}`);
   return { status: 'ok', message: 'Signo vital registrado.' };
+}
+
+type RelationshipType =
+  | 'mother'
+  | 'father'
+  | 'guardian'
+  | 'spouse'
+  | 'sibling'
+  | 'child'
+  | 'caregiver'
+  | 'emergency-contact'
+  | 'other';
+
+/**
+ * Registra una persona relacionada (contacto/tutor) del paciente (§NIVEL 3).
+ * Autorización server-side (`patient.write`) y scoping por tenant.
+ */
+export async function addRelatedPersonAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para registrar contactos.' };
+  }
+
+  const patientId = str(formData, 'patientId') as PatientId;
+  const name = str(formData, 'name');
+  if (!patientId) return { status: 'error', message: 'Paciente inválido.' };
+  if (!name) return { status: 'error', message: 'Indica el nombre del contacto.' };
+
+  const relationship = (str(formData, 'relationship') || 'other') as RelationshipType;
+  const phone = str(formData, 'phone');
+  const isEmergencyContact = str(formData, 'isEmergencyContact') === 'on';
+
+  const created = await new RelatedPersonRepository(getDb(), ctx).create({
+    patientId,
+    name,
+    relationship,
+    isEmergencyContact,
+    ...(phone ? { phone } : {}),
+  });
+  if (!created) return { status: 'error', message: 'No se pudo registrar (paciente no válido).' };
+
+  revalidatePath(`/patients/${patientId}`);
+  return { status: 'ok', message: 'Contacto registrado.' };
 }
