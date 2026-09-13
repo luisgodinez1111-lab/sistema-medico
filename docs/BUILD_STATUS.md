@@ -242,6 +242,17 @@ Tarjeta "Guías de manejo (DEMO)" en el workspace. 3 pruebas. db: 79/79.
 (med-safety y pathways con contenido DEMO marcado, a validar).
 Pendiente: dosis por peso/edad (catálogo), cumplimiento de guías vs datos reales.
 
+**Release R5 — Exportador FHIR — en curso:** módulo `fhir.ts` (R4 FHIR_VERSION
+4.0.1): mapea Patient, AllergyIntolerance, Condition, Observation,
+MedicationRequest, Encounter, ServiceRequest, DiagnosticReport y arma un Bundle
+`collection`. Endpoint `/api/patients/[id]/fhir` tenant-scoped (content-type
+`application/fhir+json`, no-store, 404 sin revelar existencia cross-tenant);
+enlace "Exportar FHIR (R4)" en el workspace. 5 pruebas. db: 84/84. Verificado
+contra Neon (Bundle con 6 recursos).
+Pendiente de R5: **Documents** (metadata + content hash en BD, archivo en object
+storage privado tras env var — ADR-0003 §10) y adaptadores externos (importación
+FHIR, conectores).
+
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
 Dependabot ahora agrupa minor/patch e **ignora majors** (política de estabilidad,
@@ -279,7 +290,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | ------- | ---------------------------------------- | ------ |
 | R3      | Agenda, check-in, billing básico         | ✅     |
 | R4      | Pathways, completeness, med safety       | ✅     |
-| R5      | Documents, FHIR, external adapters       | ⬜     |
+| R5      | Documents, FHIR, external adapters       | 🟨     |
 | R6      | AI Copilot (human-in-the-loop)           | ⬜     |
 | R7      | Specialty packs                          | ⬜     |
 

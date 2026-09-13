@@ -349,6 +349,15 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
           <Link className="mos-muted" href={`/patients/${patient.id}/billing`}>
             Ver facturación →
           </Link>
+          <br />
+          <a
+            className="mos-muted"
+            href={`/api/patients/${patient.id}/fhir`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Exportar FHIR (R4) →
+          </a>
         </aside>
       </div>
     </div>
