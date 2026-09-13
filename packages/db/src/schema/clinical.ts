@@ -14,6 +14,7 @@ import type {
   ConditionId,
   EncounterId,
   HistoryEntryId,
+  MedicationRequestId,
   ObservationId,
   PatientId,
   PractitionerId,
@@ -373,5 +374,55 @@ export const encounter = pgTable(
   (t) => [
     index('encounter_tenant_idx').on(t.tenantId),
     index('encounter_tenant_patient_idx').on(t.tenantId, t.patientId),
+  ],
+);
+
+/**
+ * Prescripción / solicitud de medicamento (§NIVEL 8, FHIR MedicationRequest).
+ * Estructurada (fármaco, dosis, vía, frecuencia, duración), tenant- y
+ * patient-scoped, baja lógica. La SEGURIDAD (alergias, duplicidad) se evalúa con
+ * un ruleset versionado antes de crear (`prescription-safety.ts`, §33 #8).
+ */
+export const medicationRoute = pgEnum('medication_route', [
+  'oral',
+  'iv',
+  'im',
+  'sc',
+  'topical',
+  'inhaled',
+  'other',
+]);
+export const medicationStatus = pgEnum('medication_status', [
+  'active',
+  'completed',
+  'stopped',
+  'cancelled',
+]);
+
+export const medicationRequest = pgTable(
+  'medication_request',
+  {
+    id: text('id').primaryKey().$type<MedicationRequestId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+    /** Encuentro que originó la receta, si aplica. */
+    encounterId: text('encounter_id').$type<EncounterId>(),
+
+    drug: text('drug').notNull(),
+    dose: text('dose'),
+    route: medicationRoute('route').notNull().default('oral'),
+    frequency: text('frequency'),
+    durationDays: text('duration_days'),
+    instructions: text('instructions'),
+    status: medicationStatus('status').notNull().default('active'),
+
+    prescribedBy: text('prescribed_by').$type<UserId>(),
+    prescribedAt: timestamp('prescribed_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('medication_request_tenant_idx').on(t.tenantId),
+    index('medication_request_tenant_patient_idx').on(t.tenantId, t.patientId),
   ],
 );

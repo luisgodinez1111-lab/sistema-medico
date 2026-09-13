@@ -148,6 +148,22 @@ Cubre §28 pasos 4 y 10.
 Pendiente: addenda/enmiendas post-firma, "cambios desde la última visita" (cierra
 NIVEL 4), PDF/impresión de la nota.
 
+**NIVEL 8 — Medication & Prescription Safety — en curso (R2):** tabla
+`medication_request` (FHIR MedicationRequest: drug, dose, route, frequency,
+duration, instructions, link opcional a encounter) tenant- y patient-scoped,
+baja lógica. Motor `prescription-safety.ts` con `SAFETY_RULESET_VERSION`: alertas
+ESTRUCTURADAS y versionadas (nunca JSX ad-hoc, §33 #8) — `allergy-contraindication`
+(crítica, cruza contra alergias del paciente) y `duplicate-therapy` (warning).
+`MedicationRepository`: checkSafety, prescribe, listActiveForPatient, stop.
+UI `MedicationManager` en el workspace: medicación activa + prescripción; una
+alerta crítica bloquea salvo "prescribir de todas formas" (confirmación explícita).
+Permiso `patient.write`. Migración `drizzle/0008_*.sql` aplicada. 7 pruebas nuevas
+(motor crítico/duplicado/limpio, checkSafety real, prescribe, aislamiento, stop).
+db: 60/60 verde. Verificado contra Neon (Penicilina→crítica). Cubre §28 paso 8 y
+enciende la tarjeta "Medicación" del NIVEL 4.
+Pendiente: interacciones fármaco-fármaco, dosis por peso/edad (pediátrico),
+catálogo de medicamentos, receta imprimible.
+
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
 Dependabot ahora agrupa minor/patch e **ignora majors** (política de estabilidad,
@@ -176,7 +192,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 
 | Nivel | Descripción                              | Estado |
 | ----- | ---------------------------------------- | ------ |
-| 8     | Medication & Prescription Safety         | ⬜     |
+| 8     | Medication & Prescription Safety         | 🟨     |
 | 9     | Orders, Results y Closed-Loop Safety     | ⬜     |
 
 ## Releases posteriores
@@ -200,7 +216,7 @@ El primer corte end-to-end que valida la columna vertebral:
 5. 🟨 Capturar historia adaptativa adulto/pediátrico mínima (motor + captura listos)
 6. 🟨 Registrar signos vitales y exploración (vitales listos; exploración pendiente)
 7. 🟨 Crear problema/diagnóstico y plan (Condition listo; plan pendiente)
-8. ⬜ Emitir receta estructurada
+8. 🟨 Emitir receta estructurada (prescripción + seguridad; falta receta imprimible)
 9. ⬜ Solicitar un laboratorio
 10. ✅ Firmar encuentro (snapshot + provenance)
 11. ⬜ Ingresar resultado del laboratorio

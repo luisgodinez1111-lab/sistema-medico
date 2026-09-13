@@ -10,6 +10,8 @@ import {
   RelatedPersonRepository,
   HistoryRepository,
   EncounterRepository,
+  MedicationRepository,
+  hasCritical,
   hasPermission,
 } from '@medical-os/db';
 import type { PatientId, EncounterId } from '@medical-os/shared';
@@ -17,9 +19,16 @@ import { ValidationError } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
 
+export interface SafetyAlertView {
+  code: string;
+  severity: 'critical' | 'warning';
+  message: string;
+}
 export interface AllergyActionState {
-  status: 'idle' | 'error' | 'ok';
+  status: 'idle' | 'error' | 'ok' | 'alerts';
   message?: string;
+  /** Alertas de seguridad de prescripción (§NIVEL 8), cuando aplica. */
+  alerts?: SafetyAlertView[];
 }
 
 function str(formData: FormData, key: string): string {
@@ -359,4 +368,65 @@ export async function signEncounterAction(
   revalidatePath(`/patients/${patientId}`);
   revalidatePath(`/patients/${patientId}/encounters/${encounterId}`);
   return { status: 'ok', message: 'Encuentro firmado.' };
+}
+
+/**
+ * Prescribe un medicamento con chequeo de seguridad (§NIVEL 8, §28 paso 8).
+ * Evalúa alergias y duplicidad; si hay una alerta CRÍTICA (alergia) y el usuario
+ * no confirmó, NO prescribe y devuelve las alertas. Permiso `patient.write`.
+ */
+export async function prescribeMedicationAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para prescribir.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const drug = str(formData, 'drug');
+  if (!patientId) return { status: 'error', message: 'Paciente inválido.' };
+  if (!drug) return { status: 'error', message: 'Indica el medicamento.' };
+
+  const confirm = str(formData, 'confirm') === '1';
+  const repo = new MedicationRepository(getDb(), ctx);
+
+  const alerts = await repo.checkSafety(patientId, drug);
+  const alertViews = alerts.map((a) => ({
+    code: a.code,
+    severity: a.severity,
+    message: a.message,
+  }));
+
+  // Una alerta crítica (alergia) bloquea salvo confirmación explícita.
+  if (hasCritical(alerts) && !confirm) {
+    return {
+      status: 'alerts',
+      message: 'Alerta de seguridad: revisa antes de prescribir.',
+      alerts: alertViews,
+    };
+  }
+
+  const dose = str(formData, 'dose');
+  const route = str(formData, 'route') || 'oral';
+  const frequency = str(formData, 'frequency');
+  const duration = str(formData, 'durationDays');
+  const created = await repo.prescribe({
+    patientId,
+    drug,
+    route: route as 'oral' | 'iv' | 'im' | 'sc' | 'topical' | 'inhaled' | 'other',
+    ...(dose ? { dose } : {}),
+    ...(frequency ? { frequency } : {}),
+    ...(duration ? { durationDays: duration } : {}),
+  });
+  if (!created) return { status: 'error', message: 'No se pudo prescribir (paciente no válido).' };
+
+  revalidatePath(`/patients/${patientId}`);
+  const warn = alertViews.filter((a) => a.severity === 'warning');
+  return {
+    status: 'ok',
+    message: warn.length ? 'Prescrito (con advertencias de duplicidad).' : 'Medicamento prescrito.',
+    ...(warn.length ? { alerts: warn } : {}),
+  };
 }

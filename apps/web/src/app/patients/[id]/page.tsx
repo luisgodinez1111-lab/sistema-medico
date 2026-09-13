@@ -8,6 +8,7 @@ import {
   RelatedPersonRepository,
   HistoryRepository,
   EncounterRepository,
+  MedicationRepository,
   applicableHistorySections,
   HISTORY_SCHEMA_VERSION,
   hasPermission,
@@ -23,6 +24,7 @@ import { ContactsManager } from './ContactsManager';
 import { HistoryManager } from './HistoryManager';
 import { MergeManager } from './MergeManager';
 import { EncounterStartButton } from './EncounterStartButton';
+import { MedicationManager } from './MedicationManager';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -48,6 +50,7 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
   const vitals = await new ObservationRepository(db, ctx).listForPatient(patient.id, 'vital-signs');
   const contacts = await new RelatedPersonRepository(db, ctx).listForPatient(patient.id);
   const encounters = await new EncounterRepository(db, ctx).listForPatient(patient.id);
+  const medications = await new MedicationRepository(db, ctx).listActiveForPatient(patient.id);
 
   // Historia clínica adaptativa: secciones por edad/sexo + valores ya capturados.
   const historySections = applicableHistorySections({
@@ -172,9 +175,17 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
             canWrite={canWrite}
           />
 
-          <ClinicalCard title="Medicación actual">
-            <p className="mos-muted">Disponible con prescripción estructurada (NIVEL 8).</p>
-          </ClinicalCard>
+          <MedicationManager
+            patientId={patient.id}
+            medications={medications.map((m) => ({
+              id: m.id,
+              drug: m.drug,
+              dose: m.dose,
+              route: m.route,
+              frequency: m.frequency,
+            }))}
+            canWrite={canWrite}
+          />
 
           <HistoryManager
             patientId={patient.id}

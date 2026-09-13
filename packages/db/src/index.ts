@@ -9,5 +9,6 @@ export * from './client';
 export * from './tenant-context';
 export * from './context-resolver';
 export * from './clinical-history';
+export * from './prescription-safety';
 export * from './repositories';
 export * as schemaTables from './schema';

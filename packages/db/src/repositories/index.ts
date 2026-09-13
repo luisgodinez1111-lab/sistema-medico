@@ -7,4 +7,5 @@ export * from './observation';
 export * from './related-person';
 export * from './history';
 export * from './encounter';
+export * from './medication';
 export * from './audit';

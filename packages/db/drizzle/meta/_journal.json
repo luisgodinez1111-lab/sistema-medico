@@ -57,6 +57,13 @@
       "when": 1789271821202,
       "tag": "0007_aspiring_dakota_north",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789272358416,
+      "tag": "0008_demonic_warstar",
+      "breakpoints": true
     }
   ]
 }
