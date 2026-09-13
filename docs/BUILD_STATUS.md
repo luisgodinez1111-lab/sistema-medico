@@ -325,12 +325,16 @@ activa por tenant en `tenant_specialty` (PK tenant_id, migración `0015_*.sql`),
 Integración: `mergeHistorySections` AÑADE las secciones del pack a las base por
 edad/sexo (§NIVEL 5) sin duplicar ni quitar obligatorias; UI `/org` con selector
 (gated `organization.manage`, auditado) y `SpecialtyPanel` informativo en el
-workspace (quick-picks + order sets marcados DEMO; el clínico actúa por los flujos
-permisados). Seed activa el piloto en el tenant demo. 9 pruebas (engine + repo).
+workspace. Seed activa el piloto en el tenant demo. 9 pruebas (engine + repo).
 db: 126/126. Verificado contra Neon.
-**Pendiente R7:** cablear order sets y plantillas de observación a los flujos de
-captura (crear ServiceRequest/Observation en un clic), pathways por especialidad,
-más packs (dermatología, nutrición…), contenido validado por clínico.
+**Order sets accionables en UN CLIC:** `orderFromSpecialtyAction` crea una
+ServiceRequest desde un order set del pack activo; defensa: el code DEBE pertenecer
+al pack (no acepta texto arbitrario), requiere `patient.write` (auditado) y deja
+provenance del pack en la nota. UI `OrderSetActions` (botón "Solicitar" por ítem,
+estado "Solicitada ✓"). Las plantillas de observación siguen informativas (una
+observación necesita valor medido).
+**Pendiente R7:** pathways por especialidad, prefill de vitals desde plantillas de
+observación, más packs (dermatología, nutrición…), contenido validado por clínico.
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 

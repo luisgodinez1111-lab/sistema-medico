@@ -14,6 +14,8 @@ import {
   ServiceRequestRepository,
   DiagnosticReportRepository,
   AuditRepository,
+  SpecialtyRepository,
+  resolveSpecialtyPack,
   generateSuggestions,
   hasCritical,
   hasPermission,
@@ -490,6 +492,54 @@ export async function orderStudyAction(
 
   revalidatePath(`/patients/${patientId}`);
   return { status: 'ok', message: 'Estudio solicitado.' };
+}
+
+/** Resultado de una acción rápida (order set del pack de especialidad). */
+export interface SpecialtyOrderResult {
+  ok: boolean;
+  message: string;
+}
+
+/**
+ * Crea una ServiceRequest en UN CLIC a partir de un order set del pack de
+ * especialidad activo (§R7). Defensa: el `itemCode` DEBE pertenecer al pack
+ * activo del tenant (no acepta texto arbitrario). Requiere `patient.write`,
+ * auditado; deja provenance del pack en la nota (contenido DEMO).
+ */
+export async function orderFromSpecialtyAction(
+  patientId: string,
+  itemCode: string,
+): Promise<SpecialtyOrderResult> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { ok: false, message: 'Sin sesión válida.' };
+  const pid = patientId as PatientId;
+  if (!pid || !itemCode) return { ok: false, message: 'Datos inválidos.' };
+
+  if (
+    !(await auditedAuthorize(ctx, 'patient.write', {
+      action: 'create',
+      resourceType: 'service_request',
+      patientId: pid,
+    }))
+  ) {
+    return { ok: false, message: 'No tienes permiso para solicitar órdenes.' };
+  }
+
+  const db = getDb();
+  const pack = resolveSpecialtyPack(await new SpecialtyRepository(db, ctx).getActivePackId());
+  const item = pack.orderSets.find((o) => o.code === itemCode);
+  if (!item) return { ok: false, message: 'La orden no pertenece a la especialidad activa.' };
+
+  const created = await new ServiceRequestRepository(db, ctx).create({
+    patientId: pid,
+    code: item.label,
+    category: 'procedure',
+    note: `Order set: ${pack.name} (DEMO, ${pack.version})`,
+  });
+  if (!created) return { ok: false, message: 'No se pudo crear la orden (paciente no válido).' };
+
+  revalidatePath(`/patients/${pid}`);
+  return { ok: true, message: `Orden creada: ${item.label}.` };
 }
 
 /** Ingresa el resultado de un estudio (§NIVEL 9, §28 paso 11). */

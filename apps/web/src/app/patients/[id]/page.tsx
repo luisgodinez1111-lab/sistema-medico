@@ -342,7 +342,7 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
           </ul>
           <div style={{ height: 'var(--space-5)' }} />
 
-          <SpecialtyPanel pack={specialtyPack} />
+          <SpecialtyPanel pack={specialtyPack} patientId={patient.id} canWrite={canWrite} />
           <div style={{ height: 'var(--space-5)' }} />
 
           <CopilotPanel patientId={patient.id} />

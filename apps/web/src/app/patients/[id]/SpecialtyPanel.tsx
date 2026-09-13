@@ -1,12 +1,21 @@
 import { ClinicalCard, Badge } from '@medical-os/design-system';
 import type { SpecialtyPack } from '@medical-os/db';
+import { OrderSetActions } from './OrderSetActions';
 
 /**
- * Panel de especialidad (R7). INFORMATIVO: muestra los quick-picks y order sets
- * del pack activo del tenant. No ejecuta nada — el clínico actúa por los flujos
- * permisados (problemas, órdenes). Contenido DEMO (no validado clínicamente).
+ * Panel de especialidad (R7). Muestra los quick-picks del pack activo (informativo)
+ * y los order sets, que con permiso `patient.write` se solicitan en UN CLIC (el
+ * clínico decide; cada clic crea una ServiceRequest auditada). Contenido DEMO.
  */
-export function SpecialtyPanel({ pack }: { pack: SpecialtyPack }) {
+export function SpecialtyPanel({
+  pack,
+  patientId,
+  canWrite,
+}: {
+  pack: SpecialtyPack;
+  patientId: string;
+  canWrite: boolean;
+}) {
   const hasContent = pack.quickProblems.length > 0 || pack.orderSets.length > 0;
   if (!hasContent) return null;
 
@@ -36,14 +45,18 @@ export function SpecialtyPanel({ pack }: { pack: SpecialtyPack }) {
           <p className="mos-section-label" style={{ marginTop: 'var(--space-3)' }}>
             Order sets
           </p>
-          <ul className="mos-list">
-            {pack.orderSets.map((o) => (
-              <li key={o.code} className="mos-list__item">
-                <span>{o.label}</span>
-                <Badge tone="info">DEMO</Badge>
-              </li>
-            ))}
-          </ul>
+          {canWrite ? (
+            <OrderSetActions patientId={patientId} items={pack.orderSets} />
+          ) : (
+            <ul className="mos-list">
+              {pack.orderSets.map((o) => (
+                <li key={o.code} className="mos-list__item">
+                  <span>{o.label}</span>
+                  <Badge tone="info">DEMO</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       ) : null}
     </ClinicalCard>
