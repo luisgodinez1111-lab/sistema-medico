@@ -26,6 +26,7 @@ export class AuditRepository {
     outcome: 'allowed' | 'denied';
     resourceType: string;
     resourceId?: string;
+    patientId?: string;
     decision?: AuthorizationDecision;
     payload?: Record<string, unknown>;
   }): Promise<void> {
@@ -37,6 +38,7 @@ export class AuditRepository {
       outcome: input.outcome,
       resourceType: input.resourceType,
       resourceId: input.resourceId ?? null,
+      patientId: (input.patientId as never) ?? null,
       authorizationDecisionId: input.decision?.id ?? null,
       payload: input.payload ?? null,
     });
@@ -75,5 +77,20 @@ export class AuditRepository {
         ),
       )
       .orderBy(desc(auditEvent.occurredAt));
+  }
+
+  /** Audit trail de un paciente (§NIVEL 2 gate, §19; scoping obligatorio). */
+  async listForPatient(patientId: string, limit = 200): Promise<AuditEventRow[]> {
+    return this.db
+      .select()
+      .from(auditEvent)
+      .where(
+        and(
+          eq(auditEvent.tenantId, this.ctx.tenantId),
+          eq(auditEvent.patientId, patientId as never),
+        ),
+      )
+      .orderBy(desc(auditEvent.occurredAt))
+      .limit(limit);
   }
 }

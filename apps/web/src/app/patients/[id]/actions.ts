@@ -25,6 +25,7 @@ import type {
 import { ValidationError } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
+import { auditedAuthorize } from '@/server/audit';
 
 export interface SafetyAlertView {
   code: string;
@@ -360,12 +361,19 @@ export async function signEncounterAction(
 ): Promise<AllergyActionState> {
   const ctx = await getRequestContext();
   if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
-  if (!hasPermission(ctx, 'encounter.sign')) {
-    return { status: 'error', message: 'No tienes permiso para firmar encuentros.' };
-  }
   const patientId = str(formData, 'patientId') as PatientId;
   const encounterId = str(formData, 'encounterId') as EncounterId;
   if (!patientId || !encounterId) return { status: 'error', message: 'Datos inválidos.' };
+  if (
+    !(await auditedAuthorize(ctx, 'encounter.sign', {
+      action: 'sign',
+      resourceType: 'encounter',
+      resourceId: encounterId,
+      patientId,
+    }))
+  ) {
+    return { status: 'error', message: 'No tienes permiso para firmar encuentros.' };
+  }
 
   const signed = await new EncounterRepository(getDb(), ctx).sign(encounterId);
   if (!signed) {
@@ -388,13 +396,19 @@ export async function prescribeMedicationAction(
 ): Promise<AllergyActionState> {
   const ctx = await getRequestContext();
   if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
-  if (!hasPermission(ctx, 'patient.write')) {
-    return { status: 'error', message: 'No tienes permiso para prescribir.' };
-  }
   const patientId = str(formData, 'patientId') as PatientId;
   const drug = str(formData, 'drug');
   if (!patientId) return { status: 'error', message: 'Paciente inválido.' };
   if (!drug) return { status: 'error', message: 'Indica el medicamento.' };
+  if (
+    !(await auditedAuthorize(ctx, 'patient.write', {
+      action: 'create',
+      resourceType: 'medication_request',
+      patientId,
+    }))
+  ) {
+    return { status: 'error', message: 'No tienes permiso para prescribir.' };
+  }
 
   const confirm = str(formData, 'confirm') === '1';
   const repo = new MedicationRepository(getDb(), ctx);
@@ -445,13 +459,19 @@ export async function orderStudyAction(
 ): Promise<AllergyActionState> {
   const ctx = await getRequestContext();
   if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
-  if (!hasPermission(ctx, 'patient.write')) {
-    return { status: 'error', message: 'No tienes permiso para solicitar estudios.' };
-  }
   const patientId = str(formData, 'patientId') as PatientId;
   const code = str(formData, 'code');
   if (!patientId) return { status: 'error', message: 'Paciente inválido.' };
   if (!code) return { status: 'error', message: 'Indica el estudio.' };
+  if (
+    !(await auditedAuthorize(ctx, 'patient.write', {
+      action: 'create',
+      resourceType: 'service_request',
+      patientId,
+    }))
+  ) {
+    return { status: 'error', message: 'No tienes permiso para solicitar estudios.' };
+  }
 
   const category = (str(formData, 'category') || 'laboratory') as
     'laboratory' | 'imaging' | 'procedure';
@@ -510,14 +530,21 @@ export async function reviewResultAction(
 ): Promise<AllergyActionState> {
   const ctx = await getRequestContext();
   if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
-  if (!hasPermission(ctx, 'patient.write')) {
-    return { status: 'error', message: 'No tienes permiso para revisar resultados.' };
-  }
   const patientId = str(formData, 'patientId') as PatientId;
   const reportId = str(formData, 'reportId') as DiagnosticReportId;
   const action = str(formData, 'action');
   if (!patientId || !reportId) return { status: 'error', message: 'Datos inválidos.' };
   if (!action) return { status: 'error', message: 'Indica la acción tomada.' };
+  if (
+    !(await auditedAuthorize(ctx, 'patient.write', {
+      action: 'update',
+      resourceType: 'diagnostic_report',
+      resourceId: reportId,
+      patientId,
+    }))
+  ) {
+    return { status: 'error', message: 'No tienes permiso para revisar resultados.' };
+  }
 
   const reviewed = await new DiagnosticReportRepository(getDb(), ctx).markReviewed(reportId, {
     action,

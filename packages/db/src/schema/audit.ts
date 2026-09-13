@@ -1,5 +1,5 @@
 import { pgTable, pgEnum, text, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
-import type { AuditEventId, ProvenanceId, TenantId, UserId } from '@medical-os/shared';
+import type { AuditEventId, PatientId, ProvenanceId, TenantId, UserId } from '@medical-os/shared';
 
 /**
  * Audit / Provenance skeleton (§NIVEL 2 gate, §19, ADR-0003).
@@ -42,6 +42,8 @@ export const auditEvent = pgTable(
     resourceType: text('resource_type').notNull(),
     /** ID del recurso afectado (ULID). */
     resourceId: text('resource_id'),
+    /** Paciente relacionado, para el audit trail centrado en el expediente. */
+    patientId: text('patient_id').$type<PatientId>(),
     /** ID de la decisión de autorización correlacionada (ADR-0002 §NIVEL 2). */
     authorizationDecisionId: text('authorization_decision_id'),
     /** Metadatos sin PHI (IP, motivo de denegación, etc.). */
@@ -51,6 +53,7 @@ export const auditEvent = pgTable(
   (t) => [
     index('audit_event_tenant_idx').on(t.tenantId, t.occurredAt),
     index('audit_event_resource_idx').on(t.resourceType, t.resourceId),
+    index('audit_event_patient_idx').on(t.tenantId, t.patientId),
     index('audit_event_actor_idx').on(t.actorUserId),
   ],
 );

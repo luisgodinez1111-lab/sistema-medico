@@ -238,8 +238,10 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
             canWrite={canWrite}
           />
           <div style={{ height: 'var(--space-5)' }} />
-          <p className="mos-section-label">Pendientes</p>
-          <p className="mos-muted">Sin pendientes (NIVEL 9).</p>
+          <p className="mos-section-label">Gobernanza</p>
+          <Link className="mos-muted" href={`/patients/${patient.id}/audit`}>
+            Ver historial de auditoría →
+          </Link>
         </aside>
       </div>
     </div>

@@ -31,8 +31,18 @@ ReBAC) + skeleton de audit/provenance. `TenantContext` resuelto en servidor
 scoping obligatorio (ADR-0002 §2). Gate parcial cumplido: 7 pruebas
 cross-tenant / IDOR / BOLA en verde (`tenant-isolation.test.ts`) contra Postgres
 real vía PGlite. Migraciones SQL generadas (`drizzle/0000_*.sql`).
-Pendiente del gate: integración con IdP/sesión real, RLS en Neon, wiring de
-`authorization_decision_id` en las operaciones sensibles de la app.
+Wiring de `authorization_decision_id` **completado**: helper `auditedAuthorize`
+(server) evalúa el permiso con `decide()` y escribe un `audit_event` (con el
+authorization_decision_id y outcome allowed/denied) en cada operación sensible
+(prescribir, firmar encuentro, solicitar/revisar estudios). Audit trail por
+paciente en `/patients/[id]/audit` (§28 paso 15). Migración `drizzle/0010_*.sql`
+(columna `patient_id` en audit_event).
+Pendiente del gate: integración con IdP/sesión real; RLS en Neon DIFERIDA con
+rationale — el driver neon-http es stateless (sin sesión/transacción por
+request), así que el GUC por tenant que exige RLS no es viable hoy; la defensa en
+profundidad actual (scoping de repos obligatorio + constraints + pruebas
+cross-tenant + audit) es el control primario aceptado por ADR-0002. Revisar RLS
+al adoptar un driver con sesión o rol por tenant.
 
 **Audit/provenance skeleton — listo:** tablas `audit_event` (append-only, con
 `authorization_decision_id` y `payload` sin PHI) y `provenance`; `AuditRepository`
@@ -237,4 +247,4 @@ El primer corte end-to-end que valida la columna vertebral:
 12. ✅ Mostrarlo en Result Inbox
 13. ✅ Marcar revisado + acción + paciente informado
 14. ✅ Cerrar obligación clínica
-15. ⬜ Visualizar todo en timeline y audit trail
+15. ✅ Visualizar todo en timeline y audit trail (timeline de encuentros + `/patients/[id]/audit`)

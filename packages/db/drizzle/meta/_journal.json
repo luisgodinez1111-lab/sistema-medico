@@ -71,6 +71,13 @@
       "when": 1789272739196,
       "tag": "0009_quiet_ikaris",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789273236949,
+      "tag": "0010_large_newton_destine",
+      "breakpoints": true
     }
   ]
 }
