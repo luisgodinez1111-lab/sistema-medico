@@ -37,10 +37,42 @@ async function HomeContent({
 }) {
   const db = getDb();
   const patients = await new PatientRepository(db, ctx).listRecent(8);
-  const pendingResults = await new DiagnosticReportRepository(db, ctx).listPendingReview(10);
+  const pendingResults = await new DiagnosticReportRepository(db, ctx).listPendingReview(20);
+
+  // Escalamiento de anormales (§27): críticos primero, luego alto/bajo, luego normal.
+  const rank = (f: string): number => (f === 'critical' ? 0 : f === 'high' || f === 'low' ? 1 : 2);
+  const sortedResults = [...pendingResults].sort(
+    (a, b) => rank(a.abnormalFlag) - rank(b.abnormalFlag),
+  );
+  const criticalCount = pendingResults.filter((r) => r.abnormalFlag === 'critical').length;
+  const abnormalCount = pendingResults.filter((r) =>
+    ['critical', 'high', 'low'].includes(r.abnormalFlag),
+  ).length;
 
   return (
     <>
+      {criticalCount > 0 ? (
+        <Alert severity="critical" title={`${criticalCount} resultado(s) CRÍTICO(s) sin revisar`}>
+          Requieren atención inmediata. Revísalos y cierra el circuito con el paciente.
+          <div style={{ height: 'var(--space-2)' }} />
+          {sortedResults
+            .filter((r) => r.abnormalFlag === 'critical')
+            .map((r) => (
+              <div key={r.id}>
+                <Link href={`/patients/${r.patientId}`}>
+                  {r.code}: {r.value} →
+                </Link>
+              </div>
+            ))}
+        </Alert>
+      ) : abnormalCount > 0 ? (
+        <Alert severity="warning" title={`${abnormalCount} resultado(s) anormal(es) sin revisar`}>
+          Hay resultados fuera de rango pendientes de revisión.
+        </Alert>
+      ) : null}
+
+      {criticalCount > 0 || abnormalCount > 0 ? <div style={{ height: 'var(--space-4)' }} /> : null}
+
       <Alert severity="info" title="Medical OS · R0">
         La <Link href="/org">organización</Link> y los <Link href="/patients">pacientes</Link> ya se
         leen de Neon, tenant-scoped (NIVEL 2/3). El resto del expediente clínico llega en niveles
@@ -89,7 +121,7 @@ async function HomeContent({
             <p className="mos-muted">Sin resultados pendientes. Closed-loop al día.</p>
           ) : (
             <ul className="mos-list">
-              {pendingResults.map((r) => (
+              {sortedResults.map((r) => (
                 <li key={r.id} className="mos-list__item">
                   <Link className="mos-link-row" href={`/patients/${r.patientId}`}>
                     <span>

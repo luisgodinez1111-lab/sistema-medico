@@ -233,7 +233,11 @@ la bandera de anormalidad del valor numérico contra el rango de referencia (§2
 resultado anormal no depende del marcado manual); si no hay datos numéricos, respeta la
 bandera provista. UI: captura de valor + unidad + rango; el listado muestra valor+unidad
 y "(ref: mín–máx)" con badge de anormalidad. 8 pruebas nuevas.
-Pendiente: notificación/tareas, adjuntos, escalamiento de críticos, códigos LOINC reales.
+**Escalamiento de críticos — listo:** el Command Center ordena los resultados
+pendientes con críticos/anormales primero y muestra un **banner CRÍTICO prominente**
+(§27: no puede pasar desapercibido) con enlaces directos a los pacientes; si no hay
+críticos pero sí anormales, un aviso de advertencia.
+Pendiente: notificación/tareas (asíncronas), adjuntos, códigos LOINC reales.
 
 **Release R3 — Agenda + check-in — en curso:** tabla `appointment` (FHIR
 Appointment) en módulo `schema/scheduling.ts` **separado de lo clínico** (§33
