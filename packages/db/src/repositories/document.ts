@@ -39,6 +39,22 @@ export class DocumentRepository {
     return Boolean(row);
   }
 
+  /** Busca un documento por id, scoped al tenant (nunca cruza tenants). */
+  async findById(id: DocumentId): Promise<ClinicalDocumentRow | null> {
+    const [row] = await this.db
+      .select()
+      .from(clinicalDocument)
+      .where(
+        and(
+          eq(clinicalDocument.id, id),
+          eq(clinicalDocument.tenantId, this.ctx.tenantId),
+          isNull(clinicalDocument.deletedAt),
+        ),
+      )
+      .limit(1);
+    return (row as ClinicalDocumentRow) ?? null;
+  }
+
   async listForPatient(patientId: PatientId): Promise<ClinicalDocumentRow[]> {
     const rows = await this.db
       .select()

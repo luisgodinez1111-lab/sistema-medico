@@ -257,11 +257,30 @@ Migración `drizzle/0013_*.sql`. UI `/patients/[id]/documents` (enlace en el rai
 lista + registro de metadata; `DOCUMENTS_STORAGE` (env) define el proveedor,
 hoy `unconfigured` → los documentos quedan "pendientes de carga". 3 pruebas.
 db: 87/87. Verificado contra Neon.
-**Pendiente para uso real:** conectar object storage privado (Vercel Blob / S3)
-y el pipeline de subida con signed URLs; importación FHIR / adaptadores externos.
+**Object storage privado (R5 — completado):** módulo `storage.ts` con el puerto
+`StorageProvider` y URLs prefirmadas **AWS SigV4** (compatible S3 / Cloudflare R2
+/ Backblaze B2 / MinIO) implementadas con `node:crypto` — sin SDK ni dependencias.
+`NullStorageProvider` = `unconfigured` (nunca inventa URLs, devuelve precondición);
+`S3StorageProvider` firma PUT/GET de corta duración (5 min). `resolveStorageProvider`
+lee `STORAGE_S3_*` del entorno. Los bytes **nunca pasan por el servidor**: el
+cliente sube con un PUT prefirmado y calcula el SHA-256 en el navegador; el
+servidor sella hash+clave+tamaño (`finalizeDocument`) y audita cada fase
+(presign-upload / stored / download). Descarga vía proxy autorizado
+`/api/patients/[id]/documents/[docId]/download` → redirect 302 a GET prefirmado.
+UI: botón "Subir archivo" (pendientes, si hay storage) y "Descargar" (almacenados).
+9 pruebas de firma determinista.
 
-**Release R5 — Documents + FHIR export: núcleo completo** (almacenamiento de
-archivos y adaptadores externos pendientes de integración).
+**Importación FHIR / adaptadores externos (R5 — completado):** módulo
+`fhir-import.ts` — mapeo de ENTRADA (inverso de `fhir.ts`): `parseFhirPatient`,
+`parseFhirAllergy`, `parseFhirCondition`, `parseFhirObservation`, `parseFhirBundle`.
+Puro y read-only; devuelve create-inputs internos (sin `patientId`) vía `Result`,
+con validación explícita y conteo de recursos no soportados (`skipped`). Surface:
+`POST /api/patients/[id]/fhir` importa un Bundle SOBRE un paciente ya resuelto del
+tenant (el recurso Patient se ignora para evitar alta ciega/duplicados), audita
+conteos sin PHI. 13 pruebas, incluye round-trip export→import.
+
+**Release R5 — Documents + FHIR (export + import) + object storage: COMPLETO ✅.**
+Único paso externo: aprovisionar el bucket y setear `STORAGE_S3_*` en Vercel.
 
 **Release R6 — AI Copilot (human-in-the-loop) — en curso:** andamiaje `ai-copilot.ts`
 (`AI_ENGINE='stub-demo (no IA)'`, `AI_POLICY_VERSION`): contexto MÍNIMO y sin PHI
@@ -311,7 +330,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | ------- | ---------------------------------------- | ------ |
 | R3      | Agenda, check-in, billing básico         | ✅     |
 | R4      | Pathways, completeness, med safety       | ✅     |
-| R5      | Documents, FHIR, external adapters       | 🟨     |
+| R5      | Documents, FHIR export+import, storage   | ✅     |
 | R6      | AI Copilot (human-in-the-loop)           | 🟨     |
 | R7      | Specialty packs                          | ⬜     |
 

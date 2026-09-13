@@ -1,12 +1,18 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PatientHeader, ClinicalCard, Badge, Button, Alert } from '@medical-os/design-system';
-import { PatientRepository, DocumentRepository, hasPermission } from '@medical-os/db';
+import {
+  PatientRepository,
+  DocumentRepository,
+  hasPermission,
+  resolveStorageProvider,
+} from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
 import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
 import { DocumentForm } from './DocumentForm';
+import { DocumentUploader } from './DocumentUploader';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +27,7 @@ export default async function DocumentsPage({ params }: { params: Promise<{ id: 
 
   const documents = await new DocumentRepository(db, ctx).listForPatient(patient.id);
   const canWrite = hasPermission(ctx, 'patient.write');
+  const storageConfigured = resolveStorageProvider(process.env).configured;
 
   return (
     <div>
@@ -58,9 +65,18 @@ export default async function DocumentsPage({ params }: { params: Promise<{ id: 
                         {d.contentHash ? ` · hash ${d.contentHash.slice(0, 10)}…` : ''}
                       </span>
                     </span>
-                    <Badge tone={d.status === 'stored' ? 'success' : 'warning'}>
-                      {d.status === 'stored' ? 'Almacenado' : 'Pendiente de carga'}
-                    </Badge>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                      {d.status === 'stored' ? (
+                        <Link href={`/api/patients/${patient.id}/documents/${d.id}/download`}>
+                          <Button variant="ghost">Descargar</Button>
+                        </Link>
+                      ) : canWrite && storageConfigured ? (
+                        <DocumentUploader documentId={d.id} />
+                      ) : null}
+                      <Badge tone={d.status === 'stored' ? 'success' : 'warning'}>
+                        {d.status === 'stored' ? 'Almacenado' : 'Pendiente de carga'}
+                      </Badge>
+                    </span>
                   </li>
                 ))}
               </ul>
