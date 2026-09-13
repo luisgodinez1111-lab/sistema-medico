@@ -130,6 +130,21 @@ aislamiento). db: 48/48 verde. Cubre §28 paso 5.
 Pendiente: completitud/score de historia, versión de contenido revisada por
 clínico, secciones por especialidad (R7).
 
+**NIVEL 6 — Encounter Workspace + firma — en curso:** tabla `encounter` (FHIR
+Encounter, nota SOAP estructurada en columnas) tenant- y patient-scoped.
+`EncounterRepository`: create (borrador), updateDraft (sólo in-progress), **sign**
+(congela snapshot + hash SHA-256 + inserta `provenance`), listForPatient (timeline),
+softDeleteDraft. Una nota firmada es **inmutable** (§33 #6): updateDraft/sign/delete
+no aplican tras firmar. Firma gated por permiso `encounter.sign` (§NIVEL 2).
+UI: botón "Iniciar consulta" funcional en el PatientHeader, ruta
+`/patients/[id]/encounters/[eid]` (editor SOAP en borrador; vista inmutable con
+hash al firmar), y **timeline real** del workspace listando encuentros.
+Migración `drizzle/0007_*.sql` aplicada. 5 pruebas nuevas (borrador/firma/
+inmutabilidad/provenance/aislamiento). db: 53/53 verde. Verificado contra Neon.
+Cubre §28 pasos 4 y 10.
+Pendiente: addenda/enmiendas post-firma, "cambios desde la última visita" (cierra
+NIVEL 4), PDF/impresión de la nota.
+
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
 Dependabot ahora agrupa minor/patch e **ignora majors** (política de estabilidad,
@@ -152,7 +167,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | 3     | Clinical Data Foundation                 | ✅     |
 | 4     | Patient Workspace                        | 🟨     |
 | 5     | Adaptive Clinical History Engine         | 🟨     |
-| 6     | Encounter Workspace + firma              | ⬜     |
+| 6     | Encounter Workspace + firma              | 🟨     |
 
 ## Release R2 — Safety Loop
 
@@ -178,13 +193,13 @@ El primer corte end-to-end que valida la columna vertebral:
 1. 🟨 Crear tenant, organización, consultorio y médico (vía seed; falta flujo UI)
 2. ✅ Crear/buscar paciente con detección de duplicados (UI + server action)
 3. ✅ Abrir Patient Workspace (identidad, alergias, problemas, vitales, contactos reales)
-4. ⬜ Crear encuentro de medicina general
+4. ✅ Crear encuentro de medicina general
 5. 🟨 Capturar historia adaptativa adulto/pediátrico mínima (motor + captura listos)
 6. 🟨 Registrar signos vitales y exploración (vitales listos; exploración pendiente)
 7. 🟨 Crear problema/diagnóstico y plan (Condition listo; plan pendiente)
 8. ⬜ Emitir receta estructurada
 9. ⬜ Solicitar un laboratorio
-10. ⬜ Firmar encuentro (snapshot + provenance)
+10. ✅ Firmar encuentro (snapshot + provenance)
 11. ⬜ Ingresar resultado del laboratorio
 12. ⬜ Mostrarlo en Result Inbox
 13. ⬜ Marcar revisado + acción + paciente informado

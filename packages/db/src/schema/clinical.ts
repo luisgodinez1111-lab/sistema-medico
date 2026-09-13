@@ -4,6 +4,7 @@ import {
   text,
   date,
   boolean,
+  jsonb,
   timestamp,
   uniqueIndex,
   index,
@@ -11,9 +12,11 @@ import {
 import type {
   AllergyId,
   ConditionId,
+  EncounterId,
   HistoryEntryId,
   ObservationId,
   PatientId,
+  PractitionerId,
   RelatedPersonId,
   TenantId,
   UserId,
@@ -314,5 +317,61 @@ export const historyEntry = pgTable(
     index('history_entry_tenant_patient_idx').on(t.tenantId, t.patientId),
     // Un ítem (section+code) por paciente: permite upsert determinista.
     uniqueIndex('history_entry_patient_item_idx').on(t.tenantId, t.patientId, t.section, t.code),
+  ],
+);
+
+/**
+ * Encuentro clínico (§NIVEL 6, alineado con FHIR Encounter). Nota estructurada
+ * SOAP. Al FIRMAR se congela: una nota firmada NUNCA se edita destructivamente
+ * (§33 #6). El borrado es lógico sólo en borrador; tras firmar se conserva el
+ * snapshot + hash de integridad y se registra provenance (§NIVEL 3, ADR-0003 §5).
+ */
+export const encounterType = pgEnum('encounter_type', [
+  'medicina-general',
+  'seguimiento',
+  'urgencia',
+  'teleconsulta',
+]);
+export const encounterStatus = pgEnum('encounter_status', [
+  'in-progress',
+  'signed',
+  'amended',
+  'cancelled',
+]);
+
+export const encounter = pgTable(
+  'encounter',
+  {
+    id: text('id').primaryKey().$type<EncounterId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+    practitionerId: text('practitioner_id').$type<PractitionerId>(),
+
+    type: encounterType('type').notNull().default('medicina-general'),
+    status: encounterStatus('status').notNull().default('in-progress'),
+    /** Motivo de consulta. */
+    reason: text('reason'),
+
+    /** Nota SOAP estructurada (columnas, no JSON blob). */
+    subjective: text('subjective'),
+    objective: text('objective'),
+    assessment: text('assessment'),
+    plan: text('plan'),
+
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    signedAt: timestamp('signed_at', { withTimezone: true }),
+    signedBy: text('signed_by').$type<UserId>(),
+    /** Hash de integridad del contenido firmado (SHA-256). */
+    signedHash: text('signed_hash'),
+    /** Snapshot inmutable del contenido al momento de firmar. */
+    signedSnapshot: jsonb('signed_snapshot').$type<Record<string, unknown>>(),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('encounter_tenant_idx').on(t.tenantId),
+    index('encounter_tenant_patient_idx').on(t.tenantId, t.patientId),
   ],
 );

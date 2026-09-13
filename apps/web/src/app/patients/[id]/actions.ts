@@ -9,9 +9,10 @@ import {
   ObservationRepository,
   RelatedPersonRepository,
   HistoryRepository,
+  EncounterRepository,
   hasPermission,
 } from '@medical-os/db';
-import type { PatientId } from '@medical-os/shared';
+import type { PatientId, EncounterId } from '@medical-os/shared';
 import { ValidationError } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
@@ -279,4 +280,83 @@ export async function saveHistorySectionAction(
 
   revalidatePath(`/patients/${patientId}`);
   return { status: 'ok', message: 'Historia actualizada.' };
+}
+
+/**
+ * Inicia una consulta: crea un encuentro en borrador y navega a su captura
+ * (§NIVEL 6, §28 paso 4). Permiso `patient.write`.
+ */
+export async function startEncounterAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para iniciar consultas.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  if (!patientId) return { status: 'error', message: 'Paciente inválido.' };
+
+  const created = await new EncounterRepository(getDb(), ctx).create({ patientId });
+  if (!created) return { status: 'error', message: 'No se pudo iniciar (paciente no válido).' };
+
+  revalidatePath(`/patients/${patientId}`);
+  redirect(`/patients/${patientId}/encounters/${created.id}`);
+}
+
+/** Guarda el borrador SOAP del encuentro (§NIVEL 6). Permiso `patient.write`. */
+export async function saveEncounterDraftAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para editar la nota.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const encounterId = str(formData, 'encounterId') as EncounterId;
+  if (!patientId || !encounterId) return { status: 'error', message: 'Datos inválidos.' };
+
+  const updated = await new EncounterRepository(getDb(), ctx).updateDraft(encounterId, {
+    reason: str(formData, 'reason'),
+    subjective: str(formData, 'subjective'),
+    objective: str(formData, 'objective'),
+    assessment: str(formData, 'assessment'),
+    plan: str(formData, 'plan'),
+  });
+  if (!updated) {
+    return { status: 'error', message: 'No se pudo guardar (nota firmada o no válida).' };
+  }
+
+  revalidatePath(`/patients/${patientId}/encounters/${encounterId}`);
+  return { status: 'ok', message: 'Borrador guardado.' };
+}
+
+/**
+ * Firma el encuentro: congela snapshot + hash + provenance (§NIVEL 6, §28 paso
+ * 10). Requiere el permiso específico `encounter.sign` (§NIVEL 2).
+ */
+export async function signEncounterAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'encounter.sign')) {
+    return { status: 'error', message: 'No tienes permiso para firmar encuentros.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const encounterId = str(formData, 'encounterId') as EncounterId;
+  if (!patientId || !encounterId) return { status: 'error', message: 'Datos inválidos.' };
+
+  const signed = await new EncounterRepository(getDb(), ctx).sign(encounterId);
+  if (!signed) {
+    return { status: 'error', message: 'No se pudo firmar (ya firmado o no válido).' };
+  }
+
+  revalidatePath(`/patients/${patientId}`);
+  revalidatePath(`/patients/${patientId}/encounters/${encounterId}`);
+  return { status: 'ok', message: 'Encuentro firmado.' };
 }

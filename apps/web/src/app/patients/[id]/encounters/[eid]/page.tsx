@@ -1,0 +1,104 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { PatientHeader, ClinicalCard, Badge, Button, Alert } from '@medical-os/design-system';
+import { PatientRepository, EncounterRepository, hasPermission } from '@medical-os/db';
+import type { PatientId, EncounterId } from '@medical-os/shared';
+import { getRequestContext } from '@/server/context';
+import { getDb } from '@/server/db';
+import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
+import { EncounterEditor } from './EncounterEditor';
+
+export const dynamic = 'force-dynamic';
+
+const TYPE_LABEL: Record<string, string> = {
+  'medicina-general': 'Medicina general',
+  seguimiento: 'Seguimiento',
+  urgencia: 'Urgencia',
+  teleconsulta: 'Teleconsulta',
+};
+
+export default async function EncounterPage({
+  params,
+}: {
+  params: Promise<{ id: string; eid: string }>;
+}) {
+  const { id, eid } = await params;
+  const ctx = await getRequestContext();
+  if (!ctx) notFound();
+
+  const db = getDb();
+  const patient = await new PatientRepository(db, ctx).findById(id as PatientId);
+  if (!patient) notFound();
+  const encounter = await new EncounterRepository(db, ctx).getById(eid as EncounterId);
+  if (!encounter || encounter.patientId !== patient.id) notFound();
+
+  const signed = encounter.status === 'signed';
+
+  return (
+    <div>
+      <PatientHeader
+        fullName={fullPatientName(patient)}
+        ageLabel={ageLabel(patient.birthDate)}
+        sexLabel={sexLabel(patient.sex)}
+        mrn={patient.mrn}
+        criticalFlags={[]}
+        actions={
+          <Link href={`/patients/${patient.id}`}>
+            <Button variant="secondary">Volver al expediente</Button>
+          </Link>
+        }
+      />
+
+      <div className="mos-page">
+        <p className="mos-page__subtitle">
+          {TYPE_LABEL[encounter.type] ?? encounter.type} ·{' '}
+          {signed ? <Badge tone="success">Firmado</Badge> : <Badge tone="warning">Borrador</Badge>}
+        </p>
+
+        {signed ? (
+          <ClinicalCard title="Nota firmada (inmutable)">
+            <Alert severity="success" title="Encuentro firmado">
+              Firmado el {encounter.signedAt?.toISOString().slice(0, 16).replace('T', ' ')} · hash
+              de integridad <code>{encounter.signedHash?.slice(0, 16)}…</code>
+            </Alert>
+            <ul className="mos-list" style={{ marginTop: 'var(--space-3)' }}>
+              <li className="mos-list__item">
+                <span>Motivo</span>
+                <span>{encounter.reason ?? '—'}</span>
+              </li>
+              <li className="mos-list__item">
+                <span>S — Subjetivo</span>
+                <span>{encounter.subjective ?? '—'}</span>
+              </li>
+              <li className="mos-list__item">
+                <span>O — Objetivo</span>
+                <span>{encounter.objective ?? '—'}</span>
+              </li>
+              <li className="mos-list__item">
+                <span>A — Análisis</span>
+                <span>{encounter.assessment ?? '—'}</span>
+              </li>
+              <li className="mos-list__item">
+                <span>P — Plan</span>
+                <span>{encounter.plan ?? '—'}</span>
+              </li>
+            </ul>
+          </ClinicalCard>
+        ) : (
+          <EncounterEditor
+            patientId={patient.id}
+            encounter={{
+              id: encounter.id,
+              reason: encounter.reason,
+              subjective: encounter.subjective,
+              objective: encounter.objective,
+              assessment: encounter.assessment,
+              plan: encounter.plan,
+            }}
+            canSign={hasPermission(ctx, 'encounter.sign')}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

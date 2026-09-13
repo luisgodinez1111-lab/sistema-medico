@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { PatientHeader, AllergyBanner, ClinicalCard, Button } from '@medical-os/design-system';
+import { PatientHeader, AllergyBanner, ClinicalCard } from '@medical-os/design-system';
 import {
   PatientRepository,
   AllergyRepository,
@@ -7,6 +7,7 @@ import {
   ObservationRepository,
   RelatedPersonRepository,
   HistoryRepository,
+  EncounterRepository,
   applicableHistorySections,
   HISTORY_SCHEMA_VERSION,
   hasPermission,
@@ -21,6 +22,8 @@ import { VitalsManager } from './VitalsManager';
 import { ContactsManager } from './ContactsManager';
 import { HistoryManager } from './HistoryManager';
 import { MergeManager } from './MergeManager';
+import { EncounterStartButton } from './EncounterStartButton';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +47,7 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
   const conditions = await new ConditionRepository(db, ctx).listActive(patient.id);
   const vitals = await new ObservationRepository(db, ctx).listForPatient(patient.id, 'vital-signs');
   const contacts = await new RelatedPersonRepository(db, ctx).listForPatient(patient.id);
+  const encounters = await new EncounterRepository(db, ctx).listForPatient(patient.id);
 
   // Historia clínica adaptativa: secciones por edad/sexo + valores ya capturados.
   const historySections = applicableHistorySections({
@@ -72,14 +76,34 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
         sexLabel={sexLabel(patient.sex)}
         mrn={patient.mrn}
         criticalFlags={criticalFlags}
-        actions={<Button variant="primary">Iniciar consulta</Button>}
+        actions={canWrite ? <EncounterStartButton patientId={patient.id} /> : null}
       />
       <AllergyBanner allergies={allergyLabels} notAssessed={allergies.length === 0 && !reviewed} />
 
       <div className="mos-workspace">
         <aside className="mos-workspace__col mos-workspace__timeline" aria-label="Línea de tiempo">
           <p className="mos-section-label">Timeline</p>
-          <p className="mos-muted">Sin encuentros registrados (NIVEL 6).</p>
+          {encounters.length === 0 ? (
+            <p className="mos-muted">Sin encuentros registrados.</p>
+          ) : (
+            encounters.map((e) => (
+              <Link
+                key={e.id}
+                href={`/patients/${patient.id}/encounters/${e.id}`}
+                className="mos-timeline-entry"
+                style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
+              >
+                <div className="mos-timeline-entry__date">
+                  {(e.signedAt ?? e.startedAt).toISOString().slice(0, 10)} ·{' '}
+                  {e.status === 'signed' ? 'Firmado' : 'Borrador'}
+                </div>
+                <div className="mos-timeline-entry__summary">
+                  {e.reason ?? 'Consulta'}
+                  {e.assessment ? ` — ${e.assessment}` : ''}
+                </div>
+              </Link>
+            ))
+          )}
         </aside>
 
         <section className="mos-workspace__col mos-workspace__main" aria-label="Resumen clínico">
