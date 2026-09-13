@@ -15,3 +15,4 @@ export * from './document';
 export * from './audit';
 export * from './specialty';
 export * from './exam';
+export * from './encounter-diagnosis';

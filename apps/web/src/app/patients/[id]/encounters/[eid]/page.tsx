@@ -6,6 +6,8 @@ import {
   EncounterRepository,
   ExamRepository,
   EXAM_SECTIONS,
+  ConditionRepository,
+  EncounterDiagnosisRepository,
   hasPermission,
 } from '@medical-os/db';
 import type { PatientId, EncounterId } from '@medical-os/shared';
@@ -14,6 +16,7 @@ import { getDb } from '@/server/db';
 import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
 import { EncounterEditor } from './EncounterEditor';
 import { ExamManager } from './ExamManager';
+import { DiagnosisManager } from './DiagnosisManager';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +46,12 @@ export default async function EncounterPage({
   const examFindings = signed
     ? []
     : await new ExamRepository(db, ctx).listForEncounter(encounter.id);
+  const activeConditions = signed
+    ? []
+    : await new ConditionRepository(db, ctx).listActive(patient.id);
+  const encounterDiagnoses = signed
+    ? []
+    : await new EncounterDiagnosisRepository(db, ctx).listForEncounter(encounter.id);
 
   return (
     <div>
@@ -118,6 +127,13 @@ export default async function EncounterPage({
                 normal: f.normal,
                 note: f.note,
               }))}
+            />
+            <div style={{ height: 'var(--space-4)' }} />
+            <DiagnosisManager
+              patientId={patient.id}
+              encounterId={encounter.id}
+              conditions={activeConditions.map((c) => ({ id: c.id, code: c.code }))}
+              selectedIds={encounterDiagnoses.map((d) => d.conditionId)}
             />
           </>
         )}

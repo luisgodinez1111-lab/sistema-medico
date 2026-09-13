@@ -64,10 +64,9 @@ export function EncounterEditor({
           <strong>O — Objetivo:</strong> se genera de la Exploración física (abajo) y los signos
           vitales.
         </p>
-        <label className="mos-field">
-          <span>A — Análisis</span>
-          <textarea name="assessment" rows={2} defaultValue={encounter.assessment ?? ''} />
-        </label>
+        <p className="mos-muted" style={{ margin: 0 }}>
+          <strong>A — Análisis:</strong> se genera de los Diagnósticos del encuentro (abajo).
+        </p>
         <label className="mos-field">
           <span>P — Plan</span>
           <textarea name="plan" rows={2} defaultValue={encounter.plan ?? ''} />

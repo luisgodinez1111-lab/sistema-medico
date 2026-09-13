@@ -16,6 +16,7 @@ export * from './completeness';
 export * from './pathways';
 export * from './specialty-packs';
 export * from './physical-exam';
+export * from './encounter-note';
 export * from './fhir';
 export * from './fhir-import';
 export * from './storage';

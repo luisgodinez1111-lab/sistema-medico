@@ -19,6 +19,8 @@ import {
   ExamRepository,
   EXAM_SECTIONS,
   composeExamObjective,
+  EncounterDiagnosisRepository,
+  composeAssessment,
   generateSuggestions,
   hasCritical,
   hasPermission,
@@ -28,6 +30,7 @@ import type {
   EncounterId,
   ServiceRequestId,
   DiagnosticReportId,
+  ConditionId,
 } from '@medical-os/shared';
 import { ValidationError } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
@@ -346,10 +349,11 @@ export async function saveEncounterDraftAction(
 
   // `objective` (O) NO se edita aquí: se deriva de la exploración física
   // estructurada (§28 paso 6) vía saveExamAction.
+  // `objective` (O) y `assessment` (A) se derivan de la exploración y los
+  // diagnósticos del encuentro (§28 pasos 6-7); aquí sólo S, P y motivo.
   const updated = await new EncounterRepository(getDb(), ctx).updateDraft(encounterId, {
     reason: str(formData, 'reason'),
     subjective: str(formData, 'subjective'),
-    assessment: str(formData, 'assessment'),
     plan: str(formData, 'plan'),
   });
   if (!updated) {
@@ -406,6 +410,42 @@ export async function saveExamAction(
 
   revalidatePath(`/patients/${patientId}/encounters/${encounterId}`);
   return { status: 'ok', message: 'Exploración guardada.' };
+}
+
+/**
+ * Guarda los diagnósticos del encuentro (§28 paso 7) y DERIVA el Análisis (A) de
+ * la nota SOAP. Los diagnósticos son Conditions del paciente marcadas como
+ * abordadas hoy. Permiso `patient.write`; sólo sobre borrador.
+ */
+export async function saveEncounterDiagnosesAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para editar la nota.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const encounterId = str(formData, 'encounterId') as EncounterId;
+  if (!patientId || !encounterId) return { status: 'error', message: 'Datos inválidos.' };
+
+  const conditionIds = formData
+    .getAll('conditionId')
+    .map((v) => v.toString().trim())
+    .filter(Boolean) as ConditionId[];
+
+  const db = getDb();
+  const repo = new EncounterDiagnosisRepository(db, ctx);
+  const ok = await repo.setDiagnoses(encounterId, patientId, conditionIds);
+  if (!ok) return { status: 'error', message: 'No se pudo guardar (nota firmada o no válida).' };
+
+  const diagnoses = await repo.listForEncounter(encounterId);
+  const assessment = composeAssessment(diagnoses.map((d) => ({ code: d.code })));
+  await new EncounterRepository(db, ctx).updateDraft(encounterId, { assessment });
+
+  revalidatePath(`/patients/${patientId}/encounters/${encounterId}`);
+  return { status: 'ok', message: 'Diagnósticos guardados.' };
 }
 
 /**

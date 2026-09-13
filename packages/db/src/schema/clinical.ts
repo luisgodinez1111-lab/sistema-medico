@@ -14,6 +14,7 @@ import type {
   ConditionId,
   DiagnosticReportId,
   EncounterId,
+  EncounterDiagnosisId,
   ExamFindingId,
   HistoryEntryId,
   MedicationRequestId,
@@ -547,5 +548,28 @@ export const encounterExamFinding = pgTable(
   (t) => [
     index('exam_finding_tenant_idx').on(t.tenantId),
     uniqueIndex('exam_finding_encounter_section_idx').on(t.tenantId, t.encounterId, t.section),
+  ],
+);
+
+/**
+ * Diagnósticos del encuentro (§NIVEL 6, §28 paso 7). Liga problemas (Condition)
+ * ya existentes del paciente a un encuentro concreto: son los diagnósticos
+ * ABORDADOS hoy. De estas filas se deriva el "Análisis (A)" de la nota SOAP, de
+ * modo que la firma + hash del encuentro los cubren. Baja física al desmarcar
+ * (relación de pertenencia, no PHI destructiva: el Condition persiste aparte).
+ */
+export const encounterDiagnosis = pgTable(
+  'encounter_diagnosis',
+  {
+    id: text('id').primaryKey().$type<EncounterDiagnosisId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+    encounterId: text('encounter_id').notNull().$type<EncounterId>(),
+    conditionId: text('condition_id').notNull().$type<ConditionId>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('encounter_diagnosis_tenant_idx').on(t.tenantId),
+    uniqueIndex('encounter_diagnosis_unique_idx').on(t.tenantId, t.encounterId, t.conditionId),
   ],
 );

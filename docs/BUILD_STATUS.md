@@ -408,7 +408,9 @@ El primer corte end-to-end que valida la columna vertebral:
 6. ✅ Registrar signos vitales y exploración — **exploración física estructurada** por
    aparatos/sistemas (`physical-exam.ts`, tabla `encounter_exam_finding`); deriva el
    Objetivo (O) que la firma congela. Vitales con prefill de plantillas (R7).
-7. 🟨 Crear problema/diagnóstico y plan (Condition listo; plan pendiente)
+7. ✅ Crear problema/diagnóstico y plan — **diagnósticos del encuentro** (ligan Conditions
+   al encuentro, tabla `encounter_diagnosis`) que derivan el Análisis (A) que la firma
+   congela; el Plan (P) queda como texto libre en el editor SOAP.
 8. 🟨 Emitir receta estructurada (prescripción + seguridad; falta receta imprimible)
 9. ✅ Solicitar un laboratorio
 10. ✅ Firmar encuentro (snapshot + provenance)
