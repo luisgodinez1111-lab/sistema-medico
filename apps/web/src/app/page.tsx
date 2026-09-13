@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ClinicalCard, Badge, Alert } from '@medical-os/design-system';
-import { PatientRepository } from '@medical-os/db';
+import { PatientRepository, DiagnosticReportRepository } from '@medical-os/db';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
 import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
@@ -38,7 +38,9 @@ async function HomeContent({
 }: {
   ctx: NonNullable<Awaited<ReturnType<typeof getRequestContext>>>;
 }) {
-  const patients = await new PatientRepository(getDb(), ctx).listRecent(8);
+  const db = getDb();
+  const patients = await new PatientRepository(db, ctx).listRecent(8);
+  const pendingResults = await new DiagnosticReportRepository(db, ctx).listPendingReview(10);
 
   return (
     <>
@@ -82,11 +84,36 @@ async function HomeContent({
         </ClinicalCard>
 
         <ClinicalCard title="Pendientes clínicos">
-          <p className="mos-muted">Obligaciones y tareas llegan en NIVEL 9 (Closed-Loop Safety).</p>
+          <p className="mos-muted">Obligaciones y tareas adicionales llegan con la agenda (R3).</p>
         </ClinicalCard>
 
-        <ClinicalCard title="Resultados por revisar">
-          <p className="mos-muted">El Result Inbox llega en NIVEL 9.</p>
+        <ClinicalCard title={`Resultados por revisar (${pendingResults.length})`}>
+          {pendingResults.length === 0 ? (
+            <p className="mos-muted">Sin resultados pendientes. Closed-loop al día.</p>
+          ) : (
+            <ul className="mos-list">
+              {pendingResults.map((r) => (
+                <li key={r.id} className="mos-list__item">
+                  <Link className="mos-link-row" href={`/patients/${r.patientId}`}>
+                    <span>
+                      {r.code}: <strong>{r.value}</strong>
+                    </span>
+                  </Link>
+                  <Badge
+                    tone={
+                      r.abnormalFlag === 'critical'
+                        ? 'critical'
+                        : r.abnormalFlag === 'normal'
+                          ? 'success'
+                          : 'warning'
+                    }
+                  >
+                    {r.abnormalFlag}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
         </ClinicalCard>
       </div>
     </>

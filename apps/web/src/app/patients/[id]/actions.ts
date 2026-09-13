@@ -11,10 +11,17 @@ import {
   HistoryRepository,
   EncounterRepository,
   MedicationRepository,
+  ServiceRequestRepository,
+  DiagnosticReportRepository,
   hasCritical,
   hasPermission,
 } from '@medical-os/db';
-import type { PatientId, EncounterId } from '@medical-os/shared';
+import type {
+  PatientId,
+  EncounterId,
+  ServiceRequestId,
+  DiagnosticReportId,
+} from '@medical-os/shared';
 import { ValidationError } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
@@ -429,4 +436,97 @@ export async function prescribeMedicationAction(
     message: warn.length ? 'Prescrito (con advertencias de duplicidad).' : 'Medicamento prescrito.',
     ...(warn.length ? { alerts: warn } : {}),
   };
+}
+
+/** Solicita un estudio de laboratorio/imagen (§NIVEL 9, §28 paso 9). */
+export async function orderStudyAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para solicitar estudios.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const code = str(formData, 'code');
+  if (!patientId) return { status: 'error', message: 'Paciente inválido.' };
+  if (!code) return { status: 'error', message: 'Indica el estudio.' };
+
+  const category = (str(formData, 'category') || 'laboratory') as
+    'laboratory' | 'imaging' | 'procedure';
+  const priority = (str(formData, 'priority') || 'routine') as 'routine' | 'urgent';
+  const created = await new ServiceRequestRepository(getDb(), ctx).create({
+    patientId,
+    code,
+    category,
+    priority,
+  });
+  if (!created) return { status: 'error', message: 'No se pudo solicitar (paciente no válido).' };
+
+  revalidatePath(`/patients/${patientId}`);
+  return { status: 'ok', message: 'Estudio solicitado.' };
+}
+
+/** Ingresa el resultado de un estudio (§NIVEL 9, §28 paso 11). */
+export async function enterResultAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para ingresar resultados.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const serviceRequestId = str(formData, 'serviceRequestId') as ServiceRequestId;
+  const code = str(formData, 'code');
+  const value = str(formData, 'value');
+  if (!patientId || !code) return { status: 'error', message: 'Datos inválidos.' };
+  if (!value) return { status: 'error', message: 'Indica el valor del resultado.' };
+
+  const abnormalFlag = (str(formData, 'abnormalFlag') || 'normal') as
+    'normal' | 'low' | 'high' | 'critical';
+  const created = await new DiagnosticReportRepository(getDb(), ctx).enterResult({
+    patientId,
+    code,
+    value,
+    abnormalFlag,
+    ...(serviceRequestId ? { serviceRequestId } : {}),
+  });
+  if (!created) return { status: 'error', message: 'No se pudo registrar (paciente no válido).' };
+
+  revalidatePath(`/patients/${patientId}`);
+  return { status: 'ok', message: 'Resultado ingresado.' };
+}
+
+/**
+ * Cierra la obligación clínica de un resultado: revisado + acción + paciente
+ * informado (§NIVEL 9, §28 pasos 13-14).
+ */
+export async function reviewResultAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para revisar resultados.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const reportId = str(formData, 'reportId') as DiagnosticReportId;
+  const action = str(formData, 'action');
+  if (!patientId || !reportId) return { status: 'error', message: 'Datos inválidos.' };
+  if (!action) return { status: 'error', message: 'Indica la acción tomada.' };
+
+  const reviewed = await new DiagnosticReportRepository(getDb(), ctx).markReviewed(reportId, {
+    action,
+    patientInformed: str(formData, 'patientInformed') === 'on',
+  });
+  if (!reviewed)
+    return { status: 'error', message: 'No se pudo cerrar (ya revisado o no válido).' };
+
+  revalidatePath(`/patients/${patientId}`);
+  revalidatePath('/');
+  return { status: 'ok', message: 'Resultado revisado y obligación cerrada.' };
 }

@@ -113,10 +113,9 @@ vitales, contactos). Añadidos los estados robustos de la DoD (§31):
 correlación), `not-found` que no revela existencia cross-tenant (§27).
 Timeline **ya vive** (encendido por los encuentros de NIVEL 6): el workspace lista
 los encuentros reales con su estado (borrador/firmado) y enlaza a cada nota.
-Pendiente del gate, BLOQUEADO por niveles posteriores: "cambios desde la última
-visita" (requiere diff entre encuentros), medicación (NIVEL 8) y pendientes
-(NIVEL 9); más el drawer responsive de timeline/rail en tablet/móvil (§21).
-NIVEL 4 no puede cerrarse hasta tener N8/N9.
+Medicación (NIVEL 8) y resultados/Result Inbox (NIVEL 9) **ya están cableados** en
+el workspace. Pendiente del gate: "cambios desde la última visita" (requiere diff
+entre encuentros) y el drawer responsive de timeline/rail en tablet/móvil (§21).
 
 **NIVEL 5 — Adaptive Clinical History Engine — en curso:** historia clínica
 ESTRUCTURADA (tabla `history_entry`, una fila por ítem — NUNCA JSON gigante,
@@ -164,6 +163,21 @@ enciende la tarjeta "Medicación" del NIVEL 4.
 Pendiente: interacciones fármaco-fármaco, dosis por peso/edad (pediátrico),
 catálogo de medicamentos, receta imprimible.
 
+**NIVEL 9 — Orders, Results & Closed-Loop Safety — en curso (R2):** tablas
+`service_request` (orden lab/imagen/procedimiento) y `diagnostic_report`
+(resultado + ciclo de revisión), tenant- y patient-scoped, baja lógica.
+`ServiceRequestRepository` (solicitar, estado) y `DiagnosticReportRepository`
+(enterResult → completa la orden; listPendingReview = **Result Inbox** por tenant;
+markReviewed = cierra obligación con acción + paciente informado). Resultados
+críticos con flag visible (§27). UI: `OrdersManager` en el workspace (solicitar
+estudio, ingresar resultado, revisar/cerrar) y **Result Inbox real** en el Command
+Center. Permiso `patient.write`. Migración `drizzle/0009_*.sql` aplicada.
+4 pruebas nuevas (ciclo completo, inbox aislado, scoping de orden/resultado,
+revisión sin cruce de tenant). db: 64/64 verde. Verificado contra Neon.
+Cubre §28 pasos 9, 11-14.
+Pendiente: notificación/tareas, resultados estructurados (LOINC), adjuntos,
+escalamiento de críticos.
+
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
 Dependabot ahora agrupa minor/patch e **ignora majors** (política de estabilidad,
@@ -193,7 +207,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | Nivel | Descripción                              | Estado |
 | ----- | ---------------------------------------- | ------ |
 | 8     | Medication & Prescription Safety         | 🟨     |
-| 9     | Orders, Results y Closed-Loop Safety     | ⬜     |
+| 9     | Orders, Results y Closed-Loop Safety     | 🟨     |
 
 ## Releases posteriores
 
@@ -217,10 +231,10 @@ El primer corte end-to-end que valida la columna vertebral:
 6. 🟨 Registrar signos vitales y exploración (vitales listos; exploración pendiente)
 7. 🟨 Crear problema/diagnóstico y plan (Condition listo; plan pendiente)
 8. 🟨 Emitir receta estructurada (prescripción + seguridad; falta receta imprimible)
-9. ⬜ Solicitar un laboratorio
+9. ✅ Solicitar un laboratorio
 10. ✅ Firmar encuentro (snapshot + provenance)
-11. ⬜ Ingresar resultado del laboratorio
-12. ⬜ Mostrarlo en Result Inbox
-13. ⬜ Marcar revisado + acción + paciente informado
-14. ⬜ Cerrar obligación clínica
+11. ✅ Ingresar resultado del laboratorio
+12. ✅ Mostrarlo en Result Inbox
+13. ✅ Marcar revisado + acción + paciente informado
+14. ✅ Cerrar obligación clínica
 15. ⬜ Visualizar todo en timeline y audit trail

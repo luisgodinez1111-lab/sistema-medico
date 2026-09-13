@@ -12,6 +12,7 @@ import {
 import type {
   AllergyId,
   ConditionId,
+  DiagnosticReportId,
   EncounterId,
   HistoryEntryId,
   MedicationRequestId,
@@ -19,6 +20,7 @@ import type {
   PatientId,
   PractitionerId,
   RelatedPersonId,
+  ServiceRequestId,
   TenantId,
   UserId,
 } from '@medical-os/shared';
@@ -424,5 +426,99 @@ export const medicationRequest = pgTable(
   (t) => [
     index('medication_request_tenant_idx').on(t.tenantId),
     index('medication_request_tenant_patient_idx').on(t.tenantId, t.patientId),
+  ],
+);
+
+/**
+ * Orden de estudio / solicitud (§NIVEL 9, FHIR ServiceRequest): laboratorio,
+ * imagen o procedimiento. Parte del closed-loop: toda orden debe resolverse con
+ * un resultado y su revisión (obligación clínica, §NIVEL 9).
+ */
+export const serviceRequestCategory = pgEnum('service_request_category', [
+  'laboratory',
+  'imaging',
+  'procedure',
+]);
+export const serviceRequestPriority = pgEnum('service_request_priority', ['routine', 'urgent']);
+export const serviceRequestStatus = pgEnum('service_request_status', [
+  'requested',
+  'in-progress',
+  'completed',
+  'cancelled',
+]);
+
+export const serviceRequest = pgTable(
+  'service_request',
+  {
+    id: text('id').primaryKey().$type<ServiceRequestId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+    encounterId: text('encounter_id').$type<EncounterId>(),
+
+    category: serviceRequestCategory('category').notNull().default('laboratory'),
+    /** Estudio solicitado, p.ej. "Biometría hemática". */
+    code: text('code').notNull(),
+    priority: serviceRequestPriority('priority').notNull().default('routine'),
+    status: serviceRequestStatus('status').notNull().default('requested'),
+    note: text('note'),
+
+    requestedBy: text('requested_by').$type<UserId>(),
+    requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('service_request_tenant_idx').on(t.tenantId),
+    index('service_request_tenant_patient_idx').on(t.tenantId, t.patientId),
+  ],
+);
+
+/**
+ * Resultado de estudio (§NIVEL 9, FHIR DiagnosticReport) + ciclo de revisión
+ * CERRADO: un resultado final genera una obligación de revisión que no se cierra
+ * hasta marcar revisado + acción + paciente informado (§NIVEL 9, §27). Los
+ * resultados críticos no se esconden tras badges ambiguos.
+ */
+export const reportAbnormalFlag = pgEnum('report_abnormal_flag', [
+  'normal',
+  'low',
+  'high',
+  'critical',
+]);
+export const reportStatus = pgEnum('report_status', ['preliminary', 'final']);
+export const reportReviewStatus = pgEnum('report_review_status', ['pending', 'reviewed']);
+
+export const diagnosticReport = pgTable(
+  'diagnostic_report',
+  {
+    id: text('id').primaryKey().$type<DiagnosticReportId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+    /** Orden que originó este resultado. */
+    serviceRequestId: text('service_request_id').$type<ServiceRequestId>(),
+
+    code: text('code').notNull(),
+    status: reportStatus('status').notNull().default('final'),
+    /** Valor/resumen del resultado, p.ej. "Hb 9.1 g/dL". */
+    value: text('value').notNull(),
+    abnormalFlag: reportAbnormalFlag('abnormal_flag').notNull().default('normal'),
+    resultedAt: timestamp('resulted_at', { withTimezone: true }).notNull().defaultNow(),
+
+    /** Ciclo de revisión (closed-loop). */
+    reviewStatus: reportReviewStatus('review_status').notNull().default('pending'),
+    reviewedBy: text('reviewed_by').$type<UserId>(),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewAction: text('review_action'),
+    patientInformed: boolean('patient_informed').notNull().default(false),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('diagnostic_report_tenant_idx').on(t.tenantId),
+    index('diagnostic_report_tenant_patient_idx').on(t.tenantId, t.patientId),
+    // Result Inbox: resultados finales pendientes de revisión por tenant.
+    index('diagnostic_report_review_idx').on(t.tenantId, t.reviewStatus),
   ],
 );

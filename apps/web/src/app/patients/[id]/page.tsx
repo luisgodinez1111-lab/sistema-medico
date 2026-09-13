@@ -9,6 +9,8 @@ import {
   HistoryRepository,
   EncounterRepository,
   MedicationRepository,
+  ServiceRequestRepository,
+  DiagnosticReportRepository,
   applicableHistorySections,
   HISTORY_SCHEMA_VERSION,
   hasPermission,
@@ -25,6 +27,7 @@ import { HistoryManager } from './HistoryManager';
 import { MergeManager } from './MergeManager';
 import { EncounterStartButton } from './EncounterStartButton';
 import { MedicationManager } from './MedicationManager';
+import { OrdersManager } from './OrdersManager';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -51,6 +54,8 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
   const contacts = await new RelatedPersonRepository(db, ctx).listForPatient(patient.id);
   const encounters = await new EncounterRepository(db, ctx).listForPatient(patient.id);
   const medications = await new MedicationRepository(db, ctx).listActiveForPatient(patient.id);
+  const orders = await new ServiceRequestRepository(db, ctx).listForPatient(patient.id);
+  const reports = await new DiagnosticReportRepository(db, ctx).listForPatient(patient.id);
 
   // Historia clínica adaptativa: secciones por edad/sexo + valores ya capturados.
   const historySections = applicableHistorySections({
@@ -183,6 +188,25 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
               dose: m.dose,
               route: m.route,
               frequency: m.frequency,
+            }))}
+            canWrite={canWrite}
+          />
+
+          <OrdersManager
+            patientId={patient.id}
+            orders={orders.map((o) => ({
+              id: o.id,
+              code: o.code,
+              category: o.category,
+              priority: o.priority,
+              status: o.status,
+            }))}
+            reports={reports.map((r) => ({
+              id: r.id,
+              code: r.code,
+              value: r.value,
+              abnormalFlag: r.abnormalFlag,
+              reviewStatus: r.reviewStatus,
             }))}
             canWrite={canWrite}
           />
