@@ -337,8 +337,14 @@ observación necesita valor medido).
 `applicablePathways(conditions, extra)` combina con las base sin duplicar y filtra
 por problema activo. Estética añade Melasma y Acné (DEMO). El workspace pasa las
 pathways del pack activo.
-**Pendiente R7:** prefill de vitals desde plantillas de observación, más packs
-(dermatología, nutrición…), contenido validado por clínico.
+**Prefill de vitals:** las plantillas de observación del pack aparecen como chips
+en `VitalsManager`; un clic rellena código + unidad y el clínico sólo teclea el
+valor (form controlado; el select combina vitales estándar + plantillas sin duplicar).
+**Más packs:** añadido **Dermatología** (secciones, quick-picks, order sets
+—dermatoscopia, biopsia— y pathways de vigilancia de nevos y psoriasis). El
+registro escala solo: aparece en el selector de `/org` sin más wiring.
+**Pendiente R7:** contenido validado por clínico (reemplazar el DEMO), packs
+adicionales según demanda.
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 

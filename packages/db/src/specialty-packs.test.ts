@@ -26,6 +26,13 @@ describe('specialty-packs (R7)', () => {
     expect(pack?.quickProblems.map((q) => q.code)).toContain('melasma');
   });
 
+  it('incluye Dermatología con pathways de vigilancia de nevos', () => {
+    const pack = getSpecialtyPack('dermatologia');
+    expect(pack?.name).toBe('Dermatología');
+    expect(pack?.pathways.some((p) => p.match === 'nevo')).toBe(true);
+    expect(listSpecialtyPacks().length).toBeGreaterThanOrEqual(3);
+  });
+
   it('resolveSpecialtyPack cae a la línea base si el id es inválido o nulo', () => {
     expect(resolveSpecialtyPack(null).id).toBe(DEFAULT_SPECIALTY_PACK_ID);
     expect(resolveSpecialtyPack('no-existe').id).toBe(DEFAULT_SPECIALTY_PACK_ID);

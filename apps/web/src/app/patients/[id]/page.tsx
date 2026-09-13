@@ -272,6 +272,11 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
                 v.effectiveAt instanceof Date ? v.effectiveAt.toISOString() : String(v.effectiveAt),
             }))}
             canWrite={canWrite}
+            templates={specialtyPack.observationTemplates.map((t) =>
+              t.unit !== undefined
+                ? { code: t.code, label: t.label, unit: t.unit }
+                : { code: t.code, label: t.label },
+            )}
           />
 
           <MedicationManager

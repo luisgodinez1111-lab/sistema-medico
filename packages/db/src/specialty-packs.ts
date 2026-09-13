@@ -120,7 +120,61 @@ const MEDICINA_ESTETICA: SpecialtyPack = {
   ],
 };
 
-const PACKS: ReadonlyArray<SpecialtyPack> = [MEDICINA_GENERAL, MEDICINA_ESTETICA];
+/** Dermatología. Contenido DEMO. */
+const DERMATOLOGIA: SpecialtyPack = {
+  id: 'dermatologia',
+  name: 'Dermatología',
+  description: 'Lesiones cutáneas, fototipo y seguimiento dermatoscópico.',
+  version: SPECIALTY_PACK_SCHEMA_VERSION,
+  source: 'demo',
+  extraHistorySections: [
+    {
+      section: 'dermatologia-antecedentes',
+      title: 'Antecedentes dermatológicos (DEMO)',
+      items: [
+        { code: 'fototipo-fitzpatrick', label: 'Fototipo Fitzpatrick (I–VI)' },
+        { code: 'cancer-piel-familiar', label: 'Antecedente familiar de cáncer de piel' },
+        { code: 'nevos-atipicos', label: 'Nevos atípicos' },
+        { code: 'fotoexposicion', label: 'Fotoexposición ocupacional/recreativa' },
+      ],
+    },
+  ],
+  quickProblems: [
+    { code: 'dermatitis-atopica', label: 'Dermatitis atópica' },
+    { code: 'psoriasis', label: 'Psoriasis' },
+    { code: 'acne', label: 'Acné' },
+    { code: 'nevo-melanocitico', label: 'Nevo melanocítico' },
+    { code: 'dermatitis-contacto', label: 'Dermatitis de contacto' },
+  ],
+  observationTemplates: [
+    { code: 'peso', label: 'Peso', unit: 'kg' },
+    { code: 'fototipo', label: 'Fototipo Fitzpatrick' },
+    { code: 'localizacion-lesion', label: 'Localización de la lesión' },
+    { code: 'diametro-lesion', label: 'Diámetro de la lesión', unit: 'mm' },
+  ],
+  orderSets: [
+    { code: 'dermatoscopia', label: 'Dermatoscopia' },
+    { code: 'biopsia-piel', label: 'Biopsia de piel' },
+    { code: 'foto-clinica', label: 'Fotografía clínica (seguimiento)' },
+  ],
+  pathways: [
+    {
+      match: 'nevo',
+      title: 'Vigilancia de nevos (DEMO)',
+      items: [
+        { label: 'Control dermatoscópico (regla ABCDE)', cadence: 'cada 6-12 meses' },
+        { label: 'Fotografía clínica comparativa', cadence: 'cada 6-12 meses' },
+      ],
+    },
+    {
+      match: 'psoriasis',
+      title: 'Psoriasis (DEMO)',
+      items: [{ label: 'Evaluación de superficie afectada (BSA/PASI)', cadence: 'cada visita' }],
+    },
+  ],
+};
+
+const PACKS: ReadonlyArray<SpecialtyPack> = [MEDICINA_GENERAL, MEDICINA_ESTETICA, DERMATOLOGIA];
 const PACK_BY_ID = new Map(PACKS.map((p) => [p.id, p]));
 
 /** Id del pack por defecto cuando el tenant no ha elegido especialidad. */

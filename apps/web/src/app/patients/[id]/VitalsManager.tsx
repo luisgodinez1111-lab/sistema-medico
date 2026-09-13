@@ -1,7 +1,7 @@
 'use client';
 
-import { useActionState } from 'react';
-import { ClinicalCard, Button, Alert } from '@medical-os/design-system';
+import { useActionState, useState } from 'react';
+import { ClinicalCard, Button, Alert, Badge } from '@medical-os/design-system';
 import { addVitalAction, type AllergyActionState } from './actions';
 
 const INITIAL: AllergyActionState = { status: 'idle' };
@@ -14,35 +14,66 @@ export interface VitalView {
   effectiveAt: string;
 }
 
-/** Etiquetas legibles para los códigos de signos vitales comunes. */
-const VITAL_LABEL: Record<string, string> = {
-  'blood-pressure': 'Tensión arterial',
-  'heart-rate': 'Frecuencia cardiaca',
-  'respiratory-rate': 'Frecuencia respiratoria',
-  temperature: 'Temperatura',
-  weight: 'Peso',
-  height: 'Talla',
-  spo2: 'SpO₂',
-};
+/** Plantilla de observación sugerida por el pack de especialidad (§R7). */
+export interface VitalTemplate {
+  code: string;
+  label: string;
+  unit?: string;
+}
 
-function vitalLabel(code: string): string {
-  return VITAL_LABEL[code] ?? code;
+/** Signos vitales estándar disponibles siempre. */
+const STANDARD_VITALS: ReadonlyArray<{ code: string; label: string; unit?: string }> = [
+  { code: 'blood-pressure', label: 'Tensión arterial', unit: 'mmHg' },
+  { code: 'heart-rate', label: 'Frecuencia cardiaca', unit: 'lpm' },
+  { code: 'respiratory-rate', label: 'Frecuencia respiratoria', unit: 'rpm' },
+  { code: 'temperature', label: 'Temperatura', unit: '°C' },
+  { code: 'weight', label: 'Peso', unit: 'kg' },
+  { code: 'height', label: 'Talla', unit: 'cm' },
+  { code: 'spo2', label: 'SpO₂', unit: '%' },
+];
+
+function labelFor(code: string, options: ReadonlyArray<{ code: string; label: string }>): string {
+  return options.find((o) => o.code === code)?.label ?? code;
 }
 
 /**
- * Lista y alta de signos vitales del paciente (§NIVEL 3, §28 paso 6).
- * Autorización y scoping en el servidor.
+ * Lista y alta de signos vitales (§NIVEL 3, §28 paso 6). Las plantillas del pack
+ * de especialidad (R7) rellenan código + unidad en un clic; el clínico sólo teclea
+ * el valor. Autorización y scoping en el servidor.
  */
 export function VitalsManager({
   patientId,
   vitals,
   canWrite,
+  templates = [],
 }: {
   patientId: string;
   vitals: VitalView[];
   canWrite: boolean;
+  templates?: ReadonlyArray<VitalTemplate>;
 }) {
   const [state, action, pending] = useActionState(addVitalAction, INITIAL);
+
+  // Opciones del select = estándar + plantillas del pack (sin duplicar por code).
+  const options = [...STANDARD_VITALS];
+  for (const t of templates) {
+    if (!options.some((o) => o.code === t.code)) {
+      options.push(
+        t.unit !== undefined
+          ? { code: t.code, label: t.label, unit: t.unit }
+          : { code: t.code, label: t.label },
+      );
+    }
+  }
+  const unitByCode = new Map(options.map((o) => [o.code, o.unit ?? '']));
+
+  const [code, setCode] = useState(options[0]?.code ?? 'blood-pressure');
+  const [unit, setUnit] = useState(unitByCode.get(code) ?? '');
+
+  function pick(nextCode: string): void {
+    setCode(nextCode);
+    setUnit(unitByCode.get(nextCode) ?? '');
+  }
 
   return (
     <ClinicalCard title="Signos vitales">
@@ -53,7 +84,7 @@ export function VitalsManager({
           {vitals.map((v) => (
             <li key={v.id} className="mos-list__item">
               <span>
-                {vitalLabel(v.code)}:{' '}
+                {labelFor(v.code, options)}:{' '}
                 <strong>
                   {v.valueText}
                   {v.unit ? ` ${v.unit}` : ''}
@@ -67,6 +98,25 @@ export function VitalsManager({
 
       {!canWrite ? null : (
         <>
+          {templates.length > 0 ? (
+            <div style={{ marginTop: 'var(--space-3)' }}>
+              <p className="mos-section-label">Plantillas de la especialidad (DEMO)</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                {templates.map((t) => (
+                  <button
+                    key={t.code}
+                    type="button"
+                    onClick={() => pick(t.code)}
+                    title={`Usar plantilla: ${t.label}`}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                  >
+                    <Badge tone={code === t.code ? 'info' : 'neutral'}>{t.label}</Badge>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {state.status === 'error' ? (
             <Alert severity="critical" title="Error">
               {state.message}
@@ -76,15 +126,13 @@ export function VitalsManager({
             <input type="hidden" name="patientId" value={patientId} />
             <div className="mos-field-grid">
               <label className="mos-field">
-                <span>Signo vital</span>
-                <select name="code" defaultValue="blood-pressure">
-                  <option value="blood-pressure">Tensión arterial</option>
-                  <option value="heart-rate">Frecuencia cardiaca</option>
-                  <option value="respiratory-rate">Frecuencia respiratoria</option>
-                  <option value="temperature">Temperatura</option>
-                  <option value="weight">Peso</option>
-                  <option value="height">Talla</option>
-                  <option value="spo2">SpO₂</option>
+                <span>Signo vital / medición</span>
+                <select name="code" value={code} onChange={(e) => pick(e.target.value)}>
+                  {options.map((o) => (
+                    <option key={o.code} value={o.code}>
+                      {o.label}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="mos-field">
@@ -93,7 +141,12 @@ export function VitalsManager({
               </label>
               <label className="mos-field">
                 <span>Unidad (opcional)</span>
-                <input name="unit" placeholder="p.ej. mmHg" />
+                <input
+                  name="unit"
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  placeholder="p.ej. mmHg"
+                />
               </label>
             </div>
             <div className="mos-form__actions">
