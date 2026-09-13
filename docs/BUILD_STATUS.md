@@ -218,6 +218,15 @@ aislamiento). db: 72/72 verde. Verificado contra Neon ($1,100.00 draft→issued�
 Pendiente de mejoras R3: recordatorios, anti doble-booking por practitioner,
 vista semanal de agenda, facturas multi-línea en UI, impresión/CFDI.
 
+**Release R4 — Completeness — en curso:** motor `computeCompleteness`
+(`completeness.ts`) con `COMPLETENESS_RULESET_VERSION` (gobernanza, §33 #8):
+score 0-100 y checklist del expediente mínimo (alergias evaluadas, historia
+capturada, signos vitales, contacto, encuentro) calculado de datos existentes
+(sin tabla nueva; "no evaluado" cuenta como faltante, §27). Medidor + checklist
+en el context rail del workspace (`role=meter`, accesible). 3 pruebas. db: 75/75.
+Pendiente de R4: **Pathways** (protocolos/guías con contenido clínico versionado)
+y **med safety avanzada** (interacciones fármaco-fármaco, dosis por peso/edad).
+
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
 Dependabot ahora agrupa minor/patch e **ignora majors** (política de estabilidad,
@@ -254,7 +263,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | Release | Contenido                                | Estado |
 | ------- | ---------------------------------------- | ------ |
 | R3      | Agenda, check-in, billing básico         | ✅     |
-| R4      | Pathways, completeness, med safety       | ⬜     |
+| R4      | Pathways, completeness, med safety       | 🟨     |
 | R5      | Documents, FHIR, external adapters       | ⬜     |
 | R6      | AI Copilot (human-in-the-loop)           | ⬜     |
 | R7      | Specialty packs                          | ⬜     |

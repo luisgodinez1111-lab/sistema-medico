@@ -257,6 +257,26 @@
   font: inherit;
 }
 
+/* --- Medidor de completitud (R4) --- */
+.mos-completeness {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.mos-completeness__bar {
+  flex: 1;
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.mos-completeness__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--color-primary);
+  transition: width 0.3s ease;
+}
+
 /* --- Skeletons de carga (DoD §31) --- */
 @keyframes mos-skeleton-pulse {
   0% {

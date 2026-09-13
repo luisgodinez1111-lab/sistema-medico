@@ -13,6 +13,7 @@ import {
   DiagnosticReportRepository,
   applicableHistorySections,
   HISTORY_SCHEMA_VERSION,
+  computeCompleteness,
   hasPermission,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
@@ -68,6 +69,15 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
 
   const reviewed = patient.allergiesReviewedAt !== null;
   const canWrite = hasPermission(ctx, 'patient.write');
+
+  // Completitud del expediente (R4): calculada de los datos ya cargados.
+  const completeness = computeCompleteness({
+    allergiesAssessed: reviewed || allergies.length > 0,
+    historyCaptured: historyRows.length > 0,
+    hasVitals: vitals.length > 0,
+    hasContact: contacts.length > 0,
+    hasEncounter: encounters.length > 0,
+  });
 
   const allergyLabels = allergies.map((a) =>
     a.reaction ? `${a.substance} (${a.reaction})` : a.substance,
@@ -270,6 +280,31 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
           className="mos-workspace__col mos-workspace__rail"
           aria-label="Contactos, pendientes y contexto"
         >
+          <p className="mos-section-label">Completitud del expediente</p>
+          <div className="mos-completeness">
+            <div
+              className="mos-completeness__bar"
+              role="meter"
+              aria-valuenow={completeness.score}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Completitud del expediente"
+            >
+              <span style={{ width: `${completeness.score}%` }} />
+            </div>
+            <strong>{completeness.score}%</strong>
+          </div>
+          <ul className="mos-list" style={{ marginTop: 'var(--space-2)' }}>
+            {completeness.items.map((it) => (
+              <li key={it.key} className="mos-list__item">
+                <span className={it.done ? '' : 'mos-muted'}>
+                  {it.done ? '✓' : '○'} {it.label}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div style={{ height: 'var(--space-5)' }} />
+
           <ContactsManager
             patientId={patient.id}
             contacts={contacts.map((c) => ({
