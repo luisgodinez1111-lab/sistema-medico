@@ -111,9 +111,12 @@ ya construido en NIVEL 3 (identidad, alergias con criticidad, problemas, signos
 vitales, contactos). Añadidos los estados robustos de la DoD (§31):
 `loading` (skeletons de lista y workspace), `error` boundary sin PHI (digest para
 correlación), `not-found` que no revela existencia cross-tenant (§27).
-Pendiente del gate: timeline y "cambios desde la última visita" (dependen de
-encuentros, NIVEL 6), medicación (NIVEL 8), pendientes (NIVEL 9); drawer
-responsive de timeline/rail en tablet/móvil (§21).
+Timeline **ya vive** (encendido por los encuentros de NIVEL 6): el workspace lista
+los encuentros reales con su estado (borrador/firmado) y enlaza a cada nota.
+Pendiente del gate, BLOQUEADO por niveles posteriores: "cambios desde la última
+visita" (requiere diff entre encuentros), medicación (NIVEL 8) y pendientes
+(NIVEL 9); más el drawer responsive de timeline/rail en tablet/móvil (§21).
+NIVEL 4 no puede cerrarse hasta tener N8/N9.
 
 **NIVEL 5 — Adaptive Clinical History Engine — en curso:** historia clínica
 ESTRUCTURADA (tabla `history_entry`, una fila por ítem — NUNCA JSON gigante,
