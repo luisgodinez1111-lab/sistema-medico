@@ -30,6 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link className="mos-topbar__link" href="/patients">
                 Pacientes
               </Link>
+              <Link className="mos-topbar__link" href="/agenda">
+                Agenda
+              </Link>
             </nav>
             <span className="mos-topbar__spacer" />
             <kbd className="mos-kbd-hint" aria-hidden="true">

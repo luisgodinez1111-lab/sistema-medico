@@ -39,6 +39,9 @@ export type DocumentId = Branded<Ulid, 'DocumentId'>;
 export type TaskId = Branded<Ulid, 'TaskId'>;
 export type ConsentId = Branded<Ulid, 'ConsentId'>;
 
+// Agenda / operaciones (§NIVEL/R3)
+export type AppointmentId = Branded<Ulid, 'AppointmentId'>;
+
 // Gobernanza (§NIVEL 3, §19)
 export type AuditEventId = Branded<Ulid, 'AuditEventId'>;
 export type ProvenanceId = Branded<Ulid, 'ProvenanceId'>;
@@ -74,5 +77,6 @@ export const newDiagnosticReportId = (): DiagnosticReportId => ulid() as Diagnos
 export const newDocumentId = (): DocumentId => ulid() as DocumentId;
 export const newTaskId = (): TaskId => ulid() as TaskId;
 export const newConsentId = (): ConsentId => ulid() as ConsentId;
+export const newAppointmentId = (): AppointmentId => ulid() as AppointmentId;
 export const newAuditEventId = (): AuditEventId => ulid() as AuditEventId;
 export const newProvenanceId = (): ProvenanceId => ulid() as ProvenanceId;

@@ -5,3 +5,4 @@
 export * from './identity';
 export * from './audit';
 export * from './clinical';
+export * from './scheduling';

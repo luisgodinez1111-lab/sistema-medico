@@ -195,6 +195,18 @@ Cubre §28 pasos 9, 11-14.
 Pendiente: notificación/tareas, resultados estructurados (LOINC), adjuntos,
 escalamiento de críticos.
 
+**Release R3 — Agenda + check-in — en curso:** tabla `appointment` (FHIR
+Appointment) en módulo `schema/scheduling.ts` **separado de lo clínico** (§33
+#11), tenant- y patient-scoped, baja lógica. `AppointmentRepository`: create,
+listForDay/listForPatient, **checkIn** (booked→arrived sella `arrived_at`),
+setStatus (cancelar/no-show/atendida). Migración `drizzle/0011_*.sql` aplicada.
+UI `/agenda` (enlazada en el topbar): agenda del día por fecha con check-in y
+cancelar, alta de cita por MRN; permiso `patient.write`. 4 pruebas nuevas
+(crear/listar por día, check-in no reaplicable, aislamiento). db: 68/68 verde.
+Verificado contra Neon (booked→check-in→arrived).
+Pendiente de R3: **billing básico** (en tablas separadas de las clínicas, §33
+#11), recordatorios, anti doble-booking por practitioner, vista semanal.
+
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
 Dependabot ahora agrupa minor/patch e **ignora majors** (política de estabilidad,
@@ -230,7 +242,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 
 | Release | Contenido                                | Estado |
 | ------- | ---------------------------------------- | ------ |
-| R3      | Agenda, check-in, billing básico         | ⬜     |
+| R3      | Agenda, check-in, billing básico         | 🟨     |
 | R4      | Pathways, completeness, med safety       | ⬜     |
 | R5      | Documents, FHIR, external adapters       | ⬜     |
 | R6      | AI Copilot (human-in-the-loop)           | ⬜     |

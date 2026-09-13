@@ -9,4 +9,5 @@ export * from './history';
 export * from './encounter';
 export * from './medication';
 export * from './orders';
+export * from './appointment';
 export * from './audit';
