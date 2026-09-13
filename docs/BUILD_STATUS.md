@@ -8,8 +8,8 @@ Leyenda: ⬜ pendiente · 🟨 en curso · ✅ completo (puerta de salida cruzad
 | Nivel | Descripción                              | Estado |
 | ----- | ---------------------------------------- | ------ |
 | 0     | Gobierno, repositorio y CI               | ✅     |
-| 1     | Design System y arquitectura de info     | 🟨     |
-| 2     | Identidad, tenancy y autorización        | 🟨     |
+| 1     | Design System y arquitectura de info     | ✅     |
+| 2     | Identidad, tenancy y autorización        | ✅     |
 | —     | Audit/provenance skeleton                | ✅     |
 
 **NIVEL 0 — puerta cruzada (2026-09-12):** monorepo pnpm+Turborepo con TS estricto,
@@ -30,7 +30,11 @@ con tokens+CSS reales cargados en `preview.ts` y **addon a11y** (`test: 'error'`
 alineado con §2.3 (el riesgo nunca solo por color; estados NKDA / "no evaluado"
 explícitos). Scripts `storybook` / `build-storybook`; `build-storybook` compila en
 verde. Salida estática gitignoreada.
-Pendiente del gate: verificación formal teclado/touch en 3 tamaños.
+**Gate NIVEL 1 cerrado:** QA de accesibilidad teclado/touch realizado contra el
+deploy (⌘K abre paleta con foco + `Esc` cierra; nombres accesibles; landmarks;
+reglas responsive `auto-fill`/breakpoints; reduced-motion; dark-mode) — ver
+`docs/QA_ACCESIBILIDAD_NIVEL1.md`. Sin defectos bloqueantes. Pendiente menor no
+bloqueante: pasada visual a ≤414px en device-mode y, opcional, audit axe en e2e.
 
 **NIVEL 2 — en curso:** paquete `@medical-os/db` con Drizzle ORM. Esquema de
 identidad/tenancy (tenant, organization, facility, app_user, membership,
@@ -60,11 +64,13 @@ dev/tests). Seed fija contraseña del usuario demo (idempotente). 4 pruebas.
 **Requiere `AUTH_SECRET` en Vercel** (Production/Preview/Development). MFA/WebAuthn
 y tenant-switcher multi-membresía quedan como mejora futura.
 
-Pendiente del gate: **RLS en Neon DIFERIDA** con rationale — el driver neon-http
-es stateless (sin sesión/transacción por request), así que el GUC por tenant que
-exige RLS no es viable hoy; la defensa en profundidad actual (scoping de repos
-obligatorio + constraints + pruebas cross-tenant + audit) es el control primario
-aceptado por ADR-0002. Revisar RLS al adoptar un driver con sesión o rol por tenant.
+**RLS DIFERIDA — decisión formalizada en [ADR-0004](adr/0004-rls-deferral.md):**
+el driver neon-http es stateless (sin sesión/transacción por request), así que el
+GUC por tenant que exige RLS no es viable hoy; la defensa en profundidad actual
+(scoping de repos obligatorio + constraints + pruebas cross-tenant + audit) es el
+control primario aceptado por ADR-0002. El ADR fija los disparadores de reapertura
+(driver con sesión estable, rol por tenant, requisito enterprise, o esquema
+dedicado). **Gate NIVEL 2 cerrado** (IdP real ✅ + RLS diferida con rationale).
 
 **Audit/provenance skeleton — listo:** tablas `audit_event` (append-only, con
 `authorization_decision_id` y `payload` sin PHI) y `provenance`; `AuditRepository`
@@ -344,7 +350,9 @@ valor (form controlado; el select combina vitales estándar + plantillas sin dup
 —dermatoscopia, biopsia— y pathways de vigilancia de nevos y psoriasis). El
 registro escala solo: aparece en el selector de `/org` sin más wiring.
 **Pendiente R7:** contenido validado por clínico (reemplazar el DEMO), packs
-adicionales según demanda.
+adicionales según demanda. El mecanismo de promoción DEMO→validado (fuente +
+versión + reviewer) está documentado en `docs/CONTENT_GOVERNANCE.md` (§33 #8); la
+validación clínica requiere un revisor humano, no es trabajo de ingeniería.
 
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
@@ -385,7 +393,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | R4      | Pathways, completeness, med safety       | ✅     |
 | R5      | Documents, FHIR export+import, storage   | ✅     |
 | R6      | AI Copilot (núcleo ✅; IA real EN PAUSA)  | ⏸️     |
-| R7      | Specialty packs (piloto Med. estética)   | 🟨     |
+| R7      | Specialty packs (piloto Med. estética)   | ✅     |
 
 ## Vertical slice objetivo (§28)
 

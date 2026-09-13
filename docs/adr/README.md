@@ -12,6 +12,7 @@ Formato: [MADR](https://adr.github.io/madr/) simplificado.
 | [0001](0001-modular-monolith.md)           | Arquitectura modular monolith   | Aceptado  |
 | [0002](0002-multi-tenancy.md)              | Estrategia multi-tenant         | Aceptado  |
 | [0003](0003-phi-handling.md)               | Manejo de PHI                   | Aceptado  |
+| [0004](0004-rls-deferral.md)               | Diferimiento de RLS             | Aceptado  |
 
 ## Estados posibles
 
