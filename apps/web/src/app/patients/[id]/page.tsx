@@ -31,6 +31,7 @@ import { MergeManager } from './MergeManager';
 import { EncounterStartButton } from './EncounterStartButton';
 import { MedicationManager } from './MedicationManager';
 import { OrdersManager } from './OrdersManager';
+import { CopilotPanel } from './CopilotPanel';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -327,6 +328,9 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
               </li>
             ))}
           </ul>
+          <div style={{ height: 'var(--space-5)' }} />
+
+          <CopilotPanel patientId={patient.id} />
           <div style={{ height: 'var(--space-5)' }} />
 
           <ContactsManager

@@ -13,6 +13,8 @@ import {
   MedicationRepository,
   ServiceRequestRepository,
   DiagnosticReportRepository,
+  AuditRepository,
+  generateSuggestions,
   hasCritical,
   hasPermission,
 } from '@medical-os/db';
@@ -558,4 +560,67 @@ export async function reviewResultAction(
   revalidatePath(`/patients/${patientId}`);
   revalidatePath('/');
   return { status: 'ok', message: 'Resultado revisado y obligación cerrada.' };
+}
+
+export interface CopilotSuggestionView {
+  code: string;
+  title: string;
+  detail: string;
+  severity: 'info' | 'warning';
+}
+export interface CopilotState {
+  status: 'idle' | 'error' | 'ok';
+  message?: string;
+  suggestions?: CopilotSuggestionView[];
+  engine?: string;
+}
+
+/**
+ * Genera sugerencias del copiloto (§R6, human-in-the-loop). Carga SOLO contexto
+ * mínimo server-side (problemas + alergias, sin PHI de identidad), genera con el
+ * motor stub (DEMO) y registra provenance de IA (engine/policy/contextHash, sin
+ * chain-of-thought, §14). NO escribe nada al expediente: el clínico decide.
+ */
+export async function generateCopilotAction(
+  _prev: CopilotState,
+  formData: FormData,
+): Promise<CopilotState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.read') && !hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  if (!patientId) return { status: 'error', message: 'Paciente inválido.' };
+
+  const db = getDb();
+  const [conditions, allergies] = await Promise.all([
+    new ConditionRepository(db, ctx).listActive(patientId),
+    new AllergyRepository(db, ctx).listForPatient(patientId),
+  ]);
+  const result = generateSuggestions({
+    conditions: conditions.map((c) => ({ code: c.code })),
+    allergies: allergies.map((a) => ({ substance: a.substance, criticality: a.criticality })),
+  });
+
+  // Provenance de IA: engine/policy/contextHash; NUNCA PHI ni chain-of-thought.
+  await new AuditRepository(db, ctx).record({
+    action: 'read',
+    outcome: 'allowed',
+    resourceType: 'ai-suggestion',
+    patientId,
+    payload: {
+      engine: result.engine,
+      policyVersion: result.policyVersion,
+      contextHash: result.contextHash,
+      suggestionCount: result.suggestions.length,
+    },
+  });
+
+  return {
+    status: 'ok',
+    message: `${result.suggestions.length} sugerencia(s) · ${result.engine}`,
+    suggestions: result.suggestions,
+    engine: result.engine,
+  };
 }

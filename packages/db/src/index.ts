@@ -13,5 +13,6 @@ export * from './prescription-safety';
 export * from './completeness';
 export * from './pathways';
 export * from './fhir';
+export * from './ai-copilot';
 export * from './repositories';
 export * as schemaTables from './schema';

@@ -263,6 +263,17 @@ y el pipeline de subida con signed URLs; importación FHIR / adaptadores externo
 **Release R5 — Documents + FHIR export: núcleo completo** (almacenamiento de
 archivos y adaptadores externos pendientes de integración).
 
+**Release R6 — AI Copilot (human-in-the-loop) — en curso:** andamiaje `ai-copilot.ts`
+(`AI_ENGINE='stub-demo (no IA)'`, `AI_POLICY_VERSION`): contexto MÍNIMO y sin PHI
+de identidad (solo problemas + alergias, §33 #9), sugerencias estructuradas. La IA
+SUGIERE, el clínico decide — **no escribe nada al expediente** (§14). Cada
+generación registra **provenance de IA** (engine/policy/contextHash, sin
+chain-of-thought ni PHI) en `audit_event`. UI `CopilotPanel` en el workspace con
+marca "DEMO (no IA)". 4 pruebas. db: 91/91. Verificado contra Neon.
+**Pendiente para IA real:** conectar Claude (API Anthropic vía AI Gateway de
+Vercel) detrás de env var, manteniendo el mismo contrato (contexto mínimo +
+provenance + human-in-the-loop).
+
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
 Dependabot ahora agrupa minor/patch e **ignora majors** (política de estabilidad,
@@ -301,7 +312,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | R3      | Agenda, check-in, billing básico         | ✅     |
 | R4      | Pathways, completeness, med safety       | ✅     |
 | R5      | Documents, FHIR, external adapters       | 🟨     |
-| R6      | AI Copilot (human-in-the-loop)           | ⬜     |
+| R6      | AI Copilot (human-in-the-loop)           | 🟨     |
 | R7      | Specialty packs                          | ⬜     |
 
 ## Vertical slice objetivo (§28)
