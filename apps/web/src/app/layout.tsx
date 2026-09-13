@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import './globals.css';
+import { CommandPalette } from './CommandPalette';
 
 export const metadata: Metadata = {
   title: 'Medical OS',
@@ -30,8 +31,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Pacientes
               </Link>
             </nav>
+            <span className="mos-topbar__spacer" />
+            <kbd className="mos-kbd-hint" aria-hidden="true">
+              ⌘K
+            </kbd>
           </header>
           <main>{children}</main>
+          <CommandPalette />
         </div>
       </body>
     </html>

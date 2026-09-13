@@ -21,7 +21,11 @@ build → CodeQL). `pnpm typecheck/lint/test/build` en verde.
 theme-aware, primitivas (Button/Badge/Alert/ClinicalCard) y patrones de seguridad
 (PatientHeader persistente, AllergyBanner). App Next.js con shell de 3 columnas (§2.1),
 Command Center y Patient Workspace navegables con datos sintéticos.
-Pendiente del gate: Storybook, Command Palette, verificación teclado/touch en 3 tamaños.
+**Command Palette (⌘K / Ctrl+K) listo:** navegación + búsqueda de pacientes
+server-side (tenant-scoped vía `/api/patients/search`), accesible por teclado
+(flechas/Enter/Esc, `role=dialog`), montado en el layout con pista en el topbar.
+Pendiente del gate: Storybook (infra de componentes), verificación formal
+teclado/touch en 3 tamaños.
 
 **NIVEL 2 — en curso:** paquete `@medical-os/db` con Drizzle ORM. Esquema de
 identidad/tenancy (tenant, organization, facility, app_user, membership,
