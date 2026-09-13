@@ -21,8 +21,7 @@
     "@medical-os/shared": "workspace:*",
     "@neondatabase/serverless": "^0.10.4",
     "bcryptjs": "^2",
-    "drizzle-orm": "^0.45.2",
-    "zod": "^3.24.1"
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
