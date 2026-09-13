@@ -18,6 +18,15 @@ import { getDb } from './db';
  * servidor, para desarrollo local y pruebas sin IdP. En producción NO se activa,
  * así que sin sesión el contexto es null (rutas protegidas por el middleware).
  */
+/**
+ * Id del usuario autenticado (sin resolver tenant). Para el onboarding, donde el
+ * usuario aún no pertenece a ninguna clínica. Devuelve null si no hay sesión.
+ */
+export async function getSessionUserId(): Promise<string | null> {
+  const session = await auth();
+  return (session?.user as { id?: string } | undefined)?.id ?? null;
+}
+
 export async function getRequestContext(): Promise<TenantContext | null> {
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;

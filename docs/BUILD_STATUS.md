@@ -399,7 +399,8 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 
 El primer corte end-to-end que valida la columna vertebral:
 
-1. 🟨 Crear tenant, organización, consultorio y médico (vía seed; falta flujo UI)
+1. ✅ Crear tenant, organización, consultorio y médico — **flujo UI `/onboarding`** (el
+   usuario sin clínica se aprovisiona como admin) + seed. `provisionTenant` idempotente.
 2. ✅ Crear/buscar paciente con detección de duplicados (UI + server action)
 3. ✅ Abrir Patient Workspace (identidad, alergias, problemas, vitales, contactos reales)
 4. ✅ Crear encuentro de medicina general

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { ClinicalCard, Badge, Alert } from '@medical-os/design-system';
 import { PatientRepository, DiagnosticReportRepository } from '@medical-os/db';
 import { getRequestContext } from '@/server/context';
@@ -15,20 +16,16 @@ export const dynamic = 'force-dynamic';
 export default async function HomePage() {
   const ctx = await getRequestContext();
 
+  // Sesión sin clínica (el middleware ya garantizó login): onboarding (§28 paso 1).
+  if (!ctx) redirect('/onboarding');
+
   return (
     <div className="mos-page">
       <h1 className="mos-page__title">Command Center</h1>
       <p className="mos-page__subtitle">
         Trabajo del día · {new Date().toLocaleDateString('es-MX')}
       </p>
-
-      {!ctx ? (
-        <Alert severity="critical" title="Sin contexto de tenant">
-          No hay una membresía activa resuelta en el servidor. Ejecuta el seed.
-        </Alert>
-      ) : (
-        <HomeContent ctx={ctx} />
-      )}
+      <HomeContent ctx={ctx} />
     </div>
   );
 }
