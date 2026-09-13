@@ -60,10 +60,10 @@ export function EncounterEditor({
           <span>S — Subjetivo</span>
           <textarea name="subjective" rows={2} defaultValue={encounter.subjective ?? ''} />
         </label>
-        <label className="mos-field">
-          <span>O — Objetivo</span>
-          <textarea name="objective" rows={2} defaultValue={encounter.objective ?? ''} />
-        </label>
+        <p className="mos-muted" style={{ margin: 0 }}>
+          <strong>O — Objetivo:</strong> se genera de la Exploración física (abajo) y los signos
+          vitales.
+        </p>
         <label className="mos-field">
           <span>A — Análisis</span>
           <textarea name="assessment" rows={2} defaultValue={encounter.assessment ?? ''} />

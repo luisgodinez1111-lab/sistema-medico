@@ -14,6 +14,7 @@ import type {
   ConditionId,
   DiagnosticReportId,
   EncounterId,
+  ExamFindingId,
   HistoryEntryId,
   MedicationRequestId,
   ObservationId,
@@ -520,5 +521,31 @@ export const diagnosticReport = pgTable(
     index('diagnostic_report_tenant_patient_idx').on(t.tenantId, t.patientId),
     // Result Inbox: resultados finales pendientes de revisión por tenant.
     index('diagnostic_report_review_idx').on(t.tenantId, t.reviewStatus),
+  ],
+);
+
+/**
+ * Exploración física estructurada por aparatos y sistemas (§NIVEL 6, §28 paso 6).
+ * Una fila por (encuentro, sección). De estas filas se deriva el "Objetivo" de la
+ * nota SOAP, de modo que la firma + hash del encuentro cubren la exploración.
+ */
+export const encounterExamFinding = pgTable(
+  'encounter_exam_finding',
+  {
+    id: text('id').primaryKey().$type<ExamFindingId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+    encounterId: text('encounter_id').notNull().$type<EncounterId>(),
+    /** Aparato/sistema (catálogo versionado en physical-exam.ts). */
+    section: text('section').notNull(),
+    /** true = sin alteraciones; false = hallazgos (ver `note`). */
+    normal: boolean('normal').notNull().default(true),
+    note: text('note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('exam_finding_tenant_idx').on(t.tenantId),
+    uniqueIndex('exam_finding_encounter_section_idx').on(t.tenantId, t.encounterId, t.section),
   ],
 );

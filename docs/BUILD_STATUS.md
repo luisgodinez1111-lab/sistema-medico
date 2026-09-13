@@ -405,7 +405,9 @@ El primer corte end-to-end que valida la columna vertebral:
 3. ✅ Abrir Patient Workspace (identidad, alergias, problemas, vitales, contactos reales)
 4. ✅ Crear encuentro de medicina general
 5. 🟨 Capturar historia adaptativa adulto/pediátrico mínima (motor + captura listos)
-6. 🟨 Registrar signos vitales y exploración (vitales listos; exploración pendiente)
+6. ✅ Registrar signos vitales y exploración — **exploración física estructurada** por
+   aparatos/sistemas (`physical-exam.ts`, tabla `encounter_exam_finding`); deriva el
+   Objetivo (O) que la firma congela. Vitales con prefill de plantillas (R7).
 7. 🟨 Crear problema/diagnóstico y plan (Condition listo; plan pendiente)
 8. 🟨 Emitir receta estructurada (prescripción + seguridad; falta receta imprimible)
 9. ✅ Solicitar un laboratorio

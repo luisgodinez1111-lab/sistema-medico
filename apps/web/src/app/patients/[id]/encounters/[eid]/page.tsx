@@ -1,12 +1,19 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PatientHeader, ClinicalCard, Badge, Button, Alert } from '@medical-os/design-system';
-import { PatientRepository, EncounterRepository, hasPermission } from '@medical-os/db';
+import {
+  PatientRepository,
+  EncounterRepository,
+  ExamRepository,
+  EXAM_SECTIONS,
+  hasPermission,
+} from '@medical-os/db';
 import type { PatientId, EncounterId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
 import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
 import { EncounterEditor } from './EncounterEditor';
+import { ExamManager } from './ExamManager';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +40,9 @@ export default async function EncounterPage({
   if (!encounter || encounter.patientId !== patient.id) notFound();
 
   const signed = encounter.status === 'signed';
+  const examFindings = signed
+    ? []
+    : await new ExamRepository(db, ctx).listForEncounter(encounter.id);
 
   return (
     <div>
@@ -85,18 +95,31 @@ export default async function EncounterPage({
             </ul>
           </ClinicalCard>
         ) : (
-          <EncounterEditor
-            patientId={patient.id}
-            encounter={{
-              id: encounter.id,
-              reason: encounter.reason,
-              subjective: encounter.subjective,
-              objective: encounter.objective,
-              assessment: encounter.assessment,
-              plan: encounter.plan,
-            }}
-            canSign={hasPermission(ctx, 'encounter.sign')}
-          />
+          <>
+            <EncounterEditor
+              patientId={patient.id}
+              encounter={{
+                id: encounter.id,
+                reason: encounter.reason,
+                subjective: encounter.subjective,
+                objective: encounter.objective,
+                assessment: encounter.assessment,
+                plan: encounter.plan,
+              }}
+              canSign={hasPermission(ctx, 'encounter.sign')}
+            />
+            <div style={{ height: 'var(--space-4)' }} />
+            <ExamManager
+              patientId={patient.id}
+              encounterId={encounter.id}
+              sections={EXAM_SECTIONS.map((s) => ({ section: s.section, title: s.title }))}
+              findings={examFindings.map((f) => ({
+                section: f.section,
+                normal: f.normal,
+                note: f.note,
+              }))}
+            />
+          </>
         )}
       </div>
     </div>

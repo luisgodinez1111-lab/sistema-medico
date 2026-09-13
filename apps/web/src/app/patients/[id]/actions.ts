@@ -16,6 +16,9 @@ import {
   AuditRepository,
   SpecialtyRepository,
   resolveSpecialtyPack,
+  ExamRepository,
+  EXAM_SECTIONS,
+  composeExamObjective,
   generateSuggestions,
   hasCritical,
   hasPermission,
@@ -341,10 +344,11 @@ export async function saveEncounterDraftAction(
   const encounterId = str(formData, 'encounterId') as EncounterId;
   if (!patientId || !encounterId) return { status: 'error', message: 'Datos inválidos.' };
 
+  // `objective` (O) NO se edita aquí: se deriva de la exploración física
+  // estructurada (§28 paso 6) vía saveExamAction.
   const updated = await new EncounterRepository(getDb(), ctx).updateDraft(encounterId, {
     reason: str(formData, 'reason'),
     subjective: str(formData, 'subjective'),
-    objective: str(formData, 'objective'),
     assessment: str(formData, 'assessment'),
     plan: str(formData, 'plan'),
   });
@@ -354,6 +358,54 @@ export async function saveEncounterDraftAction(
 
   revalidatePath(`/patients/${patientId}/encounters/${encounterId}`);
   return { status: 'ok', message: 'Borrador guardado.' };
+}
+
+/**
+ * Guarda la exploración física estructurada (§28 paso 6) y DERIVA el Objetivo (O)
+ * de la nota SOAP a partir de los hallazgos, para que la firma + hash lo cubran.
+ * Cada sección se envía como `status_<section>` ('' | 'normal' | 'abnormal') y
+ * `note_<section>`. Permiso `patient.write`; sólo sobre borrador.
+ */
+export async function saveExamAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para editar la nota.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const encounterId = str(formData, 'encounterId') as EncounterId;
+  if (!patientId || !encounterId) return { status: 'error', message: 'Datos inválidos.' };
+
+  const db = getDb();
+  const examRepo = new ExamRepository(db, ctx);
+  let wrote = false;
+  for (const s of EXAM_SECTIONS) {
+    const status = str(formData, `status_${s.section}`);
+    if (status !== 'normal' && status !== 'abnormal') continue;
+    const ok = await examRepo.setFinding({
+      encounterId,
+      patientId,
+      section: s.section,
+      normal: status === 'normal',
+      note: str(formData, `note_${s.section}`),
+    });
+    if (!ok) return { status: 'error', message: 'No se pudo guardar (nota firmada o no válida).' };
+    wrote = true;
+  }
+  if (!wrote) return { status: 'error', message: 'Marca al menos una sección explorada.' };
+
+  // Deriva el Objetivo (O) de los hallazgos y lo escribe en el encuentro.
+  const findings = await examRepo.listForEncounter(encounterId);
+  const objective = composeExamObjective(
+    findings.map((f) => ({ section: f.section, normal: f.normal, note: f.note })),
+  );
+  await new EncounterRepository(db, ctx).updateDraft(encounterId, { objective });
+
+  revalidatePath(`/patients/${patientId}/encounters/${encounterId}`);
+  return { status: 'ok', message: 'Exploración guardada.' };
 }
 
 /**

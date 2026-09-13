@@ -29,6 +29,7 @@ export type RelatedPersonId = Branded<Ulid, 'RelatedPersonId'>;
 export type EncounterId = Branded<Ulid, 'EncounterId'>;
 export type ConditionId = Branded<Ulid, 'ConditionId'>;
 export type HistoryEntryId = Branded<Ulid, 'HistoryEntryId'>;
+export type ExamFindingId = Branded<Ulid, 'ExamFindingId'>;
 export type ObservationId = Branded<Ulid, 'ObservationId'>;
 export type AllergyId = Branded<Ulid, 'AllergyId'>;
 export type MedicationRequestId = Branded<Ulid, 'MedicationRequestId'>;
@@ -71,6 +72,7 @@ export const newRelatedPersonId = (): RelatedPersonId => ulid() as RelatedPerson
 export const newEncounterId = (): EncounterId => ulid() as EncounterId;
 export const newConditionId = (): ConditionId => ulid() as ConditionId;
 export const newHistoryEntryId = (): HistoryEntryId => ulid() as HistoryEntryId;
+export const newExamFindingId = (): ExamFindingId => ulid() as ExamFindingId;
 export const newObservationId = (): ObservationId => ulid() as ObservationId;
 export const newAllergyId = (): AllergyId => ulid() as AllergyId;
 export const newMedicationRequestId = (): MedicationRequestId => ulid() as MedicationRequestId;
