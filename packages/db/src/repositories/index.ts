@@ -13,3 +13,4 @@ export * from './appointment';
 export * from './billing';
 export * from './document';
 export * from './audit';
+export * from './specialty';

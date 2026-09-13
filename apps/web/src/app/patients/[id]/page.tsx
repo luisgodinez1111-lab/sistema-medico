@@ -17,6 +17,9 @@ import {
   applicablePathways,
   PATHWAYS_SOURCE,
   hasPermission,
+  SpecialtyRepository,
+  resolveSpecialtyPack,
+  mergeHistorySections,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
@@ -32,6 +35,7 @@ import { EncounterStartButton } from './EncounterStartButton';
 import { MedicationManager } from './MedicationManager';
 import { OrdersManager } from './OrdersManager';
 import { CopilotPanel } from './CopilotPanel';
+import { SpecialtyPanel } from './SpecialtyPanel';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -61,11 +65,19 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
   const orders = await new ServiceRequestRepository(db, ctx).listForPatient(patient.id);
   const reports = await new DiagnosticReportRepository(db, ctx).listForPatient(patient.id);
 
-  // Historia clínica adaptativa: secciones por edad/sexo + valores ya capturados.
-  const historySections = applicableHistorySections({
-    ageYears: ageYears(patient.birthDate),
-    sex: patient.sex,
-  });
+  // Especialidad activa del tenant (R7): añade secciones y quick-picks (DEMO).
+  const specialtyPack = resolveSpecialtyPack(
+    await new SpecialtyRepository(db, ctx).getActivePackId(),
+  );
+
+  // Historia clínica adaptativa: secciones por edad/sexo + las del pack activo.
+  const historySections = mergeHistorySections(
+    applicableHistorySections({
+      ageYears: ageYears(patient.birthDate),
+      sex: patient.sex,
+    }),
+    specialtyPack,
+  );
   const historyRows = await new HistoryRepository(db, ctx).listForPatient(patient.id);
   const historyValues: Record<string, string> = {};
   for (const row of historyRows) historyValues[`${row.section}:${row.code}`] = row.value;
@@ -328,6 +340,9 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
               </li>
             ))}
           </ul>
+          <div style={{ height: 'var(--space-5)' }} />
+
+          <SpecialtyPanel pack={specialtyPack} />
           <div style={{ height: 'var(--space-5)' }} />
 
           <CopilotPanel patientId={patient.id} />

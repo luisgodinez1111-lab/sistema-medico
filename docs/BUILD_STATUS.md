@@ -314,6 +314,24 @@ Vercel detrás de env var) se **deja pendiente hasta determinar el paso adecuado
 definición; el contrato actual (contexto mínimo + provenance + human-in-the-loop)
 se mantiene listo para enchufar el motor real sin cambios.
 
+**Release R7 — Specialty packs — primer slice:** motor `specialty-packs.ts`
+(catálogo ESTRUCTURADO y VERSIONADO, `SPECIALTY_PACK_SCHEMA_VERSION`, contenido
+**DEMO no validado** `SPECIALTY_PACK_SOURCE`, §33 #8). Packs: Medicina general
+(línea base) y **Medicina estética (piloto VELUM Laser)** con secciones de historia
+extra (fototipo Fitzpatrick, exposición solar, tratamientos previos, expectativas),
+quick-picks de problemas, plantillas de observación y order sets. Especialidad
+activa por tenant en `tenant_specialty` (PK tenant_id, migración `0015_*.sql`),
+`SpecialtyRepository` tenant-scoped (upsert idempotente, rechaza packs desconocidos).
+Integración: `mergeHistorySections` AÑADE las secciones del pack a las base por
+edad/sexo (§NIVEL 5) sin duplicar ni quitar obligatorias; UI `/org` con selector
+(gated `organization.manage`, auditado) y `SpecialtyPanel` informativo en el
+workspace (quick-picks + order sets marcados DEMO; el clínico actúa por los flujos
+permisados). Seed activa el piloto en el tenant demo. 9 pruebas (engine + repo).
+db: 126/126. Verificado contra Neon.
+**Pendiente R7:** cablear order sets y plantillas de observación a los flujos de
+captura (crear ServiceRequest/Observation en un clic), pathways por especialidad,
+más packs (dermatología, nutrición…), contenido validado por clínico.
+
 ## Deuda de upgrades (majors pendientes, evaluar deliberadamente)
 
 Dependabot ahora agrupa minor/patch e **ignora majors** (política de estabilidad,
@@ -353,7 +371,7 @@ GitHub Actions (checkout v7, setup-node v7, pnpm v6, codeql v4, gitleaks v3).
 | R4      | Pathways, completeness, med safety       | ✅     |
 | R5      | Documents, FHIR export+import, storage   | ✅     |
 | R6      | AI Copilot (núcleo ✅; IA real EN PAUSA)  | ⏸️     |
-| R7      | Specialty packs                          | ⬜     |
+| R7      | Specialty packs (piloto Med. estética)   | 🟨     |
 
 ## Vertical slice objetivo (§28)
 

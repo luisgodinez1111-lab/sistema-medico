@@ -1,7 +1,15 @@
 import { ClinicalCard, Badge, Alert } from '@medical-os/design-system';
-import { OrganizationRepository, FacilityRepository, hasPermission } from '@medical-os/db';
+import {
+  OrganizationRepository,
+  FacilityRepository,
+  SpecialtyRepository,
+  hasPermission,
+  listSpecialtyPacks,
+  DEFAULT_SPECIALTY_PACK_ID,
+} from '@medical-os/db';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
+import { SpecialtySelector } from './SpecialtySelector';
 
 /**
  * Organización y consultorios del tenant — PRIMEROS datos reales desde Neon
@@ -36,6 +44,15 @@ export default async function OrgPage() {
     })),
   );
 
+  const activePackId =
+    (await new SpecialtyRepository(db, ctx).getActivePackId()) ?? DEFAULT_SPECIALTY_PACK_ID;
+  const packOptions = listSpecialtyPacks().map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+  }));
+  const canManage = hasPermission(ctx, 'organization.manage');
+
   return (
     <div className="mos-page">
       <h1 className="mos-page__title">Organización</h1>
@@ -45,6 +62,10 @@ export default async function OrgPage() {
         Lectura server-side vía repositories tenant-aware. Permiso `organization.manage`:{' '}
         {hasPermission(ctx, 'organization.manage') ? 'sí' : 'no'}.
       </Alert>
+
+      <div style={{ height: 'var(--space-4)' }} />
+
+      <SpecialtySelector options={packOptions} activeId={activePackId} canManage={canManage} />
 
       <div style={{ height: 'var(--space-4)' }} />
 

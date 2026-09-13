@@ -17,6 +17,7 @@ import { AllergyRepository } from './repositories/allergy';
 import { ConditionRepository } from './repositories/condition';
 import { ObservationRepository } from './repositories/observation';
 import { RelatedPersonRepository } from './repositories/related-person';
+import { SpecialtyRepository } from './repositories/specialty';
 import {
   tenant,
   organization,
@@ -178,6 +179,11 @@ async function main(): Promise<void> {
       specialty: DEMO.specialty,
     });
   }
+
+  // 9b) Especialidad activa del tenant (R7): piloto Medicina estética (VELUM Laser).
+  await new SpecialtyRepository(db, createTenantContext({ tenantId, userId })).setActivePack(
+    'medicina-estetica',
+  );
 
   // 10) Pacientes demo (NIVEL 3). Idempotente vía MRN único por tenant.
   const ctx = createTenantContext({ tenantId, userId });

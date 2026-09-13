@@ -78,6 +78,19 @@ export const appUser = pgTable(
   (t) => [uniqueIndex('app_user_email_idx').on(t.email)],
 );
 
+/**
+ * Especialidad clínica activa del tenant (Release R7 — specialty packs). Una por
+ * tenant (PK = tenant_id). `pack_id`/`pack_version` referencian el catálogo
+ * versionado de `specialty-packs.ts` (contenido DEMO gobernado, §33 #8).
+ */
+export const tenantSpecialty = pgTable('tenant_specialty', {
+  tenantId: text('tenant_id').primaryKey().$type<TenantId>(),
+  packId: text('pack_id').notNull(),
+  packVersion: text('pack_version').notNull(),
+  activatedBy: text('activated_by').$type<UserId>(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 /** Vínculo usuario ↔ tenant. Aquí vive el tenant scoping de la identidad. */
 export const membership = pgTable(
   'membership',
