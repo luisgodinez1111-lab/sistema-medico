@@ -47,11 +47,22 @@ desde Neon (organización + consultorios) leídos con repositories tenant-aware.
 Seed determinista/idempotente (`db:seed`): tenant→org→facility→user→membership→
 rol admin+permisos→practitioner. Identidad demo PROVISIONAL hasta el IdP.
 
+**NIVEL 3 — en curso:** tabla `patient` (PHI, ADR-0003): ID interno ULID
+separado de identificadores externos (MRN único por tenant, CURP opcional único),
+nombre desglosado (convención MX), fecha de nacimiento, sexo, contacto. Borrado
+LÓGICO y reversible (`deleted_at`), preparado para merge de duplicados
+(`merged_into_id`). `PatientRepository` tenant-aware: detección de duplicados
+(CURP como señal fuerte, nombre+fecha como `dedup_key`), búsqueda, soft-delete.
+Migración `drizzle/0001_*.sql` aplicada a Neon. 11 pruebas (aislamiento/IDOR,
+dedup, soft-delete). Seed con 2 pacientes demo.
+Pendiente: cablear `/patients` a Neon (hoy datos sintéticos), merge real,
+RelatedPerson, Condition/Observation/Allergy (resto de NIVEL 3).
+
 ## Release R1 — Clinical Core
 
 | Nivel | Descripción                              | Estado |
 | ----- | ---------------------------------------- | ------ |
-| 3     | Clinical Data Foundation                 | ⬜     |
+| 3     | Clinical Data Foundation                 | 🟨     |
 | 4     | Patient Workspace                        | ⬜     |
 | 5     | Adaptive Clinical History Engine         | ⬜     |
 | 6     | Encounter Workspace + firma              | ⬜     |
@@ -78,7 +89,7 @@ rol admin+permisos→practitioner. Identidad demo PROVISIONAL hasta el IdP.
 El primer corte end-to-end que valida la columna vertebral:
 
 1. 🟨 Crear tenant, organización, consultorio y médico (vía seed; falta flujo UI)
-2. ⬜ Crear/buscar paciente con detección de duplicados
+2. 🟨 Crear/buscar paciente con detección de duplicados (repo+dedup listos; falta UI)
 3. ⬜ Abrir Patient Workspace
 4. ⬜ Crear encuentro de medicina general
 5. ⬜ Capturar historia adaptativa adulto/pediátrico mínima

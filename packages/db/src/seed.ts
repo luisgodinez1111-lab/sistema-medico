@@ -8,7 +8,10 @@ import {
   newRoleId,
   newPractitionerId,
 } from '@medical-os/shared';
+import { ConflictError } from '@medical-os/shared';
 import { createNeonDatabase } from './client';
+import { createTenantContext } from './tenant-context';
+import { PatientRepository, type NewPatientInput } from './repositories/patient';
 import {
   tenant,
   organization,
@@ -162,9 +165,39 @@ async function main(): Promise<void> {
     });
   }
 
+  // 10) Pacientes demo (NIVEL 3). Idempotente vía MRN único por tenant.
+  const ctx = createTenantContext({ tenantId, userId });
+  const patientRepo = new PatientRepository(db, ctx);
+  const DEMO_PATIENTS: NewPatientInput[] = [
+    {
+      mrn: '000123',
+      givenNames: 'María Fernanda',
+      firstSurname: 'Ruiz',
+      secondSurname: 'Delgado',
+      birthDate: '1991-04-12',
+      sex: 'female',
+    },
+    {
+      mrn: '000456',
+      givenNames: 'Santiago',
+      firstSurname: 'Herrera',
+      secondSurname: 'López',
+      birthDate: '2026-03-01',
+      sex: 'male',
+    },
+  ];
+  for (const p of DEMO_PATIENTS) {
+    try {
+      await patientRepo.create(p);
+    } catch (error) {
+      // MRN ya existe: seed idempotente, nada que hacer.
+      if (!(error instanceof ConflictError)) throw error;
+    }
+  }
+
   // eslint-disable-next-line no-console
   console.log(
-    `Seed OK · tenant=${DEMO.tenantSlug} org="${DEMO.orgName}" facility="${DEMO.facilityName}" user=${DEMO.userEmail}`,
+    `Seed OK · tenant=${DEMO.tenantSlug} org="${DEMO.orgName}" facility="${DEMO.facilityName}" user=${DEMO.userEmail} · pacientes=${DEMO_PATIENTS.length}`,
   );
 }
 
