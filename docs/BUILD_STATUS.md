@@ -44,13 +44,17 @@ directa, `frame-ancestors/object-src 'none'`, `base-uri/form-action 'self'`,
 producción (app carga + subida/descarga R2 siguen OK).
 **Rate limiting (hecho):** `rate-limit.ts` — ventana fija best-effort en memoria por
 instancia, y **distribuido con Upstash Redis** (REST, sin SDK) si están
-`UPSTASH_REDIS_REST_URL` + `_TOKEN` (mismo patrón env-gated que R2). Aplicado al
-**login** (10 intentos por IP / 5 min, contra fuerza bruta). Lógica pura testeada
-(4 pruebas). Limitación honesta: sin Upstash, cada instancia cuenta por separado.
-**Pendiente NIVEL 15:** aprovisionar Upstash (para rate-limit distribuido) y extender
-a upload/search; CSP a nonce/hash (quitar `'unsafe-inline'`); MFA/WebAuthn; WAF;
-rotación de secretos; SAST/DAST/scan de contenedores; threat models; incident
-response; pentest previo a go-live.
+`UPSTASH_REDIS_REST_URL` + `_TOKEN` (mismo patrón env-gated que R2). Aplicado a
+**login** (10/IP/5min), **búsqueda** (60/usuario/min), **FHIR export** (20/usuario/min)
+y **presign de subida** (30/usuario/min) — los endpoints "auth/upload/search/export"
+del plan. Lógica pura testeada (4 pruebas). Limitación honesta: sin Upstash, cada
+instancia cuenta por separado.
+**Threat model + incident response (hecho):** `docs/threat-models/00-overview.md`
+(STRIDE por dominio con estado de cada mitigación) y `docs/security/incident-response.md`
+(severidades, roles, contención, PITR, rotación de secretos, deber de notificación LFPDPPP).
+**Pendiente NIVEL 15:** aprovisionar Upstash (rate-limit distribuido); CSP a nonce/hash
+(quitar `'unsafe-inline'`); MFA/WebAuthn; WAF/bot control; rotación de secretos
+programada; SAST/DAST/scan de contenedores; pentest previo a go-live.
 
 ## Release R0 — Foundation
 

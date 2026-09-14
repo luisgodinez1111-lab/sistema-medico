@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { PatientRepository } from '@medical-os/db';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
+import { rateLimit } from '@/server/rate-limit';
 import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,12 @@ export async function GET(request: Request): Promise<NextResponse> {
   const ctx = await getRequestContext();
   if (!ctx) {
     return NextResponse.json({ results: [] }, { status: 401 });
+  }
+
+  // Rate-limit por usuario (NIVEL 15): evita abuso/scraping de PHI vía búsqueda.
+  const rl = await rateLimit(`search:${ctx.userId}`, { limit: 60, windowSec: 60 });
+  if (!rl.ok) {
+    return NextResponse.json({ results: [], error: 'rate_limited' }, { status: 429 });
   }
 
   const q = new URL(request.url).searchParams.get('q')?.trim() ?? '';

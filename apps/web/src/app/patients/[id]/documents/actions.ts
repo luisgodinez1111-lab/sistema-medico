@@ -11,6 +11,7 @@ import {
 import type { PatientId, DocumentId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
+import { rateLimit } from '@/server/rate-limit';
 
 export interface DocActionState {
   status: 'idle' | 'error' | 'ok';
@@ -89,6 +90,10 @@ export async function requestUploadTarget(documentId: string): Promise<UploadTar
   if (!hasPermission(ctx, 'patient.write')) {
     return { ok: false, message: 'No tienes permiso para subir documentos.' };
   }
+  // Rate-limit del presign (NIVEL 15): evita generar URLs firmadas en masa.
+  const rl = await rateLimit(`upload:${ctx.userId}`, { limit: 30, windowSec: 60 });
+  if (!rl.ok) return { ok: false, message: 'Demasiadas subidas seguidas. Espera un momento.' };
+
   const db = getDb();
   const repo = new DocumentRepository(db, ctx);
   const doc = await repo.findById(documentId as DocumentId);

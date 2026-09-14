@@ -16,6 +16,7 @@ import {
 import type { PatientId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
+import { rateLimit } from '@/server/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,10 @@ export async function GET(
   const { id } = await params;
   const ctx = await getRequestContext();
   if (!ctx) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
+  // Export FHIR = extracción masiva de PHI: rate-limit estricto por usuario (§15).
+  const rl = await rateLimit(`fhir-export:${ctx.userId}`, { limit: 20, windowSec: 60 });
+  if (!rl.ok) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
 
   const db = getDb();
   const patientId = id as PatientId;
