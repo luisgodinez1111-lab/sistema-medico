@@ -72,6 +72,8 @@ export const appUser = pgTable(
      */
     passwordHash: text('password_hash'),
     mfaEnabled: boolean('mfa_enabled').notNull().default(false),
+    /** Secreto TOTP (Base32) para MFA. NULL si no está enrolado (§NIVEL 2/15). */
+    mfaSecret: text('mfa_secret'),
     status: userStatus('status').notNull().default('invited'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

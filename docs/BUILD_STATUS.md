@@ -13,7 +13,7 @@ gate de go-live.
 | --- | --- | --- |
 | 0 | Gobierno, repo, CI | ✅ |
 | 1 | Design System | ✅ (faltan Combobox/Drawer/Table/Timeline como componentes) |
-| 2 | Identidad, tenancy, authz | 🟨 (falta MFA/passkeys, break-glass, ABAC/ReBAC) |
+| 2 | Identidad, tenancy, authz | 🟨 (MFA TOTP ✅; falta passkeys/WebAuthn, break-glass, ABAC/ReBAC) |
 | 3 | Clinical Data Foundation | 🟨 (falta Task, Consent, Procedure; identifiers normalizados) |
 | 4 | Patient Workspace | ✅ |
 | 5 | Adaptive History Engine | 🟨 (falta neonatal/geriátrico, growth hooks, narrative renderer) |
@@ -52,6 +52,11 @@ instancia cuenta por separado.
 **Threat model + incident response (hecho):** `docs/threat-models/00-overview.md`
 (STRIDE por dominio con estado de cada mitigación) y `docs/security/incident-response.md`
 (severidades, roles, contención, PITR, rotación de secretos, deber de notificación LFPDPPP).
+**MFA TOTP (hecho):** `totp.ts` (RFC 6238, HMAC-SHA1, node:crypto, sin servicios;
+verificado con el vector oficial 287082). Columna `mfa_secret` (migración `0021`);
+`app_user.mfaEnabled` gobierna el segundo factor. Enrolamiento en `/security` (QR con
+`qrcode` + entrada manual, confirmación con código). El login (`authorize`) exige TOTP
+si el usuario tiene MFA activo. 5 pruebas del motor.
 **Pendiente NIVEL 15:** aprovisionar Upstash (rate-limit distribuido); CSP a nonce/hash
 (quitar `'unsafe-inline'`); MFA/WebAuthn; WAF/bot control; rotación de secretos
 programada; SAST/DAST/scan de contenedores; pentest previo a go-live.

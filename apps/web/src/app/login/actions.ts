@@ -25,6 +25,7 @@ async function clientIp(): Promise<string> {
 export async function loginAction(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const email = (formData.get('email') ?? '').toString().trim();
   const password = (formData.get('password') ?? '').toString();
+  const totp = (formData.get('totp') ?? '').toString().trim();
   if (!email || !password) {
     return { status: 'error', message: 'Ingresa email y contraseña.' };
   }
@@ -39,11 +40,14 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   }
 
   try {
-    await signIn('credentials', { email, password, redirectTo: '/' });
+    await signIn('credentials', { email, password, totp, redirectTo: '/' });
     return { status: 'idle' };
   } catch (error) {
     if (error instanceof AuthError) {
-      return { status: 'error', message: 'Credenciales inválidas.' };
+      return {
+        status: 'error',
+        message: 'Credenciales inválidas o código 2FA incorrecto.',
+      };
     }
     // Los redirects de Next.js se lanzan como error y deben propagarse.
     throw error;

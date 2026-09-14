@@ -9,6 +9,7 @@ export * from './client';
 export * from './tenant-context';
 export * from './context-resolver';
 export * from './auth-credentials';
+export * from './totp';
 export * from './provisioning';
 export * from './clinical-history';
 export * from './prescription-safety';

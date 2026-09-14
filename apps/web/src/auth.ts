@@ -1,6 +1,6 @@
 import NextAuth, { type NextAuthResult } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import { authenticateUser } from '@medical-os/db';
+import { authenticateUser, verifyUserTotp } from '@medical-os/db';
 import { authConfig } from './auth.config';
 import { getDb } from '@/server/db';
 
@@ -17,12 +17,17 @@ const nextAuth = NextAuth({
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Contraseña', type: 'password' },
+        totp: { label: 'Código de autenticación', type: 'text' },
       },
       authorize: async (credentials) => {
         const email = typeof credentials?.email === 'string' ? credentials.email : '';
         const password = typeof credentials?.password === 'string' ? credentials.password : '';
-        const user = await authenticateUser(getDb(), email, password);
+        const totp = typeof credentials?.totp === 'string' ? credentials.totp : '';
+        const db = getDb();
+        const user = await authenticateUser(db, email, password);
         if (!user) return null;
+        // Segundo factor: si el usuario tiene MFA, el TOTP debe validar.
+        if (user.mfaEnabled && !(await verifyUserTotp(db, email, totp))) return null;
         return { id: user.id, email: user.email, name: user.displayName };
       },
     }),

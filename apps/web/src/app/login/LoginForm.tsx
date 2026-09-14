@@ -24,6 +24,17 @@ export function LoginForm() {
         <span>Contraseña</span>
         <input name="password" type="password" autoComplete="current-password" required />
       </label>
+      <label className="mos-field">
+        <span>Código de autenticación (solo si activaste 2FA)</span>
+        <input
+          name="totp"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          pattern="[0-9]*"
+          maxLength={6}
+          placeholder="6 dígitos"
+        />
+      </label>
       <div className="mos-form__actions">
         <Button type="submit" variant="primary" disabled={pending}>
           {pending ? 'Entrando…' : 'Entrar'}

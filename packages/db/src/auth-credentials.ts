@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { asId, type UserId } from '@medical-os/shared';
 import type { Database } from './client';
 import { appUser } from './schema';
+import { verifyTotp } from './totp';
 
 /**
  * Credenciales de acceso (NIVEL 2, IdP con Auth.js Credentials + JWT).
@@ -30,6 +31,8 @@ export interface AuthenticatedUser {
   id: UserId;
   email: string;
   displayName: string;
+  /** Si el usuario tiene MFA (TOTP) activo: el login exige un segundo factor. */
+  mfaEnabled: boolean;
 }
 
 /**
@@ -52,6 +55,7 @@ export async function authenticateUser(
       displayName: appUser.displayName,
       passwordHash: appUser.passwordHash,
       status: appUser.status,
+      mfaEnabled: appUser.mfaEnabled,
     })
     .from(appUser)
     .where(eq(appUser.email, normalizedEmail))
@@ -61,5 +65,74 @@ export async function authenticateUser(
   const valid = await verifyPassword(password, u.passwordHash);
   if (!valid) return null;
 
-  return { id: asId<UserId>(u.id), email: u.email, displayName: u.displayName };
+  return {
+    id: asId<UserId>(u.id),
+    email: u.email,
+    displayName: u.displayName,
+    mfaEnabled: u.mfaEnabled,
+  };
+}
+
+/**
+ * Verifica el segundo factor (TOTP) de un usuario por email. Devuelve true sólo si
+ * el usuario tiene MFA activo, un secreto guardado y el token es válido.
+ */
+export async function verifyUserTotp(db: Database, email: string, token: string): Promise<boolean> {
+  const [u] = await db
+    .select({ enabled: appUser.mfaEnabled, secret: appUser.mfaSecret })
+    .from(appUser)
+    .where(eq(appUser.email, email.trim().toLowerCase()))
+    .limit(1);
+  if (!u || !u.enabled || !u.secret) return false;
+  return verifyTotp(u.secret, token);
+}
+
+/** Guarda el secreto TOTP (enrolamiento en curso; aún no activa MFA). */
+export async function setUserMfaSecret(
+  db: Database,
+  userId: UserId,
+  secret: string,
+): Promise<void> {
+  await db.update(appUser).set({ mfaSecret: secret }).where(eq(appUser.id, userId));
+}
+
+/**
+ * Activa MFA si el token confirma que el usuario configuró bien su app. Requiere
+ * un secreto previamente guardado. Devuelve false si el token no valida.
+ */
+export async function enableUserMfa(db: Database, userId: UserId, token: string): Promise<boolean> {
+  const [u] = await db
+    .select({ secret: appUser.mfaSecret })
+    .from(appUser)
+    .where(eq(appUser.id, userId))
+    .limit(1);
+  if (!u?.secret || !verifyTotp(u.secret, token)) return false;
+  await db.update(appUser).set({ mfaEnabled: true }).where(eq(appUser.id, userId));
+  return true;
+}
+
+/** Desactiva MFA y borra el secreto. */
+export async function disableUserMfa(db: Database, userId: UserId): Promise<void> {
+  await db
+    .update(appUser)
+    .set({ mfaEnabled: false, mfaSecret: null })
+    .where(eq(appUser.id, userId));
+}
+
+export interface UserMfaState {
+  email: string;
+  enabled: boolean;
+  hasSecret: boolean;
+  secret: string | null;
+}
+
+/** Estado MFA del usuario actual (para la pantalla de seguridad/enrolamiento). */
+export async function getUserMfaState(db: Database, userId: UserId): Promise<UserMfaState | null> {
+  const [u] = await db
+    .select({ email: appUser.email, enabled: appUser.mfaEnabled, secret: appUser.mfaSecret })
+    .from(appUser)
+    .where(eq(appUser.id, userId))
+    .limit(1);
+  if (!u) return null;
+  return { email: u.email, enabled: u.enabled, hasSecret: Boolean(u.secret), secret: u.secret };
 }

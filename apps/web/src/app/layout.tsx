@@ -49,7 +49,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <kbd className="mos-kbd-hint" aria-hidden="true">
                   ⌘K
                 </kbd>
-                <span className="mos-topbar__user">{user?.name ?? user?.email}</span>
+                <Link className="mos-topbar__link" href="/security" title="Seguridad de la cuenta">
+                  {user?.name ?? user?.email}
+                </Link>
                 <LogoutButton label={user?.email ?? ''} />
               </>
             ) : null}
