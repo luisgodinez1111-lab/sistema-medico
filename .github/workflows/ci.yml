@@ -73,13 +73,19 @@ jobs:
   codeql:
     runs-on: ubuntu-latest
     permissions:
+      # `permissions` a nivel de job REEMPLAZA el default del workflow: hay que
+      # re-declarar `contents: read` o el checkout falla ("repository not found").
+      contents: read
       security-events: write
     steps:
       - uses: actions/checkout@v7
       - uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
+      # No bloquea el pipeline: en repos privados sin GitHub Advanced Security la
+      # subida a Code Scanning devuelve 403. Con GHAS habilitado, publica normal.
       - uses: github/codeql-action/analyze@v4
+        continue-on-error: true
 
   # 5. Semgrep — SAST con reglas de seguridad OWASP (§15). Complementa a CodeQL
   #    con packs enfocados (security-audit, OWASP Top Ten, TS/React, secrets).
@@ -87,6 +93,7 @@ jobs:
   semgrep:
     runs-on: ubuntu-latest
     permissions:
+      contents: read # necesario para el checkout (el bloque de job reemplaza el default)
       security-events: write
     steps:
       - uses: actions/checkout@v7
@@ -108,6 +115,7 @@ jobs:
           --sarif --output semgrep.sarif
       - name: Subir SARIF a Code Scanning
         if: always()
+        continue-on-error: true # 403 sin GHAS en repos privados; no bloquea el CI
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep.sarif
