@@ -12,6 +12,7 @@ import {
 import type {
   AllergyId,
   ConditionId,
+  ConsentId,
   DiagnosticReportId,
   EncounterId,
   EncounterDiagnosisId,
@@ -599,5 +600,41 @@ export const encounterAddendum = pgTable(
   (t) => [
     index('encounter_addendum_tenant_idx').on(t.tenantId),
     index('encounter_addendum_encounter_idx').on(t.tenantId, t.encounterId),
+  ],
+);
+
+/**
+ * Consentimientos del paciente (§NIVEL 3 governance, §26 LFPDPPP/NOM-024). Registra
+ * aviso de privacidad, consentimiento de atención, transferencia de datos y
+ * consentimiento informado de procedimiento. Trazable: quién otorgó/revocó y cuándo.
+ * Append-lógico: revocar NO borra, marca `revoked` con fecha (histórico verificable).
+ */
+export const consentType = pgEnum('consent_type', [
+  'privacy-notice',
+  'treatment',
+  'data-sharing',
+  'informed-procedure',
+]);
+export const consentStatus = pgEnum('consent_status', ['active', 'revoked']);
+
+export const consent = pgTable(
+  'consent',
+  {
+    id: text('id').primaryKey().$type<ConsentId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+    type: consentType('type').notNull(),
+    status: consentStatus('status').notNull().default('active'),
+    /** Versión del documento/política consentida (gobernanza de contenido). */
+    policyVersion: text('policy_version'),
+    note: text('note'),
+    grantedBy: text('granted_by').$type<UserId>(),
+    grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
+    revokedBy: text('revoked_by').$type<UserId>(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('consent_tenant_idx').on(t.tenantId),
+    index('consent_tenant_patient_idx').on(t.tenantId, t.patientId),
   ],
 );

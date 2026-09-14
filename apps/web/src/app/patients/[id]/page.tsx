@@ -21,6 +21,7 @@ import {
   resolveSpecialtyPack,
   mergeHistorySections,
   formatReferenceRange,
+  ConsentRepository,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
@@ -37,6 +38,7 @@ import { MedicationManager } from './MedicationManager';
 import { OrdersManager } from './OrdersManager';
 import { CopilotPanel } from './CopilotPanel';
 import { SpecialtyPanel } from './SpecialtyPanel';
+import { ConsentManager } from './ConsentManager';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -65,6 +67,7 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
   const medications = await new MedicationRepository(db, ctx).listActiveForPatient(patient.id);
   const orders = await new ServiceRequestRepository(db, ctx).listForPatient(patient.id);
   const reports = await new DiagnosticReportRepository(db, ctx).listForPatient(patient.id);
+  const consents = await new ConsentRepository(db, ctx).listForPatient(patient.id);
 
   // Especialidad activa del tenant (R7): añade secciones y quick-picks (DEMO).
   const specialtyPack = resolveSpecialtyPack(
@@ -370,6 +373,24 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
             }))}
             canWrite={canWrite}
           />
+          <div style={{ height: 'var(--space-5)' }} />
+          <ConsentManager
+            patientId={patient.id}
+            consents={consents.map((c) => ({
+              id: c.id,
+              type: c.type,
+              status: c.status,
+              grantedAt:
+                c.grantedAt instanceof Date ? c.grantedAt.toISOString() : String(c.grantedAt),
+              revokedAt: c.revokedAt
+                ? c.revokedAt instanceof Date
+                  ? c.revokedAt.toISOString()
+                  : String(c.revokedAt)
+                : null,
+            }))}
+            canWrite={canWrite}
+          />
+
           <div style={{ height: 'var(--space-5)' }} />
           <p className="mos-section-label">Documentos</p>
           <Link className="mos-muted" href={`/patients/${patient.id}/prescriptions/print`}>

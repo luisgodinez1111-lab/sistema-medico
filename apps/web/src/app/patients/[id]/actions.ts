@@ -22,6 +22,7 @@ import {
   EncounterDiagnosisRepository,
   composeAssessment,
   EncounterAddendumRepository,
+  ConsentRepository,
   generateSuggestions,
   hasCritical,
   hasPermission,
@@ -32,6 +33,7 @@ import type {
   ServiceRequestId,
   DiagnosticReportId,
   ConditionId,
+  ConsentId,
 } from '@medical-os/shared';
 import { ValidationError } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
@@ -707,6 +709,74 @@ export async function enterResultAction(
 
   revalidatePath(`/patients/${patientId}`);
   return { status: 'ok', message: 'Resultado ingresado.' };
+}
+
+/**
+ * Otorga un consentimiento del paciente (§26 LFPDPPP/NOM-024). Requiere
+ * `patient.write`; auditado. Tipo validado contra el catálogo.
+ */
+export async function grantConsentAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para registrar consentimientos.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const type = str(formData, 'type');
+  const valid = ['privacy-notice', 'treatment', 'data-sharing', 'informed-procedure'];
+  if (!patientId || !valid.includes(type)) return { status: 'error', message: 'Datos inválidos.' };
+
+  const db = getDb();
+  const created = await new ConsentRepository(db, ctx).grant({
+    patientId,
+    type: type as 'privacy-notice' | 'treatment' | 'data-sharing' | 'informed-procedure',
+    ...(str(formData, 'note') ? { note: str(formData, 'note') } : {}),
+  });
+  if (!created) return { status: 'error', message: 'No se pudo registrar (paciente no válido).' };
+
+  await new AuditRepository(db, ctx).record({
+    action: 'create',
+    outcome: 'allowed',
+    resourceType: 'consent',
+    resourceId: created.id,
+    patientId,
+    payload: { type },
+  });
+  revalidatePath(`/patients/${patientId}`);
+  return { status: 'ok', message: 'Consentimiento registrado.' };
+}
+
+/** Revoca un consentimiento activo (no borra; §26). Permiso `patient.write`, auditado. */
+export async function revokeConsentAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para revocar consentimientos.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const consentId = str(formData, 'consentId') as ConsentId;
+  if (!patientId || !consentId) return { status: 'error', message: 'Datos inválidos.' };
+
+  const db = getDb();
+  const ok = await new ConsentRepository(db, ctx).revoke(consentId);
+  if (!ok) return { status: 'error', message: 'No se pudo revocar (ya revocado o no válido).' };
+
+  await new AuditRepository(db, ctx).record({
+    action: 'update',
+    outcome: 'allowed',
+    resourceType: 'consent',
+    resourceId: consentId,
+    patientId,
+    payload: { revoked: true },
+  });
+  revalidatePath(`/patients/${patientId}`);
+  return { status: 'ok', message: 'Consentimiento revocado.' };
 }
 
 /**

@@ -14,7 +14,7 @@ gate de go-live.
 | 0 | Gobierno, repo, CI | ✅ |
 | 1 | Design System | ✅ (faltan Combobox/Drawer/Table/Timeline como componentes) |
 | 2 | Identidad, tenancy, authz | 🟨 (MFA TOTP ✅; falta passkeys/WebAuthn, break-glass, ABAC/ReBAC) |
-| 3 | Clinical Data Foundation | 🟨 (falta Task, Consent, Procedure; identifiers normalizados) |
+| 3 | Clinical Data Foundation | 🟨 (Consent ✅; falta Task, Procedure; identifiers normalizados) |
 | 4 | Patient Workspace | ✅ |
 | 5 | Adaptive History Engine | 🟨 (falta neonatal/geriátrico, growth hooks, narrative renderer) |
 | 6 | Encounter Workspace | ✅ núcleo (falta pre-visit brief, ROS formal, differential) |
@@ -29,7 +29,7 @@ gate de go-live.
 | **15** | **Seguridad Zero Trust / DevSecOps** | 🟨 **EN CURSO** (CSP + security headers hechos; falta MFA/WAF/rate-limit/SAST-DAST/pentest) |
 | **16** | **CI/CD completo** | 🟨 (falta E2E Playwright, Neon branch por PR, rollback runbook) |
 | **17** | **Observabilidad / SRE / DR** | ⬜ (falta SLO, tracing, PITR drills, incidentes) |
-| **18** | **Validación clínica / regulatoria** | ⬜ (falta matriz NOM-004/024 + LFPDPPP, SAFER, pentest, piloto) |
+| **18** | **Validación clínica / regulatoria** | 🟨 (matriz NOM-004/024 + LFPDPPP ✅ `docs/compliance/`; Consent ✅; falta ARCO, SAFER, pentest, piloto) |
 
 **§28 vertical slice = 15/15 ✅.**
 
