@@ -11,6 +11,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import type {
   AllergyId,
+  ArcoRequestId,
   ConditionId,
   ConsentId,
   DiagnosticReportId,
@@ -726,5 +727,56 @@ export const procedure = pgTable(
     index('procedure_tenant_idx').on(t.tenantId),
     index('procedure_tenant_patient_idx').on(t.tenantId, t.patientId),
     index('procedure_tenant_encounter_idx').on(t.tenantId, t.encounterId),
+  ],
+);
+
+/**
+ * Solicitudes ARCO — derechos del titular bajo LFPDPPP (§NIVEL 18): Acceso,
+ * Rectificación, Cancelación y Oposición. Tenant-scoped; ligada al titular
+ * (`patient`) cuando se identifica. Trazable y con PLAZO legal: el responsable
+ * debe responder en 20 días hábiles (`due_date`). Cerrar = resolución atribuida y
+ * fechada con desenlace; nunca se borra (histórico verificable de cumplimiento).
+ */
+export const arcoType = pgEnum('arco_type', [
+  'access',
+  'rectification',
+  'cancellation',
+  'opposition',
+]);
+export const arcoStatus = pgEnum('arco_status', ['received', 'in-review', 'completed', 'rejected']);
+export const arcoOutcome = pgEnum('arco_outcome', ['granted', 'partially-granted', 'denied']);
+
+export const arcoRequest = pgTable(
+  'arco_request',
+  {
+    id: text('id').primaryKey().$type<ArcoRequestId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    /** Titular de los datos, si ya se identificó en el expediente. */
+    patientId: text('patient_id').$type<PatientId>(),
+    type: arcoType('type').notNull(),
+    status: arcoStatus('status').notNull().default('received'),
+    /** Quién solicita (titular o representante) y su contacto. */
+    requesterName: text('requester_name').notNull(),
+    requesterContact: text('requester_contact'),
+    /** 'self' = el propio titular; 'representative' = apoderado/tutor. */
+    requesterRelation: text('requester_relation').notNull().default('self'),
+    /** Descripción de lo solicitado (qué dato, qué corrección, etc.). */
+    detail: text('detail'),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Plazo legal de respuesta (recibido + 20 días hábiles, LFPDPPP). */
+    dueDate: date('due_date').notNull(),
+    /** Resolución: desenlace + nota atribuida y fechada. */
+    outcome: arcoOutcome('outcome'),
+    resolution: text('resolution'),
+    resolvedBy: text('resolved_by').$type<UserId>(),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    createdBy: text('created_by').$type<UserId>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('arco_tenant_idx').on(t.tenantId),
+    index('arco_tenant_status_idx').on(t.tenantId, t.status),
+    index('arco_tenant_patient_idx').on(t.tenantId, t.patientId),
   ],
 );

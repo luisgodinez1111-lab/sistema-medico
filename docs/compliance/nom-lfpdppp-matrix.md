@@ -30,7 +30,7 @@ Leyenda: ✅ implementado · 🟨 parcial · ⬜ pendiente
 | Aviso de privacidad y consentimiento | entidad **`consent`** (aviso de privacidad, atención, transferencia, procedimiento); otorgar/revocar atribuido y fechado | ✅ |
 | Finalidades / control de transferencias | tipo `data-sharing` en consentimientos; export FHIR auditado | 🟨 |
 | Confidencialidad / minimum necessary | policy engine (RBAC), scoping por tenant, permiso `patient.write`; PHI fuera de logs | ✅ |
-| Derechos ARCO (acceso/rectif./cancel./oposición) | lectura del expediente + audit; **falta workflow formal de solicitud ARCO** | ⬜ |
+| Derechos ARCO (acceso/rectif./cancel./oposición) | entidad **`arco_request`** + bandeja `/arco` (permiso `privacy.manage`): registro con plazo legal (20 días hábiles), estados y resolución atribuida/fechada; auditado; no se borra | ✅ |
 | Seguridad de los datos | TLS/HSTS, CSP, cifrado en reposo (Neon/R2), MFA, rate-limit, bucket privado | ✅ |
 | Gestión de incidentes / notificación | `docs/security/incident-response.md` (severidades, contención, deber de notificación) | 🟨 |
 | Trazabilidad | `audit_event` + `provenance` (append-only) con actor y decisión de autorización | ✅ |
@@ -62,7 +62,7 @@ Leyenda: ✅ implementado · 🟨 parcial · ⬜ pendiente
 
 ## Brechas priorizadas para go-live (NIVEL 18)
 
-1. **Workflow ARCO** (derechos del titular) — capacidad de producto faltante.
+1. ~~Workflow ARCO~~ ✅ hecho (`arco_request` + bandeja `/arco`, plazo legal y resolución auditada). Pendiente: verificación de identidad del titular (procedimiento operativo) y export del expediente para el derecho de Acceso.
 2. **Pentest** independiente con datos sintéticos.
 3. **Drills de restore** (RTO/RPO) documentados (NIVEL 17).
 4. **Validación clínica + usabilidad** con médicos; **SAFER self-assessment**.

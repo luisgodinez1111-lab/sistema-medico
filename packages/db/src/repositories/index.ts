@@ -21,3 +21,4 @@ export * from './consent';
 export * from './practitioner';
 export * from './task';
 export * from './procedure';
+export * from './arco';

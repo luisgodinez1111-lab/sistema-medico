@@ -23,6 +23,22 @@ export function parseIsoInstant(value: string): Date {
   return d;
 }
 
+/**
+ * Suma `n` días HÁBILES (excluye sábado y domingo) a una fecha. Base para los
+ * plazos legales ARCO de LFPDPPP (§NIVEL 18): 20 días hábiles para responder. NO
+ * contempla días festivos oficiales — se documenta como aproximación conservadora.
+ */
+export function addBusinessDays(from: Date, n: number): Date {
+  const d = new Date(from.getTime());
+  let added = 0;
+  while (added < n) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    const day = d.getUTCDay();
+    if (day !== 0 && day !== 6) added += 1;
+  }
+  return d;
+}
+
 /** Edad en años/meses/días a una fecha de referencia (para perfiles clínicos, §NIVEL 5). */
 export interface PreciseAge {
   years: number;

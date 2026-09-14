@@ -55,6 +55,9 @@ export type ProvenanceId = Branded<Ulid, 'ProvenanceId'>;
 // Identidad / seguridad (§NIVEL 2/15) — passkeys WebAuthn
 export type WebAuthnCredentialId = Branded<Ulid, 'WebAuthnCredentialId'>;
 
+// Cumplimiento / privacidad (§NIVEL 18) — solicitudes ARCO (LFPDPPP)
+export type ArcoRequestId = Branded<Ulid, 'ArcoRequestId'>;
+
 /** Genera un nuevo ULID sin tipar. Preferir los helpers `new*Id()`. */
 export function newUlid(): Ulid {
   return ulid();
@@ -95,3 +98,4 @@ export const newInvoiceItemId = (): InvoiceItemId => ulid() as InvoiceItemId;
 export const newAuditEventId = (): AuditEventId => ulid() as AuditEventId;
 export const newProvenanceId = (): ProvenanceId => ulid() as ProvenanceId;
 export const newWebAuthnCredentialId = (): WebAuthnCredentialId => ulid() as WebAuthnCredentialId;
+export const newArcoRequestId = (): ArcoRequestId => ulid() as ArcoRequestId;

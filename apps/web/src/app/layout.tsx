@@ -41,6 +41,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <Link className="mos-topbar__link" href="/agenda">
                   Agenda
                 </Link>
+                <Link className="mos-topbar__link" href="/arco">
+                  ARCO
+                </Link>
               </nav>
             ) : null}
             <span className="mos-topbar__spacer" />

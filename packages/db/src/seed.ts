@@ -12,6 +12,7 @@ import { ConflictError } from '@medical-os/shared';
 import { createNeonDatabase } from './client';
 import { createTenantContext } from './tenant-context';
 import { hashPassword } from './auth-credentials';
+import { BASE_PERMISSIONS } from './provisioning';
 import { PatientRepository, type NewPatientInput } from './repositories/patient';
 import { AllergyRepository } from './repositories/allergy';
 import { ConditionRepository } from './repositories/condition';
@@ -54,13 +55,10 @@ const DEMO = {
   specialty: 'Medicina general',
 } as const;
 
-/** Permisos base del catálogo global (estables, no tenant-scoped). */
-const PERMISSIONS: ReadonlyArray<{ key: string; description: string }> = [
-  { key: 'patient.read', description: 'Ver pacientes' },
-  { key: 'patient.write', description: 'Crear/editar pacientes' },
-  { key: 'organization.manage', description: 'Administrar organizaciones y consultorios' },
-  { key: 'encounter.sign', description: 'Firmar encuentros clínicos' },
-];
+// Permisos base: se reutiliza la ÚNICA fuente de verdad de provisioning para no
+// derivar (antes había una copia local que se desincronizó). Al re-sembrar, todo
+// permiso nuevo se backfillea al catálogo y al rol admin (idempotente).
+const PERMISSIONS = BASE_PERMISSIONS;
 
 async function main(): Promise<void> {
   const url = process.env.DATABASE_URL ?? process.env.DIRECT_DATABASE_URL;

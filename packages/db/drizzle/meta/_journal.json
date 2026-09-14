@@ -183,6 +183,13 @@
       "when": 1789354513961,
       "tag": "0025_yummy_blue_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789355593870,
+      "tag": "0026_violet_warlock",
+      "breakpoints": true
     }
   ]
 }

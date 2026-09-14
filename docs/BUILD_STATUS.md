@@ -71,6 +71,13 @@ host (override con `WEBAUTHN_RP_ID/_ORIGIN/_NAME`). La ceremonia (registro/login
 un navegador + autenticador reales para prueba e2e; verificado build + almacenamiento.
 **Pendiente NIVEL 15:** aprovisionar Upstash (rate-limit distribuido); WAF/bot control;
 rotación de secretos programada; **DAST autenticado/activo** + pentest previo a go-live.
+**ARCO / derechos del titular (NIVEL 18, hecho):** entidad `arco_request` (migración
+`0026`) + bandeja `/arco` (permiso `privacy.manage`, en `BASE_PERMISSIONS`). Registro con
+plazo legal (20 días hábiles vía `addBusinessDays`), estados received→in-review→
+completed/rejected y resolución atribuida/fechada; auditado; no se borra. El seed ahora
+reutiliza `BASE_PERMISSIONS` (antes tenía copia local desincronizada) y backfillea permisos
+nuevos a los roles admin existentes. **Pendiente NIVEL 18:** SAFER self-assessment, revisión
+jurídica, drills de restore (N17), firma electrónica avanzada.
 
 ## Release R0 — Foundation
 

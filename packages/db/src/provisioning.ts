@@ -49,6 +49,7 @@ export const BASE_PERMISSIONS: ReadonlyArray<{ key: string; description: string 
   { key: 'patient.write', description: 'Crear/editar pacientes' },
   { key: 'organization.manage', description: 'Administrar organizaciones y consultorios' },
   { key: 'encounter.sign', description: 'Firmar encuentros clínicos' },
+  { key: 'privacy.manage', description: 'Gestionar solicitudes ARCO y privacidad (§NIVEL 18)' },
 ];
 
 export interface ProvisionTenantInput {
