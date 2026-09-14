@@ -3,6 +3,49 @@
 Avance por niveles del Plan Maestro (§36) y releases (§29).
 Leyenda: ⬜ pendiente · 🟨 en curso · ✅ completo (puerta de salida cruzada)
 
+## Mapeo contra el Plan Maestro (18 niveles)
+
+La **columna vertebral clínica está construida y en producción**; falta el **tier de
+producción** (seguridad, CI/CD completo, SRE/DR, compliance) que el plan marca como
+gate de go-live.
+
+| Nivel | Tema | Estado |
+| --- | --- | --- |
+| 0 | Gobierno, repo, CI | ✅ |
+| 1 | Design System | ✅ (faltan Combobox/Drawer/Table/Timeline como componentes) |
+| 2 | Identidad, tenancy, authz | 🟨 (falta MFA/passkeys, break-glass, ABAC/ReBAC) |
+| 3 | Clinical Data Foundation | 🟨 (falta Task, Consent, Procedure; identifiers normalizados) |
+| 4 | Patient Workspace | ✅ |
+| 5 | Adaptive History Engine | 🟨 (falta neonatal/geriátrico, growth hooks, narrative renderer) |
+| 6 | Encounter Workspace | ✅ núcleo (falta pre-visit brief, ROS formal, differential) |
+| 7 | Pathway & Completeness | 🟨 (DEMO; falta red-flags, 10–20 pathways reales, suppression) |
+| 8 | Medication Safety | 🟨 (falta catálogo con búsqueda, reconciliation, fecha del peso) |
+| 9 | Orders/Results closed-loop | 🟨 (falta colas async de vencimientos, Task, LOINC) |
+| 10 | Documents/imaging | 🟨 (R2 ✅; falta antivirus/scan, OCR/extracción, DICOM) |
+| 11 | Agenda | 🟨 (falta waitlist/no-show, recursos, recordatorios) |
+| 12 | Billing/inventario | 🟨 (falta pagos/refunds, CFDI, inventario/ledger) |
+| 13 | Interoperabilidad | 🟨 (FHIR export/import ✅; falta terminology, HL7v2, DICOMweb) |
+| 14 | AI Copilot | ⏸️ (núcleo DEMO ✅; IA real EN PAUSA) |
+| **15** | **Seguridad Zero Trust / DevSecOps** | 🟨 **EN CURSO** (CSP + security headers hechos; falta MFA/WAF/rate-limit/SAST-DAST/pentest) |
+| **16** | **CI/CD completo** | 🟨 (falta E2E Playwright, Neon branch por PR, rollback runbook) |
+| **17** | **Observabilidad / SRE / DR** | ⬜ (falta SLO, tracing, PITR drills, incidentes) |
+| **18** | **Validación clínica / regulatoria** | ⬜ (falta matriz NOM-004/024 + LFPDPPP, SAFER, pentest, piloto) |
+
+**§28 vertical slice = 15/15 ✅.**
+
+## NIVEL 15 — Seguridad (en curso)
+
+**CSP + security headers (hecho):** `next.config.ts` aplica **Content-Security-Policy**
+(bloqueo por defecto `default-src 'self'`, `connect-src` incluye R2 para la subida
+directa, `frame-ancestors/object-src 'none'`, `base-uri/form-action 'self'`,
+`upgrade-insecure-requests`), **HSTS** (2 años, includeSubDomains, preload),
+**COOP/CORP** `same-origin`, `X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`, `poweredByHeader: false`. Verificado en
+producción (app carga + subida/descarga R2 siguen OK).
+**Pendiente NIVEL 15:** CSP a nonce/hash (quitar `'unsafe-inline'`), MFA/WebAuthn,
+rate-limiting (necesita KV/Upstash), WAF, rotación de secretos, SAST/DAST/scan de
+contenedores, threat models, incident response, pentest previo a go-live.
+
 ## Release R0 — Foundation
 
 | Nivel | Descripción                              | Estado |
