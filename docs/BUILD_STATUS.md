@@ -57,9 +57,12 @@ verificado con el vector oficial 287082). Columna `mfa_secret` (migración `0021
 `app_user.mfaEnabled` gobierna el segundo factor. Enrolamiento en `/security` (QR con
 `qrcode` + entrada manual, confirmación con código). El login (`authorize`) exige TOTP
 si el usuario tiene MFA activo. 5 pruebas del motor.
-**Pendiente NIVEL 15:** aprovisionar Upstash (rate-limit distribuido); CSP a nonce/hash
-(quitar `'unsafe-inline'`); MFA/WebAuthn; WAF/bot control; rotación de secretos
-programada; SAST/DAST/scan de contenedores; pentest previo a go-live.
+CSP endurecida con **nonce por-request** en `script-src` (+ `strict-dynamic`), emitida
+en `proxy.ts`; `style-src` conserva `'unsafe-inline'` porque los atributos `style={{}}`
+no admiten nonce en CSP.
+**Pendiente NIVEL 15:** aprovisionar Upstash (rate-limit distribuido); WebAuthn/passkeys;
+WAF/bot control; rotación de secretos programada; SAST/DAST/scan de contenedores;
+pentest previo a go-live.
 
 ## Release R0 — Foundation
 

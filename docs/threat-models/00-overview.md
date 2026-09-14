@@ -47,7 +47,7 @@ BD → audit event. El cliente **nunca** es fuente de verdad de tenant ni de per
 ### Web / edge (Next.js, §25)
 | Amenaza | Vector | Mitigación | Estado |
 | --- | --- | --- | --- |
-| Tampering | XSS | CSP (default-src self); React escaping; sin `dangerouslySetInnerHTML` | 🟨 (falta nonce; hoy `'unsafe-inline'`) |
+| Tampering | XSS | CSP (default-src self) con nonce por-request en `script-src` + `strict-dynamic`; React escaping; sin `dangerouslySetInnerHTML` | ✅ script-src endurecido (`style-src` conserva `'unsafe-inline'`: los atributos `style={{}}` no admiten nonce en CSP) |
 | Tampering | Clickjacking | `frame-ancestors 'none'` + X-Frame-Options DENY | ✅ |
 | Tampering | Inyección de `<base>` / form hijack | `base-uri 'self'`, `form-action 'self'` | ✅ |
 | DoS | Endpoints de alto costo | Rate-limit auth/upload/search/export | ✅ (falta WAF) |
@@ -61,8 +61,8 @@ BD → audit event. El cliente **nunca** es fuente de verdad de tenant ni de per
 
 ## Brechas priorizadas (para cerrar NIVEL 15)
 
-1. **MFA/WebAuthn** (identidad).
-2. **CSP a nonce/hash** (quitar `'unsafe-inline'`).
+1. **WebAuthn/passkeys** (identidad; TOTP ya implementado).
+2. ~~CSP a nonce~~ ✅ hecho en `script-src` (nonce + `strict-dynamic`).
 3. **Rate-limit distribuido** (Upstash) + **WAF/bot control** (Vercel).
 4. **Antivirus/scan** de documentos.
 5. **ABAC/ReBAC + break-glass**; **SAST/DAST**; **pentest** previo a go-live.
