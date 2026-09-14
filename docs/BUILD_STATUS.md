@@ -86,6 +86,11 @@ server (build+start, puerto 3100) y carga el entorno; para Auth.js en modo produ
 `pnpm --filter @medical-os/web test:e2e` y en CI con el workflow manual `e2e.yml` (requiere
 secrets `DATABASE_URL`/`AUTH_SECRET`). **Pendiente NIVEL 16:** cobertura de flujos de
 escritura (crear paciente, firmar nota) con datos efímeros; matriz de navegadores.
+**SRE (NIVEL 17, parcial):** health check `GET /api/health` (público, ping a la BD, 200/503,
+sin PHI) para monitoreo; runbook `docs/sre/backup-restore.md` (RTO ≤ 1 h / RPO ≤ 5 min con
+Neon PITR, procedimiento de restore y drill) y `docs/sre/observability.md` (señales, SLOs,
+disciplina de logs sin PHI). **Pendiente NIVEL 17:** ejecutar el primer drill de restore y
+registrar RTO/RPO reales; monitor externo + alertas; versionado/réplica de R2.
 
 ## Release R0 — Foundation
 

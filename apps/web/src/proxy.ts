@@ -57,7 +57,9 @@ export const proxy = auth((req) => {
     nextUrl.pathname === '/login' ||
     nextUrl.pathname.startsWith('/api/auth') ||
     // Opciones de login con passkey: necesarias ANTES de autenticar (§NIVEL 2/15).
-    nextUrl.pathname.startsWith('/api/webauthn/authenticate');
+    nextUrl.pathname.startsWith('/api/webauthn/authenticate') ||
+    // Health check para monitoreo de disponibilidad (§NIVEL 17 SRE).
+    nextUrl.pathname === '/api/health';
 
   if (!isPublic && !isLoggedIn) {
     return NextResponse.redirect(new URL('/login', nextUrl.origin));

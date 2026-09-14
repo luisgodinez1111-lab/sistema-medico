@@ -48,7 +48,7 @@ Leyenda: ✅ implementado · 🟨 parcial · ⬜ pendiente
 | SAST/DAST/deps scan | 🟨 (SAST: CodeQL + Semgrep→Code Scanning; secretos: gitleaks; deps: pnpm audit + dependency-review en PR; DAST: ZAP baseline programado — sólo superficie no autenticada; falta DAST autenticado/activo → pentest) |
 | Threat models | ✅ (`docs/threat-models/`) |
 | Pentest previo a producción | ⬜ (externo) |
-| Backups/PITR + drills (RTO/RPO) | 🟨 (Neon PITR disponible; faltan drills documentados — NIVEL 17) |
+| Backups/PITR + drills (RTO/RPO) | 🟨 (Neon PITR + runbook con RTO/RPO y health check `/api/health` — `docs/sre/`; falta ejecutar el primer drill real) |
 
 ## Seguridad clínica (SAFER Guides)
 

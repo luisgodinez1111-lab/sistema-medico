@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { sql } from 'drizzle-orm';
 import { drizzle as drizzleNeon } from 'drizzle-orm/neon-http';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import * as schema from './schema';
@@ -20,6 +21,19 @@ export function createNeonDatabase(connectionString: string): Database {
   if (!connectionString) {
     throw new Error('createNeonDatabase: connectionString vacío');
   }
-  const sql = neon(connectionString);
-  return drizzleNeon(sql, { schema }) as unknown as Database;
+  const client = neon(connectionString);
+  return drizzleNeon(client, { schema }) as unknown as Database;
+}
+
+/**
+ * Ping de conectividad para el health check (§NIVEL 17 SRE). Ejecuta un `SELECT 1`
+ * barato; devuelve false ante cualquier error (no lanza). No expone detalles.
+ */
+export async function pingDatabase(db: Database): Promise<boolean> {
+  try {
+    await db.execute(sql`select 1`);
+    return true;
+  } catch {
+    return false;
+  }
 }
