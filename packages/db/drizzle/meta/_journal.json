@@ -169,6 +169,13 @@
       "when": 1789351940073,
       "tag": "0023_vengeful_raider",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789352401896,
+      "tag": "0024_same_sharon_ventura",
+      "breakpoints": true
     }
   ]
 }

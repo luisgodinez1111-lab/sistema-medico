@@ -20,3 +20,4 @@ export * from './encounter-addendum';
 export * from './consent';
 export * from './practitioner';
 export * from './task';
+export * from './procedure';

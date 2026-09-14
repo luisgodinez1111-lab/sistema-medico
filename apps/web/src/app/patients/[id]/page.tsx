@@ -23,6 +23,7 @@ import {
   formatReferenceRange,
   ConsentRepository,
   TaskRepository,
+  ProcedureRepository,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
@@ -41,6 +42,7 @@ import { CopilotPanel } from './CopilotPanel';
 import { SpecialtyPanel } from './SpecialtyPanel';
 import { ConsentManager } from './ConsentManager';
 import { TaskManager } from './TaskManager';
+import { ProcedureManager } from './ProcedureManager';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -71,6 +73,7 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
   const reports = await new DiagnosticReportRepository(db, ctx).listForPatient(patient.id);
   const consents = await new ConsentRepository(db, ctx).listForPatient(patient.id);
   const tasks = await new TaskRepository(db, ctx).listForPatient(patient.id);
+  const procedures = await new ProcedureRepository(db, ctx).listForPatient(patient.id);
 
   // Especialidad activa del tenant (R7): añade secciones y quick-picks (DEMO).
   const specialtyPack = resolveSpecialtyPack(
@@ -410,6 +413,18 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
                   : t.completedAt
                     ? String(t.completedAt)
                     : null,
+            }))}
+            canWrite={canWrite}
+          />
+          <div style={{ height: 'var(--space-5)' }} />
+          <ProcedureManager
+            patientId={patient.id}
+            procedures={procedures.map((p) => ({
+              id: p.id,
+              code: p.code,
+              status: p.status,
+              performedDate: p.performedDate,
+              outcome: p.outcome,
             }))}
             canWrite={canWrite}
           />

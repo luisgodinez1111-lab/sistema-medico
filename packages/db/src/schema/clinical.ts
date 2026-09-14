@@ -23,6 +23,7 @@ import type {
   ObservationId,
   PatientId,
   PractitionerId,
+  ProcedureId,
   RelatedPersonId,
   ServiceRequestId,
   TaskId,
@@ -680,5 +681,50 @@ export const task = pgTable(
     index('task_tenant_idx').on(t.tenantId),
     index('task_tenant_status_idx').on(t.tenantId, t.status),
     index('task_tenant_patient_idx').on(t.tenantId, t.patientId),
+  ],
+);
+
+/**
+ * Procedimiento REALIZADO (FHIR Procedure, §NIVEL 3). Distinto de la ORDEN
+ * (`service_request`, la solicitud) y del ESTUDIO con resultado (`diagnostic_report`):
+ * `procedure` registra un acto ejecutado sobre el paciente (curación, infiltración,
+ * biopsia, sutura…), con quién lo hizo y cuándo. Puede ligarse a un encuentro y a la
+ * orden que lo originó. Borrado LÓGICO (ADR-0003), nunca destructivo.
+ */
+export const procedureStatus = pgEnum('procedure_status', [
+  'in-progress',
+  'completed',
+  'not-done',
+  'entered-in-error',
+]);
+
+export const procedure = pgTable(
+  'procedure',
+  {
+    id: text('id').primaryKey().$type<ProcedureId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').notNull().$type<PatientId>(),
+    /** Encuentro en que se realizó (opcional). */
+    encounterId: text('encounter_id').$type<EncounterId>(),
+    /** Orden que originó el procedimiento (opcional). */
+    serviceRequestId: text('service_request_id').$type<ServiceRequestId>(),
+    /** Nombre/código del procedimiento (catálogo abstraído, §33). */
+    code: text('code').notNull(),
+    status: procedureStatus('status').notNull().default('completed'),
+    /** Fecha clínica en que se realizó (cuándo, no cuándo se capturó). */
+    performedDate: date('performed_date'),
+    /** Quién lo realizó (practicante responsable). */
+    performerId: text('performer_id').$type<PractitionerId>(),
+    /** Resultado/desenlace del procedimiento (texto libre). */
+    outcome: text('outcome'),
+    note: text('note'),
+    performedBy: text('performed_by').$type<UserId>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('procedure_tenant_idx').on(t.tenantId),
+    index('procedure_tenant_patient_idx').on(t.tenantId, t.patientId),
+    index('procedure_tenant_encounter_idx').on(t.tenantId, t.encounterId),
   ],
 );

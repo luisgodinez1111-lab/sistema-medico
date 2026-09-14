@@ -24,6 +24,7 @@ import {
   EncounterAddendumRepository,
   ConsentRepository,
   TaskRepository,
+  ProcedureRepository,
   generateSuggestions,
   hasCritical,
   hasPermission,
@@ -927,6 +928,54 @@ export async function cancelTaskAction(
   revalidatePath(`/patients/${patientId}`);
   revalidatePath('/');
   return { status: 'ok', message: 'Pendiente cancelado.' };
+}
+
+/**
+ * Registra un procedimiento REALIZADO sobre el paciente (§NIVEL 3, FHIR Procedure).
+ * Distinto de solicitar un estudio: documenta el acto ejecutado, con fecha y autor.
+ * Permiso `patient.write`, auditado. Paciente validado contra el tenant.
+ */
+export async function addProcedureAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para registrar procedimientos.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const code = str(formData, 'code');
+  if (!patientId) return { status: 'error', message: 'Paciente inválido.' };
+  if (!code) return { status: 'error', message: 'Indica el procedimiento realizado.' };
+
+  const status = (str(formData, 'status') || 'completed') as
+    'in-progress' | 'completed' | 'not-done' | 'entered-in-error';
+  const performedDate = str(formData, 'performedDate');
+  const outcome = str(formData, 'outcome');
+  const note = str(formData, 'note');
+
+  const db = getDb();
+  const created = await new ProcedureRepository(db, ctx).create({
+    patientId,
+    code,
+    status,
+    ...(performedDate && /^\d{4}-\d{2}-\d{2}$/.test(performedDate) ? { performedDate } : {}),
+    ...(outcome ? { outcome } : {}),
+    ...(note ? { note } : {}),
+  });
+  if (!created) return { status: 'error', message: 'No se pudo registrar (paciente no válido).' };
+
+  await new AuditRepository(db, ctx).record({
+    action: 'create',
+    outcome: 'allowed',
+    resourceType: 'procedure',
+    resourceId: created.id,
+    patientId,
+    payload: { code, status },
+  });
+  revalidatePath(`/patients/${patientId}`);
+  return { status: 'ok', message: 'Procedimiento registrado.' };
 }
 
 export interface CopilotSuggestionView {

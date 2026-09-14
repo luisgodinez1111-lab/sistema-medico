@@ -16,6 +16,7 @@ Leyenda: ✅ implementado · 🟨 parcial · ⬜ pendiente
 | Identificación del paciente | `patient` con nombre desglosado, sexo, nacimiento, MRN, CURP; header persistente | ✅ |
 | Identificación del profesional | `practitioner` (cédula/licenseNumber, especialidad); nota firmada atribuida | ✅ |
 | Fecha y hora de los actos | timestamps en encuentros/notas/órdenes/resultados; firma con `signedAt` | ✅ |
+| Procedimientos realizados | `procedure` (FHIR Procedure): acto ejecutado con fecha, autor y desenlace; ligable a encuentro y orden | ✅ |
 | Nota firmada e íntegra | firma = snapshot + hash SHA-256; edición destructiva bloqueada; addenda append-only | ✅ |
 | Conservación e integridad | soft-delete (nunca destructivo), hash de documentos, audit append-only | ✅ |
 | Historia clínica estructurada | Adaptive History Engine (adulto/pediátrico, secciones versionadas) | 🟨 |
