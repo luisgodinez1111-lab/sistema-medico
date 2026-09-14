@@ -25,7 +25,7 @@ export function OnboardingForm({ packs }: { packs: PackOption[] }) {
 
       <label className="mos-field">
         <span>Nombre de la clínica *</span>
-        <input name="tenantName" required autoFocus placeholder="p.ej. Clínica VELUM Laser" />
+        <input name="tenantName" required autoFocus placeholder="p.ej. Consultorio Dr. Pérez" />
       </label>
       <label className="mos-field">
         <span>Identificador (opcional)</span>
@@ -54,7 +54,7 @@ export function OnboardingForm({ packs }: { packs: PackOption[] }) {
         </label>
         <label className="mos-field">
           <span>Tu especialidad (médico)</span>
-          <input name="practitionerSpecialty" placeholder="p.ej. Medicina estética" />
+          <input name="practitionerSpecialty" placeholder="p.ej. Medicina interna" />
         </label>
       </div>
 
