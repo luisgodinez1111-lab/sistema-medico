@@ -162,6 +162,13 @@
       "when": 1789348562435,
       "tag": "0022_clear_stick",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1789351940073,
+      "tag": "0023_vengeful_raider",
+      "breakpoints": true
     }
   ]
 }

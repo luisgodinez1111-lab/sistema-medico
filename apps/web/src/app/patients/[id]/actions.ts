@@ -23,6 +23,7 @@ import {
   composeAssessment,
   EncounterAddendumRepository,
   ConsentRepository,
+  TaskRepository,
   generateSuggestions,
   hasCritical,
   hasPermission,
@@ -34,6 +35,7 @@ import type {
   DiagnosticReportId,
   ConditionId,
   ConsentId,
+  TaskId,
 } from '@medical-os/shared';
 import { ValidationError } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
@@ -815,6 +817,116 @@ export async function reviewResultAction(
   revalidatePath(`/patients/${patientId}`);
   revalidatePath('/');
   return { status: 'ok', message: 'Resultado revisado y obligación cerrada.' };
+}
+
+/**
+ * Crea una obligación clínica (tarea) del paciente (§NIVEL 3, §NIVEL 9). Toda
+ * tarea nace con dueño (el autor) y criterio de cierre. Permiso `patient.write`,
+ * auditado. El paciente se valida contra el tenant en el repositorio.
+ */
+export async function createTaskAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para crear pendientes.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const title = str(formData, 'title');
+  if (!patientId) return { status: 'error', message: 'Paciente inválido.' };
+  if (!title) return { status: 'error', message: 'Describe el pendiente.' };
+
+  const type = (str(formData, 'type') || 'clinical-followup') as
+    'result-review' | 'clinical-followup' | 'arco-request' | 'general';
+  const priority = (str(formData, 'priority') || 'routine') as 'routine' | 'urgent';
+  const dueDate = str(formData, 'dueDate');
+
+  const db = getDb();
+  const created = await new TaskRepository(db, ctx).create({
+    patientId,
+    title,
+    type,
+    priority,
+    ...(str(formData, 'note') ? { note: str(formData, 'note') } : {}),
+    ...(dueDate && /^\d{4}-\d{2}-\d{2}$/.test(dueDate) ? { dueDate } : {}),
+  });
+  if (!created) return { status: 'error', message: 'No se pudo crear (paciente no válido).' };
+
+  await new AuditRepository(db, ctx).record({
+    action: 'create',
+    outcome: 'allowed',
+    resourceType: 'task',
+    resourceId: created.id,
+    patientId,
+    payload: { type, priority },
+  });
+  revalidatePath(`/patients/${patientId}`);
+  revalidatePath('/');
+  return { status: 'ok', message: 'Pendiente creado.' };
+}
+
+/** Cierra un pendiente como completado (atribuido y fechado; §NIVEL 9). */
+export async function completeTaskAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para cerrar pendientes.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const taskId = str(formData, 'taskId') as TaskId;
+  if (!patientId || !taskId) return { status: 'error', message: 'Datos inválidos.' };
+
+  const db = getDb();
+  const ok = await new TaskRepository(db, ctx).complete(taskId);
+  if (!ok) return { status: 'error', message: 'No se pudo cerrar (ya cerrado o no válido).' };
+
+  await new AuditRepository(db, ctx).record({
+    action: 'update',
+    outcome: 'allowed',
+    resourceType: 'task',
+    resourceId: taskId,
+    patientId,
+    payload: { status: 'completed' },
+  });
+  revalidatePath(`/patients/${patientId}`);
+  revalidatePath('/');
+  return { status: 'ok', message: 'Pendiente cerrado.' };
+}
+
+/** Cancela un pendiente abierto (descartado con criterio, no borrado; §NIVEL 9). */
+export async function cancelTaskAction(
+  _prev: AllergyActionState,
+  formData: FormData,
+): Promise<AllergyActionState> {
+  const ctx = await getRequestContext();
+  if (!ctx) return { status: 'error', message: 'Sin sesión válida.' };
+  if (!hasPermission(ctx, 'patient.write')) {
+    return { status: 'error', message: 'No tienes permiso para cancelar pendientes.' };
+  }
+  const patientId = str(formData, 'patientId') as PatientId;
+  const taskId = str(formData, 'taskId') as TaskId;
+  if (!patientId || !taskId) return { status: 'error', message: 'Datos inválidos.' };
+
+  const db = getDb();
+  const ok = await new TaskRepository(db, ctx).cancel(taskId);
+  if (!ok) return { status: 'error', message: 'No se pudo cancelar (ya cerrado o no válido).' };
+
+  await new AuditRepository(db, ctx).record({
+    action: 'update',
+    outcome: 'allowed',
+    resourceType: 'task',
+    resourceId: taskId,
+    patientId,
+    payload: { status: 'cancelled' },
+  });
+  revalidatePath(`/patients/${patientId}`);
+  revalidatePath('/');
+  return { status: 'ok', message: 'Pendiente cancelado.' };
 }
 
 export interface CopilotSuggestionView {

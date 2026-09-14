@@ -1,12 +1,19 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ClinicalCard, Badge, Alert } from '@medical-os/design-system';
-import { PatientRepository, DiagnosticReportRepository } from '@medical-os/db';
+import { PatientRepository, DiagnosticReportRepository, TaskRepository } from '@medical-os/db';
 import { getRequestContext } from '@/server/context';
 import { getDb } from '@/server/db';
 import { fullPatientName, ageLabel, sexLabel } from '@/lib/patient-format';
 
 export const dynamic = 'force-dynamic';
+
+const TASK_TYPE_LABEL: Record<string, string> = {
+  'result-review': 'Revisión de resultado',
+  'clinical-followup': 'Seguimiento clínico',
+  'arco-request': 'Solicitud ARCO',
+  general: 'General',
+};
 
 /**
  * Home / Command Center (§2.2): sólo lo accionable. La lista de pacientes ya
@@ -38,6 +45,8 @@ async function HomeContent({
   const db = getDb();
   const patients = await new PatientRepository(db, ctx).listRecent(8);
   const pendingResults = await new DiagnosticReportRepository(db, ctx).listPendingReview(20);
+  const openTasks = await new TaskRepository(db, ctx).listOpen(20);
+  const patientNameById = new Map(patients.map((p) => [p.id, fullPatientName(p)]));
 
   // Escalamiento de anormales (§27): críticos primero, luego alto/bajo, luego normal.
   const rank = (f: string): number => (f === 'critical' ? 0 : f === 'high' || f === 'low' ? 1 : 2);
@@ -112,8 +121,41 @@ async function HomeContent({
           )}
         </ClinicalCard>
 
-        <ClinicalCard title="Pendientes clínicos">
-          <p className="mos-muted">Obligaciones y tareas adicionales llegan con la agenda (R3).</p>
+        <ClinicalCard title={`Pendientes clínicos (${openTasks.length})`}>
+          {openTasks.length === 0 ? (
+            <p className="mos-muted">Sin pendientes abiertos. Todo con dueño y cierre.</p>
+          ) : (
+            <ul className="mos-list">
+              {openTasks.map((t) => {
+                const name = t.patientId ? patientNameById.get(t.patientId) : null;
+                const row = (
+                  <span>
+                    <strong>{t.title}</strong>
+                    <br />
+                    <span className="mos-muted">
+                      {TASK_TYPE_LABEL[t.type] ?? t.type}
+                      {name ? ` · ${name}` : ''}
+                      {t.dueDate ? ` · vence ${t.dueDate}` : ''}
+                    </span>
+                  </span>
+                );
+                return (
+                  <li key={t.id} className="mos-list__item">
+                    {t.patientId ? (
+                      <Link className="mos-link-row" href={`/patients/${t.patientId}`}>
+                        {row}
+                      </Link>
+                    ) : (
+                      row
+                    )}
+                    <Badge tone={t.priority === 'urgent' ? 'critical' : 'neutral'}>
+                      {t.priority === 'urgent' ? 'Urgente' : 'Rutina'}
+                    </Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </ClinicalCard>
 
         <ClinicalCard title={`Resultados por revisar (${pendingResults.length})`}>

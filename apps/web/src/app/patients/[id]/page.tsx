@@ -22,6 +22,7 @@ import {
   mergeHistorySections,
   formatReferenceRange,
   ConsentRepository,
+  TaskRepository,
 } from '@medical-os/db';
 import type { PatientId } from '@medical-os/shared';
 import { getRequestContext } from '@/server/context';
@@ -39,6 +40,7 @@ import { OrdersManager } from './OrdersManager';
 import { CopilotPanel } from './CopilotPanel';
 import { SpecialtyPanel } from './SpecialtyPanel';
 import { ConsentManager } from './ConsentManager';
+import { TaskManager } from './TaskManager';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -68,6 +70,7 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
   const orders = await new ServiceRequestRepository(db, ctx).listForPatient(patient.id);
   const reports = await new DiagnosticReportRepository(db, ctx).listForPatient(patient.id);
   const consents = await new ConsentRepository(db, ctx).listForPatient(patient.id);
+  const tasks = await new TaskRepository(db, ctx).listForPatient(patient.id);
 
   // Especialidad activa del tenant (R7): añade secciones y quick-picks (DEMO).
   const specialtyPack = resolveSpecialtyPack(
@@ -387,6 +390,26 @@ export default async function PatientWorkspace({ params }: { params: Promise<{ i
                   ? c.revokedAt.toISOString()
                   : String(c.revokedAt)
                 : null,
+            }))}
+            canWrite={canWrite}
+          />
+          <div style={{ height: 'var(--space-5)' }} />
+          <TaskManager
+            patientId={patient.id}
+            tasks={tasks.map((t) => ({
+              id: t.id,
+              type: t.type,
+              title: t.title,
+              note: t.note,
+              status: t.status,
+              priority: t.priority,
+              dueDate: t.dueDate,
+              completedAt:
+                t.completedAt instanceof Date
+                  ? t.completedAt.toISOString()
+                  : t.completedAt
+                    ? String(t.completedAt)
+                    : null,
             }))}
             canWrite={canWrite}
           />

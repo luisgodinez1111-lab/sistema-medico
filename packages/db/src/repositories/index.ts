@@ -19,3 +19,4 @@ export * from './encounter-diagnosis';
 export * from './encounter-addendum';
 export * from './consent';
 export * from './practitioner';
+export * from './task';

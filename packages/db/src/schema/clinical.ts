@@ -25,6 +25,7 @@ import type {
   PractitionerId,
   RelatedPersonId,
   ServiceRequestId,
+  TaskId,
   TenantId,
   UserId,
 } from '@medical-os/shared';
@@ -636,5 +637,48 @@ export const consent = pgTable(
   (t) => [
     index('consent_tenant_idx').on(t.tenantId),
     index('consent_tenant_patient_idx').on(t.tenantId, t.patientId),
+  ],
+);
+
+/**
+ * Tareas / obligaciones clínicas (§NIVEL 3, §NIVEL 9 closed-loop). Toda obligación
+ * (seguimiento, revisar resultado, solicitud ARCO…) tiene DUEÑO, estado y criterio
+ * de cierre — nada queda sin propietario (§0). `patient_id` opcional: hay tareas no
+ * ligadas a un paciente (p. ej. administrativas). `due_date` habilita vencimientos.
+ */
+export const taskType = pgEnum('task_type', [
+  'result-review',
+  'clinical-followup',
+  'arco-request',
+  'general',
+]);
+export const taskStatus = pgEnum('task_status', ['open', 'in-progress', 'completed', 'cancelled']);
+export const taskPriority = pgEnum('task_priority', ['routine', 'urgent']);
+
+export const task = pgTable(
+  'task',
+  {
+    id: text('id').primaryKey().$type<TaskId>(),
+    tenantId: text('tenant_id').notNull().$type<TenantId>(),
+    patientId: text('patient_id').$type<PatientId>(),
+    type: taskType('type').notNull().default('general'),
+    title: text('title').notNull(),
+    note: text('note'),
+    status: taskStatus('status').notNull().default('open'),
+    priority: taskPriority('priority').notNull().default('routine'),
+    /** Dueño responsable de la obligación (owner, §NIVEL 9). */
+    ownerId: text('owner_id').$type<UserId>(),
+    /** Fecha compromiso; base para vencimientos/escalamiento. */
+    dueDate: date('due_date'),
+    createdBy: text('created_by').$type<UserId>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    completedBy: text('completed_by').$type<UserId>(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('task_tenant_idx').on(t.tenantId),
+    index('task_tenant_status_idx').on(t.tenantId, t.status),
+    index('task_tenant_patient_idx').on(t.tenantId, t.patientId),
   ],
 );
