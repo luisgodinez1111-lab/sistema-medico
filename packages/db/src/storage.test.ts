@@ -63,6 +63,17 @@ describe('S3StorageProvider (SigV4 presign)', () => {
     expect(a.ok && b.ok && a.value.url !== b.value.url).toBe(true);
   });
 
+  it('tolera un endpoint que ya incluye el bucket (no lo duplica en la ruta)', () => {
+    const p2 = new S3StorageProvider({ ...cfg, endpoint: `${cfg.endpoint}/${cfg.bucket}` });
+    const r = p2.presignUpload('tenants/t1/documents/d1', 'application/pdf');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const url = new URL(r.value.url);
+    // El bucket aparece UNA sola vez.
+    expect(url.pathname).toBe('/clinical-docs/tenants/t1/documents/d1');
+    expect(url.pathname.match(/clinical-docs/g)).toHaveLength(1);
+  });
+
   it('rechaza claves con path traversal', () => {
     const r = p.presignUpload('../../etc/passwd', 'text/plain');
     expect(r.ok).toBe(false);

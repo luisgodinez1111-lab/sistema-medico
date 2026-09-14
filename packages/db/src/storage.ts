@@ -112,8 +112,15 @@ export class S3StorageProvider implements StorageProvider {
   private readonly cfg: Required<Omit<S3StorageConfig, 'now'>> & { now: () => Date };
 
   constructor(config: S3StorageConfig) {
+    // Normaliza el endpoint: quita slashes finales y, si viene con el bucket ya
+    // incluido (p. ej. R2 muestra `https://<acct>.r2.../<bucket>`), lo retira para
+    // no duplicar el bucket en la ruta firmada (`/<bucket>/<bucket>/…`).
+    let endpoint = config.endpoint.replace(/\/+$/, '');
+    if (config.bucket && endpoint.endsWith(`/${config.bucket}`)) {
+      endpoint = endpoint.slice(0, -(config.bucket.length + 1));
+    }
     this.cfg = {
-      endpoint: config.endpoint.replace(/\/+$/, ''),
+      endpoint,
       region: config.region,
       bucket: config.bucket,
       accessKeyId: config.accessKeyId,
