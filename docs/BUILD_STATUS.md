@@ -78,6 +78,14 @@ completed/rejected y resolución atribuida/fechada; auditado; no se borra. El se
 reutiliza `BASE_PERMISSIONS` (antes tenía copia local desincronizada) y backfillea permisos
 nuevos a los roles admin existentes. **Pendiente NIVEL 18:** SAFER self-assessment, revisión
 jurídica, drills de restore (N17), firma electrónica avanzada.
+**E2E / Playwright (NIVEL 16, hecho):** `apps/web/e2e/` con 7 pruebas verdes contra la app
+real (`next start`) + Neon: gate de rutas, login válido/ inválido (email+contraseña), lista
+de pacientes, expediente, bandeja ARCO y `/security`. `playwright.config.ts` levanta el
+server (build+start, puerto 3100) y carga el entorno; para Auth.js en modo producción fija
+`AUTH_TRUST_HOST`/`AUTH_URL`. Specs de SÓLO LECTURA (no mutan). Corre local con
+`pnpm --filter @medical-os/web test:e2e` y en CI con el workflow manual `e2e.yml` (requiere
+secrets `DATABASE_URL`/`AUTH_SECRET`). **Pendiente NIVEL 16:** cobertura de flujos de
+escritura (crear paciente, firmar nota) con datos efímeros; matriz de navegadores.
 
 ## Release R0 — Foundation
 
