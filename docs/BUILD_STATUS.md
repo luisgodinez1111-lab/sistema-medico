@@ -63,9 +63,14 @@ no admiten nonce en CSP.
 CI de seguridad (§15): CodeQL + **Semgrep** (SAST → Code Scanning), gitleaks (secretos),
 pnpm audit + **dependency-review** (deps en PR) y **ZAP baseline** (DAST programado,
 superficie no autenticada) en `.github/workflows/{ci,dast}.yml`.
-**Pendiente NIVEL 15:** aprovisionar Upstash (rate-limit distribuido); WebAuthn/passkeys;
-WAF/bot control; rotación de secretos programada; **DAST autenticado/activo** + pentest
-previo a go-live.
+**Passkeys / WebAuthn (hecho):** `@simplewebauthn` (server + browser); tabla
+`webauthn_credential` (migración `0025`) ligada a la identidad global; enrolamiento y
+gestión en `/security` y login SIN contraseña (provider `passkey` de Auth.js; challenge
+de login en cookie httpOnly efímera; el de enrolamiento en `app_user`). RP derivado del
+host (override con `WEBAUTHN_RP_ID/_ORIGIN/_NAME`). La ceremonia (registro/login) requiere
+un navegador + autenticador reales para prueba e2e; verificado build + almacenamiento.
+**Pendiente NIVEL 15:** aprovisionar Upstash (rate-limit distribuido); WAF/bot control;
+rotación de secretos programada; **DAST autenticado/activo** + pentest previo a go-live.
 
 ## Release R0 — Foundation
 

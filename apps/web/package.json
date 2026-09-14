@@ -16,6 +16,7 @@
     "@medical-os/db": "workspace:*",
     "@medical-os/design-system": "workspace:*",
     "@medical-os/shared": "workspace:*",
+    "@simplewebauthn/browser": "14.0.0",
     "next": "^16.3.5",
     "next-auth": "5.0.0-beta.32",
     "qrcode": "^1",

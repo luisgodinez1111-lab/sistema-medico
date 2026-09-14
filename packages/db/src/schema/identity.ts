@@ -1,4 +1,13 @@
-import { pgTable, pgEnum, text, timestamp, boolean, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  pgEnum,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  uniqueIndex,
+  index,
+} from 'drizzle-orm/pg-core';
 import type {
   TenantId,
   OrganizationId,
@@ -7,6 +16,7 @@ import type {
   PractitionerId,
   MembershipId,
   RoleId,
+  WebAuthnCredentialId,
 } from '@medical-os/shared';
 
 /**
@@ -74,10 +84,49 @@ export const appUser = pgTable(
     mfaEnabled: boolean('mfa_enabled').notNull().default(false),
     /** Secreto TOTP (Base32) para MFA. NULL si no está enrolado (§NIVEL 2/15). */
     mfaSecret: text('mfa_secret'),
+    /**
+     * Challenge WebAuthn en curso para el ENROLAMIENTO de passkey (§NIVEL 2/15).
+     * Efímero: se fija al pedir opciones de registro y se limpia al verificar. El
+     * challenge de LOGIN no va aquí (no hay usuario aún): viaja en cookie firmada.
+     */
+    currentWebauthnChallenge: text('current_webauthn_challenge'),
     status: userStatus('status').notNull().default('invited'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('app_user_email_idx').on(t.email)],
+);
+
+/**
+ * Credenciales WebAuthn / passkeys (§NIVEL 2/15). Ligadas a la identidad GLOBAL
+ * (`app_user`), no a un tenant. `credential_id` y `public_key` se guardan en
+ * base64url. `counter` es el contador anti-clonación del autenticador. Nunca se
+ * guarda material privado: la llave privada jamás sale del dispositivo del usuario.
+ */
+export const webauthnCredential = pgTable(
+  'webauthn_credential',
+  {
+    id: text('id').primaryKey().$type<WebAuthnCredentialId>(),
+    userId: text('user_id').notNull().$type<UserId>(),
+    /** ID de la credencial (base64url), único global. */
+    credentialId: text('credential_id').notNull(),
+    /** Llave pública COSE (base64url) para verificar las aserciones. */
+    publicKey: text('public_key').notNull(),
+    /** Contador de firmas anti-clonación; debe crecer en cada uso. */
+    counter: integer('counter').notNull().default(0),
+    /** Transportes reportados (p. ej. "internal,hybrid"), CSV. */
+    transports: text('transports'),
+    /** Etiqueta legible que el usuario da a la passkey. */
+    name: text('name'),
+    /** 'singleDevice' | 'multiDevice' (passkey sincronizable). */
+    deviceType: text('device_type'),
+    backedUp: boolean('backed_up').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('webauthn_credential_id_idx').on(t.credentialId),
+    index('webauthn_credential_user_idx').on(t.userId),
+  ],
 );
 
 /**

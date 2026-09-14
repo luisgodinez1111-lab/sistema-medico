@@ -52,6 +52,9 @@ export type InvoiceItemId = Branded<Ulid, 'InvoiceItemId'>;
 export type AuditEventId = Branded<Ulid, 'AuditEventId'>;
 export type ProvenanceId = Branded<Ulid, 'ProvenanceId'>;
 
+// Identidad / seguridad (§NIVEL 2/15) — passkeys WebAuthn
+export type WebAuthnCredentialId = Branded<Ulid, 'WebAuthnCredentialId'>;
+
 /** Genera un nuevo ULID sin tipar. Preferir los helpers `new*Id()`. */
 export function newUlid(): Ulid {
   return ulid();
@@ -91,3 +94,4 @@ export const newInvoiceId = (): InvoiceId => ulid() as InvoiceId;
 export const newInvoiceItemId = (): InvoiceItemId => ulid() as InvoiceItemId;
 export const newAuditEventId = (): AuditEventId => ulid() as AuditEventId;
 export const newProvenanceId = (): ProvenanceId => ulid() as ProvenanceId;
+export const newWebAuthnCredentialId = (): WebAuthnCredentialId => ulid() as WebAuthnCredentialId;

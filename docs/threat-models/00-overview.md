@@ -61,7 +61,7 @@ BD → audit event. El cliente **nunca** es fuente de verdad de tenant ni de per
 
 ## Brechas priorizadas (para cerrar NIVEL 15)
 
-1. **WebAuthn/passkeys** (identidad; TOTP ya implementado).
+1. ~~WebAuthn/passkeys~~ ✅ hecho (enrolamiento + login sin contraseña, además de TOTP).
 2. ~~CSP a nonce~~ ✅ hecho en `script-src` (nonce + `strict-dynamic`).
 3. **Rate-limit distribuido** (Upstash) + **WAF/bot control** (Vercel).
 4. **Antivirus/scan** de documentos.

@@ -39,7 +39,7 @@ Leyenda: ✅ implementado · 🟨 parcial · ⬜ pendiente
 
 | Control | Estado |
 | --- | --- |
-| Autenticación fuerte (MFA/passkeys) | 🟨 (TOTP ✅; falta WebAuthn/passkeys) |
+| Autenticación fuerte (MFA/passkeys) | ✅ (TOTP + WebAuthn/passkeys: enrolamiento y login sin contraseña, resistente a phishing) |
 | Autorización deny-by-default | ✅ (RBAC; falta ABAC/ReBAC + break-glass) |
 | Aislamiento multi-tenant | ✅ (scoping + constraints + pruebas cross-tenant; RLS diferida ADR-0004) |
 | Cabeceras/CSP/HSTS | ✅ (CSP con nonce por-request en `script-src` + `strict-dynamic`; `style-src` conserva `'unsafe-inline'` por los atributos `style={{}}`, que CSP no cubre con nonce) |

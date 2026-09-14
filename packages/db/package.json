@@ -20,6 +20,7 @@
   "dependencies": {
     "@medical-os/shared": "workspace:*",
     "@neondatabase/serverless": "^1.1.0",
+    "@simplewebauthn/server": "14.0.2",
     "bcryptjs": "^2",
     "drizzle-orm": "^0.45.2"
   },

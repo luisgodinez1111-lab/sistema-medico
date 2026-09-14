@@ -74,6 +74,34 @@ export async function authenticateUser(
 }
 
 /**
+ * Carga la identidad mínima de un usuario ACTIVO por id (para el login con passkey,
+ * donde el usuario se identifica por la credencial, no por email+contraseña).
+ */
+export async function getActiveUserById(
+  db: Database,
+  userId: UserId,
+): Promise<AuthenticatedUser | null> {
+  const [u] = await db
+    .select({
+      id: appUser.id,
+      email: appUser.email,
+      displayName: appUser.displayName,
+      status: appUser.status,
+      mfaEnabled: appUser.mfaEnabled,
+    })
+    .from(appUser)
+    .where(eq(appUser.id, userId))
+    .limit(1);
+  if (!u || u.status !== 'active') return null;
+  return {
+    id: asId<UserId>(u.id),
+    email: u.email,
+    displayName: u.displayName,
+    mfaEnabled: u.mfaEnabled,
+  };
+}
+
+/**
  * Verifica el segundo factor (TOTP) de un usuario por email. Devuelve true sólo si
  * el usuario tiene MFA activo, un secreto guardado y el token es válido.
  */

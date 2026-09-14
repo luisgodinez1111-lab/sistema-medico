@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { LoginForm } from './LoginForm';
+import { PasskeyLoginButton } from './PasskeyLoginButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,7 @@ export default async function LoginPage() {
       <h1 className="mos-page__title">Medical OS</h1>
       <p className="mos-page__subtitle">Inicia sesión para continuar</p>
       <LoginForm />
+      <PasskeyLoginButton />
     </div>
   );
 }

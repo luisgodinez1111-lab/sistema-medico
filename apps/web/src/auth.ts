@@ -1,8 +1,27 @@
 import NextAuth, { type NextAuthResult } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import { authenticateUser, verifyUserTotp } from '@medical-os/db';
+import {
+  authenticateUser,
+  verifyUserTotp,
+  resolveRp,
+  verifyAuthentication,
+  findCredentialByCredentialId,
+  updateCredentialCounter,
+  getActiveUserById,
+  type AuthenticationResponseJSON,
+} from '@medical-os/db';
 import { authConfig } from './auth.config';
 import { getDb } from '@/server/db';
+
+/** Lee una cookie por nombre de una cabecera Cookie cruda. */
+function readCookie(cookieHeader: string | null, name: string): string | null {
+  if (!cookieHeader) return null;
+  for (const part of cookieHeader.split(';')) {
+    const [k, ...v] = part.trim().split('=');
+    if (k === name) return decodeURIComponent(v.join('='));
+  }
+  return null;
+}
 
 /**
  * Auth.js (NIVEL 2, IdP propio). Credentials (email + contraseña) verificadas
@@ -29,6 +48,58 @@ const nextAuth = NextAuth({
         // Segundo factor: si el usuario tiene MFA, el TOTP debe validar.
         if (user.mfaEnabled && !(await verifyUserTotp(db, email, totp))) return null;
         return { id: user.id, email: user.email, name: user.displayName };
+      },
+    }),
+    // Login SIN contraseña con passkey (§NIVEL 2/15). El cliente obtiene opciones de
+    // /api/webauthn/authenticate/options (que fija la cookie del challenge), ejecuta
+    // la ceremonia y envía la aserción aquí. El usuario se identifica por la
+    // credencial; se verifica la firma contra la llave pública guardada.
+    Credentials({
+      id: 'passkey',
+      name: 'Passkey',
+      credentials: { assertion: { label: 'Assertion', type: 'text' } },
+      authorize: async (credentials, request) => {
+        const raw = typeof credentials?.assertion === 'string' ? credentials.assertion : '';
+        if (!raw) return null;
+        let assertion: AuthenticationResponseJSON;
+        try {
+          assertion = JSON.parse(raw) as AuthenticationResponseJSON;
+        } catch {
+          return null;
+        }
+        const challenge = readCookie(request.headers.get('cookie'), 'wa_chal');
+        if (!challenge) return null;
+
+        const db = getDb();
+        const stored = await findCredentialByCredentialId(db, assertion.id);
+        if (!stored) return null;
+
+        const host =
+          request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost';
+        const rp = resolveRp(host);
+
+        let result: { verified: boolean; newCounter: number };
+        try {
+          result = await verifyAuthentication({
+            rp,
+            response: assertion,
+            expectedChallenge: challenge,
+            credential: {
+              credentialId: stored.credentialId,
+              publicKey: stored.publicKey,
+              counter: stored.counter,
+              transports: stored.transports,
+            },
+          });
+        } catch {
+          return null;
+        }
+        if (!result.verified) return null;
+
+        await updateCredentialCounter(db, stored.id, result.newCounter);
+        const u = await getActiveUserById(db, stored.userId);
+        if (!u) return null;
+        return { id: u.id, email: u.email, name: u.displayName };
       },
     }),
   ],

@@ -53,7 +53,11 @@ function generateNonce(): string {
 export const proxy = auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = Boolean(req.auth?.user);
-  const isPublic = nextUrl.pathname === '/login' || nextUrl.pathname.startsWith('/api/auth');
+  const isPublic =
+    nextUrl.pathname === '/login' ||
+    nextUrl.pathname.startsWith('/api/auth') ||
+    // Opciones de login con passkey: necesarias ANTES de autenticar (§NIVEL 2/15).
+    nextUrl.pathname.startsWith('/api/webauthn/authenticate');
 
   if (!isPublic && !isLoggedIn) {
     return NextResponse.redirect(new URL('/login', nextUrl.origin));

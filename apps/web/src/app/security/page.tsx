@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation';
 import QRCode from 'qrcode';
 import { ClinicalCard, Badge, Alert, Button } from '@medical-os/design-system';
-import { getUserMfaState, totpAuthUri } from '@medical-os/db';
+import { getUserMfaState, totpAuthUri, listUserCredentials } from '@medical-os/db';
 import type { UserId } from '@medical-os/shared';
 import { getSessionUserId } from '@/server/context';
 import { getDb } from '@/server/db';
 import { startMfaAction, disableMfaAction } from './actions';
 import { ConfirmMfaForm } from './ConfirmMfaForm';
+import { PasskeyManager } from './PasskeyManager';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,8 +25,11 @@ export default async function SecurityPage({
   if (!userId) redirect('/login');
   const { enroll } = await searchParams;
 
-  const mfa = await getUserMfaState(getDb(), userId as UserId);
+  const db = getDb();
+  const mfa = await getUserMfaState(db, userId as UserId);
   if (!mfa) redirect('/login');
+
+  const passkeys = await listUserCredentials(db, userId as UserId);
 
   const enrolling = enroll === '1' && !mfa.enabled && mfa.hasSecret && mfa.secret;
   const qrDataUrl = enrolling
@@ -86,6 +90,22 @@ export default async function SecurityPage({
           </>
         )}
       </ClinicalCard>
+
+      <div style={{ height: 'var(--space-5)' }} />
+      <PasskeyManager
+        passkeys={passkeys.map((p) => ({
+          id: p.id,
+          name: p.name,
+          deviceType: p.deviceType,
+          backedUp: p.backedUp,
+          createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : String(p.createdAt),
+          lastUsedAt: p.lastUsedAt
+            ? p.lastUsedAt instanceof Date
+              ? p.lastUsedAt.toISOString()
+              : String(p.lastUsedAt)
+            : null,
+        }))}
+      />
     </div>
   );
 }
