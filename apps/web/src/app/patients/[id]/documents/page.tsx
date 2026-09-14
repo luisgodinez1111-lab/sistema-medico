@@ -59,6 +59,9 @@ export default async function DocumentsPage({ params }: { params: Promise<{ id: 
                   <li key={d.id} className="mos-list__item">
                     <span>
                       <strong>{d.title}</strong>
+                      {d.documentDate ? (
+                        <span className="mos-muted"> · {d.documentDate}</span>
+                      ) : null}
                       <br />
                       <span className="mos-muted">
                         {d.contentType}

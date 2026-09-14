@@ -5,6 +5,22 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@medical-os/design-system';
 import { requestUploadTarget, finalizeDocument } from './actions';
 
+/** Límite y tipos permitidos para documentos clínicos. */
+const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
+const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'application/dicom'];
+
+function validateFile(file: File): string | null {
+  if (file.size > MAX_BYTES) {
+    return `El archivo supera el límite de 20 MB (${(file.size / 1024 / 1024).toFixed(1)} MB).`;
+  }
+  const type = file.type || '';
+  const isDicom = /\.dcm$/i.test(file.name);
+  if (!ALLOWED_TYPES.includes(type) && !isDicom) {
+    return 'Tipo no permitido. Sube PDF, imagen (JPG/PNG) o DICOM.';
+  }
+  return null;
+}
+
 /** SHA-256 hex del archivo, calculado en el navegador (integridad, §33 #5). */
 async function sha256Hex(file: File): Promise<string> {
   const buf = await file.arrayBuffer();
@@ -26,6 +42,11 @@ export function DocumentUploader({ documentId }: { documentId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   async function onFile(file: File): Promise<void> {
+    const invalid = validateFile(file);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {

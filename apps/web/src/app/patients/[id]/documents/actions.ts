@@ -43,14 +43,19 @@ export async function registerDocumentAction(
   const patientId = str(formData, 'patientId') as PatientId;
   const title = str(formData, 'title');
   const contentType = str(formData, 'contentType') || 'application/pdf';
+  const documentDate = str(formData, 'documentDate');
   if (!patientId) return { status: 'error', message: 'Paciente inválido.' };
   if (!title) return { status: 'error', message: 'Indica el título del documento.' };
+  if (documentDate && !/^\d{4}-\d{2}-\d{2}$/.test(documentDate)) {
+    return { status: 'error', message: 'Fecha del documento inválida.' };
+  }
 
   const provider = storage();
   const created = await new DocumentRepository(getDb(), ctx).register({
     patientId,
     title,
     contentType,
+    ...(documentDate ? { documentDate } : {}),
     storageProvider: provider.provider,
   });
   if (!created) return { status: 'error', message: 'No se pudo registrar (paciente no válido).' };

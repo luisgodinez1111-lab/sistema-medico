@@ -312,7 +312,13 @@ servidor sella hash+clave+tamaño (`finalizeDocument`) y audita cada fase
 (presign-upload / stored / download). Descarga vía proxy autorizado
 `/api/patients/[id]/documents/[docId]/download` → redirect 302 a GET prefirmado.
 UI: botón "Subir archivo" (pendientes, si hay storage) y "Descargar" (almacenados).
-9 pruebas de firma determinista.
+Pruebas de firma determinista, incl. tolerar endpoint con bucket incluido (R2).
+**VERIFICADO EN PRODUCCIÓN con Cloudflare R2** (subida real de un PDF → hash
+SHA-256 coincidente → descarga por GET firmado que renderiza el archivo; CORS OK).
+**Fecha del documento + orden clínico:** columna `document_date` (migración `0020`);
+el expediente ordena por `coalesce(document_date, created_at)` desc (por cuándo se
+TOMÓ el estudio, no por subida). **Validación:** tamaño ≤ 20 MB y tipo (PDF/imagen/
+DICOM) en cliente + límite en `markStored` (servidor).
 
 **Importación FHIR / adaptadores externos (R5 — completado):** módulo
 `fhir-import.ts` — mapeo de ENTRADA (inverso de `fhir.ts`): `parseFhirPatient`,

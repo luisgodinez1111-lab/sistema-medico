@@ -73,6 +73,46 @@ describe('DocumentRepository (R5)', () => {
     expect(stored.storageProvider).toBe('blob');
   });
 
+  it('ordena por fecha del documento (no por subida); sin fecha cae a created_at', async () => {
+    const p = await new PatientRepository(db, ctxA).create(base);
+    const repo = new DocumentRepository(db, ctxA);
+    // Se registran en un orden y con fechas de estudio distintas.
+    await repo.register({
+      patientId: p.id,
+      title: 'Estudio viejo',
+      contentType: 'application/pdf',
+      documentDate: '2020-01-15',
+    });
+    await repo.register({
+      patientId: p.id,
+      title: 'Estudio reciente',
+      contentType: 'application/pdf',
+      documentDate: '2026-08-01',
+    });
+    await repo.register({ patientId: p.id, title: 'Sin fecha', contentType: 'application/pdf' });
+    const list = await repo.listForPatient(p.id);
+    // "Sin fecha" usa created_at (hoy) → primero; luego 2026, luego 2020.
+    expect(list.map((d) => d.title)).toEqual(['Sin fecha', 'Estudio reciente', 'Estudio viejo']);
+  });
+
+  it('markStored rechaza archivos por encima del límite de tamaño', async () => {
+    const p = await new PatientRepository(db, ctxA).create(base);
+    const repo = new DocumentRepository(db, ctxA);
+    const doc = await repo.register({
+      patientId: p.id,
+      title: 'Grande',
+      contentType: 'application/pdf',
+    });
+    expect(
+      await repo.markStored(doc!.id, {
+        contentHash: 'a'.repeat(64),
+        storageKey: 'k',
+        storageProvider: 's3',
+        sizeBytes: 25 * 1024 * 1024, // 25 MB > 20 MB
+      }),
+    ).toBe(false);
+  });
+
   it('no registra documentos en paciente de otro tenant; lista aislada', async () => {
     const p = await new PatientRepository(db, ctxA).create(base);
     expect(

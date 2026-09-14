@@ -1,4 +1,4 @@
-import { and, eq, isNull, desc } from 'drizzle-orm';
+import { and, eq, isNull, desc, sql } from 'drizzle-orm';
 import { newDocumentId, type DocumentId, type PatientId } from '@medical-os/shared';
 import type { Database } from '../client';
 import type { TenantContext } from '../tenant-context';
@@ -6,10 +6,15 @@ import { clinicalDocument, patient } from '../schema';
 
 export type ClinicalDocumentRow = (typeof clinicalDocument)['$inferSelect'];
 
+/** Tamaño máximo por archivo (bytes). Se sella sólo si el cliente lo respeta. */
+export const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024; // 20 MB
+
 export interface RegisterDocumentInput {
   patientId: PatientId;
   title: string;
   contentType: string;
+  /** Fecha clínica del documento (YYYY-MM-DD), cuándo se tomó el estudio. */
+  documentDate?: string;
   storageProvider?: string;
 }
 
@@ -66,7 +71,12 @@ export class DocumentRepository {
           isNull(clinicalDocument.deletedAt),
         ),
       )
-      .orderBy(desc(clinicalDocument.createdAt));
+      // Orden clínico: por fecha del documento (cuándo se tomó); si no hay, por la
+      // de subida. Más reciente primero.
+      .orderBy(
+        desc(sql`coalesce(${clinicalDocument.documentDate}, ${clinicalDocument.createdAt}::date)`),
+        desc(clinicalDocument.createdAt),
+      );
     return rows as ClinicalDocumentRow[];
   }
 
@@ -80,6 +90,7 @@ export class DocumentRepository {
         tenantId: this.ctx.tenantId,
         patientId: input.patientId,
         title: input.title,
+        documentDate: input.documentDate ?? null,
         contentType: input.contentType,
         storageProvider: input.storageProvider ?? 'unconfigured',
         uploadedBy: this.ctx.userId,
@@ -96,6 +107,8 @@ export class DocumentRepository {
     id: DocumentId,
     input: { contentHash: string; storageKey: string; storageProvider: string; sizeBytes?: number },
   ): Promise<boolean> {
+    // Defensa servidor: no sella archivos por encima del límite (§33 #5).
+    if (input.sizeBytes !== undefined && input.sizeBytes > MAX_DOCUMENT_BYTES) return false;
     const [updated] = await this.db
       .update(clinicalDocument)
       .set({

@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, text, integer, timestamp, index } from 'drizzle-orm/pg-core';
+import { pgTable, pgEnum, text, integer, date, timestamp, index } from 'drizzle-orm/pg-core';
 import type { DocumentId, PatientId, TenantId, UserId } from '@medical-os/shared';
 
 /**
@@ -20,6 +20,12 @@ export const clinicalDocument = pgTable(
     patientId: text('patient_id').notNull().$type<PatientId>(),
 
     title: text('title').notNull(),
+    /**
+     * Fecha clínica del documento: cuándo se TOMÓ/realizó el estudio (no cuándo se
+     * subió). El expediente se ordena por esta fecha, cayendo a `created_at` si no
+     * se especifica. Nullable: puede no conocerse al registrar.
+     */
+    documentDate: date('document_date'),
     contentType: text('content_type').notNull(),
     sizeBytes: integer('size_bytes'),
     /** Hash de integridad del contenido (SHA-256 hex) cuando está almacenado. */

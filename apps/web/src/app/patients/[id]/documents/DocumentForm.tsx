@@ -36,6 +36,10 @@ export function DocumentForm({ patientId }: { patientId: string }) {
               <option value="application/dicom">DICOM</option>
             </select>
           </label>
+          <label className="mos-field">
+            <span>Fecha del documento/estudio (opcional)</span>
+            <input name="documentDate" type="date" />
+          </label>
         </div>
         <div className="mos-form__actions">
           <Button type="submit" variant="primary" disabled={pending}>
