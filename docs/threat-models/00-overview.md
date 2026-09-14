@@ -65,7 +65,9 @@ BD → audit event. El cliente **nunca** es fuente de verdad de tenant ni de per
 2. ~~CSP a nonce~~ ✅ hecho en `script-src` (nonce + `strict-dynamic`).
 3. **Rate-limit distribuido** (Upstash) + **WAF/bot control** (Vercel).
 4. **Antivirus/scan** de documentos.
-5. **ABAC/ReBAC + break-glass**; **SAST/DAST**; **pentest** previo a go-live.
+5. **ABAC/ReBAC + break-glass**; **DAST autenticado/activo** (el baseline de ZAP sólo
+   cubre la superficie sin sesión) + **pentest** previo a go-live. SAST (CodeQL +
+   Semgrep) y dependency-review ya en CI.
 
 > Este modelo se revisa cuando cambia un dominio o se añade una superficie (nuevo endpoint,
 > integración externa, IA real). Ver `docs/security/incident-response.md`.

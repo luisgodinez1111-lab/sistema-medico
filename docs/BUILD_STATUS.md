@@ -60,9 +60,12 @@ si el usuario tiene MFA activo. 5 pruebas del motor.
 CSP endurecida con **nonce por-request** en `script-src` (+ `strict-dynamic`), emitida
 en `proxy.ts`; `style-src` conserva `'unsafe-inline'` porque los atributos `style={{}}`
 no admiten nonce en CSP.
+CI de seguridad (§15): CodeQL + **Semgrep** (SAST → Code Scanning), gitleaks (secretos),
+pnpm audit + **dependency-review** (deps en PR) y **ZAP baseline** (DAST programado,
+superficie no autenticada) en `.github/workflows/{ci,dast}.yml`.
 **Pendiente NIVEL 15:** aprovisionar Upstash (rate-limit distribuido); WebAuthn/passkeys;
-WAF/bot control; rotación de secretos programada; SAST/DAST/scan de contenedores;
-pentest previo a go-live.
+WAF/bot control; rotación de secretos programada; **DAST autenticado/activo** + pentest
+previo a go-live.
 
 ## Release R0 — Foundation
 

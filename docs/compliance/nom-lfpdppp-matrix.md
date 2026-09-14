@@ -45,7 +45,7 @@ Leyenda: ✅ implementado · 🟨 parcial · ⬜ pendiente
 | Cabeceras/CSP/HSTS | ✅ (CSP con nonce por-request en `script-src` + `strict-dynamic`; `style-src` conserva `'unsafe-inline'` por los atributos `style={{}}`, que CSP no cubre con nonce) |
 | Rate limiting | ✅ login/search/export/upload (distribuido con Upstash pendiente) |
 | Cifrado en tránsito/reposo | ✅ (TLS + cifrado gestionado de Neon/R2) |
-| SAST/DAST/deps scan | 🟨 (CodeQL + gitleaks; falta Semgrep/dependency-review/DAST) |
+| SAST/DAST/deps scan | 🟨 (SAST: CodeQL + Semgrep→Code Scanning; secretos: gitleaks; deps: pnpm audit + dependency-review en PR; DAST: ZAP baseline programado — sólo superficie no autenticada; falta DAST autenticado/activo → pentest) |
 | Threat models | ✅ (`docs/threat-models/`) |
 | Pentest previo a producción | ⬜ (externo) |
 | Backups/PITR + drills (RTO/RPO) | 🟨 (Neon PITR disponible; faltan drills documentados — NIVEL 17) |
