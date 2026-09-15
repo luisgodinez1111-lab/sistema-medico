@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{migrationGate}from"../../packages/migration-safety/src";describe("migration",()=>{it("blocks destructive clinical migration",()=>expect(migrationGate({destructive:true,backfillRequired:false,clinicalTable:true,rollbackPlan:true}).allowed).toBe(false));});

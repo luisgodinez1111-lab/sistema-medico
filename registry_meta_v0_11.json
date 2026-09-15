@@ -1,0 +1,13 @@
+{
+  "version": "0.11-CLINICAL-SAFETY-ARCHITECTURE",
+  "status": "SAFETY_CASE_CHAIN_FORMALIZED_RELEASE_BLOCKED",
+  "core_invariants": 8,
+  "core_hazards": 6,
+  "controls": 8,
+  "test_sources": 12,
+  "architecture_self_check": "PASS",
+  "evidence_bundle_generation": "PASS",
+  "full_test_execution": "NOT_ESTABLISHED_IN_THIS_ITERATION",
+  "release_state": "BLOCKED",
+  "source_registry_sha256": "08bebd80bb8fca4c83b947fd2f391664592f3f1a3e93fc7316a9e40ed2c65957"
+}

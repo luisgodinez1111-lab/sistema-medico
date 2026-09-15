@@ -1,0 +1,5 @@
+{
+  "status": "PASS",
+  "stdout": "{\n  \"status\": \"PASS\",\n  \"tests\": 8,\n  \"results\": [\n    {\n      \"name\": \"unassessed defects block release\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"C5 requires human approved evidence\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"mapping pending blocks RG-001\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"idempotency key/request mismatch blocks\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"outbox lease expires deterministically\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"corrected-result self-cycle blocks\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"C5 AI accepted without reviewer blocks\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"destructive clinical migration blocks\",\n      \"status\": \"PASS\"\n    }\n  ]\n}\n",
+  "stderr": ""
+}

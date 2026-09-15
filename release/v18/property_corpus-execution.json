@@ -1,0 +1,5 @@
+{
+  "status": "PASS",
+  "stdout": "{\n  \"status\": \"PASS\",\n  \"cases\": 5000,\n  \"detected\": {\n    \"partialTruth\": 2188,\n    \"crossTenant\": 2454,\n    \"version\": 4207\n  },\n  \"missed\": 0\n}\n",
+  "stderr": ""
+}

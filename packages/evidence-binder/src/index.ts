@@ -1,0 +1,1 @@
+import crypto from'node:crypto';export function bindEvidence(x:{releaseId:string;sourceHash:string;command:string;exitCode:number;stdout:string;runner:string;toolchain:string;commit:string}){return{...x,evidenceHash:crypto.createHash('sha256').update(JSON.stringify(x)).digest('hex')};}

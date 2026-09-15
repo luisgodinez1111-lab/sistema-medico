@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {projectPatientState} from "../../packages/patient-state/src";describe("patient state",()=>{it("projects longitudinal counters",()=>{const s={patientId:"p",openObligations:0,overdueObligations:0,activeMedications:0,openResults:0,version:0};expect(projectPatientState(s,{type:"RESULT_OPENED"}).openResults).toBe(1)});});

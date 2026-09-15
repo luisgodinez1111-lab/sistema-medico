@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {ResultService} from "../../packages/result-service/src";describe("result service",()=>{it("creates followup obligation",async()=>{let made=false;const s=new ResultService({create:async()=>{made=true}});await s.requireAction({id:"r",orderId:"o",state:"VERIFIED",version:1},"p","u","2026-01-01");expect(made).toBe(true)});});

@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "2.0",
+  "capability": "CAP-TRUTH-001",
+  "name": "Clinical Truth & Epistemic Integrity",
+  "risk": "C5",
+  "authority": [
+    "ENG-303",
+    "ENG-304",
+    "ENG-305",
+    "ENG-324"
+  ],
+  "hazardCase": [
+    {
+      "id": "HAZ-CORE-0002",
+      "authority": [
+        "ENG-303",
+        "ENG-304",
+        "ENG-324"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "Inference/recommendation is presented or persisted as verified clinical truth.",
+      "foreseeableSequence": [
+        "AI/system inference",
+        "epistemic promotion",
+        "physician sees false certainty"
+      ],
+      "potentialHarm": "Clinical decision based on unsupported certainty.",
+      "controls": [
+        "CTL-0003",
+        "CTL-0005"
+      ]
+    },
+    {
+      "id": "HAZ-CORE-0003",
+      "authority": [
+        "ENG-273",
+        "ENG-303"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "Missing/conflicting/unsupported data is coerced into a normal/negative/zero/success state.",
+      "foreseeableSequence": [
+        "dependency/input failure",
+        "fallback coercion",
+        "reassuring display"
+      ],
+      "potentialHarm": "Missed diagnosis, inappropriate reassurance, or unsafe treatment decision.",
+      "controls": [
+        "CTL-0004"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0003",
+      "authority": [
+        "ENG-303",
+        "ENG-304",
+        "ENG-324"
+      ],
+      "type": "PREVENTIVE",
+      "name": "Epistemic promotion guard",
+      "invariant": "INV-CORE-0003",
+      "verification": [
+        "unit:test-epistemic-truth"
+      ],
+      "failure": "BLOCK"
+    },
+    {
+      "id": "CTL-0004",
+      "authority": [
+        "ENG-273",
+        "ENG-303"
+      ],
+      "type": "PREVENTIVE",
+      "name": "Non-computed states cannot carry reassuring values",
+      "invariant": "INV-CORE-0004",
+      "verification": [
+        "unit:test-clinical-semantics",
+        "unit:test-invariants"
+      ],
+      "failure": "BLOCK"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-CORE-0003",
+      "authority": [
+        "ENG-303",
+        "ENG-304",
+        "ENG-324"
+      ],
+      "risk": "C5",
+      "statement": "AI/system cannot promote recommendation to DECIDED/SIGNED clinical authority.",
+      "predicate": "invPhysicianAuthority",
+      "tests": [
+        "invariants.test.ts",
+        "epistemic-truth.test.ts"
+      ]
+    },
+    {
+      "id": "INV-CORE-0004",
+      "authority": [
+        "ENG-273",
+        "ENG-303"
+      ],
+      "risk": "C5",
+      "statement": "Non-COMPUTED state cannot carry a normal/reassuring clinical value.",
+      "predicate": "invUnknownNeverReassuring",
+      "tests": [
+        "invariants.test.ts",
+        "clinical-semantics.test.ts"
+      ]
+    }
+  ],
+  "stateMachines": [
+    "SM-FORMAL-TRUTH-001"
+  ],
+  "tests": [
+    "epistemic-truth.test.ts",
+    "clinical-semantics.test.ts",
+    "invariants.test.ts"
+  ],
+  "releasePolicy": "FAIL_CLOSED",
+  "safetyArgument": [
+    "Authority establishes intended behavior and boundaries.",
+    "Hazards identify foreseeable unsafe conditions.",
+    "Controls prevent, detect, correct, or recover from those conditions.",
+    "Invariants define conditions that must remain true.",
+    "Tests provide executable oracles; execution evidence is separately required.",
+    "Capability remains blocked when any required safety-case element is absent."
+  ],
+  "dossierSha256": "a722307b5c2158e03b547e832868b765c9be810114744ee28daa2eabff4c1f77"
+}

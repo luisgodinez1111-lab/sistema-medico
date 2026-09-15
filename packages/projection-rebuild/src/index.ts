@@ -1,0 +1,2 @@
+export type ProjectionCheckpoint=Readonly<{name:string;lastSequence:number;hash:string}>;
+export function rebuild<S,E extends {sequence:number}>(initial:S,events:readonly E[],apply:(s:S,e:E)=>S){let state=initial,last=0;for(const e of [...events].sort((a,b)=>a.sequence-b.sequence)){if(e.sequence!==last+1)throw new Error("PROJECTION_SEQUENCE_GAP");state=apply(state,e);last=e.sequence;}return{state,lastSequence:last};}

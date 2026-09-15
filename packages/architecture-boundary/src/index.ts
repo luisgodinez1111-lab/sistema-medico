@@ -1,0 +1,1 @@
+export const deprecatedRuntimePackages=["atomic-clinical-transaction","atomic-clinical-transaction-v2","audit-ledger","audit-chain-v2"] as const;export function assertProductionImport(path:string){if(deprecatedRuntimePackages.some(x=>path.includes(`/packages/${x}/`)))throw Error("DEPRECATED_RUNTIME_IMPORT");return true;}

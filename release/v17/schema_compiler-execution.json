@@ -1,0 +1,5 @@
+{
+  "status": "PASS",
+  "stdout": "{\n  \"status\": \"WARN\",\n  \"tables\": 39,\n  \"issues\": [\n    {\n      \"severity\": \"S2\",\n      \"code\": \"TABLE_REDECLARATION_DRIFT\",\n      \"table\": \"release_evidence\",\n      \"first\": \"0005_production_engineering.sql\",\n      \"again\": \"0010_atomic_runtime.sql\"\n    },\n    {\n      \"severity\": \"S2\",\n      \"code\": \"TABLE_REDECLARATION_DRIFT\",\n      \"table\": \"projection_checkpoints\",\n      \"first\": \"0007_golden_vertical_slice.sql\",\n      \"again\": \"0011_reproducible_clinical_runtime.sql\"\n    }\n  ]\n}\n",
+  "stderr": ""
+}

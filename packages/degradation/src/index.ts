@@ -1,0 +1,1 @@
+export type Dependency="AI"|"TERMINOLOGY"|"NOTIFICATIONS"|"ANALYTICS";export function degradedMode(down:readonly Dependency[]){return{clinicalWrite:true,ai:!down.includes("AI"),terminology:!down.includes("TERMINOLOGY"),notifications:!down.includes("NOTIFICATIONS"),analytics:!down.includes("ANALYTICS")};}

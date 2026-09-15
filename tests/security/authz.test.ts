@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {authorize} from "../../packages/authz/src";describe("authz",()=>{it("blocks cross tenant",()=>expect(()=>authorize({actorId:"u",tenantId:"a",roles:["PHYSICIAN"],scopes:["x"],purpose:"TREATMENT"},{tenantId:"b"})).toThrow(/CROSS_TENANT/));});

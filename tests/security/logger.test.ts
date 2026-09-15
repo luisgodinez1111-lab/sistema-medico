@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {serializeLog} from "../../packages/logger/src";describe("logger",()=>{it("redacts token",()=>expect(serializeLog({level:"info",event:"x",at:"x",correlationId:"c",fields:{token:"secret"}})).not.toContain("secret"));});

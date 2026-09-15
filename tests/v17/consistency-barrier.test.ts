@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{readAdmission}from"../../packages/consistency-barrier/src";describe("consistency",()=>it("blocks stale",()=>expect(()=>readAdmission({projectionSequence:4,authoritySequence:5})).toThrow(/STALE/)));

@@ -1,0 +1,12 @@
+{
+  "version": "3.0",
+  "style": "modular-monolith-first, event-driven boundaries, extract services only by measured need",
+  "data": "Postgres/Neon source of truth; append-only clinical events + normalized projections; transactional outbox",
+  "consistency": "strong consistency inside clinical aggregate; explicit eventual consistency across async projections",
+  "security": "tenant isolation + least privilege + purpose of use + immutable audit evidence",
+  "delivery": "evidence-gated feature release with shadow/canary/enabled states",
+  "reliability": "idempotency, optimistic concurrency, retry/dead-letter, reconciliation ownership",
+  "observability": "capability-scoped clinical SLOs and rollback triggers",
+  "ai": "gateway only; bounded tasks; safety envelopes; no direct irreversible clinical actions",
+  "principle": "do not distribute complexity prematurely; preserve service extraction seams"
+}

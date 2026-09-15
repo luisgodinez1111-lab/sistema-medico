@@ -1,0 +1,25 @@
+{
+  "id": "SC-V16-RLS",
+  "risk": "C5",
+  "hazards": [
+    {
+      "id": "HAZ-TENANT-BYPASS",
+      "description": "Runtime role bypasses tenant isolation"
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-RLS-ROLE",
+      "description": "FORCE RLS + NOBYPASSRLS runtime role"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-RLS-001",
+      "description": "No runtime request can authorize cross-tenant row"
+    }
+  ],
+  "evidence_state": "EXECUTED_PASS_STRUCTURAL_ONLY",
+  "human_review": "PENDING",
+  "release_admitted": false
+}

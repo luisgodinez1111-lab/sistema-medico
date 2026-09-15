@@ -1,0 +1,8 @@
+{
+  "version": "0.10-REPRODUCIBLE-EVIDENCE",
+  "self_check": "PASS",
+  "vitest": "NOT_RUN",
+  "release_admission": "BLOCKED",
+  "test_sources": 11,
+  "source_sha256": "1c0f706891642dcf24c61aa2bba66db7407759cce64f30af573efbe932ce0a00"
+}

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{buildEncounterPlan}from"../../packages/golden-slice/src";describe("golden slice",()=>{it("builds atomic encounter plan",()=>expect(buildEncounterPlan({tenantId:"t",patientId:"p",encounterId:"e",actorId:"u",expectedVersion:1,assessment:"A",plan:"P"}).steps.map(x=>x.kind)).toEqual(["STATE","EVENT","OUTBOX","AUDIT"]));});

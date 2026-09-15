@@ -1,0 +1,11 @@
+{
+  "node": "v22.16.0",
+  "npm": "10.9.2",
+  "corepack": true,
+  "pnpm": false,
+  "node_modules": false,
+  "postgres": false,
+  "docker": false,
+  "vitest": "NOT_RUN",
+  "postgres_execution": "NOT_RUN"
+}

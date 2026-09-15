@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{validateCorrectionGraph}from"../../packages/result-correction-graph/src";describe("correction graph",()=>it("detects cycle",()=>expect(()=>validateCorrectionGraph([{original:"a",corrected:"b",patientId:"p",reason:"x"},{original:"b",corrected:"a",patientId:"p",reason:"x"}])).toThrow(/CYCLE/)));

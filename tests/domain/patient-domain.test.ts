@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {evolvePatient} from "../../packages/patient-domain/src";describe("patient",()=>{it("versions state",()=>{const a=evolvePatient(undefined,{type:"CREATE_PATIENT",id:"p",tenantId:"t"});expect(evolvePatient(a,{type:"SET_STATUS",status:"INACTIVE"}).version).toBe(2)});});

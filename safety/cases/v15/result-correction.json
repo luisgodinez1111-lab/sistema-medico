@@ -1,0 +1,1 @@
+{"id":"SC-V15-CORRECTION","risk":"C5","hazards":["obsolete result drives care","correction cycle"],"controls":["immutable correction edge","impact graph","owned reconciliation"],"invariants":["correction graph acyclic","actioned descendants reviewed"],"recovery":"patient impact workflow","humanReview":"PENDING"}

@@ -1,0 +1,6 @@
+
+import fs from"node:fs";import crypto from"node:crypto";const j=p=>JSON.parse(fs.readFileSync(p)),e=[],m=j("release/test-evidence-manifest.json"),c=j("capabilities/catalog.json");
+for(const x of m){if(!fs.existsSync(x.test)){e.push("MISSING:"+x.test);continue;}if(crypto.createHash("sha256").update(fs.readFileSync(x.test)).digest("hex")!==x.sha256)e.push("HASH:"+x.test);}
+const map=j("release/v8/mapping-adjudication-status.json"),def=j("release/defects-v8.json");if(map.rg001!=="BLOCKED")e.push("RG001_NOT_BLOCKED");if(def.attestation!=="NOT_ASSESSED")e.push("DEFECT_ATTESTATION_INVALID");
+const req=["packages/release-evidence/src/index.ts","packages/defect-governance/src/index.ts","packages/mapping-governance/src/index.ts","packages/idempotency-persistent/src/index.ts","packages/replay-engine/src/index.ts","packages/result-correction/src/index.ts","packages/ai-evidence/src/index.ts","db/migrations/0005_production_engineering.sql"];
+for(const p of req)if(!fs.existsSync(p))e.push("CORE:"+p);console.log(JSON.stringify({status:e.length?"FAIL":"PASS",counts:{capabilities:c.length,testSources:m.length,required:req.length},rg001:map.rg001,defects:def.attestation,errors:e},null,2));if(e.length)process.exit(1);

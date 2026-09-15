@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{reconcileCandidates}from"../../packages/ai-task-registry/src";describe("AI candidates",()=>{it("pending blocks admission",()=>expect(reconcileCandidates([{candidateId:"1",status:"PENDING"}],[{id:"c",category:"x",risk:"C4",authority:["a"],status:"ACTIVE"}]).admitted).toBe(false));});

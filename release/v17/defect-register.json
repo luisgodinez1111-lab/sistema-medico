@@ -1,0 +1,36 @@
+{
+  "new_critical_repaired": [
+    {
+      "id": "DEF-V17-001",
+      "severity": "S1",
+      "title": "v16 atomic transaction did not own a database transaction; statements could commit independently",
+      "state": "REPAIRED_IN_V17_V3"
+    }
+  ],
+  "historical_retired_findings": [
+    [
+      "S1-RETIRED",
+      "V2_NOT_ATOMIC",
+      "v2 remains historical and must not be imported"
+    ]
+  ],
+  "open_noncritical": [],
+  "schema_warnings": [
+    {
+      "severity": "S2",
+      "code": "TABLE_REDECLARATION_DRIFT",
+      "table": "release_evidence",
+      "first": "0005_production_engineering.sql",
+      "again": "0010_atomic_runtime.sql"
+    },
+    {
+      "severity": "S2",
+      "code": "TABLE_REDECLARATION_DRIFT",
+      "table": "projection_checkpoints",
+      "first": "0007_golden_vertical_slice.sql",
+      "again": "0011_reproducible_clinical_runtime.sql"
+    }
+  ],
+  "human_defect_attestation": "NOT_ASSESSED",
+  "release": "BLOCKED"
+}

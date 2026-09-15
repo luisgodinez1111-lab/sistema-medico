@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {assertConsent} from "../../packages/consent/src";describe("consent",()=>{it("rejects revoked",()=>expect(()=>assertConsent({patientId:"p",scope:"research",status:"REVOKED",effectiveAt:"x"},"research","2026-01-01")).toThrow(/CONSENT/));});

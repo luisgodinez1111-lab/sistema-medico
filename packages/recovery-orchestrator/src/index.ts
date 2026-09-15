@@ -1,0 +1,2 @@
+export type RecoveryFinding=Readonly<{id:string;kind:"OUTBOX_DEAD_LETTER"|"PROJECTION_GAP"|"ORPHAN_RESULT"|"OVERDUE_CRITICAL";patientId?:string;ownerId?:string}>;
+export function recoveryPlan(f:RecoveryFinding){switch(f.kind){case"OUTBOX_DEAD_LETTER":return{action:"REQUEUE_OR_ESCALATE",blocksRelease:true};case"PROJECTION_GAP":return{action:"REBUILD_FROM_CHECKPOINT",blocksRelease:true};case"ORPHAN_RESULT":return{action:"CREATE_OWNER_OBLIGATION",blocksRelease:true};case"OVERDUE_CRITICAL":return{action:"ESCALATE_OWNER",blocksRelease:false};}}

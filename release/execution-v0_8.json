@@ -1,0 +1,6 @@
+{
+  "node": "v22.16.0",
+  "pnpm": null,
+  "tests": "NOT_RUN",
+  "reason": "[Errno 13] Permission denied: 'pnpm'"
+}

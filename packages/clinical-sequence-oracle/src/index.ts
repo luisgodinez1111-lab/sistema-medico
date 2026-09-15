@@ -1,0 +1,2 @@
+export type E=Readonly<{seq:number;type:string;signed?:boolean;correctionOf?:number}>;
+export function sequenceErrors(xs:readonly E[]){const e:string[]=[];let last=0,signed=false;for(const x of xs){if(x.seq!==last+1)e.push("SEQUENCE_GAP");if(signed&&x.type!=="AMENDMENT")e.push("POST_SIGN_MUTATION");if(x.type==="SIGN")signed=true;if(x.correctionOf!==undefined&&x.correctionOf>=x.seq)e.push("INVALID_CORRECTION_REFERENCE");last=x.seq}return[...new Set(e)]}

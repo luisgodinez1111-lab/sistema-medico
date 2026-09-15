@@ -1,0 +1,2 @@
+export type Impact=Readonly<{patientId:string;artifactId:string;actionId?:string;severity:"REVIEW"|"URGENT_REVIEW"}>;
+export function correctedResultImpact(executions:readonly {patientId:string;resultId:string;artifactId:string;actionId?:string}[],supersededResultId:string){return executions.filter(x=>x.resultId===supersededResultId).map(x=>({patientId:x.patientId,artifactId:x.artifactId,actionId:x.actionId,severity:x.actionId?"URGENT_REVIEW":"REVIEW"} as const));}

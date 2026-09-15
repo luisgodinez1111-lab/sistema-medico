@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{validateAiReceipt}from"../../packages/ai-evidence/src";describe("AI receipt",()=>{it("C5 accepted requires reviewer",()=>expect(()=>validateAiReceipt({taskId:"t",model:"m",modelVersion:"1",promptTemplateVersion:"1",inputHash:"i",evidenceIds:["e"],outputHash:"o",decision:"ACCEPTED"},"C5")).toThrow(/HUMAN/));});

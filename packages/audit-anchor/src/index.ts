@@ -1,0 +1,1 @@
+import crypto from"node:crypto";export function anchor(partition:string,lastHash:string,at:string){return{partition,lastHash,at,anchor:crypto.createHash("sha256").update(`${partition}:${lastHash}:${at}`).digest("hex")};}

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{restoreErrors}from"../../packages/restore-proof/src";describe("restore",()=>it("replay mismatch blocks",()=>expect(restoreErrors({schemaHash:"a",expectedSchemaHash:"a",auditValid:true,rlsPass:true,replayHash:"x",liveHash:"y",obligationsMatch:true})).toContain("REPLAY")));

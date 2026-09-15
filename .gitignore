@@ -1,40 +1,10 @@
-# Dependencies
 node_modules/
-.pnpm-store/
-
-# Build outputs
+.next/
 dist/
 build/
-.next/
-out/
-*.tsbuildinfo
 .turbo/
-storybook-static/
-
-# Env & secrets — NUNCA commitear (ver §15, §33 del plan)
-.env
-.env.*
-!.env.example
-*.pem
-*.key
-
-# Testing
 coverage/
-playwright-report/
-test-results/
-.vitest/
-
-# Editor / OS
-.DS_Store
-.idea/
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
 *.log
-npm-debug.log*
-
-# Vercel
+.DS_Store
+.env.local
 .vercel
-
-# Drizzle
-drizzle/meta/_journal.json.bak

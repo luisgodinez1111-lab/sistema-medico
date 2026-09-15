@@ -1,0 +1,2 @@
+export type Contract=Readonly<{table:string;columns:readonly string[]}>;
+export function schemaDrift(expected:readonly Contract[],actual:readonly Contract[]){const a=new Map(actual.map(x=>[x.table,new Set(x.columns)])),errors:string[]=[];for(const e of expected){const t=a.get(e.table);if(!t){errors.push(`MISSING_TABLE:${e.table}`);continue}for(const c of e.columns)if(!t.has(c))errors.push(`MISSING_COLUMN:${e.table}.${c}`)}return errors}

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{authorizeAiTask}from"../../packages/ai-runtime/src";describe("ai runtime",()=>{it("blocks irreversible action",()=>expect(authorizeAiTask({risk:"C5",evidencePresent:true,humanApproval:true,killSwitchAvailable:true,irreversibleAction:true}).status).toBe("SAFETY_BLOCKED"));});

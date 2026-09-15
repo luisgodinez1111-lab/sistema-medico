@@ -1,0 +1,6 @@
+{
+  "status": "PASS",
+  "returncode": 0,
+  "stdout": "{\n  \"status\": \"PASS\",\n  \"counts\": {\n    \"invariants\": 8,\n    \"hazards\": 6,\n    \"controls\": 8,\n    \"testSources\": 12\n  },\n  \"errors\": []\n}\n",
+  "stderr": ""
+}

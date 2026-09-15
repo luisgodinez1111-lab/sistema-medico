@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{authorizeBreakGlass}from"../../packages/break-glass/src";describe("breakglass",()=>{it("requires reason",()=>expect(()=>authorizeBreakGlass({actorId:"u",patientId:"p",reason:"",expiresAt:10},1)).toThrow(/REASON/));});

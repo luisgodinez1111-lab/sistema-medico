@@ -1,0 +1,55 @@
+{
+  "assessment_scope": "STATIC_ARCHITECTURE_AND_SCHEMA_REVIEW",
+  "newly_identified": [
+    {
+      "id": "DEF-V16-001",
+      "severity": "S1",
+      "title": "Atomic transaction v14/v15 referenced non-existent clinical_events columns",
+      "state": "REPAIRED_IN_V16_SOURCE"
+    },
+    {
+      "id": "DEF-V16-002",
+      "severity": "S1",
+      "title": "Atomic transaction v14/v15 inserted audit_ledger payload column that does not exist",
+      "state": "REPAIRED_BY_AUDIT_CHAIN_V3"
+    },
+    {
+      "id": "DEF-V16-003",
+      "severity": "S1",
+      "title": "Atomic transaction omitted required outbox.aggregate_id",
+      "state": "REPAIRED_IN_V16_SOURCE"
+    },
+    {
+      "id": "DEF-V16-004",
+      "severity": "S2",
+      "title": "projection_checkpoints was re-declared with incompatible schema in v0011",
+      "state": "REPAIRED_BY_NEW_CANONICAL_TABLE"
+    },
+    {
+      "id": "DEF-V16-005",
+      "severity": "S2",
+      "title": "Signed encounter immutability trigger referenced OLD.status while schema uses state",
+      "state": "REPAIRED_IN_V0012"
+    },
+    {
+      "id": "DEF-V16-006",
+      "severity": "S2",
+      "title": "Historical outbox state CHECK excluded LEASED while worker semantics used LEASED",
+      "state": "REPAIRED_IN_V0012"
+    },
+    {
+      "id": "DEF-V16-007",
+      "severity": "S2",
+      "title": "Earlier RLS policies used unsafe direct current_setting UUID cast",
+      "state": "SUPERSEDED_BY_SAFE_HELPER_POLICIES"
+    },
+    {
+      "id": "DEF-V16-008",
+      "severity": "S2",
+      "title": "Release evidence table name was reused with incompatible schemas",
+      "state": "AVOIDED; V16 USES VERSIONED EVIDENCE CONTRACT"
+    }
+  ],
+  "human_defect_attestation": "NOT_ASSESSED",
+  "production_release": "BLOCKED"
+}

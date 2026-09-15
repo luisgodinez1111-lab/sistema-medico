@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{decide}from"../../packages/access-decision/src";describe("access",()=>{it("cross tenant denies",()=>expect(decide({sameTenant:false,role:true,scope:true,purpose:true,consentRequired:false,consent:false,policyVersion:"1"}).allowed).toBe(false));});

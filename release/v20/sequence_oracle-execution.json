@@ -1,0 +1,5 @@
+{
+  "status": "PASS",
+  "stdout": "{\n  \"status\": \"PASS\",\n  \"streams\": 50000,\n  \"violationsDetected\": 628231\n}\n",
+  "stderr": ""
+}

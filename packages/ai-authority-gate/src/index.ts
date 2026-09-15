@@ -1,0 +1,1 @@
+export type AIAction='SUMMARIZE'|'EXTRACT'|'SUGGEST'|'ORDER'|'PRESCRIBE'|'SIGN'|'CLOSE_CRITICAL';export function aiAuthority(a:AIAction){if(['ORDER','PRESCRIBE','SIGN','CLOSE_CRITICAL'].includes(a))return{allowed:false,reason:'HUMAN_AUTHORITY_REQUIRED'};return{allowed:true,reason:'BOUNDED_AI_ACTION'};}

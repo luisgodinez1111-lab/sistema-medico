@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {prescribe} from "../../packages/medication-domain/src";describe("medication",()=>{it("AI cannot prescribe",()=>expect(()=>prescribe({id:"m",state:"PROPOSED",version:1},"AI","x")).toThrow(/PHYSICIAN/));});

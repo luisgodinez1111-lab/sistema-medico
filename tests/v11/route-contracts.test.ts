@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{mutationHeaders}from"../../packages/route-contracts/src";describe("route",()=>{it("requires idempotency",()=>expect(()=>mutationHeaders({"if-match":"x"})).toThrow(/IDEMPOTENCY/));});

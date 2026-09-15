@@ -1,0 +1,8 @@
+{
+  "releaseId": "v9.0-OPERABLE-CLINICAL-SYSTEM",
+  "commit": "UNAVAILABLE_IN_ARTIFACT_SNAPSHOT",
+  "node": "v22.16.0",
+  "databaseSchema": "0006_operable_system",
+  "capabilityCatalogHash": "59b41af727d56737542d2d49c9a19bce59d8c3baccbf79fe5b2894f9e2ab6a1e",
+  "testManifestHash": "0f373754ed54d2b07e8ec2f1ffe0ed147bc0505c89e8918e6b7f569349958415"
+}

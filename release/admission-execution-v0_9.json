@@ -1,0 +1,4 @@
+{
+  "status": "BLOCKED",
+  "reason": "RG-012 requires reproducible PASS test execution evidence."
+}

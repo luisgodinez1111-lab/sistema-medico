@@ -1,0 +1,10 @@
+{
+  "id": "SC-V17-REPLAY",
+  "risk": "C5",
+  "hazard": {
+    "id": "HAZ-REPLAY-GAP",
+    "description": "Replay rejects any non-contiguous sequence"
+  },
+  "human_review": "PENDING",
+  "release_admitted": false
+}

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{resolvePolicy}from"../../packages/policy-conflict-v2/src";describe("policy",()=>it("equal priority conflict blocks",()=>expect(()=>resolvePolicy([{id:"a",priority:1,effectiveFrom:0,decision:"ALLOW",scope:"x"},{id:"b",priority:1,effectiveFrom:0,decision:"DENY",scope:"x"}],1,"x")).toThrow(/CONFLICT/)));

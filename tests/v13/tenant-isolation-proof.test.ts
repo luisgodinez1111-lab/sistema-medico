@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{isolationDecision}from"../../packages/tenant-isolation-proof/src";describe("tenant",()=>it("denies cross tenant",()=>expect(isolationDecision({principalTenant:"a",rowTenant:"b",operation:"READ"}).allowed).toBe(false)));

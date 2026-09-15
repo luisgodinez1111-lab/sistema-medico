@@ -1,0 +1,35 @@
+{
+  "id": "SM-FORMAL-OBLIGATION-001",
+  "authority": [
+    "ENG-308",
+    "ENG-311",
+    "ENG-337"
+  ],
+  "subject": "Zero Lost Follow-Up / Clinical Obligation",
+  "states": [
+    "OPEN",
+    "SCHEDULED",
+    "IN_PROGRESS",
+    "WAITING_EXTERNAL",
+    "OVERDUE",
+    "ESCALATED",
+    "COMPLETED",
+    "CANCELLED",
+    "FAILED"
+  ],
+  "terminal": [
+    "COMPLETED",
+    "CANCELLED"
+  ],
+  "laws": [
+    "Every active obligation has exactly one accountable lifecycle.",
+    "Missing follow-up never equals treatment success or failure.",
+    "FAILED/OVERDUE requires visible recovery or escalation path."
+  ],
+  "reconciliation": {
+    "owner": "Clinical obligation service",
+    "detect": "durable due-date scan + event consistency scan",
+    "recover": "reassign/retry/escalate with reason",
+    "evidence": "obligation ledger + audit"
+  }
+}

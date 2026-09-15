@@ -1,0 +1,5 @@
+import crypto from "node:crypto";
+export type SessionClaims=Readonly<{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:"TREATMENT"|"OPERATIONS"|"BILLING"|"RESEARCH";iat:number;exp:number;sessionId:string}>;
+const b64=(x:Buffer|string)=>Buffer.from(x).toString("base64url");
+export function signSession(c:SessionClaims,secret:string){const body=b64(JSON.stringify(c));const sig=crypto.createHmac("sha256",secret).update(body).digest("base64url");return `${body}.${sig}`;}
+export function verifySession(token:string,secret:string,now=Math.floor(Date.now()/1000)):SessionClaims{const [body,sig]=token.split(".");if(!body||!sig)throw new Error("SESSION_MALFORMED");const expected=crypto.createHmac("sha256",secret).update(body).digest();const actual=Buffer.from(sig,"base64url");if(actual.length!==expected.length||!crypto.timingSafeEqual(actual,expected))throw new Error("SESSION_SIGNATURE");const c=JSON.parse(Buffer.from(body,"base64url").toString());if(now>=c.exp)throw new Error("SESSION_EXPIRED");return c;}

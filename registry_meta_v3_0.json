@@ -1,0 +1,9 @@
+{
+  "version": "3.0-CLINICAL-PLATFORM",
+  "capabilities": 12,
+  "platform_primitives": 9,
+  "test_sources": 21,
+  "architecture_self_check": "PASS",
+  "release_state": "BLOCKED",
+  "source_registry_sha256": "845bfad8ccddcf5b209a081bf1ba98d0a275363bd4d22b50283d6c8157c91a8e"
+}

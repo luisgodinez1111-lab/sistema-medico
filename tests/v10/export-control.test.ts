@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{exportDecision}from"../../packages/export-control/src";describe("export",()=>{it("requires encryption",()=>expect(exportDecision({authorized:true,purpose:"TREATMENT",minimumNecessary:true,encrypted:false}).allowed).toBe(false));});

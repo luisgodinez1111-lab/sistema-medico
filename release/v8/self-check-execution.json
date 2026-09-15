@@ -1,0 +1,5 @@
+{
+  "status": "PASS",
+  "stdout": "{\n  \"status\": \"PASS\",\n  \"counts\": {\n    \"capabilities\": 53,\n    \"testSources\": 57,\n    \"required\": 8\n  },\n  \"rg001\": \"BLOCKED\",\n  \"defects\": \"NOT_ASSESSED\",\n  \"errors\": []\n}\n",
+  "stderr": ""
+}

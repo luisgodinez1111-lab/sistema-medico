@@ -1,0 +1,6 @@
+{
+  "status": "PASS",
+  "returncode": 0,
+  "stdout": "{\n  \"status\": \"PASS\",\n  \"checks\": {\n    \"requiredArtifacts\": 10,\n    \"aiTasks\": 5,\n    \"testSources\": 11\n  },\n  \"errors\": []\n}\n",
+  "stderr": ""
+}

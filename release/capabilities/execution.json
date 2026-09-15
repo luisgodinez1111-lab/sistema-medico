@@ -1,0 +1,5 @@
+{
+  "status": "BLOCKED",
+  "reason": "Capability admission TypeScript execution exceeded the bounded execution window. No PASS is claimed.",
+  "expected_blocker": "Full reproducible test execution remains absent; medication hazard case is intentionally incomplete."
+}

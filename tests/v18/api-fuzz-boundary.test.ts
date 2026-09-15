@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{inspectInput,assertJsonContentType}from"../../packages/api-fuzz-boundary/src";describe("fuzz boundary",()=>{it("rejects giant strings",()=>expect(inspectInput("x".repeat(20000))).toContain("STRING_TOO_LONG"));it("requires json",()=>expect(()=>assertJsonContentType("text/plain")).toThrow());});

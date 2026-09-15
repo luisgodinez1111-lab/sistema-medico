@@ -1,0 +1,48 @@
+{
+  "version": "1.0",
+  "fail_closed": true,
+  "gates": [
+    {
+      "id": "RG-001",
+      "name": "Open authority adjudications",
+      "target": 0,
+      "source": "traceability/adjudication.json",
+      "metric": "open_count"
+    },
+    {
+      "id": "RG-002",
+      "name": "C4/C5 invariant coverage",
+      "target": 0,
+      "source": "safety/invariants.json",
+      "metric": "c45_without_test"
+    },
+    {
+      "id": "RG-003",
+      "name": "Invariant test coverage",
+      "target": 0,
+      "source": "tests/traceability/contracts.json",
+      "metric": "inv_without_test"
+    },
+    {
+      "id": "RG-006",
+      "name": "Critical state-machine formalization",
+      "target": 0,
+      "source": "state-machines/formal",
+      "metric": "missing_required_formal_machines"
+    },
+    {
+      "id": "RG-008",
+      "name": "High-impact AI safety binding",
+      "target": 0,
+      "source": "ai-tasks/bindings.json",
+      "metric": "high_impact_without_envelope"
+    },
+    {
+      "id": "RG-011",
+      "name": "Unresolved S0/S1 defects",
+      "target": 0,
+      "source": "release/defects.json",
+      "metric": "open_s0_s1"
+    }
+  ]
+}

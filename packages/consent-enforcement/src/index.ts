@@ -1,0 +1,1 @@
+export type Consent=Readonly<{patientId:string;scope:string;status:"GRANTED"|"REVOKED";expiresAt?:string}>;export function enforceConsent(c:Consent|undefined,scope:string,at:string){if(!c||c.status!=="GRANTED"||c.scope!==scope)throw new Error("CONSENT_NOT_GRANTED");if(c.expiresAt&&Date.parse(at)>=Date.parse(c.expiresAt))throw new Error("CONSENT_EXPIRED");return true;}

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{safeLog}from"../../packages/secure-logger/src";describe("logger",()=>it("redacts PHI-like fields",()=>expect(safeLog("x",{email:"a@b.com",nested:{diagnosis:"x"}})).not.toContain("a@b.com")));

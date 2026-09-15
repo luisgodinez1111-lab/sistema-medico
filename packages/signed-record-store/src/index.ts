@@ -1,0 +1,2 @@
+export type SignedRecord=Readonly<{documentId:string;version:number;contentHash:string;signature:string;signedAt:string}>;
+export function appendSigned(existing:readonly SignedRecord[],next:SignedRecord){if(existing.some(x=>x.documentId===next.documentId&&x.version===next.version))throw new Error("SIGNED_VERSION_EXISTS");const last=Math.max(0,...existing.filter(x=>x.documentId===next.documentId).map(x=>x.version));if(next.version!==last+1)throw new Error("SIGNED_VERSION_NON_MONOTONIC");return[...existing,Object.freeze(next)];}

@@ -1,0 +1,1 @@
+export function readAdmission(x:{projectionSequence:number;authoritySequence:number;allowStale?:boolean}){if(x.projectionSequence>x.authoritySequence)throw Error("PROJECTION_AHEAD_OF_AUTHORITY");const stale=x.projectionSequence<x.authoritySequence;if(stale&&!x.allowStale)throw Error("STALE_PROJECTION_BLOCKED");return{admitted:true,stale};}

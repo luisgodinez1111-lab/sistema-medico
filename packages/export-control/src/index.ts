@@ -1,0 +1,1 @@
+export function exportDecision(x:{authorized:boolean;purpose:string;minimumNecessary:boolean;encrypted:boolean}){if(!x.authorized)return{allowed:false,reason:"UNAUTHORIZED"};if(!x.minimumNecessary)return{allowed:false,reason:"MINIMUM_NECESSARY_FAILED"};if(!x.encrypted)return{allowed:false,reason:"ENCRYPTION_REQUIRED"};return{allowed:true,reason:"APPROVED",purpose:x.purpose};}

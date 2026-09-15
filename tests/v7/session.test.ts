@@ -1,0 +1,1 @@
+import {describe,it,expect} from"vitest";import{signSession,verifySession}from"../../packages/session/src";describe("session",()=>{it("rejects tamper",()=>{const t=signSession({sub:"u",tenantId:"t",roles:[],scopes:[],purpose:"TREATMENT",iat:1,exp:9999999999,sessionId:"s"},"k");expect(()=>verifySession(t+"x","k",2)).toThrow()});});

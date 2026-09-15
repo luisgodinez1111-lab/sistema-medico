@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {CircuitBreaker} from "../../packages/resilience/src";describe("circuit",()=>{it("opens after threshold",async()=>{const c=new CircuitBreaker(1,1000);await expect(c.execute(async()=>{throw Error("x")},0)).rejects.toThrow();await expect(c.execute(async()=>1,1)).rejects.toThrow(/CIRCUIT_OPEN/)});});

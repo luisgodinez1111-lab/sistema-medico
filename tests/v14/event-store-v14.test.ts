@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{appendEvent}from"../../packages/clinical-event-store/src";describe("events",()=>it("requires sequence",()=>expect(()=>appendEvent([],{id:"e",aggregateId:"a",sequence:2,type:"x",payload:{}})).toThrow(/NON_MONOTONIC/)));

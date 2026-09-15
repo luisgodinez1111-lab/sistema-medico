@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{ingestR5,FHIR_VERSION}from"../../packages/fhir-r5/src";describe("FHIR",()=>{it("pins R5",()=>expect(ingestR5({resourceType:"Patient"}).fhirVersion).toBe(FHIR_VERSION));});

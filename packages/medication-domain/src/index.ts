@@ -1,0 +1,4 @@
+export type MedicationState="PROPOSED"|"PRESCRIBED"|"STARTED"|"ACTIVE"|"HELD"|"STOPPED"|"CANCELLED";
+export type Medication=Readonly<{id:string;state:MedicationState;version:number;authorId?:string;reason?:string}>;
+export function prescribe(m:Medication,actor:"PHYSICIAN"|"AI"|"SYSTEM",authorId:string){if(actor!=="PHYSICIAN")throw new Error("PHYSICIAN_AUTHORITY_REQUIRED:PRESCRIBE");if(m.state!=="PROPOSED")throw new Error("MEDICATION_NOT_PROPOSABLE");return Object.freeze({...m,state:"PRESCRIBED" as const,version:m.version+1,authorId});}
+export function stopMedication(m:Medication,reason:string){if(!reason)throw new Error("MEDICATION_CHANGE_REASON_REQUIRED");if(!["STARTED","ACTIVE","HELD"].includes(m.state))throw new Error("MEDICATION_NOT_STOPPABLE");return Object.freeze({...m,state:"STOPPED" as const,version:m.version+1,reason});}

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{expectedRls}from"../../packages/rls-adversary-model/src";describe("rls",()=>it("cross tenant denies",()=>expect(expectedRls({sessionTenant:"a",rowTenant:"b",role:"runtime",bypassRls:false,operation:"SELECT"})).toBe("DENY")));

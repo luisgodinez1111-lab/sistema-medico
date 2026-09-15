@@ -1,0 +1,2 @@
+export type AtomicCounts=Readonly<{aggregate:number;events:number;outbox:number;audit:number;idempotencyCompleted:number}>;
+export function atomicityErrors(x:AtomicCounts){const committed=x.aggregate>0;const e:string[]=[];if(committed&&(x.events!==1||x.outbox!==1||x.audit!==1||x.idempotencyCompleted!==1))e.push("PARTIAL_COMMIT");if(!committed&&(x.events||x.outbox||x.audit||x.idempotencyCompleted))e.push("ORPHAN_SIDE_EFFECT");return e}

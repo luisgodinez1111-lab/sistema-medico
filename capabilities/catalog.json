@@ -1,0 +1,4021 @@
+[
+  {
+    "id": "CAP-RESULTS-001",
+    "name": "Diagnostic Results Closed Loop",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-307",
+      "ENG-308",
+      "ENG-311",
+      "ENG-312",
+      "ENG-313",
+      "ENG-337",
+      "ENG-342"
+    ],
+    "hazards": [
+      "HAZ-CORE-0001",
+      "HAZ-CORE-0004",
+      "HAZ-CORE-0005"
+    ],
+    "controls": [
+      "CTL-0001",
+      "CTL-0002",
+      "CTL-0006",
+      "CTL-0007"
+    ],
+    "invariants": [
+      "INV-CORE-0001",
+      "INV-CORE-0002",
+      "INV-CORE-0006",
+      "INV-CORE-0007"
+    ],
+    "machines": [
+      "SM-FORMAL-RESULT-001",
+      "SM-FORMAL-OBLIGATION-001"
+    ],
+    "tests": [
+      "state-machines.test.ts",
+      "obligation.test.ts",
+      "corrected-result.test.ts",
+      "replay-impact.test.ts",
+      "reconciliation-critical.test.ts"
+    ],
+    "releasePolicy": "FAIL_CLOSED",
+    "dependsOn": []
+  },
+  {
+    "id": "CAP-TRUTH-001",
+    "name": "Clinical Truth & Epistemic Integrity",
+    "risk": "C5",
+    "authority": [
+      "ENG-303",
+      "ENG-304",
+      "ENG-305",
+      "ENG-324"
+    ],
+    "hazards": [
+      "HAZ-CORE-0002",
+      "HAZ-CORE-0003"
+    ],
+    "controls": [
+      "CTL-0003",
+      "CTL-0004"
+    ],
+    "invariants": [
+      "INV-CORE-0003",
+      "INV-CORE-0004"
+    ],
+    "machines": [
+      "SM-FORMAL-TRUTH-001"
+    ],
+    "tests": [
+      "epistemic-truth.test.ts",
+      "clinical-semantics.test.ts",
+      "invariants.test.ts"
+    ],
+    "releasePolicy": "FAIL_CLOSED",
+    "dependsOn": []
+  },
+  {
+    "id": "CAP-AI-001",
+    "name": "Governed Clinical AI Gateway",
+    "risk": "C5",
+    "authority": [
+      "ENG-266",
+      "ENG-320",
+      "ENG-321",
+      "ENG-322",
+      "ENG-323",
+      "ENG-338",
+      "ENG-339"
+    ],
+    "hazards": [
+      "HAZ-CORE-0002",
+      "HAZ-CORE-0003"
+    ],
+    "controls": [
+      "CTL-0003",
+      "CTL-0004",
+      "CTL-0005"
+    ],
+    "invariants": [
+      "INV-CORE-0003",
+      "INV-CORE-0004",
+      "INV-CORE-0005"
+    ],
+    "machines": [],
+    "tests": [
+      "ai-envelope.test.ts",
+      "ai-task-card.test.ts",
+      "epistemic-truth.test.ts"
+    ],
+    "releasePolicy": "ABSTAIN_OR_BLOCK",
+    "dependsOn": []
+  },
+  {
+    "id": "CAP-APPLICABILITY-001",
+    "name": "Clinical Applicability Guard",
+    "risk": "C5",
+    "authority": [
+      "ENG-318",
+      "ENG-319",
+      "ENG-341"
+    ],
+    "hazards": [
+      "HAZ-CORE-0006"
+    ],
+    "controls": [
+      "CTL-0008"
+    ],
+    "invariants": [
+      "INV-CORE-0008"
+    ],
+    "machines": [],
+    "tests": [
+      "applicability.test.ts"
+    ],
+    "releasePolicy": "FAIL_CLOSED",
+    "dependsOn": []
+  },
+  {
+    "id": "CAP-MEDICATION-001",
+    "name": "Medication Lifecycle Kernel",
+    "risk": "C5",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [
+      "SM-FORMAL-MED-001"
+    ],
+    "tests": [
+      "state-machines.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": []
+  },
+  {
+    "id": "CAP-IDENTITY-001",
+    "name": "Identity, Tenant & Clinical Access Boundary",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "tenant-security.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": []
+  },
+  {
+    "id": "CAP-AUDIT-001",
+    "name": "Tamper-Evident Clinical Audit Ledger",
+    "risk": "C5",
+    "authority": [
+      "ENG-309",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "audit-ledger.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-EVENTS-001",
+    "name": "Clinical Event Kernel",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "event-kernel.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001",
+      "CAP-AUDIT-001"
+    ]
+  },
+  {
+    "id": "CAP-ASYNC-001",
+    "name": "Reliable Async Delivery & Transactional Outbox",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [
+      "HAZ-CORE-0004"
+    ],
+    "controls": [
+      "CTL-0006"
+    ],
+    "invariants": [
+      "INV-CORE-0006"
+    ],
+    "machines": [],
+    "tests": [
+      "outbox.test.ts"
+    ],
+    "releasePolicy": "FAIL_CLOSED",
+    "dependsOn": [
+      "CAP-EVENTS-001"
+    ]
+  },
+  {
+    "id": "CAP-POLICY-001",
+    "name": "Versioned Clinical Policy Engine",
+    "risk": "C5",
+    "authority": [
+      "ENG-315",
+      "ENG-343"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "policy-engine.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-EVENTS-001"
+    ]
+  },
+  {
+    "id": "CAP-ROLLOUT-001",
+    "name": "Evidence-Gated Progressive Delivery",
+    "risk": "C5",
+    "authority": [
+      "ENG-346",
+      "ENG-347"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "feature-gates.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-AUDIT-001"
+    ]
+  },
+  {
+    "id": "CAP-OBSERVABILITY-001",
+    "name": "Clinical Safety Observability & SLOs",
+    "risk": "C5",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "observability.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-EVENTS-001"
+    ]
+  },
+  {
+    "id": "CAP-PATIENT-001",
+    "name": "Longitudinal Patient Aggregate",
+    "risk": "C5",
+    "authority": [
+      "ENG-303",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "patient-domain.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ENCOUNTER-001",
+    "name": "Encounter Lifecycle & Immutable Signing",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "encounter-domain.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PROBLEM-GRAPH-001",
+    "name": "Problem/Hypothesis/Evidence Graph",
+    "risk": "C5",
+    "authority": [
+      "ENG-304",
+      "ENG-305"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "problem-graph.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ORDER-RESULT-001",
+    "name": "Order & Result Closed Loop",
+    "risk": "C5",
+    "authority": [
+      "ENG-307",
+      "ENG-308",
+      "ENG-342"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "order-result-domain.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-MEDICATION-002",
+    "name": "Medication Domain Authority",
+    "risk": "C5",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "medication-domain.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-OBLIGATION-002",
+    "name": "Clinical Obligation Domain",
+    "risk": "C5",
+    "authority": [
+      "ENG-308",
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "obligation-domain.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CONSENT-001",
+    "name": "Consent & Purpose Boundary",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "consent.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-FHIR-001",
+    "name": "FHIR Interoperability Firewall",
+    "risk": "C5",
+    "authority": [
+      "ENG-316",
+      "ENG-317"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "fhir-boundary.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CALC-001",
+    "name": "Deterministic Clinical Calculation Engine",
+    "risk": "C5",
+    "authority": [
+      "ENG-273",
+      "ENG-309"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "calculation-engine.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-WORKFLOW-001",
+    "name": "Durable Clinical Workflow Engine",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "workflow-engine.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-APP-001",
+    "name": "Clinical Application Service Layer",
+    "risk": "C4",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "patient-service.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-DB-001",
+    "name": "Transactional Clinical Persistence & RLS",
+    "risk": "C4",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "repository.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AUTHZ-001",
+    "name": "Tenant/Role/Scope/Purpose Authorization",
+    "risk": "C4",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "authz.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RESILIENCE-001",
+    "name": "Runtime Resilience & Circuit Breaking",
+    "risk": "C4",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "resilience.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-OPERABILITY-001",
+    "name": "Health, Logging & Operability",
+    "risk": "C4",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "health.test.ts",
+      "logger.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-WORKER-001",
+    "name": "Outbox Delivery Worker",
+    "risk": "C4",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "worker.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ABUSE-001",
+    "name": "API Abuse Protection",
+    "risk": "C4",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "rate-limit.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-VERTICAL-ENCOUNTER-001",
+    "name": "Authenticated Encounter Vertical Slice",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "encounter-service.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-VERTICAL-RESULT-001",
+    "name": "Result-to-Obligation Closed Loop",
+    "risk": "C5",
+    "authority": [
+      "ENG-307",
+      "ENG-308",
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "result-service.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PATIENT-STATE-001",
+    "name": "Longitudinal Patient State Projection",
+    "risk": "C5",
+    "authority": [
+      "ENG-312",
+      "ENG-313"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "patient-state.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RECONCILE-002",
+    "name": "Outbox Reconciliation & Escalation",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "reconciliation-v6.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-POSTGRES-001",
+    "name": "Tenant-Scoped PostgreSQL Transaction Adapter",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SESSION-001",
+    "name": "Signed Session & Principal Integrity",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "session.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RECONCILIATION-003",
+    "name": "Accountable Failure Reconciliation",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "reconciliation-engine.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-COMPLETENESS-001",
+    "name": "Encounter Completeness Admission",
+    "risk": "C5",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "encounter-completeness.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AMENDMENT-001",
+    "name": "Immutable Signed-Record Amendment Ledger",
+    "risk": "C5",
+    "authority": [
+      "ENG-303",
+      "ENG-309"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RESULT-IMPACT-001",
+    "name": "Corrected Result Patient Impact",
+    "risk": "C5",
+    "authority": [
+      "ENG-312",
+      "ENG-313",
+      "ENG-342"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "result-impact.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AI-RUNTIME-001",
+    "name": "Runtime AI Safety Enforcement",
+    "risk": "C5",
+    "authority": [
+      "ENG-320",
+      "ENG-321",
+      "ENG-338",
+      "ENG-339"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "ai-runtime-v7.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-DATA-CLASS-001",
+    "name": "PHI/Secret Data Classification",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CACHE-SAFETY-001",
+    "name": "Clinical Cache Safety Policy",
+    "risk": "C5",
+    "authority": [
+      "ENG-303"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ROLLOUT-002",
+    "name": "Human-Approved Evidence Rollout",
+    "risk": "C5",
+    "authority": [
+      "ENG-346",
+      "ENG-347"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "feature-rollout.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-EVIDENCE-002",
+    "name": "Typed Release Evidence State Machine",
+    "risk": "C5",
+    "authority": [
+      "ENG-346",
+      "ENG-347"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "release-evidence.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-DEFECT-001",
+    "name": "Defect Assessment Attestation Gate",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "defect-governance.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-MAPPING-001",
+    "name": "Human Mapping Adjudication Gate",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "mapping-governance.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-IDEMPOTENCY-002",
+    "name": "Persistent Idempotency Semantics",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "idempotency-persistent.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-REPLAY-002",
+    "name": "Versioned Replay & Patient Impact Discovery",
+    "risk": "C5",
+    "authority": [
+      "ENG-312",
+      "ENG-313"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "replay-engine.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CORRECTION-002",
+    "name": "Acyclic Corrected Result Lineage",
+    "risk": "C5",
+    "authority": [
+      "ENG-342"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "result-correction-v8.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AI-EVIDENCE-002",
+    "name": "AI Execution Receipt & Human Review Evidence",
+    "risk": "C5",
+    "authority": [
+      "ENG-320",
+      "ENG-321",
+      "ENG-322",
+      "ENG-323"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "ai-evidence.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-MIGRATION-001",
+    "name": "Clinical Migration Safety Gate",
+    "risk": "C5",
+    "authority": [
+      "ENG-333",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "migration-safety.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AUDIT-002",
+    "name": "Audit Chain Verification",
+    "risk": "C5",
+    "authority": [
+      "ENG-309"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SLO-002",
+    "name": "Windowed Clinical Safety SLO",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ATOMIC-001",
+    "name": "Atomic Clinical Write Contract",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "clinical-transaction.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AGGREGATE-001",
+    "name": "Versioned Aggregate Event Store",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "aggregate-store.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PROJECTION-002",
+    "name": "Deterministic Projection Rebuild",
+    "risk": "C5",
+    "authority": [
+      "ENG-312"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "projection-rebuild.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ACCESS-002",
+    "name": "Versioned Clinical Access Decision",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "access-decision.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-BREAKGLASS-001",
+    "name": "Emergency Break-Glass Access",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "break-glass.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-POLICY-PROV-001",
+    "name": "Effective-Dated Policy Provenance",
+    "risk": "C5",
+    "authority": [
+      "ENG-315",
+      "ENG-343"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "policy-provenance.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AI-RECONCILE-001",
+    "name": "Historical AI Candidate Reconciliation",
+    "risk": "C5",
+    "authority": [
+      "ENG-321",
+      "ENG-339"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "ai-task-registry.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RESTORE-001",
+    "name": "Clinical Backup/Restore Admission",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "backup-restore.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SAFETYCASE-001",
+    "name": "Executable Capability Safety Case Gate",
+    "risk": "C5",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "safety-case.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SIGNED-001",
+    "name": "Cryptographic Signed Clinical Record",
+    "risk": "C5",
+    "authority": [
+      "ENG-303",
+      "ENG-309"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ALERT-001",
+    "name": "Owned Clinical Alert Contract",
+    "risk": "C5",
+    "authority": [
+      "ENG-308",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SNAPSHOT-001",
+    "name": "Hashed Aggregate Snapshots",
+    "risk": "C5",
+    "authority": [
+      "ENG-312"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-HTTP-CONCURRENCY-001",
+    "name": "HTTP Conditional Mutation / ETag",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "etag.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-FHIR-R5-002",
+    "name": "FHIR R5 Trust Boundary",
+    "risk": "C5",
+    "authority": [
+      "ENG-316",
+      "ENG-317"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "fhir-r5.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CALC-RECEIPT-002",
+    "name": "Deterministic Calculation Receipt",
+    "risk": "C5",
+    "authority": [
+      "ENG-319",
+      "ENG-341"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "calculation-receipt.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-DEGRADED-001",
+    "name": "Clinical Degraded-Safe Runtime",
+    "risk": "C5",
+    "authority": [
+      "ENG-320",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "degradation.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-LOCK-001",
+    "name": "Clinical Resource Lease Lock",
+    "risk": "C5",
+    "authority": [
+      "ENG-306"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "clinical-lock.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CONSENT-002",
+    "name": "Runtime Consent Enforcement",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "consent-enforcement.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-EXPORT-001",
+    "name": "Minimum-Necessary Encrypted Export",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "export-control.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-READMODEL-001",
+    "name": "Projection Freshness Contract",
+    "risk": "C5",
+    "authority": [
+      "ENG-312"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "read-model.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PHI-REDACTION-001",
+    "name": "Structured PHI Redaction",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-WORKER-SUPERVISION-001",
+    "name": "Worker Heartbeat Supervision",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-LOADSHED-001",
+    "name": "Clinical-Priority Load Shedding",
+    "risk": "C5",
+    "authority": [
+      "ENG-331"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AUDIT-ANCHOR-001",
+    "name": "Tamper-Evident Audit Partition Anchoring",
+    "risk": "C5",
+    "authority": [
+      "ENG-309"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RETENTION-001",
+    "name": "Clinical Retention Decision Engine",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-LINEAGE-001",
+    "name": "Derived Data Lineage Graph",
+    "risk": "C5",
+    "authority": [
+      "ENG-303",
+      "ENG-313"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-GOLDEN-SLICE-001",
+    "name": "Golden Encounter Transaction Plan",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-311",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "golden-slice.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SIGNING-002",
+    "name": "Encounter Signing Admission",
+    "risk": "C5",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "encounter-signing-v11.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RESULT-OBLIGATION-002",
+    "name": "Actionable Result \u2192 Owned Obligation",
+    "risk": "C5",
+    "authority": [
+      "ENG-307",
+      "ENG-308",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "result-obligation-link.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-MED-AUTH-003",
+    "name": "Medication Prescribing Authority Boundary",
+    "risk": "C5",
+    "authority": [
+      "ENG-320",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "medication-ordering-v11.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-TIMELINE-002",
+    "name": "Deterministic Patient Timeline Projection",
+    "risk": "C5",
+    "authority": [
+      "ENG-312",
+      "ENG-313"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "timeline-projection.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-INBOX-001",
+    "name": "Owned Clinical Inbox Prioritization",
+    "risk": "C5",
+    "authority": [
+      "ENG-308",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "clinical-inbox.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ROUTE-001",
+    "name": "Clinical HTTP Mutation Preconditions",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "route-contracts.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-DB-SESSION-001",
+    "name": "Tenant/Actor/Purpose Database Session Context",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "tenant-session.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-UOW-001",
+    "name": "Clinical Unit of Work Boundary",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PATIENT-STATE-002",
+    "name": "Computed Patient State Composer",
+    "risk": "C5",
+    "authority": [
+      "ENG-303",
+      "ENG-312"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RECOVERY-003",
+    "name": "Failure Recovery Orchestration",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PROVENANCE-002",
+    "name": "Cryptographic Provenance Receipt",
+    "risk": "C5",
+    "authority": [
+      "ENG-303",
+      "ENG-313"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RUNTIME-AUTH-003",
+    "name": "Verified Principal Runtime Authorization",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "runtime-auth.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-IDEMPOTENT-CMD-003",
+    "name": "Idempotent Clinical Command Admission",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "idempotent-command-v12.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-REPOSITORY-003",
+    "name": "Optimistic Clinical Aggregate Repository",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "clinical-repository-v12.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ENCOUNTER-RUNTIME-003",
+    "name": "Executable Encounter Assess/Sign Runtime",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-309"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "encounter-runtime.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-OBLIGATION-RUNTIME-003",
+    "name": "Executable Obligation Escalation Runtime",
+    "risk": "C5",
+    "authority": [
+      "ENG-308",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "obligation-runtime.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-MED-RUNTIME-004",
+    "name": "Executable Medication Authority Runtime",
+    "risk": "C5",
+    "authority": [
+      "ENG-320",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "medication-runtime.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CORRECTION-RUNTIME-003",
+    "name": "Executable Result Correction DAG",
+    "risk": "C5",
+    "authority": [
+      "ENG-342"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "result-correction-runtime.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-IMPACT-RUNTIME-003",
+    "name": "Executable Patient Impact Runtime",
+    "risk": "C5",
+    "authority": [
+      "ENG-312",
+      "ENG-313"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "patient-impact-runtime.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PROJECTION-RUNTIME-003",
+    "name": "Deterministic Projection Runtime",
+    "risk": "C5",
+    "authority": [
+      "ENG-312"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "projection-runtime.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-OUTBOX-RUNTIME-003",
+    "name": "Leased Outbox Runtime",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "outbox-worker-v12.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SAFETY-RUNTIME-002",
+    "name": "Runtime Safety Case Admission",
+    "risk": "C5",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "safety-runtime.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-POSTGRES-ADAPTER-001",
+    "name": "Scoped PostgreSQL Transaction Adapter",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-FAULT-INJECTION-001",
+    "name": "Clinical Failure Injection Harness",
+    "risk": "C5",
+    "authority": [
+      "ENG-328",
+      "ENG-330"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "failure-injection.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-REPLAY-PROOF-001",
+    "name": "Deterministic Replay Verification",
+    "risk": "C5",
+    "authority": [
+      "ENG-312"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "replay-verifier.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-FENCING-001",
+    "name": "Worker Lease Fencing Tokens",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "lease-coordinator.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RELEASE-GATE-003",
+    "name": "Structured Fail-Closed Release Gate",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "release-gate-v2.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-TENANT-PROOF-001",
+    "name": "Tenant Isolation Proof Contract",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "tenant-isolation-proof.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SAGA-001",
+    "name": "Compensatable Clinical Saga Primitive",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-311"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ATOMIC-TX-001",
+    "name": "Atomic State/Event/Outbox/Audit Transaction",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "atomic-clinical-transaction.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PERSISTENT-IDEM-001",
+    "name": "Persistent Actor-Scoped Idempotency",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "persistent-idempotency.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-DURABLE-OUTBOX-004",
+    "name": "Durable Outbox Retry/Poison Handling",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "durable-outbox.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-EVENT-STORE-002",
+    "name": "Monotonic Clinical Event Store",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-312"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "event-store-v14.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CORRECTION-GRAPH-004",
+    "name": "Corrected Result Graph Integrity",
+    "risk": "C5",
+    "authority": [
+      "ENG-342"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "result-correction-graph-v14.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SIGNED-STORE-003",
+    "name": "Append-Only Signed Record Versions",
+    "risk": "C5",
+    "authority": [
+      "ENG-309"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "signed-record-store.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RECON-STORE-004",
+    "name": "Durable Owned Reconciliation Findings",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "reconciliation-store.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-DEFECT-GATE-001",
+    "name": "Human Defect Assessment Gate",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "defect-attestation.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-EVIDENCE-V3-001",
+    "name": "Structured Release Evidence States",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-HEALTH-RUNTIME-002",
+    "name": "Required-vs-Degraded Readiness Model",
+    "risk": "C5",
+    "authority": [
+      "ENG-331"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-TRUTH-KERNEL-002",
+    "name": "Clinical Truth Kernel v2",
+    "risk": "C5",
+    "authority": [
+      "ENG-302",
+      "ENG-303",
+      "ENG-304"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ATOMIC-AUTHORITY-002",
+    "name": "Atomic Clinical Authority Boundary",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-OUTBOX-SQL-005",
+    "name": "SQL Durable Outbox Claiming",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-IDENTITY-BOUNDARY-003",
+    "name": "Verified Identity Boundary v2",
+    "risk": "C5",
+    "authority": [
+      "ENG-320",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-COMMAND-BUS-003",
+    "name": "Clinical Command Bus v2",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-QUERY-BUS-001",
+    "name": "Clinical Query Bus",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CORRECTION-PROP-001",
+    "name": "Correction Patient Impact Propagation",
+    "risk": "C5",
+    "authority": [
+      "ENG-313",
+      "ENG-342"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-OBLIGATION-SUP-001",
+    "name": "Obligation Supervisor",
+    "risk": "C5",
+    "authority": [
+      "ENG-308",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PROJECTION-CP-001",
+    "name": "Hashed Projection Checkpoints",
+    "risk": "C5",
+    "authority": [
+      "ENG-312"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AI-AUTHORITY-002",
+    "name": "AI Authority Gate",
+    "risk": "C5",
+    "authority": [
+      "ENG-320",
+      "ENG-321"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-POLICY-RUNTIME-003",
+    "name": "Effective Policy Runtime v2",
+    "risk": "C5",
+    "authority": [
+      "ENG-315",
+      "ENG-343"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-TERMINOLOGY-002",
+    "name": "Terminology Runtime",
+    "risk": "C5",
+    "authority": [
+      "ENG-316"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CALC-RECEIPT-003",
+    "name": "Calculation Provenance Receipt v2",
+    "risk": "C5",
+    "authority": [
+      "ENG-341"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CONSENT-RUNTIME-002",
+    "name": "Effective Consent Runtime",
+    "risk": "C5",
+    "authority": [
+      "ENG-320"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-BREAKGLASS-003",
+    "name": "Reviewed Break Glass Runtime",
+    "risk": "C5",
+    "authority": [
+      "ENG-320"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AUDIT-CHAIN-003",
+    "name": "Append-only Audit Chain v2",
+    "risk": "C5",
+    "authority": [
+      "ENG-309"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-EVIDENCE-BIND-002",
+    "name": "Cryptographically Bound Release Evidence",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PERF-BUDGET-001",
+    "name": "Clinical Performance Budget",
+    "risk": "C5",
+    "authority": [
+      "ENG-331"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CHAOS-PLAN-001",
+    "name": "Clinical Chaos Scenario Catalog",
+    "risk": "C5",
+    "authority": [
+      "ENG-328",
+      "ENG-330"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RESTORE-VERIFY-002",
+    "name": "Restore Integrity Verifier",
+    "risk": "C5",
+    "authority": [
+      "ENG-311"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-INBOX-003",
+    "name": "Deterministic Clinical Inbox v2",
+    "risk": "C5",
+    "authority": [
+      "ENG-308"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ATOMIC-TX-V2-001",
+    "name": "Schema-Correct Atomic Clinical Transaction",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "canonical-json.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SCHEMA-CONTRACT-001",
+    "name": "Runtime-to-SQL Schema Contract",
+    "risk": "C5",
+    "authority": [
+      "ENG-332",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AUDIT-V3-001",
+    "name": "Canonical Append-Only Audit Chain",
+    "risk": "C5",
+    "authority": [
+      "ENG-309",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "audit-chain-v3.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PHI-LOG-002",
+    "name": "Recursive PHI/Secret Log Redaction",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "secure-logger.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-OUTBOX-CLAIM-V2-001",
+    "name": "Concurrent SKIP LOCKED Outbox Claim",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "outbox-claim-v2.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RLS-GUARD-002",
+    "name": "NOBYPASSRLS Runtime Guard",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "rls-guard-v16.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CORRECTION-IMPACT-005",
+    "name": "Correction-to-Action Impact Orchestration",
+    "risk": "C5",
+    "authority": [
+      "ENG-313",
+      "ENG-342"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "correction-impact-v16.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-EVIDENCE-V4-001",
+    "name": "Non-Fabricable Executed Evidence Contract",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "release-evidence-v4.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CLINICAL-CLOCK-001",
+    "name": "Injectable Deterministic Clinical Clock",
+    "risk": "C5",
+    "authority": [
+      "ENG-328"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-UUID-BOUNDARY-001",
+    "name": "Strict UUID Persistence Boundary",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "uuid-boundary.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ATOMIC-V3-001",
+    "name": "Actual Transaction-Owned Clinical Command",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "atomic-v3.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-MIGRATION-INTEGRITY-001",
+    "name": "Immutable Migration Digest Manifest",
+    "risk": "C5",
+    "authority": [
+      "ENG-332",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AUDIT-DB-CHAIN-001",
+    "name": "Serialized Tenant Audit Chain",
+    "risk": "C5",
+    "authority": [
+      "ENG-309",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ARCH-BOUNDARY-001",
+    "name": "Deprecated Runtime Import Guard",
+    "risk": "C5",
+    "authority": [
+      "ENG-332"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "architecture-boundary.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-REPLAY-V2-001",
+    "name": "Strict Sequence Replay Engine",
+    "risk": "C5",
+    "authority": [
+      "ENG-312"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "replay-engine-v2.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-OBLIGATION-V2-001",
+    "name": "Evidence-Gated Obligation Completion",
+    "risk": "C5",
+    "authority": [
+      "ENG-308"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "obligation-v2.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CONSISTENCY-BARRIER-001",
+    "name": "Projection Freshness Admission",
+    "risk": "C5",
+    "authority": [
+      "ENG-312",
+      "ENG-344"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "consistency-barrier.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CORRECTION-V2-001",
+    "name": "Persistent Correction Lineage Contract",
+    "risk": "C5",
+    "authority": [
+      "ENG-342"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "result-correction-v2.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-REQUEST-SECURITY-001",
+    "name": "Mutation Header Security Boundary",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ERROR-ENVELOPE-001",
+    "name": "Typed Clinical API Error Envelope",
+    "risk": "C5",
+    "authority": [
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-OUTBOX-WORKER-V3-001",
+    "name": "Bounded Publish Outcome Contract",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-MODEL-CHECK-001",
+    "name": "Clinical State Machine Model Exploration",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-310"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "state-machine-model.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PROPERTY-INV-001",
+    "name": "Property-Based Clinical Invariant Harness",
+    "risk": "C5",
+    "authority": [
+      "ENG-309",
+      "ENG-335"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "property-invariants.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-API-FUZZ-001",
+    "name": "Adversarial API Input Boundary",
+    "risk": "C5",
+    "authority": [
+      "ENG-330"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "api-fuzz-boundary.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SQL-COMPILER-002",
+    "name": "SQL Contract Compiler V2",
+    "risk": "C5",
+    "authority": [
+      "ENG-332",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CONCURRENCY-MODEL-001",
+    "name": "CAS/Lease Concurrency Model",
+    "risk": "C5",
+    "authority": [
+      "ENG-310",
+      "ENG-311"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "concurrency-model.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-MUTATION-001",
+    "name": "Critical Invariant Mutation Gate",
+    "risk": "C5",
+    "authority": [
+      "ENG-328",
+      "ENG-345"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "mutation-sentinel.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SUPPLY-CHAIN-001",
+    "name": "Dependency Pin/Integrity/License Policy",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PROVENANCE-CRYPTO-001",
+    "name": "Build Artifact Cryptographic Provenance",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PERF-GATE-001",
+    "name": "Clinical Runtime Performance Budget Gate",
+    "risk": "C5",
+    "authority": [
+      "ENG-331",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "performance-gate.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RESTORE-V2-001",
+    "name": "Restore Admission Verifier V2",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "restore-verifier-v2.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RATE-LIMIT-V2-001",
+    "name": "Deterministic Token Bucket Admission",
+    "risk": "C5",
+    "authority": [
+      "ENG-331"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-INPUT-LIMITS-001",
+    "name": "Pagination/Identifier Resource Limits",
+    "risk": "C5",
+    "authority": [
+      "ENG-330",
+      "ENG-331"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-NUMERIC-SAFETY-001",
+    "name": "Non-Finite and Unit Clinical Numeric Guard",
+    "risk": "C5",
+    "authority": [
+      "ENG-319",
+      "ENG-341"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "clinical-numeric.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-POLICY-CONFLICT-V2-001",
+    "name": "Fail-Closed Equal-Priority Policy Conflict",
+    "risk": "C5",
+    "authority": [
+      "ENG-315",
+      "ENG-343"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "policy-conflict-v2.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-OUTBOX-FENCE-V3-001",
+    "name": "Outbox Fencing Token Enforcement",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "outbox-fencing-v3.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CLAIM-GRAPH-001",
+    "name": "Verification Claim Dependency Graph",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "verification-claim-graph.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-DIFF-REPLAY-002",
+    "name": "Differential Live/Replay Verification",
+    "risk": "C5",
+    "authority": [
+      "ENG-312",
+      "ENG-328"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "differential-replay.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SEQ-GENERATOR-001",
+    "name": "Deterministic Clinical Sequence Generator",
+    "risk": "C5",
+    "authority": [
+      "ENG-328",
+      "ENG-330"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-INV-COVERAGE-001",
+    "name": "C5 Invariant Coverage Accounting",
+    "risk": "C5",
+    "authority": [
+      "ENG-309",
+      "ENG-345"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "invariant-coverage.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SQL-SEMANTIC-003",
+    "name": "Cross-Migration Semantic Compiler",
+    "risk": "C5",
+    "authority": [
+      "ENG-332",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-AUTH-CLOSURE-001",
+    "name": "Authority Chain Closure Analyzer",
+    "risk": "C5",
+    "authority": [
+      "ENG-332",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-EVIDENCE-CLOSURE-001",
+    "name": "Evidence Closure Analyzer",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-TEMPORAL-001",
+    "name": "Clinical Temporal Consistency Guard",
+    "risk": "C5",
+    "authority": [
+      "ENG-303",
+      "ENG-319"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "temporal-consistency.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CAUSAL-IMPACT-001",
+    "name": "Transitive Clinical Causal Impact Graph",
+    "risk": "C5",
+    "authority": [
+      "ENG-305",
+      "ENG-313"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "causal-impact.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ADV-SCHEDULER-001",
+    "name": "Concurrency Interleaving Explorer",
+    "risk": "C5",
+    "authority": [
+      "ENG-310",
+      "ENG-311"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RELEASE-PROOF-V5-001",
+    "name": "Ten-Dimension Release Proof",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "release-proof-v5.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-STATE-FINGERPRINT-001",
+    "name": "Versioned Clinical State Fingerprint",
+    "risk": "C5",
+    "authority": [
+      "ENG-312",
+      "ENG-313"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-PROOF-LEDGER-001",
+    "name": "Append-Only Runtime Proof Ledger",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "runtime-proof-ledger.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CLAIM-BINDER-001",
+    "name": "Claim-to-Evidence Strength Binder",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "claim-evidence-binder.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RLS-ADVERSARY-002",
+    "name": "Million-Case RLS Adversary Model",
+    "risk": "C5",
+    "authority": [
+      "ENG-330",
+      "ENG-333"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "rls-adversary-model.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CRASH-RECOVERY-002",
+    "name": "Crash Phase Recovery Oracle",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "crash-recovery-model.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-EXACTLY-ONCE-001",
+    "name": "Worker Exactly-Once Authority Envelope",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "exactly-once-envelope.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SCHEMA-DRIFT-002",
+    "name": "Runtime Schema Drift Gate",
+    "risk": "C5",
+    "authority": [
+      "ENG-332",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-API-HARDEN-002",
+    "name": "Mutation Header Contract Hardening",
+    "risk": "C5",
+    "authority": [
+      "ENG-330"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-SEQUENCE-ORACLE-001",
+    "name": "Clinical Sequence Safety Oracle",
+    "risk": "C5",
+    "authority": [
+      "ENG-306",
+      "ENG-309"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RESTORE-PLAN-003",
+    "name": "Ten-Step Restore Drill Admission Plan",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-BUILD-ATTEST-001",
+    "name": "Cryptographic Build Attestation Contract",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RELEASE-V6-001",
+    "name": "Thirteen-Dimension Release Admission",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "release-admission-v6.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-OPS-SAFETY-BUDGET-001",
+    "name": "Operational Clinical Safety Budget",
+    "risk": "C5",
+    "authority": [
+      "ENG-331",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RUNTIME-DB-PROOF-001",
+    "name": "Live PostgreSQL Schema Proof Harness",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "runtime-db-contract.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ROLE-PROOF-001",
+    "name": "PostgreSQL NOBYPASSRLS Role Proof",
+    "risk": "C5",
+    "authority": [
+      "ENG-333",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "postgres-role-proof.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-ATOMIC-PROOF-001",
+    "name": "Atomic Clinical Commit Evidence Oracle",
+    "risk": "C5",
+    "authority": [
+      "ENG-309",
+      "ENG-311"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "atomic-command-proof.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-OUTBOX-RUNTIME-PROOF-001",
+    "name": "Outbox Runtime Recovery Proof",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RUNTIME-EVIDENCE-001",
+    "name": "Hashed Runtime Command Evidence Recorder",
+    "risk": "C5",
+    "authority": [
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-HTTP-ADVERSARY-002",
+    "name": "Live HTTP Adversary Corpus",
+    "risk": "C5",
+    "authority": [
+      "ENG-330"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-RESTORE-PROOF-004",
+    "name": "Restore Fingerprint Proof",
+    "risk": "C5",
+    "authority": [
+      "ENG-311",
+      "ENG-346"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [
+      "restore-proof.test.ts"
+    ],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  },
+  {
+    "id": "CAP-CONCURRENCY-PROOF-002",
+    "name": "Live CAS Race Proof Oracle",
+    "risk": "C5",
+    "authority": [
+      "ENG-310",
+      "ENG-311"
+    ],
+    "hazards": [],
+    "controls": [],
+    "invariants": [],
+    "machines": [],
+    "tests": [],
+    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "dependsOn": [
+      "CAP-IDENTITY-001"
+    ]
+  }
+]

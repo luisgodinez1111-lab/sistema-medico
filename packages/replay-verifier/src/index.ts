@@ -1,0 +1,1 @@
+import crypto from"node:crypto";export function stateHash(x:unknown){return crypto.createHash("sha256").update(JSON.stringify(x)).digest("hex")}export function verifyReplay(live:unknown,replayed:unknown){const a=stateHash(live),b=stateHash(replayed);return{consistent:a===b,liveHash:a,replayHash:b};}

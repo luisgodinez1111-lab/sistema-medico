@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{validateNewCorrection}from"../../packages/result-correction-v2/src";describe("correction",()=>it("rejects self edge",()=>expect(()=>validateNewCorrection([],{original:"a",corrected:"a",patientId:"p"})).toThrow(/SELF/)));

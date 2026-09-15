@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{defectGate}from"../../packages/defect-attestation/src";describe("defects",()=>it("not assessed blocks",()=>expect(defectGate({state:"NOT_ASSESSED",openCritical:0}).pass).toBe(false)));

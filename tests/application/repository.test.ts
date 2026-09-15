@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {InMemoryRepository} from "../../packages/repository/src";describe("repository",()=>{it("detects optimistic conflict",async()=>{const r=new InMemoryRepository<any>();await r.insert({id:"1",tenantId:"t",version:2});await expect(r.update({id:"1",tenantId:"t",version:3},1)).rejects.toThrow(/OPTIMISTIC/);});});

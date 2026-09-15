@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{correctResult,assertCorrectionDag}from"../../packages/result-correction-runtime/src";describe("correction",()=>{it("creates acyclic correction",()=>{const a={id:"a",patientId:"p",status:"FINAL" as const,value:"1"};const b=correctResult(a,"b","2");expect(assertCorrectionDag([a,b])).toBe(true)});});

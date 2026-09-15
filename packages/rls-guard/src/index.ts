@@ -1,0 +1,2 @@
+export type RlsProbe=Readonly<{tenantContext?:string;rowTenant:string;roleBypassRls:boolean}>;
+export function rlsDecision(x:RlsProbe){if(x.roleBypassRls)return{allowed:false,reason:"RUNTIME_ROLE_MUST_NOT_BYPASS_RLS"};if(!x.tenantContext)return{allowed:false,reason:"TENANT_CONTEXT_REQUIRED"};return{allowed:x.tenantContext===x.rowTenant,reason:x.tenantContext===x.rowTenant?"SAME_TENANT":"CROSS_TENANT_DENY"};}

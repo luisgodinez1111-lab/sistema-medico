@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{releaseDecision}from"../../packages/release-gate-v2/src";describe("gate",()=>it("blocks incomplete evidence",()=>expect(releaseDecision({mapping:"PENDING",defects:"NOT_ASSESSED",tests:"NOT_RUN",database:"NOT_RUN",humanC5:"PENDING"}).state).toBe("BLOCKED")));

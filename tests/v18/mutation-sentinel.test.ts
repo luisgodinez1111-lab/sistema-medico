@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{releaseMutationGate}from"../../packages/mutation-sentinel/src";describe("mutation",()=>it("critical survivor blocks",()=>expect(releaseMutationGate([{id:"INV-C5",description:"x",killed:false}],["INV-C5"]).pass).toBe(false)));

@@ -1,0 +1,1 @@
+export async function POST(){return Response.json({code:"NOT_WIRED_TO_DATABASE",message:"Application shell exists; production persistence wiring remains release-blocked."},{status:501});}

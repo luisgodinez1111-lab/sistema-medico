@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{receipt}from"../../packages/calculation-receipt/src";describe("calc receipt",()=>{it("does not emit value when insufficient",()=>expect(receipt("a","1",{},"INSUFFICIENT_DATA")).not.toHaveProperty("value"));});

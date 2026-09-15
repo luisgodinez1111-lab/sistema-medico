@@ -1,0 +1,1 @@
+export type RequestContext=Readonly<{requestId:string;correlationId:string;tenantId:string;actorId:string;purpose:string;startedAt:number}>;export function validateRequestContext(x:RequestContext){for(const k of ["requestId","correlationId","tenantId","actorId","purpose"] as const)if(!x[k])throw new Error(`REQUEST_CONTEXT_MISSING:${k}`);return x;}

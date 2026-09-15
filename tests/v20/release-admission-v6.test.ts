@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{admit}from"../../packages/release-admission-v6/src";describe("release",()=>it("database proof required",()=>expect(admit({mapping:true,defects:true,compiled:true,tests:true,database:false,rls:true,concurrency:true,recovery:true,restore:true,performance:true,supplyChain:true,humanC5:true,aiReconciled:true}).state).toBe("BLOCKED")));

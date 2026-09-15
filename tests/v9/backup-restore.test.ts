@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{admitRestore}from"../../packages/backup-restore/src";describe("restore",()=>{it("requires isolation check",()=>expect(admitRestore({backupHashVerified:true,schemaCompatible:true,tenantIsolationVerified:false,auditChainVerified:true}).admitted).toBe(false));});

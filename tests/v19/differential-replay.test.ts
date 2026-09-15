@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{differentialReplay}from"../../packages/differential-replay/src";describe("replay",()=>it("key order does not change state",()=>expect(differentialReplay({a:1,b:2},{b:2,a:1}).match).toBe(true)));

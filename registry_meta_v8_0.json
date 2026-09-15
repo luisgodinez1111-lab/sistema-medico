@@ -1,0 +1,17 @@
+{
+  "version": "8.0-PRODUCTION-ENGINEERING",
+  "capabilities": 53,
+  "test_sources": 57,
+  "self_check": "PASS",
+  "production_conformance": "PASS",
+  "full_suite": "NOT_RUN",
+  "rg001": "BLOCKED",
+  "mapping_review_required": {
+    "prod_eng": 115,
+    "eng_exec": 202
+  },
+  "defect_attestation": "NOT_ASSESSED",
+  "live_db": "PENDING",
+  "release_state": "BLOCKED",
+  "source_sha256": "d3bd9f7f04e0e78ccc4cd52ca7808ec9e2319eb5580e24b771fdd75d5752768e"
+}

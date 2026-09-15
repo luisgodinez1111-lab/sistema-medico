@@ -1,0 +1,1 @@
+export type ClinicalQuery=Readonly<{tenantId:string;actorId:string;purpose:string;patientId?:string;projection:string}>;export function admitQuery(q:ClinicalQuery){if(!q.tenantId||!q.actorId||!q.purpose||!q.projection)throw new Error('QUERY_CONTEXT_REQUIRED');return q;}

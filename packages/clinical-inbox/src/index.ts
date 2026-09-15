@@ -1,0 +1,2 @@
+export type InboxItem=Readonly<{id:string;patientId:string;kind:"RESULT"|"OBLIGATION"|"CORRECTION"|"WORKFLOW_FAILURE";priority:"ROUTINE"|"HIGH"|"URGENT";ownerId:string;dueAt?:string;createdAt:string}>;
+export function rankInbox(xs:readonly InboxItem[]){const p={URGENT:0,HIGH:1,ROUTINE:2};return[...xs].sort((a,b)=>p[a.priority]-p[b.priority]||(a.dueAt?Date.parse(a.dueAt):Infinity)-(b.dueAt?Date.parse(b.dueAt):Infinity)||Date.parse(a.createdAt)-Date.parse(b.createdAt));}

@@ -1,1 +1,0 @@
-ALTER TABLE "clinical_document" ADD COLUMN "document_date" date;

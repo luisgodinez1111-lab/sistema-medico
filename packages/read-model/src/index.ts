@@ -1,0 +1,1 @@
+export type ReadModel<T>=Readonly<{patientId:string;version:number;sourceSequence:number;data:T}>;export function compareReadModel<T>(x:ReadModel<T>,aggregateSequence:number){return{x,consistent:x.sourceSequence===aggregateSequence,lag:aggregateSequence-x.sourceSequence};}

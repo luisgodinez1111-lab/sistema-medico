@@ -1,0 +1,57 @@
+{
+  "algorithm": "sha256",
+  "migrations": [
+    {
+      "file": "0001_core.sql",
+      "sha256": "11e7c8dc23eb83189c947b4f2abc966d887921ff8435e528f95228d551cb7da4"
+    },
+    {
+      "file": "0002_clinical_domains.sql",
+      "sha256": "83eb1c64e001095b7a3bd6e98669704450f4d759ec2ad4b62165587553cc9e0f"
+    },
+    {
+      "file": "0003_vertical_slice.sql",
+      "sha256": "83b1128907784cf19882a29b40784eb6548d6a946067ec26f97775c5a17e4e86"
+    },
+    {
+      "file": "0004_reliability_security.sql",
+      "sha256": "d58a80d54858679ef42e693be8d7db280e732566ad440c6f29dd52563b9058d6"
+    },
+    {
+      "file": "0005_production_engineering.sql",
+      "sha256": "1564ee53dc09bccb42126bc260cd3ba1de6f299ed03e305cc920d4eaf22c1174"
+    },
+    {
+      "file": "0006_operable_system.sql",
+      "sha256": "2ac5562813f3c959880ea0d117c15347c56283fb45bb9fb8cec9fe1ee6fbe60c"
+    },
+    {
+      "file": "0007_golden_vertical_slice.sql",
+      "sha256": "b9734a046679ac8573466efe38ef17d10959c898a3f6b119014727d012328b12"
+    },
+    {
+      "file": "0008_executable_clinical_core.sql",
+      "sha256": "91ee10202ccc26b2689cedb85096911efc70a9369305c7110c46c6885749852c"
+    },
+    {
+      "file": "0009_runtime_resilience.sql",
+      "sha256": "bdd477f1fbe85a0dc81e90bf0c967a9676c5bca5a6d3c3d48089c94d1ca45c01"
+    },
+    {
+      "file": "0010_atomic_runtime.sql",
+      "sha256": "ff1adf50ecc2a719486a033908ed74fa8de2998eada686f378dc65ea50942713"
+    },
+    {
+      "file": "0011_reproducible_clinical_runtime.sql",
+      "sha256": "878c545594fefba7beac7afaff86bca5c7da3ccf03ed1f04303c4d7015188dff"
+    },
+    {
+      "file": "0012_schema_integrity_and_runtime_hardening.sql",
+      "sha256": "48c79be2c0a5f9fc23549f20ec874809584c4e8b2c5491156f15e5c0c5a1b68b"
+    },
+    {
+      "file": "0013_transactional_authority_and_audit.sql",
+      "sha256": "06743be1e6cee9d088d96169c9a5514290b86c48b902f1deae825b5fe600f79d"
+    }
+  ]
+}

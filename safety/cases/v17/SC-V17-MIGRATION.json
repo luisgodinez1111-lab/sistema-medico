@@ -1,0 +1,10 @@
+{
+  "id": "SC-V17-MIGRATION",
+  "risk": "C5",
+  "hazard": {
+    "id": "HAZ-MIGRATION-MUTATION",
+    "description": "Historical migration bytes are SHA-256 manifested"
+  },
+  "human_review": "PENDING",
+  "release_admitted": false
+}

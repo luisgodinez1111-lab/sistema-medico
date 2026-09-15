@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{CLAIM_SQL,retryDelayMs}from"../../packages/outbox-claim-v2/src";describe("outbox",()=>{it("uses skip locked",()=>expect(CLAIM_SQL).toContain("SKIP LOCKED"));it("jitter bounded",()=>expect(retryDelayMs(2,99)).toBeGreaterThanOrEqual(4000));});

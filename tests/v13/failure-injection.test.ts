@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{FaultInjector}from"../../packages/failure-injection/src";describe("faults",()=>it("injects crash",()=>expect(()=>new FaultInjector(new Set(["WORKER_CRASH"])).hit("WORKER_CRASH")).toThrow(/INJECTED/)));

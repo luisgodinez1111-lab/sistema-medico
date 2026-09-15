@@ -1,0 +1,1 @@
+export type CommandEnvelope<T>=Readonly<{commandId:string;type:string;aggregateId:string;expectedVersion:number;payload:T;issuedAt:string}>;export function validateCommand<T>(x:CommandEnvelope<T>){if(x.expectedVersion<0)throw new Error("EXPECTED_VERSION_INVALID");if(!x.commandId||!x.type||!x.aggregateId)throw new Error("COMMAND_IDENTITY_REQUIRED");return x;}

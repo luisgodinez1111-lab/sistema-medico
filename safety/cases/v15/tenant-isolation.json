@@ -1,0 +1,1 @@
+{"id":"SC-V15-TENANT","risk":"C5","hazards":["cross-tenant disclosure","cross-tenant mutation"],"controls":["FORCE RLS","transaction-local tenant context","NOBYPASSRLS runtime role target"],"invariants":["tenant A cannot read/write tenant B"],"recovery":"security incident workflow","humanReview":"PENDING"}

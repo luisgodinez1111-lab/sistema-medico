@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{correctedResultImpact}from"../../packages/result-impact/src";describe("impact",()=>{it("finds patients affected by corrected result",()=>expect(correctedResultImpact([{patientId:"p",resultId:"r",artifactId:"a",actionId:"x"}],"r")[0].severity).toBe("URGENT_REVIEW"));});

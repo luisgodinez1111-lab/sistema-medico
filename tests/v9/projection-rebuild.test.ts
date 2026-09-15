@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{rebuild}from"../../packages/projection-rebuild/src";describe("rebuild",()=>{it("detects gap",()=>expect(()=>rebuild(0,[{sequence:1},{sequence:3}],(s)=>s+1)).toThrow(/GAP/));});

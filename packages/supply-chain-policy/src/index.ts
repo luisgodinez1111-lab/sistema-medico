@@ -1,0 +1,2 @@
+export type Dependency=Readonly<{name:string;version:string;integrity?:string;dev:boolean;license?:string}>;
+export function dependencyViolations(xs:readonly Dependency[]){const e:string[]=[];for(const d of xs){if(!/^\d+\.\d+\.\d+/.test(d.version))e.push(`UNPINNED:${d.name}`);if(!d.integrity)e.push(`NO_INTEGRITY:${d.name}`);if(d.license&&/GPL-3|AGPL/i.test(d.license))e.push(`LICENSE_REVIEW:${d.name}`)}return e}

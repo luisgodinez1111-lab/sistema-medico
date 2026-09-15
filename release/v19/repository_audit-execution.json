@@ -1,0 +1,5 @@
+{
+  "status": "PASS",
+  "stdout": "{\n  \"status\": \"PASS\",\n  \"filesScanned\": 658,\n  \"findings\": [\n    [\n      \"S3\",\n      \"DIRECT_CONSOLE\",\n      \"packages/clinical-safety/src/validate-registry.ts\"\n    ]\n  ],\n  \"s1\": 0,\n  \"s2\": 0\n}\n",
+  "stderr": ""
+}

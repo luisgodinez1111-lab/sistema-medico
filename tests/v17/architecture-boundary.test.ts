@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{assertProductionImport}from"../../packages/architecture-boundary/src";describe("boundary",()=>it("rejects deprecated runtime",()=>expect(()=>assertProductionImport("/packages/atomic-clinical-transaction/src/index.ts")).toThrow()));

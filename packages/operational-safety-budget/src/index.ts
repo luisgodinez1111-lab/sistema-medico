@@ -1,0 +1,2 @@
+export type SafetyBudget=Readonly<{unownedCritical:number;overdueCritical:number;reconciliationBacklog:number;deadLetters:number;projectionGaps:number}>;
+export function budgetStatus(x:SafetyBudget){const blockers:string[]=[];if(x.unownedCritical>0)blockers.push("UNOWNED_CRITICAL");if(x.overdueCritical>0)blockers.push("OVERDUE_CRITICAL");if(x.projectionGaps>0)blockers.push("PROJECTION_GAP");return{safe:blockers.length===0,blockers}}

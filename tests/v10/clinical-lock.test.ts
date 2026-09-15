@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{acquire}from"../../packages/clinical-lock/src";describe("lock",()=>{it("blocks competing owner",()=>expect(()=>acquire({resourceId:"r",ownerId:"a",expiresAt:100},"b","r",1,10)).toThrow(/HELD/));});

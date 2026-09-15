@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{buildEvidence}from"../../packages/release-evidence-v4/src";describe("evidence",()=>it("cannot fake executed pass",()=>expect(()=>buildEvidence({releaseId:"r",kind:"test",state:"EXECUTED_PASS",artifactHashes:{},toolchain:{},commit:"x"})).toThrow(/INCOMPLETE/)));

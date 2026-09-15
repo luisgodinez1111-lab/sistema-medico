@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{sessionStatements}from"../../packages/tenant-session/src";describe("db session",()=>{it("sets tenant actor purpose",()=>expect(sessionStatements({tenantId:"t",actorId:"a",purpose:"TREATMENT"})).toHaveLength(3));});

@@ -1,0 +1,3 @@
+export type Correction=Readonly<{original:string;corrected:string;patientId:string;reason:string}>;
+export function validateCorrectionGraph(xs:readonly Correction[]){const parent=new Map(xs.map(x=>[x.corrected,x.original]));for(const n of parent.keys()){const seen=new Set<string>();let p:string|undefined=n;while(p){if(seen.has(p))throw new Error("RESULT_CORRECTION_CYCLE");seen.add(p);p=parent.get(p)}}return true;}
+export function affectedChain(xs:readonly Correction[],resultId:string){const out:string[]=[];let q=[resultId];while(q.length){const x=q.shift()!;for(const e of xs.filter(y=>y.original===x)){out.push(e.corrected);q.push(e.corrected)}}return out;}

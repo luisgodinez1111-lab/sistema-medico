@@ -1,0 +1,2 @@
+export type Binding=Readonly<{claimId:string;required:readonly string[];available:Readonly<Record<string,"SOURCE"|"MODEL_PASS"|"RUNTIME_PASS"|"HUMAN_APPROVED">>}>;
+export function bindingStatus(x:Binding){const missing=x.required.filter(r=>!x.available[r]);const weak=x.required.filter(r=>["SOURCE","MODEL_PASS"].includes(x.available[r]??""));return{closed:missing.length===0&&weak.length===0,missing,weak}}

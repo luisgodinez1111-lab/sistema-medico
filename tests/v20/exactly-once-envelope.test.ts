@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{deliveryAuthority}from"../../packages/worker-exactly-once-envelope/src";describe("delivery",()=>it("stale fence blocks",()=>expect(deliveryAuthority({tenant:"t",consumer:"c",message:"m",fencing:1,currentFencing:2,receiptExists:false,leaseValid:true})).toBe("STALE_FENCE")));

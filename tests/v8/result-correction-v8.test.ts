@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{assertAcyclic}from"../../packages/result-correction/src";describe("correction",()=>{it("rejects cycle",()=>expect(()=>assertAcyclic([{originalId:"a",correctedId:"b",reason:"x",authorId:"u",at:"x"},{originalId:"b",correctedId:"a",reason:"x",authorId:"u",at:"x"}])).toThrow(/CYCLE/));});

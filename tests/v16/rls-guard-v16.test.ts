@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{rlsDecision}from"../../packages/rls-guard/src";describe("rls",()=>it("bypass role is rejected",()=>expect(rlsDecision({tenantContext:"a",rowTenant:"a",roleBypassRls:true}).allowed).toBe(false)));

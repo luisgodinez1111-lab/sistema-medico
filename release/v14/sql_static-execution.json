@@ -1,0 +1,5 @@
+{
+  "status": "PASS",
+  "stdout": "{\n  \"status\": \"PASS\",\n  \"checks\": {\n    \"idempotency\": true,\n    \"reconciliation\": true,\n    \"signedAppendOnly\": true,\n    \"forceRls\": true,\n    \"safeTenant\": true,\n    \"releaseEvidence\": true\n  }\n}\n",
+  "stderr": ""
+}

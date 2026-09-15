@@ -1,0 +1,1 @@
+export async function GET(){return Response.json({status:"ALIVE",service:"medical-os-web",at:new Date().toISOString()});}

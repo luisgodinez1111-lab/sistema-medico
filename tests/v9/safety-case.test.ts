@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{safetyCaseGate}from"../../packages/safety-case/src";describe("safety case",()=>{it("C5 needs approval",()=>expect(safetyCaseGate({capability:"c",hazards:["h"],controls:["c"],invariants:["i"],tests:["t"],evidence:["e"],humanApproval:false},"C5").admitted).toBe(false));});

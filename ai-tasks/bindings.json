@@ -1,0 +1,72 @@
+[
+  {
+    "binding_id": "AIB-0001",
+    "ai_task": "AI-TASK-0001",
+    "risk": "C4",
+    "safety_envelope": "SE-0001",
+    "authority": [
+      "ENG-266",
+      "ENG-320",
+      "ENG-321",
+      "ENG-322",
+      "ENG-339"
+    ],
+    "status": "EXPLICIT_AUTHORITY_DERIVED"
+  },
+  {
+    "binding_id": "AIB-0002",
+    "ai_task": "AI-TASK-0002",
+    "risk": "C5",
+    "safety_envelope": "SE-0002",
+    "authority": [
+      "ENG-266",
+      "ENG-320",
+      "ENG-321",
+      "ENG-322",
+      "ENG-323",
+      "ENG-339"
+    ],
+    "status": "EXPLICIT_AUTHORITY_DERIVED"
+  },
+  {
+    "binding_id": "AIB-0003",
+    "ai_task": "AI-TASK-0003",
+    "risk": "C5",
+    "safety_envelope": "SE-0002",
+    "authority": [
+      "ENG-266",
+      "ENG-320",
+      "ENG-321",
+      "ENG-322",
+      "ENG-323",
+      "ENG-339"
+    ],
+    "status": "EXPLICIT_AUTHORITY_DERIVED"
+  },
+  {
+    "binding_id": "AIB-0004",
+    "ai_task": "AI-TASK-0004",
+    "risk": "C3",
+    "safety_envelope": "SE-0003",
+    "authority": [
+      "ENG-266",
+      "ENG-321",
+      "ENG-339"
+    ],
+    "status": "EXPLICIT_AUTHORITY_DERIVED"
+  },
+  {
+    "binding_id": "AIB-0005",
+    "ai_task": "AI-TASK-0005",
+    "risk": "C4",
+    "safety_envelope": "SE-0001",
+    "authority": [
+      "ENG-266",
+      "ENG-320",
+      "ENG-321",
+      "ENG-323",
+      "ENG-339"
+    ],
+    "status": "EXPLICIT_AUTHORITY_DERIVED"
+  }
+]

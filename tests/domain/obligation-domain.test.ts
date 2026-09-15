@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {detectOverdue} from "../../packages/obligation-domain/src";describe("obligation",()=>{it("detects overdue",()=>expect(detectOverdue({id:"o",patientId:"p",ownerId:"u",dueAt:"2026-01-01",state:"OPEN",version:1},"2026-01-02").state).toBe("OVERDUE"));});

@@ -1,0 +1,13 @@
+import type{Sql}from"postgres";import{assertTenantContext,type TenantContext}from"../../tenant-context/src";
+export type AtomicWrite=Readonly<{aggregateTable:"patients"|"encounters"|"diagnostic_results"|"medications"|"obligations";aggregateId:string;expectedVersion:number;event:{id:string;type:string;payload:unknown};outbox:{id:string;topic:string;payload:unknown};audit:{id:string;action:string;payload:unknown}}>;
+export async function atomicClinicalWrite(sql:Sql,ctx:TenantContext,w:AtomicWrite){
+ assertTenantContext(ctx);
+ await sql`select set_config('app.tenant_id',${ctx.tenantId},true)`;
+ await sql`select set_config('app.actor_id',${ctx.actorId},true)`;
+ const updated=await sql.unsafe(`update ${w.aggregateTable} set version=version+1 where id=$1 and tenant_id=$2 and version=$3 returning version`,[w.aggregateId,ctx.tenantId,w.expectedVersion]);
+ if(updated.length!==1)throw new Error("CONCURRENCY_CONFLICT");
+ await sql`insert into clinical_events(id,tenant_id,aggregate_id,event_type,payload,sequence) values(${w.event.id},${ctx.tenantId},${w.aggregateId},${w.event.type},${sql.json(w.event.payload as any)},${w.expectedVersion+1})`;
+ await sql`insert into outbox(id,tenant_id,topic,payload,state,available_at) values(${w.outbox.id},${ctx.tenantId},${w.outbox.topic},${sql.json(w.outbox.payload as any)},'PENDING',now())`;
+ await sql`insert into audit_ledger(id,tenant_id,actor_id,action,payload) values(${w.audit.id},${ctx.tenantId},${ctx.actorId},${w.audit.action},${sql.json(w.audit.payload as any)})`;
+ return{version:w.expectedVersion+1,eventId:w.event.id,outboxId:w.outbox.id,auditId:w.audit.id};
+}

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{append}from"../../packages/aggregate-store/src";describe("store",()=>{it("rejects version conflict",()=>expect(()=>append([{id:"e",aggregateId:"a",sequence:2,type:"x",payload:{}}],[],1)).toThrow(/VERSION/));});

@@ -1,0 +1,10 @@
+{
+  "id": "SC-V17-CONSISTENCY",
+  "risk": "C5",
+  "hazard": {
+    "id": "HAZ-STALE-READ",
+    "description": "Stale clinical projection blocks default read"
+  },
+  "human_review": "PENDING",
+  "release_admitted": false
+}

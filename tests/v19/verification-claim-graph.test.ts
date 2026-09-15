@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{unresolvedClaims}from"../../packages/verification-claim-graph/src";describe("claims",()=>it("source-only dependency cannot close critical claim",()=>expect(unresolvedClaims([{id:"a",requires:[],state:"SOURCE_ONLY",critical:false},{id:"b",requires:["a"],state:"EXECUTED",critical:true}])).toContain("b")));

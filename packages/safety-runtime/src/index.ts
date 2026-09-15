@@ -1,0 +1,2 @@
+export type SafetyCaseRuntime=Readonly<{risk:"C3"|"C4"|"C5";hazards:number;controls:number;invariants:number;executedPass:number;humanApproved:boolean}>;
+export function admitSafetyCase(x:SafetyCaseRuntime){if(!x.hazards||!x.controls||!x.invariants)return{admitted:false,reason:"SAFETY_CASE_INCOMPLETE"};if(!x.executedPass)return{admitted:false,reason:"EXECUTED_EVIDENCE_REQUIRED"};if(x.risk==="C5"&&!x.humanApproved)return{admitted:false,reason:"HUMAN_APPROVAL_REQUIRED"};return{admitted:true,reason:"ADMITTED"};}

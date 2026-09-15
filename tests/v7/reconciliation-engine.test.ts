@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{releaseImpact}from"../../packages/reconciliation-engine/src";describe("reconciliation",()=>{it("S1 blocks",()=>expect(releaseImpact([{id:"1",kind:"DEAD_LETTER",severity:"S1",owner:"ops",recovery:"requeue"}])).toBe("BLOCK"));});

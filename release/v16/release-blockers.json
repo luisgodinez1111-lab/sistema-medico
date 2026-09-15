@@ -1,0 +1,19 @@
+{
+  "RG-001": {
+    "status": "BLOCKED",
+    "prod_to_eng_review_required": 115,
+    "eng_to_exec_review_required": 202
+  },
+  "historical_ai_candidates": {
+    "status": "HUMAN_REVIEW_PENDING",
+    "count": 118
+  },
+  "human_defect_attestation": "NOT_ASSESSED",
+  "C5_human_review": "PENDING",
+  "full_typecheck": "NOT_RUN",
+  "full_vitest": "NOT_RUN",
+  "next_build": "NOT_RUN",
+  "live_postgres": "NOT_RUN",
+  "live_rls_attack_suite": "NOT_RUN",
+  "production_release": "BLOCKED"
+}

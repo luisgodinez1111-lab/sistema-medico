@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "2.0",
+  "capability": "CAP-APPLICABILITY-001",
+  "name": "Clinical Applicability Guard",
+  "risk": "C5",
+  "authority": [
+    "ENG-318",
+    "ENG-319",
+    "ENG-341"
+  ],
+  "hazardCase": [
+    {
+      "id": "HAZ-CORE-0006",
+      "authority": [
+        "ENG-318",
+        "ENG-319",
+        "ENG-341"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "Clinical computation/intervention is applied outside supported patient context.",
+      "foreseeableSequence": [
+        "applicability omitted",
+        "adult/default rule applied",
+        "unsafe output accepted"
+      ],
+      "potentialHarm": "Dose, interpretation, or recommendation inappropriate for patient context.",
+      "controls": [
+        "CTL-0008"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0008",
+      "authority": [
+        "ENG-319",
+        "ENG-318",
+        "ENG-341"
+      ],
+      "type": "PREVENTIVE",
+      "name": "Clinical applicability/pediatric context gate",
+      "invariant": "INV-CORE-0008",
+      "verification": [
+        "contract:applicability",
+        "future:pediatric-dose-receipt"
+      ],
+      "failure": "BLOCK"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-CORE-0008",
+      "authority": [
+        "ENG-318",
+        "ENG-319",
+        "ENG-341"
+      ],
+      "risk": "C5",
+      "statement": "Unsupported applicability context must block clinically consequential computation.",
+      "predicate": "assertClinicalApplicability",
+      "tests": [
+        "applicability.test.ts"
+      ]
+    }
+  ],
+  "stateMachines": [],
+  "tests": [
+    "applicability.test.ts"
+  ],
+  "releasePolicy": "FAIL_CLOSED",
+  "safetyArgument": [
+    "Authority establishes intended behavior and boundaries.",
+    "Hazards identify foreseeable unsafe conditions.",
+    "Controls prevent, detect, correct, or recover from those conditions.",
+    "Invariants define conditions that must remain true.",
+    "Tests provide executable oracles; execution evidence is separately required.",
+    "Capability remains blocked when any required safety-case element is absent."
+  ],
+  "dossierSha256": "01e12ee60c2f0485d588a7963b1f2c58e6d292e881b7876949cc3596e3db1526"
+}

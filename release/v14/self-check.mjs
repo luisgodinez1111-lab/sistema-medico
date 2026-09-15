@@ -1,0 +1,4 @@
+import fs from"node:fs";import crypto from"node:crypto";const j=p=>JSON.parse(fs.readFileSync(p)),E=[],m=j("release/test-evidence-manifest.json"),c=j("capabilities/catalog.json");
+for(const x of m){if(!fs.existsSync(x.test)){E.push("MISSING:"+x.test);continue;}if(crypto.createHash("sha256").update(fs.readFileSync(x.test)).digest("hex")!==x.sha256)E.push("HASH:"+x.test);}
+for(const p of["packages/atomic-clinical-transaction/src/index.ts","packages/persistent-idempotency/src/index.ts","packages/durable-outbox/src/index.ts","packages/result-correction-graph/src/index.ts","packages/signed-record-store/src/index.ts","packages/reconciliation-store/src/index.ts","db/migrations/0010_atomic_runtime.sql"])if(!fs.existsSync(p))E.push("CORE:"+p);
+console.log(JSON.stringify({status:E.length?"FAIL":"PASS",capabilities:c.length,testSources:m.length,errors:E},null,2));if(E.length)process.exit(1);

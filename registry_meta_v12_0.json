@@ -1,0 +1,21 @@
+{
+  "version": "12.0-EXECUTABLE-CLINICAL-CORE",
+  "capabilities": 103,
+  "test_sources": 93,
+  "self_check": "PASS",
+  "runtime_conformance": "PASS",
+  "runtime_checks": 16,
+  "sql_static": "PASS",
+  "full_vitest": "NOT_RUN",
+  "live_postgres": "NOT_RUN",
+  "release_state": "BLOCKED",
+  "toolchain": {
+    "node": "v22.16.0",
+    "npm": "10.9.2",
+    "pnpm": false,
+    "node_modules": false,
+    "postgres": false,
+    "docker": false
+  },
+  "source_sha256": "092b35e1e1c15c40cad0c4d1bf5eda84ab4d9c343fbf5f1f6d44a07d6dd93b7e"
+}

@@ -1,0 +1,5 @@
+{
+  "status": "PASS",
+  "stdout": "{\n  \"status\": \"PASS\",\n  \"tests\": 6,\n  \"results\": [\n    {\n      \"name\": \"duplicate delivery is detectable\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"dead letter blocks release scope\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"signed document requires amendment not overwrite\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"PHI cache defaults no-store\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"C5 AI without evidence blocks\",\n      \"status\": \"PASS\"\n    },\n    {\n      \"name\": \"enable without human-approved evidence blocks\",\n      \"status\": \"PASS\"\n    }\n  ]\n}\n",
+  "stderr": ""
+}

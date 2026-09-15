@@ -1,0 +1,10 @@
+{
+  "id": "SC-V17-TRANSACTION",
+  "risk": "C5",
+  "hazard": {
+    "id": "HAZ-PARTIAL-COMMIT",
+    "description": "All authoritative clinical writes must share one sql.begin callback"
+  },
+  "human_review": "PENDING",
+  "release_admitted": false
+}

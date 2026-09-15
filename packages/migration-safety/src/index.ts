@@ -1,0 +1,2 @@
+export type MigrationRisk=Readonly<{destructive:boolean;backfillRequired:boolean;clinicalTable:boolean;rollbackPlan:boolean}>;
+export function migrationGate(x:MigrationRisk){if(x.destructive&&x.clinicalTable)return{allowed:false,reason:"DESTRUCTIVE_CLINICAL_MIGRATION"};if(x.backfillRequired&&!x.rollbackPlan)return{allowed:false,reason:"ROLLBACK_PLAN_REQUIRED"};return{allowed:true,reason:"REVIEWED"};}

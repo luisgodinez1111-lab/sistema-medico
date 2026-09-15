@@ -1,0 +1,3 @@
+import crypto from"node:crypto";export function requestHash(x:unknown){return crypto.createHash("sha256").update(JSON.stringify(x)).digest("hex")}
+export type Claim="CLAIMED"|"REPLAY"|"IN_PROGRESS"|"CONFLICT";
+export function decideClaim(existing:{hash:string;status:"IN_PROGRESS"|"COMPLETED";response?:unknown}|undefined,payload:unknown):{claim:Claim;hash:string;response?:unknown}{const hash=requestHash(payload);if(!existing)return{claim:"CLAIMED",hash};if(existing.hash!==hash)return{claim:"CONFLICT",hash};if(existing.status==="COMPLETED")return{claim:"REPLAY",hash,response:existing.response};return{claim:"IN_PROGRESS",hash};}

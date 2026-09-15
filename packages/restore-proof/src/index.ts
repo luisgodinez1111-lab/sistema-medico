@@ -1,0 +1,2 @@
+export type RestoreProof=Readonly<{schemaHash:string;expectedSchemaHash:string;auditValid:boolean;rlsPass:boolean;replayHash:string;liveHash:string;obligationsMatch:boolean}>;
+export function restoreErrors(x:RestoreProof){const e:string[]=[];if(x.schemaHash!==x.expectedSchemaHash)e.push("SCHEMA");if(!x.auditValid)e.push("AUDIT");if(!x.rlsPass)e.push("RLS");if(x.replayHash!==x.liveHash)e.push("REPLAY");if(!x.obligationsMatch)e.push("OBLIGATIONS");return e}

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{performanceGate}from"../../packages/performance-gate/src";describe("perf",()=>it("p99 regression blocks",()=>expect(performanceGate({p50:10,p95:50,p99:500,errorRate:0,throughput:100},{p95Max:100,p99Max:200,errorRateMax:.01,throughputMin:50}).pass).toBe(false)));

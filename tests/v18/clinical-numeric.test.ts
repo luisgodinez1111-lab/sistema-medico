@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{validateNumeric}from"../../packages/clinical-numeric/src";describe("numeric",()=>it("rejects NaN",()=>expect(()=>validateNumeric({value:NaN,unit:"mg"})).toThrow(/NON_FINITE/)));

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{enforceConsent}from"../../packages/consent-enforcement/src";describe("consent",()=>{it("revoked blocks",()=>expect(()=>enforceConsent({patientId:"p",scope:"x",status:"REVOKED"},"x","2026-01-01")).toThrow(/NOT_GRANTED/));});

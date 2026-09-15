@@ -1,0 +1,1 @@
+import crypto from'node:crypto';export function calculationReceipt(x:{algorithm:string;version:string;inputs:unknown;status:string;output?:unknown;units?:string}){if(!x.algorithm||!x.version||!x.status)throw new Error('CALCULATION_METADATA_REQUIRED');return{...x,inputHash:crypto.createHash('sha256').update(JSON.stringify(x.inputs)).digest('hex')};}

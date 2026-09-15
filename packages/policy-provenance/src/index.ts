@@ -1,0 +1,2 @@
+export type PolicyRef=Readonly<{id:string;version:string;authority:readonly string[];effectiveFrom:string;effectiveTo?:string;hash:string}>;
+export function applicablePolicy(xs:readonly PolicyRef[],id:string,at:string){const t=Date.parse(at),m=xs.filter(x=>x.id===id&&Date.parse(x.effectiveFrom)<=t&&(!x.effectiveTo||t<Date.parse(x.effectiveTo)));if(m.length!==1)throw new Error(m.length?"POLICY_CONFLICT":"POLICY_NOT_APPLICABLE");return m[0];}

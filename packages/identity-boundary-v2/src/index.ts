@@ -1,0 +1,2 @@
+export type VerifiedIdentity=Readonly<{subject:string;issuer:string;audience:string;expiresAt:number;sessionId:string;tenantId:string;roles:readonly string[];scopes:readonly string[]}>;
+export function assertIdentity(x:VerifiedIdentity,now:number){if(!x.subject||!x.issuer||!x.sessionId)throw new Error('IDENTITY_INCOMPLETE');if(x.expiresAt<=now)throw new Error('SESSION_EXPIRED');if(!x.tenantId)throw new Error('TENANT_REQUIRED');return x;}

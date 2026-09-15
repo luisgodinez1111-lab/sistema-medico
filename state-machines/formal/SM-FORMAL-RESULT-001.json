@@ -1,0 +1,44 @@
+{
+  "id": "SM-FORMAL-RESULT-001",
+  "authority": [
+    "ENG-306",
+    "ENG-307",
+    "ENG-308",
+    "ENG-311",
+    "ENG-342"
+  ],
+  "subject": "Diagnostic Result Lifecycle 2.0",
+  "states": [
+    "EXPECTED",
+    "ORDERED",
+    "RECEIVED",
+    "VERIFIED",
+    "REVIEWED",
+    "ACTION_REQUIRED",
+    "ACTIONED",
+    "PATIENT_INFORMED",
+    "CLOSED",
+    "CORRECTED",
+    "CANCELLED",
+    "UNMATCHED",
+    "FAILED",
+    "OVERDUE",
+    "ESCALATED"
+  ],
+  "terminal": [
+    "CLOSED",
+    "CANCELLED"
+  ],
+  "laws": [
+    "RECEIVED does not imply VERIFIED, REVIEWED, ACTIONED, PATIENT_INFORMED or CLOSED.",
+    "CLOSED requires accountable closure evidence.",
+    "CORRECTED creates supersession lineage; prior clinical use remains auditable.",
+    "OVERDUE/ESCALATED cannot be silently normalized to CLOSED."
+  ],
+  "reconciliation": {
+    "owner": "Results lifecycle service",
+    "detect": "scheduled + event-driven orphan/overdue scan",
+    "recover": "re-link, requeue, escalate or create accountable obligation",
+    "evidence": "audit + provenance + reconciliation event"
+  }
+}

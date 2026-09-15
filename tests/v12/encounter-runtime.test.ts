@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{assess,sign}from"../../packages/encounter-runtime/src";describe("encounter",()=>{it("critical obligation blocks signing",()=>{const e=assess({id:"e",patientId:"p",version:0,status:"OPEN"},"A","P");expect(()=>sign(e,"u",1)).toThrow(/Critical/)});});

@@ -1,0 +1,14 @@
+{
+  "version": "14.0-ATOMIC-RUNTIME-PROOF",
+  "capabilities": 119,
+  "test_sources": 106,
+  "self_check": "PASS",
+  "atomicity": "PASS",
+  "sql_static": "PASS",
+  "dependency_install": "INTERRUPTED_BY_RUNTIME_LIMIT",
+  "typecheck": "NOT_RUN",
+  "vitest": "NOT_RUN",
+  "live_postgres": "NOT_RUN",
+  "release_state": "BLOCKED",
+  "source_sha256": "35a6819be1b766ee619055c6feb2d4fc3642751aa71fab8b5b57ffa4251f93a8"
+}

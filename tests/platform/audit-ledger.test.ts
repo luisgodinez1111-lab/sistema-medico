@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {createAuditEntry,verifyAuditChain} from "../../packages/audit-ledger/src";describe("audit ledger",()=>{it("detects tamper",()=>{const a=createAuditEntry({id:"1",at:"x",tenantId:"t",actorId:"u",action:"READ",resource:"p",prevHash:""});expect(()=>verifyAuditChain([{...a,action:"WRITE"}])).toThrow(/AUDIT_TAMPER/);});});

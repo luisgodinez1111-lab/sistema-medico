@@ -1,0 +1,2 @@
+export type SafetyCase=Readonly<{capability:string;hazards:readonly string[];controls:readonly string[];invariants:readonly string[];tests:readonly string[];evidence:readonly string[];humanApproval:boolean}>;
+export function safetyCaseGate(x:SafetyCase,risk:"C3"|"C4"|"C5"){const complete=[x.hazards,x.controls,x.invariants,x.tests,x.evidence].every(a=>a.length>0);if(!complete)return{admitted:false,reason:"SAFETY_CASE_INCOMPLETE"};if(risk==="C5"&&!x.humanApproval)return{admitted:false,reason:"HUMAN_APPROVAL_REQUIRED"};return{admitted:true,reason:"ADMITTED"};}

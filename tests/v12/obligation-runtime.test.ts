@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{createObligation,reconcileObligation}from"../../packages/obligation-runtime/src";describe("obligation",()=>{it("overdue escalates",()=>expect(reconcileObligation(createObligation({id:"o",patientId:"p",sourceId:"r",ownerId:"u",dueAt:1,priority:"URGENT"}),2).state).toBe("ESCALATED"));});

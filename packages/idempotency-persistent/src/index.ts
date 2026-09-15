@@ -1,0 +1,2 @@
+export type IdempotencyRecord=Readonly<{tenantId:string;key:string;requestHash:string;status:"IN_PROGRESS"|"COMPLETED"|"FAILED";response?:unknown;expiresAt:string}>;
+export function assertReplaySafe(existing:IdempotencyRecord|undefined,requestHash:string){if(!existing)return"EXECUTE";if(existing.requestHash!==requestHash)throw new Error("IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_REQUEST");if(existing.status==="COMPLETED")return"REPLAY_RESPONSE";if(existing.status==="IN_PROGRESS")return"RETRY_LATER";return"EXECUTE";}

@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "stdout": "{\n  \"status\": \"PASS\",\n  \"count\": 13,\n  \"errors\": []\n}\n",
+  "stderr": "",
+  "stdout_hash": "59847482bf997fa58a6e0436f5a0294d9313bcba195c068363adea84ddb98cf6",
+  "stderr_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

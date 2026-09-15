@@ -1,0 +1,3 @@
+export const MAX_BODY_BYTES=1_048_576,MAX_STRING=16_384,MAX_ARRAY=10_000,MAX_DEPTH=20;
+export function inspectInput(x:unknown,depth=0):string[]{const e:string[]=[];if(depth>MAX_DEPTH)return["INPUT_TOO_DEEP"];if(typeof x==="string"&&x.length>MAX_STRING)e.push("STRING_TOO_LONG");if(Array.isArray(x)){if(x.length>MAX_ARRAY)e.push("ARRAY_TOO_LARGE");for(const v of x)e.push(...inspectInput(v,depth+1));}else if(x&&typeof x==="object")for(const v of Object.values(x as Record<string,unknown>))e.push(...inspectInput(v,depth+1));return e}
+export function assertJsonContentType(v:string|undefined){if(!v?.toLowerCase().startsWith("application/json"))throw new Error("UNSUPPORTED_MEDIA_TYPE")}

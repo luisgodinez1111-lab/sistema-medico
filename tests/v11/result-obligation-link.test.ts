@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{resultToObligation}from"../../packages/result-obligation-link/src";describe("result obligation",()=>{it("actionable result needs owner",()=>expect(()=>resultToObligation({resultId:"r",patientId:"p",requiresAction:true,critical:true,dueAt:"x"})).toThrow(/OWNER/));});

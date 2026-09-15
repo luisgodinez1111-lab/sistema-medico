@@ -1,0 +1,1 @@
+export type QueryResult<T>=Readonly<{data:T;projectionVersion:number;generatedAt:string;stale:boolean}>;export function assertFresh<T>(x:QueryResult<T>,allowStale=false){if(x.stale&&!allowStale)throw new Error("STALE_CLINICAL_PROJECTION");return x;}

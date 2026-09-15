@@ -1,0 +1,7 @@
+{
+  "id": "SC-V18-RESTORE",
+  "risk": "C5",
+  "focus": "Restored system diverges from clinical authority",
+  "human_review": "PENDING",
+  "release_admitted": false
+}

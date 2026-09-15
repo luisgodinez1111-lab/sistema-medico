@@ -1,0 +1,1 @@
+export type ClinicalLock=Readonly<{resourceId:string;ownerId:string;expiresAt:number}>;export function acquire(existing:ClinicalLock|undefined,ownerId:string,resourceId:string,now:number,ttl:number){if(existing&&existing.ownerId!==ownerId&&existing.expiresAt>now)throw new Error("CLINICAL_LOCK_HELD");return{resourceId,ownerId,expiresAt:now+ttl};}

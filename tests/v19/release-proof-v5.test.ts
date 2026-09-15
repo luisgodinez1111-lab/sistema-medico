@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{releaseProof}from"../../packages/release-proof-v5/src";describe("release",()=>it("missing live db blocks",()=>expect(releaseProof({mapping:true,defects:true,tests:true,database:false,rls:true,replay:true,restore:true,humanC5:true,aiReconciled:true,supplyChain:true}).state).toBe("BLOCKED")));

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{assertAtomicClinicalWrite}from"../../packages/clinical-transaction/src";describe("tx",()=>{it("requires event",()=>expect(()=>assertAtomicClinicalWrite({state:[],events:[],outbox:[],audit:[{}]})).toThrow(/EVENT/));});

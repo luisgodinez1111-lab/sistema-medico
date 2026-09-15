@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{advance}from"../../packages/feature-rollout/src";describe("rollout",()=>{it("cannot enable without human approval",()=>expect(()=>advance({capability:"c",state:"CANARY",evidenceStatus:"EXECUTED_PASS",sloHealthy:true},"ENABLED")).toThrow(/BLOCKED/));});

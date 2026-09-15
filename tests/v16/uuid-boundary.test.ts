@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{assertUuid}from"../../packages/uuid-boundary/src";describe("uuid",()=>it("rejects arbitrary ids at DB boundary",()=>expect(()=>assertUuid("abc")).toThrow(/INVALID_UUID/)));

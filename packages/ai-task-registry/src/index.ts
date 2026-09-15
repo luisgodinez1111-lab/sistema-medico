@@ -1,0 +1,3 @@
+export type CanonicalAiTask=Readonly<{id:string;category:string;risk:"C3"|"C4"|"C5";authority:readonly string[];status:"ACTIVE"|"DISABLED"}>;
+export type CandidateAiTask=Readonly<{candidateId:string;canonicalId?:string;status:"PENDING"|"MAPPED"|"REJECTED"}>;
+export function reconcileCandidates(c:readonly CandidateAiTask[],canonical:readonly CanonicalAiTask[]){const ids=new Set(canonical.map(x=>x.id));const invalid=c.filter(x=>x.status==="MAPPED"&&(!x.canonicalId||!ids.has(x.canonicalId)));return{pending:c.filter(x=>x.status==="PENDING").length,invalid:invalid.length,admitted:c.every(x=>x.status!=="PENDING")&&invalid.length===0};}

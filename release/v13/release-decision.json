@@ -1,0 +1,20 @@
+{
+  "state": "BLOCKED",
+  "blockers": [
+    "RG-001_MAPPING",
+    "DEFECT_ASSESSMENT",
+    "FULL_TESTS",
+    "LIVE_DATABASE",
+    "AI_CANDIDATE_RECONCILIATION",
+    "C5_HUMAN_APPROVAL"
+  ],
+  "mapping_detail": {
+    "PROD_to_ENG_review_required": 115,
+    "ENG_to_EXEC_review_required": 202
+  },
+  "ai_detail": {
+    "historical_candidates": 118,
+    "canonical_categories": 5,
+    "state": "HUMAN_REVIEW_PENDING"
+  }
+}

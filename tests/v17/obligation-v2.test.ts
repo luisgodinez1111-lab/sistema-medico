@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{transition}from"../../packages/obligation-supervisor-v2/src";describe("obligation",()=>it("completion needs evidence",()=>expect(()=>transition("IN_PROGRESS","COMPLETED")).toThrow(/EVIDENCE/)));

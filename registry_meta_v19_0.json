@@ -1,0 +1,19 @@
+{
+  "version": "19.0-VERIFICATION-LABORATORY",
+  "capabilities": 188,
+  "test_sources": 136,
+  "verification_cases": 100000,
+  "verification_lab": "PASS",
+  "differential_replay_runs": 10000,
+  "differential_replay": "PASS",
+  "repository_audit": "PASS",
+  "static_s1": 0,
+  "static_s2": 0,
+  "sql_semantic": "PASS",
+  "historical_schema_collisions": 2,
+  "migration_integrity": "PASS",
+  "full_suite": "NOT_RUN",
+  "live_postgres": "NOT_RUN",
+  "release_state": "BLOCKED",
+  "s1_repaired_in_v19": 1
+}

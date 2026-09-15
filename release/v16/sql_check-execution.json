@@ -1,0 +1,5 @@
+{
+  "status": "PASS",
+  "stdout": "{\n  \"status\": \"PASS\",\n  \"checks\": {\n    \"canonicalProjection\": true,\n    \"auditV3\": true,\n    \"outboxLease\": true,\n    \"triggerRepair\": true,\n    \"forceRls\": true,\n    \"tenantPolicy\": true,\n    \"appendOnlyAudit\": true\n  }\n}\n",
+  "stderr": ""
+}

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{decideClaim}from"../../packages/persistent-idempotency/src";describe("idem",()=>it("different request conflicts",()=>{const first=decideClaim(undefined,{x:1});expect(decideClaim({hash:first.hash,status:"IN_PROGRESS"},{x:2}).claim).toBe("CONFLICT")}));

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{applicablePolicy}from"../../packages/policy-provenance/src";describe("policy",()=>{it("ambiguity blocks",()=>expect(()=>applicablePolicy([{id:"p",version:"1",authority:["a"],effectiveFrom:"2026-01-01",hash:"h"},{id:"p",version:"2",authority:["a"],effectiveFrom:"2026-01-01",hash:"h"}],"p","2026-02-01")).toThrow(/CONFLICT/));});

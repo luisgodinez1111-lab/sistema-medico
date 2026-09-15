@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{casWinners,leaseWinner}from"../../packages/concurrency-model/src";describe("concurrency",()=>{it("one CAS winner",()=>expect(casWinners(2,2,50)).toBe(1));it("highest fence wins",()=>expect(leaseWinner([2,7,4])).toBe(7));});

@@ -1,0 +1,9 @@
+{
+  "version": "0.9-AI-SAFETY-EVIDENCE",
+  "ai_tasks": 5,
+  "bindings": 5,
+  "evals": 5,
+  "test_execution": "NOT_RUN",
+  "release_admission": "BLOCKED",
+  "source_sha256": "355943eeca1ecf3b30f406ca68113214b138f9f8396bab7b7845378ac6e3d682"
+}

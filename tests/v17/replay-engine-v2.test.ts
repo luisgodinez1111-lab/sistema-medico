@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{replay}from"../../packages/replay-engine-v2/src";describe("replay",()=>it("rejects gaps",()=>expect(()=>replay({},[{id:"e",sequence:2,payload:{}}],s=>s)).toThrow(/GAP/)));

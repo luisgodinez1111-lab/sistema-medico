@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{signEncounter}from"../../packages/encounter-signing/src";describe("sign",()=>{it("blocks unresolved critical obligations",()=>expect(()=>signEncounter({encounterId:"e",version:1,patientId:"p",authorId:"u",content:"x",unresolvedCriticalObligations:1,completeness:true,signedAt:"2026-01-01"})).toThrow(/CRITICAL/));});

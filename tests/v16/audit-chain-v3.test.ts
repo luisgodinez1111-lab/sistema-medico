@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{appendAudit,verifyAudit}from"../../packages/audit-chain-v3/src";describe("audit",()=>it("detects tamper",()=>{const a=appendAudit(undefined,{tenantId:"t",id:"1",actorId:"u",action:"READ",resource:"P",payload:{x:1},at:"2026-01-01"});expect(verifyAudit([{...a,payload:{x:2}}])).toBe(false)}));

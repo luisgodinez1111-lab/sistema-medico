@@ -1,0 +1,5 @@
+{
+  "status": "PASS",
+  "stdout": "{\n  \"status\": \"PASS\",\n  \"cases\": 1000000,\n  \"allow\": 266725,\n  \"deny\": 728309,\n  \"roleDefect\": 4966,\n  \"miss\": 0\n}\n",
+  "stderr": ""
+}

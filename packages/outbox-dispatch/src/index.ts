@@ -1,0 +1,2 @@
+export type DispatchState=Readonly<{id:string;attempt:number;maxAttempts:number;state:"PENDING"|"LEASED"|"DELIVERED"|"DEAD_LETTER";nextAt:number}>;
+export function onFailure(x:DispatchState,now:number){const attempt=x.attempt+1;if(attempt>=x.maxAttempts)return{...x,attempt,state:"DEAD_LETTER" as const,nextAt:now};const delay=Math.min(300000,1000*2**attempt);return{...x,attempt,state:"PENDING" as const,nextAt:now+delay};}

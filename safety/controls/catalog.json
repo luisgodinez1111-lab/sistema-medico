@@ -1,0 +1,127 @@
+[
+  {
+    "id": "CTL-0001",
+    "authority": [
+      "ENG-307",
+      "ENG-308"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Result closure requires accountable evidence",
+    "invariant": "INV-CORE-0001",
+    "verification": [
+      "unit:test-result-closure",
+      "state-machine:result-lifecycle"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0002",
+    "authority": [
+      "ENG-308",
+      "ENG-311",
+      "ENG-337"
+    ],
+    "type": "DETECTIVE",
+    "name": "Zero Lost Follow-Up orphan/overdue detection",
+    "invariant": "INV-CORE-0002",
+    "verification": [
+      "unit:test-obligation",
+      "reconciliation:due-date-scan"
+    ],
+    "failure": "ESCALATE"
+  },
+  {
+    "id": "CTL-0003",
+    "authority": [
+      "ENG-303",
+      "ENG-304",
+      "ENG-324"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Epistemic promotion guard",
+    "invariant": "INV-CORE-0003",
+    "verification": [
+      "unit:test-epistemic-truth"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0004",
+    "authority": [
+      "ENG-273",
+      "ENG-303"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Non-computed states cannot carry reassuring values",
+    "invariant": "INV-CORE-0004",
+    "verification": [
+      "unit:test-clinical-semantics",
+      "unit:test-invariants"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0005",
+    "authority": [
+      "ENG-320",
+      "ENG-321",
+      "ENG-338",
+      "ENG-339"
+    ],
+    "type": "PREVENTIVE",
+    "name": "High-impact AI Safety Envelope enforcement",
+    "invariant": "INV-CORE-0005",
+    "verification": [
+      "unit:test-ai-envelope",
+      "unit:test-ai-task-card"
+    ],
+    "failure": "ABSTAIN"
+  },
+  {
+    "id": "CTL-0006",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "type": "RECOVERY",
+    "name": "Critical asynchronous reconciliation requires owner",
+    "invariant": "INV-CORE-0006",
+    "verification": [
+      "unit:test-reconciliation",
+      "unit:test-reconciliation-critical"
+    ],
+    "failure": "SAFE_MODE"
+  },
+  {
+    "id": "CTL-0007",
+    "authority": [
+      "ENG-342",
+      "ENG-312",
+      "ENG-313"
+    ],
+    "type": "CORRECTIVE",
+    "name": "Corrected result supersession preserves lineage and impact",
+    "invariant": "INV-CORE-0007",
+    "verification": [
+      "unit:test-corrected-result",
+      "unit:test-replay-impact"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0008",
+    "authority": [
+      "ENG-319",
+      "ENG-318",
+      "ENG-341"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Clinical applicability/pediatric context gate",
+    "invariant": "INV-CORE-0008",
+    "verification": [
+      "contract:applicability",
+      "future:pediatric-dose-receipt"
+    ],
+    "failure": "BLOCK"
+  }
+]

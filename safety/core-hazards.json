@@ -1,0 +1,116 @@
+[
+  {
+    "id": "HAZ-CORE-0001",
+    "authority": [
+      "ENG-307",
+      "ENG-308"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "A diagnostic result is treated as closed before accountable review/action/information closure.",
+    "foreseeableSequence": [
+      "result received",
+      "state collapsed",
+      "follow-up omitted"
+    ],
+    "potentialHarm": "Delayed or absent clinical action on a clinically significant result.",
+    "controls": [
+      "CTL-0001",
+      "CTL-0002"
+    ]
+  },
+  {
+    "id": "HAZ-CORE-0002",
+    "authority": [
+      "ENG-303",
+      "ENG-304",
+      "ENG-324"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "Inference/recommendation is presented or persisted as verified clinical truth.",
+    "foreseeableSequence": [
+      "AI/system inference",
+      "epistemic promotion",
+      "physician sees false certainty"
+    ],
+    "potentialHarm": "Clinical decision based on unsupported certainty.",
+    "controls": [
+      "CTL-0003",
+      "CTL-0005"
+    ]
+  },
+  {
+    "id": "HAZ-CORE-0003",
+    "authority": [
+      "ENG-273",
+      "ENG-303"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "Missing/conflicting/unsupported data is coerced into a normal/negative/zero/success state.",
+    "foreseeableSequence": [
+      "dependency/input failure",
+      "fallback coercion",
+      "reassuring display"
+    ],
+    "potentialHarm": "Missed diagnosis, inappropriate reassurance, or unsafe treatment decision.",
+    "controls": [
+      "CTL-0004"
+    ]
+  },
+  {
+    "id": "HAZ-CORE-0004",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "Critical asynchronous workflow loses ownership or recovery path.",
+    "foreseeableSequence": [
+      "event/write succeeds partially",
+      "workflow orphaned",
+      "no accountable recovery"
+    ],
+    "potentialHarm": "Lost follow-up or unprocessed clinically significant event.",
+    "controls": [
+      "CTL-0002",
+      "CTL-0006"
+    ]
+  },
+  {
+    "id": "HAZ-CORE-0005",
+    "authority": [
+      "ENG-342",
+      "ENG-312",
+      "ENG-313"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "Corrected result does not propagate supersession/impact lineage.",
+    "foreseeableSequence": [
+      "result corrected",
+      "prior version remains operational",
+      "affected decisions not identified"
+    ],
+    "potentialHarm": "Care continues using superseded clinical information.",
+    "controls": [
+      "CTL-0007"
+    ]
+  },
+  {
+    "id": "HAZ-CORE-0006",
+    "authority": [
+      "ENG-318",
+      "ENG-319",
+      "ENG-341"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "Clinical computation/intervention is applied outside supported patient context.",
+    "foreseeableSequence": [
+      "applicability omitted",
+      "adult/default rule applied",
+      "unsafe output accepted"
+    ],
+    "potentialHarm": "Dose, interpretation, or recommendation inappropriate for patient context.",
+    "controls": [
+      "CTL-0008"
+    ]
+  }
+]

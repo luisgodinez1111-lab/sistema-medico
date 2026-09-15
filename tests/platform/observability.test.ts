@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {evaluateSlo} from "../../packages/observability/src";describe("safety SLO",()=>{it("requests rollback on breach",()=>expect(evaluateSlo({name:"orphan_rate",value:2,unit:"%",capability:"c",at:"x"},{metric:"orphan_rate",operator:"<=",threshold:0.1,windowMinutes:5,failure:"ROLLBACK"}).action).toBe("ROLLBACK"));});

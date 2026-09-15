@@ -1,0 +1,1 @@
+export type TenantProbe=Readonly<{principalTenant:string;rowTenant:string;operation:"READ"|"WRITE"}>;export function isolationDecision(x:TenantProbe){return{allowed:x.principalTenant===x.rowTenant,reason:x.principalTenant===x.rowTenant?"SAME_TENANT":"CROSS_TENANT_DENY"};}

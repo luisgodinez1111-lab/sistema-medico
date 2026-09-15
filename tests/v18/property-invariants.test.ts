@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{invariantFailures}from"../../packages/property-invariants/src";describe("properties",()=>it("detects partial truth",()=>expect(invariantFailures({state:true,event:true,audit:false,outbox:true,tenant:"a",eventTenant:"a",versionBefore:1,versionAfter:2})).toContain("PARTIAL_TRUTH")));

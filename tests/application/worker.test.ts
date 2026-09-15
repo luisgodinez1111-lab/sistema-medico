@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {processOutbox} from "../../apps/worker/src";describe("worker",()=>{it("retries failed publish",async()=>expect((await processOutbox({id:"1",topic:"x",aggregateId:"a",payload:{},attempts:0,state:"PENDING"},async()=>{throw Error()})).state).toBe("RETRY"));});

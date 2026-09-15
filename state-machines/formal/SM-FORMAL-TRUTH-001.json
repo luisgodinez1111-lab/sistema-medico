@@ -1,0 +1,34 @@
+{
+  "id": "SM-FORMAL-TRUTH-001",
+  "authority": [
+    "ENG-303",
+    "ENG-304",
+    "ENG-305",
+    "ENG-324"
+  ],
+  "subject": "Clinical Truth / Epistemic Promotion",
+  "states": [
+    "REPORTED",
+    "IMPORTED",
+    "DERIVED",
+    "INFERRED",
+    "RECOMMENDED",
+    "VERIFIED",
+    "DECIDED",
+    "SIGNED"
+  ],
+  "terminal": [
+    "SIGNED"
+  ],
+  "laws": [
+    "Fact, derived value, inference, recommendation and decision are not interchangeable.",
+    "AI inference cannot silently promote itself to VERIFIED, DECIDED or SIGNED.",
+    "Unknown/missing/conflicting/unsupported cannot be coerced to normal, negative, false, zero or success."
+  ],
+  "reconciliation": {
+    "owner": "Truth/provenance kernel",
+    "detect": "invalid epistemic promotion validator",
+    "recover": "reject promotion and retain source state",
+    "evidence": "provenance graph + decision ledger + audit"
+  }
+}

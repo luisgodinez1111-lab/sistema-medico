@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {evaluatePolicy} from "../../packages/policy-engine/src";describe("policy engine",()=>{it("blocks stale policy",()=>expect(()=>evaluatePolicy({id:"p",version:"1",authority:["ENG-315"],effectiveFrom:"2026-01-01",effectiveTo:"2026-02-01",evaluate:()=>"ALLOW"},"x","2026-03-01")).toThrow(/NOT_APPLICABLE/));});

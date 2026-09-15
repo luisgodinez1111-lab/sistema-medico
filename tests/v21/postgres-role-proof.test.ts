@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{roleViolations}from"../../packages/postgres-role-proof/src";describe("roles",()=>it("runtime bypass blocks",()=>expect(roleViolations([{role:"medical_os_runtime",rolsuper:false,rolbypassrls:true,canLogin:true}])).toContain("RLS_BYPASS:medical_os_runtime")));

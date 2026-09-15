@@ -1,0 +1,35 @@
+{
+  "new_findings": [
+    {
+      "id": "DEF-V18-001",
+      "severity": "S2",
+      "title": "Package manifest uses semver ranges rather than immutable resolved dependency graph",
+      "state": "OPEN_UNTIL_LOCKFILE_AND_INSTALL_EVIDENCE",
+      "note": "Source SBOM generated; network/toolchain install still unavailable."
+    },
+    {
+      "id": "DEF-V18-002",
+      "severity": "S2",
+      "title": "No real mutation-testing engine execution yet",
+      "state": "OPEN",
+      "note": "Mutation gate contract exists; actual mutants require dependency-backed runner."
+    },
+    {
+      "id": "DEF-V18-003",
+      "severity": "S2",
+      "title": "No real HTTP parser fuzzing against Next runtime yet",
+      "state": "OPEN",
+      "note": "Boundary corpus exists; live runtime fuzzing remains required."
+    },
+    {
+      "id": "DEF-V18-004",
+      "severity": "S2",
+      "title": "No real PostgreSQL concurrency/model validation yet",
+      "state": "OPEN",
+      "note": "Model layer passes; DB race proof remains pending."
+    }
+  ],
+  "static_s1_open": 0,
+  "human_defect_attestation": "NOT_ASSESSED",
+  "production_release": "BLOCKED"
+}

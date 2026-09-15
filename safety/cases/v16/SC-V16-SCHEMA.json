@@ -1,0 +1,25 @@
+{
+  "id": "SC-V16-SCHEMA",
+  "risk": "C5",
+  "hazards": [
+    {
+      "id": "HAZ-SCHEMA-DRIFT",
+      "description": "Runtime SQL references columns absent from historical schema"
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-SCHEMA-CONTRACT",
+      "description": "Canonical tables + migration regression scan"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-SCHEMA-001",
+      "description": "Every runtime SQL column exists in canonical schema"
+    }
+  ],
+  "evidence_state": "EXECUTED_PASS_STRUCTURAL_ONLY",
+  "human_review": "PENDING",
+  "release_admitted": false
+}

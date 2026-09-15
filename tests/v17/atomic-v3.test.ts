@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import fs from"node:fs";describe("atomic v3",()=>it("owns transaction",()=>expect(fs.readFileSync("packages/atomic-clinical-transaction-v3/src/index.ts","utf8")).toContain("sql.begin")));

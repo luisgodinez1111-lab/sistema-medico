@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{bindingStatus}from"../../packages/claim-evidence-binder/src";describe("binder",()=>it("model evidence remains weak",()=>expect(bindingStatus({claimId:"c",required:["db"],available:{db:"MODEL_PASS"}}).closed).toBe(false)));

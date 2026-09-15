@@ -1,0 +1,1 @@
+{"id":"SC-V15-OUTBOX","risk":"C5","hazards":["lost delivery","duplicate delivery","poison loop"],"controls":["SKIP LOCKED lease","consumer receipt","bounded retry+jitter","dead letter"],"invariants":["committed message recoverable","consumer effect idempotent"],"recovery":"lease expiry + reconciliation","humanReview":"PENDING"}

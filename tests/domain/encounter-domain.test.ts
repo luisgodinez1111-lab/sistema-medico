@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {transitionEncounter} from "../../packages/encounter-domain/src";describe("encounter",()=>{it("cannot mutate signed back to open",()=>expect(()=>transitionEncounter("SIGNED","OPEN")).toThrow(/ILLEGAL/));});

@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{temporalErrors}from"../../packages/temporal-consistency/src";describe("time",()=>it("record before occurrence detected",()=>expect(temporalErrors({occurredAt:10,recordedAt:9})).toContain("RECORDED_BEFORE_OCCURRED")));

@@ -1,0 +1,3 @@
+import crypto from"node:crypto";import{canonicalize}from"../../canonical-json/src";import type{ClinicalClock}from"../../clinical-clock/src";import{systemClinicalClock}from"../../clinical-clock/src";
+export type CalcStatus="COMPUTED"|"NOT_APPLICABLE"|"NOT_COMPUTABLE"|"INSUFFICIENT_DATA"|"CONFLICTING_DATA"|"INVALID_INPUT"|"UNSUPPORTED_UNIT"|"ARTIFACT_UNAVAILABLE"|"DEPENDENCY_UNAVAILABLE"|"SAFETY_BLOCKED"|"RUNTIME_ERROR";
+export function receipt(algorithm:string,version:string,input:unknown,status:CalcStatus,value?:unknown,clock:ClinicalClock=systemClinicalClock){const inputHash=crypto.createHash("sha256").update(canonicalize(input)).digest("hex");return{algorithm,version,inputHash,status,...(status==="COMPUTED"?{value}:{}),at:clock.now().toISOString()};}

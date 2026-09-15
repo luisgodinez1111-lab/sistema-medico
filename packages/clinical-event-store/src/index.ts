@@ -1,0 +1,2 @@
+export type StoredEvent=Readonly<{id:string;aggregateId:string;sequence:number;type:string;payload:unknown}>;
+export function appendEvent(existing:readonly StoredEvent[],next:StoredEvent){if(existing.some(x=>x.id===next.id))throw new Error("DUPLICATE_EVENT_ID");const last=Math.max(0,...existing.filter(x=>x.aggregateId===next.aggregateId).map(x=>x.sequence));if(next.sequence!==last+1)throw new Error("NON_MONOTONIC_SEQUENCE");return[...existing,Object.freeze(next)];}

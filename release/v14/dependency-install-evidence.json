@@ -1,0 +1,6 @@
+{
+  "status": "INTERRUPTED_BY_RUNTIME_LIMIT",
+  "attempted": true,
+  "node_modules_present": false,
+  "claim": "Dependency installation was not proven successful; full dependency-backed verification remains NOT_RUN."
+}

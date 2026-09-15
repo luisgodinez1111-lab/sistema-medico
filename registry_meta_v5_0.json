@@ -1,0 +1,14 @@
+{
+  "version": "5.0-EXECUTABLE-APPLICATION",
+  "capabilities": 29,
+  "test_sources": 39,
+  "web_shell": true,
+  "worker_shell": true,
+  "sql_migrations": 2,
+  "rls_policies": 4,
+  "self_check": "PASS",
+  "sql_check": "PASS",
+  "full_test_execution": "NOT_RUN",
+  "release_state": "BLOCKED",
+  "source_sha256": "4d9dd00c47f49412f848e2da431d8b7b643464e4e9994d86792edc8d5d9b44c0"
+}

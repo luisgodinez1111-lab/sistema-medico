@@ -1,0 +1,11 @@
+{
+  "version": "7.0-RELIABILITY-SECURITY",
+  "capabilities": 43,
+  "test_sources": 49,
+  "self_check": "PASS",
+  "failure_injection": "PASS",
+  "release_state": "BLOCKED",
+  "live_db": "PENDING",
+  "full_suite": "NOT_RUN",
+  "source_sha256": "3432a8b59ce8013aae2966f6fe32e58e5c10933d015be874dfe3211b64474cf6"
+}

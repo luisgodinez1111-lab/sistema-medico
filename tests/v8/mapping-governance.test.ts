@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{mappingGate}from"../../packages/mapping-governance/src";describe("mapping",()=>{it("pending blocks",()=>expect(mappingGate([{source:"a",target:"b",status:"HUMAN_REVIEW_PENDING"}]).admitted).toBe(false));});

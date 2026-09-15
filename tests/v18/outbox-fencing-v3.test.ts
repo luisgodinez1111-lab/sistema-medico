@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{acceptWorkerWrite}from"../../packages/outbox-fencing-v3/src";describe("fencing",()=>it("stale worker denied",()=>expect(acceptWorkerWrite({messageId:"m",worker:"w2",token:3,leaseUntil:100},{messageId:"m",worker:"w1",token:2,leaseUntil:100},10)).toBe(false)));

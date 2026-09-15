@@ -1,0 +1,2 @@
+export type ClinicalWrite=Readonly<{state:boolean;event:boolean;audit:boolean;outbox:boolean;tenant:string;eventTenant:string;versionBefore:number;versionAfter:number}>;
+export function invariantFailures(x:ClinicalWrite){const f:string[]=[];if(x.state&&(!x.event||!x.audit||!x.outbox))f.push("PARTIAL_TRUTH");if(x.tenant!==x.eventTenant)f.push("CROSS_TENANT_EVENT");if(x.versionAfter!==x.versionBefore+1)f.push("VERSION_STEP");return f}

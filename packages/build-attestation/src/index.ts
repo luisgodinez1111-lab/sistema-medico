@@ -1,0 +1,2 @@
+import crypto from"node:crypto";import{canonicalize}from"../../canonical-json/src";
+export function attest(x:{commit:string;tree:string;node:string;packageManager:string;lockHash:string;sourceHash:string;commands:readonly {command:string;exitCode:number;stdoutHash:string}[]}){if(Object.values(x).some(v=>v===""||v===undefined))throw new Error("ATTESTATION_INCOMPLETE");if(x.commands.some(c=>!c.command||c.exitCode!==0||!c.stdoutHash))throw new Error("COMMAND_EVIDENCE_INVALID");return{...x,attestationHash:crypto.createHash("sha256").update(canonicalize(x)).digest("hex")}}

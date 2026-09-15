@@ -1,49 +1,40 @@
 {
   "name": "medical-os",
-  "version": "0.0.0",
   "private": true,
-  "description": "Medical OS — Clinical Operating System · SaaS multi-tenant · México-first · internacionalizable",
-  "type": "module",
-  "packageManager": "pnpm@9.15.0",
-  "engines": {
-    "node": ">=22 <25",
-    "pnpm": ">=9"
-  },
+  "packageManager": "pnpm@10.15.1",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
-    "test:e2e": "turbo run test:e2e",
-    "clean": "turbo run clean && rm -rf node_modules/.cache .turbo",
-    "db:generate": "pnpm --filter @medical-os/db db:generate",
-    "db:migrate": "pnpm --filter @medical-os/db db:migrate",
-    "db:studio": "pnpm --filter @medical-os/db db:studio",
-    "db:seed": "pnpm --filter @medical-os/db db:seed",
-    "prepare": "husky || true"
-  },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,css,md}": [
-      "prettier --write"
-    ]
+    "traceability:check": "tsx packages/clinical-safety/src/validate-registry.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:safety": "vitest run tests/traceability",
+    "release:check": "tsx packages/clinical-safety/src/release-admission.ts",
+    "verify": "pnpm typecheck && pnpm traceability:check && pnpm test:safety && pnpm release:check",
+    "test:all": "vitest run tests",
+    "verify:v5": "node release/v5/self-check.mjs",
+    "db:check": "node release/v5/sql-check.mjs",
+    "verify:v12": "node release/v12/self-check.mjs && node release/v12/vertical-runtime-conformance.mjs && node release/v12/sql-static-check.mjs",
+    "test:v12": "vitest run tests/v12",
+    "build:web": "next build apps/web",
+    "verify:v15": "node release/v15/self-check.mjs && node release/v15/conformance.mjs && node release/v15/sql-check.mjs",
+    "runtime:bootstrap": "bash scripts/bootstrap.sh",
+    "verify:v16": "node release/v16/self-check.mjs && node release/v16/deep-bug-audit.mjs && node release/v16/conformance.mjs && node release/v16/sql-check.mjs",
+    "test:v16": "vitest run tests/v16",
+    "verify:v17": "node release/v17/self-check.mjs && node release/v17/migration-integrity-check.mjs && node release/v17/deep-bug-audit.mjs && node release/v17/schema-compiler.mjs && node release/v17/conformance.mjs",
+    "test:v17": "vitest run tests/v17"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/node": "^22.10.5",
-    "eslint": "^10.10.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^15.3.0",
-    "prettier": "^3.4.2",
-    "turbo": "^2.3.3",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.70.0",
-    "vitest": "^2.1.8"
+    "typescript": "^5.9.2",
+    "tsx": "^4.20.5",
+    "vitest": "^3.2.4",
+    "zod": "^4.1.5",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0"
+  },
+  "dependencies": {
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "postgres": "^3.4.7"
   }
 }

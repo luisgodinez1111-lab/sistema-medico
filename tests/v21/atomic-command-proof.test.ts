@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{atomicityErrors}from"../../packages/atomic-command-proof/src";describe("atomic",()=>it("partial commit detected",()=>expect(atomicityErrors({aggregate:1,events:1,outbox:0,audit:1,idempotencyCompleted:1})).toContain("PARTIAL_COMMIT")));

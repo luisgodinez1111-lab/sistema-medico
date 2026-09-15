@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "2.0",
+  "capability": "CAP-MEDICATION-001",
+  "name": "Medication Lifecycle Kernel",
+  "risk": "C5",
+  "authority": [
+    "ENG-220",
+    "ENG-257",
+    "ENG-306"
+  ],
+  "hazardCase": [],
+  "controls": [],
+  "invariants": [],
+  "stateMachines": [
+    "SM-FORMAL-MED-001"
+  ],
+  "tests": [
+    "state-machines.test.ts"
+  ],
+  "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+  "safetyArgument": [
+    "Authority establishes intended behavior and boundaries.",
+    "Hazards identify foreseeable unsafe conditions.",
+    "Controls prevent, detect, correct, or recover from those conditions.",
+    "Invariants define conditions that must remain true.",
+    "Tests provide executable oracles; execution evidence is separately required.",
+    "Capability remains blocked when any required safety-case element is absent."
+  ],
+  "dossierSha256": "675698b820398d3d8ad99cf0176edbf240f71fb368b4ee9afd250acd3e5eb593"
+}

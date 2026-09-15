@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {TokenBucket} from "../../packages/rate-limit/src";describe("rate limit",()=>{it("bounds burst",()=>{const b=new TokenBucket(1,0,0);expect(b.allow(0)).toBe(true);expect(b.allow(0)).toBe(false)});});

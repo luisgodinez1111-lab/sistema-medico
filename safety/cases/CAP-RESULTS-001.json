@@ -1,0 +1,220 @@
+{
+  "schemaVersion": "2.0",
+  "capability": "CAP-RESULTS-001",
+  "name": "Diagnostic Results Closed Loop",
+  "risk": "C5",
+  "authority": [
+    "ENG-306",
+    "ENG-307",
+    "ENG-308",
+    "ENG-311",
+    "ENG-312",
+    "ENG-313",
+    "ENG-337",
+    "ENG-342"
+  ],
+  "hazardCase": [
+    {
+      "id": "HAZ-CORE-0001",
+      "authority": [
+        "ENG-307",
+        "ENG-308"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "A diagnostic result is treated as closed before accountable review/action/information closure.",
+      "foreseeableSequence": [
+        "result received",
+        "state collapsed",
+        "follow-up omitted"
+      ],
+      "potentialHarm": "Delayed or absent clinical action on a clinically significant result.",
+      "controls": [
+        "CTL-0001",
+        "CTL-0002"
+      ]
+    },
+    {
+      "id": "HAZ-CORE-0004",
+      "authority": [
+        "ENG-311",
+        "ENG-337"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "Critical asynchronous workflow loses ownership or recovery path.",
+      "foreseeableSequence": [
+        "event/write succeeds partially",
+        "workflow orphaned",
+        "no accountable recovery"
+      ],
+      "potentialHarm": "Lost follow-up or unprocessed clinically significant event.",
+      "controls": [
+        "CTL-0002",
+        "CTL-0006"
+      ]
+    },
+    {
+      "id": "HAZ-CORE-0005",
+      "authority": [
+        "ENG-342",
+        "ENG-312",
+        "ENG-313"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "Corrected result does not propagate supersession/impact lineage.",
+      "foreseeableSequence": [
+        "result corrected",
+        "prior version remains operational",
+        "affected decisions not identified"
+      ],
+      "potentialHarm": "Care continues using superseded clinical information.",
+      "controls": [
+        "CTL-0007"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0001",
+      "authority": [
+        "ENG-307",
+        "ENG-308"
+      ],
+      "type": "PREVENTIVE",
+      "name": "Result closure requires accountable evidence",
+      "invariant": "INV-CORE-0001",
+      "verification": [
+        "unit:test-result-closure",
+        "state-machine:result-lifecycle"
+      ],
+      "failure": "BLOCK"
+    },
+    {
+      "id": "CTL-0002",
+      "authority": [
+        "ENG-308",
+        "ENG-311",
+        "ENG-337"
+      ],
+      "type": "DETECTIVE",
+      "name": "Zero Lost Follow-Up orphan/overdue detection",
+      "invariant": "INV-CORE-0002",
+      "verification": [
+        "unit:test-obligation",
+        "reconciliation:due-date-scan"
+      ],
+      "failure": "ESCALATE"
+    },
+    {
+      "id": "CTL-0006",
+      "authority": [
+        "ENG-311",
+        "ENG-337"
+      ],
+      "type": "RECOVERY",
+      "name": "Critical asynchronous reconciliation requires owner",
+      "invariant": "INV-CORE-0006",
+      "verification": [
+        "unit:test-reconciliation",
+        "unit:test-reconciliation-critical"
+      ],
+      "failure": "SAFE_MODE"
+    },
+    {
+      "id": "CTL-0007",
+      "authority": [
+        "ENG-342",
+        "ENG-312",
+        "ENG-313"
+      ],
+      "type": "CORRECTIVE",
+      "name": "Corrected result supersession preserves lineage and impact",
+      "invariant": "INV-CORE-0007",
+      "verification": [
+        "unit:test-corrected-result",
+        "unit:test-replay-impact"
+      ],
+      "failure": "BLOCK"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-CORE-0001",
+      "authority": [
+        "ENG-307",
+        "ENG-308"
+      ],
+      "risk": "C5",
+      "statement": "CLOSED result requires accountable closure evidence.",
+      "predicate": "invResultClosedHasAccountableEvidence",
+      "tests": [
+        "invariants.test.ts",
+        "state-machines.test.ts"
+      ]
+    },
+    {
+      "id": "INV-CORE-0002",
+      "authority": [
+        "ENG-308",
+        "ENG-311",
+        "ENG-337"
+      ],
+      "risk": "C5",
+      "statement": "Overdue/escalated obligation is never equivalent to completed follow-up.",
+      "predicate": "invObligationTerminalIsExplicit",
+      "tests": [
+        "invariants.test.ts",
+        "obligation.test.ts"
+      ]
+    },
+    {
+      "id": "INV-CORE-0006",
+      "authority": [
+        "ENG-311",
+        "ENG-337"
+      ],
+      "risk": "C5",
+      "statement": "Critical reconciliation cannot execute without accountable owner.",
+      "predicate": "requireRecovery",
+      "tests": [
+        "reconciliation.test.ts",
+        "reconciliation-critical.test.ts"
+      ]
+    },
+    {
+      "id": "INV-CORE-0007",
+      "authority": [
+        "ENG-342",
+        "ENG-312",
+        "ENG-313"
+      ],
+      "risk": "C5",
+      "statement": "Corrected result requires monotonic supersession lineage and replay/impact traceability.",
+      "predicate": "CorrectedResultDag",
+      "tests": [
+        "corrected-result.test.ts",
+        "replay-impact.test.ts"
+      ]
+    }
+  ],
+  "stateMachines": [
+    "SM-FORMAL-RESULT-001",
+    "SM-FORMAL-OBLIGATION-001"
+  ],
+  "tests": [
+    "state-machines.test.ts",
+    "obligation.test.ts",
+    "corrected-result.test.ts",
+    "replay-impact.test.ts",
+    "reconciliation-critical.test.ts"
+  ],
+  "releasePolicy": "FAIL_CLOSED",
+  "safetyArgument": [
+    "Authority establishes intended behavior and boundaries.",
+    "Hazards identify foreseeable unsafe conditions.",
+    "Controls prevent, detect, correct, or recover from those conditions.",
+    "Invariants define conditions that must remain true.",
+    "Tests provide executable oracles; execution evidence is separately required.",
+    "Capability remains blocked when any required safety-case element is absent."
+  ],
+  "dossierSha256": "109096bb7784017f85b34121b812d504ac1377200beffb3003e5f945e3d3d793"
+}

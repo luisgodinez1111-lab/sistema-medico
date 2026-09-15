@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{correctionImpact}from"../../packages/correction-impact-orchestrator/src";describe("impact",()=>it("actioned dependency requires urgent review",()=>expect(correctionImpact([{patientId:"p",sourceArtifact:"r",sourceVersion:"1",derivedArtifact:"rx",actioned:true}],"r","1").requiresUrgentReview).toBe(true)));

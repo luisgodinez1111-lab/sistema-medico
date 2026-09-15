@@ -1,0 +1,2 @@
+export type Rollout=Readonly<{capability:string;state:"DISABLED"|"SHADOW"|"CANARY"|"ENABLED";evidenceStatus:"MISSING"|"EXECUTED_PASS"|"HUMAN_APPROVED";sloHealthy:boolean}>;
+export function advance(r:Rollout,next:Rollout["state"]):Rollout{const order=["DISABLED","SHADOW","CANARY","ENABLED"];if(order.indexOf(next)!==order.indexOf(r.state)+1)throw new Error("ROLLOUT_STEP_INVALID");if(next==="ENABLED"&&(r.evidenceStatus!=="HUMAN_APPROVED"||!r.sloHealthy))throw new Error("ROLLOUT_ADMISSION_BLOCKED");return Object.freeze({...r,state:next});}

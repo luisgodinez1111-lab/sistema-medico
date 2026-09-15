@@ -1,0 +1,36 @@
+{
+  "version": "11.0-GOLDEN-VERTICAL-SLICE",
+  "capabilities": 91,
+  "test_sources": 82,
+  "self_check": "PASS",
+  "golden_slice_conformance": "PASS",
+  "golden_slice_checks": 12,
+  "sql_static": {
+    "migration_count": 7,
+    "begin_commit_balanced": true,
+    "force_rls_present": true,
+    "tenant_policy_present": true,
+    "golden_slice_tables": [
+      "encounter_signatures",
+      "result_obligation_links",
+      "projection_checkpoints",
+      "clinical_inbox"
+    ],
+    "all_golden_tables_present": true
+  },
+  "toolchain": {
+    "node": "v22.16.0",
+    "npm": "10.9.2",
+    "corepack": true,
+    "pnpm": false,
+    "node_modules": false,
+    "postgres": false,
+    "docker": false,
+    "vitest": "NOT_RUN",
+    "postgres_execution": "NOT_RUN"
+  },
+  "full_vitest": "NOT_RUN",
+  "live_postgres": "NOT_RUN",
+  "release_state": "BLOCKED",
+  "source_sha256": "8ec1676e8c5d5a2e5bbdb548a5efe59430ed0b69bbdb4c629beea7386d49f707"
+}

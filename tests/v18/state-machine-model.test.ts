@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{explore,transition}from"../../packages/state-machine-model/src";describe("model",()=>{it("signed only amends",()=>expect(()=>transition("SIGNED","SIGN")).toThrow());it("exploration has no violations",()=>expect(explore().violations).toEqual([]));});

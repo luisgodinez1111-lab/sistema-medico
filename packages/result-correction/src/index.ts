@@ -1,0 +1,3 @@
+export type Correction=Readonly<{originalId:string;correctedId:string;reason:string;authorId:string;at:string}>;
+export function validateCorrection(c:Correction){if(c.originalId===c.correctedId)throw new Error("CORRECTION_SELF_CYCLE");if(!c.reason||!c.authorId)throw new Error("CORRECTION_PROVENANCE_REQUIRED");return true;}
+export function assertAcyclic(edges:readonly Correction[]){const next=new Map(edges.map(e=>[e.originalId,e.correctedId]));for(const start of next.keys()){const seen=new Set<string>();let x:string|undefined=start;while(x){if(seen.has(x))throw new Error("CORRECTION_CYCLE");seen.add(x);x=next.get(x)}}return true;}

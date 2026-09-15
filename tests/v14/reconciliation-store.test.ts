@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{admitFinding,releaseImpact}from"../../packages/reconciliation-store/src";describe("recon",()=>it("S1 open blocks",()=>expect(releaseImpact(admitFinding({id:"f",tenantId:"t",kind:"x",severity:"S1",ownerId:"u",status:"OPEN",recovery:"fix"}))).toBe("BLOCK")));

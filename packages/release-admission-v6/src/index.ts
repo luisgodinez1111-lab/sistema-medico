@@ -1,0 +1,2 @@
+export type Gate=Readonly<{mapping:boolean;defects:boolean;compiled:boolean;tests:boolean;database:boolean;rls:boolean;concurrency:boolean;recovery:boolean;restore:boolean;performance:boolean;supplyChain:boolean;humanC5:boolean;aiReconciled:boolean}>;
+export function admit(x:Gate){const blockers=Object.entries(x).filter(([,v])=>!v).map(([k])=>k);return{state:blockers.length?"BLOCKED":"ADMISSIBLE",blockers}}

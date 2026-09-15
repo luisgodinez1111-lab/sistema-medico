@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{descendants}from"../../packages/causal-impact/src";describe("impact",()=>it("transitive descendants found",()=>expect(descendants([{from:"r",to:"a",kind:"DERIVED_FROM"},{from:"a",to:"x",kind:"ACTIONED_ON"}],"r")).toContain("x")));

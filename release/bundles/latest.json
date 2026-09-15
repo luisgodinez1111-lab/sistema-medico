@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0",
+  "buildId": "LOCAL-1789493937685",
+  "sourceRegistrySha256": "1c0f706891642dcf24c61aa2bba66db7407759cce64f30af573efbe932ce0a00",
+  "generatedAt": "2026-09-15T17:38:57.685Z",
+  "artifacts": [
+    {
+      "path": "safety/core-invariants.json",
+      "sha256": "205929e1f9f2bb20a6b21cd36cd7d8e634ab1e99fb2593a9798531e0d49d109a",
+      "authority": [
+        "ENG-307",
+        "ENG-308",
+        "ENG-303",
+        "ENG-311",
+        "ENG-342",
+        "ENG-319"
+      ],
+      "kind": "REGISTRY"
+    },
+    {
+      "path": "safety/core-hazards.json",
+      "sha256": "17427a9062ade1bb82daf51fa9e3248b1425057503bec7f84ab55e8050c5625b",
+      "authority": [
+        "ENG-307",
+        "ENG-303",
+        "ENG-311",
+        "ENG-342",
+        "ENG-319"
+      ],
+      "kind": "REGISTRY"
+    },
+    {
+      "path": "safety/controls/catalog.json",
+      "sha256": "9e1712ffc13467512ae58e1a213ef81c2df4c9cc496b9ab7d6407e77a4c9a8ab",
+      "authority": [
+        "ENG-307",
+        "ENG-308",
+        "ENG-303",
+        "ENG-311",
+        "ENG-342",
+        "ENG-319"
+      ],
+      "kind": "REGISTRY"
+    },
+    {
+      "path": "ai-tasks/catalog.json",
+      "sha256": "cec5db11cdfed27d75c38e482b62ab0b96a32f3ba124036035c2f37e3771d275",
+      "authority": [
+        "ENG-266",
+        "ENG-320",
+        "ENG-321",
+        "ENG-322",
+        "ENG-323",
+        "ENG-339"
+      ],
+      "kind": "REGISTRY"
+    },
+    {
+      "path": "ai-tasks/bindings.json",
+      "sha256": "f2aaecd73dbc55a91fa85dd9004b88b47daf7342fac2bad55fb822b82b06e300",
+      "authority": [
+        "ENG-320",
+        "ENG-338",
+        "ENG-339"
+      ],
+      "kind": "REGISTRY"
+    },
+    {
+      "path": "release/test-evidence-manifest.json",
+      "sha256": "4d3173eb834a37ffd854b3fe11ac2c67ae90e3502499baf82bf3452bfa05cf62",
+      "authority": [
+        "ENG-309",
+        "ENG-346"
+      ],
+      "kind": "REGISTRY"
+    }
+  ],
+  "testExecution": "NOT_RUN",
+  "admission": "BLOCKED"
+}

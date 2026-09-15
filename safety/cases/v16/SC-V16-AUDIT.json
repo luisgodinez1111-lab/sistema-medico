@@ -1,0 +1,25 @@
+{
+  "id": "SC-V16-AUDIT",
+  "risk": "C5",
+  "hazards": [
+    {
+      "id": "HAZ-AUDIT-TAMPER",
+      "description": "Audit mutation or non-deterministic hashing"
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-AUDIT-CHAIN",
+      "description": "Canonical JSON + append-only trigger"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-AUDIT-001",
+      "description": "Every entry hash verifies against predecessor"
+    }
+  ],
+  "evidence_state": "EXECUTED_PASS_STRUCTURAL_ONLY",
+  "human_review": "PENDING",
+  "release_admitted": false
+}

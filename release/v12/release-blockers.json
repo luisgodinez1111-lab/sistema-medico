@@ -1,0 +1,25 @@
+{
+  "RG-001": {
+    "status": "BLOCKED",
+    "prod_to_eng_review_required": 115,
+    "eng_to_exec_review_required": 202
+  },
+  "defects": {
+    "status": "NOT_ASSESSED"
+  },
+  "ai_candidate_reconciliation": {
+    "status": "HUMAN_REVIEW_PENDING",
+    "historical_candidates": 118,
+    "canonical_categories": 5
+  },
+  "full_vitest": {
+    "status": "NOT_RUN"
+  },
+  "live_postgres": {
+    "status": "NOT_RUN"
+  },
+  "C5_human_safety_review": {
+    "status": "PENDING"
+  },
+  "production_release": "BLOCKED"
+}

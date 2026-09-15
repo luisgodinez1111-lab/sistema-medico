@@ -1,0 +1,33 @@
+{
+  "current_static": {
+    "s1": 0,
+    "s2": 0,
+    "findings": []
+  },
+  "dependency_lock_attempt": {
+    "status": "TIMEOUT",
+    "exit_code": null,
+    "stdout_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "package_lock_hash": null,
+  "runtime_proof_state": "NOT_RUN",
+  "hard_blockers": [
+    "No PostgreSQL executable/server is available in this execution environment",
+    "TEST_DATABASE_URL is absent; live PostgreSQL and RLS harnesses correctly remained NOT_RUN",
+    "Full dependency-backed TypeScript/Vitest/Next execution is not established",
+    "Real concurrent CAS/outbox/crash tests remain runtime-pending",
+    "HTTP runtime fuzzing, restore drill and performance benchmark remain runtime-pending",
+    "Human C5 review, RG-001 mapping adjudication and AI candidate reconciliation remain pending"
+  ],
+  "production_release": "BLOCKED",
+  "v21_repairs": [
+    {
+      "id": "DEF-V21-001",
+      "severity": "S2",
+      "title": "Live DB harness imported postgres before checking TEST_DATABASE_URL, converting missing environment into false runtime failure",
+      "state": "REPAIRED",
+      "repair": "Dependency import is now dynamic and occurs only after TEST_DATABASE_URL is present; absent runtime now reports NOT_RUN."
+    }
+  ]
+}

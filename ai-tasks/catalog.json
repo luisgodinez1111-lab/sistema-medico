@@ -1,0 +1,182 @@
+[
+  {
+    "id": "AI-TASK-0001",
+    "version": "1.0.0",
+    "purpose": "CLINICAL_SUMMARY",
+    "risk": "C4",
+    "authority": [
+      "ENG-266",
+      "ENG-320",
+      "ENG-321",
+      "ENG-322",
+      "ENG-339"
+    ],
+    "minimumNecessaryFields": [
+      "patientId",
+      "encounterContext",
+      "selectedClinicalFacts",
+      "provenance"
+    ],
+    "outputSchema": "ClinicalSummaryDraft",
+    "allowed": [
+      "summarize",
+      "structure",
+      "cite provenance"
+    ],
+    "prohibited": [
+      "diagnose autonomously",
+      "change medication",
+      "sign chart",
+      "close critical result",
+      "promote to verified fact"
+    ],
+    "evidence": "claim-level where clinical claims exist",
+    "abstention": "ABSTAIN on insufficient/conflicting/unsupported evidence",
+    "owner": "AI Gateway + Clinical Safety",
+    "evalSuite": "EVAL-AI-SUMMARY-001",
+    "killSwitch": true,
+    "envelope": "SE-0001"
+  },
+  {
+    "id": "AI-TASK-0002",
+    "version": "1.0.0",
+    "purpose": "MISSING_EVIDENCE_PROMPT",
+    "risk": "C5",
+    "authority": [
+      "ENG-266",
+      "ENG-320",
+      "ENG-321",
+      "ENG-322",
+      "ENG-323",
+      "ENG-339"
+    ],
+    "minimumNecessaryFields": [
+      "clinicalIntent",
+      "hypotheses",
+      "knownEvidence",
+      "missingEvidence",
+      "applicability"
+    ],
+    "outputSchema": "MissingEvidenceSuggestion",
+    "allowed": [
+      "identify candidate missing evidence",
+      "draft question",
+      "explain why"
+    ],
+    "prohibited": [
+      "autonomous diagnosis",
+      "autonomous order",
+      "irreversible action",
+      "unsupported high-impact claim"
+    ],
+    "evidence": "claim-level required",
+    "abstention": "SAFETY_BLOCKED or HUMAN_REVIEW on unsupported/high-impact disagreement",
+    "owner": "Clinical Intelligence + Clinical Safety",
+    "evalSuite": "EVAL-AI-MISSING-001",
+    "killSwitch": true,
+    "envelope": "SE-0002"
+  },
+  {
+    "id": "AI-TASK-0003",
+    "version": "1.0.0",
+    "purpose": "CONTRADICTION_CANDIDATE",
+    "risk": "C5",
+    "authority": [
+      "ENG-266",
+      "ENG-320",
+      "ENG-321",
+      "ENG-322",
+      "ENG-323",
+      "ENG-339"
+    ],
+    "minimumNecessaryFields": [
+      "facts",
+      "relationships",
+      "provenance",
+      "timeContext"
+    ],
+    "outputSchema": "ContradictionCandidate",
+    "allowed": [
+      "flag candidate contradiction",
+      "cite conflicting facts",
+      "request verification"
+    ],
+    "prohibited": [
+      "declare verified contradiction without review",
+      "silently mutate chart",
+      "majority-vote clinical authority"
+    ],
+    "evidence": "each conflicting claim grounded",
+    "abstention": "ABSTAIN/HUMAN_REVIEW on verifier disagreement",
+    "owner": "Clinical Intelligence + Clinical Safety",
+    "evalSuite": "EVAL-AI-CONTRA-001",
+    "killSwitch": true,
+    "envelope": "SE-0002"
+  },
+  {
+    "id": "AI-TASK-0004",
+    "version": "1.0.0",
+    "purpose": "DOCUMENT_DRAFT",
+    "risk": "C3",
+    "authority": [
+      "ENG-266",
+      "ENG-321",
+      "ENG-339"
+    ],
+    "minimumNecessaryFields": [
+      "encounterContext",
+      "physicianSelectedContent"
+    ],
+    "outputSchema": "ClinicalDocumentDraft",
+    "allowed": [
+      "draft",
+      "format",
+      "summarize"
+    ],
+    "prohibited": [
+      "sign",
+      "finalize without explicit physician action",
+      "invent missing facts"
+    ],
+    "evidence": "provenance retained",
+    "abstention": "ABSTAIN when required context absent",
+    "owner": "Documentation Domain",
+    "evalSuite": "EVAL-AI-DOC-001",
+    "killSwitch": true,
+    "envelope": "SE-0003"
+  },
+  {
+    "id": "AI-TASK-0005",
+    "version": "1.0.0",
+    "purpose": "STRUCTURED_EXTRACTION",
+    "risk": "C4",
+    "authority": [
+      "ENG-266",
+      "ENG-320",
+      "ENG-321",
+      "ENG-323",
+      "ENG-339"
+    ],
+    "minimumNecessaryFields": [
+      "sourceArtifact",
+      "artifactHash",
+      "patientBinding"
+    ],
+    "outputSchema": "StructuredExtractionCandidate",
+    "allowed": [
+      "extract candidate structured fields",
+      "normalize candidate values"
+    ],
+    "prohibited": [
+      "mark extracted field verified",
+      "overwrite immutable original",
+      "bypass deterministic validator"
+    ],
+    "evidence": "source span/provenance required",
+    "abstention": "HUMAN_REVIEW on extractor/verifier disagreement",
+    "owner": "Diagnostics/Import + Clinical Safety",
+    "evalSuite": "EVAL-AI-EXTRACT-001",
+    "killSwitch": true,
+    "envelope": "SE-0001"
+  }
+]

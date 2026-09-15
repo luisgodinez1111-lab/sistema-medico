@@ -1,0 +1,2 @@
+export type ResultInput=Readonly<{resultId:string;patientId:string;requiresAction:boolean;critical:boolean;ownerId?:string;dueAt?:string}>;
+export function resultToObligation(x:ResultInput){if(!x.requiresAction)return null;if(!x.ownerId||!x.dueAt)throw new Error("ACTIONABLE_RESULT_REQUIRES_OWNER_AND_DUE_DATE");return Object.freeze({id:`obl:${x.resultId}`,patientId:x.patientId,sourceResultId:x.resultId,ownerId:x.ownerId,dueAt:x.dueAt,priority:x.critical?"URGENT":"ROUTINE",state:"OPEN"});}

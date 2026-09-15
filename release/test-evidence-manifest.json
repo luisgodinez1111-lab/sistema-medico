@@ -1,0 +1,1445 @@
+[
+  {
+    "test": "tests/traceability/action-authority.test.ts",
+    "authority": [
+      "ENG-303",
+      "ENG-320",
+      "ENG-321",
+      "ENG-339"
+    ],
+    "sha256": "9d5ff90aa6daf708ea9799714b2181eae618988467182bb4fb71fc118385470c",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/traceability/ai-envelope.test.ts",
+    "authority": [
+      "ENG-320",
+      "ENG-338"
+    ],
+    "sha256": "ca976d961c226f5085443162bb83babec148f084784b30e6424174d58bea447f",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/traceability/ai-task-card.test.ts",
+    "authority": [
+      "ENG-266",
+      "ENG-321",
+      "ENG-322",
+      "ENG-323",
+      "ENG-339"
+    ],
+    "sha256": "971c81e9136291b6a764fe5a441fa7aaaa647736b4fd047bda23da89422b5de9",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/traceability/applicability.test.ts",
+    "authority": [
+      "ENG-318",
+      "ENG-319",
+      "ENG-341"
+    ],
+    "sha256": "2a74b9b01b6243343463f7e2e8ddc2209a3f010e1a449826c78a6879a02f7c20",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/traceability/clinical-semantics.test.ts",
+    "authority": [
+      "ENG-273",
+      "ENG-303"
+    ],
+    "sha256": "8ee205d670fc74760c44e3c3b04e28b850e0a8501fdb489232bc8367b2c891e3",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/traceability/corrected-result.test.ts",
+    "authority": [
+      "ENG-342"
+    ],
+    "sha256": "45181db5aa9e644a115da075793e6f89549dd43ef63ac9425eb7c615bbc4967b",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/traceability/epistemic-truth.test.ts",
+    "authority": [
+      "ENG-303",
+      "ENG-304",
+      "ENG-305",
+      "ENG-324"
+    ],
+    "sha256": "fdbfdf568e17159c29d2ea5a7df61c8cde7a08da53fa24edabfe05d7ad5f69f3",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/traceability/invariants.test.ts",
+    "authority": [
+      "ENG-307",
+      "ENG-308",
+      "ENG-273",
+      "ENG-303",
+      "ENG-321",
+      "ENG-339"
+    ],
+    "sha256": "65f9ae1a5c15e770342b9207328681750af7a416bc7f1ab89d5f42f8aa9dc4c8",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/traceability/obligation.test.ts",
+    "authority": [
+      "ENG-308",
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "36fbbe866348d1695556d7c26061fef1ed12fede5fc0a53934b62887ab57e2b9",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/traceability/reconciliation-critical.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "2a2f2ad6b236db2d14198d593ae7473cdd8c50a6ea23c90e8690c9d3253ea5f3",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/traceability/reconciliation.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "302e89e9705696a25900e415f53e7226d33fc80590e1307b8d275ce3e52cec10",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/traceability/replay-impact.test.ts",
+    "authority": [
+      "ENG-312",
+      "ENG-313"
+    ],
+    "sha256": "e9fef6adf497caa6e978eeb5b17e38bb7b0b0cbac997fa93640b30cbf3a7327e",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/traceability/state-machines.test.ts",
+    "authority": [
+      "ENG-306",
+      "ENG-307",
+      "ENG-220"
+    ],
+    "sha256": "9d9aa12e7f2ad7fb062bcba5f677e989757b55e540b46aa2287e489684a029c6",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/platform/audit-ledger.test.ts",
+    "authority": [
+      "ENG-309",
+      "ENG-333"
+    ],
+    "sha256": "40059ab0ef86599d8875974d14b404115a90d63ae8a93a3825f8b14394a20410",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/platform/capability-graph.test.ts",
+    "authority": [
+      "ENG-313",
+      "ENG-346"
+    ],
+    "sha256": "cd7c10f7ba56544b58d74138dd78b5748c73b8c286d97d25e57bb36c72d81e9b",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/platform/event-kernel.test.ts",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "sha256": "175e32caf4b32f18c8dcd93181232cdbd8e182ac0da9f25f2264f4deefb5bb30",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/platform/feature-gates.test.ts",
+    "authority": [
+      "ENG-346",
+      "ENG-347"
+    ],
+    "sha256": "2913bb57baad7dad4a2d5494e8f4c10f46b51f8683e264ca687b834e03965762",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/platform/observability.test.ts",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "sha256": "cedf237300463b6f42cb16c6e981562dc2983c085414e357ca0f1e369dd5712b",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/platform/outbox.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "acebf3bc1814fdb67915f780e8f95f78d2cda9588273d5aa0851f658e81a0809",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/platform/policy-engine.test.ts",
+    "authority": [
+      "ENG-315",
+      "ENG-343"
+    ],
+    "sha256": "e649ace3664e577fd3569bbb940613e3abbd075077665304a90ca650f5f4e341",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/platform/tenant-security.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "2c0cb36b97fb3ee0dce101aca07c18413b4aebc9bb39f44c1edc59435873caf0",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/domain/calculation-engine.test.ts",
+    "authority": [
+      "ENG-273",
+      "ENG-309"
+    ],
+    "sha256": "be5435ac80317e2acb36b57db07a91ddc776b4058c966afbf4ce4a7efcb3a129",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/domain/consent.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "3c3a9b57bfdddc67861540f1132062a1368b585e8a8d0dee3488a2eee87b29b1",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/domain/encounter-domain.test.ts",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "sha256": "81a48d6f643f14ed927ab0bfb5ceb14cc73d8170e3a953ad9cf06b4f82d07ad7",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/domain/fhir-boundary.test.ts",
+    "authority": [
+      "ENG-316",
+      "ENG-317"
+    ],
+    "sha256": "1f3f56b0a76369f0004d1eb61f5c2888c6124f6f4472bf6c763275fdc058ec13",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/domain/medication-domain.test.ts",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "sha256": "ddc9e5230446208a8a0d8d4b97cd8331421261d954087c8dd7b9e1de2d97942c",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/domain/obligation-domain.test.ts",
+    "authority": [
+      "ENG-308",
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "df2179017558ca2efee325959e17bdcbd673e7b19f416525cbdd38f3ff95f3b6",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/domain/order-result-domain.test.ts",
+    "authority": [
+      "ENG-307",
+      "ENG-308",
+      "ENG-342"
+    ],
+    "sha256": "b74d2db9cd9b89acb6ced8033a9cd2306f084447759321f1f665b8f6d38b26ae",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/domain/patient-domain.test.ts",
+    "authority": [
+      "ENG-303",
+      "ENG-333"
+    ],
+    "sha256": "7a333f3f21a96b6a6a50a52a05e3f37a0184b95ccecec4a7095007d43ad52bc1",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/domain/problem-graph.test.ts",
+    "authority": [
+      "ENG-304",
+      "ENG-305"
+    ],
+    "sha256": "ce00b7510e95b598103030ab2002b7c223e99e186be5a90a1c89a191f60b0ddf",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/domain/workflow-engine.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "65ebf59c41336784aec12301e0d02447284e80329b02bf635aa18815faee764f",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/application/health.test.ts",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "sha256": "4791e84ea94e0a9ddd90df740f682671e01aad9e694ed800277f2b725ddf9770",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/application/patient-service.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "2f997306a4e9fee1f43b3fd936bd24420cb49888644825c2ff9478729a212d77",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/application/repository.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "de732edc1259762f33fbd52631a9ec5c7b63aa866830e761bd085815367edc94",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/application/resilience.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "801d845490788c8748d67b0db99c8cfb8bb26e00f1dae528d0ce8c9e3afd2055",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/application/worker.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "68f95a73356fe10458fc434f80894bf01c92e6a963683703f9e2507c1106304b",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/security/authz.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "e729c6ba90a30eb4c5826dc287189de09d0a783d627d669dbc061b97090d1c20",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/security/logger.test.ts",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "sha256": "ab3d6dafaed7c0751bbfa23ed41acce0980a747e97eb81241290183a7ded6ed4",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/security/rate-limit.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "a0566aac9e29cec6e2d9566b2fe8c83c1b919f6344fad4b816ce6d32db52f09d",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v6/encounter-service.test.ts",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "sha256": "2ed078c7b71f64711d71045dd651df0ae5daa9f6b9fd5706151a9c6d28549843",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v6/patient-state.test.ts",
+    "authority": [
+      "ENG-312",
+      "ENG-313"
+    ],
+    "sha256": "e4fa8a3228cc4fe215459cf198eeea956dfe69d2d48f9ea2b8a317207ef6752f",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v6/reconciliation-v6.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "ac20b3cbccfc24a8530b37869f64ccbc3e3e33fa6b8af4850b57186a12020a93",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v6/result-service.test.ts",
+    "authority": [
+      "ENG-307",
+      "ENG-308",
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "a274be7ae3056ce9da33703445358979a86134158829dcfd40096c76cbf9f551",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v7/ai-runtime-v7.test.ts",
+    "authority": [
+      "ENG-320",
+      "ENG-321",
+      "ENG-338",
+      "ENG-339"
+    ],
+    "sha256": "e81085146c57543b9f9e41032b261f3e7e845b4ad92cd197ce10e7d84edd96c9",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v7/encounter-completeness.test.ts",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "sha256": "a224de11c9fa15955d38798745c91dfa65ac54e85ac55e50beb4613e0cc5b45f",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v7/feature-rollout.test.ts",
+    "authority": [
+      "ENG-346",
+      "ENG-347"
+    ],
+    "sha256": "fcf04092af24fdb04641c1a94908de5a9f12e5ef88c85d38e7d2bc87a7cf0f0f",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v7/reconciliation-engine.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "f18b41e1c2fbed8513d671e88052d9e1e2faa6a4ac456ba12efb1e02d297d457",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v7/result-impact.test.ts",
+    "authority": [
+      "ENG-312",
+      "ENG-313",
+      "ENG-342"
+    ],
+    "sha256": "e2d96429d3408a08d84940ebfb800c56fa33f8397ca826f2c9f4bfc34d4e3f2d",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v7/session.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "c961968910e50a8b32c155a26600204daa34d3385a4f9dc9ffef54125a0add48",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v8/ai-evidence.test.ts",
+    "authority": [
+      "ENG-320",
+      "ENG-321",
+      "ENG-322",
+      "ENG-323"
+    ],
+    "sha256": "a981107d8c56ecd444f079e5aecc64376d98ae5ae3902d860a1377a916c3f378",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v8/defect-governance.test.ts",
+    "authority": [
+      "ENG-346"
+    ],
+    "sha256": "370cf2d0c589b03bfa89f1ee8397902234e3c6e70de9f531ed5f30252393eb1e",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v8/idempotency-persistent.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "3e0db69208f10d33f4ff8a0946f8336696826994acd639e482c5a2a6a25c9868",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v8/mapping-governance.test.ts",
+    "authority": [
+      "ENG-346"
+    ],
+    "sha256": "9f7672acd6fc8e04fd81af7816866aff355fda202d4155d72bc90e40c237dbac",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v8/migration-safety.test.ts",
+    "authority": [
+      "ENG-333",
+      "ENG-346"
+    ],
+    "sha256": "42d1a80e97b8018ab3a99e37e5075faeda6ed785187b83a1808f481030e7fc8e",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v8/release-evidence.test.ts",
+    "authority": [
+      "ENG-346",
+      "ENG-347"
+    ],
+    "sha256": "db43d25b71c9c7108435f522867b0fbd26c8ce1256f8bbcec3614db5a563efb7",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v8/replay-engine.test.ts",
+    "authority": [
+      "ENG-312",
+      "ENG-313"
+    ],
+    "sha256": "1773ef2e12f911e35e644293e31d871ae435911cc47eda4882f0073a218bfc0a",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v8/result-correction-v8.test.ts",
+    "authority": [
+      "ENG-342"
+    ],
+    "sha256": "9813e9b4cd47334ff2982adab6b2de5b04fb06b376b996affbfb530d7bc12c5d",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v9/access-decision.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "7140261b2ceaf089a009838051d2cf2c21c19340f3942966109f5649f13c591a",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v9/aggregate-store.test.ts",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "sha256": "e680c8941477e924108995fe28dfa05f657e2523aca899f1825e447f9268dfcd",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v9/ai-task-registry.test.ts",
+    "authority": [
+      "ENG-321",
+      "ENG-339"
+    ],
+    "sha256": "65b92cc6a7223852db747aa1ccb451f7c0116eea62ad6495a3e6ee5e12dab2fe",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v9/backup-restore.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-346"
+    ],
+    "sha256": "498e81c335ef04df6baa2b30d4df788538a4dd8c962cdd19c5e74e1e9db0c902",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v9/break-glass.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "09c7895b1ca00e9f64f68ddf63dc42fc55cc843c9c325e3df411b81584437019",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v9/clinical-transaction.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-333"
+    ],
+    "sha256": "f649d8f73cd508c5769d4a8224172b8fb3450d41f2e321eb393cc1bb9a7d765b",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v9/policy-provenance.test.ts",
+    "authority": [
+      "ENG-315",
+      "ENG-343"
+    ],
+    "sha256": "e39ed63bed617ac9505c076632abfb390e4fdf5e0dc81059af0f23d859b34c04",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v9/projection-rebuild.test.ts",
+    "authority": [
+      "ENG-312"
+    ],
+    "sha256": "dd23d1d8b0892d123ce02cd563e17e32c80dfb629e31e2f63cbaf7a38821c37d",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v9/safety-case.test.ts",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "sha256": "c81d2a9a6bd25cbf1a84e4dda53062d1309791b8e174d3f7eb6fdcde4c905ba7",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v10/calculation-receipt.test.ts",
+    "authority": [
+      "ENG-319",
+      "ENG-341"
+    ],
+    "sha256": "c612e540232e1c0f30b0c4f32f1362bd21664ef4d04736bb61404003324c0227",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v10/clinical-lock.test.ts",
+    "authority": [
+      "ENG-306"
+    ],
+    "sha256": "96f668be7e2d421b02f8467410053e624277515215025dfb55c220fe5e868c20",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v10/consent-enforcement.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "7a419054e5f7e7507f468f2164fe28133959b7222e56c68c98ad143b8cf8f23d",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v10/degradation.test.ts",
+    "authority": [
+      "ENG-320",
+      "ENG-346"
+    ],
+    "sha256": "532325641eb768a1863e07410ae4ac31779debd9bb3d779fc56c82ba2aee8b11",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v10/etag.test.ts",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "sha256": "20c467577ce1637001664ad23dd51158f96dedbf1a794b41f7e70dae530e4ffb",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v10/export-control.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "43e0e7ebb344138b5f8955602c254d4ac46955568a5859c4eac0c8f8208e1db0",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v10/fhir-r5.test.ts",
+    "authority": [
+      "ENG-316",
+      "ENG-317"
+    ],
+    "sha256": "950ef60f142c9b2a6b01761afc07deccbc2195e4438933f64bde36948963270c",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v10/read-model.test.ts",
+    "authority": [
+      "ENG-312"
+    ],
+    "sha256": "100121b39bd8b1f71869c1daaa94f0719aa870f8d5e1215a3b318004da85daa7",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v11/clinical-inbox.test.ts",
+    "authority": [
+      "ENG-308",
+      "ENG-337"
+    ],
+    "sha256": "f9b2aead512179a11edc5bc1861616bfb97ced2c4c05b367f4dff44d1eae9ea4",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v11/encounter-signing-v11.test.ts",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "sha256": "c8aefd5a5f3245413d2c9d17aede80b1b49099da30110e3e19ab2aa8cc9bab83",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v11/golden-slice.test.ts",
+    "authority": [
+      "ENG-306",
+      "ENG-311",
+      "ENG-333"
+    ],
+    "sha256": "d38759e4506b46f6af3c4e8e8ffd3a3e0e20037846fb52fd236737c3709cb738",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v11/medication-ordering-v11.test.ts",
+    "authority": [
+      "ENG-320",
+      "ENG-333"
+    ],
+    "sha256": "62127a1cdaeef2632c630be9d26059dca2a15b34f03fd3ac3997db4a3b4db3cf",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v11/result-obligation-link.test.ts",
+    "authority": [
+      "ENG-307",
+      "ENG-308",
+      "ENG-337"
+    ],
+    "sha256": "483b4d6fa08ce552df56cccd0a4537e8fdf2260044dfbc79678ab705a7f47435",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v11/route-contracts.test.ts",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "sha256": "094d6c085a709ebeadaa0047c2611470562644c422b6a28ba18037f1c721c405",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v11/tenant-session.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "16af0aee12a141f6776403156c0ad98e7e1e93f96bd0cd9f503bacd6aeb503e0",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v11/timeline-projection.test.ts",
+    "authority": [
+      "ENG-312",
+      "ENG-313"
+    ],
+    "sha256": "edd53f935d80615c3d3fe1fb6d4e292ee9c3aa0e4d1275dd218ce285e762a538",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v12/clinical-repository-v12.test.ts",
+    "authority": [
+      "ENG-306",
+      "ENG-333"
+    ],
+    "sha256": "033ab847f26f1d219249d2c0f59bc95a06b2d36ab4d7ae0afbba63fd738e76a0",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v12/encounter-runtime.test.ts",
+    "authority": [
+      "ENG-306",
+      "ENG-309"
+    ],
+    "sha256": "6eca890ec6be3b1877ea60a782de8b603a7ad3542bb75d9bff3bc6b419ba732e",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v12/idempotent-command-v12.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "a0d762dd6950c10604c1f658575a28aeab58ca6fe3c523419c94e4a8fd6a95d8",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v12/medication-runtime.test.ts",
+    "authority": [
+      "ENG-320",
+      "ENG-333"
+    ],
+    "sha256": "37ddf56e1bf68a924b0c6b326834d210e1ba603d054788c5d808d40316dee6a8",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v12/obligation-runtime.test.ts",
+    "authority": [
+      "ENG-308",
+      "ENG-337"
+    ],
+    "sha256": "2226d14d9d0e8f0a0079a6ead8c509155e2eda520ab81efcce51feeebc2cf41f",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v12/outbox-worker-v12.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "07932d79d5199962190aeb780071b2a76d32eb237469d7f335dc51892b07caaa",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v12/patient-impact-runtime.test.ts",
+    "authority": [
+      "ENG-312",
+      "ENG-313"
+    ],
+    "sha256": "52ceb4b5dcc6e1d4593303c6a5d27ad86fa0cd8c3335455fefb1e0617615d6c5",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v12/projection-runtime.test.ts",
+    "authority": [
+      "ENG-312"
+    ],
+    "sha256": "98abcf77470b404d00f0587fd3d922163145f7be2c75d8af219040857d1a6e10",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v12/result-correction-runtime.test.ts",
+    "authority": [
+      "ENG-342"
+    ],
+    "sha256": "1c4764c31cb503978c781dc3251326d795231e1066ced90102a60776bc024024",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v12/runtime-auth.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "ff2201f93a5ace684e01d13ca4c9d5d8033d39a6d61790c36d1a72c840672abc",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v12/safety-runtime.test.ts",
+    "authority": [
+      "ENG-309",
+      "ENG-346"
+    ],
+    "sha256": "e901ea90643f52e44e57ba8738a73f8b25f93f3672be5a71892a317735edb356",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v13/failure-injection.test.ts",
+    "authority": [
+      "ENG-328",
+      "ENG-330"
+    ],
+    "sha256": "44a6d4cbfbdb5c4413ef1baeabaa3227f962de4d7664b98d15a610d43912a519",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v13/lease-coordinator.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "88d4d8fa7317077f001c4120ee52f45db962f6ca88dc99bc608b22b41884b5ce",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v13/release-gate-v2.test.ts",
+    "authority": [
+      "ENG-346"
+    ],
+    "sha256": "d1b1d83736342251d2036a9aaab40865b68e7e37435b2d426b0af34e786e150c",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v13/replay-verifier.test.ts",
+    "authority": [
+      "ENG-312"
+    ],
+    "sha256": "668914abc9d262ebb0e5f9fea313c9db28a122fd0145c1cc506fa8725a67c3a0",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v13/tenant-isolation-proof.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "857075ca755960495491decb7e2985ef3eb9386a2214d9c5e8c5290eb6561304",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v14/atomic-clinical-transaction.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-333"
+    ],
+    "sha256": "042f344f4dcd463cc86f74bdcb416249b15f29782539169127228fa500974e1d",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v14/defect-attestation.test.ts",
+    "authority": [
+      "ENG-346"
+    ],
+    "sha256": "85c18ecc6bd51f7433a1aff691a98c927387cca654fbf4634fc622329400c2f7",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v14/durable-outbox.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "f2d759e3929081f8a172ce4a778aa6916d59441cd34a32b8b021adc750222568",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v14/event-store-v14.test.ts",
+    "authority": [
+      "ENG-306",
+      "ENG-312"
+    ],
+    "sha256": "da1516dcf5331ee12b8e7da911958af527a3e181273d7485a6f286f9bda6256f",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v14/persistent-idempotency.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "4cf9d37a64cb4827c00b0f70bcf0407ffdd592afe4cb19e08dd66bd7ef2de609",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v14/reconciliation-store.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "94b58d0ade8d08f101c7e9f2273458f7c5fb8e66d484ee756335962080c7d285",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v14/result-correction-graph-v14.test.ts",
+    "authority": [
+      "ENG-342"
+    ],
+    "sha256": "79772bd4ac36e94379789a707ecbfe1b42a9aaceaee362af5276ae61054e5f3c",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v14/signed-record-store.test.ts",
+    "authority": [
+      "ENG-309"
+    ],
+    "sha256": "35f3a65cfc258e6c879f47f63e6c84af4167eb99bcc01dd782813702eac224ec",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v16/audit-chain-v3.test.ts",
+    "authority": [
+      "ENG-309",
+      "ENG-333"
+    ],
+    "sha256": "db23a7270357dabf8f604aadbb243fd5f9dd39716f94c4ce942507ec49520f0c",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v16/canonical-json.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-333"
+    ],
+    "sha256": "6cb7c0abcdf605343ac73dfab29dca7731612ba22c4a02bf44dd47af3eaa4125",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v16/correction-impact-v16.test.ts",
+    "authority": [
+      "ENG-313",
+      "ENG-342"
+    ],
+    "sha256": "d07394be21f4238960c22e002e86e0b7a750de12b918d16251ca0784393bd14d",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v16/outbox-claim-v2.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "3da12c1b308d236704c877f052ee651b48bb2cd1463675b13426af0326afbd82",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v16/release-evidence-v4.test.ts",
+    "authority": [
+      "ENG-346"
+    ],
+    "sha256": "950d3fb9a2ff1b04a60470fcf14b867948c37021c77d1fe1a90f6afa8db43ca6",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v16/rls-guard-v16.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "6a7a265701b6629abfdbaed896e02d3a70fb5398a3d3636620a5f5ac4e8047ed",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v16/secure-logger.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "4bc68fc8171e41f4b056d79b6412799ac2e3810f2d0de4d6e9e1618c5d998dfb",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v16/uuid-boundary.test.ts",
+    "authority": [
+      "ENG-333"
+    ],
+    "sha256": "5dea6f23cdb89b17d84dabc35371ffc20f3532506b8633cccf2feb993775f5ee",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v17/architecture-boundary.test.ts",
+    "authority": [
+      "ENG-332"
+    ],
+    "sha256": "b0a058fe124596c936290df2bcf172f8c20011f80b4734b9ce08cfcada1f4f34",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v17/atomic-v3.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-333"
+    ],
+    "sha256": "3def1e23c9effdd4d346c25c0e96f81e3fa26abf7e53bede871127fb1127923d",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v17/consistency-barrier.test.ts",
+    "authority": [
+      "ENG-312",
+      "ENG-344"
+    ],
+    "sha256": "9f5cb7165a1bdac8183dde762fa890e49b5f0055399ca522b93845e79e142c3a",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v17/obligation-v2.test.ts",
+    "authority": [
+      "ENG-308"
+    ],
+    "sha256": "835a1241500f4bfc288b5db4e987c64091743439b3d9a87f856a373559ba7cfa",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v17/replay-engine-v2.test.ts",
+    "authority": [
+      "ENG-312"
+    ],
+    "sha256": "e42b58e54cb3323fa3559fe20e2c16cb45175133ea19bf3e7c08aedb4b9ee056",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v17/result-correction-v2.test.ts",
+    "authority": [
+      "ENG-342"
+    ],
+    "sha256": "e2215cc7be234dab98c3b5d6bfca009673ce2a765529dc216393d20048f57d57",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v18/api-fuzz-boundary.test.ts",
+    "authority": [
+      "ENG-330"
+    ],
+    "sha256": "ad38a4fc5acbbe3d6094e4156c8ca7a0018189b4b4b1a7466f4cfd198d05c798",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v18/clinical-numeric.test.ts",
+    "authority": [
+      "ENG-319",
+      "ENG-341"
+    ],
+    "sha256": "6523a24ec567232fd8d69a1ff31f4c53ded51a1912743dc092b8017b44abee2e",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v18/concurrency-model.test.ts",
+    "authority": [
+      "ENG-310",
+      "ENG-311"
+    ],
+    "sha256": "5a245c11c2a295188c7c311cc92682b69f07f6dc10b97a5de365f48a018e2f93",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v18/mutation-sentinel.test.ts",
+    "authority": [
+      "ENG-328",
+      "ENG-345"
+    ],
+    "sha256": "2fbe7007ae35efa864d3da37863936168b76bdd4e53d51f66efc41a7a4fff666",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v18/outbox-fencing-v3.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "edf7259f00d74fc77a3e566a7453d0da0325d0b84a1ca7e3e18f04a85faef72a",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v18/performance-gate.test.ts",
+    "authority": [
+      "ENG-331",
+      "ENG-346"
+    ],
+    "sha256": "bbf799b8cec018cc10989b266cb573742cfeff5b2d2bd70ec1fcdb32e4595dc4",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v18/policy-conflict-v2.test.ts",
+    "authority": [
+      "ENG-315",
+      "ENG-343"
+    ],
+    "sha256": "233d07f1ec47adb4ab5ce39b1e13c883340f624e2d10e3679338f2a5cf9a97d5",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v18/property-invariants.test.ts",
+    "authority": [
+      "ENG-309",
+      "ENG-335"
+    ],
+    "sha256": "94cbf5bdd02fa293bc4549585fff561e0ba95b04afe7e3690e5d94f277835c77",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v18/restore-verifier-v2.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-346"
+    ],
+    "sha256": "213150563a7791dd4f15ce79152a859bac988e72f97107079376f6f92bf16ce3",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v18/state-machine-model.test.ts",
+    "authority": [
+      "ENG-306",
+      "ENG-310"
+    ],
+    "sha256": "1755e10b5700da61150a1fbd602ce84f87aa46611eb0db02a4c38b5ea794cd32",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v19/causal-impact.test.ts",
+    "authority": [
+      "ENG-305",
+      "ENG-313"
+    ],
+    "sha256": "b7d1a9f0da786a8b330cc92d231123201b56d48fa4c7fafbc8949144bf502457",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v19/differential-replay.test.ts",
+    "authority": [
+      "ENG-312",
+      "ENG-328"
+    ],
+    "sha256": "812c348f9d3dea323b186d3732fa0dc8878c691bfc14845a7925cab417695e13",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v19/invariant-coverage.test.ts",
+    "authority": [
+      "ENG-309",
+      "ENG-345"
+    ],
+    "sha256": "2055ddeda61a0da42c7e1fba052f9813344f2e87391319badf668471c9a7afc8",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v19/release-proof-v5.test.ts",
+    "authority": [
+      "ENG-346"
+    ],
+    "sha256": "af4c93e02030fc50678b40f000b37896cb37fb0f092866b40209dbfbd53e627b",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v19/temporal-consistency.test.ts",
+    "authority": [
+      "ENG-303",
+      "ENG-319"
+    ],
+    "sha256": "637bf7ad92f7ae0c08db6788e2fb374475064d7131a94725d964eaac9ddf57b6",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v19/verification-claim-graph.test.ts",
+    "authority": [
+      "ENG-346"
+    ],
+    "sha256": "e47b1715f903a636eb1a949c00884d80820e1eb4534ae16682e803ae340b8055",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v20/claim-evidence-binder.test.ts",
+    "authority": [
+      "ENG-346"
+    ],
+    "sha256": "edcf4613325ba07660bc72af2a621d847c7aff1161b0d0465e09a84393480d80",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v20/crash-recovery-model.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "bf1f9336d92a604fef61d873c9908392eb4d57827deaed83586090b6659289e8",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v20/exactly-once-envelope.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "8f25def646046c32b16c85a774cda0825d45a2a9dd7988be180fe613a71e3244",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v20/release-admission-v6.test.ts",
+    "authority": [
+      "ENG-346"
+    ],
+    "sha256": "c51dc12a4c8c31da814340760cd1126537207cd5970a421f43caac7afacdbfa6",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v20/rls-adversary-model.test.ts",
+    "authority": [
+      "ENG-330",
+      "ENG-333"
+    ],
+    "sha256": "88f1e89f3ca7ce2f032fbde1bd1231b94fc2e6338a3c402534722bf8f915f5c8",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v20/runtime-proof-ledger.test.ts",
+    "authority": [
+      "ENG-346"
+    ],
+    "sha256": "0b8447dc0b4058af58605291517e5890633e6b727b337a69e0776a5f52198144",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v21/atomic-command-proof.test.ts",
+    "authority": [
+      "ENG-309",
+      "ENG-311"
+    ],
+    "sha256": "f23930debae2858ed6fafa6d46ff90bb85579746676815e449a689b1393064be",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v21/postgres-role-proof.test.ts",
+    "authority": [
+      "ENG-333",
+      "ENG-346"
+    ],
+    "sha256": "175e2fe452059b16b54e881ef0d0eaf2c459f899110d056809652c5e0e0449af",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v21/restore-proof.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-346"
+    ],
+    "sha256": "dd85831b5f85f7dcf6a72af6d2abae9da0fd0327313882053ba6c49b21c39335",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
+    "test": "tests/v21/runtime-db-contract.test.ts",
+    "authority": [
+      "ENG-346"
+    ],
+    "sha256": "e6bf9073102992067c59c920c65d54d0ec223fe347cd92c5a0733a4b9850d2d6",
+    "execution_status": "PENDING_EXECUTION",
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  }
+]

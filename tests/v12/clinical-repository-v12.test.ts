@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{MemoryClinicalRepository}from"../../packages/clinical-repository/src";describe("repo",()=>{it("rejects lost update",()=>{const r=new MemoryClinicalRepository<any>();r.save({id:"x",tenantId:"t",version:1,state:{}},0);expect(()=>r.save({id:"x",tenantId:"t",version:2,state:{}},0)).toThrow(/concurrency/i)});});

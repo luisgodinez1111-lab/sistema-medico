@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{admitEvidence}from"../../packages/release-evidence/src";describe("evidence",()=>{it("C5 rejects executed-only",()=>expect(admitEvidence({id:"e",state:"EXECUTED_PASS",artifactHash:"h",authority:["ENG-346"]},"C5")).toBe(false));});

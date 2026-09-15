@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{assertReplaySafe}from"../../packages/idempotency-persistent/src";describe("idempotency",()=>{it("rejects key reuse with different request",()=>expect(()=>assertReplaySafe({tenantId:"t",key:"k",requestHash:"a",status:"COMPLETED",expiresAt:"x"},"b")).toThrow(/REUSED/));});

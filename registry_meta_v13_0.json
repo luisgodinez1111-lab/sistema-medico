@@ -1,0 +1,13 @@
+{
+  "version": "13.0-FAILURE-DRIVEN-RUNTIME",
+  "capabilities": 109,
+  "test_sources": 98,
+  "self_check": "PASS",
+  "failure_conformance": "PASS",
+  "failure_checks": 14,
+  "dependency_install": "TIMEOUT",
+  "full_vitest": "NOT_RUN",
+  "live_postgres": "NOT_RUN",
+  "release_state": "BLOCKED",
+  "source_sha256": "91552804de70e689036a24aa5bfa2def585ce1a0ae65819fa1525556a0b22caa"
+}

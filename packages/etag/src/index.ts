@@ -1,0 +1,1 @@
+export function etag(id:string,version:number){return `W/"${id}:${version}"`;}export function assertIfMatch(expected:string|undefined,current:string){if(!expected)throw new Error("IF_MATCH_REQUIRED");if(expected!==current)throw new Error("PRECONDITION_FAILED");return true;}

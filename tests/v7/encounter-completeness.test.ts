@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{assessCompleteness}from"../../packages/encounter-completeness/src";describe("completeness",()=>{it("missing critical followup prevents sign",()=>expect(assessCompleteness({history:true,medications:true,allergies:true,vitals:true,assessment:true,plan:true,criticalFollowupResolved:false}).signable).toBe(false));});

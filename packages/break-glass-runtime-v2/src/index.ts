@@ -1,0 +1,1 @@
+export function admitBreakGlass(x:{reason:string;actorId:string;patientId:string;expiresAt:number;now:number}){if(!x.reason||x.reason.length<8)throw new Error('BREAK_GLASS_REASON_REQUIRED');if(x.expiresAt<=x.now)throw new Error('BREAK_GLASS_EXPIRY_INVALID');return{admitted:true,requiresAudit:true,requiresNotification:true,requiresReview:true};}

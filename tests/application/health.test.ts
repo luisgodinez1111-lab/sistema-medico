@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {readiness} from "../../packages/health/src";describe("health",()=>{it("fails readiness when db down",()=>expect(readiness([{name:"db",status:"DOWN"}]).status).toBe("NOT_READY"));});

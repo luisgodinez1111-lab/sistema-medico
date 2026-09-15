@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{nextFailure}from"../../packages/durable-outbox/src";describe("outbox",()=>it("poison dead letters",()=>expect(nextFailure({id:"m",attempts:2,maxAttempts:3,state:"LEASED",availableAt:0,fencingToken:1},1).state).toBe("DEAD_LETTER")));

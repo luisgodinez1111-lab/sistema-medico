@@ -1,0 +1,1 @@
+export async function POST(){return Response.json({code:"AUTH_ADAPTER_REQUIRED",message:"Result mutation is disabled until authenticated Principal resolution is wired."},{status:503});}

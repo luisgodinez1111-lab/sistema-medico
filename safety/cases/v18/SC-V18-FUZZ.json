@@ -1,0 +1,7 @@
+{
+  "id": "SC-V18-FUZZ",
+  "risk": "C5",
+  "focus": "Malformed/adversarial request causes unsafe interpretation or resource exhaustion",
+  "human_review": "PENDING",
+  "release_admitted": false
+}

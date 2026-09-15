@@ -1,0 +1,8 @@
+{
+  "status": "FAIL",
+  "exit_code": 1,
+  "stdout": "{\n  \"state\": \"EXECUTED_RUNTIME_FAIL\",\n  \"commands\": 2\n}\n",
+  "stderr": "",
+  "stdout_hash": "eeaf4b349ef5e894839286dcfac9a0764b5404f87067ca84eeecbbbc3cd78799",
+  "stderr_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

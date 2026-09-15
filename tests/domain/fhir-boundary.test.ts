@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {ingestFhir} from "../../packages/fhir-boundary/src";describe("FHIR",()=>{it("rejects unsupported resource",()=>expect(()=>ingestFhir({resourceType:"Something"})).toThrow(/UNSUPPORTED/));});

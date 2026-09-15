@@ -1,0 +1,13 @@
+{
+  "mapping": false,
+  "defects": false,
+  "tests": false,
+  "database": false,
+  "rls": false,
+  "replay": true,
+  "restore": false,
+  "humanC5": false,
+  "aiReconciled": false,
+  "supplyChain": false,
+  "state": "BLOCKED"
+}

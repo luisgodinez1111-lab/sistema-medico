@@ -1,0 +1,11 @@
+{
+  "version": "4.0-MANUFACTURABLE-CORE",
+  "capabilities": 22,
+  "test_sources": 31,
+  "domain_packages": 10,
+  "platform_packages": 9,
+  "sql_migrations": 1,
+  "self_check": "PASS",
+  "release_state": "BLOCKED",
+  "source_sha256": "de553bd041594f9d14ab46e2e99c45cebc7c490161d3fe8c89735f63d1401c6d"
+}

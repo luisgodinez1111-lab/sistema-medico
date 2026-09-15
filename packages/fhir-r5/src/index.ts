@@ -1,0 +1,1 @@
+export const FHIR_VERSION="5.0.0";const allowed=new Set(["Patient","Encounter","Observation","DiagnosticReport","MedicationRequest","Condition","ServiceRequest"]);export function ingestR5(x:{resourceType:string;id?:string}){if(!allowed.has(x.resourceType))throw new Error("FHIR_RESOURCE_NOT_ALLOWED");return{resource:x,fhirVersion:FHIR_VERSION,trust:"UNVERIFIED" as const};}

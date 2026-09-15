@@ -1,0 +1,3 @@
+import crypto from"node:crypto";
+export type SignInput=Readonly<{encounterId:string;version:number;patientId:string;authorId:string;content:string;unresolvedCriticalObligations:number;completeness:boolean;signedAt:string}>;
+export function signEncounter(x:SignInput){if(!x.completeness)throw new Error("ENCOUNTER_INCOMPLETE");if(x.unresolvedCriticalObligations>0)throw new Error("CRITICAL_OBLIGATION_UNRESOLVED");const contentHash=crypto.createHash("sha256").update(x.content).digest("hex");return Object.freeze({encounterId:x.encounterId,version:x.version,patientId:x.patientId,authorId:x.authorId,signedAt:x.signedAt,contentHash,signatureDigest:crypto.createHash("sha256").update(`${x.encounterId}:${x.version}:${contentHash}:${x.authorId}:${x.signedAt}`).digest("hex")});}

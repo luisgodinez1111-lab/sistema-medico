@@ -1,0 +1,67 @@
+[
+  {
+    "id": "SE-0001",
+    "task_class": "CLINICAL_SUMMARY",
+    "risk": "C4",
+    "supported": [
+      "summarize existing chart context",
+      "surface provenance"
+    ],
+    "preconditions": [
+      "minimum necessary context",
+      "source provenance available"
+    ],
+    "exclusions": [
+      "autonomous diagnosis",
+      "autonomous medication change",
+      "silent chart mutation"
+    ],
+    "failure_mode": "ABSTAIN",
+    "human_approval_required": true,
+    "kill_switch": true,
+    "evidence_required": true
+  },
+  {
+    "id": "SE-0002",
+    "task_class": "CLINICAL_SUGGESTION",
+    "risk": "C5",
+    "supported": [
+      "structured differential suggestions",
+      "missing-evidence prompts"
+    ],
+    "preconditions": [
+      "bounded task card",
+      "evidence coverage",
+      "applicability context"
+    ],
+    "exclusions": [
+      "irreversible action",
+      "silent truth promotion",
+      "unsourced recommendation"
+    ],
+    "failure_mode": "SAFETY_BLOCKED",
+    "human_approval_required": true,
+    "kill_switch": true,
+    "evidence_required": true
+  },
+  {
+    "id": "SE-0003",
+    "task_class": "DOCUMENT_DRAFTING",
+    "risk": "C3",
+    "supported": [
+      "draft note",
+      "draft patient instructions"
+    ],
+    "preconditions": [
+      "physician-visible draft status"
+    ],
+    "exclusions": [
+      "signing",
+      "final chart commit without explicit action"
+    ],
+    "failure_mode": "ABSTAIN",
+    "human_approval_required": true,
+    "kill_switch": true,
+    "evidence_required": false
+  }
+]

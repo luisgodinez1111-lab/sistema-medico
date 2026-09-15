@@ -1,0 +1,34 @@
+{
+  "id": "SM-FORMAL-MED-001",
+  "authority": [
+    "ENG-220",
+    "ENG-257",
+    "ENG-306"
+  ],
+  "subject": "Medication Lifecycle",
+  "states": [
+    "PROPOSED",
+    "PRESCRIBED",
+    "STARTED",
+    "ACTIVE",
+    "MODIFIED",
+    "HELD",
+    "STOPPED",
+    "CANCELLED"
+  ],
+  "terminal": [
+    "STOPPED",
+    "CANCELLED"
+  ],
+  "laws": [
+    "PROPOSED is not PRESCRIBED.",
+    "Medication changes require provenance and accountable author.",
+    "Clinically consequential AI output cannot transition medication state without physician authority."
+  ],
+  "reconciliation": {
+    "owner": "Medication domain service",
+    "detect": "state/event mismatch scan",
+    "recover": "block unsafe transition + reconcile ledger",
+    "evidence": "medication lifecycle + prescription provenance + audit"
+  }
+}

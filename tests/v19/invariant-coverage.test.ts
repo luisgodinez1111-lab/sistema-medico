@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{coverage}from"../../packages/invariant-coverage/src";describe("coverage",()=>it("C5 human review required",()=>expect(coverage([{id:"i",risk:"C5",tests:["t"],executed:1,humanApproved:false}]).releasePass).toBe(false)));

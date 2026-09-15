@@ -1,0 +1,15 @@
+{
+  "version": "9.0-OPERABLE-CLINICAL-SYSTEM",
+  "capabilities": 65,
+  "test_sources": 66,
+  "self_check": "PASS",
+  "operability_conformance": "PASS",
+  "operability_checks": 14,
+  "full_vitest": "NOT_RUN",
+  "live_postgres": "NOT_RUN",
+  "rg001": "BLOCKED",
+  "defects": "NOT_ASSESSED",
+  "ai_candidates": "HUMAN_REVIEW_PENDING",
+  "release_state": "BLOCKED",
+  "source_sha256": "b938eff45843f90b79d95fb423cae996262f1900f8ab29b214ff810e091a0341"
+}

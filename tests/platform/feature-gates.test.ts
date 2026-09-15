@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {assertCapabilityEnabled} from "../../packages/feature-gates/src";describe("safety feature gates",()=>{it("requires evidence",()=>expect(()=>assertCapabilityEnabled({capability:"C",state:"ENABLED"},"t")).toThrow(/EVIDENCE_REQUIRED/));});

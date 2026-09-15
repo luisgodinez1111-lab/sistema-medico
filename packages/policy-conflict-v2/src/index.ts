@@ -1,0 +1,2 @@
+export type Policy=Readonly<{id:string;priority:number;effectiveFrom:number;effectiveTo?:number;decision:"ALLOW"|"DENY";scope:string}>;
+export function resolvePolicy(xs:readonly Policy[],at:number,scope:string){const a=xs.filter(x=>x.scope===scope&&x.effectiveFrom<=at&&(x.effectiveTo===undefined||at<x.effectiveTo)).sort((x,y)=>y.priority-x.priority);if(!a.length)throw new Error("NO_APPLICABLE_POLICY");if(a.length>1&&a[0].priority===a[1].priority&&a[0].decision!==a[1].decision)throw new Error("POLICY_CONFLICT");return a[0]}

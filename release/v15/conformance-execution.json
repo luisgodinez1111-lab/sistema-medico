@@ -1,0 +1,86 @@
+{
+  "status": "PASS",
+  "checks": 20,
+  "results": [
+    {
+      "name": "unknown is not normal",
+      "status": "PASS"
+    },
+    {
+      "name": "atomic write requires event audit outbox",
+      "status": "PASS"
+    },
+    {
+      "name": "AI cannot prescribe",
+      "status": "PASS"
+    },
+    {
+      "name": "cross tenant deny",
+      "status": "PASS"
+    },
+    {
+      "name": "signed records append only",
+      "status": "PASS"
+    },
+    {
+      "name": "audit v2 append only",
+      "status": "PASS"
+    },
+    {
+      "name": "all new tenant tables force RLS",
+      "status": "PASS"
+    },
+    {
+      "name": "outbox uses skip locked source",
+      "status": "PASS"
+    },
+    {
+      "name": "correction impact traversal exists",
+      "status": "PASS"
+    },
+    {
+      "name": "policy conflict fails closed",
+      "status": "PASS"
+    },
+    {
+      "name": "break glass requires review",
+      "status": "PASS"
+    },
+    {
+      "name": "restore verifies audit and isolation",
+      "status": "PASS"
+    },
+    {
+      "name": "performance budgets explicit",
+      "status": "PASS"
+    },
+    {
+      "name": "chaos plan has nine scenarios",
+      "status": "PASS"
+    },
+    {
+      "name": "evidence is cryptographically bound",
+      "status": "PASS"
+    },
+    {
+      "name": "clinical inbox deterministic",
+      "status": "PASS"
+    },
+    {
+      "name": "calculation receipt hashes inputs",
+      "status": "PASS"
+    },
+    {
+      "name": "consent has effective interval",
+      "status": "PASS"
+    },
+    {
+      "name": "identity expiry is explicit",
+      "status": "PASS"
+    },
+    {
+      "name": "projection checkpoints hash state",
+      "status": "PASS"
+    }
+  ]
+}

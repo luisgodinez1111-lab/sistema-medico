@@ -1,0 +1,1 @@
+{"id":"SC-V15-ATOMIC","risk":"C5","hazards":["partial clinical truth","lost async consequence"],"controls":["single DB transaction","transactional outbox","idempotency"],"invariants":["state mutation implies event+audit+outbox","version advances once"],"recovery":"reconciliation + replay","humanReview":"PENDING"}

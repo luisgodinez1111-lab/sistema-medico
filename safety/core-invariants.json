@@ -1,0 +1,119 @@
+[
+  {
+    "id": "INV-CORE-0001",
+    "authority": [
+      "ENG-307",
+      "ENG-308"
+    ],
+    "risk": "C5",
+    "statement": "CLOSED result requires accountable closure evidence.",
+    "predicate": "invResultClosedHasAccountableEvidence",
+    "tests": [
+      "invariants.test.ts",
+      "state-machines.test.ts"
+    ]
+  },
+  {
+    "id": "INV-CORE-0002",
+    "authority": [
+      "ENG-308",
+      "ENG-311",
+      "ENG-337"
+    ],
+    "risk": "C5",
+    "statement": "Overdue/escalated obligation is never equivalent to completed follow-up.",
+    "predicate": "invObligationTerminalIsExplicit",
+    "tests": [
+      "invariants.test.ts",
+      "obligation.test.ts"
+    ]
+  },
+  {
+    "id": "INV-CORE-0003",
+    "authority": [
+      "ENG-303",
+      "ENG-304",
+      "ENG-324"
+    ],
+    "risk": "C5",
+    "statement": "AI/system cannot promote recommendation to DECIDED/SIGNED clinical authority.",
+    "predicate": "invPhysicianAuthority",
+    "tests": [
+      "invariants.test.ts",
+      "epistemic-truth.test.ts"
+    ]
+  },
+  {
+    "id": "INV-CORE-0004",
+    "authority": [
+      "ENG-273",
+      "ENG-303"
+    ],
+    "risk": "C5",
+    "statement": "Non-COMPUTED state cannot carry a normal/reassuring clinical value.",
+    "predicate": "invUnknownNeverReassuring",
+    "tests": [
+      "invariants.test.ts",
+      "clinical-semantics.test.ts"
+    ]
+  },
+  {
+    "id": "INV-CORE-0005",
+    "authority": [
+      "ENG-320",
+      "ENG-321",
+      "ENG-338",
+      "ENG-339"
+    ],
+    "risk": "C5",
+    "statement": "High-impact AI requires envelope, evidence, human authority and kill switch.",
+    "predicate": "enforceEnvelope",
+    "tests": [
+      "ai-envelope.test.ts",
+      "ai-task-card.test.ts"
+    ]
+  },
+  {
+    "id": "INV-CORE-0006",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "risk": "C5",
+    "statement": "Critical reconciliation cannot execute without accountable owner.",
+    "predicate": "requireRecovery",
+    "tests": [
+      "reconciliation.test.ts",
+      "reconciliation-critical.test.ts"
+    ]
+  },
+  {
+    "id": "INV-CORE-0007",
+    "authority": [
+      "ENG-342",
+      "ENG-312",
+      "ENG-313"
+    ],
+    "risk": "C5",
+    "statement": "Corrected result requires monotonic supersession lineage and replay/impact traceability.",
+    "predicate": "CorrectedResultDag",
+    "tests": [
+      "corrected-result.test.ts",
+      "replay-impact.test.ts"
+    ]
+  },
+  {
+    "id": "INV-CORE-0008",
+    "authority": [
+      "ENG-318",
+      "ENG-319",
+      "ENG-341"
+    ],
+    "risk": "C5",
+    "statement": "Unsupported applicability context must block clinically consequential computation.",
+    "predicate": "assertClinicalApplicability",
+    "tests": [
+      "applicability.test.ts"
+    ]
+  }
+]

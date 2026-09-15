@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{patientImpact}from"../../packages/patient-impact-runtime/src";describe("impact",()=>{it("clinical action makes urgent review",()=>expect(patientImpact([{executionId:"e",patientId:"p",sourceArtifact:"policy",sourceVersion:"1",derivedArtifact:"d",clinicalAction:"rx"}],"policy","1").severity).toBe("URGENT_REVIEW"));});

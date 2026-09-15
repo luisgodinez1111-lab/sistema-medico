@@ -1,0 +1,7 @@
+{
+  "id": "SC-V18-NUMERIC",
+  "risk": "C5",
+  "focus": "NaN/Infinity/unit ambiguity contaminates clinical calculation",
+  "human_review": "PENDING",
+  "release_admitted": false
+}

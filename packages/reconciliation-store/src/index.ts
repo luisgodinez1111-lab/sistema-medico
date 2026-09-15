@@ -1,0 +1,2 @@
+export type Finding=Readonly<{id:string;tenantId:string;kind:string;severity:"S1"|"S2"|"S3";ownerId:string;status:"OPEN"|"RECOVERING"|"RESOLVED";recovery:string}>;
+export function admitFinding(x:Finding){if(!x.ownerId||!x.recovery)throw new Error("RECONCILIATION_OWNER_RECOVERY_REQUIRED");return Object.freeze(x)}export function releaseImpact(x:Finding){return x.status!=="RESOLVED"&&x.severity==="S1"?"BLOCK":"NONE";}

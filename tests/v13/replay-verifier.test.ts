@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{verifyReplay}from"../../packages/replay-verifier/src";describe("replay",()=>it("detects divergence",()=>expect(verifyReplay({x:1},{x:2}).consistent).toBe(false)));

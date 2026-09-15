@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{appendSigned}from"../../packages/signed-record-store/src";describe("signed",()=>it("monotonic versions",()=>expect(()=>appendSigned([],{documentId:"d",version:2,contentHash:"h",signature:"s",signedAt:"x"})).toThrow(/NON_MONOTONIC/)));

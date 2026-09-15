@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{rebuild}from"../../packages/projection-runtime/src";describe("projection",()=>{it("gap fails closed",()=>expect(()=>rebuild(0,[{id:"1",sequence:2,type:"x",payload:{}}],s=>s)).toThrow(/gap/i));});

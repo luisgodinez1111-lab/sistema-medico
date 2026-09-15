@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {deliveryFailure} from "../../packages/outbox/src";describe("outbox",()=>{it("dead letters after bounded retries",()=>expect(deliveryFailure({id:"1",topic:"x",aggregateId:"a",payload:{},attempts:4,state:"RETRY"}).state).toBe("DEAD_LETTER"));});

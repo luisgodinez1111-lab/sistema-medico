@@ -1,0 +1,2 @@
+export type TimelineEvent=Readonly<{id:string;patientId:string;sequence:number;occurredAt:string;recordedAt:string;type:string;summary:string;sourceId:string}>;
+export function buildTimeline(xs:readonly TimelineEvent[]){const sorted=[...xs].sort((a,b)=>Date.parse(a.occurredAt)-Date.parse(b.occurredAt)||a.sequence-b.sequence);const ids=new Set<string>();for(const e of sorted){if(ids.has(e.id))throw new Error("TIMELINE_DUPLICATE_EVENT");ids.add(e.id);}return sorted;}

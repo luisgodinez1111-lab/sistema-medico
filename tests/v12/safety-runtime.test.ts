@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{admitSafetyCase}from"../../packages/safety-runtime/src";describe("safety",()=>{it("C5 executed pass still needs human approval",()=>expect(admitSafetyCase({risk:"C5",hazards:1,controls:1,invariants:1,executedPass:10,humanApproved:false}).admitted).toBe(false));});

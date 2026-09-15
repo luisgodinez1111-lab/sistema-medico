@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {requireOwner} from "../../packages/workflow-engine/src";describe("workflow",()=>{it("requires owner",()=>expect(()=>requireOwner({id:"s",state:"PENDING",attempts:0,maxAttempts:3,owner:""})).toThrow(/OWNER/));});

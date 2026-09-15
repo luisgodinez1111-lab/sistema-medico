@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{recoveryExpectation}from"../../packages/crash-recovery-model/src";describe("crash",()=>it("after commit recovers through outbox",()=>expect(recoveryExpectation("AFTER_COMMIT")).toBe("OUTBOX_RECOVERABLE")));

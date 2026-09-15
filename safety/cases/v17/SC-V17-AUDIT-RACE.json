@@ -1,0 +1,10 @@
+{
+  "id": "SC-V17-AUDIT-RACE",
+  "risk": "C5",
+  "hazard": {
+    "id": "HAZ-AUDIT-RACE",
+    "description": "Tenant audit head is row-locked before append"
+  },
+  "human_review": "PENDING",
+  "release_admitted": false
+}

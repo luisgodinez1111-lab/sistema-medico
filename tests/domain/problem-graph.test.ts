@@ -1,0 +1,1 @@
+import {describe,it,expect} from "vitest";import {addEdge} from "../../packages/problem-graph/src";describe("graph",()=>{it("requires provenance",()=>expect(()=>addEdge([{id:"a",kind:"PROBLEM",epistemic:"FACT",label:"a"},{id:"b",kind:"EVIDENCE",epistemic:"FACT",label:"b"}],[],{from:"a",to:"b",relation:"SUPPORTS",provenanceId:""})).toThrow(/PROVENANCE/));});

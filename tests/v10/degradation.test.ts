@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{degradedMode}from"../../packages/degradation/src";describe("degradation",()=>{it("AI outage preserves clinical write",()=>expect(degradedMode(["AI"]).clinicalWrite).toBe(true));});

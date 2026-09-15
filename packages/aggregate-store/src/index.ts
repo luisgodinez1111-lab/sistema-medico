@@ -1,0 +1,2 @@
+export type StoredEvent=Readonly<{id:string;aggregateId:string;sequence:number;type:string;payload:unknown}>;
+export function append(events:readonly StoredEvent[],incoming:readonly StoredEvent[],expectedVersion:number){const current=events.length?events[events.length-1].sequence:0;if(current!==expectedVersion)throw new Error(`AGGREGATE_VERSION_CONFLICT:${expectedVersion}:${current}`);let n=current;for(const e of incoming){n++;if(e.sequence!==n)throw new Error("NON_MONOTONIC_EVENT_SEQUENCE")}return [...events,...incoming];}

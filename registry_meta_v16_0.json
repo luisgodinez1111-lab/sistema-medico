@@ -1,0 +1,15 @@
+{
+  "version": "16.0-DEEP-HARDENING",
+  "capabilities": 150,
+  "test_sources": 114,
+  "self_check": "PASS",
+  "deep_bug_audit": "PASS",
+  "conformance": "PASS",
+  "sql_check": "PASS",
+  "defects_found": 8,
+  "s1_found": 3,
+  "full_suite": "NOT_RUN",
+  "live_postgres": "NOT_RUN",
+  "release_state": "BLOCKED",
+  "source_sha256": "c5ab6bb941c1c3c3174da1d7436b65a0af5b6165e95f0c89292742256a0da00b"
+}

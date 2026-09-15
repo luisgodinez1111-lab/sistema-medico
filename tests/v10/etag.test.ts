@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{assertIfMatch}from"../../packages/etag/src";describe("etag",()=>{it("requires precondition",()=>expect(()=>assertIfMatch(undefined,'W/"x:1"')).toThrow(/REQUIRED/));});

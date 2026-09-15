@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{compareReadModel}from"../../packages/read-model/src";describe("read model",()=>{it("reports lag",()=>expect(compareReadModel({patientId:"p",version:1,sourceSequence:8,data:{}},10).lag).toBe(2));});

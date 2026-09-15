@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{acquireLease,assertFence}from"../../packages/lease-coordinator/src";describe("lease",()=>it("rejects stale fence",()=>{const x=acquireLease(undefined,"a","r",0,10)!;expect(()=>assertFence(x,0)).toThrow(/STALE/)}));

@@ -1,0 +1,1 @@
+export type Fault="BEFORE_COMMIT"|"AFTER_COMMIT_BEFORE_PUBLISH"|"DURING_PROJECTION"|"WORKER_CRASH";export class FaultInjector{constructor(private readonly active=new Set<Fault>()){} hit(f:Fault){if(this.active.has(f))throw new Error(`INJECTED_FAULT:${f}`)}}

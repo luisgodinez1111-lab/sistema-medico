@@ -1,0 +1,4 @@
+export type ObligationState="OPEN"|"SCHEDULED"|"IN_PROGRESS"|"WAITING_EXTERNAL"|"OVERDUE"|"ESCALATED"|"COMPLETED"|"CANCELLED"|"FAILED";
+export type Obligation=Readonly<{id:string;patientId:string;ownerId:string;dueAt:string;state:ObligationState;version:number;completionEvidence?:string}>;
+export function completeObligation(o:Obligation,evidence:string){if(!evidence)throw new Error("COMPLETION_EVIDENCE_REQUIRED");if(["COMPLETED","CANCELLED"].includes(o.state))throw new Error("OBLIGATION_TERMINAL");return Object.freeze({...o,state:"COMPLETED" as const,version:o.version+1,completionEvidence:evidence});}
+export function detectOverdue(o:Obligation,now:string){if(["COMPLETED","CANCELLED"].includes(o.state))return o;if(Date.parse(now)>Date.parse(o.dueAt))return Object.freeze({...o,state:"OVERDUE" as const,version:o.version+1});return o;}

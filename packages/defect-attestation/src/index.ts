@@ -1,0 +1,2 @@
+export type DefectAttestation=Readonly<{state:"NOT_ASSESSED"|"ASSESSED"|"HUMAN_APPROVED";assessor?:string;assessedAt?:string;openCritical:number}>;
+export function defectGate(x:DefectAttestation){if(x.state==="NOT_ASSESSED")return{pass:false,reason:"DEFECTS_NOT_ASSESSED"};if(x.openCritical>0)return{pass:false,reason:"CRITICAL_DEFECTS_OPEN"};if(x.state!=="HUMAN_APPROVED")return{pass:false,reason:"HUMAN_APPROVAL_REQUIRED"};return{pass:true,reason:"PASS"};}

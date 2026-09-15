@@ -1,0 +1,3 @@
+export type DurableMessage=Readonly<{id:string;attempts:number;maxAttempts:number;state:"PENDING"|"LEASED"|"DELIVERED"|"DEAD_LETTER";availableAt:number;leaseUntil?:number;fencingToken:number}>;
+export function canClaim(x:DurableMessage,now:number){return x.state==="PENDING"&&x.availableAt<=now||x.state==="LEASED"&&(x.leaseUntil??0)<=now}
+export function nextFailure(x:DurableMessage,now:number){const attempts=x.attempts+1;if(attempts>=x.maxAttempts)return Object.freeze({...x,attempts,state:"DEAD_LETTER"as const});const jitter=(x.fencingToken*7919)%500;return Object.freeze({...x,attempts,state:"PENDING"as const,availableAt:now+Math.min(300000,1000*2**attempts)+jitter,leaseUntil:undefined});}

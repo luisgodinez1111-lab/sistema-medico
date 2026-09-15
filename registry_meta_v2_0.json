@@ -1,0 +1,11 @@
+{
+  "version": "2.0-CAPABILITY-ADMISSION",
+  "meaning": "Executable architecture/safety-platform maturity; not production certification",
+  "capabilities": 5,
+  "test_sources": 13,
+  "architecture_self_check": "PASS",
+  "safety_dossiers": "PASS",
+  "capability_admission": "BLOCKED",
+  "release_state": "BLOCKED",
+  "source_registry_sha256": "ca0ae1bb2692bfb7706a1fc5a7b718f0fd2ffa72eac6e9e1672bde4111888e64"
+}

@@ -1,0 +1,4 @@
+{
+  "status": "NOT_RUN",
+  "reason": "npm install/test exceeded bounded execution window; no PASS claimed."
+}

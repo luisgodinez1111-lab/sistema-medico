@@ -1,0 +1,67 @@
+[
+  {
+    "artifact": "clinical-obligation-machine",
+    "authority": [
+      "ENG-308",
+      "ENG-311",
+      "ENG-337"
+    ],
+    "tests": [
+      "obligation.test.ts"
+    ],
+    "reviewer": "PENDING_HUMAN_REVIEW",
+    "status": "BLOCKED",
+    "evidence": [
+      "source+test generated; execution pending"
+    ]
+  },
+  {
+    "artifact": "epistemic-truth-kernel",
+    "authority": [
+      "ENG-303",
+      "ENG-304",
+      "ENG-305",
+      "ENG-324"
+    ],
+    "tests": [
+      "epistemic-truth.test.ts"
+    ],
+    "reviewer": "PENDING_HUMAN_REVIEW",
+    "status": "BLOCKED",
+    "evidence": [
+      "source+test generated; execution pending"
+    ]
+  },
+  {
+    "artifact": "corrected-result-dag",
+    "authority": [
+      "ENG-312",
+      "ENG-313",
+      "ENG-342"
+    ],
+    "tests": [
+      "corrected-result.test.ts",
+      "replay-impact.test.ts"
+    ],
+    "reviewer": "PENDING_HUMAN_REVIEW",
+    "status": "BLOCKED",
+    "evidence": [
+      "source+tests generated; execution pending"
+    ]
+  },
+  {
+    "artifact": "reconciliation-kernel",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "tests": [
+      "reconciliation.test.ts"
+    ],
+    "reviewer": "PENDING_HUMAN_REVIEW",
+    "status": "BLOCKED",
+    "evidence": [
+      "source+test generated; execution pending"
+    ]
+  }
+]

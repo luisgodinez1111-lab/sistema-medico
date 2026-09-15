@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{authorize}from"../../packages/runtime-auth/src";describe("auth",()=>{it("denies cross tenant",()=>expect(()=>authorize({tenantId:"a",actorId:"u",roles:["PHYSICIAN"],scopes:[],purpose:"TREATMENT",sessionId:"s"},{tenantId:"b"})).toThrow(/Cross-tenant/));});
