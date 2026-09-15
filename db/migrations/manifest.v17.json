@@ -3,7 +3,7 @@
   "migrations": [
     {
       "file": "0001_core.sql",
-      "sha256": "11e7c8dc23eb83189c947b4f2abc966d887921ff8435e528f95228d551cb7da4"
+      "sha256": "17d3644ba2acabc1229e968205958e9174a46b8138b1e669a8b4a8917d31d457"
     },
     {
       "file": "0002_clinical_domains.sql",

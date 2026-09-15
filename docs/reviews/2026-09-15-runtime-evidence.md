@@ -61,8 +61,26 @@ archivos de políticas RLS. Resultados:
   `packages/runtime-db-contract` y `scripts/v21/live-postgres-proof.mjs` la llamaban
   `idempotency_key`. Corregido a `key` (habría hecho fallar el proof en vivo).
 
-Pendientes de DB/DR (NOT_RUN): Concurrency, Crash recovery, HTTP fuzzing, Restore drill,
-Performance (harnesses más pesados; se hicieron los dos más críticos de seguridad).
+### Concurrency + Crash recovery (en vivo, ejercitando `executeAtomicClinicalCommand`)
+
+Probados contra Neon con el **código real** de la transacción atómica clínica:
+
+- **Idempotencia (dedup):** 12 comandos idénticos en paralelo → **1 ejecutado, 11 replays, 1
+  sola fila `clinical_events`**. Sin ejecución duplicada.
+- **Concurrencia optimista:** 12 comandos en paralelo, mismo aggregate + `expectedVersion=0`,
+  claves distintas → **1 ganó, 11 `CONCURRENCY_CONFLICT`, 1 fila, `version=1`**. Sin
+  lost-update ni secuencia duplicada.
+- **Crash recovery:** crash simulado a mitad de la transacción (claim `IN_PROGRESS` + kill de
+  conexión sin commit) → **`leftover=0`** (rollback atómico) y **retry `OK_RECOVERED`** (sin
+  `IN_PROGRESS` colgado). Atomicidad + recuperación probadas.
+
+**Defecto real reparado (pgcrypto):** `app.append_audit_v17` (migración 0013) usa `digest()`
+de **pgcrypto**, pero ninguna migración habilitaba la extensión → en una BD nueva **todo
+comando clínico fallaba** en el paso de auditoría (`function digest(bytea, unknown) does not
+exist`). Corregido: `0001_core.sql` ahora hace `CREATE EXTENSION IF NOT EXISTS pgcrypto` y se
+actualizó su hash en `db/migrations/manifest.v17.json` (integridad verificada OK).
+
+Pendientes de DB/DR (NOT_RUN): HTTP fuzzing, **Restore drill** (destructivo), Performance.
 
 ## Limitación (honesta, ADR-0210)
 

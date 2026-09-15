@@ -1,4 +1,7 @@
 BEGIN;
+-- pgcrypto: requerido por app.append_audit_v17 (digest/sha256 de la cadena de auditoría, 0013).
+-- Sin esta extensión, todo comando clínico falla en el paso de audit en una BD nueva.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE IF NOT EXISTS patients (
  id uuid PRIMARY KEY, tenant_id uuid NOT NULL, version bigint NOT NULL CHECK(version>0),
  status text NOT NULL CHECK(status IN ('ACTIVE','INACTIVE','DECEASED')),
