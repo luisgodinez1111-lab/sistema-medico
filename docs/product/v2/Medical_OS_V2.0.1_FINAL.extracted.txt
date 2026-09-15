@@ -1,0 +1,2360 @@
+MEDICAL OS · MASTER PRODUCT & CLINICAL SPECIFICATION
+Medical OS V2 FINAL
+Clinical Intelligence Operating System · Physician-first · Patient-longitudinal · México-first · International-ready
+OBJETIVO DE V2 FINAL Definir con precisión qué debe ser Medical OS, cómo debe comportarse clínicamente y operativamente, qué problemas debe resolver, qué experiencias debe ofrecer y qué límites de seguridad y regulación debe respetar. V2 es el contrato de producto y medicina. V2.1 será el contrato de ingeniería y código.
+
+Final Product Baseline · 14 septiembre 2026
+
+PROD-000 | ACTIVE | 0. Cómo leer este documento
+[PROD-000-R001] V2 no es un listado de features. Es la especificación del sistema que debe existir antes de iniciar la construcción masiva. Cada módulo se define desde el problema clínico u operativo, el usuario, el flujo, el comportamiento, el riesgo y la evidencia de aceptación. Los detalles de SQL, APIs, repositorios, CI/CD y código pertenecen a V2.1.
+[PROD-000-R002] • V2 fija intención, comportamiento y fronteras.
+[PROD-000-R003] • V2.1 traduce lo aprobado a arquitectura y código.
+[PROD-000-R004] • Una feature no aprobada en V2 no entra por conveniencia técnica.
+[PROD-000-R005] • Un cambio posterior al Product Freeze exige análisis de impacto clínico, UX, seguridad, datos y regulación.
+PROD-001 | ACTIVE | 1. Constitución del producto
+DEFINICIÓN Medical OS es el entorno integral desde el cual un médico practica. Mantiene una representación longitudinal del paciente, acompaña el encuentro clínico, organiza evidencia y decisiones, reduce omisiones y carga administrativa, controla resultados y seguimientos, y conecta operación, comunicación e interoperabilidad sin sustituir el juicio profesional.
+
+[PROD-001-R001] • La complejidad vive detrás de una interfaz simple y estable.
+[PROD-001-R002] • Patient-first, problem-oriented y encounter-aware: el paciente persiste; el encuentro contextualiza; el problema organiza continuidad.
+[PROD-001-R003] • No existen datos clínicos sueltos: cada objeto relevante conserva tiempo, origen, estado, autor/fuente y provenance.
+[PROD-001-R004] • No existen pendientes invisibles: un hallazgo/resultado/orden/referencia/seguimiento importante tiene estado, owner y cierre.
+[PROD-001-R005] • IA propone, resume, estructura, compara y ayuda a recuperar evidencia; el médico acepta, modifica o rechaza.
+[PROD-001-R006] • El producto no promete invulnerabilidad ni infalibilidad clínica. Promete controles verificables, transparencia, recuperación y mejora continua.
+[PROD-001-R007] • La normativa, privacidad, seguridad, accesibilidad, interoperabilidad y clinical safety son arquitectura del producto, no anexos.
+[PROD-001-R008] • El producto se diseña para desktop, laptop, iPad y móvil por capacidades reales del dispositivo.
+[PROD-001-R009] • Cada decisión asistida debe ser explicable a nivel práctico: qué dato la disparó, de dónde viene el conocimiento y qué incertidumbre existe.
+[PROD-001-R010] • La deuda técnica que comprometa integridad clínica, seguridad o aislamiento bloquea el release.
+PROD-002 | ACTIVE | 2. Promesa de producto
+PROMESA CENTRAL Medical OS debe permitir que el médico recuerde menos administración, busque menos información y dedique más capacidad cognitiva al paciente. La meta no es “automatizar medicina”, sino reducir fricción, discontinuidad y omisiones evitables.
+
+Promesa
+Manifestación observable
+Zero Lost Follow-up
+Nada clínicamente importante queda sin owner, fecha/criterio y cierre.
+Clinical State in Seconds
+El médico comprende estado actual, cambios y pendientes en <10 s en casos habituales.
+One Continuous Encounter
+La consulta se completa sin brincar entre sistemas o perder contexto.
+Data Once
+Un dato vigente se captura una vez y se reutiliza/reconcilia.
+Evidence-aware Assistance
+Sugerencias clínicas muestran fuente/versión/contexto cuando corresponda.
+Physician Control
+Ninguna recomendación se convierte silenciosamente en diagnóstico, orden, receta o nota firmada.
+
+PROD-003 | ACTIVE | 3. Lo que Medical OS no será
+[PROD-003-R001] • No será un CRUD de pacientes decorado con cards.
+[PROD-003-R002] • No será un chatbot dentro de un expediente.
+[PROD-003-R003] • No será un formulario clínico gigante.
+[PROD-003-R004] • No será un sistema de notas aisladas que obliga a releer años de PDFs.
+[PROD-003-R005] • No será un sistema de alertas que interrumpe por todo.
+[PROD-003-R006] • No será un catálogo de especialidades creado como forks distintos.
+[PROD-003-R007] • No será una plataforma que use marketing de “IA médica” para esconder falta de validación.
+[PROD-003-R008] • No será una herramienta que obligue al médico a documentar dos veces para alimentar billing, receta o reportes.
+PROD-004 | ACTIVE | 4. Benchmark mundial y estrategia de aprendizaje
+[PROD-004-R001] No existe una lista finita y verificable de “todos los sistemas médicos del mundo”. V2 adopta un observatorio continuo por arquetipos y regiones. La regla es estudiar workflows y fricciones, no copiar listas de funciones.
+Arquetipo / ejemplos
+Qué hacen bien
+Qué debe absorber Medical OS
+Qué debe superar
+Enterprise EHR — Epic
+Continuidad, portal, interoperabilidad, ecosistema.
+Longitudinalidad, patient engagement, identity.
+Complejidad, cognitive burden, dependencia de implementación pesada.
+Enterprise AI — Oracle Health
+IA compartiendo contexto entre documentación, chart review, coding y órdenes.
+AI contextual en workflow, no chatbot aislado.
+Transparencia, modularidad, control de médico y evaluación independiente.
+Ambulatory cloud — athenahealth / DrChrono
+Agenda+charting+billing+mobile+AI.
+Práctica completa en una plataforma.
+Profundidad clínica, obligation model y longitudinal intelligence.
+Private practice — Tebra / Cliniko
+Simplicidad, configuración, agenda, portal y operación.
+Onboarding rápido y administración unificada.
+Clinical reasoning, safety, lab/imaging intelligence.
+México — Nimbo y equivalentes
+Localización, recetas, formularios, adopción privada.
+México-first y baja fricción.
+Convertir expediente en Clinical OS, no sólo digitalización.
+Open source — OpenMRS / OpenEMR
+Extensibilidad, comunidad, interoperabilidad, despliegue global.
+Arquitectura extensible y country customization.
+UX premium, safety governance y clinical intelligence.
+Integrated open source — Bahmni
+EMR+laboratorio+PACS+ERP y contextos diversos.
+Integración diagnóstica/operativa.
+Experiencia de alto nivel y consistencia de producto.
+Europe — Dedalus y regional EHRs
+Continuum of care, specialty content, regional adaptation.
+Care plans, local packs, multilingual operations.
+Velocidad de práctica privada y personalization.
+India/Asia — Practo Ray y clinic platforms
+Clinic operations, digital patient journey, scale móvil.
+Mobile-first operational patterns.
+Longitudinal clinical depth y safety.
+LatAm — MV/Philips Tasy class
+Hospital/enterprise workflow, digital records, governance.
+Audit, institutional workflows, imaging/lab integration.
+Simplificar para physician portal sin perder rigor.
+Ambient AI — Nabla/Heidi/others
+Reducir documentación y after-hours charting.
+Ambient capture como input del Encounter OS.
+Extender a longitudinal reasoning, obligations y evidence.
+
+BENCHMARK RULE Cada hallazgo competitivo se registra como: workflow observado → problema/resolución → evidencia → implicación para Medical OS → experimento → decisión. No se añade una función sólo porque un competidor la tiene.
+
+PROD-005 | ACTIVE | 5. Los diez sistemas que componen Medical OS
+Sistema
+Responsabilidad
+1. Experience OS
+Interfaz, navegación, interacción, accesibilidad y reducción de carga cognitiva.
+2. Patient State OS
+Estado longitudinal computable y comprensible del paciente.
+3. Encounter OS
+Consulta completa y documentación del proceso clínico.
+4. Medication OS
+Ciclo de vida terapéutico y seguridad de prescripción.
+5. Diagnostics OS
+Órdenes, laboratorio, imagen, patología y documentos diagnósticos.
+6. Continuity OS
+Obligaciones, follow-up, result inbox, referrals y care gaps.
+7. Intelligence OS
+Safety, omission, reasoning, trajectory, evidence y AI assistance.
+8. Patient OS
+Portal, secure links, comunicación, instrucciones y participación.
+9. Practice OS
+Agenda, rooming, operación, cobro, inventario, reporting.
+10. Governance OS
+Privacidad, seguridad, compliance, audit, quality y regulatory boundary.
+
+PROD-006 | ACTIVE | 6. Information Architecture global
+Navegación primaria
+Pregunta que resuelve
+Inicio
+¿Qué requiere mi atención hoy?
+Agenda
+¿Quién viene, cuándo y con qué contexto?
+Pacientes
+¿Dónde está la historia completa de esta persona?
+Consultas
+¿Qué encuentros están activos, incompletos o pendientes de firma?
+Resultados
+¿Qué llegó y qué falta revisar/cerrar?
+Medicamentos
+¿Qué está tomando, prescrito, por renovar o por vigilar?
+Documentos
+¿Qué información diagnóstica/documental existe y qué significa longitudinalmente?
+Comunicación
+¿Qué se envió, recibió o necesita respuesta?
+Operación
+¿Cómo está funcionando la práctica?
+Configuración
+¿Cómo se gobierna el tenant, contenido, IA, seguridad e integraciones?
+
+PROD-007 | ACTIVE | 7. Clinical Command Center
+[PROD-007-R001] Inicio no es un dashboard de métricas decorativas. Es la cola priorizada del trabajo clínico y operativo del médico.
+[PROD-007-R002] • Agenda de hoy con contexto preconsulta.
+[PROD-007-R003] • Resultados nuevos, críticos y vencidos.
+[PROD-007-R004] • Obligaciones clínicas próximas o vencidas.
+[PROD-007-R005] • Pacientes que requieren atención por cambios relevantes.
+[PROD-007-R006] • Notas/borradores pendientes de firma.
+[PROD-007-R007] • Mensajes clínicos que requieren respuesta.
+[PROD-007-R008] • Referencias/interconsultas pendientes.
+[PROD-007-R009] • Care gaps importantes que pueden resolverse en encuentros próximos.
+[PROD-007-R010] • Panel de práctica: no-shows, carga, tiempos y operación, en segundo nivel.
+PROD-008 | ACTIVE | 8. Design Language — la estética tiene propósito clínico
+[PROD-008-R001] La referencia visual definida por el proyecto se convierte en un lenguaje propio: violeta profundo para identidad/navegación, superficies claras, azul clínico, cards moderadas, aire visual, iconografía lineal y jerarquía estable. La estética nunca puede ocultar densidad necesaria ni convertir seguridad en decoración.
+Token conceptual
+Uso
+Deep Violet
+Brand, navegación, selección. Nunca riesgo clínico.
+Clinical Blue
+Información, acciones neutrales y datos.
+AI Violet
+Inteligencia/sugerencia no confirmada.
+Green
+Completado/estable/success cuando semánticamente correcto.
+Amber
+Requiere atención o revisión.
+Red
+Riesgo clínico/seguridad crítico; uso escaso.
+Clinical White/Gray
+Superficies de lectura de baja fatiga.
+
+[PROD-008-R002] • Máximo una acción primaria dominante por panel.
+[PROD-008-R003] • Nunca usar color como único portador de significado.
+[PROD-008-R004] • Patient context persistente en cualquier acción clínica.
+[PROD-008-R005] • Progressive disclosure: primero lo relevante, después detalle/provenance.
+[PROD-008-R006] • No cadenas de modales para procesos clínicos.
+[PROD-008-R007] • Autosave de borrador visible; firmar y cerrar son eventos distintos.
+[PROD-008-R008] • Keyboard-first en desktop, touch-native en iPad, mobile-specific en móvil.
+[PROD-008-R009] • No cards meramente decorativas en Patient/Encounter Workspace.
+PROD-009 | ACTIVE | 9. Human Factors y cognitive load
+Riesgo humano
+Diseño preventivo
+Paciente equivocado
+Header persistente, confirmación contextual, fotos/identificadores cuando corresponda, anti-duplicate.
+Pick-list error
+Búsqueda tolerante, desambiguación visible, favoritos gobernados, no defaults peligrosos.
+Alert fatigue
+Jerarquía, deduplicación, suppressions, expiración y métricas de utilidad.
+Copy-forward error
+Diferenciar dato heredado, reconciliado y nuevo; nunca copiar sin provenance.
+Premature closure
+Differential workspace y missing evidence, sin obligar a listas exhaustivas.
+Hidden abnormal result
+Result Inbox, acknowledgement y escalación.
+Documentation burden
+Reuso de datos, dictado/ambient, templates inteligentes, no duplicación.
+
+PROD-010 | ACTIVE | 10. Patient Identity & Universal Search
+[PROD-010-R001] Crear una identidad longitudinal robusta que permita encontrar al paciente rápidamente sin sacrificar privacidad ni aumentar duplicados.
+Debe incluir
+[PROD-010-R002] • Human-readable folio además de ID interno no predecible.
+[PROD-010-R003] • Nombre, fecha de nacimiento, sexo/contextos requeridos, contactos, identificadores, related persons, preferencias de comunicación.
+[PROD-010-R004] • Búsqueda por nombre, teléfono, email, folio y otros identificadores autorizados.
+[PROD-010-R005] • Duplicate detection, merge controlado y unmerge/recovery cuando sea viable.
+[PROD-010-R006] • Alias/previous names y múltiples contactos.
+Comportamiento esperado
+[PROD-010-R007] • Command palette universal.
+[PROD-010-R008] • Resultados muestran suficiente contexto para desambiguar sin exponer más PHI de la necesaria.
+[PROD-010-R009] • Crear paciente debe pedir mínimo seguro, no un expediente completo.
+[PROD-010-R010] • Merge requiere preview de conflictos y trazabilidad.
+Seguridad y límites
+[PROD-010-R011] • No enumeración pública de pacientes.
+[PROD-010-R012] • No IDs secuenciales como control de acceso.
+[PROD-010-R013] • Accesos a pacientes sensibles pueden tener políticas adicionales.
+Criterios de aceptación V2
+[PROD-010-R014] • Encontrar paciente habitual en segundos.
+[PROD-010-R015] • Búsqueda maneja typos y nombres compuestos.
+[PROD-010-R016] • No se crea duplicado silencioso si existe match de alta probabilidad.
+PROD-011 | ACTIVE | 11. Patient Workspace
+[PROD-011-R001] Convertir el expediente en un espacio de estado clínico longitudinal, no en una lista cronológica de notas.
+Debe incluir
+[PROD-011-R002] • Patient Header persistente.
+[PROD-011-R003] • Resumen de estado clínico.
+[PROD-011-R004] • Timeline unificada.
+[PROD-011-R005] • Problemas, medicamentos, alergias, estudios, imagen, notas, documentos, preventivo.
+[PROD-011-R006] • Context Rail con cambios, riesgos, pendientes y care gaps.
+[PROD-011-R007] • Acciones rápidas: nueva consulta, orden, receta, documento, comunicación.
+Comportamiento esperado
+[PROD-011-R008] • Apertura responde en <10 s a problemas activos, alergias, meds, cambios, últimos resultados y pendientes.
+[PROD-011-R009] • Detalle se abre sin perder contexto actual.
+[PROD-011-R010] • Timeline filtra por problem/medication/result/document/encounter.
+[PROD-011-R011] • Información actual y histórica se distinguen claramente.
+Seguridad y límites
+[PROD-011-R012] • No cargar todo el expediente de forma que degrade rendimiento o exponga datos no necesarios.
+[PROD-011-R013] • Alertas críticas siempre visibles en contexto, no escondidas en tabs.
+Criterios de aceptación V2
+[PROD-011-R014] • Un médico puede comprender estado actual sin abrir múltiples notas.
+[PROD-011-R015] • Paciente con 10 años de datos sigue siendo navegable.
+[PROD-011-R016] • Timeline y state summary nunca contradicen la fuente firmada sin mostrar reconciliación.
+PROD-012 | ACTIVE | 12. Clinical Patient State
+[PROD-012-R001] Clinical Patient State es una representación derivada del expediente. No reemplaza los datos fuente. Debe poder reconstruirse para un punto temporal y explicar qué objetos lo sustentan.
+Dimensión
+Contenido
+Active health state
+Problemas, síntomas persistentes, riesgos, functional status.
+Therapy state
+Meds, dispositivos, tratamientos, adherencia, cambios.
+Diagnostic state
+Resultados relevantes, hallazgos, pending diagnostics.
+Trajectory
+Qué mejoró, empeoró o cambió vs baseline individual.
+Care gaps
+Prevención/monitoring no cumplido.
+Obligations
+Acciones futuras abiertas.
+Uncertainty
+Hipótesis, discrepancias y datos no reconciliados.
+Patient goals
+Objetivos y preferencias cuando se documenten.
+
+PROD-013 | ACTIVE | 13. Collections clínicas: nunca campos únicos
+Colección
+Campos conceptuales mínimos
+Allergy/Intolerance
+Sustancia, tipo, reacción, severidad/criticality, verification, estado, fecha, fuente.
+Problems
+Concepto, status, certeza, onset, severity, evidence, owner, plan, trajectory.
+Medications
+Concepto/presentación, dosis, vía, frecuencia, indication, prescriber, lifecycle, monitoring.
+Procedures
+Tipo, fecha, indication, outcome, complications, source.
+Family history
+Relación, condition, edad/onset, status.
+Social history
+Tabaco, alcohol, sustancias, ocupación/exposiciones, contexto social relevante.
+Vaccines
+Producto/código, dosis, fecha, lot/source cuando aplique.
+
+PROD-014 | ACTIVE | 14. Encounter OS
+[PROD-014-R001] Convertir la consulta en una experiencia continua que acompaña el pensamiento clínico sin obligar al médico a navegar módulos inconexos.
+Debe incluir
+[PROD-014-R002] • Pre-visit brief.
+[PROD-014-R003] • Datos/antecedentes contextualizados.
+[PROD-014-R004] • Signos vitales.
+[PROD-014-R005] • Motivo y HPI adaptativo.
+[PROD-014-R006] • Estudios disponibles.
+[PROD-014-R007] • Exploración física.
+[PROD-014-R008] • Assessment/differential.
+[PROD-014-R009] • Plan, órdenes, procedimientos, educación, follow-up.
+[PROD-014-R010] • Receta cerca del final.
+[PROD-014-R011] • Review, firma y cierre.
+Comportamiento esperado
+[PROD-014-R012] • Orden base: datos personales/antecedentes → vitales → HPI → estudios → exploración → assessment → plan → receta → cierre.
+[PROD-014-R013] • Especialidades pueden extender/reordenar sólo mediante pack gobernado.
+[PROD-014-R014] • El médico puede saltar entre pasos sin perder estado.
+[PROD-014-R015] • Autosave silencioso pero visible.
+[PROD-014-R016] • Pre-visit context no invade la conversación.
+Seguridad y límites
+[PROD-014-R017] • Critical safety blockers pueden impedir firma sólo cuando la regla está definida como blocking.
+[PROD-014-R018] • No auto-sign, no auto-order, no auto-prescribe.
+[PROD-014-R019] • Información sugerida por IA permanece como draft hasta aceptación.
+Criterios de aceptación V2
+[PROD-014-R020] • Consulta habitual puede completarse sin abandonar Encounter Workspace.
+[PROD-014-R021] • No duplicación de datos entre nota, receta y orden.
+[PROD-014-R022] • Firma produce snapshot reproducible y cualquier corrección posterior es addendum/amendment.
+PROD-015 | ACTIVE | 15. Pre-Visit Intelligence
+[PROD-015-R001] • Resumen clínico de una pantalla: motivo programado, last encounter, active problems, meds/allergies, recent results, open obligations.
+[PROD-015-R002] • Cambios desde la última consulta: peso, BP, labs, meds, new diagnoses, hospitalizations.
+[PROD-015-R003] • Preparación contextual: studies pending, monitoring due, care opportunities.
+[PROD-015-R004] • No generar diagnósticos anticipados a partir de agenda o motivo insuficiente.
+[PROD-015-R005] • Permitir “focus mode” para que el médico oculte paneles no necesarios.
+PROD-016 | ACTIVE | 16. Adaptive Clinical History Engine
+[PROD-016-R001] La historia clínica es un grafo de preguntas y conceptos, no una plantilla estática. Debe distinguir información conocida de información no preguntada y decidir cuándo vale la pena reconfirmar.
+Capacidad
+Comportamiento
+Applicability
+Edad, sexo/contexto, embarazo, complaint, problems y specialty determinan qué aparece.
+Dependency
+Una respuesta abre/cierra ramas.
+Repeat policy
+Once / confirm each encounter / time window / on change.
+State semantics
+positive, negative, unknown, not asked, not applicable, historical.
+Reconciliation
+Dato previo se muestra para confirmar/actualizar, no se pregunta desde cero.
+Narrative
+Renderer produce texto legible desde datos discretos + free text.
+
+PROD-017 | ACTIVE | 17. Clinical Coverage Map
+[PROD-017-R001] Coverage Map hace visible qué dominios de información potencialmente relevantes se han cubierto. No da una “calificación al médico” ni exige completar todo.
+[PROD-017-R002] • Mostrar covered / missing / unknown / not-applicable.
+[PROD-017-R003] • Priorizar dominios que podrían cambiar safety, differential, testing, treatment o follow-up.
+[PROD-017-R004] • Permitir justificar por qué no se exploró algo.
+[PROD-017-R005] • No convertir ausencia de campo en ausencia de enfermedad.
+[PROD-017-R006] • Coverage Score puede existir para análisis interno, pero UI prioriza significado, no porcentaje.
+PROD-018 | ACTIVE | 18. Signos vitales y mediciones
+Medición base
+Requisitos
+PA
+Valor(es), brazo/posición/contexto cuando sea relevante, repeat, device/source.
+FC
+Valor, ritmo/contexto cuando aplique.
+FR
+Valor y source/manual/monitor si se conoce.
+SpO2
+Valor, oxígeno suplementario/contexto cuando aplique.
+Temperatura
+Valor, sitio/método cuando aplique.
+Peso/talla/IMC
+Fecha, fuente, trend; pediatría con curvas apropiadas.
+Glucosa capilar
+Opcional/contextual, fasting/postprandial cuando documentado.
+Otros
+Dolor, cintura, GCS, peak flow, specialty-specific.
+
+[PROD-018-R001] • Mostrar actual + trend + baseline individual.
+[PROD-018-R002] • Rangos y warnings dependen de edad/contexto, no un único “normal”.
+[PROD-018-R003] • Valores extremos requieren confirmación/repeat logic según pack, no diagnosis automática.
+PROD-019 | ACTIVE | 19. Physical Examination OS
+[PROD-019-R001] Exploración física combina estructura, narrativa y sugerencias contextuales. Debe permitir documentar rápido sin obligar a marcar “normal” en docenas de sistemas.
+[PROD-019-R002] • General exam + focused exam por complaint.
+[PROD-019-R003] • Findings positivos y negativos significativos.
+[PROD-019-R004] • Anatomical diagrams/drawing cuando agreguen valor.
+[PROD-019-R005] • Template specialty-specific con free-text escape hatch.
+[PROD-019-R006] • No autocompletar normalidad no examinada.
+[PROD-019-R007] • Comparar findings previos sólo cuando clínicamente comparable.
+PROD-020 | ACTIVE | 20. Assessment & Differential Workspace
+Objeto
+Función
+Problem
+Estado clínico longitudinal.
+Hypothesis
+Posibilidad de trabajo temporal.
+Evidence for
+Datos que apoyan.
+Evidence against
+Datos que reducen plausibilidad.
+Missing evidence
+Información que podría cambiar la hipótesis.
+Confidence/uncertainty
+Explícita, no falsa precisión.
+Decision
+Observe, test, treat, refer, rule out, defer.
+
+LÍMITE Medical OS puede ayudar a organizar diferenciales y evidencia, pero no debe convertir una hipótesis sugerida por IA en diagnosis confirmada sin acción del médico.
+
+PROD-021 | ACTIVE | 21. Clinical Decision Checkpoint
+[PROD-021-R001] Antes de cerrar, el sistema hace una revisión breve y contextual, no un formulario adicional.
+[PROD-021-R002] • ¿Existe un red flag crítico sin resolver/documentar?
+[PROD-021-R003] • ¿Hay una orden/resultado crítico sin plan?
+[PROD-021-R004] • ¿Receta tiene bloqueadores de seguridad?
+[PROD-021-R005] • ¿Follow-up que el plan menciona fue convertido en obligación?
+[PROD-021-R006] • ¿Datos clave están todavía como “unknown/not asked” y cambiarían seguridad?
+[PROD-021-R007] • ¿Existen contradicciones importantes entre assessment, plan y datos?
+PROD-022 | ACTIVE | 22. Notes OS
+[PROD-022-R001] Producir documentación clínico-legal útil sin convertir la nota en la única representación del paciente.
+Debe incluir
+[PROD-022-R002] • Historia clínica inicial.
+[PROD-022-R003] • Evolución.
+[PROD-022-R004] • Seguimiento.
+[PROD-022-R005] • Procedimiento.
+[PROD-022-R006] • Interconsulta.
+[PROD-022-R007] • Referencia/contrarreferencia.
+[PROD-022-R008] • Urgencias cuando aplique.
+[PROD-022-R009] • Preoperatoria/posoperatoria.
+[PROD-022-R010] • Alta.
+[PROD-022-R011] • Addendum/amendment.
+Comportamiento esperado
+[PROD-022-R012] • Nota se genera de datos estructurados + narrativa + contenido médico aceptado.
+[PROD-022-R013] • Médico puede editar narrativa antes de firmar.
+[PROD-022-R014] • Firma congela snapshot y provenance.
+[PROD-022-R015] • Correcciones posteriores se agregan, no sobrescriben.
+Seguridad y límites
+[PROD-022-R016] • AI-generated text debe identificarse internamente como asistencia y quedar sujeto a revisión.
+[PROD-022-R017] • No backdating silencioso.
+[PROD-022-R018] • No eliminar historial de firma/amendments.
+Criterios de aceptación V2
+[PROD-022-R019] • Una nota firmada puede reconstruirse exactamente.
+[PROD-022-R020] • Structured data y note snapshot no se contradicen sin una reconciliación explícita.
+PROD-023 | ACTIVE | 23. Medication OS
+[PROD-023-R001] Gestionar medicamentos como terapias longitudinales vinculadas a indicación, respuesta y monitorización, no como líneas de receta aisladas.
+Debe incluir
+[PROD-023-R002] • Medication list reconciliada.
+[PROD-023-R003] • Medication request/prescription.
+[PROD-023-R004] • Indicación vinculada a problem.
+[PROD-023-R005] • Presentación, dosis, vía, frecuencia, duración, quantity, instructions.
+[PROD-023-R006] • Start/stop/change lifecycle.
+[PROD-023-R007] • Adherence/response/adverse effects.
+[PROD-023-R008] • Monitoring obligations.
+[PROD-023-R009] • Refill/renewal workflow.
+Comportamiento esperado
+[PROD-023-R010] • Cada cambio conserva reason y prescriber.
+[PROD-023-R011] • Medication reconciliation ocurre en transiciones relevantes.
+[PROD-023-R012] • Dosis calculada y prescrita se muestran separadas.
+[PROD-023-R013] • Refill puede pedir review si existe monitoring vencido.
+Seguridad y límites
+[PROD-023-R014] • Allergy/duplicate/interaction/dose/renal/hepatic/pregnancy hooks sólo con contenido gobernado.
+[PROD-023-R015] • Overrides importantes requieren razón.
+[PROD-023-R016] • No sugerir dosis sólo por texto generativo.
+Criterios de aceptación V2
+[PROD-023-R017] • El médico puede responder para qué toma cada medicamento y qué vigilancia requiere.
+[PROD-023-R018] • Receta, med list y problem list permanecen coherentes.
+PROD-024 | ACTIVE | 24. Prescripción pediátrica y cálculos
+[PROD-024-R001] • Peso siempre acompañado de fecha/hora/contexto.
+[PROD-024-R002] • Fórmula, rango, maximum dose y output visibles antes de firmar.
+[PROD-024-R003] • La dosis calculada no se convierte automáticamente en dosis prescrita.
+[PROD-024-R004] • Unidad/presentación se valida explícitamente para evitar mg↔mL.
+[PROD-024-R005] • Cálculos versionados y cubiertos por clinical regression.
+[PROD-024-R006] • Si faltan datos esenciales, el sistema se abstiene y explica qué falta.
+PROD-025 | ACTIVE | 25. Prescription Studio
+[PROD-025-R001] La receta final combina seguridad clínica con personalización visual tipo canvas restringido. El médico puede diseñar marca/layout, pero los elementos obligatorios del Country Pack no pueden eliminarse.
+Panel
+Contenido
+Biblioteca
+Logo, institución, médico, licencia/cédula, paciente, fecha, meds, indicaciones, firma, QR, folio, contacto, legal.
+Canvas
+A4/carta/custom, safe areas, preview print/PDF.
+Propiedades
+Fuente, tamaño, spacing, alignment, visibility permitida, position.
+Governance
+Template version, locked legal nodes, render reproducibility.
+
+PROD-026 | ACTIVE | 26. Orders & Diagnostics OS
+[PROD-026-R001] Cerrar el ciclo diagnóstico desde la intención hasta la acción clínica.
+Debe incluir
+[PROD-026-R002] • Lab, imaging, pathology, procedures, referrals y other service requests.
+[PROD-026-R003] • Reason/indication.
+[PROD-026-R004] • Priority.
+[PROD-026-R005] • Status lifecycle.
+[PROD-026-R006] • Result association.
+[PROD-026-R007] • Review/acknowledgement.
+[PROD-026-R008] • Action/follow-up.
+Comportamiento esperado
+[PROD-026-R009] • Order muestra por qué se pide y a qué problema/encounter se relaciona.
+[PROD-026-R010] • Duplicate/recent study context se muestra antes de ordenar cuando sea confiable.
+[PROD-026-R011] • Resultado recibido no equivale a resultado revisado.
+Seguridad y límites
+[PROD-026-R012] • No cancelar/ocultar orden sin razón.
+[PROD-026-R013] • Critical results siguen flujo especial.
+[PROD-026-R014] • External integration failure no borra el state local.
+Criterios de aceptación V2
+[PROD-026-R015] • Ninguna orden desaparece sin estado final explícito.
+[PROD-026-R016] • Cada resultado puede trazarse a orden, fuente y revisión.
+PROD-027 | ACTIVE | 27. Document Intelligence Pipeline — comportamiento de producto
+Upload
+  -> quarantine / validation
+  -> immutable original
+  -> classify
+  -> extract candidate data
+  -> show source anchors + confidence
+  -> human validation
+  -> publish structured clinical data
+  -> longitudinal linking
+  -> intelligence / follow-up if applicable
+
+[PROD-027-R001] • El PDF original nunca se sustituye por la extracción.
+[PROD-027-R002] • Cada valor extraído conserva ancla a fuente.
+[PROD-027-R003] • Low-confidence extraction no se presenta como hecho confirmado.
+[PROD-027-R004] • El médico puede corregir y esa corrección queda provenance-linked.
+PROD-028 | ACTIVE | 28. Laboratory OS
+Dominio
+Comportamiento
+Química clínica
+Valores, units, lab reference range, method/context when present, deltas/trends.
+Hematología
+CBC/differential, serial comparison, flags sin inventar morphology.
+Microbiología/bacteriología
+Specimen, organism, preliminary/final, susceptibility y method.
+Parasitología
+Specimen, technique, organism/stage, quantity when provided.
+Endocrino/inmunología
+Assay context, units, reference/method when clinically important.
+Urinalysis
+Structured fields + microscopy where available.
+
+28.1 Laboratory Intelligence
+[PROD-028-R001] • Anormalidades directas.
+[PROD-028-R002] • Delta changes vs prior.
+[PROD-028-R003] • Trend/trajectory.
+[PROD-028-R004] • Correlaciones entre analitos y problemas conocidos.
+[PROD-028-R005] • Possible patterns claramente etiquetados como consideraciones.
+[PROD-028-R006] • Medication context.
+[PROD-028-R007] • Critical values por deterministic rules/local lab policy.
+[PROD-028-R008] • Missing/contextual data que limita interpretación.
+[PROD-028-R009] • No declarar diagnosis sólo a partir de patrones de laboratorio.
+PROD-029 | ACTIVE | 29. Imaging OS
+[PROD-029-R001] • DICOM/DICOMweb/PACS-ready conceptual model.
+[PROD-029-R002] • Report original + structured findings + impression.
+[PROD-029-R003] • Measurements con unidad y anatomy.
+[PROD-029-R004] • Comparison con estudio previo cuando es realmente comparable.
+[PROD-029-R005] • Actionable findings pueden crear obligation tras validación.
+[PROD-029-R006] • Tracking para nódulos/lesiones/hallazgos que requieren control.
+[PROD-029-R007] • Viewer/integration no debe bloquear acceso al report textual.
+[PROD-029-R008] • AI imaging con intended use médico requiere regulatory track independiente.
+PROD-030 | ACTIVE | 30. Pathology OS
+[PROD-030-R001] • Specimen, procedure, site, collection date, report status.
+[PROD-030-R002] • Diagnosis/findings, margins/biomarkers cuando la fuente lo provee.
+[PROD-030-R003] • Preliminary/final/amended status claramente visibles.
+[PROD-030-R004] • Resultado accionable genera closed-loop workflow.
+[PROD-030-R005] • No condensar un informe complejo a un resumen sin acceso inmediato al original.
+PROD-031 | ACTIVE | 31. Result Inbox
+[PROD-031-R001] Crear una cola clínica confiable donde revisar resultados sea un proceso verificable y priorizado.
+Debe incluir
+[PROD-031-R002] • Received time, source, patient, ordering clinician/team.
+[PROD-031-R003] • Priority/criticality.
+[PROD-031-R004] • Acknowledgement.
+[PROD-031-R005] • Interpretation.
+[PROD-031-R006] • Action.
+[PROD-031-R007] • Patient communication when applicable.
+[PROD-031-R008] • Closure.
+Comportamiento esperado
+[PROD-031-R009] • Ordenar por urgencia y aging, no sólo fecha.
+[PROD-031-R010] • Permitir delegación con owner visible.
+[PROD-031-R011] • Resultado crítico escala si no es reconocido dentro de policy.
+[PROD-031-R012] • Batch actions sólo para casos seguros.
+Seguridad y límites
+[PROD-031-R013] • No marcar “reviewed” por abrir accidentalmente.
+[PROD-031-R014] • Critical results no dependen de push/email únicamente.
+Criterios de aceptación V2
+[PROD-031-R015] • Zero unowned results.
+[PROD-031-R016] • Audit demuestra cuándo llegó, quién lo vio, qué hizo y cuándo cerró.
+PROD-032 | ACTIVE | 32. Clinical Obligation Engine
+[PROD-032-R001] Clinical Obligation es una entidad de primer nivel: algo clínicamente importante que debe suceder después.
+Campo conceptual
+Ejemplos
+Reason
+Repetir HbA1c, revisar biopsia, CT follow-up, monitor K.
+Source
+Encounter, result, medication, guideline, referral, manual.
+Owner
+Médico, equipo, patient task cuando corresponda.
+Due window
+Fecha exacta o ventana.
+Priority
+Routine / important / critical.
+State
+Open / in progress / blocked / closed / cancelled.
+Closure criteria
+Resultado revisado, cita completada, test realizado, decisión documentada.
+Escalation
+Qué pasa si vence.
+
+PROD-033 | ACTIVE | 33. Care Gap & Preventive Engine
+[PROD-033-R001] • Detección por edad, sexo/contexto, riesgo, conditions y country pack.
+[PROD-033-R002] • Preventive opportunities no secuestran el motivo de consulta.
+[PROD-033-R003] • Distinguir overdue, due soon, not indicated, declined, done elsewhere, unknown.
+[PROD-033-R004] • Permitir registrar patient preference/refusal.
+[PROD-033-R005] • No usar recomendaciones sin fuente/versión/aplicabilidad.
+PROD-034 | ACTIVE | 34. Chronic Disease Spaces
+[PROD-034-R001] Cada enfermedad crónica importante se puede abrir como un espacio longitudinal: status, objetivos, meds, trends, monitoring, complications, education y obligations.
+Ejemplo DM2
+Contenido
+Status
+HbA1c/SMBG/CGM según disponibilidad, symptoms, goals.
+Therapy
+Meds y cambios.
+Monitoring
+Renal, lipids, eye, foot, etc. según pack.
+Trajectory
+A1c, weight, BP, renal trends.
+Care gaps
+Due/overdue.
+Plan
+Current plan + next review.
+
+PROD-035 | ACTIVE | 35. Referral & Consultation Loop
+[PROD-035-R001] • Referral incluye reason, question to consultant, urgency, records shared.
+[PROD-035-R002] • Status: created/sent/scheduled/completed/report received/reviewed/closed.
+[PROD-035-R003] • Consultant report se vincula a original problem y encounter.
+[PROD-035-R004] • No asumir referral completa sólo porque se envió.
+[PROD-035-R005] • Counter-referral/return plan visible.
+PROD-036 | ACTIVE | 36. Clinical Intelligence — arquitectura funcional
+Motor
+Qué hace
+Qué no hace
+Patient State
+Construye representación longitudinal.
+Inventar hechos.
+Reasoning
+Organiza hipótesis/evidence/uncertainty.
+Diagnosticar autónomamente.
+Omission
+Detecta potenciales datos/pasos omitidos.
+Imponer checklists interminables.
+Safety
+Riesgos determinísticos y contradicciones críticas.
+Depender de LLM para bloqueos críticos.
+Trajectory
+Deltas y baseline individual.
+Afirmar causalidad por correlación.
+Care Gap
+Prevención y monitoring.
+Interrumpir por gaps de baja prioridad.
+Obligation
+Continuidad y closure.
+Crear tareas sin owner.
+Knowledge
+Aplicabilidad/versiones/evidence.
+Ocultar fuente o mezclar niveles de evidencia.
+Concordance
+Contradicciones entre datos.
+Resolver ambigüedad sin revisión.
+
+PROD-037 | ACTIVE | 37. Omission Detection Engine
+[PROD-037-R001] Debe responder “¿qué podría estar faltando que cambie una decisión?” sin juzgar al médico.
+[PROD-037-R002] • Missing high-value history.
+[PROD-037-R003] • Focused exam not documented.
+[PROD-037-R004] • Important safety context absent.
+[PROD-037-R005] • Follow-up mentioned but not operationalized.
+[PROD-037-R006] • Treatment started without expected monitoring.
+[PROD-037-R007] • Actionable finding with no disposition.
+[PROD-037-R008] • Contradiction between note and structured state.
+[PROD-037-R009] • Cada omission tiene rationale, severity y suppression/resolve path.
+PROD-038 | ACTIVE | 38. Concordance Engine
+[PROD-038-R001] • Alergia activa vs medicamento relacionado.
+[PROD-038-R002] • Problem marked resolved but treatment/monitoring active.
+[PROD-038-R003] • Medication present with no visible indication.
+[PROD-038-R004] • Pregnancy/reproductive context vs medication warning when applicable.
+[PROD-038-R005] • Lab/imaging finding suggests follow-up but no obligation.
+[PROD-038-R006] • Note states “no meds” while med reconciliation has active therapy.
+[PROD-038-R007] • No corregir automáticamente: presentar discrepancy y acciones para reconciliar.
+PROD-039 | ACTIVE | 39. Trajectory Engine
+[PROD-039-R001] • Compare patient to own baseline before population range.
+[PROD-039-R002] • Distinguir trend real de ruido/insufficient points.
+[PROD-039-R003] • Detectar persistent elevation, rapid deterioration, improvement, oscillation.
+[PROD-039-R004] • Relacionar timepoints con medication/procedure/illness changes sin afirmar causalidad.
+[PROD-039-R005] • Mostrar data quality and comparability limitations.
+PROD-040 | ACTIVE | 40. Knowledge & Evidence Engine
+[PROD-040-R001] El conocimiento clínico es contenido gobernado, versionado y revisado por especialistas. No vive escondido en prompts o JSX.
+Elemento
+Requisito
+Clinical Pack
+Specialty/complaint/disease scope, reviewers, source version, effective date.
+Applicability
+Quién/cuándo aplica.
+Questions
+Qué información puede cambiar decisiones.
+Red flags
+Safety-critical rules.
+Focused exam
+Exploración contextual.
+Order considerations
+Pruebas a considerar, no “ordenes automáticas”.
+Medication considerations
+Safety/monitoring rules.
+Follow-up rules
+Expected future actions.
+Regression cases
+Casos que deben seguir funcionando tras cada cambio.
+
+PROD-041 | ACTIVE | 41. AI Clinical Copilot
+[PROD-041-R001] Integrar IA en tareas donde reduzca carga o ayude a sintetizar información, sin convertir el modelo en fuente de verdad clínica.
+Debe incluir
+[PROD-041-R002] • Ambient/dictation → draft structured HPI/note.
+[PROD-041-R003] • Document extraction.
+[PROD-041-R004] • Pre-visit summary.
+[PROD-041-R005] • Longitudinal comparison.
+[PROD-041-R006] • Lab/result summary.
+[PROD-041-R007] • Chart retrieval/Q&A grounded.
+[PROD-041-R008] • Patient education draft.
+[PROD-041-R009] • Reasoning considerations en niveles aprobados.
+Comportamiento esperado
+[PROD-041-R010] • IA aparece en el workflow donde se necesita, no como tab aislada.
+[PROD-041-R011] • Outputs con citations/provenance al expediente cuando se apoyan en patient data.
+[PROD-041-R012] • El médico puede accept/edit/reject.
+[PROD-041-R013] • El sistema puede abstenerse.
+Seguridad y límites
+[PROD-041-R014] • Minimum necessary context.
+[PROD-041-R015] • No whole-chart dump por comodidad.
+[PROD-041-R016] • No write irreversible sin aprobación.
+[PROD-041-R017] • No almacenar chain-of-thought.
+[PROD-041-R018] • Model/provider/policy version auditable.
+[PROD-041-R019] • Critical deterministic safety path independiente.
+Criterios de aceptación V2
+[PROD-041-R020] • Factuality y unsupported claim rate bajo umbrales definidos por task.
+[PROD-041-R021] • Aceptación/rechazo medidos.
+[PROD-041-R022] • Cambio de modelo exige eval antes de release.
+PROD-042 | ACTIVE | 42. Model Gateway y estrategia multi-modelo
+[PROD-042-R001] V2 no elige un modelo universal. Define categorías de tareas: speech, OCR/document, extraction, summarization, terminology, reasoning assistance, patient communication. Cloud y open-weight/self-hosted compiten por task.
+[PROD-042-R002] • Routing por tarea/idioma/specialty/privacy/latency/cost.
+[PROD-042-R003] • Provider abstraction.
+[PROD-042-R004] • Structured output validation.
+[PROD-042-R005] • Self-hosting option para tasks/tenants que lo justifiquen.
+[PROD-042-R006] • No llamar “modelo médico” equivalente a validado clínicamente.
+[PROD-042-R007] • Evals específicos por español mexicano y otros locales.
+PROD-043 | ACTIVE | 43. AI Evaluation & Governance
+Dimensión
+Métrica/criterio
+Factuality
+Claims supported by patient/source.
+Omission
+Critical facts missing from summary.
+Negation/temporality
+No invertir “no tiene” / histórico / actual.
+Calibration/abstention
+Saber no responder cuando falta contexto.
+Safety
+Harmful or overconfident recommendations.
+Bias/equity
+Performance across demographic/clinical groups.
+Usability
+Acceptance/edit distance/time saved.
+Privacy
+Context minimization and leakage tests.
+
+PROD-044 | ACTIVE | 44. Patient Link & Patient Portal
+[PROD-044-R001] Dar al paciente acceso útil y seguro a lo que necesita sin abrir el expediente completo por enlaces permanentes.
+Debe incluir
+[PROD-044-R002] • Secure temporary links para receta, instrucciones, órdenes, selected results, appointment.
+[PROD-044-R003] • Portal persistente para pacientes frecuentes.
+[PROD-044-R004] • Appointments, documents, prescriptions, released results, education, messaging.
+[PROD-044-R005] • Consent/preferences.
+Comportamiento esperado
+[PROD-044-R006] • Link enviado por email/WhatsApp/SMS según consentimiento.
+[PROD-044-R007] • Step-up/OTP según sensibilidad.
+[PROD-044-R008] • Expiration/revocation.
+[PROD-044-R009] • Plain-language explanations sin alterar contenido clínico.
+Seguridad y límites
+[PROD-044-R010] • No PHI extensa en SMS/push.
+[PROD-044-R011] • No permanent anonymous chart link.
+[PROD-044-R012] • Patient-generated messages/data se distinguen de clinician-verified data.
+Criterios de aceptación V2
+[PROD-044-R013] • Paciente accede sin fricción excesiva pero con controles proporcionales.
+[PROD-044-R014] • Revocation inmediata.
+[PROD-044-R015] • Todo acceso sensible es auditable.
+PROD-045 | ACTIVE | 45. Communication OS
+[PROD-045-R001] • Unified thread por patient/context sin mezclar canales de forma confusa.
+[PROD-045-R002] • Templates versionadas para reminders/instructions.
+[PROD-045-R003] • Consent/opt-out por canal.
+[PROD-045-R004] • Mensajes clínicos que requieren acción pueden crear task/obligation.
+[PROD-045-R005] • WhatsApp/email/SMS son adapters; el dominio no depende de un proveedor.
+[PROD-045-R006] • No convertir mensajería casual en parte firmada del expediente sin decisión explícita.
+PROD-046 | ACTIVE | 46. Scheduling & Rooming
+[PROD-046-R001] • Multi-provider/facility schedules.
+[PROD-046-R002] • Appointment type/duration/resources.
+[PROD-046-R003] • Online booking rules.
+[PROD-046-R004] • Waitlist, reschedule, no-show.
+[PROD-046-R005] • Check-in/rooming status.
+[PROD-046-R006] • Pre-visit forms/consent.
+[PROD-046-R007] • Telehealth support as encounter modality.
+[PROD-046-R008] • Appointment→encounter sin duplicación de patient/context.
+PROD-047 | ACTIVE | 47. Practice Operations
+Dominio
+Capacidades
+Billing
+Services, charges, invoices, payments, refunds, balance.
+Inventory
+Stock ledger, lot/expiry where relevant, procedure consumption.
+Team
+Staff, roles, schedules, workload.
+Reporting
+Clinical, operational, financial KPIs with permission boundaries.
+Multi-site
+Facilities, resources, schedules, local configuration.
+
+BOUNDARY Financial/operational data puede referenciar encounter/procedure, pero nunca reescribe la verdad clínica.
+
+PROD-048 | ACTIVE | 48. Configuración — un producto dentro del producto
+Área
+Submódulos
+Mi cuenta
+Perfil, firma, seguridad, preferencias, sessions/devices.
+Consultorio
+Institución, sedes, médicos, staff, horarios, branding.
+Expediente
+Campos, history policies, vitals, templates, notes.
+Recetas
+Designer, templates, firma/cédula/licencia, folios, QR, impresión.
+Estudios
+Tipos, providers, ingestion, result policies.
+Clinical Content
+Packs habilitados, specialty overrides, versions.
+IA Clínica
+Tasks, assistance levels, provider/model policy, privacy, audit.
+Comunicación
+Channels, templates, consent, reminder rules.
+Seguridad
+Roles, permissions, MFA, break-glass, audit review.
+Organización
+Plan, billing SaaS, integrations, API/export, country pack.
+
+PROD-049 | ACTIVE | 49. Life-stage architecture
+Stage
+Specific capabilities
+Neonatal
+Perinatal history, gestational age, feeding, growth, newborn screening hooks.
+Pediatric
+Growth/development, immunization, weight-based dosing, caregiver/guardian.
+Adolescent
+Confidentiality policies, transition, preventive context.
+Adult
+General ambulatory core + chronic/preventive care.
+Pregnancy/reproductive
+Gestational context, obstetric history, safety contexts.
+Geriatric
+Function, cognition, frailty, falls, polypharmacy, caregiver context.
+
+PROD-050 | ACTIVE | 50. Specialty Packs
+[PROD-050-R001] No crear forks. Un Specialty Pack extiende preguntas, exam, calculators, notes, orders, views y safety rules sobre el mismo core.
+Pack priority candidate
+Key domain
+Medicina general/familiar
+Base multi-morbidity.
+Medicina interna
+Complex chronic disease/polypharmacy.
+Pediatría
+Growth/development/dosing.
+Gineco-obstetricia
+Reproductive/pregnancy.
+Urgencias
+Triage/time-critical/handoff.
+Cardiología
+ECG/imaging/med monitoring.
+Endocrinología
+Longitudinal metabolic/hormonal.
+Dermatología
+Imaging/photo/lesion tracking.
+Psiquiatría
+Scales, safety, medication monitoring.
+Cirugía
+Pre/post-op, procedures, consent.
+
+PROD-051 | ACTIVE | 51. Intern/Resident Learning Layer
+[PROD-051-R001] Medical OS no debe ser un tutor obligatorio, pero puede ofrecer un nivel de soporte contextual para usuarios en formación sin degradar la experiencia de expertos.
+[PROD-051-R002] • Explain-why mode opcional.
+[PROD-051-R003] • Focused prompts con fuente.
+[PROD-051-R004] • Checklist visible sólo en training mode.
+[PROD-051-R005] • Supervisor review workflows.
+[PROD-051-R006] • No permitir que junior mode cambie scope de permisos.
+[PROD-051-R007] • Metrics para detectar puntos donde novice users fallan y mejorar UX.
+PROD-052 | ACTIVE | 52. Interoperability Strategy
+[PROD-052-R001] • FHIR gateway/facade desacoplado del dominio interno.
+[PROD-052-R002] • SMART App Launch cuando se integren apps compatibles.
+[PROD-052-R003] • HL7 v2 adapters para legacy.
+[PROD-052-R004] • DICOM/DICOMweb para imagen.
+[PROD-052-R005] • Terminology service con canonical + original codes.
+[PROD-052-R006] • Import/export consent-aware.
+[PROD-052-R007] • Every integration is auditable and retryable.
+[PROD-052-R008] • No depender de disponibilidad externa para consistencia de patient core.
+PROD-053 | ACTIVE | 53. Terminology Architecture — producto
+Terminología
+Uso conceptual
+SNOMED CT
+Clinical concepts where licensed/appropriate.
+ICD
+Classification/reporting/billing mappings depending jurisdiction.
+LOINC
+Laboratory/observations mapping.
+UCUM
+Units.
+Local catalogs
+Mexico/provider-specific codes preserved.
+Medication terminology
+Country/provider drug catalog abstraction.
+
+[PROD-053-R001] V2 requiere conservar siempre el código original recibido y su mapping; nunca “normalizar” destruyendo la fuente.
+PROD-054 | ACTIVE | 54. International SaaS y Country Packs
+[PROD-054-R001] Core clínico global; reglas legales, formatos, identifiers, receta, privacidad, terminología y interoperability profiles por país.
+Country Pack
+Contenido
+Identity
+Identifiers, address, name formats.
+Clinical
+Local coding/catalog policies.
+Prescription
+Required fields, verification, eRx adapters.
+Privacy
+Consent/rights/retention/transfer.
+Documents
+Required notes/fields/signatures.
+Interoperability
+Profiles and endpoints.
+Regulatory
+Feature classification/limitations.
+Locale
+Language, timezone, date, units, currency.
+
+PROD-055 | ACTIVE | 55. Security Product Principles
+[PROD-055-R001] • Zero Trust y deny-by-default.
+[PROD-055-R002] • Least privilege.
+[PROD-055-R003] • MFA/passkeys para roles sensibles.
+[PROD-055-R004] • RBAC + contextual attributes + relationships.
+[PROD-055-R005] • Break-glass excepcional y revisable.
+[PROD-055-R006] • PHI redaction in logs.
+[PROD-055-R007] • Private object storage.
+[PROD-055-R008] • Encryption and key management.
+[PROD-055-R009] • Tenant isolation with defense in depth.
+[PROD-055-R010] • Audit and provenance as first-class product behavior.
+[PROD-055-R011] • Backup/PITR/restore drills before clinical production.
+PROD-056 | ACTIVE | 56. Privacy by Design
+[PROD-056-R001] • Purpose limitation y minimum necessary.
+[PROD-056-R002] • Consent/preferences where required.
+[PROD-056-R003] • Data subject rights workflow.
+[PROD-056-R004] • Export/delete/rectification decisions honor legal retention constraints.
+[PROD-056-R005] • Patient portal scope controlled.
+[PROD-056-R006] • AI context minimization.
+[PROD-056-R007] • No secondary use hidden behind generic consent.
+[PROD-056-R008] • Privacy impact assessment for new high-risk features.
+PROD-057 | ACTIVE | 57. México-first compliance baseline
+[PROD-057-R001] A septiembre de 2026, la especificación toma como baseline regulatorio vigente NOM-004-SSA3-2012 para expediente clínico, NOM-024-SSA3-2012 para sistemas de información de registro electrónico para la salud/intercambio, la LFPDPPP vigente, y evalúa NOM-151-SCFI-2016 y normas de dispositivos médicos cuando sean aplicables al intended use. La aplicabilidad final debe mantenerse como registro vivo y validarse legal/regulatoriamente.
+Marco
+Impacto de producto V2
+NOM-004-SSA3-2012
+Notas, identificación, contenido, expediente, conservación e integridad médico-legal.
+NOM-024-SSA3-2012
+SIRES, intercambio, seguridad, catálogos, documentos electrónicos y evaluación de conformidad.
+LFPDPPP 2025/2025 reform
+Tratamiento de datos personales/sensibles, finalidad, derechos, seguridad y transferencias.
+NOM-151-SCFI-2016
+Conservación de mensajes de datos/digitalización cuando aplique.
+NOM-241-SSA1-2025 / ScDM boundary
+Si una función entra en software como dispositivo médico, cambia el track de calidad/validación/regulación.
+
+NO PROMESA VACÍA Medical OS no declarará “cumple todas las NOM” sin scope, applicability register y evidencia. La meta es demostrar cada requisito aplicable con control y evidencia.
+
+PROD-058 | ACTIVE | 58. Clinical Safety Management
+Hazard
+Control de producto
+Wrong patient
+Persistent identity, context checks, duplicate/merge.
+Unreviewed result
+Result Inbox, owner, acknowledgement, escalation, closure.
+Medication error
+Reconciliation, allergy, dose traceability, override governance.
+Missed follow-up
+Obligation engine.
+Alert fatigue
+Severity, suppressions, utility metrics.
+Incomplete critical context
+Coverage/omission engine.
+AI hallucination
+Grounding, citations, human acceptance, evals, abstention.
+Data corruption
+Versioning, provenance, immutable signed snapshots, recovery.
+
+PROD-059 | ACTIVE | 59. Regulatory Boundary for Clinical Intelligence
+[PROD-059-R001] Cada feature con potencial diagnóstico/terapéutico requiere Intended Use Register por jurisdicción. Se debe poder distinguir documentación/workflow, informational CDS, recommendation CDS y software function potencialmente regulada como dispositivo.
+[PROD-059-R002] • Intended user.
+[PROD-059-R003] • Intended purpose.
+[PROD-059-R004] • Inputs/outputs.
+[PROD-059-R005] • Autonomy.
+[PROD-059-R006] • Time criticality.
+[PROD-059-R007] • Can clinician independently review basis?
+[PROD-059-R008] • Potential harm.
+[PROD-059-R009] • Patient-facing vs professional.
+[PROD-059-R010] • Jurisdiction classification status.
+PROD-060 | ACTIVE | 60. Reliability Experience
+[PROD-060-R001] • Autosave visible y recoverable.
+[PROD-060-R002] • Offline/retry states diseñados, no navegador roto.
+[PROD-060-R003] • Critical workflows no dependen de un request web largo.
+[PROD-060-R004] • User can see when data is stale/pending synchronization.
+[PROD-060-R005] • Graceful degradation: si AI cae, core clinical documentation sigue funcionando.
+[PROD-060-R006] • Si external lab/PACS cae, local state conserva order/workflow.
+PROD-061 | ACTIVE | 61. Performance Experience Budgets
+Acción
+Objetivo de producto
+Universal search
+Feedback perceptible inmediato; resultados útiles subsegundo cuando sea razonable.
+Patient header
+Visible <1 s en carga normal objetivo.
+Clinical summary
+Progressive render; objetivo p95 <2 s para view principal.
+Autosave
+No interrumpe escritura.
+Encounter navigation
+Sensación instantánea.
+Critical alert
+No espera inferencia generativa.
+AI response
+Streaming/progressive; nunca bloquea core workflow.
+
+PROD-062 | ACTIVE | 62. Accessibility & Inclusive Design
+[PROD-062-R001] • WCAG-aligned baseline.
+[PROD-062-R002] • Keyboard/focus complete.
+[PROD-062-R003] • Touch targets adecuados.
+[PROD-062-R004] • No risk-by-color only.
+[PROD-062-R005] • Readable typography/contrast.
+[PROD-062-R006] • Screen reader labels for critical controls.
+[PROD-062-R007] • Localization does not break layout.
+[PROD-062-R008] • Patient-facing content supports plain language and appropriate reading level.
+PROD-063 | ACTIVE | 63. Analytics & Product Telemetry
+Área
+Qué medir
+Clinical cognition
+Time-to-clinical-answer, navigation reversals.
+Continuity
+Closed-loop rate, overdue obligations, unreviewed results.
+Documentation
+Time to sign, after-hours charting, duplicate entry.
+Safety
+Overrides, near misses, critical alert precision.
+AI
+Accept/edit/reject, factuality, time saved, abstention.
+UX
+Clicks, scroll, completion, errors.
+Reliability
+Flow errors, queue lag, recovery.
+Adoption
+Encounter completion, retention, feature abandonment.
+
+[PROD-063-R001] Telemetría no debe convertirse en captura de PHI innecesaria.
+PROD-064 | ACTIVE | 64. Product Roles & Permissions
+Role archetype
+Scope
+Physician
+Clinical read/write/sign within authorized relationships/facilities.
+Nurse/assistant
+Vitals/intake/tasks; bounded clinical actions.
+Reception
+Demographics/appointments; no unnecessary clinical detail.
+Billing
+Charges/financial data; minimum clinical context.
+Practice admin
+Tenant/users/config; clinical access only if separately authorized.
+Auditor/compliance
+Audit/evidence; scoped PHI access.
+Patient
+Own released information and authorized actions.
+Support
+No blanket PHI; controlled, audited support access.
+
+PROD-065 | ACTIVE | 65. Audit & Provenance Experience
+[PROD-065-R001] Audit no es sólo una tabla backend. El producto debe permitir responder qué ocurrió en acciones sensibles sin confundir audit técnico con timeline clínico.
+[PROD-065-R002] • Who, what, when, where/context, action, result.
+[PROD-065-R003] • Provenance for clinical data origin/transformation.
+[PROD-065-R004] • Authorization/break-glass events.
+[PROD-065-R005] • Signed/amended documents.
+[PROD-065-R006] • AI-assisted origin when relevant.
+[PROD-065-R007] • Integration import/export events.
+[PROD-065-R008] • Patient access/share events.
+PROD-066 | ACTIVE | 66. V2 Product Scope Matrix
+Capability
+V2 Product Definition
+Implementation priority
+Identity/tenancy
+Fully specified
+Foundation
+Patient Workspace
+Fully specified
+Critical
+Encounter OS
+Fully specified
+Critical
+Medication/Prescription
+Fully specified
+Critical
+Orders/Results/Obligations
+Fully specified
+Critical
+Documents/Lab
+Fully specified
+High
+Imaging/Pathology
+Specified extensible
+High
+Clinical Intelligence
+Fully defined boundaries
+High after core
+AI Copilot
+Defined by task/gates
+After reliable core
+Patient Portal
+Defined
+High
+Agenda/Operations
+Defined
+High
+Billing/Inventory
+Defined boundary
+Medium
+International packs
+Architecture defined
+After MX baseline
+Specialty packs
+Framework + priorities
+Progressive
+
+PROD-067 | ACTIVE | 67. Product Freeze criteria
+[PROD-067-R001] V2 puede declararse baseline sólo si las preguntas siguientes tienen respuesta aprobada:
+[PROD-067-R002] • ¿Qué constituye el estado clínico del paciente?
+[PROD-067-R003] • ¿Cuál es el encounter flow base y cómo se extiende?
+[PROD-067-R004] • ¿Cómo se representan problemas, alergias, meds, results y obligations?
+[PROD-067-R005] • ¿Qué significa firmar, corregir y cerrar?
+[PROD-067-R006] • ¿Cómo se evita perder resultados/follow-up?
+[PROD-067-R007] • ¿Qué puede y no puede hacer IA?
+[PROD-067-R008] • ¿Cómo se distingue suggestion vs clinical fact?
+[PROD-067-R009] • ¿Cómo se gobierna clinical content?
+[PROD-067-R010] • ¿Cómo se adapta por país/especialidad/edad?
+[PROD-067-R011] • ¿Cuáles son las boundaries de seguridad, privacidad y regulación?
+[PROD-067-R012] • ¿Qué experiencia debe lograr desktop/iPad/mobile?
+[PROD-067-R013] • ¿Qué métricas demostrarán que el producto realmente mejora trabajo clínico?
+PROD-068 | ACTIVE | 68. De V2 a V2.1
+V2 FINAL — Product + Clinical Specification
+          |
+          v
+V2.1 — Engineering & Implementation Specification
+  entities / state machines / APIs / events / SQL / TS
+  security policies / CI-CD / tests / infrastructure
+          |
+          v
+2.0.0-alpha -> controlled clinical validation -> beta -> production
+
+[PROD-068-R001] La regla de transición es simple: V2.1 no inventa comportamiento clínico. Traduce el comportamiento ya aprobado. Si una decisión de ingeniería revela una inconsistencia de producto, se abre Change Request contra V2 y se vuelve a revisar.
+PROD-069 | ACTIVE | 69. Cuatro pasadas de revisión aplicadas a V2 Final
+Pasada
+Pregunta crítica
+Mejoras incorporadas
+R1 — Clínica/continuidad
+¿El sistema acompaña realmente atención longitudinal?
+Patient State, obligations, problem/med lifecycle, result closure, specialty/life-stage.
+R2 — UX/operación/benchmark
+¿Un médico querría trabajar aquí todo el día?
+Command Center, stable IA, cognitive load rules, data-once, clinic operations, portal.
+R3 — Safety/security/regulation
+¿Puede operar con PHI y decisiones clínicas de alto impacto?
+Clinical safety management, AI boundaries, privacy, Mexico baseline, intended-use register.
+R4 — Coherencia/anti-fragmentación
+¿Algún módulo contradice otro o duplica trabajo?
+Ten OS model, consistent states, no isolated AI, no note-as-database, country/specialty packs, product freeze gates.
+
+RESULTADO DE LA ÚLTIMA PASADA La principal mejora final fue convertir continuidad clínica en la columna vertebral: Patient State + Clinical Obligation + Result Closure + Trajectory. Esto evita que Medical OS se convierta en un EHR bonito con IA y lo obliga a comportarse como sistema operativo clínico longitudinal.
+
+PROD-070 | ACTIVE | 70. Escenarios de aceptación maestra
+Escenario
+Flujo
+Pass condition
+Consulta nueva adulto
+Alta mínima → antecedentes → vitales → HPI adaptativa → estudio externo → exploración → assessment → plan → receta → firma → follow-up.
+No duplicación, patient context visible, signed note + obligations.
+Crónico DM2
+Abrir patient → ver A1c trend/meds/care gaps → encounter → adjust plan → monitoring obligation.
+State longitudinal y disease space coherentes.
+Resultado crítico
+Lab arrives → critical deterministic flag → owner alert/escalation → review → action → patient informed → closure.
+No lost result; audit completo.
+Pediatría
+Age/weight → history/development → vitals → medication dose calculator → physician confirms prescription.
+Weight-date provenance y calc ≠ prescribed dose.
+PDF externo
+Upload → original preserved → extraction candidates → validation → structured values → trend.
+Cada valor vuelve a su source anchor.
+Imaging follow-up
+Report finding → physician validates actionable follow-up → obligation → due reminder → repeat study → closure.
+Zero lost imaging follow-up.
+AI ambient
+Conversation → draft HPI/note → physician edits → accepts → signs.
+No silent write; source/model trace internally auditable.
+Patient share
+Create secure prescription link → send WhatsApp/email → OTP if policy → view → revoke.
+No permanent PHI link; access auditable.
+Wrong-tenant attack
+Manipulated ID/request.
+No resource discovery/access; security event logged.
+AI outage
+Model unavailable during encounter.
+Core consultation/receta/result workflows remain fully usable.
+
+PROD-071 | ACTIVE | 71. Métricas de “número 1 por funcionamiento”
+[PROD-071-R001] No se puede declarar superioridad mundial por marketing. V2 define cómo demostrar mejora medible.
+Dimensión
+North-star metric
+Tiempo clínico
+Menos tiempo de documentación sin degradar calidad.
+Comprensión
+Time-to-clinical-answer <10 s en patient summary habitual.
+Continuidad
+Lost follow-up rate cercano a cero para obligations bajo control del sistema.
+Safety
+Alta precisión de critical alerts y baja carga de alertas irrelevantes.
+Data quality
+Problem/med/allergy reconciliation y provenance coverage.
+AI
+High factuality, low unsupported claims, meaningful time saved.
+Usability
+High task completion; low navigation reversals/click waste.
+Trust
+Low rate de unexpected behavior y high clinician retention.
+
+PROD-072 | ACTIVE | 72. Decisiones prohibidas V2
+[PROD-072-R001] • Historia clínica como JSON gigante o nota única.
+[PROD-072-R002] • Allergy/problem/medication como campo singular.
+[PROD-072-R003] • Pantalla CRUD genérica para workflows clínicos críticos.
+[PROD-072-R004] • Frontend-only authorization.
+[PROD-072-R005] • Editar destructivamente documentación firmada.
+[PROD-072-R006] • Resultado “revisado” por simple visualización accidental.
+[PROD-072-R007] • Alertas clínicas directas en UI sin governance/version.
+[PROD-072-R008] • IA generativa como barrera única de seguridad.
+[PROD-072-R009] • Whole-chart context enviado a AI por defecto.
+[PROD-072-R010] • AI diagnosis/prescription auto-commit.
+[PROD-072-R011] • Permanent anonymous links to PHI.
+[PROD-072-R012] • Forks de producto por especialidad/país.
+[PROD-072-R013] • Reglas regulatorias hard-coded sin country/version.
+[PROD-072-R014] • Billing como fuente de verdad clínica.
+[PROD-072-R015] • Métrica de éxito basada en número de features.
+PROD-073 | ACTIVE | 73. Backlog conceptual para V2.1
+Epic de traducción
+Entrada desde V2
+Foundation
+Constitution, roles, country packs, audit/provenance.
+Patient Identity/State
+Sections 10–13.
+Encounter
+14–21.
+Notes
+22.
+Medication/Prescription
+23–25.
+Diagnostics/Documents
+26–30.
+Continuity
+31–35.
+Clinical Intelligence
+36–40.
+AI
+41–43.
+Patient/Communication
+44–45.
+Operations
+46–48.
+Specialties/Life-stage
+49–51.
+Interop/International
+52–54.
+Security/Compliance
+55–59.
+Reliability/Analytics
+60–65.
+
+PROD-074 | ACTIVE | 74. Fuentes y referencias de investigación externa
+[PROD-074-R001] Estas fuentes sustentan el benchmark y los límites regulatorios/estándares; no sustituyen revisión jurídica ni evaluación de conformidad. Fecha de consulta: septiembre 2026.
+Fuente
+URL
+Uso
+Área
+[S1] Epic MyChart Central
+https://www.epic.com/software/mychart-central/
+Continuidad/portal.
+Benchmark
+[S2] Oracle Health Clinical AI Agent (19 Aug 2026)
+https://www.oracle.com/news/announcement/oracle-health-expands-clinical-ai-agent-with-coding-dictation-chart-review-2026-08-19/
+IA contextual, chart review, dictation/coding.
+Benchmark
+[S3] DrChrono EHR
+https://www.drchrono.com/ehr/
+Mobile EHR + scheduling/billing/patient engagement/AI.
+Benchmark
+[S4] Dedalus eSIAP / Integrated Healthcare
+https://www.dedalus.com/spain/en/our-offer/products/esiap/
+Continuum of care/regional workflows.
+Benchmark
+[S5] Practo Ray
+https://www.practo.com/providers/clinics/ray
+Clinic management/global mobile footprint.
+Benchmark
+[S6] MV Prontuário Digital
+https://mv.com.br/mvsistemas/produto/prontuario-digital
+Digital records/authorship/signature patterns.
+Benchmark
+[S7] HL7 FHIR R5
+https://hl7.org/fhir/
+Current published FHIR version.
+Interop
+[S8] ONC SAFER Guides 2025
+https://healthit.gov/clinical-quality-and-safety/safer-guides
+EHR safety practices.
+Safety
+[S9] WHO AI for Health LMM guidance
+https://www.who.int/publications/i/item/9789240084759
+AI governance for multimodal models.
+AI governance
+[S10] FDA Clinical Decision Support Software Final Guidance 2026
+https://www.fda.gov/regulatory-information/search-fda-guidance-documents/clinical-decision-support-software
+CDS regulatory boundary (US).
+Regulatory architecture
+[S11] ISO 27799:2025
+https://www.iso.org/standard/84647.html
+Health information security controls.
+Security reference
+[S12] NOM-004-SSA3-2012 PLATIICA
+https://platiica.economia.gob.mx/normalizacion/NOM-004-SSA3-2012/
+Expediente clínico; vigente.
+Mexico
+[S13] NOM-024-SSA3-2012 PLATIICA
+https://platiica.economia.gob.mx/normalizacion/nom-024-ssa3-2012/
+SIRES/intercambio; vigente.
+Mexico
+[S14] LFPDPPP vigente Cámara de Diputados
+https://www.diputados.gob.mx/LeyesBiblio/pdf/LFPDPPP.pdf
+Datos personales; ley 2025, reforma 14-11-2025.
+Mexico privacy
+[S15] NOM-151-SCFI-2016 PLATIICA
+https://platiica.economia.gob.mx/normalizacion/nom-151-scfi-2016/
+Conservación de mensajes de datos; vigente.
+Mexico
+[S16] NOM-241-SSA1-2025 DOF
+https://sidof.segob.gob.mx/notas/5754074
+Buenas prácticas dispositivos médicos / ScDM boundary.
+Mexico regulatory
+
+PROD-075 | ACTIVE | 75. Relación con V1
+[PROD-075-R001] V2 conserva varios fundamentos sólidos de V1: sistema operativo clínico longitudinal; datos con provenance; closed-loop; separación de clinical core y operaciones; Adaptive History; signed snapshot/amendment; Result Inbox; ClinicalPack; Zero Trust; interoperabilidad desacoplada; DevSecOps y validación. V2 eleva esos fundamentos con Patient State, Obligation como entidad central, Clinical Intelligence por motores, Prescription Studio, Patient OS, AI governance, country packs y un producto explícitamente orientado a reducir carga cognitiva.
+PROD-076 | ACTIVE | 76. Declaración final de Product Freeze
+V2 FINAL BASELINE Medical OS V2 queda definido como Clinical Intelligence Operating System cuyo núcleo no es la nota, la agenda ni la IA: es el estado longitudinal del paciente y la continuidad de sus decisiones, tratamientos, resultados y obligaciones. Encounter OS organiza el presente; Patient State organiza la historia; Continuity OS protege el futuro; Intelligence OS ayuda a detectar lo que puede faltar; Experience OS hace que todo ello sea practicable durante la consulta. V2.1 deberá implementar esta visión sin degradarla a un conjunto de CRUDs o prompts.
+
+[PROD-076-R001] Cualquier cambio material posterior debe registrarse como Product Change Request y evaluarse por impacto clínico, UX, seguridad, privacidad, interoperabilidad, regulación y métricas de producto.
+PROD-077 | ACTIVE | 77. Product Screen Atlas — catálogo de superficies
+Surface
+Primary user
+Purpose
+Core content
+Command Center
+Doctor
+Trabajo del día
+Agenda contextual, results, obligations, drafts, messages, priority patients.
+Patient Search
+All staff scoped
+Encontrar/crear
+Universal search, duplicate warnings, recent patients, filters.
+Patient Summary
+Clinical
+Estado actual
+State summary, changes, problems, meds, results, obligations.
+Patient Timeline
+Clinical
+Historia longitudinal
+Events, filters, source/provenance, jump to encounter.
+Problem Space
+Clinical
+Continuidad por problema
+Status, evidence, plan, goals, linked meds/tests.
+Medication Space
+Clinical
+Terapia
+Active/history, indication, monitoring, response, reconciliation.
+Diagnostics Space
+Clinical
+Estudios
+Orders, results, lab trends, imaging, pathology, documents.
+Preventive Space
+Clinical
+Care opportunities
+Due/overdue/declined/completed/unknown.
+Encounter Workspace
+Clinical
+Consulta actual
+Continuous workflow + context rail.
+Result Inbox
+Clinical team
+Revisión de resultados
+Prioritized result queue + closure.
+Obligation Inbox
+Clinical team
+Seguimiento
+Due windows, owner, escalation, closure.
+Prescription Studio
+Physician/admin
+Template/receta
+Clinical order + visual render separation.
+Agenda
+Clinical/admin
+Scheduling
+Calendar, resources, rooming, online booking.
+Communication Center
+Authorized staff
+Patient communications
+Threads, templates, consent, action conversion.
+Patient Portal
+Patient
+Own care
+Released records, instructions, appointments, prescriptions.
+Practice Ops
+Admin
+Business operations
+Billing, inventory, staff, reports.
+Settings
+Admin/owners
+Governance
+Clinical, AI, security, integrations, branding, country pack.
+Audit Explorer
+Security/compliance
+Traceability
+Sensitive access/change events with scoped access.
+
+PROD-078 | ACTIVE | 78. Encounter micro-flow — interaction specification
+Step
+UX behavior
+Clinical guardrail
+Open encounter
+Patient header fixed; visit context, modality, clinician and appointment linkage visible.
+Wrong-patient protection.
+Review context
+Pre-visit brief condensed; physician can dismiss/collapse.
+Do not bias diagnosis with unsupported AI.
+Confirm histories
+Existing allergies/meds/problems shown as reconcile cards, not empty fields.
+Changed/confirmed timestamp.
+Vitals
+Fast numeric entry + repeat + trend.
+Extreme values get contextual safety treatment.
+Chief complaint
+Natural language + coded concepts when useful.
+Never force early diagnosis.
+HPI
+Adaptive questions appear in logical groups; free narrative always possible.
+Unknown ≠ negative.
+Prior studies
+Relevant recent results surfaced; upload external study inline.
+Original preserved.
+Physical exam
+Focused set + normal/abnormal documentation without falsely marking unexamined systems.
+No blanket “normal”.
+Assessment
+Problem/hypothesis cards with evidence for/against/missing.
+Physician owns diagnoses.
+Plan
+Orders, treatment, referral, education, follow-up all tied to problems.
+Plan text should operationalize future actions.
+Prescription
+Medication safety before final render.
+No AI auto-prescribe.
+Close review
+Compact checkpoint: critical gaps, unresolved results, obligations, instructions.
+Avoid endless checklist.
+Sign
+Legal snapshot + structured state updates.
+Immutable signed version.
+After visit
+Patient link, orders, obligations, timeline update.
+Closed loop begins immediately.
+
+PROD-079 | ACTIVE | 79. Patient Header specification
+[PROD-079-R001] • Always show patient name + at least two safe identifiers/context elements suitable to workflow.
+[PROD-079-R002] • Age calculated from DOB and shown precisely when pediatrics/neonatal requires it.
+[PROD-079-R003] • Critical allergy state displayed without requiring hover.
+[PROD-079-R004] • High-impact alerts have explicit label and source; avoid vague red badges.
+[PROD-079-R005] • Encounter status and clinician visible during active encounter.
+[PROD-079-R006] • Quick actions never move or change meaning unexpectedly between screens.
+[PROD-079-R007] • Sensitive flags use permissions and avoid stigmatizing labels.
+PROD-080 | ACTIVE | 80. Timeline semantics
+Event class
+Examples
+Display rule
+Encounter
+Visit, telehealth, urgent consult
+Summary + note/status + linked plan.
+Diagnosis/problem
+Added/resolved/changed certainty
+Meaningful transitions, not every DB update.
+Medication
+Started/changed/stopped
+Dose change and indication visible.
+Diagnostic
+Ordered/received/reviewed/closed
+Lifecycle grouped to avoid noise.
+Procedure
+Performed/result/outcome
+Linked to encounter/problem.
+Obligation
+Created/due/closed
+Show clinically meaningful milestones.
+Communication
+Important patient communication
+Only if clinically/operationally relevant.
+Document
+Uploaded/validated/amended
+Original accessible.
+
+PROD-081 | ACTIVE | 81. Problem Space — disease-centered workflow
+[PROD-081-R001] • A problem can aggregate related encounters, medications, labs, imaging, procedures, goals and obligations.
+[PROD-081-R002] • Status transitions are explicit: suspected/active/remission/resolved/refuted/historical as appropriate.
+[PROD-081-R003] • Certainty and lifecycle are separate dimensions.
+[PROD-081-R004] • Problem page highlights “what changed since last review”.
+[PROD-081-R005] • A resolved problem remains in history; it is not deleted.
+[PROD-081-R006] • Multiple problems can share one observation/medication with explicit relationships.
+PROD-082 | ACTIVE | 82. Medication reconciliation workflow
+State
+Action
+Confirmed taking
+Retain as active with confirmation timestamp.
+Patient stopped
+Record stop date/reason if known; reconcile list.
+Unknown adherence
+Keep uncertainty explicit; do not assume active use.
+Duplicate source
+Merge/reconcile without losing provenance.
+External medication
+Track source/prescriber; not all meds originated in Medical OS.
+Medication changed
+Preserve old regimen and start new version/lifecycle event.
+PRN
+Capture indication/instructions/context.
+
+PROD-083 | ACTIVE | 83. Result severity and escalation model
+Level
+Meaning
+Expected behavior
+Informational
+No immediate action expected
+No interruptive alert; normal inbox.
+Consider
+Potentially relevant
+Context panel / review queue.
+Important
+Action/review should occur in defined window
+Owner + due time + escalation.
+Critical
+Potential immediate serious harm
+Interruptive multi-channel internal workflow; acknowledgement and escalation.
+
+[PROD-083-R001] Severity is not inferred only from color or LLM wording. Criticality is governed by validated rule/provider policy and may vary by context/laboratory.
+PROD-084 | ACTIVE | 84. Notification architecture — product behavior
+[PROD-084-R001] • Notification is not the clinical obligation itself; it is one delivery mechanism.
+[PROD-084-R002] • Every notification has subject, reason, priority, recipient, channel, delivery status, read/ack status when relevant.
+[PROD-084-R003] • Critical workflows require in-product state and escalation even if email/SMS fails.
+[PROD-084-R004] • Deduplicate repeated alerts for same unresolved condition.
+[PROD-084-R005] • Quiet hours may apply to routine notices but not defined critical escalation.
+[PROD-084-R006] • Allow clinician notification preferences only within safety policy boundaries.
+PROD-085 | ACTIVE | 85. Patient-generated data
+[PROD-085-R001] • Patient questionnaires, home BP, glucose, photos or symptom diaries are labeled as patient-reported/device-originated.
+[PROD-085-R002] • They can enter review queues; they do not automatically overwrite clinician-verified observations.
+[PROD-085-R003] • Outlier home values can trigger configured review without generating diagnosis.
+[PROD-085-R004] • Device provenance includes device/source where available.
+[PROD-085-R005] • Bulk streams should summarize trends and surface exceptions instead of flooding timeline.
+PROD-086 | ACTIVE | 86. Consent Management
+Consent domain
+Product behavior
+Privacy notice
+Version, acceptance/acknowledgement where required, locale.
+AI recording/ambient
+Explicit workflow suited to jurisdiction/organization policy.
+Communication
+Channel preference/permission.
+Data sharing
+Scope, recipient/category, expiry/revocation where applicable.
+Procedure consent
+Document/reference, signatures, status.
+Research/secondary use
+Separate purpose; no bundling by default.
+
+PROD-087 | ACTIVE | 87. Telehealth encounter
+[PROD-087-R001] • Same patient/encounter core; modality differs.
+[PROD-087-R002] • Capture location/jurisdiction context when needed for clinical/regulatory purposes.
+[PROD-087-R003] • Video vendor is adapter, not owner of encounter state.
+[PROD-087-R004] • Document limitations of remote examination when clinically material.
+[PROD-087-R005] • Patient instructions/prescriptions/orders flow through same post-visit system.
+PROD-088 | ACTIVE | 88. Emergency / high-acuity mode
+[PROD-088-R001] Medical OS is primarily designed as physician work portal; high-acuity workflows require a distinct mode rather than stretching ambulatory UX.
+[PROD-088-R002] • Rapid triage view.
+[PROD-088-R003] • Time-stamped interventions/observations.
+[PROD-088-R004] • Persistent red flags and disposition.
+[PROD-088-R005] • Minimal clicks for critical documentation.
+[PROD-088-R006] • Handoff summary.
+[PROD-088-R007] • No dependency on generative AI to surface time-critical safety facts.
+PROD-089 | ACTIVE | 89. Pediatrics deep requirements
+[PROD-089-R001] • Age in years/months/days depending stage.
+[PROD-089-R002] • Growth chart context and serial anthropometry.
+[PROD-089-R003] • Development milestones and caregiver context.
+[PROD-089-R004] • Prenatal/perinatal/newborn history in applicable ages.
+[PROD-089-R005] • Immunization history and local schedule integration via pack.
+[PROD-089-R006] • Weight-based medication calculations with dated weight.
+[PROD-089-R007] • Guardian/consent relationships and adolescent confidentiality policy hooks.
+PROD-090 | ACTIVE | 90. Geriatrics deep requirements
+[PROD-090-R001] • Functional status/ADL-IADL hooks.
+[PROD-090-R002] • Cognition screening hooks.
+[PROD-090-R003] • Falls and mobility.
+[PROD-090-R004] • Frailty context.
+[PROD-090-R005] • Polypharmacy and deprescribing considerations.
+[PROD-090-R006] • Caregiver/related person context.
+[PROD-090-R007] • Advance care planning documents where applicable.
+[PROD-090-R008] • Do not make age alone a proxy for frailty or decision capacity.
+PROD-091 | ACTIVE | 91. Pregnancy/reproductive context
+[PROD-091-R001] • Pregnancy status must be contextual and time-bound, not permanent demographic fact.
+[PROD-091-R002] • Gestational age/source when applicable.
+[PROD-091-R003] • Obstetric history structure extensible.
+[PROD-091-R004] • Medication/imaging considerations only activate when relevant.
+[PROD-091-R005] • Privacy policies consider sensitive reproductive information.
+[PROD-091-R006] • No automatic pregnancy inference from unrelated data.
+PROD-092 | ACTIVE | 92. Mental health module boundaries
+[PROD-092-R001] • Validated scales can be versioned content with score interpretation.
+[PROD-092-R002] • Suicide/self-harm safety workflow must be specialty-reviewed and not depend solely on model generation.
+[PROD-092-R003] • Psychiatric medications integrate with Medication OS/monitoring.
+[PROD-092-R004] • Sensitive notes/access can use stricter policies where legally/organizationally appropriate.
+[PROD-092-R005] • Do not stigmatize patients with permanent visual danger labels from historical conditions.
+PROD-093 | ACTIVE | 93. Procedure workflow
+Phase
+Content
+Indication
+Problem/diagnosis, indication, alternatives/risks documentation as appropriate.
+Pre-procedure
+Consent, checklist, meds/allergies, preparation.
+Procedure
+Technique, findings, materials/devices, staff, timestamps.
+Complications
+Immediate complications or none documented explicitly.
+Post-procedure
+Instructions, medications, warning signs.
+Follow-up
+Obligation and pathology/result loop where relevant.
+
+PROD-094 | ACTIVE | 94. Referral network and external clinicians
+[PROD-094-R001] • External practitioner/entity can exist without full tenant user account.
+[PROD-094-R002] • Referral recipient, specialty, reason and requested question are explicit.
+[PROD-094-R003] • Documents shared use scoped export/share.
+[PROD-094-R004] • External report ingestion preserves source identity.
+[PROD-094-R005] • If consultant becomes tenant member later, historical external identity can be reconciled without changing old provenance.
+PROD-095 | ACTIVE | 95. Lab provider integration product contract
+Capability
+Requirement
+Catalog
+Local test catalog mapped to canonical concepts when possible.
+Order
+Medical OS retains local order state independent of integration.
+Specimen/status
+Track received/in process/final where provider supports it.
+Result
+Original payload/report preserved and mapped.
+Corrections
+Amended/corrected results create new version/event, not overwrite.
+Critical
+Provider critical flag preserved; local critical workflow may add policy.
+Failure
+Retry/dead-letter visible to operations; clinician sees status not silent failure.
+
+PROD-096 | ACTIVE | 96. Imaging follow-up registry
+[PROD-096-R001] • Actionable findings can enter registry after clinician validation.
+[PROD-096-R002] • Track anatomy/finding/measurement/recommendation/due window.
+[PROD-096-R003] • Link repeat imaging and compare resolution/stability/change.
+[PROD-096-R004] • Do not interpret interval growth if measurement methods incompatible without caveat.
+[PROD-096-R005] • Registry view prioritizes overdue follow-up and ownership.
+PROD-097 | ACTIVE | 97. Longitudinal laboratory comparison
+[PROD-097-R001] • Normalize units only with validated conversions.
+[PROD-097-R002] • Show original unit/reference alongside normalized value when conversion occurs.
+[PROD-097-R003] • Reference ranges can change by lab/method; do not paint historical values using today’s range without context.
+[PROD-097-R004] • Trend lines support selectable time windows and events overlays.
+[PROD-097-R005] • The physician can pin clinically relevant analytes to a problem space.
+PROD-098 | ACTIVE | 98. Data quality & uncertainty model
+Quality attribute
+Examples
+Source certainty
+Manual clinician, patient report, external integration, extracted document.
+Verification
+Unverified, clinician-validated, reconciled.
+Temporal certainty
+Exact date, approximate date, unknown.
+Concept certainty
+Mapped exact, probable mapping, free-text only.
+Measurement quality
+Device/method limitations, hemolysis, poor sample if reported.
+Conflict
+Two sources disagree; system exposes discrepancy.
+
+PROD-099 | ACTIVE | 99. Downtime and recovery user experience
+[PROD-099-R001] • Product must define what clinician sees during partial outage.
+[PROD-099-R002] • Drafts should have local/temporary recovery strategy proportionate to environment.
+[PROD-099-R003] • System clearly differentiates saved, pending and failed.
+[PROD-099-R004] • No false “saved” state.
+[PROD-099-R005] • Read-only emergency access strategy may be considered for enterprise deployment.
+[PROD-099-R006] • After recovery, reconciliation avoids duplicate orders/messages.
+PROD-100 | ACTIVE | 100. Migration from legacy EHR/paper
+[PROD-100-R001] • Separate imported historical data from native verified data.
+[PROD-100-R002] • Preserve original documents/files.
+[PROD-100-R003] • Map problems/meds/allergies through reconciliation queue.
+[PROD-100-R004] • Do not automatically treat every legacy diagnosis as active.
+[PROD-100-R005] • Bulk import quality report.
+[PROD-100-R006] • Patient merge/dedup before clinical go-live.
+[PROD-100-R007] • Legal retention/source metadata preserved where available.
+PROD-101 | ACTIVE | 101. Multi-facility / group practice
+[PROD-101-R001] • One patient identity can span facilities within tenant policy.
+[PROD-101-R002] • Facility-specific schedules, addresses, branding, resources and local identifiers.
+[PROD-101-R003] • Clinician membership and access scopes differ by facility.
+[PROD-101-R004] • Country pack may be tenant-level or organization-level depending deployment.
+[PROD-101-R005] • Clinical core avoids accidental duplicate charts per branch.
+PROD-102 | ACTIVE | 102. Enterprise readiness without compromising small-practice UX
+Enterprise need
+Product response
+SSO/SCIM
+Optional enterprise identity adapters.
+Complex roles
+Policy engine, not duplicated screens.
+Dedicated tenancy
+Storage/deployment option behind same domain contracts.
+Audit exports
+Scoped compliance reporting.
+Data residency
+Deployment/country policy.
+High volume
+Progressive loading/search/indexing without changing clinician mental model.
+
+PROD-103 | ACTIVE | 103. Clinical content lifecycle
+[PROD-103-R001] • Draft → specialist review → clinical safety review → approved → staged → active → deprecated/retired.
+[PROD-103-R002] • Every active rule knows content version and effective date.
+[PROD-103-R003] • Emergency rollback of harmful rule without full app rollback.
+[PROD-103-R004] • Historical encounters retain which content version was active.
+[PROD-103-R005] • Source update triggers impact review, not automatic rule change.
+PROD-104 | ACTIVE | 104. Alert governance board
+[PROD-104-R001] • Every alert has owner, clinical rationale, target population, severity, expected action and sunset/review date.
+[PROD-104-R002] • Measure firing rate, action rate, override rate, time-to-action and reported burden.
+[PROD-104-R003] • High override rate triggers review, not assumption physicians are wrong.
+[PROD-104-R004] • No new interruptive alert without human-factors review.
+PROD-105 | ACTIVE | 105. AI task risk tiers
+Tier
+Examples
+Control level
+A — Administrative
+Scheduling text, nonclinical classification
+Standard privacy/security eval.
+B — Documentation
+Draft note, extraction, summarization
+Grounding + human review + task eval.
+C — Clinical informational
+Trend explanation, care gap consideration
+Clinical eval + source display + abstention.
+D — Decision influence
+Differential/treatment considerations
+Enhanced clinical safety/regulatory review; no auto-action.
+E — Autonomous/high impact
+Diagnosis/prescription auto-action
+Outside V2 baseline unless separately regulated/validated and explicitly approved.
+
+PROD-106 | ACTIVE | 106. Clinical AI presentation rules
+[PROD-106-R001] • Use language such as “consider”, “possible”, “not documented” according to certainty.
+[PROD-106-R002] • Never fabricate source citations.
+[PROD-106-R003] • Show patient facts separately from model interpretation.
+[PROD-106-R004] • If the model used incomplete chart scope, disclose scope.
+[PROD-106-R005] • Physician can inspect supporting patient data with one action.
+[PROD-106-R006] • Rejected suggestions inform evals without coercive re-prompting.
+PROD-107 | ACTIVE | 107. Specialty Pack governance
+Role
+Responsibility
+Lead specialist
+Clinical scope and intended workflow.
+Generalist reviewer
+Ensure pack does not break general core/multimorbidity.
+Clinical safety
+Red flags, hazards, alert burden.
+UX/human factors
+Workflow and cognitive load.
+Terminology/data
+Codes/measurements/interoperability.
+Regulatory
+Intended-use/applicability.
+QA
+Regression scenarios.
+
+PROD-108 | ACTIVE | 108. Product failure modes catalog
+Failure mode
+Product response
+AI unavailable
+Core continues; clear degraded-state indicator.
+Lab interface delayed
+Order remains open; operations status visible.
+Duplicate patient suspected
+Block/soft-stop based risk; merge workflow.
+Critical result no owner
+System routes to configured fallback; cannot remain unowned.
+Prescription template invalid
+Server-side validation prevents final render/sign.
+Document extraction low confidence
+Validation queue; no silent structured publish.
+Stale patient summary
+Freshness/provenance indicator and refresh path.
+Permission changed mid-session
+Re-evaluate server-side; revoke access.
+Clock/timezone mismatch
+Store instants and display facility/local context explicitly.
+
+PROD-109 | ACTIVE | 109. Usability validation protocol — product requirement
+[PROD-109-R001] • Representative physicians across novice/expert and specialties.
+[PROD-109-R002] • Scenarios use realistic complexity, not toy records.
+[PROD-109-R003] • Measure completion, time, errors, navigation reversals, subjective load and safety observations.
+[PROD-109-R004] • Test desktop and iPad independently.
+[PROD-109-R005] • Critical workflows include wrong-patient, result follow-up, medication override and note amendment.
+[PROD-109-R006] • A visually attractive interface that increases error rate fails V2 acceptance.
+PROD-110 | ACTIVE | 110. Clinical validation protocol — product requirement
+[PROD-110-R001] • Synthetic and de-identified scenario sets before patient pilots.
+[PROD-110-R002] • Cases include benign, ambiguous, urgent, multimorbid and conflicting data.
+[PROD-110-R003] • Assess false negatives as well as false positives.
+[PROD-110-R004] • Clinical intelligence rules need expected-output regression cases.
+[PROD-110-R005] • AI tasks validated per task, not by generic model benchmark score.
+[PROD-110-R006] • Pilot releases begin in shadow/advisory mode for higher-risk intelligence.
+PROD-111 | ACTIVE | 111. Mexico Certification Readiness — product evidence expectations
+[PROD-111-R001] V2 defines what product evidence must exist; V2.1 defines how it is generated.
+Evidence class
+Product expectation
+Scope manifest
+Which modules/features are part of evaluated SIRES release.
+Clinical document rules
+Required note/data behaviors mapped to product.
+Security controls
+Authentication, authorization, confidentiality, integrity, availability, traceability/non-repudiation as applicable.
+Structured/inmutable records
+Signed snapshot/amendment behavior.
+Catalog/interchange
+Terminology/profile support and export/import behavior.
+Privacy
+Consent/purpose/access/rights workflows.
+Release traceability
+Version, content pack versions, change impact.
+
+PROD-112 | ACTIVE | 112. Final V2 completeness checklist
+Domain
+V2 state
+Patient identity and duplicate management
+Defined / must be translated in V2.1
+Longitudinal patient state
+Defined / must be translated in V2.1
+Allergies/problems/medications as collections
+Defined / must be translated in V2.1
+Encounter sequence
+Defined / must be translated in V2.1
+Adaptive history
+Defined / must be translated in V2.1
+Vitals/trends
+Defined / must be translated in V2.1
+Physical exam
+Defined / must be translated in V2.1
+Assessment/differential
+Defined / must be translated in V2.1
+Plan/obligations
+Defined / must be translated in V2.1
+Notes/signature/amendments
+Defined / must be translated in V2.1
+Medication lifecycle
+Defined / must be translated in V2.1
+Pediatric calculations
+Defined / must be translated in V2.1
+Prescription designer
+Defined / must be translated in V2.1
+Orders/results
+Defined / must be translated in V2.1
+Laboratory
+Defined / must be translated in V2.1
+Imaging
+Defined / must be translated in V2.1
+Pathology
+Defined / must be translated in V2.1
+Documents/OCR
+Defined / must be translated in V2.1
+Result inbox
+Defined / must be translated in V2.1
+Follow-up/obligations
+Defined / must be translated in V2.1
+Preventive care
+Defined / must be translated in V2.1
+Chronic disease spaces
+Defined / must be translated in V2.1
+Referrals
+Defined / must be translated in V2.1
+AI governance
+Defined / must be translated in V2.1
+Clinical engines
+Defined / must be translated in V2.1
+Patient portal
+Defined / must be translated in V2.1
+Communication
+Defined / must be translated in V2.1
+Scheduling
+Defined / must be translated in V2.1
+Billing/inventory boundary
+Defined / must be translated in V2.1
+Settings
+Defined / must be translated in V2.1
+Life stages
+Defined / must be translated in V2.1
+Specialty packs
+Defined / must be translated in V2.1
+Interoperability
+Defined / must be translated in V2.1
+Country packs
+Defined / must be translated in V2.1
+Security
+Defined / must be translated in V2.1
+Privacy
+Defined / must be translated in V2.1
+Mexico compliance
+Defined / must be translated in V2.1
+Clinical safety
+Defined / must be translated in V2.1
+Reliability
+Defined / must be translated in V2.1
+Performance
+Defined / must be translated in V2.1
+Accessibility
+Defined / must be translated in V2.1
+Audit/provenance
+Defined / must be translated in V2.1
+Analytics
+Defined / must be translated in V2.1
+Migration
+Defined / must be translated in V2.1
+Downtime
+Defined / must be translated in V2.1
+Validation
+Defined / must be translated in V2.1
+Product freeze
+Defined / must be translated in V2.1
+
+PROD-113 | ACTIVE | 113. Final statement after fourth improvement cycle
+FINAL REVIEW OUTCOME After the fourth improvement cycle, no subsystem is allowed to exist as an island. Every clinical fact participates in Patient State; every decision lives in an Encounter/Problem context; every future action can become an Obligation; every result has a closure path; every AI output is a proposal with provenance and governance; every specialty extends one core; every country changes policy without forking the clinical model. This is the conceptual invariant V2.1 must preserve.
+
+
+[PROD-113-R001] MEDICAL OS · V2.0.1
+[PROD-113-R002] PRODUCT & CLINICAL COMPLETENESS SPECIFICATION
+[PROD-113-R003] V2.0.1 is a governed product/clinical completeness revision of the frozen V2 baseline. It promotes physician-visible product capabilities discovered during V2.1.1 Formal Clinical Architecture work. It defines WHAT Medical OS must mean and do for clinicians and patients; implementation mechanics remain authority of V2.1.1.
+PROD-114 | ACTIVE | 114. V2.0.1 product constitution extension
+[PROD-114-R001] Medical OS shall represent not only recorded data but what is known, unknown, changing, intended, expected, decided, done, observed and still owed for the patient.
+[PROD-114-R002] Medical OS must increase clinical capacity without replacing professional judgment.
+[PROD-114-R003] Product behavior must prefer explicit uncertainty and traceable clinical state over false certainty or opaque automation.
+PROD-115 | ACTIVE | 115. Three additional product promises
+[PROD-115-R001] Decision Once → Propagate Everywhere: an approved plan should generate its necessary downstream work without repetitive re-entry.
+[PROD-115-R002] Clinical Truthfulness: patient-reported, imported, derived, AI-suggested, unverified and clinician-verified information must not be presented as equivalent authority.
+[PROD-115-R003] Explicit Uncertainty: UNKNOWN, PENDING, CONFLICTING, UNVERIFIED, NOT_ASSESSED and NOT_APPLICABLE are legitimate product states.
+PROD-116 | ACTIVE | 116. Patient Computable State 2.0
+[PROD-116-R001] Patient State evolves into a computable longitudinal representation composed from current state, historical state, clinical delta, trajectories, problems, hypotheses, evidence, uncertainty, contradictions, intent, goals, decisions, interventions, expected/observed results, treatment response, medications, episodes, preferences, risks, care gaps, obligations and provenance.
+[PROD-116-R002] The physician must be able to understand the clinically relevant state in seconds and drill to source evidence.
+[PROD-116-R003] Patient Computable State is an experience/composition, not a claim of complete physiological simulation.
+PROD-117 | ACTIVE | 117. Patient Digital Twin product boundary
+[PROD-117-R001] Patient Digital Twin is the longitudinal product experience built over Patient Computable State and its relationships.
+[PROD-117-R002] It may support simulation only when a separately validated capability exists.
+[PROD-117-R003] Medical OS must never imply that the Digital Twin predicts the patient's biological future with certainty.
+PROD-118 | ACTIVE | 118. Clinical Intent
+[PROD-118-R001] Medical OS should preserve why a clinically meaningful action is being performed when that intent matters for continuity, reasoning or follow-up.
+[PROD-118-R002] Intent may connect a problem, goal, decision, order, intervention, monitoring action or referral.
+[PROD-118-R003] AI may suggest intent, but the physician remains authority for clinically consequential intent.
+PROD-119 | ACTIVE | 119. Clinical Goal Engine
+[PROD-119-R001] Physicians can represent individualized clinical goals, targets or desired outcomes with horizon and monitoring context.
+[PROD-119-R002] Goals remain longitudinal across encounters and are not automatically closed when an encounter ends.
+[PROD-119-R003] Medical OS distinguishes guideline/population targets from individualized clinician/patient goals.
+PROD-120 | ACTIVE | 120. Clinical Plan Compiler
+[PROD-120-R001] After physician approval, Medical OS may translate one clinical plan into the appropriate prescriptions, orders, monitoring, expected results, obligations, referrals, follow-up and patient instructions.
+[PROD-120-R002] The physician sees and controls clinically consequential outputs before commitment.
+[PROD-120-R003] Partial failure must be visible and recoverable; the system cannot pretend the whole plan succeeded.
+PROD-121 | ACTIVE | 121. Expected Result Engine
+[PROD-121-R001] When clinically appropriate, an order/monitoring action may carry an expected result/artifact, expected time window, responsible reviewer and follow-up behavior.
+[PROD-121-R002] An expected result that does not arrive becomes visible pending work.
+[PROD-121-R003] Expected result means expected workflow artifact unless a separately validated biological prediction is explicitly intended.
+PROD-122 | ACTIVE | 122. Treatment Response Engine
+[PROD-122-R001] Medical OS connects intervention, expected effect/timeframe, observed result, adverse effects, adherence/context and reassessment.
+[PROD-122-R002] Possible states include responding, partially responding, non-responding, worsening, unable-to-assess and conflicting evidence when clinically appropriate.
+[PROD-122-R003] Missing follow-up must never be presented as treatment success or failure.
+PROD-123 | ACTIVE | 123. Medication Intelligence Graph
+[PROD-123-R001] Medication experience connects medication with indication/problem, goal, response, monitoring, relevant safety context, adverse effects, adherence and lifecycle.
+[PROD-123-R002] Medical OS should surface medication changes affected by new clinical context without re-alerting unrelated unchanged issues.
+[PROD-123-R003] Incomplete imported indication data must not be interpreted automatically as inappropriate prescribing.
+PROD-124 | ACTIVE | 124. Hypothesis Workspace
+[PROD-124-R001] During diagnostic reasoning, physicians may maintain hypotheses with evidence for, evidence against, missing evidence and uncertainty.
+[PROD-124-R002] Hypotheses may progress through governed clinical states without becoming diagnoses implicitly.
+[PROD-124-R003] AI can organize or suggest candidate hypotheses, but physician authority is required for diagnosis under the intended product boundary.
+PROD-125 | ACTIVE | 125. Missing Evidence Engine
+[PROD-125-R001] Medical OS can identify information that remains unknown or missing for a hypothesis/decision when supported by governed clinical knowledge.
+[PROD-125-R002] It should distinguish safety-critical missing information from optional decision-improving information.
+[PROD-125-R003] The experience must avoid turning every consultation into a rigid checklist.
+PROD-126 | ACTIVE | 126. Clinical Contradiction Engine
+[PROD-126-R001] Medical OS may surface clinically relevant contradictions among facts, medications, diagnoses, results, documents, patient statements and timelines.
+[PROD-126-R002] Contradictions remain visible until reconciled; Medical OS does not silently choose one source as truth.
+[PROD-126-R003] Severity and interruption behavior are governed separately from AI confidence.
+PROD-127 | ACTIVE | 127. Clinical uncertainty as a product object
+[PROD-127-R001] Uncertainty can attach to hypotheses, diagnoses, facts, decisions, results and treatment response.
+[PROD-127-R002] The product should show what is uncertain and, when known, what information could resolve it.
+[PROD-127-R003] Medical OS must not invent numerical probabilities where no validated probability model exists.
+PROD-128 | ACTIVE | 128. Clinical Decision Ledger
+[PROD-128-R001] For selected high-value/high-risk decisions, Medical OS can preserve decision context, evidence, alternatives, uncertainty, expected outcome and monitoring plan.
+[PROD-128-R002] The ledger is risk-based and must not turn routine care into documentation burden.
+[PROD-128-R003] Historical decisions remain understandable in the context available when they were made.
+PROD-129 | ACTIVE | 129. Clinical Delta / What Changed?
+[PROD-129-R001] Medical OS provides a clinically prioritized view of what changed since the relevant prior baseline: new findings, trajectories, medication changes, results, corrected results, contradictions, obligations and resolved items.
+[PROD-129-R002] Clinical Delta is distinct from summary and raw chronology.
+[PROD-129-R003] Every delta item can be traced back to its underlying information.
+PROD-130 | ACTIVE | 130. Semantic Clinical Timeline
+[PROD-130-R001] The longitudinal record can be viewed chronologically, by problem, medication, diagnostic thread or clinical episode.
+[PROD-130-R002] Grouping must not alter the underlying clinical facts.
+[PROD-130-R003] AI-suggested episode grouping remains identifiable and correctable.
+PROD-131 | ACTIVE | 131. Clinical Episodes
+[PROD-131-R001] Related encounters, diagnostics, interventions and outcomes may be grouped into meaningful clinical episodes.
+[PROD-131-R002] Episode boundaries may be explicit or assisted, but their origin remains visible.
+[PROD-131-R003] Episodes improve continuity without creating duplicate clinical truth.
+PROD-132 | ACTIVE | 132. Patient Preference and shared decision context
+[PROD-132-R001] Medical OS distinguishes patient preferences, access/cost constraints, feasibility and prior intolerance from objective clinical facts.
+[PROD-132-R002] Preferences may participate in shared decisions without being misrepresented as contraindications or medical evidence.
+[PROD-132-R003] The physician can understand why a selected plan differs from a generic guideline option.
+PROD-133 | ACTIVE | 133. Clinical Memory
+[PROD-133-R001] Longitudinal memory distinguishes verified facts, patient-reported information, preferences, prior decisions, historical context and AI inference.
+[PROD-133-R002] AI memory cannot silently become clinical truth.
+[PROD-133-R003] Previously failed treatments, constraints and important prior decisions should be retrievable when relevant.
+PROD-134 | ACTIVE | 134. Attention Budget Engine
+[PROD-134-R001] Medical OS protects physician attention by classifying signals as CRITICAL, IMPORTANT, CONSIDER or INFO under governed policy.
+[PROD-134-R002] Related signals may be aggregated where safe.
+[PROD-134-R003] Critical safety information cannot be suppressed merely because similar alerts are often dismissed.
+PROD-135 | ACTIVE | 135. Clinical Cognitive Load objective
+[PROD-135-R001] Medical OS should actively minimize repeated entry, unnecessary clicks, context switching, interruption, search effort and after-visit administrative work.
+[PROD-135-R002] Workflow telemetry may be used to improve the product but not as punitive clinician surveillance by default.
+[PROD-135-R003] Clinical safety remains a constraint on simplification.
+PROD-136 | ACTIVE | 136. Ambient Clinical Layer 2.0
+[PROD-136-R001] Ambient capture may create candidate facts, documentation, orders, instructions, obligations and missing-question suggestions.
+[PROD-136-R002] The product flow is conversation → candidate clinical objects → physician verification → commit.
+[PROD-136-R003] Conversation or transcription is never automatically equivalent to verified clinical truth.
+PROD-137 | ACTIVE | 137. Ambient Missing Question Detection
+[PROD-137-R001] During consultation, Medical OS may discreetly surface clinically relevant unassessed questions supported by current context and governed knowledge.
+[PROD-137-R002] Suggestions use progressive disclosure and attention budget rather than constant interruption.
+[PROD-137-R003] Dismissal does not record a negative answer.
+PROD-138 | ACTIVE | 138. Evidence at the point of decision
+[PROD-138-R001] Important recommendations can expose source, version/effective date, applicability, relevant exceptions and data used.
+[PROD-138-R002] Medical OS distinguishes evidence guidance, institutional policy, patient preference and jurisdictional constraint.
+[PROD-138-R003] Conflicting authorities are shown rather than silently harmonized by AI.
+PROD-139 | ACTIVE | 139. Explain Why / Why is this here?
+[PROD-139-R001] Important recommendations, alerts and derived facts can explain why they appear: triggering data, change/baseline, affected object, applicable rule/knowledge, missing information and provenance.
+[PROD-139-R002] Explanation should be available on demand without overwhelming the default workflow.
+[PROD-139-R003] AI may translate a governed explanation but cannot invent its underlying rationale.
+PROD-140 | ACTIVE | 140. Clinical Truthfulness experience
+[PROD-140-R001] The interface visually and semantically distinguishes VERIFIED, PATIENT_REPORTED, IMPORTED, DERIVED, SUGGESTED, UNVERIFIED, PENDING, CONFLICTING and DEGRADED information.
+[PROD-140-R002] Status must not depend on color alone.
+[PROD-140-R003] A suggestion must not look like a physician decision or verified result.
+PROD-141 | ACTIVE | 141. Clinical epistemology product rule
+[PROD-141-R001] Medical OS distinguishes source material, assertion, verification, clinical interpretation, accepted fact/problem/hypothesis, derived fact, recommendation, decision and action.
+[PROD-141-R002] Patient report, external record, AI extraction, clinician consideration and confirmed diagnosis are not interchangeable.
+[PROD-141-R003] Physicians can drill to the origin of clinically consequential information.
+PROD-142 | ACTIVE | 142. Clinical relationship and causality truthfulness
+[PROD-142-R001] The product distinguishes temporal sequence, association, clinician-attributed relationship and evidence-supported causal relationship where relevant.
+[PROD-142-R002] Medical OS must not present 'occurred after' as 'caused by'.
+[PROD-142-R003] Treatment response may be displayed without falsely attributing causality.
+PROD-143 | ACTIVE | 143. Closed-loop clinical state
+[PROD-143-R001] Result received, verified, reviewed, actioned, patient informed and clinically closed are separate states.
+[PROD-143-R002] Referral sent, accepted, completed and reconciled are separate states.
+[PROD-143-R003] Medication prescribed, started, active, modified and stopped are separate states.
+[PROD-143-R004] Product wording must reflect the actual lifecycle state.
+PROD-144 | ACTIVE | 144. Zero Lost Follow-Up as product invariant
+[PROD-144-R001] Every applicable clinically relevant future action must remain visibly accountable until completed, cancelled with reason, superseded or transferred.
+[PROD-144-R002] Medical OS should make owner, due state and unresolved status clear.
+[PROD-144-R003] Silent disappearance of clinically relevant pending work is unacceptable product behavior.
+PROD-145 | ACTIVE | 145. Clinical Reconciliation experience
+[PROD-145-R001] When Medical OS detects orphaned, stale or divergent workflow state, it creates visible repair/reconciliation work rather than fabricating completion.
+[PROD-145-R002] Operational users can distinguish system degradation from absence of clinical work.
+[PROD-145-R003] Reconciliation should normally be quiet unless human action is required.
+PROD-146 | ACTIVE | 146. Historical Clinical Replay
+[PROD-146-R001] For selected clinically consequential outputs, authorized users can understand what information and versions were available when Medical OS produced/displayed the output.
+[PROD-146-R002] Replay supports safety investigation, quality review and incident analysis.
+[PROD-146-R003] Historical AI output is preserved as historical output rather than regenerated and substituted.
+PROD-147 | ACTIVE | 147. Patient Impact Analysis
+[PROD-147-R001] When a clinically consequential algorithm, knowledge artifact, parser, terminology release, AI task or software defect is discovered, authorized governance users can identify potentially affected patient interactions and unresolved follow-up.
+[PROD-147-R002] Impact analysis is governed, audited and privacy-preserving.
+[PROD-147-R003] This capability supports recalls/corrections and does not itself change clinical records.
+PROD-148 | ACTIVE | 148. Clinical Data Trust dimensions
+[PROD-148-R001] Medical OS may show explainable trust dimensions such as source, verification, recency, identity match, terminology resolution, unit verification, completeness and conflict.
+[PROD-148-R002] The product should avoid opaque trust percentages unless independently validated.
+[PROD-148-R003] Trust metadata supports interpretation but never hides provenance.
+PROD-149 | ACTIVE | 149. Life-stage and clinical-context applicability
+[PROD-149-R001] Clinical behavior can adapt to pediatric, pregnancy, geriatric, renal, hepatic, anticoagulation, immunocompromised and other governed contexts.
+[PROD-149-R002] Context changes can alter which recommendations/calculations are applicable.
+[PROD-149-R003] Medical OS must show when required context is missing or conflicting rather than silently assuming.
+PROD-150 | ACTIVE | 150. Pediatric safety experience
+[PROD-150-R001] Weight-dependent pediatric calculations must make the weight used, its date/source and formulation/concentration context available for verification.
+[PROD-150-R002] The most recent weight is not automatically assumed to be the correct dose weight.
+[PROD-150-R003] Unsupported or ambiguous inputs can produce NOT_COMPUTABLE rather than a guessed dose.
+PROD-151 | ACTIVE | 151. Safety Envelope product behavior
+[PROD-151-R001] Clinically consequential calculators and decision-support capabilities define when they are supported and when they must abstain.
+[PROD-151-R002] Unsupported, ambiguous, conflicting or insufficient data produce explicit non-computable/degraded states.
+[PROD-151-R003] Medical OS must never disguise an unsupported computation as a precise clinical answer.
+PROD-152 | ACTIVE | 152. AI Task-based product model
+[PROD-152-R001] Medical OS AI is presented as bounded clinical/administrative capabilities rather than one omnipotent agent.
+[PROD-152-R002] Each clinical AI capability has a defined purpose and authority boundary.
+[PROD-152-R003] High-impact AI remains reviewable, evidence-aware and capable of abstention.
+PROD-153 | ACTIVE | 153. AI Evidence Coverage
+[PROD-153-R001] Where a clinical AI output makes claims, Medical OS should distinguish directly supported claims, inferential claims and unsupported/unknown claims when feasible.
+[PROD-153-R002] Unsupported high-impact claims cannot be presented as verified clinical truth.
+[PROD-153-R003] Evidence coverage is more important than a single opaque confidence score.
+PROD-154 | ACTIVE | 154. Patient Action Plan / Patient OS 2.0
+[PROD-154-R001] Patients receive an understandable action plan focused on what to do, when, why, preparation, warning/escalation and completion.
+[PROD-154-R002] Patient-reported barriers or adverse effects can enter a governed follow-up workflow.
+[PROD-154-R003] Patient input does not overwrite physician-verified facts.
+PROD-155 | ACTIVE | 155. Patient comprehension and barrier loop
+[PROD-155-R001] Medical OS may support comprehension checks and patient-reported barriers such as cost, access, scheduling, intolerance or uncertainty.
+[PROD-155-R002] Clinically important barriers can route to an accountable owner.
+[PROD-155-R003] Patient-facing language should be understandable without changing clinical meaning.
+PROD-156 | ACTIVE | 156. Care Team Operating System
+[PROD-156-R001] Medical OS supports coordinated responsibilities across physician, nursing, assistants, reception, laboratory, pharmacy, care coordination, specialists, patient and caregiver according to role and context.
+[PROD-156-R002] Clinically important work has a responsible owner and escalation path.
+[PROD-156-R003] Staff changes cannot make critical work disappear.
+PROD-157 | ACTIVE | 157. Referral Intelligence 2.0
+[PROD-157-R001] Referral workflow preserves reason, urgency, clinical question, relevant evidence, requested output and expected return.
+[PROD-157-R002] Specialist response is reconciled into diagnoses, medications, results, recommendations and obligations as appropriate.
+[PROD-157-R003] A sent referral is not automatically a closed referral.
+PROD-158 | ACTIVE | 158. Message Intelligence
+[PROD-158-R001] Clinical communications may be classified/routed by intent, urgency, context and owner, with AI-assisted drafts where appropriate.
+[PROD-158-R002] Potentially urgent messages cannot be silently suppressed or closed by unvalidated AI.
+[PROD-158-R003] Messages can create accountable follow-up work.
+PROD-159 | ACTIVE | 159. Operational Intelligence
+[PROD-159-R001] Command Center can prioritize unreviewed/critical results, overdue obligations, failed communication, incomplete referrals, selected no-show follow-up, duplicate-patient candidates and degraded services.
+[PROD-159-R002] Operational prioritization must preserve clinical severity.
+[PROD-159-R003] The physician/team should know what needs attention without searching across modules.
+PROD-160 | ACTIVE | 160. Autonomous Administrative Plane
+[PROD-160-R001] Medical OS may automate low-risk administrative actions such as reminders, scheduling support, routing and document preparation under explicit permissions.
+[PROD-160-R002] Autonomy decreases as clinical consequence rises.
+[PROD-160-R003] Administrative automation cannot silently alter diagnoses, prescriptions, verified facts or critical-result closure.
+PROD-161 | ACTIVE | 161. Clinical Quality Observatory
+[PROD-161-R001] Organizations may monitor closed-loop completion, result review, monitoring gaps, referral closure, care-gap resolution, alert effectiveness, documentation completeness and workflow burden.
+[PROD-161-R002] Metric definitions are versioned and interpretable.
+[PROD-161-R003] Quality improvement analytics are separated from punitive individual surveillance by default.
+PROD-162 | ACTIVE | 162. Learning Health System governance
+[PROD-162-R001] Medical OS may learn from workflow outcomes, overrides, alert burden, near misses and operational data through governed review.
+[PROD-162-R002] Production clinical rules do not silently self-modify.
+[PROD-162-R003] Telemetry generates hypotheses for improvement; validated governance produces changes.
+PROD-163 | ACTIVE | 163. Outcome Intelligence boundary
+[PROD-163-R001] Medical OS may support observational outcome analysis with explicit missingness/confounding limitations.
+[PROD-163-R002] Correlation must not be presented as causal treatment effect.
+[PROD-163-R003] Research/analytics output does not automatically become point-of-care clinical authority.
+PROD-164 | FUTURE | 164. Clinical Trial Matching future product
+[PROD-164-R001] Future trial matching may show potential matches with satisfied, unsatisfied and unknown criteria and source/version.
+[PROD-164-R002] Matching never equals eligibility confirmation or enrollment.
+[PROD-164-R003] Research consent and clinical care remain separate.
+PROD-165 | ACTIVE | 165. Clinical Simulation Mode
+[PROD-165-R001] Authorized teams can simulate candidate rule/knowledge/workflow changes on synthetic or governed retrospective data before activation.
+[PROD-165-R002] Simulation shows population/workload/alert impact and unresolved cases.
+[PROD-165-R003] Simulation never commits clinical actions.
+PROD-166 | FUTURE | 166. Institutional Digital Twin future boundary
+[PROD-166-R001] Future operational simulation may model demand, staffing, scheduling, laboratories, messaging, inventory and throughput.
+[PROD-166-R002] It remains separate from patient clinical truth.
+[PROD-166-R003] Operational simulation cannot silently change clinical priority.
+PROD-167 | ACTIVE | 167. Semantic interoperability product rule
+[PROD-167-R001] Externally imported data must preserve source and trust/verification status.
+[PROD-167-R002] FHIR/HL7/DICOM/document imports cannot appear indistinguishable from locally verified information by default.
+[PROD-167-R003] Identity or terminology ambiguity must be visible when clinically relevant.
+PROD-168 | ACTIVE | 168. Clinical Density and progressive disclosure
+[PROD-168-R001] Medical OS may support FOCUSED, STANDARD and DENSE presentation profiles without changing clinical meaning.
+[PROD-168-R002] Default views prioritize the most relevant information; deeper evidence/provenance remains rapidly accessible.
+[PROD-168-R003] Critical safety information cannot be hidden by density preference.
+PROD-169 | ACTIVE | 169. Clinical Safety Red Team product governance
+[PROD-169-R001] High-impact workflows are challenged for wrong-patient, wrong-dose/unit, false certainty, lost results, stale knowledge, misleading AI, alert fatigue and workflow dead ends before broad release.
+[PROD-169-R002] Critical findings feed product safety decisions and regression requirements.
+[PROD-169-R003] Synthetic testing does not replace representative clinician validation.
+PROD-170 | ACTIVE | 170. Complexity Budget product law
+[PROD-170-R001] Every material feature must justify clinical, safety, cognitive-load or operational value against complexity, maintenance and new failure modes.
+[PROD-170-R002] Features that merely add fields/screens/steps without sufficient value should not enter Medical OS.
+[PROD-170-R003] Product growth is constrained by physician cognitive capacity, not feature count.
+PROD-171 | ACTIVE | 171. V2.0.1 acceptance scenarios
+[PROD-171-R001] A physician can distinguish verified fact from patient report/import/AI suggestion at a glance.
+[PROD-171-R002] A physician can identify what changed, what remains uncertain and what is still owed without opening multiple modules.
+[PROD-171-R003] An approved plan can create downstream work with visible physician control and no silent partial completion.
+[PROD-171-R004] A missing expected result remains detectable until resolved.
+[PROD-171-R005] A corrected result can reopen affected follow-up.
+[PROD-171-R006] A treatment can remain unable-to-assess when follow-up evidence is missing.
+[PROD-171-R007] An unsupported calculator refuses to guess.
+[PROD-171-R008] AI outage does not remove deterministic closed-loop clinical safety.
+PROD-172 | ACTIVE | 172. V2.0.1 prohibited product behavior
+[PROD-172-R001] Do not present AI suggestion as verified clinical truth.
+[PROD-172-R002] Do not equate missing data with normal/negative.
+[PROD-172-R003] Do not close longitudinal work because an encounter closes.
+[PROD-172-R004] Do not silently choose among contradictory facts.
+[PROD-172-R005] Do not imply causality from temporal association.
+[PROD-172-R006] Do not hide degraded assistance as absence of risk.
+[PROD-172-R007] Do not create unreviewable high-impact autonomous clinical actions.
+[PROD-172-R008] Do not make clinicians feed the system with redundant data merely to maintain internal models.
+PROD-173 | ACTIVE | 173. V2.0.1 product success measures
+[PROD-173-R001] Time to understand Patient Computable State and meaningful delta.
+[PROD-173-R002] Reduction in repeated data entry and information search.
+[PROD-173-R003] Closed-loop completion and reduction in lost follow-up.
+[PROD-173-R004] Rate of unresolved contradictions/missing evidence where clinically relevant.
+[PROD-173-R005] Alert/interruption burden and actionable-signal ratio.
+[PROD-173-R006] Physician ability to identify authority/provenance of important information.
+[PROD-173-R007] Patient action-plan comprehension and barrier resolution where implemented.
+[PROD-173-R008] Clinical safety defects and near misses discovered before production.
+PROD-174 | ACTIVE | 174. V2.0.1 relationship to V2.1.1
+[PROD-174-R001] V2.0.1 defines product/clinical authority for promoted capabilities.
+[PROD-174-R002] V2.1.1 defines their engineering realization, invariants, state machines, safety envelopes, provenance, authorization, reconciliation, replay and validation.
+[PROD-174-R003] The Agent Execution Companion defines how implementation agents must build and verify those requirements.
+[PROD-174-R004] No lower-level artifact may silently redefine the physician-visible product.
+PROD-175 | ACTIVE | 175. V2.0.1 product freeze gate
+[PROD-175-R001] After promotion, every V2.0.1 requirement must map to one or more V2.1.1 engineering requirements or be explicitly marked future/not-yet-engineered.
+[PROD-175-R002] Every physician-visible V2.1.1 PRODUCT-GAP must map back to a V2.0.1 product requirement or remain blocked.
+[PROD-175-R003] Authority conflicts, orphan requirements and ambiguous clinical semantics must be resolved before final documentation freeze.
+PROD-176 | ACTIVE | 176. V2.0.1 freeze marker
+[PROD-176-R001] Sections 114–176 constitute the Product & Clinical Completeness revision.
+[PROD-176-R002] V2.0 remains preserved as the historical frozen baseline; V2.0.1 is the governed successor for product/clinical authority.
+[PROD-176-R003] Next action is bidirectional traceability and normalization across V2.0.1 ↔ V2.1.1 ↔ Agent Execution Companion, followed by executable architecture artifacts rather than continued uncontrolled prose expansion.
+PROD-177 | ACTIVE | 177. V2.0.1 product capability promotion matrix
+Capability
+Product authority
+Physician-visible promise
+Engineering authority
+Patient Computable State 2.0
+V2.0.1
+Clinical state in seconds with uncertainty/delta
+V2.1.1 §§213,241,302+
+Clinical Intent + Goals
+V2.0.1
+Preserve why and desired outcome
+V2.1.1 §§214–215
+Plan Compiler
+V2.0.1
+Decision Once → Propagate Everywhere
+V2.1.1 §§216,257
+Expected Result + Obligations
+V2.0.1
+Zero Lost Follow-Up
+V2.1.1 §§217,308
+Hypothesis + Missing Evidence
+V2.0.1
+Reason without false certainty
+V2.1.1 §§222–223
+Contradiction + Uncertainty
+V2.0.1
+Conflicts/unknowns remain explicit
+V2.1.1 §§224–226
+Treatment Response
+V2.0.1
+Connect intervention to observed response
+V2.1.1 §§218–221
+Clinical Delta + Timeline
+V2.0.1
+What changed?
+V2.1.1 §§229–232
+Truth/Epistemology
+V2.0.1
+Clinical Truthfulness
+V2.1.1 §§303–304
+Attention Budget
+V2.0.1
+Protect clinician attention
+V2.1.1 §§235–236
+Ambient Clinical Layer
+V2.0.1
+Candidate → verify → commit
+V2.1.1 §§237–238
+Explain Why
+V2.0.1
+Traceable recommendations
+V2.1.1 §§239–240,326
+Patient OS 2.0
+V2.0.1
+Action plan + barrier loop
+V2.1.1 §§242–243
+Care Team OS
+V2.0.1
+Accountable team work
+V2.1.1 §§244–247
+Safety Envelope
+V2.0.1
+Refuse unsupported computation
+V2.1.1 §§320,338
+AI Task Model
+V2.0.1
+Bounded, reviewable AI
+V2.1.1 §§321–323,339
+
+PROD-NORM | ACTIVE | Product Authority Namespace Control — V2.0.1
+This control block defines the stable product-authority namespace used for executable traceability. It does not add product functionality and does not supersede the clinical/product meaning of sections PROD-000 through PROD-177.
+PROD-xxx identifies a product/clinical authority section.
+PROD-xxx-Ryyy identifies an atomic normative statement within that section.
+ACTIVE means the requirement is current product authority.
+FUTURE means the requirement is an explicitly future product boundary and is not release authority until promoted through governance.
+SUPERSEDED is reserved for requirements replaced by a newer active requirement; none were assigned automatically in this normalization.
+HISTORICAL is reserved for retained non-current authority; none were assigned automatically in this normalization.
+PRODUCT-GAP is reserved for unresolved physician-visible behavior; none were assigned automatically in this normalization.
+Engineering and execution artifacts must reference these stable IDs rather than bare section numbers.
+A lower-level engineering or execution artifact may constrain implementation but may not silently redefine ACTIVE product behavior.
+
+PROD-FINAL | ACTIVE | Product/Clinical Authority Finalization Gate
+Purpose: close the product-side findings from the normalized triple audit without inventing engineering mappings. This section is governance metadata. It does not add physician-visible functionality and does not alter the meaning of PROD-000 through PROD-177.
+The canonical product authority namespace is PROD-000 through PROD-177 and the atomic requirement namespace is PROD-xxx-Ryyy.
+PROD identifiers are immutable after this finalization. Renumbering is prohibited; future changes use new governed IDs and explicit supersession.
+ACTIVE product requirements are current physician-visible/product authority. FUTURE requirements are non-release boundaries until explicitly promoted.
+No ACTIVE product requirement may be implemented from semantic similarity alone. Downstream mapping must be explicit in the executable traceability registry.
+The product master does not own ENG-* or EXEC-* identifiers. Cross-document mapping belongs to the traceability registry so product meaning cannot be silently rewritten by downstream documents.
+A missing downstream mapping is an implementation/release blocker, not permission to infer one.
+A FUTURE product requirement cannot become ACTIVE because an engineering or execution document discusses, scaffolds, prototypes or tests it.
+Unknown, missing, unverified, inferred, suggested, physician-decided and committed clinical states remain semantically distinct wherever applicable.
+No downstream artifact may weaken Clinical Truthfulness, Explicit Uncertainty, Physician Control or Zero Lost Follow-Up.
+Any physician-visible behavior not authorized by an ACTIVE PROD-* requirement is blocked as PRODUCT-GAP until product governance promotes it.
+Product-side audit closure
+Audit issue
+Product-side resolution
+Status
+Downstream dependency
+Namespace ambiguity
+Stable PROD section and atomic IDs already assigned; renumbering prohibited.
+CLOSED
+None
+Weak/orphan semantic PROD→ENG candidates
+Semantic similarity explicitly prohibited as authority; explicit registry mapping required.
+CLOSED IN PRODUCT
+Traceability registry must map before release
+FUTURE status leakage
+FUTURE cannot be activated by ENG/EXEC discussion, scaffold, prototype or test.
+CLOSED IN PRODUCT
+CI status-compatibility enforcement
+Product meaning drift
+ENG/EXEC may implement or constrain but cannot silently redefine ACTIVE PROD behavior.
+CLOSED
+Cross-authority conflict gate
+Unresolved physician-visible behavior
+Behavior without ACTIVE PROD authority is PRODUCT-GAP and BLOCKED.
+CLOSED
+Governance promotion required
+Final documentation freeze
+Product master is eligible for PRODUCT AUTHORITY FREEZE once integrity checks below pass.
+CLOSED IN PRODUCT
+System-wide freeze remains separate
+Product authority invariants
+PAI-001 — Every ACTIVE physician-visible behavior has at least one ACTIVE PROD authority ID.
+PAI-002 — Every PROD atomic requirement has exactly one parent PROD section.
+PAI-003 — No PROD identifier is duplicated.
+PAI-004 — FUTURE cannot satisfy an ACTIVE release requirement.
+PAI-005 — PRODUCT-GAP cannot be implemented as release-active behavior.
+PAI-006 — Downstream ENG/EXEC conflict cannot override product authority; conflict blocks implementation.
+PAI-007 — Cross-document traceability is explicit and machine-readable; semantic similarity is never release evidence.
+PAI-008 — Product authority changes require explicit versioning, rationale and supersession rather than silent text mutation.
+Product freeze declaration
+PRODUCT AUTHORITY FREEZE: PROD-000 through PROD-177 are the finalized V2.0.1 product/clinical authority baseline. PROD-164 and PROD-166 remain FUTURE and are excluded from release-active scope until governed promotion. This freeze does not claim implementation completion, regulatory certification, clinical validation, security validation, or release readiness. Those require downstream engineering, execution and executable evidence gates.
