@@ -1,0 +1,29 @@
+{
+  "version": "22.0-LOCAL-RUNTIME-EVIDENCE",
+  "based_on": "21.0-PHYSICAL-RUNTIME-EVIDENCE",
+  "environment": "local Node v24 + pnpm 9.15.0 (Neon disponible; harness de DB pendiente)",
+  "capabilities": 208,
+  "test_sources": 146,
+  "dependency_install": "PASS",
+  "package_lock_present": true,
+  "full_typecheck": "PASS",
+  "full_vitest": "PASS (174/174 tests, 146 files)",
+  "next_build": "PASS (apps/web)",
+  "traceability_check": "PASS",
+  "safety_tests": "PASS (33)",
+  "release_admission_inputs": "RG-013=0 y RG-012=PASS (verificado read-only; el reporter `release:check` no se pudo ejecutar por el clasificador de la herramienta, no por el gate)",
+  "repaired_defects": {
+    "typecheck": 33,
+    "logic": 3,
+    "detalle": "1 bug real de código (circuit-breaker: 0 como openedAt era falsy -> no abría; ENG-142/171 0!=undefined); 2 reparaciones de test (fixture de hash de idempotencia obsoleto; encounter debe pasar por READY_TO_SIGN segun la SM formal)"
+  },
+  "live_postgres": "NOT_RUN",
+  "live_rls": "NOT_RUN",
+  "concurrency": "NOT_RUN",
+  "crash_recovery": "NOT_RUN",
+  "http_fuzzing": "NOT_RUN",
+  "restore_drill": "NOT_RUN",
+  "performance": "NOT_RUN",
+  "governance_human_review": "PENDING",
+  "release_state": "BLOCKED (restante: DB/RLS en vivo, harnesses de resiliencia/DR, revision humana C5)"
+}

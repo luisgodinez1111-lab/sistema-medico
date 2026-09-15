@@ -1,0 +1,75 @@
+{
+  "generatedAt": "2026-09-15T19:10:30.461Z",
+  "results": [
+    {
+      "gate": "RG-002",
+      "value": 0,
+      "target": 0,
+      "status": "PASS",
+      "detail": "C4/C5 registry invariant coverage"
+    },
+    {
+      "gate": "RG-003",
+      "value": 0,
+      "target": 0,
+      "status": "PASS",
+      "detail": "Registry invariant→TEST coverage"
+    },
+    {
+      "gate": "RG-006",
+      "value": 0,
+      "target": 0,
+      "status": "PASS",
+      "detail": "Required formal state machines"
+    },
+    {
+      "gate": "RG-008",
+      "value": 0,
+      "target": 0,
+      "status": "PASS",
+      "detail": "High-impact AI task→envelope→eval→kill switch"
+    },
+    {
+      "gate": "RG-011",
+      "value": 0,
+      "target": 0,
+      "status": "PASS",
+      "detail": "Open S0/S1 defects"
+    },
+    {
+      "gate": "RG-013",
+      "value": 5,
+      "target": 0,
+      "status": "BLOCKED",
+      "detail": "Test source integrity + authority binding"
+    },
+    {
+      "gate": "RG-014",
+      "value": 0,
+      "target": 0,
+      "status": "PASS",
+      "detail": "Core hazard→control completeness"
+    },
+    {
+      "gate": "RG-015",
+      "value": 0,
+      "target": 0,
+      "status": "PASS",
+      "detail": "Control→core invariant integrity"
+    },
+    {
+      "gate": "RG-016",
+      "value": 0,
+      "target": 0,
+      "status": "PASS",
+      "detail": "Core invariant executable-contract completeness"
+    },
+    {
+      "gate": "RG-012",
+      "value": "NOT_RUN",
+      "target": "PASS",
+      "status": "BLOCKED",
+      "detail": "Reproducible full safety test execution"
+    }
+  ]
+}

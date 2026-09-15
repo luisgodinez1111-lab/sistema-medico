@@ -1,4 +1,11 @@
 {
-  "status": "NOT_RUN",
-  "reason": "npm install/test exceeded bounded execution window; no PASS claimed."
+  "status": "PASS",
+  "runner": "vitest",
+  "testFiles": 146,
+  "tests": 174,
+  "passed": 174,
+  "failed": 0,
+  "node": "v24.14.0",
+  "at": "2026-09-15T19:12:05.099Z",
+  "env": "local Node+pnpm (real execution, ADR-0210)"
 }
