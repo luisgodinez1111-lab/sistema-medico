@@ -63,12 +63,34 @@ export async function readEncounterEvents(ctx:HttpTenantContext,encounterId:stri
   return rows.map(r=>({sequence:Number(r.sequence),payload:(r.payload??{}) as Record<string,unknown>}));
  }) as Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>;
 }
+// EPIC G — Lector genérico de eventos de un agregado (RLS-scoped, con payload).
+export async function readAggregateEvents(ctx:HttpTenantContext,aggregateId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
+ return readEncounterEvents(ctx,aggregateId);
+}
 // EPIC D — Gate Zero Lost Follow-Up: obligaciones críticas (URGENT) del paciente sin resolver.
 export async function countUnresolvedCriticalObligations(ctx:HttpTenantContext,patientId:string):Promise<number>{
  const sql=getSql();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
   const rows=await tx`select count(*)::int n from clinical_inbox where tenant_id=${ctx.tenantId} and patient_id=${patientId} and priority='URGENT' and resolved_at is null`;
+  return Number(rows[0]?.n??0);
+ }) as Promise<number>;
+}
+// EPIC G — Cierre del loop Zero Lost Follow-Up: resultados diagnósticos CRÍTICOS del paciente que
+// requirieron acción (ACTIONED) y no se han cerrado (sin evento CLOSED). Consulta el event stream
+// directamente (sin proyección), plegando por aggregate_id vía NOT EXISTS.
+export async function countOpenCriticalResults(ctx:HttpTenantContext,patientId:string):Promise<number>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select count(distinct r.aggregate_id)::int n
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult'
+     and r.payload->>'kind'='ACTIONED' and r.payload->>'patientId'=${patientId} and r.payload->>'critical'='true'
+     and not exists(
+      select 1 from clinical_events c
+      where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and c.payload->>'kind'='CLOSED')`;
   return Number(rows[0]?.n??0);
  }) as Promise<number>;
 }

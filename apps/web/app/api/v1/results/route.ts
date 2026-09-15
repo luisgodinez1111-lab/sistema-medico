@@ -1,3 +1,5 @@
-import {NextResponse} from"next/server";
-export async function POST(){return NextResponse.json({error:{code:"AUTH_SESSION_ADAPTER_REQUIRED",message:"Clinical mutation remains closed until verified principal/session integration is active."}},{status:503});}
-export async function GET(){return NextResponse.json({error:{code:"AUTH_SESSION_ADAPTER_REQUIRED",message:"Clinical read remains closed until verified principal/session integration is active."}},{status:503});}
+import{handleResultReceived}from"../../../../lib/result-lifecycle";
+// EPIC G — POST /api/v1/results  (recibir un resultado diagnóstico -> RECEIVED)
+export const runtime="nodejs";
+export const dynamic="force-dynamic";
+export async function POST(req:Request){return handleResultReceived(req);}

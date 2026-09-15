@@ -1,0 +1,15 @@
+{
+  "version": "22.6-EPIC-G-RESULT-CLOSED-LOOP",
+  "based_on": "22.5-EPIC-F-OIDC-VERIFIER",
+  "epic": "G — Closed-loop de resultados diagnosticos + Zero Lost Follow-Up end-to-end",
+  "endpoints_wired": "POST /api/v1/results (RECEIVED); /:id/verification (VERIFIED); /:id/action (ACTIONED, crea obligacion); /:id/closure (CLOSED, resuelve)",
+  "closed_loop": "un resultado CRITICO en ACTIONED sin CLOSED bloquea la firma del encuentro del paciente; cerrarlo la desbloquea. Gate = clinical_inbox URGENT + resultados criticos abiertos, ambos consultados desde el event stream (sin proyeccion, atomico). Reutiliza GRANT clinical_events (0017), sin migracion nueva.",
+  "invariants_enforced": "Zero Lost Follow-Up (probado end-to-end), state machine formal (order-result-domain), Physician Control (role PHYSICIAN), tenant isolation (RLS)",
+  "shared_mold": "apps/web/lib/http-command.ts (derivedUuid/principalFrom/requireMutationHeaders/resolveVerified/buildCommand/parseJson)",
+  "full_typecheck": "PASS",
+  "full_vitest": "PASS (217/217; +8 vs 209)",
+  "next_build": "PASS (4 rutas de resultados = ƒ Dynamic)",
+  "live_closed_loop_proof": "PASS 12/12: RESULT_RECEIVED/VERIFIED/ACTIONED/CLOSED v1-4, RESULT_ACTION_REPLAY_200, RESULT_ILLEGAL_SKIP_409, LOOP_ENCOUNTER_READY, SIGN_BLOCKED_BY_OPEN_CRITICAL_RESULT_403, RESULT_CLOSED_201_v4, SIGN_UNBLOCKED_AFTER_CLOSURE_201, NON_CRITICAL_RESULT_DOES_NOT_BLOCK_201, CROSS_TENANT_RESULT_404, ROLE_FORBIDDEN_403",
+  "governance_human_review": "PENDING (aceptacion C5)",
+  "release_state": "BLOCKED solo por revision humana C5"
+}

@@ -6,7 +6,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
 import{foldEncounter,assertTransition}from"../../../packages/encounter-fold/src";
-import{runClinicalCommand,lookupReplay,readEncounterEvents,countUnresolvedCriticalObligations,sessionSecret}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readEncounterEvents,countUnresolvedCriticalObligations,countOpenCriticalResults,sessionSecret}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 // EPIC D — Ciclo de vida del encuentro sobre el kernel probado: assess (OPEN->READY_TO_SIGN)
 // y sign (READY_TO_SIGN->SIGNED). Concurrencia optimista real (If-Match=version) e invariantes
@@ -82,8 +82,9 @@ export async function handleSignature(req:Request,encounterId:string):Promise<Re
   let result=await lookupReplay(ctx,cmd);
   if(!result){
    assertTransition(folded.status,"SIGNED");
-   // Zero Lost Follow-Up: no se firma con obligaciones críticas del paciente sin resolver.
-   const critical=await countUnresolvedCriticalObligations(ctx,folded.patientId);
+   // Zero Lost Follow-Up: no se firma con obligaciones críticas del paciente sin resolver,
+   // ni con resultados diagnósticos críticos que requirieron acción y no se han cerrado.
+   const critical=await countUnresolvedCriticalObligations(ctx,folded.patientId)+await countOpenCriticalResults(ctx,folded.patientId);
    if(critical>0)throw new ClinicalError("SAFETY_BLOCKED",`Cannot sign: ${critical} unresolved critical obligation(s)`);
    result=await runClinicalCommand(ctx,cmd);
   }
