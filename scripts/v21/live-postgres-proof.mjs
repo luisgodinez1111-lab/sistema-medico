@@ -7,7 +7,7 @@ try{
  const v=await sql`select version() as version`;result.postgres=v[0].version;
  const tables=await sql`select table_name,column_name from information_schema.columns where table_schema='public'`;
  const map={};for(const r of tables)(map[r.table_name]??=[]).push(r.column_name);
- for(const [t,cols] of Object.entries({aggregate_versions:["tenant_id","aggregate_id","version"],clinical_events:["tenant_id","aggregate_id","sequence"],outbox:["tenant_id","id","state"],command_idempotency:["tenant_id","actor_id","idempotency_key"]})){
+ for(const [t,cols] of Object.entries({aggregate_versions:["tenant_id","aggregate_id","version"],clinical_events:["tenant_id","aggregate_id","sequence"],outbox:["tenant_id","id","state"],command_idempotency:["tenant_id","actor_id","key"]})){
   if(!map[t])throw Error("MISSING_TABLE:"+t);for(const c of cols)if(!map[t].includes(c))throw Error("MISSING_COLUMN:"+t+"."+c);result.checks.push("SCHEMA:"+t)
  }
  const roles=await sql`select rolname,rolsuper,rolbypassrls from pg_roles where rolname in ('medical_os_runtime','medical_os_worker','medical_os_readonly')`;

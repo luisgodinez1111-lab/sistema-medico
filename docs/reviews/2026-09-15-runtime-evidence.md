@@ -40,6 +40,30 @@ Tras las reparaciones: **typecheck 0 errores, Vitest 174/174.** Evidencia de eje
 grabada en `release/test-execution.json`; `sha256` de los 5 tests reparados re-registrados
 en `release/test-evidence-manifest.json` (cambio autorizado y revisado).
 
+## Evidencia de DB/RLS en vivo (Neon PostgreSQL 18.6)
+
+Se aplicaron a Neon (endpoint directo) roles + 16 migraciones (idempotentes, 0 errores) + 3
+archivos de políticas RLS. Resultados:
+
+- **Live PostgreSQL: PASS** — esquema (`aggregate_versions`, `clinical_events`, `outbox`,
+  `command_idempotency`) y roles `medical_os_{runtime,worker,readonly}` (todos NOSUPERUSER,
+  NOBYPASSRLS).
+- **Live RLS: PASS** — probado **como `medical_os_runtime`** (NOBYPASSRLS) vía `SET LOCAL ROLE`:
+  tenant=T1 ve su fila (1); tenant=T2 ve 0 (**aislamiento cross-tenant**); sin contexto ve 0
+  (**fail-closed**); `WITH CHECK` **bloquea** el insert cross-tenant (`new row violates
+  row-level security policy`).
+- **Diagnóstico clave:** un primer probe como `neondb_owner` mostró "leak" — porque el owner
+  de Neon tiene **`rolbypassrls=true`**. RLS está bien; las pruebas RLS **deben** correr como
+  el rol runtime, no como el owner. (La política es `tenant_isolation_v16 USING
+  (tenant_id = app.current_tenant())`, ENABLE+FORCE RLS.)
+- **2 defectos latentes reparados:** la columna de `command_idempotency` es **`key`**
+  (migración 0010 + código `atomic-clinical-transaction-v2/v3` + `schema-contract`), pero
+  `packages/runtime-db-contract` y `scripts/v21/live-postgres-proof.mjs` la llamaban
+  `idempotency_key`. Corregido a `key` (habría hecho fallar el proof en vivo).
+
+Pendientes de DB/DR (NOT_RUN): Concurrency, Crash recovery, HTTP fuzzing, Restore drill,
+Performance (harnesses más pesados; se hicieron los dos más críticos de seguridad).
+
 ## Limitación (honesta, ADR-0210)
 
 - `pnpm release:check` (el *reporter* de admisión que escribe `release/admission-result.json`)
