@@ -8,7 +8,8 @@ import{ClinicalError}from"../../runtime-errors/src";
 export type Purpose=SessionClaims["purpose"];
 // Un verificador toma una credencial opaca (token OIDC, aserción del IdP, …) y devuelve una
 // identidad verificada, o lanza. La verificación real (firma/JWKS/expiración) vive en el adapter.
-export type IdentityVerifier=(credential:unknown)=>VerifiedIdentity;
+// Puede ser asíncrona (OIDC valida contra el JWKS remoto del proveedor).
+export type IdentityVerifier=(credential:unknown)=>VerifiedIdentity|Promise<VerifiedIdentity>;
 
 // Acuña una sesión medical-os de vida corta a partir de una identidad verificada.
 export function issueSession(v:VerifiedIdentity,sessionSecret:string,opts:{now:number;ttlSeconds:number;sessionId:string;purpose?:Purpose}):Readonly<{token:string;sessionId:string;expiresAt:number}>{
@@ -20,7 +21,7 @@ export function issueSession(v:VerifiedIdentity,sessionSecret:string,opts:{now:n
 
 // Verificador de DESARROLLO: un "IdP" de pruebas que firma aserciones de identidad con SU PROPIO
 // secreto (separado del de sesión). Nunca debe habilitarse en producción (lo decide la capa app).
-export function devIdentityVerifier(idpSecret:string,now:number):IdentityVerifier{
+export function devIdentityVerifier(idpSecret:string,now:number):(credential:unknown)=>VerifiedIdentity{
  return(credential:unknown)=>{
   if(!idpSecret)throw new ClinicalError("DEPENDENCY_UNAVAILABLE","Dev identity secret not configured");
   const c=credential as{assertion?:unknown};
