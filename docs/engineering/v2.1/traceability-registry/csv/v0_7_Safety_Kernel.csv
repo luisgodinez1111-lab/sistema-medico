@@ -1,0 +1,7 @@
+Capability,Authority,v0.6,v0.7,Executable Oracle,Release State
+Zero Lost Follow-Up,ENG-308/311/337,Formal contract,IMPLEMENTED KERNEL,Illegal completion + escalation tests,BLOCKED pending run/review
+Epistemic Truth Promotion,ENG-303/304/305/324,Formal contract,IMPLEMENTED KERNEL,AI decision + illegal promotion tests,BLOCKED pending run/review
+Corrected Result DAG,ENG-312/313/342,Pending,IMPLEMENTED KERNEL,Immutable lineage + monotonic version tests,BLOCKED pending run/review
+Replay,ENG-312,Pending,IMPLEMENTED KERNEL,As-of reconstruction test,BLOCKED pending run/review
+Patient Impact,ENG-313,Pending,IMPLEMENTED KERNEL,Affected patient/version test,BLOCKED pending run/review
+Reconciliation,ENG-311/337,Contract,IMPLEMENTED KERNEL,Owner + S1 fail-closed tests,BLOCKED pending run/review

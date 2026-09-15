@@ -1,0 +1,8 @@
+Defect / Finding,Severity,Why it was dangerous,v17 disposition
+DEF-V17-001,S1,v16 atomicClinicalWriteV2 executed multiple SQL statements but did not open/own sql.begin; partial commits were possible depending on caller usage.,REPAIRED: V3 owns transaction callback
+Historical V2 runtime,S1-RETIRED,Old non-atomic implementation remains in repository and could be accidentally imported.,Production import guard added; retained only as historical evidence
+release_evidence redeclaration,S2-HISTORICAL,Same table name appeared with incompatible historical definitions.,"Detected by schema compiler; historical migrations frozen, no silent rewrite"
+projection_checkpoints redeclaration,S2-HISTORICAL,Same table name appeared with incompatible shapes.,Detected; canonical projection_aggregate_checkpoints remains authority
+Calculation receipt determinism,S2,JSON.stringify and wall-clock could destabilize hashes/replay.,REPAIRED: canonical JSON + injectable ClinicalClock
+Patient-state determinism,S2,new Date() inside deterministic composer damaged replay reproducibility.,REPAIRED: injectable ClinicalClock
+Legacy logger PHI coverage,S2,Older logger only redacted generic secrets.,REPAIRED: delegates recursively to secure-logger

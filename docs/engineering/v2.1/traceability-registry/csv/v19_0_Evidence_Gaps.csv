@@ -1,0 +1,13 @@
+Open proof,Current state,Why it still blocks a real release
+Dependency-backed typecheck/Vitest/Next,NOT_RUN,Source tests are not equivalent to compiled/executed application
+Live PostgreSQL migrations,NOT_RUN,Static SQL cannot prove actual migration/runtime behavior
+Live RLS adversarial suite,NOT_RUN,Tenant isolation must be proven against PostgreSQL roles
+Real concurrency races,NOT_RUN,Model checking does not prove driver/database scheduling behavior
+Mutation engine,NOT_RUN,Mutation sentinel exists but real mutants have not executed
+HTTP fuzzing,NOT_RUN,Boundary functions do not prove Next/runtime parser behavior
+Restore drill,NOT_RUN,Restore verifier source is not a restored database
+Performance/load,NOT_RUN,No p95/p99 production-like benchmark evidence
+Supply-chain lock/SBOM,OPEN,Installed dependency graph/integrity not established
+Human C5 review,PENDING,Machine evidence cannot self-approve clinical safety
+RG-001 mappings,BLOCKED,115 PROD→ENG and 202 ENG→EXEC remain unresolved
+AI reconciliation,PENDING,118 historical candidates remain under human review

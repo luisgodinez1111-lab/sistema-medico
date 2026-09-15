@@ -1,0 +1,18 @@
+Layer,Major v15 implementation,Safety / performance property,Evidence state
+Clinical Truth,Typed OBSERVED/DERIVED/INFERRED/RECOMMENDED/DECIDED + explicit UNKNOWN,Unknown cannot become normal; derived truth needs provenance,SOURCE + CONFORMANCE PASS
+Identity,"Verified identity boundary with expiry, tenant, roles and scopes",Expired/incomplete identity fails closed,SOURCE + CONFORMANCE PASS
+Command authority,Typed command bus + expectedVersion + idempotency key,No unversioned clinical mutation,SOURCE + CONFORMANCE PASS
+Atomicity,State/Event/Audit/Outbox/Idempotency authority boundary,No partial clinical truth,SOURCE + CONFORMANCE PASS
+Outbox,SQL SKIP LOCKED claim + bounded retry/jitter design,Concurrent workers do not require global serialization,SOURCE + CONFORMANCE PASS
+Projection,Hashed checkpoints,Replay divergence is detectable,SOURCE + CONFORMANCE PASS
+Correction,Dependency traversal from corrected artifact to actioned descendants,Corrections propagate to patient-impact review,SOURCE + CONFORMANCE PASS
+Obligations,Explicit lifecycle supervisor,Invalid transitions blocked,SOURCE
+AI,Bounded authority gate,AI cannot ORDER/PRESCRIBE/SIGN/CLOSE_CRITICAL,SOURCE + CONFORMANCE PASS
+Policy,Effective-dated priority selection,No policy/conflict fails closed,SOURCE + CONFORMANCE PASS
+Consent,Effective interval runtime,Purpose-specific consent required,SOURCE
+Break glass,Reason/expiry + audit/notification/review,Emergency access remains reviewable,SOURCE + CONFORMANCE PASS
+Audit,SHA-256 chained append-only ledger v2,Mutation forbidden; chain verifiable,SOURCE + SQL PASS
+Restore,Hash/schema/audit/tenant-isolation verifier,Unsafe restore cannot be admitted,SOURCE + CONFORMANCE PASS
+Performance,Explicit p95/error-rate budgets,Performance becomes release property,SOURCE
+Chaos,9 clinical failure scenarios,Failure testing becomes first-class,SOURCE + CONFORMANCE PASS
+Reproducibility,Dockerfile + compose + devcontainer + CI + env contract,Same runtime can be recreated externally,SOURCE; NOT EXECUTED HERE

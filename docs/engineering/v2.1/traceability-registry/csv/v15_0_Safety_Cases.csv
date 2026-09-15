@@ -1,0 +1,6 @@
+Safety Case,Risk,Hazards / focus,Controls,Human state
+SC-V15-ATOMIC,C5,Partial clinical truth; lost async consequence,Single transaction; transactional outbox; idempotency,PENDING
+SC-V15-TENANT,C5,Cross-tenant disclosure/mutation,FORCE RLS; tenant context; NOBYPASSRLS target,PENDING
+SC-V15-CORRECTION,C5,Obsolete result drives care; cycles,Immutable edge; impact graph; reconciliation,PENDING
+SC-V15-OUTBOX,C5,Lost/duplicate/poison delivery,SKIP LOCKED; receipt; retry+jitter; DLQ,PENDING
+SC-V15-SIGNED,C5,Silent signed-chart mutation,Append-only store; audit chain; amendment path,PENDING

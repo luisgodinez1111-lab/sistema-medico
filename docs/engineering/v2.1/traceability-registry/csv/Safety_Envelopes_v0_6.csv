@@ -1,0 +1,4 @@
+Envelope,Task Class,Risk,Supported,Exclusions,Failure,Human Approval,Kill Switch,Evidence
+SE-0001,CLINICAL_SUMMARY,C4,summarize existing chart context; surface provenance,autonomous diagnosis; autonomous medication change; silent chart mutation,ABSTAIN,True,True,True
+SE-0002,CLINICAL_SUGGESTION,C5,structured differential suggestions; missing-evidence prompts,irreversible action; silent truth promotion; unsourced recommendation,SAFETY_BLOCKED,True,True,True
+SE-0003,DOCUMENT_DRAFTING,C3,draft note; draft patient instructions,signing; final chart commit without explicit action,ABSTAIN,True,True,False

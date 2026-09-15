@@ -1,0 +1,5 @@
+Artifact,Authority,Tests,Reviewer,Evidence State,Release
+clinical-obligation-machine,"ENG-308, ENG-311, ENG-337",obligation.test.ts,PENDING_HUMAN_REVIEW,source+test generated; execution pending,BLOCKED
+epistemic-truth-kernel,"ENG-303, ENG-304, ENG-305, ENG-324",epistemic-truth.test.ts,PENDING_HUMAN_REVIEW,source+test generated; execution pending,BLOCKED
+corrected-result-dag,"ENG-312, ENG-313, ENG-342","corrected-result.test.ts, replay-impact.test.ts",PENDING_HUMAN_REVIEW,source+tests generated; execution pending,BLOCKED
+reconciliation-kernel,"ENG-311, ENG-337",reconciliation.test.ts,PENDING_HUMAN_REVIEW,source+test generated; execution pending,BLOCKED

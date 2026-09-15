@@ -1,0 +1,13 @@
+Runtime Contract,Guarantee,Failure Behavior,State
+Conditional mutation,If-Match/ETag required,Missing/stale version → reject,IMPLEMENTED
+Projection freshness,Staleness explicit,Stale clinical read → block by default,IMPLEMENTED
+FHIR R5,Pinned 5.0.0 + allowlist + UNVERIFIED ingest,Unsupported/untrusted → no promotion,IMPLEMENTED
+Calculation receipt,Full clinical status enum + input hash,Unknown never coerced to value,IMPLEMENTED
+Degraded-safe mode,AI/terminology/notifications/analytics isolated,Core clinical write remains available,IMPLEMENTED
+Worker supervision,Heartbeat/dead-letter health,Stale/degraded worker visible,IMPLEMENTED
+Load shedding,Clinical critical requests prioritized,Noncritical work rejected under saturation,IMPLEMENTED
+Consent,Runtime scope/status/expiry,Revoked/expired → reject,IMPLEMENTED
+Export,Authorization + minimum necessary + encryption,Unsafe export → reject,IMPLEMENTED
+Audit anchor,Partition hash anchor,Tampering detectable across partitions,IMPLEMENTED CORE
+Retention,Legal hold/clinical-record aware,Clinical records fail-safe retain,IMPLEMENTED CORE
+Lineage,Source→derived transform/version graph,Cycle/depth bounded,IMPLEMENTED CORE

@@ -1,0 +1,7 @@
+Area,v0.8,v0.9,Release Meaning
+AI-TASK catalog,0 effective tasks,5 canonical bounded tasks,Gap corrected from explicit ENG-266/320/321/322/323/338/339 authority
+AI bindings,0,5 task→Safety Envelope bindings,RG-008 is now mechanically measurable
+AI eval suites,Absent,5 eval contracts,Every task has named evaluation suite
+AI Task schema,Partial,Executable Zod Task Card,Task configuration is machine validated
+Test execution,NOT_RUN,NOT_RUN,No PASS is claimed without reproducible execution evidence
+Release admission,Executable policy,BLOCKED,RG-012 blocks until tests execute successfully

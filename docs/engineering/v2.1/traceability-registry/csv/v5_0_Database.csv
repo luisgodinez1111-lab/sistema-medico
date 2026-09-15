@@ -1,0 +1,9 @@
+Object,Mechanism,Clinical Purpose,Validation State
+patients,Version + tenant key,Longitudinal patient authority,SQL STRUCTURAL CHECK
+clinical_events,Unique aggregate sequence,Immutable event ordering,SQL STRUCTURAL CHECK
+outbox,Partial index pending/retry,Reliable async publication,SQL STRUCTURAL CHECK
+obligations,Due-state partial index,Zero Lost Follow-Up scan,SQL STRUCTURAL CHECK
+encounters,Legal state constraint,Encounter lifecycle persistence,SQL STRUCTURAL CHECK
+diagnostic_results,Open-result partial index,Closed-loop result work queue,SQL STRUCTURAL CHECK
+medications,Lifecycle state constraint,Medication state persistence,SQL STRUCTURAL CHECK
+RLS policies,app.tenant_id boundary,Cross-tenant defense-in-depth,DEFINED / DB EXECUTION PENDING

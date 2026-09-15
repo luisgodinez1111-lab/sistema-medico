@@ -1,0 +1,10 @@
+Path,Artifact,Purpose,Generation State
+traceability/requirements.json,PROD↔ENG↔EXEC registry,Canonical cross-authority mapping after adjudication,GENERATED-DRAFT
+traceability/adjudication.json,ADR mapping decisions,Human/governance resolution of ambiguous mappings,GENERATED
+safety/invariants.json,INV-*,Safety/semantic invariants,GENERATED-DRAFT
+safety/hazards.json,HAZ-*,Hazard/control registry,GENERATED-DRAFT
+state-machines/state_machines.json,SM-*,Formal lifecycle/state contracts,GENERATED-DRAFT
+ai-tasks/ai_tasks.json,AI-TASK-*,Bounded AI task contracts,GENERATED-DRAFT
+tests/contracts.json,TEST-*,Executable test contracts,GENERATED-DRAFT
+release/admission.json,RG-*,Fail-closed release gates,GENERATED
+AGENTS.md,Execution router,Concise agent authority router; do not embed full Companion,GENERATED

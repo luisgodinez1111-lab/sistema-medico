@@ -1,0 +1,10 @@
+Decision,Why,Engineering Consequence
+Modular monolith first,Avoid premature distributed-system failure modes,Strong transaction boundary today; service extraction seams preserved
+Postgres as clinical source of truth,Transactional correctness and mature constraints,Normalized projections + append-only events + outbox
+Optimistic concurrency,Prevent lost clinical updates,Version conflict becomes explicit failure
+Transactional outbox,State/event atomicity at boundary,No silent async loss; retries/dead-letter/reconciliation
+Purpose-of-use security,Role alone is insufficient in healthcare,Tenant + role + clinical purpose are enforced
+Tamper-evident audit,"Audit logs must be evidence, not debug text",Hash-chain verification detects modification
+Progressive clinical delivery,A feature flag alone is unsafe,DISABLED/SHADOW/CANARY/ENABLED with evidence
+Capability SLO rollback,Availability is not the only health metric,Clinical safety metric can force rollback
+AI gateway isolation,Model providers must never own clinical authority,AI remains bounded behind task/envelope/action authority

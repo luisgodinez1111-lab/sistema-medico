@@ -1,0 +1,10 @@
+Dimension,Scale / implementation,What is now demonstrated,What is NOT demonstrated
+RLS adversary model,"1,000,000 probes",Fail-closed logical oracle across missing/cross-tenant/bypass cases,Real PostgreSQL RLS/role behavior
+Crash recovery model,"250,000 fault phases",Expected recovery semantics across transaction/worker phases,Real DB/worker crash recovery
+Clinical sequence oracle,"50,000 generated streams",Sequence/post-sign mutation detection model,Production event stream behavior
+Runtime proof ledger,Append-only chained proof contract,Evidence classes cannot be silently conflated,Live DB ledger execution
+Claim evidence binder,SOURCE/MODEL/RUNTIME/HUMAN strength separation,MODEL_PASS cannot close runtime-required claim,Human/runtime evidence itself
+Exactly-once envelope,Receipt + lease + fencing authority,Stale/duplicate delivery logic is explicit,Broker/DB side effects in production
+Schema drift gate,Expected vs actual contract comparator,Missing tables/columns can block admission,Live introspected PostgreSQL schema
+Build attestation,commit/tree/toolchain/lock/source/command hashes,Required evidence structure defined,Actual lockfile build attestation
+Release Admission V6,13 independent proof dimensions,Any missing dimension keeps release BLOCKED,Production admission

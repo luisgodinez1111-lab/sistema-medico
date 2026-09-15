@@ -1,0 +1,9 @@
+Safety Case Layer,Requirement,Machine-Enforced?,Failure Semantics
+Authority,Explicit canonical ENG authority,YES,BLOCK capability
+Hazard,C4/C5 hazard case required,YES,BLOCK capability
+Control,All referenced controls must exist,YES,BLOCK capability
+Invariant,All referenced invariants must exist,YES,BLOCK capability
+Test Source,Exact source + SHA256 + authority,YES,BLOCK capability
+Execution,Reproducible test PASS evidence,YES,BLOCK capability
+Defects,No unresolved S0/S1 for capability,YES,BLOCK capability
+Evidence Bundle,Versioned safety dossier per capability,YES,BLOCK release claim

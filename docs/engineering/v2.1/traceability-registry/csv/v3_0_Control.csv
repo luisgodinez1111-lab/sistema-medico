@@ -1,0 +1,10 @@
+Metric,v2.0,v3.0,Status
+Capability units,5,12,EXPANDED
+Test sources,13,21,EXPANDED
+Platform primitives,0,9,IMPLEMENTED
+Architecture self-check,PASS,PASS,EXECUTED
+Distributed architecture,Not decided,Modular monolith first + extraction seams,DECIDED
+Async reliability,Reconciliation contracts,Outbox + idempotency + dead-letter + reconciliation,IMPLEMENTED CORE
+Tenant security,Conceptual,Executable tenant/purpose/role guard,IMPLEMENTED CORE
+Audit evidence,Hash evidence bundles,Tamper-evident runtime audit chain,IMPLEMENTED CORE
+Release state,BLOCKED,BLOCKED,Correct until full execution + safety cases complete

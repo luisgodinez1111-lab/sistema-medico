@@ -1,0 +1,13 @@
+Metric,v9.0,v10.0,Status
+Capabilities,65,79,EXPANDED
+Test sources,66,74,EXPANDED
+Runtime contracts,Partial,20 new runtime/security/interop primitives,EXPANDED
+HTTP concurrency,Aggregate only,ETag/If-Match boundary,IMPLEMENTED
+FHIR,Shallow allowlist,Explicit R5 5.0.0 trust boundary,HARDENED
+Clinical calculation statuses,Partial,11-state receipt + input hash,HARDENED
+Degraded operation,AI safe concept,Capability-level degraded mode,IMPLEMENTED
+Worker operability,Reconciliation,Heartbeat supervision + load shedding,EXPANDED
+v10 structural self-check,N/A,PASS,EXECUTED
+Runtime conformance,14 prior,PASS,EXECUTED 16 checks
+Full Vitest/Postgres,NOT_RUN,NOT_RUN,Toolchain dependencies unavailable
+Production release,BLOCKED,BLOCKED,RG-001/defects/AI review/live DB/full suite/human safety review remain

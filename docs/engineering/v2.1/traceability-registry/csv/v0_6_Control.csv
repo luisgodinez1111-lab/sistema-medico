@@ -1,0 +1,9 @@
+Control,v0.5,v0.6,Interpretation
+Formal result lifecycle,Scaffold,FORMALIZED,Explicit states/transitions + illegal transition test
+Formal medication lifecycle,Scaffold,FORMALIZED,Explicit states/transitions + illegal transition test
+Zero Lost Follow-Up machine,Catalog draft,FORMAL CONTRACT,Exact implementation still pending
+Epistemic truth promotion,Catalog draft,FORMAL CONTRACT,Exact implementation still pending
+AI Safety Envelopes,Schema only,3 concrete envelopes,C4/C5 human authority + kill switch + evidence enforced
+Explicit missing/unsupported semantics,Type declaration,Executable union + test,Cannot silently coerce to reassuring value
+Release evidence,Policy,Evidence schema,Absent evidence remains BLOCKED
+Global release state,BLOCKED,BLOCKED,Correct: implementation/evidence and authority adjudication are not complete

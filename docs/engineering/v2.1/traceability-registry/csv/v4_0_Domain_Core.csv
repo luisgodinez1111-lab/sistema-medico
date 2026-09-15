@@ -1,0 +1,11 @@
+Domain,Capability,Executable Rules,Persistence/Boundary,Release
+Patient,CAP-PATIENT-001,Versioned aggregate; duplicate create rejected,patients table,BLOCKED safety case
+Encounter,CAP-ENCOUNTER-001,Legal lifecycle; signed encounter cannot reopen,encounter package,BLOCKED safety case
+Problem Graph,CAP-PROBLEM-GRAPH-001,Typed epistemic nodes/edges + provenance,graph boundary,BLOCKED safety case
+Orders/Results,CAP-ORDER-RESULT-001,Closure evidence + correction lineage,event/outbox compatible,BLOCKED safety case
+Medication,CAP-MEDICATION-002,Physician-only prescribe; change reason,domain authority,BLOCKED safety case
+Obligations,CAP-OBLIGATION-002,Owner/due/overdue/completion evidence,obligations table/index,BLOCKED safety case
+Consent,CAP-CONSENT-001,Granted/revoked/expiry enforcement,purpose boundary,BLOCKED safety case
+FHIR,CAP-FHIR-001,Allowlist + unverified→validated trust,interop firewall,BLOCKED safety case
+Calculation,CAP-CALC-001,Versioned deterministic algorithms; explicit invalid status,calculation receipt,BLOCKED safety case
+Workflow,CAP-WORKFLOW-001,Owner + bounded retries/failure,durable workflow seam,BLOCKED safety case

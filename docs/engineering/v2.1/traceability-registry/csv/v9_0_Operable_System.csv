@@ -1,0 +1,11 @@
+Engineering Boundary,Implemented Guarantee,Why It Matters Clinically,Evidence
+Atomic write,State/event/outbox/audit contract,Prevents clinically meaningful partial writes,Executable source + conformance
+Aggregate store,Expected version + monotonic sequence,Prevents silent concurrent overwrite,Executable source
+Projection rebuild,Gap detection,Rebuild cannot silently skip clinical events,Executable source
+Access decision,Tenant/role/scope/purpose/consent + policy version,Access is explainable and reproducible,Executable source
+Break glass,Reason/expiry/review required,Emergency access remains accountable,Executable source
+Signed record,Content hash + signer + signature digest,Signed chart mutation becomes detectable,Executable source
+Policy provenance,Effective-dated single applicable policy,Historical decisions retain policy context,Executable source
+AI reconciliation,118 historical candidates remain review-pending,No false claim that 5 categories resolved backlog,Explicit blocker
+Backup/restore,Hash/schema/tenant/audit admission,Restore cannot silently weaken clinical integrity,Executable source
+Safety case,HAZ→CTL→INV→TEST→evidence→human approval,C5 release is evidence-bound,Executable source

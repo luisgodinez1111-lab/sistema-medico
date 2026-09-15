@@ -1,0 +1,10 @@
+Layer,Artifact,Implemented Behavior,Safety Boundary,State
+Web,Next.js application shell,Dashboard + health route + patient route seam,No direct clinical DB mutation,IMPLEMENTED FOUNDATION
+Application,PatientService,Tenant/role/scope/purpose checked before domain mutation,Application authorization,IMPLEMENTED
+Persistence,Repository + Unit of Work,Optimistic concurrency + rollback seam,Lost-update prevention,IMPLEMENTED CORE
+Database,Postgres migrations + RLS,"Clinical tables, indexes, row-level tenant policies",Defense in depth,IMPLEMENTED BASELINE
+Worker,Outbox worker,Delivered/retry/dead-letter behavior,No silent async loss,IMPLEMENTED CORE
+Resilience,Circuit breaker + retry,Dependency failure containment,Explicit CIRCUIT_OPEN,IMPLEMENTED CORE
+Abuse,Token bucket,Burst limiting,Resource protection,IMPLEMENTED CORE
+Operability,Health + structured logger,Readiness/liveness + secret redaction,No secret-bearing logs,IMPLEMENTED CORE
+Telemetry,Trace/span primitive,Correlation seam,Capability-aware telemetry target,IMPLEMENTED CORE

@@ -1,0 +1,9 @@
+Stage,Implementation,Failure Semantics,Evidence
+Principal,AuthZ contract preserved,No principal → mutation unavailable,API routes fail 503
+Encounter,EncounterService,Illegal transition/authority → BLOCK,Vitest source + structural evidence
+Postgres,Tenant transaction adapter,RLS context + optimistic conflict,Adapter implemented; live DB pending
+Result,ResultService,Cannot action wrong state,Creates obligation seam
+Follow-up,ObligationService,Owner/evidence required; overdue explicit,Zero Lost Follow-Up core
+Async,Outbox + reconciliation,Dead letter → S1 escalation,Runtime reconciliation code
+Patient State,Projection engine,Counters never silently negative,Projection implementation
+Runtime safety,Dependency-free conformance harness,Critical law failure → nonzero exit,PASS

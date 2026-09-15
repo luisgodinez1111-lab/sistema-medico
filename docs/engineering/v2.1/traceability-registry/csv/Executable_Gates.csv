@@ -1,0 +1,10 @@
+Gate,Target,v0.3 Result,Status,Interpretation
+Gate,Target,v0.3 Result,Status,Interpretation
+C4/C5 ENG without INV,0,0,PASS-REGISTRY,Every detected C4/C5 ENG authority now has an invariant contract.
+C4/C5 ENG without TEST contract,0,0,PASS-REGISTRY,Every detected C4/C5 ENG authority now has a test contract.
+AI-domain ENG without AI-TASK,0,0,PASS-REGISTRY,AI-domain engineering authority has a bounded AI Task draft.
+State/follow-up/med/diagnostic without SM,0,0,PASS-REGISTRY,State-bearing domains have a state-machine contract placeholder.
+Mappings marked REVIEW_REQUIRED,0,See PROD_to_ENG_Reviewed + ENG_to_EXEC_Reviewed,BLOCKED,Ambiguous mappings are not guessed; they remain explicit blockers until authority review.
+Executable test implementations,All required,Contracts generated; code not yet present,BLOCKED,"TEST-* is specification, not proof of passing code."
+Critical async reconciliation,All critical async,Contract requirement present; exact workflow enumeration pending,BLOCKED,Must be proven per SM/workflow.
+S0/S1 unresolved,0,No code defect registry yet,BLOCKED,Cannot prove before implementation/testing.

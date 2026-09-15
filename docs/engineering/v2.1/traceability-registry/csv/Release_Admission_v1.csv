@@ -1,0 +1,12 @@
+Gate ID,Release Gate,Target,Current State,Authority,Failure Semantics
+RG-001,Open mapping adjudications,0,0,TRL-004,BLOCKED
+RG-002,C4/C5 without invariant contract,0,0,TRL-006,BLOCKED
+RG-003,C4/C5 without test contract,0,0,TRL-006,BLOCKED
+RG-004,Artifact packets without owner,0,0,Execution authority,BLOCKED
+RG-005,Artifact packets without evidence URI,0,0,Execution authority,BLOCKED
+RG-006,Critical state machines without enumerated transitions,0,PENDING,TRL-007,BLOCKED
+RG-007,Critical async without reconciliation test,0,PENDING,TRL-007,BLOCKED
+RG-008,High-impact AI without approved AI-TASK/Safety Envelope,0,PENDING,TRL-008,BLOCKED
+RG-009,FUTURE authority in ACTIVE release,0,0,TRL-005,BLOCKED
+RG-010,Unresolved SPEC_CONFLICT,0,0,TRL-012,BLOCKED
+RG-011,Unresolved S0/S1 defects,0,NOT YET MEASURABLE,Release authority,BLOCKED

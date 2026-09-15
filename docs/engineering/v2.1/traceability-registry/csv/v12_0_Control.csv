@@ -1,0 +1,16 @@
+Metric,v11.0,v12.0,Status
+Capabilities,91,103,FOCUSED EXPANSION
+Test sources,82,93,EXPANDED
+Golden Slice,Integrated contract,Executable domain/runtime core,MAJOR ADVANCE
+PostgreSQL adapter,Session statements only,Transaction adapter with scoped DB context,SOURCE IMPLEMENTED
+Safe tenant helper,Direct current_setting cast,NULLIF current_setting helper,HARDENED
+Outbox,Lease semantics,Lease/backoff/dead-letter + persistent columns,HARDENED
+Idempotency,Runtime semantics,Actor-scoped persistent schema + command admission,HARDENED
+Corrected results,DAG primitive,Runtime DAG + persistent correction lineage,HARDENED
+Patient impact,Graph primitive,Executable artifact/version impact discovery,HARDENED
+TS config,Packages/tests only,Packages/tests/apps TSX + DOM + react-jsx,BUILD PREPARED
+v12 self-check,N/A,PASS,EXECUTED
+Runtime conformance,12 checks,PASS,EXECUTED 16 checks
+SQL static check,Static evidence,PASS,EXECUTED
+Full Vitest/Postgres,NOT_RUN,NOT_RUN,No fabricated evidence
+Production release,BLOCKED,BLOCKED,RG-001 + defects + AI reconciliation + C5 human review + full suite + live DB

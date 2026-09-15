@@ -1,0 +1,12 @@
+Metric,v4.0,v5.0,Status
+Capabilities,22,29,EXPANDED
+Test sources,31,39,EXPANDED
+Application/runtime packages,Domain only,Config/logger/health/repository/UoW/authz/rate-limit/resilience/telemetry/crypto/API/query,IMPLEMENTED CORE
+Web application,None,Next.js executable shell,IMPLEMENTED FOUNDATION
+Worker runtime,None,Outbox worker seam,IMPLEMENTED FOUNDATION
+SQL migrations,1,2,EXPANDED
+RLS,None,Tenant policies defined,DEFINED; DB EXECUTION PENDING
+v5 structural self-check,N/A,PASS,EXECUTED
+SQL structural check,N/A,PASS,EXECUTED
+Full dependency test suite,NOT RUN,NOT_RUN,No PASS claimed without actual execution
+Production release,BLOCKED,BLOCKED,Safety cases/runtime integration still incomplete

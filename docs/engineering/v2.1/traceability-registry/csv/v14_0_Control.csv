@@ -1,0 +1,17 @@
+Metric,v13.0,v14.0,Status
+Capabilities,109,119,EXPANDED TO ATOMIC CORE
+Test sources,98,106,EXPANDED
+Atomic write,Contractual,SQL transaction implementation source,HARDENED
+Persistent idempotency,Partial schema,Dedicated actor-scoped table,HARDENED
+Signed records,Value + prior table,Dedicated append-only version store + trigger,HARDENED
+Reconciliation,Runtime finding,Persistent owned findings,HARDENED
+Defect gate,NOT_ASSESSED blocker,Executable attestation gate,HARDENED
+Evidence states,Partial,Explicit six-state evidence model,HARDENED
+v14 self-check,N/A,PASS,EXECUTED
+Atomicity conformance,N/A,PASS,EXECUTED 16 checks
+SQL static,N/A,PASS,EXECUTED
+Dependency install,TIMEOUT previously,INTERRUPTED_BY_RUNTIME_LIMIT,NO SUCCESS CLAIM
+Typecheck,NOT_RUN,NOT_RUN,DEPENDENCY-GATED
+Vitest,NOT_RUN,NOT_RUN,DEPENDENCY-GATED
+Live PostgreSQL,NOT_RUN,NOT_RUN,ENVIRONMENT BLOCKER
+Production release,BLOCKED,BLOCKED,Human + mapping + DB evidence remain

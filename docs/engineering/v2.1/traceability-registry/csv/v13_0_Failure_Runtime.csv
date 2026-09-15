@@ -1,0 +1,9 @@
+Failure Domain,New Mechanism,Guarantee Target,Evidence
+Transaction crash,Fault injection boundaries,No pre-commit partial truth,Conformance PASS
+Commit/publish gap,Outbox recovery expectation,Committed work remains recoverable,Conformance PASS
+Projection corruption,Replay hash verifier,Divergence becomes explicit,Conformance PASS
+Worker concurrency,Lease + fencing token,Stale worker cannot commit authority,Conformance PASS
+Tenant isolation,Cross-tenant proof contract,Read/write deny by default,Conformance PASS
+Long workflow,Compensatable saga primitive,Explicit reverse compensation,Conformance PASS
+Release governance,Structured gate v2,"Missing evidence returns BLOCKED, not crash",Conformance PASS
+Dependency toolchain,npm install attempted,No false full-suite claim after timeout,TIMEOUT RECORDED

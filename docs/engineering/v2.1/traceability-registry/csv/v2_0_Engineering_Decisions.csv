@@ -1,0 +1,7 @@
+Decision,Rationale,Implementation,Consequence
+Promote executable architecture to v2.0,Architecture has moved beyond registry scaffolding into capability safety cases,Capability catalog + admission engine,Version does not imply production certification
+Capability-scoped admission,Global BLOCKED hides where safety gaps actually live,CAP-* evaluator,Each capability reports exact blocking reason
+Medication remains blocked,State machine/test exist but formal HAZ/CTL/INV case is incomplete,BLOCK_UNTIL_HAZARD_CASE_COMPLETE,No false completeness
+AI irreversible action boundary,AI may draft/suggest but cannot prescribe/sign/close critical workflows,authorizeClinicalAction,Physician authority becomes executable
+Safety dossier per capability,Auditability requires a bounded evidence argument,safety/cases/CAP-*.json,Each capability can be reviewed independently
+Fail-closed default,Absence of evidence cannot become approval,Admission evaluator,Missing evidence produces BLOCKED

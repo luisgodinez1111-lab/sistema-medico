@@ -1,0 +1,13 @@
+Clinical Step,Executable Boundary,Safety/Consistency Law,Current Evidence
+Patient context,Tenant/actor/purpose DB session,No clinical DB access without scoped session,Source + conformance
+Encounter,Atomic transaction plan,STATE + EVENT + OUTBOX + AUDIT,Source + conformance
+Assessment/Plan,Golden encounter command,Assessment and plan required,Source
+Medication,Physician authority,AI/non-physician cannot prescribe,Source + conformance
+Result,Result→obligation link,Actionable result requires owner + due date,Source + conformance
+Follow-up,Clinical inbox,Urgent work ranks before routine,Source + conformance
+Patient state,Computed projection,Overdue/open work remains explicit,Source + conformance
+Timeline,Deterministic projection,Duplicate events rejected,Source + conformance
+Signing,Encounter signing admission,Incomplete/critical unresolved work blocks sign,Source + conformance
+HTTP boundary,Version + idempotency preconditions,Mutations remain fail-closed without auth adapter,Source + conformance
+Recovery,Recovery orchestrator,Dead letters/gaps/orphans map to explicit recovery,Source
+Persistence,Migration 0007 + FORCE RLS,Golden-slice tables tenant isolated by policy,Static SQL evidence only

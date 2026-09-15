@@ -1,0 +1,9 @@
+Area,Decision Taken,Implementation,Evidence/Status
+Safety case architecture,Adopt Authority→HAZ→CTL→INV→TEST→EVIDENCE→GATE,Registries + validator + ADR,ACTIVE ARCHITECTURE
+Clinical applicability,Fail closed when required context cannot be established,assertClinicalApplicability + tests,IMPLEMENTED
+Core hazards,"Prioritize result closure, truth promotion, missing-data coercion, async loss, corrected result, applicability",6 HAZ-CORE,FORMALIZED
+Core controls,Separate preventive/detective/corrective/recovery behavior,8 CTL,FORMALIZED
+Core invariants,Bind C5 safety laws to predicates/tests,8 INV-CORE,IMPLEMENTED-CONTRACT
+Evidence provenance,Hash test sources and evidence bundle,SHA256 manifests,EXECUTED
+Architecture self-check,Execute without npm dependencies,Node self-check,PASS
+Release state,Remain fail-closed until complete test execution + authority adjudication,RG-012 remains mandatory,BLOCKED

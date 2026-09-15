@@ -1,0 +1,13 @@
+Boundary,v17 mechanism,Required property,Evidence
+Transaction ownership,sql.begin is opened by authoritative clinical command,No caller can accidentally run the write path non-atomically,STATIC PASS
+Idempotency,Claim and completion inside same transaction,No completed response without authoritative commit,CONFORMANCE PASS
+Optimistic concurrency,aggregate_versions compare-and-swap,Exactly one expected-version writer wins,SOURCE; LIVE DB PENDING
+Clinical event,Canonical event columns inside transaction,Committed state has matching event,STATIC PASS
+Outbox,Outbox insert inside transaction,Commit/publish gap remains recoverable,STATIC PASS
+Audit,Tenant audit head locked FOR UPDATE + append function,Concurrent audit entries form one tenant-local chain,STATIC PASS; LIVE DB PENDING
+Correction lineage,Append-only result_correction_edges,No silent rewrite of correction history,SQL SOURCE
+Consumer receipts,Append-only receipt trigger,Delivered-message evidence cannot be rewritten,SQL SOURCE
+Migration integrity,SHA-256 manifest for all 13 migrations,Historical migration mutation becomes detectable,EXECUTED PASS
+Replay,Strict contiguous sequence replay,Sequence gaps fail explicitly,SOURCE + TEST SOURCE
+Consistency,Projection vs authority sequence barrier,Stale clinical read blocks by default,SOURCE + TEST SOURCE
+Request security,Idempotency-Key + If-Match + request ID,Mutation preconditions cannot be omitted silently,SOURCE

@@ -1,0 +1,13 @@
+Metric,v6.0,v7.0,Status
+Capabilities,34,43,EXPANDED
+Test sources,43,49,EXPANDED
+Reliability/security subsystems,Vertical core,10 additional failure-oriented controls,IMPLEMENTED CORE
+RLS,Enabled,FORCE RLS on clinical tables,HARDENED
+Signed-record mutation,Conceptual,Append-only amendment ledger,IMPLEMENTED CORE
+Corrected-result impact,Minimal,Patient/action impact mapping,EXPANDED
+AI runtime boundary,Envelope schema,Runtime authorization function,IMPLEMENTED CORE
+Failure injection harness,6 checks,6,EXECUTED
+v7 structural self-check,N/A,PASS,EXECUTED
+Failure-injection result,N/A,PASS,EXECUTED
+Full dependency suite,NOT_RUN,NOT_RUN,Still no false PASS
+Production release,BLOCKED,BLOCKED,Live DB/auth/full tests/human safety adjudication remain

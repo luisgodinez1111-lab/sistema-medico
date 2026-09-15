@@ -1,0 +1,13 @@
+Runtime Boundary,Implemented Mechanism,Failure Law,Evidence
+Authorization,Verified principal tenant/role/scope/purpose/session,Cross-tenant and missing session fail closed,Executable source
+PostgreSQL adapter,Scoped transaction + SET LOCAL tenant/actor/purpose/request,Tenant context mismatch blocks transaction,Executable source; DB not run
+Idempotency,Request hash + replay/wait/conflict semantics,Same key/different command → conflict,Executable source
+Aggregate persistence,Expected-version repository semantics,Lost update → CONCURRENCY_CONFLICT,Executable source
+Encounter,Assess + sign runtime,Signed immutable; critical obligations block sign,Executable source
+Obligation,Owner/due/priority + escalation,Overdue OPEN → ESCALATED,Executable source
+Medication,Physician-only prescribe runtime,AI/non-physician → FORBIDDEN,Executable source
+Corrected result,Supersedes DAG runtime,Self/cyclic correction → invariant violation,Executable source
+Patient impact,Artifact/version → patients/actions,Clinical downstream action → URGENT_REVIEW,Executable source
+Projection,Sequence-checked rebuild + hash,Gap → fail closed,Executable source
+Outbox,Lease + backoff + dead-letter,Lease stealing blocked; poison bounded,Executable source
+Safety admission,C5 HAZ/CTL/INV/evidence/human gate,Executed PASS alone cannot admit C5,Executable source

@@ -1,0 +1,11 @@
+Area,Improvement,Invariant / target,Evidence
+Atomic transaction,Schema-correct V2 transaction; no sql.unsafe table interpolation,State/version + event + outbox + audit + idempotency remain one authority boundary,STATIC + CONFORMANCE PASS
+Schema evolution,Canonical projection table and schema contracts,Historical name collision cannot silently redefine storage,STATIC PASS
+Audit,Canonical JSON + chained audit v3 + append-only DB trigger,Tampering changes verification result,SOURCE + TEST SOURCE
+Outbox,LEASED-compatible DB constraint + SKIP LOCKED claim SQL,Concurrent worker claims without global lock,STATIC + CONFORMANCE PASS
+RLS,FORCE RLS across core runtime tables + NOBYPASSRLS role source,Missing/cross-tenant context denies,STATIC PASS; LIVE DB PENDING
+Signed encounter,Trigger column repaired,SIGNED row cannot update/delete,STATIC PASS; LIVE DB PENDING
+Logging,Recursive PHI/secret redaction,Sensitive nested keys not emitted,SOURCE + TEST SOURCE
+Corrections,Action-aware patient-impact orchestrator,Actioned descendants trigger urgent review,SOURCE + CONFORMANCE PASS
+Evidence,"Executed PASS requires command, exit code and stdout hash",Generated evidence cannot masquerade as execution,SOURCE + CONFORMANCE PASS
+Determinism,Injectable clinical clock + canonical serialization,Tests/replay do not depend on wall-clock/object-key order,SOURCE

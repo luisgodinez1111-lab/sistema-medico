@@ -1,0 +1,14 @@
+Metric,v8.0,v9.0,Status
+Capabilities,53,65,EXPANDED
+Test sources,57,66,EXPANDED
+Atomic clinical write,Conceptual seams,Explicit state+event+outbox+audit contract,IMPLEMENTED CORE
+Projection rebuild,Replay primitive,Sequence-gap fail-closed rebuild,IMPLEMENTED CORE
+Access governance,App authorization,Versioned access decision + break glass,EXPANDED
+AI candidate reconciliation,Unresolved,118 candidates explicitly HUMAN_REVIEW_PENDING,RESTORED BLOCKER
+Backup/restore safety,Absent,4-condition restore admission,IMPLEMENTED CORE
+Capability safety case,Partial,Executable completeness + human approval gate,IMPLEMENTED CORE
+SQL migrations,5,6,EXPANDED
+v9 structural self-check,N/A,PASS,EXECUTED
+Operability conformance,N/A,PASS,EXECUTED 14 checks
+Full Vitest/Postgres,NOT_RUN,NOT_RUN,Environment lacks pnpm/deps/Postgres
+Production release,BLOCKED,BLOCKED,RG-001 + defects + AI reconciliation + live DB + full suite + human review

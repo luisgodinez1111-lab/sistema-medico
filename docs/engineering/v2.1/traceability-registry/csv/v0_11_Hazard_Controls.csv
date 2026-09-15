@@ -1,0 +1,7 @@
+Hazard,Severity,ENG Authority,Hazardous Condition,Potential Harm,Controls,State
+HAZ-CORE-0001,S1,"ENG-307, ENG-308",A diagnostic result is treated as closed before accountable review/action/information closure.,Delayed or absent clinical action on a clinically significant result.,"CTL-0001, CTL-0002",FORMALIZED
+HAZ-CORE-0002,S1,"ENG-303, ENG-304, ENG-324",Inference/recommendation is presented or persisted as verified clinical truth.,Clinical decision based on unsupported certainty.,"CTL-0003, CTL-0005",FORMALIZED
+HAZ-CORE-0003,S1,"ENG-273, ENG-303",Missing/conflicting/unsupported data is coerced into a normal/negative/zero/success state.,"Missed diagnosis, inappropriate reassurance, or unsafe treatment decision.",CTL-0004,FORMALIZED
+HAZ-CORE-0004,S1,"ENG-311, ENG-337",Critical asynchronous workflow loses ownership or recovery path.,Lost follow-up or unprocessed clinically significant event.,"CTL-0002, CTL-0006",FORMALIZED
+HAZ-CORE-0005,S1,"ENG-342, ENG-312, ENG-313",Corrected result does not propagate supersession/impact lineage.,Care continues using superseded clinical information.,CTL-0007,FORMALIZED
+HAZ-CORE-0006,S1,"ENG-318, ENG-319, ENG-341",Clinical computation/intervention is applied outside supported patient context.,"Dose, interpretation, or recommendation inappropriate for patient context.",CTL-0008,FORMALIZED

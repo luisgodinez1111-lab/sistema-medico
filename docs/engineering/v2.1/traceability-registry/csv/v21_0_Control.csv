@@ -1,0 +1,17 @@
+Metric,v20.0,v21.0,Status
+Capabilities,200,208,208 TOTAL
+Test sources,142,146,146 TOTAL
+Source conformance,N/A,PASS,EXECUTED
+Repository hostile audit,PASS,PASS,"S1=0, S2=0"
+Migration integrity,PASS,PASS,EXECUTED
+Package lock attempt,N/A,TIMEOUT,NOT AN INSTALLED GRAPH
+package-lock present,No,False,ABSENT
+Physical PostgreSQL harness,No,READY,NOT_RUN
+Physical RLS harness,No,READY,NOT_RUN
+Runtime proof state,MODEL ONLY,NOT_RUN,CORRECT FAIL-CLOSED — TEST_DATABASE_URL MISSING
+Full TypeScript/Vitest/Next,NOT_RUN,NOT_RUN,BLOCKER
+Live concurrency/crash,NOT_RUN,NOT_RUN,BLOCKER
+HTTP fuzz/restore/load,NOT_RUN,NOT_RUN,BLOCKER
+RG-001,BLOCKED,BLOCKED,115 + 202
+AI reconciliation,118 pending,118 pending,HUMAN REVIEW
+Production release,BLOCKED,BLOCKED,FAIL-CLOSED

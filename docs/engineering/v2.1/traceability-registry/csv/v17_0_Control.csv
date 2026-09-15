@@ -1,0 +1,21 @@
+Metric,v16.0,v17.0,Status
+Capabilities,150,161,161 TOTAL
+Test sources,114,120,120 TOTAL
+New S1 discovered,3 prior,1,REPAIRED IN V17
+Open S2 from v17 audit,N/A,0,0 OPEN IN CURRENT STATIC AUDIT
+Atomic transaction,Schema-correct but caller-dependent,Transaction-owned V3,CRITICAL HARDENING
+Migration integrity,No immutable digest manifest,13 migration SHA-256 manifest,EXECUTED PASS
+Schema compiler,Ad-hoc scans,39-table migration compiler,WARN: 2 historical collisions
+Audit concurrency,Hash chain source,Tenant head row lock + DB append function,HARDENED
+Deterministic calculations,Wall clock/noncanonical hash,Canonical JSON + injected clock,REPAIRED
+Patient state replay,Wall clock,Injected clock,REPAIRED
+PHI logger,Legacy weak redaction,Secure recursive redaction,REPAIRED
+Structural self-check,PASS,PASS,EXECUTED
+Deep bug audit,PASS,PASS,EXECUTED
+Conformance,PASS 24,PASS — 26 checks,EXECUTED
+Migration integrity check,N/A,PASS,EXECUTED
+Full TypeScript/Vitest/Next,NOT_RUN,NOT_RUN,DEPENDENCY-GATED
+Live PostgreSQL/RLS/concurrency,NOT_RUN,NOT_RUN,ENVIRONMENT BLOCKER
+RG-001,BLOCKED,BLOCKED,115 PROD→ENG + 202 ENG→EXEC remain
+Historical AI candidates,118 pending,118 pending,HUMAN REVIEW
+Production release,BLOCKED,BLOCKED,FAIL-CLOSED

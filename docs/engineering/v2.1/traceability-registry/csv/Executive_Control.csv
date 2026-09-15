@@ -1,0 +1,20 @@
+MEDICAL OS — EXECUTABLE TRACEABILITY REGISTRY v0.2,Value
+Authority state,DETAILED REVIEW / NOT YET RELEASE-FROZEN
+Product source,Medical_OS_V2_0_1_FINAL.docx
+Engineering source,Medical_OS_V2_1_1_FINAL.docx
+Execution source,Medical_OS_Companion_FINAL.md
+ACTIVE PROD sections,176
+ACTIVE ENG sections,347
+EXEC sections,1652
+Atomic PROD requirements,759
+Atomic ENG requirements,1220
+PROD→ENG approved primary,31
+PROD→ENG approved + secondary review,30
+PROD→ENG manual review,115
+ENG→EXEC literal,47
+ENG→EXEC approved primary,28
+ENG→EXEC approved + secondary review,70
+ENG→EXEC manual review,202
+Atomic strong candidates,162
+Atomic moderate candidates,130
+Atomic manual review,461

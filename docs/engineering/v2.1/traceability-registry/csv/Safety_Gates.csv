@@ -1,0 +1,9 @@
+Gate,Target,Current v0.2 state,Decision,Why
+ACTIVE PROD without approved ENG authority,0,Not zero,BLOCKED,Some mappings remain review-required; atomic approval is not complete.
+ACTIVE ENG without approved EXEC authority,0,Not zero,BLOCKED,Only literal/high-confidence mappings are eligible; remaining mappings require review.
+C4/C5 without invariant,0,Not evaluated from executable invariant registry,BLOCKED,Master prose is not executable proof.
+Invariant without test,0,Not evaluated,BLOCKED,TEST registry not yet materialized.
+Critical async without reconciliation,0,Not evaluated,BLOCKED,Requires workflow/state-machine registry.
+FUTURE→ACTIVE leak,0,No direct leak detected in masters,PASS-DOCS,Must still be enforced in CI.
+SPEC_CONFLICT unresolved,0,No direct master contradiction detected,PASS-DOCS,Mapping conflicts can still emerge during atomic review.
+S0/S1 unresolved,0,No executable defect registry yet,BLOCKED,Cannot prove zero.

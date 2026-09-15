@@ -1,0 +1,13 @@
+Metric,v7.0,v8.0,Status
+Capabilities,43,53,EXPANDED
+Test sources,49,57,EXPANDED
+RG-001 mapping,Anomaly unresolved,BLOCKED with known backlog restored,CORRECTED GOVERNANCE
+PROD→ENG review required,Known historically,115,HUMAN_REVIEW_PENDING
+ENG→EXEC review required,Known historically,202,HUMAN_REVIEW_PENDING
+Defect assessment,Empty defects.json,NOT_ASSESSED explicit,FAIL-CLOSED
+Evidence semantics,Mixed,6 typed states,IMPLEMENTED
+SQL migrations,4,5,EXPANDED
+v8 structural self-check,N/A,PASS,EXECUTED
+Production conformance harness,N/A,PASS,EXECUTED
+Full Vitest suite,NOT_RUN,NOT_RUN,No false PASS
+Production release,BLOCKED,BLOCKED,Correct while RG-001/defects/live DB/full suite/human safety review remain

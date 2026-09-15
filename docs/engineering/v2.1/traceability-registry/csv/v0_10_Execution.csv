@@ -1,0 +1,13 @@
+Execution Layer,Status,Evidence
+Dependency-free authority/self-check,PASS,"{
+  ""status"": ""PASS"",
+  ""checks"": {
+    ""requiredArtifacts"": 10,
+    ""aiTasks"": 5,
+    ""testSources"": 11
+  },
+  ""errors"": []
+}
+"
+Vitest safety suite,NOT_RUN,npm install/test exceeded bounded execution window; no PASS claimed.
+Release admission,BLOCKED,Full test suite has no PASS evidence.

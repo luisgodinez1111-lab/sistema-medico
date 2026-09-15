@@ -1,0 +1,19 @@
+Metric,v18.0,v19.0,Status
+Capabilities,176,188,188 TOTAL
+Test sources,130,136,136 TOTAL
+Adversarial generated cases,5000,100000,20× INCREASE
+Differential replay runs,0,10000,EXECUTED PASS
+Repository hostile scan,Limited,Whole repository scan,EXECUTED
+Static S1 findings,0,0,PASS AFTER RETIRING OBSOLETE UNSAFE RUNTIME
+Static S2 findings,4,0,TRACKED
+Cross-migration semantic compiler,Initial,All migration files,EXECUTED
+Historical schema collisions,2,2,EXPLICIT HISTORICAL DEBT
+Migration integrity,PASS,PASS,EXECUTED
+Verification lab,5k corpus,PASS,100k CASES
+Differential replay,NOT RUN,PASS,10k STREAMS
+Full dependency suite,NOT_RUN,NOT_RUN,BLOCKER
+Live PostgreSQL/RLS,NOT_RUN,NOT_RUN,BLOCKER
+Real mutation/HTTP fuzz/load/restore,NOT_RUN,NOT_RUN,BLOCKER
+RG-001,BLOCKED,BLOCKED,115 + 202
+AI candidate reconciliation,118 pending,118 pending,HUMAN REVIEW
+Production release,BLOCKED,BLOCKED,FAIL-CLOSED

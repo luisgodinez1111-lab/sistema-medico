@@ -1,0 +1,14 @@
+Metric,v12.0,v13.0,Status
+Capabilities,103,109,109 TOTAL
+Test sources,93,98,98 TOTAL
+Failure injection,Conceptual,Executable fault boundary primitive,ADDED
+Replay verification,Hash available,Live vs replay consistency receipt,HARDENED
+Worker leases,Lease semantics,Fencing tokens,HARDENED
+Release gate,Blocker files,Structured evidence-state decision,HARDENED
+Tenant proof,RLS/source checks,Explicit read/write isolation contract,ADDED
+Dependency installation,Not attempted,npm install attempted; 45s timeout,EXECUTED / TIMEOUT
+v13 self-check,N/A,PASS,EXECUTED
+Failure conformance,N/A,PASS,EXECUTED 14 checks
+Full Vitest/build,NOT_RUN,NOT_RUN,Dependencies unavailable after bounded install
+Live PostgreSQL,NOT_RUN,NOT_RUN,No PostgreSQL/Docker runtime
+Production release,BLOCKED,BLOCKED,Fail-closed blockers preserved

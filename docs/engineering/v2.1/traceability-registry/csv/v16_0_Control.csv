@@ -1,0 +1,19 @@
+Metric,v15.0,v16.0,Status
+Capabilities,140,150,150 TOTAL
+New deep defects found,Not systematically enumerated,8,DISCOVERED AND SOURCE-REPAIRED
+S1 defects found,0,3,SOURCE REPAIRED; LIVE DB VALIDATION PENDING
+Schema collision protection,Partial,Canonical replacement + schema contract,HARDENED
+Atomic transaction,Schema-inconsistent,Schema-correct V2,MAJOR FIX
+Audit persistence,Mixed historical contracts,audit_chain_v3,HARDENED
+Outbox state contract,LEASED mismatch,LEASED compatible + SKIP LOCKED,HARDENED
+Core FORCE RLS,Partial,9 core tables in repair migration,HARDENED
+Structural self-check,PASS,PASS,EXECUTED
+Deep bug audit,N/A,PASS,EXECUTED
+Conformance,PASS 20,PASS,EXECUTED 24
+SQL hardening check,PASS,PASS,EXECUTED
+Full typecheck/Vitest/Next,NOT_RUN,NOT_RUN,DEPENDENCY/NETWORK BLOCKER
+Live PostgreSQL/RLS,NOT_RUN,NOT_RUN,ENVIRONMENT BLOCKER
+RG-001,BLOCKED,BLOCKED,115 + 202 reviews remain
+AI historical reconciliation,118 pending,118 pending,HUMAN REVIEW
+Human defect attestation,NOT_ASSESSED,NOT_ASSESSED,BLOCKER
+Production release,BLOCKED,BLOCKED,FAIL-CLOSED

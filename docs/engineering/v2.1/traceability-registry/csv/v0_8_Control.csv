@@ -1,0 +1,8 @@
+Area,v0.7,v0.8,Meaning
+Invariant-as-code,Initial kernels,4 explicit foundational predicates + tests,Safety laws now have executable oracles
+AI-TASK → Safety Envelope,Separate catalogs,0 explicit bindings,High-impact AI cannot exist without envelope mapping
+AI runtime enforcement,Schema/envelopes,Runtime evaluator + tests,"Evidence, human approval and kill switch enforced"
+Reconciliation,Initial owner tests,Critical ORPHAN/OVERDUE/MISMATCH tests,Recovery path tested fail-closed
+Release Admission,Policy only,Executable validator RG-001/2/3/6/8/11,CI can now block release mechanically
+Evidence,Manual manifests,CI uploads release evidence,Proof becomes a build artifact
+Global status,BLOCKED,BLOCKED UNTIL TESTS + AUTHORITY REVIEW PASS,No false production-readiness claim

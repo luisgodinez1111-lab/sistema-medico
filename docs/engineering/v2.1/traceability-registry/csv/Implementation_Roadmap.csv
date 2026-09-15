@@ -1,0 +1,8 @@
+Milestone,Scope,Required Inputs,Output,Admission Gate,State
+M0,Repository bootstrap,3 masters + Registry v0.4,"Monorepo skeleton, contracts, CI traceability validator",RG-001..011,GENERATED
+M1,Traceability adjudication,Mapping_Adjudication,Approved explicit PROD→ENG→EXEC mappings,RG-001,REQUIRES AUTHORITY REVIEW
+M2,Invariant-as-code,INV-*,Typed invariant registry + validator,RG-002/003,SCAFFOLDED
+M3,State machines,SM-*,Explicit machine definitions + illegal-transition tests,RG-006,SCAFFOLDED
+M4,Reconciliation,SM/HAZ/INV,"Reconciliation ownership, retry/recovery/dead-letter tests",RG-007,SCAFFOLDED
+M5,AI safety,AI-TASK + HAZ,Safety Envelope + typed task contracts + kill switch,RG-008,SCAFFOLDED
+M6,Evidence/CI,TEST-* + implementation,Evidence manifests + release admission validator,RG-004/005/011,SCAFFOLDED

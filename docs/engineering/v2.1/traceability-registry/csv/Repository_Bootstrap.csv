@@ -1,0 +1,11 @@
+Artifact,Path,Executable?,Purpose,Release Effect
+TypeScript strict config,tsconfig.json,YES,Strict compilation baseline,Required
+Authority validator,packages/clinical-safety/src/validate-registry.ts,YES,INV/AI-TASK shape + INV→TEST coverage,Blocks CI
+State machine primitive,packages/clinical-kernel/src/state-machine.ts,YES,Reject illegal transitions,Safety primitive
+AI Safety Envelope,packages/ai-gateway/src/safety-envelope.ts,YES,Bound AI behavior + fail mode + kill switch,Safety primitive
+CI authority gates,.github/workflows/authority-gates.yml,YES,typecheck + registry + tests,Blocks merge/release
+Invariant registry,safety/invariants.json,DATA CONTRACT,Canonical INV drafts,Needs executable predicates
+Hazard registry,safety/hazards.json,DATA CONTRACT,Hazard/control drafts,Needs control evidence
+State machine catalog,state-machines/catalog.json,DATA CONTRACT,SM drafts,Needs exact transition definitions
+AI task catalog,ai-tasks/catalog.json,DATA CONTRACT,Bounded task drafts,Needs Safety Envelope instances
+Test contracts,tests/traceability/contracts.json,DATA CONTRACT,Test oracles,Needs implemented tests

@@ -1,0 +1,7 @@
+Gate,Meaning,Target,Executable Source,Fail-Closed Behavior,v0.8
+RG-001,Open authority adjudications,0,traceability/adjudication.json,Any open/gap blocks,EXECUTABLE
+RG-002,C4/C5 invariant coverage,0,INV + TEST registries,Missing test blocks,EXECUTABLE
+RG-003,All invariant test coverage,0,INV + TEST registries,Untested INV blocks,EXECUTABLE
+RG-006,Required formal state machines,0,state-machines/formal,Missing formal kernel blocks,EXECUTABLE
+RG-008,High-impact AI safety binding,0,ai-tasks/bindings.json,Unbound C4/C5 AI blocks,EXECUTABLE
+RG-011,Open S0/S1 defects,0,release/defects.json,Any unresolved S0/S1 blocks,EXECUTABLE

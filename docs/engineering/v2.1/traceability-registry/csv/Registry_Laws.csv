@@ -1,0 +1,13 @@
+ID,Binding rule
+TRL-001,Semantic similarity generates candidates only; it never creates authority.
+TRL-002,A mapping becomes authoritative only through explicit registry approval with rationale/evidence.
+TRL-003,FUTURE/HISTORICAL/SUPERSEDED authority cannot satisfy ACTIVE release scope.
+TRL-004,Missing mapping = TRACEABILITY-PENDING and blocks affected release behavior.
+TRL-005,C4/C5 mappings require invariant + test oracle before release.
+TRL-006,Critical asynchronous mappings require reconciliation owner + recovery path.
+TRL-007,High-impact AI requires AI-TASK + Safety Envelope + human-authority boundary.
+TRL-008,Unknown/missing/conflicting/unsupported states cannot map to reassuring clinical states.
+TRL-009,One PROD requirement may map to multiple ENG requirements and vice versa; mappings are many-to-many.
+TRL-010,Section mapping does not automatically approve every atomic requirement beneath it.
+TRL-011,Historical ANNEX-PARITY cannot be used as active mapping authority.
+TRL-012,Any conflict between approved mappings and master authority is BLOCKED: SPEC_CONFLICT.

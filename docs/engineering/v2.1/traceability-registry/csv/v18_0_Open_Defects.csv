@@ -1,0 +1,5 @@
+ID,Severity,Finding,Disposition
+DEF-V18-001,S2,Dependencies declared with semver ranges; immutable installed graph not proven,OPEN until lockfile/install evidence
+DEF-V18-002,S2,Mutation testing contract exists but real mutation engine has not executed,OPEN
+DEF-V18-003,S2,API fuzz boundary exists but live Next/HTTP parser fuzzing has not executed,OPEN
+DEF-V18-004,S2,Concurrency model exists but real PostgreSQL race testing has not executed,OPEN

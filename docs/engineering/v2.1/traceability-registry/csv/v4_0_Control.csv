@@ -1,0 +1,10 @@
+Metric,v3.0,v4.0,Status
+Capabilities,12,22,EXPANDED
+Test sources,21,31,EXPANDED
+Platform primitives,9,9,PRESERVED
+Clinical domain packages,0,10,IMPLEMENTED CORE
+SQL migrations,0,1,IMPLEMENTED BASELINE
+FHIR boundary,Conceptual,Executable trust boundary,IMPLEMENTED CORE
+Deterministic calculation,Semantics only,Versioned algorithm engine,IMPLEMENTED CORE
+Manufacturability self-check,PASS,PASS,EXECUTED
+Production release,BLOCKED,BLOCKED,Correct: safety cases and full runtime tests still required

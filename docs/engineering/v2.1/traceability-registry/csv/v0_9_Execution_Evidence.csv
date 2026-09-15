@@ -1,0 +1,3 @@
+Evidence,Result,Detail
+Safety test suite,NOT_RUN,Dependency/test execution exceeded the interactive execution window; no PASS evidence is claimed.
+Release admission,BLOCKED,RG-012 requires reproducible PASS test execution evidence.

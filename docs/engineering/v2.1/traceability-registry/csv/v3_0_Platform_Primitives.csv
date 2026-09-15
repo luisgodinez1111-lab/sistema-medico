@@ -1,0 +1,10 @@
+Primitive,Purpose,Safety Property,Implementation
+Clinical Event Kernel,Versioned immutable clinical events,Optimistic concurrency + monotonic sequence,packages/event-kernel
+Tenant Security,Tenant/purpose/role boundary,Cross-tenant fail closed,packages/tenant-security
+Audit Ledger,Tamper-evident accountability,SHA-256 hash chain verification,packages/audit-ledger
+Idempotency,Duplicate-safe commands,Same key cannot duplicate effect,packages/idempotency
+Transactional Outbox,Reliable async boundary,Retry/dead-letter instead of silent loss,packages/outbox
+Evidence Feature Gates,Progressive clinical rollout,ENABLED requires evidence bundle,packages/feature-gates
+Policy Engine,Versioned policy application,Stale/non-applicable policy blocked,packages/policy-engine
+Safety Observability,Clinical SLO enforcement,Rollback/escalation on breach,packages/observability
+Capability Graph,Dependency/blast-radius model,Cycles rejected; downstream impact computed,clinical-safety/capability-graph

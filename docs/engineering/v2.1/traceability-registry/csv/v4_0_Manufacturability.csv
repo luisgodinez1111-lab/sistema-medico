@@ -1,0 +1,10 @@
+Layer,Decision,Implemented Artifact,Engineering Meaning
+Domain model,Explicit bounded clinical domains,10 domain packages,Business rules leave controllers/UI
+Persistence,Postgres relational core,0001_core.sql,Constraints/indexes participate in correctness
+Concurrency,Optimistic aggregate versioning,event kernel + patient version,Lost updates are explicit
+Async,Outbox/idempotency/reconciliation,platform packages,Partial failure is recoverable
+API,Typed success/error envelope,api-contracts,Errors are stable machine contracts
+Interop,FHIR firewall,fhir-boundary,External payload is untrusted until validation
+Computation,Algorithm/version/input receipt,calculation-engine,Historical reproducibility seam
+Workflow,Durable owned steps,workflow-engine,Critical work cannot be ownerless
+Release,Capability evidence gates,CAP catalog,Incomplete safety cases remain disabled

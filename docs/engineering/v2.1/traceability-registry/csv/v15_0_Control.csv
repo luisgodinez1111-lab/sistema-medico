@@ -1,0 +1,17 @@
+Metric,v14.0,v15.0,Interpretation
+Capabilities,119,140,21 integrated capabilities added
+Runtime architecture,Atomic core,Reproducible clinical runtime,MAJOR INTEGRATION JUMP
+Clinical truth kernel,Partial epistemic primitives,Typed truth/status runtime,HARDENED
+Reproducible environment,Incomplete,Docker + Compose + Devcontainer + CI + env,SOURCE READY
+New SQL migration,0010,0011 reproducible clinical runtime,7 tenant-scoped structures
+Safety cases in this jump,0,5,Structurally defined; human review pending
+Dependency-backed suite,NOT_RUN,NOT_RUN,Registry network unavailable in current runtime
+Live PostgreSQL,NOT_RUN,NOT_RUN,No local PostgreSQL/Docker runtime
+v15 structural self-check,N/A,PASS,EXECUTED
+v15 conformance,N/A,PASS — 20 checks,EXECUTED
+v15 SQL static,N/A,PASS,EXECUTED
+RG-001 PROD→ENG,115,115,REVIEW_REQUIRED
+RG-001 ENG→EXEC,202,202,REVIEW_REQUIRED
+Historical AI candidates,118,118,HUMAN_REVIEW_PENDING
+Defect assessment,NOT_ASSESSED,NOT_ASSESSED,BLOCKER
+Production release,BLOCKED,BLOCKED,No false production claim

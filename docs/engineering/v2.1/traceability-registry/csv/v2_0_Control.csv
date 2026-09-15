@@ -1,0 +1,10 @@
+Metric,v0.11,v2.0,Interpretation
+Capability safety cases,0,5,Clinical architecture now has bounded release units
+Core hazards,6,6,Preserved and assigned to capabilities
+Core controls,8,8,Preserved and assigned to capabilities
+Core invariants,8,8,Preserved and assigned to capabilities
+Test sources,12,13,Added clinical action authority test
+v2 architecture self-check,N/A,PASS,Dependency-free capability integrity executed
+Safety dossier generation,N/A,PASS,Per-capability dossiers generated
+Capability admission,Global only,BLOCKED,Blocked until full execution evidence and safety gaps close
+Production certification,NO,NO,"v2.0 is engineering maturity, not regulatory/clinical certification"

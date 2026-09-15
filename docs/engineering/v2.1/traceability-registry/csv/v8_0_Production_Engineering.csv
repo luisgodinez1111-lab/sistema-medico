@@ -1,0 +1,11 @@
+Subsystem,v8 Implementation,Release/Safety Meaning,Execution State
+Evidence,Typed 6-state evidence lifecycle,Generated ≠ executed ≠ human approved,IMPLEMENTED
+Defects,NOT_ASSESSED/ASSESSED/HUMAN_APPROVED,Empty list cannot imply safe,IMPLEMENTED
+Mapping,Restored 115 PROD→ENG + 202 ENG→EXEC review blockers,RG-001 fail-closed restored,BLOCKED / HUMAN REVIEW
+Idempotency,Persistent request-hash semantics,Duplicate/reused keys deterministic,IMPLEMENTED CORE
+Outbox,Lease + exponential backoff semantics,Worker concurrency/recovery seam,IMPLEMENTED CORE
+Replay,Policy-version → execution/patient impact,Defective knowledge can be traced,IMPLEMENTED CORE
+Corrections,Acyclic corrected-result lineage,Cycles/self-corrections rejected,IMPLEMENTED CORE
+AI evidence,Model/prompt/input/evidence/output receipt,C5 acceptance requires reviewer,IMPLEMENTED CORE
+Migration safety,Destructive clinical migration gate,Unsafe schema change blocked,IMPLEMENTED CORE
+SLO,Windowed availability + burn rate,Progressive release safety signal,IMPLEMENTED CORE

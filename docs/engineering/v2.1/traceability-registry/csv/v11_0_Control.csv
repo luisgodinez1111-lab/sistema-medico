@@ -1,0 +1,14 @@
+Metric,v10.0,v11.0,Status
+Capabilities,79,91,FOCUSED EXPANSION
+Test sources,74,82,EXPANDED
+Golden clinical path,Fragmented primitives,Patient→Encounter→Result/Medication→Obligation→Timeline→Sign,INTEGRATED CONTRACT
+Clinical write atomicity,Runtime contracts,Explicit STATE+EVENT+OUTBOX+AUDIT transaction plan,HARDENED
+Result follow-up,Separate domains,Actionable result creates owned/due obligation,INTEGRATED
+Encounter signing,Hash/sign primitives,Completeness + critical-obligation admission,HARDENED
+API routes,Shell,/api/v1 clinical routes exist but fail closed pending auth adapter,SAFE BLOCK
+DB migration count,6,7,EXPANDED
+FORCE RLS,Present,True,STATIC VERIFIED
+v11 structural self-check,N/A,PASS,EXECUTED
+Golden-slice conformance,N/A,PASS,EXECUTED 12 checks
+Full Vitest/Postgres,NOT_RUN,NOT_RUN,Environment still lacks dependencies/Postgres
+Production release,BLOCKED,BLOCKED,RG-001/defects/AI reconciliation/safety cases/live DB/full suite/human review remain

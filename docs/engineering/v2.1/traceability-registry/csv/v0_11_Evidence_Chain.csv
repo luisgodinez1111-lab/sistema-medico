@@ -1,0 +1,9 @@
+Layer,Artifact,Evidence,Current State,Meaning
+Authority,PROD/ENG/EXEC,Frozen scoped master baselines,PRESERVED,No semantic inference may replace authority
+Hazard,HAZ-CORE-*,6 formal core hazards,FORMALIZED,Foreseeable unsafe conditions explicitly represented
+Control,CTL-*,8 safety controls,FORMALIZED,Preventive/detective/corrective/recovery controls
+Invariant,INV-CORE-*,8 core invariants,IMPLEMENTED-CONTRACT,"Each has authority, predicate and tests"
+Test source,*.test.ts,12 SHA256-bound test sources,INTEGRITY-CHECKED,Test mutation/unbound authority detectable
+Architecture self-check,architecture-self-check.mjs,PASS,PASS,Executed without third-party dependencies
+Evidence bundle,release/bundles/latest.json,PASS,PASS,Build evidence is cryptographically identified
+Full suite,Vitest,Prior NOT_RUN,BLOCKED,Still required before release PASS

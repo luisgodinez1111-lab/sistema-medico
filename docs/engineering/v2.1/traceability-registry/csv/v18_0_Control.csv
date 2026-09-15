@@ -1,0 +1,21 @@
+Metric,v17.0,v18.0,Status
+Capabilities,161,176,176 TOTAL
+Test sources,120,130,130 TOTAL
+Generated adversarial cases,0,5000,EXECUTED
+Property corpus,N/A,PASS,"5,000 CASES"
+Conformance,PASS 26,PASS — 30 checks,EXECUTED
+Deep bug audit,PASS,PASS,0 STATIC S1
+Migration integrity,PASS,PASS,EXECUTED
+State-machine model,Basic state machines,Bounded exploration harness,ADDED
+Mutation testing,None,Critical mutant gate,ENGINE NOT RUN
+Supply chain,Unverified install,Source SBOM + dependency policy,S2 OPEN
+Restore proof,Value-level,5-property admission verifier,DRILL NOT RUN
+Numeric edge safety,Partial,NaN/Infinity/unit/range guard,HARDENED
+Policy ambiguity,Partial,Equal-priority conflict fail-closed,HARDENED
+Outbox fencing,Conceptual,Persistent fencing_token migration,HARDENED
+Full TypeScript/Vitest/Next,NOT_RUN,NOT_RUN,DEPENDENCY-GATED
+Live HTTP fuzz,NOT_RUN,NOT_RUN,ENVIRONMENT/DEPENDENCY
+Live PostgreSQL concurrency,NOT_RUN,NOT_RUN,ENVIRONMENT BLOCKER
+Open S2,0 current static,4,EXPLICITLY TRACKED
+RG-001,BLOCKED,BLOCKED,115 + 202 reviews remain
+Production release,BLOCKED,BLOCKED,FAIL-CLOSED

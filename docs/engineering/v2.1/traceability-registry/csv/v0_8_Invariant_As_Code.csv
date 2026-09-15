@@ -1,0 +1,5 @@
+Control,Authority,Implementation,Executable Test,Failure Semantics,State
+Result closure evidence,ENG-307/308,invResultClosedHasAccountableEvidence,invariants.test.ts,CLOSED without evidence throws,IMPLEMENTED
+Obligation terminal truth,ENG-308,invObligationTerminalIsExplicit,invariants.test.ts,OVERDUE/FAILED/ESCALATED not success,IMPLEMENTED
+Non-computed semantics,ENG-273/303,invUnknownNeverReassuring,invariants.test.ts,non-COMPUTED cannot carry reassuring value,IMPLEMENTED
+Physician authority,ENG-303/321/339,invPhysicianAuthority,invariants.test.ts,AI/SYSTEM cannot DECIDE/SIGN,IMPLEMENTED

@@ -1,0 +1,9 @@
+Control,Type,ENG Authority,Control,Invariant,Verification,Failure,State
+CTL-0001,PREVENTIVE,"ENG-307, ENG-308",Result closure requires accountable evidence,INV-CORE-0001,unit:test-result-closure; state-machine:result-lifecycle,BLOCK,FORMALIZED
+CTL-0002,DETECTIVE,"ENG-308, ENG-311, ENG-337",Zero Lost Follow-Up orphan/overdue detection,INV-CORE-0002,unit:test-obligation; reconciliation:due-date-scan,ESCALATE,FORMALIZED
+CTL-0003,PREVENTIVE,"ENG-303, ENG-304, ENG-324",Epistemic promotion guard,INV-CORE-0003,unit:test-epistemic-truth,BLOCK,FORMALIZED
+CTL-0004,PREVENTIVE,"ENG-273, ENG-303",Non-computed states cannot carry reassuring values,INV-CORE-0004,unit:test-clinical-semantics; unit:test-invariants,BLOCK,FORMALIZED
+CTL-0005,PREVENTIVE,"ENG-320, ENG-321, ENG-338, ENG-339",High-impact AI Safety Envelope enforcement,INV-CORE-0005,unit:test-ai-envelope; unit:test-ai-task-card,ABSTAIN,FORMALIZED
+CTL-0006,RECOVERY,"ENG-311, ENG-337",Critical asynchronous reconciliation requires owner,INV-CORE-0006,unit:test-reconciliation; unit:test-reconciliation-critical,SAFE_MODE,FORMALIZED
+CTL-0007,CORRECTIVE,"ENG-342, ENG-312, ENG-313",Corrected result supersession preserves lineage and impact,INV-CORE-0007,unit:test-corrected-result; unit:test-replay-impact,BLOCK,FORMALIZED
+CTL-0008,PREVENTIVE,"ENG-319, ENG-318, ENG-341",Clinical applicability/pediatric context gate,INV-CORE-0008,contract:applicability; future:pediatric-dose-receipt,BLOCK,FORMALIZED

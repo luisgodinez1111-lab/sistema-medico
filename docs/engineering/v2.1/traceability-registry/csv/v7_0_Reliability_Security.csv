@@ -1,0 +1,11 @@
+Subsystem,New Guarantee,Implementation,Failure Mode
+Session,HMAC integrity + expiry,session package,Tamper/expiry → reject
+SQL Repository,Tenant query + optimistic concurrency + SKIP LOCKED,sql-repositories,Conflict → explicit
+Reconciliation,Every finding owner + recovery,reconciliation-engine,S1 → release BLOCK
+Encounter completeness,Missing required evidence prevents signability,encounter-completeness,Incomplete → not signable
+Amendments,Signed record changes are append-only/hash-linked,amendment-ledger,Missing reason/author → reject
+Corrected results,Patient/action impact discoverable,result-impact,Affected action → urgent review
+AI runtime,Evidence/human/kill-switch/irreversible-action boundary,ai-runtime,Unsafe request → SAFETY_BLOCKED
+Data classification,PHI/secret explicit,data-classification,Sensitive data requires encryption
+Cache policy,Mutable clinical/PHI defaults NO_STORE,cache-policy,Unsafe caching prohibited
+Rollout,ENABLED requires HUMAN_APPROVED evidence + healthy SLO,feature-rollout,Admission → blocked

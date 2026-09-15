@@ -1,0 +1,11 @@
+Blocker,State,What is required to close it
+Live PostgreSQL,NOT_RUN,Provide/execute PostgreSQL 17 or Neon-compatible TEST_DATABASE_URL
+Live RLS,NOT_RUN,Run runtime/worker roles against cross-tenant and missing-context probes
+Dependency-backed compile,NOT_RUN,Successful npm/pnpm install + tsc + Next build
+Full Vitest,NOT_RUN,Execute all 146 test sources in reproducible environment
+Concurrency,NOT_RUN,Parallel expectedVersion/idempotency/outbox fencing tests against real DB
+Crash recovery,NOT_RUN,Kill connection/worker at controlled commit/publish/receipt phases
+HTTP fuzzing,NOT_RUN,Run malformed corpus against actual handlers
+Restore drill,NOT_RUN,Backup → destroy → restore → replay → compare fingerprints
+Performance,NOT_RUN,Production-like p50/p95/p99/error/throughput benchmark
+Governance,BLOCKED,RG-001 + C5 human review + 118 AI candidate reconciliation

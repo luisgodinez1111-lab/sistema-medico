@@ -1,0 +1,11 @@
+Boundary,v14 Implementation,Invariant,Evidence
+Atomic clinical write,State + Event + Outbox + Audit under one SQL transaction,No partial clinical truth,Source + conformance
+Idempotency,Tenant+actor+key persistent claim,Different request hash conflicts,Source + SQL
+Event store,Monotonic aggregate sequence,Gap/duplicate invalid,Source + conformance
+Outbox,Bounded retry + jitter + poison dead-letter,No infinite poison retry,Source + conformance
+Signed record,Append-only version table + DB mutation trigger,UPDATE/DELETE forbidden,Source + SQL
+Result correction,Cycle-checked correction graph,Correction cycles invalid,Source + conformance
+Reconciliation,Durable owner + recovery + severity,Open S1 blocks release scope,Source + SQL
+Defects,NOT_ASSESSED/ASSESSED/HUMAN_APPROVED,Not assessed cannot pass,Source + conformance
+Evidence,Six explicit evidence states,Generated never equals executed,Source + conformance
+Readiness,Required vs optional dependency semantics,Required unhealthy blocks readiness,Source

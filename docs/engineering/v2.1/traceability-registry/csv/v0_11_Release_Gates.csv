@@ -1,0 +1,6 @@
+Gate,Purpose,Target,v0.11 Mechanism,Failure Effect
+RG-012,Reproducible full safety test execution,PASS,release/test-execution.json,BLOCKED
+RG-013,Test source integrity + authority binding,0 defects,SHA256 manifest validator,BLOCKED
+RG-014,Core hazard→control completeness,0 gaps,core-hazards + controls registry,BLOCKED
+RG-015,Control→invariant integrity,0 gaps,control/invariant referential validation,BLOCKED
+RG-016,Core invariant executable-contract completeness,0 gaps,predicate + test + authority validation,BLOCKED

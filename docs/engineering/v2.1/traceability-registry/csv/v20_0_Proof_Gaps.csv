@@ -1,0 +1,14 @@
+Proof dimension,State,Promotion requirement
+Compiled application,NOT_RUN,Successful dependency-backed TypeScript + Next build with hashed outputs
+Full Vitest,NOT_RUN,All tests executed in reproducible environment
+PostgreSQL,NOT_RUN,Migrations applied to disposable PostgreSQL 17/target Neon-compatible environment
+RLS,MODEL_PASS ONLY,Cross-tenant/missing-context/BYPASSRLS probes against actual DB roles
+Concurrency,MODEL_PASS ONLY,Parallel CAS/idempotency/outbox lease tests against PostgreSQL
+Crash recovery,MODEL_PASS ONLY,Kill worker/connection at controlled phases and verify recovery
+HTTP fuzzing,NOT_RUN,Malformed/adversarial corpus against real Next handlers
+Restore,NOT_RUN,Backup → destroy → restore → replay → fingerprint comparison
+Performance,NOT_RUN,p50/p95/p99/error/throughput under production-like load
+Supply chain,OPEN,Lockfile + resolved versions + integrity + SBOM + provenance
+Human C5,PENDING,Qualified human review/approval of safety cases
+Traceability RG-001,BLOCKED,Resolve 115 PROD→ENG and 202 ENG→EXEC mappings
+AI reconciliation,PENDING,Adjudicate 118 historical candidates

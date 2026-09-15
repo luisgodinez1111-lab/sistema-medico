@@ -1,0 +1,18 @@
+Metric,v19.0,v20.0,Status
+Capabilities,188,200,200 TOTAL
+Test sources,136,142,142 TOTAL
+RLS adversarial cases,0,1000000,MODEL PASS
+Crash recovery scenarios,0,250000,MODEL PASS
+Clinical generated streams,50000,50000,MODEL PASS
+Repository hostile audit,PASS,PASS,"S1=0, S2=0"
+Conformance,N/A,PASS — 28 checks,EXECUTED
+Migration integrity,PASS,PASS,EXECUTED
+Runtime proof classification,Basic,SOURCE / MODEL / RUNTIME / HUMAN,HARDENED
+Release proof dimensions,10,13,V6
+Full TypeScript/Vitest/Next,NOT_RUN,NOT_RUN,BLOCKER
+Live PostgreSQL/RLS,NOT_RUN,NOT_RUN,BLOCKER
+Real concurrency/crash,NOT_RUN,NOT_RUN,BLOCKER
+HTTP fuzz/restore/load,NOT_RUN,NOT_RUN,BLOCKER
+RG-001,BLOCKED,BLOCKED,115 + 202
+AI reconciliation,118 pending,118 pending,HUMAN REVIEW
+Production release,BLOCKED,BLOCKED,FAIL-CLOSED

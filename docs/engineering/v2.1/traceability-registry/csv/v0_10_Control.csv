@@ -1,0 +1,7 @@
+Area,v0.9,v0.10,Meaning
+AI safety chain,5 task/envelope/eval bindings,Preserved + integrity checked,Authority-derived AI safety linkage is machine-checkable
+Test evidence,Source tests existed,11 test sources hashed + authority-bound,Evidence provenance can detect changed/unbound tests
+Dependency-free verification,Absent,PASS,Core registry/artifact integrity actually executed
+Full Vitest execution,NOT_RUN,NOT_RUN,PASS only if dependencies and test runner execute
+Release validator,RG-012 blocking,RG-012 + RG-013,Execution evidence and test-source integrity are separate gates
+Release state,BLOCKED,BLOCKED,No production-readiness claim unless all gates PASS

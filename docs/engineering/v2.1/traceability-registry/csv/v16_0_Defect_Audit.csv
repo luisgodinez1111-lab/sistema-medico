@@ -1,0 +1,9 @@
+Defect,Severity,Hidden failure mode,v16 action
+DEF-V16-001,S1,Atomic runtime referenced event_type absent from clinical_events,Rebuilt atomic transaction against canonical event schema
+DEF-V16-002,S1,Atomic runtime wrote nonexistent audit_ledger.payload,Introduced audit_chain_v3 canonical persistence
+DEF-V16-003,S1,Outbox insert omitted required aggregate_id,Corrected atomic transaction
+DEF-V16-004,S2,projection_checkpoints name reused with incompatible shapes,New projection_aggregate_checkpoints canonical table
+DEF-V16-005,S2,Signed encounter trigger used OLD.status; table column is state,Repair migration replaces trigger function
+DEF-V16-006,S2,Outbox CHECK did not permit LEASED,Repair migration replaces state constraint
+DEF-V16-007,S2,Old RLS policies cast empty current_setting directly to UUID,Safe app.current_tenant policies supersede them
+DEF-V16-008,S2,release_evidence name reused with incompatible historical shape,Versioned evidence contract; no silent table reuse

@@ -1,0 +1,9 @@
+Invariant,Risk,ENG Authority,Formal Statement,Executable Predicate,Tests,State
+INV-CORE-0001,C5,"ENG-307, ENG-308",CLOSED result requires accountable closure evidence.,invResultClosedHasAccountableEvidence,"invariants.test.ts, state-machines.test.ts",IMPLEMENTED-CONTRACT
+INV-CORE-0002,C5,"ENG-308, ENG-311, ENG-337",Overdue/escalated obligation is never equivalent to completed follow-up.,invObligationTerminalIsExplicit,"invariants.test.ts, obligation.test.ts",IMPLEMENTED-CONTRACT
+INV-CORE-0003,C5,"ENG-303, ENG-304, ENG-324",AI/system cannot promote recommendation to DECIDED/SIGNED clinical authority.,invPhysicianAuthority,"invariants.test.ts, epistemic-truth.test.ts",IMPLEMENTED-CONTRACT
+INV-CORE-0004,C5,"ENG-273, ENG-303",Non-COMPUTED state cannot carry a normal/reassuring clinical value.,invUnknownNeverReassuring,"invariants.test.ts, clinical-semantics.test.ts",IMPLEMENTED-CONTRACT
+INV-CORE-0005,C5,"ENG-320, ENG-321, ENG-338, ENG-339","High-impact AI requires envelope, evidence, human authority and kill switch.",enforceEnvelope,"ai-envelope.test.ts, ai-task-card.test.ts",IMPLEMENTED-CONTRACT
+INV-CORE-0006,C5,"ENG-311, ENG-337",Critical reconciliation cannot execute without accountable owner.,requireRecovery,"reconciliation.test.ts, reconciliation-critical.test.ts",IMPLEMENTED-CONTRACT
+INV-CORE-0007,C5,"ENG-342, ENG-312, ENG-313",Corrected result requires monotonic supersession lineage and replay/impact traceability.,CorrectedResultDag,"corrected-result.test.ts, replay-impact.test.ts",IMPLEMENTED-CONTRACT
+INV-CORE-0008,C5,"ENG-318, ENG-319, ENG-341",Unsupported applicability context must block clinically consequential computation.,assertClinicalApplicability,applicability.test.ts,IMPLEMENTED-CONTRACT

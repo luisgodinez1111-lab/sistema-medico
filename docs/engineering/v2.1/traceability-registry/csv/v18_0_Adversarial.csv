@@ -1,0 +1,13 @@
+Attack surface,v18 mechanism,What it tries to falsify,Evidence
+State machines,Bounded model exploration,Impossible/unsafe transition becomes reachable,SOURCE + TEST SOURCE
+Clinical invariants,"5,000-case deterministic property corpus","Partial truth, cross-tenant event, version errors escape detection",EXECUTED PASS
+API inputs,Depth/string/array/content-type limits,Parser/resource exhaustion and malformed payload acceptance,SOURCE
+Concurrency,CAS + fencing model,More than one authoritative writer / stale worker accepted,SOURCE + CONFORMANCE PASS
+Mutation,Critical mutant release gate,Tests appear green while invariant can be inverted,SOURCE; ENGINE NOT RUN
+Supply chain,Source SBOM + pin/integrity policy,Mutable dependency graph enters build,OPEN S2
+Provenance,Commit/tree/builder/input/output digest envelope,Artifact cannot be traced reproducibly,SOURCE
+Performance,p95/p99/error/throughput release budget,Latency regression becomes invisible,SOURCE; LOAD RUN NOT RUN
+Restore,Schema/audit/RLS/replay/obligation admission,Backup restore silently changes clinical truth,SOURCE; DRILL NOT RUN
+Numeric safety,Finite value + unit + supported range,NaN/Infinity/unitless values contaminate calculations,SOURCE + CONFORMANCE PASS
+Policy conflict,Equal-priority opposite decisions fail closed,Policy ambiguity silently selects behavior,SOURCE + CONFORMANCE PASS
+Outbox fencing,Persistent fencing token + acceptance guard,Expired/stale worker commits side effect,SOURCE + SQL

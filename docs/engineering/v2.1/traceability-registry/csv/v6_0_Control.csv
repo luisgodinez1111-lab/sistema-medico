@@ -1,0 +1,11 @@
+Metric,v5.0,v6.0,Status
+Capabilities,29,34,EXPANDED
+Test sources,39,43,EXPANDED
+Postgres adapter,None,Tenant-scoped transaction + optimistic update,IMPLEMENTED; LIVE DB PENDING
+Clinical vertical services,Patient only,Encounter + Result + Obligation + Medication + Patient State,IMPLEMENTED CORE
+Vertical SQL migrations,2,3,EXPANDED
+Reconciliation,Generic,Outbox DLQ/S1 + stale retry,IMPLEMENTED CORE
+Structural self-check,PASS,PASS,EXECUTED
+Runtime conformance,None,PASS,EXECUTED
+Full TypeScript/Vitest suite,NOT_RUN,NOT_RUN,No false PASS
+Production release,BLOCKED,BLOCKED,Identity + live DB + safety cases + full suite required
