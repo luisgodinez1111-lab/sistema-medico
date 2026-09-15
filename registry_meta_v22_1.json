@@ -1,0 +1,21 @@
+{
+  "version": "22.1-EPIC-B-GOLDEN-SLICE-WIRED",
+  "based_on": "22.0-LOCAL-RUNTIME-EVIDENCE",
+  "epic": "B — Wiring del golden slice app/API (encuentro autenticado)",
+  "environment": "local Node v24 + pnpm; Neon PostgreSQL en vivo",
+  "full_typecheck": "PASS",
+  "full_vitest": "PASS (184/184 tests, 147 files; +10 vs 174)",
+  "next_build": "PASS (apps/web; /api/v1/encounters ahora ƒ Dynamic)",
+  "endpoint_wired": "POST/GET /api/v1/encounters (de stub 503 a endpoint real)",
+  "live_endpoint_proof": "PASS (10/10): OPEN_201_v1, AUDIT_HASH_PRESENT, IDEMPOTENT_REPLAY_200, READ_200_v1, EVENT_AGGREGATE_TYPE, CROSS_TENANT_ISOLATION_404, NO_SESSION_401, ROLE_FORBIDDEN_403, IDEMPOTENCY_REQUIRED_428, VALIDATION_400",
+  "security_chain": "sesion firmada (HMAC) -> resolvePrincipal fail-closed -> authz server-side (PHYSICIAN/TREATMENT/encounter:write) -> RLS via rol medical_os_runtime (startup role) -> kernel atomico (idempotencia+evento+outbox+audit-chain)",
+  "repaired_defects_epic_b": {
+    "rls_grants": "faltaban GRANTs de tabla al rol runtime (permission denied) -> migracion 0017_runtime_role_grants.sql (least-privilege), aplicada a Neon",
+    "idempotency_envelope": "envelope de comando con IDs aleatorios por-request rompia el replay (hash divergente) -> envelope determinista derivado del Idempotency-Key + occurredAt acunado por el cliente"
+  },
+  "phi_discipline": "sin PHI en logs ni en la respuesta de lectura (solo {sequence,type,occurredAt}); errores internos -> 500 generico sin fuga",
+  "deploy_requirement": "SESSION_SIGNING_SECRET en env de Vercel; sin el, el endpoint responde 403 fail-closed",
+  "not_run": "restore drill (Epic C, Neon desechable) + performance benchmark (Epic C)",
+  "governance_human_review": "PENDING (aceptacion C5 de la adjudicacion del golden slice, Epic A)",
+  "release_state": "BLOCKED (Epic C pendiente + revision humana C5)"
+}
