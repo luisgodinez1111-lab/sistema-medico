@@ -1,0 +1,13 @@
+{
+  "version": "22.2-EPIC-C-DR-AND-PERFORMANCE",
+  "based_on": "22.1-EPIC-B-GOLDEN-SLICE-WIRED",
+  "epic": "C — Restore/DR drill + Performance benchmark",
+  "environment": "local Node v24 + pnpm; Neon PostgreSQL en vivo",
+  "performance": "PASS (contra Neon): POST open p50=650ms p95=737ms p99=744ms errorRate=0; GET read p50=400ms p95=465ms; throughput 3.5 ops/s (observado single-client local->remoto, NO gateado como capacidad). Gate de salud = latencia+errores (performanceGate). Prepared statements bajaron la latencia ~2x.",
+  "performance_defect_fixed": "prepare:false re-parseaba cada statement -> prepare:true en el endpoint directo (sin pooler) redujo p50 1425->650ms, p95 1694->737ms",
+  "restore_drill": "READY_NOT_RUN — scripts/v22/restore-drill.mts reconstruye el esquema en un branch de Neon desechable y verifica RestoreProof (schemaHash==vivo, auditValid encadenado, rlsPass, replay determinista) con el gate restoreErrors(). Salvaguarda: exige RESTORE_DATABASE_URL y rehusa si == DATABASE_URL. Pendiente: proveer un branch de Neon desechable.",
+  "full_typecheck": "PASS",
+  "full_vitest": "PASS (184/184)",
+  "governance_human_review": "PENDING (aceptacion C5 golden slice, Epic A)",
+  "release_state": "BLOCKED (restore drill pendiente de branch desechable + revision humana C5)"
+}

@@ -20,7 +20,8 @@ function getSql():Sql{
  if(_sql)return _sql;
  const raw=process.env.DATABASE_URL;
  if(!raw)throw new ClinicalError("DEPENDENCY_UNAVAILABLE","DATABASE_URL not configured");
- _sql=postgres(directEndpoint(raw),{max:10,idle_timeout:20,connect_timeout:10,prepare:false,connection:{options:`-c role=${RUNTIME_ROLE}`}});
+ // Endpoint directo (sin pooler) => se pueden usar prepared statements (menos parse-overhead).
+ _sql=postgres(directEndpoint(raw),{max:20,idle_timeout:20,connect_timeout:10,prepare:true,connection:{options:`-c role=${RUNTIME_ROLE}`}});
  return _sql;
 }
 export function sessionSecret():string{
