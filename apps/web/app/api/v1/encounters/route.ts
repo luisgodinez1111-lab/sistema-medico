@@ -56,7 +56,7 @@ export async function POST(req:Request){
    expectedVersion:0,
    eventId:derivedUuid(idempotencyKey,"event"),
    eventType:"ENCOUNTER_OPENED",
-   payload:{patientId:b.patientId,...(b.encounterClass?{encounterClass:b.encounterClass}:{})},
+   payload:{kind:"OPENED",patientId:b.patientId,...(b.encounterClass?{encounterClass:b.encounterClass}:{})},
    outboxId:derivedUuid(idempotencyKey,"outbox"),
    topic:"encounter.opened",
    auditId:derivedUuid(idempotencyKey,"audit"),

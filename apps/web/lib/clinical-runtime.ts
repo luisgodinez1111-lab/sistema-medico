@@ -1,5 +1,7 @@
 import postgres,{type Sql}from"postgres";
+import crypto from"node:crypto";
 import{executeAtomicClinicalCommand,type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
+import{canonicalize}from"../../../packages/canonical-json/src";
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 // EPIC B — Runtime clínico de la capa app: conexión a Postgres y ejecución del kernel
@@ -35,6 +37,40 @@ export type ClinicalCommandResult=Readonly<{replayed:boolean;response:unknown}>;
 // en el startup, así que la transacción del kernel corre como `medical_os_runtime`.
 export async function runClinicalCommand(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult>{
  return executeAtomicClinicalCommand(getSql(),ctx,command) as Promise<ClinicalCommandResult>;
+}
+// EPIC D — Replay idempotente previo a la validación de state-machine: si este Idempotency-Key
+// ya produjo ESTE comando exacto (mismo hash) y quedó COMPLETED, devuelve la respuesta guardada.
+// Así un reintento de una transición ya aplicada no choca con la SM (el estado ya avanzó).
+export async function lookupReplay(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult|null>{
+ const hash=crypto.createHash("sha256").update(canonicalize(command)).digest("hex");
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const r=await tx`select status,request_hash,response_json from command_idempotency where tenant_id=${ctx.tenantId} and actor_id=${ctx.actorId} and key=${command.idempotencyKey}`;
+  const row=r[0];
+  if(row&&row.status==="COMPLETED"&&row.request_hash===hash)return{replayed:true,response:row.response_json};
+  return null;
+ }) as Promise<ClinicalCommandResult|null>;
+}
+
+// EPIC D — Lectura RLS-scoped del stream de eventos CON payload (para reconstruir estado).
+// El payload es contenido clínico (fuente de verdad, RLS-aislado); nunca se loguea.
+export async function readEncounterEvents(ctx:HttpTenantContext,encounterId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`select sequence,payload from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${encounterId} order by sequence`;
+  return rows.map(r=>({sequence:Number(r.sequence),payload:(r.payload??{}) as Record<string,unknown>}));
+ }) as Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>;
+}
+// EPIC D — Gate Zero Lost Follow-Up: obligaciones críticas (URGENT) del paciente sin resolver.
+export async function countUnresolvedCriticalObligations(ctx:HttpTenantContext,patientId:string):Promise<number>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`select count(*)::int n from clinical_inbox where tenant_id=${ctx.tenantId} and patient_id=${patientId} and priority='URGENT' and resolved_at is null`;
+  return Number(rows[0]?.n??0);
+ }) as Promise<number>;
 }
 
 export type EncounterView=Readonly<{encounterId:string;version:number;events:ReadonlyArray<{sequence:number;type:string;occurredAt:string}>}>;

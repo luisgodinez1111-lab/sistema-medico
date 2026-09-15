@@ -1,0 +1,17 @@
+{
+  "version": "22.3-EPIC-D-ENCOUNTER-LIFECYCLE",
+  "based_on": "22.2-EPIC-C-DR-AND-PERFORMANCE",
+  "epic": "D — Ciclo de vida del encuentro (assess + sign) sobre el kernel probado",
+  "environment": "local Node v24 + pnpm; Neon PostgreSQL en vivo",
+  "endpoints_wired": "POST /api/v1/encounters/:id/assessment (OPEN->READY_TO_SIGN); POST /api/v1/encounters/:id/signature (READY_TO_SIGN->SIGNED)",
+  "invariants_enforced": "Physician Control (solo medico humano firma; sin ruta IA); Zero Lost Follow-Up (no firmar con obligaciones criticas URGENT sin resolver); tenant isolation (RLS); state machine formal (encounter-domain)",
+  "concurrency": "optimista real via If-Match=version -> expectedVersion del kernel (autoridad); replay idempotente resuelto con lookupReplay antes de validar la SM",
+  "full_typecheck": "PASS",
+  "full_vitest": "PASS (194/194; +10 fold vs 184)",
+  "next_build": "PASS (rutas dinamicas assessment/signature = ƒ Dynamic)",
+  "live_lifecycle_proof": "PASS 12/12: OPEN_201_v1, SIGN_WITHOUT_ASSESSMENT_403, ASSESS_201_v2, ASSESS_REPLAY_200, REASSESS_ILLEGAL_409, SIGN_201_v3, SIGN_REPLAY_200, ASSESS_AFTER_SIGNED_409, OPTIMISTIC_CONFLICT_409, CROSS_TENANT_404, ROLE_FORBIDDEN_403, CRITICAL_OBLIGATION_BLOCKS_SIGN_403",
+  "new_migration": "0018_encounter_lifecycle_grants.sql (GRANT SELECT clinical_inbox al rol runtime), aplicada a Neon",
+  "phi_discipline": "contenido clinico solo en clinical_events.payload (RLS); nunca en logs",
+  "governance_human_review": "PENDING (aceptacion C5; adjudicacion de trazabilidad de estas capacidades pendiente como en Epic A)",
+  "release_state": "BLOCKED solo por revision humana C5"
+}
