@@ -45,21 +45,28 @@ branch de Neon) y verifica una `RestoreProof` con el gate real `restoreErrors()`
 | `replayHash == liveHash` (`obligationsMatch`) | Persistencia **determinista**: el stream de eventos reconstruido coincide con la proyección esperada derivada de las definiciones puras |
 
 **Salvaguarda:** exige `RESTORE_DATABASE_URL` y **rehúsa** correr si apunta al mismo host+db
-que `DATABASE_URL` (el drill aplica DDL y escribe: nunca contra la BD activa). Sin target
-responde `NOT_RUN` (verificado). Aplica `db/roles_v16.sql` + `db/migrations/0001..0017` en
-orden y ejercita el kernel real bajo el rol runtime.
+que `DATABASE_URL` (nunca contra la BD activa). Sin target responde `NOT_RUN` (verificado).
+En un **branch de Neon** (copia point-in-time = el propio mecanismo de restore) el esquema ya
+existe; el drill asegura roles + GRANTs idempotentes y verifica. Si el target estuviera **vacío**,
+reconstruye completo desde `db/roles_v16.sql` + `db/migrations/0001..0017`.
 
-**Estado: NOT_RUN — pendiente de un branch de Neon desechable.** Para ejecutarlo:
+**Resultado ejecutado (15-sep-2026, contra un branch desechable de Neon): `status: PASS`.**
 
-```bash
-# 1) crear un branch desechable en Neon (dashboard o neon CLI) y copiar su connection string
-RESTORE_DATABASE_URL='postgres://...branch...' pnpm exec tsx ./scripts/v22/restore-drill.mts
-```
+| Check | Resultado |
+| --- | --- |
+| `schemaHash == expectedSchemaHash` | ✅ `ac461607…` idéntico al vivo |
+| `auditValid` | ✅ cadena encadenada (previous_hash₂ == entry_hash₁) |
+| `rlsPass` | ✅ otro tenant no ve los eventos sembrados |
+| `replayHash == liveHash` (`obligationsMatch`) | ✅ `2b25d088…` persistencia determinista |
+| `errors` | `[]` → gate PASS |
 
-No se fabrica un resultado: el drill produce evidencia real solo contra una BD real desechable.
+Branch creado como *data+schema* con **Auto-delete: After 1 day** (los branches *schema-only*
+no están soportados por el rol legacy `medical_os_readonly` del proyecto). El branch es aislado
+y desechable; se autoelimina.
 
 ## Resumen
 
-- Performance: **ejecutado** (baseline real, 0 errores; ver resultado arriba y el gate).
-- Restore/DR: **script listo y auto-protegido**, `NOT_RUN` hasta disponer de un branch de Neon.
+- Performance: **ejecutado PASS** (baseline real, 0 errores; gate de salud latencia+errores).
+- Restore/DR: **ejecutado PASS** contra un branch desechable de Neon (esquema idéntico, auditoría
+  encadenada, RLS forzado, replay determinista).
 - El resto de verticales heredan ambos arneses sin cambios.

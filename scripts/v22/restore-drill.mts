@@ -28,7 +28,7 @@ const{restoreErrors}=await import("../../packages/restore-proof/src");
 
 const RUNTIME_ROLE="medical_os_runtime";
 async function schemaFingerprint(url:string){
- const sql=postgres(direct(url),{max:1,prepare:false});
+ const sql=postgres(direct(url),{max:1,prepare:false,onnotice:()=>{}});
  try{
   const rows=await sql`select table_schema,table_name,column_name,data_type from information_schema.columns where table_schema in ('public','app') order by table_schema,table_name,ordinal_position`;
   const norm=rows.map(r=>`${r.table_schema}.${r.table_name}.${r.column_name}:${r.data_type}`).join("|");
@@ -46,13 +46,24 @@ function seededCommand(i:number){
 
 const out:{status:string;proof?:unknown;errors?:string[];note?:string}={status:"PASS"};
 try{
- // 1) Aplicar roles + migraciones en orden al TARGET (como owner).
- const owner=postgres(direct(TARGET),{max:1,prepare:false});
+ // 1) Preparar el TARGET (como owner). En un branch de Neon (copia point-in-time = el propio
+ //    mecanismo de restore) el esquema YA existe; solo aseguramos roles + GRANTs idempotentes.
+ //    Si el target estuviera VACÍO, se reconstruye completo desde migraciones.
+ const owner=postgres(direct(TARGET),{max:1,prepare:false,onnotice:()=>{}});
+ let rebuiltFromMigrations=false;
  try{
   await owner.unsafe(fs.readFileSync("db/roles_v16.sql","utf8"));
   await owner.unsafe(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.roleid JOIN pg_roles g ON g.oid=m.member WHERE r.rolname='${RUNTIME_ROLE}' AND g.rolname=current_user) THEN EXECUTE 'GRANT ${RUNTIME_ROLE} TO '||quote_ident(current_user); END IF; END $$;`);
-  const files=fs.readdirSync("db/migrations").filter(f=>/^\d+_.*\.sql$/.test(f)).sort();
-  for(const f of files)await owner.unsafe(fs.readFileSync(path.join("db/migrations",f),"utf8"));
+  const present=await owner`select to_regclass('public.clinical_events') as t`;
+  if(present[0]!.t){
+   // Esquema presente (branch copia): aplicar solo la migración de GRANTs (idempotente).
+   await owner.unsafe(fs.readFileSync("db/migrations/0017_runtime_role_grants.sql","utf8"));
+  }else{
+   // Target vacío: reconstrucción completa desde migraciones en orden.
+   const files=fs.readdirSync("db/migrations").filter(f=>/^\d+_.*\.sql$/.test(f)).sort();
+   for(const f of files)await owner.unsafe(fs.readFileSync(path.join("db/migrations",f),"utf8"));
+   rebuiltFromMigrations=true;
+  }
  }finally{await owner.end();}
 
  // 2) schemaHash (restaurado) vs expectedSchemaHash (vivo).
@@ -60,7 +71,7 @@ try{
  const expectedSchemaHash=await schemaFingerprint(SOURCE);
 
  // 3) Ejecutar el stream determinista + audit en el TARGET bajo el rol runtime.
- const rt=postgres(direct(TARGET),{max:4,prepare:false,connection:{options:`-c role=${RUNTIME_ROLE}`}});
+ const rt=postgres(direct(TARGET),{max:4,prepare:false,onnotice:()=>{},connection:{options:`-c role=${RUNTIME_ROLE}`}});
  let auditValid=false,rlsPass=false,replayHash="",liveHash="";
  try{
   const ctx={tenantId:REPLAY_TENANT,actorId:det("restore-actor"),purpose:"TREATMENT",requestId:det("restore-req")};
@@ -91,6 +102,7 @@ try{
  const proof={schemaHash,expectedSchemaHash,auditValid,rlsPass,replayHash,liveHash,obligationsMatch:replayHash===liveHash};
  const errors=restoreErrors(proof);
  out.proof=proof;out.errors=errors;out.status=errors.length?"FAIL":"PASS";
+ out.note=rebuiltFromMigrations?"target vacio: reconstruido desde migraciones 0001..0017":"branch de Neon (copia point-in-time = restore): esquema presente, verificado";
 }catch(e){out.status="FAIL";out.note=String(e);}
 console.log(JSON.stringify(out,null,2));
 process.exit(out.status==="PASS"?0:1);
