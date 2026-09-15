@@ -1,0 +1,528 @@
+{
+  "title": "Golden Slice — Propuesta de Adjudicación de Trazabilidad",
+  "generatedAt": "2026-09-15T20:24:37.826Z",
+  "authority_note": "PROPUESTA generada por agente. No es autoridad. Los TRL del registro exigen aceptación humana (registry acceptance). Cambia REVIEW_REQUIRED->APPROVED solo tras revisión C5.",
+  "scope": "Capacidades del golden slice con evidencia estática + de runtime EN VIVO producida el 2026-09-15.",
+  "counts": {
+    "capabilities": 16,
+    "all_c5_or_c4": true
+  },
+  "items": [
+    {
+      "capability": "CAP-IDENTITY-001",
+      "name": "Identity, Tenant & Clinical Access Boundary",
+      "risk": "C5",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-333"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [
+        "tenant-security.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "live-rls",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#live-rls (cross-tenant + fail-closed + WITH CHECK)"
+        },
+        {
+          "key": "live-postgres",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#live-postgresql (Neon 18.6)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-DB-001",
+      "name": "Transactional Clinical Persistence & RLS",
+      "risk": "C4",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-333"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [
+        "repository.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "live-postgres",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#live-postgresql (Neon 18.6)"
+        },
+        {
+          "key": "live-rls",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#live-rls (cross-tenant + fail-closed + WITH CHECK)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-POSTGRES-001",
+      "name": "Tenant-Scoped PostgreSQL Transaction Adapter",
+      "risk": "C5",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-333"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [],
+      "runtime_evidence": [
+        {
+          "key": "live-postgres",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#live-postgresql (Neon 18.6)"
+        },
+        {
+          "key": "live-rls",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#live-rls (cross-tenant + fail-closed + WITH CHECK)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-AUTHZ-001",
+      "name": "Tenant/Role/Scope/Purpose Authorization",
+      "risk": "C4",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-333"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [
+        "authz.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "live-rls",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#live-rls (cross-tenant + fail-closed + WITH CHECK)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-EVENTS-001",
+      "name": "Clinical Event Kernel",
+      "risk": "C5",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-306",
+        "ENG-333"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [
+        "event-kernel.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "live-concurrency",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#concurrency (dedup + optimistic)"
+        },
+        {
+          "key": "vitest",
+          "artifact": "release/test-execution.json (174/174 PASS)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-AGGREGATE-001",
+      "name": "Versioned Aggregate Event Store",
+      "risk": "C5",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-306",
+        "ENG-333"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [
+        "aggregate-store.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "live-concurrency",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#concurrency (dedup + optimistic)"
+        },
+        {
+          "key": "vitest",
+          "artifact": "release/test-execution.json (174/174 PASS)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-ATOMIC-001",
+      "name": "Atomic Clinical Write Contract",
+      "risk": "C5",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-311",
+        "ENG-333"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [
+        "clinical-transaction.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "live-concurrency",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#concurrency (dedup + optimistic)"
+        },
+        {
+          "key": "live-crash-recovery",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#crash-recovery (rollback + retry)"
+        },
+        {
+          "key": "vitest",
+          "artifact": "release/test-execution.json (174/174 PASS)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-IDEMPOTENCY-002",
+      "name": "Persistent Idempotency Semantics",
+      "risk": "C5",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-311",
+        "ENG-337"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [
+        "idempotency-persistent.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "live-concurrency",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#concurrency (dedup + optimistic)"
+        },
+        {
+          "key": "vitest",
+          "artifact": "release/test-execution.json (174/174 PASS)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-ASYNC-001",
+      "name": "Reliable Async Delivery & Transactional Outbox",
+      "risk": "C5",
+      "releasePolicy": "FAIL_CLOSED",
+      "eng_authority": [
+        "ENG-311",
+        "ENG-337"
+      ],
+      "invariants": [
+        "INV-CORE-0006"
+      ],
+      "hazards": [
+        "HAZ-CORE-0004"
+      ],
+      "controls": [
+        "CTL-0006"
+      ],
+      "machines": [],
+      "tests": [
+        "outbox.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "live-concurrency",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#concurrency (dedup + optimistic)"
+        },
+        {
+          "key": "vitest",
+          "artifact": "release/test-execution.json (174/174 PASS)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-AUDIT-001",
+      "name": "Tamper-Evident Clinical Audit Ledger",
+      "risk": "C5",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-309",
+        "ENG-333"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [
+        "audit-ledger.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "live-concurrency-audit-chain",
+          "artifact": "append_audit_v17 ejercitado en el comando atómico (pgcrypto habilitado; 0001+manifest)"
+        },
+        {
+          "key": "vitest",
+          "artifact": "release/test-execution.json (174/174 PASS)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-AUDIT-002",
+      "name": "Audit Chain Verification",
+      "risk": "C5",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-309"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [],
+      "runtime_evidence": [
+        {
+          "key": "vitest",
+          "artifact": "release/test-execution.json (174/174 PASS)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-RESILIENCE-001",
+      "name": "Runtime Resilience & Circuit Breaking",
+      "risk": "C4",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-311",
+        "ENG-337"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [
+        "resilience.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "vitest-circuit-breaker-fixed",
+          "artifact": "tests/application/resilience.test.ts (bug 0-falsy reparado)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-OBLIGATION-002",
+      "name": "Clinical Obligation Domain",
+      "risk": "C5",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-308",
+        "ENG-311",
+        "ENG-337"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [
+        "obligation-domain.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "vitest",
+          "artifact": "release/test-execution.json (174/174 PASS)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-RESULTS-001",
+      "name": "Diagnostic Results Closed Loop",
+      "risk": "C5",
+      "releasePolicy": "FAIL_CLOSED",
+      "eng_authority": [
+        "ENG-306",
+        "ENG-307",
+        "ENG-308",
+        "ENG-311",
+        "ENG-312",
+        "ENG-313",
+        "ENG-337",
+        "ENG-342"
+      ],
+      "invariants": [
+        "INV-CORE-0001",
+        "INV-CORE-0002",
+        "INV-CORE-0006",
+        "INV-CORE-0007"
+      ],
+      "hazards": [
+        "HAZ-CORE-0001",
+        "HAZ-CORE-0004",
+        "HAZ-CORE-0005"
+      ],
+      "controls": [
+        "CTL-0001",
+        "CTL-0002",
+        "CTL-0006",
+        "CTL-0007"
+      ],
+      "machines": [
+        "SM-FORMAL-RESULT-001",
+        "SM-FORMAL-OBLIGATION-001"
+      ],
+      "tests": [
+        "state-machines.test.ts",
+        "obligation.test.ts",
+        "corrected-result.test.ts",
+        "replay-impact.test.ts",
+        "reconciliation-critical.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "vitest",
+          "artifact": "release/test-execution.json (174/174 PASS)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-TRUTH-001",
+      "name": "Clinical Truth & Epistemic Integrity",
+      "risk": "C5",
+      "releasePolicy": "FAIL_CLOSED",
+      "eng_authority": [
+        "ENG-303",
+        "ENG-304",
+        "ENG-305",
+        "ENG-324"
+      ],
+      "invariants": [
+        "INV-CORE-0003",
+        "INV-CORE-0004"
+      ],
+      "hazards": [
+        "HAZ-CORE-0002",
+        "HAZ-CORE-0003"
+      ],
+      "controls": [
+        "CTL-0003",
+        "CTL-0004"
+      ],
+      "machines": [
+        "SM-FORMAL-TRUTH-001"
+      ],
+      "tests": [
+        "epistemic-truth.test.ts",
+        "clinical-semantics.test.ts",
+        "invariants.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "vitest",
+          "artifact": "release/test-execution.json (174/174 PASS)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "capability": "CAP-RECONCILIATION-003",
+      "name": "Accountable Failure Reconciliation",
+      "risk": "C5",
+      "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+      "eng_authority": [
+        "ENG-311",
+        "ENG-337"
+      ],
+      "invariants": [],
+      "hazards": [],
+      "controls": [],
+      "machines": [],
+      "tests": [
+        "reconciliation-engine.test.ts"
+      ],
+      "runtime_evidence": [
+        {
+          "key": "live-crash-recovery",
+          "artifact": "docs/reviews/2026-09-15-runtime-evidence.md#crash-recovery (rollback + retry)"
+        },
+        {
+          "key": "vitest",
+          "artifact": "release/test-execution.json (174/174 PASS)"
+        }
+      ],
+      "static_conformance": "PASS (validate-registry + release:check en CI)",
+      "proposed_review_decision": "APPROVED",
+      "proposed_release_effect": "ELIGIBLE_FOR_REGISTRY",
+      "requires_human_c5_acceptance": true
+    }
+  ]
+}
