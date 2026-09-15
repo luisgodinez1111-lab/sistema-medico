@@ -1,0 +1,15 @@
+{
+  "version": "22.7-EPIC-H-MEDICATION-LIFECYCLE",
+  "based_on": "22.6-EPIC-G-RESULT-CLOSED-LOOP",
+  "epic": "H — Ciclo de vida de medicacion / prescripcion (Physician Control estrella)",
+  "endpoints_wired": "POST /api/v1/medications (PROPOSED); /:id/prescription (PRESCRIBED, EXIGE PHYSICIAN); /:id/activation (ACTIVE); /:id/discontinuation (STOPPED, razon requerida)",
+  "physician_control": "PROPOSE lo puede hacer cualquier clinico (scope medication:propose, ej. enfermera o IA); PRESCRIBE exige role PHYSICIAN + medication:write; sin ruta de IA a PRESCRIBED -> la IA nunca escribe la orden firmada (EXEC-0003)",
+  "invariants_enforced": "Physician Control (probado: enfermera propone ok, enfermera prescribe 403, medico prescribe ok), state machine formal (medication-domain), tenant isolation (RLS), scope enforcement",
+  "full_typecheck": "PASS",
+  "full_vitest": "PASS (223/223; +6 vs 217)",
+  "next_build": "PASS (4 rutas de medicacion = ƒ Dynamic)",
+  "live_medication_proof": "PASS 12/12: NURSE_PROPOSE_201, NURSE_PRESCRIBE_FORBIDDEN_403, PHYSICIAN_PRESCRIBE_201_v2, PRESCRIBE_REPLAY_200, STOP_FROM_PRESCRIBED_ILLEGAL_409, ACTIVATE_201_v3, STOP_WITHOUT_REASON_400, DISCONTINUE_201_v4, ACTIVATE_AFTER_STOPPED_409, OPTIMISTIC_CONFLICT_409, CROSS_TENANT_404, MISSING_SCOPE_403",
+  "clinical_verticals_total": "4 (encuentro open/read, ciclo de vida encuentro assess/sign, resultados closed-loop, medicacion) sobre el kernel probado",
+  "governance_human_review": "PENDING (aceptacion C5)",
+  "release_state": "BLOCKED solo por revision humana C5"
+}
