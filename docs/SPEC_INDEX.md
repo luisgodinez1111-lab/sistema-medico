@@ -19,9 +19,11 @@
 Los `.docx` son la **fuente autoritativa**; los `.extracted.txt` son un render de texto
 (hecho con `textutil`) para búsqueda/lectura por agentes — si difieren, manda el `.docx`.
 
-> Nota: el usuario mencionó **4 documentos**; se recibieron **3 archivos**. Pendiente
-> confirmar si falta un cuarto (p. ej. un registro de trazabilidad `PROD↔ENG↔EXEC`, o un
-> plan de fases separado) o si el Companion cumple el doble rol de "cómo lo haremos".
+> **Actualización 15-sep-2026 (decisiones del usuario):** V2 es la autoridad; se **empieza
+> limpio desde L00** y el repo actual (`sistema-medico`) pasa a **legado/referencia**; el
+> monorepo objetivo se llama **`medical-os`**. Hay un **4.º documento** que el usuario
+> entregará (integrarlo antes de arrancar). Por ahora **solo queda el informe**
+> (`docs/reviews/2026-09-15-V2-spec-review.md`); **no se inicia L00** hasta nueva indicación.
 
 ## Jerarquía de fuentes (EXEC-0001) — regla de conflicto
 
