@@ -8,8 +8,13 @@
 | # | Documento | Rol / autoridad | Namespace | Ubicación |
 | - | --- | --- | --- | --- |
 | 1 | **V2.0.1 — Product & Clinical Specification** | **QUÉ** debe ser y hacer Medical OS para médico y paciente (congelado). | `PROD-000…PROD-177` (átomos `PROD-xxx-Ryyy`) | `docs/product/v2/Medical_OS_V2.0.1_FINAL.docx` (+ `.extracted.txt`) |
-| 2 | **V2.1.1 — Engineering & Implementation Specification** | **CÓMO** se construye y se demuestra (bible de ingeniería, incl. enmienda hyperscale). | `ENG-000…ENG-297` (átomos `ENG-xxx-Ryyy`) | `docs/engineering/v2.1/Medical_OS_V2.1.1_FINAL.docx` (+ `.extracted.txt`) |
-| 3 | **Agent Execution Companion** | **CÓMO DEBE COMPORTARSE un agente de código** al ejecutar V2.1 (operacional, machine-readable). | `EXEC-0001…` | `docs/agent-execution/Medical_OS_Companion_FINAL.md` |
+| 2 | **V2.1.1 — Engineering & Implementation Specification** | **CÓMO** se construye y se demuestra (bible de ingeniería, incl. enmienda hyperscale y arquitectura formal). | `ENG-000…ENG-348` (átomos `ENG-xxx-Ryyy`); además usa numeración de sección `1…348` | `docs/engineering/v2.1/Medical_OS_V2.1.1_FINAL.docx` (+ `.extracted.txt`, ~12.8k líneas) |
+| 3 | **Agent Execution Companion** | **CÓMO DEBE COMPORTARSE un agente de código** al ejecutar V2.1 (operacional, machine-readable). | `EXEC-0001…EXEC-1652` | `docs/agent-execution/Medical_OS_Companion_FINAL.md` (~24.5k líneas) |
+
+> **Escala real (para dimensionar la auditoría):** ~2.4k líneas (V2.0.1) + ~12.8k (V2.1.1) +
+> ~24.5k (Companion) ≈ **~39.7k líneas**. Doc 1 leído íntegro; Doc 2 y 3 leídos en su núcleo de
+> gobierno + mapa completo de secciones — la auditoría profunda de consistencia línea-a-línea
+> es un esfuerzo multi-pasada pendiente (ver "Próximos pasos").
 
 Los `.docx` son la **fuente autoritativa**; los `.extracted.txt` son un render de texto
 (hecho con `textutil`) para búsqueda/lectura por agentes — si difieren, manda el `.docx`.
