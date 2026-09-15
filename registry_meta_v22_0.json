@@ -24,7 +24,7 @@
   "concurrency": "PASS (executeAtomicClinicalCommand real, 12x paralelo contra Neon: idempotencia dedup ok=1/replay=11/rows=1; concurrencia optimista ok=1/conflict=11/version=1/rows=1)",
   "crash_recovery": "PASS (crash mid-transaccion -> rollback atomico leftover=0; retry OK_RECOVERED)",
   "pgcrypto_gap_fixed": "0001_core.sql ahora CREATE EXTENSION IF NOT EXISTS pgcrypto (append_audit_v17 lo requiere); manifest.v17 hash actualizado; integridad OK",
-  "http_fuzzing": "NOT_RUN",
+  "http_fuzzing": "PASS-at-stub-layer (160 requests malformados a los handlers desplegados: 0 no-manejados/500, 0 leaks; todo 405/501/503 estructurado). NOTA: los handlers son deny-by-default stubs (no parsean body) -> el fuzzing de validacion real espera el wiring de auth+persistencia (release-blocked)",
   "restore_drill": "NOT_RUN",
   "performance": "NOT_RUN",
   "governance_human_review": "PENDING",
