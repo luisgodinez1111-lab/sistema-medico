@@ -1,0 +1,29 @@
+// EPIC AA — Motor de "care gaps" / worklist clínico. Proyección PURA sobre el timeline del paciente
+// que computa pendientes accionables y priorizados a través de TODOS los verticales. Basado en REGLAS
+// deterministas (NO IA — no toca el copiloto R6 en pausa). Sin PHI: solo tipo/estado/etiqueta.
+// Autoridad: PROD (care gaps / Clinical Intelligence rules), CAP-CAREGAPS-001.
+export type TimelineLike=Readonly<{aggregateType:string;aggregateId:string;latestKind:string}>;
+export type GapPriority="HIGH"|"MEDIUM"|"LOW";
+export type CareGap=Readonly<{aggregateType:string;aggregateId:string;code:string;label:string;priority:GapPriority}>;
+const RANK:Record<GapPriority,number>={HIGH:0,MEDIUM:1,LOW:2};
+// Cada regla: dado el último evento de un agregado, ¿genera un pendiente accionable?
+type Rule=(it:TimelineLike)=>Omit<CareGap,"aggregateType"|"aggregateId">|null;
+const RULES:Record<string,Rule>={
+ DiagnosticResult:it=>it.latestKind==="ACTIONED"?{code:"CRITICAL_RESULT_OPEN",label:"Resultado crítico requiere cierre de seguimiento",priority:"HIGH"}:null,
+ ClinicalObligation:it=>(it.latestKind!=="COMPLETED"&&it.latestKind!=="CANCELLED")?{code:"FOLLOWUP_OPEN",label:"Obligación de seguimiento abierta (Zero Lost Follow-Up)",priority:"HIGH"}:null,
+ Consent:it=>it.latestKind==="PRESENTED"?{code:"CONSENT_PENDING_SIGNATURE",label:"Consentimiento presentado, pendiente de firma",priority:"MEDIUM"}:null,
+ Immunization:it=>it.latestKind==="DUE"?{code:"IMMUNIZATION_DUE",label:"Vacuna indicada, pendiente de aplicar",priority:"MEDIUM"}:null,
+ CarePlan:it=>it.latestKind==="HELD"?{code:"CAREPLAN_ON_HOLD",label:"Meta de cuidados en pausa, requiere revisión",priority:"MEDIUM"}:null,
+ Referral:it=>it.latestKind==="REQUESTED"?{code:"REFERRAL_UNACCEPTED",label:"Interconsulta solicitada, sin aceptar",priority:"LOW"}:null,
+ Appointment:it=>it.latestKind==="NO_SHOW"?{code:"APPOINTMENT_NO_SHOW",label:"Cita perdida (no-show), reagendar",priority:"LOW"}:null,
+ Claim:it=>it.latestKind==="REJECTED"?{code:"CLAIM_REJECTED",label:"Reclamación rechazada, requiere reenvío",priority:"LOW"}:null,
+};
+export function computeCareGaps(items:readonly TimelineLike[]):CareGap[]{
+ const gaps:CareGap[]=[];
+ for(const it of items){
+  const rule=RULES[it.aggregateType];if(!rule)continue;
+  const g=rule(it);if(g)gaps.push({aggregateType:it.aggregateType,aggregateId:it.aggregateId,...g});
+ }
+ // Orden: prioridad (HIGH->LOW) y luego por tipo, determinista.
+ return gaps.sort((a,b)=>RANK[a.priority]-RANK[b.priority]||a.aggregateType.localeCompare(b.aggregateType));
+}
