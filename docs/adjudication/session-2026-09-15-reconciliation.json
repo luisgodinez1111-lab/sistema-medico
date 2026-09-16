@@ -785,6 +785,34 @@
       "epic": "AG",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-TRIAGE-001",
+      "name": "Triage / clasificación de acuidad (agregado Triage, front-of-house urgencias)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (triage/acuidad de urgencias). Clasificación ESI 1-5 re-evaluable, con LWBS (left without being seen) como seguridad de front-of-house. Integrado al motor de care gaps: un paciente sin triage completado es un pendiente HIGH. chiefComplaint/acuity son datos clínicos (payload bajo RLS, nunca en logs).",
+      "invariants": [
+        "SM: WAITING->{IN_TRIAGE,LWBS}; IN_TRIAGE->{TRIAGED,LWBS}; TRIAGED->{TRIAGED,CLOSED}; CLOSED/LWBS terminales",
+        "TRIAGED es re-evaluable; la acuidad vigente es la del último triage",
+        "No clasificar sin iniciar (TRIAGE_WITHOUT_START_409); no mutar terminal (TRIAGE_AFTER_CLOSE_409)",
+        "Un triage pendiente genera un care gap HIGH (integración con CAP-CAREGAPS-001)",
+        "Tenant isolation (cross-tenant 404) + replay determinista + concurrencia optimista"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/triage/**",
+        "packages/triage-fold",
+        "apps/web/lib/triage-lifecycle.ts",
+        "packages/care-gaps (regla TRIAGE_PENDING)",
+        "RBAC triage:write (PHYSICIAN/NURSE)",
+        "UI /workspace panel de triage"
+      ],
+      "tests": [
+        "tests/v22/triage-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-triage-lifecycle-proof.mts — PASS 10/10 (ARRIVE/START/TRIAGE/RETRIAGE/CLOSE_201, TRIAGE_AFTER_CLOSE_409, TRIAGE_WITHOUT_START_409, LWBS_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "AH",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
