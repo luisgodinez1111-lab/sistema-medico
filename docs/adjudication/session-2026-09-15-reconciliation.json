@@ -552,6 +552,32 @@
       "epic": "X",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-CLAIM-001",
+      "name": "Facturación/reclamaciones (agregado Claim, ciclo de ingresos)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (billing/coding; facturación MX). IMPORTANTE: seguimiento de ESTADO de la reclamación; NO ejecuta transferencias ni pagos reales (los eventos PAID/REJECTED son conciliación de estado, no movimiento de fondos). amount/currency/codes son datos administrativos (payload bajo RLS, nunca en logs). billing:write se concede a administración/codificación (CLINICAL_ADMIN) además del médico.",
+      "invariants": [
+        "SM del ciclo: DRAFT->CODED->SUBMITTED->{PAID,REJECTED}; REJECTED->SUBMITTED (reenvío); {DRAFT,CODED,REJECTED}->VOIDED; PAID/VOIDED terminales",
+        "No enviar sin codificar (SUBMIT_WITHOUT_CODE_409)",
+        "No anular una reclamación pagada (VOID_AFTER_PAID_409)",
+        "Tenant isolation (cross-tenant 404) + replay determinista + concurrencia optimista"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/claims/**",
+        "packages/claim-fold",
+        "apps/web/lib/claim-lifecycle.ts",
+        "RBAC billing:write (PHYSICIAN/CLINICAL_ADMIN)",
+        "UI /workspace panel de facturación"
+      ],
+      "tests": [
+        "tests/v22/claim-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-claim-lifecycle-proof.mts — PASS 11/11 (DRAFT/CODE/SUBMIT/REJECT/RESUBMIT/PAY_201, VOID_AFTER_PAID_409, SUBMIT_WITHOUT_CODE_409, VOID_FROM_CODED_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "Y",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
