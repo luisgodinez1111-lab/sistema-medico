@@ -20,6 +20,10 @@ export function toHttpError(e:unknown):HttpError{
   const code=KERNEL[e.message] as ClinicalErrorCode;
   return{status:STATUS[code]??409,body:{error:{code,message:e.message}}};
  }
- // Fail-closed genérico: nunca filtrar el mensaje/stack interno al cliente.
+ // Fail-closed genérico: no se filtra el detalle al cliente, pero SÍ se loguea server-side
+ // (mensaje/código, sin PHI) para diagnóstico.
+ const detail=e instanceof Error?`${e.name}: ${e.message}`:String(e);
+ const code=(e as{code?:unknown})?.code;
+ console.error("[clinical] unexpected runtime error ->",detail,code?`(code=${String(code)})`:"");
  return{status:500,body:{error:{code:"INTERNAL",message:"Unexpected runtime error"}}};
 }
