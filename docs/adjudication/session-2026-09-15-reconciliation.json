@@ -315,6 +315,31 @@
       "epic": "O",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-PATIENT-STATE-002",
+      "name": "Computed Patient State Composer (resumen del paciente)",
+      "risk": "C5",
+      "eng_authority": [
+        "ENG-303",
+        "ENG-312"
+      ],
+      "invariants": [
+        "Proyeccion pura sin PHI (solo conteos)",
+        "Deriva del timeline RLS-scoped"
+      ],
+      "implementation": [
+        "packages/patient-summary",
+        "apps/web/app/workspace (header de resumen)",
+        "apps/web/lib/clinical-runtime.readPatientTimeline (fuente)"
+      ],
+      "tests": [
+        "tests/v22/patient-summary.test.ts"
+      ],
+      "runtime_evidence": "Proyeccion pura testeada (2/2); insumo (timeline) probado en vivo 6/6 (live-patient-timeline-proof). Header de resumen en /workspace.",
+      "epic": "P",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
