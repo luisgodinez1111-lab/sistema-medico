@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **29**
+- Capacidades reconciliadas: **30**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **29**
+- Pendiente de aceptación humana C5: **30**
 
 ## Riesgo C4
 
@@ -214,6 +214,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-specimen-lifecycle-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-INCIDENT-001 — Incidentes de seguridad del paciente / farmacovigilancia (agregado Incident)
+- Epic: AG
+- Invariantes: 4
+- Tests: `tests/v22/incident-fold.test.ts`
+- Prueba en vivo: `scripts/v22/live-incident-lifecycle-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -247,3 +254,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-ADJUDICATION-001 | | | | |
 | CAP-ADMISSION-001 | | | | |
 | CAP-SPECIMEN-001 | | | | |
+| CAP-INCIDENT-001 | | | | |

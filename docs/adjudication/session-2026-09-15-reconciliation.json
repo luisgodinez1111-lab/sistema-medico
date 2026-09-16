@@ -758,6 +758,33 @@
       "epic": "AF",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-INCIDENT-001",
+      "name": "Incidentes de seguridad del paciente / farmacovigilancia (agregado Incident)",
+      "risk": "C5",
+      "eng_authority_note": "PROD/compliance (seguridad del paciente / notificación de eventos adversos, NOM). Ciclo reporte->revisión->escalamiento/resolución con trazabilidad. Integrado al motor de care gaps: un incidente abierto es un pendiente HIGH. category/severity/description son datos clínicos (payload bajo RLS, nunca en logs).",
+      "invariants": [
+        "SM: REPORTED->{UNDER_REVIEW,RESOLVED}; UNDER_REVIEW->{ESCALATED,RESOLVED}; ESCALATED->RESOLVED; RESOLVED terminal",
+        "No escalar sin revisar (ESCALATE_WITHOUT_REVIEW_409); no mutar un incidente resuelto (RESOLVE_TERMINAL_409)",
+        "Un incidente abierto genera un care gap HIGH (integración con CAP-CAREGAPS-001)",
+        "Tenant isolation (cross-tenant 404) + replay determinista + concurrencia optimista"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/incidents/**",
+        "packages/incident-fold",
+        "apps/web/lib/incident-lifecycle.ts",
+        "packages/care-gaps (regla SAFETY_INCIDENT_OPEN)",
+        "RBAC incident:write (PHYSICIAN/NURSE/CLINICAL_ADMIN)",
+        "UI /workspace panel de incidentes"
+      ],
+      "tests": [
+        "tests/v22/incident-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-incident-lifecycle-proof.mts — PASS 9/9 (REPORT/REVIEW/ESCALATE/RESOLVE_201, RESOLVE_TERMINAL_409, ESCALATE_WITHOUT_REVIEW_409, RESOLVE_FROM_REPORTED_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "AG",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
