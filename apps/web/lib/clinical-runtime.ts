@@ -106,6 +106,22 @@ export async function readPatientTimeline(ctx:HttpTenantContext,patientId:string
   return rows.map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),latestKind:String(x.latest_kind??""),version:Number(x.version),openedAt:String(x.opened_at),lastAt:String(x.last_at)}));
  }) as Promise<ReadonlyArray<TimelineItem>>;
 }
+// EPIC AB — Manifiesto del expediente: filas estructurales (agregado/secuencia/kind/fecha) de TODOS
+// los agregados del paciente. RLS-scoped. SIN volcar payloads PHI: solo el kind (estado) y la fecha.
+export type RecordRow=Readonly<{aggregateType:string;aggregateId:string;sequence:number;kind:string;occurredAt:string}>;
+export async function readPatientRecordRows(ctx:HttpTenantContext,patientId:string):Promise<ReadonlyArray<RecordRow>>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select r.aggregate_id, r.aggregate_type, r.sequence, r.payload->>'kind' as kind, r.occurred_at
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_id in (
+     select aggregate_id from clinical_events where tenant_id=${ctx.tenantId} and sequence=1 and payload->>'patientId'=${patientId})
+   order by r.aggregate_id, r.sequence`;
+  return rows.map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),sequence:Number(x.sequence),kind:String(x.kind??""),occurredAt:String(x.occurred_at)}));
+ }) as Promise<ReadonlyArray<RecordRow>>;
+}
 // EPIC D — Lectura RLS-scoped del stream de eventos CON payload (para reconstruir estado).
 // El payload es contenido clínico (fuente de verdad, RLS-aislado); nunca se loguea.
 export async function readEncounterEvents(ctx:HttpTenantContext,encounterId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
