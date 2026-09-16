@@ -474,6 +474,32 @@
       "epic": "U",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-IMMUNIZATION-001",
+      "name": "Vacunas/inmunizaciones (agregado Immunization, cartilla longitudinal)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (inmunizaciones/cartilla nacional de vacunación); registro longitudinal con farmacovigilancia (evento adverso post-aplicación). vaccineCode/dose/lot/site son datos clínicos (payload bajo RLS, nunca en logs). immunization:write se concede a enfermería, que aplica la cartilla.",
+      "invariants": [
+        "SM de vacuna: DUE->{ADMINISTERED,REFUSED}; ADMINISTERED->ADVERSE_EVENT; REFUSED/ADVERSE_EVENT terminales",
+        "No registrar evento adverso sin aplicación previa (ADVERSE_WITHOUT_ADMIN_409)",
+        "No aplicar tras rechazo (ADMIN_AFTER_REFUSE_409)",
+        "Tenant isolation (cross-tenant 404) + replay determinista + concurrencia optimista"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/immunizations/**",
+        "packages/immunization-fold",
+        "apps/web/lib/immunization-lifecycle.ts",
+        "RBAC immunization:write (PHYSICIAN/NURSE)",
+        "UI /workspace panel de cartilla"
+      ],
+      "tests": [
+        "tests/v22/immunization-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-immunization-lifecycle-proof.mts — PASS 9/9 (DUE/ADMINISTER/ADVERSE_EVENT_201, ADVERSE_TERMINAL_409, ADVERSE_WITHOUT_ADMIN_409, REFUSE_201, ADMIN_AFTER_REFUSE_409, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "V",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
