@@ -101,6 +101,9 @@ export default function Workspace(){
  const[problems,setProblems]=useState<Prob[]>([]);const[probCode,setProbCode]=useState("");const[probDesc,setProbDesc]=useState("");
  const[obligations,setObligations]=useState<Ob[]>([]);const[obKind,setObKind]=useState("");
  const[tl,setTl]=useState<TL[]|null>(null);
+ const[patientName,setPatientName]=useState("");
+ const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string}[]|null>(null);
+ const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
  const[busy,setBusy]=useState("");
  const[error,setError]=useState("");
 
@@ -197,6 +200,17 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setObligations(os=>os.map(x=>x.id===o.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
+ function selectPatientRaw(id:string,name:string){setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setTl(null);setError("");}
+ const loadPatients=()=>call("pt-list",async()=>{
+  const r=await apiRequest("/api/v1/patients",{method:"GET"});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setPatientList((r.body["patients"] as {patientId:string;name:string;status:string}[])??[]);
+ });
+ const registerPatient=()=>call("pt-reg",async()=>{
+  const id=uuid();const r=await apiRequest("/api/v1/patients",{method:"POST",body:{patientId:id,name:regName,birthDate:regDob||"1990-01-01",sexAtBirth:regSex,occurredAt:nowIso()}});
+  if(r.status>=400){setError(errMsg(r));return;}
+  selectPatientRaw(id,regName);setPatientList(l=>[{patientId:id,name:regName,status:"ACTIVE"},...(l??[])]);setRegName("");setRegDob("");
+ });
  const loadTimeline=()=>call("tl",async()=>{
   const r=await apiRequest(`/api/v1/patients/${patientId}/timeline`,{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
@@ -215,7 +229,27 @@ export default function Workspace(){
    <div><div style={{fontSize:13,color:"#6255c7",fontWeight:700}}>MEDICAL OS</div><h1 style={{fontSize:32,margin:"4px 0"}}>Espacio clínico</h1></div>
    <button style={ghost} onClick={async()=>{await sessionLogout();location.href="/login";}}>Cerrar sesión</button>
   </div>
-  <p style={{color:"#6d6e80"}}>Sesión <span style={mono}>{session.sessionId.slice(0,8)}</span> · válida hasta {new Date(session.expiresAt*1000).toLocaleTimeString()} · paciente <span style={mono}>{patientId.slice(0,8)}</span> <button style={{...ghost,padding:"2px 10px",fontSize:12,marginLeft:8}} onClick={reset}>Nuevo paciente</button></p>
+  <p style={{color:"#6d6e80"}}>Sesión <span style={mono}>{session.sessionId.slice(0,8)}</span> · válida hasta {new Date(session.expiresAt*1000).toLocaleTimeString()} · paciente {patientName?<b>{patientName}</b>:<span style={mono}>{patientId.slice(0,8)}</span>} <button style={{...ghost,padding:"2px 10px",fontSize:12,marginLeft:8}} onClick={reset}>Anónimo nuevo</button></p>
+
+  {/* PACIENTE (registro / selección) */}
+  <section style={card}>
+   <h2 style={{fontSize:18,margin:0}}>Paciente</h2>
+   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Registra un paciente o selecciónalo de la lista. El chart de abajo es del paciente activo.</p>
+   <div style={{display:"grid",gridTemplateColumns:"1fr 160px 150px auto",gap:10,marginTop:12,alignItems:"center"}}>
+    <input style={input} value={regName} onChange={e=>setRegName(e.target.value)} placeholder="Nombre completo" />
+    <input style={input} type="date" value={regDob} onChange={e=>setRegDob(e.target.value)} />
+    <select style={input} value={regSex} onChange={e=>setRegSex(e.target.value)}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select>
+    <button style={btn} disabled={busy!==""||!regName} onClick={registerPatient}>{busy==="pt-reg"?"Registrando…":"Registrar"}</button>
+   </div>
+   <div style={{marginTop:10}}><button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={loadPatients}>{busy==="pt-list"?"Cargando…":"Cargar / buscar pacientes"}</button></div>
+   {patientList&&<div style={{marginTop:12,display:"flex",flexDirection:"column",gap:6,maxHeight:220,overflowY:"auto"}}>
+    {patientList.length===0?<p style={{color:"#8a8b9a",fontSize:13}}>No hay pacientes registrados en este tenant.</p>
+     :patientList.map(p=><div key={p.patientId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",border:"1px solid #eceafb",borderRadius:10,background:p.patientId===patientId?"#f4f3fb":"white"}}>
+      <div><b style={{fontSize:14}}>{p.name}</b> <span style={stateBadge(p.status==="ACTIVE"?"ACTIVE":p.status==="INACTIVE"?"INACTIVE":"CANCELLED")}>{p.status}</span></div>
+      <button style={{...ghost,padding:"6px 12px"}} onClick={()=>selectPatientRaw(p.patientId,p.name)}>{p.patientId===patientId?"Activo":"Seleccionar"}</button>
+     </div>)}
+   </div>}
+  </section>
 
   {/* TIMELINE DEL PACIENTE */}
   <section style={card}>

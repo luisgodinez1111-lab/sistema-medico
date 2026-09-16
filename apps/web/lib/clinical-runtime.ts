@@ -57,6 +57,22 @@ export async function lookupReplay(ctx:HttpTenantContext,command:ClinicalCommand
  }) as Promise<ClinicalCommandResult|null>;
 }
 
+// EPIC S — Registro de pacientes del tenant (RLS-scoped). Devuelve id + nombre (PHI) + estado.
+export type PatientRow=Readonly<{patientId:string;name:string;status:string}>;
+export async function listPatients(ctx:HttpTenantContext):Promise<ReadonlyArray<PatientRow>>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select r.aggregate_id, r.payload->>'name' as name,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_kind
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+   order by r.payload->>'name'`;
+  const STATUS:Record<string,string>={REGISTERED:"ACTIVE",REACTIVATED:"ACTIVE",DEACTIVATED:"INACTIVE",DECEASED:"DECEASED"};
+  return rows.map(x=>({patientId:String(x.aggregate_id),name:String(x.name??""),status:STATUS[String(x.latest_kind??"REGISTERED")]??"ACTIVE"}));
+ }) as Promise<ReadonlyArray<PatientRow>>;
+}
 // EPIC R — Gate de seguridad de medicación: sustancias con alergia ACTIVA del paciente (RLS-scoped).
 // Una alergia está activa si su último evento es RECORDED o REACTIVATED (no REFUTED/INACTIVATED).
 export async function activeAllergySubstances(ctx:HttpTenantContext,patientId:string):Promise<string[]>{
