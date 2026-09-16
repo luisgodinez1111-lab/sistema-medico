@@ -9,6 +9,8 @@ type EncState="OPEN"|"READY_TO_SIGN"|"SIGNED";
 type Encounter=Readonly<{id:string;state:EncState;version:number;signatureDigest?:string}>;
 type MedState="PROPOSED"|"PRESCRIBED"|"ACTIVE"|"STOPPED";
 type Med=Readonly<{id:string;label:string;state:MedState;version:number}>;
+type ResState="RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";
+type Result=Readonly<{id:string;label:string;critical:boolean;state:ResState;version:number}>;
 
 const wrap:React.CSSProperties={maxWidth:900,margin:"0 auto",padding:32};
 const card:React.CSSProperties={background:"white",border:"1px solid #e7e6f2",borderRadius:18,padding:24,boxShadow:"0 6px 20px #19145b0a",marginTop:20};
@@ -17,7 +19,8 @@ const ghost:React.CSSProperties={...btn,background:"transparent",color:"#6255c7"
 const input:React.CSSProperties={width:"100%",boxSizing:"border-box",padding:"10px 12px",border:"1px solid #d9d6f2",borderRadius:10,fontSize:14,fontFamily:"inherit"};
 const mono:React.CSSProperties={fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,background:"#f4f3fb",padding:"2px 6px",borderRadius:6};
 const lbl:React.CSSProperties={fontSize:13,fontWeight:600,color:"#4b4c5e",display:"block",margin:"12px 0 6px"};
-function stateBadge(s:string){const m:Record<string,[string,string]>={SIGNED:["#e8f7ee","#1a7f43"],READY_TO_SIGN:["#fff4e5","#a15c00"],OPEN:["#eef0ff","#3f3aa0"],PROPOSED:["#eef0ff","#3f3aa0"],PRESCRIBED:["#eaf3ff","#1f5fb0"],ACTIVE:["#e8f7ee","#1a7f43"],STOPPED:["#f1f1f4","#5f6072"]};const c=m[s]??["#eef0ff","#3f3aa0"];return{display:"inline-block",background:c[0],color:c[1],fontWeight:700,fontSize:12,padding:"3px 10px",borderRadius:999};}
+function stateBadge(s:string){const m:Record<string,[string,string]>={SIGNED:["#e8f7ee","#1a7f43"],READY_TO_SIGN:["#fff4e5","#a15c00"],OPEN:["#eef0ff","#3f3aa0"],PROPOSED:["#eef0ff","#3f3aa0"],PRESCRIBED:["#eaf3ff","#1f5fb0"],ACTIVE:["#e8f7ee","#1a7f43"],STOPPED:["#f1f1f4","#5f6072"],RECEIVED:["#eef0ff","#3f3aa0"],VERIFIED:["#eaf3ff","#1f5fb0"],ACTIONED:["#fff4e5","#a15c00"],CLOSED:["#e8f7ee","#1a7f43"]};const c=m[s]??["#eef0ff","#3f3aa0"];return{display:"inline-block",background:c[0],color:c[1],fontWeight:700,fontSize:12,padding:"3px 10px",borderRadius:999};}
+const in7days=()=>new Date(Date.now()+7*864e5).toISOString();
 const uuid=()=>globalThis.crypto.randomUUID();
 const nowIso=()=>new Date().toISOString();
 function errMsg(r:{status:number;body:Record<string,unknown>}):string{const e=r.body["error"] as{code?:string;message?:string}|undefined;return `${r.status} ${e?.code??""} ${e?.message??""}`.trim();}
@@ -26,6 +29,13 @@ function medNext(m:Med):{label:string;path:string;body:Record<string,unknown>;to
  if(m.state==="PROPOSED")return{label:"Prescribir",path:`/api/v1/medications/${m.id}/prescription`,body:{occurredAt:nowIso()},to:"PRESCRIBED"};
  if(m.state==="PRESCRIBED")return{label:"Activar",path:`/api/v1/medications/${m.id}/activation`,body:{occurredAt:nowIso()},to:"ACTIVE"};
  if(m.state==="ACTIVE")return{label:"Suspender",path:`/api/v1/medications/${m.id}/discontinuation`,body:{reason:"Suspendido por el médico",occurredAt:nowIso()},to:"STOPPED"};
+ return null;
+}
+// Siguiente transición de un resultado diagnóstico (closed-loop de seguimiento).
+function resNext(r:Result):{label:string;path:string;body:Record<string,unknown>;to:ResState}|null{
+ if(r.state==="RECEIVED")return{label:"Verificar",path:`/api/v1/results/${r.id}/verification`,body:{occurredAt:nowIso()},to:"VERIFIED"};
+ if(r.state==="VERIFIED")return{label:"Requiere acción",path:`/api/v1/results/${r.id}/action`,body:{ownerId:uuid(),dueAt:in7days(),occurredAt:nowIso()},to:"ACTIONED"};
+ if(r.state==="ACTIONED")return{label:"Cerrar",path:`/api/v1/results/${r.id}/closure`,body:{evidence:"Paciente contactado y tratado",occurredAt:nowIso()},to:"CLOSED"};
  return null;
 }
 
@@ -38,6 +48,8 @@ export default function Workspace(){
  const[plan,setPlan]=useState("");
  const[meds,setMeds]=useState<Med[]>([]);
  const[drug,setDrug]=useState("");const[dose,setDose]=useState("");const[route,setRoute]=useState("VO");const[freq,setFreq]=useState("");
+ const[results,setResults]=useState<Result[]>([]);
+ const[resName,setResName]=useState("");const[resCritical,setResCritical]=useState(false);
  const[busy,setBusy]=useState("");
  const[error,setError]=useState("");
 
@@ -68,7 +80,19 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setMeds(ms=>ms.map(x=>x.id===m.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
- function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setError("");setPatientId(uuid());}
+ const receiveResult=()=>call("res-new",async()=>{
+  const id=uuid();const r=await apiRequest("/api/v1/results",{method:"POST",body:{resultId:id,patientId,orderId:uuid(),critical:resCritical,occurredAt:nowIso()}});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setResults(rs=>[...rs,{id,label:resName||"Resultado diagnóstico",critical:resCritical,state:"RECEIVED",version:Number(r.body["version"]??1)}]);
+  setResName("");setResCritical(false);
+ });
+ const advanceResult=(res:Result)=>call("res-"+res.id,async()=>{
+  const n=resNext(res);if(!n)return;
+  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:res.version});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setResults(rs=>rs.map(x=>x.id===res.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
+ });
+ function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setError("");setPatientId(uuid());}
 
  if(!ready)return <main style={wrap}><p>Cargando…</p></main>;
  if(!session)return <main style={wrap}>
@@ -131,6 +155,26 @@ export default function Workspace(){
    </div>}
   </section>
 
-  {error&&<div style={{...card,borderColor:"#f0c6c0",background:"#fdf3f2"}}><b style={{color:"#c0392b"}}>Error</b><p style={{margin:"6px 0 0",color:"#7a3b34",wordBreak:"break-word"}}>{error}</p></div>}
+  {/* RESULTADOS DIAGNÓSTICOS */}
+  <section style={card}>
+   <h2 style={{fontSize:18,margin:0}}>Resultados diagnósticos</h2>
+   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Closed-loop: un resultado <b>crítico</b> que requirió acción y no se ha cerrado <b>bloquea la firma</b> del encuentro (Zero Lost Follow-Up).</p>
+   <div style={{display:"flex",gap:10,marginTop:12,alignItems:"center",flexWrap:"wrap"}}>
+    <input style={{...input,maxWidth:340}} value={resName} onChange={e=>setResName(e.target.value)} placeholder="Estudio (ej. Hemograma, Rx tórax)" />
+    <label style={{fontSize:13,color:"#4b4c5e",display:"flex",alignItems:"center",gap:6}}><input type="checkbox" checked={resCritical} onChange={e=>setResCritical(e.target.checked)} /> Crítico</label>
+    <button style={btn} disabled={busy!==""} onClick={receiveResult}>{busy==="res-new"?"Registrando…":"Registrar resultado"}</button>
+   </div>
+   {results.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+    {results.map(res=>{const n=resNext(res);return <div key={res.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+     <div><b style={{fontSize:14}}>{res.label}{res.critical&&<span style={{...stateBadge("ACTIONED"),marginLeft:8,fontSize:11}}>CRÍTICO</span>}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{res.version}</div></div>
+     <div style={{display:"flex",gap:10,alignItems:"center"}}>
+      <span style={stateBadge(res.state)}>{res.state}</span>
+      {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceResult(res)}>{busy==="res-"+res.id?"…":n.label}</button>}
+     </div>
+    </div>;})}
+   </div>}
+  </section>
+
+  {error&&<div style={{...card,borderColor:"#f0c6c0",background:"#fdf3f2"}}><b style={{color:"#c0392b"}}>Error</b><p style={{margin:"6px 0 0",color:"#7a3b34",wordBreak:"break-word"}}>{error}</p>{error.includes("SAFETY_BLOCKED")&&<p style={{margin:"6px 0 0",fontSize:12,color:"#a15c00"}}>💡 ¿Hay un resultado crítico sin cerrar para este paciente? Ciérralo abajo y vuelve a firmar.</p>}</div>}
  </main>;
 }
