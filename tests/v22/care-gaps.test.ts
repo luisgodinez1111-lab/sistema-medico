@@ -1,6 +1,7 @@
 import{describe,it,expect}from"vitest";
-import{computeCareGaps}from"../../packages/care-gaps/src";
+import{computeCareGaps,computePanelWorklist}from"../../packages/care-gaps/src";
 const A=(aggregateType:string,latestKind:string,aggregateId="x")=>({aggregateType,aggregateId,latestKind});
+const PR=(patientId:string,aggregateType:string,latestKind:string,aggregateId=patientId+aggregateType)=>({patientId,aggregateType,aggregateId,latestKind});
 describe("care gaps engine (EPIC AA)",()=>{
  it("vacío -> sin pendientes",()=>{expect(computeCareGaps([])).toEqual([]);});
  it("no genera pendiente para estados resueltos/terminales benignos",()=>{
@@ -17,5 +18,19 @@ describe("care gaps engine (EPIC AA)",()=>{
   const g=computeCareGaps([A("Claim","REJECTED"),A("DiagnosticResult","ACTIONED"),A("Immunization","DUE")]);
   expect(g.map(x=>x.priority)).toEqual(["HIGH","MEDIUM","LOW"]);
   expect(g[0]!.code).toBe("CRITICAL_RESULT_OPEN");
+ });
+});
+describe("panel/population worklist (EPIC AC)",()=>{
+ it("vacío -> sin pendientes",()=>{expect(computePanelWorklist([])).toEqual([]);});
+ it("agrega pendientes de varios pacientes y adjunta patientId",()=>{
+  const w=computePanelWorklist([PR("pat-1","Immunization","DUE"),PR("pat-2","DiagnosticResult","ACTIONED"),PR("pat-1","Claim","PAID")]);
+  expect(w).toHaveLength(2);
+  expect(w[0]!.patientId).toBe("pat-2"); // HIGH primero
+  expect(w[0]!.code).toBe("CRITICAL_RESULT_OPEN");
+  expect(w[1]!.patientId).toBe("pat-1");
+ });
+ it("orden determinista: prioridad, luego patientId",()=>{
+  const w=computePanelWorklist([PR("pat-B","Referral","REQUESTED"),PR("pat-A","Referral","REQUESTED")]);
+  expect(w.map(x=>x.patientId)).toEqual(["pat-A","pat-B"]);
  });
 });

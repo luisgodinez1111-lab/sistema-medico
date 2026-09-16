@@ -106,6 +106,21 @@ export async function readPatientTimeline(ctx:HttpTenantContext,patientId:string
   return rows.map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),latestKind:String(x.latest_kind??""),version:Number(x.version),openedAt:String(x.opened_at),lastAt:String(x.last_at)}));
  }) as Promise<ReadonlyArray<TimelineItem>>;
 }
+// EPIC AC — Worklist poblacional: un renglón por agregado clínico del tenant (todos los pacientes),
+// con su patientId y su último kind (estado). RLS-scoped al tenant. SIN PHI: solo tipo/estado/ids.
+export type PanelRowData=Readonly<{aggregateType:string;aggregateId:string;patientId:string;latestKind:string}>;
+export async function readTenantOpenAggregates(ctx:HttpTenantContext):Promise<ReadonlyArray<PanelRowData>>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select r.aggregate_id, r.aggregate_type, r.payload->>'patientId' as patient_id,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_kind
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.sequence=1 and r.payload->>'patientId' is not null`;
+  return rows.map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),patientId:String(x.patient_id),latestKind:String(x.latest_kind??"")}));
+ }) as Promise<ReadonlyArray<PanelRowData>>;
+}
 // EPIC AB — Manifiesto del expediente: filas estructurales (agregado/secuencia/kind/fecha) de TODOS
 // los agregados del paciente. RLS-scoped. SIN volcar payloads PHI: solo el kind (estado) y la fecha.
 export type RecordRow=Readonly<{aggregateType:string;aggregateId:string;sequence:number;kind:string;occurredAt:string}>;

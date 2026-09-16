@@ -27,3 +27,17 @@ export function computeCareGaps(items:readonly TimelineLike[]):CareGap[]{
  // Orden: prioridad (HIGH->LOW) y luego por tipo, determinista.
  return gaps.sort((a,b)=>RANK[a.priority]-RANK[b.priority]||a.aggregateType.localeCompare(b.aggregateType));
 }
+
+// EPIC AC — Worklist poblacional / panel del clínico: los mismos pendientes accionables pero a través
+// de TODOS los pacientes del tenant. Cada fila lleva su patientId; se prioriza HIGH->LOW y luego por
+// paciente/agregado para un recorrido estable del panel. Sigue siendo PURO y determinista.
+export type PanelRow=TimelineLike&Readonly<{patientId:string}>;
+export type PanelGap=CareGap&Readonly<{patientId:string}>;
+export function computePanelWorklist(rows:readonly PanelRow[]):PanelGap[]{
+ const gaps:PanelGap[]=[];
+ for(const it of rows){
+  const rule=RULES[it.aggregateType];if(!rule)continue;
+  const g=rule(it);if(g)gaps.push({patientId:it.patientId,aggregateType:it.aggregateType,aggregateId:it.aggregateId,...g});
+ }
+ return gaps.sort((a,b)=>RANK[a.priority]-RANK[b.priority]||a.patientId.localeCompare(b.patientId)||a.aggregateType.localeCompare(b.aggregateType));
+}

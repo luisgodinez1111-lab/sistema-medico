@@ -38,6 +38,7 @@ type CsSt="DRAFTED"|"PRESENTED"|"GRANTED"|"DECLINED"|"REVOKED";
 type Cs=Readonly<{id:string;label:string;state:CsSt;version:number}>;
 type TL=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;version:number;lastAt:string}>;
 type Gap=Readonly<{aggregateType:string;aggregateId:string;code:string;label:string;priority:"HIGH"|"MEDIUM"|"LOW"}>;
+type PanelGap=Gap&Readonly<{patientId:string}>;
 const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento"};
 function alActions(a:{id:string;state:AlSt}):{label:string;path:string;body:Record<string,unknown>;to:AlSt}[]{
  const now=new Date().toISOString();const base=`/api/v1/allergies/${a.id}`;
@@ -168,6 +169,7 @@ export default function Workspace(){
  const[tl,setTl]=useState<TL[]|null>(null);
  const[gaps,setGaps]=useState<Gap[]|null>(null);
  const[exportInfo,setExportInfo]=useState<{aggregateCount:number;eventCount:number;contentHash:string}|null>(null);
+ const[panel,setPanel]=useState<{gaps:PanelGap[];patientCount:number}|null>(null);
  const[patientName,setPatientName]=useState("");
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string}[]|null>(null);
  const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
@@ -361,6 +363,11 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setPatientList((r.body["patients"] as {patientId:string;name:string;status:string}[])??[]);
  });
+ const loadPanel=()=>call("panel",async()=>{
+  const r=await apiRequest("/api/v1/worklist",{method:"GET"});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setPanel({gaps:(r.body["gaps"] as PanelGap[])??[],patientCount:Number(r.body["patientCount"]??0)});
+ });
  const registerPatient=()=>call("pt-reg",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/patients",{method:"POST",body:{patientId:id,name:regName,birthDate:regDob||"1990-01-01",sexAtBirth:regSex,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
@@ -393,6 +400,23 @@ export default function Workspace(){
    <button style={ghost} onClick={async()=>{await sessionLogout();location.href="/login";}}>Cerrar sesión</button>
   </div>
   <p style={{color:"#6d6e80"}}>Sesión <span style={mono}>{session.sessionId.slice(0,8)}</span> · válida hasta {new Date(session.expiresAt*1000).toLocaleTimeString()} · paciente {patientName?<b>{patientName}</b>:<span style={mono}>{patientId.slice(0,8)}</span>} <button style={{...ghost,padding:"2px 10px",fontSize:12,marginLeft:8}} onClick={reset}>Anónimo nuevo</button></p>
+
+  {/* PANEL / WORKLIST POBLACIONAL */}
+  <section style={card}>
+   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+    <h2 style={{fontSize:18,margin:0}}>Panel del clínico</h2>
+    <button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={loadPanel}>{busy==="panel"?"Cargando…":"Cargar worklist"}</button>
+   </div>
+   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Pendientes clínicos accionables de TODO el panel (todos los pacientes del tenant), priorizados. Inteligencia por reglas, sin IA.</p>
+   {panel&&<div style={{marginTop:12}}>
+    {panel.gaps.length===0?<div style={{padding:"10px 14px",borderRadius:12,background:"#f4faf6",border:"1px solid #d6ecdd",fontSize:13,color:"#1a7f43"}}>✓ Sin pendientes accionables en el panel.</div>
+     :<div><div style={{fontSize:12,color:"#6d6e80",marginBottom:8}}>{panel.gaps.length} pendientes · {panel.patientCount} pacientes</div>
+     <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:280,overflowY:"auto"}}>{panel.gaps.map(g=>{const col=g.priority==="HIGH"?["#fdeaea","#b3261e"]:g.priority==="MEDIUM"?["#fff4e5","#a15c00"]:["#eef0ff","#3f3aa0"];return <div key={g.patientId+g.aggregateId+g.code} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"8px 12px",border:"1px solid #eceafb",borderRadius:10}}>
+      <div style={{minWidth:0}}><span style={{...mono,marginRight:8}}>{g.patientId.slice(0,8)}</span><span style={{fontSize:13}}>{g.label}</span></div>
+      <div style={{display:"flex",gap:8,alignItems:"center",whiteSpace:"nowrap"}}><span style={{display:"inline-block",background:col[0],color:col[1],fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{g.priority}</span><button style={{...ghost,padding:"5px 10px",fontSize:12}} onClick={()=>selectPatientRaw(g.patientId,"")}>Abrir</button></div>
+     </div>;})}</div></div>}
+   </div>}
+  </section>
 
   {/* PACIENTE (registro / selección) */}
   <section style={card}>
