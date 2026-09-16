@@ -731,6 +731,33 @@
       "epic": "AE",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-SPECIMEN-001",
+      "name": "Trazabilidad de muestras / cadena de custodia de laboratorio (fase pre-analítica)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (seguridad de laboratorio / trazabilidad de muestras). Cubre la fase pre-analítica (donde ocurre la mayoría de errores de lab). Integrado al motor de care gaps: una muestra rechazada es un pendiente HIGH accionable. specimenType/orderId son datos clínicos (payload bajo RLS, nunca en logs).",
+      "invariants": [
+        "SM: COLLECTED->{IN_TRANSIT,REJECTED}; IN_TRANSIT->{RECEIVED,REJECTED}; RECEIVED->{RESULTED,REJECTED}; RESULTED/REJECTED terminales",
+        "No resultar sin recibir (RESULT_WITHOUT_RECEIPT_409); no mutar terminal (RESULT_TERMINAL_409)",
+        "Una muestra REJECTED genera un care gap HIGH (integración con CAP-CAREGAPS-001)",
+        "Tenant isolation (cross-tenant 404) + replay determinista + concurrencia optimista"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/specimens/**",
+        "packages/specimen-fold",
+        "apps/web/lib/specimen-lifecycle.ts",
+        "packages/care-gaps (regla SPECIMEN_REJECTED)",
+        "RBAC specimen:write (PHYSICIAN/NURSE)",
+        "UI /workspace panel de muestras"
+      ],
+      "tests": [
+        "tests/v22/specimen-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-specimen-lifecycle-proof.mts — PASS 9/9 (COLLECT/TRANSIT/RECEIPT/RESULT_201, RESULT_TERMINAL_409, RESULT_WITHOUT_RECEIPT_409, REJECT_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "AF",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
