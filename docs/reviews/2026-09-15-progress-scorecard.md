@@ -22,7 +22,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | --- | --- | --- | --- |
 | A. Kernel/fundación (RLS, concurrencia, auditoría, atomicidad, DR) | 12% | ~85% | 10.2 |
 | B. Identidad/Auth/Sesión + login | 8% | ~75% | 6.0 |
-| C. Amplitud de verticales clínicos (~28 áreas PROD) | 35% | ~17% | 6.0 |
+| C. Amplitud de verticales clínicos (~28 áreas PROD) | 35% | ~18% | 6.3 |
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
 | E. UI/UX de producto | 10% | ~17% | 1.7 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~10% | 0.8 |
@@ -38,7 +38,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 ## Áreas PROD hechas vs pendientes (amplitud)
 - **Hechas (bucle central):** encuentro, resultados/closed-loop, medicación, documentos, identidad/sesión.
 - **Pendientes (ejemplos):** prescription studio, document intelligence/imagen, AI copilot,
-  portal del paciente, billing/coding, notificaciones, care gaps.
+  portal del paciente, billing/coding, notificaciones.
 
 ## Historial
 | Fecha | Hito | Total real aprox. |
@@ -56,3 +56,4 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-16 | Epic U: agenda/citas (12.º) + UI (scheduling con check-in/no-show) | **~37%** |
 | 2026-09-16 | Epic V: vacunas/inmunizaciones (13.º) + UI (cartilla + farmacovigilancia) | **~38%** |
 | 2026-09-16 | Epic W: signos vitales/observaciones (14.º) + UI (append-only con enmienda) | **~39%** |
+| 2026-09-16 | Epic X: plan de cuidados/metas de crónicos (15.º) + UI (ciclo pausa/reanudación) | **~40%** |

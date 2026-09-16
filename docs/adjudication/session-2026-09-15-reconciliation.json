@@ -526,6 +526,32 @@
       "epic": "W",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-CAREPLAN-001",
+      "name": "Plan de cuidados/metas de crónicos (agregado CarePlan, care gaps longitudinales)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (care plan / gestión de crónicos y care gaps); eje de la intención longitudinal del producto. Ciclo con pausa/reanudación (ON_HOLD) para adherencia real. category/goal son datos clínicos (payload bajo RLS, nunca en logs).",
+      "invariants": [
+        "SM de meta: PROPOSED->ACTIVE->ACHIEVED; ACTIVE<->ON_HOLD; {PROPOSED,ACTIVE,ON_HOLD}->CANCELLED; ACHIEVED/CANCELLED terminales",
+        "No lograr una meta no activada (ACHIEVE_WITHOUT_ACTIVATE_409)",
+        "No mutar una meta terminal (HOLD_AFTER_ACHIEVE_409)",
+        "Tenant isolation (cross-tenant 404) + replay determinista + concurrencia optimista"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/care-plans/**",
+        "packages/careplan-fold",
+        "apps/web/lib/careplan-lifecycle.ts",
+        "RBAC careplan:write (PHYSICIAN/NURSE)",
+        "UI /workspace panel de plan de cuidados"
+      ],
+      "tests": [
+        "tests/v22/careplan-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-careplan-lifecycle-proof.mts — PASS 10/10 (PROPOSE/ACTIVATE/HOLD/RESUME/ACHIEVE_201, HOLD_AFTER_ACHIEVE_409, ACHIEVE_WITHOUT_ACTIVATE_409, CANCEL_FROM_HOLD_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "X",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
