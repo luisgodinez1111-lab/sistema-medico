@@ -30,5 +30,21 @@ describe("patient summary (EPIC P — computed state)",()=>{
   const s=summarizePatient([{aggregateType:"Allergy",latestKind:"RECORDED"},{aggregateType:"Allergy",latestKind:"REFUTED"},{aggregateType:"Allergy",latestKind:"INACTIVATED"}]);
   expect(s.activeAllergies).toBe(1);
  });
- it("vacío -> todo en cero",()=>{expect(summarizePatient([])).toEqual({activeAllergies:0,activeProblems:0,openObligations:0,activeMedications:0,openResults:0,openOrders:0,signedEncounters:0,totalItems:0});});
+ it("integra los verticales longitudinales (S–Z) en el resumen",()=>{
+  const s=summarizePatient([
+   {aggregateType:"Referral",latestKind:"REQUESTED"},{aggregateType:"Referral",latestKind:"COMPLETED"},
+   {aggregateType:"Appointment",latestKind:"CHECKED_IN"},{aggregateType:"Appointment",latestKind:"NO_SHOW"},
+   {aggregateType:"Immunization",latestKind:"DUE"},{aggregateType:"Immunization",latestKind:"ADMINISTERED"},
+   {aggregateType:"CarePlan",latestKind:"ACTIVATED"},{aggregateType:"CarePlan",latestKind:"ACHIEVED"},
+   {aggregateType:"Claim",latestKind:"SUBMITTED"},{aggregateType:"Claim",latestKind:"PAID"},
+   {aggregateType:"Consent",latestKind:"GRANTED"},{aggregateType:"Consent",latestKind:"REVOKED"},
+  ]);
+  expect(s.openReferrals).toBe(1);
+  expect(s.upcomingAppointments).toBe(1);
+  expect(s.pendingImmunizations).toBe(1);
+  expect(s.activeCarePlans).toBe(1);
+  expect(s.openClaims).toBe(1);
+  expect(s.grantedConsents).toBe(1);
+ });
+ it("vacío -> todo en cero",()=>{expect(summarizePatient([])).toEqual({activeAllergies:0,activeProblems:0,openObligations:0,activeMedications:0,openResults:0,openOrders:0,signedEncounters:0,openReferrals:0,upcomingAppointments:0,pendingImmunizations:0,activeCarePlans:0,openClaims:0,grantedConsents:0,totalItems:0});});
 });
