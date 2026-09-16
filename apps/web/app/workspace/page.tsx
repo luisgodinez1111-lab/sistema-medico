@@ -30,8 +30,10 @@ type ImmSt="DUE"|"ADMINISTERED"|"REFUSED"|"ADVERSE_EVENT";
 type Imm=Readonly<{id:string;label:string;state:ImmSt;version:number}>;
 type VitSt="RECORDED"|"AMENDED"|"ENTERED_IN_ERROR";
 type Vit=Readonly<{id:string;vitalType:string;value:string;unit:string;state:VitSt;version:number}>;
+type CpSt="PROPOSED"|"ACTIVE"|"ON_HOLD"|"ACHIEVED"|"CANCELLED";
+type Cp=Readonly<{id:string;label:string;state:CpSt;version:number}>;
 type TL=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;version:number;lastAt:string}>;
-const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital"};
+const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados"};
 function alActions(a:{id:string;state:AlSt}):{label:string;path:string;body:Record<string,unknown>;to:AlSt}[]{
  const now=new Date().toISOString();const base=`/api/v1/allergies/${a.id}`;
  if(a.state==="ACTIVE")return[{label:"Refutar",path:base+"/refutation",body:{occurredAt:now},to:"REFUTED"},{label:"Inactivar",path:base+"/inactivation",body:{occurredAt:now},to:"INACTIVE"}];
@@ -53,7 +55,7 @@ const ghost:React.CSSProperties={...btn,background:"transparent",color:"#6255c7"
 const input:React.CSSProperties={width:"100%",boxSizing:"border-box",padding:"10px 12px",border:"1px solid #d9d6f2",borderRadius:10,fontSize:14,fontFamily:"inherit"};
 const mono:React.CSSProperties={fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,background:"#f4f3fb",padding:"2px 6px",borderRadius:6};
 const lbl:React.CSSProperties={fontSize:13,fontWeight:600,color:"#4b4c5e",display:"block",margin:"12px 0 6px"};
-function stateBadge(s:string){const m:Record<string,[string,string]>={SIGNED:["#e8f7ee","#1a7f43"],READY_TO_SIGN:["#fff4e5","#a15c00"],OPEN:["#eef0ff","#3f3aa0"],PROPOSED:["#eef0ff","#3f3aa0"],PRESCRIBED:["#eaf3ff","#1f5fb0"],ACTIVE:["#e8f7ee","#1a7f43"],STOPPED:["#f1f1f4","#5f6072"],RECEIVED:["#eef0ff","#3f3aa0"],VERIFIED:["#eaf3ff","#1f5fb0"],ACTIONED:["#fff4e5","#a15c00"],CLOSED:["#e8f7ee","#1a7f43"],DRAFT:["#eef0ff","#3f3aa0"],FINALIZED:["#eaf3ff","#1f5fb0"],AMENDED:["#e8f7ee","#1a7f43"],ORDERED:["#eaf3ff","#1f5fb0"],FULFILLED:["#e8f7ee","#1a7f43"],CANCELLED:["#f1f1f4","#5f6072"],IN_PROGRESS:["#fff4e5","#a15c00"],COMPLETED:["#e8f7ee","#1a7f43"],ACTIVE_PROB:["#eef0ff","#3f3aa0"],RESOLVED:["#f1f1f4","#5f6072"],CHRONIC:["#fff4e5","#a15c00"],ENTERED_IN_ERROR:["#f1f1f4","#5f6072"],REFUTED:["#f1f1f4","#5f6072"],INACTIVE:["#f1f1f4","#5f6072"],REQUESTED:["#eef0ff","#3f3aa0"],ACCEPTED:["#eaf3ff","#1f5fb0"],DECLINED:["#f1f1f4","#5f6072"],SCHEDULED:["#eef0ff","#3f3aa0"],CHECKED_IN:["#fff4e5","#a15c00"],NO_SHOW:["#f1f1f4","#5f6072"],DUE:["#eef0ff","#3f3aa0"],ADMINISTERED:["#e8f7ee","#1a7f43"],ADVERSE_EVENT:["#fdeaea","#b3261e"],RECORDED:["#e8f7ee","#1a7f43"]};const c=m[s]??["#eef0ff","#3f3aa0"];return{display:"inline-block",background:c[0],color:c[1],fontWeight:700,fontSize:12,padding:"3px 10px",borderRadius:999};}
+function stateBadge(s:string){const m:Record<string,[string,string]>={SIGNED:["#e8f7ee","#1a7f43"],READY_TO_SIGN:["#fff4e5","#a15c00"],OPEN:["#eef0ff","#3f3aa0"],PROPOSED:["#eef0ff","#3f3aa0"],PRESCRIBED:["#eaf3ff","#1f5fb0"],ACTIVE:["#e8f7ee","#1a7f43"],STOPPED:["#f1f1f4","#5f6072"],RECEIVED:["#eef0ff","#3f3aa0"],VERIFIED:["#eaf3ff","#1f5fb0"],ACTIONED:["#fff4e5","#a15c00"],CLOSED:["#e8f7ee","#1a7f43"],DRAFT:["#eef0ff","#3f3aa0"],FINALIZED:["#eaf3ff","#1f5fb0"],AMENDED:["#e8f7ee","#1a7f43"],ORDERED:["#eaf3ff","#1f5fb0"],FULFILLED:["#e8f7ee","#1a7f43"],CANCELLED:["#f1f1f4","#5f6072"],IN_PROGRESS:["#fff4e5","#a15c00"],COMPLETED:["#e8f7ee","#1a7f43"],ACTIVE_PROB:["#eef0ff","#3f3aa0"],RESOLVED:["#f1f1f4","#5f6072"],CHRONIC:["#fff4e5","#a15c00"],ENTERED_IN_ERROR:["#f1f1f4","#5f6072"],REFUTED:["#f1f1f4","#5f6072"],INACTIVE:["#f1f1f4","#5f6072"],REQUESTED:["#eef0ff","#3f3aa0"],ACCEPTED:["#eaf3ff","#1f5fb0"],DECLINED:["#f1f1f4","#5f6072"],SCHEDULED:["#eef0ff","#3f3aa0"],CHECKED_IN:["#fff4e5","#a15c00"],NO_SHOW:["#f1f1f4","#5f6072"],DUE:["#eef0ff","#3f3aa0"],ADMINISTERED:["#e8f7ee","#1a7f43"],ADVERSE_EVENT:["#fdeaea","#b3261e"],RECORDED:["#e8f7ee","#1a7f43"],ON_HOLD:["#fff4e5","#a15c00"],ACHIEVED:["#e8f7ee","#1a7f43"]};const c=m[s]??["#eef0ff","#3f3aa0"];return{display:"inline-block",background:c[0],color:c[1],fontWeight:700,fontSize:12,padding:"3px 10px",borderRadius:999};}
 const in7days=()=>new Date(Date.now()+7*864e5).toISOString();
 const uuid=()=>globalThis.crypto.randomUUID();
 const nowIso=()=>new Date().toISOString();
@@ -94,6 +96,13 @@ function apptNext(a:Appt):{label:string;path:string;body:Record<string,unknown>;
  if(a.state==="CHECKED_IN")return{label:"Completar",path:`/api/v1/appointments/${a.id}/completion`,body:{occurredAt:nowIso()},to:"COMPLETED"};
  return null;
 }
+function cpActions(c:{id:string;state:CpSt}):{label:string;path:string;body:Record<string,unknown>;to:CpSt}[]{
+ const base=`/api/v1/care-plans/${c.id}`;const w={occurredAt:nowIso()};
+ if(c.state==="PROPOSED")return[{label:"Activar",path:base+"/activation",body:w,to:"ACTIVE"},{label:"Cancelar",path:base+"/cancellation",body:{reason:"No procede",occurredAt:nowIso()},to:"CANCELLED"}];
+ if(c.state==="ACTIVE")return[{label:"Lograda",path:base+"/achievement",body:w,to:"ACHIEVED"},{label:"Pausar",path:base+"/hold",body:w,to:"ON_HOLD"},{label:"Cancelar",path:base+"/cancellation",body:{reason:"No procede",occurredAt:nowIso()},to:"CANCELLED"}];
+ if(c.state==="ON_HOLD")return[{label:"Reanudar",path:base+"/resumption",body:w,to:"ACTIVE"},{label:"Cancelar",path:base+"/cancellation",body:{reason:"No procede",occurredAt:nowIso()},to:"CANCELLED"}];
+ return[];
+}
 function vitActions(v:{id:string;state:VitSt;value:string;unit:string}):{label:string;path:string;body:Record<string,unknown>;to:VitSt}[]{
  const base=`/api/v1/vitals/${v.id}`;
  if(v.state==="RECORDED"||v.state==="AMENDED")return[{label:"Enmendar",path:base+"/amendment",body:{value:v.value,unit:v.unit,reason:"Corrección clínica",occurredAt:nowIso()},to:"AMENDED"},{label:"Marcar error",path:base+"/error-mark",body:{reason:"Captura errónea",occurredAt:nowIso()},to:"ENTERED_IN_ERROR"}];
@@ -133,6 +142,7 @@ export default function Workspace(){
  const[appts,setAppts]=useState<Appt[]>([]);const[apptStart,setApptStart]=useState("");const[apptReason,setApptReason]=useState("");
  const[imms,setImms]=useState<Imm[]>([]);const[immCode,setImmCode]=useState("");const[immDose,setImmDose]=useState("1");
  const[vitals,setVitals]=useState<Vit[]>([]);const[vitType,setVitType]=useState("BP");const[vitValue,setVitValue]=useState("");const[vitUnit,setVitUnit]=useState("mmHg");
+ const[plans,setPlans]=useState<Cp[]>([]);const[planCat,setPlanCat]=useState("DIABETES");const[planGoal,setPlanGoal]=useState("");
  const[tl,setTl]=useState<TL[]|null>(null);
  const[patientName,setPatientName]=useState("");
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string}[]|null>(null);
@@ -240,6 +250,16 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setAppts(as=>as.map(x=>x.id===a.id?{...x,state:to,version:Number(r.body["version"]??x.version+1)}:x));
  });
+ const createPlan=()=>call("cp-new",async()=>{
+  const id=uuid();const r=await apiRequest("/api/v1/care-plans",{method:"POST",body:{carePlanId:id,patientId,category:planCat,goal:planGoal,occurredAt:nowIso()}});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setPlans(ps=>[...ps,{id,label:`${planCat} · ${planGoal}`,state:"PROPOSED",version:Number(r.body["version"]??1)}]);setPlanGoal("");
+ });
+ const doPlanAction=(c:Cp,act:{path:string;body:Record<string,unknown>;to:CpSt})=>call("cp-"+c.id,async()=>{
+  const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:c.version});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setPlans(ps=>ps.map(x=>x.id===c.id?{...x,state:act.to,version:Number(r.body["version"]??x.version+1)}:x));
+ });
  const createVital=()=>call("vit-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId:id,patientId,vitalType:vitType,value:vitValue,unit:vitUnit,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
@@ -291,7 +311,7 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setObligations(os=>os.map(x=>x.id===o.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
- function selectPatientRaw(id:string,name:string){setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setTl(null);setError("");}
+ function selectPatientRaw(id:string,name:string){setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setTl(null);setError("");}
  const loadPatients=()=>call("pt-list",async()=>{
   const r=await apiRequest("/api/v1/patients",{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
@@ -307,7 +327,7 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setTl((r.body["items"] as TL[])??[]);
  });
- function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setTl(null);setError("");setPatientId(uuid());}
+ function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setTl(null);setError("");setPatientId(uuid());}
 
  if(!ready)return <main style={wrap}><p>Cargando…</p></main>;
  if(!session)return <main style={wrap}>
@@ -568,6 +588,28 @@ export default function Workspace(){
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(v.state)}>{v.state}</span>
       {vitActions(v).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ENTERED_IN_ERROR"?{color:"#a15c00",borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doVitAction(v,act)}>{busy==="vit-"+v.id?"…":act.label}</button>)}
+     </div>
+    </div>)}
+   </div>}
+  </section>
+
+  {/* PLAN DE CUIDADOS / METAS */}
+  <section style={card}>
+   <h2 style={{fontSize:18,margin:0}}>Plan de cuidados</h2>
+   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Metas longitudinales de crónicos: proponer → activar → lograr, con pausa/reanudación. Agregado con máquina de estados y aislamiento por tenant.</p>
+   <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
+    <select style={input} value={planCat} onChange={e=>setPlanCat(e.target.value)}>
+     <option value="DIABETES">Diabetes</option><option value="HYPERTENSION">Hipertensión</option><option value="OBESITY">Obesidad</option><option value="CARDIOVASCULAR">Cardiovascular</option><option value="MENTAL_HEALTH">Salud mental</option><option value="PRENATAL">Prenatal</option><option value="OTHER">Otro</option>
+    </select>
+    <input style={input} value={planGoal} onChange={e=>setPlanGoal(e.target.value)} placeholder="Meta (ej. HbA1c < 7% en 6 meses)" />
+   </div>
+   <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!planGoal} onClick={createPlan}>{busy==="cp-new"?"Proponiendo…":"Proponer meta"}</button></div>
+   {plans.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+    {plans.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{c.version}</div></div>
+     <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+      <span style={stateBadge(c.state)}>{c.state}</span>
+      {cpActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="CANCELLED"?{color:"#a15c00",borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doPlanAction(c,act)}>{busy==="cp-"+c.id?"…":act.label}</button>)}
      </div>
     </div>)}
    </div>}
