@@ -32,6 +32,14 @@ export default function LoginPage(){
    try{
     const c=await createAuth0Client({domain,clientId,authorizationParams:{redirect_uri:window.location.origin+"/login",audience},cacheLocation:"memory"});
     if(cancelled)return;setClient(c);
+    // Regreso desde Auth0 con error (?error=...): mostrarlo en vez de re-renderizar el login.
+    const params=new URLSearchParams(location.search);
+    const urlErr=params.get("error");
+    if(urlErr){
+     setDetail(`${urlErr}: ${params.get("error_description")??""}`);
+     window.history.replaceState({},document.title,"/login");
+     setPhase("error");return;
+    }
     // Regreso desde Auth0 (?code&state): procesar y limpiar la URL.
     if(location.search.includes("code=")&&location.search.includes("state=")){
      await c.handleRedirectCallback();
