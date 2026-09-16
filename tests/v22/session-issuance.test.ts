@@ -1,6 +1,6 @@
 import{describe,it,expect}from"vitest";
 import{signSession,verifySession}from"../../packages/session/src";
-import{issueSession,devIdentityVerifier}from"../../packages/session-issuance/src";
+import{issueSession,devIdentityVerifier,scopesForRoles}from"../../packages/session-issuance/src";
 import{ClinicalError}from"../../packages/runtime-errors/src";
 
 const IDP_SECRET="dev-idp-secret";
@@ -22,6 +22,18 @@ describe("session issuance boundary (EPIC E)",()=>{
   expect(claims.sub).toBe("dr-1");expect(claims.tenantId).toBe("tenant-9");expect(claims.exp).toBe(NOW+900);expect(s.expiresAt).toBe(NOW+900);
   // El token NO se verifica con el secreto del IdP: secretos separados.
   expect(()=>verifySession(s.token,IDP_SECRET,NOW)).toThrow();
+ });
+ it("derives clinical scopes from roles (RBAC) and unions them into the session",()=>{
+  const v=devIdentityVerifier(IDP_SECRET,NOW)({assertion:assertion({scopes:[]})});
+  const s=issueSession(v,SESSION_SECRET,{now:NOW,ttlSeconds:900,sessionId:"sess-2"});
+  const claims=verifySession(s.token,SESSION_SECRET,NOW);
+  expect(claims.scopes).toContain("encounter:read");
+  expect(claims.scopes).toContain("encounter:write");
+ });
+ it("scopesForRoles maps roles to clinical scopes",()=>{
+  expect(scopesForRoles(["PHYSICIAN"])).toContain("document:write");
+  expect(scopesForRoles(["NURSE"])).not.toContain("encounter:write");
+  expect(scopesForRoles(["UNKNOWN_ROLE"])).toEqual([]);
  });
  it("rejects a tampered assertion",()=>{
   const err=(()=>{try{devIdentityVerifier(IDP_SECRET,NOW)({assertion:assertion()+"x"});}catch(e){return e;}})();

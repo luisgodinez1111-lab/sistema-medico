@@ -11,11 +11,25 @@ export type Purpose=SessionClaims["purpose"];
 // Puede ser asíncrona (OIDC valida contra el JWKS remoto del proveedor).
 export type IdentityVerifier=(credential:unknown)=>VerifiedIdentity|Promise<VerifiedIdentity>;
 
-// Acuña una sesión medical-os de vida corta a partir de una identidad verificada.
+// RBAC: política rol -> scopes clínicos. El IdP entrega identidad + roles; los scopes de acción
+// se derivan del rol (un médico puede leer/escribir clínico; una enfermera propone y documenta).
+const ROLE_SCOPES:Record<string,readonly string[]>={
+ PHYSICIAN:["encounter:read","encounter:write","result:write","medication:propose","medication:write","document:write"],
+ NURSE:["encounter:read","medication:propose","document:write"],
+ CLINICAL_ADMIN:["encounter:read"],
+};
+export function scopesForRoles(roles:readonly string[]):string[]{
+ const out=new Set<string>();
+ for(const r of roles)for(const s of ROLE_SCOPES[r]??[])out.add(s);
+ return[...out];
+}
+// Acuña una sesión medical-os de vida corta a partir de una identidad verificada. Los scopes son
+// la unión de los que trae el IdP + los derivados del rol (RBAC).
 export function issueSession(v:VerifiedIdentity,sessionSecret:string,opts:{now:number;ttlSeconds:number;sessionId:string;purpose?:Purpose}):Readonly<{token:string;sessionId:string;expiresAt:number}>{
  if(!sessionSecret)throw new ClinicalError("SAFETY_BLOCKED","Session signing secret not configured");
  assertIdentity(v,opts.now);
- const claims:SessionClaims={sub:v.subject,tenantId:v.tenantId,roles:v.roles,scopes:v.scopes,purpose:opts.purpose??"TREATMENT",iat:opts.now,exp:opts.now+opts.ttlSeconds,sessionId:opts.sessionId};
+ const scopes=[...new Set([...v.scopes,...scopesForRoles(v.roles)])];
+ const claims:SessionClaims={sub:v.subject,tenantId:v.tenantId,roles:v.roles,scopes,purpose:opts.purpose??"TREATMENT",iat:opts.now,exp:opts.now+opts.ttlSeconds,sessionId:opts.sessionId};
  return Object.freeze({token:signSession(claims,sessionSecret),sessionId:opts.sessionId,expiresAt:claims.exp});
 }
 
