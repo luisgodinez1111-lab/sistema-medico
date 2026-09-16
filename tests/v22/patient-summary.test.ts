@@ -22,5 +22,9 @@ describe("patient summary (EPIC P — computed state)",()=>{
   expect(s.openObligations).toBe(1);
   expect(s.totalItems).toBe(10);
  });
- it("vacío -> todo en cero",()=>{expect(summarizePatient([])).toEqual({openObligations:0,activeMedications:0,openResults:0,openOrders:0,signedEncounters:0,totalItems:0});});
+ it("cuenta problemas activos (ADDED/REACTIVATED/MARKED_CHRONIC), no los resueltos",()=>{
+  const s=summarizePatient([{aggregateType:"ClinicalProblem",latestKind:"ADDED"},{aggregateType:"ClinicalProblem",latestKind:"MARKED_CHRONIC"},{aggregateType:"ClinicalProblem",latestKind:"RESOLVED"}]);
+  expect(s.activeProblems).toBe(2);
+ });
+ it("vacío -> todo en cero",()=>{expect(summarizePatient([])).toEqual({activeProblems:0,openObligations:0,activeMedications:0,openResults:0,openOrders:0,signedEncounters:0,totalItems:0});});
 });

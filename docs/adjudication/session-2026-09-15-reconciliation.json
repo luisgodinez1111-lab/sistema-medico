@@ -340,6 +340,34 @@
       "epic": "P",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-PROBLEM-GRAPH-001",
+      "name": "Problem list (Problem/Hypothesis/Evidence Graph surface)",
+      "risk": "C5",
+      "eng_authority": [
+        "ENG-304",
+        "ENG-305"
+      ],
+      "invariants": [
+        "SM de problema (ACTIVE<->RESOLVED, CHRONIC, ENTERED_IN_ERROR)",
+        "Resolver exige nota",
+        "Tenant isolation"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/problems/**",
+        "packages/problem-fold",
+        "apps/web/lib/problem-lifecycle.ts",
+        "RBAC problem:write",
+        "patient-summary.activeProblems"
+      ],
+      "tests": [
+        "tests/v22/problem-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-problem-lifecycle-proof.mts — PASS 9/9",
+      "epic": "Q",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
