@@ -578,6 +578,32 @@
       "epic": "Y",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-CONSENT-001",
+      "name": "Consentimiento informado (agregado Consent, registro clínico-legal)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (consentimiento informado; NOM-004 expediente clínico / aviso de privacidad). Trazabilidad médico-legal de la voluntad del paciente: presentación, otorgamiento firmado y revocación. scopeType/documentRef/signerName son datos clínico-legales (payload bajo RLS, nunca en logs).",
+      "invariants": [
+        "SM de consentimiento: DRAFTED->PRESENTED->{GRANTED,DECLINED}; GRANTED->REVOKED; DECLINED/REVOKED terminales",
+        "No otorgar sin presentar (GRANT_WITHOUT_PRESENT_409)",
+        "No mutar un consentimiento terminal (REVOKE_TERMINAL_409, REVOKE_DECLINED_409)",
+        "Tenant isolation (cross-tenant 404) + replay determinista + concurrencia optimista"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/consents/**",
+        "packages/consent-fold",
+        "apps/web/lib/consent-lifecycle.ts",
+        "RBAC consent:write (PHYSICIAN/NURSE/CLINICAL_ADMIN)",
+        "UI /workspace panel de consentimiento informado"
+      ],
+      "tests": [
+        "tests/v22/consent-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-consent-lifecycle-proof.mts — PASS 10/10 (DRAFT/PRESENT/GRANT/REVOKE_201, REVOKE_TERMINAL_409, GRANT_WITHOUT_PRESENT_409, DECLINE_201, REVOKE_DECLINED_409, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "Z",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

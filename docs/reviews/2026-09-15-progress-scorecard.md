@@ -22,7 +22,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | --- | --- | --- | --- |
 | A. Kernel/fundación (RLS, concurrencia, auditoría, atomicidad, DR) | 12% | ~85% | 10.2 |
 | B. Identidad/Auth/Sesión + login | 8% | ~75% | 6.0 |
-| C. Amplitud de verticales clínicos (~28 áreas PROD) | 35% | ~19% | 6.7 |
+| C. Amplitud de verticales clínicos (~28 áreas PROD) | 35% | ~20% | 7.0 |
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
 | E. UI/UX de producto | 10% | ~17% | 1.7 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~10% | 0.8 |
@@ -58,3 +58,4 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-16 | Epic W: signos vitales/observaciones (14.º) + UI (append-only con enmienda) | **~39%** |
 | 2026-09-16 | Epic X: plan de cuidados/metas de crónicos (15.º) + UI (ciclo pausa/reanudación) | **~40%** |
 | 2026-09-16 | Epic Y: facturación/reclamaciones (16.º) + UI (ciclo de ingresos con reenvío) | **~41%** |
+| 2026-09-16 | Epic Z: consentimiento informado (17.º) + UI (registro clínico-legal NOM-004) | **~42%** |
