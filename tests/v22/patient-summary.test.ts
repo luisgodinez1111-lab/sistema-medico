@@ -38,6 +38,7 @@ describe("patient summary (EPIC P — computed state)",()=>{
    {aggregateType:"CarePlan",latestKind:"ACTIVATED"},{aggregateType:"CarePlan",latestKind:"ACHIEVED"},
    {aggregateType:"Claim",latestKind:"SUBMITTED"},{aggregateType:"Claim",latestKind:"PAID"},
    {aggregateType:"Consent",latestKind:"GRANTED"},{aggregateType:"Consent",latestKind:"REVOKED"},
+   {aggregateType:"Admission",latestKind:"TRANSFERRED"},{aggregateType:"Admission",latestKind:"DISCHARGED"},
   ]);
   expect(s.openReferrals).toBe(1);
   expect(s.upcomingAppointments).toBe(1);
@@ -45,6 +46,7 @@ describe("patient summary (EPIC P — computed state)",()=>{
   expect(s.activeCarePlans).toBe(1);
   expect(s.openClaims).toBe(1);
   expect(s.grantedConsents).toBe(1);
+  expect(s.activeAdmissions).toBe(1);
  });
- it("vacío -> todo en cero",()=>{expect(summarizePatient([])).toEqual({activeAllergies:0,activeProblems:0,openObligations:0,activeMedications:0,openResults:0,openOrders:0,signedEncounters:0,openReferrals:0,upcomingAppointments:0,pendingImmunizations:0,activeCarePlans:0,openClaims:0,grantedConsents:0,totalItems:0});});
+ it("vacío -> todo en cero",()=>{expect(summarizePatient([])).toEqual({activeAllergies:0,activeProblems:0,openObligations:0,activeMedications:0,openResults:0,openOrders:0,signedEncounters:0,openReferrals:0,upcomingAppointments:0,pendingImmunizations:0,activeCarePlans:0,openClaims:0,grantedConsents:0,activeAdmissions:0,totalItems:0});});
 });
