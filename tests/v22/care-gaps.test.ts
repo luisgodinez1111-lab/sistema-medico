@@ -31,6 +31,14 @@ describe("care gaps engine (EPIC AA)",()=>{
    expect(g).toHaveLength(1);expect(g[0]!.code).toBe("SAFETY_INCIDENT_OPEN");expect(g[0]!.priority).toBe("HIGH");
   }
  });
+ it("un triage pendiente (arribado/en curso) es HIGH; triaged o cerrado no genera pendiente",()=>{
+  expect(computeCareGaps([A("Triage","TRIAGED")])).toEqual([]);
+  expect(computeCareGaps([A("Triage","CLOSED")])).toEqual([]);
+  for(const k of["ARRIVED","TRIAGE_STARTED"]){
+   const g=computeCareGaps([A("Triage",k)]);
+   expect(g).toHaveLength(1);expect(g[0]!.code).toBe("TRIAGE_PENDING");expect(g[0]!.priority).toBe("HIGH");
+  }
+ });
 });
 describe("panel/population worklist (EPIC AC)",()=>{
  it("vacío -> sin pendientes",()=>{expect(computePanelWorklist([])).toEqual([]);});
