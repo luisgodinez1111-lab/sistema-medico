@@ -14,9 +14,9 @@ export type IdentityVerifier=(credential:unknown)=>VerifiedIdentity|Promise<Veri
 // RBAC: política rol -> scopes clínicos. El IdP entrega identidad + roles; los scopes de acción
 // se derivan del rol (un médico puede leer/escribir clínico; una enfermera propone y documenta).
 const ROLE_SCOPES:Record<string,readonly string[]>={
- PHYSICIAN:["encounter:read","encounter:write","result:write","medication:propose","medication:write","document:write","order:write"],
- NURSE:["encounter:read","medication:propose","document:write"],
- CLINICAL_ADMIN:["encounter:read"],
+ PHYSICIAN:["patient:read","encounter:read","encounter:write","result:write","medication:propose","medication:write","document:write","order:write"],
+ NURSE:["patient:read","encounter:read","medication:propose","document:write"],
+ CLINICAL_ADMIN:["patient:read","encounter:read"],
 };
 export function scopesForRoles(roles:readonly string[]):string[]{
  const out=new Set<string>();

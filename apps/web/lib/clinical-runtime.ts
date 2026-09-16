@@ -57,6 +57,25 @@ export async function lookupReplay(ctx:HttpTenantContext,command:ClinicalCommand
  }) as Promise<ClinicalCommandResult|null>;
 }
 
+// EPIC N — Timeline del paciente: un item por agregado clínico del paciente, con tipo, último kind
+// (estado), versión y fechas. RLS-scoped. SIN PHI: solo metadatos, nunca el contenido clínico.
+export type TimelineItem=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;version:number;openedAt:string;lastAt:string}>;
+export async function readPatientTimeline(ctx:HttpTenantContext,patientId:string):Promise<ReadonlyArray<TimelineItem>>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select r.aggregate_id, r.aggregate_type,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_kind,
+     max(r.sequence) as version, min(r.occurred_at) as opened_at, max(r.occurred_at) as last_at
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_id in (
+     select aggregate_id from clinical_events where tenant_id=${ctx.tenantId} and sequence=1 and payload->>'patientId'=${patientId})
+   group by r.aggregate_id, r.aggregate_type
+   order by min(r.occurred_at) desc`;
+  return rows.map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),latestKind:String(x.latest_kind??""),version:Number(x.version),openedAt:String(x.opened_at),lastAt:String(x.last_at)}));
+ }) as Promise<ReadonlyArray<TimelineItem>>;
+}
 // EPIC D — Lectura RLS-scoped del stream de eventos CON payload (para reconstruir estado).
 // El payload es contenido clínico (fuente de verdad, RLS-aislado); nunca se loguea.
 export async function readEncounterEvents(ctx:HttpTenantContext,encounterId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{

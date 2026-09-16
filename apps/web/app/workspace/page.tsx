@@ -15,6 +15,8 @@ type DocState="DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED";
 type Doc=Readonly<{id:string;label:string;state:DocState;version:number}>;
 type OrderSt="DRAFT"|"ORDERED"|"FULFILLED"|"CANCELLED";
 type Order=Readonly<{id:string;label:string;state:OrderSt;version:number}>;
+type TL=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;version:number;lastAt:string}>;
+const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento"};
 
 const wrap:React.CSSProperties={maxWidth:900,margin:"0 auto",padding:32};
 const card:React.CSSProperties={background:"white",border:"1px solid #e7e6f2",borderRadius:18,padding:24,boxShadow:"0 6px 20px #19145b0a",marginTop:20};
@@ -70,6 +72,7 @@ export default function Workspace(){
  const[docTitle,setDocTitle]=useState("");const[docContent,setDocContent]=useState("");const[docType,setDocType]=useState("PROGRESS_NOTE");
  const[orders,setOrders]=useState<Order[]>([]);
  const[orderType,setOrderType]=useState("LAB");const[orderDetail,setOrderDetail]=useState("");
+ const[tl,setTl]=useState<TL[]|null>(null);
  const[busy,setBusy]=useState("");
  const[error,setError]=useState("");
 
@@ -135,7 +138,12 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setOrders(os=>os.map(x=>x.id===o.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
- function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setError("");setPatientId(uuid());}
+ const loadTimeline=()=>call("tl",async()=>{
+  const r=await apiRequest(`/api/v1/patients/${patientId}/timeline`,{method:"GET"});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setTl((r.body["items"] as TL[])??[]);
+ });
+ function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setTl(null);setError("");setPatientId(uuid());}
 
  if(!ready)return <main style={wrap}><p>Cargando…</p></main>;
  if(!session)return <main style={wrap}>
@@ -149,6 +157,23 @@ export default function Workspace(){
    <button style={ghost} onClick={async()=>{await sessionLogout();location.href="/login";}}>Cerrar sesión</button>
   </div>
   <p style={{color:"#6d6e80"}}>Sesión <span style={mono}>{session.sessionId.slice(0,8)}</span> · válida hasta {new Date(session.expiresAt*1000).toLocaleTimeString()} · paciente <span style={mono}>{patientId.slice(0,8)}</span> <button style={{...ghost,padding:"2px 10px",fontSize:12,marginLeft:8}} onClick={reset}>Nuevo paciente</button></p>
+
+  {/* TIMELINE DEL PACIENTE */}
+  <section style={card}>
+   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+    <h2 style={{fontSize:18,margin:0}}>Timeline del paciente</h2>
+    <button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={loadTimeline}>{busy==="tl"?"Cargando…":"Actualizar"}</button>
+   </div>
+   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Vista longitudinal de los items clínicos de este paciente (metadatos, sin contenido).</p>
+   {tl===null?<p style={{color:"#8a8b9a",fontSize:13,marginTop:12}}>Pulsa “Actualizar” para cargar el historial de este paciente.</p>
+    :tl.length===0?<p style={{color:"#8a8b9a",fontSize:13,marginTop:12}}>Sin items registrados para este paciente todavía.</p>
+    :<div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
+     {tl.map(x=><div key={x.aggregateId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",border:"1px solid #eceafb",borderRadius:10}}>
+      <div><b style={{fontSize:14}}>{TYPE_LABEL[x.aggregateType]??x.aggregateType}</b> <span style={{...mono,marginLeft:6}}>{x.aggregateId.slice(0,8)}</span></div>
+      <div style={{display:"flex",gap:10,alignItems:"center"}}><span style={stateBadge(x.latestKind)}>{x.latestKind}</span><span style={{fontSize:12,color:"#8a8b9a"}}>v{x.version}</span></div>
+     </div>)}
+    </div>}
+  </section>
 
   {/* ENCUENTRO */}
   <section style={card}>
