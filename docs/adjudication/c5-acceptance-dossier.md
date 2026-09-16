@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **31**
+- Capacidades reconciliadas: **32**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **31**
+- Pendiente de aceptación humana C5: **32**
 
 ## Riesgo C4
 
@@ -228,6 +228,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-triage-lifecycle-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-WOUND-001 — Cuidado de heridas / lesiones por presión (agregado Wound, valoración longitudinal)
+- Epic: AI
+- Invariantes: 4
+- Tests: `tests/v22/wound-fold.test.ts`
+- Prueba en vivo: `scripts/v22/live-wound-lifecycle-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -263,3 +270,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-SPECIMEN-001 | | | | |
 | CAP-INCIDENT-001 | | | | |
 | CAP-TRIAGE-001 | | | | |
+| CAP-WOUND-001 | | | | |

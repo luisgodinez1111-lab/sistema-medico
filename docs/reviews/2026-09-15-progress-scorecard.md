@@ -22,7 +22,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | --- | --- | --- | --- |
 | A. Kernel/fundación (RLS, concurrencia, auditoría, atomicidad, DR) | 12% | ~85% | 10.2 |
 | B. Identidad/Auth/Sesión + login | 8% | ~75% | 6.0 |
-| C. Amplitud de verticales clínicos (~28 áreas PROD) | 35% | ~25% | 8.8 |
+| C. Amplitud de verticales clínicos (~28 áreas PROD) | 35% | ~26% | 9.1 |
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
 | E. UI/UX de producto | 10% | ~21% | 2.1 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~20% | 1.6 |
@@ -68,3 +68,4 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-16 | Epic AF: muestras/cadena de custodia de laboratorio (19.º vertical) + regla de care gaps + UI | **~49%** |
 | 2026-09-16 | Epic AG: incidentes de seguridad del paciente / farmacovigilancia (20.º vertical) + regla de care gaps + UI | **~50%** |
 | 2026-09-16 | Epic AH: triage / clasificación de acuidad (21.º vertical) + regla de care gaps + UI | **~51%** |
+| 2026-09-16 | Epic AI: cuidado de heridas / lesiones por presión (22.º vertical, append-only) + UI | **~52%** |
