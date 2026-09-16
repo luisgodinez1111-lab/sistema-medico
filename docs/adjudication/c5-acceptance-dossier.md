@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **27**
+- Capacidades reconciliadas: **28**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **27**
+- Pendiente de aceptación humana C5: **28**
 
 ## Riesgo C4
 
@@ -200,6 +200,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-panel-worklist-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-ADMISSION-001 — Internamiento/hospitalización (agregado Admission, episodio de cuidado / censo)
+- Epic: AE
+- Invariantes: 4
+- Tests: `tests/v22/admission-fold.test.ts`
+- Prueba en vivo: `scripts/v22/live-admission-lifecycle-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -231,3 +238,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-RECORD-EXPORT-001 | | | | |
 | CAP-PANEL-WORKLIST-001 | | | | |
 | CAP-ADJUDICATION-001 | | | | |
+| CAP-ADMISSION-001 | | | | |

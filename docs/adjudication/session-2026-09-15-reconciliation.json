@@ -704,6 +704,33 @@
       "epic": "AD",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-ADMISSION-001",
+      "name": "Internamiento/hospitalización (agregado Admission, episodio de cuidado / censo)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (censo de hospitalización / episodio de internamiento). Distinto del encuentro ambulatorio: ciclo con lazo de traslados de unidad y alta. Integrado al resumen longitudinal (activeAdmissions). unit/reason/disposition son datos clínicos (payload bajo RLS, nunca en logs).",
+      "invariants": [
+        "SM: ADMITTED->{TRANSFERRED,DISCHARGED,CANCELLED}; TRANSFERRED repetible (cambio de unidad); DISCHARGED/CANCELLED terminales",
+        "La unidad vigente es la del último traslado",
+        "No mutar un episodio terminal (TRANSFER_AFTER_DISCHARGE_409, DISCHARGE_AFTER_CANCEL_409)",
+        "Tenant isolation (cross-tenant 404) + replay determinista + concurrencia optimista"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/admissions/**",
+        "packages/admission-fold",
+        "apps/web/lib/admission-lifecycle.ts",
+        "RBAC admission:write (PHYSICIAN/NURSE/CLINICAL_ADMIN)",
+        "patient-summary.activeAdmissions",
+        "UI /workspace panel de internamiento"
+      ],
+      "tests": [
+        "tests/v22/admission-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-admission-lifecycle-proof.mts — PASS 9/9 (ADMIT/TRANSFER_ICU/TRANSFER_WARD/DISCHARGE_201, TRANSFER_AFTER_DISCHARGE_409, CANCEL_201, DISCHARGE_AFTER_CANCEL_409, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "AE",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
