@@ -24,6 +24,13 @@ describe("care gaps engine (EPIC AA)",()=>{
   const g=computeCareGaps([A("Specimen","REJECTED")]);
   expect(g).toHaveLength(1);expect(g[0]!.code).toBe("SPECIMEN_REJECTED");expect(g[0]!.priority).toBe("HIGH");
  });
+ it("un incidente de seguridad abierto es HIGH; uno resuelto no genera pendiente",()=>{
+  expect(computeCareGaps([A("Incident","RESOLVED")])).toEqual([]);
+  for(const k of["REPORTED","REVIEW_STARTED","ESCALATED"]){
+   const g=computeCareGaps([A("Incident",k)]);
+   expect(g).toHaveLength(1);expect(g[0]!.code).toBe("SAFETY_INCIDENT_OPEN");expect(g[0]!.priority).toBe("HIGH");
+  }
+ });
 });
 describe("panel/population worklist (EPIC AC)",()=>{
  it("vacío -> sin pendientes",()=>{expect(computePanelWorklist([])).toEqual([]);});

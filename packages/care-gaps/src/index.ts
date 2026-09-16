@@ -18,6 +18,7 @@ const RULES:Record<string,Rule>={
  Appointment:it=>it.latestKind==="NO_SHOW"?{code:"APPOINTMENT_NO_SHOW",label:"Cita perdida (no-show), reagendar",priority:"LOW"}:null,
  Claim:it=>it.latestKind==="REJECTED"?{code:"CLAIM_REJECTED",label:"Reclamación rechazada, requiere reenvío",priority:"LOW"}:null,
  Specimen:it=>it.latestKind==="REJECTED"?{code:"SPECIMEN_REJECTED",label:"Muestra rechazada por laboratorio, requiere recolección",priority:"HIGH"}:null,
+ Incident:it=>(it.latestKind==="REPORTED"||it.latestKind==="REVIEW_STARTED"||it.latestKind==="ESCALATED")?{code:"SAFETY_INCIDENT_OPEN",label:"Incidente de seguridad del paciente abierto",priority:"HIGH"}:null,
 };
 export function computeCareGaps(items:readonly TimelineLike[]):CareGap[]{
  const gaps:CareGap[]=[];
