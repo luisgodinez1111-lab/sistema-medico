@@ -24,7 +24,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | B. Identidad/Auth/Sesión + login | 8% | ~75% | 6.0 |
 | C. Amplitud de verticales clínicos (~28 áreas PROD) | 35% | ~21% | 7.4 |
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
-| E. UI/UX de producto | 10% | ~19% | 1.9 |
+| E. UI/UX de producto | 10% | ~21% | 2.1 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~10% | 0.8 |
 | G. Endurecimiento producción + compliance | 9% | ~19% | 1.7 |
 
@@ -62,3 +62,4 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-16 | Epic P+: integración longitudinal — resumen/dashboard del paciente cuenta los 7 verticales S–Z (no silos) + prueba de integración en vivo | **~43%** |
 | 2026-09-16 | Epic AA: motor de care gaps / worklist clínico (inteligencia por reglas, cross-vertical, NO IA) + UI + endpoint | **~44%** |
 | 2026-09-16 | Epic AB: export/manifiesto del expediente con hash reproducible (interoperabilidad NOM-024, compliance) + UI | **~45%** |
+| 2026-09-16 | Epic AC: worklist poblacional / panel del clínico (population health, cross-patient, NO IA) + UI + endpoint | **~46%** |

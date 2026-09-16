@@ -654,6 +654,31 @@
       "epic": "AB",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-PANEL-WORKLIST-001",
+      "name": "Worklist poblacional / panel del clínico (population health, cross-patient)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (gestión de panel / population health). Lleva la inteligencia por reglas de care gaps del paciente individual a TODO el panel del tenant. Determinista, NO IA (no es R6). readTenantOpenAggregates es RLS-scoped al tenant; sin PHI (tipo/estado/ids). Reutiliza CAP-CAREGAPS-001.",
+      "invariants": [
+        "computePanelWorklist es puro y determinista (prioridad HIGH->LOW, luego patientId, luego tipo)",
+        "Agrega pendientes a través de todos los pacientes del tenant, cada uno con su patientId",
+        "Aislamiento por tenant vía readTenantOpenAggregates (no cruza tenants)",
+        "Autorización scope patient:read"
+      ],
+      "implementation": [
+        "packages/care-gaps (computePanelWorklist)",
+        "clinical-runtime.readTenantOpenAggregates",
+        "apps/web/app/api/v1/worklist/route.ts",
+        "UI /workspace panel del clínico"
+      ],
+      "tests": [
+        "tests/v22/care-gaps.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-panel-worklist-proof.mts — PASS 7/7 (WORKLIST_200, PANEL_TWO_PATIENTS, PANEL_TWO_GAPS, MEDIUM_FIRST, LOW_LAST, CROSS_TENANT_ISOLATED, MISSING_SCOPE_403)",
+      "epic": "AC",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
