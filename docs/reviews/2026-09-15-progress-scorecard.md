@@ -48,4 +48,4 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-15 | UI con los 4 verticales (+documentos) + endurecimiento prod (cookie httpOnly, dev verifier opt-in, Neon serverless) | **~28%** |
 | 2026-09-15 | Epic M: vertical de órdenes (6.º) + UI (cierra cadena orden→resultado) | **~29%** |
 | 2026-09-15 | Epic N: timeline del paciente (1.ª lectura/proyección) + UI longitudinal | **~30%** |
-| 2026-09-15 | Epic O: vertical de obligaciones (7.º) — gestión Zero Lost Follow-Up + UI | **~31%** |
+| 2026-09-15 | Epic O: vertical de obligaciones (7.º) — gestión Zero Lost Follow-Up + UI | **~31%** || 2026-09-15 | Epic P: resumen/estado computado del paciente (dashboard) — proyección pura | **~32%** |
