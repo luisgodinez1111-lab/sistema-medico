@@ -368,6 +368,33 @@
       "epic": "Q",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-ALLERGY-001",
+      "name": "Allergy list + medication safety gate (NUEVA, no en catalogo)",
+      "risk": "C5",
+      "eng_authority_note": "PROD-011-R005 (alergias en el chart); capacidad NUEVA, pendiente de catalogacion + adjudicacion C5.",
+      "invariants": [
+        "No prescribir farmaco con alergia ACTIVA (gate de seguridad)",
+        "SM de alergia (ACTIVE<->INACTIVE, REFUTED terminal)",
+        "Tenant isolation"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/allergies/**",
+        "packages/allergy-fold",
+        "apps/web/lib/allergy-lifecycle.ts",
+        "clinical-runtime.activeAllergySubstances",
+        "medication-lifecycle gate",
+        "RBAC allergy:write",
+        "patient-summary.activeAllergies"
+      ],
+      "tests": [
+        "tests/v22/allergy-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-allergy-medication-gate-proof.mts — PASS 9/9 (incluye PRESCRIBE_BLOCKED_BY_ALLERGY_403 -> inactivar -> PRESCRIBE_UNBLOCKED_201)",
+      "epic": "R",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

@@ -5,7 +5,7 @@ import{ClinicalError}from"../../runtime-errors/src";
 // puede venir de cualquier clínico (o IA), pero PRESCRIBED (la decisión firmada) exige médico.
 export type MedEventKind="PROPOSED"|"PRESCRIBED"|"ACTIVATED"|"HELD"|"RESUMED"|"STOPPED";
 export type StoredMedEvent=Readonly<{sequence:number;payload:Record<string,unknown>}>;
-export type FoldedMedication=Readonly<{exists:boolean;state:MedicationState;version:number;patientId:string}>;
+export type FoldedMedication=Readonly<{exists:boolean;state:MedicationState;version:number;patientId:string;drugCode:string}>;
 
 function kindOf(e:StoredMedEvent):MedEventKind{
  const k=e.payload["kind"];
@@ -15,14 +15,14 @@ function kindOf(e:StoredMedEvent):MedEventKind{
 }
 const KIND_TO_STATE:Record<MedEventKind,MedicationState>={PROPOSED:"PROPOSED",PRESCRIBED:"PRESCRIBED",ACTIVATED:"ACTIVE",HELD:"HELD",RESUMED:"ACTIVE",STOPPED:"STOPPED"};
 export function foldMedication(events:readonly StoredMedEvent[]):FoldedMedication{
- if(events.length===0)return{exists:false,state:"PROPOSED",version:0,patientId:""};
+ if(events.length===0)return{exists:false,state:"PROPOSED",version:0,patientId:"",drugCode:""};
  const ordered=[...events].sort((a,b)=>a.sequence-b.sequence);
- let state:MedicationState="PROPOSED",patientId="";
+ let state:MedicationState="PROPOSED",patientId="",drugCode="";
  for(const e of ordered){
   const k=kindOf(e);state=KIND_TO_STATE[k];
-  if(k==="PROPOSED")patientId=String(e.payload["patientId"]??"");
+  if(k==="PROPOSED"){patientId=String(e.payload["patientId"]??"");drugCode=String(e.payload["drugCode"]??"");}
  }
- return{exists:true,state,version:ordered[ordered.length-1]!.sequence,patientId};
+ return{exists:true,state,version:ordered[ordered.length-1]!.sequence,patientId,drugCode};
 }
 // SM del ciclo de vida de medicación (subconjunto determinista, alineado con medication-domain).
 const ALLOWED:Partial<Record<MedicationState,readonly MedicationState[]>>={

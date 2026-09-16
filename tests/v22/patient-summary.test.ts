@@ -26,5 +26,9 @@ describe("patient summary (EPIC P — computed state)",()=>{
   const s=summarizePatient([{aggregateType:"ClinicalProblem",latestKind:"ADDED"},{aggregateType:"ClinicalProblem",latestKind:"MARKED_CHRONIC"},{aggregateType:"ClinicalProblem",latestKind:"RESOLVED"}]);
   expect(s.activeProblems).toBe(2);
  });
- it("vacío -> todo en cero",()=>{expect(summarizePatient([])).toEqual({activeProblems:0,openObligations:0,activeMedications:0,openResults:0,openOrders:0,signedEncounters:0,totalItems:0});});
+ it("cuenta alergias activas (RECORDED/REACTIVATED), no las refutadas/inactivas",()=>{
+  const s=summarizePatient([{aggregateType:"Allergy",latestKind:"RECORDED"},{aggregateType:"Allergy",latestKind:"REFUTED"},{aggregateType:"Allergy",latestKind:"INACTIVATED"}]);
+  expect(s.activeAllergies).toBe(1);
+ });
+ it("vacío -> todo en cero",()=>{expect(summarizePatient([])).toEqual({activeAllergies:0,activeProblems:0,openObligations:0,activeMedications:0,openResults:0,openOrders:0,signedEncounters:0,totalItems:0});});
 });

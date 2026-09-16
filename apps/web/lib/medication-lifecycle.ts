@@ -4,7 +4,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldMedication,assertMedicationTransition,type FoldedMedication}from"../../../packages/medication-fold/src";
 import{type MedicationState}from"../../../packages/medication-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC H — Ciclo de vida de medicación sobre el kernel. Physician Control como estrella:
@@ -53,7 +53,19 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
  try{
   const{ctx,idempotencyKey,expectedVersion,folded,claims}=await loadForTransition(req,medicationId,true);
   const b=await parseJson(req,WhenBody);
-  return await commitTransition(ctx,idempotencyKey,expectedVersion,medicationId,folded,"PRESCRIBED","MEDICATION_PRESCRIBED",{kind:"PRESCRIBED",prescriberId:claims.sub},b.occurredAt,"medication.prescribed");
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType:"MEDICATION_PRESCRIBED",payload:{kind:"PRESCRIBED",prescriberId:claims.sub},occurredAt:b.occurredAt,topic:"medication.prescribed"});
+  let result=await lookupReplay(ctx,cmd);
+  if(!result){
+   assertMedicationTransition(folded.state,"PRESCRIBED");
+   // Gate de seguridad: no prescribir un fármaco al que el paciente tiene una alergia ACTIVA.
+   const substances=await activeAllergySubstances(ctx,folded.patientId);
+   const drug=folded.drugCode.toLowerCase();
+   const hit=substances.find(s=>s&&drug.includes(s.toLowerCase()));
+   if(hit)throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: patient has an active allergy to ${hit}`);
+   result=await runClinicalCommand(ctx,cmd);
+  }
+  const r=result.response as{version:number;auditHash?:string};
+  return NextResponse.json({medicationId,state:"PRESCRIBED",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 // ACTIVATE = PRESCRIBED -> ACTIVE (inicio de administración).

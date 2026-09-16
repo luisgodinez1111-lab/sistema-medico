@@ -57,6 +57,20 @@ export async function lookupReplay(ctx:HttpTenantContext,command:ClinicalCommand
  }) as Promise<ClinicalCommandResult|null>;
 }
 
+// EPIC R — Gate de seguridad de medicación: sustancias con alergia ACTIVA del paciente (RLS-scoped).
+// Una alergia está activa si su último evento es RECORDED o REACTIVATED (no REFUTED/INACTIVATED).
+export async function activeAllergySubstances(ctx:HttpTenantContext,patientId:string):Promise<string[]>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select r.payload->>'substance' as substance
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Allergy' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=${patientId}
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) in ('RECORDED','REACTIVATED')`;
+  return rows.map(x=>String(x.substance??"")).filter(Boolean);
+ }) as Promise<string[]>;
+}
 // EPIC N — Timeline del paciente: un item por agregado clínico del paciente, con tipo, último kind
 // (estado), versión y fechas. RLS-scoped. SIN PHI: solo metadatos, nunca el contenido clínico.
 export type TimelineItem=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;version:number;openedAt:string;lastAt:string}>;
