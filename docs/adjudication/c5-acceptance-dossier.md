@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **26**
+- Capacidades reconciliadas: **27**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **26**
+- Pendiente de aceptación humana C5: **27**
 
 ## Riesgo C4
 
@@ -21,6 +21,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Invariantes: 1
 - Tests: `tests/v22/session-client.test.ts`
 - Prueba en vivo: —
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
+### CAP-ADJUDICATION-001 — Validador de evidencia de adjudicación + dossier de aceptación C5 (turnkey)
+- Epic: AD
+- Invariantes: 4
+- Tests: `tests/v22/reconciliation-integrity.test.ts`
+- Prueba en vivo: `scripts/v22/build-c5-dossier.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
 ## Riesgo C5
@@ -223,3 +230,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-CAREGAPS-001 | | | | |
 | CAP-RECORD-EXPORT-001 | | | | |
 | CAP-PANEL-WORKLIST-001 | | | | |
+| CAP-ADJUDICATION-001 | | | | |

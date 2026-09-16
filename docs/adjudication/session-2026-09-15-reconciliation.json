@@ -679,6 +679,31 @@
       "epic": "AC",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-ADJUDICATION-001",
+      "name": "Validador de evidencia de adjudicación + dossier de aceptación C5 (turnkey)",
+      "risk": "C4",
+      "eng_authority_note": "Gobernanza/ENG (proceso de adjudicación C5). Hace ejecutable la revisión humana: verifica que toda capacidad reconciliada cite evidencia que EXISTE (invariantes, tests en disco, prueba de runtime) y genera un dossier firmable. La aceptación C5 sigue siendo humana; esto solo la hace turnkey y evita citas rotas.",
+      "invariants": [
+        "Toda capacidad reconciliada tiene invariantes, >=1 test que existe y evidencia de runtime no vacía",
+        "Un script .mts citado como prueba en vivo debe existir en disco",
+        "La integridad se fija en CI (tests/v22/reconciliation-integrity.test.ts), sin DB",
+        "El dossier es autoridad-cero: solo empaqueta evidencia para la firma humana"
+      ],
+      "implementation": [
+        "scripts/v22/build-c5-dossier.mts",
+        "docs/adjudication/c5-acceptance-dossier.md",
+        "tests/v22/http-principal.test.ts",
+        "tests/v22/session-issuance.test.ts"
+      ],
+      "tests": [
+        "tests/v22/reconciliation-integrity.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/build-c5-dossier.mts — PASS (26 capacidades, evidencia COMPLETA, 0 citas rotas)",
+      "epic": "AD",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
