@@ -26,7 +26,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
 | E. UI/UX de producto | 10% | ~19% | 1.9 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~10% | 0.8 |
-| G. Endurecimiento producción + compliance | 9% | ~15% | 1.4 |
+| G. Endurecimiento producción + compliance | 9% | ~19% | 1.7 |
 
 ## Valor de cada hito futuro (para no estimar a la ligera)
 - Vertical clínico nuevo completo con evidencia en vivo: **≈ +1.2%** c/u.
@@ -61,3 +61,4 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-16 | Epic Z: consentimiento informado (17.º) + UI (registro clínico-legal NOM-004) | **~42%** |
 | 2026-09-16 | Epic P+: integración longitudinal — resumen/dashboard del paciente cuenta los 7 verticales S–Z (no silos) + prueba de integración en vivo | **~43%** |
 | 2026-09-16 | Epic AA: motor de care gaps / worklist clínico (inteligencia por reglas, cross-vertical, NO IA) + UI + endpoint | **~44%** |
+| 2026-09-16 | Epic AB: export/manifiesto del expediente con hash reproducible (interoperabilidad NOM-024, compliance) + UI | **~45%** |

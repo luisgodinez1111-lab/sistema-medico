@@ -628,6 +628,32 @@
       "epic": "AA",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-RECORD-EXPORT-001",
+      "name": "Export/manifiesto del expediente con hash reproducible (interoperabilidad NOM-024)",
+      "risk": "C5",
+      "eng_authority_note": "PROD/compliance (NOM-024 interoperabilidad / portabilidad del expediente; derecho del paciente a su información). Manifiesto canónico y reproducible del expediente longitudinal con contentHash sha256 -> verificable y tamper-evidente. readPatientRecordRows es estructural (kind/fecha), no vuelca payloads PHI; el export se autoriza con scope dedicado record:export.",
+      "invariants": [
+        "Manifiesto determinista: mismo expediente => mismo contentHash (excluye generatedAt)",
+        "Tamper-evidencia: cualquier evento nuevo cambia la serialización canónica",
+        "Tenant isolation vía readPatientRecordRows (cross-tenant vacío, hash distinto)",
+        "Autorización scope record:export"
+      ],
+      "implementation": [
+        "packages/record-export",
+        "clinical-runtime.readPatientRecordRows",
+        "apps/web/app/api/v1/patients/[patientId]/export/route.ts",
+        "RBAC record:export (PHYSICIAN/CLINICAL_ADMIN)",
+        "UI /workspace boton Exportar expediente"
+      ],
+      "tests": [
+        "tests/v22/record-export.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-record-export-proof.mts — PASS 9/9 (EXPORT_200, MANIFEST_2_AGGREGATES, MANIFEST_3_EVENTS, CONTENT_HASH_SHA256, HASH_REPRODUCIBLE, CROSS_TENANT_EMPTY, CROSS_TENANT_DIFFERENT_HASH, MISSING_EXPORT_SCOPE_403)",
+      "epic": "AB",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
