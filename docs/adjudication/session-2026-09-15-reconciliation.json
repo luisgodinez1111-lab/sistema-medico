@@ -124,6 +124,19 @@
       "requires_human_c5_acceptance": true
     },
     {
+      "id": "CAP-ORDER-RESULT-001",
+      "name": "Order & Result Closed Loop (order lifecycle)",
+      "risk": "C5",
+      "eng_authority": ["ENG-306", "ENG-337"],
+      "invariants": ["SM formal de orden (DRAFT->ORDERED->FULFILLED / CANCELLED)", "Physician Control (colocar/cumplir exige medico + order:write)", "Tenant isolation", "Concurrencia optimista"],
+      "implementation": ["apps/web/app/api/v1/orders/**", "packages/order-fold", "apps/web/lib/order-lifecycle.ts", "RBAC order:write"],
+      "tests": ["tests/v22/order-fold.test.ts"],
+      "runtime_evidence": "scripts/v22/live-order-lifecycle-proof.mts — PASS 10/10 (ciclo v1->3, replay, SM ilegal 409, cancel path, concurrencia 409, cross-tenant 404, missing-scope 403). UI de ordenes desplegada.",
+      "epic": "M",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
+    },
+    {
       "id": "CAP-APP-001",
       "name": "Clinical Application Service Layer",
       "risk": "C4",
