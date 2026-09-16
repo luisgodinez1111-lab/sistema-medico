@@ -448,6 +448,32 @@
       "epic": "T",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-APPOINTMENT-001",
+      "name": "Agenda/citas (agregado Appointment, scheduling)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (agenda/scheduling); punto de entrada operativo del paciente. startAt/reason son datos clínicos (payload bajo RLS, nunca en logs). appointment:write se concede también a recepción (CLINICAL_ADMIN) y enfermería, no solo al médico.",
+      "invariants": [
+        "SM de cita: SCHEDULED->CHECKED_IN->COMPLETED; SCHEDULED->{CANCELLED,NO_SHOW}; CHECKED_IN->CANCELLED; terminales inmutables",
+        "No completar sin registrar llegada (COMPLETE_WITHOUT_CHECKIN_409)",
+        "No reabrir una cita terminal (CHECKIN_AFTER_NOSHOW_409)",
+        "Tenant isolation (cross-tenant 404) + replay determinista + concurrencia optimista"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/appointments/**",
+        "packages/appointment-fold",
+        "apps/web/lib/appointment-lifecycle.ts",
+        "RBAC appointment:write (PHYSICIAN/NURSE/CLINICAL_ADMIN)",
+        "UI /workspace panel de agenda"
+      ],
+      "tests": [
+        "tests/v22/appointment-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-appointment-lifecycle-proof.mts — PASS 9/9 (SCHEDULE/CHECKIN/COMPLETE_201, COMPLETE_WITHOUT_CHECKIN_409, NOSHOW_201, CHECKIN_AFTER_NOSHOW_409, CANCEL_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "U",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
