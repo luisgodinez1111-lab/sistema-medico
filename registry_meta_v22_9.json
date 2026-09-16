@@ -1,0 +1,17 @@
+{
+  "version": "22.9-EPIC-J-LOGIN-FRONTEND",
+  "based_on": "22.8-EPIC-I-CLINICAL-DOCUMENTS",
+  "epic": "J — Frontend de login (Auth0 SPA -> sesion medical-os)",
+  "dependency_added": "@auth0/auth0-spa-js 2.26.0 (core PKCE auditado, sin peer-dep de React)",
+  "flow": "Auth0 PKCE (navegador) -> access token (audience medical-os) -> POST /api/v1/sessions -> sesion medical-os firmada -> Bearer a la API clinica",
+  "pieces": "apps/web/lib/session-client.ts (puente testeable: exchangeForSession, sessionStorage por-pestana, authHeader); apps/web/app/login/page.tsx (client, estados loading/config/anonymous/authenticating/authenticated/error, boton Probar API); config via NEXT_PUBLIC_*; fail-soft sin config",
+  "full_typecheck": "PASS",
+  "full_vitest": "PASS (237/237; +7 puente vs 230)",
+  "next_build": "PASS (/login compila con auth0-spa-js)",
+  "bridge_tests": "7/7 (tests/v22/session-client.test.ts): parse valido/invalido, exchange ok, propagacion de error 401:UNAUTHENTICATED, store/read/clear por-pestana, sesion expirada = ausente, Authorization header",
+  "browser_e2e": "PENDIENTE de config Auth0 + navegador (flujo OAuth real requiere credenciales humanas); codigo listo",
+  "user_setup": "Auth0: SPA app (callback/logout/origin URLs a /login), API con identifier medical-os (audience), Action Post Login que inyecta claims namespaced https://medical-os/{tenant_id,roles}; Vercel: OIDC_ISSUER real + OIDC_TENANT_CLAIM/OIDC_ROLES_CLAIM + NEXT_PUBLIC_AUTH0_DOMAIN/CLIENT_ID + NEXT_PUBLIC_OIDC_AUDIENCE",
+  "auth0_domain_known": "dev-ltqkg2lgq3013556.us.auth0.com (del usuario, esta sesion)",
+  "governance_human_review": "PENDING (aceptacion C5)",
+  "release_state": "BLOCKED por revision humana C5 + config Auth0 del usuario para login en vivo"
+}
