@@ -51,3 +51,4 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-15 | Epic O: vertical de obligaciones (7.º) — gestión Zero Lost Follow-Up + UI | **~31%** |
 | 2026-09-15 | Epic P: resumen/estado computado del paciente (dashboard) — proyección pura | **~32%** |
 | 2026-09-16 | Epic Q: vertical de lista de problemas (8.º) + UI + conteo en resumen | **~33%** |
+| 2026-09-16 | Epic R: vertical de alergias (9.º) + gate de seguridad de medicación + UI | ~34% |
