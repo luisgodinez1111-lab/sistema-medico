@@ -11,6 +11,8 @@ type MedState="PROPOSED"|"PRESCRIBED"|"ACTIVE"|"STOPPED";
 type Med=Readonly<{id:string;label:string;state:MedState;version:number}>;
 type ResState="RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";
 type Result=Readonly<{id:string;label:string;critical:boolean;state:ResState;version:number}>;
+type DocState="DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED";
+type Doc=Readonly<{id:string;label:string;state:DocState;version:number}>;
 
 const wrap:React.CSSProperties={maxWidth:900,margin:"0 auto",padding:32};
 const card:React.CSSProperties={background:"white",border:"1px solid #e7e6f2",borderRadius:18,padding:24,boxShadow:"0 6px 20px #19145b0a",marginTop:20};
@@ -19,7 +21,7 @@ const ghost:React.CSSProperties={...btn,background:"transparent",color:"#6255c7"
 const input:React.CSSProperties={width:"100%",boxSizing:"border-box",padding:"10px 12px",border:"1px solid #d9d6f2",borderRadius:10,fontSize:14,fontFamily:"inherit"};
 const mono:React.CSSProperties={fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,background:"#f4f3fb",padding:"2px 6px",borderRadius:6};
 const lbl:React.CSSProperties={fontSize:13,fontWeight:600,color:"#4b4c5e",display:"block",margin:"12px 0 6px"};
-function stateBadge(s:string){const m:Record<string,[string,string]>={SIGNED:["#e8f7ee","#1a7f43"],READY_TO_SIGN:["#fff4e5","#a15c00"],OPEN:["#eef0ff","#3f3aa0"],PROPOSED:["#eef0ff","#3f3aa0"],PRESCRIBED:["#eaf3ff","#1f5fb0"],ACTIVE:["#e8f7ee","#1a7f43"],STOPPED:["#f1f1f4","#5f6072"],RECEIVED:["#eef0ff","#3f3aa0"],VERIFIED:["#eaf3ff","#1f5fb0"],ACTIONED:["#fff4e5","#a15c00"],CLOSED:["#e8f7ee","#1a7f43"]};const c=m[s]??["#eef0ff","#3f3aa0"];return{display:"inline-block",background:c[0],color:c[1],fontWeight:700,fontSize:12,padding:"3px 10px",borderRadius:999};}
+function stateBadge(s:string){const m:Record<string,[string,string]>={SIGNED:["#e8f7ee","#1a7f43"],READY_TO_SIGN:["#fff4e5","#a15c00"],OPEN:["#eef0ff","#3f3aa0"],PROPOSED:["#eef0ff","#3f3aa0"],PRESCRIBED:["#eaf3ff","#1f5fb0"],ACTIVE:["#e8f7ee","#1a7f43"],STOPPED:["#f1f1f4","#5f6072"],RECEIVED:["#eef0ff","#3f3aa0"],VERIFIED:["#eaf3ff","#1f5fb0"],ACTIONED:["#fff4e5","#a15c00"],CLOSED:["#e8f7ee","#1a7f43"],DRAFT:["#eef0ff","#3f3aa0"],FINALIZED:["#eaf3ff","#1f5fb0"],AMENDED:["#e8f7ee","#1a7f43"]};const c=m[s]??["#eef0ff","#3f3aa0"];return{display:"inline-block",background:c[0],color:c[1],fontWeight:700,fontSize:12,padding:"3px 10px",borderRadius:999};}
 const in7days=()=>new Date(Date.now()+7*864e5).toISOString();
 const uuid=()=>globalThis.crypto.randomUUID();
 const nowIso=()=>new Date().toISOString();
@@ -38,6 +40,13 @@ function resNext(r:Result):{label:string;path:string;body:Record<string,unknown>
  if(r.state==="ACTIONED")return{label:"Cerrar",path:`/api/v1/results/${r.id}/closure`,body:{evidence:"Paciente contactado y tratado",occurredAt:nowIso()},to:"CLOSED"};
  return null;
 }
+// Siguiente transición de un documento clínico (borrador -> finalizado -> firmado -> enmendado).
+function docNext(d:Doc):{label:string;path:string;body:Record<string,unknown>;to:DocState}|null{
+ if(d.state==="DRAFT")return{label:"Finalizar",path:`/api/v1/documents/${d.id}/finalization`,body:{occurredAt:nowIso()},to:"FINALIZED"};
+ if(d.state==="FINALIZED")return{label:"Firmar",path:`/api/v1/documents/${d.id}/signature`,body:{occurredAt:nowIso()},to:"SIGNED"};
+ if(d.state==="SIGNED"||d.state==="AMENDED")return{label:"Enmendar",path:`/api/v1/documents/${d.id}/amendment`,body:{addendum:"Addendum clínico",occurredAt:nowIso()},to:"AMENDED"};
+ return null;
+}
 
 export default function Workspace(){
  const[session,setSession]=useState<MedicalSession|null>(null);
@@ -50,6 +59,8 @@ export default function Workspace(){
  const[drug,setDrug]=useState("");const[dose,setDose]=useState("");const[route,setRoute]=useState("VO");const[freq,setFreq]=useState("");
  const[results,setResults]=useState<Result[]>([]);
  const[resName,setResName]=useState("");const[resCritical,setResCritical]=useState(false);
+ const[docs,setDocs]=useState<Doc[]>([]);
+ const[docTitle,setDocTitle]=useState("");const[docContent,setDocContent]=useState("");const[docType,setDocType]=useState("PROGRESS_NOTE");
  const[busy,setBusy]=useState("");
  const[error,setError]=useState("");
 
@@ -92,7 +103,19 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setResults(rs=>rs.map(x=>x.id===res.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
- function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setError("");setPatientId(uuid());}
+ const createDoc=()=>call("doc-new",async()=>{
+  const id=uuid();const r=await apiRequest("/api/v1/documents",{method:"POST",body:{documentId:id,patientId,docType,title:docTitle||"Documento",content:docContent,occurredAt:nowIso()}});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setDocs(ds=>[...ds,{id,label:`${docTitle||"Documento"} (${docType})`,state:"DRAFT",version:Number(r.body["version"]??1)}]);
+  setDocTitle("");setDocContent("");
+ });
+ const advanceDoc=(d:Doc)=>call("doc-"+d.id,async()=>{
+  const n=docNext(d);if(!n)return;
+  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:d.version});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setDocs(ds=>ds.map(x=>x.id===d.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
+ });
+ function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setError("");setPatientId(uuid());}
 
  if(!ready)return <main style={wrap}><p>Cargando…</p></main>;
  if(!session)return <main style={wrap}>
@@ -170,6 +193,30 @@ export default function Workspace(){
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(res.state)}>{res.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceResult(res)}>{busy==="res-"+res.id?"…":n.label}</button>}
+     </div>
+    </div>;})}
+   </div>}
+  </section>
+
+  {/* DOCUMENTOS CLÍNICOS */}
+  <section style={card}>
+   <h2 style={{fontSize:18,margin:0}}>Documentos clínicos</h2>
+   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>La firma produce un snapshot reproducible e inmutable; toda corrección posterior es un addendum append-only (PROD-014-R022).</p>
+   <div style={{display:"grid",gridTemplateColumns:"1fr 200px",gap:10,marginTop:12}}>
+    <input style={input} value={docTitle} onChange={e=>setDocTitle(e.target.value)} placeholder="Título (ej. Nota de evolución)" />
+    <select style={input} value={docType} onChange={e=>setDocType(e.target.value)}>
+     <option value="PROGRESS_NOTE">Nota de evolución</option><option value="DISCHARGE_SUMMARY">Alta</option>
+     <option value="REFERRAL">Referencia</option><option value="PROCEDURE_NOTE">Nota de procedimiento</option><option value="OTHER">Otro</option>
+    </select>
+   </div>
+   <textarea style={{...input,minHeight:64,resize:"vertical",marginTop:10}} value={docContent} onChange={e=>setDocContent(e.target.value)} placeholder="Contenido clínico…" />
+   <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!docContent} onClick={createDoc}>{busy==="doc-new"?"Creando…":"Crear documento"}</button></div>
+   {docs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+    {docs.map(d=>{const n=docNext(d);return <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+     <div><b style={{fontSize:14}}>{d.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{d.version}</div></div>
+     <div style={{display:"flex",gap:10,alignItems:"center"}}>
+      <span style={stateBadge(d.state)}>{d.state}</span>
+      {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceDoc(d)}>{busy==="doc-"+d.id?"…":n.label}</button>}
      </div>
     </div>;})}
    </div>}
