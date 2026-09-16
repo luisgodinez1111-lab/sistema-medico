@@ -97,7 +97,8 @@ export default function LoginPage(){
     <p style={{marginTop:14}}>Identidad: <span style={mono}>{subject||"(sesión previa)"}</span></p>
     <p>Sesión: <span style={mono}>{session.sessionId}</span> · expira <span style={mono}>{new Date(session.expiresAt*1000).toLocaleTimeString()}</span></p>
     <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}>
-     <button style={btn} onClick={probeApi}>Probar API clínica</button>
+     <a href="/workspace" style={{...btn,textDecoration:"none"}}>Ir al espacio clínico</a>
+     <button style={ghost} onClick={probeApi}>Probar API clínica</button>
      <button style={ghost} onClick={logout}>Cerrar sesión</button>
     </div>
     {apiResult&&<p style={{marginTop:12,color:"#5f6072"}}>{apiResult}</p>}

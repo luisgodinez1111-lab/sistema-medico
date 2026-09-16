@@ -32,3 +32,14 @@ export function clearStoredSession(store:Storage|null=storage()){try{store?.remo
 export function authHeader(s:MedicalSession|null=getStoredSession()):Record<string,string>{
  return s?{authorization:`${s.tokenType} ${s.token}`}:{};
 }
+// Llamada autenticada a la API clínica con Idempotency-Key + If-Match (concurrencia optimista).
+export type ApiResult=Readonly<{status:number;body:Record<string,unknown>}>;
+export async function apiRequest(path:string,init:{method:string;body?:unknown;ifMatch?:number},fetchImpl:typeof fetch=fetch):Promise<ApiResult>{
+ const headers:Record<string,string>={...authHeader()};
+ if(init.body!==undefined){headers["content-type"]="application/json";headers["idempotency-key"]=globalThis.crypto.randomUUID();}
+ if(init.ifMatch!==undefined)headers["if-match"]=String(init.ifMatch);
+ const res=await fetchImpl(path,{method:init.method,headers,...(init.body!==undefined?{body:JSON.stringify(init.body)}:{})});
+ let body:Record<string,unknown>={};
+ try{body=await res.json() as Record<string,unknown>;}catch{/* sin cuerpo */}
+ return{status:res.status,body};
+}

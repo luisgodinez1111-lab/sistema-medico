@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{parseSessionResponse,exchangeForSession,storeSession,getStoredSession,clearStoredSession,authHeader}from"../../apps/web/lib/session-client";
+import{parseSessionResponse,exchangeForSession,storeSession,getStoredSession,clearStoredSession,authHeader,apiRequest}from"../../apps/web/lib/session-client";
 
 function fakeStore():Storage{const m=new Map<string,string>();return{get length(){return m.size;},clear:()=>m.clear(),getItem:k=>m.get(k)??null,key:i=>[...m.keys()][i]??null,removeItem:k=>{m.delete(k);},setItem:(k,v)=>{m.set(k,v);}};}
 const future=Math.floor(Date.now()/1000)+900;
@@ -36,5 +36,23 @@ describe("session-client bridge (EPIC J)",()=>{
  it("builds an Authorization header from a session",()=>{
   expect(authHeader(sample).authorization).toBe("Bearer jwt.abc.def");
   expect(authHeader(null)).toEqual({});
+ });
+ it("apiRequest attaches idempotency-key + if-match on writes and parses the result",async()=>{
+  const cap:{init?:RequestInit}={};
+  const f=(async(_u:string,init:RequestInit)=>{cap.init=init;return{ok:true,status:201,json:async()=>({version:2})};}) as unknown as typeof fetch;
+  const r=await apiRequest("/api/v1/encounters/x/assessment",{method:"POST",body:{a:1},ifMatch:1},f);
+  expect(r.status).toBe(201);expect(r.body["version"]).toBe(2);
+  const h=cap.init!.headers as Record<string,string>;
+  expect(h["content-type"]).toBe("application/json");
+  expect(typeof h["idempotency-key"]).toBe("string");
+  expect(h["if-match"]).toBe("1");
+ });
+ it("apiRequest GET carries no body/idempotency key",async()=>{
+  const cap:{init?:RequestInit}={};
+  const f=(async(_u:string,init:RequestInit)=>{cap.init=init;return{ok:true,status:404,json:async()=>({})};}) as unknown as typeof fetch;
+  await apiRequest("/api/v1/encounters?encounterId=x",{method:"GET"},f);
+  const h=cap.init!.headers as Record<string,string>;
+  expect(h["idempotency-key"]).toBeUndefined();
+  expect(cap.init!.body).toBeUndefined();
  });
 });
