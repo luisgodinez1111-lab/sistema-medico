@@ -604,6 +604,30 @@
       "epic": "Z",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-CAREGAPS-001",
+      "name": "Motor de care gaps / worklist clínico (inteligencia por reglas, cross-vertical)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (Clinical Intelligence / care gaps). Capa de inteligencia clínica DETERMINISTA (reglas), NO IA — NO es el copiloto R6 (en pausa). Proyección pura sobre el timeline RLS-scoped; computa pendientes accionables a través de todos los verticales. Sin PHI (tipo/estado/etiqueta/prioridad).",
+      "invariants": [
+        "Reglas deterministas por tipo de agregado sobre el último evento; orden estable HIGH->MEDIUM->LOW",
+        "No genera pendientes para estados terminales benignos (CLOSED/COMPLETED/GRANTED/ADMINISTERED/PAID...)",
+        "Aislamiento por tenant vía readPatientTimeline (cross-tenant vacío)",
+        "Autorización scope patient:read"
+      ],
+      "implementation": [
+        "packages/care-gaps",
+        "apps/web/app/api/v1/patients/[patientId]/care-gaps/route.ts",
+        "UI /workspace worklist de pendientes clínicos"
+      ],
+      "tests": [
+        "tests/v22/care-gaps.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-care-gaps-proof.mts — PASS 6/6 (CARE_GAPS_200, THREE_GAPS, EXPECTED_CODES, LOW_PRIORITY_LAST, CROSS_TENANT_EMPTY, MISSING_SCOPE_403)",
+      "epic": "AA",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
