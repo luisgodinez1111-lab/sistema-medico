@@ -1,6 +1,6 @@
 import{describe,it,expect}from"vitest";
 import{signSession}from"../../packages/session/src";
-import{resolvePrincipal}from"../../packages/http-principal/src";
+import{resolvePrincipal,subjectToActorId}from"../../packages/http-principal/src";
 import{toHttpError}from"../../apps/web/lib/http-errors";
 import{ClinicalError}from"../../packages/runtime-errors/src";
 
@@ -12,12 +12,18 @@ function token(over:Partial<Parameters<typeof signSession>[0]>={}){
 }
 
 describe("http-principal (EPIC B session/principal adapter)",()=>{
- it("resolves a verified principal + tenant context",()=>{
+ it("resolves a verified principal + tenant context (actorId = UUID derivado del subject)",()=>{
   const r=resolvePrincipal(reader({authorization:`Bearer ${token()}`}),SECRET,"req-1",NOW);
-  expect(r.principal.actorId).toBe("actor-1");
+  const expectedActor=subjectToActorId("actor-1");
+  expect(r.principal.actorId).toBe(expectedActor);
   expect(r.principal.tenantId).toBe("tenant-1");
   expect(r.principal.roles).toContain("PHYSICIAN");
-  expect(r.ctx).toEqual({tenantId:"tenant-1",actorId:"actor-1",purpose:"TREATMENT",requestId:"req-1"});
+  expect(r.ctx).toEqual({tenantId:"tenant-1",actorId:expectedActor,purpose:"TREATMENT",requestId:"req-1"});
+ });
+ it("subjectToActorId turns a non-UUID subject (e.g. auth0|...) into a stable UUID",()=>{
+  const a=subjectToActorId("auth0|6aa9f025d8fefb812d76ea0d");
+  expect(a).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+  expect(subjectToActorId("auth0|6aa9f025d8fefb812d76ea0d")).toBe(a); // determinista
  });
  it("fails closed when Authorization header is missing",()=>{
   expect(()=>resolvePrincipal(reader({}),SECRET,"req-1",NOW)).toThrowError(/Missing Authorization/);
