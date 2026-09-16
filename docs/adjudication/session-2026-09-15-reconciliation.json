@@ -422,6 +422,32 @@
       "epic": "S",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-REFERRAL-001",
+      "name": "Interconsultas/referencias a especialista (agregado Referral)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (referrals/interconsultas); coordinación del cuidado entre médico solicitante y especialista. specialty/reason son datos clínicos (payload bajo RLS, nunca en logs).",
+      "invariants": [
+        "SM de interconsulta: REQUESTED->ACCEPTED->COMPLETED; REQUESTED->DECLINED; {REQUESTED,ACCEPTED}->CANCELLED; terminales inmutables",
+        "No completar sin aceptar (COMPLETE_WITHOUT_ACCEPT_409)",
+        "Tenant isolation (cross-tenant 404)",
+        "Replay determinista + concurrencia optimista (if-match)"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/referrals/**",
+        "packages/referral-fold",
+        "apps/web/lib/referral-lifecycle.ts",
+        "RBAC referral:write (PHYSICIAN)",
+        "UI /workspace panel de interconsultas"
+      ],
+      "tests": [
+        "tests/v22/referral-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-referral-lifecycle-proof.mts — PASS 9/9 (REQUEST/ACCEPT/COMPLETE_201, COMPLETE_TERMINAL_409, COMPLETE_WITHOUT_ACCEPT_409, DECLINE_201, CANCEL_FROM_ACCEPTED_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "T",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
