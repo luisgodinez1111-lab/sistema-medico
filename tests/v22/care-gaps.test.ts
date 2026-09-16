@@ -39,6 +39,11 @@ describe("care gaps engine (EPIC AA)",()=>{
    expect(g).toHaveLength(1);expect(g[0]!.code).toBe("TRIAGE_PENDING");expect(g[0]!.priority).toBe("HIGH");
   }
  });
+ it("una reacción transfusional es HIGH; una transfusión completada no genera pendiente",()=>{
+  expect(computeCareGaps([A("Transfusion","COMPLETED")])).toEqual([]);
+  const g=computeCareGaps([A("Transfusion","REACTION")]);
+  expect(g).toHaveLength(1);expect(g[0]!.code).toBe("TRANSFUSION_REACTION");expect(g[0]!.priority).toBe("HIGH");
+ });
 });
 describe("panel/population worklist (EPIC AC)",()=>{
  it("vacío -> sin pendientes",()=>{expect(computePanelWorklist([])).toEqual([]);});

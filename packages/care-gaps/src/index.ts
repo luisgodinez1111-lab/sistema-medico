@@ -20,6 +20,7 @@ const RULES:Record<string,Rule>={
  Specimen:it=>it.latestKind==="REJECTED"?{code:"SPECIMEN_REJECTED",label:"Muestra rechazada por laboratorio, requiere recolección",priority:"HIGH"}:null,
  Incident:it=>(it.latestKind==="REPORTED"||it.latestKind==="REVIEW_STARTED"||it.latestKind==="ESCALATED")?{code:"SAFETY_INCIDENT_OPEN",label:"Incidente de seguridad del paciente abierto",priority:"HIGH"}:null,
  Triage:it=>(it.latestKind==="ARRIVED"||it.latestKind==="TRIAGE_STARTED")?{code:"TRIAGE_PENDING",label:"Paciente en sala de espera sin triage completado",priority:"HIGH"}:null,
+ Transfusion:it=>it.latestKind==="REACTION"?{code:"TRANSFUSION_REACTION",label:"Reacción transfusional, requiere seguimiento y notificación (hemovigilancia)",priority:"HIGH"}:null,
 };
 export function computeCareGaps(items:readonly TimelineLike[]):CareGap[]{
  const gaps:CareGap[]=[];
