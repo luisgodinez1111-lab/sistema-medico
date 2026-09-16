@@ -19,6 +19,11 @@ describe("care gaps engine (EPIC AA)",()=>{
   expect(g.map(x=>x.priority)).toEqual(["HIGH","MEDIUM","LOW"]);
   expect(g[0]!.code).toBe("CRITICAL_RESULT_OPEN");
  });
+ it("una muestra rechazada es un pendiente HIGH; una resultada no genera pendiente",()=>{
+  expect(computeCareGaps([A("Specimen","RESULTED")])).toEqual([]);
+  const g=computeCareGaps([A("Specimen","REJECTED")]);
+  expect(g).toHaveLength(1);expect(g[0]!.code).toBe("SPECIMEN_REJECTED");expect(g[0]!.priority).toBe("HIGH");
+ });
 });
 describe("panel/population worklist (EPIC AC)",()=>{
  it("vacío -> sin pendientes",()=>{expect(computePanelWorklist([])).toEqual([]);});

@@ -17,6 +17,7 @@ const RULES:Record<string,Rule>={
  Referral:it=>it.latestKind==="REQUESTED"?{code:"REFERRAL_UNACCEPTED",label:"Interconsulta solicitada, sin aceptar",priority:"LOW"}:null,
  Appointment:it=>it.latestKind==="NO_SHOW"?{code:"APPOINTMENT_NO_SHOW",label:"Cita perdida (no-show), reagendar",priority:"LOW"}:null,
  Claim:it=>it.latestKind==="REJECTED"?{code:"CLAIM_REJECTED",label:"Reclamación rechazada, requiere reenvío",priority:"LOW"}:null,
+ Specimen:it=>it.latestKind==="REJECTED"?{code:"SPECIMEN_REJECTED",label:"Muestra rechazada por laboratorio, requiere recolección",priority:"HIGH"}:null,
 };
 export function computeCareGaps(items:readonly TimelineLike[]):CareGap[]{
  const gaps:CareGap[]=[];
