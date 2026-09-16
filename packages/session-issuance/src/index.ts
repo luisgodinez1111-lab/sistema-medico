@@ -14,9 +14,9 @@ export type IdentityVerifier=(credential:unknown)=>VerifiedIdentity|Promise<Veri
 // RBAC: política rol -> scopes clínicos. El IdP entrega identidad + roles; los scopes de acción
 // se derivan del rol (un médico puede leer/escribir clínico; una enfermera propone y documenta).
 const ROLE_SCOPES:Record<string,readonly string[]>={
- PHYSICIAN:["patient:read","patient:write","allergy:write","problem:write","obligation:write","encounter:read","encounter:write","result:write","medication:propose","medication:write","document:write","order:write","referral:write","appointment:write","immunization:write","vital:write","careplan:write","billing:write"],
- NURSE:["patient:read","patient:write","allergy:write","problem:write","obligation:write","encounter:read","medication:propose","document:write","appointment:write","immunization:write","vital:write","careplan:write"],
- CLINICAL_ADMIN:["patient:read","patient:write","encounter:read","appointment:write","billing:write"],
+ PHYSICIAN:["patient:read","patient:write","allergy:write","problem:write","obligation:write","encounter:read","encounter:write","result:write","medication:propose","medication:write","document:write","order:write","referral:write","appointment:write","immunization:write","vital:write","careplan:write","billing:write","consent:write"],
+ NURSE:["patient:read","patient:write","allergy:write","problem:write","obligation:write","encounter:read","medication:propose","document:write","appointment:write","immunization:write","vital:write","careplan:write","consent:write"],
+ CLINICAL_ADMIN:["patient:read","patient:write","encounter:read","appointment:write","billing:write","consent:write"],
 };
 export function scopesForRoles(roles:readonly string[]):string[]{
  const out=new Set<string>();
