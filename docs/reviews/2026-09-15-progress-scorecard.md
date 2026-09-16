@@ -22,9 +22,9 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | --- | --- | --- | --- |
 | A. Kernel/fundación (RLS, concurrencia, auditoría, atomicidad, DR) | 12% | ~85% | 10.2 |
 | B. Identidad/Auth/Sesión + login | 8% | ~75% | 6.0 |
-| C. Amplitud de verticales clínicos (~28 áreas PROD) | 35% | ~12% | 4.2 |
+| C. Amplitud de verticales clínicos (~28 áreas PROD) | 35% | ~13% | 4.6 |
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
-| E. UI/UX de producto | 10% | ~15% | 1.5 |
+| E. UI/UX de producto | 10% | ~17% | 1.7 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~10% | 0.8 |
 | G. Endurecimiento producción + compliance | 9% | ~15% | 1.4 |
 
@@ -52,3 +52,4 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-15 | Epic P: resumen/estado computado del paciente (dashboard) — proyección pura | **~32%** |
 | 2026-09-16 | Epic Q: vertical de lista de problemas (8.º) + UI + conteo en resumen | **~33%** |
 | 2026-09-16 | Epic R: vertical de alergias (9.º) + gate de seguridad de medicación + UI | **~34%** |
+| 2026-09-16 | Epic S: registro longitudinal de pacientes (10.º) + UI de alta/búsqueda/selector (eje del paciente) | **~35%** |

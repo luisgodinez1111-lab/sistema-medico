@@ -395,12 +395,39 @@
       "epic": "R",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-PATIENT-001",
+      "name": "Registro longitudinal de pacientes (agregado Patient, identidad clinica)",
+      "risk": "C5",
+      "eng_authority_note": "PROD-001 (paciente como eje longitudinal); el agregado Patient es la raiz a la que cuelgan encuentros, resultados, problemas y alergias. name/birthDate/sexAtBirth son PHI (payload bajo RLS, nunca en logs).",
+      "invariants": [
+        "SM de paciente: REGISTERED->ACTIVE <-> INACTIVE; ->DECEASED terminal",
+        "name es PHI: solo visible al clinico autorizado y bajo RLS por tenant",
+        "Tenant isolation en registro, listado y transiciones (cross-tenant 404/aislado)",
+        "Replay determinista + concurrencia optimista (if-match)"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/patients/**",
+        "packages/patient-fold",
+        "apps/web/lib/patient-lifecycle.ts",
+        "clinical-runtime.listPatients (proyeccion RLS-scoped name+status)",
+        "RBAC patient:read + patient:write",
+        "UI /workspace panel de paciente (alta + lista/selector)"
+      ],
+      "tests": [
+        "tests/v22/patient-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-patient-registry-proof.mts — PASS 9/9 (REGISTER_ACTIVE_201, LIST_HAS_PATIENT_WITH_NAME, DEACTIVATE/REACTIVATE, REACTIVATE_ACTIVE_ILLEGAL_409, CROSS_TENANT_LIST_ISOLATED, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "S",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
     "La adjudicación PROD->ENG->EXEC de estas capacidades sigue en estado candidato/REVIEW_REQUIRED en el registro autoritativo; esta reconciliación aporta la evidencia para que un revisor C5 la acepte, no la sustituye.",
     "Auth0/OIDC/RBAC son IMPLEMENTACIONES del boundary de identidad (CAP-IDENTITY/SESSION/AUTHZ); los documentos definen el boundary y las leyes EXEC, no el proveedor concreto — esa decisión se tomó con el usuario (Opción 1 federada).",
     "La UI /workspace es un andamio funcional mínimo, no la UX de producto V2 (timeline, problem list, quick actions de PROD-011).",
-    "Endurecimiento pendiente para producción real: retirar el verificador de desarrollo, sesión en cookie httpOnly, revisar conexión Neon pooled/serverless."
+    "Endurecimiento de producción aplicado (Epic post-J): sesión en cookie httpOnly (medos_session), verificador de desarrollo detrás de flag ALLOW_DEV_IDENTITY, y tuning de conexión Neon serverless (max:5). Pendiente aún: rotación de secretos y observabilidad de auditoría en producción."
   ]
 }
