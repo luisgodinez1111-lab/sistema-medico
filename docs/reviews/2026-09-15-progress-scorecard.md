@@ -1,0 +1,47 @@
+# Progress Scorecard — Medical OS V2 (% real de desarrollo)
+
+Medición honesta y reproducible del avance contra los 4 documentos maestros + el scaffold.
+**Regla:** tras cada hito terminado se recalcula y se reporta **solo el número total aproximado**.
+
+## Denominadores reales (medidos 2026-09-15)
+| Fuente | Tamaño |
+| --- | --- |
+| PROD (producto/clínico) | 178 ítems |
+| ENG (ingeniería) | 349 ítems |
+| EXEC (companion de agente) | 1652 ítems |
+| Catálogo del scaffold | 208 capacidades (201 C5 / 7 C4) |
+| Endpoints v1 cableados / stub | 17 reales / 6 stub → 5 verticales + identidad |
+| Adjudicación humana (Mapping_Adjudication) | 0 filas (todo REVIEW_REQUIRED) |
+
+## Definición de 100%
+V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endurecido para
+**uso clínico real** (compliance NOM-024, seguridad, monitoreo).
+
+## Metodología (peso × completado)
+| Eje | Peso | Completado | Aporta |
+| --- | --- | --- | --- |
+| A. Kernel/fundación (RLS, concurrencia, auditoría, atomicidad, DR) | 12% | ~85% | 10.2 |
+| B. Identidad/Auth/Sesión + login | 8% | ~75% | 6.0 |
+| C. Amplitud de verticales clínicos (~28 áreas PROD) | 35% | ~12% | 4.2 |
+| D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
+| E. UI/UX de producto | 10% | ~15% | 1.5 |
+| F. Adjudicación de trazabilidad (C5 humano) | 8% | ~10% | 0.8 |
+| G. Endurecimiento producción + compliance | 9% | ~15% | 1.4 |
+
+## Valor de cada hito futuro (para no estimar a la ligera)
+- Vertical clínico nuevo completo con evidencia en vivo: **≈ +1.2%** c/u.
+- AI copilot gobernado (1 caso real con kill-switch + evidencia): **≈ +4–6%**.
+- Adjudicación C5 (golden slice + verticales): **≈ +6–7%**.
+- Endurecimiento producción (httpOnly, monitoreo, DR automatizado, quitar dev verifier): **≈ +5%**.
+- UX real de producto (timeline, problem list, búsqueda de paciente): **≈ +6–8%**.
+
+## Áreas PROD hechas vs pendientes (amplitud)
+- **Hechas (bucle central):** encuentro, resultados/closed-loop, medicación, documentos, identidad/sesión.
+- **Pendientes (ejemplos):** órdenes, prescription studio, document intelligence/imagen, AI copilot,
+  portal del paciente, agenda/scheduling, referrals, problem list, timeline longitudinal, billing/coding,
+  búsqueda/registro de paciente, notificaciones, care gaps.
+
+## Historial
+| Fecha | Hito | Total real aprox. |
+| --- | --- | --- |
+| 2026-09-15 | Base tras epics A–K + reconciliación + UI (encuentro/medicación/resultados) | **~25%** |
