@@ -6,8 +6,9 @@ try{
  for(const line of envRaw.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(line.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}
 }catch{/* env ya cargado */}
 if(!process.env.DATABASE_URL){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
-// Entorno de desarrollo controlado para este proof.
+// Entorno de desarrollo controlado para este proof (verificador dev opt-in explícito).
 process.env.AUTH_MODE="development";
+process.env.ALLOW_DEV_IDENTITY="true";
 delete process.env.VERCEL_ENV;
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-e-session-secret";
 const IDP_SECRET=process.env.DEV_IDENTITY_SECRET="epic-e-dev-idp-secret";

@@ -2,6 +2,7 @@ import{NextResponse}from"next/server";
 import crypto from"node:crypto";
 import{z}from"zod";
 import{resolvePrincipal}from"../../../../../../packages/http-principal/src";
+import{readerFor}from"../../../../lib/http-command";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../../../../packages/atomic-clinical-transaction-v3/src";
@@ -36,7 +37,7 @@ function principalFrom(claims:{sub:string;tenantId:string;roles:readonly string[
 export async function POST(req:Request){
  try{
   const requestId=req.headers.get("x-request-id")??crypto.randomUUID();
-  const{claims,ctx}=resolvePrincipal(n=>req.headers.get(n),sessionSecret(),requestId);
+  const{claims,ctx}=resolvePrincipal(readerFor(req),sessionSecret(),requestId);
   // Authz server-side: solo un médico con propósito de tratamiento abre encuentros.
   authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"encounter:write",purpose:"TREATMENT"});
   const idempotencyKey=req.headers.get("idempotency-key");
@@ -78,7 +79,7 @@ export async function POST(req:Request){
 export async function GET(req:Request){
  try{
   const requestId=req.headers.get("x-request-id")??crypto.randomUUID();
-  const{claims,ctx}=resolvePrincipal(n=>req.headers.get(n),sessionSecret(),requestId);
+  const{claims,ctx}=resolvePrincipal(readerFor(req),sessionSecret(),requestId);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"encounter:read",purpose:"TREATMENT"});
   const encounterId=new URL(req.url).searchParams.get("encounterId");
   if(!encounterId)throw new ClinicalError("VALIDATION_ERROR","encounterId query parameter required");

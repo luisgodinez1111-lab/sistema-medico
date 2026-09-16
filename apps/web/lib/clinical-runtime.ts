@@ -22,8 +22,12 @@ function getSql():Sql{
  if(_sql)return _sql;
  const raw=process.env.DATABASE_URL;
  if(!raw)throw new ClinicalError("DEPENDENCY_UNAVAILABLE","DATABASE_URL not configured");
- // Endpoint directo (sin pooler) => se pueden usar prepared statements (menos parse-overhead).
- _sql=postgres(directEndpoint(raw),{max:20,idle_timeout:20,connect_timeout:10,prepare:true,connection:{options:`-c role=${RUNTIME_ROLE}`}});
+ // Serverless: se usa el endpoint DIRECTO (sin pooler) porque el rol RLS se fija con el parámetro
+ // de startup `-c role=...`, que el pooler PgBouncer (transaction mode) no soporta. Para no saturar
+ // el límite de conexiones del endpoint directo, `max` bajo por instancia (Fluid Compute reutiliza
+ // instancias, así que pocas conexiones concurrentes por lambda bastan); prepared statements ON.
+ // Trade-off documentado: a mayor escala convendría un modelo de conexión RLS-aware pooled.
+ _sql=postgres(directEndpoint(raw),{max:5,idle_timeout:20,connect_timeout:10,prepare:true,connection:{options:`-c role=${RUNTIME_ROLE}`}});
  return _sql;
 }
 export function sessionSecret():string{

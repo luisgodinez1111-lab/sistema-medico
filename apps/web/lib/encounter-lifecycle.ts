@@ -8,6 +8,7 @@ import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v
 import{foldEncounter,assertTransition}from"../../../packages/encounter-fold/src";
 import{runClinicalCommand,lookupReplay,readEncounterEvents,countUnresolvedCriticalObligations,countOpenCriticalResults,sessionSecret}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
+import{readerFor}from"./http-command";
 // EPIC D — Ciclo de vida del encuentro sobre el kernel probado: assess (OPEN->READY_TO_SIGN)
 // y sign (READY_TO_SIGN->SIGNED). Concurrencia optimista real (If-Match=version) e invariantes
 // V2: Physician Control (solo un médico humano firma) y Zero Lost Follow-Up (no firmar con
@@ -35,7 +36,7 @@ const SignBody=z.object({occurredAt:z.string().datetime()});
 
 async function build(req:Request,encounterId:string){
  const requestId=req.headers.get("x-request-id")??crypto.randomUUID();
- const{claims,ctx}=resolvePrincipal(n=>req.headers.get(n),sessionSecret(),requestId);
+ const{claims,ctx}=resolvePrincipal(readerFor(req),sessionSecret(),requestId);
  // Physician Control: solo un médico con propósito de tratamiento escribe en el encuentro.
  authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"encounter:write",purpose:"TREATMENT"});
  const{idempotencyKey,expectedVersion}=requireHeaders(req);

@@ -7,6 +7,7 @@ import{safeLog}from"../../../packages/secure-logger/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{sessionSecret}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
+import{SESSION_COOKIE}from"./http-command";
 // EPIC E — Emisión de sesión (login) en el borde HTTP. Selecciona un verificador de identidad
 // según el entorno; sin verificador, deny-closed (503). El verificador de desarrollo se
 // deshabilita DURO en producción: jamás acuña sesiones a partir de aserciones de prueba en prod.
@@ -39,8 +40,10 @@ export function selectVerifier(now:number):IdentityVerifier|undefined{
   return oidcVerifier(remoteJwks(jwksUri),{issuer,audience,claims:oidcClaimMap()});
  }
  if(isProduction())return undefined; // sin OIDC configurado, producción es deny-closed
+ // Verificador de DESARROLLO: opt-in explícito (ALLOW_DEV_IDENTITY) además de no-prod + AUTH_MODE
+ // + secreto. Producción nunca setea ALLOW_DEV_IDENTITY -> jamás se activa allí. Defensa en capas.
  const devSecret=process.env.DEV_IDENTITY_SECRET;
- if(process.env.AUTH_MODE==="development"&&devSecret)return devIdentityVerifier(devSecret,now);
+ if(process.env.ALLOW_DEV_IDENTITY==="true"&&process.env.AUTH_MODE==="development"&&devSecret)return devIdentityVerifier(devSecret,now);
  return undefined;
 }
 
@@ -55,6 +58,16 @@ export async function handleLogin(req:Request):Promise<Response>{
   const session=issueSession(verified,sessionSecret(),{now,ttlSeconds:SESSION_TTL_SECONDS,sessionId:crypto.randomUUID()});
   // Auditoría de login sin PHI (redactada); nunca se loguea el token ni la credencial.
   safeLog("session.issued",{sessionId:session.sessionId,tenantId:verified.tenantId,subject:verified.subject,issuer:verified.issuer});
-  return NextResponse.json({token:session.token,sessionId:session.sessionId,expiresAt:session.expiresAt,tokenType:"Bearer"},{status:201});
+  // El navegador usa la cookie httpOnly (no persiste el token en JS). El body sigue devolviendo
+  // el token para clientes/API que usen Bearer. tokenType informa cómo autenticar.
+  const res=NextResponse.json({token:session.token,sessionId:session.sessionId,expiresAt:session.expiresAt,tokenType:"Bearer"},{status:201});
+  res.cookies.set(SESSION_COOKIE,session.token,{httpOnly:true,secure:true,sameSite:"lax",path:"/",maxAge:SESSION_TTL_SECONDS});
+  return res;
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
+// Logout: borra la cookie de sesión (la sesión firmada expira sola por TTL).
+export function handleLogout():Response{
+ const res=NextResponse.json({ok:true},{status:200});
+ res.cookies.set(SESSION_COOKIE,"",{httpOnly:true,secure:true,sameSite:"lax",path:"/",maxAge:0});
+ return res;
 }

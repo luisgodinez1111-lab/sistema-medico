@@ -1,7 +1,7 @@
 "use client";
 import{useEffect,useState}from"react";
 import{createAuth0Client,type Auth0Client}from"@auth0/auth0-spa-js";
-import{exchangeForSession,storeSession,clearStoredSession,getStoredSession,authHeader,type MedicalSession}from"../../lib/session-client";
+import{exchangeForSession,storeSession,getStoredSession,authHeader,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
 // EPIC J — Frontend de login. Flujo: Auth0 (PKCE en el navegador) -> access token (audience
 // medical-os) -> intercambio en /api/v1/sessions -> sesión medical-os firmada -> Bearer a la API.
 // Config vía NEXT_PUBLIC_*; sin ellas, muestra un aviso en vez de romper.
@@ -64,7 +64,7 @@ export default function LoginPage(){
  },[]);
 
  async function login(){try{await client?.loginWithRedirect();}catch(e){setDetail(String(e));setPhase("error");}}
- async function logout(){clearStoredSession();setSession(null);await client?.logout({logoutParams:{returnTo:window.location.origin+"/login"}});}
+ async function logout(){await sessionLogout();setSession(null);await client?.logout({logoutParams:{returnTo:window.location.origin+"/login"}});}
  async function probeApi(){
   setApiResult("…");
   try{

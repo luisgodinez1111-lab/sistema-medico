@@ -1,6 +1,6 @@
 "use client";
 import{useEffect,useState}from"react";
-import{getStoredSession,apiRequest,clearStoredSession,type MedicalSession}from"../../lib/session-client";
+import{getStoredSession,apiRequest,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
 // EPIC K — Espacio de trabajo clínico. Consume los endpoints ya probados con la sesión autenticada.
 // Módulos: encuentro (abrir->valorar->firmar) y medicación (proponer->prescribir->activar->suspender),
 // ambos para el mismo paciente, con concurrencia optimista (If-Match).
@@ -126,7 +126,7 @@ export default function Workspace(){
  return <main style={wrap}>
   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
    <div><div style={{fontSize:13,color:"#6255c7",fontWeight:700}}>MEDICAL OS</div><h1 style={{fontSize:32,margin:"4px 0"}}>Espacio clínico</h1></div>
-   <button style={ghost} onClick={()=>{clearStoredSession();location.href="/login";}}>Cerrar sesión</button>
+   <button style={ghost} onClick={async()=>{await sessionLogout();location.href="/login";}}>Cerrar sesión</button>
   </div>
   <p style={{color:"#6d6e80"}}>Sesión <span style={mono}>{session.sessionId.slice(0,8)}</span> · válida hasta {new Date(session.expiresAt*1000).toLocaleTimeString()} · paciente <span style={mono}>{patientId.slice(0,8)}</span> <button style={{...ghost,padding:"2px 10px",fontSize:12,marginLeft:8}} onClick={reset}>Nuevo paciente</button></p>
 

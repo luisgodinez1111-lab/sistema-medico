@@ -24,9 +24,25 @@ export function requireMutationHeaders(req:Request){
  if(!Number.isInteger(expectedVersion)||expectedVersion<0)throw new ClinicalError("VALIDATION_ERROR","If-Match must be a non-negative integer version");
  return{idempotencyKey,expectedVersion};
 }
+// EPIC L (hardening) — la sesión viaja en una cookie httpOnly; el header Authorization: Bearer
+// se mantiene como fallback (scripts/API). El nombre del cookie es único.
+export const SESSION_COOKIE="medos_session";
+function cookieValue(cookieHeader:string|null,name:string):string|undefined{
+ if(!cookieHeader)return undefined;
+ for(const part of cookieHeader.split(";")){const i=part.indexOf("=");if(i<0)continue;const k=part.slice(0,i).trim();if(k===name)return decodeURIComponent(part.slice(i+1).trim());}
+ return undefined;
+}
+// Lector de headers que resuelve `authorization` desde el header o, si falta, desde el cookie.
+export function readerFor(req:Request):(name:string)=>string|null|undefined{
+ const cookieTok=cookieValue(req.headers.get("cookie"),SESSION_COOKIE);
+ return(name:string)=>{
+  if(name.toLowerCase()==="authorization"){const h=req.headers.get("authorization");if(h)return h;if(cookieTok)return `Bearer ${cookieTok}`;return null;}
+  return req.headers.get(name);
+ };
+}
 export function resolveVerified(req:Request){
  const requestId=req.headers.get("x-request-id")??crypto.randomUUID();
- return resolvePrincipal(n=>req.headers.get(n),sessionSecret(),requestId);
+ return resolvePrincipal(readerFor(req),sessionSecret(),requestId);
 }
 // Construye un ClinicalCommand determinista para un agregado dado.
 export function buildCommand(a:{idempotencyKey:string;aggregateType:string;aggregateId:string;expectedVersion:number;eventType:string;payload:unknown;occurredAt:string;topic:string}):ClinicalCommand{
