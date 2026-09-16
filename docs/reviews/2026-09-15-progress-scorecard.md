@@ -46,3 +46,4 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | --- | --- | --- |
 | 2026-09-15 | Base tras epics A–K + reconciliación + UI (encuentro/medicación/resultados) | **~25%** |
 | 2026-09-15 | UI con los 4 verticales (+documentos) + endurecimiento prod (cookie httpOnly, dev verifier opt-in, Neon serverless) | **~28%** |
+| 2026-09-15 | Epic M: vertical de órdenes (6.º) + UI (cierra cadena orden→resultado) | **~29%** |
