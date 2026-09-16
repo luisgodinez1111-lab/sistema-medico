@@ -839,6 +839,34 @@
       "epic": "AI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-TRANSFUSION-001",
+      "name": "Transfusión sanguínea (agregado Transfusion, medicina transfusional / hemovigilancia)",
+      "risk": "C5",
+      "eng_authority_note": "PROD/seguridad (medicina transfusional; hemovigilancia NOM). Verificación pre-transfusional (crossmatch) obligatoria antes de transfundir; el camino de reacción se integra al motor de care gaps como pendiente HIGH. bloodProduct/units son datos clínicos (payload bajo RLS, nunca en logs).",
+      "invariants": [
+        "SM: ORDERED->{CROSSMATCHED,CANCELLED}; CROSSMATCHED->{TRANSFUSING,CANCELLED}; TRANSFUSING->{COMPLETED,REACTION}; terminales inmutables",
+        "No iniciar sin crossmatch (START_WITHOUT_CROSSMATCH_409) — barrera de seguridad pre-transfusional",
+        "No mutar una transfusión terminal (COMPLETE_AFTER_REACTION_409)",
+        "Una reacción transfusional genera un care gap HIGH (integración con CAP-CAREGAPS-001)",
+        "Tenant isolation (cross-tenant 404) + replay determinista + concurrencia optimista"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/transfusions/**",
+        "packages/transfusion-fold",
+        "apps/web/lib/transfusion-lifecycle.ts",
+        "packages/care-gaps (regla TRANSFUSION_REACTION)",
+        "RBAC transfusion:write (PHYSICIAN/NURSE)",
+        "UI /workspace panel de transfusiones"
+      ],
+      "tests": [
+        "tests/v22/transfusion-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-transfusion-lifecycle-proof.mts — PASS 10/10 (ORDER/CROSSMATCH/START/COMPLETE_201, START_WITHOUT_CROSSMATCH_409, REACTION_201, COMPLETE_AFTER_REACTION_409, CANCEL_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "AJ",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
