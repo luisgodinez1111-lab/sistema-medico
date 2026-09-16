@@ -8,10 +8,23 @@
       "id": "CAP-VERTICAL-ENCOUNTER-001",
       "name": "Authenticated Encounter Vertical Slice",
       "risk": "C5",
-      "eng_authority": ["ENG-306", "ENG-333"],
-      "invariants": ["Physician Control", "Tenant isolation (RLS)", "Deny-by-default"],
-      "implementation": ["apps/web/app/api/v1/encounters/route.ts", "packages/http-principal", "apps/web/lib/clinical-runtime.ts"],
-      "tests": ["tests/v22/http-principal.test.ts"],
+      "eng_authority": [
+        "ENG-306",
+        "ENG-333"
+      ],
+      "invariants": [
+        "Physician Control",
+        "Tenant isolation (RLS)",
+        "Deny-by-default"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/encounters/route.ts",
+        "packages/http-principal",
+        "apps/web/lib/clinical-runtime.ts"
+      ],
+      "tests": [
+        "tests/v22/http-principal.test.ts"
+      ],
       "runtime_evidence": "scripts/v22/live-encounter-endpoint-proof.mjs — PASS 10/10 (open 201, replay idempotente, RLS cross-tenant 404, no-session 401, rol 403, idempotency 428, validación 400)",
       "epic": "B",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -21,10 +34,24 @@
       "id": "CAP-ENCOUNTER-RUNTIME-003",
       "name": "Executable Encounter Assess/Sign Runtime",
       "risk": "C5",
-      "eng_authority": ["ENG-306", "ENG-309"],
-      "invariants": ["Physician Control (solo médico firma)", "Immutable signed record", "Optimistic concurrency", "Zero Lost Follow-Up (gate de firma)"],
-      "implementation": ["apps/web/app/api/v1/encounters/[encounterId]/{assessment,signature}/route.ts", "packages/encounter-fold", "apps/web/lib/encounter-lifecycle.ts"],
-      "tests": ["tests/v22/encounter-fold.test.ts"],
+      "eng_authority": [
+        "ENG-306",
+        "ENG-309"
+      ],
+      "invariants": [
+        "Physician Control (solo médico firma)",
+        "Immutable signed record",
+        "Optimistic concurrency",
+        "Zero Lost Follow-Up (gate de firma)"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/encounters/[encounterId]/{assessment,signature}/route.ts",
+        "packages/encounter-fold",
+        "apps/web/lib/encounter-lifecycle.ts"
+      ],
+      "tests": [
+        "tests/v22/encounter-fold.test.ts"
+      ],
       "runtime_evidence": "scripts/v22/live-encounter-lifecycle-proof.mts — PASS 12/12 (v1->3, replay, SM ilegal 409x2, concurrencia 409, cross-tenant 404, rol 403, obligación crítica bloquea firma). Verificado además EN NAVEGADOR en prod (open->assess->sign SIGNED v3).",
       "epic": "D + UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -34,10 +61,26 @@
       "id": "CAP-VERTICAL-RESULT-001",
       "name": "Result-to-Obligation Closed Loop",
       "risk": "C5",
-      "eng_authority": ["ENG-307", "ENG-308", "ENG-311", "ENG-337"],
-      "invariants": ["Zero Lost Follow-Up (resultado crítico abierto bloquea firma)", "SM formal de resultado", "Tenant isolation"],
-      "implementation": ["apps/web/app/api/v1/results/**", "packages/result-fold", "apps/web/lib/result-lifecycle.ts", "clinical-runtime.countOpenCriticalResults"],
-      "tests": ["tests/v22/result-fold.test.ts"],
+      "eng_authority": [
+        "ENG-307",
+        "ENG-308",
+        "ENG-311",
+        "ENG-337"
+      ],
+      "invariants": [
+        "Zero Lost Follow-Up (resultado crítico abierto bloquea firma)",
+        "SM formal de resultado",
+        "Tenant isolation"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/results/**",
+        "packages/result-fold",
+        "apps/web/lib/result-lifecycle.ts",
+        "clinical-runtime.countOpenCriticalResults"
+      ],
+      "tests": [
+        "tests/v22/result-fold.test.ts"
+      ],
       "runtime_evidence": "scripts/v22/live-result-closed-loop-proof.mts — PASS 12/12, incluye EL LOOP: SIGN_BLOCKED_BY_OPEN_CRITICAL_RESULT_403 -> RESULT_CLOSED -> SIGN_UNBLOCKED_201.",
       "epic": "G",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -47,10 +90,23 @@
       "id": "CAP-MED-AUTH-003",
       "name": "Medication Prescribing Authority Boundary",
       "risk": "C5",
-      "eng_authority": ["ENG-320", "ENG-333"],
-      "invariants": ["Physician Control (proponer != prescribir; la IA nunca prescribe — EXEC-0003)", "SM formal de medicación", "Cambio con razón"],
-      "implementation": ["apps/web/app/api/v1/medications/**", "packages/medication-fold", "apps/web/lib/medication-lifecycle.ts"],
-      "tests": ["tests/v22/medication-fold.test.ts"],
+      "eng_authority": [
+        "ENG-320",
+        "ENG-333"
+      ],
+      "invariants": [
+        "Physician Control (proponer != prescribir; la IA nunca prescribe — EXEC-0003)",
+        "SM formal de medicación",
+        "Cambio con razón"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/medications/**",
+        "packages/medication-fold",
+        "apps/web/lib/medication-lifecycle.ts"
+      ],
+      "tests": [
+        "tests/v22/medication-fold.test.ts"
+      ],
       "runtime_evidence": "scripts/v22/live-medication-lifecycle-proof.mts — PASS 12/12 (NURSE_PROPOSE_201, NURSE_PRESCRIBE_FORBIDDEN_403, PHYSICIAN_PRESCRIBE_201, ciclo v1->4, SM ilegal, concurrencia, cross-tenant, scope). UI de medicación desplegada.",
       "epic": "H + UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -61,9 +117,20 @@
       "name": "Immutable Signed-Record Amendment Ledger",
       "risk": "C5",
       "eng_authority_note": "Autoridad PROD directa: PROD-014-R022 (firma = snapshot reproducible; corrección = addendum/amendment), PROD-022-R018 (nunca borrar historial de firma/amendments), PROD-030-R003 (preliminary/final/amended).",
-      "invariants": ["Snapshot reproducible (contentHash)", "Inmutabilidad del firmado", "Addendum append-only (historial nunca se encoge)", "Physician Control"],
-      "implementation": ["apps/web/app/api/v1/documents/**", "packages/document-fold", "apps/web/lib/document-lifecycle.ts"],
-      "tests": ["tests/v22/document-fold.test.ts"],
+      "invariants": [
+        "Snapshot reproducible (contentHash)",
+        "Inmutabilidad del firmado",
+        "Addendum append-only (historial nunca se encoge)",
+        "Physician Control"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/documents/**",
+        "packages/document-fold",
+        "apps/web/lib/document-lifecycle.ts"
+      ],
+      "tests": [
+        "tests/v22/document-fold.test.ts"
+      ],
       "runtime_evidence": "scripts/v22/live-document-lifecycle-proof.mts — PASS 14/14 (REPRODUCIBLE_SNAPSHOT_HASH, SIGNED_IMMUTABLE_409, AMEND v4->v5 append-only, NURSE_SIGN_FORBIDDEN_403).",
       "epic": "I",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -73,10 +140,22 @@
       "id": "CAP-SESSION-001",
       "name": "Signed Session & Principal Integrity",
       "risk": "C5",
-      "eng_authority": ["ENG-333"],
-      "invariants": ["Sesión firmada HMAC de vida corta", "Physician control / tenant isolation en la identidad", "Deny-closed sin verificador"],
-      "implementation": ["packages/session-issuance", "apps/web/lib/session-issuance.ts", "apps/web/app/api/v1/sessions/route.ts"],
-      "tests": ["tests/v22/session-issuance.test.ts"],
+      "eng_authority": [
+        "ENG-333"
+      ],
+      "invariants": [
+        "Sesión firmada HMAC de vida corta",
+        "Physician control / tenant isolation en la identidad",
+        "Deny-closed sin verificador"
+      ],
+      "implementation": [
+        "packages/session-issuance",
+        "apps/web/lib/session-issuance.ts",
+        "apps/web/app/api/v1/sessions/route.ts"
+      ],
+      "tests": [
+        "tests/v22/session-issuance.test.ts"
+      ],
       "runtime_evidence": "scripts/v22/live-session-issuance-proof.mts — PASS 6/6 (NO_VERIFIER_503, ROUNDTRIP_OPEN_201, TAMPERED_401, WRONG_IDP_SECRET_401, DEV_VERIFIER_DISABLED_IN_PROD_503).",
       "epic": "E",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -85,12 +164,26 @@
     {
       "id": "CAP-IDENTITY-001",
       "name": "Identity, Tenant & Clinical Access Boundary",
-      "aka": ["CAP-IDENTITY-BOUNDARY-003"],
+      "aka": [
+        "CAP-IDENTITY-BOUNDARY-003"
+      ],
       "risk": "C5",
-      "eng_authority": ["ENG-320", "ENG-333"],
-      "invariants": ["Verificación de identidad server-side (JWKS/iss/aud/exp)", "Solo algoritmos asimétricos (anti alg-confusion)", "Exige sub+tenant+rol"],
-      "implementation": ["packages/oidc-verifier (jose)", "apps/web/lib/session-issuance.ts (selectVerifier)"],
-      "tests": ["tests/v22/oidc-verifier.test.ts"],
+      "eng_authority": [
+        "ENG-320",
+        "ENG-333"
+      ],
+      "invariants": [
+        "Verificación de identidad server-side (JWKS/iss/aud/exp)",
+        "Solo algoritmos asimétricos (anti alg-confusion)",
+        "Exige sub+tenant+rol"
+      ],
+      "implementation": [
+        "packages/oidc-verifier (jose)",
+        "apps/web/lib/session-issuance.ts (selectVerifier)"
+      ],
+      "tests": [
+        "tests/v22/oidc-verifier.test.ts"
+      ],
       "runtime_evidence": "scripts/v22/live-oidc-login-proof.mts — PASS 7/7 (JWKS remoto real, ROUNDTRIP_OPEN_201, EXPIRED/WRONG_AUDIENCE/WRONG_ISSUER/UNKNOWN_KEY/MISSING_TENANT_401). VERIFICADO EN VIVO con Auth0 real en navegador (login humano -> sesión clínica).",
       "epic": "F",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -99,12 +192,26 @@
     {
       "id": "CAP-AUTHZ-001",
       "name": "Tenant/Role/Scope/Purpose Authorization",
-      "aka": ["CAP-RUNTIME-AUTH-003"],
+      "aka": [
+        "CAP-RUNTIME-AUTH-003"
+      ],
       "risk": "C4",
-      "eng_authority": ["ENG-333"],
-      "invariants": ["Authz server-side (nunca en frontend)", "RBAC rol->scope", "Deny-closed"],
-      "implementation": ["packages/runtime-auth", "packages/session-issuance (scopesForRoles)"],
-      "tests": ["tests/v22/session-issuance.test.ts (scopesForRoles + union)", "tests/security/authz.test.ts"],
+      "eng_authority": [
+        "ENG-333"
+      ],
+      "invariants": [
+        "Authz server-side (nunca en frontend)",
+        "RBAC rol->scope",
+        "Deny-closed"
+      ],
+      "implementation": [
+        "packages/runtime-auth",
+        "packages/session-issuance (scopesForRoles)"
+      ],
+      "tests": [
+        "tests/v22/session-issuance.test.ts (scopesForRoles + union)",
+        "tests/security/authz.test.ts"
+      ],
       "runtime_evidence": "Enforcement de scope observado en vivo: sin scope clínico la API responde 403; con RBAC de PHYSICIAN, 404 auth-OK. MISSING_SCOPE_403 en proofs de medicación/documentos.",
       "epic": "RBAC",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -114,10 +221,18 @@
       "id": "CAP-UUID-BOUNDARY-001",
       "name": "Strict UUID Persistence Boundary",
       "risk": "C5",
-      "eng_authority": ["ENG-333"],
-      "invariants": ["Los actor_id persistidos son UUID válidos aun cuando el subject del IdP no lo sea (Auth0 'auth0|...')"],
-      "implementation": ["packages/http-principal (subjectToActorId)"],
-      "tests": ["tests/v22/http-principal.test.ts (subjectToActorId)"],
+      "eng_authority": [
+        "ENG-333"
+      ],
+      "invariants": [
+        "Los actor_id persistidos son UUID válidos aun cuando el subject del IdP no lo sea (Auth0 'auth0|...')"
+      ],
+      "implementation": [
+        "packages/http-principal (subjectToActorId)"
+      ],
+      "tests": [
+        "tests/v22/http-principal.test.ts (subjectToActorId)"
+      ],
       "runtime_evidence": "Incidente real en prod con usuario Auth0: 500 (22P02 invalid input syntax for type uuid). Diagnosticado por logs de runtime de Vercel; corregido derivando un UUID determinista del subject. Post-fix: open->assess->sign OK en navegador.",
       "epic": "actorId-fix",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -127,10 +242,25 @@
       "id": "CAP-ORDER-RESULT-001",
       "name": "Order & Result Closed Loop (order lifecycle)",
       "risk": "C5",
-      "eng_authority": ["ENG-306", "ENG-337"],
-      "invariants": ["SM formal de orden (DRAFT->ORDERED->FULFILLED / CANCELLED)", "Physician Control (colocar/cumplir exige medico + order:write)", "Tenant isolation", "Concurrencia optimista"],
-      "implementation": ["apps/web/app/api/v1/orders/**", "packages/order-fold", "apps/web/lib/order-lifecycle.ts", "RBAC order:write"],
-      "tests": ["tests/v22/order-fold.test.ts"],
+      "eng_authority": [
+        "ENG-306",
+        "ENG-337"
+      ],
+      "invariants": [
+        "SM formal de orden (DRAFT->ORDERED->FULFILLED / CANCELLED)",
+        "Physician Control (colocar/cumplir exige medico + order:write)",
+        "Tenant isolation",
+        "Concurrencia optimista"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/orders/**",
+        "packages/order-fold",
+        "apps/web/lib/order-lifecycle.ts",
+        "RBAC order:write"
+      ],
+      "tests": [
+        "tests/v22/order-fold.test.ts"
+      ],
       "runtime_evidence": "scripts/v22/live-order-lifecycle-proof.mts — PASS 10/10 (ciclo v1->3, replay, SM ilegal 409, cancel path, concurrencia 409, cross-tenant 404, missing-scope 403). UI de ordenes desplegada.",
       "epic": "M",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -140,12 +270,49 @@
       "id": "CAP-APP-001",
       "name": "Clinical Application Service Layer",
       "risk": "C4",
-      "eng_authority": ["ENG-333"],
-      "invariants": ["La capa app impone authz+RLS+idempotencia+concurrencia sobre el kernel; sin PHI en logs"],
-      "implementation": ["apps/web/lib/{http-command,clinical-runtime,http-errors}.ts", "apps/web/lib/session-client.ts", "apps/web/app/workspace (UI)"],
-      "tests": ["tests/v22/session-client.test.ts"],
+      "eng_authority": [
+        "ENG-333"
+      ],
+      "invariants": [
+        "La capa app impone authz+RLS+idempotencia+concurrencia sobre el kernel; sin PHI en logs"
+      ],
+      "implementation": [
+        "apps/web/lib/{http-command,clinical-runtime,http-errors}.ts",
+        "apps/web/lib/session-client.ts",
+        "apps/web/app/workspace (UI)"
+      ],
+      "tests": [
+        "tests/v22/session-client.test.ts"
+      ],
       "runtime_evidence": "UI /workspace verificada EN PRODUCCIÓN con médico real (login Auth0 -> abrir/valorar/firmar encuentro SIGNED v3; panel de medicación). Nota: la UI es capa de presentación; su autoridad de seguridad la heredan los endpoints (deny-by-default, authz, RLS).",
       "epic": "K (UI)",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-OBLIGATION-002",
+      "name": "Clinical Obligation Domain (follow-up)",
+      "risk": "C5",
+      "eng_authority": [
+        "ENG-307",
+        "ENG-337"
+      ],
+      "invariants": [
+        "Zero Lost Follow-Up (completar exige evidencia)",
+        "SM formal de obligacion",
+        "Tenant isolation"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/obligations/**",
+        "packages/obligation-fold",
+        "apps/web/lib/obligation-lifecycle.ts",
+        "RBAC obligation:write"
+      ],
+      "tests": [
+        "tests/v22/obligation-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-obligation-lifecycle-proof.mts — PASS 8/8",
+      "epic": "O",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
     }

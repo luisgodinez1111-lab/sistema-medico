@@ -15,8 +15,10 @@ type DocState="DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED";
 type Doc=Readonly<{id:string;label:string;state:DocState;version:number}>;
 type OrderSt="DRAFT"|"ORDERED"|"FULFILLED"|"CANCELLED";
 type Order=Readonly<{id:string;label:string;state:OrderSt;version:number}>;
+type ObSt="OPEN"|"IN_PROGRESS"|"COMPLETED"|"CANCELLED";
+type Ob=Readonly<{id:string;label:string;state:ObSt;version:number}>;
 type TL=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;version:number;lastAt:string}>;
-const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento"};
+const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación"};
 
 const wrap:React.CSSProperties={maxWidth:900,margin:"0 auto",padding:32};
 const card:React.CSSProperties={background:"white",border:"1px solid #e7e6f2",borderRadius:18,padding:24,boxShadow:"0 6px 20px #19145b0a",marginTop:20};
@@ -25,7 +27,7 @@ const ghost:React.CSSProperties={...btn,background:"transparent",color:"#6255c7"
 const input:React.CSSProperties={width:"100%",boxSizing:"border-box",padding:"10px 12px",border:"1px solid #d9d6f2",borderRadius:10,fontSize:14,fontFamily:"inherit"};
 const mono:React.CSSProperties={fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,background:"#f4f3fb",padding:"2px 6px",borderRadius:6};
 const lbl:React.CSSProperties={fontSize:13,fontWeight:600,color:"#4b4c5e",display:"block",margin:"12px 0 6px"};
-function stateBadge(s:string){const m:Record<string,[string,string]>={SIGNED:["#e8f7ee","#1a7f43"],READY_TO_SIGN:["#fff4e5","#a15c00"],OPEN:["#eef0ff","#3f3aa0"],PROPOSED:["#eef0ff","#3f3aa0"],PRESCRIBED:["#eaf3ff","#1f5fb0"],ACTIVE:["#e8f7ee","#1a7f43"],STOPPED:["#f1f1f4","#5f6072"],RECEIVED:["#eef0ff","#3f3aa0"],VERIFIED:["#eaf3ff","#1f5fb0"],ACTIONED:["#fff4e5","#a15c00"],CLOSED:["#e8f7ee","#1a7f43"],DRAFT:["#eef0ff","#3f3aa0"],FINALIZED:["#eaf3ff","#1f5fb0"],AMENDED:["#e8f7ee","#1a7f43"],ORDERED:["#eaf3ff","#1f5fb0"],FULFILLED:["#e8f7ee","#1a7f43"],CANCELLED:["#f1f1f4","#5f6072"]};const c=m[s]??["#eef0ff","#3f3aa0"];return{display:"inline-block",background:c[0],color:c[1],fontWeight:700,fontSize:12,padding:"3px 10px",borderRadius:999};}
+function stateBadge(s:string){const m:Record<string,[string,string]>={SIGNED:["#e8f7ee","#1a7f43"],READY_TO_SIGN:["#fff4e5","#a15c00"],OPEN:["#eef0ff","#3f3aa0"],PROPOSED:["#eef0ff","#3f3aa0"],PRESCRIBED:["#eaf3ff","#1f5fb0"],ACTIVE:["#e8f7ee","#1a7f43"],STOPPED:["#f1f1f4","#5f6072"],RECEIVED:["#eef0ff","#3f3aa0"],VERIFIED:["#eaf3ff","#1f5fb0"],ACTIONED:["#fff4e5","#a15c00"],CLOSED:["#e8f7ee","#1a7f43"],DRAFT:["#eef0ff","#3f3aa0"],FINALIZED:["#eaf3ff","#1f5fb0"],AMENDED:["#e8f7ee","#1a7f43"],ORDERED:["#eaf3ff","#1f5fb0"],FULFILLED:["#e8f7ee","#1a7f43"],CANCELLED:["#f1f1f4","#5f6072"],IN_PROGRESS:["#fff4e5","#a15c00"],COMPLETED:["#e8f7ee","#1a7f43"]};const c=m[s]??["#eef0ff","#3f3aa0"];return{display:"inline-block",background:c[0],color:c[1],fontWeight:700,fontSize:12,padding:"3px 10px",borderRadius:999};}
 const in7days=()=>new Date(Date.now()+7*864e5).toISOString();
 const uuid=()=>globalThis.crypto.randomUUID();
 const nowIso=()=>new Date().toISOString();
@@ -56,6 +58,11 @@ function orderNext(o:Order):{label:string;path:string;body:Record<string,unknown
  if(o.state==="ORDERED")return{label:"Cumplir",path:`/api/v1/orders/${o.id}/fulfillment`,body:{occurredAt:nowIso()},to:"FULFILLED"};
  return null;
 }
+function obNext(o:Ob):{label:string;path:string;body:Record<string,unknown>;to:ObSt}|null{
+ if(o.state==="OPEN")return{label:"En progreso",path:`/api/v1/obligations/${o.id}/progress`,body:{occurredAt:nowIso()},to:"IN_PROGRESS"};
+ if(o.state==="IN_PROGRESS")return{label:"Completar",path:`/api/v1/obligations/${o.id}/completion`,body:{evidence:"Seguimiento realizado y documentado",occurredAt:nowIso()},to:"COMPLETED"};
+ return null;
+}
 
 export default function Workspace(){
  const[session,setSession]=useState<MedicalSession|null>(null);
@@ -72,6 +79,7 @@ export default function Workspace(){
  const[docTitle,setDocTitle]=useState("");const[docContent,setDocContent]=useState("");const[docType,setDocType]=useState("PROGRESS_NOTE");
  const[orders,setOrders]=useState<Order[]>([]);
  const[orderType,setOrderType]=useState("LAB");const[orderDetail,setOrderDetail]=useState("");
+ const[obligations,setObligations]=useState<Ob[]>([]);const[obKind,setObKind]=useState("");
  const[tl,setTl]=useState<TL[]|null>(null);
  const[busy,setBusy]=useState("");
  const[error,setError]=useState("");
@@ -138,12 +146,23 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setOrders(os=>os.map(x=>x.id===o.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
+ const createObligation=()=>call("ob-new",async()=>{
+  const id=uuid();const r=await apiRequest("/api/v1/obligations",{method:"POST",body:{obligationId:id,patientId,ownerId:uuid(),dueAt:in7days(),kind:obKind||"FOLLOWUP",occurredAt:nowIso()}});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setObligations(os=>[...os,{id,label:obKind||"Seguimiento",state:"OPEN",version:Number(r.body["version"]??1)}]);setObKind("");
+ });
+ const advanceObligation=(o:Ob)=>call("ob-"+o.id,async()=>{
+  const n=obNext(o);if(!n)return;
+  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:o.version});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setObligations(os=>os.map(x=>x.id===o.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
+ });
  const loadTimeline=()=>call("tl",async()=>{
   const r=await apiRequest(`/api/v1/patients/${patientId}/timeline`,{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
   setTl((r.body["items"] as TL[])??[]);
  });
- function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setTl(null);setError("");setPatientId(uuid());}
+ function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setTl(null);setError("");setPatientId(uuid());}
 
  if(!ready)return <main style={wrap}><p>Cargando…</p></main>;
  if(!session)return <main style={wrap}>
@@ -285,6 +304,22 @@ export default function Workspace(){
       <span style={stateBadge(d.state)}>{d.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceDoc(d)}>{busy==="doc-"+d.id?"…":n.label}</button>}
      </div>
+    </div>;})}
+   </div>}
+  </section>
+
+  {/* OBLIGACIONES / SEGUIMIENTO */}
+  <section style={card}>
+   <h2 style={{fontSize:18,margin:0}}>Obligaciones de seguimiento</h2>
+   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Care gaps / follow-up. Completar exige evidencia (Zero Lost Follow-Up: nada se cierra sin constancia).</p>
+   <div style={{display:"flex",gap:10,marginTop:12,alignItems:"center"}}>
+    <input style={{...input,maxWidth:420}} value={obKind} onChange={e=>setObKind(e.target.value)} placeholder="Tipo (ej. Contactar por resultado crítico)" />
+    <button style={btn} disabled={busy!==""||!obKind} onClick={createObligation}>{busy==="ob-new"?"Creando…":"Crear obligación"}</button>
+   </div>
+   {obligations.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+    {obligations.map(o=>{const n=obNext(o);return <div key={o.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+     <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{o.version}</div></div>
+     <div style={{display:"flex",gap:10,alignItems:"center"}}><span style={stateBadge(o.state)}>{o.state}</span>{n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceObligation(o)}>{busy==="ob-"+o.id?"…":n.label}</button>}</div>
     </div>;})}
    </div>}
   </section>
