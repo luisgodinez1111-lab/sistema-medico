@@ -117,6 +117,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic CA: **profundidad clínica (eje C)** — gradiente alveolo-arterial de O₂ (A-a): intercambio gaseoso vs hipoventilación. Complementa el análisis ácido-base (BX); parametrizable por altitud (México). | **~36%** |
 | 2026-09-17 | ADR-0220 + Epic CB: **eje D (AI copilot)** — ADR de diseño (IA de apoyo sobre núcleo determinista) + **choke point de seguridad SIN IA** (kill-switch, autoridad humana, presupuesto, envelope, provenance AI_SUGGESTED, stub determinista). Fase 1; R6 sigue en pausa. **Primer avance real del eje D** (5%→8%). | **~37%** |
 | 2026-09-17 | Epic CC: **eje D (AI copilot)** — fase 2 del ADR-0220: **eval harness** (calificador determinista que atrapa salidas inseguras de un LLM futuro; casos adversarios en CI) + **shadow mode** (corre en paralelo sin mostrar al médico; invariante de no-fuga). Sin IA. Eje D 8%→10%. | **~37%** |
+| 2026-09-17 | Epic CD: **profundidad clínica (eje C)** — Índice de Comorbilidad de Charlson: predictor de mortalidad a 10 años desde la lista de problemas + edad. Agrega la comorbilidad global; cross-vertical problema↔paciente. | **~37%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde

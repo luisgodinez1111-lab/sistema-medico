@@ -1905,6 +1905,31 @@
       "epic": "CC",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-COMORBIDITY-CHARLSON-001",
+      "name": "Índice de Comorbilidad de Charlson (predictor de mortalidad)",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — agrega toda la lista de problemas + edad en un score de carga de comorbilidad con supervivencia estimada a 10 años. Integra la comorbilidad global (a diferencia de scores de una sola condición). Cross-vertical problema(CIE-10)↔paciente(edad).",
+      "invariants": [
+        "Pesos por comorbilidad (IC/EPOC/vascular/cerebrovascular/IAM=1; ERC=2; diabetes simple=1, con complicaciones=2)",
+        "Puntos por edad por décadas (<50=0 ... >=80=4)",
+        "Supervivencia estimada a 10 años (0.983^(e^(score·0.9))); monotónica",
+        "Comorbilidades derivadas de CIE-10 activos; aislado por paciente (RLS)",
+        "Paciente no registrado -> 404; endpoint de solo lectura (scope patient:read)"
+      ],
+      "implementation": [
+        "packages/comorbidity (charlson)",
+        "apps/web/lib/clinical-runtime.ts (patientDemographics + activeProblemCodes)",
+        "apps/web/app/api/v1/patients/[patientId]/charlson/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/comorbidity.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-charlson-proof.mts — PASS 9/9 (COMPUTED_200, SCORE_7_SEVERE, AGE_AND_COMORBIDITY_SPLIT, RENAL_WEIGHT_2, HAS_SURVIVAL_ESTIMATE, SCORE_0_LOW, DIABETES_SIMPLE_1, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "CD",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
