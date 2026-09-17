@@ -44,6 +44,11 @@ describe("care gaps engine (EPIC AA)",()=>{
   const g=computeCareGaps([A("Transfusion","REACTION")]);
   expect(g).toHaveLength(1);expect(g[0]!.code).toBe("TRANSFUSION_REACTION");expect(g[0]!.priority).toBe("HIGH");
  });
+ it("una diálisis interrumpida es HIGH; una completada no genera pendiente",()=>{
+  expect(computeCareGaps([A("Dialysis","COMPLETED")])).toEqual([]);
+  const g=computeCareGaps([A("Dialysis","INTERRUPTED")]);
+  expect(g).toHaveLength(1);expect(g[0]!.code).toBe("DIALYSIS_INTERRUPTED");expect(g[0]!.priority).toBe("HIGH");
+ });
 });
 describe("panel/population worklist (EPIC AC)",()=>{
  it("vacío -> sin pendientes",()=>{expect(computePanelWorklist([])).toEqual([]);});
