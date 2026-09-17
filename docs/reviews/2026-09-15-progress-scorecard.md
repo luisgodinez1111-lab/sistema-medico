@@ -102,6 +102,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BL: **profundidad clínica (eje C)** — eGFR (CKD-EPI 2021) + estadificación ERC (KDIGO G1–G5) desde creatinina + edad/sexo. Base para ajuste renal de dosis; cross-vertical resultado↔paciente; not-computable honesto en pediatría. | **~36%** |
 | 2026-09-17 | Epic BM: **profundidad/seguridad (eje C)** — contraindicación renal por eGFR MEDIDO en la prescripción (7.ª barrera): metformina/AINE con TFG<30 → SAFETY_BLOCKED. Contraparte de función medida de AY (diagnóstico); cross-vertical medicación←creatinina+demografía. | **~36%** |
 | 2026-09-17 | Epic BN: **profundidad clínica (eje C)** — derivaciones de laboratorio multi-analito: anion gap (Na−Cl−HCO3, acidosis de brecha aumentada) + calcio corregido por albúmina. Calcula nuevos valores desde varios resultados, no solo clasifica uno. | **~36%** |
+| 2026-09-17 | Epic BO: **profundidad clínica (eje C)** — IMC + clasificación nutricional WHO (antropometría) desde peso+talla; pediatría reporta percentil IMC-para-edad. Cross-vertical paciente↔vitales; ligado a obesidad (E66.9). | **~36%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde

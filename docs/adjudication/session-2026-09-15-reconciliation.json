@@ -1576,6 +1576,31 @@
       "epic": "BN",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-ANTHROPOMETRICS-BMI-001",
+      "name": "IMC + clasificación nutricional WHO (antropometría)",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — deriva IMC de peso+talla y clasifica (WHO: bajo peso/normal/sobrepeso/obesidad I–III). Cross-vertical paciente↔vitales. Ligado al problema de obesidad (E66.9). En pediatría requiere percentil IMC-para-edad (se reporta, no se fuerza categoría de adulto).",
+      "invariants": [
+        "IMC = peso(kg)/talla(m)^2; categorías WHO por umbral",
+        "Talla normalizada a metros (acepta m o cm; fuera de rango fisiológico -> no computable)",
+        "Usa el peso/talla MÁS RECIENTE del paciente (RLS, aislado por paciente)",
+        "Pediátrico (<19): computable con flag pediátrico (percentil), sin categoría de adulto",
+        "Sin peso/talla o valores inválidos -> not-computable; endpoint de solo lectura (scope patient:read)"
+      ],
+      "implementation": [
+        "packages/anthropometrics (computeBMI + bmiCategory + heightToMeters)",
+        "apps/web/lib/clinical-runtime.ts (latestVitalsByType + patientDemographics)",
+        "apps/web/app/api/v1/patients/[patientId]/bmi/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/anthropometrics.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-bmi-proof.mts — PASS 6/6 (COMPUTABLE_200, ADULT_BMI_OBESITY_I, USES_LATEST_WEIGHT, PEDIATRIC_PERCENTILE_FLAG, NO_HEIGHT_NOT_COMPUTABLE, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "BO",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
