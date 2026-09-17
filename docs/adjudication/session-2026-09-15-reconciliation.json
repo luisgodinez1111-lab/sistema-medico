@@ -867,6 +867,32 @@
       "epic": "AJ",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-SURGERY-001",
+      "name": "Caso quirúrgico / quirófano (agregado Surgery, cirugía segura con time-out OMS)",
+      "risk": "C5",
+      "eng_authority_note": "PROD/seguridad (cirugía segura; Lista de Verificación de Seguridad Quirúrgica OMS). El time-out quirúrgico es una barrera de seguridad obligatoria antes de incidir (análoga al crossmatch transfusional). surgery:write es physician-only. procedure/laterality/surgeon son datos clínicos (payload bajo RLS, nunca en logs).",
+      "invariants": [
+        "SM: SCHEDULED->{TIMED_OUT,CANCELLED}; TIMED_OUT->{IN_PROGRESS,CANCELLED}; IN_PROGRESS->COMPLETED; terminales inmutables",
+        "No iniciar sin time-out OMS (START_WITHOUT_TIMEOUT_409) — barrera de seguridad quirúrgica",
+        "No completar sin iniciar (COMPLETE_WITHOUT_START_409)",
+        "Tenant isolation (cross-tenant 404) + replay determinista + concurrencia optimista + physician-only"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/surgeries/**",
+        "packages/surgery-fold",
+        "apps/web/lib/surgery-lifecycle.ts",
+        "RBAC surgery:write (PHYSICIAN)",
+        "UI /workspace panel de cirugía"
+      ],
+      "tests": [
+        "tests/v22/surgery-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-surgery-lifecycle-proof.mts — PASS 9/9 (SCHEDULE/TIMEOUT/START/COMPLETE_201, START_WITHOUT_TIMEOUT_409, COMPLETE_WITHOUT_START_409, CANCEL_FROM_TIMEOUT_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "AK",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

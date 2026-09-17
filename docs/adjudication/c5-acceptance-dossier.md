@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **33**
+- Capacidades reconciliadas: **34**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **33**
+- Pendiente de aceptación humana C5: **34**
 
 ## Riesgo C4
 
@@ -242,6 +242,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-transfusion-lifecycle-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-SURGERY-001 — Caso quirúrgico / quirófano (agregado Surgery, cirugía segura con time-out OMS)
+- Epic: AK
+- Invariantes: 4
+- Tests: `tests/v22/surgery-fold.test.ts`
+- Prueba en vivo: `scripts/v22/live-surgery-lifecycle-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -279,3 +286,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-TRIAGE-001 | | | | |
 | CAP-WOUND-001 | | | | |
 | CAP-TRANSFUSION-001 | | | | |
+| CAP-SURGERY-001 | | | | |
