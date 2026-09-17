@@ -4,6 +4,7 @@ import{executeAtomicClinicalCommand,type ClinicalCommand}from"../../../packages/
 import{canonicalize}from"../../../packages/canonical-json/src";
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
+import{sliSpan,flowForTopic}from"../../../packages/observability/src";
 // EPIC B — Runtime clínico de la capa app: conexión a Postgres y ejecución del kernel
 // atómico ya probado, SIEMPRE bajo el rol NOBYPASSRLS `medical_os_runtime`.
 // Lección de runtime (sesión 15-sep): el owner de Neon tiene BYPASSRLS -> si el pool
@@ -39,8 +40,17 @@ export function sessionSecret():string{
 export type ClinicalCommandResult=Readonly<{replayed:boolean;response:unknown}>;
 // Ejecuta un comando clínico atómico bajo RLS real: la conexión ya asumió el rol runtime
 // en el startup, así que la transacción del kernel corre como `medical_os_runtime`.
+// ENG-054: emite un SLI del commit (flujo, outcome, latencia, correlación) — SIN PHI.
 export async function runClinicalCommand(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult>{
- return executeAtomicClinicalCommand(getSql(),ctx,command) as Promise<ClinicalCommandResult>;
+ const span=sliSpan(flowForTopic(command.topic),"commit",command.correlationId);
+ try{
+  const r=await executeAtomicClinicalCommand(getSql(),ctx,command) as ClinicalCommandResult;
+  span.end("success",{tenantId:ctx.tenantId});
+  return r;
+ }catch(e){
+  span.end("error",{code:(e as{code?:string}).code??"ERROR",tenantId:ctx.tenantId});
+  throw e;
+ }
 }
 // EPIC D — Replay idempotente previo a la validación de state-machine: si este Idempotency-Key
 // ya produjo ESTE comando exacto (mismo hash) y quedó COMPLETED, devuelve la respuesta guardada.

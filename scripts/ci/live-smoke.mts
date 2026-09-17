@@ -22,6 +22,7 @@ const SMOKE:readonly string[]=[
  "live-dose-ceiling-gate-proof",            // barrera 5: dosis máxima absoluta
  "live-pediatric-dose-gate-proof",          // barrera 6: dosis pediátrica por peso
  "live-monitoring-obligation-proof",        // generación automática de seguimiento
+ "live-observability-sli-proof",            // ENG-054: SLI del commit, PHI-free
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];
