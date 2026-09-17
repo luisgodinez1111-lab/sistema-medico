@@ -111,6 +111,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BU: **profundidad clínica (eje C)** — monitoreo terapéutico del INR (TDM): interpreta el INR en contexto del anticoagulante activo (sub/terapéutico/supra/crítico). Cierra el lazo con BA; cross-vertical resultado↔medicación. | **~36%** |
 | 2026-09-17 | Epic BV: **integrativo (eje C)** — cablea la estadificación de PA (ACC/AHA) y el estado de INR/anticoagulación al resumen de inteligencia clínica (BS). Mantiene la vista unificada completa; demuestra composabilidad del agregador. | **~36%** |
 | 2026-09-17 | Epic BW: **profundidad clínica (eje C)** — MELD: pronóstico de hepatopatía avanzada (bilirrubina+INR+creatinina) con bandas de mortalidad a 90 días. Complementa FIB-4 (tamizaje→pronóstico); cross-vertical multi-analito. | **~36%** |
+| 2026-09-17 | Epic BX: **profundidad clínica (eje C)** — interpretación ácido-base (pH+pCO₂+HCO₃): trastorno primario + compensación esperada por fórmula de Winters (detecta trastornos mixtos). Complementa el anion gap (BN). | **~36%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde

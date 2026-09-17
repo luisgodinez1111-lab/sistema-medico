@@ -1778,6 +1778,31 @@
       "epic": "BW",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-ACID-BASE-001",
+      "name": "Interpretación ácido-base (gasometría + fórmula de Winters)",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — clasifica el trastorno ácido-base primario (acidosis/alcalosis metabólica/respiratoria) y verifica la compensación respiratoria esperada (Winters) para detectar trastornos MIXTOS. Complementa el anion gap (CAP-LAB-DERIVATIONS-001). Cross-analito (pH+pCO2+HCO3).",
+      "invariants": [
+        "Estado por pH (ACIDEMIA<7.35 / ALKALEMIA>7.45 / NORMAL); primario por HCO3/pCO2",
+        "Winters (solo acidosis metabólica): pCO2 esperado = 1.5·HCO3 + 8; ±2 = compensación adecuada",
+        "pCO2 > esperado+2 -> acidosis respiratoria concurrente; < esperado-2 -> alcalosis respiratoria concurrente",
+        "Usa el valor MÁS RECIENTE por analito (RLS, aislado por paciente)",
+        "Falta algún analito o valores inválidos -> not-computable; endpoint de solo lectura (scope patient:read)"
+      ],
+      "implementation": [
+        "packages/acid-base (interpretAcidBase)",
+        "apps/web/lib/clinical-runtime.ts (latestResultValueForAnalyte)",
+        "apps/web/app/api/v1/patients/[patientId]/acid-base/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/acid-base.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-acid-base-proof.mts — PASS 7/7 (COMPUTABLE_200, METABOLIC_ACIDOSIS_WINTERS, COMPENSATION_ADEQUATE, MIXED_ON_LATEST_PCO2, RESPIRATORY_ACIDOSIS, MISSING_ANALYTE, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "BX",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

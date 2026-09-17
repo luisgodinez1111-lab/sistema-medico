@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **70**
+- Capacidades reconciliadas: **71**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **70**
+- Pendiente de aceptación humana C5: **71**
 
 ## Riesgo C4
 
@@ -501,6 +501,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-meld-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-ACID-BASE-001 — Interpretación ácido-base (gasometría + fórmula de Winters)
+- Epic: BX
+- Invariantes: 5
+- Tests: `tests/v22/acid-base.test.ts`
+- Prueba en vivo: `scripts/v22/live-acid-base-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -575,3 +582,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-BP-STAGING-001 | | | | |
 | CAP-ANTICOAG-INR-001 | | | | |
 | CAP-MELD-001 | | | | |
+| CAP-ACID-BASE-001 | | | | |
