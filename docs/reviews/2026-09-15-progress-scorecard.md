@@ -106,6 +106,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BP: **profundidad clínica (eje C)** — control glucémico: HbA1c → glucosa promedio estimada (eAG) + clasificación con marco distinto según diabetes activa (metas de tratamiento vs tamizaje ADA). Cross-vertical resultado↔problema. | **~36%** |
 | 2026-09-17 | Epic BQ: **profundidad clínica (eje C)** — CHA₂DS₂-VASc: riesgo de ictus en FA → indicación de anticoagulación. Score validado que guía una decisión terapéutica; cruza lista de problemas (CIE-10) + demografía. | **~36%** |
 | 2026-09-17 | Epic BR: **profundidad clínica (eje C)** — FIB-4: índice no invasivo de fibrosis hepática (hígado graso/MASLD, hepatitis) desde edad + AST + ALT + plaquetas. Tamizaje sin biopsia; cross-vertical labs↔paciente. | **~36%** |
+| 2026-09-17 | Epic BS: **profundidad INTEGRATIVA (eje C)** — resumen de inteligencia clínica determinista: consolida los CDS de la sesión (NEWS2, eGFR, glucémico, CHA₂DS₂-VASc, FIB-4, IMC, vacunas, críticos) en una vista priorizada por severidad. Núcleo determinista (no IA). | **~36%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde
