@@ -49,6 +49,16 @@ describe("care gaps engine (EPIC AA)",()=>{
   const g=computeCareGaps([A("Dialysis","INTERRUPTED")]);
   expect(g).toHaveLength(1);expect(g[0]!.code).toBe("DIALYSIS_INTERRUPTED");expect(g[0]!.priority).toBe("HIGH");
  });
+ it("un signo vital CRÍTICO vigente es HIGH; normal/anormal/corregido no genera pendiente",()=>{
+  const V=(latestKind:string,status:string)=>({aggregateType:"VitalSign",aggregateId:"v",latestKind,status});
+  expect(computeCareGaps([V("RECORDED","NORMAL")])).toEqual([]);
+  expect(computeCareGaps([V("RECORDED","ABNORMAL")])).toEqual([]);
+  expect(computeCareGaps([V("ENTERED_IN_ERROR","CRITICAL")])).toEqual([]); // corregido/anulado no cuenta
+  for(const k of["RECORDED","AMENDED"]){
+   const g=computeCareGaps([V(k,"CRITICAL")]);
+   expect(g).toHaveLength(1);expect(g[0]!.code).toBe("VITAL_CRITICAL");expect(g[0]!.priority).toBe("HIGH");
+  }
+ });
 });
 describe("panel/population worklist (EPIC AC)",()=>{
  it("vacío -> sin pendientes",()=>{expect(computePanelWorklist([])).toEqual([]);});

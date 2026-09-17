@@ -2,7 +2,8 @@
 // que computa pendientes accionables y priorizados a través de TODOS los verticales. Basado en REGLAS
 // deterministas (NO IA — no toca el copiloto R6 en pausa). Sin PHI: solo tipo/estado/etiqueta.
 // Autoridad: PROD (care gaps / Clinical Intelligence rules), CAP-CAREGAPS-001.
-export type TimelineLike=Readonly<{aggregateType:string;aggregateId:string;latestKind:string}>;
+// `status` es opcional: lo aportan los agregados que lo computan (p. ej. VitalSign -> NORMAL/ABNORMAL/CRITICAL).
+export type TimelineLike=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;status?:string}>;
 export type GapPriority="HIGH"|"MEDIUM"|"LOW";
 export type CareGap=Readonly<{aggregateType:string;aggregateId:string;code:string;label:string;priority:GapPriority}>;
 const RANK:Record<GapPriority,number>={HIGH:0,MEDIUM:1,LOW:2};
@@ -22,6 +23,8 @@ const RULES:Record<string,Rule>={
  Triage:it=>(it.latestKind==="ARRIVED"||it.latestKind==="TRIAGE_STARTED")?{code:"TRIAGE_PENDING",label:"Paciente en sala de espera sin triage completado",priority:"HIGH"}:null,
  Transfusion:it=>it.latestKind==="REACTION"?{code:"TRANSFUSION_REACTION",label:"Reacción transfusional, requiere seguimiento y notificación (hemovigilancia)",priority:"HIGH"}:null,
  Dialysis:it=>it.latestKind==="INTERRUPTED"?{code:"DIALYSIS_INTERRUPTED",label:"Sesión de diálisis interrumpida por complicación, requiere resolución",priority:"HIGH"}:null,
+ // Un signo vital CRÍTICO vigente (no corregido/anulado) es un pendiente accionable de alta prioridad.
+ VitalSign:it=>((it.latestKind==="RECORDED"||it.latestKind==="AMENDED")&&it.status==="CRITICAL")?{code:"VITAL_CRITICAL",label:"Signo vital crítico sin atender",priority:"HIGH"}:null,
 };
 export function computeCareGaps(items:readonly TimelineLike[]):CareGap[]{
  const gaps:CareGap[]=[];
