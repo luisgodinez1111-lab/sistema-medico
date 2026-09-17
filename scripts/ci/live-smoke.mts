@@ -28,6 +28,7 @@ const SMOKE:readonly string[]=[
  "live-immunization-forecast-proof",        // profundidad: pronóstico de vacunación por edad
  "live-egfr-proof",                         // profundidad: función renal (CKD-EPI) + estadio ERC
  "live-renal-dosing-gate-proof",            // barrera 7: contraindicación renal por eGFR medido
+ "live-metabolic-panel-proof",              // profundidad: derivaciones multi-analito (anion gap, calcio corregido)
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];
