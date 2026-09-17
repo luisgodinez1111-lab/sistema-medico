@@ -1146,6 +1146,27 @@
       "epic": "AW",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-DRUG-INTERACTION-001",
+      "name": "Gate de interacciones farmacológicas (DDI) en la prescripción",
+      "risk": "C5",
+      "eng_authority_note": "PROD/seguridad del paciente (interacciones peligrosas: anticoagulante+AINE -> hemorragia; IECA/ARA-II+ahorrador de K -> hiperkalemia). Tercera barrera de prescripción junto al gate de alergias (CAP-DRUG-ALLERGY-001) y el de duplicación (CAP-DUPLICATE-THERAPY-001); reutiliza las clases del catálogo. Tabla de interacciones de demostración; la fuente oficial (p. ej. base DDI institucional) se cargaría aparte.",
+      "invariants": [
+        "Interacción MAJOR con un fármaco activo -> SAFETY_BLOCKED (fail-closed)",
+        "Match por pares de clase (simétrico); devuelve la de mayor severidad",
+        "Aislado por paciente (RLS); un fármaco sin par activo se permite",
+        "Corre en el prescribe, tras alergias y duplicación"
+      ],
+      "implementation": [
+        "packages/drug-catalog (INTERACTIONS + checkInteractions)",
+        "apps/web/lib/medication-lifecycle.ts (gate en handleMedicationPrescription)"
+      ],
+      "tests": ["tests/v22/drug-catalog.test.ts"],
+      "runtime_evidence": "scripts/v22/live-drug-interaction-gate-proof.mts — PASS 4/4 (WARFARIN_NSAID_BLOCKED_403, ACEI_KSPARING_BLOCKED_403, NO_INTERACTION_ALLOWED_201, NSAID_ALONE_ALLOWED_201)",
+      "epic": "AX",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
