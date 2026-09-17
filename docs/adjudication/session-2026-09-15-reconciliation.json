@@ -1726,6 +1726,32 @@
       "epic": "BT",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-ANTICOAG-INR-001",
+      "name": "Monitoreo terapéutico del INR en anticoagulación (TDM)",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — interpreta el INR contra el rango objetivo en CONTEXTO del anticoagulante activo (antagonista de vitamina K), no solo el rango de laboratorio. Cierra el lazo de la anticoagulación junto a CAP-MONITORING-OBLIGATION-001 (que crea la obligación de monitorear INR al prescribir). Cross-vertical resultado(INR)↔medicación(clase ANTICOAGULANT).",
+      "invariants": [
+        "Rango objetivo por defecto 2.0–3.0 (parametrizable, p.ej. prótesis mecánica 2.5–3.5)",
+        "SUBTHERAPEUTIC (<low) / THERAPEUTIC / SUPRATHERAPEUTIC (>high) / CRITICAL_HIGH (>=5)",
+        "Detecta el anticoagulante activo (activeMedicationDrugCodes -> clase ANTICOAGULANT); marca onAnticoagulant",
+        "Usa el INR MÁS RECIENTE (RLS, aislado por paciente); sin INR -> not-computable",
+        "Endpoint de solo lectura (scope patient:read)"
+      ],
+      "implementation": [
+        "packages/anticoagulation (interpretINR)",
+        "packages/drug-catalog (resolveDrug -> clase ANTICOAGULANT)",
+        "apps/web/lib/clinical-runtime.ts (latestResultValueForAnalyte + activeMedicationDrugCodes)",
+        "apps/web/app/api/v1/patients/[patientId]/anticoagulation-status/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/anticoagulation.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-anticoagulation-status-proof.mts — PASS 7/7 (COMPUTABLE_200, THERAPEUTIC_ON_ANTICOAG, SUBTHERAPEUTIC, CRITICAL_HIGH, NO_ANTICOAG_NOTE, NO_INR_NOT_COMPUTABLE, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "BU",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
