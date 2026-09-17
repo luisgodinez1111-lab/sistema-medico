@@ -9,11 +9,13 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 import{normalizeIcd10,lookupIcd10}from"../../../packages/terminology/src";
 // EPIC Q — Lista de problemas: ADDED(ACTIVE) -> RESOLVED / CHRONIC / ENTERED_IN_ERROR; RESOLVED -> ACTIVE.
 // EPIC AM (profundidad): el código del problema se valida contra CIE-10 y se codifica con su descripción canónica.
+// EXEC-0011: Problemas con estado epistémico explícito (possible/probable/confirmed/refuted/historical/resolved)
+// y evidencia (evidence_for/against, confidence, source).
 const AGG="ClinicalProblem";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"problem:write",purpose:"TREATMENT"});
 }
-const CreateBody=z.object({problemId:z.string().uuid(),patientId:z.string().uuid(),code:z.string().min(1),description:z.string().optional(),occurredAt:z.string().datetime()});
+const CreateBody=z.object({problemId:z.string().uuid(),patientId:z.string().uuid(),code:z.string().min(1),description:z.string().optional(),epistemic:z.enum(["POSSIBLE","PROBABLE","CONFIRMED","REFUTED","HISTORICAL","RESOLVED"]).default("POSSIBLE"),evidenceFor:z.array(z.string()).default([]),evidenceAgainst:z.array(z.string()).default([]),confidence:z.number().min(0).max(100).default(50),source:z.enum(["CLINICIAN_VERIFIED","PATIENT_REPORTED","IMPORTED","AI_EXTRACTED"]).default("CLINICIAN_VERIFIED"),occurredAt:z.string().datetime()});
 export async function handleProblemCreate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -22,9 +24,9 @@ export async function handleProblemCreate(req:Request):Promise<Response>{
   // Profundidad clínica: el código debe existir en CIE-10; se codifica con su descripción canónica.
   const entry=lookupIcd10(b.code);
   if(!entry)throw new ClinicalError("VALIDATION_ERROR","Código CIE-10 no válido o no reconocido",{code:b.code});
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.problemId,expectedVersion:0,eventType:"PROBLEM_ADDED",payload:{kind:"ADDED",patientId:b.patientId,code:normalizeIcd10(b.code),description:entry.description,codeSystem:"ICD-10",category:entry.category},occurredAt:b.occurredAt,topic:"problem.added"});
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.problemId,expectedVersion:0,eventType:"PROBLEM_ADDED",payload:{kind:"ADDED",patientId:b.patientId,code:normalizeIcd10(b.code),description:entry.description,codeSystem:"ICD-10",category:entry.category,epistemic:b.epistemic,evidenceFor:b.evidenceFor,evidenceAgainst:b.evidenceAgainst,confidence:b.confidence,source:b.source},occurredAt:b.occurredAt,topic:"problem.added"});
   const result=await runClinicalCommand(ctx,cmd);const r=result.response as{version:number;auditHash?:string};
-  return NextResponse.json({problemId:b.problemId,state:"ACTIVE",code:normalizeIcd10(b.code),description:entry.description,codeSystem:"ICD-10",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+  return NextResponse.json({problemId:b.problemId,state:"ACTIVE",code:normalizeIcd10(b.code),description:entry.description,codeSystem:"ICD-10",epistemic:b.epistemic,evidenceFor:b.evidenceFor,evidenceAgainst:b.evidenceAgainst,confidence:b.confidence,source:b.source,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 async function loadForTransition(req:Request,problemId:string){
@@ -41,8 +43,23 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({problemId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
+
 const WhenBody=z.object({occurredAt:z.string().datetime()});
 const ResolveBody=z.object({note:z.string().min(1),occurredAt:z.string().datetime()});
+const EpistemicBody=z.object({epistemic:z.enum(["POSSIBLE","PROBABLE","CONFIRMED","REFUTED","HISTORICAL","RESOLVED"]),occurredAt:z.string().datetime()});
+const EvidenceBody=z.object({evidenceFor:z.array(z.string()).optional(),evidenceAgainst:z.array(z.string()).optional(),confidence:z.number().min(0).max(100).optional(),occurredAt:z.string().datetime()});
+
+export async function handleProblemEpistemicUpdate(req:Request,problemId:string):Promise<Response>{
+ try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,problemId);const b=await parseJson(req,EpistemicBody);
+  return await commit(ctx,idempotencyKey,expectedVersion,problemId,folded,folded.state,"PROBLEM_EPISTEMIC_CHANGED",{kind:"EPISTEMIC_CHANGED",epistemic:b.epistemic},b.occurredAt,"problem.epistemic_changed");
+ }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
+
+export async function handleProblemEvidenceUpdate(req:Request,problemId:string):Promise<Response>{
+ try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,problemId);const b=await parseJson(req,EvidenceBody);
+  return await commit(ctx,idempotencyKey,expectedVersion,problemId,folded,folded.state,"PROBLEM_EVIDENCE_UPDATED",{kind:"EVIDENCE_UPDATED",evidenceFor:b.evidenceFor,evidenceAgainst:b.evidenceAgainst,confidence:b.confidence},b.occurredAt,"problem.evidence_updated");
+ }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
 export async function handleProblemResolution(req:Request,problemId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,problemId);const b=await parseJson(req,ResolveBody);
   return await commit(ctx,idempotencyKey,expectedVersion,problemId,folded,"RESOLVED","PROBLEM_RESOLVED",{kind:"RESOLVED",note:b.note},b.occurredAt,"problem.resolved");
