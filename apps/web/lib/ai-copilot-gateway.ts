@@ -7,6 +7,7 @@ import{aiAuthority,type AIAction}from"../../../packages/ai-authority-gate/src";
 import{enforceEnvelope,type Envelope}from"../../../packages/ai-gateway/src";
 import{budgetStatus}from"../../../packages/operational-safety-budget/src";
 import{sliSpan}from"../../../packages/observability/src";
+import{gradeCandidateSafety,type CandidateOutput}from"../../../packages/ai-eval-harness/src";
 import{countOpenCriticalResults,countOpenCriticalVitals,countUnresolvedCriticalObligations}from"./clinical-runtime";
 import{gatherClinicalIntelligence}from"./clinical-intelligence-summary";
 import{toHttpError}from"./http-errors";
@@ -59,6 +60,13 @@ export async function handleAiAssist(req:Request):Promise<Response>{
   // citado al motor determinista. EXTRACT/SUGGEST requieren proveedor de IA real (no activado) -> se abstiene.
   if(b.action==="SUMMARIZE"&&b.patientId){
    const r=await gatherClinicalIntelligence(ctx,b.patientId);
+   // SHADOW MODE (ADR-0220 fase 2): califica un candidato en paralelo y registra el resultado SIN mostrarlo
+   // al médico. Flag independiente del kill-switch. La respuesta al clínico NO cambia (invariante de no-fuga).
+   if(process.env.AI_COPILOT_SHADOW==="true"){
+    const candidate:CandidateOutput={kind:"CLAIM",text:"resumen",citations:["deterministic-engine"]};
+    const verdict=gradeCandidateSafety(candidate);
+    sliSpan("workflow","ai_shadow",crypto.randomUUID()).end("success",{code:verdict.safe?"SHADOW_SAFE":"SHADOW_UNSAFE",tenantId});
+   }
    span.end("success",{code:"ALLOWED",tenantId});
    return NextResponse.json({...base,status:"ALLOWED",content:{findings:r.findings,summary:r.summary},citations:["deterministic-engine"],note:"Contenido determinista (sin IA generativa); el médico revisa antes de promover"},{status:200});
   }

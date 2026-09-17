@@ -40,6 +40,10 @@ try{
  g=await assist(phys,{action:"EXTRACT",patientId:pat});ok(g.status===200&&g.body.status==="ABSTAIN","EXTRACT_ABSTAIN_NO_PROVIDER");
  // 7) sin scope ai:invoke -> 403
  const noScope=tok(["patient:write"]);g=await assist(noScope,{action:"SUMMARIZE",patientId:pat});ok(g.status===403,"MISSING_SCOPE_403");
+ // 8) SHADOW MODE: con shadow ON la respuesta al médico es IDÉNTICA a shadow OFF (invariante de no-fuga)
+ delete process.env.AI_COPILOT_SHADOW;const off=await assist(phys,{action:"SUMMARIZE",patientId:pat});
+ process.env.AI_COPILOT_SHADOW="true";const on=await assist(phys,{action:"SUMMARIZE",patientId:pat});
+ ok(JSON.stringify(off.body)===JSON.stringify(on.body),"SHADOW_DOES_NOT_LEAK_TO_CLINICIAN");
 }catch(e){result.status="FAIL";result.error=String(e);}
-finally{delete process.env.AI_COPILOT_ENABLED;}
+finally{delete process.env.AI_COPILOT_ENABLED;delete process.env.AI_COPILOT_SHADOW;}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
