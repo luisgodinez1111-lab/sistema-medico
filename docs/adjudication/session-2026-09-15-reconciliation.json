@@ -1301,6 +1301,31 @@
       "epic": "BC",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-PEDIATRIC-DOSE-001",
+      "name": "Ceiling de dosis pediátrica por peso (mg/kg/día) en el propose",
+      "risk": "C5",
+      "eng_authority_note": "PROD/seguridad pediátrica: el ceiling absoluto (CAP-DOSE-CEILING-001) es correcto para adultos pero peligrosamente permisivo en niños. En peso pediátrico (<=40 kg) valida mg/kg/día contra el máximo pediátrico del fármaco. Cross-vertical vitales(peso)->medicación: lee el último WEIGHT del paciente. Máximos pediátricos de demostración; el vademécum oficial se cargaría aparte.",
+      "invariants": [
+        "Solo aplica en peso pediátrico (<=40 kg); por encima gobierna el ceiling absoluto",
+        "mg/kg/día = (doseToMg × dosesPerDay) / pesoKg; excede el máximo -> SAFETY_BLOCKED (fail-closed)",
+        "Sin peso registrado, peso adulto, fármaco sin máximo peds, o orden no acotable -> no bloquea (fail-open informado)",
+        "Complementario (no sustituye) al ceiling absoluto: ambos corren en el propose",
+        "Aislado por paciente (RLS): usa el último WEIGHT del propio paciente"
+      ],
+      "implementation": [
+        "packages/medication-validation (MAX_MG_PER_KG_DAY + PEDIATRIC_MAX_KG + checkPediatricDose)",
+        "apps/web/lib/clinical-runtime.ts (latestVitalsByType)",
+        "apps/web/lib/medication-lifecycle.ts (patientWeightKg + gate en handleMedicationProposal)"
+      ],
+      "tests": [
+        "tests/v22/medication-validation.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-pediatric-dose-gate-proof.mts — PASS 5/5 (PEDS_OVERDOSE_BLOCKED_403, PEDS_WITHIN_LIMIT_ALLOWED_201, ADULT_NOT_WEIGHT_GATED_201, NO_WEIGHT_NOT_BLOCKED_201, PEDS_AND_ABSOLUTE_BOTH_BLOCK_403)",
+      "epic": "BD",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

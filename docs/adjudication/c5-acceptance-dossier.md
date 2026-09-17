@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **51**
+- Capacidades reconciliadas: **52**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **51**
+- Pendiente de aceptación humana C5: **52**
 
 ## Riesgo C4
 
@@ -368,6 +368,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-news2-score-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-PEDIATRIC-DOSE-001 — Ceiling de dosis pediátrica por peso (mg/kg/día) en el propose
+- Epic: BD
+- Invariantes: 5
+- Tests: `tests/v22/medication-validation.test.ts`
+- Prueba en vivo: `scripts/v22/live-pediatric-dose-gate-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -423,3 +430,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-MONITORING-OBLIGATION-001 | | | | |
 | CAP-LAB-DELTA-001 | | | | |
 | CAP-NEWS2-001 | | | | |
+| CAP-PEDIATRIC-DOSE-001 | | | | |

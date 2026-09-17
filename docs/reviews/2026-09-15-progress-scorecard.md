@@ -91,6 +91,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BA: **profundidad/seguridad** — obligaciones de monitoreo automáticas al prescribir (cierra EXEC-0014). Cross-vertical medicación→obligación; warfarina→INR, metformina→creatinina, IECA→potasio. Zero-Lost-Follow-Up. | **~35%** |
 | 2026-09-17 | Epic BB: **profundidad/CDS temporal** — delta check longitudinal de laboratorio: la variación crítica vs el valor previo del mismo analito eleva el resultado a crítico (creatinina duplicada, Hb −2, sodio ±10). Primer CDS temporal (no por umbral). | **~35%** |
 | 2026-09-17 | Epic BC: **profundidad/CDS agregado** — NEWS2 (early warning score) desde los últimos signos vitales: score de acuidad multiparamétrico con banda de riesgo, red flag y escalamiento. Tercer tipo de CDS (umbral/temporal/agregado). | **~35%** |
+| 2026-09-17 | Epic BD: **profundidad/seguridad pediátrica** — ceiling de dosis por peso (mg/kg/día): en peso pediátrico (≤40 kg) valida mg/kg/día contra el máximo del fármaco. Complemento peso-normalizado del ceiling absoluto (AZ); cross-vertical vitales(peso)→medicación. | **~35%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde
