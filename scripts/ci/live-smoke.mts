@@ -35,6 +35,7 @@ const SMOKE:readonly string[]=[
  "live-fib4-proof",                         // profundidad: FIB-4 (fibrosis hepática)
  "live-clinical-intelligence-proof",        // integrativo: resumen determinista priorizado
  "live-bp-stage-proof",                     // profundidad: estadificación de presión arterial (ACC/AHA)
+ "live-anticoagulation-status-proof",       // profundidad: INR terapéutico en contexto del anticoagulante
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];
