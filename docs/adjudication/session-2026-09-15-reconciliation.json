@@ -1276,6 +1276,31 @@
       "epic": "BB",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-NEWS2-001",
+      "name": "NEWS2 — early warning score agregado desde signos vitales",
+      "risk": "C5",
+      "eng_authority_note": "PROD/CDS agregado multiparamétrico (National Early Warning Score 2, Royal College of Physicians): integra 7 parámetros de signos vitales en un score de acuidad global con banda de riesgo y recomendación de escalamiento. Tercer tipo de CDS del sistema: umbral (CAP-VITALS-REF-001), temporal (CAP-LAB-DELTA-001) y ahora agregado. Escala SpO2 1 (sin EPOC); consciencia/O2 suplementario no se capturan como vitales -> se reportan como faltantes. Umbrales estándar; parametrización por método/edad se cargaría aparte.",
+      "invariants": [
+        "Suma de los 7 subscores estándar; parámetros faltantes se reportan (score = cota inferior)",
+        "Red flag: un solo parámetro en 3 escala a MEDIUM aunque el score total sea bajo",
+        "Banda: HIGH si score>=7; MEDIUM si score>=5 o red flag; LOW en otro caso; escalation = banda != LOW",
+        "Computado desde el ÚLTIMO valor por tipo de vital del paciente (RLS-scoped, aislado por paciente)",
+        "Endpoint de solo lectura (scope patient:read); metadatos sin PHI"
+      ],
+      "implementation": [
+        "packages/lab-reference (computeNEWS2 + News2Params/News2Result)",
+        "apps/web/lib/clinical-runtime.ts (latestVitalsByType, RLS-scoped)",
+        "apps/web/app/api/v1/patients/[patientId]/news2/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/lab-reference.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-news2-score-proof.mts — PASS 6/6 (STABLE_SCORE_0_LOW, DETERIORATING_HIGH_ESCALATION, USES_LATEST_VALUE_RECOVERED, MISSING_PARAMS_REPORTED, PER_PATIENT_ISOLATION, MISSING_SCOPE_403)",
+      "epic": "BC",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
