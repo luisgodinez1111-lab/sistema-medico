@@ -1426,6 +1426,31 @@
       "epic": "BH",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-COMPLIANCE-NOM-001",
+      "name": "Compliance-as-code: registro de aplicabilidad NOM (ENG-044)",
+      "risk": "C5",
+      "eng_authority_note": "ENDURECIMIENTO (eje G) — ENG-044 México Compliance-as-Code baseline. Applicability register (no reclama todas las NOMs) con evidencia técnica enlazada y brechas conocidas; respeta la ley No-claim-de-certificacion-sin-evidencia. Crea las carpetas de gobernanza de la jerarquía SPEC_INDEX (compliance, threat-models).",
+      "invariants": [
+        "Registro de aplicabilidad, NO declaración de cumplimiento total ni certificación",
+        "Ninguna entrada declara certificación; si certificationClaimed=true exige evidencia (guard)",
+        "Toda evidencia citada existe (archivo en disco o CAP en la reconciliación) — enforzado en CI",
+        "Instrumentos foundational presentes: NOM-004, NOM-024, LFPDPPP (APPLICABLE)",
+        "Brechas conocidas explícitas por instrumento (honestidad regulatoria)"
+      ],
+      "implementation": [
+        "docs/compliance/nom-applicability-register.json",
+        "docs/compliance/README.md",
+        "docs/threat-models/baseline-threat-model.md (STRIDE -> controles con evidencia)"
+      ],
+      "tests": [
+        "tests/v22/nom-compliance-integrity.test.ts"
+      ],
+      "runtime_evidence": "tests/v22/nom-compliance-integrity.test.ts — PASS 5/5 (estructura, no-cert-sin-evidencia, evidencia existe, foundational presentes, carpetas). Corre en CI (test:all).",
+      "epic": "BI",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

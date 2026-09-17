@@ -26,7 +26,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
 | E. UI/UX de producto | 10% | ~21% | 2.1 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~20% | 1.6 |
-| G. Endurecimiento producción + compliance | 9% | ~31% | 2.8 |
+| G. Endurecimiento producción + compliance | 9% | ~33% | 3.0 |
 
 ## Valor de cada hito futuro (para no estimar a la ligera)
 - Vertical clínico nuevo completo con evidencia en vivo: **≈ +1.2%** c/u.
@@ -96,6 +96,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BF: **endurecimiento (eje G)** — registro NOT_WIRED + guard no-orphan de los 8 handlers huérfanos L13–L18 (~2.5k líneas de código muerto). Cierra el hallazgo #10; estado terminal documentado por módulo (ley no-orphan) sin activar IA (R6). Eje G 24%→26%. | **~35%** |
 | 2026-09-17 | Epic BG: **endurecimiento (eje G)** — observabilidad SLI (ENG-054): catálogo de los 8 flujos + evento SLI con allowlist dura (garantía **No-PHI-in-telemetry**), tenant hasheado, cableado al chokepoint del kernel (correlación+latencia por commit). Eje G 26%→28%. | **~35%** |
 | 2026-09-17 | Epic BH: **endurecimiento (eje G)** — Backup/DR + downtime mode (ENG-055): proof de recuperabilidad en CI (replay determinista + idempotencia anti-duplicado + auditoría + RLS), runbook RPO/RTO, guard "nunca guardado en falso" (503 en downtime). Eje G 28%→31%. | **~36%** |
+| 2026-09-17 | Epic BI: **endurecimiento (eje G)** — compliance-as-code NOM (ENG-044): registro de aplicabilidad (NOM-004/024/LFPDPPP + evaluables) con evidencia enlazada + brechas, threat model STRIDE, guard "no certificación sin evidencia". Crea docs/compliance y docs/threat-models. Eje G 31%→33%. | **~36%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde

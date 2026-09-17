@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **56**
+- Capacidades reconciliadas: **57**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **56**
+- Pendiente de aceptación humana C5: **57**
 
 ## Riesgo C4
 
@@ -403,6 +403,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-dr-recovery-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-COMPLIANCE-NOM-001 — Compliance-as-code: registro de aplicabilidad NOM (ENG-044)
+- Epic: BI
+- Invariantes: 5
+- Tests: `tests/v22/nom-compliance-integrity.test.ts`
+- Prueba en vivo: —
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -463,3 +470,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-NOT-WIRED-REGISTRY-001 | | | | |
 | CAP-OBSERVABILITY-SLI-001 | | | | |
 | CAP-BACKUP-DR-001 | | | | |
+| CAP-COMPLIANCE-NOM-001 | | | | |
