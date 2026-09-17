@@ -39,12 +39,20 @@ export function selectVerifier(now:number):IdentityVerifier|undefined{
   const jwksUri=process.env.OIDC_JWKS_URI??new URL("/.well-known/jwks.json",issuer).toString();
   return oidcVerifier(remoteJwks(jwksUri),{issuer,audience,claims:oidcClaimMap()});
  }
- if(isProduction())return undefined; // sin OIDC configurado, producción es deny-closed
- // Verificador de DESARROLLO: opt-in explícito (ALLOW_DEV_IDENTITY) además de no-prod + AUTH_MODE
- // + secreto. Producción nunca setea ALLOW_DEV_IDENTITY -> jamás se activa allí. Defensa en capas.
- const devSecret=process.env.DEV_IDENTITY_SECRET;
- if(process.env.ALLOW_DEV_IDENTITY==="true"&&process.env.AUTH_MODE==="development"&&devSecret)return devIdentityVerifier(devSecret,now);
- return undefined;
+ // Sin OIDC configurado: el ÚNICO fallback es el verificador de desarrollo, IMPOSIBLE en producción.
+ if(!devIdentityAllowed())return undefined; // deny-closed (prod o dev sin opt-in completo)
+ return devIdentityVerifier(process.env.DEV_IDENTITY_SECRET!,now);
+}
+// ¿Se permite el verificador de DESARROLLO? NUNCA en producción (deshabilitado duro, no solo por
+// ausencia del flag). Si detecta flags de dev en producción, lo registra como incidente de seguridad
+// (misconfig/ataque) y rehúsa. En no-prod exige el opt-in completo: ALLOW_DEV_IDENTITY + AUTH_MODE + secreto.
+export function devIdentityAllowed():boolean{
+ const flagsPresent=process.env.ALLOW_DEV_IDENTITY==="true"||!!process.env.DEV_IDENTITY_SECRET||process.env.AUTH_MODE==="development";
+ if(isProduction()){
+  if(flagsPresent)safeLog("security.dev_identity_refused_in_prod",{reason:"DEV_IDENTITY_FLAGS_IN_PRODUCTION"});
+  return false;
+ }
+ return process.env.ALLOW_DEV_IDENTITY==="true"&&process.env.AUTH_MODE==="development"&&!!process.env.DEV_IDENTITY_SECRET;
 }
 
 export async function handleLogin(req:Request):Promise<Response>{

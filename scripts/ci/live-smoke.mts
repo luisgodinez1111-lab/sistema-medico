@@ -24,6 +24,7 @@ const SMOKE:readonly string[]=[
  "live-monitoring-obligation-proof",        // generación automática de seguimiento
  "live-observability-sli-proof",            // ENG-054: SLI del commit, PHI-free
  "live-dr-recovery-proof",                  // ENG-055: recuperabilidad (replay determinista + idempotencia + auditoría)
+ "live-session-issuance-proof",             // IAM: emisión de sesión + dev verifier deshabilitado en prod
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];
