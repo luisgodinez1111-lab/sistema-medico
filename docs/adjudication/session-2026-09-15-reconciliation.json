@@ -893,6 +893,33 @@
       "epic": "AK",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-DIALYSIS-001",
+      "name": "Sesión de diálisis (agregado Dialysis, terapia de reemplazo renal crónica)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (terapia de reemplazo renal; enfermedad renal crónica, alta prevalencia en México). Sesión con interrupción por complicación y reanudación; una interrupción se integra al motor de care gaps como pendiente HIGH. modality/accessType son datos clínicos (payload bajo RLS, nunca en logs).",
+      "invariants": [
+        "SM: SCHEDULED->{IN_SESSION,CANCELLED,NO_SHOW}; IN_SESSION->{COMPLETED,INTERRUPTED}; INTERRUPTED<->IN_SESSION; terminales inmutables",
+        "No completar sin iniciar (COMPLETE_WITHOUT_START_409); no mutar terminal (START_AFTER_COMPLETE_409)",
+        "Una sesión interrumpida genera un care gap HIGH (integración con CAP-CAREGAPS-001)",
+        "Tenant isolation (cross-tenant 404) + replay determinista + concurrencia optimista"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/dialysis-sessions/**",
+        "packages/dialysis-fold",
+        "apps/web/lib/dialysis-lifecycle.ts",
+        "packages/care-gaps (regla DIALYSIS_INTERRUPTED)",
+        "RBAC dialysis:write (PHYSICIAN/NURSE)",
+        "UI /workspace panel de diálisis"
+      ],
+      "tests": [
+        "tests/v22/dialysis-fold.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-dialysis-lifecycle-proof.mts — PASS 10/10 (SCHEDULE/START/INTERRUPT/RESUME/COMPLETE_201, START_AFTER_COMPLETE_409, COMPLETE_WITHOUT_START_409, NOSHOW_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "epic": "AL",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
