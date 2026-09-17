@@ -111,6 +111,28 @@ export async function activeMedicationDrugCodes(ctx:HttpTenantContext,patientId:
   return rows.map(x=>String(x.drug_code??"")).filter(Boolean);
  }) as Promise<string[]>;
 }
+// EPIC BK — Fecha de nacimiento del paciente (del evento REGISTERED). RLS-scoped. Para el pronóstico de vacunación.
+export async function patientBirthDate(ctx:HttpTenantContext,patientId:string):Promise<string|undefined>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`select r.payload->>'birthDate' as bd from clinical_events r where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=${patientId} limit 1`;
+  const v=rows[0]?.bd;return v==null?undefined:String(v);
+ }) as Promise<string|undefined>;
+}
+// EPIC BK — Códigos de vacunas ADMINISTRADAS del paciente (último kind ADMINISTERED). RLS-scoped.
+export async function administeredVaccineCodes(ctx:HttpTenantContext,patientId:string):Promise<string[]>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select r.payload->>'vaccineCode' as code
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Immunization' and r.payload->>'kind'='DUE' and r.payload->>'patientId'=${patientId}
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1)='ADMINISTERED'`;
+  return rows.map(x=>String(x.code??"")).filter(Boolean);
+ }) as Promise<string[]>;
+}
 // EPIC BC — Último valor registrado por tipo de signo vital del paciente (para computar NEWS2). RLS-scoped.
 // Toma el evento RECORDED más reciente por vitalType. Devuelve un mapa {vitalType -> value textual}.
 export async function latestVitalsByType(ctx:HttpTenantContext,patientId:string):Promise<Record<string,string>>{
