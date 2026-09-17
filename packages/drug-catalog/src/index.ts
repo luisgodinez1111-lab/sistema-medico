@@ -21,7 +21,45 @@ const DRUGS:Record<string,DrugEntry>={
  "trimetoprima-sulfametoxazol":{ingredient:"sulfametoxazol",classes:["SULFONAMIDE"]},
  "azitromicina":{ingredient:"azitromicina",classes:["MACROLIDE"]},
  "clindamicina":{ingredient:"clindamicina",classes:["LINCOSAMIDE"]},
+ // — Fármacos con interacciones relevantes (EPIC AX) —
+ "warfarina":{ingredient:"warfarina",classes:["ANTICOAGULANT"]},
+ "acenocumarol":{ingredient:"acenocumarol",classes:["ANTICOAGULANT"]},
+ "rivaroxaban":{ingredient:"rivaroxaban",classes:["ANTICOAGULANT"]},
+ "enalapril":{ingredient:"enalapril",classes:["ACE_INHIBITOR"]},
+ "lisinopril":{ingredient:"lisinopril",classes:["ACE_INHIBITOR"]},
+ "losartan":{ingredient:"losartan",classes:["ARB"]},
+ "espironolactona":{ingredient:"espironolactona",classes:["POTASSIUM_SPARING"]},
+ "metformina":{ingredient:"metformina",classes:["BIGUANIDE"]},
 };
+
+// EPIC AX — Interacciones farmacológicas por clase (pares peligrosos conocidos). Severidad MAJOR = bloquea.
+export type DrugInteraction=Readonly<{classA:string;classB:string;severity:"MAJOR"|"MODERATE";note:string}>;
+const INTERACTIONS:readonly DrugInteraction[]=[
+ {classA:"ANTICOAGULANT",classB:"NSAID",severity:"MAJOR",note:"Riesgo de hemorragia mayor"},
+ {classA:"ANTICOAGULANT",classB:"SALICYLATE",severity:"MAJOR",note:"Riesgo de hemorragia mayor"},
+ {classA:"ACE_INHIBITOR",classB:"POTASSIUM_SPARING",severity:"MAJOR",note:"Hiperkalemia"},
+ {classA:"ARB",classB:"POTASSIUM_SPARING",severity:"MAJOR",note:"Hiperkalemia"},
+ {classA:"ACE_INHIBITOR",classB:"ARB",severity:"MODERATE",note:"Doble bloqueo del SRAA: hiperkalemia/lesión renal"},
+ {classA:"ACE_INHIBITOR",classB:"NSAID",severity:"MODERATE",note:"Deterioro de función renal (triple whammy con diurético)"},
+];
+function interactionFor(a:readonly string[],b:readonly string[]):DrugInteraction|undefined{
+ const sa=new Set(a),sb=new Set(b);
+ return INTERACTIONS.find(i=>(sa.has(i.classA)&&sb.has(i.classB))||(sa.has(i.classB)&&sb.has(i.classA)));
+}
+export type InteractionHit=Readonly<{found:boolean;severity?:"MAJOR"|"MODERATE";note?:string;conflictDrug?:string}>;
+// ¿El fármaco a prescribir interactúa con alguno ya activo? Devuelve la interacción de mayor severidad.
+export function checkInteractions(newDrugCode:string,activeDrugCodes:readonly string[]):InteractionHit{
+ const nd=resolveDrug(newDrugCode);if(!nd)return{found:false};
+ let best:InteractionHit={found:false};
+ for(const active of activeDrugCodes){
+  if(norm(active)===norm(newDrugCode))continue;
+  const ad=resolveDrug(active);if(!ad)continue;
+  const hit=interactionFor(nd.classes,ad.classes);
+  if(hit){if(hit.severity==="MAJOR")return{found:true,severity:"MAJOR",note:hit.note,conflictDrug:active};
+   if(!best.found)best={found:true,severity:hit.severity,note:hit.note,conflictDrug:active};}
+ }
+ return best;
+}
 // Sinónimos de sustancia de alergia -> clases de alérgeno (para normalizar la alergia registrada).
 const ALLERGY_SYNONYMS:Record<string,readonly string[]>={
  "penicilina":["PENICILLIN","BETA_LACTAM"],"penicillin":["PENICILLIN","BETA_LACTAM"],"pcn":["PENICILLIN","BETA_LACTAM"],

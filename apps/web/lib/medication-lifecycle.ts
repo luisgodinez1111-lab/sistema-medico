@@ -7,7 +7,7 @@ import{type MedicationState}from"../../../packages/medication-domain/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances,activeMedicationDrugCodes}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
-import{checkDrugAllergy,checkDuplicateTherapy}from"../../../packages/drug-catalog/src";
+import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions}from"../../../packages/drug-catalog/src";
 import{validateMedicationOrder,normalizeRoute}from"../../../packages/medication-validation/src";
 // EPIC H — Ciclo de vida de medicación sobre el kernel. Physician Control:
 // PROPOSE lo puede hacer cualquier clínico (o IA), PRESCRIBE exige médico (IA nunca prescribe).
@@ -72,6 +72,9 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
    const activeDrugs=await activeMedicationDrugCodes(ctx,folded.patientId);
    const dup=checkDuplicateTherapy(folded.drugCode,activeDrugs);
    if(dup.duplicate)throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: duplicación terapéutica con ${dup.conflictDrug} (clase ${dup.sharedClass}). Suspenda el fármaco activo primero u ordene con justificación.`);
+   // EPIC AX — Interacción farmacológica MAJOR con un fármaco activo -> bloquea.
+   const ix=checkInteractions(folded.drugCode,activeDrugs);
+   if(ix.found&&ix.severity==="MAJOR")throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: interacción MAJOR con ${ix.conflictDrug} — ${ix.note}.`);
    // EXEC-0014: Crear obligaciones de monitoreo al prescribir (ej: monitor creatinine, HbA1c)
    // El payload incluye monitoringObligations para que el worker las procese.
    result=await runClinicalCommand(ctx,cmd);

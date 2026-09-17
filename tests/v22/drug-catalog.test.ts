@@ -41,3 +41,20 @@ describe("duplicación terapéutica (EPIC AW)",()=>{
   expect(checkDuplicateTherapy("ibuprofeno-400",[]).duplicate).toBe(false);
  });
 });
+import{checkInteractions}from"../../packages/drug-catalog/src";
+describe("interacciones farmacológicas (EPIC AX)",()=>{
+ it("anticoagulante + AINE -> MAJOR (hemorragia)",()=>{
+  const r=checkInteractions("ibuprofeno-400",["warfarina-5"]);
+  expect(r.found).toBe(true);expect(r.severity).toBe("MAJOR");
+ });
+ it("IECA + ahorrador de potasio -> MAJOR (hiperkalemia)",()=>{
+  expect(checkInteractions("espironolactona-25",["enalapril-10"]).severity).toBe("MAJOR");
+ });
+ it("IECA + ARA-II -> MODERATE (doble bloqueo SRAA)",()=>{
+  expect(checkInteractions("losartan-50",["enalapril-10"])).toMatchObject({found:true,severity:"MODERATE"});
+ });
+ it("sin interacción entre clases no relacionadas",()=>{
+  expect(checkInteractions("amoxicilina-500",["metformina-850"]).found).toBe(false);
+  expect(checkInteractions("ibuprofeno-400",[]).found).toBe(false);
+ });
+});
