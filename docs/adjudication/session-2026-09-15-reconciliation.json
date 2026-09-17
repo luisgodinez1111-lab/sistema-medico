@@ -969,6 +969,30 @@
       "epic": "AN",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-CRITICAL-VITAL-GAP-001",
+      "name": "Signo vital crítico como pendiente accionable (integración CDS ↔ care gaps / panel)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (seguridad / Clinical Intelligence). Cierra el lazo: la interpretación de signos vitales (CAP-VITALS-REF-001) alimenta el motor de care gaps (CAP-CAREGAPS-001) y el panel poblacional (CAP-PANEL-WORKLIST-001). Un vital CRÍTICO vigente se vuelve un pendiente HIGH accionable, a nivel paciente y a nivel panel. El status se expone RLS-scoped, sin PHI.",
+      "invariants": [
+        "Solo un vital CRÍTICO vigente (RECORDED/AMENDED) genera el gap; corregido/anulado (ENTERED_IN_ERROR) no",
+        "El gap se limpia solo cuando el vital se enmienda a un valor no crítico (fuente de verdad = último evento)",
+        "El status se expone RLS-scoped en readPatientTimeline y readTenantOpenAggregates (sin PHI)",
+        "El pendiente aparece tanto en el chart del paciente como en el worklist poblacional"
+      ],
+      "implementation": [
+        "packages/care-gaps (TimelineLike.status + regla VITAL_CRITICAL)",
+        "clinical-runtime.readPatientTimeline / readTenantOpenAggregates (exponen status)",
+        "reutiliza rutas /care-gaps y /worklist"
+      ],
+      "tests": [
+        "tests/v22/care-gaps.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-critical-vital-gap-proof.mts — PASS 5/5 (VITAL_RECORDED_CRITICAL, CARE_GAP_PRESENT, PANEL_HAS_CRITICAL_VITAL, VITAL_AMENDED_NORMAL, CARE_GAP_CLEARED)",
+      "epic": "AO",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

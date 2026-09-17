@@ -22,7 +22,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | --- | --- | --- | --- |
 | A. Kernel/fundación (RLS, concurrencia, auditoría, atomicidad, DR) | 12% | ~85% | 10.2 |
 | B. Identidad/Auth/Sesión + login | 8% | ~75% | 6.0 |
-| C. Verticales clínicos (~28 áreas PROD): amplitud + profundidad | 35% | ~32% | 11.2 |
+| C. Verticales clínicos (~28 áreas PROD): amplitud + profundidad | 35% | ~33% | 11.55 |
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
 | E. UI/UX de producto | 10% | ~21% | 2.1 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~20% | 1.6 |
@@ -76,6 +76,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 
 | 2026-09-16 | Epic AM: **profundidad** — terminología CIE-10 + validación/codificación de problemas (datos codificados, no texto libre) | **~33%** |
 | 2026-09-16 | Epic AN: **profundidad** — interpretación de signos vitales por rangos de referencia (CDS básico, normal/anormal/crítico) | **~34%** |
+| 2026-09-16 | Epic AO: **profundidad** — vitales críticos → care gaps + panel poblacional (cierra el lazo CDS↔inteligencia) | **~34%** |
 
 ## Nota de honestidad (reconciliación 2026-09-16)
 Entre ~Epic S y ~Epic AK reporté el total incrementando ~+1% por vertical. Eso contradice los topes de peso
