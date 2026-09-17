@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{isValidDose,isValidRoute,isValidFrequency,validateMedicationOrder,normalizeRoute,doseToMg,dosesPerDay,checkDoseCeiling}from"../../packages/medication-validation/src";
+import{isValidDose,isValidRoute,isValidFrequency,validateMedicationOrder,normalizeRoute,doseToMg,dosesPerDay,checkDoseCeiling,checkPediatricDose}from"../../packages/medication-validation/src";
 describe("validación de orden de medicación (EPIC AV)",()=>{
  it("dosis: acepta cantidad+unidad; rechaza texto o sin unidad",()=>{
   for(const d of["500mg","1 g","0.5 mcg","10ml","2 UI","5 meq","1 tab","2 gotas"])expect(isValidDose(d)).toBe(true);
@@ -45,5 +45,25 @@ describe("tope de dosis máxima diaria — dose ceiling (EPIC AZ)",()=>{
   expect(checkDoseCeiling("ibuprofeno","400mg","PRN").checked).toBe(false);
   expect(checkDoseCeiling("ibuprofeno","2 tab","c/8h").checked).toBe(false);
   expect(checkDoseCeiling("fármaco-desconocido","500mg","c/8h").checked).toBe(false);
+ });
+});
+describe("dosis pediátrica por peso — mg/kg/día (EPIC BD)",()=>{
+ it("niño de 10kg: paracetamol 300mg c/6h = 120mg/kg/día EXCEDE 75",()=>{
+  const r=checkPediatricDose("paracetamol","300mg","c/6h",10);
+  expect(r).toMatchObject({checked:true,exceeded:true,maxMgPerKgPerDay:75});
+  expect(r.computedMgPerKgPerDay).toBe(120);
+ });
+ it("niño de 10kg: paracetamol 150mg c/8h = 45mg/kg/día NO excede",()=>{
+  expect(checkPediatricDose("paracetamol","150mg","c/8h",10)).toMatchObject({checked:true,exceeded:false});
+ });
+ it("adulto (70kg > umbral pediátrico): NO se evalúa por mg/kg (gobierna el ceiling absoluto)",()=>{
+  expect(checkPediatricDose("ibuprofeno","800mg","c/6h",70).checked).toBe(false);
+ });
+ it("sin peso registrado -> checked=false (no bloquea)",()=>{
+  expect(checkPediatricDose("paracetamol","300mg","c/6h",undefined).checked).toBe(false);
+ });
+ it("fármaco sin máximo pediátrico o no acotable -> checked=false",()=>{
+  expect(checkPediatricDose("metformina","500mg","c/12h",10).checked).toBe(false); // sin max peds
+  expect(checkPediatricDose("paracetamol","300mg","PRN",10).checked).toBe(false);   // frecuencia no acotable
  });
 });

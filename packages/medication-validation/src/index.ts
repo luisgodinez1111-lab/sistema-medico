@@ -58,6 +58,27 @@ export function checkDoseCeiling(ingredient:string,dose:string,frequency:string)
  return{checked:true,exceeded:computed>max,computedMgPerDay:computed,maxMgPerDay:max,ingredient:ing};
 }
 
+// EPIC BD — Dosis pediátrica por peso (mg/kg/día). El ceiling absoluto (checkDoseCeiling) es correcto para
+// adultos pero peligrosamente permisivo en niños: un niño de 10 kg sobredosifica muy por debajo del máximo
+// adulto. Solo aplica en peso pediátrico (<=PEDIATRIC_MAX_KG); por encima gobierna el ceiling absoluto. Puro.
+const MAX_MG_PER_KG_DAY:Record<string,number>={
+ paracetamol:75,acetaminofen:75,ibuprofeno:40,naproxeno:20,amoxicilina:90,azitromicina:12,
+};
+export const PEDIATRIC_MAX_KG=40;
+function normIngredient(s:string):string{return s.trim().toLowerCase().normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]","g"),"");}
+export type PediatricDoseCheck=Readonly<{checked:boolean;exceeded:boolean;computedMgPerKgPerDay?:number;maxMgPerKgPerDay?:number;weightKg?:number;ingredient?:string}>;
+// ¿La dosis diaria por kg excede el máximo pediátrico? checked=false si el peso no es pediátrico, no hay
+// peso/máximo conocido, o la orden no es acotable (unidad no-masa / frecuencia PRN): en esos casos NO bloquea.
+export function checkPediatricDose(ingredient:string,dose:string,frequency:string,weightKg:number|undefined):PediatricDoseCheck{
+ const ing=normIngredient(ingredient);const max=MAX_MG_PER_KG_DAY[ing];
+ if(max===undefined)return{checked:false,exceeded:false};
+ if(weightKg===undefined||Number.isNaN(weightKg)||weightKg<=0||weightKg>PEDIATRIC_MAX_KG)return{checked:false,exceeded:false,maxMgPerKgPerDay:max,ingredient:ing,...(weightKg!==undefined?{weightKg}:{})};
+ const mg=doseToMg(dose);const perDay=dosesPerDay(frequency);
+ if(mg===undefined||perDay===undefined)return{checked:false,exceeded:false,maxMgPerKgPerDay:max,weightKg,ingredient:ing};
+ const computed=(mg*perDay)/weightKg;
+ return{checked:true,exceeded:computed>max,computedMgPerKgPerDay:Math.round(computed*100)/100,maxMgPerKgPerDay:max,weightKg,ingredient:ing};
+}
+
 export type MedicationOrderInput=Readonly<{dose:string;route:string;frequency:string}>;
 export type MedicationOrderValidation=Readonly<{ok:boolean;errors:readonly string[]}>;
 // Valida la orden completa; devuelve todos los errores (no corta en el primero).
