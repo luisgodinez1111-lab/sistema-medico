@@ -1753,6 +1753,31 @@
       "epic": "BU",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-MELD-001",
+      "name": "MELD: pronóstico de hepatopatía avanzada",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — score de pronóstico/priorización de trasplante en enfermedad hepática terminal. Complementa CAP-LIVER-FIB4-001 (tamizaje de fibrosis -> MELD estima gravedad/mortalidad a 90 días). MELD = 3.78·ln(bili) + 11.2·ln(INR) + 9.57·ln(creat) + 6.43. Cross-vertical multi-analito.",
+      "invariants": [
+        "Valores <1 se fijan en 1; creatinina acotada a [1,4]; score final 6–40",
+        "Bandas de mortalidad a 90 días: LOW<10, MODERATE 10–19, HIGH 20–29, VERY_HIGH >=30",
+        "Monotónico (mayor bilirrubina/INR/creatinina -> mayor MELD)",
+        "Usa el valor MÁS RECIENTE de cada analito (RLS, aislado por paciente)",
+        "Falta algún analito o valores inválidos -> not-computable; endpoint de solo lectura (scope patient:read)"
+      ],
+      "implementation": [
+        "packages/meld (meldScore)",
+        "apps/web/lib/clinical-runtime.ts (latestResultValueForAnalyte)",
+        "apps/web/app/api/v1/patients/[patientId]/meld/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/meld.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-meld-proof.mts — PASS 6/6 (COMPUTABLE_200, VERY_HIGH_MELD, USES_LATEST_BILIRUBIN, NORMAL_MELD_6_LOW, MISSING_ANALYTE, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "BW",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
