@@ -1451,6 +1451,30 @@
       "epic": "BI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-DEV-IDENTITY-HARDENING-001",
+      "name": "Dev identity verifier imposible en producción (IAM hardening)",
+      "risk": "C5",
+      "eng_authority_note": "ENDURECIMIENTO (eje G, ítem #6) — el verificador de identidad de DESARROLLO nunca puede acuñar sesiones en producción. Pasa de deny-closed silencioso (prod no pone el flag) a negación EXPLÍCITA y observable: si detecta flags de dev en producción, lo registra como incidente de seguridad y rehúsa. OIDC real desbloquea producción (mismo código de verificación). No frontend authz (EXEC-0003).",
+      "invariants": [
+        "devIdentityAllowed()=false si NODE_ENV o VERCEL_ENV=production (no depende de ausencia del flag)",
+        "Flags de dev presentes en producción -> incidente de seguridad logueado (security.dev_identity_refused_in_prod) + rehúsa",
+        "No-prod exige opt-in COMPLETO: ALLOW_DEV_IDENTITY + AUTH_MODE=development + DEV_IDENTITY_SECRET",
+        "Sin verificador -> deny-closed (login 503); nunca acuña sesión sin verificar",
+        "OIDC configurado funciona en producción (es lo que la desbloquea)"
+      ],
+      "implementation": [
+        "apps/web/lib/session-issuance.ts (devIdentityAllowed + selectVerifier)",
+        "packages/session-issuance/src (devIdentityVerifier, gateado por la app)"
+      ],
+      "tests": [
+        "tests/v22/dev-identity-prod-guard.test.ts"
+      ],
+      "runtime_evidence": "tests/v22/dev-identity-prod-guard.test.ts — PASS 5/5. scripts/v22/live-session-issuance-proof.mts (incl. DEV_VERIFIER_DISABLED_IN_PROD_503) en el smoke de CI. live-oidc-login-proof verde.",
+      "epic": "BJ",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
