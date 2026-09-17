@@ -81,6 +81,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 
 | 2026-09-17 | **AUDITORÍA**: se corrigieron 6 defectos de la reorganización L13–L18 (incl. 3 de seguridad: vitales críticos no detectados, firma de encuentro reventando con 500, deadlock de cierre de resultado crítico). Sin cambio de %: no se agregó capacidad, se restauró lo que constaba "hecho" pero estaba roto. | **~34%** |
 | 2026-09-17 | Epic AR: **profundidad** — codificación CIE-10 validada en facturación (reclamaciones). Marginal; sin cambio de %. | **~34%** |
+| 2026-09-17 | Epic AS: **profundidad/seguridad** — cierra el lazo Zero-Lost-Follow-Up de vitales críticos (elimina deadlock latente #7 de la firma). Correctitud; sin cambio de %. | **~34%** |
 
 ## Nota de auditoría (2026-09-17)
 Barrido completo: **36/36 pruebas en vivo PASS** tras las correcciones. Hallazgo de proceso clave: **CI no

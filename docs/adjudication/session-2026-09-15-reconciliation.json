@@ -1039,6 +1039,30 @@
       "epic": "AR",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-CRITICAL-VITAL-LOOP-001",
+      "name": "Lazo Zero-Lost-Follow-Up de signos vitales críticos (bloqueo de firma + resolución)",
+      "risk": "C5",
+      "eng_authority_note": "PROD/seguridad (Zero Lost Follow-Up para signos vitales). Cierra un deadlock latente detectado en la auditoría 2026-09-17: el gate de firma contaba vitales críticos sin obligación con sourceVitalId, pero nada creaba esa obligación -> firma bloqueada para siempre. Ahora una obligación de seguimiento ligada (sourceVitalId) atiende el vital y desbloquea la firma, dejando el pendiente rastreable.",
+      "invariants": [
+        "Un signo vital CRÍTICO vigente (RECORDED/AMENDED, critical=true) bloquea la firma del encuentro (403 SAFETY_BLOCKED)",
+        "Crear una obligación con sourceVitalId=<vital> atiende ese vital -> countOpenCriticalVitals deja de contarlo",
+        "Firmar tras atender -> 201 SIGNED; un vital crítico sin atender de otro paciente sigue bloqueando",
+        "El gate cuenta por payload->>'critical'='true' y NOT EXISTS obligación con sourceVitalId (cast text)"
+      ],
+      "implementation": [
+        "apps/web/lib/obligation-lifecycle.ts (sourceVitalId opcional en el create)",
+        "apps/web/lib/clinical-runtime.ts (countOpenCriticalVitals, cast r.aggregate_id::text)",
+        "apps/web/lib/encounter-lifecycle.ts (gate de firma que suma vitales críticos)"
+      ],
+      "tests": [
+        "tests/v22/vitals-reference.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-critical-vital-signing-loop-proof.mts — PASS 6/6 (VITAL_CRITICAL_RECORDED, ENCOUNTER_READY, SIGN_BLOCKED_BY_CRITICAL_VITAL_403, FOLLOWUP_OBLIGATION_CREATED, SIGN_UNBLOCKED_AFTER_FOLLOWUP_201, OTHER_PATIENT_STILL_BLOCKED_403)",
+      "epic": "AS",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
