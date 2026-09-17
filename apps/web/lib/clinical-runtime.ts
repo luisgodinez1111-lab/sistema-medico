@@ -197,7 +197,7 @@ export async function countOpenCriticalVitals(ctx:HttpTenantContext,patientId:st
      and not exists(
       select 1 from clinical_events c
       where c.tenant_id=${ctx.tenantId} and c.aggregate_type='ClinicalObligation'
-        and c.payload->>'sourceVitalId'=r.aggregate_id and c.payload->>'kind'='CREATED')`;
+        and c.payload->>'sourceVitalId'=r.aggregate_id::text and c.payload->>'kind'='CREATED')`;
   return Number(rows[0]?.n??0);
  }) as Promise<number>;
 }

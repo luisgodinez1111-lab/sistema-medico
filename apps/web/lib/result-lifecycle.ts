@@ -79,11 +79,11 @@ export async function handleResultClosure(req:Request,resultId:string):Promise<R
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,resultId);
   const b=await parseJson(req,CloseBody);
-  // EPIC AQ + Zero Lost Follow-Up: bloquear cierre si hay resultado CRÍTICO en ACTIONED
-  // que no ha sido abordado. El cierre de un resultado crítico sin atender crea riesgo.
-  if(folded.state === "ACTIONED" && folded.critical){
-   throw new ClinicalError("CONFLICT",`No se puede cerrar resultado CRÍTICO pendiente (critical=${folded.critical}). Asigne owner, dueAt y cierre la obligación primero.`,{resultId,state:folded.state,critical:folded.critical});
-  }
+  // Zero Lost Follow-Up: cerrar un resultado CRÍTICO desde ACTIONED (con evidencia de que el paciente
+  // fue contactado y tratado) ES la resolución del loop — debe permitirse. La transición válida
+  // ACTIONED->CLOSED la garantiza la máquina de estados (assertResultTransition en commitTransition).
+  // El cierre exige evidencia no vacía (CloseBody); mientras el resultado siga en ACTIONED, el gate de
+  // firma del encuentro lo cuenta como crítico abierto y bloquea la firma (Zero Lost Follow-Up).
   return await commitTransition(ctx,idempotencyKey,expectedVersion,resultId,folded,"CLOSED","RESULT_CLOSED",{kind:"CLOSED",evidence:b.evidence},b.occurredAt,"result.closed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
