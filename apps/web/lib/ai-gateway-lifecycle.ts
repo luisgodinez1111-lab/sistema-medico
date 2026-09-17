@@ -162,8 +162,10 @@ export async function handleAiGatewayExecute(req:Request):Promise<Response>{
   validateAiReceipt(receipt,taskCard.risk);
 
   // 6. Persist AI receipt
-  const idempotencyKey2=req.headers.get("idempotency-key")??crypto.randomUUID();
-  const cmd=buildCommand({idempotencyKey:idempotencyKey2,aggregateType:AGG,aggregateId:`ai-${b.taskId}-${Date.now()}`,expectedVersion:0,eventType:"AI_TASK_EXECUTED",payload:{kind:"EXECUTED",taskId:b.taskId,receipt:aiResult},occurredAt:new Date().toISOString(),topic:"ai.task.executed"});
+  // AUDITORÍA 2026-09-17: aggregateId era `ai-<taskId>-<Date.now()>` — NO es uuid (aggregate_id es uuid NOT NULL
+  // -> 22P02/500 al llamar). Se usa un uuid válido. occurredAt = timestamp de EJECUCIÓN (correcto para este
+  // evento). (Handler SIN cablear; R6 en pausa — no activa el copiloto IA.)
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:crypto.randomUUID(),expectedVersion:0,eventType:"AI_TASK_EXECUTED",payload:{kind:"EXECUTED",taskId:b.taskId,receipt:aiResult},occurredAt:new Date().toISOString(),topic:"ai.task.executed"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
 

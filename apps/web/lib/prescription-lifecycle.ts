@@ -4,7 +4,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{buildCommand,derivedUuid,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{renderPrescription,verifyPrescription,type PrescriptionClinicalData,BASE_TEMPLATE_V1}from"../../../packages/prescription-studio/src";
 // EPIC J — Prescription Studio: visual template renderer over structured clinical data.
 // EXEC-0015: Clinical data ≠ visual template ≠ rendered artifact.
@@ -54,7 +54,10 @@ export async function handlePrescriptionRender(req:Request):Promise<Response>{
   const template=BASE_TEMPLATE_V1;
   const {artifact,contentHash,templateVersion}=renderPrescription(clinicalData,template);
   // Persistir artifact como evento
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:`rx-${b.medicationId}`,expectedVersion:0,eventType:"PRESCRIPTION_RENDERED",payload:{kind:"RENDERED",medicationId:b.medicationId,artifact,contentHash,templateVersion},occurredAt:b.occurredAt,topic:"prescription.rendered"});
+  // AUDITORÍA 2026-09-17: aggregateId era `rx-<uuid>` — NO es uuid válido y clinical_events.aggregate_id es
+  // uuid NOT NULL -> 22P02 (500) al llamar. Se deriva un uuid DETERMINISTA del medicationId (idempotente:
+  // una prescripción por medicación) para conservar la semántica original con un id válido.
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:derivedUuid(b.medicationId,"prescription"),expectedVersion:0,eventType:"PRESCRIPTION_RENDERED",payload:{kind:"RENDERED",medicationId:b.medicationId,artifact,contentHash,templateVersion},occurredAt:b.occurredAt,topic:"prescription.rendered"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({medicationId:b.medicationId,artifact,contentHash,templateVersion,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
