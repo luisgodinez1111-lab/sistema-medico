@@ -1226,6 +1226,31 @@
       "epic": "AZ",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-MONITORING-OBLIGATION-001",
+      "name": "Obligaciones de monitoreo automáticas al prescribir (Zero-Lost-Follow-Up)",
+      "risk": "C5",
+      "eng_authority_note": "PROD/seguridad del paciente (vigilancia obligatoria de fármacos de riesgo: warfarina->INR, metformina->creatinina/TFG, IECA/ARA-II/ahorrador de K->potasio). Cierra el TODO EXEC-0014. Cross-vertical medicación->obligación: enlaza el ciclo de vida de medicación (CAP-* prescripción) con el de obligaciones (CAP-OBLIGATION-001 / Zero-Lost-Follow-Up). Protocolos de monitoreo de demostración; la fuente oficial se cargaría aparte.",
+      "invariants": [
+        "Prescribir un fármaco con regla de monitoreo crea la(s) obligación(es) con dueAt = occurredAt + dueInDays",
+        "Idempotente: obligationId/idempotencyKey derivados de la key de la prescripción + slot; un re-prescribe (replay) no duplica",
+        "Fármaco sin regla de monitoreo -> no crea obligación",
+        "Cada obligación es su propia transacción; un reintento la reconcilia (eventual, idempotente)",
+        "La obligación creada es operable por el ciclo estándar OPEN->IN_PROGRESS->COMPLETED (completar exige evidencia)"
+      ],
+      "implementation": [
+        "packages/drug-catalog (MONITORING_BY_CLASS + monitoringFor)",
+        "apps/web/lib/medication-lifecycle.ts (createMonitoringObligations en handleMedicationPrescription)",
+        "apps/web/lib/obligation-lifecycle.ts (ciclo de vida de la obligación creada)"
+      ],
+      "tests": [
+        "tests/v22/drug-catalog.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-monitoring-obligation-proof.mts — PASS 8/8 (WARFARIN_PRESCRIBED_201, MONITOR_INR_OBLIGATION_CREATED_AND_STARTED_201, MONITOR_INR_OBLIGATION_COMPLETED_201, METFORMIN_PRESCRIBED_201, MONITOR_RENAL_OBLIGATION_CREATED_201, IBUPROFEN_PRESCRIBED_201, NO_MONITORING_NO_OBLIGATION_404, PRESCRIBE_REPLAY_200_NO_DUP)",
+      "epic": "BA",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

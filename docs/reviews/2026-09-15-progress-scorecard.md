@@ -88,6 +88,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic AX: **profundidad/seguridad** — gate de interacciones farmacológicas (DDI) en la prescripción. Tercera barrera (alergias + duplicación + DDI). | **~35%** |
 | 2026-09-17 | Epic AY: **profundidad/seguridad** — gate de contraindicación fármaco–condición (drug–disease) en la prescripción. Cuarta barrera; cross-vertical problema(CIE-10)↔prescripción. | **~35%** |
 | 2026-09-17 | Epic AZ: **profundidad/seguridad** — validación de dosis máxima diaria (dose ceiling) en el propose. Atrapa sobredosis (mg/día vs tope del fármaco); extiende la validación estructural AV a rango seguro. | **~35%** |
+| 2026-09-17 | Epic BA: **profundidad/seguridad** — obligaciones de monitoreo automáticas al prescribir (cierra EXEC-0014). Cross-vertical medicación→obligación; warfarina→INR, metformina→creatinina, IECA→potasio. Zero-Lost-Follow-Up. | **~35%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde
