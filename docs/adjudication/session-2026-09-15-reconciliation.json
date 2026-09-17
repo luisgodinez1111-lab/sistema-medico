@@ -1701,6 +1701,31 @@
       "epic": "BS",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-BP-STAGING-001",
+      "name": "Estadificación de presión arterial (ACC/AHA 2017)",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — convierte S/D en el estadio clínico de hipertensión (Normal/Elevada/Estadio 1/Estadio 2/Crisis) con nota de acción. Refina classifyVital (normal/anormal/crítico) para la crónica más frecuente. Cross-vertical paciente↔vitales.",
+      "invariants": [
+        "Umbrales ACC/AHA 2017; toma el estadio MÁS severo cuando sistólica y diastólica difieren",
+        "Crisis si sistólica>180 o diastólica>120",
+        "Usa la última presión del paciente (RLS, aislado por paciente)",
+        "Formato no S/D o valores inválidos -> not-computable (reportado)",
+        "Endpoint de solo lectura (scope patient:read)"
+      ],
+      "implementation": [
+        "packages/bp-staging (stageBloodPressure + parseBp)",
+        "apps/web/lib/clinical-runtime.ts (latestVitalsByType)",
+        "apps/web/app/api/v1/patients/[patientId]/bp-stage/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/bp-staging.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-bp-stage-proof.mts — PASS 6/6 (COMPUTABLE_200, STAGE_2, USES_LATEST_BP, CRISIS, NO_BP_NOT_COMPUTABLE, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "BT",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
