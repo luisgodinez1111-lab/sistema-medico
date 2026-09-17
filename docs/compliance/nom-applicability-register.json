@@ -1,0 +1,82 @@
+{
+  "purpose": "Registro de APLICABILIDAD regulatoria (ENG-044 Compliance-as-Code baseline). NO declara cumplimiento total ni certificación: mapea cada instrumento aplicable a la evidencia técnica que lo aborda y a las brechas conocidas. Enforzado por tests/v22/nom-compliance-integrity.test.ts.",
+  "authority": "ENG-044-R001",
+  "disclaimer": "Ley no negociable (SPEC_INDEX): 'No claim de certificación sin evidencia'. Ninguna entrada declara certificación; la certificación formal requiere auditoría externa y evidencia legal fuera del código.",
+  "updated": "2026-09-17",
+  "applicabilityLevels": ["APPLICABLE", "EVALUATE_WHEN", "MONITORED"],
+  "statusLevels": ["BASELINE_ADDRESSED", "PARTIAL", "EVALUATE", "NOT_STARTED"],
+  "instruments": [
+    {
+      "id": "NOM-004-SSA3-2012",
+      "name": "Del expediente clínico",
+      "scope": "Estructura, contenido y control del expediente clínico; registro estructurado e inalterable.",
+      "applicability": "APPLICABLE",
+      "status": "PARTIAL",
+      "certificationClaimed": false,
+      "evidence": [
+        "db/migrations/0013_transactional_authority_and_audit.sql",
+        "CAP-CONSENT-001",
+        "CAP-VITAL-001",
+        "CAP-BACKUP-DR-001"
+      ],
+      "addressedBy": "Event store append-only + cadena de auditoría encadenada (inalterabilidad y trazabilidad); enmienda append-only de vitales; consentimiento informado clínico-legal; recuperabilidad verificada.",
+      "gaps": "Firma electrónica avanzada certificada (NOM-151), retención legal formal por tiempo mínimo, y validación por un especialista en información en salud."
+    },
+    {
+      "id": "NOM-024-SSA3-2012",
+      "name": "Sistemas de información de registro electrónico para la salud (SIRES); intercambio",
+      "scope": "Interoperabilidad, seguridad y conformidad del intercambio de información en salud.",
+      "applicability": "APPLICABLE",
+      "status": "PARTIAL",
+      "certificationClaimed": false,
+      "evidence": [
+        "CAP-RECORD-EXPORT-001",
+        "CAP-TERMINOLOGY-001",
+        "CAP-BILLING-ICD10-001",
+        "scripts/v22/live-record-export-proof.mts"
+      ],
+      "addressedBy": "Export/manifiesto del expediente con hash reproducible (interoperabilidad); datos codificados CIE-10 (no texto libre) en problemas y facturación.",
+      "gaps": "Conformidad de formato de intercambio SIRES oficial, certificado de conformidad, y evidencia de seguridad del canal de intercambio."
+    },
+    {
+      "id": "LFPDPPP",
+      "name": "Ley Federal de Protección de Datos Personales en Posesión de los Particulares",
+      "scope": "Datos personales sensibles, finalidad/consentimiento, derechos ARCO, seguridad, transferencias.",
+      "applicability": "APPLICABLE",
+      "status": "PARTIAL",
+      "certificationClaimed": false,
+      "evidence": [
+        "CAP-IDENTITY-001",
+        "CAP-AUTHZ-001",
+        "CAP-OBSERVABILITY-SLI-001",
+        "db/policies/tenant_rls_v3.sql"
+      ],
+      "addressedBy": "Aislamiento por tenant (RLS forzado), autorización por rol/scope/purpose-of-use, y telemetría sin PHI por defecto (allowlist). Consentimiento registrado (CAP-CONSENT-001).",
+      "gaps": "Aviso de privacidad formal, flujo de derechos ARCO, gobierno de transferencias y notificación de brechas."
+    },
+    {
+      "id": "NOM-151-SCFI-2016",
+      "name": "Conservación de mensajes de datos y digitalización de documentos",
+      "scope": "Constancia de conservación (NOM 151) para integridad temporal de registros.",
+      "applicability": "EVALUATE_WHEN",
+      "status": "EVALUATE",
+      "certificationClaimed": false,
+      "evidence": [
+        "db/migrations/0013_transactional_authority_and_audit.sql"
+      ],
+      "addressedBy": "La cadena de auditoría con hash encadenado provee una base de integridad temporal; una constancia NOM-151 formal (PSC) se evalúa cuando aplique el intended-use.",
+      "gaps": "Emisión de constancia por Prestador de Servicios de Certificación acreditado."
+    },
+    {
+      "id": "NOM-241-SSA1-2025",
+      "name": "Buenas prácticas de fabricación de dispositivos médicos (según intended-use)",
+      "scope": "Aplica solo si el producto entra en el alcance de dispositivo médico regulado.",
+      "applicability": "EVALUATE_WHEN",
+      "status": "NOT_STARTED",
+      "certificationClaimed": false,
+      "evidence": [],
+      "addressedBy": "Fuera del alcance actual (software de gestión clínica). Se re-evalúa si un módulo cae en la definición de dispositivo médico.",
+      "gaps": "Determinación de alcance/intended-use por Regulatory; no iniciado por diseño."
+    }
+  ]
+}
