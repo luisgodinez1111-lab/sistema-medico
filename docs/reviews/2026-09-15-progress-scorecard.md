@@ -22,7 +22,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | --- | --- | --- | --- |
 | A. Kernel/fundación (RLS, concurrencia, auditoría, atomicidad, DR) | 12% | ~85% | 10.2 |
 | B. Identidad/Auth/Sesión + login | 8% | ~75% | 6.0 |
-| C. Verticales clínicos (~28 áreas PROD): amplitud + profundidad | 35% | ~34% | 11.9 |
+| C. Verticales clínicos (~28 áreas PROD): amplitud + profundidad | 35% | ~34.5% | 12.1 |
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
 | E. UI/UX de producto | 10% | ~21% | 2.1 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~20% | 1.6 |
@@ -83,6 +83,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic AR: **profundidad** — codificación CIE-10 validada en facturación (reclamaciones). Marginal; sin cambio de %. | **~34%** |
 | 2026-09-17 | Epic AS: **profundidad/seguridad** — cierra el lazo Zero-Lost-Follow-Up de vitales críticos (elimina deadlock latente #7 de la firma). Correctitud; sin cambio de %. | **~34%** |
 | 2026-09-17 | Epic AT: **auditoría** — el motor de inteligencia clínica L18 estaba NO-FUNCIONAL (devolvía vacío, defecto #8); recuperado + 5 tests. Sigue SIN cablear (no cuenta end-to-end). Sin cambio de %. | **~34%** |
+| 2026-09-17 | Epic AU+AV: **profundidad** — laboratorio a 28 analitos (valores de pánico) + validación de dosis/vía/frecuencia en medicación (vocabulario controlado, 400 si inválida). | **~35%** |
 
 ## Nota de auditoría (2026-09-17)
 Barrido completo: **36/36 pruebas en vivo PASS** tras las correcciones. Hallazgo de proceso clave: **CI no

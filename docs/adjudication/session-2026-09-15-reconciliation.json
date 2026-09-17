@@ -1086,6 +1086,44 @@
       "epic": "AT",
       "proposed_review_decision": "REVIEW_REQUIRED_NOT_WIRED",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-LAB-REF-002",
+      "name": "Catálogo de valores de pánico de laboratorio ampliado (28 analitos)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (resultados críticos / valores de pánico). Amplía CAP-LAB-REF-001 de 10 a 28 analitos con umbrales de adulto de demostración. Alimenta el flag `critical` derivado del valor real en resultados (closed-loop Zero Lost Follow-Up). Umbrales oficiales por método/laboratorio se parametrizarían aparte.",
+      "invariants": [
+        "El flag critical se deriva del valor real por analito (no del cliente)",
+        "Analito desconocido o valor no numérico -> UNKNOWN, nunca falso NORMAL",
+        "Determinista y puro, sin PHI"
+      ],
+      "implementation": ["packages/lab-reference (RANGES)"],
+      "tests": ["tests/v22/lab-reference.test.ts"],
+      "runtime_evidence": "tests/v22/lab-reference.test.ts — 5/5 (potasio/glucosa/troponina + nuevos: calcio, bicarbonato, pH, lactato, BNP, ALT; unknown->UNKNOWN). El uso end-to-end en resultados está cubierto por live-result-closed-loop-proof.mts.",
+      "epic": "AU",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-MED-VALIDATION-001",
+      "name": "Validación estructurada de dosis/vía/frecuencia en medicación",
+      "risk": "C5",
+      "eng_authority_note": "PROD/seguridad (reducción de errores de prescripción). PROFUNDIDAD: dose/route/frequency dejan de ser texto libre y se validan contra vocabulario controlado y forma. Cableado al propose de medicación (fail-closed, 400 con todos los errores). La vía se normaliza en el evento.",
+      "invariants": [
+        "dose debe ser cantidad+unidad reconocida; route del vocabulario controlado; frequency c/Nh|cada N horas|abreviatura",
+        "Orden inválida -> 400 VALIDATION_ERROR con la lista de errores (no corta en el primero)",
+        "No altera la máquina de estados de medicación ni el gate de alergias (que corre después)",
+        "Puro y determinista, sin PHI"
+      ],
+      "implementation": [
+        "packages/medication-validation",
+        "apps/web/lib/medication-lifecycle.ts (validación en handleMedicationProposal)"
+      ],
+      "tests": ["tests/v22/medication-validation.test.ts"],
+      "runtime_evidence": "scripts/v22/live-medication-lifecycle-proof.mts — PASS (incl. INVALID_MED_ORDER_400); sin regresión en allergy/cross-reactivity gate proofs",
+      "epic": "AV",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

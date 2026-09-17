@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **42**
+- Capacidades reconciliadas: **44**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **42**
+- Pendiente de aceptación humana C5: **44**
 
 ## Riesgo C4
 
@@ -305,6 +305,20 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: —
 - Decisión propuesta: REVIEW_REQUIRED_NOT_WIRED
 
+### CAP-LAB-REF-002 — Catálogo de valores de pánico de laboratorio ampliado (28 analitos)
+- Epic: AU
+- Invariantes: 3
+- Tests: `tests/v22/lab-reference.test.ts`
+- Prueba en vivo: —
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
+### CAP-MED-VALIDATION-001 — Validación estructurada de dosis/vía/frecuencia en medicación
+- Epic: AV
+- Invariantes: 4
+- Tests: `tests/v22/medication-validation.test.ts`
+- Prueba en vivo: `scripts/v22/live-medication-lifecycle-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -351,3 +365,5 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-BILLING-ICD10-001 | | | | |
 | CAP-CRITICAL-VITAL-LOOP-001 | | | | |
 | CAP-CLINICAL-INTEL-001 | | | | |
+| CAP-LAB-REF-002 | | | | |
+| CAP-MED-VALIDATION-001 | | | | |
