@@ -7,6 +7,7 @@ import{type MedicationState}from"../../../packages/medication-domain/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{checkDrugAllergy}from"../../../packages/drug-catalog/src";
 // EPIC H — Ciclo de vida de medicación sobre el kernel. Physician Control como estrella:
 // PROPOSE lo puede hacer cualquier clínico (o la IA), pero PRESCRIBE (la orden firmada) EXIGE
 // médico humano — la IA nunca prescribe. Luego ACTIVATE y DISCONTINUE (con razón).
@@ -58,10 +59,10 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
   if(!result){
    assertMedicationTransition(folded.state,"PRESCRIBED");
    // Gate de seguridad: no prescribir un fármaco al que el paciente tiene una alergia ACTIVA.
+   // Match por principio activo + CLASE de alérgeno con reactividad cruzada (no solo subcadena).
    const substances=await activeAllergySubstances(ctx,folded.patientId);
-   const drug=folded.drugCode.toLowerCase();
-   const hit=substances.find(s=>s&&drug.includes(s.toLowerCase()));
-   if(hit)throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: patient has an active allergy to ${hit}`);
+   const conflict=checkDrugAllergy(folded.drugCode,substances);
+   if(conflict.blocked)throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: patient has an active allergy to ${conflict.allergen} (${conflict.via==="class"?"reactividad cruzada de clase":"principio activo"})`);
    result=await runClinicalCommand(ctx,cmd);
   }
   const r=result.response as{version:number;auditHash?:string};
