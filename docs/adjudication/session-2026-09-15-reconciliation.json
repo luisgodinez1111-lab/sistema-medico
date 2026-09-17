@@ -1097,8 +1097,12 @@
         "Analito desconocido o valor no numérico -> UNKNOWN, nunca falso NORMAL",
         "Determinista y puro, sin PHI"
       ],
-      "implementation": ["packages/lab-reference (RANGES)"],
-      "tests": ["tests/v22/lab-reference.test.ts"],
+      "implementation": [
+        "packages/lab-reference (RANGES)"
+      ],
+      "tests": [
+        "tests/v22/lab-reference.test.ts"
+      ],
       "runtime_evidence": "tests/v22/lab-reference.test.ts — 5/5 (potasio/glucosa/troponina + nuevos: calcio, bicarbonato, pH, lactato, BNP, ALT; unknown->UNKNOWN). El uso end-to-end en resultados está cubierto por live-result-closed-loop-proof.mts.",
       "epic": "AU",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -1119,7 +1123,9 @@
         "packages/medication-validation",
         "apps/web/lib/medication-lifecycle.ts (validación en handleMedicationProposal)"
       ],
-      "tests": ["tests/v22/medication-validation.test.ts"],
+      "tests": [
+        "tests/v22/medication-validation.test.ts"
+      ],
       "runtime_evidence": "scripts/v22/live-medication-lifecycle-proof.mts — PASS (incl. INVALID_MED_ORDER_400); sin regresión en allergy/cross-reactivity gate proofs",
       "epic": "AV",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -1141,7 +1147,9 @@
         "apps/web/lib/clinical-runtime.ts (activeMedicationDrugCodes)",
         "apps/web/lib/medication-lifecycle.ts (gate en handleMedicationPrescription)"
       ],
-      "tests": ["tests/v22/drug-catalog.test.ts"],
+      "tests": [
+        "tests/v22/drug-catalog.test.ts"
+      ],
       "runtime_evidence": "scripts/v22/live-duplicate-therapy-gate-proof.mts — PASS 5/5 (IBUPROFEN_ACTIVE, NAPROXEN_BLOCKED_DUPLICATE_403, AMOXICILLIN_ALLOWED, NAPROXEN_ALLOWED_OTHER_PATIENT)",
       "epic": "AW",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
@@ -1162,9 +1170,36 @@
         "packages/drug-catalog (INTERACTIONS + checkInteractions)",
         "apps/web/lib/medication-lifecycle.ts (gate en handleMedicationPrescription)"
       ],
-      "tests": ["tests/v22/drug-catalog.test.ts"],
+      "tests": [
+        "tests/v22/drug-catalog.test.ts"
+      ],
       "runtime_evidence": "scripts/v22/live-drug-interaction-gate-proof.mts — PASS 4/4 (WARFARIN_NSAID_BLOCKED_403, ACEI_KSPARING_BLOCKED_403, NO_INTERACTION_ALLOWED_201, NSAID_ALONE_ALLOWED_201)",
       "epic": "AX",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-DRUG-CONDITION-001",
+      "name": "Gate de contraindicación fármaco–condición (drug–disease) en la prescripción",
+      "risk": "C5",
+      "eng_authority_note": "PROD/seguridad del paciente (fármaco contraindicado por una condición activa: AINE en ERC -> nefrotoxicidad; AINE en insuficiencia cardíaca -> descompensación; metformina en ERC -> acidosis láctica). Cuarta barrera de prescripción junto a alergias (CAP-DRUG-ALLERGY-001), duplicación (CAP-DUPLICATE-THERAPY-001) e interacciones (CAP-DRUG-INTERACTION-001). Cross-vertical: cruza la clase del fármaco contra la lista de problemas (CIE-10, CAP-PROBLEM-GRAPH-001/CAP-TERMINOLOGY-001). Vademécum de demostración; la fuente oficial se cargaría aparte.",
+      "invariants": [
+        "Contraindicación MAJOR con una condición activa -> SAFETY_BLOCKED (fail-closed)",
+        "MODERATE alerta sin bloquear; devuelve la de mayor severidad",
+        "Match por prefijo CIE-10 (grupo de enfermedad): N18.3 coincide con N18",
+        "Aislado por paciente (RLS); solo condiciones ACTIVAS (ADDED/REACTIVATED/MARKED_CHRONIC)",
+        "Corre en el prescribe, tras alergias, duplicación e interacciones"
+      ],
+      "implementation": [
+        "packages/drug-catalog (CONTRAINDICATIONS + checkContraindications)",
+        "apps/web/lib/clinical-runtime.ts (activeProblemCodes, RLS-scoped)",
+        "apps/web/lib/medication-lifecycle.ts (gate en handleMedicationPrescription)"
+      ],
+      "tests": [
+        "tests/v22/drug-catalog.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-drug-condition-contraindication-gate-proof.mts — PASS 5/5 (NSAID_CKD_BLOCKED_403, NSAID_HF_BLOCKED_403, METFORMIN_CKD_MODERATE_ALLOWED_201, NONCONTRA_DRUG_ALLOWED_201, NSAID_NO_CONDITION_ALLOWED_201)",
+      "epic": "AY",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
     }

@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **46**
+- Capacidades reconciliadas: **47**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **46**
+- Pendiente de aceptación humana C5: **47**
 
 ## Riesgo C4
 
@@ -333,6 +333,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-drug-interaction-gate-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-DRUG-CONDITION-001 — Gate de contraindicación fármaco–condición (drug–disease) en la prescripción
+- Epic: AY
+- Invariantes: 5
+- Tests: `tests/v22/drug-catalog.test.ts`
+- Prueba en vivo: `scripts/v22/live-drug-condition-contraindication-gate-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -383,3 +390,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-MED-VALIDATION-001 | | | | |
 | CAP-DUPLICATE-THERAPY-001 | | | | |
 | CAP-DRUG-INTERACTION-001 | | | | |
+| CAP-DRUG-CONDITION-001 | | | | |
