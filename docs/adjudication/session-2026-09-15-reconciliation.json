@@ -1351,6 +1351,31 @@
       "epic": "BE",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-NOT-WIRED-REGISTRY-001",
+      "name": "Registro NOT_WIRED + guard no-orphan de handlers L13–L18",
+      "risk": "C5",
+      "eng_authority_note": "ENDURECIMIENTO (eje G): cierra el hallazgo #10 de la auditoría 2026-09-17 (~2.5k líneas de código muerto que inflaban el avance). Da a cada handler huérfano (sin ruta) un estado terminal documentado NOT_WIRED (ley no-orphan / EXEC-0003) sin activar IA (R6 en pausa) ni sobre-construir. El guard mantiene el registro honesto y previene huérfanos futuros.",
+      "invariants": [
+        "Todo apps/web/lib/*-lifecycle.ts debe estar cableado a una ruta O declarado en el registro (el guard falla ante un huérfano no declarado)",
+        "Un módulo declarado NOT_WIRED no debe estar cableado (si se cablea, hay que removerlo del registro; el guard falla)",
+        "Cada entrada apunta a un archivo existente y tiene decision=NOT_WIRED + clasificación",
+        "R6 (IA) en pausa: ai-gateway/clinical-intelligence/document-ingestion no se activan",
+        "Banner NOT_WIRED visible en-código en los 8 handlers"
+      ],
+      "implementation": [
+        "docs/adjudication/not-wired-registry.json (registro con clasificación por módulo)",
+        "tests/v22/not-wired-integrity.test.ts (guard de la ley no-orphan)",
+        "banners NOT_WIRED en los 8 handlers apps/web/lib/*-lifecycle.ts"
+      ],
+      "tests": [
+        "tests/v22/not-wired-integrity.test.ts"
+      ],
+      "runtime_evidence": "tests/v22/not-wired-integrity.test.ts — PASS 4/4 (sin huérfanos ocultos, registro no obsoleto, entradas válidas, 8 conocidos declarados). Corre en CI (test:all / v15-runtime + v5-quality).",
+      "epic": "BF",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

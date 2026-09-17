@@ -26,7 +26,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
 | E. UI/UX de producto | 10% | ~21% | 2.1 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~20% | 1.6 |
-| G. Endurecimiento producción + compliance | 9% | ~24% | 2.2 |
+| G. Endurecimiento producción + compliance | 9% | ~26% | 2.3 |
 
 ## Valor de cada hito futuro (para no estimar a la ligera)
 - Vertical clínico nuevo completo con evidencia en vivo: **≈ +1.2%** c/u.
@@ -93,6 +93,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BC: **profundidad/CDS agregado** — NEWS2 (early warning score) desde los últimos signos vitales: score de acuidad multiparamétrico con banda de riesgo, red flag y escalamiento. Tercer tipo de CDS (umbral/temporal/agregado). | **~35%** |
 | 2026-09-17 | Epic BD: **profundidad/seguridad pediátrica** — ceiling de dosis por peso (mg/kg/día): en peso pediátrico (≤40 kg) valida mg/kg/día contra el máximo del fármaco. Complemento peso-normalizado del ceiling absoluto (AZ); cross-vertical vitales(peso)→medicación. | **~35%** |
 | 2026-09-17 | Epic BE: **endurecimiento (eje G)** — gate de regresión en vivo en CI: un 5.º workflow levanta postgres:17 desechable, aplica migraciones+roles y corre el smoke curado de pruebas .mts (kernel + 6 barreras + CDS). Cierra la brecha #1 de la auditoría (ENG-056). **Primer avance real del eje G** (19%→24%). | **~35%** |
+| 2026-09-17 | Epic BF: **endurecimiento (eje G)** — registro NOT_WIRED + guard no-orphan de los 8 handlers huérfanos L13–L18 (~2.5k líneas de código muerto). Cierra el hallazgo #10; estado terminal documentado por módulo (ley no-orphan) sin activar IA (R6). Eje G 24%→26%. | **~35%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde
@@ -103,6 +104,10 @@ prescription (#12), ai-gateway (#11) — **corregidos**. Los otros 5 usan aggreg
 **Recomendación:** decidir por feature si se cablea (ruta + prueba en vivo) o se retira; hoy son ~2.5k líneas
 de código muerto que inflan la sensación de avance sin aportar valor end-to-end. La adjudicación de L13–L18
 debería marcarlas `NOT_WIRED` hasta activarlas.
+**ABORDADO (Epic BF, 2026-09-17):** registro machine-checkable `docs/adjudication/not-wired-registry.json`
++ guard `tests/v22/not-wired-integrity.test.ts` (corre en CI). Cada huérfano tiene estado terminal NOT_WIRED
++ clasificación (2 verticales sin construir, 2 duplicados de verticales cableados, 4 IA/R6-adyacentes). El
+guard falla si aparece un huérfano no declarado o si un declarado se cablea sin removerlo. Commit `d828347`.
 
 ## Nota de auditoría (2026-09-17)
 Barrido completo: **36/36 pruebas en vivo PASS** tras las correcciones. Hallazgo de proceso clave: **CI no
