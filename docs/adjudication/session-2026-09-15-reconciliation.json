@@ -1124,6 +1124,28 @@
       "epic": "AV",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-DUPLICATE-THERAPY-001",
+      "name": "Gate de duplicación terapéutica (misma clase) en la prescripción",
+      "risk": "C5",
+      "eng_authority_note": "PROD/seguridad del paciente (error común: dos fármacos de la misma clase -> AINE/sangrado GI, doble IECA, doble beta-lactámico). Segunda barrera de prescripción, paralela y complementaria al gate de alergias (CAP-DRUG-ALLERGY-001); reutiliza las clases del catálogo de fármacos. fail-closed.",
+      "invariants": [
+        "No prescribir un fármaco que comparte principio activo o clase con uno ya ACTIVO del paciente",
+        "Ignora la comparación consigo mismo; clases distintas se permiten",
+        "Aislado por paciente (RLS): las medicaciones activas de otro paciente no cuentan",
+        "El check corre en el prescribe, después del gate de alergias; fail-closed (SAFETY_BLOCKED)"
+      ],
+      "implementation": [
+        "packages/drug-catalog (checkDuplicateTherapy)",
+        "apps/web/lib/clinical-runtime.ts (activeMedicationDrugCodes)",
+        "apps/web/lib/medication-lifecycle.ts (gate en handleMedicationPrescription)"
+      ],
+      "tests": ["tests/v22/drug-catalog.test.ts"],
+      "runtime_evidence": "scripts/v22/live-duplicate-therapy-gate-proof.mts — PASS 5/5 (IBUPROFEN_ACTIVE, NAPROXEN_BLOCKED_DUPLICATE_403, AMOXICILLIN_ALLOWED, NAPROXEN_ALLOWED_OTHER_PATIENT)",
+      "epic": "AW",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

@@ -84,6 +84,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic AS: **profundidad/seguridad** — cierra el lazo Zero-Lost-Follow-Up de vitales críticos (elimina deadlock latente #7 de la firma). Correctitud; sin cambio de %. | **~34%** |
 | 2026-09-17 | Epic AT: **auditoría** — el motor de inteligencia clínica L18 estaba NO-FUNCIONAL (devolvía vacío, defecto #8); recuperado + 5 tests. Sigue SIN cablear (no cuenta end-to-end). Sin cambio de %. | **~34%** |
 | 2026-09-17 | Epic AU+AV: **profundidad** — laboratorio a 28 analitos (valores de pánico) + validación de dosis/vía/frecuencia en medicación (vocabulario controlado, 400 si inválida). | **~35%** |
+| 2026-09-17 | Epic AW: **profundidad/seguridad** — gate de duplicación terapéutica (misma clase) en la prescripción. Segunda barrera junto al gate de alergias. | **~35%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde
