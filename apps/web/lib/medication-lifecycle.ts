@@ -4,10 +4,10 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldMedication,assertMedicationTransition,type FoldedMedication}from"../../../packages/medication-fold/src";
 import{type MedicationState}from"../../../packages/medication-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid}from"./http-command";
-import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindications,resolveDrug,monitoringFor}from"../../../packages/drug-catalog/src";
+import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindications,resolveDrug,monitoringFor,checkRenalDosing}from"../../../packages/drug-catalog/src";
 import{validateMedicationOrder,normalizeRoute,checkDoseCeiling,checkPediatricDose}from"../../../packages/medication-validation/src";
 // EPIC H — Ciclo de vida de medicación sobre el kernel. Physician Control:
 // PROPOSE lo puede hacer cualquier clínico (o IA), PRESCRIBE exige médico (IA nunca prescribe).
@@ -109,6 +109,10 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
    const conditions=await activeProblemCodes(ctx,folded.patientId);
    const ci=checkContraindications(folded.drugCode,conditions);
    if(ci.found&&ci.severity==="MAJOR")throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: contraindicado por la condición activa ${ci.condition} — ${ci.note}.`);
+   // EPIC BM — Función renal MEDIDA (eGFR): contraindica el fármaco por debajo de su umbral renal.
+   const egfr=await patientEgfr(ctx,folded.patientId);
+   if(egfr!==undefined){const rd=checkRenalDosing(folded.drugCode,egfr);
+    if(rd.action==="BLOCK")throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: función renal insuficiente (TFG ${egfr} < ${rd.threshold}) — ${rd.note}.`,{egfr,threshold:rd.threshold});}
    // EXEC-0014 / EPIC BA: al prescribir, crear las obligaciones de monitoreo del fármaco (INR, creatinina/TFG, potasio...).
    result=await runClinicalCommand(ctx,cmd);
    await createMonitoringObligations(ctx,idempotencyKey,folded.patientId,claims.sub,folded.drugCode,b.occurredAt);

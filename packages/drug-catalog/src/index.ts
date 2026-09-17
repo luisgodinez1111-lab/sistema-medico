@@ -62,6 +62,26 @@ export function checkInteractions(newDrugCode:string,activeDrugCodes:readonly st
  }
  return best;
 }
+// EPIC BM — Ajuste/contraindicación renal por FUNCIÓN medida (eGFR). Complementa la contraindicación por
+// DIAGNÓSTICO (EPIC AY) con la función renal real. BLOCK si eGFR < umbral de contraindicación; CAUTION si
+// < umbral de precaución. Reutiliza las clases del catálogo. Umbrales de demostración (vademécum oficial aparte).
+export type RenalRule=Readonly<{blockBelow?:number;cautionBelow?:number;note:string}>;
+const RENAL_RULES_BY_CLASS:Record<string,RenalRule>={
+ BIGUANIDE:{blockBelow:30,cautionBelow:45,note:"Metformina: contraindicada si TFG<30 (acidosis láctica); ajustar/vigilar entre 30–45"},
+ NSAID:{blockBelow:30,note:"AINE: evitar si TFG<30 (nefrotoxicidad / deterioro renal)"},
+};
+export type RenalDosing=Readonly<{action:"BLOCK"|"CAUTION"|"OK";note?:string;threshold?:number;drugClass?:string}>;
+// ¿La función renal (eGFR) contraindica o exige precaución para este fármaco? Devuelve la acción más severa.
+export function checkRenalDosing(drugCode:string,egfr:number):RenalDosing{
+ const d=resolveDrug(drugCode);if(!d)return{action:"OK"};
+ let best:RenalDosing={action:"OK"};
+ for(const cl of d.classes){
+  const r=RENAL_RULES_BY_CLASS[cl];if(!r)continue;
+  if(r.blockBelow!==undefined&&egfr<r.blockBelow)return{action:"BLOCK",note:r.note,threshold:r.blockBelow,drugClass:cl};
+  if(r.cautionBelow!==undefined&&egfr<r.cautionBelow&&best.action==="OK")best={action:"CAUTION",note:r.note,threshold:r.cautionBelow,drugClass:cl};
+ }
+ return best;
+}
 // EPIC AY — Contraindicación fármaco–condición (drug–disease). Cruza la CLASE del fármaco a prescribir
 // contra las condiciones ACTIVAS del paciente (lista de problemas, CIE-10). MAJOR = bloquea; MODERATE = alerta.
 // Match por prefijo CIE-10 (grupo de enfermedad): "N18.3" (ERC estadio 3) coincide con el prefijo "N18".

@@ -5,6 +5,7 @@ import{canonicalize}from"../../../packages/canonical-json/src";
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{sliSpan,flowForTopic}from"../../../packages/observability/src";
+import{computeEGFR,type Sex}from"../../../packages/renal-function/src";
 // EPIC B — Runtime clínico de la capa app: conexión a Postgres y ejecución del kernel
 // atómico ya probado, SIEMPRE bajo el rol NOBYPASSRLS `medical_os_runtime`.
 // Lección de runtime (sesión 15-sep): el owner de Neon tiene BYPASSRLS -> si el pool
@@ -128,6 +129,21 @@ export async function patientDemographics(ctx:HttpTenantContext,patientId:string
 // EPIC BK — Fecha de nacimiento del paciente (del evento REGISTERED). RLS-scoped. Para el pronóstico de vacunación.
 export async function patientBirthDate(ctx:HttpTenantContext,patientId:string):Promise<string|undefined>{
  const d=await patientDemographics(ctx,patientId);return d?.birthDate;
+}
+// EPIC BM — eGFR del paciente (CKD-EPI) desde demografía + última creatinina. undefined si no computable
+// (sin datos, pediátrico, sexo no binario). Para el gate renal de la prescripción.
+export async function patientEgfr(ctx:HttpTenantContext,patientId:string):Promise<number|undefined>{
+ const demo=await patientDemographics(ctx,patientId);
+ if(!demo?.birthDate)return undefined;
+ const sex=demo.sexAtBirth;if(sex!=="FEMALE"&&sex!=="MALE")return undefined;
+ const b=new Date(demo.birthDate),a=new Date();
+ if(Number.isNaN(b.getTime()))return undefined;
+ let age=a.getUTCFullYear()-b.getUTCFullYear();
+ if(a.getUTCMonth()<b.getUTCMonth()||(a.getUTCMonth()===b.getUTCMonth()&&a.getUTCDate()<b.getUTCDate()))age-=1;
+ if(age<18)return undefined; // CKD-EPI adulto; en pediatría se usa Schwartz
+ const scr=await latestResultValueForAnalyte(ctx,patientId,"CREATININE");
+ if(scr===undefined)return undefined;
+ return computeEGFR(Number(scr),age,sex as Sex)?.egfr;
 }
 // EPIC BK — Códigos de vacunas ADMINISTRADAS del paciente (último kind ADMINISTERED). RLS-scoped.
 export async function administeredVaccineCodes(ctx:HttpTenantContext,patientId:string):Promise<string[]>{

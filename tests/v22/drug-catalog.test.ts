@@ -96,3 +96,21 @@ describe("requisitos de monitoreo por fármaco (EPIC BA)",()=>{
   expect(monitoringFor("desconocido-xyz")).toEqual([]);
  });
 });
+import{checkRenalDosing}from"../../packages/drug-catalog/src";
+describe("ajuste/contraindicación renal por eGFR (EPIC BM)",()=>{
+ it("metformina + TFG<30 -> BLOCK",()=>{
+  expect(checkRenalDosing("metformina-850",25)).toMatchObject({action:"BLOCK",threshold:30});
+ });
+ it("metformina TFG 30–45 -> CAUTION; TFG>=45 -> OK",()=>{
+  expect(checkRenalDosing("metformina-850",40).action).toBe("CAUTION");
+  expect(checkRenalDosing("metformina-850",60).action).toBe("OK");
+ });
+ it("AINE + TFG<30 -> BLOCK; AINE TFG>=30 -> OK",()=>{
+  expect(checkRenalDosing("ibuprofeno-400",20).action).toBe("BLOCK");
+  expect(checkRenalDosing("ibuprofeno-400",50).action).toBe("OK");
+ });
+ it("fármaco sin regla renal (o desconocido) -> OK",()=>{
+  expect(checkRenalDosing("amoxicilina-500",10).action).toBe("OK");
+  expect(checkRenalDosing("desconocido-xyz",10).action).toBe("OK");
+ });
+});
