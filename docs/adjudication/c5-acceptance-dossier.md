@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **47**
+- Capacidades reconciliadas: **48**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **47**
+- Pendiente de aceptación humana C5: **48**
 
 ## Riesgo C4
 
@@ -340,6 +340,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-drug-condition-contraindication-gate-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-DOSE-CEILING-001 — Validación de dosis máxima diaria (dose ceiling) en el propose
+- Epic: AZ
+- Invariantes: 4
+- Tests: `tests/v22/medication-validation.test.ts`
+- Prueba en vivo: `scripts/v22/live-dose-ceiling-gate-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -391,3 +398,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-DUPLICATE-THERAPY-001 | | | | |
 | CAP-DRUG-INTERACTION-001 | | | | |
 | CAP-DRUG-CONDITION-001 | | | | |
+| CAP-DOSE-CEILING-001 | | | | |

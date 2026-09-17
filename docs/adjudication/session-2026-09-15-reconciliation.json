@@ -1202,6 +1202,30 @@
       "epic": "AY",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-DOSE-CEILING-001",
+      "name": "Validación de dosis máxima diaria (dose ceiling) en el propose",
+      "risk": "C5",
+      "eng_authority_note": "PROD/seguridad del paciente (sobredosis: error de prescripción frecuente y peligroso). Convierte dose+frequency en mg/día y lo compara contra el tope del principio activo. Extiende la validación estructural de la orden (CAP-MED-VALIDATION-001) de forma válida a rango seguro. Vademécum de dosis máximas de demostración; la fuente oficial se cargaría aparte.",
+      "invariants": [
+        "Dosis diaria total > tope del fármaco -> SAFETY_BLOCKED (fail-closed)",
+        "No acotable (unidad no-masa, frecuencia PRN/continua, o fármaco sin tope conocido) -> no bloquea (fail-open informado, checked=false)",
+        "mg/día = doseToMg(dose) × dosesPerDay(frequency); en el límite exacto NO excede",
+        "Corre en el propose (independiente del paciente), tras la validación estructural (AV)"
+      ],
+      "implementation": [
+        "packages/medication-validation (doseToMg + dosesPerDay + MAX_DAILY_MG + checkDoseCeiling)",
+        "packages/drug-catalog (resolveDrug -> principio activo)",
+        "apps/web/lib/medication-lifecycle.ts (gate en handleMedicationProposal)"
+      ],
+      "tests": [
+        "tests/v22/medication-validation.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-dose-ceiling-gate-proof.mts — PASS 6/6 (IBUPROFEN_OVERDOSE_BLOCKED_403, PARACETAMOL_OVERDOSE_BLOCKED_403, IBUPROFEN_WITHIN_LIMIT_ALLOWED_201, IBUPROFEN_AT_LIMIT_ALLOWED_201, PRN_NOT_BOUNDED_ALLOWED_201, NON_MASS_UNIT_ALLOWED_201)",
+      "epic": "AZ",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
