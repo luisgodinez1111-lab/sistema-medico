@@ -11,11 +11,14 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // PROD-022-R018: la firma produce un snapshot reproducible (contentHash) y las correcciones son
 // addendum/amendment APPEND-ONLY; nunca se borra el historial. Physician Control: solo un médico
 // humano firma y enmienda (la IA nunca firma el registro clínico-legal).
+// EXEC-0009: Draft save y clinical/legal signature son operaciones DISTINTAS. Autosave NUNCA
+// masquerade como signature. Encuentro: planned -> arrived -> in_progress -> ready_for_review -> signed -> amended -> closed.
 const AGG="ClinicalDocument";
 type Claims={sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string};
 
-const CreateBody=z.object({documentId:z.string().uuid(),patientId:z.string().uuid(),docType:z.enum(["PROGRESS_NOTE","DISCHARGE_SUMMARY","REFERRAL","PROCEDURE_NOTE","OTHER"]),title:z.string().min(1),content:z.string().min(1),occurredAt:z.string().datetime()});
-// CREATE = borrador. Cualquier clínico con scope document:write (aún no es el registro firmado).
+const CreateBody=z.object({documentId:z.string().uuid(),patientId:z.string().uuid(),encounterId:z.string().uuid().optional(),docType:z.enum(["PROGRESS_NOTE","DISCHARGE_SUMMARY","REFERRAL","PROCEDURE_NOTE","OTHER"]),title:z.string().min(1),content:z.string().min(1),occurredAt:z.string().datetime()});
+// CREATE = borrador (draft). Cualquier clínico con scope document:write.
+// NO es el registro firmado. Draft save != signature (EXEC-0009).
 export async function handleDocumentCreate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
@@ -23,10 +26,25 @@ export async function handleDocumentCreate(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.documentId,expectedVersion:0,eventType:"DOCUMENT_CREATED",payload:{kind:"CREATED",patientId:b.patientId,docType:b.docType,title:b.title,content:b.content},occurredAt:b.occurredAt,topic:"document.created"});
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.documentId,expectedVersion:0,eventType:"DOCUMENT_CREATED",payload:{kind:"CREATED",patientId:b.patientId,encounterId:b.encounterId,docType:b.docType,title:b.title,content:b.content},occurredAt:b.occurredAt,topic:"document.created"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({documentId:b.documentId,state:"DRAFT",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+ }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
+
+// AUTOSAVE (draft persist) - NO crea evento en event store, solo actualiza contenido local.
+// EXEC-0009: Autosave must never masquerade as signature.
+const AutosaveBody=z.object({documentId:z.string().uuid(),content:z.string().min(1),title:z.string().optional(),occurredAt:z.string().datetime()});
+export async function handleDocumentAutosave(req:Request):Promise<Response>{
+ try{
+  const{claims,ctx}=resolveVerified(req);
+  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:write",purpose:"TREATMENT"});
+  const b=await parseJson(req,AutosaveBody);
+  // Autosave NO va a event store. Solo actualiza proyección local/cliente.
+  // El contenido definitivo se persiste en FINALIZE o SIGN.
+  const contentHash=crypto.createHash("sha256").update(b.content).digest("hex");
+  return NextResponse.json({documentId:b.documentId,contentHash,autosavedAt:b.occurredAt,note:"AUTOSAVE_ONLY_NO_EVENT"},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
@@ -48,7 +66,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
 }
 
 const WhenBody=z.object({occurredAt:z.string().datetime()});
-// FINALIZE = DRAFT -> FINALIZED (contenido listo para firmar).
+// FINALIZE = DRAFT -> FINALIZED (contenido listo para firmar, distinct from draft save).
 export async function handleDocumentFinalization(req:Request,documentId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,documentId,false);
@@ -57,6 +75,7 @@ export async function handleDocumentFinalization(req:Request,documentId:string):
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 // SIGN = FINALIZED -> SIGNED. Physician Control + snapshot reproducible (contentHash del contenido).
+// EXEC-0009: Solo un médico humano firma. La IA nunca firma el registro clínico-legal.
 export async function handleDocumentSignature(req:Request,documentId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded,claims}=await loadForTransition(req,documentId,true);
@@ -67,6 +86,7 @@ export async function handleDocumentSignature(req:Request,documentId:string):Pro
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 // AMEND = {SIGNED,AMENDED} -> AMENDED. Addendum APPEND-ONLY; nunca modifica el snapshot firmado.
+// PROD-022-R018: NUNCA borrar historial de firma/amendments. Cada corrección suma.
 const AmendBody=z.object({addendum:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleDocumentAmendment(req:Request,documentId:string):Promise<Response>{
  try{
