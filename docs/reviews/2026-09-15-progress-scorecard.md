@@ -79,6 +79,15 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-16 | Epic AO: **profundidad** — vitales críticos → care gaps + panel poblacional (cierra el lazo CDS↔inteligencia) | **~34%** |
 | 2026-09-16 | Epic AP: **profundidad/seguridad** — gate de alergias por clase + reactividad cruzada (catálogo de fármacos) | **~34%** |
 
+| 2026-09-17 | **AUDITORÍA**: se corrigieron 6 defectos de la reorganización L13–L18 (incl. 3 de seguridad: vitales críticos no detectados, firma de encuentro reventando con 500, deadlock de cierre de resultado crítico). Sin cambio de %: no se agregó capacidad, se restauró lo que constaba "hecho" pero estaba roto. | **~34%** |
+
+## Nota de auditoría (2026-09-17)
+Barrido completo: **36/36 pruebas en vivo PASS** tras las correcciones. Hallazgo de proceso clave: **CI no
+atrapó ninguno de los 6 defectos** — los tests unitarios daban falsa seguridad (uno cubría una copia
+duplicada, no el código vivo) y las pruebas en vivo `.mts` **no corren en los 4 workflows**. Recomendación:
+integrar un subconjunto de pruebas en vivo (o un smoke E2E contra una branch Neon desechable) al pipeline
+para cerrar esta brecha de cobertura. Defectos y fixes: commits `ac313e5`, `1c2cb0f`, `a796ee1`.
+
 ## Nota de honestidad (reconciliación 2026-09-16)
 Entre ~Epic S y ~Epic AK reporté el total incrementando ~+1% por vertical. Eso contradice los topes de peso
 del modelo: 25 verticales event-sourced dan mucha **amplitud** (eje C ~30% de su 35%) pero poca **profundidad**
