@@ -23,7 +23,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | A. Kernel/fundación (RLS, concurrencia, auditoría, atomicidad, DR) | 12% | ~85% | 10.2 |
 | B. Identidad/Auth/Sesión + login | 8% | ~75% | 6.0 |
 | C. Verticales clínicos (~28 áreas PROD): amplitud + profundidad | 35% | ~34.7% | 12.1 |
-| D. AI copilot / inteligencia clínica | 18% | ~8% | 1.4 |
+| D. AI copilot / inteligencia clínica | 18% | ~10% | 1.8 |
 | E. UI/UX de producto | 10% | ~21% | 2.1 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~20% | 1.6 |
 | G. Endurecimiento producción + compliance | 9% | ~35% | 3.2 |
@@ -116,6 +116,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BZ: **profundidad clínica (eje C)** — CURB-65: gravedad de neumonía → decisión de ingreso (ambulatorio/observación/ingreso). Cross-vertical BUN(lab)+FR/PA(vitales)+edad(demografía). | **~36%** |
 | 2026-09-17 | Epic CA: **profundidad clínica (eje C)** — gradiente alveolo-arterial de O₂ (A-a): intercambio gaseoso vs hipoventilación. Complementa el análisis ácido-base (BX); parametrizable por altitud (México). | **~36%** |
 | 2026-09-17 | ADR-0220 + Epic CB: **eje D (AI copilot)** — ADR de diseño (IA de apoyo sobre núcleo determinista) + **choke point de seguridad SIN IA** (kill-switch, autoridad humana, presupuesto, envelope, provenance AI_SUGGESTED, stub determinista). Fase 1; R6 sigue en pausa. **Primer avance real del eje D** (5%→8%). | **~37%** |
+| 2026-09-17 | Epic CC: **eje D (AI copilot)** — fase 2 del ADR-0220: **eval harness** (calificador determinista que atrapa salidas inseguras de un LLM futuro; casos adversarios en CI) + **shadow mode** (corre en paralelo sin mostrar al médico; invariante de no-fuga). Sin IA. Eje D 8%→10%. | **~37%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde

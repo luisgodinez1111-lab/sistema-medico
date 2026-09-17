@@ -1880,6 +1880,31 @@
       "epic": "CB",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-AI-EVAL-HARNESS-001",
+      "name": "Eval harness + shadow mode del AI copilot (ADR-0220 fase 2, sin IA)",
+      "risk": "C5",
+      "eng_authority_note": "EJE D, fase 2 del ADR-0220 (ENG-036 eval gates + shadow mode). La red de seguridad que calificará las salidas de un proveedor de IA futuro con los validadores DETERMINISTAS (mismas barreras que el humano), y el shadow mode que corre en paralelo sin mostrar al médico. Provider-agnóstico; ningún LLM se invoca.",
+      "invariants": [
+        "gradeCandidateSafety usa los validadores deterministas: orden inválida, dose ceiling, contraindicación renal, y grounding (no silent AI truth)",
+        "La suite incluye casos ADVERSARIOS (sobredosis, contraindicación renal, afirmación sin fuente) y bloquea si el calificador no los atrapa (eval gate en CI)",
+        "Shadow mode: la respuesta al médico es IDÉNTICA con shadow ON/OFF (no-fuga); registra SLI sin PHI",
+        "Flag AI_COPILOT_SHADOW independiente del master kill-switch",
+        "Puro, sin LLM: la fase 2 no activa IA generativa (R6 sigue en pausa)"
+      ],
+      "implementation": [
+        "packages/ai-eval-harness (gradeCandidateSafety + runEvalSuite + shadowCompare)",
+        "apps/web/lib/ai-copilot-gateway.ts (shadow mode)",
+        "tests/v22/ai-eval-suite.test.ts (eval gate en CI)"
+      ],
+      "tests": [
+        "tests/v22/ai-eval-suite.test.ts"
+      ],
+      "runtime_evidence": "tests/v22/ai-eval-suite.test.ts — la suite atrapa todos los adversarios. scripts/v22/live-ai-copilot-gateway-proof.mts — PASS 11/11 (incl. SHADOW_DOES_NOT_LEAK_TO_CLINICIAN). En el smoke de CI (live-regression).",
+      "epic": "CC",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
