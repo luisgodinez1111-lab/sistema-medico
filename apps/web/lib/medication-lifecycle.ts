@@ -6,8 +6,8 @@ import{foldMedication,assertMedicationTransition,type FoldedMedication}from"../.
 import{type MedicationState}from"../../../packages/medication-domain/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
-import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindications,resolveDrug}from"../../../packages/drug-catalog/src";
+import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid}from"./http-command";
+import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindications,resolveDrug,monitoringFor}from"../../../packages/drug-catalog/src";
 import{validateMedicationOrder,normalizeRoute,checkDoseCeiling}from"../../../packages/medication-validation/src";
 // EPIC H — Ciclo de vida de medicación sobre el kernel. Physician Control:
 // PROPOSE lo puede hacer cualquier clínico (o IA), PRESCRIBE exige médico (IA nunca prescribe).
@@ -59,6 +59,22 @@ async function commitTransition(ctx:Parameters<typeof runClinicalCommand>[0],ide
 }
 
 const WhenBody=z.object({occurredAt:z.string().datetime()});
+const DAY_MS=86_400_000;
+// EPIC BA — Crea automáticamente las obligaciones de monitoreo del fármaco al prescribir (Zero-Lost-Follow-Up).
+// Idempotente: ids/keys derivados de la key de la prescripción + slot; un reintento reconstruye lo mismo.
+// Cada obligación es su propia transacción (no atómica con la prescripción); un reintento la reconcilia.
+async function createMonitoringObligations(ctx:Parameters<typeof runClinicalCommand>[0],baseIdemKey:string,patientId:string,ownerId:string,drugCode:string,occurredAt:string):Promise<void>{
+ const rules=monitoringFor(drugCode);
+ for(let i=0;i<rules.length;i++){
+  const rule=rules[i]!;
+  const idem=derivedUuid(baseIdemKey,`monitor-idem-${i}`);
+  const obligationId=derivedUuid(baseIdemKey,`monitor-agg-${i}`);
+  const dueAt=new Date(new Date(occurredAt).getTime()+rule.dueInDays*DAY_MS).toISOString();
+  const cmd=buildCommand({idempotencyKey:idem,aggregateType:"ClinicalObligation",aggregateId:obligationId,expectedVersion:0,eventType:"OBLIGATION_CREATED",payload:{kind:"CREATED",patientId,ownerId,dueAt,obligationKind:rule.kind,test:rule.test,note:rule.note,sourceMedicationDrug:drugCode},occurredAt,topic:"obligation.created"});
+  let r=await lookupReplay(ctx,cmd);
+  if(!r)r=await runClinicalCommand(ctx,cmd);
+ }
+}
 // PRESCRIBE = PROPOSED -> PRESCRIBED. EXIGE médico (Physician Control): la IA nunca prescribe.
 export async function handleMedicationPrescription(req:Request,medicationId:string):Promise<Response>{
  try{
@@ -83,9 +99,9 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
    const conditions=await activeProblemCodes(ctx,folded.patientId);
    const ci=checkContraindications(folded.drugCode,conditions);
    if(ci.found&&ci.severity==="MAJOR")throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: contraindicado por la condición activa ${ci.condition} — ${ci.note}.`);
-   // EXEC-0014: Crear obligaciones de monitoreo al prescribir (ej: monitor creatinine, HbA1c)
-   // El payload incluye monitoringObligations para que el worker las procese.
+   // EXEC-0014 / EPIC BA: al prescribir, crear las obligaciones de monitoreo del fármaco (INR, creatinina/TFG, potasio...).
    result=await runClinicalCommand(ctx,cmd);
+   await createMonitoringObligations(ctx,idempotencyKey,folded.patientId,claims.sub,folded.drugCode,b.occurredAt);
   }
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({medicationId,state:"PRESCRIBED",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});

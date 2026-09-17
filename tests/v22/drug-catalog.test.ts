@@ -80,3 +80,19 @@ describe("contraindicación fármaco–condición (EPIC AY)",()=>{
   expect(checkContraindications("amoxicilina-500",["N18.3"]).found).toBe(false);
  });
 });
+import{monitoringFor}from"../../packages/drug-catalog/src";
+describe("requisitos de monitoreo por fármaco (EPIC BA)",()=>{
+ it("anticoagulante -> MONITOR_INR a 3 días",()=>{
+  const r=monitoringFor("warfarina-5");
+  expect(r).toHaveLength(1);expect(r[0]).toMatchObject({kind:"MONITOR_INR",dueInDays:3});
+ });
+ it("biguanida -> MONITOR_RENAL; IECA -> MONITOR_K_CREAT",()=>{
+  expect(monitoringFor("metformina-850")[0]?.kind).toBe("MONITOR_RENAL");
+  expect(monitoringFor("enalapril-10")[0]?.kind).toBe("MONITOR_K_CREAT");
+ });
+ it("fármaco sin requisito de monitoreo -> vacío",()=>{
+  expect(monitoringFor("ibuprofeno-400")).toEqual([]);
+  expect(monitoringFor("amoxicilina-500")).toEqual([]);
+  expect(monitoringFor("desconocido-xyz")).toEqual([]);
+ });
+});

@@ -91,6 +91,24 @@ export function checkContraindications(newDrugCode:string,activeConditionCodes:r
  }
  return best;
 }
+// EPIC BA — Requisitos de monitoreo por clase de fármaco. Prescribir un fármaco de estas clases exige
+// vigilancia de laboratorio; el sistema crea automáticamente una obligación de seguimiento (Zero-Lost-Follow-Up).
+// Puro, sin PHI. Subconjunto de demostración; los protocolos oficiales se cargarían de la fuente autorizada.
+export type MonitoringRule=Readonly<{kind:string;test:string;dueInDays:number;note:string}>;
+const MONITORING_BY_CLASS:Record<string,MonitoringRule>={
+ ANTICOAGULANT:{kind:"MONITOR_INR",test:"INR/TP",dueInDays:3,note:"Ajuste de anticoagulación oral"},
+ BIGUANIDE:{kind:"MONITOR_RENAL",test:"Creatinina/TFG",dueInDays:90,note:"Riesgo de acidosis láctica: vigilar función renal"},
+ ACE_INHIBITOR:{kind:"MONITOR_K_CREAT",test:"Potasio y creatinina",dueInDays:14,note:"Vigilar hiperkalemia y función renal"},
+ ARB:{kind:"MONITOR_K_CREAT",test:"Potasio y creatinina",dueInDays:14,note:"Vigilar hiperkalemia y función renal"},
+ POTASSIUM_SPARING:{kind:"MONITOR_K",test:"Potasio",dueInDays:14,note:"Vigilar hiperkalemia"},
+};
+// Reglas de monitoreo aplicables al fármaco (deduplicadas por kind). Vacío si no requiere vigilancia conocida.
+export function monitoringFor(drugCode:string):MonitoringRule[]{
+ const d=resolveDrug(drugCode);if(!d)return[];
+ const seen=new Set<string>();const out:MonitoringRule[]=[];
+ for(const cl of d.classes){const r=MONITORING_BY_CLASS[cl];if(r&&!seen.has(r.kind)){seen.add(r.kind);out.push(r);}}
+ return out;
+}
 // Sinónimos de sustancia de alergia -> clases de alérgeno (para normalizar la alergia registrada).
 const ALLERGY_SYNONYMS:Record<string,readonly string[]>={
  "penicilina":["PENICILLIN","BETA_LACTAM"],"penicillin":["PENICILLIN","BETA_LACTAM"],"pcn":["PENICILLIN","BETA_LACTAM"],
