@@ -438,9 +438,9 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-renal-dosing-gate-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
-### CAP-LAB-DERIVATIONS-001 — Derivaciones de laboratorio multi-analito (anion gap + calcio corregido)
-- Epic: BN
-- Invariantes: 5
+### CAP-LAB-DERIVATIONS-001 — Derivaciones de laboratorio multi-analito (anion gap, calcio corregido, sodio corregido, osmolalidad)
+- Epic: BN+BY
+- Invariantes: 6
 - Tests: `tests/v22/lab-derivations.test.ts`
 - Prueba en vivo: `scripts/v22/live-metabolic-panel-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE

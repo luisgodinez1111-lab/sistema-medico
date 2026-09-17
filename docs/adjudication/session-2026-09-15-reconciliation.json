@@ -1554,18 +1554,19 @@
     },
     {
       "id": "CAP-LAB-DERIVATIONS-001",
-      "name": "Derivaciones de laboratorio multi-analito (anion gap + calcio corregido)",
+      "name": "Derivaciones de laboratorio multi-analito (anion gap, calcio corregido, sodio corregido, osmolalidad)",
       "risk": "C5",
-      "eng_authority_note": "PROFUNDIDAD del eje C — calcula nuevos valores clínicos a partir de VARIOS resultados. Anion gap (Na−Cl−HCO3) para acidosis metabólica de brecha aumentada; calcio corregido por albúmina para desenmascarar hipo/hipercalcemia. Reutiliza el catálogo de labs (CAP-LAB-REF-001). Cross-analito, endpoint de solo lectura.",
+      "eng_authority_note": "PROFUNDIDAD del eje C — calcula nuevos valores clínicos a partir de VARIOS resultados. Anion gap (acidosis de brecha aumentada); calcio corregido por albúmina; sodio corregido por glucemia (pseudohiponatremia); osmolalidad sérica calculada (estados hiperosmolares). Reutiliza el catálogo de labs (CAP-LAB-REF-001). Cross-analito, endpoint de solo lectura.",
       "invariants": [
         "Anion gap HIGH>12 / NORMAL 8–12 / LOW<8, con interpretación",
         "Calcio corregido = Ca + 0.8·(4−albúmina); reclasifica con el rango de calcio",
         "Usa el valor MÁS RECIENTE por analito (RLS, aislado por paciente)",
         "Analitos faltantes -> derivación null + reportada en missing (no falso resultado)",
-        "Endpoint de solo lectura (scope patient:read)"
+        "Endpoint de solo lectura (scope patient:read)",
+        "Ampliado (Epic BY): Na corregido = Na + 1.6·((glucosa−100)/100); osmolalidad = 2·Na + glucosa/18 + BUN/2.8 (275–295 normal)"
       ],
       "implementation": [
-        "packages/lab-derivations (anionGap + correctedCalcium)",
+        "packages/lab-derivations (anionGap + correctedCalcium + correctedSodiumForGlucose + calculatedOsmolality)",
         "apps/web/lib/clinical-runtime.ts (latestResultValueForAnalyte)",
         "apps/web/app/api/v1/patients/[patientId]/metabolic-panel/route.ts (GET)"
       ],
@@ -1573,7 +1574,7 @@
         "tests/v22/lab-derivations.test.ts"
       ],
       "runtime_evidence": "scripts/v22/live-metabolic-panel-proof.mts — PASS 8/8 (PANEL_200, ANION_GAP_HIGH_30, CORRECTED_CA_9_6, NOTHING_MISSING, USES_LATEST_HCO3, MISSING_REPORTED, PER_PATIENT_ISOLATION, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
-      "epic": "BN",
+      "epic": "BN+BY",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
     },
