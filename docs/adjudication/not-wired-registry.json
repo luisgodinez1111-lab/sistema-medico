@@ -1,0 +1,79 @@
+{
+  "purpose": "Registro machine-checkable de handlers *-lifecycle.ts que NO están cableados a ninguna ruta (código inalcanzable desde la app). Da a cada huérfano un ESTADO TERMINAL documentado (ley no-orphan / EXEC-0003) y evita que inflen la sensación de avance. Enforzado por tests/v22/not-wired-integrity.test.ts. Autoridad: hallazgo #10 de la auditoría 2026-09-17 (scorecard).",
+  "policy": "Un módulo listado aquí NO debe ser importado por ninguna ruta bajo apps/web/app. Si se cablea, DEBE removerse de este registro (el guard falla si un módulo listado aparece cableado). Todo *-lifecycle.ts nuevo debe estar cableado o listado aquí (el guard falla ante un huérfano no declarado). R6 (IA del copiloto) está EN PAUSA: los módulos de IA no se activan.",
+  "updated": "2026-09-17",
+  "modules": [
+    {
+      "module": "adaptive-history-lifecycle",
+      "path": "apps/web/lib/adaptive-history-lifecycle.ts",
+      "header": "EPIC R — Historia clínica adaptativa: Chief Complaint -> HPI -> ROS -> Physical",
+      "classification": "UNBUILT_VERTICAL",
+      "reason": "Vertical genuino (no-IA) aún sin ruta ni prueba en vivo. Candidato a cablear en un epic futuro.",
+      "wireCandidate": true,
+      "decision": "NOT_WIRED"
+    },
+    {
+      "module": "ai-gateway-lifecycle",
+      "path": "apps/web/lib/ai-gateway-lifecycle.ts",
+      "header": "EPIC T — AI Gateway + Low/Moderate Risk Assistance (EXEC-0024/0025)",
+      "classification": "R6_PAUSED_AI",
+      "reason": "Núcleo de IA (R6). R6 está EN PAUSA por decisión del usuario: NO se cablea ni activa.",
+      "wireCandidate": false,
+      "decision": "NOT_WIRED"
+    },
+    {
+      "module": "clinical-inbox-lifecycle",
+      "path": "apps/web/lib/clinical-inbox-lifecycle.ts",
+      "header": "EPIC N — Clinical Inbox: obligaciones clínicas",
+      "classification": "DUPLICATE_OF_WIRED",
+      "reason": "Duplica el vertical de obligaciones YA cableado (obligation-lifecycle.ts) y clinical-runtime.countOpenCriticalObligations. Legacy; candidato a RETIRO.",
+      "wireCandidate": false,
+      "decision": "NOT_WIRED"
+    },
+    {
+      "module": "clinical-intelligence-lifecycle",
+      "path": "apps/web/lib/clinical-intelligence-lifecycle.ts",
+      "header": "EPIC S — Clinical Intelligence Deterministic Layer (EXEC-0021/0022/0025)",
+      "classification": "R6_ADJACENT_AI",
+      "reason": "Capa de inteligencia clínica con AIRiskCheck; recuperada en Epic AT (motor determinista) pero adyacente a R6. Cablearla es una decisión de feature; hoy NO se cablea.",
+      "wireCandidate": false,
+      "decision": "NOT_WIRED"
+    },
+    {
+      "module": "document-ingestion-lifecycle",
+      "path": "apps/web/lib/document-ingestion-lifecycle.ts",
+      "header": "EPIC K — Document Ingestion Pipeline (EXEC-0018)",
+      "classification": "AI_EXTRACTION",
+      "reason": "Pipeline con classify/extract (extracción típicamente IA, R6-adyacente) y separado del vertical de documentos YA cableado (document-lifecycle.ts). NO se cablea.",
+      "wireCandidate": false,
+      "decision": "NOT_WIRED"
+    },
+    {
+      "module": "imaging-lifecycle",
+      "path": "apps/web/lib/imaging-lifecycle.ts",
+      "header": "EPIC Q — Ciclo de vida de orden de imagen (Radiología/Imagen)",
+      "classification": "UNBUILT_VERTICAL",
+      "reason": "Vertical genuino (no-IA) aún sin ruta ni prueba en vivo. Candidato a cablear en un epic futuro.",
+      "wireCandidate": true,
+      "decision": "NOT_WIRED"
+    },
+    {
+      "module": "lab-order-lifecycle",
+      "path": "apps/web/lib/lab-order-lifecycle.ts",
+      "header": "EPIC L — Ciclo de vida de orden de laboratorio (LAB)",
+      "classification": "DUPLICATE_OF_WIRED",
+      "reason": "Solapa los verticales YA cableados de órdenes (order-lifecycle.ts) y resultados (result-lifecycle.ts). Legacy; candidato a RETIRO o consolidación.",
+      "wireCandidate": false,
+      "decision": "NOT_WIRED"
+    },
+    {
+      "module": "prescription-lifecycle",
+      "path": "apps/web/lib/prescription-lifecycle.ts",
+      "header": "EPIC J — Prescription Studio: renderer visual de plantillas sobre datos estructurados",
+      "classification": "OVERLAPS_WIRED",
+      "reason": "Renderer de recetas que solapa la prescripción YA cableada (medication-lifecycle.ts). Feature de presentación; hoy NO se cablea.",
+      "wireCandidate": false,
+      "decision": "NOT_WIRED"
+    }
+  ]
+}

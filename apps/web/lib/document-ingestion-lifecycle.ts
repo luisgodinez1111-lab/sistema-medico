@@ -1,3 +1,5 @@
+// ⚠️ NOT_WIRED (endurecimiento G / Epic BF): este handler NO está cableado a ninguna ruta (código inalcanzable).
+// Ver docs/adjudication/not-wired-registry.json. R6 (IA) EN PAUSA: no activar. No cuenta como capacidad end-to-end.
 import{NextResponse}from"next/server";
 import crypto from"node:crypto";
 import{z}from"zod";
