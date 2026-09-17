@@ -93,6 +93,39 @@ export function deltaCheck(analyte: string, priorValue: string, newValue: string
   return hit ? { flagged: true, severity: "CRITICAL", changeAbs: round2(changeAbs), changePct, note: rule.note } : { ...none, changeAbs: round2(changeAbs), changePct };
 }
 
+// ---------- NEWS2 — National Early Warning Score 2 (EPIC BC) ----------
+// CDS agregado multiparamétrico: suma 7 parámetros de signos vitales en un score de acuidad con banda de
+// riesgo y recomendación de escalamiento. A diferencia del CDS por umbral (classifyLab/classifyVital) o
+// temporal (deltaCheck), integra el estado fisiológico GLOBAL. Puro, sin PHI. Escala SpO2 1 (sin EPOC).
+// Referencia: Royal College of Physicians, NEWS2. Parámetros faltantes se reportan (score = cota inferior).
+export type News2Band = "LOW" | "MEDIUM" | "HIGH";
+export type News2Params = Readonly<{ resp?: number | undefined; spo2?: number | undefined; temp?: number | undefined; sbp?: number | undefined; hr?: number | undefined; consciousness?: string | undefined; supplementalO2?: boolean | undefined }>;
+export type News2Result = Readonly<{ score: number; band: News2Band; redFlag: boolean; escalation: boolean; params: Readonly<Record<string, number>>; missing: readonly string[] }>;
+function scoreResp(v: number): number { if (v <= 8) return 3; if (v <= 11) return 1; if (v <= 20) return 0; if (v <= 24) return 2; return 3; }
+function scoreSpo2(v: number): number { if (v >= 96) return 0; if (v >= 94) return 1; if (v >= 92) return 2; return 3; }
+function scoreTemp(v: number): number { if (v <= 35.0) return 3; if (v <= 36.0) return 1; if (v <= 38.0) return 0; if (v <= 39.0) return 1; return 2; }
+function scoreSbp(v: number): number { if (v <= 90) return 3; if (v <= 100) return 2; if (v <= 110) return 1; if (v <= 219) return 0; return 3; }
+function scoreHr(v: number): number { if (v <= 40) return 3; if (v <= 50) return 1; if (v <= 90) return 0; if (v <= 110) return 1; if (v <= 130) return 2; return 3; }
+function scoreConsciousness(v: string): number { const s = v.trim().toUpperCase(); return (s === "A" || s === "ALERT") ? 0 : 3; }
+export function computeNEWS2(p: News2Params): News2Result {
+  const params: Record<string, number> = {}; const missing: string[] = [];
+  const put = (key: string, val: number | undefined, fn: (n: number) => number) => {
+    if (val === undefined || Number.isNaN(val)) { missing.push(key); return; }
+    params[key] = fn(val);
+  };
+  put("resp", p.resp, scoreResp);
+  put("spo2", p.spo2, scoreSpo2);
+  put("temp", p.temp, scoreTemp);
+  put("sbp", p.sbp, scoreSbp);
+  put("hr", p.hr, scoreHr);
+  if (p.consciousness !== undefined) params["consciousness"] = scoreConsciousness(p.consciousness); else missing.push("consciousness");
+  params["supplementalO2"] = p.supplementalO2 ? 2 : 0; // aire ambiente por defecto
+  const score = Object.values(params).reduce((a, b) => a + b, 0);
+  const redFlag = Object.values(params).some((s) => s === 3);
+  const band: News2Band = score >= 7 ? "HIGH" : (score >= 5 || redFlag) ? "MEDIUM" : "LOW";
+  return { score, band, redFlag, escalation: band !== "LOW", params, missing };
+}
+
 // ---------- Signos vitales ----------
 export type VitalStatus = "NORMAL" | "ABNORMAL" | "CRITICAL" | "UNKNOWN";
 export type VitalAssessment = Readonly<{ status: VitalStatus; critical: boolean; interpretation: string }>;

@@ -101,6 +101,22 @@ export async function activeMedicationDrugCodes(ctx:HttpTenantContext,patientId:
   return rows.map(x=>String(x.drug_code??"")).filter(Boolean);
  }) as Promise<string[]>;
 }
+// EPIC BC — Último valor registrado por tipo de signo vital del paciente (para computar NEWS2). RLS-scoped.
+// Toma el evento RECORDED más reciente por vitalType. Devuelve un mapa {vitalType -> value textual}.
+export async function latestVitalsByType(ctx:HttpTenantContext,patientId:string):Promise<Record<string,string>>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select distinct on (r.payload->>'vitalType') r.payload->>'vitalType' as vital_type, r.payload->>'value' as value
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
+     and r.payload->>'patientId'=${patientId}
+   order by r.payload->>'vitalType', r.occurred_at desc, r.sequence desc`;
+  const out:Record<string,string>={};for(const x of rows){const k=String(x.vital_type??"");if(k)out[k]=String(x.value??"");}
+  return out;
+ }) as Promise<Record<string,string>>;
+}
 // EPIC BB — Valor PREVIO del mismo analito del paciente (resultado más reciente ya recibido). RLS-scoped.
 // Para el delta check de laboratorio en la recepción de un resultado nuevo. Devuelve el value textual o undefined.
 export async function latestResultValueForAnalyte(ctx:HttpTenantContext,patientId:string,analyte:string):Promise<string|undefined>{
