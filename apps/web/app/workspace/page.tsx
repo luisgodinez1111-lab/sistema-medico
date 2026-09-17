@@ -48,10 +48,12 @@ type WnSt="OPEN"|"HEALED"|"ESCALATED";
 type Wn=Readonly<{id:string;location:string;stage:string;state:WnSt;version:number}>;
 type TfSt="ORDERED"|"CROSSMATCHED"|"TRANSFUSING"|"COMPLETED"|"REACTION"|"CANCELLED";
 type Tf=Readonly<{id:string;product:string;units:string;state:TfSt;version:number}>;
+type SgSt="SCHEDULED"|"TIMED_OUT"|"IN_PROGRESS"|"COMPLETED"|"CANCELLED";
+type Sg=Readonly<{id:string;procedure:string;state:SgSt;version:number}>;
 type TL=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;version:number;lastAt:string}>;
 type Gap=Readonly<{aggregateType:string;aggregateId:string;code:string;label:string;priority:"HIGH"|"MEDIUM"|"LOW"}>;
 type PanelGap=Gap&Readonly<{patientId:string}>;
-const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión"};
+const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía"};
 function alActions(a:{id:string;state:AlSt}):{label:string;path:string;body:Record<string,unknown>;to:AlSt}[]{
  const now=new Date().toISOString();const base=`/api/v1/allergies/${a.id}`;
  if(a.state==="ACTIVE")return[{label:"Refutar",path:base+"/refutation",body:{occurredAt:now},to:"REFUTED"},{label:"Inactivar",path:base+"/inactivation",body:{occurredAt:now},to:"INACTIVE"}];
@@ -73,7 +75,7 @@ const ghost:React.CSSProperties={...btn,background:"transparent",color:"#6255c7"
 const input:React.CSSProperties={width:"100%",boxSizing:"border-box",padding:"10px 12px",border:"1px solid #d9d6f2",borderRadius:10,fontSize:14,fontFamily:"inherit"};
 const mono:React.CSSProperties={fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,background:"#f4f3fb",padding:"2px 6px",borderRadius:6};
 const lbl:React.CSSProperties={fontSize:13,fontWeight:600,color:"#4b4c5e",display:"block",margin:"12px 0 6px"};
-function stateBadge(s:string){const m:Record<string,[string,string]>={SIGNED:["#e8f7ee","#1a7f43"],READY_TO_SIGN:["#fff4e5","#a15c00"],OPEN:["#eef0ff","#3f3aa0"],PROPOSED:["#eef0ff","#3f3aa0"],PRESCRIBED:["#eaf3ff","#1f5fb0"],ACTIVE:["#e8f7ee","#1a7f43"],STOPPED:["#f1f1f4","#5f6072"],RECEIVED:["#eef0ff","#3f3aa0"],VERIFIED:["#eaf3ff","#1f5fb0"],ACTIONED:["#fff4e5","#a15c00"],CLOSED:["#e8f7ee","#1a7f43"],DRAFT:["#eef0ff","#3f3aa0"],FINALIZED:["#eaf3ff","#1f5fb0"],AMENDED:["#e8f7ee","#1a7f43"],ORDERED:["#eaf3ff","#1f5fb0"],FULFILLED:["#e8f7ee","#1a7f43"],CANCELLED:["#f1f1f4","#5f6072"],IN_PROGRESS:["#fff4e5","#a15c00"],COMPLETED:["#e8f7ee","#1a7f43"],ACTIVE_PROB:["#eef0ff","#3f3aa0"],RESOLVED:["#f1f1f4","#5f6072"],CHRONIC:["#fff4e5","#a15c00"],ENTERED_IN_ERROR:["#f1f1f4","#5f6072"],REFUTED:["#f1f1f4","#5f6072"],INACTIVE:["#f1f1f4","#5f6072"],REQUESTED:["#eef0ff","#3f3aa0"],ACCEPTED:["#eaf3ff","#1f5fb0"],DECLINED:["#f1f1f4","#5f6072"],SCHEDULED:["#eef0ff","#3f3aa0"],CHECKED_IN:["#fff4e5","#a15c00"],NO_SHOW:["#f1f1f4","#5f6072"],DUE:["#eef0ff","#3f3aa0"],ADMINISTERED:["#e8f7ee","#1a7f43"],ADVERSE_EVENT:["#fdeaea","#b3261e"],RECORDED:["#e8f7ee","#1a7f43"],ON_HOLD:["#fff4e5","#a15c00"],ACHIEVED:["#e8f7ee","#1a7f43"],CODED:["#eaf3ff","#1f5fb0"],SUBMITTED:["#fff4e5","#a15c00"],PAID:["#e8f7ee","#1a7f43"],REJECTED:["#fdeaea","#b3261e"],VOIDED:["#f1f1f4","#5f6072"],DRAFTED:["#eef0ff","#3f3aa0"],PRESENTED:["#fff4e5","#a15c00"],GRANTED:["#e8f7ee","#1a7f43"],REVOKED:["#f1f1f4","#5f6072"],ADMITTED:["#e8f7ee","#1a7f43"],TRANSFERRED:["#fff4e5","#a15c00"],DISCHARGED:["#eef0ff","#3f3aa0"],COLLECTED:["#eef0ff","#3f3aa0"],RESULTED:["#e8f7ee","#1a7f43"],UNDER_REVIEW:["#fff4e5","#a15c00"],ESCALATED:["#fdeaea","#b3261e"],WAITING:["#eef0ff","#3f3aa0"],IN_TRIAGE:["#fff4e5","#a15c00"],TRIAGED:["#eaf3ff","#1f5fb0"],LWBS:["#f1f1f4","#5f6072"],HEALED:["#e8f7ee","#1a7f43"],CROSSMATCHED:["#eaf3ff","#1f5fb0"],TRANSFUSING:["#fff4e5","#a15c00"],REACTION:["#fdeaea","#b3261e"]};const c=m[s]??["#eef0ff","#3f3aa0"];return{display:"inline-block",background:c[0],color:c[1],fontWeight:700,fontSize:12,padding:"3px 10px",borderRadius:999};}
+function stateBadge(s:string){const m:Record<string,[string,string]>={SIGNED:["#e8f7ee","#1a7f43"],READY_TO_SIGN:["#fff4e5","#a15c00"],OPEN:["#eef0ff","#3f3aa0"],PROPOSED:["#eef0ff","#3f3aa0"],PRESCRIBED:["#eaf3ff","#1f5fb0"],ACTIVE:["#e8f7ee","#1a7f43"],STOPPED:["#f1f1f4","#5f6072"],RECEIVED:["#eef0ff","#3f3aa0"],VERIFIED:["#eaf3ff","#1f5fb0"],ACTIONED:["#fff4e5","#a15c00"],CLOSED:["#e8f7ee","#1a7f43"],DRAFT:["#eef0ff","#3f3aa0"],FINALIZED:["#eaf3ff","#1f5fb0"],AMENDED:["#e8f7ee","#1a7f43"],ORDERED:["#eaf3ff","#1f5fb0"],FULFILLED:["#e8f7ee","#1a7f43"],CANCELLED:["#f1f1f4","#5f6072"],IN_PROGRESS:["#fff4e5","#a15c00"],COMPLETED:["#e8f7ee","#1a7f43"],ACTIVE_PROB:["#eef0ff","#3f3aa0"],RESOLVED:["#f1f1f4","#5f6072"],CHRONIC:["#fff4e5","#a15c00"],ENTERED_IN_ERROR:["#f1f1f4","#5f6072"],REFUTED:["#f1f1f4","#5f6072"],INACTIVE:["#f1f1f4","#5f6072"],REQUESTED:["#eef0ff","#3f3aa0"],ACCEPTED:["#eaf3ff","#1f5fb0"],DECLINED:["#f1f1f4","#5f6072"],SCHEDULED:["#eef0ff","#3f3aa0"],CHECKED_IN:["#fff4e5","#a15c00"],NO_SHOW:["#f1f1f4","#5f6072"],DUE:["#eef0ff","#3f3aa0"],ADMINISTERED:["#e8f7ee","#1a7f43"],ADVERSE_EVENT:["#fdeaea","#b3261e"],RECORDED:["#e8f7ee","#1a7f43"],ON_HOLD:["#fff4e5","#a15c00"],ACHIEVED:["#e8f7ee","#1a7f43"],CODED:["#eaf3ff","#1f5fb0"],SUBMITTED:["#fff4e5","#a15c00"],PAID:["#e8f7ee","#1a7f43"],REJECTED:["#fdeaea","#b3261e"],VOIDED:["#f1f1f4","#5f6072"],DRAFTED:["#eef0ff","#3f3aa0"],PRESENTED:["#fff4e5","#a15c00"],GRANTED:["#e8f7ee","#1a7f43"],REVOKED:["#f1f1f4","#5f6072"],ADMITTED:["#e8f7ee","#1a7f43"],TRANSFERRED:["#fff4e5","#a15c00"],DISCHARGED:["#eef0ff","#3f3aa0"],COLLECTED:["#eef0ff","#3f3aa0"],RESULTED:["#e8f7ee","#1a7f43"],UNDER_REVIEW:["#fff4e5","#a15c00"],ESCALATED:["#fdeaea","#b3261e"],WAITING:["#eef0ff","#3f3aa0"],IN_TRIAGE:["#fff4e5","#a15c00"],TRIAGED:["#eaf3ff","#1f5fb0"],LWBS:["#f1f1f4","#5f6072"],HEALED:["#e8f7ee","#1a7f43"],CROSSMATCHED:["#eaf3ff","#1f5fb0"],TRANSFUSING:["#fff4e5","#a15c00"],REACTION:["#fdeaea","#b3261e"],TIMED_OUT:["#eaf3ff","#1f5fb0"]};const c=m[s]??["#eef0ff","#3f3aa0"];return{display:"inline-block",background:c[0],color:c[1],fontWeight:700,fontSize:12,padding:"3px 10px",borderRadius:999};}
 const in7days=()=>new Date(Date.now()+7*864e5).toISOString();
 const uuid=()=>globalThis.crypto.randomUUID();
 const nowIso=()=>new Date().toISOString();
@@ -112,6 +114,12 @@ function referralNext(r:Ref):{label:string;path:string;body:Record<string,unknow
 function apptNext(a:Appt):{label:string;path:string;body:Record<string,unknown>;to:ApptSt}|null{
  if(a.state==="SCHEDULED")return{label:"Registrar llegada",path:`/api/v1/appointments/${a.id}/check-in`,body:{occurredAt:nowIso()},to:"CHECKED_IN"};
  if(a.state==="CHECKED_IN")return{label:"Completar",path:`/api/v1/appointments/${a.id}/completion`,body:{occurredAt:nowIso()},to:"COMPLETED"};
+ return null;
+}
+function sgNext(s:Sg):{label:string;path:string;body:Record<string,unknown>;to:SgSt}|null{
+ if(s.state==="SCHEDULED")return{label:"Time-out OMS",path:`/api/v1/surgeries/${s.id}/timeout`,body:{occurredAt:nowIso()},to:"TIMED_OUT"};
+ if(s.state==="TIMED_OUT")return{label:"Iniciar",path:`/api/v1/surgeries/${s.id}/start`,body:{occurredAt:nowIso()},to:"IN_PROGRESS"};
+ if(s.state==="IN_PROGRESS")return{label:"Completar",path:`/api/v1/surgeries/${s.id}/completion`,body:{outcome:"Sin complicaciones",occurredAt:nowIso()},to:"COMPLETED"};
  return null;
 }
 function tfNext(t:Tf):{label:string;path:string;body:Record<string,unknown>;to:TfSt}|null{
@@ -220,6 +228,7 @@ export default function Workspace(){
  const[triages,setTriages]=useState<Tr[]>([]);const[trComplaint,setTrComplaint]=useState("");
  const[wounds,setWounds]=useState<Wn[]>([]);const[wnLoc,setWnLoc]=useState("SACRUM");const[wnStage,setWnStage]=useState("STAGE_2");
  const[transfs,setTransfs]=useState<Tf[]>([]);const[tfProduct,setTfProduct]=useState("PRBC");const[tfUnits,setTfUnits]=useState("2");
+ const[surgs,setSurgs]=useState<Sg[]>([]);const[sgProc,setSgProc]=useState("");const[sgLat,setSgLat]=useState("NA");
  const[tl,setTl]=useState<TL[]|null>(null);
  const[gaps,setGaps]=useState<Gap[]|null>(null);
  const[exportInfo,setExportInfo]=useState<{aggregateCount:number;eventCount:number;contentHash:string}|null>(null);
@@ -329,6 +338,22 @@ export default function Workspace(){
   const r=await apiRequest(path,{method:"POST",body,ifMatch:a.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setAppts(as=>as.map(x=>x.id===a.id?{...x,state:to,version:Number(r.body["version"]??x.version+1)}:x));
+ });
+ const createSurgery=()=>call("sg-new",async()=>{
+  const id=uuid();const r=await apiRequest("/api/v1/surgeries",{method:"POST",body:{surgeryId:id,patientId,procedure:sgProc,laterality:sgLat,surgeon:"Cirujano de guardia",occurredAt:nowIso()}});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setSurgs(ss=>[...ss,{id,procedure:sgProc,state:"SCHEDULED",version:Number(r.body["version"]??1)}]);setSgProc("");
+ });
+ const advanceSurgery=(s:Sg)=>call("sg-"+s.id,async()=>{
+  const n=sgNext(s);if(!n)return;
+  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:s.version});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setSurgs(ss=>ss.map(x=>x.id===s.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
+ });
+ const cancelSurgery=(s:Sg)=>call("sg-"+s.id,async()=>{
+  const r=await apiRequest(`/api/v1/surgeries/${s.id}/cancellation`,{method:"POST",body:{reason:"Cancelada",occurredAt:nowIso()},ifMatch:s.version});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setSurgs(ss=>ss.map(x=>x.id===s.id?{...x,state:"CANCELLED",version:Number(r.body["version"]??x.version+1)}:x));
  });
  const createTransfusion=()=>call("tf-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/transfusions",{method:"POST",body:{transfusionId:id,patientId,bloodProduct:tfProduct,units:tfUnits,occurredAt:nowIso()}});
@@ -483,7 +508,7 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setObligations(os=>os.map(x=>x.id===o.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
- function selectPatientRaw(id:string,name:string){setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
+ function selectPatientRaw(id:string,name:string){setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
  const loadPatients=()=>call("pt-list",async()=>{
   const r=await apiRequest("/api/v1/patients",{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
@@ -512,7 +537,7 @@ export default function Workspace(){
   const g=await apiRequest(`/api/v1/patients/${patientId}/care-gaps`,{method:"GET"});
   if(g.status<400)setGaps((g.body["gaps"] as Gap[])??[]);
  });
- function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setTl(null);setGaps(null);setExportInfo(null);setError("");setPatientId(uuid());}
+ function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setTl(null);setGaps(null);setExportInfo(null);setError("");setPatientId(uuid());}
 
  if(!ready)return <main style={wrap}><p>Cargando…</p></main>;
  if(!session)return <main style={wrap}>
@@ -1002,6 +1027,27 @@ export default function Workspace(){
       <span style={stateBadge(t.state)}>{t.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceTransfusion(t)}>{busy==="tf-"+t.id?"…":n.label}</button>}
       {t.state==="TRANSFUSING"&&<button style={{...ghost,padding:"7px 12px",color:"#b3261e",borderColor:"#f0c9c9"}} disabled={busy!==""} onClick={()=>transfusionReaction(t)}>Reacción</button>}
+     </div>
+    </div>;})}
+   </div>}
+  </section>
+
+  {/* CIRUGÍA / QUIRÓFANO */}
+  <section style={card}>
+   <h2 style={{fontSize:18,margin:0}}>Cirugía</h2>
+   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Caso quirúrgico con barrera de seguridad: agendar → time-out OMS (checklist) → iniciar → completar. No se puede iniciar sin el time-out. Aislamiento por tenant.</p>
+   <div style={{display:"grid",gridTemplateColumns:"1fr 150px auto",gap:10,marginTop:12}}>
+    <input style={input} value={sgProc} onChange={e=>setSgProc(e.target.value)} placeholder="Procedimiento (ej. Colecistectomía)" />
+    <select style={input} value={sgLat} onChange={e=>setSgLat(e.target.value)}><option value="NA">Sin lateralidad</option><option value="LEFT">Izquierdo</option><option value="RIGHT">Derecho</option><option value="BILATERAL">Bilateral</option></select>
+    <button style={btn} disabled={busy!==""||!sgProc} onClick={createSurgery}>{busy==="sg-new"?"Agendando…":"Agendar cirugía"}</button>
+   </div>
+   {surgs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+    {surgs.map(s=>{const n=sgNext(s);const open=s.state==="SCHEDULED"||s.state==="TIMED_OUT";return <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+     <div style={{minWidth:0}}><b style={{fontSize:14}}>{s.procedure}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{s.version}</div></div>
+     <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+      <span style={stateBadge(s.state)}>{s.state}</span>
+      {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceSurgery(s)}>{busy==="sg-"+s.id?"…":n.label}</button>}
+      {open&&<button style={{...ghost,padding:"7px 12px",color:"#a15c00",borderColor:"#f0d9b8"}} disabled={busy!==""} onClick={()=>cancelSurgery(s)}>Cancelar</button>}
      </div>
     </div>;})}
    </div>}
