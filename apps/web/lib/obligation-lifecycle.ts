@@ -13,14 +13,19 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"obligation:write",purpose:"TREATMENT"});
 }
 
-const CreateBody=z.object({obligationId:z.string().uuid(),patientId:z.string().uuid(),ownerId:z.string().uuid(),dueAt:z.string().datetime(),kind:z.string().min(1),occurredAt:z.string().datetime()});
+// EPIC AS (profundidad): `sourceVitalId` opcional liga la obligación a un signo vital CRÍTICO. Al existir
+// una obligación con este sourceVitalId, countOpenCriticalVitals deja de contar ese vital como "sin atender"
+// (se cierra el lazo Zero Lost Follow-Up de vitales críticos y se desbloquea la firma del encuentro).
+const CreateBody=z.object({obligationId:z.string().uuid(),patientId:z.string().uuid(),ownerId:z.string().uuid(),dueAt:z.string().datetime(),kind:z.string().min(1),sourceVitalId:z.string().uuid().optional(),occurredAt:z.string().datetime()});
 export async function handleObligationCreate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.obligationId,expectedVersion:0,eventType:"OBLIGATION_CREATED",payload:{kind:"CREATED",patientId:b.patientId,ownerId:b.ownerId,dueAt:b.dueAt,obligationKind:b.kind},occurredAt:b.occurredAt,topic:"obligation.created"});
+  const payload:Record<string,unknown>={kind:"CREATED",patientId:b.patientId,ownerId:b.ownerId,dueAt:b.dueAt,obligationKind:b.kind};
+  if(b.sourceVitalId)payload["sourceVitalId"]=b.sourceVitalId;
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.obligationId,expectedVersion:0,eventType:"OBLIGATION_CREATED",payload,occurredAt:b.occurredAt,topic:"obligation.created"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({obligationId:b.obligationId,state:"OPEN",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
