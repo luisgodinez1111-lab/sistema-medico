@@ -145,7 +145,10 @@ export class ClinicalIntelligenceEngine{
     }
     for(const f of pkg.followUpRules){
       if(this.evalCondition(f.condition,state,chiefComplaint)){
-        output.followUpRules.push({obligationType:f.action,dueAt:new Date(Date.now()+30*24*60*60*1000).toISOString(),reason:f.evidence.join("; "),priority:"ROUTINE"});
+        // AUDITORÍA 2026-09-17: antes ponía dueAt:Date.now()+30d -> el motor NO era determinista (dos evaluate()
+        // en ms distintos diferían). El vencimiento absoluto es una preocupación de PERSISTENCIA (se calcula desde
+        // occurredAt en el handler), no del motor puro. Se emite un intervalo relativo determinista.
+        output.followUpRules.push({obligationType:f.action,dueInDays:30,reason:f.evidence.join("; "),priority:"ROUTINE"});
       }
     }
     for(const s of pkg.safetyNet){
