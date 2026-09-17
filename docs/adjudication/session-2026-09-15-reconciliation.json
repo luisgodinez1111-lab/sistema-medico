@@ -1626,6 +1626,31 @@
       "epic": "BP",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-STROKE-RISK-001",
+      "name": "CHA2DS2-VASc: riesgo de ictus en FA -> indicación de anticoagulación",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — score de riesgo VALIDADO que guía una decisión terapéutica (anticoagulación en fibrilación auricular no valvular). Cruza la lista de problemas (CIE-10) + demografía. Umbrales sexo-específicos; riesgo anual de ictus por puntaje. Cross-vertical problema↔paciente.",
+      "invariants": [
+        "Componentes CHA2DS2-VASc: IC(1), HTA(1), edad>=75(2)/65-74(1), DM(1), ictus previo(2), vascular(1), sexo femenino(1)",
+        "Umbral sexo-específico: mujer con score 1 (solo sexo) = LOW; hombre score 0 = LOW; >=2 (H) / >=3 (M) = HIGH -> anticoagular",
+        "Factores derivados de CIE-10 activos (I50/I10/E10-E11/I25-I21/I63-G45); FA (I48) marca aplicabilidad",
+        "Paciente no registrado -> 404; endpoint de solo lectura (scope patient:read)",
+        "Aislado por paciente (RLS): usa los problemas y la demografía del propio paciente"
+      ],
+      "implementation": [
+        "packages/stroke-risk (cha2ds2vasc)",
+        "apps/web/lib/clinical-runtime.ts (patientDemographics + activeProblemCodes)",
+        "apps/web/app/api/v1/patients/[patientId]/cha2ds2vasc/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/stroke-risk.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-cha2ds2vasc-proof.mts — PASS 10/10 (COMPUTED_200, SCORE_5_HIGH, AFIB_APPLICABLE, ANTICOAG_RECOMMENDED, HAS_ANNUAL_RISK, SCORE_0_LOW, NO_AFIB_NOTE, FEMALE_SCORE_3_HIGH, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "BQ",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

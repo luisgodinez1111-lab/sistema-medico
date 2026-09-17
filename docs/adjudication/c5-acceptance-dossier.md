@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **64**
+- Capacidades reconciliadas: **65**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **64**
+- Pendiente de aceptación humana C5: **65**
 
 ## Riesgo C4
 
@@ -459,6 +459,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-glycemic-status-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-STROKE-RISK-001 — CHA2DS2-VASc: riesgo de ictus en FA -> indicación de anticoagulación
+- Epic: BQ
+- Invariantes: 5
+- Tests: `tests/v22/stroke-risk.test.ts`
+- Prueba en vivo: `scripts/v22/live-cha2ds2vasc-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -527,3 +534,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-LAB-DERIVATIONS-001 | | | | |
 | CAP-ANTHROPOMETRICS-BMI-001 | | | | |
 | CAP-GLYCEMIC-CONTROL-001 | | | | |
+| CAP-STROKE-RISK-001 | | | | |
