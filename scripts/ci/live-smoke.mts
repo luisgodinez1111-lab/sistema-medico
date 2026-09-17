@@ -37,6 +37,7 @@ const SMOKE:readonly string[]=[
  "live-bp-stage-proof",                     // profundidad: estadificación de presión arterial (ACC/AHA)
  "live-anticoagulation-status-proof",       // profundidad: INR terapéutico en contexto del anticoagulante
  "live-meld-proof",                         // profundidad: MELD (pronóstico de hepatopatía)
+ "live-acid-base-proof",                    // profundidad: interpretación ácido-base (Winters)
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];
