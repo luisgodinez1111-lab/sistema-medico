@@ -39,6 +39,7 @@ const SMOKE:readonly string[]=[
  "live-meld-proof",                         // profundidad: MELD (pronóstico de hepatopatía)
  "live-acid-base-proof",                    // profundidad: interpretación ácido-base (Winters)
  "live-curb65-proof",                       // profundidad: CURB-65 (gravedad de neumonía)
+ "live-aa-gradient-proof",                  // profundidad: gradiente alveolo-arterial de O2
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];
