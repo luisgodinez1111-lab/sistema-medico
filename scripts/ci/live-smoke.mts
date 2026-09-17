@@ -29,6 +29,7 @@ const SMOKE:readonly string[]=[
  "live-egfr-proof",                         // profundidad: función renal (CKD-EPI) + estadio ERC
  "live-renal-dosing-gate-proof",            // barrera 7: contraindicación renal por eGFR medido
  "live-metabolic-panel-proof",              // profundidad: derivaciones multi-analito (anion gap, calcio corregido)
+ "live-bmi-proof",                          // profundidad: IMC + clasificación WHO
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];
