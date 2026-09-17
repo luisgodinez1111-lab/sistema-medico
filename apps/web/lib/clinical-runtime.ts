@@ -111,14 +111,23 @@ export async function activeMedicationDrugCodes(ctx:HttpTenantContext,patientId:
   return rows.map(x=>String(x.drug_code??"")).filter(Boolean);
  }) as Promise<string[]>;
 }
-// EPIC BK — Fecha de nacimiento del paciente (del evento REGISTERED). RLS-scoped. Para el pronóstico de vacunación.
-export async function patientBirthDate(ctx:HttpTenantContext,patientId:string):Promise<string|undefined>{
+// EPIC BK/BL — Demografía del paciente (nacimiento + sexo, del evento REGISTERED). RLS-scoped.
+export type PatientDemographics=Readonly<{birthDate?:string;sexAtBirth?:string}>;
+export async function patientDemographics(ctx:HttpTenantContext,patientId:string):Promise<PatientDemographics|undefined>{
  const sql=getSql();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
-  const rows=await tx`select r.payload->>'birthDate' as bd from clinical_events r where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=${patientId} limit 1`;
-  const v=rows[0]?.bd;return v==null?undefined:String(v);
- }) as Promise<string|undefined>;
+  const rows=await tx`select r.payload->>'birthDate' as bd, r.payload->>'sexAtBirth' as sx from clinical_events r where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=${patientId} limit 1`;
+  if(!rows[0])return undefined;
+  const d:{birthDate?:string;sexAtBirth?:string}={};
+  if(rows[0].bd!=null)d.birthDate=String(rows[0].bd);
+  if(rows[0].sx!=null)d.sexAtBirth=String(rows[0].sx);
+  return d;
+ }) as Promise<PatientDemographics|undefined>;
+}
+// EPIC BK — Fecha de nacimiento del paciente (del evento REGISTERED). RLS-scoped. Para el pronóstico de vacunación.
+export async function patientBirthDate(ctx:HttpTenantContext,patientId:string):Promise<string|undefined>{
+ const d=await patientDemographics(ctx,patientId);return d?.birthDate;
 }
 // EPIC BK — Códigos de vacunas ADMINISTRADAS del paciente (último kind ADMINISTERED). RLS-scoped.
 export async function administeredVaccineCodes(ctx:HttpTenantContext,patientId:string):Promise<string[]>{

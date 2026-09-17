@@ -1,0 +1,44 @@
+// EPIC BL — Evidencia física: eGFR (CKD-EPI 2021) + estadio ERC desde creatinina + edad/sexo del paciente. vs Neon.
+import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";
+try{const e=fs.readFileSync(path.resolve(".env.local"),"utf8");for(const l of e.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(l.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}}catch{}
+if(!process.env.DATABASE_URL){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
+process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bl-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
+const{signSession}=await import("../../packages/session/src");
+const pat=await import("../../apps/web/app/api/v1/patients/route");
+const res=await import("../../apps/web/app/api/v1/results/route");
+const eg=await import("../../apps/web/app/api/v1/patients/[patientId]/egfr/route");
+const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
+function tok(scopes=["patient:write","patient:read","result:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
+function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
+const PP=(id:string)=>({params:Promise.resolve({patientId:id})});
+const ISO="2026-09-14T09:00:00.000Z";const idem=()=>crypto.randomUUID();
+let ts=Date.parse(ISO);const nextAt=()=>new Date(ts+=60000).toISOString(); // timestamps crecientes (la más reciente gana)
+const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+function birth(yearsAgo:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-yearsAgo);return d.toISOString().slice(0,10);}
+async function register(t:string,p:string,sex:string,yearsAgo:number){await pat.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:"Prueba",birthDate:birth(yearsAgo),sexAtBirth:sex,occurredAt:ISO})}));}
+async function creat(t:string,p:string,value:string){await res.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:"CREATININE",value,occurredAt:nextAt()})}));}
+async function egfr(t:string,p:string){const r=await eg.GET(new Request("http://l/",{headers:H(t)}),PP(p));return{status:r.status,body:await r.json()};}
+try{
+ const phys=tok();
+ // 1) hombre ~50a, Scr 1.0 -> eGFR normal (~92), G1
+ const p1=crypto.randomUUID();await register(phys,p1,"MALE",50);await creat(phys,p1,"1.0");
+ let g=await egfr(phys,p1);ok(g.status===200&&g.body.computable===true,"COMPUTABLE_200");
+ ok(g.body.egfr>=85&&g.body.egfr<=98,"MALE_50_SCR1_NORMAL_EGFR");
+ ok(g.body.stage==="G1","STAGE_G1");
+ // 2) hombre ~70a, Scr 2.5 -> ERC avanzada (eGFR<45)
+ const p2=crypto.randomUUID();await register(phys,p2,"MALE",70);await creat(phys,p2,"2.5");
+ g=await egfr(phys,p2);ok(g.body.computable===true&&g.body.egfr<45&&["G3b","G4"].includes(g.body.stage),"ADVANCED_CKD");
+ // 3) usa la creatinina MÁS RECIENTE: nueva creatinina 3.5 baja aún más el eGFR
+ await creat(phys,p2,"3.5");g=await egfr(phys,p2);ok(g.body.creatinineMgDl===3.5,"USES_LATEST_CREATININE");
+ // 4) pediátrico (~5a) -> no computable (Schwartz, no CKD-EPI)
+ const p3=crypto.randomUUID();await register(phys,p3,"FEMALE",5);await creat(phys,p3,"0.4");
+ g=await egfr(phys,p3);ok(g.body.computable===false&&/pedi/i.test(g.body.reason),"PEDIATRIC_NOT_COMPUTABLE");
+ // 5) adulto sin creatinina -> no computable
+ const p4=crypto.randomUUID();await register(phys,p4,"MALE",40);
+ g=await egfr(phys,p4);ok(g.body.computable===false&&/creatinina/i.test(g.body.reason),"NO_CREATININE_NOT_COMPUTABLE");
+ // 6) paciente no registrado -> 404
+ g=await egfr(phys,crypto.randomUUID());ok(g.status===404,"UNREGISTERED_404");
+ // 7) sin scope patient:read -> 403
+ const noScope=tok(["result:write"]);g=await egfr(noScope,p1);ok(g.status===403,"MISSING_SCOPE_403");
+}catch(e){result.status="FAIL";result.error=String(e);}
+console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
