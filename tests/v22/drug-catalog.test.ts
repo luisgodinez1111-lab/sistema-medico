@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{checkDrugAllergy,resolveDrug}from"../../packages/drug-catalog/src";
+import{checkDrugAllergy,resolveDrug,checkContraindications}from"../../packages/drug-catalog/src";
 describe("catálogo de fármacos + gate de alergia (EPIC AP)",()=>{
  it("resuelve el principio activo dentro del código",()=>{
   expect(resolveDrug("amoxicilina-500mg")?.ingredient).toBe("amoxicilina");
@@ -56,5 +56,27 @@ describe("interacciones farmacológicas (EPIC AX)",()=>{
  it("sin interacción entre clases no relacionadas",()=>{
   expect(checkInteractions("amoxicilina-500",["metformina-850"]).found).toBe(false);
   expect(checkInteractions("ibuprofeno-400",[]).found).toBe(false);
+ });
+});
+describe("contraindicación fármaco–condición (EPIC AY)",()=>{
+ it("AINE + ERC (N18.3) -> MAJOR (bloquea)",()=>{
+  const r=checkContraindications("ibuprofeno-400",["N18.3"]);
+  expect(r).toMatchObject({found:true,severity:"MAJOR"});expect(r.condition).toBe("N18.3");
+ });
+ it("AINE + insuficiencia cardíaca (I50.9) -> MAJOR",()=>{
+  expect(checkContraindications("naproxeno-500",["I50.9"]).severity).toBe("MAJOR");
+ });
+ it("AINE + gastritis (K29.70) -> MODERATE (alerta, no bloquea)",()=>{
+  expect(checkContraindications("ketorolaco-30",["K29.70"])).toMatchObject({found:true,severity:"MODERATE"});
+ });
+ it("metformina + ERC (N18.3) -> MODERATE (precaución por TFG)",()=>{
+  expect(checkContraindications("metformina-850",["N18.3"]).severity).toBe("MODERATE");
+ });
+ it("prioriza MAJOR sobre MODERATE cuando coexisten condiciones",()=>{
+  expect(checkContraindications("ibuprofeno-400",["K29.70","N18.3"]).severity).toBe("MAJOR");
+ });
+ it("sin condición contraindicante -> permitido",()=>{
+  expect(checkContraindications("ibuprofeno-400",["E11.9","I10"]).found).toBe(false);
+  expect(checkContraindications("amoxicilina-500",["N18.3"]).found).toBe(false);
  });
 });

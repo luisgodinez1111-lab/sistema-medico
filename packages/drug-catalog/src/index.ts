@@ -60,6 +60,35 @@ export function checkInteractions(newDrugCode:string,activeDrugCodes:readonly st
  }
  return best;
 }
+// EPIC AY — Contraindicación fármaco–condición (drug–disease). Cruza la CLASE del fármaco a prescribir
+// contra las condiciones ACTIVAS del paciente (lista de problemas, CIE-10). MAJOR = bloquea; MODERATE = alerta.
+// Match por prefijo CIE-10 (grupo de enfermedad): "N18.3" (ERC estadio 3) coincide con el prefijo "N18".
+// Puro, sin PHI. Subconjunto de demostración; el vademécum oficial se cargaría de la fuente autorizada.
+export type DrugCondition=Readonly<{drugClass:string;icd10Prefix:string;severity:"MAJOR"|"MODERATE";note:string}>;
+const CONTRAINDICATIONS:readonly DrugCondition[]=[
+ {drugClass:"NSAID",icd10Prefix:"N18",severity:"MAJOR",note:"AINE en enfermedad renal crónica: nefrotoxicidad y deterioro de la función renal"},
+ {drugClass:"NSAID",icd10Prefix:"I50",severity:"MAJOR",note:"AINE en insuficiencia cardíaca: retención de líquidos y descompensación"},
+ {drugClass:"NSAID",icd10Prefix:"K29",severity:"MODERATE",note:"AINE en gastritis/enfermedad péptica: riesgo de hemorragia gastrointestinal (usar con gastroprotección)"},
+ {drugClass:"BIGUANIDE",icd10Prefix:"N18",severity:"MODERATE",note:"Metformina en ERC: riesgo de acidosis láctica; contraindicada si TFG<30, ajustar dosis y vigilar"},
+ {drugClass:"ACE_INHIBITOR",icd10Prefix:"N18",severity:"MODERATE",note:"IECA en ERC: vigilar potasio y creatinina (nefroprotector pero requiere monitoreo estrecho)"},
+];
+export type ContraindicationHit=Readonly<{found:boolean;severity?:"MAJOR"|"MODERATE";note?:string;condition?:string}>;
+// ¿El fármaco a prescribir está contraindicado por alguna condición activa? Devuelve la de mayor severidad.
+export function checkContraindications(newDrugCode:string,activeConditionCodes:readonly string[]):ContraindicationHit{
+ const nd=resolveDrug(newDrugCode);if(!nd)return{found:false};
+ const classes=new Set(nd.classes);
+ let best:ContraindicationHit={found:false};
+ for(const raw of activeConditionCodes){
+  const code=raw.trim().toUpperCase();if(!code)continue;
+  for(const ci of CONTRAINDICATIONS){
+   if(!classes.has(ci.drugClass))continue;
+   if(!code.startsWith(ci.icd10Prefix))continue;
+   if(ci.severity==="MAJOR")return{found:true,severity:"MAJOR",note:ci.note,condition:raw};
+   if(!best.found)best={found:true,severity:"MODERATE",note:ci.note,condition:raw};
+  }
+ }
+ return best;
+}
 // Sinónimos de sustancia de alergia -> clases de alérgeno (para normalizar la alergia registrada).
 const ALLERGY_SYNONYMS:Record<string,readonly string[]>={
  "penicilina":["PENICILLIN","BETA_LACTAM"],"penicillin":["PENICILLIN","BETA_LACTAM"],"pcn":["PENICILLIN","BETA_LACTAM"],

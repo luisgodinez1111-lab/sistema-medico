@@ -4,10 +4,10 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldMedication,assertMedicationTransition,type FoldedMedication}from"../../../packages/medication-fold/src";
 import{type MedicationState}from"../../../packages/medication-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances,activeMedicationDrugCodes}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
-import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions}from"../../../packages/drug-catalog/src";
+import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindications}from"../../../packages/drug-catalog/src";
 import{validateMedicationOrder,normalizeRoute}from"../../../packages/medication-validation/src";
 // EPIC H — Ciclo de vida de medicación sobre el kernel. Physician Control:
 // PROPOSE lo puede hacer cualquier clínico (o IA), PRESCRIBE exige médico (IA nunca prescribe).
@@ -75,6 +75,10 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
    // EPIC AX — Interacción farmacológica MAJOR con un fármaco activo -> bloquea.
    const ix=checkInteractions(folded.drugCode,activeDrugs);
    if(ix.found&&ix.severity==="MAJOR")throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: interacción MAJOR con ${ix.conflictDrug} — ${ix.note}.`);
+   // EPIC AY — Contraindicación fármaco–condición: fármaco contraindicado por una condición ACTIVA (CIE-10) -> bloquea si MAJOR.
+   const conditions=await activeProblemCodes(ctx,folded.patientId);
+   const ci=checkContraindications(folded.drugCode,conditions);
+   if(ci.found&&ci.severity==="MAJOR")throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: contraindicado por la condición activa ${ci.condition} — ${ci.note}.`);
    // EXEC-0014: Crear obligaciones de monitoreo al prescribir (ej: monitor creatinine, HbA1c)
    // El payload incluye monitoringObligations para que el worker las procese.
    result=await runClinicalCommand(ctx,cmd);
