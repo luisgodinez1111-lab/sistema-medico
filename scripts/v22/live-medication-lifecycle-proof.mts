@@ -31,8 +31,12 @@ try{
  const med=crypto.randomUUID(),pat=crypto.randomUUID();
  const drug={drugCode:"amoxicilina-500",dose:"500mg",route:"PO",frequency:"c/8h"};
 
+ // 0) EPIC AV: orden con vía/dosis/frecuencia inválidas -> 400 VALIDATION_ERROR.
+ let r=await meds.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:crypto.randomUUID(),patientId:pat,drugCode:"x",dose:"mucho",route:"boca",frequency:"a veces",occurredAt:ISO})}));
+ ok(r.status===400&&(await r.json()).error.code==="VALIDATION_ERROR","INVALID_MED_ORDER_400");
+
  // 1) La ENFERMERA propone (no requiere ser médico) -> 201 PROPOSED v1.
- let r=await meds.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:med,patientId:pat,...drug,occurredAt:ISO})}));
+ r=await meds.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:med,patientId:pat,...drug,occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).state==="PROPOSED","NURSE_PROPOSE_201");
 
  // 2) *** PHYSICIAN CONTROL *** la enfermera NO puede prescribir -> 403.

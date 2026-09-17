@@ -20,6 +20,25 @@ const RANGES: Record<string, readonly [number, number, number, number]> = {
   INR: [0, 0, 3.5, 5],                // sin límite bajo
   LACTATE: [0, 0, 2, 4],              // mmol/L
   TROPONIN: [0, 0, 0.04, 0.04],       // ng/mL: cualquier elevación >0.04 es crítica
+  // — Ampliación 2026-09-17 —
+  CALCIUM: [6, 8.5, 10.5, 13],        // mg/dL (calcio total)
+  MAGNESIUM: [1, 1.7, 2.4, 4.9],      // mg/dL
+  PHOSPHORUS: [1, 2.5, 4.5, 8],       // mg/dL
+  CHLORIDE: [80, 98, 107, 120],       // mEq/L
+  BICARBONATE: [10, 22, 29, 40],      // mEq/L (HCO3)
+  BUN: [0, 0, 20, 100],               // mg/dL (nitrógeno ureico)
+  ALT: [0, 0, 40, 1000],              // U/L
+  AST: [0, 0, 40, 1000],              // U/L
+  BILIRUBIN: [0, 0, 1.2, 15],         // mg/dL (total)
+  ALBUMIN: [1.5, 3.5, 5.5, 99],       // g/dL (crítico bajo)
+  PH: [7.2, 7.35, 7.45, 7.55],        // arterial
+  PCO2: [20, 35, 45, 70],             // mmHg
+  PO2: [40, 60, 100, 999],            // mmHg (crítico bajo por hipoxemia)
+  HBA1C: [0, 0, 6.5, 10],             // % (control glucémico)
+  TSH: [0.01, 0.4, 4.5, 100],         // uIU/mL
+  BNP: [0, 0, 100, 400],              // pg/mL (insuficiencia cardíaca)
+  DDIMER: [0, 0, 500, 5000],          // ng/mL
+  CRP: [0, 0, 10, 100],               // mg/L (proteína C reactiva)
 };
 function num(x: string): number { const n = Number(String(x).trim()); return Number.isFinite(n) ? n : NaN; }
 export function classifyLab(analyte: string, value: string): LabAssessment {
