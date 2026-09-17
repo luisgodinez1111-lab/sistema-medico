@@ -1601,6 +1601,31 @@
       "epic": "BO",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-GLYCEMIC-CONTROL-001",
+      "name": "Control glucémico (HbA1c -> eAG + clasificación, marco diabético vs tamizaje)",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — manejo de enfermedad crónica (diabetes). HbA1c -> glucosa promedio estimada (ADAG) + clasificación cuyo MARCO cambia según diabetes activa (metas de tratamiento vs rangos diagnósticos ADA). Cross-vertical resultado(HbA1c)↔problema(CIE-10 E10/E11).",
+      "invariants": [
+        "eAG = 28.7·A1c − 46.7 (ADAG)",
+        "Marco DIABÉTICO si hay problema activo E10/E11: <7 en meta, 7–8 sobre meta, >8 mal control",
+        "Marco TAMIZAJE si no: <5.7 normal, 5.7–6.4 prediabetes, >=6.5 rango diagnóstico",
+        "El mismo valor se interpreta distinto según el marco (p.ej. 6.5% = diagnóstico vs en-meta)",
+        "Usa la HbA1c MÁS RECIENTE (RLS); sin HbA1c -> not-computable; solo lectura (scope patient:read)"
+      ],
+      "implementation": [
+        "packages/glycemic (estimatedAverageGlucose + glycemicAssessment)",
+        "apps/web/lib/clinical-runtime.ts (latestResultValueForAnalyte + activeProblemCodes)",
+        "apps/web/app/api/v1/patients/[patientId]/glycemic-status/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/glycemic.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-glycemic-status-proof.mts — PASS 8/8 (COMPUTABLE_200, SCREENING_DIABETES_RANGE, HAS_EAG, DIABETIC_CONTROLLED, DIABETIC_POOR, USES_LATEST_A1C, NO_A1C_NOT_COMPUTABLE, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "BP",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

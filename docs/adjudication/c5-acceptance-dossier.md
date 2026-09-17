@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **63**
+- Capacidades reconciliadas: **64**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **63**
+- Pendiente de aceptación humana C5: **64**
 
 ## Riesgo C4
 
@@ -452,6 +452,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-bmi-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-GLYCEMIC-CONTROL-001 — Control glucémico (HbA1c -> eAG + clasificación, marco diabético vs tamizaje)
+- Epic: BP
+- Invariantes: 5
+- Tests: `tests/v22/glycemic.test.ts`
+- Prueba en vivo: `scripts/v22/live-glycemic-status-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -519,3 +526,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-RENAL-DOSING-001 | | | | |
 | CAP-LAB-DERIVATIONS-001 | | | | |
 | CAP-ANTHROPOMETRICS-BMI-001 | | | | |
+| CAP-GLYCEMIC-CONTROL-001 | | | | |
