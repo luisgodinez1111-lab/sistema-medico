@@ -1854,6 +1854,32 @@
       "epic": "CA",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-AI-COPILOT-GATEWAY-001",
+      "name": "Choke point de seguridad del AI copilot (ADR-0220 fase 1, SIN IA)",
+      "risk": "C5",
+      "eng_authority_note": "EJE D (AI copilot), fase 1 del ADR-0220. Único punto de entrada del copilot con todos los controles de seguridad, usando un proveedor DETERMINISTA (no LLM): NO viola la pausa de R6. Reutiliza ai-authority-gate, ai-gateway.enforceEnvelope y operational-safety-budget. Autoridad: ENG-036 (AI risk tiers), EXEC-0003 (Physician Control), ADR-0220.",
+      "invariants": [
+        "Master kill-switch (AI_COPILOT_ENABLED) OFF por defecto: con R6 en pausa el copilot es inerte",
+        "ORDER/PRESCRIBE/SIGN/CLOSE_CRITICAL -> autoridad HUMANA (SAFETY_BLOCKED); la IA nunca los ejecuta",
+        "Presupuesto de seguridad: no corre el copilot con resultados/vitales/obligaciones críticos abiertos",
+        "Envelope: C4/C5 exigen evidencia; SUGGEST exige aprobación humana (ABSTAIN si no)",
+        "Toda salida es AI_SUGGESTED, promoted:false, generative:false; nunca se escribe al registro; auditoría SLI sin PHI",
+        "El proveedor de la fase 1 es DETERMINISTA (SUMMARIZE devuelve el resumen citado); no se invoca ningún LLM"
+      ],
+      "implementation": [
+        "apps/web/lib/ai-copilot-gateway.ts (evaluateAiRequest + handleAiAssist)",
+        "packages/ai-authority-gate, packages/ai-gateway (enforceEnvelope), packages/operational-safety-budget",
+        "apps/web/app/api/v1/ai/assist/route.ts (POST, scope ai:invoke)"
+      ],
+      "tests": [
+        "tests/v22/ai-copilot-gateway.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-ai-copilot-gateway-proof.mts — PASS 10/10 (KILL_SWITCH_OFF_503, HUMAN_AUTHORITY_PRESCRIBE_403, HUMAN_AUTHORITY_SIGN_403, SUMMARIZE_ALLOWED_200, AI_SUGGESTED_NOT_PROMOTED_NOT_GENERATIVE, DETERMINISTIC_GROUNDED_CONTENT, BUDGET_OPEN_CRITICAL_BLOCKED, SUGGEST_NO_EVIDENCE_BLOCKED, EXTRACT_ABSTAIN_NO_PROVIDER, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "CB",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
