@@ -6,6 +6,8 @@ import{foldClaim,assertClaimTransition,type FoldedClaim,type ClaimState}from"../
 import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{lookupIcd10,normalizeIcd10}from"../../../packages/terminology/src";
+// EPIC AR (profundidad): los códigos de la reclamación se validan contra CIE-10 y se codifican con descripción canónica.
 // EPIC Y — Ciclo de vida de una reclamación de facturación: DRAFT -> CODED -> SUBMITTED -> {PAID, REJECTED};
 // REJECTED -> SUBMITTED (reenvío); anulable desde no-terminal. Seguimiento de estado, NO mueve dinero.
 // Ciclo de ingresos: codificar/enviar/conciliar exige scope billing:write.
@@ -46,7 +48,9 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
 const CodeBody=z.object({codes:z.array(z.string().min(1)).min(1),occurredAt:z.string().datetime()});
 export async function handleClaimCoding(req:Request,claimId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,claimId);const b=await parseJson(req,CodeBody);
-  return await commit(ctx,idempotencyKey,expectedVersion,claimId,folded,"CODED","CLAIM_CODED",{kind:"CODED",codes:b.codes},b.occurredAt,"claim.coded");
+  // Profundidad clínica: cada código debe existir en CIE-10; se codifica con su descripción canónica.
+  const coded=b.codes.map(c=>{const e=lookupIcd10(c);if(!e)throw new ClinicalError("VALIDATION_ERROR","Código CIE-10 no válido o no reconocido",{code:c});return{code:normalizeIcd10(c),description:e.description};});
+  return await commit(ctx,idempotencyKey,expectedVersion,claimId,folded,"CODED","CLAIM_CODED",{kind:"CODED",codes:coded.map(x=>x.code),codeSystem:"ICD-10",coded},b.occurredAt,"claim.coded");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 const WhenBody=z.object({occurredAt:z.string().datetime()});

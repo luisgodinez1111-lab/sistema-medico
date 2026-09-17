@@ -22,7 +22,10 @@ try{
  const adm=tok(TA);
  // draft -> code -> submit -> reject -> resubmit -> pay
  let{id,r}=await mk(adm);ok(r.status===201&&(await r.json()).state==="DRAFT","DRAFT_201");
- r=await cod.POST(new Request("http://l/",B(adm,1,{codes:["99213","J10.1"]})),PP(id));ok(r.status===201&&(await r.json()).state==="CODED","CODE_201");
+ r=await cod.POST(new Request("http://l/",B(adm,1,{codes:["E11","I10"]})),PP(id));ok(r.status===201&&(await r.json()).state==="CODED","CODE_201");
+ // profundidad CIE-10: codificar con un código inválido -> 400
+ const badC=await mk(adm);
+ r=await cod.POST(new Request("http://l/",B(adm,1,{codes:["ZZZ.999"]})),PP(badC.id));ok(r.status===400&&(await r.json()).error.code==="VALIDATION_ERROR","INVALID_ICD10_CODE_400");
  r=await sub.POST(new Request("http://l/",B(adm,2)),PP(id));ok(r.status===201&&(await r.json()).state==="SUBMITTED","SUBMIT_201");
  r=await rej.POST(new Request("http://l/",B(adm,3,{reason:"Falta póliza"})),PP(id));ok(r.status===201&&(await r.json()).state==="REJECTED","REJECT_201");
  r=await sub.POST(new Request("http://l/",B(adm,4)),PP(id));ok(r.status===201&&(await r.json()).state==="SUBMITTED","RESUBMIT_201");
@@ -34,7 +37,7 @@ try{
  r=await sub.POST(new Request("http://l/",B(adm,1)),PP(two.id));ok(r.status===409,"SUBMIT_WITHOUT_CODE_409");
  // anular desde CODED
  const three=await mk(adm);
- await cod.POST(new Request("http://l/",B(adm,1,{codes:["99213"]})),PP(three.id));
+ await cod.POST(new Request("http://l/",B(adm,1,{codes:["E11"]})),PP(three.id));
  r=await vo.POST(new Request("http://l/",B(adm,2,{reason:"Duplicada"})),PP(three.id));ok(r.status===201&&(await r.json()).state==="VOIDED","VOID_FROM_CODED_201");
  // cross-tenant -> 404
  const admB=tok(TB);
