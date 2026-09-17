@@ -38,6 +38,7 @@ const SMOKE:readonly string[]=[
  "live-anticoagulation-status-proof",       // profundidad: INR terapéutico en contexto del anticoagulante
  "live-meld-proof",                         // profundidad: MELD (pronóstico de hepatopatía)
  "live-acid-base-proof",                    // profundidad: interpretación ácido-base (Winters)
+ "live-curb65-proof",                       // profundidad: CURB-65 (gravedad de neumonía)
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];
