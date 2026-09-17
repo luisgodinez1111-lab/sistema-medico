@@ -24,3 +24,20 @@ describe("catálogo de fármacos + gate de alergia (EPIC AP)",()=>{
  });
  it("NO bloquea sin alergias",()=>{expect(checkDrugAllergy("cefalexina-500",[]).blocked).toBe(false);});
 });
+import{checkDuplicateTherapy}from"../../packages/drug-catalog/src";
+describe("duplicación terapéutica (EPIC AW)",()=>{
+ it("bloquea dos AINE (misma clase NSAID)",()=>{
+  const r=checkDuplicateTherapy("ibuprofeno-400",["naproxeno-500"]);
+  expect(r.duplicate).toBe(true);expect(r.sharedClass).toBe("NSAID");
+ });
+ it("bloquea dos beta-lactámicos (amoxicilina + cefalexina por reactividad de clase)",()=>{
+  expect(checkDuplicateTherapy("amoxicilina-500",["cefalexina-500"]).duplicate).toBe(true);
+ });
+ it("NO bloquea clases distintas (AINE + antibiótico)",()=>{
+  expect(checkDuplicateTherapy("ibuprofeno-400",["amoxicilina-500"]).duplicate).toBe(false);
+ });
+ it("NO se compara consigo mismo ni con lista vacía",()=>{
+  expect(checkDuplicateTherapy("ibuprofeno-400",["ibuprofeno-400"]).duplicate).toBe(false);
+  expect(checkDuplicateTherapy("ibuprofeno-400",[]).duplicate).toBe(false);
+ });
+});

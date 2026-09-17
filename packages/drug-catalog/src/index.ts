@@ -61,3 +61,19 @@ export function checkDrugAllergy(drugCode:string,substances:readonly string[]):A
  }
  return{blocked:false};
 }
+
+// EPIC AW — Duplicación terapéutica: ¿el fármaco a prescribir comparte CLASE con alguno ya activo?
+// (p. ej. dos AINE, dos beta-lactámicos, dos IECA). Reutiliza el catálogo de clases. Puro, sin PHI.
+export type DuplicateTherapy=Readonly<{duplicate:boolean;conflictDrug?:string;sharedClass?:string}>;
+export function checkDuplicateTherapy(newDrugCode:string,activeDrugCodes:readonly string[]):DuplicateTherapy{
+ const nd=resolveDrug(newDrugCode);if(!nd)return{duplicate:false};
+ const ndClasses=new Set(nd.classes);const nIng=nd.ingredient;
+ for(const active of activeDrugCodes){
+  if(norm(active)===norm(newDrugCode))continue; // no se compara consigo mismo
+  const ad=resolveDrug(active);if(!ad)continue;
+  if(ad.ingredient===nIng)return{duplicate:true,conflictDrug:active,sharedClass:nd.classes[0]??nIng}; // mismo principio activo
+  const shared=ad.classes.find(cl=>ndClasses.has(cl));
+  if(shared)return{duplicate:true,conflictDrug:active,sharedClass:shared};
+ }
+ return{duplicate:false};
+}

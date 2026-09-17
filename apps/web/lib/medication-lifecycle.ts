@@ -4,10 +4,10 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldMedication,assertMedicationTransition,type FoldedMedication}from"../../../packages/medication-fold/src";
 import{type MedicationState}from"../../../packages/medication-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances,activeMedicationDrugCodes}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
-import{checkDrugAllergy}from"../../../packages/drug-catalog/src";
+import{checkDrugAllergy,checkDuplicateTherapy}from"../../../packages/drug-catalog/src";
 import{validateMedicationOrder,normalizeRoute}from"../../../packages/medication-validation/src";
 // EPIC H — Ciclo de vida de medicación sobre el kernel. Physician Control:
 // PROPOSE lo puede hacer cualquier clínico (o IA), PRESCRIBE exige médico (IA nunca prescribe).
@@ -68,6 +68,10 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
    const substances=await activeAllergySubstances(ctx,folded.patientId);
    const conflict=checkDrugAllergy(folded.drugCode,substances);
    if(conflict.blocked)throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: patient has an active allergy to ${conflict.allergen} (${conflict.via==="class"?"reactividad cruzada de clase":"principio activo"})`);
+   // EPIC AW — Duplicación terapéutica: no prescribir un fármaco de la MISMA clase que uno ya activo.
+   const activeDrugs=await activeMedicationDrugCodes(ctx,folded.patientId);
+   const dup=checkDuplicateTherapy(folded.drugCode,activeDrugs);
+   if(dup.duplicate)throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: duplicación terapéutica con ${dup.conflictDrug} (clase ${dup.sharedClass}). Suspenda el fármaco activo primero u ordene con justificación.`);
    // EXEC-0014: Crear obligaciones de monitoreo al prescribir (ej: monitor creatinine, HbA1c)
    // El payload incluye monitoringObligations para que el worker las procese.
    result=await runClinicalCommand(ctx,cmd);
