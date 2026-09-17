@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **52**
+- Capacidades reconciliadas: **53**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **52**
+- Pendiente de aceptación humana C5: **53**
 
 ## Riesgo C4
 
@@ -375,6 +375,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-pediatric-dose-gate-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-LIVE-REGRESSION-001 — Gate de regresión en vivo en CI (pruebas .mts contra Postgres desechable)
+- Epic: BE
+- Invariantes: 5
+- Tests: `scripts/ci/live-smoke.mts`
+- Prueba en vivo: —
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -431,3 +438,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-LAB-DELTA-001 | | | | |
 | CAP-NEWS2-001 | | | | |
 | CAP-PEDIATRIC-DOSE-001 | | | | |
+| CAP-LIVE-REGRESSION-001 | | | | |

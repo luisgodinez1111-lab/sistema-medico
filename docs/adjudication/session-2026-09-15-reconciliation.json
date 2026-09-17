@@ -1326,6 +1326,31 @@
       "epic": "BD",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-LIVE-REGRESSION-001",
+      "name": "Gate de regresión en vivo en CI (pruebas .mts contra Postgres desechable)",
+      "risk": "C5",
+      "eng_authority_note": "ENDURECIMIENTO (eje G): cierra la brecha #1 de la auditoría 2026-09-17. Las pruebas en vivo .mts eran la evidencia más fuerte del sistema pero NO corrían en ninguno de los 4 workflows; sus defectos no se detectaban. Cumple ENG-056 (integration/clinical-regression como gate requerido) y EXEC operating model paso 7. Un 5.º workflow levanta postgres:17 desechable, aplica roles+migraciones (lógica del restore-drill) y corre un subconjunto curado.",
+      "invariants": [
+        "El gate falla si CUALQUIER proof del smoke falla (fail-closed)",
+        "Corre contra una BD DESECHABLE; el bootstrap rehúsa sin CI_DB_BOOTSTRAP_ALLOW=1 (no toca BD real)",
+        "exit 0=PASS, 3=SKIP (solo válido sin DATABASE_URL), otro=FAIL; con DB presente un SKIP es FAIL",
+        "Cubre kernel/RLS/firma + 6 barreras de medicación + CDS temporal/agregado + closed-loop + identidad/longitudinal",
+        "El bootstrap reconstruye el esquema desde migraciones 0001..N en orden (reproducibilidad)"
+      ],
+      "implementation": [
+        "scripts/ci/bootstrap-db.mts (roles + migraciones)",
+        "scripts/ci/live-smoke.mts (runner de 14 proofs curados)",
+        ".github/workflows/live-regression.yml (service postgres:17 + bootstrap + smoke)"
+      ],
+      "tests": [
+        "scripts/ci/live-smoke.mts"
+      ],
+      "runtime_evidence": "GitHub Actions workflow live-regression @75783c1 — PASS (postgres:17 desechable, 14/14 proofs del smoke). Local: runner 14/14 PASS vs Neon.",
+      "epic": "BE",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

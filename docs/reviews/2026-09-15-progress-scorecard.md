@@ -26,7 +26,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
 | E. UI/UX de producto | 10% | ~21% | 2.1 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~20% | 1.6 |
-| G. Endurecimiento producción + compliance | 9% | ~19% | 1.7 |
+| G. Endurecimiento producción + compliance | 9% | ~24% | 2.2 |
 
 ## Valor de cada hito futuro (para no estimar a la ligera)
 - Vertical clínico nuevo completo con evidencia en vivo: **≈ +1.2%** c/u.
@@ -92,6 +92,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BB: **profundidad/CDS temporal** — delta check longitudinal de laboratorio: la variación crítica vs el valor previo del mismo analito eleva el resultado a crítico (creatinina duplicada, Hb −2, sodio ±10). Primer CDS temporal (no por umbral). | **~35%** |
 | 2026-09-17 | Epic BC: **profundidad/CDS agregado** — NEWS2 (early warning score) desde los últimos signos vitales: score de acuidad multiparamétrico con banda de riesgo, red flag y escalamiento. Tercer tipo de CDS (umbral/temporal/agregado). | **~35%** |
 | 2026-09-17 | Epic BD: **profundidad/seguridad pediátrica** — ceiling de dosis por peso (mg/kg/día): en peso pediátrico (≤40 kg) valida mg/kg/día contra el máximo del fármaco. Complemento peso-normalizado del ceiling absoluto (AZ); cross-vertical vitales(peso)→medicación. | **~35%** |
+| 2026-09-17 | Epic BE: **endurecimiento (eje G)** — gate de regresión en vivo en CI: un 5.º workflow levanta postgres:17 desechable, aplica migraciones+roles y corre el smoke curado de pruebas .mts (kernel + 6 barreras + CDS). Cierra la brecha #1 de la auditoría (ENG-056). **Primer avance real del eje G** (19%→24%). | **~35%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde
@@ -106,9 +107,12 @@ debería marcarlas `NOT_WIRED` hasta activarlas.
 ## Nota de auditoría (2026-09-17)
 Barrido completo: **36/36 pruebas en vivo PASS** tras las correcciones. Hallazgo de proceso clave: **CI no
 atrapó ninguno de los 6 defectos** — los tests unitarios daban falsa seguridad (uno cubría una copia
-duplicada, no el código vivo) y las pruebas en vivo `.mts` **no corren en los 4 workflows**. Recomendación:
+duplicada, no el código vivo) y las pruebas en vivo `.mts` **no corrían en los 4 workflows**. Recomendación:
 integrar un subconjunto de pruebas en vivo (o un smoke E2E contra una branch Neon desechable) al pipeline
 para cerrar esta brecha de cobertura. Defectos y fixes: commits `ac313e5`, `1c2cb0f`, `a796ee1`.
+**CERRADO (Epic BE, 2026-09-17):** 5.º workflow `live-regression` levanta postgres:17 desechable, aplica
+migraciones+roles y corre un smoke curado de 14 pruebas en vivo (kernel/RLS/firma + 6 barreras de medicación
++ CDS temporal/agregado + closed-loop). Commit `75783c1`; `scripts/ci/{bootstrap-db,live-smoke}.mts`.
 
 ## Nota de honestidad (reconciliación 2026-09-16)
 Entre ~Epic S y ~Epic AK reporté el total incrementando ~+1% por vertical. Eso contradice los topes de peso
