@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **55**
+- Capacidades reconciliadas: **56**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **55**
+- Pendiente de aceptación humana C5: **56**
 
 ## Riesgo C4
 
@@ -396,6 +396,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-observability-sli-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-BACKUP-DR-001 — Backup/DR + downtime mode (ENG-055) con recuperabilidad verificada
+- Epic: BH
+- Invariantes: 5
+- Tests: `tests/v22/downtime-no-false-save.test.ts`
+- Prueba en vivo: `scripts/v22/live-dr-recovery-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -455,3 +462,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-LIVE-REGRESSION-001 | | | | |
 | CAP-NOT-WIRED-REGISTRY-001 | | | | |
 | CAP-OBSERVABILITY-SLI-001 | | | | |
+| CAP-BACKUP-DR-001 | | | | |

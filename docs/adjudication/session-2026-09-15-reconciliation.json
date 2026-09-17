@@ -1400,6 +1400,32 @@
       "epic": "BG",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-BACKUP-DR-001",
+      "name": "Backup/DR + downtime mode (ENG-055) con recuperabilidad verificada",
+      "risk": "C5",
+      "eng_authority_note": "ENDURECIMIENTO (eje G) — ENG-055 Backup, DR and downtime mode. El almacén event-sourced + cadena de auditoría permite restaurar por replay determinista. RPO/RTO por flujo documentados; restore drill formalizado; downtime fail-closed (nunca guardado en falso). Reutiliza restore-proof y la lógica de restore-drill.",
+      "invariants": [
+        "Replay determinista: el stream persistido reproduce el mismo estado (obligationsMatch)",
+        "Reconciliación de recuperación (R005): re-aplicar un comando ya aplicado NO duplica eventos (idempotencia)",
+        "Cadena de auditoría encadenada tras recuperar; RLS aísla por tenant",
+        "No-false-save (R004): BD indisponible -> 503; ningún código de error mapea a 2xx",
+        "Restore drill rehúsa correr si target==source (destructivo); gate = restoreErrors() vacío"
+      ],
+      "implementation": [
+        "scripts/v22/live-dr-recovery-proof.mts (recuperabilidad apta CI)",
+        "scripts/v22/restore-drill.mts (drill completo vs branch desechable)",
+        "apps/web/lib/http-errors.ts (DEPENDENCY_UNAVAILABLE->503; ningún error->2xx)",
+        "docs/runbooks/backup-dr.md (RPO/RTO, procedimiento, downtime mode)"
+      ],
+      "tests": [
+        "tests/v22/downtime-no-false-save.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-dr-recovery-proof.mts — PASS 6/6 (STREAM_PERSISTED_2, DETERMINISTIC_REPLAY_MATCH, IDEMPOTENT_NO_DUPLICATION, AUDIT_CHAIN_CHAINED, RLS_ISOLATION, RESTORE_PROOF_CLEAN). En el smoke de CI (live-regression). Guard R004: tests/v22/downtime-no-false-save.test.ts 3/3.",
+      "epic": "BH",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
