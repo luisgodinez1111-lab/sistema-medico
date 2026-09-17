@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{anionGap,correctedCalcium}from"../../packages/lab-derivations/src";
+import{anionGap,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../packages/lab-derivations/src";
 // EPIC BN — Derivaciones de laboratorio multi-analito.
 describe("anionGap (Na − Cl − HCO3)",()=>{
  it("normal: 140 − 104 − 24 = 12 -> NORMAL",()=>{
@@ -34,4 +34,24 @@ describe("correctedCalcium (Ca + 0.8·(4−alb))",()=>{
   expect(correctedCalcium(9.0,0)).toBeUndefined();
   expect(correctedCalcium(NaN,4)).toBeUndefined();
  });
+});
+describe("correctedSodiumForGlucose (EPIC BY)",()=>{
+ it("hiperglucemia diluye el Na: Na 130 con glucosa 600 -> corregido 138 (130 + 1.6*5)",()=>{
+  const r=correctedSodiumForGlucose(130,600)!;
+  expect(r.corrected).toBe(138);expect(r.measured).toBe(130);
+ });
+ it("glucosa normal (<=100): corregido ≈ medido",()=>{
+  expect(correctedSodiumForGlucose(140,90)!.corrected).toBeCloseTo(139.8,1); // 140+1.6*(-0.1)
+ });
+ it("valores inválidos -> undefined",()=>{expect(correctedSodiumForGlucose(140,0)).toBeUndefined();});
+});
+describe("calculatedOsmolality (EPIC BY)",()=>{
+ it("normal: Na 140, glucosa 90, BUN 14 -> ~290, NORMAL",()=>{
+  const r=calculatedOsmolality(140,90,14)!; // 280 + 5 + 5 = 290
+  expect(r.value).toBeCloseTo(290,0);expect(r.status).toBe("NORMAL");
+ });
+ it("hiperosmolar: Na 145, glucosa 600, BUN 40 -> >295, HIGH",()=>{
+  expect(calculatedOsmolality(145,600,40)!.status).toBe("HIGH");
+ });
+ it("valores inválidos -> undefined",()=>{expect(calculatedOsmolality(0,90,14)).toBeUndefined();});
 });

@@ -1,6 +1,6 @@
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
-import{anionGap,correctedCalcium}from"../../../../../../../../packages/lab-derivations/src";
+import{anionGap,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../../../../../../../packages/lab-derivations/src";
 import{latestResultValueForAnalyte}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
@@ -13,18 +13,24 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
-  const[na,cl,hco3,ca,alb]=await Promise.all([
+  const[na,cl,hco3,ca,alb,glu,bun]=await Promise.all([
    val(latestResultValueForAnalyte(tctx,patientId,"SODIUM")),
    val(latestResultValueForAnalyte(tctx,patientId,"CHLORIDE")),
    val(latestResultValueForAnalyte(tctx,patientId,"BICARBONATE")),
    val(latestResultValueForAnalyte(tctx,patientId,"CALCIUM")),
    val(latestResultValueForAnalyte(tctx,patientId,"ALBUMIN")),
+   val(latestResultValueForAnalyte(tctx,patientId,"GLUCOSE")),
+   val(latestResultValueForAnalyte(tctx,patientId,"BUN")),
   ]);
   const ag=(na!==undefined&&cl!==undefined&&hco3!==undefined)?anionGap(na,cl,hco3):undefined;
   const cca=(ca!==undefined&&alb!==undefined)?correctedCalcium(ca,alb):undefined;
+  const cna=(na!==undefined&&glu!==undefined)?correctedSodiumForGlucose(na,glu):undefined;
+  const osm=(na!==undefined&&glu!==undefined&&bun!==undefined)?calculatedOsmolality(na,glu,bun):undefined;
   const missing:string[]=[];
   if(ag===undefined)missing.push("anionGap: requiere SODIUM+CHLORIDE+BICARBONATE");
   if(cca===undefined)missing.push("correctedCalcium: requiere CALCIUM+ALBUMIN");
-  return NextResponse.json({patientId,anionGap:ag??null,correctedCalcium:cca??null,missing},{status:200});
+  if(cna===undefined)missing.push("correctedSodium: requiere SODIUM+GLUCOSE");
+  if(osm===undefined)missing.push("osmolality: requiere SODIUM+GLUCOSE+BUN");
+  return NextResponse.json({patientId,anionGap:ag??null,correctedCalcium:cca??null,correctedSodium:cna??null,osmolality:osm??null,missing},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

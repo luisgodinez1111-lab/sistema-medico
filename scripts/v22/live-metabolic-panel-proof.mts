@@ -17,19 +17,21 @@ async function res(t:string,p:string,analyte:string,value:string){await resR.POS
 async function panel(t:string,p:string){const r=await mp.GET(new Request("http://l/",{headers:H(t)}),PP(p));return{status:r.status,body:await r.json()};}
 try{
  const phys=tok();
- // 1) acidosis de brecha aumentada + hipocalcemia enmascarada
+ // 1) acidosis de brecha aumentada + hipocalcemia enmascarada + hiperglucemia (Na corregido, osmolalidad)
  const p1=crypto.randomUUID();
- for(const[a,v]of[["SODIUM","140"],["CHLORIDE","100"],["BICARBONATE","10"],["CALCIUM","8.0"],["ALBUMIN","2.0"]]as const)await res(phys,p1,a,v);
+ for(const[a,v]of[["SODIUM","130"],["CHLORIDE","100"],["BICARBONATE","10"],["CALCIUM","8.0"],["ALBUMIN","2.0"],["GLUCOSE","600"],["BUN","40"]]as const)await res(phys,p1,a,v);
  let g=await panel(phys,p1);ok(g.status===200,"PANEL_200");
- ok(g.body.anionGap&&g.body.anionGap.value===30&&g.body.anionGap.status==="HIGH","ANION_GAP_HIGH_30");
+ ok(g.body.anionGap&&g.body.anionGap.value===20&&g.body.anionGap.status==="HIGH","ANION_GAP_HIGH_20"); // 130-100-10
  ok(g.body.correctedCalcium&&g.body.correctedCalcium.corrected===9.6,"CORRECTED_CA_9_6");
+ ok(g.body.correctedSodium&&g.body.correctedSodium.corrected===138,"CORRECTED_NA_138"); // 130+1.6*5
+ ok(g.body.osmolality&&g.body.osmolality.status==="HIGH","OSMOLALITY_HIGH");
  ok(Array.isArray(g.body.missing)&&g.body.missing.length===0,"NOTHING_MISSING");
  // 2) usa el valor MÁS RECIENTE: nuevo bicarbonato normal cambia el anion gap
  await res(phys,p1,"BICARBONATE","24");g=await panel(phys,p1);
- ok(g.body.anionGap.value===16,"USES_LATEST_HCO3"); // 140-100-24=16
+ ok(g.body.anionGap.value===6,"USES_LATEST_HCO3"); // 130-100-24=6
  // 3) analitos faltantes -> derivación null + reportada en missing
  const p2=crypto.randomUUID();await res(phys,p2,"SODIUM","140");
- g=await panel(phys,p2);ok(g.body.anionGap===null&&g.body.correctedCalcium===null&&g.body.missing.length===2,"MISSING_REPORTED");
+ g=await panel(phys,p2);ok(g.body.anionGap===null&&g.body.correctedCalcium===null&&g.body.correctedSodium===null&&g.body.osmolality===null&&g.body.missing.length===4,"MISSING_REPORTED");
  // 4) aislamiento por paciente: p2 no ve los analitos de p1
  ok(g.body.correctedCalcium===null,"PER_PATIENT_ISOLATION");
  // 5) sin scope patient:read -> 403
