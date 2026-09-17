@@ -30,6 +30,7 @@ const SMOKE:readonly string[]=[
  "live-renal-dosing-gate-proof",            // barrera 7: contraindicación renal por eGFR medido
  "live-metabolic-panel-proof",              // profundidad: derivaciones multi-analito (anion gap, calcio corregido)
  "live-bmi-proof",                          // profundidad: IMC + clasificación WHO
+ "live-glycemic-status-proof",              // profundidad: control glucémico (HbA1c -> eAG, marco diabético)
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];
