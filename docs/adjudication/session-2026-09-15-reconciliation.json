@@ -1063,6 +1063,29 @@
       "epic": "AS",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-CLINICAL-INTEL-001",
+      "name": "Motor de inteligencia clínica determinista por reglas (knowledge packages)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (CDS determinístico, NO IA — reglas). Construido en L18 pero la auditoría 2026-09-17 destapó que estaba NO-FUNCIONAL (evaluate devolvía vacío para todo por 2 bugs: scoping del evaluador de condiciones e inversión de aplicabilidad). Recuperado y con cobertura de tests. ESTADO: motor correcto y probado, pero los handlers (evaluate/register/ai-risk) siguen SIN cablear a rutas — activación pendiente (persistencia event-sourced del catálogo y scope intelligence:write por definir).",
+      "invariants": [
+        "evalCondition expone al contexto los identificadores desnudos (chiefComplaint, recentVitals, hasProblem...) — no lanza ni devuelve falso-negativos",
+        "Aplicabilidad: un paquete aplica solo si alguna regla matchea con include:true (o si no tiene reglas)",
+        "Determinista: misma entrada -> misma salida; reglas disparan solo cuando su condición matchea",
+        "Es CDS por REGLAS, no IA probabilística; Tier D (autónomo) bloqueado por diseño"
+      ],
+      "implementation": [
+        "packages/clinical-intelligence (motor + DEFAULT_KNOWLEDGE_PACKAGES)",
+        "apps/web/lib/clinical-intelligence-lifecycle.ts (handlers corregidos, SIN cablear)"
+      ],
+      "tests": [
+        "tests/v22/clinical-intelligence.test.ts"
+      ],
+      "runtime_evidence": "tests/v22/clinical-intelligence.test.ts — 5/5 (chest pain -> ECG+red flag taquicardia; I10+BP190 -> crisis hipertensiva; determinista; no aplica sin criterio; registerPackage). Sin prueba en vivo: los handlers no están cableados a rutas.",
+      "epic": "AT",
+      "proposed_review_decision": "REVIEW_REQUIRED_NOT_WIRED",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
