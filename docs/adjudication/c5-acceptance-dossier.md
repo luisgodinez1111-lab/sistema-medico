@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **71**
+- Capacidades reconciliadas: **72**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **71**
+- Pendiente de aceptación humana C5: **72**
 
 ## Riesgo C4
 
@@ -508,6 +508,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-acid-base-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-PNEUMONIA-CURB65-001 — CURB-65: gravedad de neumonía -> decisión de ingreso
+- Epic: BZ
+- Invariantes: 5
+- Tests: `tests/v22/pneumonia-severity.test.ts`
+- Prueba en vivo: `scripts/v22/live-curb65-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -583,3 +590,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-ANTICOAG-INR-001 | | | | |
 | CAP-MELD-001 | | | | |
 | CAP-ACID-BASE-001 | | | | |
+| CAP-PNEUMONIA-CURB65-001 | | | | |

@@ -1804,6 +1804,31 @@
       "epic": "BX",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-PNEUMONIA-CURB65-001",
+      "name": "CURB-65: gravedad de neumonía -> decisión de ingreso",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — score que guía una decisión concreta (ambulatorio vs ingreso) en neumonía adquirida en la comunidad. Cross-vertical: BUN (lab) + FR/PA (vitales) + edad (demografía). La confusión no se captura como dato estructurado; se asume ausente y se reporta.",
+      "invariants": [
+        "1 punto c/u: confusión, BUN>19 mg/dL, FR>=30, PA (sist<90 o diast<=60), edad>=65",
+        "Riesgo: LOW(0–1) ambulatorio; MODERATE(2) considerar ingreso; HIGH(3–5) ingreso (UCI si 4–5)",
+        "Usa BUN/FR/PA MÁS recientes (RLS, aislado por paciente)",
+        "Falta BUN/FR/PA -> not-computable; paciente no registrado -> 404",
+        "Confusión asumida ausente (reportado); endpoint de solo lectura (scope patient:read)"
+      ],
+      "implementation": [
+        "packages/pneumonia-severity (curb65)",
+        "apps/web/lib/clinical-runtime.ts (patientDemographics + latestVitalsByType + latestResultValueForAnalyte)",
+        "apps/web/app/api/v1/patients/[patientId]/curb65/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/pneumonia-severity.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-curb65-proof.mts — PASS 8/8 (COMPUTABLE_200, SCORE_3_HIGH, ADMIT_RECOMMENDED, SCORE_0_LOW, USES_LATEST_BP, MISSING_BUN, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "BZ",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

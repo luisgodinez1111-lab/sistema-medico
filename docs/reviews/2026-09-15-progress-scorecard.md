@@ -113,6 +113,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BW: **profundidad clínica (eje C)** — MELD: pronóstico de hepatopatía avanzada (bilirrubina+INR+creatinina) con bandas de mortalidad a 90 días. Complementa FIB-4 (tamizaje→pronóstico); cross-vertical multi-analito. | **~36%** |
 | 2026-09-17 | Epic BX: **profundidad clínica (eje C)** — interpretación ácido-base (pH+pCO₂+HCO₃): trastorno primario + compensación esperada por fórmula de Winters (detecta trastornos mixtos). Complementa el anion gap (BN). | **~36%** |
 | 2026-09-17 | Epic BY: **profundidad clínica (eje C)** — sodio corregido por glucemia (pseudohiponatremia) + osmolalidad calculada (estados hiperosmolares); amplía el panel metabólico (BN). Cross-analito Na/glucosa/BUN. | **~36%** |
+| 2026-09-17 | Epic BZ: **profundidad clínica (eje C)** — CURB-65: gravedad de neumonía → decisión de ingreso (ambulatorio/observación/ingreso). Cross-vertical BUN(lab)+FR/PA(vitales)+edad(demografía). | **~36%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde
