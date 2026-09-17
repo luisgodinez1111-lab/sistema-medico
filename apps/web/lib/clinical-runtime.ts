@@ -181,6 +181,27 @@ export async function countOpenCriticalResults(ctx:HttpTenantContext,patientId:s
  }) as Promise<number>;
 }
 
+// EPIC AN + Zero Lost Follow-Up: cuenta signos vitales CRÍTICOS del paciente
+// que están en estado RECORDED o AMENDED (no corregidos) y no han sido abordados
+// (no existe obligación creada para ese vital). Bloquea firma del encuentro.
+export async function countOpenCriticalVitals(ctx:HttpTenantContext,patientId:string):Promise<number>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select count(distinct r.aggregate_id)::int n
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='VitalSign'
+     and r.payload->>'kind' in ('RECORDED','AMENDED')
+     and r.payload->>'patientId'=${patientId} and r.payload->>'critical'='true'
+     and not exists(
+      select 1 from clinical_events c
+      where c.tenant_id=${ctx.tenantId} and c.aggregate_type='ClinicalObligation'
+        and c.payload->>'sourceVitalId'=r.aggregate_id and c.payload->>'kind'='CREATED')`;
+  return Number(rows[0]?.n??0);
+ }) as Promise<number>;
+}
+
 export type EncounterView=Readonly<{encounterId:string;version:number;events:ReadonlyArray<{sequence:number;type:string;occurredAt:string}>}>;
 // Lectura RLS-scoped del agregado (sin payload clínico: solo metadatos no-PHI).
 export async function readEncounter(ctx:HttpTenantContext,encounterId:string):Promise<EncounterView|null>{

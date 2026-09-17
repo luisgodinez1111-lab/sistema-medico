@@ -6,7 +6,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
 import{foldEncounter,assertTransition}from"../../../packages/encounter-fold/src";
-import{runClinicalCommand,lookupReplay,readEncounterEvents,countUnresolvedCriticalObligations,countOpenCriticalResults,sessionSecret}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readEncounterEvents,countUnresolvedCriticalObligations,countOpenCriticalResults,countOpenCriticalVitals,sessionSecret}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{readerFor}from"./http-command";
 // EPIC D — Ciclo de vida del encuentro sobre el kernel probado: assess (OPEN->READY_TO_SIGN)
@@ -84,9 +84,13 @@ export async function handleSignature(req:Request,encounterId:string):Promise<Re
   if(!result){
    assertTransition(folded.status,"SIGNED");
    // Zero Lost Follow-Up: no se firma con obligaciones críticas del paciente sin resolver,
-   // ni con resultados diagnósticos críticos que requirieron acción y no se han cerrado.
-   const critical=await countUnresolvedCriticalObligations(ctx,folded.patientId)+await countOpenCriticalResults(ctx,folded.patientId);
-   if(critical>0)throw new ClinicalError("SAFETY_BLOCKED",`Cannot sign: ${critical} unresolved critical obligation(s)`);
+   // ni con resultados diagnósticos críticos que requirieron acción y no se han cerrado,
+   // ni con signos vitales críticos que requieren atención y no han sido abordados.
+   const criticalObligations=await countUnresolvedCriticalObligations(ctx,folded.patientId);
+   const criticalResults=await countOpenCriticalResults(ctx,folded.patientId);
+   const criticalVitals=await countOpenCriticalVitals(ctx,folded.patientId);
+   const totalCritical=criticalObligations+criticalResults+criticalVitals;
+   if(totalCritical>0)throw new ClinicalError("SAFETY_BLOCKED",`Cannot sign: ${totalCritical} unresolved critical item(s) (obligations:${criticalObligations}, results:${criticalResults}, vitals:${criticalVitals})`);
    result=await runClinicalCommand(ctx,cmd);
   }
   const r=result.response as{version:number;auditHash?:string};
