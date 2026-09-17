@@ -1251,6 +1251,31 @@
       "epic": "BA",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-LAB-DELTA-001",
+      "name": "Delta check longitudinal de laboratorio (variación crítica entre resultados)",
+      "risk": "C5",
+      "eng_authority_note": "PROD/seguridad del paciente y CDS TEMPORAL (no por umbral): compara el resultado nuevo con el valor previo del mismo analito para atrapar deterioro rápido y confusiones de muestra que el rango absoluto no ve (creatinina que se duplica, Hb -2 g/dL, sodio ±10, plaquetas -50%). Extiende CAP-LAB-REF-001 del umbral estático al eje temporal; alimenta el gate de firma vía el flag critical (Zero-Lost-Follow-Up). Umbrales de delta de demostración; los oficiales/por método se parametrizarían aparte.",
+      "invariants": [
+        "Variación crítica vs el valor previo del mismo analito -> eleva el resultado a critical (aunque el valor absoluto no sea de pánico)",
+        "Dirección clínica respetada (Hb: solo caída; creatinina: solo subida; sodio/potasio: cualquier dirección)",
+        "Aislado por paciente (RLS): el previo de otro paciente no es baseline",
+        "Sin previo, sin regla de delta, o valor no numérico -> no eleva (no falso positivo)",
+        "El valor absoluto de pánico sigue siendo crítico por classifyLab, independiente del delta"
+      ],
+      "implementation": [
+        "packages/lab-reference (DELTA_RULES + deltaCheck)",
+        "apps/web/lib/clinical-runtime.ts (latestResultValueForAnalyte, RLS-scoped)",
+        "apps/web/lib/result-lifecycle.ts (delta en handleResultReceived)"
+      ],
+      "tests": [
+        "tests/v22/lab-reference.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-lab-delta-check-proof.mts — PASS 7/7 (CREAT_BASELINE_NOT_CRITICAL, CREAT_DOUBLING_DELTA_CRITICAL, HGB_DROP_DELTA_CRITICAL, CREAT_STABLE_NO_DELTA, NO_PRIOR_NO_DELTA, PER_PATIENT_ISOLATION, ABSOLUTE_PANIC_STILL_CRITICAL)",
+      "epic": "BB",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

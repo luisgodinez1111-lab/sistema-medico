@@ -89,6 +89,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic AY: **profundidad/seguridad** — gate de contraindicación fármaco–condición (drug–disease) en la prescripción. Cuarta barrera; cross-vertical problema(CIE-10)↔prescripción. | **~35%** |
 | 2026-09-17 | Epic AZ: **profundidad/seguridad** — validación de dosis máxima diaria (dose ceiling) en el propose. Atrapa sobredosis (mg/día vs tope del fármaco); extiende la validación estructural AV a rango seguro. | **~35%** |
 | 2026-09-17 | Epic BA: **profundidad/seguridad** — obligaciones de monitoreo automáticas al prescribir (cierra EXEC-0014). Cross-vertical medicación→obligación; warfarina→INR, metformina→creatinina, IECA→potasio. Zero-Lost-Follow-Up. | **~35%** |
+| 2026-09-17 | Epic BB: **profundidad/CDS temporal** — delta check longitudinal de laboratorio: la variación crítica vs el valor previo del mismo analito eleva el resultado a crítico (creatinina duplicada, Hb −2, sodio ±10). Primer CDS temporal (no por umbral). | **~35%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde
