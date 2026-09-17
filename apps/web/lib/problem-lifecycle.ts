@@ -6,20 +6,25 @@ import{foldProblem,assertProblemTransition,type FoldedProblem,type ProblemState}
 import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{normalizeIcd10,lookupIcd10}from"../../../packages/terminology/src";
 // EPIC Q — Lista de problemas: ADDED(ACTIVE) -> RESOLVED / CHRONIC / ENTERED_IN_ERROR; RESOLVED -> ACTIVE.
+// EPIC AM (profundidad): el código del problema se valida contra CIE-10 y se codifica con su descripción canónica.
 const AGG="ClinicalProblem";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"problem:write",purpose:"TREATMENT"});
 }
-const CreateBody=z.object({problemId:z.string().uuid(),patientId:z.string().uuid(),code:z.string().min(1),description:z.string().min(1),occurredAt:z.string().datetime()});
+const CreateBody=z.object({problemId:z.string().uuid(),patientId:z.string().uuid(),code:z.string().min(1),description:z.string().optional(),occurredAt:z.string().datetime()});
 export async function handleProblemCreate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
   const idempotencyKey=req.headers.get("idempotency-key");if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.problemId,expectedVersion:0,eventType:"PROBLEM_ADDED",payload:{kind:"ADDED",patientId:b.patientId,code:b.code,description:b.description},occurredAt:b.occurredAt,topic:"problem.added"});
+  // Profundidad clínica: el código debe existir en CIE-10; se codifica con su descripción canónica.
+  const entry=lookupIcd10(b.code);
+  if(!entry)throw new ClinicalError("VALIDATION_ERROR","Código CIE-10 no válido o no reconocido",{code:b.code});
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.problemId,expectedVersion:0,eventType:"PROBLEM_ADDED",payload:{kind:"ADDED",patientId:b.patientId,code:normalizeIcd10(b.code),description:entry.description,codeSystem:"ICD-10",category:entry.category},occurredAt:b.occurredAt,topic:"problem.added"});
   const result=await runClinicalCommand(ctx,cmd);const r=result.response as{version:number;auditHash?:string};
-  return NextResponse.json({problemId:b.problemId,state:"ACTIVE",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+  return NextResponse.json({problemId:b.problemId,state:"ACTIVE",code:normalizeIcd10(b.code),description:entry.description,codeSystem:"ICD-10",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 async function loadForTransition(req:Request,problemId:string){

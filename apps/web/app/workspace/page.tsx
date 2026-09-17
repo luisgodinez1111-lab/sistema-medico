@@ -508,9 +508,10 @@ export default function Workspace(){
   setAllergies(as=>as.map(x=>x.id===a.id?{...x,state:act.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const createProblem=()=>call("pb-new",async()=>{
-  const id=uuid();const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:id,patientId,code:probCode||"NA",description:probDesc,occurredAt:nowIso()}});
+  const id=uuid();const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:id,patientId,code:probCode,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setProblems(ps=>[...ps,{id,label:`${probDesc}${probCode?` (${probCode})`:""}`,state:"ACTIVE",version:Number(r.body["version"]??1)}]);setProbCode("");setProbDesc("");
+  const desc=String(r.body["description"]??probCode);const code=String(r.body["code"]??probCode);
+  setProblems(ps=>[...ps,{id,label:`${desc} (${code})`,state:"ACTIVE",version:Number(r.body["version"]??1)}]);setProbCode("");setProbDesc("");
  });
  const doProblemAction=(p:Prob,a:{path:string;body:Record<string,unknown>;to:ProbSt})=>call("pb-"+p.id,async()=>{
   const r=await apiRequest(a.path,{method:"POST",body:a.body,ifMatch:p.version});
@@ -733,12 +734,16 @@ export default function Workspace(){
   {/* LISTA DE PROBLEMAS */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Lista de problemas</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Diagnósticos/problemas activos del paciente (chart longitudinal, PROD-011).</p>
-   <div style={{display:"grid",gridTemplateColumns:"140px 1fr",gap:10,marginTop:12}}>
-    <input style={input} value={probCode} onChange={e=>setProbCode(e.target.value)} placeholder="Código (J02.9)" />
-    <input style={input} value={probDesc} onChange={e=>setProbDesc(e.target.value)} placeholder="Descripción (ej. Faringitis aguda)" />
+   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Diagnósticos codificados en <b>CIE-10</b> (validados contra el catálogo; la descripción es canónica). PROD-011 + interoperabilidad NOM-024.</p>
+   <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginTop:12}}>
+    <input style={input} list="icd10-list" value={probCode} onChange={e=>setProbCode(e.target.value.toUpperCase())} placeholder="Código CIE-10 (ej. E11, I10, J45.909)" />
+    <button style={btn} disabled={busy!==""||!probCode} onClick={createProblem}>{busy==="pb-new"?"Añadiendo…":"Añadir problema"}</button>
    </div>
-   <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!probDesc} onClick={createProblem}>{busy==="pb-new"?"Añadiendo…":"Añadir problema"}</button></div>
+   <datalist id="icd10-list">
+    <option value="E11">Diabetes mellitus tipo 2</option><option value="I10">Hipertensión esencial</option><option value="E66.9">Obesidad</option>
+    <option value="J45.909">Asma</option><option value="J44.9">EPOC</option><option value="N18.3">ERC estadio 3</option>
+    <option value="F41.9">Ansiedad</option><option value="F32.9">Depresión</option><option value="M54.5">Lumbalgia</option><option value="I50.9">Insuficiencia cardíaca</option>
+   </datalist>
    {problems.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {problems.map(p=><div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{p.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{p.version}</div></div>

@@ -15,7 +15,7 @@ const PP=(id:string)=>({params:Promise.resolve({problemId:id})});const ISO="2026
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
  const phys=tok(TA);const p=crypto.randomUUID(),pat=crypto.randomUUID();
- let r=await pr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({problemId:p,patientId:pat,code:"J02.9",description:"Faringitis aguda",occurredAt:ISO})}));
+ let r=await pr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({problemId:p,patientId:pat,code:"J06.9",occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).state==="ACTIVE","ADD_ACTIVE_201");
  // resolver sin nota -> 400
  r=await res.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),PP(p));
