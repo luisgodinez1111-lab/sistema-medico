@@ -85,6 +85,16 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic AT: **auditoría** — el motor de inteligencia clínica L18 estaba NO-FUNCIONAL (devolvía vacío, defecto #8); recuperado + 5 tests. Sigue SIN cablear (no cuenta end-to-end). Sin cambio de %. | **~34%** |
 | 2026-09-17 | Epic AU+AV: **profundidad** — laboratorio a 28 analitos (valores de pánico) + validación de dosis/vía/frecuencia en medicación (vocabulario controlado, 400 si inválida). | **~35%** |
 
+## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
+Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde
+la app): adaptive-history, ai-gateway, clinical-inbox, clinical-intelligence, document-ingestion, imaging,
+lab-order, prescription. Es la razón por la que sus bugs no se detectaban (nunca se ejecutan). De ellos, 3
+tenían el bug de aggregateId no-uuid (reventarían con 22P02/500 al llamarse): clinical-intelligence (#8),
+prescription (#12), ai-gateway (#11) — **corregidos**. Los otros 5 usan aggregateId uuid válido.
+**Recomendación:** decidir por feature si se cablea (ruta + prueba en vivo) o se retira; hoy son ~2.5k líneas
+de código muerto que inflan la sensación de avance sin aportar valor end-to-end. La adjudicación de L13–L18
+debería marcarlas `NOT_WIRED` hasta activarlas.
+
 ## Nota de auditoría (2026-09-17)
 Barrido completo: **36/36 pruebas en vivo PASS** tras las correcciones. Hallazgo de proceso clave: **CI no
 atrapó ninguno de los 6 defectos** — los tests unitarios daban falsa seguridad (uno cubría una copia
