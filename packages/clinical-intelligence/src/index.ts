@@ -88,13 +88,12 @@ export class ClinicalIntelligenceEngine{
   private getApplicablePackages(state:any,chiefComplaint?:string){
     const applicable:any[]=[];
     for(const pkg of this.packages){
-      let applies=true;
-      for(const rule of pkg.applicability){
-        if(!this.evalCondition(rule.condition,state,chiefComplaint)){
-          applies=rule.include;
-          break;
-        }
-      }
+      // AUDITORÍA 2026-09-17: la lógica anterior dejaba applies=true siempre (ambas ramas -> true),
+      // así que todo paquete aplicaba. Semántica correcta: sin reglas de aplicabilidad -> aplica siempre;
+      // con reglas -> aplica si alguna condición matchea con include:true.
+      const applies=pkg.applicability.length===0
+        ?true
+        :pkg.applicability.some((rule:{condition:string;include:boolean})=>this.evalCondition(rule.condition,state,chiefComplaint)&&rule.include);
       if(applies)applicable.push(pkg);
     }
     return applicable;
@@ -110,7 +109,11 @@ export class ClinicalIntelligenceEngine{
         recentVitals:state.recentVitals,
         recentResults:state.recentResults,
       };
-      return new Function("ctx","return "+condition)(ctx);
+      // AUDITORÍA 2026-09-17: antes era new Function("ctx","return "+condition)(ctx), pero las condiciones
+      // usan identificadores desnudos (chiefComplaint, recentVitals, hasProblem(...)) -> ReferenceError ->
+      // catch -> false -> NINGUNA regla disparaba. Se pasa cada clave del contexto como parámetro nombrado.
+      const keys=Object.keys(ctx);
+      return new Function(...keys,"return ("+condition+")")(...keys.map(k=>(ctx as Record<string,unknown>)[k]));
     }catch{return false;}
   }
 

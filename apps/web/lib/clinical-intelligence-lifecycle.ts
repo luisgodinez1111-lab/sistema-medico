@@ -60,8 +60,10 @@ export async function handleIntelligenceEvaluate(req:Request):Promise<Response>{
 
   const output:IntelligenceOutput=engine.evaluate(state,b.chiefComplaint);
 
-  const idempotencyKey2=req.headers.get("idempotency-key")??crypto.randomUUID();
-  const cmd=buildCommand({idempotencyKey:idempotencyKey2,aggregateType:AGG,aggregateId:`intel-${b.patientId}-${Date.now()}`,expectedVersion:0,eventType:"INTELLIGENCE_EVALUATED",payload:{kind:"EVALUATED",patientId:b.patientId,output},occurredAt:b.occurredAt,topic:"intelligence.evaluated"});
+  // AUDITORÍA 2026-09-17: el aggregateId era `intel-<uuid>-<Date.now()>` — NO es un uuid válido y
+  // clinical_events.aggregate_id es uuid NOT NULL -> cada evaluación reventaría con 22P02 (500).
+  // Cada evaluación es una entrada de log append-only nueva: se usa un uuid válido.
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:crypto.randomUUID(),expectedVersion:0,eventType:"INTELLIGENCE_EVALUATED",payload:{kind:"EVALUATED",patientId:b.patientId,output},occurredAt:b.occurredAt,topic:"intelligence.evaluated"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
 
@@ -92,9 +94,13 @@ export async function handleKnowledgePackageRegister(req:Request):Promise<Respon
   const b=await parseJson(req,RegisterPackageBody);
 
   const pkg={id:b.id,version:b.version,specialty:b.specialty,effectiveDate:b.effectiveDate,reviewers:b.reviewers,sources:b.sources,applicability:b.applicability,questions:b.questions,redFlags:b.redFlags,focusedExam:b.focusedExam,differentialHints:b.differentialHints,orderConsiderations:b.orderConsiderations,followUpRules:b.followUpRules,safetyNet:b.safetyNet};
-  new (require("../../../packages/clinical-intelligence/src").ClinicalIntelligenceEngine)([]).registerPackage(pkg);
+  // AUDITORÍA 2026-09-17: antes usaba require() en un módulo ESM y registraba sobre un motor DESECHABLE
+  // (new Engine([])) -> el paquete se descartaba y la respuesta 'registered:true' mentía. Se registra en el
+  // singleton `engine`. NOTA: es registro EN MEMORIA por instancia (no durable/compartido en serverless);
+  // la persistencia event-sourced del catálogo de conocimiento queda pendiente antes de activar esta ruta.
+  engine.registerPackage(pkg);
 
-  return NextResponse.json({packageId:b.id,version:b.version,registered:true},{status:201});
+  return NextResponse.json({packageId:b.id,version:b.version,registered:true,persistence:"in-memory"},{status:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
