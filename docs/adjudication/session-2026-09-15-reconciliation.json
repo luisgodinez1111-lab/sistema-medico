@@ -1500,6 +1500,31 @@
       "epic": "BK",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-RENAL-EGFR-001",
+      "name": "Función renal estimada (eGFR CKD-EPI 2021) + estadificación ERC",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — convierte una creatinina cruda en función renal interpretada (CKD-EPI 2021 race-free, estándar actual) con estadio KDIGO G1–G5. Base para el ajuste renal de dosis. Cross-vertical resultado(creatinina)↔paciente(edad/sexo). Honestidad clínica: validado para adultos; en pediatría se reporta not-computable (usar Schwartz).",
+      "invariants": [
+        "CKD-EPI 2021 race-free; monotónico (a mayor creatinina, menor eGFR)",
+        "Usa la creatinina MÁS RECIENTE del paciente (por occurred_at); aislado por paciente (RLS)",
+        "No computable (reportado, no falso resultado): sexo no binario, edad <18 (pediátrico), sin creatinina o valores inválidos",
+        "Paciente no registrado -> 404; endpoint de solo lectura (scope patient:read)",
+        "Estadios KDIGO por umbrales estándar (G1>=90 ... G5<15)"
+      ],
+      "implementation": [
+        "packages/renal-function (computeEGFR + ckdStage)",
+        "apps/web/lib/clinical-runtime.ts (patientDemographics + latestResultValueForAnalyte)",
+        "apps/web/app/api/v1/patients/[patientId]/egfr/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/renal-function.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-egfr-proof.mts — PASS 9/9 (COMPUTABLE_200, MALE_50_SCR1_NORMAL_EGFR, STAGE_G1, ADVANCED_CKD, USES_LATEST_CREATININE, PEDIATRIC_NOT_COMPUTABLE, NO_CREATININE_NOT_COMPUTABLE, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "BL",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
