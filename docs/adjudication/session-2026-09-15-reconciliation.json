@@ -920,6 +920,31 @@
       "epic": "AL",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-TERMINOLOGY-001",
+      "name": "Terminología clínica CIE-10 + validación/codificación (PROFUNDIDAD del eje C)",
+      "risk": "C5",
+      "eng_authority_note": "PROD/interoperabilidad (NOM-024 requiere codificación estándar; CIE-10 es el estándar de morbilidad en México). PROFUNDIDAD, no amplitud: convierte diagnósticos de texto libre en datos codificados validados con descripción canónica. Primer cableado: lista de problemas. Subconjunto curado de demostración; el catálogo oficial completo se cargaría de la fuente autorizada.",
+      "invariants": [
+        "El código de un problema DEBE existir en el catálogo CIE-10 (400 VALIDATION_ERROR si no)",
+        "La descripción se toma canónica del catálogo (no del texto libre del cliente)",
+        "Búsqueda/lookup deterministas, sin PHI; scope patient:read",
+        "El evento persiste code normalizado + description canónica + codeSystem ICD-10 + categoría"
+      ],
+      "implementation": [
+        "packages/terminology",
+        "apps/web/lib/problem-lifecycle.ts (validación/codificación en el add)",
+        "apps/web/app/api/v1/terminology/icd10/route.ts",
+        "UI /workspace lista de problemas con datalist CIE-10"
+      ],
+      "tests": [
+        "tests/v22/terminology.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-terminology-proof.mts — PASS 6/6 (PROBLEM_CODED_201, CANONICAL_DESCRIPTION_ATTACHED, INVALID_CODE_400, SEARCH_FINDS_DIABETES, LOOKUP_VALID, MISSING_READ_SCOPE_403)",
+      "epic": "AM",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
