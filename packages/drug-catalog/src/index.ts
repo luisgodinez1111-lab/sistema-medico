@@ -13,6 +13,8 @@ const DRUGS:Record<string,DrugEntry>={
  "cefalexina":{ingredient:"cefalexina",classes:["CEPHALOSPORIN","BETA_LACTAM"]},
  "ceftriaxona":{ingredient:"ceftriaxona",classes:["CEPHALOSPORIN","BETA_LACTAM"]},
  "cefuroxima":{ingredient:"cefuroxima",classes:["CEPHALOSPORIN","BETA_LACTAM"]},
+ "paracetamol":{ingredient:"paracetamol",classes:["ANALGESIC_ANTIPYRETIC"]},
+ "acetaminofen":{ingredient:"paracetamol",classes:["ANALGESIC_ANTIPYRETIC"]},
  "ibuprofeno":{ingredient:"ibuprofeno",classes:["NSAID"]},
  "naproxeno":{ingredient:"naproxeno",classes:["NSAID"]},
  "ketorolaco":{ingredient:"ketorolaco",classes:["NSAID"]},

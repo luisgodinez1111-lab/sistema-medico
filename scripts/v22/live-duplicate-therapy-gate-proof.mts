@@ -12,7 +12,7 @@ function tok(scopes=["medication:propose","medication:write"]){return signSessio
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});const ISO="2026-09-11T11:00:00.000Z";const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
-const drug={dose:"400mg",route:"VO",frequency:"c/8h"};
+const drug={dose:"400mg",route:"VO",frequency:"c/12h"};// c/12h: dentro del tope diario de todos los fármacos usados (evita disparar el ceiling AZ)
 async function propose(t:string,pat:string,drugCode:string){const id=crypto.randomUUID();await meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:pat,drugCode,...drug,occurredAt:ISO})}));return id;}
 const B=(t:string,v:number)=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:ISO})});
 try{

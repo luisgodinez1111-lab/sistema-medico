@@ -19,6 +19,45 @@ export function isValidFrequency(freq:string):boolean{
  return FREQ_RE.test(f)||FREQ_ABBR.has(f.toUpperCase());
 }
 
+// EPIC AZ — Dosis máxima diaria (dose ceiling). Convierte dose+frequency en mg/día y lo compara contra el
+// tope del principio activo, para atrapar sobredosis (error de prescripción frecuente y peligroso). Puro, sin PHI.
+// Unidades soportadas para el techo: masa (g/mg/mcg). Otras unidades (ml, UI, gotas, tab...) no se acotan aquí.
+const UNIT_TO_MG:Record<string,number>={g:1000,mg:1,mcg:0.001,"µg":0.001,ug:0.001};
+// Cantidad de dosis por día a partir de la frecuencia (undefined = no acotable, p. ej. PRN/tópico/continua).
+export function dosesPerDay(frequency:string):number|undefined{
+ const f=frequency.trim();
+ const mHoras=/^\s*(?:c\/\s*(\d+)\s*h|cada\s+(\d+)\s+(?:horas?|h))\s*$/i.exec(f);
+ if(mHoras){const n=Number(mHoras[1]??mHoras[2]);return n>0?24/n:undefined;}
+ const mDias=/^\s*(?:c\/\s*(\d+)\s*d|cada\s+(\d+)\s+(?:d[ií]as?|d))\s*$/i.exec(f);
+ if(mDias){const n=Number(mDias[1]??mDias[2]);return n>0?1/n:undefined;}
+ const ABBR:Record<string,number|undefined>={QD:1,QHS:1,QAM:1,QPM:1,STAT:1,DU:1,QOD:0.5,BID:2,TID:3,QID:4,AC:3,PC:3,PRN:undefined,CONTINUA:undefined,INFUSION:undefined};
+ return Object.prototype.hasOwnProperty.call(ABBR,f.toUpperCase())?ABBR[f.toUpperCase()]:undefined;
+}
+// Convierte una dosis textual ("500mg", "1 g") a mg. undefined si la unidad no es de masa o el formato es inválido.
+export function doseToMg(dose:string):number|undefined{
+ const m=/^\s*(\d+(?:[.,]\d+)?)\s*(g|mg|mcg|µg|ug)\s*$/i.exec(dose.trim());
+ if(!m)return undefined;
+ const value=Number(m[1]!.replace(",","."));const unit=m[2]!.toLowerCase();
+ const factor=UNIT_TO_MG[unit];return factor===undefined?undefined:value*factor;
+}
+// Tope de dosis diaria por principio activo (mg/día). Subconjunto de demostración; el vademécum oficial se cargaría aparte.
+const MAX_DAILY_MG:Record<string,number>={
+ ibuprofeno:3200,naproxeno:1100,ketorolaco:120,aspirina:4000,
+ paracetamol:4000,acetaminofen:4000,amoxicilina:3000,metformina:2550,
+ enalapril:40,losartan:100,espironolactona:100,azitromicina:500,
+};
+export type DoseCeilingCheck=Readonly<{checked:boolean;exceeded:boolean;computedMgPerDay?:number;maxMgPerDay?:number;ingredient?:string}>;
+// ¿La dosis diaria total excede el tope del fármaco? checked=false cuando no es acotable (unidad no-masa,
+// frecuencia PRN/continua, o principio activo sin tope conocido): en ese caso NO se bloquea (fail-open informado).
+export function checkDoseCeiling(ingredient:string,dose:string,frequency:string):DoseCeilingCheck{
+ const ing=ingredient.trim().toLowerCase().normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]","g"),"");
+ const max=MAX_DAILY_MG[ing];if(max===undefined)return{checked:false,exceeded:false};
+ const mg=doseToMg(dose);const perDay=dosesPerDay(frequency);
+ if(mg===undefined||perDay===undefined)return{checked:false,exceeded:false,maxMgPerDay:max,ingredient:ing};
+ const computed=mg*perDay;
+ return{checked:true,exceeded:computed>max,computedMgPerDay:computed,maxMgPerDay:max,ingredient:ing};
+}
+
 export type MedicationOrderInput=Readonly<{dose:string;route:string;frequency:string}>;
 export type MedicationOrderValidation=Readonly<{ok:boolean;errors:readonly string[]}>;
 // Valida la orden completa; devuelve todos los errores (no corta en el primero).
