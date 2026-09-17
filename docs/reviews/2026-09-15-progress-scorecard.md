@@ -22,7 +22,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | --- | --- | --- | --- |
 | A. Kernel/fundación (RLS, concurrencia, auditoría, atomicidad, DR) | 12% | ~85% | 10.2 |
 | B. Identidad/Auth/Sesión + login | 8% | ~75% | 6.0 |
-| C. Verticales clínicos (~28 áreas PROD): amplitud + profundidad | 35% | ~34.5% | 12.1 |
+| C. Verticales clínicos (~28 áreas PROD): amplitud + profundidad | 35% | ~34.7% | 12.1 |
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
 | E. UI/UX de producto | 10% | ~21% | 2.1 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~20% | 1.6 |
@@ -98,6 +98,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BH: **endurecimiento (eje G)** — Backup/DR + downtime mode (ENG-055): proof de recuperabilidad en CI (replay determinista + idempotencia anti-duplicado + auditoría + RLS), runbook RPO/RTO, guard "nunca guardado en falso" (503 en downtime). Eje G 28%→31%. | **~36%** |
 | 2026-09-17 | Epic BI: **endurecimiento (eje G)** — compliance-as-code NOM (ENG-044): registro de aplicabilidad (NOM-004/024/LFPDPPP + evaluables) con evidencia enlazada + brechas, threat model STRIDE, guard "no certificación sin evidencia". Crea docs/compliance y docs/threat-models. Eje G 31%→33%. | **~36%** |
 | 2026-09-17 | Epic BJ: **endurecimiento (eje G)** — IAM: dev identity verifier IMPOSIBLE en producción (negación explícita + incidente de seguridad si hay flags de dev en prod). OIDC desbloquea prod. Cierra el ítem #6 (dev verifier). Eje G 33%→35%. | **~36%** |
+| 2026-09-17 | Epic BK: **profundidad clínica (eje C)** — pronóstico de vacunación por edad (cartilla México): DUE/OVERDUE/UPCOMING/COMPLETE desde nacimiento + vacunas aplicadas. Razonamiento temporal por edad, cross-vertical paciente↔inmunización. | **~36%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde

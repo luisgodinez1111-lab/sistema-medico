@@ -1475,6 +1475,31 @@
       "epic": "BJ",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-IMMUNIZATION-FORECAST-001",
+      "name": "Pronóstico de vacunación por edad (cartilla México)",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — razonamiento TEMPORAL por edad. Dado el nacimiento del paciente y las vacunas aplicadas, computa qué dosis están DUE/OVERDUE/UPCOMING/COMPLETE según la Cartilla Nacional de Salud (subconjunto de demostración). Cross-vertical paciente(birthDate)↔inmunización(administered). Necesidad real de primer nivel en México.",
+      "invariants": [
+        "Estado por conteo posicional de dosis aplicadas por código + edad vs edad recomendada",
+        "OVERDUE fuera de la ventana de gracia; DUE dentro; UPCOMING si aún no toca; COMPLETE si aplicada",
+        "Aislado por paciente (RLS): usa el birthDate y las vacunas del propio paciente",
+        "Paciente no registrado (sin birthDate) -> 404; fecha inválida -> vacío (no falso positivo)",
+        "Endpoint de solo lectura (scope patient:read)"
+      ],
+      "implementation": [
+        "packages/immunization-schedule (SCHEDULE + ageInMonths + forecastImmunizations + forecastSummary)",
+        "apps/web/lib/clinical-runtime.ts (patientBirthDate + administeredVaccineCodes, RLS-scoped)",
+        "apps/web/app/api/v1/patients/[patientId]/immunization-forecast/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/immunization-schedule.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-immunization-forecast-proof.mts — PASS 11/11 (PATIENT_REGISTERED, FORECAST_200, AGE_APPROX_24M, BCG_COMPLETE, SRP_12M_OVERDUE, PENTA_18M_OVERDUE, DPT_48M_UPCOMING, SUMMARY_OVERDUE_COUNT, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "BK",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

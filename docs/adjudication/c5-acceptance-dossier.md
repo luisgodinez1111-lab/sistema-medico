@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **58**
+- Capacidades reconciliadas: **59**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **58**
+- Pendiente de aceptación humana C5: **59**
 
 ## Riesgo C4
 
@@ -417,6 +417,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: —
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-IMMUNIZATION-FORECAST-001 — Pronóstico de vacunación por edad (cartilla México)
+- Epic: BK
+- Invariantes: 5
+- Tests: `tests/v22/immunization-schedule.test.ts`
+- Prueba en vivo: `scripts/v22/live-immunization-forecast-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -479,3 +486,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-BACKUP-DR-001 | | | | |
 | CAP-COMPLIANCE-NOM-001 | | | | |
 | CAP-DEV-IDENTITY-HARDENING-001 | | | | |
+| CAP-IMMUNIZATION-FORECAST-001 | | | | |
