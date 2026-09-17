@@ -993,6 +993,29 @@
       "epic": "AO",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-DRUG-ALLERGY-001",
+      "name": "Gate de alergias por clase + reactividad cruzada (catálogo de fármacos)",
+      "risk": "C5",
+      "eng_authority_note": "PROD/seguridad del paciente (alerta de alergia en la prescripción; barrera de seguridad crítica). PROFUNDIDAD: reemplaza el match por subcadena por match de principio activo + clase de alérgeno con reactividad cruzada beta-lactámicos. Refuerza el gate cross-vertical alergia→medicación (CAP-ALLERGY-001). Catálogo de demostración; la fuente oficial (RxNorm/COFEPRIS) se cargaría aparte. Puro, sin PHI.",
+      "invariants": [
+        "Alergia a una CLASE bloquea todos sus fármacos (penicilina -> amoxicilina), no solo coincidencia textual",
+        "Reactividad cruzada beta-lactámicos: alergia a penicilina bloquea cefalosporinas",
+        "Sin falsos positivos entre clases distintas (sulfa no bloquea amoxicilina)",
+        "Mantiene el fallback por subcadena (compatibilidad); fail-closed en el gate de prescripción"
+      ],
+      "implementation": [
+        "packages/drug-catalog",
+        "apps/web/lib/medication-lifecycle.ts (gate reforzado con checkDrugAllergy)"
+      ],
+      "tests": [
+        "tests/v22/drug-catalog.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-cross-reactivity-gate-proof.mts — PASS 5/5 (AMOXICILLIN_BLOCKED_BY_CLASS, CEPHALEXIN_BLOCKED_CROSS_REACTIVITY, IBUPROFEN_ALLOWED, IBUPROFEN_BLOCKED_NSAID_CLASS, AMOXICILLIN_ALLOWED_FOR_NSAID_ALLERGIC); sin regresión en live-allergy-medication-gate-proof.mts",
+      "epic": "AP",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
