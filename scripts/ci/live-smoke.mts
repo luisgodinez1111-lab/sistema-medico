@@ -41,6 +41,7 @@ const SMOKE:readonly string[]=[
  "live-curb65-proof",                       // profundidad: CURB-65 (gravedad de neumonía)
  "live-aa-gradient-proof",                  // profundidad: gradiente alveolo-arterial de O2
  "live-ai-copilot-gateway-proof",           // eje D: choke point de seguridad del copilot (sin IA)
+ "live-charlson-proof",                     // profundidad: índice de comorbilidad de Charlson
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];
