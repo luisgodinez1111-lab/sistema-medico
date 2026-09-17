@@ -40,6 +40,9 @@ try{
  ok(F.some(x=>x.domain==="glucémico"),"GLYCEMIC_FLAG");
  ok(F.some(x=>x.domain==="anticoagulación"),"ANTICOAG_FLAG");
  ok(g.body.summary.critical>=1&&g.body.summary.total===F.length,"SUMMARY_COUNTS");
+ // crisis hipertensiva -> hallazgo CRITICAL de presión (prueba el cableado de BP staging al resumen)
+ const pbp=crypto.randomUUID();await reg(phys,pbp,55,"MALE");await vital(phys,pbp,"BP","190/100");
+ g=await get(phys,pbp);ok(g.body.findings.some((x:{domain:string;severity:string})=>x.domain==="presión"&&x.severity==="CRITICAL"),"BP_CRISIS_FINDING");
  // paciente sano joven sin datos -> sin hallazgos
  const p2=crypto.randomUUID();await reg(phys,p2,30,"MALE");
  g=await get(phys,p2);ok(g.status===200&&g.body.findings.length===0,"HEALTHY_NO_FINDINGS");

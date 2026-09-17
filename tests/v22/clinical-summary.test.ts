@@ -27,6 +27,17 @@ describe("assembleFindings (prioriza por severidad)",()=>{
   expect(assembleFindings({glycemic:{category:"POOR",label:"x"}})[0]!.severity).toBe("WARNING");
   expect(assembleFindings({glycemic:{category:"PREDIABETES",label:"x"}})[0]!.severity).toBe("INFO");
  });
+ it("PA: crisis=CRITICAL, estadio 2=WARNING; estadio 1/normal no generan hallazgo",()=>{
+  expect(assembleFindings({bp:{stage:"CRISIS"}})[0]!.severity).toBe("CRITICAL");
+  expect(assembleFindings({bp:{stage:"STAGE_2"}})[0]!.severity).toBe("WARNING");
+  expect(assembleFindings({bp:{stage:"STAGE_1"}})).toEqual([]);
+ });
+ it("INR: crítico=CRITICAL; supra/subterapéutico=WARNING solo si está anticoagulado",()=>{
+  expect(assembleFindings({inr:{status:"CRITICAL_HIGH",onAnticoagulant:false}})[0]!.severity).toBe("CRITICAL");
+  expect(assembleFindings({inr:{status:"SUPRATHERAPEUTIC",onAnticoagulant:true}})[0]!.severity).toBe("WARNING");
+  expect(assembleFindings({inr:{status:"SUPRATHERAPEUTIC",onAnticoagulant:false}})).toEqual([]); // sin anticoag, no alerta
+  expect(assembleFindings({inr:{status:"THERAPEUTIC",onAnticoagulant:true}})).toEqual([]);
+ });
  it("paciente sano -> sin hallazgos; summarize cuenta por severidad",()=>{
   const f=assembleFindings({openCriticalResults:0,news2:{score:0,band:"LOW"}});
   expect(f).toEqual([]);

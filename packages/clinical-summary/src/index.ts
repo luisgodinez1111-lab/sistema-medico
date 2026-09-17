@@ -13,6 +13,8 @@ export type SummaryInputs=Readonly<{
  fib4?:{value:number;risk:"LOW"|"INDETERMINATE"|"HIGH"};
  bmi?:{category:string};
  overdueVaccines?:number;
+ bp?:{stage:string};
+ inr?:{status:string;onAnticoagulant:boolean};
 }>;
 const RANK:Record<Severity,number>={CRITICAL:0,WARNING:1,INFO:2};
 // Ensambla y prioriza. Cada regla es explícita y determinista.
@@ -29,6 +31,11 @@ export function assembleFindings(i:SummaryInputs):Finding[]{
   else if(i.glycemic.category==="ABOVE_TARGET"||i.glycemic.category==="PREDIABETES")f.push({domain:"glucémico",severity:"INFO",summary:i.glycemic.label});}
  if(i.cha2ds2vasc&&i.cha2ds2vasc.applicable&&i.cha2ds2vasc.risk==="HIGH")f.push({domain:"anticoagulación",severity:"WARNING",summary:`CHA₂DS₂-VASc ${i.cha2ds2vasc.score} (alto): anticoagulación recomendada`});
  if(i.fib4&&i.fib4.risk==="HIGH")f.push({domain:"hepático",severity:"WARNING",summary:`FIB-4 ${i.fib4.value} (alto): referir a hepatología`});
+ if(i.bp){if(i.bp.stage==="CRISIS")f.push({domain:"presión",severity:"CRITICAL",summary:"Crisis hipertensiva: evaluación urgente"});
+  else if(i.bp.stage==="STAGE_2")f.push({domain:"presión",severity:"WARNING",summary:"Hipertensión estadio 2: ajustar tratamiento"});}
+ if(i.inr){if(i.inr.status==="CRITICAL_HIGH")f.push({domain:"INR",severity:"CRITICAL",summary:"INR crítico (≥5): riesgo de hemorragia — suspender + vitamina K"});
+  else if(i.inr.onAnticoagulant&&i.inr.status==="SUPRATHERAPEUTIC")f.push({domain:"INR",severity:"WARNING",summary:"INR supraterapéutico: riesgo hemorrágico — reducir dosis"});
+  else if(i.inr.onAnticoagulant&&i.inr.status==="SUBTHERAPEUTIC")f.push({domain:"INR",severity:"WARNING",summary:"INR subterapéutico: riesgo trombótico — ajustar dosis"});}
  if(i.overdueVaccines&&i.overdueVaccines>0)f.push({domain:"inmunización",severity:"WARNING",summary:`${i.overdueVaccines} vacuna(s) vencida(s)`});
  if(i.bmi&&(i.bmi.category==="OBESITY_I"||i.bmi.category==="OBESITY_II"||i.bmi.category==="OBESITY_III"))f.push({domain:"nutricional",severity:"INFO",summary:`Obesidad (${i.bmi.category})`});
  return f.sort((a,b)=>RANK[a.severity]-RANK[b.severity]);

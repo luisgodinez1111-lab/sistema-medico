@@ -1,5 +1,8 @@
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
-import{patientDemographics,latestVitalsByType,latestResultValueForAnalyte,activeProblemCodes,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccineCodes}from"./clinical-runtime";
+import{patientDemographics,latestVitalsByType,latestResultValueForAnalyte,activeProblemCodes,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccineCodes,activeMedicationDrugCodes}from"./clinical-runtime";
+import{stageBloodPressure,parseBp}from"../../../packages/bp-staging/src";
+import{interpretINR}from"../../../packages/anticoagulation/src";
+import{resolveDrug}from"../../../packages/drug-catalog/src";
 import{computeEGFR,type Sex}from"../../../packages/renal-function/src";
 import{computeNEWS2}from"../../../packages/lab-reference/src";
 import{glycemicAssessment}from"../../../packages/glycemic/src";
@@ -20,7 +23,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  const asOf=new Date().toISOString();
  const age=ageYears(demo.birthDate);
  const sex=demo.sexAtBirth;
- const[vitals,codes,openRes,openVit,vaccines,creat,a1c,ast,alt,plt]=await Promise.all([
+ const[vitals,codes,openRes,openVit,vaccines,creat,a1c,ast,alt,plt,inrRaw,activeDrugs]=await Promise.all([
   latestVitalsByType(ctx,patientId),
   activeProblemCodes(ctx,patientId),
   countOpenCriticalResults(ctx,patientId),
@@ -31,6 +34,8 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
   latestResultValueForAnalyte(ctx,patientId,"AST"),
   latestResultValueForAnalyte(ctx,patientId,"ALT"),
   latestResultValueForAnalyte(ctx,patientId,"PLATELETS"),
+  latestResultValueForAnalyte(ctx,patientId,"INR"),
+  activeMedicationDrugCodes(ctx,patientId),
  ]);
  const inp:{-readonly[K in keyof SummaryInputs]:SummaryInputs[K]}={openCriticalResults:openRes,openCriticalVitals:openVit};
  // NEWS2
@@ -51,6 +56,10 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  if(w!==undefined&&h!==undefined){const b=computeBMI(w,h);if(b)inp.bmi={category:b.category};}
  // Vacunas vencidas (solo pediatría tiene esquema aquí)
  if(age<6){const fc=forecastImmunizations(demo.birthDate,vaccines,asOf);inp.overdueVaccines=forecastSummary(fc).overdue;}
+ // Presión arterial (estadificación ACC/AHA)
+ const bpv=vitals["BP"];if(bpv){const pb=parseBp(bpv);if(pb){const bs=stageBloodPressure(pb.systolic,pb.diastolic);if(bs)inp.bp={stage:bs.stage};}}
+ // INR (contexto del anticoagulante activo)
+ if(inrRaw!==undefined&&Number.isFinite(Number(inrRaw))){const ir=interpretINR(Number(inrRaw));if(ir)inp.inr={status:ir.status,onAnticoagulant:activeDrugs.some(dc=>resolveDrug(dc)?.classes.includes("ANTICOAGULANT"))};}
  const findings=assembleFindings(inp);
  return{registered:true,findings,summary:summarize(findings)};
 }
