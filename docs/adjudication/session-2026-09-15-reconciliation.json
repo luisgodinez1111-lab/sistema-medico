@@ -1016,6 +1016,29 @@
       "epic": "AP",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-BILLING-ICD10-001",
+      "name": "Codificación CIE-10 validada en facturación (reclamaciones)",
+      "risk": "C5",
+      "eng_authority_note": "PROD/interoperabilidad (NOM-024: codificación estándar en facturación clínica). PROFUNDIDAD del eje C: la codificación de reclamaciones deja de aceptar texto libre y valida contra CIE-10 con descripción canónica. Reutiliza CAP-TERMINOLOGY-001. Nota de auditoría 2026-09-17: este cableado se hizo tras corregir 6 defectos de la reorganización L13–L18.",
+      "invariants": [
+        "Cada código de la reclamación DEBE existir en CIE-10 (400 VALIDATION_ERROR si no)",
+        "La descripción se toma canónica del catálogo; el evento persiste codes normalizados + codeSystem ICD-10",
+        "La validación no altera la máquina de estados del claim (DRAFT->CODED intacto)",
+        "Tenant isolation (cross-tenant 404 antes de validar) + scope billing:write"
+      ],
+      "implementation": [
+        "apps/web/lib/claim-lifecycle.ts (validación/codificación en handleClaimCoding)",
+        "packages/terminology (reutilizado)"
+      ],
+      "tests": [
+        "tests/v22/terminology.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-claim-lifecycle-proof.mts — PASS 12/12 (incl. CODE_201 con E11/I10, INVALID_ICD10_CODE_400, VOID_FROM_CODED_201, CROSS_TENANT_404)",
+      "epic": "AR",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
