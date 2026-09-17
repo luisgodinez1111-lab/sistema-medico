@@ -100,6 +100,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BJ: **endurecimiento (eje G)** — IAM: dev identity verifier IMPOSIBLE en producción (negación explícita + incidente de seguridad si hay flags de dev en prod). OIDC desbloquea prod. Cierra el ítem #6 (dev verifier). Eje G 33%→35%. | **~36%** |
 | 2026-09-17 | Epic BK: **profundidad clínica (eje C)** — pronóstico de vacunación por edad (cartilla México): DUE/OVERDUE/UPCOMING/COMPLETE desde nacimiento + vacunas aplicadas. Razonamiento temporal por edad, cross-vertical paciente↔inmunización. | **~36%** |
 | 2026-09-17 | Epic BL: **profundidad clínica (eje C)** — eGFR (CKD-EPI 2021) + estadificación ERC (KDIGO G1–G5) desde creatinina + edad/sexo. Base para ajuste renal de dosis; cross-vertical resultado↔paciente; not-computable honesto en pediatría. | **~36%** |
+| 2026-09-17 | Epic BM: **profundidad/seguridad (eje C)** — contraindicación renal por eGFR MEDIDO en la prescripción (7.ª barrera): metformina/AINE con TFG<30 → SAFETY_BLOCKED. Contraparte de función medida de AY (diagnóstico); cross-vertical medicación←creatinina+demografía. | **~36%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde

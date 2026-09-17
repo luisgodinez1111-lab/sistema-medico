@@ -1525,6 +1525,32 @@
       "epic": "BL",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-RENAL-DOSING-001",
+      "name": "Contraindicación renal por eGFR medido en la prescripción (7.ª barrera)",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD/seguridad — contraparte de FUNCIÓN medida de CAP-DRUG-CONDITION-001 (que bloquea por diagnóstico de ERC). Al prescribir, computa el eGFR real (CKD-EPI, CAP-RENAL-EGFR-001) y bloquea fármacos contraindicados por debajo de su umbral renal (metformina TFG<30; AINE TFG<30). Cross-vertical medicación←creatinina+demografía. Séptima barrera de la prescripción.",
+      "invariants": [
+        "eGFR < umbral de contraindicación de la clase -> SAFETY_BLOCKED (fail-closed)",
+        "CAUTION (p.ej. metformina 30–45) no bloquea; devuelve la acción más severa",
+        "Sin eGFR computable (sin creatinina, pediátrico, sexo no binario) -> no bloquea (fail-open informado)",
+        "Usa el eGFR del propio paciente (RLS); complementa (no sustituye) la contraindicación por diagnóstico (AY)",
+        "Corre en el prescribe, tras alergia/duplicación/DDI/contraindicación"
+      ],
+      "implementation": [
+        "packages/drug-catalog (RENAL_RULES_BY_CLASS + checkRenalDosing)",
+        "packages/renal-function (computeEGFR)",
+        "apps/web/lib/clinical-runtime.ts (patientEgfr)",
+        "apps/web/lib/medication-lifecycle.ts (gate renal en handleMedicationPrescription)"
+      ],
+      "tests": [
+        "tests/v22/drug-catalog.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-renal-dosing-gate-proof.mts — PASS 5/5 (METFORMIN_LOW_EGFR_BLOCKED_403, NSAID_LOW_EGFR_BLOCKED_403, METFORMIN_NORMAL_EGFR_ALLOWED_201, NO_EGFR_NOT_BLOCKED_201, NONRENAL_DRUG_ALLOWED_201). En el smoke de CI (live-regression).",
+      "epic": "BM",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
