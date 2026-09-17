@@ -101,6 +101,21 @@ export async function activeMedicationDrugCodes(ctx:HttpTenantContext,patientId:
   return rows.map(x=>String(x.drug_code??"")).filter(Boolean);
  }) as Promise<string[]>;
 }
+// EPIC BB — Valor PREVIO del mismo analito del paciente (resultado más reciente ya recibido). RLS-scoped.
+// Para el delta check de laboratorio en la recepción de un resultado nuevo. Devuelve el value textual o undefined.
+export async function latestResultValueForAnalyte(ctx:HttpTenantContext,patientId:string,analyte:string):Promise<string|undefined>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select r.payload->>'value' as value
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
+     and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
+   order by r.occurred_at desc, r.sequence desc limit 1`;
+  const v=rows[0]?.value;return v==null?undefined:String(v);
+ }) as Promise<string|undefined>;
+}
 // EPIC AY — Condiciones ACTIVAS del paciente (lista de problemas, CIE-10). RLS-scoped. Para el gate de
 // contraindicación fármaco–condición en la prescripción. Activa = último kind ADDED/REACTIVATED/MARKED_CHRONIC
 // (no RESOLVED ni MARKED_ERROR). Devuelve el código CIE-10 normalizado.

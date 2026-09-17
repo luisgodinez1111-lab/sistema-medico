@@ -53,6 +53,46 @@ export function classifyLab(analyte: string, value: string): LabAssessment {
   return { status: "NORMAL", critical: false, interpretation: `${key} normal` };
 }
 
+// ---------- Delta check (variación crítica entre resultados) — EPIC BB ----------
+// Compara un resultado nuevo con el valor PREVIO del mismo analito del paciente. Atrapa deterioro rápido
+// y confusiones de muestra que el umbral absoluto NO detecta (p. ej. una caída grande de Hb todavía dentro
+// del rango "bajo pero no pánico"). Un delta CRÍTICO eleva el resultado a `critical` -> participa del
+// gate de firma (Zero Lost Follow-Up). Puro, sin PHI. Umbrales de demostración.
+export type DeltaSeverity = "CRITICAL" | "NONE";
+export type DeltaAssessment = Readonly<{ flagged: boolean; severity: DeltaSeverity; changeAbs: number; changePct: number; note: string }>;
+type DeltaRule = Readonly<{ direction: "up" | "down" | "any"; criticalAbs?: number; criticalRatio?: number; note: string }>;
+// direction = dirección clínicamente peligrosa; criticalRatio se evalúa como new/old.
+const DELTA_RULES: Record<string, DeltaRule> = {
+  CREATININE: { direction: "up", criticalAbs: 0.5, criticalRatio: 2, note: "aumento agudo de creatinina: posible lesión renal aguda (AKI)" },
+  HEMOGLOBIN: { direction: "down", criticalAbs: 2, note: "caída de hemoglobina >=2 g/dL: posible hemorragia aguda" },
+  SODIUM: { direction: "any", criticalAbs: 10, note: "cambio rápido de sodio: riesgo de corrección peligrosa (mielinólisis/edema)" },
+  POTASSIUM: { direction: "any", criticalAbs: 1, note: "cambio agudo de potasio: riesgo de arritmia" },
+  PLATELETS: { direction: "down", criticalRatio: 0.5, note: "caída de plaquetas >=50%: posible consumo/HIT" },
+  CALCIUM: { direction: "any", criticalAbs: 2, note: "cambio rápido de calcio" },
+  GLUCOSE: { direction: "any", criticalAbs: 200, note: "variación glucémica extrema" },
+};
+function round2(n: number): number { return Math.round(n * 100) / 100; }
+export function deltaCheck(analyte: string, priorValue: string, newValue: string): DeltaAssessment {
+  const none: DeltaAssessment = { flagged: false, severity: "NONE", changeAbs: 0, changePct: 0, note: "" };
+  const rule = DELTA_RULES[analyte.trim().toUpperCase()];
+  if (!rule) return none;
+  const oldV = num(priorValue), newV = num(newValue);
+  if (Number.isNaN(oldV) || Number.isNaN(newV)) return none;
+  const changeAbs = newV - oldV;
+  const drop = oldV - newV, rise = changeAbs;
+  const changePct = oldV !== 0 ? round2((changeAbs / Math.abs(oldV)) * 100) : 0;
+  let hit = false;
+  if (rule.criticalAbs !== undefined) {
+    const mag = rule.direction === "up" ? rise : rule.direction === "down" ? drop : Math.abs(changeAbs);
+    if (mag >= rule.criticalAbs) hit = true;
+  }
+  if (!hit && rule.criticalRatio !== undefined && oldV > 0) {
+    const ratio = newV / oldV;
+    if (rule.direction === "down" ? ratio <= rule.criticalRatio : ratio >= rule.criticalRatio) hit = true;
+  }
+  return hit ? { flagged: true, severity: "CRITICAL", changeAbs: round2(changeAbs), changePct, note: rule.note } : { ...none, changeAbs: round2(changeAbs), changePct };
+}
+
 // ---------- Signos vitales ----------
 export type VitalStatus = "NORMAL" | "ABNORMAL" | "CRITICAL" | "UNKNOWN";
 export type VitalAssessment = Readonly<{ status: VitalStatus; critical: boolean; interpretation: string }>;

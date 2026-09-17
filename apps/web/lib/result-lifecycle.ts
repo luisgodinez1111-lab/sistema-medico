@@ -4,10 +4,10 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldResult,assertResultTransition,type FoldedResult}from"../../../packages/result-fold/src";
 import{type ResultState}from"../../../packages/order-result-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,latestResultValueForAnalyte}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
-import{classifyLab}from"../../../packages/lab-reference/src";
+import{classifyLab,deltaCheck}from"../../../packages/lab-reference/src";
 // EPIC G — Ciclo de vida del resultado diagnóstico (closed-loop de seguimiento) sobre el kernel.
 // EPIC AQ (profundidad): si se envía analito+valor, el flag `critical` se DERIVA del valor (valores de pánico).
 // RECEIVED -> VERIFIED -> ACTIONED (obligación) -> CLOSED. Un resultado CRÍTICO en ACTIONED sin
@@ -30,10 +30,19 @@ export async function handleResultReceived(req:Request):Promise<Response>{
   const b=await parseJson(req,ReceiveBody);
   // Derivar critical del valor real usando catálogo de rangos de laboratorio
   const assessment=classifyLab(b.analyte,b.value);
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.resultId,expectedVersion:0,eventType:"RESULT_RECEIVED",payload:{kind:"RECEIVED",patientId:b.patientId,orderId:b.orderId,critical:assessment.critical,status:assessment.status,interpretation:assessment.interpretation,analyte:b.analyte,value:b.value},occurredAt:b.occurredAt,topic:"result.received"});
+  // EPIC BB (profundidad): delta check longitudinal — comparar con el valor previo del mismo analito.
+  // Una variación crítica (p. ej. creatinina que se duplica, Hb -2 g/dL) ELEVA el resultado a `critical`
+  // aunque el valor absoluto no sea de pánico -> participa del gate de firma (Zero Lost Follow-Up).
+  const prior=await latestResultValueForAnalyte(ctx,b.patientId,b.analyte);
+  const delta=prior!==undefined?deltaCheck(b.analyte,prior,b.value):{flagged:false,severity:"NONE" as const,changeAbs:0,changePct:0,note:""};
+  const critical=assessment.critical||delta.flagged;
+  const interpretation=delta.flagged?`${assessment.interpretation} · Δ crítico vs previo (${prior}→${b.value}): ${delta.note}`:assessment.interpretation;
+  const payload:Record<string,unknown>={kind:"RECEIVED",patientId:b.patientId,orderId:b.orderId,critical,status:delta.flagged?"CRITICAL":assessment.status,interpretation,analyte:b.analyte,value:b.value};
+  if(delta.flagged){payload["deltaFlagged"]=true;payload["deltaSeverity"]=delta.severity;payload["deltaChangeAbs"]=delta.changeAbs;payload["deltaChangePct"]=delta.changePct;payload["priorValue"]=prior;}
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.resultId,expectedVersion:0,eventType:"RESULT_RECEIVED",payload,occurredAt:b.occurredAt,topic:"result.received"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
-  return NextResponse.json({resultId:b.resultId,state:"RECEIVED",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+  return NextResponse.json({resultId:b.resultId,state:"RECEIVED",critical,deltaFlagged:delta.flagged,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
