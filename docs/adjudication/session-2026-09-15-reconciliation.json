@@ -945,6 +945,30 @@
       "epic": "AM",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-VITALS-REF-001",
+      "name": "Interpretación de signos vitales por rangos de referencia (PROFUNDIDAD / CDS básico)",
+      "risk": "C5",
+      "eng_authority_note": "PROD (soporte a la decisión clínica básico). PROFUNDIDAD del eje C: convierte el valor de un signo vital en una interpretación estructurada (NORMAL/ABNORMAL/CRITICAL) por reglas deterministas. Umbrales de adulto de demostración; los oficiales/por edad se parametrizarían del protocolo institucional. Sin PHI en el clasificador.",
+      "invariants": [
+        "Clasificación determinista por tipo (BP/HR/SPO2/TEMP/RESP); formato inválido -> UNKNOWN, nunca falso NORMAL",
+        "record y amendment persisten status+interpretation en el evento y los devuelven",
+        "La enmienda re-interpreta el nuevo valor (no arrastra la interpretación previa)",
+        "No altera la máquina de estados del vital (append-only intacto)"
+      ],
+      "implementation": [
+        "packages/vitals-reference",
+        "apps/web/lib/vital-lifecycle.ts (clasificación en record/amendment)",
+        "UI /workspace badge de interpretación del signo vital"
+      ],
+      "tests": [
+        "tests/v22/vitals-reference.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-vitals-reference-proof.mts — PASS 6/6 (BP_NORMAL, BP_CRITICAL, SPO2_CRITICAL, TEMP_ABNORMAL, BP_START_CRITICAL, AMEND_RECLASSIFIES_NORMAL)",
+      "epic": "AN",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
