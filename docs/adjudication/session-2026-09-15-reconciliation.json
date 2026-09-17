@@ -1651,6 +1651,31 @@
       "epic": "BQ",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-LIVER-FIB4-001",
+      "name": "FIB-4: índice no invasivo de fibrosis hepática",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — tamizaje de fibrosis hepática avanzada sin biopsia (hígado graso/MASLD, hepatitis). FIB-4 = (edad·AST)/(plaquetas·√ALT). Cross-vertical resultado(AST/ALT/plaquetas)↔paciente(edad). Cortes estándar.",
+      "invariants": [
+        "FIB-4 = (edad·AST)/(plaquetas·√ALT); monotónico en edad y AST",
+        "Riesgo: LOW<1.3 / INDETERMINATE 1.3–2.67 / HIGH>2.67",
+        "Usa el valor MÁS RECIENTE de cada analito (RLS, aislado por paciente)",
+        "Falta algún analito o valores inválidos -> not-computable (reportado)",
+        "Paciente no registrado -> 404; endpoint de solo lectura (scope patient:read)"
+      ],
+      "implementation": [
+        "packages/liver-fibrosis (fib4)",
+        "apps/web/lib/clinical-runtime.ts (patientDemographics + latestResultValueForAnalyte)",
+        "apps/web/app/api/v1/patients/[patientId]/fib4/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/liver-fibrosis.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-fib4-proof.mts — PASS 7/7 (COMPUTABLE_200, HIGH_RISK, LOW_RISK, USES_LATEST_PLATELETS, MISSING_ANALYTE, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "BR",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

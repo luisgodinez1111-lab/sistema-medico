@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **65**
+- Capacidades reconciliadas: **66**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **65**
+- Pendiente de aceptación humana C5: **66**
 
 ## Riesgo C4
 
@@ -466,6 +466,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-cha2ds2vasc-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-LIVER-FIB4-001 — FIB-4: índice no invasivo de fibrosis hepática
+- Epic: BR
+- Invariantes: 5
+- Tests: `tests/v22/liver-fibrosis.test.ts`
+- Prueba en vivo: `scripts/v22/live-fib4-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -535,3 +542,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-ANTHROPOMETRICS-BMI-001 | | | | |
 | CAP-GLYCEMIC-CONTROL-001 | | | | |
 | CAP-STROKE-RISK-001 | | | | |
+| CAP-LIVER-FIB4-001 | | | | |
