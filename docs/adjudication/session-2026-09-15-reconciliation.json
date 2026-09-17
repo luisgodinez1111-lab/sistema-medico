@@ -1681,13 +1681,14 @@
       "id": "CAP-CLINICAL-INTELLIGENCE-001",
       "name": "Resumen de inteligencia clínica determinista (priorizado)",
       "risk": "C5",
-      "eng_authority_note": "PROFUNDIDAD INTEGRATIVA del eje C — consolida los CDS deterministas (NEWS2, eGFR, glucémico, CHA2DS2-VASc, FIB-4, IMC, vacunas vencidas, obligaciones/resultados críticos) en una vista PRIORIZADA por severidad. Núcleo DETERMINISTA por reglas (NO IA generativa; R6 en pausa) — cumple la invariante safety-critical-nunca-solo-IA. Cross-vertical (vitales+labs+problemas+demografía).",
+      "eng_authority_note": "PROFUNDIDAD INTEGRATIVA del eje C — consolida los CDS deterministas (NEWS2, eGFR, glucémico, CHA2DS2-VASc, FIB-4, IMC, estadificación de PA (ACC/AHA), INR/anticoagulación, vacunas vencidas, obligaciones/resultados críticos) en una vista PRIORIZADA por severidad. Núcleo DETERMINISTA por reglas (NO IA generativa; R6 en pausa) — cumple la invariante safety-critical-nunca-solo-IA. Cross-vertical (vitales+labs+problemas+demografía).",
       "invariants": [
         "Reglas explícitas y deterministas; orden CRITICAL > WARNING > INFO",
         "Resultado/vital crítico sin cerrar y NEWS2 alto -> CRITICAL",
         "CHA2DS2-VASc alto genera hallazgo SOLO si hay FA activa (applicable)",
         "Paciente sano/sin datos -> sin hallazgos (no falso positivo); no registrado -> 404",
-        "Aislado por paciente (RLS); endpoint de solo lectura (scope patient:read); sin PHI cruda"
+        "Aislado por paciente (RLS); endpoint de solo lectura (scope patient:read); sin PHI cruda",
+        "Ampliado (Epic BV): PA crisis=CRITICAL/estadio2=WARNING; INR crítico=CRITICAL, supra/subterapéutico=WARNING solo si anticoagulado"
       ],
       "implementation": [
         "packages/clinical-summary (assembleFindings + summarize)",
@@ -1697,8 +1698,8 @@
       "tests": [
         "tests/v22/clinical-summary.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-clinical-intelligence-proof.mts — PASS 11/11 (SUMMARY_200, MULTIPLE_FINDINGS, CRITICAL_FIRST, NEWS2_CRITICAL, RENAL_FLAG, GLYCEMIC_FLAG, ANTICOAG_FLAG, SUMMARY_COUNTS, HEALTHY_NO_FINDINGS, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
-      "epic": "BS",
+      "runtime_evidence": "scripts/v22/live-clinical-intelligence-proof.mts — PASS 11/11 (SUMMARY_200, MULTIPLE_FINDINGS, CRITICAL_FIRST, NEWS2_CRITICAL, RENAL_FLAG, GLYCEMIC_FLAG, ANTICOAG_FLAG, SUMMARY_COUNTS, HEALTHY_NO_FINDINGS, UNREGISTERED_404, MISSING_SCOPE_403, +BP_CRISIS_FINDING). En el smoke de CI (live-regression).",
+      "epic": "BS+BV",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
     },

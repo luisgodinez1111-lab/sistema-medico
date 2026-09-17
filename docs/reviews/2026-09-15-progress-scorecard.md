@@ -109,6 +109,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BS: **profundidad INTEGRATIVA (eje C)** — resumen de inteligencia clínica determinista: consolida los CDS de la sesión (NEWS2, eGFR, glucémico, CHA₂DS₂-VASc, FIB-4, IMC, vacunas, críticos) en una vista priorizada por severidad. Núcleo determinista (no IA). | **~36%** |
 | 2026-09-17 | Epic BT: **profundidad clínica (eje C)** — estadificación de presión arterial (ACC/AHA 2017): Normal/Elevada/Estadio 1/Estadio 2/Crisis + nota de acción. Refina el classifyVital para la hipertensión (crónica más frecuente). | **~36%** |
 | 2026-09-17 | Epic BU: **profundidad clínica (eje C)** — monitoreo terapéutico del INR (TDM): interpreta el INR en contexto del anticoagulante activo (sub/terapéutico/supra/crítico). Cierra el lazo con BA; cross-vertical resultado↔medicación. | **~36%** |
+| 2026-09-17 | Epic BV: **integrativo (eje C)** — cablea la estadificación de PA (ACC/AHA) y el estado de INR/anticoagulación al resumen de inteligencia clínica (BS). Mantiene la vista unificada completa; demuestra composabilidad del agregador. | **~36%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde

@@ -474,8 +474,8 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
 ### CAP-CLINICAL-INTELLIGENCE-001 — Resumen de inteligencia clínica determinista (priorizado)
-- Epic: BS
-- Invariantes: 5
+- Epic: BS+BV
+- Invariantes: 6
 - Tests: `tests/v22/clinical-summary.test.ts`
 - Prueba en vivo: `scripts/v22/live-clinical-intelligence-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
