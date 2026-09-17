@@ -1829,6 +1829,31 @@
       "epic": "BZ",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-OXYGENATION-AA-001",
+      "name": "Gradiente alveolo-arterial de O2 (A-a), parametrizable por altitud",
+      "risk": "C5",
+      "eng_authority_note": "PROFUNDIDAD del eje C — distingue hipoxemia por intercambio gaseoso (V/Q, shunt, difusión -> gradiente elevado) vs hipoventilación (gradiente normal). Complementa el análisis ácido-base (CAP-ACID-BASE-001). Parametrizable por altitud (México-aware: CDMX ~585 mmHg). Cross-vertical resultado(PO2/PCO2)↔paciente(edad).",
+      "invariants": [
+        "PAO2 = FiO2·(Patm−47) − PaCO2/0.8; gradiente = PAO2 − PaO2",
+        "Gradiente esperado por edad (2.5 + 0.21·edad); elevado si gradiente > esperado",
+        "Altitud/atmPressure parametrizable (menor presión -> menor PAO2)",
+        "Usa PO2/PCO2 MÁS recientes (RLS, aislado por paciente); paciente no registrado -> 404",
+        "Falta PO2/PCO2 o valores inválidos -> not-computable; endpoint de solo lectura (scope patient:read)"
+      ],
+      "implementation": [
+        "packages/oxygenation (aaGradient)",
+        "apps/web/lib/clinical-runtime.ts (patientDemographics + latestResultValueForAnalyte)",
+        "apps/web/app/api/v1/patients/[patientId]/aa-gradient/route.ts (GET)"
+      ],
+      "tests": [
+        "tests/v22/oxygenation.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-aa-gradient-proof.mts — PASS 8/8 (COMPUTABLE_200, ELEVATED_GRADIENT, NORMAL_GRADIENT_HYPOVENTILATION, ALTITUDE_LOWERS_PAO2, USES_LATEST_PO2, MISSING_PCO2, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "epic": "CA",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

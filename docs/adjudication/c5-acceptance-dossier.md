@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **72**
+- Capacidades reconciliadas: **73**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **72**
+- Pendiente de aceptación humana C5: **73**
 
 ## Riesgo C4
 
@@ -515,6 +515,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-curb65-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-OXYGENATION-AA-001 — Gradiente alveolo-arterial de O2 (A-a), parametrizable por altitud
+- Epic: CA
+- Invariantes: 5
+- Tests: `tests/v22/oxygenation.test.ts`
+- Prueba en vivo: `scripts/v22/live-aa-gradient-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -591,3 +598,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-MELD-001 | | | | |
 | CAP-ACID-BASE-001 | | | | |
 | CAP-PNEUMONIA-CURB65-001 | | | | |
+| CAP-OXYGENATION-AA-001 | | | | |
