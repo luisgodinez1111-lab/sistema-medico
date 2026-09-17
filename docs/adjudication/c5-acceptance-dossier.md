@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **54**
+- Capacidades reconciliadas: **55**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **54**
+- Pendiente de aceptación humana C5: **55**
 
 ## Riesgo C4
 
@@ -389,6 +389,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: —
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-OBSERVABILITY-SLI-001 — Observabilidad SLI (ENG-054) con garantía PHI-free
+- Epic: BG
+- Invariantes: 5
+- Tests: `tests/v22/observability-sli.test.ts`
+- Prueba en vivo: `scripts/v22/live-observability-sli-proof.mts`
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -447,3 +454,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-PEDIATRIC-DOSE-001 | | | | |
 | CAP-LIVE-REGRESSION-001 | | | | |
 | CAP-NOT-WIRED-REGISTRY-001 | | | | |
+| CAP-OBSERVABILITY-SLI-001 | | | | |

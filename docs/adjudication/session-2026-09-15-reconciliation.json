@@ -1376,6 +1376,30 @@
       "epic": "BF",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-OBSERVABILITY-SLI-001",
+      "name": "Observabilidad SLI (ENG-054) con garantía PHI-free",
+      "risk": "C5",
+      "eng_authority_note": "ENDURECIMIENTO (eje G) — ENG-054 Observability & SLO. Respeta la ley no negociable No-PHI-in-telemetry: los eventos SLI solo llevan campos de una allowlist dura (correlación/trace, flujo, outcome, latencia, código, hash de tenant). Trace/correlation conectan el flujo técnico sin PHI (ENG-054-R001). Catálogo de los 8 flujos ENG-054; error budgets vía evaluateSlo (ya existente).",
+      "invariants": [
+        "SliEvent PHI-free por construcción: assertSliPhiFree rechaza cualquier campo fuera de la allowlist",
+        "El tenant se reporta HASHEADO (tenantHash), nunca el id crudo",
+        "El SLI del commit se emite en el chokepoint del kernel (runClinicalCommand): cubre todos los verticales",
+        "Un sink defectuoso nunca rompe el flujo clínico (emitSli aísla errores del sink)",
+        "Emisión por defecto gated por OBSERVABILITY_EMIT (no ruido en test/CI); sinks suscribibles vía onSli"
+      ],
+      "implementation": [
+        "packages/observability (SLI_CATALOG + SliEvent + assertSliPhiFree + tenantHash + sliSpan + emitSli/onSli + flowForTopic)",
+        "apps/web/lib/clinical-runtime.ts (runClinicalCommand emite el SLI del commit)"
+      ],
+      "tests": [
+        "tests/v22/observability-sli.test.ts"
+      ],
+      "runtime_evidence": "scripts/v22/live-observability-sli-proof.mts — PASS 8/8 (ENCOUNTER_OPENED, SLI_EMITTED, SLI_SUCCESS_OUTCOME, SLI_HAS_CORRELATION_ID, SLI_HAS_LATENCY, SLI_TENANT_HASHED_NOT_RAW, SLI_PHI_FREE_ALLOWLIST, SLI_NO_PHI_NO_RAW_TENANT). En el smoke de CI (live-regression).",
+      "epic": "BG",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

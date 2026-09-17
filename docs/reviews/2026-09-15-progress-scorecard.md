@@ -26,7 +26,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | D. AI copilot / inteligencia clínica | 18% | ~5% | 0.9 |
 | E. UI/UX de producto | 10% | ~21% | 2.1 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~20% | 1.6 |
-| G. Endurecimiento producción + compliance | 9% | ~26% | 2.3 |
+| G. Endurecimiento producción + compliance | 9% | ~28% | 2.5 |
 
 ## Valor de cada hito futuro (para no estimar a la ligera)
 - Vertical clínico nuevo completo con evidencia en vivo: **≈ +1.2%** c/u.
@@ -94,6 +94,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic BD: **profundidad/seguridad pediátrica** — ceiling de dosis por peso (mg/kg/día): en peso pediátrico (≤40 kg) valida mg/kg/día contra el máximo del fármaco. Complemento peso-normalizado del ceiling absoluto (AZ); cross-vertical vitales(peso)→medicación. | **~35%** |
 | 2026-09-17 | Epic BE: **endurecimiento (eje G)** — gate de regresión en vivo en CI: un 5.º workflow levanta postgres:17 desechable, aplica migraciones+roles y corre el smoke curado de pruebas .mts (kernel + 6 barreras + CDS). Cierra la brecha #1 de la auditoría (ENG-056). **Primer avance real del eje G** (19%→24%). | **~35%** |
 | 2026-09-17 | Epic BF: **endurecimiento (eje G)** — registro NOT_WIRED + guard no-orphan de los 8 handlers huérfanos L13–L18 (~2.5k líneas de código muerto). Cierra el hallazgo #10; estado terminal documentado por módulo (ley no-orphan) sin activar IA (R6). Eje G 24%→26%. | **~35%** |
+| 2026-09-17 | Epic BG: **endurecimiento (eje G)** — observabilidad SLI (ENG-054): catálogo de los 8 flujos + evento SLI con allowlist dura (garantía **No-PHI-in-telemetry**), tenant hasheado, cableado al chokepoint del kernel (correlación+latencia por commit). Eje G 26%→28%. | **~35%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde
