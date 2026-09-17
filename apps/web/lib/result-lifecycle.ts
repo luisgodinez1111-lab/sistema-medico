@@ -7,7 +7,9 @@ import{type ResultState}from"../../../packages/order-result-domain/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{classifyLab}from"../../../packages/lab-reference/src";
 // EPIC G — Ciclo de vida del resultado diagnóstico (closed-loop de seguimiento) sobre el kernel.
+// EPIC AQ (profundidad): si se envía analito+valor, el flag `critical` se DERIVA del valor (valores de pánico).
 // RECEIVED -> VERIFIED -> ACTIONED (obligación) -> CLOSED. Un resultado CRÍTICO en ACTIONED sin
 // cerrar bloquea la firma del encuentro del paciente (Zero Lost Follow-Up, ver encounter-lifecycle).
 const AGG="DiagnosticResult";
@@ -15,8 +17,10 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"result:write",purpose:"TREATMENT"});
 }
 
-const ReceiveBody=z.object({resultId:z.string().uuid(),patientId:z.string().uuid(),orderId:z.string().uuid(),critical:z.boolean(),occurredAt:z.string().datetime()});
+const ReceiveBody=z.object({resultId:z.string().uuid(),patientId:z.string().uuid(),orderId:z.string().uuid(),analyte:z.string(),value:z.string(),occurredAt:z.string().datetime()});
 // RECEIVE = creación del agregado (expectedVersion 0). Idempotencia la maneja el kernel.
+// EPIC AQ: si se envía analyte+value, el flag `critical` se DERIVA del valor real
+// (valores de pánico), no se confía en el booleano del cliente.
 export async function handleResultReceived(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
@@ -24,7 +28,9 @@ export async function handleResultReceived(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,ReceiveBody);
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.resultId,expectedVersion:0,eventType:"RESULT_RECEIVED",payload:{kind:"RECEIVED",patientId:b.patientId,orderId:b.orderId,critical:b.critical},occurredAt:b.occurredAt,topic:"result.received"});
+  // Derivar critical del valor real usando catálogo de rangos de laboratorio
+  const assessment=classifyLab(b.analyte,b.value);
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.resultId,expectedVersion:0,eventType:"RESULT_RECEIVED",payload:{kind:"RECEIVED",patientId:b.patientId,orderId:b.orderId,critical:assessment.critical,status:assessment.status,interpretation:assessment.interpretation,analyte:b.analyte,value:b.value},occurredAt:b.occurredAt,topic:"result.received"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({resultId:b.resultId,state:"RECEIVED",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
@@ -73,6 +79,11 @@ export async function handleResultClosure(req:Request,resultId:string):Promise<R
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,resultId);
   const b=await parseJson(req,CloseBody);
+  // EPIC AQ + Zero Lost Follow-Up: bloquear cierre si hay resultado CRÍTICO en ACTIONED
+  // que no ha sido abordado. El cierre de un resultado crítico sin atender crea riesgo.
+  if(folded.state === "ACTIONED" && folded.critical){
+   throw new ClinicalError("CONFLICT",`No se puede cerrar resultado CRÍTICO pendiente (critical=${folded.critical}). Asigne owner, dueAt y cierre la obligación primero.`,{resultId,state:folded.state,critical:folded.critical});
+  }
   return await commitTransition(ctx,idempotencyKey,expectedVersion,resultId,folded,"CLOSED","RESULT_CLOSED",{kind:"CLOSED",evidence:b.evidence},b.occurredAt,"result.closed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
