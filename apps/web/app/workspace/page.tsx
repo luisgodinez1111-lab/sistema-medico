@@ -57,6 +57,17 @@ type TL=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;vers
 type Gap=Readonly<{aggregateType:string;aggregateId:string;code:string;label:string;priority:"HIGH"|"MEDIUM"|"LOW"}>;
 type PanelGap=Gap&Readonly<{patientId:string}>;
 const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis"};
+// Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
+const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
+ const m:[string,string][]=[["N18.3","ERC G3a"],["N18.4","ERC G3b"],["N18.5","ERC G4"],["N18.6","ERC G5"],["N18","ERC"],["I10","HTA"],["E11","DM2"],["E10","DM1"],["E78","Dislipidemia"],["I50","IC"],["I48","FA"],["J44","EPOC"],["J45","Asma"],["I25","Cardiopatía isq."],["E66","Obesidad"],["M15","Osteoartrosis"],["M17","Gonartrosis"],["F32","Depresión"],["K21","ERGE"]];
+ for(const[p,l]of m)if(c.startsWith(p))return l;return c;};
+type Snap=Readonly<{demographics:{age:number;sex:string;birthDate:string};problems:string[];allergies:string[];vitals:Record<string,string>;labs:{hba1c?:number;creatinine?:number;glucose?:number;ldl?:number;egfr?:number;egfrStage?:string};findings:{domain:string;severity:"CRITICAL"|"WARNING"|"INFO";summary:string}[]}>;
+const SEX_ES:Record<string,string>={FEMALE:"Femenino",MALE:"Masculino",INTERSEX:"Intersexual",UNKNOWN:"Sin especificar"};
+// Severidad de hallazgo -> etiqueta + color del panel "Alertas y sugerencias".
+const SEV:Record<"CRITICAL"|"WARNING"|"INFO",{label:string;bg:string;fg:string;bd:string}>={
+ CRITICAL:{label:"ALTA",bg:"#FDEAEA",fg:"#B3261E",bd:"#F3C9C9"},
+ WARNING:{label:"IMPORTANTE",bg:"#FFF4E5",fg:"#A15C00",bd:"#F0DBB8"},
+ INFO:{label:"SUGERENCIA",bg:"#EEF3FB",fg:"#2C5AA6",bd:"#D3E0F5"}};
 function alActions(a:{id:string;state:AlSt}):{label:string;path:string;body:Record<string,unknown>;to:AlSt}[]{
  const now=new Date().toISOString();const base=`/api/v1/allergies/${a.id}`;
  if(a.state==="ACTIVE")return[{label:"Refutar",path:base+"/refutation",body:{occurredAt:now},to:"REFUTED"},{label:"Inactivar",path:base+"/inactivation",body:{occurredAt:now},to:"INACTIVE"}];
@@ -104,6 +115,10 @@ const RAIL_CSS=`
 .mos-navitem:focus-visible{outline:2px solid #9DBEF0;outline-offset:1px}
 .mos-navitem.active{background:#E7EEFB;color:#1769E0;font-weight:700;box-shadow:inset 3px 0 0 #1769E0}
 .mos-navitem.active:hover{background:#E1EAFA}
+.mos-hero-grid{display:grid;grid-template-columns:1.6fr 1fr}
+.mos-vitals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media(max-width:1150px){.mos-vitals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.mos-hero-grid{grid-template-columns:1fr}.mos-hero-grid>div:first-child{border-right:0!important;border-bottom:1px solid #E4E9F2}}
 @media(max-width:900px){.mos-cols{display:block}.mos-rail{display:none}}
 `;
 const wrap:React.CSSProperties={maxWidth:1080,margin:"0 auto",padding:S[8],minHeight:"100vh",background:P.canvas,fontFamily:UI,color:P.ink};
@@ -281,6 +296,7 @@ export default function Workspace(){
  const[panel,setPanel]=useState<{gaps:PanelGap[];patientCount:number}|null>(null);
  const[patientName,setPatientName]=useState("");
  const[activeH2,setActiveH2]=useState(""); // scrollspy: módulo visible resaltado en el nav-rail
+ const[snap,setSnap]=useState<Snap|null>(null); // snapshot de consulta (hero panel 1)
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string}[]|null>(null);
  const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
  const[busy,setBusy]=useState("");
@@ -306,6 +322,9 @@ export default function Workspace(){
     const g=await apiRequest(`/api/v1/patients/${patientId}/care-gaps`,{method:"GET"});
     if(cancelled)return;
     setGaps(g.status<400?((g.body["gaps"] as Gap[])??[]):[]);
+    const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET"});
+    if(cancelled)return;
+    setSnap(sp.status<400&&sp.body["registered"]?(sp.body as unknown as Snap):null);
    }catch{/* red caída: el header simplemente no muestra chips */}
   },450);
   return()=>{cancelled=true;clearTimeout(t);};
@@ -704,6 +723,63 @@ export default function Workspace(){
     </div>)}
    </nav>
    <div className="mos-main">
+  {/* HERO — Vista principal · Durante la consulta (panel 1, snapshot determinista) */}
+  {snap&&(()=>{
+   const d=snap.demographics;
+   const dx=[...new Set(snap.problems.map(DX_LABEL))].slice(0,6);
+   const bp=snap.vitals["BP"],hr=snap.vitals["HR"];
+   const vcard=(label:string,value:string|number|undefined,unit:string,sub:string,warn?:boolean)=>(
+    <div style={{minWidth:0,background:"#fff",border:`1px solid ${warn?"#F0DBB8":LINE}`,borderRadius:14,padding:"14px 16px"}}>
+     <div style={{fontSize:12,color:P.muted,marginBottom:4}}>{label}</div>
+     <div style={{fontSize:24,fontWeight:800,letterSpacing:"-.01em",color:warn?"#A15C00":P.ink}}>{value??"—"} <span style={{fontSize:13,fontWeight:600,color:P.muted}}>{value!==undefined?unit:""}</span></div>
+     <div style={{fontSize:11.5,color:P.muted,marginTop:2}}>{sub||" "}</div>
+    </div>);
+   const tabs:[string,string?][]=[["Resumen"],["Historia","Timeline del paciente"],["Medicamentos","Medicación"],["Resultados","Resultados diagnósticos"],["Problemas","Lista de problemas"],["Plan","Plan de cuidados"],["Seguimiento","Obligaciones de seguimiento"]];
+   return <section style={{...card,marginTop:0,padding:0,overflow:"hidden"}}>
+    <div style={{padding:"18px 22px",borderBottom:`1px solid ${LINE}`,background:"linear-gradient(180deg,#FBFCFE,#fff)"}}>
+     <div style={{fontSize:17,fontWeight:800,letterSpacing:"-.01em"}}>Vista principal · Durante la consulta</div>
+     <div style={{fontSize:12.5,color:P.muted,marginTop:2}}>Toda la información crítica, en el momento correcto.</div>
+    </div>
+    <div className="mos-hero-grid">
+     <div style={{padding:22,borderRight:`1px solid ${LINE}`}}>
+      <div style={{display:"flex",gap:14,alignItems:"center"}}>
+       <span style={{width:52,height:52,borderRadius:"50%",background:"#E7EEFB",color:P.blue,display:"grid",placeItems:"center",fontWeight:800,fontSize:18,flex:"0 0 auto"}}>{(patientName||"P").trim().slice(0,2).toUpperCase()}</span>
+       <div style={{minWidth:0}}>
+        <div style={{fontSize:19,fontWeight:800}}>{patientName||"Paciente"}</div>
+        <div style={{fontSize:13,color:P.muted}}>{d.age} años · {SEX_ES[d.sex]??d.sex} · ID <span style={mono}>{patientId.slice(0,8)}</span></div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>{dx.length?dx.map(x=><span key={x} style={{background:"#EEF3FB",color:"#2C5AA6",border:"1px solid #D3E0F5",borderRadius:8,padding:"2px 9px",fontSize:12,fontWeight:600}}>{x}</span>):<span style={{fontSize:12,color:P.muted}}>Sin diagnósticos activos</span>}</div>
+       </div>
+      </div>
+      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:16,borderBottom:`1px solid ${LINE}`}}>
+       {tabs.map(([t,h2],i)=><button key={t} onClick={()=>h2&&scrollToSection(h2)} style={{background:"transparent",border:0,borderBottom:i===0?`2px solid ${P.blue}`:"2px solid transparent",color:i===0?P.blue:P.muted,fontWeight:i===0?700:500,fontSize:13,fontFamily:UI,padding:"7px 10px",cursor:"pointer"}}>{t}</button>)}
+      </div>
+      <div style={{fontSize:13,fontWeight:700,margin:"16px 0 10px"}}>Estado clínico actual</div>
+      <div className="mos-vitals">
+       {vcard("Presión arterial",bp,"mmHg",hr?`FC ${hr} lpm`:"")}
+       {vcard("Glucosa",snap.labs.glucose,"mg/dL","")}
+       {vcard("HbA1c",snap.labs.hba1c,"%",snap.labs.hba1c!==undefined?(snap.labs.hba1c<7?"En meta (<7%)":"Sobre meta"):"",snap.labs.hba1c!==undefined&&snap.labs.hba1c>=7)}
+       {vcard("TFG (eGFR)",snap.labs.egfr,"mL/min",snap.labs.egfrStage?`ERC ${snap.labs.egfrStage}`:"",!!snap.labs.egfrStage&&snap.labs.egfrStage!=="G1"&&snap.labs.egfrStage!=="G2")}
+      </div>
+      <div style={{fontSize:13,fontWeight:700,margin:"18px 0 8px"}}>Problemas activos</div>
+      {snap.problems.length?<div style={{display:"flex",flexDirection:"column",gap:6}}>{snap.problems.slice(0,6).map(c=><div key={c} style={{display:"flex",alignItems:"center",gap:10,fontSize:13.5}}><span style={{width:7,height:7,borderRadius:"50%",background:P.blue,flex:"0 0 auto"}}/>{DX_LABEL(c)} <span style={mono}>{c}</span></div>)}</div>:<div style={{fontSize:13,color:P.muted}}>Sin problemas activos.</div>}
+     </div>
+     <div style={{padding:22,display:"flex",flexDirection:"column",gap:18,background:"#FCFDFF"}}>
+      <div>
+       <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Alergias y seguridad</div>
+       {snap.allergies.length?<div style={{display:"flex",flexDirection:"column",gap:6}}>{snap.allergies.slice(0,5).map(a=><div key={a} style={{display:"flex",alignItems:"center",gap:8,fontSize:13.5,color:"#B3261E",fontWeight:600}}><span style={{width:8,height:8,borderRadius:"50%",background:"#B3261E",flex:"0 0 auto"}}/>{a}</div>)}</div>:<div style={{display:"flex",alignItems:"center",gap:8,fontSize:13.5,color:"#1A7F43",fontWeight:600}}>✓ Sin alergias conocidas</div>}
+      </div>
+      <div style={{borderTop:`1px solid ${LINE}`,paddingTop:16}}>
+       <div style={{fontSize:13,fontWeight:700,marginBottom:2}}>Alertas y sugerencias</div>
+       <div style={{fontSize:11.5,color:P.muted,marginBottom:10}}>Reglas + guías · determinista, sin IA generativa</div>
+       {snap.findings.length?<div style={{display:"flex",flexDirection:"column",gap:8}}>{snap.findings.slice(0,6).map((f,i)=>{const s=SEV[f.severity]??SEV.INFO;return <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"9px 11px",borderRadius:10,background:s.bg,border:`1px solid ${s.bd}`}}>
+        <span style={{background:"#fff",color:s.fg,border:`1px solid ${s.bd}`,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800,letterSpacing:".03em",whiteSpace:"nowrap",marginTop:1}}>{s.label}</span>
+        <span style={{fontSize:13,color:"#33383F",lineHeight:1.4}}>{f.summary}</span>
+       </div>;})}</div>:<div style={{fontSize:13,color:"#1A7F43",fontWeight:600}}>✓ Sin alertas clínicas.</div>}
+      </div>
+     </div>
+    </div>
+   </section>;
+  })()}
   {/* PANEL / WORKLIST POBLACIONAL */}
   <section style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>

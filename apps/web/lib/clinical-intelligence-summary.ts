@@ -1,5 +1,5 @@
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
-import{patientDemographics,latestVitalsByType,latestResultValueForAnalyte,activeProblemCodes,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccineCodes,activeMedicationDrugCodes}from"./clinical-runtime";
+import{patientDemographics,latestVitalsByType,latestResultValueForAnalyte,activeProblemCodes,activeAllergySubstances,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccineCodes,activeMedicationDrugCodes}from"./clinical-runtime";
 import{stageBloodPressure,parseBp}from"../../../packages/bp-staging/src";
 import{interpretINR}from"../../../packages/anticoagulation/src";
 import{resolveDrug}from"../../../packages/drug-catalog/src";
@@ -62,4 +62,32 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  if(inrRaw!==undefined&&Number.isFinite(Number(inrRaw))){const ir=interpretINR(Number(inrRaw));if(ir)inp.inr={status:ir.status,onAnticoagulant:activeDrugs.some(dc=>resolveDrug(dc)?.classes.includes("ANTICOAGULANT"))};}
  const findings=assembleFindings(inp);
  return{registered:true,findings,summary:summarize(findings)};
+}
+
+// EPIC CF — Snapshot de consulta (panel "Vista principal – Durante la consulta"). Reúne demografía +
+// valores clínicos actuales + problemas/alergias + los findings deterministas del motor CDS. Núcleo
+// determinista (R6 en pausa: sin IA generativa). PHI cruda -> endpoint autorizado (patient:read/TREATMENT).
+export type ConsultationSnapshot=
+ |{registered:false}
+ |{registered:true;demographics:{age:number;sex:string;birthDate:string};problems:string[];allergies:string[];
+   vitals:Record<string,string>;labs:{hba1c?:number|undefined;creatinine?:number|undefined;glucose?:number|undefined;ldl?:number|undefined;egfr?:number|undefined;egfrStage?:string|undefined};
+   findings:Finding[]};
+export async function gatherConsultationSnapshot(ctx:HttpTenantContext,patientId:string):Promise<ConsultationSnapshot>{
+ const demo=await patientDemographics(ctx,patientId);
+ if(!demo?.birthDate)return{registered:false};
+ const age=ageYears(demo.birthDate);const sex=demo.sexAtBirth;
+ const[vitals,problems,allergies,hba1c,creat,glucose,ldl,intel]=await Promise.all([
+  latestVitalsByType(ctx,patientId),
+  activeProblemCodes(ctx,patientId),
+  activeAllergySubstances(ctx,patientId),
+  latestResultValueForAnalyte(ctx,patientId,"HBA1C"),
+  latestResultValueForAnalyte(ctx,patientId,"CREATININE"),
+  latestResultValueForAnalyte(ctx,patientId,"GLUCOSE"),
+  latestResultValueForAnalyte(ctx,patientId,"LDL"),
+  gatherClinicalIntelligence(ctx,patientId),
+ ]);
+ let egfr:number|undefined,egfrStage:string|undefined;
+ if(age>=18&&(sex==="FEMALE"||sex==="MALE")&&creat!==undefined){const e=computeEGFR(Number(creat),age,sex as Sex);if(e){egfr=e.egfr;egfrStage=e.stage;}}
+ return{registered:true,demographics:{age,sex:sex??"UNKNOWN",birthDate:demo.birthDate},problems:[...problems],allergies:[...allergies],
+  vitals,labs:{hba1c:num(hba1c),creatinine:num(creat),glucose:num(glucose),ldl:num(ldl),egfr,egfrStage},findings:intel.findings};
 }
