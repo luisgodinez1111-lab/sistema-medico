@@ -82,6 +82,7 @@ type DocItem=Readonly<{documentId:string;title:string;docType:string;typeLabel:s
 type DocsSnap=Readonly<{items:DocItem[];total:number;byType:Record<string,number>;chips:{clinical:number;consents:number;studies:number}}>;
 type ResultItem=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;critical:boolean;status:string;interpretation:string;tipo:string;estado:string;lifecycle:string;receivedAt:string}>;
 type ResultsRegistry=Readonly<{items:ResultItem[];total:number;abnormal:number;enSeguimiento:number;pendientes:number}>;
+type ConsTabs=Readonly<{results:{analyte:string;value:string;estado:string;critical:boolean;receivedAt:string}[];orders:{typeLabel:string;detail:string;status:string;createdAt:string}[];medications:string[];planGoals:{goal:string;statusLabel:string}[];documents:{title:string;typeLabel:string;createdAt:string}[];obligations:{task:string;dueAt:string;statusLabel:string;done:boolean}[]}>;
 type RegObItem=Readonly<{obligationId:string;name:string;category:string;periodicity:string;dueDate:string|null;estado:string;daysUntil:number|null}>;
 type RegObSnap=Readonly<{items:RegObItem[];total:number;alDia:number;proximas:number;vencidas:number;compliance:Record<string,number>}>;
 type CiFinding=Readonly<{domain:string;severity:string;summary:string}>;
@@ -540,6 +541,7 @@ export default function Workspace(){
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
+ const[consTabs,setConsTabs]=useState<ConsTabs|null>(null); // pestañas por paciente de Consulta (cableado)
  const[resTab,setResTab]=useState<"resultados"|"solicitudes"|"seguimiento"|"referencia"|"alertas">("resultados");
  const[resReg,setResReg]=useState<ResultsRegistry|null>(null); // registro de resultados clínica-wide (cableado)
  const[ordReg,setOrdReg]=useState<{items:{orderId:string;patientName:string;typeLabel:string;detail:string;status:string;createdAt:string}[];total:number;solicitadas:number;enviadas:number;completadas:number}|null>(null);
@@ -785,6 +787,19 @@ export default function Workspace(){
   })();
   return()=>{cancelled=true;};
  },[view,ready,session]);
+
+ // Auto-carga de las pestañas por paciente de la vista Consulta (resultados/órdenes/medicamentos/plan/documentos/seguimiento).
+ useEffect(()=>{
+  if(view!=="consulta"||!ready||!session||!patientId){setConsTabs(null);return;}
+  let cancelled=false;
+  (async()=>{
+   try{
+    const r=await apiRequest(`/api/v1/patients/${patientId}/consultation-tabs`,{method:"GET"});
+    if(!cancelled&&r.status===200)setConsTabs(r.body as unknown as ConsTabs);
+   }catch{/* pestañas no disponibles */}
+  })();
+  return()=>{cancelled=true;};
+ },[view,ready,session,patientId]);
 
  // Scrollspy: resalta en el nav-rail el módulo actual = la ÚLTIMA sección cuyo top ya cruzó bajo los
  // headers sticky (~140px). El IntersectionObserver solo dispara el recálculo en cada cruce de esa línea.
@@ -1490,7 +1505,34 @@ export default function Workspace(){
      {CTABS.map(([k,l])=><button key={k} onClick={()=>setCTab(k)} style={{padding:"12px 16px",fontSize:13.5,fontWeight:cTab===k?700:500,color:cTab===k?P.purple:P.muted,cursor:"pointer",borderBottom:cTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:"0",borderBottomWidth:2,fontFamily:UI,whiteSpace:"nowrap"}}>{l}</button>)}
     </div>
     {cTab!=="actual"?(
-     <div style={{...card2,marginTop:16,padding:"60px 20px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:700}}>Pestaña «{CTABS.find(t=>t[0]===cTab)?.[1]}»</div><p style={{color:P.muted,fontSize:14,maxWidth:460,margin:"8px auto 0"}}>Se está construyendo al nivel exacto de tu diseño (S4). Próxima entrega. Mientras, el expediente completo está disponible desde el menú lateral.</p><button style={{marginTop:14,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection(cTab==="resultados"?"Resultados diagnósticos":cTab==="ordenes"?"Órdenes clínicas":cTab==="medicamentos"?"Medicación":cTab==="plan"?"Plan de cuidados":cTab==="documentos"?"Documentos clínicos":"Obligaciones de seguimiento"),0);}}>Abrir en el expediente →</button></div>
+     (()=>{
+      const cc:React.CSSProperties={...card2,marginTop:16,padding:0,overflow:"hidden"};
+      const tth:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 14px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+      const ttd:React.CSSProperties={padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
+      const pilr=(bg:string,fg:string,t:string)=><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:bg,color:fg}}>{t}</span>;
+      const fmtC=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
+      const head=(title:string,n:number,section:string,cta:string)=><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px"}}><div style={{fontSize:16,fontWeight:800}}>{title} ({n})</div><button style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:9,padding:"7px 12px",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection(section),0);}}>{cta} →</button></div>;
+      const empty=(t:string)=><div style={{padding:"40px",textAlign:"center",color:P.muted,fontSize:13}}>{patientId?t:"Selecciona un paciente para ver esta información."}</div>;
+      if(cTab==="resultados"){const rows=consTabs?.results??[];const est=(e:string):[string,string]=>e==="Hallazgos"?["#FDE7EA","#D23651"]:e==="En seguimiento"?["#EAF1FD","#1769E0"]:e==="En revisión"?["#FBF0DC","#B7791F"]:["#E6F6EE","#16A66A"];
+       return <div style={cc}>{head("Resultados del paciente",rows.length,"Resultados diagnósticos","Abrir en el expediente")}{rows.length?<div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={tth}>Analito</th><th style={tth}>Valor</th><th style={tth}>Fecha</th><th style={{...tth,textAlign:"right"}}>Estado</th></tr></thead><tbody>{rows.map((r,i)=>{const[bg,fg]=est(r.estado);return <tr key={i}><td style={{...ttd,fontWeight:600}}>{r.analyte}</td><td style={{...ttd,color:r.critical?"#D23651":P.ink,fontWeight:r.critical?700:400}}>{r.value}</td><td style={{...ttd,color:P.muted}}>{fmtC(r.receivedAt)}</td><td style={{...ttd,textAlign:"right"}}>{pilr(bg,fg,r.estado)}</td></tr>;})}</tbody></table></div>:empty("Sin resultados diagnósticos para este paciente.")}</div>;
+      }
+      if(cTab==="ordenes"){const rows=consTabs?.orders??[];const est=(s:string):[string,string]=>s==="Completada"?["#E6F6EE","#16A66A"]:s==="Enviada"?["#EAF1FD","#1769E0"]:s==="Cancelada"?["#EEF1F7","#6B7191"]:["#FBF0DC","#B7791F"];
+       return <div style={cc}>{head("Órdenes del paciente",rows.length,"Órdenes clínicas","Abrir en el expediente")}{rows.length?<div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={tth}>Estudio</th><th style={tth}>Tipo</th><th style={tth}>Fecha</th><th style={{...tth,textAlign:"right"}}>Estado</th></tr></thead><tbody>{rows.map((r,i)=>{const[bg,fg]=est(r.status);return <tr key={i}><td style={{...ttd,fontWeight:600}}>{r.detail}</td><td style={{...ttd,color:P.muted}}>{r.typeLabel}</td><td style={{...ttd,color:P.muted}}>{fmtC(r.createdAt)}</td><td style={{...ttd,textAlign:"right"}}>{pilr(bg,fg,r.status)}</td></tr>;})}</tbody></table></div>:empty("Sin órdenes de estudio para este paciente.")}</div>;
+      }
+      if(cTab==="medicamentos"){const rows=consTabs?.medications??[];
+       return <div style={cc}>{head("Medicamentos activos",rows.length,"Medicación","Abrir en el expediente")}{rows.length?<div style={{padding:"4px 16px 16px"}}>{rows.map((m,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 0",borderBottom:i<rows.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:34,height:34,borderRadius:9,background:"#E6F6EE",color:"#16A66A",display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z"/></svg></span><span style={{flex:1,fontSize:13.5,fontWeight:600,textTransform:"capitalize"}}>{m}</span>{pilr("#E6F6EE","#16A66A","Activo")}</div>)}</div>:empty("Sin medicamentos activos para este paciente.")}</div>;
+      }
+      if(cTab==="plan"){const rows=consTabs?.planGoals??[];const done=(s:string)=>s==="Lograda";
+       return <div style={cc}>{head("Metas del plan de cuidado",rows.length,"Plan de cuidados","Abrir en el expediente")}{rows.length?<div style={{padding:"4px 16px 16px"}}>{rows.map((g,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"10px 0",borderBottom:i<rows.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:18,height:18,borderRadius:"50%",border:done(g.statusLabel)?"0":"1.8px solid #C7CCE0",background:done(g.statusLabel)?"#16A66A":"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:11,flex:"0 0 auto"}}>{done(g.statusLabel)?"✓":""}</span><span style={{flex:1,fontSize:13.5,color:done(g.statusLabel)?P.muted:P.ink,textDecoration:done(g.statusLabel)?"line-through":"none"}}>{g.goal}</span>{pilr("#EEEBFD",P.purple,g.statusLabel)}</div>)}</div>:empty("Sin metas de plan de cuidado para este paciente.")}</div>;
+      }
+      if(cTab==="documentos"){const rows=consTabs?.documents??[];
+       return <div style={cc}>{head("Documentos del paciente",rows.length,"Documentos clínicos","Abrir en el expediente")}{rows.length?<div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={tth}>Nombre</th><th style={tth}>Tipo</th><th style={{...tth,textAlign:"right"}}>Fecha</th></tr></thead><tbody>{rows.map((r,i)=><tr key={i}><td style={ttd}><span style={{display:"flex",alignItems:"center",gap:9}}><span style={{color:P.red}}>▤</span>{r.title}</span></td><td style={{...ttd,color:P.muted}}>{r.typeLabel}</td><td style={{...ttd,textAlign:"right",color:P.muted}}>{fmtC(r.createdAt)}</td></tr>)}</tbody></table></div>:empty("Sin documentos para este paciente.")}</div>;
+      }
+      if(cTab==="seguimiento"){const rows=consTabs?.obligations??[];
+       return <div style={cc}>{head("Tareas de seguimiento",rows.length,"Obligaciones de seguimiento","Abrir en el expediente")}{rows.length?<div style={{padding:"4px 16px 16px"}}>{rows.map((o,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"10px 0",borderBottom:i<rows.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:17,height:17,borderRadius:5,border:o.done?"0":"1.7px solid #C7CCE0",background:o.done?P.purple:"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:10,flex:"0 0 auto"}}>{o.done?"✓":""}</span><span style={{flex:1,fontSize:13.5,color:o.done?P.muted:P.ink,textDecoration:o.done?"line-through":"none"}}>{o.task}</span><span style={{fontSize:11.5,color:P.muted}}>📅 {fmtC(o.dueAt)}</span></div>)}</div>:empty("Sin tareas de seguimiento para este paciente.")}</div>;
+      }
+      return <div/>;
+     })()
     ):(
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-mid">
      <div style={{display:"flex",flexDirection:"column",gap:16}}>

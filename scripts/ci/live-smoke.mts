@@ -61,6 +61,7 @@ const SMOKE:readonly string[]=[
  "live-reports-proof",                      // Reportes: tablero analítico (pacientes + ingresos pagados + diagnósticos top)
  "live-results-registry-proof",             // Resultados: registro clínica-wide (estado-UI derivado + tipo + KPIs)
  "live-orders-registry-proof",              // Resultados › Solicitudes: registro de órdenes (tipo-UI + estado por transición)
+ "live-consultation-tabs-proof",            // Consulta: pestañas por paciente (resultados/órdenes/meds/plan/docs/seguimiento)
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

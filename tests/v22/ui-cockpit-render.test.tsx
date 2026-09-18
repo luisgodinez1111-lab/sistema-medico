@@ -125,6 +125,15 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText("Resumen clínico")).toBeTruthy();
   expect(screen.getByRole("button",{name:/Consulta actual/})).toBeTruthy(); // pestaña
   expect(screen.getAllByRole("button",{name:/Plan de cuidados/}).length).toBeGreaterThan(1); // sidebar + pestaña
+  // pestañas por paciente cableadas (sin paciente en contexto: encabezado + estado vacío honesto).
+  // "Resultados/Medicamentos/Seguimiento" existen en sidebar y como pestaña -> la pestaña es la última coincidencia.
+  const lastTab=(name:RegExp)=>{const bs=screen.getAllByRole("button",{name});return bs[bs.length-1]!;};
+  fireEvent.click(lastTab(/^Resultados$/));
+  expect(screen.getByText(/Resultados del paciente/)).toBeTruthy();
+  fireEvent.click(lastTab(/^Medicamentos$/));
+  expect(screen.getByText(/Medicamentos activos/)).toBeTruthy();
+  fireEvent.click(lastTab(/^Seguimiento$/));
+  expect(screen.getByText(/Tareas de seguimiento/)).toBeTruthy();
  });
 
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{

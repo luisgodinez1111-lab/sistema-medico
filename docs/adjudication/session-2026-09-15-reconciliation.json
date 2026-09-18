@@ -2542,6 +2542,31 @@
    "epic": "E/AQ/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-CONSULTATION-TABS-001",
+   "name": "Consulta — 6 pestañas por paciente cableadas (snapshot compuesto)",
+   "risk": "C5",
+   "eng_authority_note": "Completa las pestañas por paciente de la vista Consulta (S4), eliminando el placeholder 'Próxima entrega': Resultados/Órdenes/Medicamentos/Plan de cuidados/Documentos/Seguimiento. Endpoint nuevo GET /patients/:id/consultation-tabs compone en un solo snapshot los datos POR PACIENTE reutilizando readers ya probados: resultados (resultsRegistry filtrado con estado-UI/critical del motor CDS), órdenes (ordersRegistry filtrado con estado por transición), medicamentos activos por nombre (activeMedicationDrugCodes+resolveDrug), metas del plan (carePlanGoals), documentos (patientDocuments) y obligaciones de seguimiento (patientObligations, incluidas las de monitoreo AUTO-generadas al activar fármacos). Cada pestaña muestra su tabla/lista real; estado vacío honesto cuando no hay paciente en contexto. Botón 'Abrir en el expediente' a la sección correspondiente.",
+   "invariants": [
+    "Aislamiento por paciente: solo datos del paciente en contexto (verificado en proof contra un segundo paciente)",
+    "Estados derivados del kernel: resultados por classifyLab (Hallazgos/critical), órdenes por transición, plan/obligaciones por transición",
+    "Medicamentos por nombre de principio activo (resolveDrug); obligaciones incluyen las de monitoreo auto-generadas",
+    "patient:read para el snapshot (GET); scope faltante -> 403; sin escritura",
+    "Estado vacío honesto cuando no hay paciente/datos"
+   ],
+   "implementation": [
+    "apps/web/app/api/v1/patients/[patientId]/consultation-tabs/route.ts (GET snapshot compuesto)",
+    "apps/web/app/workspace/page.tsx (Consulta: 6 pestañas cableadas + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-consultation-tabs-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (Consulta: pestañas Resultados/Medicamentos/Seguimiento)"
+   ],
+   "runtime_evidence": "scripts/v22/live-consultation-tabs-proof.mts — PASS 9/9 vs Neon 2026-09-18 (resultados aislados por paciente (GLUCOSE Hallazgos, no el HBA1C de otro paciente), 1 orden Laboratorio, medicamentos metformina+losartán por nombre, 1 meta de plan, 1 documento Nota médica, obligación manual + obligaciones de monitoreo auto-generadas MONITOR_RENAL/MONITOR_K_CREAT, sin-scope 403). En el smoke runner de CI. Render test 24/24 (jsdom). Fidelidad verificada por preview + captura.",
+   "epic": "K/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
