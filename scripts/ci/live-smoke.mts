@@ -54,6 +54,7 @@ const SMOKE:readonly string[]=[
  "live-vitals-history-proof",               // Historial de signos vitales por paciente: agrupación por toma + IMC + series
  "live-care-plan-snapshot-proof",           // Plan de cuidado: snapshot compuesto (problemas + conteos + metas + métricas)
  "live-referral-context-proof",             // Interconsulta: contexto del paciente (alergias/meds/problemas/labs/vitales) + envío
+ "live-follow-up-snapshot-proof",           // Seguimiento: tareas (obligaciones) + tendencia vitales + indicadores clave
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

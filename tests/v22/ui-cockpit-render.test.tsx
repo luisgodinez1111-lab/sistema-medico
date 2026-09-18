@@ -72,7 +72,7 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:/^Seguimiento/}));
+const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Facturación"}));
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
@@ -145,6 +145,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
+ });
+
+ it("vista Seguimiento (S-SEGUIMIENTO): historia + tendencia de vitales + indicadores + tareas + próxima cita",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:/^Seguimiento/}));
+  expect(screen.getByRole("heading",{name:"Seguimiento"})).toBeTruthy();
+  expect(screen.getByText("Historia de seguimiento")).toBeTruthy();
+  expect(screen.getByText("Control de DM2")).toBeTruthy();                       // entrada de la historia (rep)
+  expect(screen.getByText("Tendencia de signos vitales")).toBeTruthy();          // sparklines (real/rep)
+  expect(screen.getByText("Indicadores clave")).toBeTruthy();                    // HbA1c/LDL/Peso/IMC
+  expect(screen.getByText(/Próxima cita de seguimiento/)).toBeTruthy();
+  expect(screen.getByText(/Tareas de seguimiento/)).toBeTruthy();
+  expect(screen.getByText("Solicitar HbA1c en 3 meses")).toBeTruthy();           // tarea (real/rep)
+  expect(screen.getByText("HbA1c")).toBeTruthy();
  });
 
  it("vista Interconsultas (S-INTERCONSULTA): form Nueva interconsulta + panel de contexto + envío",async()=>{

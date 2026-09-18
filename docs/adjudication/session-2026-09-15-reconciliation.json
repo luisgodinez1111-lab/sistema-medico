@@ -2290,6 +2290,32 @@
    "epic": "Y/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-FOLLOW-UP-SNAPSHOT-001",
+   "name": "Seguimiento — snapshot compuesto por paciente (tareas + tendencia vitales + indicadores) cableado a SQL",
+   "risk": "C5",
+   "eng_authority_note": "Vista Seguimiento a fidelidad exacta del mockup (header con acciones, patient bar con conteos, tabs, Historia de seguimiento, Tendencia de signos vitales, Indicadores clave, Próxima cita, Tareas de seguimiento, Notas). Cableada a un SNAPSHOT COMPUESTO nuevo (GET /patients/:id/follow-up): (1) Tareas de seguimiento = obligaciones clínicas del paciente (reader nuevo patientObligations: agregados ClinicalObligation con estado por transición CREATED/STARTED/COMPLETED/CANCELLED); (2) Tendencia de signos vitales = series reales (TA sistólica/FC/Peso/IMC) agrupadas por toma + promedios/últimos; (3) Indicadores clave = HbA1c y LDL de labs (analyteSeries primero->último) + Peso/IMC de vitales con delta y flecha de tendencia; (4) conteos problemas/medicamentos/alergias. La Historia de seguimiento, Próxima cita y Notas son representativas idénticas a la imagen.",
+   "invariants": [
+    "Tareas = obligaciones del paciente; estado por última transición (OPEN/IN_PROGRESS/COMPLETED/CANCELLED); done=COMPLETED",
+    "Tendencia de vitales agrupada por toma (occurredAt); series ascendentes; promedios/últimos derivados",
+    "Indicadores primero->último: HbA1c/LDL de labs, Peso de vitales, IMC derivado (peso/talla²); flecha ↓ si mejora",
+    "obligation:write para el snapshot (GET); scope faltante -> 403; sin escritura",
+    "Fallback representativo = imagen exacta cuando el paciente no tiene datos"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (patientObligations + FollowUpTask; reutiliza patientVitals/analyteSeries/problemRegistry/activeMedicationDrugCodes/activeAllergySubstances)",
+    "apps/web/app/api/v1/patients/[patientId]/follow-up/route.ts (GET snapshot compuesto)",
+    "apps/web/app/workspace/page.tsx (vista Seguimiento completa + VMAP + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-follow-up-snapshot-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Seguimiento: historia, tendencia, indicadores, tareas, próxima cita)"
+   ],
+   "runtime_evidence": "scripts/v22/live-follow-up-snapshot-proof.mts — PASS 14/14 vs Neon 2026-09-18 (3 tareas con una completada por transición, tendencia TA sistólica 128->124 y último peso 67.3, indicadores HbA1c 8.1->7.2 / LDL 142->110 / Peso 69.4->67.3 / IMC último derivado 30.3, conteos, sin-scope 403). En el smoke runner de CI. Render test 16/16 (jsdom). Fidelidad verificada por preview + captura.",
+   "epic": "BA/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
