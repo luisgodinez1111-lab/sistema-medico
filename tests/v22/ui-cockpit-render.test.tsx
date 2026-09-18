@@ -12,6 +12,7 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
  apiRequest:async(path:string)=>{
+  if(path.includes("/api/v1/reports"))return{status:200,body:{patientsAttended:248,income:124680,diagnosesTotal:159,topDiagnoses:[{code:"E11.9",description:"Diabetes mellitus tipo 2",count:42,pct:13},{code:"I10",description:"Hipertensión esencial",count:38,pct:12}]}};
   if(path.includes("/api/v1/regulatory-obligations"))return{status:200,body:{
    items:[
     {obligationId:"o1",name:"Declaración mensual de IVA",category:"Fiscal (SAT)",periodicity:"Mensual",dueDate:"2026-09-20T00:00:00Z",estado:"Próxima",daysUntil:5},
@@ -82,7 +83,9 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Reportes"}));
+// Todos los accesos del sidebar son ahora vistas de nivel-sistema; al expediente crudo (cockpit) se llega
+// con el botón "Ver expediente →" de la barra del paciente de un módulo (aquí: Signos vitales).
+const toExpediente=()=>{fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));fireEvent.click(screen.getByRole("button",{name:/Ver expediente/}));};
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
@@ -155,6 +158,19 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
+ });
+
+ it("vista Reportes (S-REPORTES): tablero analítico — KPIs y diagnósticos cableados a GET /reports + gráficas",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Reportes"}));
+  expect(screen.getByRole("heading",{name:"Reportes"})).toBeTruthy();
+  expect(screen.getByText("Pacientes atendidos")).toBeTruthy();                  // KPI (real/rep)
+  expect((await screen.findAllByText("Diabetes mellitus tipo 2")).length).toBeGreaterThan(0); // diagnóstico real (mock)
+  expect(screen.getByText(/Consultas por día/)).toBeTruthy();
+  expect(screen.getByText(/Diagnósticos principales/)).toBeTruthy();
+  expect(screen.getByText("Medicamentos más prescritos")).toBeTruthy();
+  expect(screen.getByText("Indicadores de calidad")).toBeTruthy();
+  expect(screen.getByText(/Reportes rápidos/)).toBeTruthy();
  });
 
  it("vista Clinical Intelligence (S-CLINICALINTEL): asistente representativo + alertas deterministas + calculadoras (R6 en pausa)",async()=>{

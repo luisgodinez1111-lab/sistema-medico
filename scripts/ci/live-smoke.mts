@@ -58,6 +58,7 @@ const SMOKE:readonly string[]=[
  "live-claims-registry-proof",              // Facturación: registro de facturas clínica-wide + KPIs (ingresos/emitidas/pendientes)
  "live-documents-proof",                    // Documentos: lista por paciente + tipo-UI + estado + conteos por carpeta
  "live-regulatory-obligations-proof",       // Obligaciones regulatorias del consultorio: estado computado + KPIs + cumplimiento
+ "live-reports-proof",                      // Reportes: tablero analítico (pacientes + ingresos pagados + diagnósticos top)
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

@@ -2418,6 +2418,31 @@
    "epic": "R6/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-REPORTS-DASHBOARD-001",
+   "name": "Reportes — tablero analítico del consultorio (KPIs + diagnósticos cableados a SQL)",
+   "risk": "C5",
+   "eng_authority_note": "Vista Reportes a fidelidad exacta del mockup (header con acciones, 10 tabs, 5 KPIs, gráficas: consultas por día, tipos de consulta (donut), pacientes por edad, diagnósticos principales, medicamentos más prescritos, procedimientos, indicadores de calidad (anillos), origen de pacientes (donut), comparativo mensual (barras+línea), reportes rápidos y programados). Cableado real donde hay fuente única: GET /api/v1/reports compone el padrón de pacientes (listPatients -> Pacientes atendidos), las facturas pagadas (claimsRegistry -> Ingresos totales) y el registro de problemas (problemRegistry -> Diagnósticos principales por CIE-10, top por conteo con %). El resto del tablero (consultas por día, tipos, edad, medicamentos, procedimientos, calidad, origen, comparativo) es representativo (métricas derivadas sin fuente única en el kernel).",
+   "invariants": [
+    "Pacientes atendidos = padrón real; Ingresos totales = suma de facturas PAID; Diagnósticos principales = top del registro de problemas por CIE-10",
+    "record:export para el tablero (GET); scope faltante -> 403; sin escritura",
+    "Métricas sin fuente única (consultas/edad/calidad/origen/comparativo) son representativas, no inventadas como reales",
+    "Nivel tenant; RLS por tenant",
+    "Fallback representativo = imagen exacta cuando el tenant no tiene datos"
+   ],
+   "implementation": [
+    "apps/web/app/api/v1/reports/route.ts (GET tablero: pacientes + ingresos + diagnósticos top; reutiliza listPatients/claimsRegistry/problemRegistry)",
+    "apps/web/app/workspace/page.tsx (vista Reportes completa + VMAP + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-reports-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Reportes: KPIs, diagnósticos, gráficas)"
+   ],
+   "runtime_evidence": "scripts/v22/live-reports-proof.mts — PASS 8/8 vs Neon 2026-09-18 (3 pacientes, 6 problemas (E11.9 x3, I10 x2, E66.9 x1), 2 facturas pagadas 500+1200; pacientes atendidos 3, ingresos 1700, diagnósticos total 6, top E11.9 con 3 (50%), I10 con 2, sin-scope 403). En el smoke runner de CI. Render test 21/21 (jsdom). Fidelidad verificada por preview + captura.",
+   "epic": "AD/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
