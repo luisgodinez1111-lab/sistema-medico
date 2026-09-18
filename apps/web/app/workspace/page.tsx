@@ -63,6 +63,14 @@ const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
  for(const[p,l]of m)if(c.startsWith(p))return l;return c;};
 type Snap=Readonly<{demographics:{age:number;sex:string;birthDate:string};problems:string[];allergies:string[];vitals:Record<string,string>;labs:{hba1c?:number;creatinine?:number;glucose?:number;ldl?:number;egfr?:number;egfrStage?:string};findings:{domain:string;severity:"CRITICAL"|"WARNING"|"INFO";summary:string}[]}>;
 const SEX_ES:Record<string,string>={FEMALE:"Femenino",MALE:"Masculino",INTERSEX:"Intersexual",UNKNOWN:"Sin especificar"};
+// Tiempo relativo compacto (panel de auditoría / actividad).
+function relTime(iso:string):string{try{const d=Date.now()-new Date(iso).getTime();const m=Math.floor(d/60000);if(m<1)return "ahora";if(m<60)return `hace ${m} min`;const h=Math.floor(m/60);if(h<24)return `hace ${h} h`;const dd=Math.floor(h/24);return dd<30?`hace ${dd} d`:new Date(iso).toLocaleDateString("es-MX",{day:"2-digit",month:"short"});}catch{return "";}}
+// Panel 5 — clasificación del estado de un follow-up (por latestKind del agregado).
+const FOLLOW_TYPES=new Set(["ClinicalObligation","Referral","Appointment","Immunization","CarePlan"]);
+const DONE_KINDS=new Set(["COMPLETED","FULFILLED","ADMINISTERED","ACHIEVED","CLOSED"]);
+const SCHED_KINDS=new Set(["IN_PROGRESS","ACCEPTED","CHECKED_IN","SCHEDULED","ACTIVE","PROGRESSED"]);
+const CANCEL_KINDS=new Set(["CANCELLED","DECLINED","NO_SHOW","REVOKED","ENTERED_IN_ERROR"]);
+function followState(kind:string):"pend"|"prog"|"done"|"skip"{if(DONE_KINDS.has(kind))return "done";if(CANCEL_KINDS.has(kind))return "skip";if(SCHED_KINDS.has(kind))return "prog";return "pend";}
 type RxCheck=Readonly<{drug:{input:string;resolved:{ingredient:string;classes:string[]}|null};egfr:number|null;checks:{id:string;label:string;status:"OK"|"WARN"|"BLOCK";detail:string}[];monitoring:{test:string;note:string;dueInDays:number}[];indications:string;verdict:"OK"|"WARN"|"BLOCK"}>;
 // Panel 4 — evolución longitudinal
 type Series=readonly{value:number;at:string}[];
@@ -124,32 +132,53 @@ const shell:React.CSSProperties={minHeight:"100vh",background:P.canvas,fontFamil
 const appbar:React.CSSProperties={position:"sticky",top:0,zIndex:30,background:P.white,borderBottom:`1px solid ${LINE}`,padding:"11px 22px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"};
 const patientBar:React.CSSProperties={position:"sticky",top:57,zIndex:25,background:"rgba(255,255,255,.92)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderBottom:`1px solid ${LINE}`,padding:"11px 22px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:16};
 const content:React.CSSProperties={maxWidth:1140,margin:"0 auto",padding:`${S[5]}px ${S[5]}px ${S[12]}px`};
-// Nav-rail: módulos agrupados por dominio clínico. Navega por el <h2> de cada sección (sin ids duplicados).
-const NAV:{group:string;items:{label:string;h2:string}[]}[]=[
- {group:"Vista",items:[{label:"Panel del clínico",h2:"Panel del clínico"},{label:"Paciente",h2:"Paciente"},{label:"Timeline",h2:"Timeline del paciente"}]},
- {group:"Consulta",items:[{label:"Encuentro",h2:"Encuentro"},{label:"Medicación",h2:"Medicación"},{label:"Prescripción segura",h2:"Prescripción segura"},{label:"Resultados",h2:"Resultados diagnósticos"},{label:"Tendencias",h2:"Evolución longitudinal"},{label:"Órdenes",h2:"Órdenes clínicas"},{label:"Documentos",h2:"Documentos clínicos"}]},
- {group:"Historia",items:[{label:"Alergias",h2:"Alergias"},{label:"Problemas",h2:"Lista de problemas"},{label:"Signos vitales",h2:"Signos vitales"},{label:"Vacunas",h2:"Vacunas"},{label:"Plan de cuidados",h2:"Plan de cuidados"}]},
- {group:"Coordinación",items:[{label:"Interconsultas",h2:"Interconsultas"},{label:"Agenda",h2:"Agenda"},{label:"Obligaciones",h2:"Obligaciones de seguimiento"}]},
- {group:"Hospital",items:[{label:"Internamiento",h2:"Internamiento"},{label:"Triage",h2:"Triage"},{label:"Cirugía",h2:"Cirugía"},{label:"Transfusiones",h2:"Transfusiones"},{label:"Diálisis",h2:"Diálisis"},{label:"Heridas",h2:"Cuidado de heridas"},{label:"Muestras",h2:"Muestras de laboratorio"}]},
- {group:"Administración",items:[{label:"Facturación",h2:"Facturación"},{label:"Consentimiento",h2:"Consentimiento informado"},{label:"Incidentes",h2:"Incidentes de seguridad"}]},
+// Sidebar del expediente (estilo mockup): navegación primaria; cada ítem hace scroll a su sección (<h2>).
+// h2:"" => volver arriba (Inicio). Íconos de línea consistentes.
+const SIDE_NAV:{label:string;h2:string;icon:string}[]=[
+ {label:"Inicio",h2:"",icon:"home"},
+ {label:"Paciente",h2:"Paciente",icon:"user"},
+ {label:"Agenda",h2:"Agenda",icon:"cal"},
+ {label:"Consulta",h2:"Encuentro",icon:"steth"},
+ {label:"Resultados",h2:"Resultados diagnósticos",icon:"flask"},
+ {label:"Tendencias",h2:"Evolución longitudinal",icon:"chart"},
+ {label:"Medicamentos",h2:"Medicación",icon:"pill"},
+ {label:"Prescripción",h2:"Prescripción segura",icon:"shield"},
+ {label:"Problemas",h2:"Lista de problemas",icon:"list"},
+ {label:"Seguimiento",h2:"Seguimiento automático",icon:"bell"},
+ {label:"Documentos",h2:"Documentos clínicos",icon:"doc"},
+ {label:"Auditoría",h2:"Seguridad y auditoría",icon:"lock"},
 ];
+function NavIcon({k}:{k:string}){const P:Record<string,string>={
+ home:"M4 11l8-6 8 6M6 10v9h12v-9",user:"M12 12a4 4 0 100-8 4 4 0 000 8zM5 20a7 7 0 0114 0",
+ cal:"M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",steth:"M6 4v5a5 5 0 0010 0V4M11 14v2a4 4 0 008 0M19 12a1.5 1.5 0 100-3 1.5 1.5 0 000 3z",
+ flask:"M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3",chart:"M4 19V5M4 19h16M8 15l3-4 3 2 4-6",
+ pill:"M10 4l10 10-6 6L4 10zM7 7l6 6",shield:"M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z",
+ list:"M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",bell:"M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6M10 20a2 2 0 004 0",
+ doc:"M7 3h7l4 4v14H7zM14 3v4h4",lock:"M6 11h12v9H6zM9 11V8a3 3 0 016 0v3"};
+ return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={P[k]??P.home}/></svg>;}
 function scrollToSection(h2Text:string){
+ if(!h2Text){window.scrollTo({top:0,behavior:"smooth"});return;}
  const h=Array.from(document.querySelectorAll("h2")).find(e=>e.textContent?.trim()===h2Text);
  h?.closest("section")?.scrollIntoView({behavior:"smooth",block:"start"});
 }
 const RAIL_CSS=`
-.mos-cols{display:flex;gap:22px;align-items:flex-start}
-.mos-rail{position:sticky;top:120px;flex:0 0 208px;width:208px;max-height:calc(100vh - 140px);overflow-y:auto;padding:2px}
-.mos-main{flex:1;min-width:0}
-.mos-main>section:first-of-type{margin-top:0}
-.mos-main section{scroll-margin-top:126px}
-.mos-navgroup{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#93A0B4;margin:14px 8px 4px}
-.mos-navgroup.first{margin-top:2px}
-.mos-navitem{display:block;width:100%;text-align:left;background:transparent;border:0;border-radius:8px;padding:6px 10px;font-size:13px;font-family:inherit;color:#41506A;cursor:pointer;font-weight:500}
-.mos-navitem:hover{background:#EEF3FB;color:#1769E0}
-.mos-navitem:focus-visible{outline:2px solid #9DBEF0;outline-offset:1px}
-.mos-navitem.active{background:#E7EEFB;color:#1769E0;font-weight:700;box-shadow:inset 3px 0 0 #1769E0}
-.mos-navitem.active:hover{background:#E1EAFA}
+/* App-shell: expediente como cockpit (sidebar oscuro + body + rejilla de ventanas) */
+.mos-app{display:flex;min-height:100vh;background:#F4F7FB}
+.mos-side{position:sticky;top:0;align-self:flex-start;height:100vh;flex:0 0 224px;width:224px;background:linear-gradient(180deg,#0C2148,#102A56 60%,#0E2450);color:#C3D0E6;display:flex;flex-direction:column;padding:16px 12px}
+.mos-side .sbrand{display:flex;align-items:center;gap:10px;padding:4px 8px 2px}
+.mos-side .sname{font-size:14px;font-weight:800;letter-spacing:.02em;color:#fff}
+.mos-nav{display:flex;flex-direction:column;gap:2px;margin-top:16px;flex:1;overflow-y:auto}
+.mos-navi{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:9px;color:#9DB2D4;font-size:13.5px;font-weight:500;background:transparent;border:0;cursor:pointer;text-align:left;width:100%;font-family:inherit}
+.mos-navi:hover{background:#ffffff12;color:#fff}
+.mos-navi.active{background:#1769E0;color:#fff;font-weight:600;box-shadow:0 4px 12px #1769e055}
+.mos-navi svg{flex:0 0 auto;opacity:.9}
+.mos-doc{display:flex;align-items:center;gap:10px;padding:11px;margin-top:8px;border-top:1px solid #ffffff1a}
+.mos-doc .av{width:34px;height:34px;border-radius:50%;background:#1769E0;display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff;flex:0 0 auto}
+.mos-body{flex:1;min-width:0;display:flex;flex-direction:column}
+.mos-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start;padding:20px 22px 52px;max-width:1400px;margin:0 auto;width:100%;box-sizing:border-box}
+.mos-grid>*{margin-top:0!important}
+.mos-grid>section{scroll-margin-top:132px}
+.mos-grid>.span2{grid-column:1 / -1}
 .mos-hero-grid{display:grid;grid-template-columns:1.6fr 1fr}
 .mos-vitals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @media(max-width:1150px){.mos-vitals{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -157,7 +186,9 @@ const RAIL_CSS=`
 .mos-rx-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-top:14px}
 @media(max-width:760px){.mos-rx-form{grid-template-columns:1fr 1fr}.mos-rx-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.mos-hero-grid{grid-template-columns:1fr}.mos-hero-grid>div:first-child{border-right:0!important;border-bottom:1px solid #E4E9F2}}
-@media(max-width:900px){.mos-cols{display:block}.mos-rail{display:none}}
+@media(max-width:1000px){.mos-side{display:none}.mos-grid{grid-template-columns:1fr}}
+.mos-topsearch{flex:1;max-width:440px;display:flex;align-items:center;gap:8px;background:#F1F4F9;border:1px solid #E4E9F2;border-radius:10px;padding:8px 12px}
+.mos-topsearch input{flex:1;border:0;background:transparent;outline:none;font-size:13.5px;font-family:inherit;color:#14213D}
 `;
 const wrap:React.CSSProperties={maxWidth:1080,margin:"0 auto",padding:S[8],minHeight:"100vh",background:P.canvas,fontFamily:UI,color:P.ink};
 const card:React.CSSProperties={background:P.white,border:`1px solid ${LINE}`,borderRadius:16,padding:S[6],boxShadow:"0 1px 2px rgba(16,42,86,.04),0 8px 24px rgba(16,42,86,.05)",marginTop:S[5]};
@@ -338,6 +369,8 @@ export default function Workspace(){
  const[rxDrug,setRxDrug]=useState("");const[rxDose,setRxDose]=useState("");const[rxRoute,setRxRoute]=useState("Oral");const[rxFreq,setRxFreq]=useState("");
  const[rxCheck,setRxCheck]=useState<RxCheck|null>(null);const[rxMsg,setRxMsg]=useState("");
  const[trends,setTrends]=useState<Trends|null>(null);const[trendKey,setTrendKey]=useState<TrendKey>("HBA1C");
+ const[followTab,setFollowTab]=useState<"pend"|"prog"|"done"|"all">("pend");
+ const[topSearch,setTopSearch]=useState("");
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string}[]|null>(null);
  const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
  const[busy,setBusy]=useState("");
@@ -378,7 +411,7 @@ export default function Workspace(){
  // headers sticky (~140px). El IntersectionObserver solo dispara el recálculo en cada cruce de esa línea.
  useEffect(()=>{
   if(!ready)return;
-  const sections=Array.from(document.querySelectorAll<HTMLElement>(".mos-main section"));
+  const sections=Array.from(document.querySelectorAll<HTMLElement>(".mos-grid > section"));
   if(!sections.length)return;
   const OFF=140;
   const compute=()=>{
@@ -732,23 +765,40 @@ export default function Workspace(){
  const anyAlert=!!summary&&(highGaps>0||summary.activeAllergies>0||summary.openResults>0||summary.openObligations>0);
  const alertGlyph=<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 3.5l9 15.5H3l9-15.5z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M12 10v4M12 16.5v.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"/></svg>;
 
- return <div style={shell}>
-  {/* APP-SHELL — barra superior de marca + contexto de sesión */}
-  <header style={appbar}>
-   <div style={{display:"flex",alignItems:"center",gap:11}}>
-    <span style={{width:34,height:34,borderRadius:9,background:`linear-gradient(160deg,${P.navy},#15346B)`,display:"grid",placeItems:"center",flex:"0 0 auto"}}>
-     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M4 13h3.2l1.7-5.3 2.9 9 2-6.4 1.4 2.7H20" stroke="#fff" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/></svg>
+ return <div className="mos-app">
+  <style>{RAIL_CSS}</style>
+  {/* SIDEBAR OSCURO — navegación primaria del expediente (slider a un lado) */}
+  <aside className="mos-side">
+   <div className="sbrand">
+    <span style={{width:32,height:32,borderRadius:9,background:"linear-gradient(160deg,#1769E0,#20B7D9)",display:"grid",placeItems:"center",flex:"0 0 auto"}}>
+     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M4 13h3.2l1.7-5.3 2.9 9 2-6.4 1.4 2.7H20" stroke="#fff" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/></svg>
     </span>
-    <div>
-     <div style={{fontSize:11,fontWeight:800,letterSpacing:".14em",color:P.blue}}>MEDICAL OS</div>
-     <div style={{fontSize:14,fontWeight:700,marginTop:1,letterSpacing:"-.01em"}}>Espacio clínico</div>
+    <span className="sname">Medical OS</span>
+   </div>
+   <nav className="mos-nav" aria-label="Navegación del expediente">
+    {SIDE_NAV.map(it=>{const on=!!it.h2&&activeH2===it.h2;return <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} onClick={()=>scrollToSection(it.h2)}><NavIcon k={it.icon}/>{it.label}</button>;})}
+   </nav>
+   <div className="mos-doc">
+    <span className="av">MD</span>
+    <div style={{minWidth:0}}><div style={{fontSize:13,fontWeight:700,color:"#fff",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>Médico tratante</div><div style={{fontSize:11,color:"#9DB2D4"}}>Sesión {session.sessionId.slice(0,6)}</div></div>
+   </div>
+  </aside>
+  {/* BODY — topbar con buscador global + patient header + rejilla de ventanas */}
+  <div className="mos-body">
+   <header style={appbar}>
+    <div style={{fontSize:13,color:P.muted,fontWeight:500,flex:"0 0 auto"}}>Inteligencia clínica · <b style={{color:P.ink}}>ningún seguimiento perdido</b></div>
+    <div className="mos-topsearch">
+     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a8b9a" strokeWidth="1.8" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg>
+     <input placeholder="Buscar paciente, documento, estudio…" value={topSearch} onChange={e=>setTopSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){loadPatients();scrollToSection("Paciente");}}}/>
     </div>
-   </div>
-   <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-    <span style={{fontSize:12,color:P.muted}}>Sesión <span style={mono}>{session.sessionId.slice(0,8)}</span> · hasta {new Date(session.expiresAt*1000).toLocaleTimeString()}</span>
-    <button style={{...ghost,padding:"8px 14px"}} onClick={async()=>{await sessionLogout();location.href="/login";}}>Cerrar sesión</button>
-   </div>
-  </header>
+    <div style={{display:"flex",alignItems:"center",gap:14,flex:"0 0 auto"}}>
+     <button title="Alertas de seguridad" onClick={()=>scrollToSection("Seguimiento automático")} style={{position:"relative",background:"transparent",border:0,cursor:"pointer",color:P.muted,padding:4,display:"grid",placeItems:"center"}}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 004 0"/></svg>
+      {anyAlert&&<span style={{position:"absolute",top:0,right:0,minWidth:15,height:15,borderRadius:999,background:"#C9364A",color:"#fff",fontSize:9,fontWeight:800,display:"grid",placeItems:"center",padding:"0 3px"}}>{highGaps+((summary?.openResults)??0)}</span>}
+     </button>
+     <button onClick={async()=>{await sessionLogout();location.href="/login";}} title="Cerrar sesión" style={{width:32,height:32,borderRadius:"50%",background:"#E7EEFB",color:P.blue,border:0,fontWeight:700,fontSize:12,cursor:"pointer",flex:"0 0 auto"}}>MD</button>
+    </div>
+   </header>
   {/* PATIENT HEADER — contexto del paciente SIEMPRE visible (design-contract) */}
   <div style={patientBar}>
    <div style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
@@ -771,16 +821,7 @@ export default function Workspace(){
     <button style={{...ghost,padding:"7px 12px",fontSize:13,flex:"0 0 auto"}} onClick={reset}>+ Paciente anónimo</button>
    </div>
   </div>
-  <main style={content}>
-  <style>{RAIL_CSS}</style>
-  <div className="mos-cols">
-   <nav className="mos-rail" aria-label="Módulos clínicos">
-    {NAV.map((g,gi)=><div key={g.group}>
-     <div className={"mos-navgroup"+(gi===0?" first":"")}>{g.group}</div>
-     {g.items.map(it=><button key={it.h2} className={"mos-navitem"+(activeH2===it.h2?" active":"")} aria-current={activeH2===it.h2?"true":undefined} onClick={()=>scrollToSection(it.h2)}>{it.label}</button>)}
-    </div>)}
-   </nav>
-   <div className="mos-main">
+  <main className="mos-grid">
   {/* HERO — Vista principal · Durante la consulta (panel 1, snapshot determinista) */}
   {snap&&(()=>{
    const d=snap.demographics;
@@ -793,7 +834,7 @@ export default function Workspace(){
      <div style={{fontSize:11.5,color:P.muted,marginTop:2}}>{sub||" "}</div>
     </div>);
    const tabs:[string,string?][]=[["Resumen"],["Historia","Timeline del paciente"],["Medicamentos","Medicación"],["Resultados","Resultados diagnósticos"],["Problemas","Lista de problemas"],["Plan","Plan de cuidados"],["Seguimiento","Obligaciones de seguimiento"]];
-   return <section style={{...card,marginTop:0,padding:0,overflow:"hidden"}}>
+   return <section className="span2" style={{...card,marginTop:0,padding:0,overflow:"hidden"}}>
     <div style={{padding:"18px 22px",borderBottom:`1px solid ${LINE}`,background:"linear-gradient(180deg,#FBFCFE,#fff)"}}>
      <div style={{fontSize:17,fontWeight:800,letterSpacing:"-.01em"}}>Vista principal · Durante la consulta</div>
      <div style={{fontSize:12.5,color:P.muted,marginTop:2}}>Toda la información crítica, en el momento correcto.</div>
@@ -838,6 +879,50 @@ export default function Workspace(){
     </div>
    </section>;
   })()}
+  {/* SEGUIMIENTO AUTOMÁTICO (panel 5) — Zero-Lost-Follow-Up desde timeline + care-gaps */}
+  <section style={card}>
+   <div><h2 style={{fontSize:18,margin:0}}>Seguimiento automático</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Nada se pierde. Todo se coordina. Obligaciones e interconsultas con owner y cierre.</p></div>
+   {(()=>{
+    const fromTl=(tl??[]).filter(t=>FOLLOW_TYPES.has(t.aggregateType)).map(t=>({label:TYPE_LABEL[t.aggregateType]??t.aggregateType,kind:t.latestKind,at:t.lastAt,status:followState(t.latestKind),type:t.aggregateType}));
+    const fromGaps=(gaps??[]).map(g=>({label:g.label,kind:g.priority,at:"",status:"pend" as const,type:g.aggregateType}));
+    const all=[...fromTl.filter(x=>x.status!=="skip"),...fromGaps];
+    const counts={pend:all.filter(x=>x.status==="pend").length,prog:all.filter(x=>x.status==="prog").length,done:all.filter(x=>x.status==="done").length,all:all.length};
+    const shown=followTab==="all"?all:all.filter(x=>x.status===followTab);
+    const tabs:[typeof followTab,string,number][]=[["pend","Pendientes",counts.pend],["prog","Programados",counts.prog],["done","Completados",counts.done],["all","Todos",counts.all]];
+    const sb=(s:string)=>s==="pend"?{bg:"#FFF4E5",fg:"#A15C00",t:"Pendiente"}:s==="prog"?{bg:"#EAF3FF",fg:"#1F5FB0",t:"Programado"}:{bg:"#EAF7EF",fg:"#1A7F43",t:"Completado"};
+    return <>
+     <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:12,borderBottom:`1px solid ${LINE}`}}>
+      {tabs.map(([k,l,n])=><button key={k} onClick={()=>setFollowTab(k)} style={{background:"transparent",border:0,borderBottom:followTab===k?`2px solid ${P.blue}`:"2px solid transparent",color:followTab===k?P.blue:P.muted,fontWeight:followTab===k?700:500,fontSize:13,fontFamily:UI,padding:"7px 10px",cursor:"pointer"}}>{l} {n>0&&<span style={{fontVariantNumeric:"tabular-nums"}}>({n})</span>}</button>)}
+     </div>
+     {shown.length?<div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{shown.slice(0,8).map((x,i)=>{const s=sb(x.status);const stripe=x.status==="pend"?"#C87B12":x.status==="prog"?"#1769E0":"#168B5B";return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"10px 12px 10px 14px",border:`1px solid ${LINE}`,borderLeft:`3px solid ${stripe}`,borderRadius:10}}>
+      <div style={{minWidth:0}}><div style={{fontSize:13.5,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{x.label}</div><div style={{fontSize:11.5,color:P.muted}}>{x.at?relTime(x.at):"seguimiento clínico"}</div></div>
+      <span style={{background:s.bg,color:s.fg,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999,whiteSpace:"nowrap"}}>{s.t}</span>
+     </div>;})}</div>:<div style={{marginTop:12,padding:"12px 14px",borderRadius:12,background:"#f4faf6",border:"1px solid #d6ecdd",fontSize:13,color:"#1a7f43"}}>✓ Sin seguimientos {followTab==="pend"?"pendientes":followTab==="prog"?"programados":followTab==="done"?"completados":"registrados"}.</div>}
+     <div style={{display:"flex",alignItems:"center",gap:8,marginTop:14,padding:"10px 14px",borderRadius:12,background:"#EAF7EF",border:"1px solid #CDEBD8",fontSize:12.5,color:"#1A7F43",fontWeight:600}}>✓ Seguimiento activo — el sistema mantiene owner, estado y cierre de cada obligación (Zero-Lost-Follow-Up).</div>
+    </>;
+   })()}
+  </section>
+
+  {/* SEGURIDAD Y AUDITORÍA (panel 7) — estado del sistema + actividad desde la cadena de auditoría */}
+  <section className="span2" style={card}>
+   <div><h2 style={{fontSize:18,margin:0}}>Seguridad y auditoría</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Confianza por diseño. Cada acción clínica queda registrada.</p></div>
+   <div className="mos-rx-grid">
+    <div style={{background:"linear-gradient(160deg,#0C2148,#15346B)",borderRadius:14,padding:"16px 18px",color:"#EAF0FA"}}>
+     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><span style={{width:22,height:22,borderRadius:"50%",background:"#1A7F43",display:"grid",placeItems:"center",fontSize:13}}>✓</span><b style={{fontSize:14}}>Estado del sistema</b></div>
+     {[["Cifrado de datos","En tránsito y en reposo"],["Control de acceso","Por roles y aislamiento por tenant (RLS)"],["Auditoría","Cadena hash inmutable · todas las acciones"],["Recuperabilidad","Replay determinista + idempotencia"],["Cumplimiento","NOM-004 · NOM-024 · LFPDPPP"]].map(([t,d])=><div key={t} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"7px 0",borderTop:"1px solid #ffffff14"}}>
+      <span style={{color:"#5FD08C",marginTop:1,flex:"0 0 auto"}}>●</span><div><div style={{fontSize:13,fontWeight:600,color:"#fff"}}>{t}</div><div style={{fontSize:11.5,color:"#9DB2D4"}}>{d}</div></div>
+     </div>)}
+    </div>
+    <div>
+     <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Actividad reciente</div>
+     {tl&&tl.length?<div style={{display:"flex",flexDirection:"column",gap:2}}>{tl.slice(0,7).map((t,i)=><div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 0",borderBottom:i<6?`1px solid ${LINE}`:"0"}}>
+      <span style={{width:26,height:26,borderRadius:8,background:"#EEF3FB",color:P.blue,display:"grid",placeItems:"center",fontSize:11,fontWeight:800,flex:"0 0 auto"}}>{(TYPE_LABEL[t.aggregateType]??t.aggregateType).slice(0,1)}</span>
+      <div style={{minWidth:0,flex:1}}><div style={{fontSize:13,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{TYPE_LABEL[t.aggregateType]??t.aggregateType} · <span style={{color:P.muted,fontWeight:500}}>{t.latestKind}</span></div><div style={{fontSize:11.5,color:P.muted}}>{relTime(t.lastAt)}</div></div>
+     </div>)}</div>:<div style={{fontSize:13,color:P.muted,padding:"12px 0"}}>Sin actividad registrada para este paciente todavía.</div>}
+    </div>
+   </div>
+  </section>
+
   {/* PANEL / WORKLIST POBLACIONAL */}
   <section style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -959,7 +1044,7 @@ export default function Workspace(){
   </section>
 
   {/* PRESCRIPCIÓN SEGURA (panel 3) — dry-run de las barreras antes de prescribir */}
-  <section style={card}>
+  <section className="span2" style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
     <div><h2 style={{fontSize:18,margin:0}}>Prescripción segura</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Verifica antes de prescribir. Previene errores, protege al paciente. Determinista, sin IA generativa.</p></div>
     {snap?.labs.egfr!==undefined&&<span style={{fontSize:12,color:P.muted}}>eGFR paciente: <b>{snap?.labs.egfr} mL/min</b>{snap?.labs.egfrStage?` · ERC ${snap.labs.egfrStage}`:""}</span>}
@@ -1024,7 +1109,7 @@ export default function Workspace(){
   </section>
 
   {/* EVOLUCIÓN LONGITUDINAL (panel 4) */}
-  <section style={card}>
+  <section className="span2" style={card}>
    <div><h2 style={{fontSize:18,margin:0}}>Evolución longitudinal</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Tendencias que cuentan la historia completa. Valores medidos, sin proyección.</p></div>
    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:12}}>
     {(["HBA1C","GLUCOSE","LDL","CREATININE"] as TrendKey[]).map(k=><button key={k} onClick={()=>setTrendKey(k)} style={{background:trendKey===k?"#E7EEFB":"transparent",color:trendKey===k?P.blue:P.muted,border:`1px solid ${trendKey===k?"#CFE0F7":LINE}`,borderRadius:999,padding:"6px 14px",fontSize:13,fontWeight:trendKey===k?700:500,fontFamily:UI,cursor:"pointer"}}>{CHART[k].label}</button>)}
@@ -1475,9 +1560,8 @@ export default function Workspace(){
    </div>}
   </section>
 
-  {error&&<div style={{...card,borderColor:"#f0c6c0",background:"#fdf3f2"}}><b style={{color:"#c0392b"}}>Error</b><p style={{margin:"6px 0 0",color:"#7a3b34",wordBreak:"break-word"}}>{error}</p>{error.includes("SAFETY_BLOCKED")&&<p style={{margin:"6px 0 0",fontSize:12,color:"#a15c00"}}>💡 ¿Hay un resultado crítico sin cerrar para este paciente? Ciérralo abajo y vuelve a firmar.</p>}</div>}
-   </div>
-  </div>
+  {error&&<div className="span2" style={{...card,borderColor:"#f0c6c0",background:"#fdf3f2"}}><b style={{color:"#c0392b"}}>Error</b><p style={{margin:"6px 0 0",color:"#7a3b34",wordBreak:"break-word"}}>{error}</p>{error.includes("SAFETY_BLOCKED")&&<p style={{margin:"6px 0 0",fontSize:12,color:"#a15c00"}}>💡 ¿Hay un resultado crítico sin cerrar para este paciente? Ciérralo abajo y vuelve a firmar.</p>}</div>}
   </main>
+  </div>
  </div>;
 }
