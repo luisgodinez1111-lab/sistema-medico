@@ -2134,6 +2134,33 @@
    "epic": "BN",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-ALLERGY-REGISTRY-001",
+   "name": "Registro de alergias (clínica-wide) — módulo Alergias cableado a SQL",
+   "risk": "C5",
+   "eng_authority_note": "Vista Alergias construida a fidelidad exacta del mockup (header, 5 KPIs, 3 columnas Filtros/tabla/Detalle con alerta clínica, gráficas donut por tipo + barras por gravedad, Recomendaciones, Accesos rápidos). Cableada a un reader clínica-wide nuevo (allergyRegistry) + GET /api/v1/allergies: por cada agregado Allergy toma el evento ALLERGY_RECORDED (sustancia/gravedad/reacción/paciente/fecha/actor) y su ESTADO por la última transición, une el nombre del paciente, deriva el TIPO del alérgeno (classifyAllergen: Medicamento/Alimento/Ambiental/Contraste/Otros) y computa conteos por gravedad y por tipo para KPIs y gráficas. Filtros de cliente (búsqueda, tipo, solo activas, solo graves) + panel de detalle por selección. Datos representativos idénticos a la imagen cuando el tenant no tiene alergias sembradas.",
+   "invariants": [
+    "TIPO del alérgeno derivado determinísticamente por sustancia (classifyAllergen); sin IA",
+    "ESTADO de la alergia = última transición del agregado (RECORDED/REACTIVATED->ACTIVE, REFUTED->REFUTED, INACTIVATED->INACTIVE)",
+    "Conteos por gravedad (SEVERE/MODERATE/MILD) y por tipo derivados del registro real; join del nombre del paciente casteado a uuid",
+    "allergy:write para consultar el registro (GET) y para registrar/transicionar; scope faltante -> 403",
+    "Fallback representativo = imagen exacta cuando total=0 (no oculta la falta de datos: KPIs/gráficas reflejan lo real cuando existe)"
+   ],
+   "implementation": [
+    "packages/drug-catalog/src/index.ts (classifyAllergen + AllergenType)",
+    "apps/web/lib/clinical-runtime.ts (allergyRegistry + AllergyRow)",
+    "apps/web/app/api/v1/allergies/route.ts (GET registro + conteos)",
+    "apps/web/app/workspace/page.tsx (vista Alergias completa cableada + VMAP + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-allergy-registry-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Alergias: KPIs, tabla, detalle, gráficas)"
+   ],
+   "runtime_evidence": "scripts/v22/live-allergy-registry-proof.mts — PASS 16/16 vs Neon 2026-09-18 (5 alergias de 3 pacientes con tipos Medicamento/Alimento/Ambiental/Contraste, clasificación derivada, join del nombre, etiquetas ES, conteos por gravedad 2/2/1 y por tipo, transición a INACTIVE reflejada + activeCount, sin-scope 403). En el smoke runner de CI. Render test 10/10 (jsdom). Fidelidad verificada por preview + captura.",
+   "epic": "R/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

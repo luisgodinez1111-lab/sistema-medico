@@ -48,6 +48,7 @@ const SMOKE:readonly string[]=[
  "live-patient-demographics-proof",         // Paciente ampliado: CURP + contacto (registro->lista->snapshot)
  "live-agenda-day-proof",                   // Agenda del día: citas+consultorio+tipo+estado, GET por fecha con conteos
  "live-interactions-proof",                 // Interacciones (conjunto): pares + factores, 4 niveles + mecanismo/recomendación
+ "live-allergy-registry-proof",             // Registro de alergias clínica-wide: tipo derivado + estado + conteos gravedad/tipo
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

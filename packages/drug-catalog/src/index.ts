@@ -189,6 +189,22 @@ export function checkDuplicateTherapy(newDrugCode:string,activeDrugCodes:readonl
  return{duplicate:false};
 }
 
+// EPIC R/UI — Clasificación determinista del alérgeno por sustancia (para el registro de alergias: tipo + gráficas).
+// Categorías alineadas con la vista Alergias: Medicamento / Alimento / Ambiental / Contraste / Otros.
+export type AllergenType="Medicamento"|"Alimento"|"Ambiental"|"Contraste"|"Otros";
+const ALLERGEN_KEYWORDS:readonly[AllergenType,readonly string[]][]=[
+ ["Contraste",["contraste","iodado","yodado","gadolinio","medio de contraste"]],
+ ["Alimento",["marisco","camaron","gamba","huevo","leche","lacteo","lactosa","proteina de leche","cacahuate","mani","nuez","almendra","gluten","trigo","pescado","fresa","soya","kiwi","chocolate","frijol"]],
+ ["Ambiental",["polen","latex","acaro","polvo","graminea","moho","hongo","pelo","caspa","gato","perro","abeja","avispa","picadura","niquel"]],
+];
+// Devuelve la categoría del alérgeno. Los fármacos del catálogo (o clases de alérgeno de fármaco) son Medicamento.
+export function classifyAllergen(substance:string):AllergenType{
+ const s=norm(substance);
+ for(const[type,kws]of ALLERGEN_KEYWORDS)if(kws.some(k=>s.includes(k)))return type;
+ if(resolveDrug(substance)||allergyClasses(substance).length>0)return"Medicamento";
+ return"Otros";
+}
+
 // EPIC BN — Verificador de INTERACCIONES (conjunto). A diferencia de checkInteractions (dry-run de UNA
 // prescripción contra la lista activa, barrera de commit), este evalúa TODO un conjunto de fármacos entre sí
 // MÁS factores del paciente (alcohol, insuficiencia renal, embarazo…) y devuelve cada interacción con
