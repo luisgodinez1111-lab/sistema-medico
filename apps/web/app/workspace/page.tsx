@@ -289,6 +289,25 @@ export default function Workspace(){
   setSession(s);setPatientId(uuid());setReady(true);
  },[]);
 
+ // Auto-carga silenciosa del contexto de seguridad (timeline + care-gaps) al cambiar de paciente,
+ // para que los contadores del patient header estén SIEMPRE presentes. Debounce para no disparar
+ // en cada tecla del input de ID; 404 => sin datos (no es error). No usa `call` (no bloquea la UI).
+ useEffect(()=>{
+  if(!patientId||!ready||!session)return;
+  let cancelled=false;
+  const t=setTimeout(async()=>{
+   try{
+    const r=await apiRequest(`/api/v1/patients/${patientId}/timeline`,{method:"GET"});
+    if(cancelled)return;
+    setTl(r.status<400?((r.body["items"] as TL[])??[]):[]);
+    const g=await apiRequest(`/api/v1/patients/${patientId}/care-gaps`,{method:"GET"});
+    if(cancelled)return;
+    setGaps(g.status<400?((g.body["gaps"] as Gap[])??[]):[]);
+   }catch{/* red caída: el header simplemente no muestra chips */}
+  },450);
+  return()=>{cancelled=true;clearTimeout(t);};
+ },[patientId,ready,session]);
+
  async function call(tag:string,fn:()=>Promise<void>){setBusy(tag);setError("");try{await fn();}catch(e){setError(String(e));}finally{setBusy("");}}
  const openEncounter=()=>call("open",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/encounters",{method:"POST",body:{encounterId:id,patientId,occurredAt:nowIso()}});
@@ -604,6 +623,16 @@ export default function Workspace(){
   <div style={card}><p>No hay una sesión activa.</p><a href="/login" style={{...btn,display:"inline-block",textDecoration:"none"}}>Iniciar sesión</a></div>
  </main>;
 
+ // Contexto de seguridad del paciente (P0/P1) para el patient header — SIEMPRE visible.
+ const summary=tl?summarizePatient(tl):null;
+ const highGaps=gaps?gaps.filter(g=>g.priority==="HIGH").length:0;
+ const safetyChip=(n:number,label:string,tone:"crit"|"warn",icon?:React.ReactNode)=>{
+  const c=tone==="crit"?{bg:"#FDEAEA",fg:"#B3261E",bd:"#F3C9C9"}:{bg:"#FFF4E5",fg:"#A15C00",bd:"#F0DBB8"};
+  return <span style={{display:"inline-flex",alignItems:"center",gap:6,background:c.bg,color:c.fg,border:`1px solid ${c.bd}`,borderRadius:999,padding:"4px 11px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>{icon}<b style={{fontSize:13,fontVariantNumeric:"tabular-nums"}}>{n}</b>{label}</span>;
+ };
+ const anyAlert=!!summary&&(highGaps>0||summary.activeAllergies>0||summary.openResults>0||summary.openObligations>0);
+ const alertGlyph=<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 3.5l9 15.5H3l9-15.5z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M12 10v4M12 16.5v.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"/></svg>;
+
  return <div style={shell}>
   {/* APP-SHELL — barra superior de marca + contexto de sesión */}
   <header style={appbar}>
@@ -630,7 +659,18 @@ export default function Workspace(){
      <div style={{fontSize:12,color:P.muted,marginTop:1}}>ID <span style={mono}>{patientId.slice(0,8)}</span> · paciente activo del expediente</div>
     </div>
    </div>
-   <button style={{...ghost,padding:"7px 12px",fontSize:13,flex:"0 0 auto"}} onClick={reset}>+ Paciente anónimo</button>
+   <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",justifyContent:"flex-end"}}>
+    {summary&&(anyAlert
+     ? <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+        {highGaps>0&&safetyChip(highGaps,"críticos","crit",alertGlyph)}
+        {summary.activeAllergies>0&&safetyChip(summary.activeAllergies,"alergias","warn")}
+        {summary.openResults>0&&safetyChip(summary.openResults,"result. abiertos","warn")}
+        {summary.openObligations>0&&safetyChip(summary.openObligations,"obligaciones","warn")}
+       </div>
+     : <span style={{display:"inline-flex",alignItems:"center",gap:6,background:"#EAF7EF",color:"#1A7F43",border:"1px solid #CDEBD8",borderRadius:999,padding:"4px 12px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>✓ Sin alertas de seguridad</span>
+    )}
+    <button style={{...ghost,padding:"7px 12px",fontSize:13,flex:"0 0 auto"}} onClick={reset}>+ Paciente anónimo</button>
+   </div>
   </div>
   <main style={content}>
   <style>{RAIL_CSS}</style>
