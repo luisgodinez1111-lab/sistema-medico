@@ -77,7 +77,7 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Documentos"}));
+const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:/^Obligaciones/}));
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
@@ -150,6 +150,19 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
+ });
+
+ it("vista Documentos (S-DOCUMENTOS): carpetas + tabla de documentos + vista previa + acciones",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Documentos"}));
+  expect(screen.getByRole("heading",{name:"Documentos"})).toBeTruthy();
+  expect(screen.getByText("Carpetas")).toBeTruthy();
+  expect(screen.getByText("Todos los documentos")).toBeTruthy();
+  expect(screen.getAllByText(/Resultados_Laboratorio_17092026\.pdf/).length).toBeGreaterThan(0); // fila + preview (rep)
+  expect(screen.getByText("Documentos clínicos")).toBeTruthy();                 // chip
+  expect(screen.getByText(/Tipos de archivo permitidos/)).toBeTruthy();
+  expect(screen.getByText(/Acciones rápidas/)).toBeTruthy();
+  expect(screen.getByText("Generar desde plantilla")).toBeTruthy();
  });
 
  it("vista Facturación (S-FACTURACION): registro clínica-wide cableado a GET /api/v1/claims + wizard Nueva factura",async()=>{

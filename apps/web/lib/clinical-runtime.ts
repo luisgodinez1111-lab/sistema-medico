@@ -391,6 +391,27 @@ export async function claimsRegistry(ctx:HttpTenantContext):Promise<ClaimRow[]>{
    recordedAt:o.recorded_at?new Date(String(o.recorded_at)).toISOString():""};});
  }) as Promise<ClaimRow[]>;
 }
+// EPIC Z/UI — Documentos clínicos de UN paciente (vista Documentos). Por cada agregado ClinicalDocument toma el
+// evento base DOCUMENT_CREATED (tipo/título/fecha) y su ESTADO por la última transición
+// (CREATED->DRAFT, FINALIZED, SIGNED, AMENDED). RLS-scoped.
+export type DocRow=Readonly<{documentId:string;title:string;docType:string;status:"DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED";createdAt:string;actorId:string}>;
+const DOC_STATUS:Record<string,"DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED">={CREATED:"DRAFT",FINALIZED:"FINALIZED",SIGNED:"SIGNED",AMENDED:"AMENDED"};
+export async function patientDocuments(ctx:HttpTenantContext,patientId:string):Promise<DocRow[]>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select a.aggregate_id, a.payload->>'title' as title, a.payload->>'docType' as doc_type, a.occurred_at as created_at, a.actor_id as actor_id,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+   from clinical_events a
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalDocument' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=${patientId}
+   order by a.occurred_at desc`;
+  return rows.map(r=>{const o=r as Record<string,unknown>;return{
+   documentId:String(o.aggregate_id),title:String(o.title??""),docType:String(o.doc_type??"OTHER"),
+   status:DOC_STATUS[String(o.last_kind??"CREATED")]??"DRAFT",
+   createdAt:o.created_at?new Date(String(o.created_at)).toISOString():"",actorId:String(o.actor_id??"")};});
+ }) as Promise<DocRow[]>;
+}
 // EPIC AY — Condiciones ACTIVAS del paciente (lista de problemas, CIE-10). RLS-scoped. Para el gate de
 // contraindicación fármaco–condición en la prescripción. Activa = último kind ADDED/REACTIVATED/MARKED_CHRONIC
 // (no RESOLVED ni MARKED_ERROR). Devuelve el código CIE-10 normalizado.

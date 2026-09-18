@@ -56,6 +56,7 @@ const SMOKE:readonly string[]=[
  "live-referral-context-proof",             // Interconsulta: contexto del paciente (alergias/meds/problemas/labs/vitales) + envío
  "live-follow-up-snapshot-proof",           // Seguimiento: tareas (obligaciones) + tendencia vitales + indicadores clave
  "live-claims-registry-proof",              // Facturación: registro de facturas clínica-wide + KPIs (ingresos/emitidas/pendientes)
+ "live-documents-proof",                    // Documentos: lista por paciente + tipo-UI + estado + conteos por carpeta
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

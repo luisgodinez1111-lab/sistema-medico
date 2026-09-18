@@ -77,6 +77,8 @@ type FUDelta={first:number;last:number}|null;
 type FollowUpSnap=Readonly<{tasks:{obligationId:string;task:string;dueAt:string;status:string;statusLabel:string;done:boolean}[];vitalsTrend:{series:{BP:number[];HR:number[];WEIGHT:number[];IMC:number[]};avg:{ta:string|null;bp:number|null;hr:number|null;weight:number|null;imc:number|null}};indicators:{hba1c:FUDelta;ldl:FUDelta;weight:FUDelta;imc:FUDelta};counts:{problems:number;medications:number;allergies:number}}>;
 type ClaimItem=Readonly<{claimId:string;folio:string;patientId:string;patientName:string;amount:number;currency:string;status:string;statusLabel:string;recordedAt:string}>;
 type ClaimsRegistry=Readonly<{items:ClaimItem[];total:number;incomeThisMonth:number;issuedCount:number;pendingCount:number;pendingAmount:number;cancellations:number}>;
+type DocItem=Readonly<{documentId:string;title:string;docType:string;typeLabel:string;status:string;statusLabel:string;createdAt:string;actorId:string}>;
+type DocsSnap=Readonly<{items:DocItem[];total:number;byType:Record<string,number>;chips:{clinical:number;consents:number;studies:number}}>;
 const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
 const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
@@ -458,7 +460,7 @@ export default function Workspace(){
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"interconsulta"|"seguimiento"|"facturacion"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
+ const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"interconsulta"|"seguimiento"|"facturacion"|"documentos"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
  // Pestaña Interacciones (S8.3) — verificador de conjunto cableado a POST /api/v1/interactions
  const[ixDrugs,setIxDrugs]=useState<string[]>(["Sertralina","Ibuprofeno","Metformina"]);
@@ -510,6 +512,10 @@ export default function Workspace(){
  const[facTab,setFacTab]=useState<"facturas"|"recibos"|"notas"|"cotizaciones">("facturas");
  const[nfConcepts,setNfConcepts]=useState<{desc:string;qty:number;price:number}[]>([{desc:"Consulta médica",qty:1,price:500},{desc:"Aplicación de vacuna",qty:1,price:350}]);
  const[nfBusy,setNfBusy]=useState(false);const[nfMsg,setNfMsg]=useState("");
+ // Vista Documentos (S-DOCUMENTOS) — lista por paciente cableada a GET /patients/:id/documents
+ const[docsSnap,setDocsSnap]=useState<DocsSnap|null>(null);
+ const[docsTab,setDocsTab]=useState<"todos"|"clinicos"|"administrativos"|"consentimientos"|"estudios"|"recetas"|"notas"|"otros">("todos");
+ const[docSel,setDocSel]=useState(0);const[docFolder,setDocFolder]=useState("Todos los documentos");const[docMsg,setDocMsg]=useState("");
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
@@ -687,6 +693,19 @@ export default function Workspace(){
   })();
   return()=>{cancelled=true;};
  },[view,ready,session]);
+
+ // Auto-carga de documentos del paciente en contexto (vista Documentos).
+ useEffect(()=>{
+  if(view!=="documentos"||!ready||!session||!patientId)return;
+  let cancelled=false;
+  (async()=>{
+   try{
+    const r=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET"});
+    if(!cancelled&&r.status===200)setDocsSnap(r.body as unknown as DocsSnap);
+   }catch{/* lista no disponible */}
+  })();
+  return()=>{cancelled=true;};
+ },[view,ready,session,patientId]);
 
  // Scrollspy: resalta en el nav-rail el módulo actual = la ÚLTIMA sección cuyo top ya cruzó bajo los
  // headers sticky (~140px). El IntersectionObserver solo dispara el recálculo en cada cruce de esa línea.
@@ -1075,7 +1094,7 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado",Interconsultas:"interconsulta",Seguimiento:"seguimiento",["Facturación"]:"facturacion"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
+    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado",Interconsultas:"interconsulta",Seguimiento:"seguimiento",["Facturación"]:"facturacion",Documentos:"documentos"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
      <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){setView(vTarget);window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
       <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
      </button>);})}
@@ -2695,6 +2714,103 @@ export default function Workspace(){
       {nfMsg&&<div style={{marginBottom:10,padding:"9px 12px",borderRadius:9,background:nfMsg.includes("✓")?"#E6F6EE":"#FDF4E6",border:`1px solid ${nfMsg.includes("✓")?"#BFE6CF":"#F2E1C0"}`,fontSize:12.5,color:nfMsg.includes("✓")?"#166534":"#7A5A16"}}>{nfMsg}</div>}
       <div style={{display:"flex",gap:10}}><button style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>◉ Vista previa</button><button onClick={emit} disabled={nfBusy} style={{flex:1,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>{nfBusy?"Emitiendo…":"➤ Emitir factura ▾"}</button></div>
      </div>
+    </div>
+   </div>;
+  })() : view==="documentos" ? (()=>{
+   // ===== MÓDULO DOCUMENTOS (S-DOCUMENTOS) — lista por paciente cableada a GET /patients/:id/documents =====
+   const card2:React.CSSProperties={...card,marginTop:0};
+   const initials=(n:string)=>n.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+   const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
+   const fmtD=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
+   const useReal=!!docsSnap&&docsSnap.total>0;
+   type DRow={title:string;type:string;date:string;by:string;size:string};
+   const REP:DRow[]=[
+    {title:"Resultados_Laboratorio_17092026.pdf",type:"Laboratorio",date:"17 sep 2026",by:"Dr. Luis Godinez",size:"245 KB"},
+    {title:"USG_abdomen.pdf",type:"Imagenología",date:"12 sep 2026",by:"Dr. Pérez (RAD)",size:"1.2 MB"},
+    {title:"Consentimiento_procedimiento.pdf",type:"Consentimiento",date:"10 sep 2026",by:"Dr. Luis Godinez",size:"180 KB"},
+    {title:"Interconsulta_Endocrinología.pdf",type:"Interconsulta",date:"08 sep 2026",by:"Dra. Martínez",size:"320 KB"},
+    {title:"Receta_25082026.pdf",type:"Receta",date:"25 ago 2026",by:"Dr. Luis Godinez",size:"95 KB"},
+    {title:"Nota_consulta_15082026.pdf",type:"Nota médica",date:"15 ago 2026",by:"Dr. Luis Godinez",size:"210 KB"},
+    {title:"TC_torax.pdf",type:"Imagenología",date:"01 ago 2026",by:"Dr. Sánchez (RAD)",size:"4.8 MB"},
+    {title:"Carnet_vacunacion.pdf",type:"Vacunas",date:"20 jul 2026",by:"Enfermería",size:"120 KB"},
+    {title:"Identificación_INE.pdf",type:"Administrativo",date:"10 jul 2026",by:"Recepción",size:"600 KB"},
+    {title:"Comprobante_domicilio.pdf",type:"Administrativo",date:"10 jul 2026",by:"Recepción",size:"350 KB"},
+   ];
+   const rows:DRow[]=useReal?docsSnap!.items.map(it=>({title:it.title,type:it.typeLabel,date:fmtD(it.createdAt),by:"Médico tratante",size:"—"})):REP;
+   const total=useReal?docsSnap!.total:24;
+   const chips=docsSnap?docsSnap.chips:{clinical:3,consents:2,studies:1};
+   const sel=rows[docSel]??rows[0]??REP[0]!;
+   const REP_FOLDERS:[string,number][]=[["Todos los documentos",24],["Consultas",8],["Estudios de laboratorio",5],["Estudios de imagen",3],["Consentimientos",4],["Recetas",3],["Notas médicas",4],["Interconsultas",2],["Administrativos",2],["Otros",1]];
+   const folders:[string,number][]=useReal?[["Todos los documentos",total],...Object.entries(docsSnap!.byType)]:REP_FOLDERS;
+   const genDoc=async()=>{
+    if(!patientId){setDocMsg("Selecciona un paciente para generar un documento.");return;}
+    setDocMsg("");
+    try{const r=await apiRequest("/api/v1/documents",{method:"POST",body:{documentId:crypto.randomUUID(),patientId,docType:"PROGRESS_NOTE",title:`Nota_${new Date().toISOString().slice(0,10)}.pdf`,content:"Documento generado desde plantilla.",occurredAt:new Date().toISOString()}});
+     if(r.status===201||r.status===200){setDocMsg("Documento generado ✓");const g=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET"});if(g.status===200)setDocsSnap(g.body as unknown as DocsSnap);}
+     else setDocMsg("No se pudo generar (estado "+r.status+").");
+    }catch{setDocMsg("Error al generar el documento.");}
+   };
+   const typeSty=(k:string):React.CSSProperties=>{const m:Record<string,[string,string]>={Laboratorio:["#EEEBFD","#6C5CF6"],["Imagenología"]:["#E7EEFB","#1769E0"],Consentimiento:["#FBF0DC","#B7791F"],Interconsulta:["#E0F7FA","#0E7490"],Receta:["#E6F6EE","#16A66A"],["Nota médica"]:["#EEF1FB","#4653C4"],Vacunas:["#E6F6EE","#16A66A"],Administrativo:["#EEF1F7","#6B7191"],Procedimiento:["#EEEBFD","#6C5CF6"],Otro:["#EEF1F7","#6B7191"]};const[b,f]=m[k]??m.Otro!;return{background:b,color:f,borderRadius:8,padding:"3px 9px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"};};
+   const folderIco=["#6C5CF6","#1769E0","#16A66A","#E5983B","#0E7490","#C9364A","#4653C4","#6B7191"];
+   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+   const tdc:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
+   const chipC=(c:string,d:string,n:number,l:string)=><div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}><span style={{width:34,height:34,borderRadius:9,background:c+"22",color:c,display:"grid",placeItems:"center"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={d}/></svg></span><div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{n}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div></div>;
+   const DOCS_TABS:[typeof docsTab,string][]=[["todos","Todos"],["clinicos","Clínicos"],["administrativos","Administrativos"],["consentimientos","Consentimientos"],["estudios","Estudios"],["recetas","Recetas"],["notas","Notas"],["otros","Otros"]];
+   const pdfIco="M6 2h9l5 5v15H6zM14 2v6h6";
+   return <div style={{padding:"18px 24px 40px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Documentos</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Gestiona, organiza y comparte todos los documentos clínicos y administrativos de tus pacientes.</p></div></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⊟ Plantillas</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⇪ Carga masiva</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>+ Subir documento ▾</button></div>
+    </div>
+    <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"Ana López García")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientName||"Ana López García"}</div><div style={{fontSize:12.5,color:P.muted}}>Femenino, 34 años&nbsp;&nbsp;|&nbsp;&nbsp;Expediente: LC260917-0042&nbsp;&nbsp;|&nbsp;&nbsp;CURP: LOGA900101MCHPRN09</div></div></div>
+     <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>{chipC(P.blue,pdfIco,chips.clinical,"Documentos clínicos")}{chipC(P.green,"M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z",chips.consents,"Consentimientos")}{chipC(P.purple,"M4 5h16v14H4zM4 15l4-4 3 3 5-5 4 4",chips.studies,"Estudios de imagen")}<button onClick={()=>setView("exp")} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px 15px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver expediente →</button></div>
+    </div>
+    <div style={{...card2,marginTop:16,padding:"0 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+     <div style={{display:"flex",gap:4,overflowX:"auto"}}>{DOCS_TABS.map(([k,l])=><button key={k} onClick={()=>setDocsTab(k)} style={{padding:"14px 12px",fontSize:13.5,fontWeight:docsTab===k?700:500,color:docsTab===k?P.purple:P.muted,borderBottom:docsTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>{l}</button>)}</div>
+     <div style={{display:"flex",gap:8,alignItems:"center",padding:"8px 0",flexWrap:"wrap"}}><div style={{position:"relative"}}><input placeholder="Buscar documentos..." style={{...selSty,paddingLeft:32,width:220}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 13px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>⚟ Filtrar</button><select style={{...selSty,width:"auto"}} defaultValue="Ordenar: Más reciente"><option>Ordenar: Más reciente</option></select></div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"250px 1fr 380px",gap:16,marginTop:16,alignItems:"start"}} className="mos-doc">
+     {/* Carpetas */}
+     <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontSize:15,fontWeight:800}}>Carpetas</div><span style={{width:26,height:26,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",color:P.purple,cursor:"pointer",fontWeight:700}}>+</span></div>{folders.map(([f,n],i)=>{const on=f===docFolder;return <div key={i} onClick={()=>setDocFolder(f)} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",borderRadius:9,cursor:"pointer",background:on?"#EEEBFD":"transparent"}}><span style={{color:i===0?P.purple:folderIco[i%folderIco.length]}}><svg width="17" height="17" viewBox="0 0 24 24" fill={on||i>0?"currentColor":"none"} stroke="currentColor" strokeWidth="1.6" opacity={i===0?1:.9}><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></span><span style={{flex:1,fontSize:13,fontWeight:on?700:500,color:on?P.purple:P.ink}}>{f}</span><span style={{fontSize:12,color:P.muted}}>{n}</span></div>;})}</div>
+     {/* Tabla */}
+     <div style={{...card2,padding:0,overflow:"hidden"}}>
+      <div style={{padding:"14px 16px",fontSize:16,fontWeight:800}}>Documentos ({total})</div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+       <thead><tr><th style={{...th,width:30}}></th><th style={th}>Nombre</th><th style={th}>Tipo</th><th style={th}>Fecha</th><th style={th}>Subido por</th><th style={{...th,textAlign:"right"}}>Tamaño</th><th style={{...th,textAlign:"right"}}>Acc.</th></tr></thead>
+       <tbody>{rows.slice(0,10).map((r,i)=>{const on=i===docSel;return <tr key={i} onClick={()=>setDocSel(i)} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
+        <td style={tdc}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10}}>{on?"✓":""}</span></td>
+        <td style={tdc}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{color:P.red,flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={pdfIco}/></svg></span><span style={{fontWeight:600,color:P.ink}}>{r.title}</span></div></td>
+        <td style={tdc}><span style={typeSty(r.type)}>{r.type}</span></td>
+        <td style={{...tdc,color:P.muted}}>{r.date}</td>
+        <td style={tdc}>{r.by}</td>
+        <td style={{...tdc,textAlign:"right",color:P.muted}}>{r.size}</td>
+        <td style={{...tdc,textAlign:"right",color:P.muted,fontWeight:700}}>⋯</td>
+       </tr>;})}</tbody>
+      </table></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 16px",fontSize:13,color:P.muted,flexWrap:"wrap",gap:10}}><span>Mostrando 1-{Math.min(rows.length,10)} de {total} documentos</span><div style={{display:"flex",gap:5}}>{["‹","1","2","3","›"].map((p,i)=><span key={i} style={{minWidth:32,height:32,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:13,cursor:"pointer"}}>{p}</span>)}</div></div>
+     </div>
+     {/* Vista previa */}
+     <div style={{...card2,padding:0,overflow:"hidden"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:`1px solid ${LINE}`}}><div style={{display:"flex",alignItems:"center",gap:9,minWidth:0}}><span style={{color:P.red,flex:"0 0 auto"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={pdfIco}/></svg></span><div style={{fontSize:13.5,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sel.title}</div></div><span style={{color:P.muted,cursor:"pointer"}}>✕</span></div>
+      <div style={{display:"flex",gap:14,padding:"0 16px",borderBottom:`1px solid ${LINE}`}}>{["Vista previa","Detalles","Historial"].map((t,i)=><span key={t} style={{padding:"12px 4px",fontSize:13,fontWeight:i===0?700:500,color:i===0?P.purple:P.muted,borderBottom:i===0?`2px solid ${P.purple}`:"2px solid transparent",cursor:"pointer"}}>{t}</span>)}</div>
+      <div style={{padding:14,background:"#F1F4FA"}}>
+       <div style={{background:P.white,border:`1px solid ${LINE}`,borderRadius:8,padding:14,fontSize:10.5,color:P.ink,minHeight:340}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",borderBottom:`1px solid ${LINE}`,paddingBottom:8}}><div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{color:P.blue}}>🧪</span><b style={{fontSize:11}}>LABORATORIOS DEL NORTE</b></div><b style={{fontSize:10}}>RESULTADOS DE LABORATORIO</b></div>
+        <div style={{display:"grid",gridTemplateColumns:"70px 1fr",gap:"2px 8px",margin:"8px 0",fontSize:10}}><span style={{color:P.muted}}>Paciente:</span><b>{patientName||"Ana López García"}</b><span style={{color:P.muted}}>Edad:</span><span>34 años</span><span style={{color:P.muted}}>Sexo:</span><span>Femenino</span><span style={{color:P.muted}}>Expediente:</span><span>LC260917-0042</span><span style={{color:P.muted}}>Fecha:</span><span>17/09/2026</span></div>
+        <div style={{fontWeight:700,margin:"6px 0 2px"}}>Biometría hemática</div>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:9.5}}><thead><tr>{["Estudio","Resultado","Unidad","Referencia"].map(h=><th key={h} style={{textAlign:"left",borderBottom:`1px solid ${LINE}`,padding:"3px 4px",color:P.muted}}>{h}</th>)}</tr></thead><tbody>{[["Hemoglobina","13.2","g/dL","12.0 - 16.0"],["Hematocrito","39.8","%","36 - 46"],["Leucocitos","6,800","/µL","4,000 - 11,000"],["Plaquetas","285,000","/µL","150,000 - 450,000"]].map((r,i)=><tr key={i}>{r.map((c,j)=><td key={j} style={{padding:"3px 4px",borderBottom:`1px solid #F2F4F9`,fontWeight:j===0?600:400}}>{c}</td>)}</tr>)}</tbody></table>
+        <div style={{fontWeight:700,margin:"8px 0 2px"}}>Química sanguínea</div>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:9.5}}><tbody>{[["Glucosa","98","mg/dL","70 - 99"],["Urea","28","mg/dL","10 - 50"],["Creatinina","0.8","mg/dL","0.6 - 1.2"],["TGO (AST)","24","U/L","< 40"],["TGP (ALT)","26","U/L","< 41"]].map((r,i)=><tr key={i}>{r.map((c,j)=><td key={j} style={{padding:"3px 4px",borderBottom:`1px solid #F2F4F9`,fontWeight:j===0?600:400}}>{c}</td>)}</tr>)}</tbody></table>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginTop:14}}><div style={{width:48,height:48,background:"#111",borderRadius:3}}/><div style={{textAlign:"right",fontSize:9}}><div style={{borderTop:"1px solid #333",paddingTop:2,fontWeight:700}}>Q.B. Mariana Torres</div><div style={{color:P.muted}}>Responsable sanitario</div><div style={{color:P.muted}}>Céd. Prof. 12345678</div></div></div>
+       </div>
+      </div>
+     </div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1.1fr 1.2fr 1fr",gap:14,marginTop:16,alignItems:"start"}} className="mos-doc2">
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:12}}>⚡ Acciones rápidas</div>{docMsg&&<div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:docMsg.includes("✓")?"#E6F6EE":"#FDF4E6",fontSize:12,color:docMsg.includes("✓")?"#166534":"#7A5A16"}}>{docMsg}</div>}<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{[["⤒","Subir documentos",()=>{}],["◉","Escanear con cámara",()=>{}],["▤","Generar desde plantilla",genDoc],["➤","Solicitar al paciente",()=>{}]].map(([ic,l,fn],i)=><button key={i} onClick={fn as ()=>void} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:11,padding:"16px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:8,cursor:"pointer",fontFamily:UI}}><span style={{width:38,height:38,borderRadius:10,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:16}}>{ic as string}</span><span style={{fontSize:12.5,fontWeight:600}}>{l as string}</span></button>)}</div></div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:12}}>▤ Tipos de archivo permitidos</div><div style={{display:"flex",gap:10,justifyContent:"space-between",flexWrap:"wrap"}}>{[["PDF",P.red],["JPG/PNG",P.amber],["DICOM",P.blue],["DOC/DOCX",P.blue],["XLS/XLSX",P.green]].map(([l,c],i)=><div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1}}><span style={{width:44,height:44,borderRadius:10,background:(c as string)+"22",color:c as string,display:"grid",placeItems:"center"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M6 2h9l5 5v15H6z"/></svg></span><span style={{fontSize:11.5,fontWeight:600,textAlign:"center"}}>{l as string}</span></div>)}</div><div style={{fontSize:11.5,color:P.muted,marginTop:12}}>Tamaño máximo: 10 MB por archivo</div></div>
+     <div style={{...card2,padding:16,background:"#F7F6FE",borderColor:"#E2DEFB"}}><div style={{display:"flex",gap:10}}><span style={{color:P.purple}}>ⓘ</span><div><div style={{fontWeight:700,fontSize:13.5}}>Nota</div><div style={{fontSize:12.5,color:P.muted,marginTop:2,lineHeight:1.5}}>Los documentos se almacenan de forma segura y cifrada, cumpliendo con la NOM-024-SSA3-2012.</div></div></div></div>
     </div>
    </div>;
   })() : (<>

@@ -2342,6 +2342,32 @@
    "epic": "Y/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-DOCUMENTS-REGISTRY-001",
+   "name": "Documentos — lista por paciente + carpetas + generación cableadas a SQL",
+   "risk": "C5",
+   "eng_authority_note": "Vista Documentos a fidelidad exacta del mockup (header con acciones, patient bar con chips, tabs por tipo, 3 columnas Carpetas/tabla/Vista previa, fila inferior Acciones rápidas + Tipos de archivo + Nota NOM-024). Cableada a reader nuevo patientDocuments + GET /patients/:id/documents: por cada agregado ClinicalDocument toma el evento DOCUMENT_CREATED (título/docType/fecha) y su ESTADO por la última transición (CREATED->DRAFT, FINALIZED, SIGNED, AMENDED), deriva el tipo-UI (PROGRESS_NOTE->Nota médica, REFERRAL->Interconsulta, PROCEDURE_NOTE->Procedimiento…), computa conteos por carpeta (tipo) y chips del paciente. 'Generar desde plantilla' crea un documento real vía POST /api/v1/documents y recarga. La vista previa del PDF (reporte de laboratorio), los tamaños y la subida de archivos son representativos.",
+   "invariants": [
+    "Tipo-UI derivado del docType del enum; carpetas = conteo por tipo-UI; chip clínico = PROGRESS_NOTE+PROCEDURE_NOTE+DISCHARGE",
+    "ESTADO del documento = última transición (Borrador/Finalizado/Firmado/Enmendado)",
+    "document:write para la lista (GET) y para generar (POST); scope faltante -> 403",
+    "La generación usa el paciente en contexto; sin paciente la acción avisa y no escribe",
+    "Fallback representativo = imagen exacta cuando el paciente no tiene documentos (tabla/carpetas/chips y la vista previa)"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (patientDocuments + DocRow)",
+    "apps/web/app/api/v1/patients/[patientId]/documents/route.ts (GET lista + conteos por carpeta)",
+    "apps/web/app/workspace/page.tsx (vista Documentos completa + VMAP + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-documents-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Documentos: carpetas, tabla, vista previa, acciones)"
+   ],
+   "runtime_evidence": "scripts/v22/live-documents-proof.mts — PASS 11/11 vs Neon 2026-09-18 (4 documentos de tipos PROGRESS_NOTE/REFERRAL/PROCEDURE_NOTE, tipo-UI derivado (Nota médica/Interconsulta/Procedimiento), conteos por carpeta 2/1/1, chip clínico 3, estado Finalizado tras finalizar, sin-scope 403). En el smoke runner de CI. Render test 18/18 (jsdom). Fidelidad verificada por preview + captura.",
+   "epic": "Z/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
