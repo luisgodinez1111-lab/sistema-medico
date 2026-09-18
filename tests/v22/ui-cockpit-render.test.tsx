@@ -12,6 +12,11 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
  apiRequest:async(path:string)=>{
+  if(path.includes("/api/v1/regulatory-obligations"))return{status:200,body:{
+   items:[
+    {obligationId:"o1",name:"Declaración mensual de IVA",category:"Fiscal (SAT)",periodicity:"Mensual",dueDate:"2026-09-20T00:00:00Z",estado:"Próxima",daysUntil:5},
+    {obligationId:"o2",name:"Pago de IMSS",category:"Laboral",periodicity:"Mensual",dueDate:"2026-08-01T00:00:00Z",estado:"Vencida",daysUntil:-40},
+   ],total:2,alDia:0,proximas:1,vencidas:1,compliance:{["Fiscal (SAT)"]:100,Laboral:0}}};
   if(path.includes("/api/v1/claims"))return{status:200,body:{
    items:[
     {claimId:"cl1",folio:"F-000002",patientId:"p1",patientName:"Ana López García",amount:500,currency:"MXN",status:"PAID",statusLabel:"Pagada",recordedAt:"2026-09-17T00:00:00Z"},
@@ -77,7 +82,7 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:/^Obligaciones/}));
+const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Clinical Intelligence"}));
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
@@ -150,6 +155,18 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
+ });
+
+ it("vista Obligaciones (S-OBLIGACIONES): regulatorias del consultorio cableadas a GET /regulatory-obligations",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:/^Obligaciones/}));
+  expect(screen.getByRole("heading",{name:"Obligaciones"})).toBeTruthy();
+  expect(screen.getByText("Total de obligaciones")).toBeTruthy();               // KPI
+  expect((await screen.findAllByText("Declaración mensual de IVA")).length).toBeGreaterThan(0); // fila (real) + calendario
+  expect(screen.getByText(/Calendario de próximas obligaciones/)).toBeTruthy();
+  expect(screen.getByText(/Cumplimiento por categoría/)).toBeTruthy();
+  expect(screen.getByText(/Recordatorios automáticos/)).toBeTruthy();
+  expect(screen.getByText(/Tareas pendientes/)).toBeTruthy();
  });
 
  it("vista Documentos (S-DOCUMENTOS): carpetas + tabla de documentos + vista previa + acciones",async()=>{

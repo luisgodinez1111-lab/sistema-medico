@@ -57,6 +57,7 @@ const SMOKE:readonly string[]=[
  "live-follow-up-snapshot-proof",           // Seguimiento: tareas (obligaciones) + tendencia vitales + indicadores clave
  "live-claims-registry-proof",              // Facturación: registro de facturas clínica-wide + KPIs (ingresos/emitidas/pendientes)
  "live-documents-proof",                    // Documentos: lista por paciente + tipo-UI + estado + conteos por carpeta
+ "live-regulatory-obligations-proof",       // Obligaciones regulatorias del consultorio: estado computado + KPIs + cumplimiento
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

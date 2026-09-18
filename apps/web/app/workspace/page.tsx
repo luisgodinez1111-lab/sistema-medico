@@ -79,6 +79,8 @@ type ClaimItem=Readonly<{claimId:string;folio:string;patientId:string;patientNam
 type ClaimsRegistry=Readonly<{items:ClaimItem[];total:number;incomeThisMonth:number;issuedCount:number;pendingCount:number;pendingAmount:number;cancellations:number}>;
 type DocItem=Readonly<{documentId:string;title:string;docType:string;typeLabel:string;status:string;statusLabel:string;createdAt:string;actorId:string}>;
 type DocsSnap=Readonly<{items:DocItem[];total:number;byType:Record<string,number>;chips:{clinical:number;consents:number;studies:number}}>;
+type RegObItem=Readonly<{obligationId:string;name:string;category:string;periodicity:string;dueDate:string|null;estado:string;daysUntil:number|null}>;
+type RegObSnap=Readonly<{items:RegObItem[];total:number;alDia:number;proximas:number;vencidas:number;compliance:Record<string,number>}>;
 const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
 const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
@@ -460,7 +462,7 @@ export default function Workspace(){
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"interconsulta"|"seguimiento"|"facturacion"|"documentos"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
+ const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"interconsulta"|"seguimiento"|"facturacion"|"documentos"|"obligaciones"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
  // Pestaña Interacciones (S8.3) — verificador de conjunto cableado a POST /api/v1/interactions
  const[ixDrugs,setIxDrugs]=useState<string[]>(["Sertralina","Ibuprofeno","Metformina"]);
@@ -516,6 +518,9 @@ export default function Workspace(){
  const[docsSnap,setDocsSnap]=useState<DocsSnap|null>(null);
  const[docsTab,setDocsTab]=useState<"todos"|"clinicos"|"administrativos"|"consentimientos"|"estudios"|"recetas"|"notas"|"otros">("todos");
  const[docSel,setDocSel]=useState(0);const[docFolder,setDocFolder]=useState("Todos los documentos");const[docMsg,setDocMsg]=useState("");
+ // Vista Obligaciones (S-OBLIGACIONES) — obligaciones regulatorias del consultorio cableadas a GET /regulatory-obligations
+ const[regObSnap,setRegObSnap]=useState<RegObSnap|null>(null);
+ const[oblTab,setOblTab]=useState<"todas"|"fiscales"|"salud"|"laborales"|"proteccion"|"administrativas"|"otros">("todas");
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
@@ -706,6 +711,19 @@ export default function Workspace(){
   })();
   return()=>{cancelled=true;};
  },[view,ready,session,patientId]);
+
+ // Auto-carga de las obligaciones regulatorias del consultorio (vista Obligaciones) — nivel tenant, sin paciente.
+ useEffect(()=>{
+  if(view!=="obligaciones"||!ready||!session)return;
+  let cancelled=false;
+  (async()=>{
+   try{
+    const r=await apiRequest("/api/v1/regulatory-obligations",{method:"GET"});
+    if(!cancelled&&r.status===200)setRegObSnap(r.body as unknown as RegObSnap);
+   }catch{/* lista no disponible */}
+  })();
+  return()=>{cancelled=true;};
+ },[view,ready,session]);
 
  // Scrollspy: resalta en el nav-rail el módulo actual = la ÚLTIMA sección cuyo top ya cruzó bajo los
  // headers sticky (~140px). El IntersectionObserver solo dispara el recálculo en cada cruce de esa línea.
@@ -1094,7 +1112,7 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado",Interconsultas:"interconsulta",Seguimiento:"seguimiento",["Facturación"]:"facturacion",Documentos:"documentos"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
+    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado",Interconsultas:"interconsulta",Seguimiento:"seguimiento",["Facturación"]:"facturacion",Documentos:"documentos",Obligaciones:"obligaciones"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
      <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){setView(vTarget);window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
       <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
      </button>);})}
@@ -2811,6 +2829,77 @@ export default function Workspace(){
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:12}}>⚡ Acciones rápidas</div>{docMsg&&<div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:docMsg.includes("✓")?"#E6F6EE":"#FDF4E6",fontSize:12,color:docMsg.includes("✓")?"#166534":"#7A5A16"}}>{docMsg}</div>}<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{[["⤒","Subir documentos",()=>{}],["◉","Escanear con cámara",()=>{}],["▤","Generar desde plantilla",genDoc],["➤","Solicitar al paciente",()=>{}]].map(([ic,l,fn],i)=><button key={i} onClick={fn as ()=>void} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:11,padding:"16px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:8,cursor:"pointer",fontFamily:UI}}><span style={{width:38,height:38,borderRadius:10,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:16}}>{ic as string}</span><span style={{fontSize:12.5,fontWeight:600}}>{l as string}</span></button>)}</div></div>
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:12}}>▤ Tipos de archivo permitidos</div><div style={{display:"flex",gap:10,justifyContent:"space-between",flexWrap:"wrap"}}>{[["PDF",P.red],["JPG/PNG",P.amber],["DICOM",P.blue],["DOC/DOCX",P.blue],["XLS/XLSX",P.green]].map(([l,c],i)=><div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1}}><span style={{width:44,height:44,borderRadius:10,background:(c as string)+"22",color:c as string,display:"grid",placeItems:"center"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M6 2h9l5 5v15H6z"/></svg></span><span style={{fontSize:11.5,fontWeight:600,textAlign:"center"}}>{l as string}</span></div>)}</div><div style={{fontSize:11.5,color:P.muted,marginTop:12}}>Tamaño máximo: 10 MB por archivo</div></div>
      <div style={{...card2,padding:16,background:"#F7F6FE",borderColor:"#E2DEFB"}}><div style={{display:"flex",gap:10}}><span style={{color:P.purple}}>ⓘ</span><div><div style={{fontWeight:700,fontSize:13.5}}>Nota</div><div style={{fontSize:12.5,color:P.muted,marginTop:2,lineHeight:1.5}}>Los documentos se almacenan de forma segura y cifrada, cumpliendo con la NOM-024-SSA3-2012.</div></div></div></div>
+    </div>
+   </div>;
+  })() : view==="obligaciones" ? (()=>{
+   // ===== MÓDULO OBLIGACIONES (S-OBLIGACIONES) — obligaciones regulatorias del consultorio cableadas a GET /regulatory-obligations =====
+   const card2:React.CSSProperties={...card,marginTop:0};
+   const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
+   const fmtD=(iso:string|null)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
+   const useReal=!!regObSnap&&regObSnap.total>0;
+   type ORow={name:string;category:string;periodicity:string;date:string;estado:string};
+   const REP:ORow[]=[
+    {name:"Declaración mensual de IVA",category:"Fiscal (SAT)",periodicity:"Mensual",date:"17 sep 2026",estado:"Al día"},
+    {name:"Declaración mensual de ISR",category:"Fiscal (SAT)",periodicity:"Mensual",date:"17 sep 2026",estado:"Al día"},
+    {name:"Pago de IMSS (si aplica)",category:"Laboral",periodicity:"Mensual",date:"20 sep 2026",estado:"Próxima"},
+    {name:"Aviso de funcionamiento COFEPRIS",category:"Salud (COFEPRIS)",periodicity:"Única",date:"—",estado:"Vigente"},
+    {name:"Renovación de aviso de funcionamiento",category:"Salud (COFEPRIS)",periodicity:"Cada 5 años",date:"12 ene 2028",estado:"Al día"},
+    {name:"Manejo de RPBI (manifiesto)",category:"Salud (COFEPRIS)",periodicity:"Trimestral",date:"30 sep 2026",estado:"Próxima"},
+    {name:"Capacitación en RPBI",category:"Salud (COFEPRIS)",periodicity:"Anual",date:"15 nov 2026",estado:"Al día"},
+    {name:"Extintores (mantenimiento)",category:"Protección civil",periodicity:"Semestral",date:"10 oct 2026",estado:"Próxima"},
+    {name:"Revisión eléctrica",category:"Protección civil",periodicity:"Anual",date:"22 may 2027",estado:"Al día"},
+    {name:"Declaración anual de personas físicas",category:"Fiscal (SAT)",periodicity:"Anual",date:"30 abr 2027",estado:"Próxima"},
+   ];
+   const allRows:ORow[]=useReal?regObSnap!.items.map(it=>({name:it.name,category:it.category,periodicity:it.periodicity,date:fmtD(it.dueDate),estado:it.estado})):REP;
+   const CATMAP:Record<string,string>={fiscales:"Fiscal (SAT)",salud:"Salud (COFEPRIS)",laborales:"Laboral",proteccion:"Protección civil",administrativas:"Administrativa",otros:"Otros"};
+   const rows=allRows.filter(r=>oblTab==="todas"||r.category===CATMAP[oblTab]);
+   const total=useReal?regObSnap!.total:21;
+   const kAl=useReal?regObSnap!.alDia:12,kProx=useReal?regObSnap!.proximas:6,kVenc=useReal?regObSnap!.vencidas:3;
+   const pct=(n:number)=>total?Math.round(n/total*100):0;
+   const compRep:[string,number][]=[["Fiscal (SAT)",80],["Salud (COFEPRIS)",60],["Laboral",50],["Protección civil",50],["Administrativa",100]];
+   const compliance:[string,number][]=useReal?Object.entries(regObSnap!.compliance):compRep;
+   const estSty=(k:string):React.CSSProperties=>{const m:Record<string,[string,string]>={["Al día"]:["#E6F6EE","#16A66A"],["Próxima"]:["#FBF0DC","#B7791F"],Vencida:["#FDECEE","#C9364A"],Vigente:["#E7EEFB","#1769E0"]};const[b,f]=m[k]??m["Al día"]!;return{background:b,color:f,borderRadius:8,padding:"4px 12px",fontSize:12.5,fontWeight:700,whiteSpace:"nowrap"};};
+   const kico=(bg:string,fg:string,d:string)=><span style={{width:48,height:48,borderRadius:"50%",background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
+   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+   const tdc:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
+   const CAL=[["17","SEP","Declaración mensual de IVA","Fiscal (SAT)","En 2 días","#16A66A"],["17","SEP","Declaración mensual de ISR","Fiscal (SAT)","En 2 días","#16A66A"],["20","SEP","Pago de IMSS","Laboral","En 5 días","#E5983B"],["30","SEP","Manifiesto de RPBI","Salud (COFEPRIS)","En 15 días","#16A66A"],["10","OCT","Mantenimiento de extintores","Protección civil","En 25 días","#16A66A"]];
+   const OBL_TABS:[typeof oblTab,string][]=[["todas","Todas"],["fiscales","Fiscales (SAT)"],["salud","Salud (COFEPRIS)"],["laborales","Laborales"],["proteccion","Protección civil"],["administrativas","Administrativas"],["otros","Otros"]];
+   const fileIco="M6 2h9l5 5v15H6zM14 2v6h6";
+   return <div style={{padding:"18px 24px 40px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M5 5h14v14H5zM9 12l2 2 4-4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Obligaciones</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Cumple y da seguimiento a las obligaciones legales, fiscales y normativas de tu consultorio.</p></div></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⚙ Configuración</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>↧ Exportar reporte</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>+ Agregar obligación ▾</button></div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
+     <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#E6F6EE","#16A66A","M9 12l2 2 4-4M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{kAl}</div><div style={{fontSize:11.5,color:P.muted}}>Al día</div><div style={{fontSize:11,color:P.muted,fontWeight:600}}>{pct(kAl)}% del total</div></div></div>
+     <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{kProx}</div><div style={{fontSize:11.5,color:P.muted}}>Próximas a vencer</div><div style={{fontSize:11,color:P.muted,fontWeight:600}}>{pct(kProx)}% del total</div></div></div>
+     <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#FDECEE",P.red,"M12 9v4M12 17h.01M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{kVenc}</div><div style={{fontSize:11.5,color:P.muted}}>Vencidas</div><div style={{fontSize:11,color:P.muted,fontWeight:600}}>{pct(kVenc)}% del total</div></div></div>
+     <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#E7EEFB",P.blue,"M8 2v4M16 2v4M4 8h16M5 6h14v14H5z")}<div><div style={{fontSize:24,fontWeight:800}}>{total}</div><div style={{fontSize:11.5,color:P.muted}}>Total de obligaciones</div></div></div>
+    </div>
+    <div style={{...card2,marginTop:16,padding:"0 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+     <div style={{display:"flex",gap:4,overflowX:"auto"}}>{OBL_TABS.map(([k,l])=><button key={k} onClick={()=>setOblTab(k)} style={{padding:"14px 12px",fontSize:13.5,fontWeight:oblTab===k?700:500,color:oblTab===k?P.purple:P.muted,borderBottom:oblTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>{l}</button>)}</div>
+     <div style={{display:"flex",gap:8,alignItems:"center",padding:"8px 0",flexWrap:"wrap"}}><div style={{position:"relative"}}><input placeholder="Buscar obligación..." style={{...selSty,paddingLeft:32,width:200}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div><select style={{...selSty,width:"auto"}} defaultValue="Todas las categorías"><option>Todas las categorías</option></select><select style={{...selSty,width:"auto"}} defaultValue="Todos los estados"><option>Todos los estados</option></select></div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:16,marginTop:16,alignItems:"start"}} className="mos-obl">
+     <div style={{...card2,padding:0,overflow:"hidden"}}>
+      <div style={{padding:"14px 16px",fontSize:16,fontWeight:800}}>Obligaciones ({rows.length})</div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+       <thead><tr><th style={{...th,width:30}}></th><th style={th}>Nombre</th><th style={th}>Categoría</th><th style={th}>Periodicidad</th><th style={th}>Próxima fecha</th><th style={th}>Estado</th><th style={{...th,textAlign:"right"}}>Acc.</th></tr></thead>
+       <tbody>{rows.slice(0,10).map((r,i)=>{const c=r.estado==="Vencida"?P.red:r.estado==="Próxima"?P.amber:P.green;return <tr key={i}><td style={tdc}><span style={{width:15,height:15,borderRadius:4,border:"1.6px solid #C7CCE0",display:"inline-block"}}/></td><td style={tdc}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{color:c,flex:"0 0 auto"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={fileIco}/></svg></span><span style={{fontWeight:600,color:P.ink}}>{r.name}</span></div></td><td style={{...tdc,color:P.muted}}>{r.category}</td><td style={{...tdc,color:P.muted}}>{r.periodicity}</td><td style={{...tdc,color:P.muted}}>{r.date}</td><td style={tdc}><span style={estSty(r.estado)}>{r.estado}</span></td><td style={{...tdc,textAlign:"right",color:P.muted,fontWeight:700}}>⋯</td></tr>;})}
+       {rows.length===0&&<tr><td colSpan={7} style={{...tdc,textAlign:"center",color:P.muted,padding:"30px"}}>Sin obligaciones en esta categoría.</td></tr>}
+       </tbody></table></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 16px",fontSize:13,color:P.muted,flexWrap:"wrap",gap:10}}><span>Mostrando 1-{Math.min(rows.length,10)} de {total} obligaciones</span><div style={{display:"flex",gap:5}}>{["‹","1","2","3","›"].map((p,i)=><span key={i} style={{minWidth:32,height:32,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:13,cursor:"pointer"}}>{p}</span>)}</div></div>
+     </div>
+     <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8}}>📅 Calendario de próximas obligaciones</div><span style={{fontSize:12,color:P.blue,cursor:"pointer"}}>Ver calendario</span></div>{CAL.map(([d,mo,name,cat,badge,bc],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"9px 0",borderBottom:i<CAL.length-1?`1px solid #F2F4F9`:"0"}}><div style={{width:38,textAlign:"center",flex:"0 0 auto"}}><div style={{fontSize:16,fontWeight:800,lineHeight:1}}>{d}</div><div style={{fontSize:9.5,color:P.muted,fontWeight:700}}>{mo}</div></div><div style={{flex:1,minWidth:0}}><div style={{fontSize:12.5,fontWeight:700}}>{name}</div><div style={{fontSize:11,color:P.muted}}>{cat}</div></div><span style={{background:(bc as string)+"22",color:bc as string,borderRadius:16,padding:"3px 9px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>{badge}</span></div>)}</div>
+      <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8}}>▤ Documentos relacionados</div><span style={{fontSize:12,color:P.blue,cursor:"pointer"}}>Ver todos</span></div>{[["Constancia de situación fiscal.pdf","12 ene 2026"],["Aviso de funcionamiento.pdf","10 feb 2023"],["Constancia RPBI 2025.pdf","15 ene 2025"],["Póliza de seguro responsabilidad civil.pdf","01 mar 2026"],["Dictamen eléctrico.pdf","22 may 2026"]].map(([f,d],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 0",borderBottom:i<4?`1px solid #F2F4F9`:"0",fontSize:12.5}}><span style={{color:P.red}}>▤</span><span style={{flex:1,fontWeight:500}}>{f}</span><span style={{color:P.muted,fontSize:11}}>{d}</span><span style={{color:P.muted,fontWeight:700,cursor:"pointer"}}>⋯</span></div>)}</div>
+      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8,marginBottom:10}}>▣ Ayuda y normatividad</div>{["Guía COFEPRIS para consultorios","Manual de RPBI (NOM-087)","Obligaciones fiscales (SAT)","Protección civil en establecimientos","Checklist de cumplimiento"].map((l,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<4?`1px solid #F2F4F9`:"0",fontSize:13,color:P.blue,fontWeight:500,cursor:"pointer"}}><span style={{display:"flex",alignItems:"center",gap:8}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 5h12v14H4z"/></svg>{l}</span><span>⧉</span></div>)}</div>
+     </div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1.1fr 1fr 1fr",gap:14,marginTop:16,alignItems:"start"}} className="mos-obl2">
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8,marginBottom:12}}>▨ Cumplimiento por categoría</div>{compliance.map(([l,n],i)=>{const c=n>=80?"#16A66A":n>=50?"#E5983B":"#C9364A";return <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}><span style={{width:110,fontSize:12,color:P.ink}}>{l==="Fiscal (SAT)"?"Fiscal (SAT)":l==="Salud (COFEPRIS)"?"Salud (COFEPRIS)":l==="Protección civil"?"Protección civil":l==="Administrativa"?"Administrativa":l}</span><div style={{flex:1,height:7,borderRadius:6,background:"#EEF1F7",overflow:"hidden"}}><div style={{height:"100%",width:`${n}%`,background:c,borderRadius:6}}/></div><span style={{fontSize:12,fontWeight:700,width:36,textAlign:"right"}}>{n}%</span></div>;})}</div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8,marginBottom:10}}>✉ Recordatorios automáticos</div><div style={{fontSize:12.5,color:P.muted,lineHeight:1.5,marginBottom:12}}>Recibe alertas por correo y en el sistema antes de tus vencimientos.</div><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}><span style={{width:40,height:22,borderRadius:14,background:"#16A66A",position:"relative"}}><span style={{position:"absolute",top:2,left:20,width:18,height:18,borderRadius:"50%",background:"#fff"}}/></span><span style={{fontSize:13,fontWeight:600}}>Activar recordatorios</span></div><button style={{width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>⚙ Configurar recordatorios</button></div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8,marginBottom:10}}>✔ Tareas pendientes</div>{[["Subir manifiesto de RPBI Q3",false],["Renovar póliza de seguro",true],["Programar capacitación RPBI",false],["Actualizar botiquín",false],["Revisar señalización",false]].map(([t,done],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0"}}><span style={{width:17,height:17,borderRadius:5,border:done?"0":"1.7px solid #C7CCE0",background:done?P.purple:"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:10,flex:"0 0 auto"}}>{done?"✓":""}</span><span style={{fontSize:13,color:done?P.muted:P.ink,textDecoration:done?"line-through":"none"}}>{t as string}</span></div>)}</div>
     </div>
    </div>;
   })() : (<>

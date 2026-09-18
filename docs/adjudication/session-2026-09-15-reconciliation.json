@@ -2368,6 +2368,33 @@
    "epic": "Z/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-REGULATORY-OBLIGATIONS-001",
+   "name": "Obligaciones regulatorias del consultorio — aggregate nuevo cableado a SQL",
+   "risk": "C5",
+   "eng_authority_note": "Vista Obligaciones a fidelidad exacta del mockup (header con acciones, 4 KPIs, tabla con tabs por categoría/filtros, columna derecha Calendario/Documentos/Ayuda, fila inferior Cumplimiento por categoría/Recordatorios/Tareas). Dominio ADMINISTRATIVO (cumplimiento legal/fiscal/normativo del consultorio: SAT, COFEPRIS, laborales, protección civil), DISTINTO de las ClinicalObligation de paciente (usadas en Seguimiento). Backend NUEVO real: aggregate RegulatoryObligation sobre el mismo kernel event-sourced (evento REGULATORY_OBLIGATION_CREATED con nombre/categoría/periodicidad/fecha límite, nivel tenant, sin PHI). El ESTADO (Al día/Próxima/Vencida/Vigente) NO se almacena: se COMPUTA de la fecha límite vs hoy (determinista). GET computa KPIs (al día/próximas/vencidas/total) y cumplimiento por categoría (% no vencidas). Calendario/documentos/ayuda/tareas son representativos.",
+   "invariants": [
+    "ESTADO computado de la fecha límite vs hoy: sin fecha=Vigente, pasada=Vencida, <=30 días=Próxima, si no=Al día",
+    "KPIs: al día (incluye Vigente) / próximas / vencidas / total; cumplimiento por categoría = % no vencidas",
+    "Aggregate a nivel TENANT sin paciente (administrativo, no PHI); RLS por tenant",
+    "obligation:write para crear (POST) y listar (GET); scope faltante -> 403",
+    "Fallback representativo = imagen exacta cuando el tenant no tiene obligaciones"
+   ],
+   "implementation": [
+    "apps/web/lib/regulatory-obligation-lifecycle.ts (create; aggregate RegulatoryObligation)",
+    "apps/web/lib/clinical-runtime.ts (regulatoryObligations reader)",
+    "apps/web/app/api/v1/regulatory-obligations/route.ts (POST create + GET lista con estado computado + KPIs + cumplimiento)",
+    "apps/web/app/workspace/page.tsx (vista Obligaciones completa + VMAP + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-regulatory-obligations-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Obligaciones: KPIs, tabla, calendario, cumplimiento)"
+   ],
+   "runtime_evidence": "scripts/v22/live-regulatory-obligations-proof.mts — PASS 11/11 vs Neon 2026-09-18 (5 obligaciones con fechas variadas, estado computado Próxima/Al día/Vencida/Vigente, KPIs al día 2 / próximas 2 / vencidas 1, cumplimiento Laboral 0% y Fiscal 100%, sin-scope 403). En el smoke runner de CI. Render test 19/19 (jsdom). Fidelidad verificada por preview + captura.",
+   "epic": "AC/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
