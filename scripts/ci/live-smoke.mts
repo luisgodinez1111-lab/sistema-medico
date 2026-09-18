@@ -53,6 +53,7 @@ const SMOKE:readonly string[]=[
  "live-immunization-registry-proof",        // Registro de vacunas clínica-wide: estado + lote/fecha administración + cobertura
  "live-vitals-history-proof",               // Historial de signos vitales por paciente: agrupación por toma + IMC + series
  "live-care-plan-snapshot-proof",           // Plan de cuidado: snapshot compuesto (problemas + conteos + metas + métricas)
+ "live-referral-context-proof",             // Interconsulta: contexto del paciente (alergias/meds/problemas/labs/vitales) + envío
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

@@ -2265,6 +2265,31 @@
    "epic": "X/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-REFERRAL-CONTEXT-001",
+   "name": "Interconsultas — Nueva interconsulta con contexto compuesto + envío cableados a SQL",
+   "risk": "C5",
+   "eng_authority_note": "Vista Interconsultas (form 'Nueva interconsulta') a fidelidad exacta del mockup (header con acciones, patient bar con conteos, tabs, form: especialidad/prioridad/tipo, médico, motivo, resumen clínico con toolbar, diagnósticos relacionados, estudios anexos; panel derecho: Información relevante del paciente, Antecedentes, Plantillas rápidas, Tip). Cableado real: (1) panel derecho 'Información relevante del paciente' compuesto por endpoint nuevo GET /patients/:id/referral-context (alergias, medicamentos activos por NOMBRE de principio activo vía resolveDrug, problemas activos con código+descripción, HbA1c del último resultado, TA/FC/IMC de vitales); (2) chips de conteo y diagnósticos relacionados prellenados de datos reales; (3) 'Enviar interconsulta' -> POST /api/v1/referrals (specialty+reason) con el paciente en contexto; (4) plantillas rápidas prellenan especialidad+motivo. Datos representativos idénticos a la imagen cuando no hay paciente en contexto.",
+   "invariants": [
+    "Medicamentos actuales mostrados por nombre de principio activo (resolveDrug), no por código",
+    "Problemas activos = ACTIVE|CHRONIC del paciente con descripción CIE-10; HbA1c del último resultado; IMC derivado peso/talla²",
+    "referral:write para el contexto (GET) y para enviar (POST); scope faltante -> 403",
+    "El envío usa el paciente en contexto y exige motivo; sin paciente/motivo el form avisa y no escribe",
+    "Fallback representativo = imagen exacta cuando no hay contexto de paciente"
+   ],
+   "implementation": [
+    "apps/web/app/api/v1/patients/[patientId]/referral-context/route.ts (GET contexto compuesto)",
+    "apps/web/app/workspace/page.tsx (vista Interconsultas: form Nueva interconsulta + panel cableado + envío + VMAP + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-referral-context-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Interconsultas: form + panel de contexto + envío)"
+   ],
+   "runtime_evidence": "scripts/v22/live-referral-context-proof.mts — PASS 10/10 vs Neon 2026-09-18 (alergia listada, medicamentos activos por nombre metformina/losartan tras propose->prescribe->activate, 3 problemas con descripción CIE-10, HbA1c 8.1 de labs, TA 124/82 y FC 76 de vitales, IMC derivado 30.1, envío real de interconsulta 201, sin-scope 403). En el smoke runner de CI. Render test 15/15 (jsdom). Fidelidad verificada por preview + captura.",
+   "epic": "Y/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

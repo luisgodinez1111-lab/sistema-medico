@@ -72,7 +72,7 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Interconsultas"}));
+const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:/^Seguimiento/}));
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
@@ -145,6 +145,19 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
+ });
+
+ it("vista Interconsultas (S-INTERCONSULTA): form Nueva interconsulta + panel de contexto + envío",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Interconsultas"}));
+  expect(screen.getByRole("heading",{name:"Nueva interconsulta"})).toBeTruthy();
+  expect(screen.getByText("Datos de la interconsulta")).toBeTruthy();
+  expect(screen.getByText(/Especialidad/)).toBeTruthy();
+  expect(screen.getByText(/Motivo de interconsulta/)).toBeTruthy();
+  expect(screen.getAllByText(/Resumen clínico/).length).toBeGreaterThan(0);
+  expect(screen.getByText("Información relevante del paciente")).toBeTruthy();  // panel derecho (rep/real)
+  expect(screen.getByText("Plantillas rápidas")).toBeTruthy();
+  expect(screen.getByRole("button",{name:/Enviar interconsulta/})).toBeTruthy();
  });
 
  it("vista Plan de cuidado (S-PLANCUIDADO): snapshot compuesto — problemas, objetivos, intervenciones, cronograma, métricas",async()=>{

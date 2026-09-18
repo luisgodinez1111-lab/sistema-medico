@@ -72,6 +72,7 @@ type ImmRegistry=Readonly<{items:ImmItem[];total:number;appliedCount:number;pend
 type VitalRecord=Readonly<{at:string;ta:string;fc:string;fr:string;temp:string;spo2:string;peso:string;talla:string;imc:string}>;
 type VitalHistory=Readonly<{records:VitalRecord[];series:{BP:{value:number;at:string}[];HR:{value:number;at:string}[];WEIGHT:{value:number;at:string}[];IMC:{value:number;at:string}[]};latest:VitalRecord|null;count:number}>;
 type CarePlanSnap=Readonly<{counts:{problems:number;medications:number;allergies:number};problems:{code:string;description:string;status:string;statusLabel:string}[];goals:{category:string;goal:string;status:string;statusLabel:string}[];metrics:{hba1c:string|null;bp:string|null;weight:string|null;imc:string|null}}>;
+type RefContext=Readonly<{allergies:string[];medications:string[];problems:{code:string;description:string}[];labs:{hba1c:string|null};vitals:{bp:string|null;hr:string|null;imc:string|null}}>;
 const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
 const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
@@ -453,7 +454,7 @@ export default function Workspace(){
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
+ const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"interconsulta"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
  // Pestaña Interacciones (S8.3) — verificador de conjunto cableado a POST /api/v1/interactions
  const[ixDrugs,setIxDrugs]=useState<string[]>(["Sertralina","Ibuprofeno","Metformina"]);
@@ -491,6 +492,12 @@ export default function Workspace(){
  // Vista Plan de cuidado (S-PLANCUIDADO) — snapshot compuesto cableado a GET /patients/:id/care-plan
  const[cpSnap,setCpSnap]=useState<CarePlanSnap|null>(null);
  const[cpPlanTab,setCpPlanTab]=useState<"plan"|"historial"|"objetivos"|"educacion"|"notas">("plan");
+ // Vista Interconsultas (S-INTERCONSULTA) — form Nueva interconsulta; panel derecho cableado a referral-context, envío -> POST /referrals
+ const[refCtx,setRefCtx]=useState<RefContext|null>(null);
+ const[icTab,setIcTab]=useState<"datos"|"resumen"|"documentos"|"indicaciones">("datos");
+ const[icSpecialty,setIcSpecialty]=useState("Endocrinología");const[icPriority,setIcPriority]=useState("Preferente (2–4 semanas)");const[icType,setIcType]=useState("Primera vez");
+ const[icMotivo,setIcMotivo]=useState("");const[icResumen,setIcResumen]=useState("");
+ const[icBusy,setIcBusy]=useState(false);const[icMsg,setIcMsg]=useState("");
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
@@ -626,6 +633,19 @@ export default function Workspace(){
     const r=await apiRequest(`/api/v1/patients/${patientId}/care-plan`,{method:"GET"});
     if(!cancelled&&r.status===200)setCpSnap(r.body as unknown as CarePlanSnap);
    }catch{/* snapshot no disponible */}
+  })();
+  return()=>{cancelled=true;};
+ },[view,ready,session,patientId]);
+
+ // Auto-carga del contexto para Nueva interconsulta (panel derecho: alergias/medicamentos/problemas/labs/vitales).
+ useEffect(()=>{
+  if(view!=="interconsulta"||!ready||!session||!patientId)return;
+  let cancelled=false;
+  (async()=>{
+   try{
+    const r=await apiRequest(`/api/v1/patients/${patientId}/referral-context`,{method:"GET"});
+    if(!cancelled&&r.status===200)setRefCtx(r.body as unknown as RefContext);
+   }catch{/* contexto no disponible */}
   })();
   return()=>{cancelled=true;};
  },[view,ready,session,patientId]);
@@ -1017,7 +1037,7 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
+    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado",Interconsultas:"interconsulta"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
      <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){setView(vTarget);window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
       <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
      </button>);})}
@@ -2381,6 +2401,87 @@ export default function Workspace(){
       <div style={{...card2,padding:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={sec}>{secIco(P.purple,"M12 14l9-5-9-5-9 5 9 5zM12 14v7")}Educación para el paciente</div><span style={{color:P.purple,fontWeight:700,cursor:"pointer"}}>+</span></div>{["Guía de alimentación en diabetes","Ejercicios recomendados","Técnica correcta de medición de TA","Signos de alarma","Cuidado de pies en diabetes"].map((e,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<4?`1px solid #F2F4F9`:"0",fontSize:13,color:P.blue,fontWeight:500,cursor:"pointer"}}><span style={{display:"flex",alignItems:"center",gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 5h12v14H4zM8 3h12v12"/></svg>{e}</span><span>⧉</span></div>)}</div>
       <div style={{...card2,padding:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div style={{fontSize:15.5,fontWeight:800}}>Notas del plan</div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"5px 11px",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:UI}}>Agregar</button></div><div style={{fontSize:12.5,lineHeight:1.5}}><div style={{color:P.muted,marginBottom:4}}>17 sep 2026, 10:24</div>Se inicia plan integral. Paciente motivada. Se entrega material educativo y se programa seguimiento en 2 semanas.<div style={{color:P.muted,textAlign:"right",marginTop:6}}>Dr. Luis Godinez</div></div></div>
       <div style={{...card2,padding:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div style={{fontSize:15.5,fontWeight:800}}>Documentos relacionados</div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"5px 11px",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:UI}}>Agregar</button></div>{["Plan de alimentación.pdf","Rutina de ejercicios.pdf","Consentimiento plan de cuidado.pdf"].map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 0",borderBottom:i<2?`1px solid #F2F4F9`:"0",fontSize:12.5}}><span style={{color:P.red}}>▤</span><span style={{flex:1,color:P.blue,fontWeight:500}}>{f}</span><span style={{color:P.muted,fontSize:11}}>17 sep 2026</span><span style={{color:P.muted,fontWeight:700,cursor:"pointer"}}>⋯</span></div>)}</div>
+     </div>
+    </div>
+   </div>;
+  })() : view==="interconsulta" ? (()=>{
+   // ===== MÓDULO INTERCONSULTAS (S-INTERCONSULTA) — form Nueva interconsulta; panel derecho cableado a referral-context =====
+   const card2:React.CSSProperties={...card,marginTop:0};
+   const initials=(n:string)=>n.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+   const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"10px 12px",fontSize:14,background:P.white,fontFamily:UI,color:P.ink};
+   const flbl:React.CSSProperties={fontSize:12.5,fontWeight:700,marginBottom:6};
+   const SHORT:Record<string,string>={E11:"DM2",I10:"HTA",E66:"Obesidad",E78:"Dislipidemia",F41:"Ansiedad",F32:"Depresión",J45:"Asma"};
+   const shortOf=(code:string)=>SHORT[code.slice(0,3)]??code;
+   const hasCtx=!!refCtx;
+   const cAllergies=hasCtx&&refCtx!.allergies.length?refCtx!.allergies.join(", "):"Amoxicilina (rash)";
+   const cMeds=hasCtx&&refCtx!.medications.length?refCtx!.medications.map(m=>m.charAt(0).toUpperCase()+m.slice(1)).join(", "):"Metformina, Losartán";
+   const ctxProblems=hasCtx&&refCtx!.problems.length?refCtx!.problems:[{code:"E11.9",description:"Diabetes mellitus tipo 2"},{code:"E66.9",description:"Obesidad"},{code:"I10",description:"Hipertensión arterial"}];
+   const cProblems=ctxProblems.map(p=>shortOf(p.code)).join(", ");
+   const cHba1c=(hasCtx&&refCtx!.labs.hba1c)?`HbA1c ${refCtx!.labs.hba1c}% (17 sep 2026)`:"HbA1c 8.1% (17 sep 2026)";
+   const cVit=hasCtx&&(refCtx!.vitals.bp||refCtx!.vitals.imc)?`TA ${refCtx!.vitals.bp??"—"}  FC ${refCtx!.vitals.hr??"—"}  IMC ${refCtx!.vitals.imc??"—"}`:"TA 124/82  FC 76  IMC 30.2";
+   const send=async()=>{
+    if(!patientId){setIcMsg("Selecciona un paciente en el buscador superior para enviar la interconsulta.");return;}
+    if(!icMotivo.trim()){setIcMsg("El motivo de interconsulta es obligatorio.");return;}
+    setIcBusy(true);setIcMsg("");
+    try{const r=await apiRequest("/api/v1/referrals",{method:"POST",body:{referralId:crypto.randomUUID(),patientId,specialty:icSpecialty,reason:icMotivo,occurredAt:new Date().toISOString()}});
+     if(r.status===201||r.status===200){setIcMsg("Interconsulta enviada ✓");setIcMotivo("");setIcResumen("");}
+     else setIcMsg("No se pudo enviar (estado "+r.status+").");
+    }catch{setIcMsg("Error al enviar la interconsulta.");}finally{setIcBusy(false);}
+   };
+   const infoRow=(c:string,d:string,l:string,v:string)=><div style={{display:"flex",alignItems:"center",gap:11,padding:"11px 0",borderBottom:`1px solid #F2F4F9`,cursor:"pointer"}}><span style={{width:32,height:32,borderRadius:9,background:c+"22",color:c,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={d}/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontSize:12.5,fontWeight:700}}>{l}</div><div style={{fontSize:12,color:P.muted}}>{v}</div></div><span style={{color:P.muted}}>›</span></div>;
+   const clip="M9 3h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h1V4a1 1 0 011-1z";
+   const IC_TABS:[typeof icTab,string][]=[["datos","Datos de la interconsulta"],["resumen","Resumen clínico"],["documentos","Documentos y estudios"],["indicaciones","Indicaciones"]];
+   return <div style={{padding:"18px 24px 40px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"center",gap:14}}><button onClick={()=>setView("exp")} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 14px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>← Volver</button><div><h1 style={{fontSize:26,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Nueva interconsulta</h1><p style={{color:P.muted,fontSize:13,margin:"3px 0 0"}}>Solicita una valoración por otra especialidad y da seguimiento al proceso.</p></div></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⊟ Plantillas</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>◉ Vista previa</button><button onClick={send} disabled={icBusy} style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>{icBusy?"Enviando…":"➤ Enviar interconsulta"}</button></div>
+    </div>
+    <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"Ana López García")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientName||"Ana López García"}</div><div style={{fontSize:12.5,color:P.muted}}>Femenino, 34 años&nbsp;&nbsp;|&nbsp;&nbsp;Expediente: LC260917-0042&nbsp;&nbsp;|&nbsp;&nbsp;CURP: LOGA900101MCHPRN09</div></div></div>
+     <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+      <div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}><span style={{width:32,height:32,borderRadius:9,background:P.blue+"22",color:P.blue,display:"grid",placeItems:"center"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={clip}/></svg></span><div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{ctxProblems.length}</div><div style={{fontSize:11,color:P.muted}}>Problemas activos</div></div></div>
+      <div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}><span style={{width:32,height:32,borderRadius:9,background:P.green+"22",color:P.green,display:"grid",placeItems:"center"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z"/></svg></span><div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{hasCtx&&refCtx!.medications.length?refCtx!.medications.length:2}</div><div style={{fontSize:11,color:P.muted}}>Medicamentos</div></div></div>
+      <div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}><span style={{width:32,height:32,borderRadius:9,background:P.red+"22",color:P.red,display:"grid",placeItems:"center"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.3 3.9 1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></span><div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{hasCtx?refCtx!.allergies.length:1}</div><div style={{fontSize:11,color:P.muted}}>{(hasCtx?refCtx!.allergies.length:1)===1?"Alergia":"Alergias"}</div></div></div>
+      <button onClick={()=>setView("exp")} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px 15px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver expediente →</button>
+     </div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 330px",gap:16,marginTop:16,alignItems:"start"}} className="mos-ic">
+     {/* Columna principal: form */}
+     <div style={{...card2,padding:0,overflow:"hidden"}}>
+      <div style={{display:"flex",gap:4,padding:"0 18px",borderBottom:`1px solid ${LINE}`,overflowX:"auto"}}>{IC_TABS.map(([k,l])=><button key={k} onClick={()=>setIcTab(k)} style={{padding:"14px 8px",fontSize:13.5,fontWeight:icTab===k?700:500,color:icTab===k?P.purple:P.muted,borderBottom:icTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>{l}</button>)}</div>
+      <div style={{padding:22}}>
+       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}}>
+        <div><div style={flbl}>Especialidad <span style={{color:P.red}}>*</span></div><select value={icSpecialty} onChange={e=>setIcSpecialty(e.target.value)} style={selSty}>{["Endocrinología","Cardiología","Nutrición","Ginecología","Psiquiatría","Dermatología","Nefrología","Neurología"].map(o=><option key={o}>{o}</option>)}</select></div>
+        <div><div style={flbl}>Prioridad <span style={{color:P.red}}>*</span></div><select value={icPriority} onChange={e=>setIcPriority(e.target.value)} style={selSty}>{["Preferente (2–4 semanas)","Urgente (48–72 h)","Rutina (4–8 semanas)"].map(o=><option key={o}>{o}</option>)}</select></div>
+        <div><div style={flbl}>Tipo de interconsulta <span style={{color:P.red}}>*</span></div><select value={icType} onChange={e=>setIcType(e.target.value)} style={selSty}>{["Primera vez","Subsecuente","Segunda opinión"].map(o=><option key={o}>{o}</option>)}</select></div>
+       </div>
+       <div style={{marginTop:16}}><div style={flbl}>Médico o institución (opcional)</div><div style={{position:"relative"}}><input placeholder="Buscar por nombre o institución..." style={{...selSty,paddingLeft:34}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" style={{position:"absolute",left:11,top:12}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div></div>
+       <div style={{marginTop:16}}><div style={flbl}>Motivo de interconsulta <span style={{color:P.red}}>*</span></div><textarea value={icMotivo} onChange={e=>setIcMotivo(e.target.value.slice(0,500))} placeholder="Describe el motivo de la valoración solicitada..." style={{...selSty,minHeight:84,resize:"vertical"}}/><div style={{textAlign:"right",fontSize:11,color:P.muted}}>{icMotivo.length}/500</div></div>
+       <div style={{marginTop:12}}><div style={flbl}>Resumen clínico <span style={{color:P.red}}>*</span></div>
+        <div style={{border:`1px solid ${LINE}`,borderRadius:9,overflow:"hidden"}}><div style={{display:"flex",gap:2,padding:"8px 10px",borderBottom:`1px solid ${LINE}`,color:P.muted}}>{["B","I","U"].map(b=><span key={b} style={{width:26,height:26,display:"grid",placeItems:"center",fontWeight:800,fontStyle:b==="I"?"italic":"normal",textDecoration:b==="U"?"underline":"none",cursor:"pointer",fontSize:13}}>{b}</span>)}<span style={{width:26,height:26,display:"grid",placeItems:"center",cursor:"pointer"}}>☰</span><span style={{width:26,height:26,display:"grid",placeItems:"center",cursor:"pointer"}}>⁝☰</span><span style={{width:26,height:26,display:"grid",placeItems:"center",cursor:"pointer"}}>🔗</span></div><textarea value={icResumen} onChange={e=>setIcResumen(e.target.value.slice(0,1000))} placeholder="Resumen del cuadro clínico, tratamiento actual y evolución..." style={{width:"100%",border:0,padding:"12px 14px",fontSize:13.5,fontFamily:UI,minHeight:110,resize:"vertical",color:P.ink,lineHeight:1.5}}/></div>
+        <div style={{textAlign:"right",fontSize:11,color:P.muted}}>{icResumen.length}/1000</div>
+       </div>
+       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:18,marginTop:12}}>
+        <div><div style={flbl}>Diagnósticos relacionados</div><div style={{position:"relative"}}><input placeholder="Buscar y agregar diagnósticos..." style={{...selSty,paddingLeft:34}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" style={{position:"absolute",left:11,top:12}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div><div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>{ctxProblems.map((p,i)=><span key={i} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#EEEBFD",color:P.purple,borderRadius:8,padding:"6px 10px",fontSize:12.5,fontWeight:600}}><b style={{fontWeight:700}}>{p.code}</b>{p.description}<span style={{cursor:"pointer"}}>×</span></span>)}</div></div>
+        <div><div style={flbl}>Estudios anexos</div><div style={{border:`1.6px dashed ${LINE}`,borderRadius:11,padding:"20px",textAlign:"center",color:P.muted}}><div style={{fontSize:22}}>⤒</div><div style={{fontSize:12.5,marginTop:4}}>Arrastra archivos aquí o <span style={{color:P.blue,fontWeight:600}}>haz clic para seleccionar</span></div><div style={{fontSize:11,marginTop:2}}>PDF, imágenes, laboratorios (máx. 10 MB c/u)</div></div>
+         {[["Laboratorios_17092026.pdf","245 KB"],["USG_abdomen.pdf","1.2 MB"]].map(([f,s])=><div key={f} style={{display:"flex",alignItems:"center",gap:9,marginTop:8,padding:"9px 11px",border:`1px solid ${LINE}`,borderRadius:9,fontSize:12.5}}><span style={{color:P.red}}>▤</span><span style={{flex:1}}>{f}</span><span style={{color:P.muted,fontSize:11}}>{s}</span><span style={{color:P.muted,cursor:"pointer"}}>×</span></div>)}
+        </div>
+       </div>
+       {icMsg&&<div style={{marginTop:14,padding:"10px 13px",borderRadius:10,background:icMsg.includes("✓")?"#E6F6EE":"#FDF4E6",border:`1px solid ${icMsg.includes("✓")?"#BFE6CF":"#F2E1C0"}`,fontSize:13,color:icMsg.includes("✓")?"#166534":"#7A5A16"}}>{icMsg}</div>}
+      </div>
+     </div>
+     {/* Columna derecha: contexto real del paciente */}
+     <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:6}}>Información relevante del paciente</div>
+       {infoRow(P.red,"M10.3 3.9 1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z","Alergias",cAllergies)}
+       {infoRow(P.green,"M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z","Medicamentos actuales",cMeds)}
+       {infoRow(P.blue,clip,"Problemas activos",cProblems)}
+       {infoRow(P.amber,"M9 3h6l1 4H8zM7 7h10l1 13H6z","Últimos laboratorios",cHba1c)}
+       {infoRow(P.red,"M12 21C12 21 4 13.5 4 8.5A4 4 0 0112 6a4 4 0 018 2.5C20 13.5 12 21 12 21z","Signos vitales (última)",cVit)}
+      </div>
+      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:10}}>Antecedentes relevantes</div>{[["#F0455E","Diagnóstico de DM2 en 2023"],["#E5983B","Resistencia a la insulina"],["#6C5CF6","Obesidad (IMC 30.2 kg/m²)"],["#1769E0","Hipertensión arterial controlada"],["#16A66A","Sin datos de nefropatía, retinopatía ni neuropatía"]].map(([c,t],i)=><div key={i} style={{display:"flex",gap:9,alignItems:"flex-start",padding:"6px 0",fontSize:12.5}}><span style={{width:7,height:7,borderRadius:"50%",background:c,flex:"0 0 auto",marginTop:5}}/>{t}</div>)}<button style={{marginTop:10,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>✎ Editar antecedentes</button></div>
+      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:8}}>Plantillas rápidas</div>{[["Endocrinología – DM2","Endocrinología","Valoración y manejo integral de diabetes mellitus tipo 2 con resistencia a la insulina."],["Cardiología – HTA","Cardiología","Valoración de hipertensión arterial y riesgo cardiovascular."],["Ginecología – SOP","Ginecología","Valoración por síndrome de ovario poliquístico."],["Nutrición – Obesidad","Nutrición","Valoración nutricional y plan de manejo de obesidad."],["Psiquiatría – Ansiedad/Depresión","Psiquiatría","Valoración por síntomas ansioso-depresivos."],["Dermatología – Acné","Dermatología","Valoración dermatológica por acné."]].map(([l,sp,mo],i)=><div key={i} onClick={()=>{setIcSpecialty(sp as string);setIcMotivo(mo as string);}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<5?`1px solid #F2F4F9`:"0",fontSize:13,color:P.ink,fontWeight:500,cursor:"pointer"}}><span style={{display:"flex",alignItems:"center",gap:8}}><span style={{color:P.blue}}>▤</span>{l}</span><span style={{color:P.muted}}>›</span></div>)}</div>
+      <div style={{...card2,padding:16,background:"#F7F6FE",borderColor:"#E2DEFB"}}><div style={{display:"flex",gap:10}}><span style={{color:P.purple}}>💡</span><div><div style={{fontWeight:700,fontSize:13}}>Tip</div><div style={{fontSize:12.5,color:P.muted,marginTop:2}}>Incluye laboratorios, estudios de imagen y un resumen clínico claro para una mejor y más rápida atención.</div></div></div></div>
      </div>
     </div>
    </div>;
