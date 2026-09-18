@@ -249,7 +249,11 @@ export default function Workspace(){
  const[busy,setBusy]=useState("");
  const[error,setError]=useState("");
 
- useEffect(()=>{setSession(getStoredSession());setPatientId(uuid());setReady(true);},[]);
+ useEffect(()=>{
+  const s=getStoredSession();
+  if(!s){window.location.replace("/login");return;} // guard duro: el espacio clínico exige sesión
+  setSession(s);setPatientId(uuid());setReady(true);
+ },[]);
 
  async function call(tag:string,fn:()=>Promise<void>){setBusy(tag);setError("");try{await fn();}catch(e){setError(String(e));}finally{setBusy("");}}
  const openEncounter=()=>call("open",async()=>{

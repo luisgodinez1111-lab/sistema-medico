@@ -1,1 +1,17 @@
-const cards=[["Patient State","Estado longitudinal y riesgos"],["Encounter","Consulta continua y firmable"],["Results","Closed-loop diagnóstico"],["Obligations","Zero Lost Follow-Up"],["Medication","Ciclo de vida y autoridad"],["AI Copilot","Asistencia gobernada"]];export default function Home(){return <main style={{maxWidth:1180,margin:"0 auto",padding:32}}><header><div style={{fontSize:13,color:"#6255c7",fontWeight:700}}>MEDICAL OS</div><h1 style={{fontSize:40,margin:"8px 0"}}>Clinical Workspace</h1><p style={{color:"#5f6072"}}>Estado clínico, decisiones, obligaciones y evidencia en un solo entorno.</p><div style={{marginTop:16,display:"flex",gap:12}}><a href="/login" style={{background:"#6255c7",color:"white",textDecoration:"none",borderRadius:10,padding:"10px 18px",fontWeight:700}}>Iniciar sesión</a><a href="/workspace" style={{color:"#6255c7",textDecoration:"none",border:"1px solid #d9d6f2",borderRadius:10,padding:"10px 18px",fontWeight:700}}>Espacio clínico</a></div></header><section style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginTop:28}}>{cards.map(([a,b])=><article key={a} style={{background:"white",border:"1px solid #e7e6f2",borderRadius:18,padding:22,boxShadow:"0 6px 20px #19145b0a"}}><b>{a}</b><p style={{color:"#6d6e80"}}>{b}</p></article>)}</section></main>}
+"use client";
+import{useEffect}from"react";
+import{getStoredSession}from"../lib/session-client";
+// Puerta única: la raíz NO es un landing con bypass. Decide según sesión y redirige.
+// Con sesión clínica activa -> espacio clínico; sin sesión -> inicio de sesión. Nada más es accesible sin auth.
+export default function Home(){
+ useEffect(()=>{
+  const s=getStoredSession();
+  window.location.replace(s?"/workspace":"/login");
+ },[]);
+ return <main style={{minHeight:"100vh",display:"grid",placeItems:"center",fontFamily:"Inter,system-ui,sans-serif",background:"#F4F7FB",color:"#14213D"}}>
+  <div style={{textAlign:"center"}}>
+   <div style={{fontSize:13,color:"#6255c7",fontWeight:700,letterSpacing:".08em"}}>MEDICAL OS</div>
+   <p style={{color:"#5f6072",marginTop:8}}>Verificando sesión…</p>
+  </div>
+ </main>;
+}

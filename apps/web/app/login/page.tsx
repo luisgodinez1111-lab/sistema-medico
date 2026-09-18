@@ -53,9 +53,10 @@ export default function LoginPage(){
      const u=await c.getUser();
      if(cancelled)return;
      setSubject(u?.sub??"");setSession(s);setPhase("authenticated");
+     window.location.replace("/workspace"); // una ventana -> luego todo: entra directo al espacio clínico
     }else{
      const existing=getStoredSession();
-     if(existing){setSession(existing);setPhase("authenticated");}
+     if(existing){setSession(existing);setPhase("authenticated");window.location.replace("/workspace");}
      else setPhase("anonymous");
     }
    }catch(e){if(!cancelled){setDetail(String(e));setPhase("error");}}
