@@ -12,6 +12,11 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
  apiRequest:async(path:string)=>{
+  if(path.includes("/api/v1/results"))return{status:200,body:{
+   items:[
+    {resultId:"r1",patientId:"p1",patientName:"Ana López García",analyte:"GLUCOSE",value:"520",critical:true,status:"CRITICAL",interpretation:"Hiperglucemia de pánico",tipo:"Laboratorio",estado:"Hallazgos",lifecycle:"RECEIVED",receivedAt:"2026-09-17T00:00:00Z"},
+    {resultId:"r2",patientId:"p2",patientName:"Carlos Mendoza",analyte:"CREATININE",value:"0.9",critical:false,status:"NORMAL",interpretation:"Normal",tipo:"Laboratorio",estado:"En seguimiento",lifecycle:"ACTIONED",receivedAt:"2026-09-16T00:00:00Z"},
+   ],total:2,abnormal:1,enSeguimiento:1,pendientes:1}};
   if(path.includes("/api/v1/reports"))return{status:200,body:{patientsAttended:248,income:124680,diagnosesTotal:159,topDiagnoses:[{code:"E11.9",description:"Diabetes mellitus tipo 2",count:42,pct:13},{code:"I10",description:"Hipertensión esencial",count:38,pct:12}]}};
   if(path.includes("/api/v1/regulatory-obligations"))return{status:200,body:{
    items:[
@@ -158,6 +163,16 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
+ });
+
+ it("vista Resultados (S7): registro clínica-wide cableado a GET /api/v1/results — KPIs + lista con estado-UI",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Resultados"}));
+  expect(screen.getByRole("heading",{name:"Resultados"})).toBeTruthy();
+  expect(screen.getByText("Resultados totales")).toBeTruthy();                    // KPI
+  expect((await screen.findAllByText("GLUCOSE")).length).toBeGreaterThan(0);      // analito real (mock)
+  expect(screen.getAllByText(/Hallazgos/).length).toBeGreaterThan(0);            // estado-UI derivado en TEXTO
+  expect(screen.getByText("Con hallazgos anormales")).toBeTruthy();
  });
 
  it("vista Configuración (S-CONFIG): ajustes del consultorio — secciones, módulos y guardar",async()=>{

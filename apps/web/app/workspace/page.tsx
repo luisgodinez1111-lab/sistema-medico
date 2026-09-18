@@ -79,6 +79,8 @@ type ClaimItem=Readonly<{claimId:string;folio:string;patientId:string;patientNam
 type ClaimsRegistry=Readonly<{items:ClaimItem[];total:number;incomeThisMonth:number;issuedCount:number;pendingCount:number;pendingAmount:number;cancellations:number}>;
 type DocItem=Readonly<{documentId:string;title:string;docType:string;typeLabel:string;status:string;statusLabel:string;createdAt:string;actorId:string}>;
 type DocsSnap=Readonly<{items:DocItem[];total:number;byType:Record<string,number>;chips:{clinical:number;consents:number;studies:number}}>;
+type ResultItem=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;critical:boolean;status:string;interpretation:string;tipo:string;estado:string;lifecycle:string;receivedAt:string}>;
+type ResultsRegistry=Readonly<{items:ResultItem[];total:number;abnormal:number;enSeguimiento:number;pendientes:number}>;
 type RegObItem=Readonly<{obligationId:string;name:string;category:string;periodicity:string;dueDate:string|null;estado:string;daysUntil:number|null}>;
 type RegObSnap=Readonly<{items:RegObItem[];total:number;alDia:number;proximas:number;vencidas:number;compliance:Record<string,number>}>;
 type CiFinding=Readonly<{domain:string;severity:string;summary:string}>;
@@ -538,6 +540,7 @@ export default function Workspace(){
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
  const[resTab,setResTab]=useState<"resultados"|"solicitudes"|"seguimiento"|"referencia"|"alertas">("resultados");
+ const[resReg,setResReg]=useState<ResultsRegistry|null>(null); // registro de resultados clínica-wide (cableado)
  const[cForm,setCForm]=useState({motivo:"",historia:"",antec:"",plan:""}); // borrador de la consulta actual
  type AgendaAppt={appointmentId:string;patientId:string;patientName:string;startAt:string;endAt:string|null;reason:string;consultorio:string|null;apptType:string|null;status:string};
  const[agenda,setAgenda]=useState<{appointments:AgendaAppt[];counts:{programadas:number;atendidas:number;enEspera:number;canceladas:number}}|null>(null);
@@ -760,6 +763,19 @@ export default function Workspace(){
     const r=await apiRequest("/api/v1/reports",{method:"GET"});
     if(!cancelled&&r.status===200)setRepSnap(r.body as unknown as ReportsSnap);
    }catch{/* tablero no disponible */}
+  })();
+  return()=>{cancelled=true;};
+ },[view,ready,session]);
+
+ // Auto-carga del registro de resultados (vista Resultados) — GET clínica-wide con estado-UI derivado + KPIs.
+ useEffect(()=>{
+  if(view!=="resultados"||!ready||!session)return;
+  let cancelled=false;
+  (async()=>{
+   try{
+    const r=await apiRequest("/api/v1/results",{method:"GET"});
+    if(!cancelled&&r.status===200)setResReg(r.body as unknown as ResultsRegistry);
+   }catch{/* registro no disponible */}
   })();
   return()=>{cancelled=true;};
  },[view,ready,session]);
@@ -1587,7 +1603,11 @@ export default function Workspace(){
    const chk=(on:boolean,l:string)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{on?"✓":""}</span>{l}</label>;
    const rb=(s:string):[string,string]=>s==="Hallazgos"?["#FBEEDF","#B7791F"]:s==="En seguimiento"?["#EAF1FD","#1769E0"]:s==="En revisión"?["#FBF0DC","#B7791F"]:["#E6F6EE","#16A66A"];
    type RRow={estudio:string;pac:string;fecha:string;estado:string;ico:string};
-   const RESL:RRow[]=[{estudio:"Biometría hemática completa",pac:"Ana López García",fecha:"17 sep 2026",estado:"Hallazgos",ico:"flask"},{estudio:"Química sanguínea",pac:"Carlos Mendoza Ruiz",fecha:"16 sep 2026",estado:"Normal",ico:"flask"},{estudio:"Perfil lipídico",pac:"María Torres Sanchez",fecha:"16 sep 2026",estado:"En seguimiento",ico:"flask"},{estudio:"HbA1c",pac:"José Ramírez Díaz",fecha:"15 sep 2026",estado:"Hallazgos",ico:"flask"},{estudio:"EGO",pac:"Ana López García",fecha:"14 sep 2026",estado:"Normal",ico:"clip"},{estudio:"Radiografía de tórax",pac:"Daniel Cruz Morales",fecha:"12 sep 2026",estado:"En revisión",ico:"img"},{estudio:"Ultrasonido abdominal",pac:"Laura Fernández",fecha:"10 sep 2026",estado:"Normal",ico:"img"},{estudio:"TSH, T4 libre",pac:"María Torres Sanchez",fecha:"08 sep 2026",estado:"Hallazgos",ico:"flask"}];
+   const useRealRes=!!resReg&&resReg.total>0;
+   const fmtResD=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
+   const REP_RESL:RRow[]=[{estudio:"Biometría hemática completa",pac:"Ana López García",fecha:"17 sep 2026",estado:"Hallazgos",ico:"flask"},{estudio:"Química sanguínea",pac:"Carlos Mendoza Ruiz",fecha:"16 sep 2026",estado:"Normal",ico:"flask"},{estudio:"Perfil lipídico",pac:"María Torres Sanchez",fecha:"16 sep 2026",estado:"En seguimiento",ico:"flask"},{estudio:"HbA1c",pac:"José Ramírez Díaz",fecha:"15 sep 2026",estado:"Hallazgos",ico:"flask"},{estudio:"EGO",pac:"Ana López García",fecha:"14 sep 2026",estado:"Normal",ico:"clip"},{estudio:"Radiografía de tórax",pac:"Daniel Cruz Morales",fecha:"12 sep 2026",estado:"En revisión",ico:"img"},{estudio:"Ultrasonido abdominal",pac:"Laura Fernández",fecha:"10 sep 2026",estado:"Normal",ico:"img"},{estudio:"TSH, T4 libre",pac:"María Torres Sanchez",fecha:"08 sep 2026",estado:"Hallazgos",ico:"flask"}];
+   const RESL:RRow[]=useRealRes?resReg!.items.slice(0,10).map(it=>({estudio:it.analyte,pac:it.patientName,fecha:fmtResD(it.receivedAt),estado:it.estado,ico:it.tipo==="Imagenología"?"img":"flask"})):REP_RESL;
+   const kTot=useRealRes?resReg!.total:245,kAbn=useRealRes?resReg!.abnormal:48,kSeg=useRealRes?resReg!.enSeguimiento:32,kPen=useRealRes?resReg!.pendientes:18;
    const ricoPath:Record<string,string>={flask:"M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3",clip:"M9 4h6v2H9zM7 5H6v16h12V5h-1M8 11h8M8 15h6",img:"M3 5h18v14H3zM3 15l5-5 4 4 3-3 6 6"};
    const pill=(bg:string,fg:string,t:string)=><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:bg,color:fg}}>{t}</span>;
    return <div style={{padding:"18px 24px 40px"}}>
@@ -1597,10 +1617,10 @@ export default function Workspace(){
     </div>
     <div style={{display:"flex",gap:2,marginTop:14,borderBottom:`1px solid ${LINE}`,overflowX:"auto"}}>{RTABS.map(([k,l,d])=><button key={k} onClick={()=>setResTab(k)} style={{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",fontSize:13.5,fontWeight:resTab===k?700:500,color:resTab===k?P.purple:P.muted,cursor:"pointer",borderBottom:resTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,fontFamily:UI,whiteSpace:"nowrap"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg>{l}</button>)}</div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
-     <div style={kcard}>{kico("#EEEBFD",P.purple,"M4 4h16v16H4zM8 9h8M8 13h5")}<div><div style={{fontSize:22,fontWeight:800}}>245</div><div style={{fontSize:11.5,color:P.muted}}>Resultados totales</div></div></div>
-     <div style={kcard}>{kico("#FDECEE",P.red,"M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3")}<div><div style={{fontSize:22,fontWeight:800}}>48</div><div style={{fontSize:11.5,color:P.muted}}>Con hallazgos anormales</div></div></div>
-     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div><div style={{fontSize:22,fontWeight:800}}>32</div><div style={{fontSize:11.5,color:P.muted}}>En seguimiento</div></div></div>
-     <div style={kcard}>{kico("#E7EEFB",P.blue,"M7 3h10v18H7zM10 8h4")}<div><div style={{fontSize:22,fontWeight:800}}>18</div><div style={{fontSize:11.5,color:P.muted}}>Pendientes de revisión</div></div></div>
+     <div style={kcard}>{kico("#EEEBFD",P.purple,"M4 4h16v16H4zM8 9h8M8 13h5")}<div><div style={{fontSize:22,fontWeight:800}}>{kTot}</div><div style={{fontSize:11.5,color:P.muted}}>Resultados totales</div></div></div>
+     <div style={kcard}>{kico("#FDECEE",P.red,"M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3")}<div><div style={{fontSize:22,fontWeight:800}}>{kAbn}</div><div style={{fontSize:11.5,color:P.muted}}>Con hallazgos anormales</div></div></div>
+     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div><div style={{fontSize:22,fontWeight:800}}>{kSeg}</div><div style={{fontSize:11.5,color:P.muted}}>En seguimiento</div></div></div>
+     <div style={kcard}>{kico("#E7EEFB",P.blue,"M7 3h10v18H7zM10 8h4")}<div><div style={{fontSize:22,fontWeight:800}}>{kPen}</div><div style={{fontSize:11.5,color:P.muted}}>Pendientes de revisión</div></div></div>
      <div style={kcard}>{kico("#EEEBFD",P.purple,"M4 5h16v16H4zM8 3v4M16 3v4")}<div><div style={{fontSize:22,fontWeight:800}}>12</div><div style={{fontSize:11.5,color:P.muted}}>Estudios por vencer</div></div></div>
     </div>
     {resTab!=="resultados"?(
@@ -1618,9 +1638,9 @@ export default function Workspace(){
       <div style={flbl}>Categoría</div>{chk(true,"Laboratorio")}{chk(false,"Imagenología")}{chk(false,"Patología")}{chk(false,"Cardiología")}{chk(false,"Otros")}
      </div>
      <div style={{...card2,padding:8}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px"}}><span style={{fontSize:16,fontWeight:700}}>Resultados (245)</span><span style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"6px 11px",fontSize:12,cursor:"pointer"}}>Más recientes ▾</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px"}}><span style={{fontSize:16,fontWeight:700}}>Resultados ({kTot})</span><span style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"6px 11px",fontSize:12,cursor:"pointer"}}>Más recientes ▾</span></div>
       {RESL.map((r,i)=>{const[bg,fg]=rb(r.estado);const on=i===0;return <div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:11,borderRadius:11,cursor:"pointer",border:on?"1px solid #E0DAFB":"1px solid transparent",background:on?"#F6F5FE":"transparent"}}><span style={{width:36,height:36,borderRadius:9,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={ricoPath[r.ico]??ricoPath.flask}/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13.5}}>{r.estudio}</div><div style={{fontSize:11.5,color:P.muted}}>{r.pac} · {r.fecha}</div></div>{pill(bg,fg,r.estado)}</div>;})}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 10px",fontSize:12.5,color:P.muted}}><span>Mostrando 1–10 de 245 resultados</span><span>‹ {pill(P.purple,"#fff","1")} 2 3 … 25 ›</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 10px",fontSize:12.5,color:P.muted}}><span>Mostrando 1–{Math.min(RESL.length,10)} de {kTot} resultados</span><span>‹ {pill(P.purple,"#fff","1")} 2 3 … ›</span></div>
      </div>
      <div style={{...card2,padding:18}} className="mos-detail">
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}><div style={{display:"flex",gap:11}}><span style={{width:44,height:44,borderRadius:11,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"/></svg></span><div><div style={{fontSize:16,fontWeight:800}}>Biometría hemática completa {pill("#FBEEDF","#B7791F","Con hallazgos")}</div><div style={{fontWeight:700,fontSize:14}}>Ana López García</div><div style={{fontSize:12.5,color:P.muted}}>Femenino · 34 años · 17 sep 2026 08:24</div><div style={{fontSize:12.5,color:P.muted}}>Laboratorio Chopo · Folio: LC260917-0042</div></div></div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"8px 12px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Descargar PDF</button></div>

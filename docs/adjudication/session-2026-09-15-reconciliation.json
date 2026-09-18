@@ -2489,6 +2489,32 @@
    "epic": "CFG/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-RESULTS-REGISTRY-001",
+   "name": "Resultados — registro clínica-wide cableado a SQL (estado-UI derivado + KPIs)",
+   "risk": "C5",
+   "eng_authority_note": "Cablea la pestaña 'Resultados' del módulo Resultados (S7) a un registro de resultados diagnósticos de TODA la clínica. Reader nuevo resultsRegistry + GET /api/v1/results: por cada agregado DiagnosticResult toma el evento RESULT_RECEIVED (analito/valor + critical/status/interpretación DERIVADOS por classifyLab y delta-check) y su ESTADO por la última transición de ciclo de vida (RECEIVED/VERIFIED/ACTIONED/CLOSED), une el nombre del paciente, deriva el TIPO (Laboratorio/Imagenología por el nombre del analito) y el ESTADO-UI (Hallazgos si critical/anormal, En seguimiento si ACTIONED, En revisión si RECEIVED, si no Normal), y computa KPIs (totales / con hallazgos anormales / en seguimiento / pendientes de revisión). La vista Resultados usa estos datos reales en los KPIs y la lista; el panel de detalle (parámetros/interpretación) y 'Estudios por vencer' permanecen representativos. Fallback representativo idéntico a la imagen cuando el tenant no tiene resultados.",
+   "invariants": [
+    "critical/status/interpretación se DERIVAN del valor (classifyLab + delta-check), no del cliente",
+    "ESTADO del resultado = última transición de ciclo de vida (RECEIVED/VERIFIED/ACTIONED/CLOSED)",
+    "ESTADO-UI derivado: Hallazgos (critical/anormal) / En seguimiento (ACTIONED) / En revisión (RECEIVED) / Normal",
+    "result:write para el registro (GET); join del nombre del paciente casteado a uuid; scope faltante -> 403",
+    "Fallback representativo = imagen exacta cuando total=0; KPIs/lista reflejan lo real cuando existe"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (resultsRegistry + ResultRow)",
+    "apps/web/app/api/v1/results/route.ts (GET registro + estado-UI + tipo + KPIs)",
+    "apps/web/app/workspace/page.tsx (vista Resultados: KPIs y lista cableados + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-results-registry-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Resultados: KPIs + lista con estado-UI)"
+   ],
+   "runtime_evidence": "scripts/v22/live-results-registry-proof.mts — PASS 13/13 vs Neon 2026-09-18 (3 resultados: creatinina normal->ACTIONED, glucosa 520 crítica derivada, radiografía imagen; estado-UI Hallazgos/En seguimiento, tipo Imagenología, join del paciente, KPIs abnormal 1 / enSeguimiento 1 / pendientes 2, sin-scope 403). En el smoke runner de CI. Render test 24/24 (jsdom). Fidelidad verificada por preview previo del módulo S7.",
+   "epic": "AQ/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
