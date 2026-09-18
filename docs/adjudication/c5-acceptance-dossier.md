@@ -545,8 +545,8 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 
 ### CAP-UI-GUX-001-001 — UI GUX-001 (Golden UX Loop) + integración del Design System
 - Epic: CE
-- Invariantes: 5
-- Tests: `tests/v22/ui-sign-gate.test.ts`
+- Invariantes: 6
+- Tests: `tests/v22/ui-sign-gate.test.ts`, `tests/v22/ui-gux-001-render.test.tsx`
 - Prueba en vivo: —
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 

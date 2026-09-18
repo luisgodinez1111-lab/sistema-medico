@@ -1941,7 +1941,8 @@
         "Estado codificado en forma+ícono+texto (no solo color); patient context P0/P1/P2 siempre visible",
         "Estados prohibidos vigilados en runtime (CRITICAL_OPEN+SIGN_READY, DRAFT+SIGNED_STYLE, UNKNOWN_COMMIT_STATE+SUCCESS)",
         "Pendiente != éxito: la firma solo se confirma tras la respuesta autoritativa del servidor",
-        "Reconocer != resolver; el cierre exige evidencia. Gate del slice honesto: PENDING_EVIDENCE (falta viewports/axe/C5)"
+        "Reconocer != resolver; el cierre exige evidencia. Gate del slice honesto: PENDING_EVIDENCE (falta viewports/axe/C5)",
+        "Render verificado en jsdom + @testing-library/react + axe (estructural); contraste visual WCAG y viewports siguen pendientes (browser real)"
       ],
       "implementation": [
         "docs/design-contract/ (autoridad de diseño integrada: tokens, contratos, estados prohibidos, fixtures, manifiesto)",
@@ -1951,9 +1952,10 @@
         "docs/design-contract/evidence/GUX-001.md (reporte de evidencia)"
       ],
       "tests": [
-        "tests/v22/ui-sign-gate.test.ts"
+        "tests/v22/ui-sign-gate.test.ts",
+        "tests/v22/ui-gux-001-render.test.tsx"
       ],
-      "runtime_evidence": "tests/v22/ui-sign-gate.test.ts — PASS 8/8 (BLOCKED sin firma, resolver exige evidencia, reconocer!=resolver, flujo completo BLOCKED->RESOLVING->READY->SIGNING->SIGNED, pending!=success, guard de estados prohibidos, ningún estado alcanzable viola el guard). Corre en CI (test:all). Artifact: https://claude.ai/artifact/E9mepsSyENL2pBghVL58wY. Gate del slice: PENDING_EVIDENCE (viewports/axe/C5 pendientes).",
+      "runtime_evidence": "tests/v22/ui-sign-gate.test.ts — PASS 8/8 (BLOCKED sin firma, resolver exige evidencia, reconocer!=resolver, flujo completo BLOCKED->RESOLVING->READY->SIGNING->SIGNED, pending!=success, guard de estados prohibidos, ningún estado alcanzable viola el guard). Corre en CI (test:all). Artifact: https://claude.ai/artifact/E9mepsSyENL2pBghVL58wY. + render en jsdom: tests/v22/ui-gux-001-render.test.tsx PASS 7/7 (patient context visible, estado en texto no-solo-color, sin firma con crítico abierto, resolver-sin-evidencia bloqueado, reconocer!=resolver, axe sin violaciones serias). Gate del slice: PENDING_EVIDENCE (contraste visual WCAG + viewports + C5 humano pendientes).",
       "epic": "CE",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
