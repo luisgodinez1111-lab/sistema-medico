@@ -2466,6 +2466,29 @@
    "epic": "REF/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-SETTINGS-UI-001",
+   "name": "Configuración — ajustes/preferencias del consultorio (presentacional)",
+   "risk": "C3",
+   "eng_authority_note": "Vista Configuración (acceso en HERRAMIENTAS) a fidelidad exacta del mockup (header, 10 tabs, 3 columnas: Información del consultorio, Preferencias de consulta con toggles, Tu cuenta + Firma y sello + Integraciones rápidas, Horarios de atención, Configuraciones regionales, Datos y seguridad, Apariencia del sistema, Módulos activos, Guardar cambios). Página de AJUSTES/PREFERENCIAS presentacional: no existe un store de settings en el kernel clínico event-sourced (los ajustes de consultorio/cuenta/módulos/regional no son eventos clínicos ni PHI). Los controles son de UI; 'Guardar cambios' muestra una confirmación LOCAL declarada honestamente como sin backend de settings. La selección de color principal es interactiva (estado local).",
+   "invariants": [
+    "Ajustes/preferencias no forman parte del kernel clínico; no se persisten a un backend de settings (declarado en la UI al guardar)",
+    "No maneja PHI ni escribe eventos clínicos; es configuración del espacio de trabajo",
+    "La nota de seguridad referencia NOM-024-SSA3-2012 (consistente con Documentos)",
+    "Fidelidad exacta a la imagen; toggles y color interactivos como estado local",
+    "Se distingue explícitamente lo presentacional de un guardado real"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (vista Configuración + acceso desde TOOLS_NAV)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Configuración: secciones, módulos, guardar -> confirmación)"
+   ],
+   "runtime_evidence": "Sin proof nuevo: módulo presentacional de ajustes (sin backend de settings). Render test 23/23 (jsdom) confirma la materialización de secciones y la confirmación local al guardar. Fidelidad verificada por preview + captura.",
+   "epic": "CFG/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

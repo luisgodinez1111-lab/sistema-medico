@@ -465,7 +465,7 @@ export default function Workspace(){
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"interconsulta"|"seguimiento"|"facturacion"|"documentos"|"obligaciones"|"clinicalIntel"|"reportes"|"biblioteca"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
+ const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"interconsulta"|"seguimiento"|"facturacion"|"documentos"|"obligaciones"|"clinicalIntel"|"reportes"|"biblioteca"|"configuracion"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
  // Pestaña Interacciones (S8.3) — verificador de conjunto cableado a POST /api/v1/interactions
  const[ixDrugs,setIxDrugs]=useState<string[]>(["Sertralina","Ibuprofeno","Metformina"]);
@@ -532,6 +532,8 @@ export default function Workspace(){
  const[repTab,setRepTab]=useState("Resumen");
  // Vista Biblioteca Clínica (S-BIBLIOTECA) — repositorio de conocimiento curado (presentacional); herramientas reales enlazadas
  const[bibTab,setBibTab]=useState("Todo");const[bibEsp,setBibEsp]=useState("Medicina general");
+ // Vista Configuración (S-CONFIG) — ajustes/preferencias del consultorio (presentacional)
+ const[cfgTab,setCfgTab]=useState("General");const[cfgSaved,setCfgSaved]=useState(false);const[cfgColor,setCfgColor]=useState("#6C5CF6");
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
@@ -1157,7 +1159,7 @@ export default function Workspace(){
    <div className="mos-divider"/>
    <div className="mos-toolslbl">HERRAMIENTAS</div>
    {TOOLS_NAV.map(it=>(
-    <button key={it.label} className={"mos-navi"+(it.label==="Biblioteca clínica"&&view==="biblioteca"?" active":"")} aria-current={it.label==="Biblioteca clínica"&&view==="biblioteca"?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(it.label==="Configuración")setDocMenu(m=>!m);else if(it.label==="Biblioteca clínica"){setView("biblioteca");window.scrollTo({top:0,behavior:"smooth"});}}}>
+    <button key={it.label} className={"mos-navi"+((it.label==="Biblioteca clínica"&&view==="biblioteca")||(it.label==="Configuración"&&view==="configuracion")?" active":"")} aria-current={(it.label==="Biblioteca clínica"&&view==="biblioteca")||(it.label==="Configuración"&&view==="configuracion")?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(it.label==="Configuración"){setView("configuracion");window.scrollTo({top:0,behavior:"smooth"});}else if(it.label==="Biblioteca clínica"){setView("biblioteca");window.scrollTo({top:0,behavior:"smooth"});}}}>
      <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>
     </button>))}
    <div className="mos-divider"/>
@@ -3110,6 +3112,102 @@ export default function Workspace(){
     <div style={{...card2,marginTop:16,padding:"20px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16,background:"linear-gradient(90deg,#F3F0FF,#EEF4FF)"}}>
      <div style={{display:"flex",alignItems:"center",gap:16}}><span style={{fontSize:34}}>📖</span><div><div style={{fontSize:18,fontWeight:800,color:P.purple}}>Conocimiento que mejora vidas</div><div style={{fontSize:13,color:P.muted,marginTop:2}}>Accede a la mejor evidencia científica, siempre actualizada, integrada en tu práctica clínica.</div></div></div>
      <div style={{display:"flex",alignItems:"center",gap:20,flexWrap:"wrap"}}><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:UI}}>Explorar biblioteca →</button><div style={{fontSize:12.5,color:P.muted,fontStyle:"italic",maxWidth:240}}>"La buena medicina se basa en el mejor conocimiento disponible."</div></div>
+    </div>
+   </div>;
+  })() : view==="configuracion" ? (()=>{
+   // ===== MÓDULO CONFIGURACIÓN (S-CONFIG) — ajustes/preferencias del consultorio (presentacional) =====
+   const card2:React.CSSProperties={...card,marginTop:0};
+   const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
+   const lbl:React.CSSProperties={fontSize:12,color:P.muted,fontWeight:600,margin:"0 0 5px"};
+   const sec=(ico:string,t:string)=><div style={{fontSize:16,fontWeight:800,display:"flex",alignItems:"center",gap:9,marginBottom:16}}><span style={{width:28,height:28,borderRadius:8,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={ico}/></svg></span>{t}</div>;
+   const tog=(on:boolean)=><span style={{width:38,height:22,borderRadius:12,background:on?P.purple:"#D5D9E6",position:"relative",flex:"0 0 auto",cursor:"pointer"}}><span style={{position:"absolute",top:2,left:on?18:2,width:18,height:18,borderRadius:"50%",background:"#fff"}}/></span>;
+   const CFG_TABS=["General","Consultorio","Usuarios y permisos","Plantillas","Integraciones","Notificaciones","Seguridad","Respaldo","Suscripción","Avanzado"];
+   const clip="M9 3h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h1V4a1 1 0 011-1z";
+   return <div style={{padding:"18px 24px 40px"}}>
+    <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
+     <span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1L14.4 2h-4L10 3.9a7 7 0 00-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.4 2.4h4l.4-2.4a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6a7 7 0 00.1-1z"/></svg></span>
+     <div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Configuración</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Personaliza tu espacio de trabajo, preferencias y módulos del sistema.</p></div>
+    </div>
+    <div style={{...card2,marginTop:16,padding:"0 16px",display:"flex",gap:2,overflowX:"auto"}}>{CFG_TABS.map(t=><button key={t} onClick={()=>setCfgTab(t)} style={{padding:"14px 12px",fontSize:13.5,fontWeight:cfgTab===t?700:500,color:cfgTab===t?P.purple:P.muted,borderBottom:cfgTab===t?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>{t}</button>)}</div>
+    <div style={{display:"grid",gridTemplateColumns:"1.15fr 1fr 0.95fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-cfg">
+     {/* Col 1 */}
+     <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{...card2,padding:18}}>{sec(clip,"Información del consultorio")}
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{display:"flex",gap:12,alignItems:"center"}}><span style={{width:52,height:52,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={clip}/></svg></span><div><div style={{fontSize:17,fontWeight:800}}>Clínica Medical OS</div><div style={{fontSize:12,color:P.muted}}>Medicina general y atención integral</div></div></div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"8px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>◉ Cambiar logo</button></div>
+       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <div><div style={lbl}>Nombre del consultorio</div><input defaultValue="Clínica Medical OS" style={selSty}/></div>
+        <div><div style={lbl}>Especialidad principal</div><select style={selSty} defaultValue="Medicina General"><option>Medicina General</option></select></div>
+        <div><div style={lbl}>RFC</div><input defaultValue="XAXX010101000" style={selSty}/></div>
+        <div><div style={lbl}>Cédula profesional</div><input defaultValue="12345678" style={selSty}/></div>
+        <div><div style={lbl}>Dirección</div><input defaultValue="Av. Teófilo Borunda 11811, Chihuahua, Chih." style={selSty}/></div>
+        <div><div style={lbl}>Cédula de especialidad (opcional)</div><input placeholder="Ej. 87654321" style={selSty}/></div>
+        <div><div style={lbl}>Teléfono</div><input defaultValue="614 123 4567" style={selSty}/></div>
+        <div><div style={lbl}>Zona horaria</div><select style={selSty} defaultValue="tz"><option value="tz">(GMT-06:00) Chihuahua</option></select></div>
+        <div><div style={lbl}>Correo electrónico</div><input defaultValue="contacto@medicalos.mx" style={selSty}/></div>
+        <div><div style={lbl}>Idioma</div><select style={selSty} defaultValue="es"><option value="es">Español (México)</option></select></div>
+       </div>
+      </div>
+      <div style={{...card2,padding:18}}>{sec("M8 2v4M16 2v4M4 8h16M5 6h14v14H5z","Horarios de atención")}
+       {([["Lunes","08:00","15:00",true],["Martes","08:00","15:00",true],["Miércoles","08:00","15:00",true],["Jueves","08:00","15:00",true],["Viernes","08:00","15:00",true],["Sábado","08:00","13:00",true],["Domingo","Cerrado","",false]] as [string,string,string,boolean][]).map(([d,a,b,on])=><div key={d} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0"}}><span style={{width:74,fontSize:13,fontWeight:600}}>{d}</span>{on?<><input defaultValue={a} style={{...selSty,width:76,padding:"7px 8px",textAlign:"center"}}/><span style={{color:P.muted}}>–</span><input defaultValue={b} style={{...selSty,width:76,padding:"7px 8px",textAlign:"center"}}/></>:<div style={{...selSty,flex:1,color:P.muted,display:"flex",alignItems:"center",gap:6}}>Cerrado ⏱</div>}<span style={{flex:1}}/>{tog(on)}<span style={{color:P.purple,fontWeight:700,cursor:"pointer",marginLeft:6}}>+</span></div>)}
+      </div>
+      <div style={{...card2,padding:18}}>{sec("M12 3l7 4v5c0 4-3 7-7 8-4-1-7-4-7-8V7z","Apariencia del sistema")}
+       <div style={{display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap"}}>
+        <div><div style={lbl}>Color principal</div><div style={{display:"flex",gap:8}}>{["#4653C4","#6C5CF6","#1769E0","#20B7D9","#16A66A","#E5983B","#F0455E"].map(c=><span key={c} onClick={()=>setCfgColor(c)} style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",boxShadow:cfgColor===c?`0 0 0 3px ${c}44`:"none",border:cfgColor===c?"2px solid #fff":"none"}}/>)}</div></div>
+        <div><div style={lbl}>Tema</div><select style={{...selSty,width:120}} defaultValue="Claro"><option>Claro</option><option>Oscuro</option></select></div>
+        <div><div style={lbl}>Tamaño de fuente</div><select style={{...selSty,width:120}} defaultValue="Normal"><option>Normal</option><option>Grande</option></select></div>
+       </div>
+      </div>
+     </div>
+     {/* Col 2 */}
+     <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{...card2,padding:18}}>{sec("M9 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z","Preferencias de consulta")}
+       {[["Vista por defecto del expediente","Resumen clínico"],["Plantilla de nota médica por defecto","Consulta general (SOAP)"],["Sistema de unidades","Métrico (kg, cm)"],["Calculadora de dosis","Pediátrica y adultos"]].map(([l,v],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:11}}><span style={{fontSize:12.5,color:P.muted}}>{l}</span><select style={{...selSty,width:200}} defaultValue={v as string}><option>{v as string}</option></select></div>)}
+       <div style={{borderTop:`1px solid ${LINE}`,marginTop:6,paddingTop:12}}>{[["Mostrar alertas clínicas en tiempo real",true],["Sugerencias de diagnóstico con IA",true],["Recordatorios de estudios y seguimiento",true],["Mostrar interacciones medicamentosas",true],["Modo oscuro (solo para tu cuenta)",false]].map(([l,on],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0"}}><span style={{fontSize:13}}>{l as string}</span>{tog(on as boolean)}</div>)}</div>
+      </div>
+      <div style={{...card2,padding:18}}>{sec("M8 2v4M16 2v4M4 8h16M5 6h14v14H5z","Configuraciones regionales")}
+       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <div><div style={lbl}>País</div><select style={selSty} defaultValue="México"><option>México</option></select></div>
+        <div><div style={lbl}>Estado</div><select style={selSty} defaultValue="Chihuahua"><option>Chihuahua</option></select></div>
+        <div><div style={lbl}>Ciudad</div><select style={selSty} defaultValue="Chihuahua"><option>Chihuahua</option></select></div>
+        <div><div style={lbl}>Código postal</div><input defaultValue="31223" style={selSty}/></div>
+        <div><div style={lbl}>Formato de fecha</div><select style={selSty} defaultValue="d"><option value="d">dd/mm/aaaa (17/09/2026)</option></select></div>
+        <div><div style={lbl}>Formato de hora</div><select style={selSty} defaultValue="h"><option value="h">24 horas (13:45)</option></select></div>
+        <div><div style={lbl}>Moneda</div><select style={selSty} defaultValue="MXN"><option value="MXN">MXN - Peso Mexicano</option></select></div>
+        <div><div style={lbl}>Impuestos (IVA)</div><select style={selSty} defaultValue="16"><option value="16">16%</option></select></div>
+       </div>
+      </div>
+      <div style={{...card2,padding:18}}>{sec("M18 3a3 3 0 00-3 3M6 21a3 3 0 003-3M4 7h16v10H4z","Datos y seguridad")}
+       <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>↧ Exportar mis datos</button><button style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>↻ Respaldar ahora</button><button style={{flex:1,border:"1px solid #F6C9D0",background:"#FDECEE",color:P.red,borderRadius:10,padding:"11px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>🗑 Eliminar mi cuenta</button></div>
+       <div style={{fontSize:12,color:P.muted,marginTop:12,display:"flex",gap:7,alignItems:"center"}}><span style={{color:"#16A66A"}}>🛡</span>Tus datos están cifrados y protegidos conforme a la NOM-024-SSA3-2012.</div>
+      </div>
+     </div>
+     {/* Col 3 */}
+     <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{...card2,padding:18}}>{sec("M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M9 8a3 3 0 100-6 3 3 0 000 6z","Tu cuenta")}
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{display:"flex",gap:11,alignItems:"center"}}><span style={{width:44,height:44,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:14,fontWeight:700}}>LG</span><div><div style={{fontSize:14,fontWeight:700}}>Dr. Luis Godinez</div><div style={{fontSize:11.5,color:P.muted}}>Médico General · Cédula: 12345678</div></div></div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"7px 11px",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:UI}}>Cambiar foto</button></div>
+       {[["Nombre completo","Dr. Luis Godinez"],["Correo electrónico","luis@medicalos.mx"],["Teléfono","614 123 4567"]].map(([l,v])=><div key={l} style={{marginBottom:11}}><div style={lbl}>{l}</div><input defaultValue={v} style={selSty}/></div>)}
+       <div><div style={lbl}>Contraseña</div><div style={{display:"flex",gap:8}}><input type="password" defaultValue="password" style={{...selSty,flex:1}}/><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"0 14px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>Cambiar</button></div></div>
+      </div>
+      <div style={{...card2,padding:18}}>{sec("M3 17l6-6 4 4 8-8","Firma y sello")}
+       <div style={{border:`1px solid ${LINE}`,borderRadius:11,padding:18,textAlign:"center"}}><svg width="120" height="40" viewBox="0 0 120 40" style={{margin:"0 auto"}}><path d="M8 28 Q20 8 32 24 T56 20 Q70 12 78 26" fill="none" stroke={P.ink} strokeWidth="1.6"/></svg><div style={{fontWeight:700,fontSize:13,marginTop:6}}>Dr. Luis Godinez</div><div style={{fontSize:11,color:P.muted}}>Médico General</div><div style={{fontSize:11,color:P.muted}}>Ced. Prof. 12345678</div></div>
+       <div style={{display:"flex",gap:10,marginTop:12}}><button style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>↥ Subir firma</button><button style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>◉ Configurar sello</button></div>
+      </div>
+      <div style={{...card2,padding:18}}>{sec("M13 7l-6 6a3 3 0 004 4l6-6M11 17l6-6a3 3 0 00-4-4l-6 6","Integraciones rápidas")}
+       {[["Correo (SMTP)"],["WhatsApp Business"],["Laboratorio"],["PACS / Imagenología"],["EMR externo (HL7/FHIR)"]].map(([n],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<4?`1px solid #F2F4F9`:"0"}}><span style={{display:"flex",alignItems:"center",gap:9,fontSize:13,fontWeight:500}}><span style={{width:26,height:26,borderRadius:7,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center"}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16v16H4z"/></svg></span>{n}</span><button style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:8,padding:"5px 13px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:UI}}>Conectar</button></div>)}
+      </div>
+     </div>
+    </div>
+    {/* Módulos activos + Guardar */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 380px",gap:16,marginTop:16,alignItems:"start"}} className="mos-cfg2">
+     <div style={{...card2,padding:18}}>{sec("M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z","Módulos activos")}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"2px 24px"}}>{["Pacientes","Agenda","Consulta","Resultados","Órdenes","Interconsultas","Seguimiento","Facturación","Documentos","Obligaciones","Clinical Intelligence","Reportes","Biblioteca clínica"].map((m,i)=><div key={m} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid #F6F7FB`}}><span style={{display:"flex",alignItems:"center",gap:9,fontSize:13}}><span style={{color:P.purple}}>▤</span>{m}</span>{tog(true)}</div>)}</div>
+     </div>
+     <div style={{...card2,padding:18,display:"flex",flexDirection:"column",gap:12}}>
+      <div style={{fontSize:14,fontWeight:700}}>Guardar configuración</div>
+      <div style={{fontSize:12.5,color:P.muted,lineHeight:1.5}}>Los cambios se aplican a tu espacio de trabajo. Algunas preferencias son por cuenta y otras a nivel del consultorio.</div>
+      {cfgSaved&&<div style={{padding:"9px 12px",borderRadius:9,background:"#E6F6EE",fontSize:12.5,color:"#166534",fontWeight:600}}>Cambios guardados ✓ <span style={{color:P.muted,fontWeight:400}}>(preferencia local; sin backend de settings)</span></div>}
+      <button onClick={()=>{setCfgSaved(true);}} style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"12px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:UI}}>✓ Guardar cambios</button>
+     </div>
     </div>
    </div>;
   })() : (<>

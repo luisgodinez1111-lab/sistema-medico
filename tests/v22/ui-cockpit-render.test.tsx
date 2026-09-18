@@ -160,6 +160,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
  });
 
+ it("vista Configuración (S-CONFIG): ajustes del consultorio — secciones, módulos y guardar",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:/^Configuración/}));           // acceso en HERRAMIENTAS
+  expect(screen.getByRole("heading",{name:"Configuración"})).toBeTruthy();
+  expect(screen.getByText("Información del consultorio")).toBeTruthy();
+  expect(screen.getByText("Preferencias de consulta")).toBeTruthy();
+  expect(screen.getByText("Horarios de atención")).toBeTruthy();
+  expect(screen.getByText("Módulos activos")).toBeTruthy();
+  expect(screen.getByText(/NOM-024/)).toBeTruthy();                                // nota de seguridad
+  const save=screen.getByRole("button",{name:/Guardar cambios/});
+  fireEvent.click(save);
+  expect(await screen.findByText(/Cambios guardados/,{},{timeout:2000})).toBeTruthy();
+ });
+
  it("vista Biblioteca Clínica (S-BIBLIOTECA): repositorio de conocimiento + herramientas reales enlazadas",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:/Biblioteca clínica/}));       // acceso en HERRAMIENTAS
