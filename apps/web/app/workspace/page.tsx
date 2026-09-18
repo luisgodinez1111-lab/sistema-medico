@@ -247,6 +247,8 @@ const RAIL_CSS=`
 @media(max-width:1250px){.mos-res3{grid-template-columns:1fr 1fr!important}.mos-res3 .mos-detail{grid-column:1 / -1}}
 @media(max-width:820px){.mos-res3{grid-template-columns:1fr!important}}
 @media(max-width:760px){.mos-med2{grid-template-columns:1fr!important}}
+@media(max-width:1250px){.mos-ord3{grid-template-columns:1fr 1fr!important}.mos-ord3 .mos-detail{grid-column:1 / -1}.mos-ord2{grid-template-columns:1fr!important}}
+@media(max-width:820px){.mos-ord3{grid-template-columns:1fr!important}}
 .mos-phone{width:270px;max-width:100%;margin:14px auto 0;border-radius:30px;background:#0C2148;padding:9px;box-shadow:0 18px 44px rgba(16,42,86,.22)}
 .mos-phone .screen{background:#F4F7FB;border-radius:23px;overflow:hidden}
 .mos-pnav{display:flex;justify-content:space-around;align-items:center;padding:9px 4px;background:#fff;border-top:1px solid #E4E9F2}
@@ -435,8 +437,9 @@ export default function Workspace(){
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
+ const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
+ const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
  const[resTab,setResTab]=useState<"resultados"|"solicitudes"|"seguimiento"|"referencia"|"alertas">("resultados");
@@ -897,7 +900,7 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
+    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
      <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){setView(vTarget);window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
       <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
      </button>);})}
@@ -1443,6 +1446,88 @@ export default function Workspace(){
       <div style={{...card2,marginTop:14,padding:"13px 16px",display:"flex",gap:10,alignItems:"center",background:"#F7F6FE"}}><span style={{color:P.purple}}>💡</span><div style={{fontSize:13,color:P.muted}}><b style={{color:P.ink}}>Tip.</b> Puedes agregar medicamentos a favoritos, crear plantillas y generar prescripciones rápidas desde aquí.</div></div>
      </div>
     </div>)}
+   </div>;
+  })() : view==="ordenes" ? (()=>{
+   // ===== MÓDULO ÓRDENES — SORDENES (7 pestañas + SILBAL), pestaña "Todas las órdenes" =====
+   const card2:React.CSSProperties={...card,marginTop:0};
+   const OTABS:[typeof ordTab,string,string][]=[["todas","Todas las órdenes","M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"],["laboratorio","Laboratorio","M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"],["imagenologia","Imagenología","M3 5h18v14H3zM3 15l5-5 4 4"],["gabinete","Gabinete","M7 3h10v18H7z"],["interconsultas","Interconsultas","M8 11a3 3 0 100-6 3 3 0 000 6zM2 20a6 6 0 0112 0M16 4.5a3 3 0 010 6M22 20a6 6 0 00-5-5.9"],["procedimientos","Procedimientos","M14 4l6 6M6 14l4 4M16.5 6.5l-10 10"],["otros","Otros","M4 5h16v14H4z"]];
+   const kico=(bg:string,fg:string,d:string)=><span style={{width:40,height:40,borderRadius:11,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
+   const kcard:React.CSSProperties={...card2,padding:15,display:"flex",gap:12,alignItems:"center"};
+   const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"14px 0 6px"};
+   const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
+   const chk=(on:boolean,l:string)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{on?"✓":""}</span>{l}</label>;
+   const initials=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+   const st=(s:string):[string,string]=>s==="Con resultado"?["#E6F6EE","#16A66A"]:s==="Programada"?["#EAF1FD","#1769E0"]:s==="Crítico"?["#FDE7EA","#D23651"]:["#FBF0DC","#B7791F"];
+   type Ord={fecha:string;hora:string;pac:string;sexo:string;estudio:string;tipo:string;tipoIco:string;estado:string};
+   const ORDS:Ord[]=[{fecha:"17 sep 2026",hora:"14:32",pac:"Ana López García",sexo:"F, 34 años",estudio:"Biometría hemática completa",tipo:"Laboratorio",tipoIco:"🧪",estado:"Pendiente"},{fecha:"17 sep 2026",hora:"10:15",pac:"Mateo Ramírez",sexo:"M, 5 años",estudio:"EGO",tipo:"Laboratorio",tipoIco:"🧪",estado:"Con resultado"},{fecha:"16 sep 2026",hora:"18:40",pac:"Carlos Mendoza",sexo:"M, 56 años",estudio:"Perfil lipídico",tipo:"Laboratorio",tipoIco:"🧪",estado:"Crítico"},{fecha:"16 sep 2026",hora:"12:05",pac:"María Torres",sexo:"F, 28 años",estudio:"HbA1c",tipo:"Laboratorio",tipoIco:"🧪",estado:"Con resultado"},{fecha:"15 sep 2026",hora:"09:20",pac:"Diego Salas",sexo:"M, 3 años",estudio:"Radiografía de tórax",tipo:"Imagenología",tipoIco:"🩻",estado:"Pendiente"},{fecha:"14 sep 2026",hora:"16:10",pac:"Laura Fernández",sexo:"F, 42 años",estudio:"Ultrasonido abdominal",tipo:"Imagenología",tipoIco:"🩻",estado:"Programada"},{fecha:"12 sep 2026",hora:"11:48",pac:"José Ramírez",sexo:"M, 52 años",estudio:"TSH, T4 libre",tipo:"Laboratorio",tipoIco:"🧪",estado:"Con resultado"},{fecha:"10 sep 2026",hora:"13:22",pac:"Daniel Cruz",sexo:"M, 37 años",estudio:"Electrocardiograma",tipo:"Gabinete",tipoIco:"🫀",estado:"Pendiente"}];
+   const th:React.CSSProperties={textAlign:"left",fontSize:11,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`};
+   const td:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,verticalAlign:"top"};
+   const dk:React.CSSProperties={color:P.muted,width:120,flex:"0 0 auto"};
+   const silbal=<span style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8,paddingRight:4}}><span style={{fontWeight:800,color:"#1e40af",fontSize:14}}>◈ SILBAL</span><span style={{width:8,height:8,borderRadius:"50%",background:"#16A66A"}}/><span style={{fontSize:11,lineHeight:1.3}}><b style={{color:"#16A66A"}}>Conectado</b><br/><span style={{color:P.muted}}>Última sync: 17 sep 2026, 14:32</span></span></span>;
+   const goOrd=()=>{setView("exp");setTimeout(()=>scrollToSection("Órdenes clínicas"),0);};
+   return <div style={{padding:"18px 24px 40px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M7 3h10v18H7zM10 8h4M10 12h4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Órdenes</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Solicita, gestiona y da seguimiento a estudios de laboratorio, imagenología y otros a través del SILBAL.</p></div></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={goOrd}>Orden rápida</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Plantillas</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={goOrd}>+ Nueva orden ▾</button></div>
+    </div>
+    <div style={{display:"flex",alignItems:"center",marginTop:14,borderBottom:`1px solid ${LINE}`,gap:2,overflowX:"auto"}}>{OTABS.map(([k,l,d])=><button key={k} onClick={()=>setOrdTab(k)} style={{display:"flex",alignItems:"center",gap:8,padding:"12px 15px",fontSize:13.5,fontWeight:ordTab===k?700:500,color:ordTab===k?P.purple:P.muted,cursor:"pointer",borderBottom:ordTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,fontFamily:UI,whiteSpace:"nowrap"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg>{l}</button>)}{silbal}</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
+     <div style={kcard}>{kico("#EEEBFD",P.purple,"M7 3h10v18H7z")}<div><div style={{fontSize:22,fontWeight:800}}>28</div><div style={{fontSize:11.5,color:P.muted}}>Órdenes totales · Este mes</div></div></div>
+     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div><div style={{fontSize:22,fontWeight:800}}>12</div><div style={{fontSize:11.5,color:P.muted}}>Pendientes · Sin resultado</div></div></div>
+     <div style={kcard}>{kico("#E6F6EE",P.green,"M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z")}<div><div style={{fontSize:22,fontWeight:800}}>14</div><div style={{fontSize:11.5,color:P.muted}}>Con resultados (50%)</div></div></div>
+     <div style={kcard}>{kico("#E7EEFB",P.blue,"M4 5h16v16H4zM8 3v4M16 3v4")}<div><div style={{fontSize:22,fontWeight:800}}>2</div><div style={{fontSize:11.5,color:P.muted}}>Programadas · Esta semana</div></div></div>
+     <div style={kcard}>{kico("#FDECEE",P.red,"M12 4l9 15.5H3zM12 10v4M12 17h.01")}<div><div style={{fontSize:22,fontWeight:800,color:"#D23651"}}>2</div><div style={{fontSize:11.5,color:P.muted}}>Resultados críticos</div></div></div>
+    </div>
+    {ordTab!=="todas"?(
+     <div style={{...card2,marginTop:16,padding:"60px 20px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:700}}>Pestaña «{OTABS.find(t=>t[0]===ordTab)?.[1]}»</div><p style={{color:P.muted,fontSize:14,maxWidth:520,margin:"8px auto 0"}}>Se está construyendo al nivel exacto de tu diseño. Próxima entrega — cada categoría de órdenes (laboratorio, imagenología, gabinete, interconsultas, procedimientos, otros) es una pantalla completa con integración SILBAL.</p><button style={{marginTop:14,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={goOrd}>Abrir órdenes en el expediente →</button></div>
+    ):(<><div style={{display:"grid",gridTemplateColumns:"230px 1fr 320px",gap:14,marginTop:16,alignItems:"start"}} className="mos-ord3">
+     <div style={{...card2,padding:16}}>
+      <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}}>Limpiar</span></div>
+      <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",fontSize:12.5,color:P.muted,margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>Buscar por paciente, estudio o folio…</div>
+      <div style={flbl}>Tipo de orden</div><select style={selSty}><option>Todos</option><option>Laboratorio</option><option>Imagenología</option><option>Gabinete</option></select>
+      <div style={flbl}>Estado</div><select style={selSty}><option>Todos</option><option>Pendiente</option><option>Con resultado</option><option>Crítico</option></select>
+      <div style={flbl}>Fecha de creación</div><div style={{...selSty,color:P.muted,fontSize:12}}>01/08/2026 – 30/09/2026</div>
+      <div style={flbl}>Paciente</div><select style={selSty}><option>Todos</option></select>
+      <div style={flbl}>Solicitado por</div><select style={selSty}><option>Yo ({docDisplay})</option></select>
+      <div style={{marginTop:12}}>{chk(true,"Solo pendientes")}{chk(false,"Solo resultados críticos")}{chk(false,"Solo mis pacientes")}</div>
+      <button style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,marginTop:12}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 15V4m0 0l-4 4m4-4l4 4M4 20h16"/></svg>Exportar listado</button>
+     </div>
+     <div style={{...card2,padding:6}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 12px 8px"}}><span style={{fontSize:16,fontWeight:700}}>Órdenes (28)</span><span style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"6px 11px",fontSize:12,cursor:"pointer"}}>Más recientes ▾</span></div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+       <thead><tr><th style={{...th,width:26}}></th>{["Fecha","Paciente","Estudio / Orden","Estado","Acciones"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
+       <tbody>{ORDS.map((o,i)=>{const[bg,fg]=st(o.estado);return <tr key={i} style={{background:i===0?"#F6F5FE":"transparent",cursor:"pointer"}} onClick={goOrd}>
+        <td style={td}><span style={{width:16,height:16,border:"1.6px solid #C7CCE0",borderRadius:4,display:"inline-block"}}/></td>
+        <td style={td}>{o.fecha}<div style={{color:"#9AA0BC"}}>{o.hora}</div></td>
+        <td style={td}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:10,fontWeight:700,flex:"0 0 auto"}}>{initials(o.pac)}</span><div><div style={{fontWeight:600}}>{o.pac}</div><div style={{color:"#9AA0BC"}}>{o.sexo}</div></div></div></td>
+        <td style={td}><div style={{fontWeight:600}}>{o.estudio}</div><div style={{color:P.purple,fontSize:11}}>{o.tipoIco} {o.tipo}</div></td>
+        <td style={td}><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:bg,color:fg}}>{o.estado==="Crítico"?"⚠ Crítico":o.estado}</span></td>
+        <td style={td}><span style={{color:"#9AA0BC",fontWeight:800,border:`1px solid ${LINE}`,borderRadius:8,padding:"2px 8px"}}>···</span></td>
+       </tr>;})}</tbody>
+      </table></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:12,fontSize:12.5,color:P.muted}}><span>Mostrando 1–10 de 28 órdenes</span><div style={{display:"flex",gap:5}}>{["‹","1","2","3","›"].map((p,i)=><span key={i} style={{minWidth:30,height:30,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:7,display:"grid",placeItems:"center",fontSize:13,cursor:"pointer",padding:"0 6px"}}>{p}</span>)}</div></div>
+     </div>
+     <div style={{...card2,padding:16}} className="mos-detail">
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><span style={{fontSize:15,fontWeight:700}}>Detalle de la orden</span><span style={{color:"#9AA0BC",fontWeight:800,cursor:"pointer"}}>···</span></div>
+      <div style={{display:"flex",gap:11,marginTop:12}}><span style={{width:44,height:44,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:14,fontWeight:700,flex:"0 0 auto"}}>AG</span><div><div style={{fontWeight:800,fontSize:15}}>Ana López García</div><div style={{fontSize:12,color:P.muted}}>Femenino, 34 años</div><div style={{fontSize:11,color:P.muted}}>Expediente: LC260917-0042</div></div></div>
+      <div style={{display:"flex",gap:16,borderBottom:`1px solid ${LINE}`,margin:"12px 0",fontSize:12.5}}>{["Información","Resultados","Historial","Notas"].map((t,i)=><span key={t} style={{paddingBottom:8,color:i===0?P.purple:P.muted,fontWeight:i===0?700:400,borderBottom:i===0?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{t}</span>)}</div>
+      <div style={{display:"flex",gap:10,alignItems:"center"}}><span style={{width:36,height:36,borderRadius:9,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"/></svg></span><div><div style={{fontWeight:700,fontSize:13.5}}>Estudio</div><div style={{fontSize:12.5}}>Biometría hemática completa</div></div></div>
+      <div style={{marginTop:12}}>{[["Tipo","Laboratorio"],["Fecha de solicitud","17 sep 2026, 14:32"],["Prioridad","Normal"],["Estado","Pendiente"],["Solicitado por",docDisplay],["Centro / Laboratorio","SILBAL – Laboratorio Central"]].map(([k,v])=><div key={k} style={{display:"flex",fontSize:12.5,padding:"4px 0"}}><span style={dk}>{k}</span><span>{v}</span></div>)}</div>
+      <div style={{fontSize:13,fontWeight:700,margin:"12px 0 6px"}}>Indicaciones clínicas</div>
+      <div style={{background:"#F7F8FC",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:12.5,color:P.muted}}>Control de rutina. Paciente asintomática.</div>
+      <div style={{display:"flex",gap:8,margin:"12px 0"}}><button style={{flex:1,justifyContent:"center",display:"flex",alignItems:"center",gap:6,border:"1px solid #CFE0F7",background:P.white,color:P.blue,borderRadius:9,padding:8,fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>↗ Ver en SILBAL</button><button style={{flex:1,border:"1px solid #F3C9C9",background:P.white,color:"#D23651",borderRadius:9,padding:8,fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>Cancelar orden</button></div>
+      <div style={{fontSize:13,fontWeight:700,margin:"6px 0 6px"}}>Seguimiento</div>
+      <div style={{position:"relative",paddingLeft:20,marginTop:8}}>
+       <div style={{position:"absolute",left:5,top:4,bottom:4,width:2,background:"#EDEFF6"}}/>
+       {[["Orden creada","17 sep 2026, 14:32 · "+docDisplay,true],["Enviada a SILBAL","17 sep 2026, 14:33 · Sistema",true],["Resultado pendiente","Se notificará automáticamente",false]].map(([t,s,done],i)=><div key={i} style={{position:"relative",padding:"6px 0",fontSize:12}}><span style={{position:"absolute",left:-19,top:9,width:11,height:11,borderRadius:"50%",background:"#fff",border:`2px solid ${done?P.purple:"#C7CCE0"}`}}/><b style={{color:done?P.ink:P.muted}}>{t as string}</b><br/><span style={{color:P.muted}}>{s as string}</span></div>)}
+      </div>
+     </div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"340px 1fr 1fr",gap:14,marginTop:16,alignItems:"start"}} className="mos-ord2">
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Órdenes por tipo</div><div style={{display:"flex",gap:16,alignItems:"center"}}><div style={{width:96,height:96,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:"conic-gradient(#E5983B 0 57%,#F0455E 57% 78%,#20B7D9 78% 89%,#6C5CF6 89% 96%,#9AA0BC 96% 100%)"}}><div style={{width:62,height:62,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:16,fontWeight:800}}>28</div><div style={{fontSize:9,color:P.muted}}>Órdenes</div></div></div></div><div style={{flex:1}}>{[["#E5983B","Laboratorio","16 (57%)"],["#F0455E","Imagenología","6 (21%)"],["#20B7D9","Gabinete","3 (11%)"],["#6C5CF6","Interconsultas","2 (7%)"],["#9AA0BC","Otros","1 (4%)"]].map(([c,l,p])=><div key={l} style={{display:"flex",alignItems:"center",gap:7,fontSize:12,padding:"3px 0"}}><span style={{width:8,height:8,borderRadius:"50%",background:c as string}}/>{l as string}<b style={{marginLeft:"auto"}}>{p as string}</b></div>)}</div></div></div>
+     <div style={{...card2,padding:16,display:"flex",gap:12,alignItems:"center",background:"#F2FBF5",borderColor:"#CDEBD8"}}><span style={{width:34,height:34,borderRadius:"50%",background:"#16A66A",color:"#fff",display:"grid",placeItems:"center",flex:"0 0 auto"}}>✓</span><div><div style={{fontWeight:700,fontSize:14}}>Conexión SILBAL</div><div style={{fontSize:12.5,color:P.muted}}>Sistema conectado correctamente. Las órdenes se envían y consultan en tiempo real.</div><button style={{marginTop:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"7px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>↻ Probar conexión</button></div></div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Accesos rápidos</div>{["Catálogo de estudios SILBAL","Guías de indicaciones (GPC)","Plantillas de órdenes","Historial de interacciones"].map((a,i)=><div key={a} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:i<3?`1px solid #F1F3F9`:"0",fontSize:13,color:P.blue,fontWeight:500,cursor:"pointer"}}>{a} ›</div>)}</div>
+    </div></>)}
    </div>;
   })() : (<>
   {/* PATIENT HEADER — contexto del paciente SIEMPRE visible (design-contract) */}
