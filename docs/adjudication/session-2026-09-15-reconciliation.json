@@ -2083,6 +2083,31 @@
       "epic": "CL",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-AGENDA-DAY-001",
+      "name": "Agenda del día — citas por consultorio/tipo/estado + consulta por fecha",
+      "risk": "C5",
+      "eng_authority_note": "Amplía el vertical de citas (Epic U) con consultorio, tipo de cita y fin (opcionales, retrocompatibles) y añade el reader agendaForDate + GET /appointments?date= (agenda del día con estado por última transición, join del nombre del paciente y conteos programadas/atendidas/en-espera/canceladas). Cableado a la vista Agenda (grid por consultorio + Resumen del día + Próximas citas) y al Inicio (Agenda de hoy + Próxima cita).",
+      "invariants": [
+        "Campos consultorio/apptType/endAt opcionales y RETROCOMPATIBLES con citas previas",
+        "Estado de la cita = última transición del agregado (SCHEDULED/CHECKED_IN/COMPLETED/CANCELLED/NO_SHOW)",
+        "Filtro por día vía rango ISO string (orden lexicográfico); RLS-scoped; join paciente casteado a uuid",
+        "appointment:write para agendar/transicionar; appointment:read para la agenda; scope faltante -> 403"
+      ],
+      "implementation": [
+        "apps/web/lib/appointment-lifecycle.ts (ScheduleBody + payload ampliado)",
+        "apps/web/lib/clinical-runtime.ts (agendaForDate)",
+        "apps/web/app/api/v1/appointments/route.ts (GET agenda por fecha)",
+        "apps/web/app/workspace/page.tsx (vista Agenda + Inicio cableados + form de agendar enriquecido)"
+      ],
+      "tests": [
+        "scripts/v22/live-agenda-day-proof.mts"
+      ],
+      "runtime_evidence": "scripts/v22/live-agenda-day-proof.mts — PASS 10/10 vs Neon 2026-09-18 (agenda 3 citas con consultorio/tipo, orden por hora, join del nombre del paciente, estado CHECKED_IN, conteos, otro día vacío, sin-scope 403). En el smoke runner de CI.",
+      "epic": "CM",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

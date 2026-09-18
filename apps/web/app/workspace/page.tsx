@@ -404,7 +404,7 @@ export default function Workspace(){
  const[problems,setProblems]=useState<Prob[]>([]);const[probCode,setProbCode]=useState("");const[probDesc,setProbDesc]=useState("");
  const[obligations,setObligations]=useState<Ob[]>([]);const[obKind,setObKind]=useState("");
  const[referrals,setReferrals]=useState<Ref[]>([]);const[refSpecialty,setRefSpecialty]=useState("");const[refReason,setRefReason]=useState("");
- const[appts,setAppts]=useState<Appt[]>([]);const[apptStart,setApptStart]=useState("");const[apptReason,setApptReason]=useState("");
+ const[appts,setAppts]=useState<Appt[]>([]);const[apptStart,setApptStart]=useState("");const[apptReason,setApptReason]=useState("");const[apptCons,setApptCons]=useState("Consultorio 1");const[apptType,setApptType]=useState("CONSULTA_GENERAL");
  const[imms,setImms]=useState<Imm[]>([]);const[immCode,setImmCode]=useState("");const[immDose,setImmDose]=useState("1");
  const[vitals,setVitals]=useState<Vit[]>([]);const[vitType,setVitType]=useState("BP");const[vitValue,setVitValue]=useState("");const[vitUnit,setVitUnit]=useState("mmHg");
  const[plans,setPlans]=useState<Cp[]>([]);const[planCat,setPlanCat]=useState("DIABETES");const[planGoal,setPlanGoal]=useState("");
@@ -436,6 +436,8 @@ export default function Workspace(){
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
  const[cForm,setCForm]=useState({motivo:"",historia:"",antec:"",plan:""}); // borrador de la consulta actual
+ type AgendaAppt={appointmentId:string;patientId:string;patientName:string;startAt:string;endAt:string|null;reason:string;consultorio:string|null;apptType:string|null;status:string};
+ const[agenda,setAgenda]=useState<{appointments:AgendaAppt[];counts:{programadas:number;atendidas:number;enEspera:number;canceladas:number}}|null>(null);
  const[clock,setClock]=useState<Date>(()=>new Date());
  const[topMenu,setTopMenu]=useState(false);
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string}[]|null>(null);
@@ -477,6 +479,15 @@ export default function Workspace(){
 
  // Reloj en vivo del dashboard (hora del consultorio).
  useEffect(()=>{const id=setInterval(()=>setClock(new Date()),1000*30);return()=>clearInterval(id);},[]);
+ // Agenda del día real (vistas Agenda e Inicio).
+ useEffect(()=>{
+  if((view!=="agenda"&&view!=="inicio")||!ready||!session)return;
+  let cancelled=false;const date=new Date().toISOString().slice(0,10);
+  (async()=>{try{const r=await apiRequest(`/api/v1/appointments?date=${date}`,{method:"GET"});
+   if(!cancelled&&r.status<400)setAgenda({appointments:(r.body["appointments"] as AgendaAppt[])??[],counts:(r.body["counts"] as{programadas:number;atendidas:number;enEspera:number;canceladas:number})??{programadas:0,atendidas:0,enEspera:0,canceladas:0}});
+  }catch{/* agenda no disponible */}})();
+  return()=>{cancelled=true;};
+ },[view,ready,session]);
  // Inicio y Pacientes: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
   if((view!=="inicio"&&view!=="pacientes")||!ready||!session)return;
@@ -607,7 +618,7 @@ export default function Workspace(){
  });
  const createAppointment=()=>call("apt-new",async()=>{
   const id=uuid();const startIso=apptStart?new Date(apptStart).toISOString():in7days();
-  const r=await apiRequest("/api/v1/appointments",{method:"POST",body:{appointmentId:id,patientId,startAt:startIso,reason:apptReason,occurredAt:nowIso()}});
+  const r=await apiRequest("/api/v1/appointments",{method:"POST",body:{appointmentId:id,patientId,startAt:startIso,reason:apptReason,consultorio:apptCons,apptType,endAt:new Date(new Date(startIso).getTime()+30*60000).toISOString(),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
   setAppts(as=>[...as,{id,label:`${new Date(startIso).toLocaleString()} · ${apptReason}`,state:"SCHEDULED",version:Number(r.body["version"]??1)}]);setApptStart("");setApptReason("");
  });
@@ -977,7 +988,7 @@ export default function Workspace(){
      <div style={kpiCard}>{kico("#EEEBFD",svg("M8 11a3 3 0 100-6 3 3 0 000 6zM2 20a6 6 0 0112 0M16 4.5a3 3 0 010 6M22 20a6 6 0 00-5-5.9",P.purple))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Pacientes hoy</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{usingRealPts?patientList!.length:12} <span style={{fontSize:15,color:P.muted}}>/ {usingRealPts?patientList!.length:16}</span></div><div style={{height:6,borderRadius:99,background:"#EDEFF6",overflow:"hidden"}}><i style={{display:"block",height:"100%",width:"75%",background:P.purple,borderRadius:99}}/></div><div style={{fontSize:11.5,color:P.muted,marginTop:5}}>{usingRealPts?"pacientes del tenant":"4 por atender · 75%"}</div></div></div>
      <div style={kpiCard}>{kico("#E6F6EE",svg("M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",P.green))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Consultas completadas</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>8</div><div style={{fontSize:11.5,color:P.muted,marginTop:5}}><span style={{color:P.green,fontWeight:700}}>↑ +2</span> vs. ayer</div></div></div>
      <div style={kpiCard}>{kico("#FDE7EA",svg("M7 3h7l4 4v14H7zM14 3v4h4M10 13h5M10 16h3",P.red))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Pendientes críticos</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{critCount}</div><div style={{fontSize:11.5,marginTop:5}}><span style={link} onClick={()=>go("Seguridad y auditoría")}>Ver detalles →</span></div></div></div>
-     <div style={kpiCard}>{kico("#E7EEFB",svg("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",P.blue))}<div style={{flex:1,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div><div style={{fontSize:13,color:P.muted}}>Próxima cita</div><div style={{fontSize:22,fontWeight:800,margin:"2px 0"}}>2:00 p.m.</div><div style={{fontSize:11.5,color:P.muted}}>María Fernández</div></div><span style={{width:30,height:30,borderRadius:"50%",background:"#E7EEFB",color:P.blue,display:"grid",placeItems:"center",cursor:"pointer"}} onClick={()=>go("Agenda")}>→</span></div></div>
+     <div style={kpiCard}>{kico("#E7EEFB",svg("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",P.blue))}<div style={{flex:1,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div>{(()=>{const nx=agenda?.appointments.find(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN");return <><div style={{fontSize:13,color:P.muted}}>Próxima cita</div><div style={{fontSize:22,fontWeight:800,margin:"2px 0"}}>{nx?new Date(nx.startAt).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase():"2:00 p.m."}</div><div style={{fontSize:11.5,color:P.muted}}>{nx?nx.patientName:"María Fernández"}</div></>;})()}</div><span style={{width:30,height:30,borderRadius:"50%",background:"#E7EEFB",color:P.blue,display:"grid",placeItems:"center",cursor:"pointer"}} onClick={()=>go("Agenda")}>→</span></div></div>
     </div>
     {/* Banners */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16}} className="mos-banners">
@@ -996,7 +1007,7 @@ export default function Workspace(){
      <div style={cardP}><div style={h2row}><h2 style={h2s}>Agenda de hoy</h2><span style={link} onClick={()=>go("Agenda")}>Ver agenda →</span></div>
       <div style={{padding:"4px 18px 14px",position:"relative"}}>
        <div style={{position:"absolute",left:73,top:8,bottom:14,width:2,background:"#EDEFF6"}}/>
-       {[["8:00 a.m.","García Herrera, Laura · Control DM2",false],["9:00 a.m.","Martínez Soto, Roberto · Infección respiratoria",false],["10:00 a.m.","Vega Ramírez, Sofía · Control prenatal",false],["11:00 a.m.","Luna Pérez, Miguel · Dolor abdominal",false],["12:00 p.m.","Torres Jiménez, Carmen · Resultados de laboratorio",false],["2:00 p.m.","María Fernández · Primera vez",true],["3:00 p.m.","Hernández Ruiz, Alfonso · Control HTA",false],["4:00 p.m.","Mesas Rodríguez, Valeria · Retiro de DIU",false]].map(([tm,txt,on],i)=>(
+       {(agenda?.appointments.length?agenda.appointments.slice(0,8).map(a=>[new Date(a.startAt).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase(),`${a.patientName} · ${a.reason}`,a.status==="CHECKED_IN"] as [string,string,boolean]):([["8:00 a.m.","García Herrera, Laura · Control DM2",false],["9:00 a.m.","Martínez Soto, Roberto · Infección respiratoria",false],["10:00 a.m.","Vega Ramírez, Sofía · Control prenatal",false],["11:00 a.m.","Luna Pérez, Miguel · Dolor abdominal",false],["12:00 p.m.","Torres Jiménez, Carmen · Resultados de laboratorio",false],["2:00 p.m.","María Fernández · Primera vez",true],["3:00 p.m.","Hernández Ruiz, Alfonso · Control HTA",false],["4:00 p.m.","Mesas Rodríguez, Valeria · Retiro de DIU",false]] as [string,string,boolean][])).map(([tm,txt,on],i)=>(
         <div key={i} style={{display:"flex",gap:14,padding:on?"9px 12px":"9px 0",position:"relative",...(on?{background:"#F1EFFE",border:"1px solid #D9D3FA",borderRadius:12,margin:"2px -12px"}:{})}}>
          <span style={{fontSize:12,color:P.muted,width:62,flex:"0 0 auto",textAlign:"right",paddingTop:1}}>{tm as string}</span>
          <span style={{width:11,height:11,borderRadius:"50%",background:on?P.purple:"#fff",border:`2px solid ${on?P.purple:"#C9CEE6"}`,flex:"0 0 auto",marginTop:3,zIndex:1}}/>
@@ -1237,9 +1248,18 @@ export default function Workspace(){
    const horaAhora=clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase();
    type Ap={h:number;t:string;n:string;m:string;c:"blue"|"green"|"purple"|"amber"|"red"};
    const AC:Record<string,{bg:string;bd:string;fg:string}>={blue:{bg:"#EAF1FD",bd:"#1769E0",fg:"#123c73"},green:{bg:"#E7F7EE",bd:"#16A66A",fg:"#0d5c3b"},purple:{bg:"#EFEBFD",bd:"#6C5CF6",fg:"#382a8f"},amber:{bg:"#FBF2DF",bd:"#E5983B",fg:"#8a5a12"},red:{bg:"#FDEBEE",bd:"#F0455E",fg:"#9c1f34"}};
-   const col1:Ap[]=[{h:8,t:"8:00–8:30",n:"Juan Pérez García",m:"Control DM2",c:"blue"},{h:9,t:"9:00–9:30",n:"Ana Ramírez Torres",m:"Resultado de laboratorio",c:"green"},{h:10,t:"10:00–10:30",n:"Carlos Díaz Martínez",m:"Dolor abdominal",c:"red"},{h:11,t:"11:00–11:30",n:"Sofía Vega Ramírez",m:"Control prenatal",c:"blue"},{h:12,t:"12:00–12:30",n:"Miguel Ruiz Herrera",m:"HTA",c:"purple"},{h:14,t:"2:00–2:30",n:"María Fernández López",m:"Primera vez",c:"purple"},{h:15,t:"3:00–3:30",n:"Laura Sánchez López",m:"Ansiedad",c:"green"},{h:16,t:"4:00–4:30",n:"Daniel López Vargas",m:"Revisión postoperatoria",c:"blue"}];
-   const col2:Ap[]=[{h:8,t:"8:00–9:00 a.m.",n:"Procedimiento menor",m:"Curaciones",c:"amber"},{h:10,t:"10:00–11:00",n:"Aplicación de vacuna",m:"Influenza",c:"purple"},{h:12,t:"12:00–1:00",n:"Retiro de puntos",m:"Procedimiento",c:"red"},{h:15,t:"3:00–4:00",n:"Nebulización / Terapia",m:"Paciente pediátrico",c:"amber"}];
-   const col3:Ap[]=[{h:9,t:"9:00–9:30 a.m.",n:"Control pediátrico",m:"Emilio Torres (6 años)",c:"purple"},{h:10,t:"10:30–11:00",n:"Control geriátrico",m:"Rosa Méndez (68 años)",c:"green"},{h:13,t:"1:00–1:30",n:"Resultados",m:"Luis Herrera",c:"blue"},{h:14,t:"2:30–3:00",n:"Control asma",m:"Valeria Gómez (14 años)",c:"red"},{h:16,t:"4:30–5:00",n:"Seguimiento",m:"José Ramírez",c:"green"}];
+   const demoCol1:Ap[]=[{h:8,t:"8:00–8:30",n:"Juan Pérez García",m:"Control DM2",c:"blue"},{h:9,t:"9:00–9:30",n:"Ana Ramírez Torres",m:"Resultado de laboratorio",c:"green"},{h:10,t:"10:00–10:30",n:"Carlos Díaz Martínez",m:"Dolor abdominal",c:"red"},{h:11,t:"11:00–11:30",n:"Sofía Vega Ramírez",m:"Control prenatal",c:"blue"},{h:12,t:"12:00–12:30",n:"Miguel Ruiz Herrera",m:"HTA",c:"purple"},{h:14,t:"2:00–2:30",n:"María Fernández López",m:"Primera vez",c:"purple"},{h:15,t:"3:00–3:30",n:"Laura Sánchez López",m:"Ansiedad",c:"green"},{h:16,t:"4:00–4:30",n:"Daniel López Vargas",m:"Revisión postoperatoria",c:"blue"}];
+   const demoCol2:Ap[]=[{h:8,t:"8:00–9:00 a.m.",n:"Procedimiento menor",m:"Curaciones",c:"amber"},{h:10,t:"10:00–11:00",n:"Aplicación de vacuna",m:"Influenza",c:"purple"},{h:12,t:"12:00–1:00",n:"Retiro de puntos",m:"Procedimiento",c:"red"},{h:15,t:"3:00–4:00",n:"Nebulización / Terapia",m:"Paciente pediátrico",c:"amber"}];
+   const demoCol3:Ap[]=[{h:9,t:"9:00–9:30 a.m.",n:"Control pediátrico",m:"Emilio Torres (6 años)",c:"purple"},{h:10,t:"10:30–11:00",n:"Control geriátrico",m:"Rosa Méndez (68 años)",c:"green"},{h:13,t:"1:00–1:30",n:"Resultados",m:"Luis Herrera",c:"blue"},{h:14,t:"2:30–3:00",n:"Control asma",m:"Valeria Gómez (14 años)",c:"red"},{h:16,t:"4:30–5:00",n:"Seguimiento",m:"José Ramírez",c:"green"}];
+   // Datos reales de la agenda cuando existen; si no, ejemplo pulido.
+   const TYPE_COLOR:Record<string,"blue"|"green"|"purple"|"amber"|"red">={CONSULTA_GENERAL:"blue",RESULTADOS:"blue",CONTROL:"green",PRIMERA_VEZ:"purple",VACUNACION:"purple",PROCEDIMIENTO:"amber",URGENCIA:"red"};
+   const tHM=(iso:string)=>{const d=new Date(iso);let h=d.getHours();const mm=d.getMinutes().toString().padStart(2,"0");const ap=h<12?"a.m.":"p.m.";const h12=h%12||12;return `${h12}:${mm} ${ap}`;};
+   const toAp=(a:AgendaAppt):Ap=>({h:new Date(a.startAt).getHours(),t:`${tHM(a.startAt)}${a.endAt?"–"+tHM(a.endAt):""}`,n:a.patientName,m:a.reason,c:TYPE_COLOR[a.apptType??""]??"blue"});
+   const realAppts=agenda?.appointments??[];const usingRealAg=realAppts.length>0;
+   const byCons=(pred:(c:string|null)=>boolean)=>realAppts.filter(a=>pred(a.consultorio)).map(toAp);
+   const col1=usingRealAg?byCons(c=>!c||/1/.test(c)):demoCol1;
+   const col2=usingRealAg?byCons(c=>!!c&&/2/.test(c)):demoCol2;
+   const col3=usingRealAg?byCons(c=>!!c&&/3/.test(c)):demoCol3;
    const hours=[7,8,9,10,11,12,13,14,15,16,17,18];
    const hLabel=(h:number)=>h<12?`${h}:00 a.m.`:h===12?"12:00 p.m.":`${h-12}:00 p.m.`;
    const apAt=(col:Ap[],h:number)=>col.find(a=>a.h===h);
@@ -1285,11 +1305,11 @@ export default function Workspace(){
      </div>
      <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 10px"}}><span style={sect}>Resumen del día</span><span style={link}>Ver reportes →</span></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:"0 16px 16px"}}>
-       {([["#EEEBFD","#6C5CF6","M4 5h16v16H4zM8 3v4M16 3v4","12","Citas programadas"],["#E6F6EE","#16A66A","M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z","9","Atendidas"],["#FBF0DC","#B7791F","M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0","2","En espera"],["#FDECEE","#F0455E","M9 9l6 6M15 9l-6 6M21 12a9 9 0 11-18 0 9 9 0 0118 0","1","Canceladas"]] as const).map(([bg,fg,d,v,l])=><div key={l} style={{display:"flex",gap:11,alignItems:"center",padding:12,border:`1px solid ${LINE}`,borderRadius:12}}>{rkico(bg,fg,d)}<div><div style={{fontSize:20,fontWeight:800}}>{v}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div></div>)}
+       {([["#EEEBFD","#6C5CF6","M4 5h16v16H4zM8 3v4M16 3v4",usingRealAg?agenda!.counts.programadas:12,"Citas programadas"],["#E6F6EE","#16A66A","M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",usingRealAg?agenda!.counts.atendidas:9,"Atendidas"],["#FBF0DC","#B7791F","M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0",usingRealAg?agenda!.counts.enEspera:2,"En espera"],["#FDECEE","#F0455E","M9 9l6 6M15 9l-6 6M21 12a9 9 0 11-18 0 9 9 0 0118 0",usingRealAg?agenda!.counts.canceladas:1,"Canceladas"]] as const).map(([bg,fg,d,v,l])=><div key={l} style={{display:"flex",gap:11,alignItems:"center",padding:12,border:`1px solid ${LINE}`,borderRadius:12}}>{rkico(bg,fg,d)}<div><div style={{fontSize:20,fontWeight:800}}>{v}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div></div>)}
       </div>
      </div>
      <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 6px"}}><span style={sect}>Próximas citas</span><span style={link}>Ver todas →</span></div>
-      {[["2:00 p.m.","MF","María Fernández López","Primera vez","esp"],["2:30 p.m.","VG","Control asma","Valeria Gómez (14 años)","esp"],["3:00 p.m.","LS","Laura Sánchez López","Ansiedad","conf"],["4:00 p.m.","DL","Daniel López Vargas","Revisión postoperatoria","conf"]].map(([tm,ini,n,m,st],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 16px",borderTop:`1px solid #F1F3F9`}}><span style={{fontSize:13,color:P.muted,width:52,flex:"0 0 auto"}}>{tm}</span><span style={{width:34,height:34,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{ini}</span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{n}</div><div style={{fontSize:11.5,color:P.muted}}>{m}</div></div><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",...(st==="esp"?{background:"#FDE7EA",color:"#D23651"}:{background:"#E6F6EE",color:"#16A66A"})}}>{st==="esp"?"En espera":"Confirmada"}</span></div>)}
+      {(usingRealAg?realAppts.filter(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN").slice(0,5).map(a=>[tHM(a.startAt),(a.patientName||"P").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase(),a.patientName,a.reason,a.status==="CHECKED_IN"?"esp":"conf"] as const):([["2:00 p.m.","MF","María Fernández López","Primera vez","esp"],["2:30 p.m.","VG","Control asma","Valeria Gómez (14 años)","esp"],["3:00 p.m.","LS","Laura Sánchez López","Ansiedad","conf"],["4:00 p.m.","DL","Daniel López Vargas","Revisión postoperatoria","conf"]] as const)).map(([tm,ini,n,m,st],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 16px",borderTop:`1px solid #F1F3F9`}}><span style={{fontSize:13,color:P.muted,width:52,flex:"0 0 auto"}}>{tm}</span><span style={{width:34,height:34,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{ini}</span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{n}</div><div style={{fontSize:11.5,color:P.muted}}>{m}</div></div><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",...(st==="esp"?{background:"#FDE7EA",color:"#D23651"}:{background:"#E6F6EE",color:"#16A66A"})}}>{st==="esp"?"En espera":"Confirmada"}</span></div>)}
      </div>
      <div style={card2}><div style={{padding:"16px 16px 4px"}}><span style={sect}>Acciones rápidas</span></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"8px 16px 16px"}}>{["Nueva cita","Reprogramar citas","Bloque de tiempo","Ver disponibilidad","Lista de espera","Exportar agenda","Enviar recordatorios","Configuración"].map(a=><button key={a} style={{display:"flex",alignItems:"center",gap:9,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 12px",fontSize:12.5,fontWeight:600,cursor:"pointer",color:P.ink,fontFamily:UI}} onClick={nueva}><span style={{width:7,height:7,borderRadius:"50%",background:P.purple,flex:"0 0 auto"}}/>{a}</button>)}</div>
@@ -1845,6 +1865,8 @@ export default function Workspace(){
    <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:10,marginTop:12}}>
     <input style={input} type="datetime-local" value={apptStart} onChange={e=>setApptStart(e.target.value)} />
     <input style={input} value={apptReason} onChange={e=>setApptReason(e.target.value)} placeholder="Motivo (ej. Control anual)" />
+    <select style={input} value={apptCons} onChange={e=>setApptCons(e.target.value)}><option>Consultorio 1</option><option>Consultorio 2</option><option>Consultorio 3</option></select>
+    <select style={input} value={apptType} onChange={e=>setApptType(e.target.value)}><option value="CONSULTA_GENERAL">Consulta general</option><option value="CONTROL">Control / Seguimiento</option><option value="PRIMERA_VEZ">Primera vez</option><option value="PROCEDIMIENTO">Procedimiento</option><option value="VACUNACION">Vacunación</option><option value="RESULTADOS">Resultados</option><option value="URGENCIA">Urgencia</option></select>
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!apptReason} onClick={createAppointment}>{busy==="apt-new"?"Agendando…":"Agendar cita"}</button></div>
    {appts.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>

@@ -13,14 +13,17 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"appointment:write",purpose:"TREATMENT"});
 }
 
-const ScheduleBody=z.object({appointmentId:z.string().uuid(),patientId:z.string().uuid(),startAt:z.string().datetime(),reason:z.string().min(1),occurredAt:z.string().datetime()});
+// EPIC CM — agenda enriquecida: fin, consultorio y tipo de cita (opcionales, retrocompatibles).
+const APPT_TYPES=["CONSULTA_GENERAL","CONTROL","PRIMERA_VEZ","PROCEDIMIENTO","VACUNACION","RESULTADOS","URGENCIA"] as const;
+const ScheduleBody=z.object({appointmentId:z.string().uuid(),patientId:z.string().uuid(),startAt:z.string().datetime(),reason:z.string().min(1),occurredAt:z.string().datetime(),
+ endAt:z.string().datetime().optional(),consultorio:z.string().trim().max(60).optional(),apptType:z.enum(APPT_TYPES).optional()});
 export async function handleAppointmentSchedule(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,ScheduleBody);
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.appointmentId,expectedVersion:0,eventType:"APPOINTMENT_SCHEDULED",payload:{kind:"SCHEDULED",patientId:b.patientId,startAt:b.startAt,reason:b.reason},occurredAt:b.occurredAt,topic:"appointment.scheduled"});
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.appointmentId,expectedVersion:0,eventType:"APPOINTMENT_SCHEDULED",payload:{kind:"SCHEDULED",patientId:b.patientId,startAt:b.startAt,reason:b.reason,...(b.endAt?{endAt:b.endAt}:{}),...(b.consultorio?{consultorio:b.consultorio}:{}),...(b.apptType?{apptType:b.apptType}:{})},occurredAt:b.occurredAt,topic:"appointment.scheduled"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({appointmentId:b.appointmentId,state:"SCHEDULED",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
