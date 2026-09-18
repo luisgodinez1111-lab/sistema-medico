@@ -21,12 +21,19 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | Eje | Peso | Completado | Aporta |
 | --- | --- | --- | --- |
 | A. Kernel/fundación (RLS, concurrencia, auditoría, atomicidad, DR) | 12% | ~85% | 10.2 |
-| B. Identidad/Auth/Sesión + login | 8% | ~75% | 6.0 |
+| B. Identidad/Auth/Sesión + login | 8% | ~78% | 6.2 |
 | C. Verticales clínicos (~28 áreas PROD): amplitud + profundidad | 35% | ~34.7% | 12.1 |
 | D. AI copilot / inteligencia clínica | 18% | ~10% | 1.8 |
-| E. UI/UX de producto | 10% | ~25% | 2.5 |
+| E. UI/UX de producto | 10% | ~52% | 5.2 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~20% | 1.6 |
 | G. Endurecimiento producción + compliance | 9% | ~35% | 3.2 |
+
+> **Total ponderado actual ≈ 40%** (suma de "Aporta": 10.2+6.2+12.1+1.8+5.2+1.6+3.2 = 40.3).
+> Movido esta sesión (2026-09-17): **eje E 25%→52%** (dashboard cockpit de producto: login grado-producto,
+> app-shell con sidebar + rejilla de ventanas, 7 de 8 paneles del mockup objetivo cableados a datos reales
+> deterministas) y **eje B 75%→78%** (puerta única de login + fix del cuelgue de Auth0). El eje E NO llega a
+> 100% porque falta: panel 2 (IA, en pausa R6), portal del paciente es vista previa (no app real), módulos de
+> detalle aún en andamio, y evidencia de accesibilidad/viewport/E2E pendiente (GUX sigue PENDING_EVIDENCE).
 
 ## Valor de cada hito futuro (para no estimar a la ligera)
 - Vertical clínico nuevo completo con evidencia en vivo: **≈ +1.2%** c/u.
@@ -37,8 +44,11 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 
 ## Áreas PROD hechas vs pendientes (amplitud)
 - **Hechas (bucle central):** encuentro, resultados/closed-loop, medicación, documentos, identidad/sesión.
-- **Pendientes (ejemplos):** prescription studio, document intelligence/imagen, AI copilot,
-  portal del paciente, notificaciones.
+- **Parciales (esta sesión):** prescription studio (dry-run de verificación de seguridad, panel 3);
+  portal del paciente (vista previa de SOLO LECTURA, panel 6 — no app real editable); UI de producto
+  (dashboard cockpit con 7/8 paneles del mockup).
+- **Pendientes (ejemplos):** document intelligence/imagen, AI copilot generativo (panel 2, en pausa R6),
+  portal del paciente como app real (auth de paciente, edición acotada), notificaciones/mensajería.
 
 ## Historial
 | Fecha | Hito | Total real aprox. |
@@ -119,6 +129,13 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | Epic CC: **eje D (AI copilot)** — fase 2 del ADR-0220: **eval harness** (calificador determinista que atrapa salidas inseguras de un LLM futuro; casos adversarios en CI) + **shadow mode** (corre en paralelo sin mostrar al médico; invariante de no-fuga). Sin IA. Eje D 8%→10%. | **~37%** |
 | 2026-09-17 | Epic CD: **profundidad clínica (eje C)** — Índice de Comorbilidad de Charlson: predictor de mortalidad a 10 años desde la lista de problemas + edad. Agrega la comorbilidad global; cross-vertical problema↔paciente. | **~37%** |
 | 2026-09-17 | Epic CE: **UI/UX (eje E)** — integra el AI Design Implementation Contract + materializa **GUX-001** (Golden UX Loop: resultado crítico → bloqueo de firma → resolución con evidencia → firma → auditoría) como componente canónico (máquina de estados testeada) + artifact. Design system integrado. Eje E 21%→25%. Gate del slice: PENDING_EVIDENCE. | **~37%** |
+| 2026-09-17 | **eje B/E** — puerta ÚNICA de login (auth-split premium clínico con tokens del design-system) + fix del cuelgue de Auth0 en primer acceso (constructor `new Auth0Client()` sin checkSession bloqueante). Elimina la 2.ª ventana/bypass. | **~37%** |
+| 2026-09-17 | Epic CF: **UI/UX (eje E)** — panel 1 del mockup objetivo "Vista principal – Durante la consulta": hero con identidad+chips dx (CIE-10), tarjetas de vitales (PA/glucosa/HbA1c/eGFR), problemas, alergias y "Alertas y sugerencias (IA+Guías)" DETERMINISTAS. Reader `gatherConsultationSnapshot` + endpoint `/consultation-snapshot`. **Live-proof 11/11 vs Neon.** | **~38%** |
+| 2026-09-17 | Epic CG: **UI/UX (eje E)** — panel 3 "Prescripción segura": DRY-RUN de las 7 barreras SIN escribir (alergia+reactividad cruzada, interacción, duplicado, contraindicación, dosis-techo, ajuste renal por eGFR)+monitorización. Endpoint `/prescription-check`. **Live-proof 10/10 vs Neon.** | **~38%** |
+| 2026-09-17 | Epic CH: **UI/UX (eje E)** — panel 4 "Evolución longitudinal": gráfica SVG (banda objetivo, endpoint enfatizado) + otros resultados. Reader `analyteSeries` + endpoint `/trends`. **Live-proof 8/8 vs Neon.** Los 3 endpoints CF/CG/CH añadidos al smoke runner de CI y al registro de adjudicación (77→80 capacidades; integridad 81/81). | **~39%** |
+| 2026-09-17 | Epic CI: **UI/UX (eje E)** — cockpit del expediente: **sidebar oscuro navy** (12 accesos+perfil médico) + **topbar con buscador global** + **rejilla de múltiples ventanas** (paneles anchos span-2). Contadores de seguridad P0/P1 en el patient header. Scrollspy. Transforma la columna única en dashboard de producto. | **~40%** |
+| 2026-09-17 | Epic CJ: **UI/UX (eje E)** — panel 5 "Seguimiento automático" (pendientes/programados/completados desde timeline+care-gaps) + panel 7 "Seguridad y auditoría" (estado del sistema + actividad reciente desde la cadena de auditoría). Presentación sobre readers YA probados (sin backend nuevo). | **~40%** |
+| 2026-09-17 | Epic CK: **UI/UX (eje E)** — panel 6 "Portal del paciente": vista previa (solo lectura) del app del paciente en marco de teléfono, con conteos reales del expediente; Mensajes/Educación marcados "Próximamente" (verdad clínica, no se fingen). **7 de 8 paneles del mockup objetivo cerrados** (falta panel 2 IA, en pausa R6). | **~40%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde
@@ -151,3 +168,31 @@ del modelo: 25 verticales event-sourced dan mucha **amplitud** (eje C ~30% de su
 honesta de la columna "Aporta" es **~33%**, no ~54%. Reglas para no repetir el error:
 - El total **siempre** = suma de "Aporta" (peso × completado). No se incrementa el titular por separado.
 - Un vertical nuevo mueve **solo** el completado del eje C, acotado por su techo de 35%.
+
+## Sesión 2026-09-17 (tarde) — Dashboard cockpit de producto (eje E)
+
+Se materializó el **mockup objetivo del usuario** ("múltiples ventanas por expediente con slider a un lado",
+guardado en memoria `design-target-dashboard`): el workspace pasó de columna única de formularios a un
+**dashboard cockpit** de producto. Entregado y desplegado (Vercel, dominio estable):
+
+**Shell.** Sidebar oscuro navy (12 accesos con íconos + perfil del médico), topbar con buscador global +
+campana con badge de alertas reales + avatar, patient header sticky con contadores de seguridad P0/P1,
+rejilla de 2 columnas de "ventanas" (paneles anchos span-2). Nav-rail con scrollspy.
+
+**Paneles del mockup (7 de 8):** 1 Consulta (hero), 3 Prescripción segura, 4 Evolución longitudinal,
+5 Seguimiento automático, 6 Portal del paciente (vista previa solo-lectura), 7 Seguridad y auditoría.
+Panel 2 (Apoyo de IA) es el único pendiente — **en pausa R6** (sin IA generativa).
+
+**Login grado-producto.** Puerta única auth-split (sin bypass/2.ª ventana) + fix del cuelgue de Auth0.
+
+### Evidencia y deuda (honestidad)
+- **Probado end-to-end (vs Neon):** los 3 endpoints nuevos que alimentan los paneles 1/3/4 tienen live-proof
+  (CF 11/11, CG 10/10, CH 8/8) en el smoke runner de CI + registro de adjudicación (capacidades
+  CAP-CONSULTATION-SNAPSHOT-001, CAP-PRESCRIPTION-CHECK-001, CAP-TRENDS-LONGITUDINAL-001). Los paneles 5/6/7
+  derivan de readers YA probados (timeline, care-gaps).
+- **DEUDA — sin render test:** el shell del cockpit y los paneles 5/6/7 son presentación sobre datos ya
+  probados, pero **no tienen render test** (jsdom) como sí lo tiene GUX-001. Pendiente para cerrar el rigor.
+- **DEUDA — validación autenticada:** ningún panel se ha verificado renderizado con sesión real en el
+  navegador (el agente no puede autenticar en Auth0). Verificado por typecheck + build + preview fiel +
+  live-proofs de la capa de datos. Falta la revisión visual autenticada del usuario.
+- **DEUDA — GUX PENDING_EVIDENCE:** contraste WCAG, viewports deterministas y C5 humano siguen pendientes.
