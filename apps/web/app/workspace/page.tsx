@@ -132,31 +132,58 @@ const shell:React.CSSProperties={minHeight:"100vh",background:P.canvas,fontFamil
 const appbar:React.CSSProperties={position:"sticky",top:0,zIndex:30,background:P.white,borderBottom:`1px solid ${LINE}`,padding:"11px 22px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"};
 const patientBar:React.CSSProperties={position:"sticky",top:57,zIndex:25,background:"rgba(255,255,255,.92)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderBottom:`1px solid ${LINE}`,padding:"11px 22px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:16};
 const content:React.CSSProperties={maxWidth:1140,margin:"0 auto",padding:`${S[5]}px ${S[5]}px ${S[12]}px`};
-// Sidebar del expediente (estilo mockup): navegación primaria; cada ítem hace scroll a su sección (<h2>).
-// h2:"" => volver arriba (Inicio). Íconos de línea consistentes.
-const SIDE_NAV:{label:string;h2:string;icon:string}[]=[
+// Sidebar del expediente (diseño exacto S1.png): navegación primaria con íconos + badges en tiempo real.
+// h2:"" => volver arriba (Inicio). badge: clave del conteo real; badgeColor rojo=urgente, morado=informativo.
+type BadgeKey="agenda"|"resultados"|"seguimiento"|"obligaciones";
+const SIDE_NAV:{label:string;h2:string;icon:string;badge?:BadgeKey;badgeColor?:"r"|"p"}[]=[
  {label:"Inicio",h2:"",icon:"home"},
- {label:"Paciente",h2:"Paciente",icon:"user"},
- {label:"Agenda",h2:"Agenda",icon:"cal"},
+ {label:"Pacientes",h2:"Paciente",icon:"people"},
  {label:"Consulta",h2:"Encuentro",icon:"steth"},
- {label:"Resultados",h2:"Resultados diagnósticos",icon:"flask"},
- {label:"Tendencias",h2:"Evolución longitudinal",icon:"chart"},
+ {label:"Agenda",h2:"Agenda",icon:"cal",badge:"agenda",badgeColor:"p"},
+ {label:"Resultados",h2:"Resultados diagnósticos",icon:"flask",badge:"resultados",badgeColor:"r"},
+ {label:"Órdenes",h2:"Órdenes clínicas",icon:"orders"},
  {label:"Medicamentos",h2:"Medicación",icon:"pill"},
- {label:"Prescripción",h2:"Prescripción segura",icon:"shield"},
- {label:"Problemas",h2:"Lista de problemas",icon:"list"},
- {label:"Seguimiento",h2:"Seguimiento automático",icon:"bell"},
- {label:"Documentos",h2:"Documentos clínicos",icon:"doc"},
- {label:"Portal paciente",h2:"Portal del paciente",icon:"phone"},
- {label:"Auditoría",h2:"Seguridad y auditoría",icon:"lock"},
+ {label:"Alergias",h2:"Alergias",icon:"warning"},
+ {label:"Problemas",h2:"Lista de problemas",icon:"clipboard"},
+ {label:"Vacunas",h2:"Vacunas",icon:"syringe"},
+ {label:"Signos vitales",h2:"Signos vitales",icon:"activity"},
+ {label:"Plan de cuidados",h2:"Plan de cuidados",icon:"target"},
+ {label:"Interconsultas",h2:"Interconsultas",icon:"people"},
+ {label:"Seguimiento",h2:"Seguimiento automático",icon:"chart",badge:"seguimiento",badgeColor:"p"},
+ {label:"Facturación",h2:"Facturación",icon:"card"},
+ {label:"Documentos",h2:"Documentos clínicos",icon:"folder"},
+ {label:"Obligaciones",h2:"Obligaciones de seguimiento",icon:"checkbox",badge:"obligaciones",badgeColor:"r"},
+ {label:"Clinical Intelligence",h2:"",icon:"brain"},
+ {label:"Reportes",h2:"Evolución longitudinal",icon:"barchart"},
 ];
-function NavIcon({k}:{k:string}){const P:Record<string,string>={
- home:"M4 11l8-6 8 6M6 10v9h12v-9",user:"M12 12a4 4 0 100-8 4 4 0 000 8zM5 20a7 7 0 0114 0",
- cal:"M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",steth:"M6 4v5a5 5 0 0010 0V4M11 14v2a4 4 0 008 0M19 12a1.5 1.5 0 100-3 1.5 1.5 0 000 3z",
- flask:"M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3",chart:"M4 19V5M4 19h16M8 15l3-4 3 2 4-6",
- pill:"M10 4l10 10-6 6L4 10zM7 7l6 6",shield:"M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z",
- list:"M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",bell:"M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6M10 20a2 2 0 004 0",
- doc:"M7 3h7l4 4v14H7zM14 3v4h4",lock:"M6 11h12v9H6zM9 11V8a3 3 0 016 0v3",phone:"M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zM11 18h2"};
- return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={P[k]??P.home}/></svg>;}
+const TOOLS_NAV:{label:string;h2:string;icon:string}[]=[
+ {label:"Biblioteca clínica",h2:"",icon:"book"},
+ {label:"Configuración",h2:"",icon:"gear"},
+];
+const ICONS:Record<string,string>={
+ home:"M4 11l8-6 8 6M6 10v9h12v-9",
+ people:"M8 11a3 3 0 100-6 3 3 0 000 6zM2 20a6 6 0 0112 0M16 4.5a3 3 0 010 6M22 20a6 6 0 00-5-5.9",
+ steth:"M6 4v5a5 5 0 0010 0V4M11 14v2a4 4 0 008 0M19 12a1.5 1.5 0 100-3 1.5 1.5 0 000 3z",
+ cal:"M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
+ flask:"M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3",
+ orders:"M8 4h8v3H8zM6 5H5a1 1 0 00-1 1v14a1 1 0 001 1h14a1 1 0 001-1V6a1 1 0 00-1-1h-1M8 12h8M8 16h5",
+ pill:"M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7zM7 8l6 6",
+ warning:"M12 4l9 15.5H3zM12 10v4M12 17h.01",
+ clipboard:"M9 4h6v2H9zM7 5H6a1 1 0 00-1 1v14a1 1 0 001 1h12a1 1 0 001-1V6a1 1 0 00-1-1h-1M8 11h8M8 15h8",
+ syringe:"M14 4l6 6M16.5 6.5l-10 10-3.5 4.5.9.9L8 18.5l10-10M6 14l4 4",
+ activity:"M3 12h4l2.5 7 4-14 2.5 7H21",
+ target:"M12 21a9 9 0 100-18 9 9 0 000 18zM12 17a5 5 0 100-10 5 5 0 000 10zM12 13a1 1 0 100-2 1 1 0 000 2",
+ chart:"M4 19V5M4 19h16M8 15l3-4 3 2 4-6",
+ card:"M3 6h18v12H3zM3 10h18",
+ folder:"M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z",
+ checkbox:"M4 4h16v16H4zM8 12l3 3 5-6",
+ brain:"M9 4.5a3 3 0 00-3 3 3 3 0 00-1.5 5A3 3 0 006 17.5 3 3 0 009 20a2.5 2.5 0 003-2.4V5.4A2.5 2.5 0 009 4.5zM15 4.5a3 3 0 013 3 3 3 0 011.5 5A3 3 0 0118 17.5 3 3 0 0115 20a2.5 2.5 0 01-3-2.4",
+ barchart:"M3 21h18M6 21V11M11 21V5M16 21v-8",
+ book:"M12 6C10 4.5 7 4 4 4v14c3 0 6 .5 8 2 2-1.5 5-2 8-2V4c-3 0-6 .5-8 2zM12 6v14",
+ gear:"M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 007.5 19a1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1H3a2 2 0 110-4h.1A1.6 1.6 0 004.6 8.5a1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5V3a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1H21a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z",
+ lock:"M6 11h12v9H6zM9 11V8a3 3 0 016 0v3",
+};
+function NavIcon({k}:{k:string}){return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={ICONS[k]??ICONS.home}/></svg>;}
 function scrollToSection(h2Text:string){
  if(!h2Text){window.scrollTo({top:0,behavior:"smooth"});return;}
  const h=Array.from(document.querySelectorAll("h2")).find(e=>e.textContent?.trim()===h2Text);
@@ -165,16 +192,38 @@ function scrollToSection(h2Text:string){
 const RAIL_CSS=`
 /* App-shell: expediente como cockpit (sidebar oscuro + body + rejilla de ventanas) */
 .mos-app{display:flex;min-height:100vh;background:#F4F7FB}
-.mos-side{position:sticky;top:0;align-self:flex-start;height:100vh;flex:0 0 224px;width:224px;background:linear-gradient(180deg,#0C2148,#102A56 60%,#0E2450);color:#C3D0E6;display:flex;flex-direction:column;padding:16px 12px}
-.mos-side .sbrand{display:flex;align-items:center;gap:10px;padding:4px 8px 2px}
-.mos-side .sname{font-size:14px;font-weight:800;letter-spacing:.02em;color:#fff}
-.mos-nav{display:flex;flex-direction:column;gap:2px;margin-top:16px;flex:1;overflow-y:auto}
-.mos-navi{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:9px;color:#9DB2D4;font-size:13.5px;font-weight:500;background:transparent;border:0;cursor:pointer;text-align:left;width:100%;font-family:inherit}
-.mos-navi:hover{background:#ffffff12;color:#fff}
-.mos-navi.active{background:#1769E0;color:#fff;font-weight:600;box-shadow:0 4px 12px #1769e055}
-.mos-navi svg{flex:0 0 auto;opacity:.9}
-.mos-doc{display:flex;align-items:center;gap:10px;padding:11px;margin-top:8px;border-top:1px solid #ffffff1a}
-.mos-doc .av{width:34px;height:34px;border-radius:50%;background:#1769E0;display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff;flex:0 0 auto}
+.mos-side{position:sticky;top:0;align-self:flex-start;height:100vh;flex:0 0 264px;width:264px;background:linear-gradient(177deg,#26235C 0%,#201D4A 45%,#1A1740 100%);color:#EAEBFA;display:flex;flex-direction:column;padding:18px 14px 14px;overflow:hidden;transition:width .18s ease,flex-basis .18s ease}
+.mos-side::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#7B6BF6,#4E8DF5);box-shadow:0 0 24px 3px #6a5bf580}
+.mos-side.col{flex:0 0 74px;width:74px;padding:18px 10px 14px}
+.mos-brand{display:flex;align-items:center;gap:12px;padding:2px 6px 0}
+.mos-bname{font-size:20px;font-weight:800;letter-spacing:.01em;line-height:1;color:#fff;white-space:nowrap}
+.mos-bname .os{color:#8E7DF8}
+.mos-bsub{font-size:8.5px;font-weight:600;letter-spacing:.16em;color:#8A8FC6;margin-top:5px;line-height:1.5;white-space:nowrap}
+.mos-nav{display:flex;flex-direction:column;gap:1px;margin-top:20px;flex:1;overflow-y:auto;overflow-x:hidden;padding-right:2px}
+.mos-nav::-webkit-scrollbar{width:5px}.mos-nav::-webkit-scrollbar-thumb{background:#ffffff1f;border-radius:9px}
+.mos-navi{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:12px;color:#B7BCE6;font-size:14.5px;font-weight:500;background:transparent;border:0;cursor:pointer;text-align:left;width:100%;font-family:inherit;position:relative;white-space:nowrap}
+.mos-navi svg{flex:0 0 auto;opacity:.92}
+.mos-navi:hover{background:#ffffff0f;color:#fff}
+.mos-navi.active{background:linear-gradient(100deg,#ffffff20,#ffffff10);color:#fff;font-weight:600;box-shadow:inset 0 0 0 1px #8B7DF85c,0 8px 18px #12103a80}
+.mos-navi .lbl{flex:1;overflow:hidden;text-overflow:ellipsis}
+.mos-badge{flex:0 0 auto;min-width:22px;height:22px;border-radius:999px;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;padding:0 6px;font-variant-numeric:tabular-nums}
+.mos-badge.p{background:#6C5CF6}.mos-badge.r{background:#F0455E}
+.mos-side.col .lbl,.mos-side.col .mos-bname,.mos-side.col .mos-bsub,.mos-side.col .mos-toolslbl,.mos-side.col .mos-doc .info,.mos-side.col .mos-collapse .lbl{display:none}
+.mos-side.col .mos-navi{justify-content:center;padding:11px 0}
+.mos-side.col .mos-badge{position:absolute;top:3px;right:8px;min-width:16px;height:16px;font-size:9px;padding:0 3px}
+.mos-side.col .mos-brand{justify-content:center;padding:0}
+.mos-divider{height:1px;background:#ffffff14;margin:14px 6px}
+.mos-toolslbl{font-size:10px;font-weight:700;letter-spacing:.16em;color:#7C81BC;padding:2px 14px 8px}
+.mos-doc{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:14px;cursor:pointer;position:relative}
+.mos-doc:hover{background:#ffffff0d}
+.mos-doc .av{width:40px;height:40px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-weight:700;font-size:14px;color:#fff;background:#3A3570;box-shadow:0 0 0 2px #7B6BF6}
+.mos-doc .nm{font-size:14.5px;font-weight:700;color:#fff;white-space:nowrap}
+.mos-doc .rl{font-size:11.5px;color:#9095CB;margin-top:1px;white-space:nowrap}
+.mos-docmenu{position:absolute;bottom:calc(100% + 6px);left:8px;right:8px;background:#2A2760;border:1px solid #ffffff1f;border-radius:12px;padding:6px;box-shadow:0 12px 32px #0a0820aa;z-index:5}
+.mos-docmenu button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:transparent;border:0;color:#C7CBEC;font-size:13.5px;font-family:inherit;padding:9px 11px;border-radius:9px;cursor:pointer}
+.mos-docmenu button:hover{background:#ffffff10;color:#fff}
+.mos-collapse{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:8px;padding:12px;border-radius:12px;background:#ffffff0a;border:1px solid #ffffff14;color:#9095CB;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.mos-collapse:hover{background:#ffffff12;color:#fff}
 .mos-body{flex:1;min-width:0;display:flex;flex-direction:column}
 .mos-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start;padding:20px 22px 52px;max-width:1400px;margin:0 auto;width:100%;box-sizing:border-box}
 .mos-grid>*{margin-top:0!important}
@@ -376,6 +425,8 @@ export default function Workspace(){
  const[trends,setTrends]=useState<Trends|null>(null);const[trendKey,setTrendKey]=useState<TrendKey>("HBA1C");
  const[followTab,setFollowTab]=useState<"pend"|"prog"|"done"|"all">("pend");
  const[topSearch,setTopSearch]=useState("");
+ const[sideCollapsed,setSideCollapsed]=useState(false);
+ const[docMenu,setDocMenu]=useState(false);
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string}[]|null>(null);
  const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
  const[busy,setBusy]=useState("");
@@ -768,25 +819,60 @@ export default function Workspace(){
   return <span style={{display:"inline-flex",alignItems:"center",gap:6,background:c.bg,color:c.fg,border:`1px solid ${c.bd}`,borderRadius:999,padding:"4px 11px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>{icon}<b style={{fontSize:13,fontVariantNumeric:"tabular-nums"}}>{n}</b>{label}</span>;
  };
  const anyAlert=!!summary&&(highGaps>0||summary.activeAllergies>0||summary.openResults>0||summary.openObligations>0);
+ // Badges del sidebar en tiempo real (conteos del paciente activo, desde datos ya cargados).
+ const navCounts:Record<BadgeKey,number>={
+  agenda:(tl??[]).filter(t=>t.aggregateType==="Appointment"&&(t.latestKind==="SCHEDULED"||t.latestKind==="CHECKED_IN")).length,
+  resultados:summary?.openResults??0,
+  seguimiento:gaps?.length??0,
+  obligaciones:summary?.openObligations??0,
+ };
+ // Identidad del médico (desde la sesión autenticada; fallback si el IdP no expone nombre/rol).
+ const docName=(session.physicianName&&session.physicianName.trim())||"Médico tratante";
+ const docRole=(session.physicianRole&&session.physicianRole.trim())||"Personal clínico";
+ const docInitials=docName.replace(/^Dr\.?\s*/i,"").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"MD";
+ const docDisplay=/^dr/i.test(docName)?docName:`Dr. ${docName}`;
  const alertGlyph=<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 3.5l9 15.5H3l9-15.5z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M12 10v4M12 16.5v.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"/></svg>;
 
  return <div className="mos-app">
   <style>{RAIL_CSS}</style>
   {/* SIDEBAR OSCURO — navegación primaria del expediente (slider a un lado) */}
-  <aside className="mos-side">
-   <div className="sbrand">
-    <span style={{width:32,height:32,borderRadius:9,background:"linear-gradient(160deg,#1769E0,#20B7D9)",display:"grid",placeItems:"center",flex:"0 0 auto"}}>
-     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M4 13h3.2l1.7-5.3 2.9 9 2-6.4 1.4 2.7H20" stroke="#fff" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/></svg>
+  <aside className={"mos-side"+(sideCollapsed?" col":"")}>
+   <div className="mos-brand">
+    <span style={{width:40,height:40,flex:"0 0 auto"}} aria-hidden>
+     <svg width="40" height="40" viewBox="0 0 44 44" fill="none">
+      <defs><linearGradient id="mosg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#8B7DF8"/><stop offset="1" stopColor="#5B6BF0"/></linearGradient></defs>
+      <rect x="18" y="5" width="8" height="34" rx="4" fill="url(#mosg)"/><rect x="5" y="18" width="34" height="8" rx="4" fill="url(#mosg)" opacity=".92"/>
+     </svg>
     </span>
-    <span className="sname">Medical OS</span>
+    <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {SIDE_NAV.map(it=>{const on=!!it.h2&&activeH2===it.h2;return <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} onClick={()=>scrollToSection(it.h2)}><NavIcon k={it.icon}/>{it.label}</button>;})}
+    {SIDE_NAV.map(it=>{const on=!!it.h2&&activeH2===it.h2;const n=it.badge?navCounts[it.badge]:0;return (
+     <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>scrollToSection(it.h2)}>
+      <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
+     </button>);})}
    </nav>
-   <div className="mos-doc">
-    <span className="av">MD</span>
-    <div style={{minWidth:0}}><div style={{fontSize:13,fontWeight:700,color:"#fff",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>Médico tratante</div><div style={{fontSize:11,color:"#9DB2D4"}}>Sesión {session.sessionId.slice(0,6)}</div></div>
+   <div className="mos-divider"/>
+   <div className="mos-toolslbl">HERRAMIENTAS</div>
+   {TOOLS_NAV.map(it=>(
+    <button key={it.label} className="mos-navi" title={sideCollapsed?it.label:undefined} onClick={()=>{if(it.label==="Configuración")setDocMenu(m=>!m);}}>
+     <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>
+    </button>))}
+   <div className="mos-divider"/>
+   <div className="mos-doc" onClick={()=>setDocMenu(m=>!m)} role="button" aria-expanded={docMenu} aria-label="Menú del médico">
+    <span className="av">{docInitials}</span>
+    <div className="info" style={{minWidth:0}}><div className="nm">{docDisplay}</div><div className="rl">{docRole}</div></div>
+    <span style={{marginLeft:"auto",color:"#8A8FC6",transform:docMenu?"rotate(180deg)":"none",transition:"transform .15s"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9l6 6 6-6"/></svg></span>
+    {docMenu&&<div className="mos-docmenu" onClick={e=>e.stopPropagation()}>
+     <button onClick={()=>{setDocMenu(false);}}><NavIcon k="gear"/>Configuración</button>
+     <button onClick={()=>{setDocMenu(false);scrollToSection("Seguridad y auditoría");}}><NavIcon k="lock"/>Seguridad y auditoría</button>
+     <button onClick={async()=>{await sessionLogout();location.href="/login";}} style={{color:"#F0919E"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M16 17l5-5-5-5M21 12H9M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/></svg>Cerrar sesión</button>
+    </div>}
    </div>
+   <button className="mos-collapse" onClick={()=>setSideCollapsed(c=>!c)} aria-label={sideCollapsed?"Expandir menú":"Contraer menú"}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={sideCollapsed?"M11 6l6 6-6 6M5 6l6 6-6 6":"M13 6l-6 6 6 6M19 6l-6 6 6 6"}/></svg>
+    <span className="lbl">Contraer menú</span>
+   </button>
   </aside>
   {/* BODY — topbar con buscador global + patient header + rejilla de ventanas */}
   <div className="mos-body">

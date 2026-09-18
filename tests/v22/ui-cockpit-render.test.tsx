@@ -46,11 +46,14 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 };
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
- it("shell: sidebar oscuro con navegación primaria + buscador global",async()=>{
+ it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
   render(<Workspace/>);
   expect(screen.getByRole("button",{name:/Inicio/})).toBeTruthy();
-  expect(screen.getByRole("button",{name:/Portal paciente/})).toBeTruthy();
-  expect(screen.getByRole("button",{name:/Seguimiento$/})).toBeTruthy();
+  expect(screen.getByRole("button",{name:/Pacientes/})).toBeTruthy();
+  expect(screen.getByRole("button",{name:/Clinical Intelligence/})).toBeTruthy();
+  expect(screen.getByRole("button",{name:/Configuración/})).toBeTruthy();   // sección HERRAMIENTAS
+  expect(screen.getByRole("button",{name:/Contraer menú/})).toBeTruthy();    // colapsar
+  expect(screen.getByText(/Médico tratante/)).toBeTruthy();                  // perfil del médico (fallback)
   expect(screen.getByPlaceholderText(/Buscar paciente, documento, estudio/)).toBeTruthy();
  });
 

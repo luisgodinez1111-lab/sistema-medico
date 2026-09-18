@@ -108,7 +108,13 @@ export default function LoginPage(){
     if(cancelled)return;
     if(typeof idpToken==="string"&&idpToken){
      setPhase("authenticating");
-     const s:MedicalSession=await exchangeForSession(idpToken);storeSession(s);
+     const s:MedicalSession=await exchangeForSession(idpToken);
+     // Metadatos de display del médico desde el IdP (nombre/rol) para el perfil del sidebar.
+     let physicianName:string|undefined,physicianRole:string|undefined;
+     try{const u=await c.getUser();physicianName=(u?.name??u?.nickname??u?.email)as string|undefined;
+      const rolesClaim=u?.["https://medical-os/roles"]??u?.["roles"];
+      if(Array.isArray(rolesClaim)&&rolesClaim.length)physicianRole=String(rolesClaim[0]);}catch{/* sin claims de display */}
+     storeSession({...s,...(physicianName?{physicianName}:{}),...(physicianRole?{physicianRole}:{})});
      if(cancelled)return;
      setPhase("redirecting");
      window.location.replace("/workspace");
