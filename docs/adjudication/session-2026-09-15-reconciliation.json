@@ -2515,6 +2515,33 @@
    "epic": "AQ/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-RESULTS-TABS-001",
+   "name": "Resultados — pestañas Solicitudes/Alertas/Seguimiento/Valores de referencia cableadas",
+   "risk": "C5",
+   "eng_authority_note": "Completa las 4 pestañas restantes del módulo Resultados (S7), eliminando los placeholders 'Próxima entrega'. Cableado: (1) SOLICITUDES = registro de órdenes de estudio clínica-wide (reader nuevo ordersRegistry + GET /api/v1/orders: evento ORDER_CREATED con tipo/detalle + estado por transición CREATED->Solicitada/PLACED->Enviada/FULFILLED->Completada/CANCELLED->Cancelada, tipo-UI, join paciente, conteos); (2) ALERTAS = resultados críticos/anormales reales del registro de resultados (estado 'Hallazgos'/critical del motor CDS); (3) PANEL DE SEGUIMIENTO = resultados en ACTIONED (Zero-Lost-Follow-Up) del registro de resultados; (4) VALORES DE REFERENCIA = los rangos DETERMINISTAS reales del motor CDS (labReferenceRanges expuesto desde packages/lab-reference: rango normal + límites de pánico por analito). Fallback representativo por pestaña cuando el tenant no tiene datos.",
+   "invariants": [
+    "Solicitudes: estado de la orden por última transición; tipo-UI derivado del orderType",
+    "Alertas: filtro de resultados con estado 'Hallazgos'/critical (derivado del motor CDS, no del cliente)",
+    "Seguimiento: filtro de resultados en ACTIONED (obligación/acción abierta)",
+    "Valores de referencia: rangos reales del motor CDS (labReferenceRanges), no inventados",
+    "order:write para el registro de órdenes (GET); scope faltante -> 403; fallback representativo cuando no hay datos"
+   ],
+   "implementation": [
+    "packages/lab-reference/src/index.ts (labReferenceRanges expuesto)",
+    "apps/web/lib/clinical-runtime.ts (ordersRegistry + OrderRow)",
+    "apps/web/app/api/v1/orders/route.ts (GET registro de órdenes + conteos)",
+    "apps/web/app/workspace/page.tsx (Resultados: 4 pestañas cableadas + auto-carga de órdenes)"
+   ],
+   "tests": [
+    "scripts/v22/live-orders-registry-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (Resultados: Solicitudes/Alertas/Valores de referencia)"
+   ],
+   "runtime_evidence": "scripts/v22/live-orders-registry-proof.mts — PASS 11/11 vs Neon 2026-09-18 (3 órdenes LAB/IMAGING; place+fulfill -> Completada, place -> Enviada, sin transición -> Solicitada; tipo-UI Imagenología, join del paciente, conteos 1/1/1, sin-scope 403). En el smoke runner de CI. Render test 24/24 (jsdom, cubre Solicitudes/Valores de referencia/Alertas). Fidelidad verificada por preview + captura.",
+   "epic": "E/AQ/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

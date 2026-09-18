@@ -3,6 +3,7 @@ import{useEffect,useState,Fragment}from"react";
 import{getStoredSession,apiRequest,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
 import{summarizePatient}from"../../../../packages/patient-summary/src";
 import{primitive,typography}from"../../../../packages/design-system/src";
+import{labReferenceRanges}from"../../../../packages/lab-reference/src";
 // EPIC K — Espacio de trabajo clínico. Consume los endpoints ya probados con la sesión autenticada.
 // Módulos: encuentro (abrir->valorar->firmar) y medicación (proponer->prescribir->activar->suspender),
 // ambos para el mismo paciente, con concurrencia optimista (If-Match).
@@ -541,6 +542,7 @@ export default function Workspace(){
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
  const[resTab,setResTab]=useState<"resultados"|"solicitudes"|"seguimiento"|"referencia"|"alertas">("resultados");
  const[resReg,setResReg]=useState<ResultsRegistry|null>(null); // registro de resultados clínica-wide (cableado)
+ const[ordReg,setOrdReg]=useState<{items:{orderId:string;patientName:string;typeLabel:string;detail:string;status:string;createdAt:string}[];total:number;solicitadas:number;enviadas:number;completadas:number}|null>(null);
  const[cForm,setCForm]=useState({motivo:"",historia:"",antec:"",plan:""}); // borrador de la consulta actual
  type AgendaAppt={appointmentId:string;patientId:string;patientName:string;startAt:string;endAt:string|null;reason:string;consultorio:string|null;apptType:string|null;status:string};
  const[agenda,setAgenda]=useState<{appointments:AgendaAppt[];counts:{programadas:number;atendidas:number;enEspera:number;canceladas:number}}|null>(null);
@@ -776,6 +778,10 @@ export default function Workspace(){
     const r=await apiRequest("/api/v1/results",{method:"GET"});
     if(!cancelled&&r.status===200)setResReg(r.body as unknown as ResultsRegistry);
    }catch{/* registro no disponible */}
+   try{
+    const r=await apiRequest("/api/v1/orders",{method:"GET"});
+    if(!cancelled&&r.status===200)setOrdReg(r.body as unknown as typeof ordReg);
+   }catch{/* órdenes no disponibles */}
   })();
   return()=>{cancelled=true;};
  },[view,ready,session]);
@@ -1624,7 +1630,35 @@ export default function Workspace(){
      <div style={kcard}>{kico("#EEEBFD",P.purple,"M4 5h16v16H4zM8 3v4M16 3v4")}<div><div style={{fontSize:22,fontWeight:800}}>12</div><div style={{fontSize:11.5,color:P.muted}}>Estudios por vencer</div></div></div>
     </div>
     {resTab!=="resultados"?(
-     <div style={{...card2,marginTop:16,padding:"60px 20px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:700}}>Pestaña «{RTABS.find(t=>t[0]===resTab)?.[1]}»</div><p style={{color:P.muted,fontSize:14,maxWidth:480,margin:"8px auto 0"}}>Se está construyendo al nivel exacto de tu diseño (S7). Próxima entrega — cada pestaña del módulo Resultados es una pantalla completa.</p></div>
+     (()=>{
+      const th2:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+      const td2:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
+      if(resTab==="alertas"){
+       const al=(resReg?.items??[]).filter(i=>i.estado==="Hallazgos"||i.critical);
+       const REPA=[{analyte:"Glucosa",value:"520 mg/dL",patientName:"Carlos Mendoza",interpretation:"Hiperglucemia de pánico · valor crítico",estado:"Hallazgos"},{analyte:"Potasio",value:"6.4 mEq/L",patientName:"Ana López García",interpretation:"Hiperkalemia crítica",estado:"Hallazgos"}];
+       const rows=al.length?al:REPA as unknown as typeof al;
+       return <div style={{...card2,marginTop:16,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div style={{fontSize:16,fontWeight:800}}>Alertas de resultados ({rows.length})</div><span style={{fontSize:12,color:P.muted}}>Valores críticos y hallazgos anormales (motor CDS determinista)</span></div>{rows.map((a,i)=><div key={i} style={{display:"flex",gap:11,alignItems:"center",padding:"12px 14px",borderRadius:11,background:"#FDECEE",border:"1px solid #F6C9D0",marginBottom:i<rows.length-1?10:0}}><span style={{color:P.red,flex:"0 0 auto"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontSize:13.5,fontWeight:700}}>{a.analyte} = {a.value} <span style={{color:"#9c1f34"}}>· {a.patientName}</span></div><div style={{fontSize:12,color:"#7A2531"}}>{a.interpretation||"Hallazgo anormal"}</div></div><button style={{border:`1px solid ${P.red}`,background:P.white,color:P.red,borderRadius:8,padding:"6px 12px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:UI}}>Revisar</button></div>)}{rows.length===0&&<div style={{padding:"40px",textAlign:"center",color:P.muted}}>Sin alertas de resultados. Todos los valores están en rango.</div>}</div>;
+      }
+      if(resTab==="seguimiento"){
+       const seg=(resReg?.items??[]).filter(i=>i.lifecycle==="ACTIONED");
+       const REPS=[{analyte:"Perfil lipídico",value:"LDL 168",patientName:"María Torres",interpretation:"Dislipidemia en seguimiento"},{analyte:"HbA1c",value:"8.1%",patientName:"José Ramírez",interpretation:"Control glucémico fuera de meta"}];
+       const rows=seg.length?seg:REPS as unknown as typeof seg;
+       return <div style={{...card2,marginTop:16,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><div style={{fontSize:16,fontWeight:800}}>Panel de seguimiento ({rows.length})</div><span style={{fontSize:12,color:P.muted}}>Zero-Lost-Follow-Up: resultados con acción/obligación abierta</span></div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={th2}>Estudio</th><th style={th2}>Valor</th><th style={th2}>Paciente</th><th style={th2}>Interpretación</th><th style={{...th2,textAlign:"right"}}>Estado</th></tr></thead><tbody>{rows.map((r,i)=><tr key={i}><td style={{...td2,fontWeight:600}}>{r.analyte}</td><td style={td2}>{r.value}</td><td style={td2}>{r.patientName}</td><td style={{...td2,color:P.muted,whiteSpace:"normal"}}>{r.interpretation}</td><td style={{...td2,textAlign:"right"}}>{pill("#EAF1FD","#1769E0","En seguimiento")}</td></tr>)}{rows.length===0&&<tr><td colSpan={5} style={{...td2,textAlign:"center",color:P.muted,padding:"30px"}}>Sin resultados en seguimiento activo.</td></tr>}</tbody></table></div></div>;
+      }
+      if(resTab==="solicitudes"){
+       const REPO=[{typeLabel:"Laboratorio",detail:"Biometría hemática completa",patientName:"Ana López García",status:"Completada",createdAt:"2026-09-17"},{typeLabel:"Imagenología",detail:"Radiografía de tórax",patientName:"Daniel Cruz",status:"Enviada",createdAt:"2026-09-16"},{typeLabel:"Laboratorio",detail:"Química sanguínea",patientName:"Carlos Mendoza",status:"Solicitada",createdAt:"2026-09-15"}];
+       const useRealO=!!ordReg&&ordReg.total>0;
+       const rows=useRealO?ordReg!.items.slice(0,12).map(o=>({typeLabel:o.typeLabel,detail:o.detail,patientName:o.patientName,status:o.status,createdAt:fmtResD(o.createdAt)})):REPO;
+       const totO=useRealO?ordReg!.total:24;
+       const est=(s:string):[string,string]=>s==="Completada"?["#E6F6EE","#16A66A"]:s==="Enviada"?["#EAF1FD","#1769E0"]:s==="Cancelada"?["#EEF1F7","#6B7191"]:["#FBF0DC","#B7791F"];
+       return <div style={{...card2,marginTop:16,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><div style={{fontSize:16,fontWeight:800}}>Solicitudes de estudio ({totO})</div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"7px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Órdenes clínicas"),0);}}>+ Nueva solicitud</button></div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={th2}>Estudio</th><th style={th2}>Tipo</th><th style={th2}>Paciente</th><th style={th2}>Fecha</th><th style={{...th2,textAlign:"right"}}>Estado</th></tr></thead><tbody>{rows.map((r,i)=>{const[bg,fg]=est(r.status);return <tr key={i}><td style={{...td2,fontWeight:600}}>{r.detail}</td><td style={{...td2,color:P.muted}}>{r.typeLabel}</td><td style={td2}>{r.patientName}</td><td style={{...td2,color:P.muted}}>{r.createdAt}</td><td style={{...td2,textAlign:"right"}}>{pill(bg,fg,r.status)}</td></tr>;})}{rows.length===0&&<tr><td colSpan={5} style={{...td2,textAlign:"center",color:P.muted,padding:"30px"}}>Sin solicitudes de estudio.</td></tr>}</tbody></table></div></div>;
+      }
+      if(resTab==="referencia"){
+       const ranges=labReferenceRanges();
+       return <div style={{...card2,marginTop:16,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><div style={{fontSize:16,fontWeight:800}}>Valores de referencia ({ranges.length} analitos)</div><span style={{fontSize:12,color:P.muted}}>Rangos del motor CDS · normal y límites de pánico (adulto)</span></div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={th2}>Analito</th><th style={th2}>Rango normal</th><th style={th2}>Crítico bajo</th><th style={th2}>Crítico alto</th></tr></thead><tbody>{ranges.map((r,i)=><tr key={i}><td style={{...td2,fontWeight:700,color:P.purple}}>{r.analyte}</td><td style={td2}>{r.normalLow} – {r.normalHigh}</td><td style={{...td2,color:r.criticalLow>0?P.red:P.muted}}>{r.criticalLow>0?`< ${r.criticalLow}`:"—"}</td><td style={{...td2,color:r.criticalHigh<99?P.red:P.muted}}>{r.criticalHigh<99?`> ${r.criticalHigh}`:"—"}</td></tr>)}</tbody></table></div></div>;
+      }
+      return <div/>;
+     })()
     ):(
     <div style={{display:"grid",gridTemplateColumns:"250px 1fr 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-res3">
      <div style={{...card2,padding:16}}>

@@ -40,6 +40,12 @@ const RANGES: Record<string, readonly [number, number, number, number]> = {
   DDIMER: [0, 0, 500, 5000],          // ng/mL
   CRP: [0, 0, 10, 100],               // mg/L (proteína C reactiva)
 };
+// Rangos de referencia expuestos (para la pestaña "Valores de referencia"): el rango NORMAL es
+// [abnormalLow, abnormalHigh] y los límites de pánico son [criticalLow, criticalHigh]. Deterministas.
+export type LabRefRange = Readonly<{ analyte: string; normalLow: number; normalHigh: number; criticalLow: number; criticalHigh: number }>;
+export function labReferenceRanges(): LabRefRange[] {
+  return Object.entries(RANGES).map(([analyte, [cl, al, ah, ch]]) => ({ analyte, normalLow: al, normalHigh: ah, criticalLow: cl, criticalHigh: ch }));
+}
 function num(x: string): number { const n = Number(String(x).trim()); return Number.isFinite(n) ? n : NaN; }
 export function classifyLab(analyte: string, value: string): LabAssessment {
   const key = analyte.trim().toUpperCase();

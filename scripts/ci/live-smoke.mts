@@ -60,6 +60,7 @@ const SMOKE:readonly string[]=[
  "live-regulatory-obligations-proof",       // Obligaciones regulatorias del consultorio: estado computado + KPIs + cumplimiento
  "live-reports-proof",                      // Reportes: tablero analítico (pacientes + ingresos pagados + diagnósticos top)
  "live-results-registry-proof",             // Resultados: registro clínica-wide (estado-UI derivado + tipo + KPIs)
+ "live-orders-registry-proof",              // Resultados › Solicitudes: registro de órdenes (tipo-UI + estado por transición)
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

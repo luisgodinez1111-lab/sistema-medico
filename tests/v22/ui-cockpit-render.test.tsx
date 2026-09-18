@@ -12,6 +12,9 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
  apiRequest:async(path:string)=>{
+  if(path.includes("/api/v1/orders"))return{status:200,body:{
+   items:[{orderId:"od1",patientId:"p1",patientName:"Ana López García",orderType:"LAB",typeLabel:"Laboratorio",detail:"Biometría hemática completa",status:"Completada",createdAt:"2026-09-17T00:00:00Z"}],
+   total:1,solicitadas:0,enviadas:0,completadas:1}};
   if(path.includes("/api/v1/results"))return{status:200,body:{
    items:[
     {resultId:"r1",patientId:"p1",patientName:"Ana López García",analyte:"GLUCOSE",value:"520",critical:true,status:"CRITICAL",interpretation:"Hiperglucemia de pánico",tipo:"Laboratorio",estado:"Hallazgos",lifecycle:"RECEIVED",receivedAt:"2026-09-17T00:00:00Z"},
@@ -173,6 +176,15 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect((await screen.findAllByText("GLUCOSE")).length).toBeGreaterThan(0);      // analito real (mock)
   expect(screen.getAllByText(/Hallazgos/).length).toBeGreaterThan(0);            // estado-UI derivado en TEXTO
   expect(screen.getByText("Con hallazgos anormales")).toBeTruthy();
+  // pestañas restantes cableadas:
+  fireEvent.click(screen.getByRole("button",{name:/^Solicitudes/}));
+  expect(await screen.findByText(/Solicitudes de estudio/)).toBeTruthy();
+  expect(screen.getAllByText("Biometría hemática completa").length).toBeGreaterThan(0); // orden real (mock)
+  fireEvent.click(screen.getByRole("button",{name:/Valores de referencia/}));
+  expect(screen.getAllByText(/Valores de referencia/).length).toBeGreaterThan(0);
+  expect(screen.getByText("GLUCOSE")).toBeTruthy();                              // rango real del motor CDS
+  fireEvent.click(screen.getByRole("button",{name:/^Alertas/}));
+  expect(screen.getByText(/Alertas de resultados/)).toBeTruthy();
  });
 
  it("vista Configuración (S-CONFIG): ajustes del consultorio — secciones, módulos y guardar",async()=>{
