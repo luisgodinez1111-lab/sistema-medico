@@ -63,6 +63,7 @@ const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
  for(const[p,l]of m)if(c.startsWith(p))return l;return c;};
 type Snap=Readonly<{demographics:{age:number;sex:string;birthDate:string};problems:string[];allergies:string[];vitals:Record<string,string>;labs:{hba1c?:number;creatinine?:number;glucose?:number;ldl?:number;egfr?:number;egfrStage?:string};findings:{domain:string;severity:"CRITICAL"|"WARNING"|"INFO";summary:string}[]}>;
 const SEX_ES:Record<string,string>={FEMALE:"Femenino",MALE:"Masculino",INTERSEX:"Intersexual",UNKNOWN:"Sin especificar"};
+type RxCheck=Readonly<{drug:{input:string;resolved:{ingredient:string;classes:string[]}|null};egfr:number|null;checks:{id:string;label:string;status:"OK"|"WARN"|"BLOCK";detail:string}[];monitoring:{test:string;note:string;dueInDays:number}[];indications:string;verdict:"OK"|"WARN"|"BLOCK"}>;
 // Severidad de hallazgo -> etiqueta + color del panel "Alertas y sugerencias".
 const SEV:Record<"CRITICAL"|"WARNING"|"INFO",{label:string;bg:string;fg:string;bd:string}>={
  CRITICAL:{label:"ALTA",bg:"#FDEAEA",fg:"#B3261E",bd:"#F3C9C9"},
@@ -92,7 +93,7 @@ const content:React.CSSProperties={maxWidth:1140,margin:"0 auto",padding:`${S[5]
 // Nav-rail: módulos agrupados por dominio clínico. Navega por el <h2> de cada sección (sin ids duplicados).
 const NAV:{group:string;items:{label:string;h2:string}[]}[]=[
  {group:"Vista",items:[{label:"Panel del clínico",h2:"Panel del clínico"},{label:"Paciente",h2:"Paciente"},{label:"Timeline",h2:"Timeline del paciente"}]},
- {group:"Consulta",items:[{label:"Encuentro",h2:"Encuentro"},{label:"Medicación",h2:"Medicación"},{label:"Resultados",h2:"Resultados diagnósticos"},{label:"Órdenes",h2:"Órdenes clínicas"},{label:"Documentos",h2:"Documentos clínicos"}]},
+ {group:"Consulta",items:[{label:"Encuentro",h2:"Encuentro"},{label:"Medicación",h2:"Medicación"},{label:"Prescripción segura",h2:"Prescripción segura"},{label:"Resultados",h2:"Resultados diagnósticos"},{label:"Órdenes",h2:"Órdenes clínicas"},{label:"Documentos",h2:"Documentos clínicos"}]},
  {group:"Historia",items:[{label:"Alergias",h2:"Alergias"},{label:"Problemas",h2:"Lista de problemas"},{label:"Signos vitales",h2:"Signos vitales"},{label:"Vacunas",h2:"Vacunas"},{label:"Plan de cuidados",h2:"Plan de cuidados"}]},
  {group:"Coordinación",items:[{label:"Interconsultas",h2:"Interconsultas"},{label:"Agenda",h2:"Agenda"},{label:"Obligaciones",h2:"Obligaciones de seguimiento"}]},
  {group:"Hospital",items:[{label:"Internamiento",h2:"Internamiento"},{label:"Triage",h2:"Triage"},{label:"Cirugía",h2:"Cirugía"},{label:"Transfusiones",h2:"Transfusiones"},{label:"Diálisis",h2:"Diálisis"},{label:"Heridas",h2:"Cuidado de heridas"},{label:"Muestras",h2:"Muestras de laboratorio"}]},
@@ -118,6 +119,9 @@ const RAIL_CSS=`
 .mos-hero-grid{display:grid;grid-template-columns:1.6fr 1fr}
 .mos-vitals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @media(max-width:1150px){.mos-vitals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mos-rx-form{display:grid;grid-template-columns:1fr 130px 120px 150px auto;gap:8px;margin-top:12px;align-items:center}
+.mos-rx-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-top:14px}
+@media(max-width:760px){.mos-rx-form{grid-template-columns:1fr 1fr}.mos-rx-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.mos-hero-grid{grid-template-columns:1fr}.mos-hero-grid>div:first-child{border-right:0!important;border-bottom:1px solid #E4E9F2}}
 @media(max-width:900px){.mos-cols{display:block}.mos-rail{display:none}}
 `;
@@ -297,6 +301,8 @@ export default function Workspace(){
  const[patientName,setPatientName]=useState("");
  const[activeH2,setActiveH2]=useState(""); // scrollspy: módulo visible resaltado en el nav-rail
  const[snap,setSnap]=useState<Snap|null>(null); // snapshot de consulta (hero panel 1)
+ const[rxDrug,setRxDrug]=useState("");const[rxDose,setRxDose]=useState("");const[rxRoute,setRxRoute]=useState("Oral");const[rxFreq,setRxFreq]=useState("");
+ const[rxCheck,setRxCheck]=useState<RxCheck|null>(null);const[rxMsg,setRxMsg]=useState("");
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string}[]|null>(null);
  const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
  const[busy,setBusy]=useState("");
@@ -373,6 +379,20 @@ export default function Workspace(){
   const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:m.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setMeds(ms=>ms.map(x=>x.id===m.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
+ });
+ // Panel 3 — verificación de seguridad SIN escribir (dry-run de las barreras) y envío de la Rx.
+ const verifyRx=()=>call("rxcheck",async()=>{
+  setRxMsg("");
+  const r=await apiRequest(`/api/v1/patients/${patientId}/prescription-check`,{method:"POST",body:{drug:rxDrug,dose:rxDose,route:rxRoute,frequency:rxFreq}});
+  if(r.status>=400){setError(errMsg(r));setRxCheck(null);return;}
+  setRxCheck(r.body as unknown as RxCheck);
+ });
+ const sendRx=()=>call("rxsend",async()=>{
+  const id=uuid();
+  const r=await apiRequest("/api/v1/medications",{method:"POST",body:{medicationId:id,patientId,drugCode:rxDrug,dose:rxDose,route:rxRoute,frequency:rxFreq,occurredAt:nowIso()}});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setMeds(ms=>[{id,label:`${rxDrug} ${rxDose}`.trim(),state:"PROPOSED",version:Number(r.body["version"]??0)},...ms]);
+  setRxCheck(null);setRxMsg("✓ Prescripción registrada como PROPOSED. Gestiona su ciclo (prescribir → activar) en el módulo Medicación.");
  });
  const receiveResult=()=>call("res-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/results",{method:"POST",body:{resultId:id,patientId,orderId:uuid(),critical:resCritical,occurredAt:nowIso()}});
@@ -898,6 +918,51 @@ export default function Workspace(){
      </div>
     </div>;})}
    </div>}
+  </section>
+
+  {/* PRESCRIPCIÓN SEGURA (panel 3) — dry-run de las barreras antes de prescribir */}
+  <section style={card}>
+   <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
+    <div><h2 style={{fontSize:18,margin:0}}>Prescripción segura</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Verifica antes de prescribir. Previene errores, protege al paciente. Determinista, sin IA generativa.</p></div>
+    {snap?.labs.egfr!==undefined&&<span style={{fontSize:12,color:P.muted}}>eGFR paciente: <b>{snap?.labs.egfr} mL/min</b>{snap?.labs.egfrStage?` · ERC ${snap.labs.egfrStage}`:""}</span>}
+   </div>
+   <div className="mos-rx-form">
+    <input style={input} value={rxDrug} onChange={e=>setRxDrug(e.target.value)} placeholder="Buscar medicamento (ej. metformina, losartan)" />
+    <input style={input} value={rxDose} onChange={e=>setRxDose(e.target.value)} placeholder="Dosis (500mg)" />
+    <select style={input} value={rxRoute} onChange={e=>setRxRoute(e.target.value)}><option>Oral</option><option>IV</option><option>IM</option><option>SC</option><option>Tópica</option></select>
+    <input style={input} value={rxFreq} onChange={e=>setRxFreq(e.target.value)} placeholder="Frecuencia (c/12h)" />
+    <button style={btn} disabled={busy!==""||!rxDrug||!rxDose||!rxFreq} onClick={verifyRx}>{busy==="rxcheck"?"Verificando…":"Verificar"}</button>
+   </div>
+   {rxMsg&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:12,background:"#EAF7EF",border:"1px solid #CDEBD8",color:"#1A7F43",fontSize:13,fontWeight:600}}>{rxMsg}</div>}
+   {rxCheck&&(()=>{
+    const v=rxCheck.verdict;
+    const vm=v==="OK"?{bg:"#EAF7EF",bd:"#CDEBD8",fg:"#1A7F43",txt:"Verificación superada — dosis y seguridad adecuadas"}:v==="WARN"?{bg:"#FFF7EC",bd:"#F0DBB8",fg:"#A15C00",txt:"Requiere criterio clínico — revisa las advertencias"}:{bg:"#FDEEEE",bd:"#F3C9C9",fg:"#B3261E",txt:"Prescripción bloqueada — corrige antes de enviar"};
+    const ic=(s:string)=>s==="OK"?"✓":s==="WARN"?"⚠":"✕";const icc=(s:string)=>s==="OK"?"#1A7F43":s==="WARN"?"#A15C00":"#B3261E";
+    return <div style={{marginTop:14}}>
+     <div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",borderRadius:12,background:vm.bg,border:`1px solid ${vm.bd}`,color:vm.fg,fontWeight:700,fontSize:14,flexWrap:"wrap"}}>
+      <span style={{fontSize:16}}>{ic(v)}</span>{vm.txt}
+      {rxCheck.drug.resolved&&<span style={{marginLeft:"auto",fontSize:12,fontWeight:600,color:P.muted}}>{rxCheck.drug.resolved.ingredient} · {rxCheck.drug.resolved.classes.join(", ")}</span>}
+     </div>
+     <div className="mos-rx-grid">
+      <div>
+       <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Barreras de seguridad</div>
+       <div style={{display:"flex",flexDirection:"column",gap:7}}>{rxCheck.checks.map(c=><div key={c.id} style={{display:"flex",gap:9,alignItems:"flex-start",fontSize:13}}>
+        <span style={{color:icc(c.status),fontWeight:800,flex:"0 0 auto",width:14}}>{ic(c.status)}</span>
+        <span><b style={{fontWeight:600}}>{c.label}</b><span style={{color:P.muted}}> — {c.detail}</span></span>
+       </div>)}</div>
+      </div>
+      <div>
+       <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Monitorización / advertencias</div>
+       {rxCheck.monitoring.length?<div style={{display:"flex",flexDirection:"column",gap:6}}>{rxCheck.monitoring.map((m,i)=><div key={i} style={{fontSize:12.5,color:"#7a3b34"}}>• {m.test}: {m.note} <span style={{color:P.muted}}>(en {m.dueInDays} d)</span></div>)}</div>:<div style={{fontSize:12.5,color:P.muted}}>Sin monitorización específica.</div>}
+       {rxCheck.indications&&<div style={{marginTop:12}}><div style={{fontSize:12,fontWeight:700,color:P.muted}}>Indicaciones para el paciente</div><div style={{fontSize:13,marginTop:2}}>{rxCheck.indications}</div></div>}
+      </div>
+     </div>
+     <div style={{display:"flex",gap:10,marginTop:16,justifyContent:"flex-end"}}>
+      <button style={{...ghost,padding:"9px 16px"}} onClick={()=>setRxCheck(null)}>Cancelar</button>
+      <button style={{...btn,opacity:v==="BLOCK"?.5:1}} disabled={busy!==""||v==="BLOCK"} onClick={sendRx} title={v==="BLOCK"?"Corrige los bloqueos para enviar":""}>{busy==="rxsend"?"Enviando…":"Guardar y enviar"}</button>
+     </div>
+    </div>;
+   })()}
   </section>
 
   {/* RESULTADOS DIAGNÓSTICOS */}
