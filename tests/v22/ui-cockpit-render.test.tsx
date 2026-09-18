@@ -82,7 +82,7 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Clinical Intelligence"}));
+const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Reportes"}));
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
@@ -155,6 +155,18 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
+ });
+
+ it("vista Clinical Intelligence (S-CLINICALINTEL): asistente representativo + alertas deterministas + calculadoras (R6 en pausa)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Clinical Intelligence"}));
+  expect(screen.getByRole("heading",{name:"Clinical Intelligence"})).toBeTruthy();
+  expect(screen.getByText(/Asistente clínico con IA/)).toBeTruthy();
+  expect(screen.getAllByText(/Alertas clínicas/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/HbA1c 8.1%/).length).toBeGreaterThan(0);           // alerta (rep/real)
+  expect(screen.getByText(/Diagnóstico diferencial \(IA\)/)).toBeTruthy();
+  expect(screen.getByText(/Calculadoras clínicas/)).toBeTruthy();
+  expect(screen.getByText(/IA generativa \(R6\) está en pausa/)).toBeTruthy();   // nota de gobernanza honesta
  });
 
  it("vista Obligaciones (S-OBLIGACIONES): regulatorias del consultorio cableadas a GET /regulatory-obligations",async()=>{

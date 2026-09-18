@@ -2395,6 +2395,29 @@
    "epic": "AC/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-CLINICAL-INTELLIGENCE-UI-001",
+   "name": "Clinical Intelligence — alertas y calculadoras deterministas (IA generativa R6 en pausa)",
+   "risk": "C4",
+   "eng_authority_note": "Vista Clinical Intelligence a fidelidad exacta del mockup (header, patient bar con chips, tabs, asistente clínico con chat, columna derecha: Alertas clínicas, Diagnóstico diferencial (IA), Guías de práctica clínica, Calculadoras). GOBERNANZA (r6-paused): la IA GENERATIVA está en pausa intencional — el asistente de chat y el diagnóstico diferencial probabilístico son REPRESENTATIVOS (no hay LLM en producción; la pantalla incluye una nota de gobernanza explícita). Lo cableado y determinista: (1) Alertas clínicas = findings del motor CDS (assembleFindings) vía GET /patients/:id/consultation-snapshot (reutiliza endpoint existente); (2) chips de contexto (problemas/alergias) del mismo snapshot; (3) Calculadoras = accesos a los cálculos deterministas ya probados (eGFR CKD-EPI, IMC, CHA2DS2-VASc, NEWS2). Sin backend nuevo: reutiliza consultation-snapshot y las calculadoras existentes.",
+   "invariants": [
+    "IA generativa (R6) en pausa: asistente de chat y diferencial probabilístico son representativos, con nota de gobernanza en pantalla",
+    "Alertas clínicas = findings deterministas del motor CDS (assembleFindings), no generativas",
+    "Calculadoras enlazan a cálculos deterministas verificados (eGFR/IMC/CHA2DS2-VASc/NEWS2)",
+    "Reutiliza GET /patients/:id/consultation-snapshot (patient:read); sin escritura",
+    "Fallback representativo = imagen exacta cuando no hay paciente en contexto"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (vista Clinical Intelligence + VMAP + auto-carga del snapshot para alertas)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Clinical Intelligence: asistente, alertas, diferencial, calculadoras, nota de gobernanza)"
+   ],
+   "runtime_evidence": "Sin proof nuevo: reutiliza live-consultation-snapshot-proof (findings deterministas) + live-egfr/bmi/cha2ds2vasc/news2 proofs (calculadoras), todos ya en el smoke runner. Render test 20/20 (jsdom) confirma la materialización de la vista y la nota de gobernanza R6. Fidelidad verificada por preview + captura.",
+   "epic": "R6/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
