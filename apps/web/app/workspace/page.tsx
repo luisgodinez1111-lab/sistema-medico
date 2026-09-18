@@ -77,7 +77,33 @@ const LINE="#E4E9F2";
 const shell:React.CSSProperties={minHeight:"100vh",background:P.canvas,fontFamily:UI,color:P.ink};
 const appbar:React.CSSProperties={position:"sticky",top:0,zIndex:30,background:P.white,borderBottom:`1px solid ${LINE}`,padding:"11px 22px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"};
 const patientBar:React.CSSProperties={position:"sticky",top:57,zIndex:25,background:"rgba(255,255,255,.92)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderBottom:`1px solid ${LINE}`,padding:"11px 22px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:16};
-const content:React.CSSProperties={maxWidth:1080,margin:"0 auto",padding:`${S[5]}px ${S[5]}px ${S[12]}px`};
+const content:React.CSSProperties={maxWidth:1140,margin:"0 auto",padding:`${S[5]}px ${S[5]}px ${S[12]}px`};
+// Nav-rail: módulos agrupados por dominio clínico. Navega por el <h2> de cada sección (sin ids duplicados).
+const NAV:{group:string;items:{label:string;h2:string}[]}[]=[
+ {group:"Vista",items:[{label:"Panel del clínico",h2:"Panel del clínico"},{label:"Paciente",h2:"Paciente"},{label:"Timeline",h2:"Timeline del paciente"}]},
+ {group:"Consulta",items:[{label:"Encuentro",h2:"Encuentro"},{label:"Medicación",h2:"Medicación"},{label:"Resultados",h2:"Resultados diagnósticos"},{label:"Órdenes",h2:"Órdenes clínicas"},{label:"Documentos",h2:"Documentos clínicos"}]},
+ {group:"Historia",items:[{label:"Alergias",h2:"Alergias"},{label:"Problemas",h2:"Lista de problemas"},{label:"Signos vitales",h2:"Signos vitales"},{label:"Vacunas",h2:"Vacunas"},{label:"Plan de cuidados",h2:"Plan de cuidados"}]},
+ {group:"Coordinación",items:[{label:"Interconsultas",h2:"Interconsultas"},{label:"Agenda",h2:"Agenda"},{label:"Obligaciones",h2:"Obligaciones de seguimiento"}]},
+ {group:"Hospital",items:[{label:"Internamiento",h2:"Internamiento"},{label:"Triage",h2:"Triage"},{label:"Cirugía",h2:"Cirugía"},{label:"Transfusiones",h2:"Transfusiones"},{label:"Diálisis",h2:"Diálisis"},{label:"Heridas",h2:"Cuidado de heridas"},{label:"Muestras",h2:"Muestras de laboratorio"}]},
+ {group:"Administración",items:[{label:"Facturación",h2:"Facturación"},{label:"Consentimiento",h2:"Consentimiento informado"},{label:"Incidentes",h2:"Incidentes de seguridad"}]},
+];
+function scrollToSection(h2Text:string){
+ const h=Array.from(document.querySelectorAll("h2")).find(e=>e.textContent?.trim()===h2Text);
+ h?.closest("section")?.scrollIntoView({behavior:"smooth",block:"start"});
+}
+const RAIL_CSS=`
+.mos-cols{display:flex;gap:22px;align-items:flex-start}
+.mos-rail{position:sticky;top:120px;flex:0 0 208px;width:208px;max-height:calc(100vh - 140px);overflow-y:auto;padding:2px}
+.mos-main{flex:1;min-width:0}
+.mos-main>section:first-of-type{margin-top:0}
+.mos-main section{scroll-margin-top:126px}
+.mos-navgroup{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#93A0B4;margin:14px 8px 4px}
+.mos-navgroup.first{margin-top:2px}
+.mos-navitem{display:block;width:100%;text-align:left;background:transparent;border:0;border-radius:8px;padding:6px 10px;font-size:13px;font-family:inherit;color:#41506A;cursor:pointer;font-weight:500}
+.mos-navitem:hover{background:#EEF3FB;color:#1769E0}
+.mos-navitem:focus-visible{outline:2px solid #9DBEF0;outline-offset:1px}
+@media(max-width:900px){.mos-cols{display:block}.mos-rail{display:none}}
+`;
 const wrap:React.CSSProperties={maxWidth:1080,margin:"0 auto",padding:S[8],minHeight:"100vh",background:P.canvas,fontFamily:UI,color:P.ink};
 const card:React.CSSProperties={background:P.white,border:`1px solid ${LINE}`,borderRadius:16,padding:S[6],boxShadow:"0 1px 2px rgba(16,42,86,.04),0 8px 24px rgba(16,42,86,.05)",marginTop:S[5]};
 const btn:React.CSSProperties={background:P.blue,color:"#fff",border:0,borderRadius:10,padding:"10px 16px",fontWeight:700,cursor:"pointer",fontSize:14,fontFamily:UI};
@@ -607,7 +633,15 @@ export default function Workspace(){
    <button style={{...ghost,padding:"7px 12px",fontSize:13,flex:"0 0 auto"}} onClick={reset}>+ Paciente anónimo</button>
   </div>
   <main style={content}>
-
+  <style>{RAIL_CSS}</style>
+  <div className="mos-cols">
+   <nav className="mos-rail" aria-label="Módulos clínicos">
+    {NAV.map((g,gi)=><div key={g.group}>
+     <div className={"mos-navgroup"+(gi===0?" first":"")}>{g.group}</div>
+     {g.items.map(it=><button key={it.h2} className="mos-navitem" onClick={()=>scrollToSection(it.h2)}>{it.label}</button>)}
+    </div>)}
+   </nav>
+   <div className="mos-main">
   {/* PANEL / WORKLIST POBLACIONAL */}
   <section style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1178,6 +1212,8 @@ export default function Workspace(){
   </section>
 
   {error&&<div style={{...card,borderColor:"#f0c6c0",background:"#fdf3f2"}}><b style={{color:"#c0392b"}}>Error</b><p style={{margin:"6px 0 0",color:"#7a3b34",wordBreak:"break-word"}}>{error}</p>{error.includes("SAFETY_BLOCKED")&&<p style={{margin:"6px 0 0",fontSize:12,color:"#a15c00"}}>💡 ¿Hay un resultado crítico sin cerrar para este paciente? Ciérralo abajo y vuelve a firmar.</p>}</div>}
+   </div>
+  </div>
   </main>
  </div>;
 }
