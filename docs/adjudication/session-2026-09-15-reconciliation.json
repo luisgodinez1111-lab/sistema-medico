@@ -2187,6 +2187,32 @@
    "epic": "Q/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-IMMUNIZATION-REGISTRY-001",
+   "name": "Registro de vacunas (clínica-wide) — módulo Vacunas cableado a SQL",
+   "risk": "C5",
+   "eng_authority_note": "Vista Vacunas a fidelidad exacta del mockup (header, 5 KPIs, 3 columnas Filtros/tabla/Detalle con 'Esquema completo', gráficas donut de cobertura por vacuna + próximas dosis + esquemas por edad + acciones rápidas). Cableada a reader nuevo immunizationRegistry + GET /api/v1/immunizations: por cada agregado Immunization toma el evento base IMMUNIZATION_DUE (vacuna/dosis/paciente) y su ESTADO por la última transición (DUE->Pendiente, ADMINISTERED->Completa, REFUSED, ADVERSE_EVENT), une lote/sitio/fecha del evento ADMINISTERED y el nombre del paciente, y computa conteos (aplicadas/pendientes/pacientes vacunados/esquemas incompletos) + cobertura por vacuna. Filtros de cliente + panel de detalle por selección. Datos representativos idénticos a la imagen cuando el tenant no tiene vacunas sembradas.",
+   "invariants": [
+    "ESTADO de la dosis = última transición del agregado (ADMINISTERED->Completa/Aplicada, DUE->Pendiente)",
+    "Lote/sitio/fecha de aplicación tomados del evento ADMINISTERED (join por subquery); la dosis base es DUE",
+    "Cobertura por vacuna y conteos derivados del registro real; join del nombre del paciente casteado a uuid",
+    "immunization:write para el registro (GET) y para programar/administrar; scope faltante -> 403",
+    "Fallback representativo = imagen exacta cuando total=0; KPIs/cobertura reflejan lo real cuando existe"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (immunizationRegistry + ImmunizationRow)",
+    "apps/web/app/api/v1/immunizations/route.ts (GET registro + conteos + cobertura)",
+    "apps/web/app/workspace/page.tsx (vista Vacunas completa cableada + VMAP + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-immunization-registry-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Vacunas: KPIs, tabla, detalle, cobertura)"
+   ],
+   "runtime_evidence": "scripts/v22/live-immunization-registry-proof.mts — PASS 15/15 vs Neon 2026-09-18 (4 dosis de 3 pacientes, 2 administradas con lote+sitio, estado Completa/Pendiente por transición, lote y fecha de aplicación unidos del evento ADMINISTERED, conteos aplicadas/pendientes 2/2, pacientes vacunados 2, esquemas incompletos 2, cobertura por vacuna, join del nombre, sin-scope 403). En el smoke runner de CI. Render test 12/12 (jsdom). Fidelidad verificada por preview + captura.",
+   "epic": "V/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

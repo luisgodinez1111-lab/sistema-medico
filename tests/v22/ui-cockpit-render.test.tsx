@@ -12,6 +12,12 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
  apiRequest:async(path:string)=>{
+  if(path.includes("/api/v1/immunizations"))return{status:200,body:{
+   items:[
+    {immunizationId:"i1",patientId:"p1",patientName:"Ana López García",vaccine:"Influenza",dose:"1/1",lot:"A3F2K",site:"Brazo izquierdo",status:"COMPLETE",statusLabel:"Completa",appliedAt:"2026-09-17T00:00:00Z",registeredBy:"actor1"},
+    {immunizationId:"i2",patientId:"p2",patientName:"Mateo Ramírez",vaccine:"SRP",dose:"1/2",lot:"",site:"",status:"PENDING",statusLabel:"Pendiente",appliedAt:"2026-09-16T00:00:00Z",registeredBy:"actor1"},
+    {immunizationId:"i3",patientId:"p3",patientName:"Carlos Mendoza",vaccine:"Neumococo 13V",dose:"1/1",lot:"P7H8L",site:"Brazo derecho",status:"COMPLETE",statusLabel:"Completa",appliedAt:"2026-09-14T00:00:00Z",registeredBy:"actor1"},
+   ],total:3,appliedCount:2,pendingCount:1,vaccinatedPatients:2,incompleteSchemes:1,byVaccine:{Influenza:1,["Neumococo 13V"]:1}}};
   if(path.includes("/api/v1/problems"))return{status:200,body:{
    items:[
     {problemId:"q1",patientId:"p1",patientName:"Ana López García",code:"E11.9",description:"Diabetes mellitus tipo 2",category:"Endocrinológicos",chronic:false,status:"ACTIVE",statusLabel:"Activo",recordedAt:"2026-09-15T00:00:00Z",registeredBy:"actor1"},
@@ -66,7 +72,7 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Vacunas"}));
+const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
@@ -139,6 +145,19 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
+ });
+
+ it("vista Vacunas (S-VACUNAS): registro clínica-wide cableado a GET /api/v1/immunizations — KPIs, tabla, detalle y cobertura",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Vacunas"}));
+  expect(screen.getByRole("heading",{name:"Vacunas"})).toBeTruthy();
+  expect((await screen.findAllByText("Ana López García",{},{timeout:2500})).length).toBeGreaterThan(0); // fila + detalle
+  expect(screen.getByText("Detalle de la vacuna")).toBeTruthy();
+  expect(screen.getAllByText("Completa").length).toBeGreaterThan(0);           // estado en TEXTO
+  expect(screen.getAllByText("Pendiente").length).toBeGreaterThan(0);
+  expect(screen.getByText(/Cobertura de vacunas/)).toBeTruthy();              // donut cobertura
+  expect(screen.getAllByText(/Próximas dosis/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/Esquemas por edad/).length).toBeGreaterThan(0);
  });
 
  it("vista Problemas (S-PROBLEMAS): registro clínica-wide cableado a GET /api/v1/problems + navegación a form y plantillas",async()=>{

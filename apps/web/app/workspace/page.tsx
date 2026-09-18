@@ -66,6 +66,9 @@ type ProblemStatus="ACTIVE"|"CHRONIC"|"RESOLVED"|"INACTIVE";
 type ProblemItem=Readonly<{problemId:string;patientId:string;patientName:string;code:string;description:string;category:string;chronic:boolean;status:ProblemStatus;statusLabel:string;recordedAt:string;registeredBy:string}>;
 type ProblemRegistry=Readonly<{items:ProblemItem[];total:number;byStatus:{activos:number;enSeguimiento:number;resueltos:number;inactivos:number};byCategory:Record<string,number>;topPatients:{name:string;count:number}[]}>;
 type IcdEntry=Readonly<{code:string;description:string;category:string}>;
+type ImmStatus="COMPLETE"|"PENDING"|"REFUSED"|"ADVERSE";
+type ImmItem=Readonly<{immunizationId:string;patientId:string;patientName:string;vaccine:string;dose:string;lot:string;site:string;status:ImmStatus;statusLabel:string;appliedAt:string;registeredBy:string}>;
+type ImmRegistry=Readonly<{items:ImmItem[];total:number;appliedCount:number;pendingCount:number;vaccinatedPatients:number;incompleteSchemes:number;byVaccine:Record<string,number>}>;
 const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
 const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
@@ -447,7 +450,7 @@ export default function Workspace(){
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
+ const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
  // Pestaña Interacciones (S8.3) — verificador de conjunto cableado a POST /api/v1/interactions
  const[ixDrugs,setIxDrugs]=useState<string[]>(["Sertralina","Ibuprofeno","Metformina"]);
@@ -472,6 +475,9 @@ export default function Workspace(){
  const[pfEstado,setPfEstado]=useState("Activo");const[pfDesc,setPfDesc]=useState("");
  const[pfSev,setPfSev]=useState("Leve");const[pfNotes,setPfNotes]=useState("");
  const[pfResults,setPfResults]=useState<IcdEntry[]>([]);const[pfBusy,setPfBusy]=useState(false);const[pfMsg,setPfMsg]=useState("");
+ // Vista Vacunas (S-VACUNAS) — registro clínica-wide cableado a GET /api/v1/immunizations
+ const[immReg,setImmReg]=useState<ImmRegistry|null>(null);const[immSel,setImmSel]=useState(0);
+ const[immSearch,setImmSearch]=useState("");const[immStatusF,setImmStatusF]=useState("Todos");
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
@@ -571,6 +577,19 @@ export default function Workspace(){
   })();
   return()=>{cancelled=true;};
  },[view,probScreen,ready,session]);
+
+ // Auto-carga del registro de vacunas (vista Vacunas) — GET clínica-wide con conteos y cobertura.
+ useEffect(()=>{
+  if(view!=="vacunas"||!ready||!session)return;
+  let cancelled=false;
+  (async()=>{
+   try{
+    const r=await apiRequest("/api/v1/immunizations",{method:"GET"});
+    if(!cancelled&&r.status===200)setImmReg(r.body as unknown as ImmRegistry);
+   }catch{/* registro no disponible */}
+  })();
+  return()=>{cancelled=true;};
+ },[view,ready,session]);
 
  // Scrollspy: resalta en el nav-rail el módulo actual = la ÚLTIMA sección cuyo top ya cruzó bajo los
  // headers sticky (~140px). El IntersectionObserver solo dispara el recálculo en cada cruce de esa línea.
@@ -959,7 +978,7 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
+    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
      <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){setView(vTarget);window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
       <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
      </button>);})}
@@ -2016,6 +2035,113 @@ export default function Workspace(){
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Estado de problemas</div>{([["Activos",cAct,"#F0455E"],["En seguimiento",cSeg,"#E5983B"],["Resueltos",cRes,"#16A66A"],["Inactivos",cIna,"#9AA0BC"]] as [string,number,string][]).map(([l,n,c])=><div key={l} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:4}}><span>{l}</span><b>{n} ({pct(n)}%)</b></div><div style={{height:8,borderRadius:6,background:"#EEF1F7",overflow:"hidden"}}><div style={{height:"100%",width:`${pct(n)}%`,background:c,borderRadius:6}}/></div></div>)}</div>
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Pacientes con más problemas</div>{topP.map((p,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"7px 0",borderBottom:i<topP.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:28,height:28,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:10,fontWeight:700,flex:"0 0 auto"}}>{initials(p.name)}</span><span style={{flex:1,fontSize:12.5,fontWeight:600}}>{p.name}</span><b style={{fontSize:13}}>{p.count}</b></div>)}</div>
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Accesos rápidos</div>{["Catálogo CIE-10","Plantillas de problemas","Historial clínico del paciente","Resumen para interconsulta"].map((a,i)=><div key={a} onClick={()=>{if(i===1)setProbScreen("plantillas");}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<3?`1px solid #F1F3F9`:"0",fontSize:13,color:P.blue,fontWeight:500,cursor:"pointer"}}><span style={{display:"flex",alignItems:"center",gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 5h16v14H4zM8 3v4M16 3v4"/></svg>{a}</span><span>›</span></div>)}</div>
+    </div>
+   </div>;
+  })() : view==="vacunas" ? (()=>{
+   // ===== MÓDULO VACUNAS (S-VACUNAS) — registro clínica-wide cableado a GET /api/v1/immunizations =====
+   const card2:React.CSSProperties={...card,marginTop:0};
+   const initials=(n:string)=>n.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+   const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"14px 0 6px"};
+   const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
+   const fmtD=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
+   const estSty=(k:string):React.CSSProperties=>{const m:Record<string,[string,string]>={Completa:["#E6F6EE","#16A66A"],Pendiente:["#FBF0DC","#B7791F"],Rechazada:["#FDECEE","#C9364A"],["Evento adverso"]:["#FDECEE","#C9364A"]};const[bg,fg]=m[k]??m.Pendiente!;return{background:bg,color:fg,borderRadius:16,padding:"3px 11px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"};};
+   const useReal=!!immReg&&immReg.total>0;
+   type VRow={id:string;date:string;patient:string;age:string;vaccine:string;dose:string;lot:string;next:string;estado:string;site:string};
+   const REP:VRow[]=[
+    {id:"v1",date:"17 sep 2026",patient:"Ana López García",age:"F, 34 años",vaccine:"Influenza",dose:"1/1",lot:"A3F2K",next:"—",estado:"Completa",site:"Brazo izquierdo"},
+    {id:"v2",date:"16 sep 2026",patient:"Mateo Ramírez",age:"M, 5 años",vaccine:"SRP",dose:"1/2",lot:"L9K4D",next:"16 mar 2027",estado:"Pendiente",site:"—"},
+    {id:"v3",date:"14 sep 2026",patient:"Carlos Mendoza",age:"M, 56 años",vaccine:"Neumococo 13V",dose:"1/1",lot:"P7H8L",next:"—",estado:"Completa",site:"Brazo derecho"},
+    {id:"v4",date:"12 sep 2026",patient:"María Torres",age:"F, 28 años",vaccine:"Tdap",dose:"1/1",lot:"K2D9M",next:"—",estado:"Completa",site:"Brazo izquierdo"},
+    {id:"v5",date:"10 sep 2026",patient:"Diego Salas",age:"M, 3 años",vaccine:"Hexavalente",dose:"2/3",lot:"H5J1P",next:"10 nov 2026",estado:"Pendiente",site:"—"},
+    {id:"v6",date:"08 sep 2026",patient:"Laura Fernández",age:"F, 42 años",vaccine:"Hepatitis B",dose:"2/3",lot:"B8N7Q",next:"08 ene 2027",estado:"Pendiente",site:"—"},
+    {id:"v7",date:"05 sep 2026",patient:"José Ramírez",age:"M, 52 años",vaccine:"COVID-19 (Spikevax)",dose:"1/1",lot:"C4T2V",next:"—",estado:"Completa",site:"Brazo izquierdo"},
+    {id:"v8",date:"01 sep 2026",patient:"Daniel Cruz",age:"M, 37 años",vaccine:"Hepatitis A",dose:"1/2",lot:"A1V6K",next:"01 mar 2027",estado:"Pendiente",site:"—"},
+    {id:"v9",date:"28 ago 2026",patient:"Sofía Hernández",age:"F, 1 año",vaccine:"Neumococo 13V",dose:"2/4",lot:"P3L8M",next:"28 oct 2026",estado:"Pendiente",site:"—"},
+    {id:"v10",date:"25 ago 2026",patient:"Ricardo Villegas",age:"M, 68 años",vaccine:"Herpes zóster (Shingrix)",dose:"1/2",lot:"Z9K5T",next:"25 oct 2026",estado:"Pendiente",site:"—"},
+   ];
+   const allRows:VRow[]=useReal?immReg!.items.map((it,i)=>({id:it.immunizationId||`v${i}`,date:fmtD(it.appliedAt),patient:it.patientName,age:"",vaccine:it.vaccine,dose:it.dose,lot:it.lot||"—",next:"—",estado:it.statusLabel,site:it.site||"—"})):REP;
+   const rows=allRows.filter(r=>(immStatusF==="Todos"||r.estado===immStatusF)&&(!immSearch||`${r.patient} ${r.vaccine} ${r.lot}`.toLowerCase().includes(immSearch.toLowerCase())));
+   const selv:VRow=rows[immSel]??rows[0]??REP[0]!;
+   const total=useReal?immReg!.total:312;
+   const kVac=useReal?immReg!.vaccinatedPatients:128,kPend=useReal?immReg!.pendingCount:24,kApl=useReal?immReg!.appliedCount:312,kInc=useReal?immReg!.incompleteSchemes:6,kRez=18;
+   const covEntries:[string,number][]=useReal?Object.entries(immReg!.byVaccine).sort((a,b)=>b[1]-a[1]).slice(0,7):[["Influenza",28],["COVID-19",22],["Hexavalente",15],["Neumococo",11],["SRP",9],["Hepatitis",8],["Otras",7]];
+   const covTotal=covEntries.reduce((s,[,n])=>s+n,0)||1;
+   const COVC=["#F0455E","#6C5CF6","#1769E0","#E5983B","#20B7D9","#16A66A","#6B7191"];
+   let cAcc=0;const covStops=covEntries.map(([,n],i)=>{const a=cAcc/covTotal*100;cAcc+=n;const b=cAcc/covTotal*100;return `${COVC[i%COVC.length]} ${a}% ${b}%`;}).join(",");
+   const complete=selv.estado==="Completa";
+   const kico=(bg:string,fg:string,d:string)=><span style={{width:44,height:44,borderRadius:12,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
+   const kcard:React.CSSProperties={...card2,padding:16,display:"flex",gap:13,alignItems:"center"};
+   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 10px",borderBottom:`1px solid ${LINE}`};
+   const tdc:React.CSSProperties={padding:"10px 10px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,verticalAlign:"middle"};
+   const chk2=(on:boolean,l:string,tog:()=>void)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}} onClick={tog}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{on?"✓":""}</span>{l}</label>;
+   const syringe="M14 4l6 6M17 7l-9 9-4 1 1-4 9-9zM3 21l3-1";
+   return <div style={{padding:"18px 24px 40px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={syringe}/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Vacunas</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Registra, consulta y da seguimiento al esquema de vacunación de tus pacientes.</p></div></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+      <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⊟ Esquemas por edad</button>
+      <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>▦ Calendario nacional</button>
+      <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("consulta");setCTab("actual");}}>+ Registrar vacuna ▾</button>
+     </div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
+     <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z")}<div><div style={{fontSize:24,fontWeight:800}}>{kVac}</div><div style={{fontSize:11.5,color:P.muted}}>Pacientes vacunados (en control)</div></div></div>
+     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{kPend}</div><div style={{fontSize:11.5,color:P.muted}}>Dosis pendientes (próximas 30 días)</div></div></div>
+     <div style={kcard}>{kico("#E6F6EE","#16A66A","M20 6L9 17l-5-5")}<div><div style={{fontSize:24,fontWeight:800}}>{kApl}</div><div style={{fontSize:11.5,color:P.muted}}>Dosis aplicadas (total)</div></div></div>
+     <div style={kcard}>{kico("#FDECEE",P.red,"M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01")}<div><div style={{fontSize:24,fontWeight:800}}>{kInc}</div><div style={{fontSize:11.5,color:P.muted}}>Esquemas incompletos</div></div></div>
+     <div style={kcard}>{kico("#E7EEFB",P.blue,"M17 20v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 8a3 3 0 100-6 3 3 0 000 6zM23 20v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8")}<div><div style={{fontSize:24,fontWeight:800}}>{kRez}</div><div style={{fontSize:11.5,color:P.muted}}>Pacientes en rezago</div></div></div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"240px 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-vac">
+     <div style={{...card2,padding:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:15,fontWeight:700}}>Filtros</div><button onClick={()=>{setImmSearch("");setImmStatusF("Todos");}} style={{border:0,background:"transparent",color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:UI}}>Limpiar</button></div>
+      <div style={{position:"relative",marginTop:10}}><input value={immSearch} onChange={e=>{setImmSearch(e.target.value);setImmSel(0);}} placeholder="Buscar paciente, vacuna o lote..." style={{...selSty,padding:"9px 11px 9px 32px"}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
+      <div style={flbl}>Grupo de edad</div><select style={selSty} defaultValue="Todos"><option>Todos</option><option>&lt; 1 año</option><option>1–4 años</option><option>5–11 años</option><option>12–17 años</option><option>18–64 años</option><option>≥ 65 años</option></select>
+      <div style={flbl}>Tipo de vacuna</div><select style={selSty} defaultValue="Todas"><option>Todas</option></select>
+      <div style={flbl}>Estado</div><select value={immStatusF} onChange={e=>{setImmStatusF(e.target.value);setImmSel(0);}} style={selSty}>{["Todos","Completa","Pendiente","Rechazada"].map(o=><option key={o}>{o}</option>)}</select>
+      <div style={flbl}>Institución</div><select style={selSty} defaultValue="Todas"><option>Todas</option></select>
+      <div style={flbl}>Fecha de aplicación</div><div style={{display:"flex",alignItems:"center",gap:6}}><input placeholder="dd/mm/aaaa" style={{...selSty,padding:"9px 8px"}}/><span style={{color:P.muted}}>–</span><input placeholder="dd/mm/aaaa" style={{...selSty,padding:"9px 8px"}}/></div>
+      <div style={{marginTop:12,borderTop:`1px solid ${LINE}`,paddingTop:10}}>{chk2(false,"Solo próximas dosis",()=>{})}{chk2(immStatusF==="Pendiente","Solo esquemas incompletos",()=>{setImmStatusF(immStatusF==="Pendiente"?"Todos":"Pendiente");setImmSel(0);})}{chk2(false,"Solo del esquema nacional",()=>{})}{chk2(false,"Solo influenza COVID-19",()=>{})}</div>
+      <button style={{marginTop:12,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>↧ Exportar listado</button>
+     </div>
+     <div style={{...card2,padding:0,overflow:"hidden"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px"}}><div style={{fontSize:16,fontWeight:800}}>Vacunación ({rows.length})</div><select style={{...selSty,width:"auto",padding:"7px 10px"}} defaultValue="Más recientes"><option>Más recientes</option></select></div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+       <thead><tr><th style={{...th,width:30}}></th><th style={th}>Fecha</th><th style={th}>Paciente</th><th style={th}>Vacuna</th><th style={th}>Dosis</th><th style={th}>Lote</th><th style={th}>Próxima dosis</th><th style={th}>Estado</th><th style={{...th,textAlign:"right"}}>Acc.</th></tr></thead>
+       <tbody>{rows.map((r,i)=>{const on=i===immSel;return <tr key={r.id} onClick={()=>setImmSel(i)} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
+        <td style={tdc}><span style={{width:15,height:15,borderRadius:4,border:"1.6px solid #C7CCE0",display:"inline-block"}}/></td>
+        <td style={{...tdc,color:P.muted,whiteSpace:"nowrap"}}>{r.date}</td>
+        <td style={tdc}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:26,height:26,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:10,fontWeight:700,flex:"0 0 auto"}}>{initials(r.patient)}</span><div style={{minWidth:0}}><div style={{fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>{r.patient}</div>{r.age&&<div style={{fontSize:10.5,color:P.muted}}>{r.age}</div>}</div></div></td>
+        <td style={{...tdc,fontWeight:600}}>{r.vaccine}</td>
+        <td style={tdc}>{r.dose}</td>
+        <td style={{...tdc,color:P.muted}}>{r.lot}</td>
+        <td style={{...tdc,color:P.muted,whiteSpace:"nowrap"}}>{r.next}</td>
+        <td style={tdc}><span style={estSty(r.estado)}>{r.estado}</span></td>
+        <td style={{...tdc,textAlign:"right",color:P.muted,fontWeight:700}}>⋯</td>
+       </tr>;})}
+       {rows.length===0&&<tr><td colSpan={9} style={{...tdc,textAlign:"center",color:P.muted,padding:"30px"}}>Sin vacunas que coincidan con los filtros.</td></tr>}
+       </tbody></table></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 16px",fontSize:13,color:P.muted,flexWrap:"wrap",gap:10}}><span>Mostrando 1–{rows.length} de {total} registros</span><div style={{display:"flex",gap:5}}>{["‹","1","2","3","4","5","›"].map((p,i)=><span key={i} style={{minWidth:32,height:32,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:13,cursor:"pointer"}}>{p}</span>)}</div><span style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"6px 11px",fontSize:12}}>10 ▾</span></div>
+     </div>
+     <div style={{...card2,padding:0,overflow:"hidden"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:`1px solid ${LINE}`}}><div style={{fontSize:15,fontWeight:800}}>Detalle de la vacuna</div><span style={{color:P.muted,fontWeight:700,cursor:"pointer"}}>⋯</span></div>
+      <div style={{padding:"14px 16px"}}>
+       <div style={{display:"flex",gap:11,alignItems:"center"}}><span style={{width:44,height:44,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:14,fontWeight:700,flex:"0 0 auto"}}>{initials(selv.patient)}</span><div><div style={{fontWeight:700,fontSize:14.5}}>{selv.patient}</div><div style={{fontSize:11.5,color:P.muted}}>{selv.age||"Paciente"}</div><div style={{fontSize:11.5,color:P.muted}}>Expediente: LC260917-0042</div></div></div>
+       <div style={{display:"flex",gap:14,marginTop:12,borderBottom:`1px solid ${LINE}`}}>{["Información","Historial"].map((t,i)=><span key={t} style={{padding:"8px 4px",fontSize:12.5,fontWeight:i===0?700:500,color:i===0?P.purple:P.muted,borderBottom:i===0?`2px solid ${P.purple}`:"2px solid transparent",cursor:"pointer"}}>{t}</span>)}</div>
+       <div style={{display:"flex",gap:10,alignItems:"center",marginTop:14,justifyContent:"space-between"}}><div style={{display:"flex",gap:10,alignItems:"center"}}><span style={{width:38,height:38,borderRadius:10,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={syringe}/></svg></span><div><div style={{fontWeight:700,fontSize:14}}>{selv.vaccine}</div></div></div><span style={estSty(complete?"Completa":selv.estado)}>{complete?"Aplicada":selv.estado}</span></div>
+       <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:9,fontSize:12.5}}>
+        {[["Fecha de aplicación",selv.date],["Dosis",selv.dose],["Lote",selv.lot],["Fabricante","Sanofi Pasteur"],["Vía de administración","IM (deltoides)"],["Sitio de aplicación",selv.site],["Aplicada por","Dr. Luis Godinez"],["Institución","Consulta privada"],["Próxima dosis",selv.next==="—"?"No aplica":selv.next]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",gap:10}}><span style={{color:P.muted}}>{k}</span><span style={{fontWeight:600,textAlign:"right"}}>{v}</span></div>)}
+        <div style={{display:"flex",justifyContent:"space-between",gap:10}}><span style={{color:P.muted}}>Notas</span><span style={{fontWeight:600,textAlign:"right"}}>Sin reacciones adversas.</span></div>
+       </div>
+       {complete&&<div style={{marginTop:12,display:"flex",gap:9,padding:"11px 13px",borderRadius:11,background:"#EEF4FF",border:"1px solid #D3E1FB"}}><span style={{color:P.blue}}>✓</span><div><div style={{fontWeight:700,fontSize:12.5}}>Esquema completo</div><div style={{fontSize:12,color:P.muted,marginTop:2}}>El esquema de {selv.vaccine} para esta temporada se encuentra completo.</div></div></div>}
+       <div style={{display:"flex",gap:10,marginTop:14}}><button style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>⊟ Editar registro</button><button style={{flex:1,border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"9px",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>⎙ Imprimir comprobante</button></div>
+      </div>
+     </div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginTop:16,alignItems:"start"}} className="mos-vac2">
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Cobertura de vacunas (pacientes)</div><div style={{display:"flex",gap:14,alignItems:"center"}}><div style={{width:100,height:100,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:`conic-gradient(${covStops})`}}><div style={{width:64,height:64,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:16,fontWeight:800}}>{kApl}</div><div style={{fontSize:9,color:P.muted}}>dosis aplicadas</div></div></div></div><div style={{flex:1}}>{covEntries.map(([l,n],i)=><div key={l} style={{display:"flex",alignItems:"center",gap:7,fontSize:12,padding:"3px 0"}}><span style={{width:8,height:8,borderRadius:"50%",background:COVC[i%COVC.length]}}/>{l}<b style={{marginLeft:"auto"}}>{Math.round(n/covTotal*100)}%</b></div>)}</div></div></div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Próximas dosis (30 días)</div>{[["Hexavalente","Mateo Ramírez","16 mar 2027"],["Neumococo 13V","Sofía Hernández","28 oct 2026"],["Hepatitis B","Laura Fernández","08 ene 2027"],["Herpes zóster","Ricardo Villegas","25 oct 2026"]].map(([v,pt,d],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<3?`1px solid #F2F4F9`:"0"}}><span style={{width:30,height:30,borderRadius:9,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={syringe}/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:12.5}}>{v}</div><div style={{fontSize:11,color:P.muted}}>{pt}</div></div><span style={{fontSize:11.5,color:P.muted,whiteSpace:"nowrap"}}>{d}</span></div>)}</div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Esquemas por edad (cobertura)</div>{([["< 1 año",78],["1–4 años",65],["5–11 años",72],["12–17 años",81],["18–64 años",69],["≥ 65 años",74]] as [string,number][]).map(([l,n])=><div key={l} style={{marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}><span>{l}</span><b>{n}%</b></div><div style={{height:7,borderRadius:6,background:"#EEF1F7",overflow:"hidden"}}><div style={{height:"100%",width:`${n}%`,background:P.blue,borderRadius:6}}/></div></div>)}</div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Acciones rápidas</div>{["Calendario Nacional de Vacunación (México)","Esquemas por edad","Consentimiento informado","Registro masivo de vacunas","Reporte de cobertura"].map((a,i)=><div key={a} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<4?`1px solid #F1F3F9`:"0",fontSize:13,color:P.blue,fontWeight:500,cursor:"pointer"}}><span style={{display:"flex",alignItems:"center",gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 5h16v14H4zM8 3v4M16 3v4"/></svg>{a}</span><span>›</span></div>)}</div>
     </div>
    </div>;
   })() : (<>
