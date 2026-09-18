@@ -1,5 +1,5 @@
 "use client";
-import{useEffect,useState}from"react";
+import{useEffect,useState,Fragment}from"react";
 import{getStoredSession,apiRequest,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
 import{summarizePatient}from"../../../../packages/patient-summary/src";
 import{primitive,typography}from"../../../../packages/design-system/src";
@@ -242,6 +242,7 @@ const RAIL_CSS=`
 @media(max-width:1180px){.mos-mid{grid-template-columns:1fr 1fr!important}.mos-low2{grid-template-columns:1fr 1fr!important}}
 @media(max-width:900px){.mos-kpis{grid-template-columns:1fr 1fr!important}.mos-banners{grid-template-columns:1fr!important}.mos-mid{grid-template-columns:1fr!important}.mos-low{grid-template-columns:1fr!important}.mos-low2{grid-template-columns:1fr!important}}
 @media(max-width:1150px){.mos-detail{display:none!important}}
+@media(max-width:1100px){.mos-ag{grid-template-columns:1fr!important}}
 .mos-phone{width:270px;max-width:100%;margin:14px auto 0;border-radius:30px;background:#0C2148;padding:9px;box-shadow:0 18px 44px rgba(16,42,86,.22)}
 .mos-phone .screen{background:#F4F7FB;border-radius:23px;overflow:hidden}
 .mos-pnav{display:flex;justify-content:space-around;align-items:center;padding:9px 4px;background:#fff;border-top:1px solid #E4E9F2}
@@ -430,7 +431,7 @@ export default function Workspace(){
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"exp">("inicio"); // inicio=dashboard · pacientes=gestión · consulta=workspace clínico · exp=expediente crudo
+ const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"exp">("inicio"); // inicio · pacientes · consulta · agenda · exp(expediente crudo)
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
  const[cForm,setCForm]=useState({motivo:"",historia:"",antec:"",plan:""}); // borrador de la consulta actual
@@ -877,8 +878,8 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {SIDE_NAV.map(it=>{const isInicio=it.label==="Inicio";const isPac=it.label==="Pacientes";const isCon=it.label==="Consulta";const on=isInicio?view==="inicio":isPac?view==="pacientes":isCon?view==="consulta":(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
-     <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(isInicio){setView("inicio");window.scrollTo({top:0,behavior:"smooth"});}else if(isPac){setView("pacientes");window.scrollTo({top:0,behavior:"smooth"});}else if(isCon){setView("consulta");window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
+    {SIDE_NAV.map(it=>{const isInicio=it.label==="Inicio";const isPac=it.label==="Pacientes";const isCon=it.label==="Consulta";const isAg=it.label==="Agenda";const on=isInicio?view==="inicio":isPac?view==="pacientes":isCon?view==="consulta":isAg?view==="agenda":(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
+     <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(isInicio){setView("inicio");window.scrollTo({top:0,behavior:"smooth"});}else if(isPac){setView("pacientes");window.scrollTo({top:0,behavior:"smooth"});}else if(isCon){setView("consulta");window.scrollTo({top:0,behavior:"smooth"});}else if(isAg){setView("agenda");window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
       <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
      </button>);})}
    </nav>
@@ -1221,6 +1222,76 @@ export default function Workspace(){
       <div style={sec}><h3 style={{...sect,display:"flex",alignItems:"center",gap:8}}>Recordatorios y obligaciones {(gaps?.length??0)>0&&<span style={{background:"#F0455E",color:"#fff",borderRadius:999,padding:"1px 7px",fontSize:11}}>{gaps!.length}</span>}</h3>{(gaps?.length?gaps.slice(0,3).map(g=>g.label):["Registrar resultado de laboratorio","Seguimiento en 72 horas"]).map((r,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",fontSize:13,borderTop:i?`1px solid #F1F3F9`:"0"}}><div style={{flex:1}}>{r}</div><span style={{background:"#FBF0DC",color:"#B7791F",borderRadius:999,padding:"2px 9px",fontSize:10.5,fontWeight:700}}>Pendiente</span></div>)}<div style={{textAlign:"right",marginTop:6}}><span style={link} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Obligaciones de seguimiento"),0);}}>Ver todos →</span></div></div>
      </div>
     </div>)}
+   </div>;
+  })() : view==="agenda" ? (()=>{
+   // ===== VISTA AGENDA (calendario / citas) — S5.png =====
+   const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+   const dow=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+   const dd=clock.getDate(),mm=clock.getMonth(),yy=clock.getFullYear();
+   const fechaLarga=`${dow[clock.getDay()]!.replace(/^\w/,c=>c.toUpperCase())}, ${dd} de ${meses[mm]} de ${yy}`;
+   const firstDow=new Date(yy,mm,1).getDay();const daysInM=new Date(yy,mm+1,0).getDate();
+   const nowTop=48+((Math.max(7,Math.min(18,clock.getHours()+clock.getMinutes()/60))-7)*56);
+   const horaAhora=clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase();
+   type Ap={h:number;t:string;n:string;m:string;c:"blue"|"green"|"purple"|"amber"|"red"};
+   const AC:Record<string,{bg:string;bd:string;fg:string}>={blue:{bg:"#EAF1FD",bd:"#1769E0",fg:"#123c73"},green:{bg:"#E7F7EE",bd:"#16A66A",fg:"#0d5c3b"},purple:{bg:"#EFEBFD",bd:"#6C5CF6",fg:"#382a8f"},amber:{bg:"#FBF2DF",bd:"#E5983B",fg:"#8a5a12"},red:{bg:"#FDEBEE",bd:"#F0455E",fg:"#9c1f34"}};
+   const col1:Ap[]=[{h:8,t:"8:00–8:30",n:"Juan Pérez García",m:"Control DM2",c:"blue"},{h:9,t:"9:00–9:30",n:"Ana Ramírez Torres",m:"Resultado de laboratorio",c:"green"},{h:10,t:"10:00–10:30",n:"Carlos Díaz Martínez",m:"Dolor abdominal",c:"red"},{h:11,t:"11:00–11:30",n:"Sofía Vega Ramírez",m:"Control prenatal",c:"blue"},{h:12,t:"12:00–12:30",n:"Miguel Ruiz Herrera",m:"HTA",c:"purple"},{h:14,t:"2:00–2:30",n:"María Fernández López",m:"Primera vez",c:"purple"},{h:15,t:"3:00–3:30",n:"Laura Sánchez López",m:"Ansiedad",c:"green"},{h:16,t:"4:00–4:30",n:"Daniel López Vargas",m:"Revisión postoperatoria",c:"blue"}];
+   const col2:Ap[]=[{h:8,t:"8:00–9:00 a.m.",n:"Procedimiento menor",m:"Curaciones",c:"amber"},{h:10,t:"10:00–11:00",n:"Aplicación de vacuna",m:"Influenza",c:"purple"},{h:12,t:"12:00–1:00",n:"Retiro de puntos",m:"Procedimiento",c:"red"},{h:15,t:"3:00–4:00",n:"Nebulización / Terapia",m:"Paciente pediátrico",c:"amber"}];
+   const col3:Ap[]=[{h:9,t:"9:00–9:30 a.m.",n:"Control pediátrico",m:"Emilio Torres (6 años)",c:"purple"},{h:10,t:"10:30–11:00",n:"Control geriátrico",m:"Rosa Méndez (68 años)",c:"green"},{h:13,t:"1:00–1:30",n:"Resultados",m:"Luis Herrera",c:"blue"},{h:14,t:"2:30–3:00",n:"Control asma",m:"Valeria Gómez (14 años)",c:"red"},{h:16,t:"4:30–5:00",n:"Seguimiento",m:"José Ramírez",c:"green"}];
+   const hours=[7,8,9,10,11,12,13,14,15,16,17,18];
+   const hLabel=(h:number)=>h<12?`${h}:00 a.m.`:h===12?"12:00 p.m.":`${h-12}:00 p.m.`;
+   const apAt=(col:Ap[],h:number)=>col.find(a=>a.h===h);
+   const card2:React.CSSProperties={...card,marginTop:0};
+   const sect:React.CSSProperties={fontSize:15,fontWeight:700};
+   const link:React.CSSProperties={color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"};
+   const slot=(a?:Ap,last?:boolean)=>{return <div style={{borderRight:last?"0":`1px solid ${LINE}`,borderBottom:`1px solid #F2F4F9`,height:56,padding:3}}>{a&&(()=>{const c=AC[a.c]!;return <div style={{borderRadius:8,padding:"6px 9px",fontSize:11,height:"100%",overflow:"hidden",borderLeft:`3px solid ${c.bd}`,background:c.bg,color:c.fg,cursor:"pointer"}}><div style={{fontSize:10,opacity:.85}}>{a.t}</div><div style={{fontWeight:700,fontSize:11.5}}>{a.n}</div><div style={{opacity:.8}}>{a.m}</div></div>;})()}</div>;};
+   const gdot=(c:string)=><span style={{width:8,height:8,borderRadius:"50%",background:c,flex:"0 0 auto"}}/>;
+   const rkico=(bg:string,fg:string,d:string)=><span style={{width:38,height:38,borderRadius:10,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
+   const nueva=()=>{setView("exp");setTimeout(()=>scrollToSection("Agenda"),0);};
+   return <div style={{padding:"20px 24px 40px",display:"grid",gridTemplateColumns:"1fr 340px",gap:16,alignItems:"start"}} className="mos-ag">
+    <div>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+      <div><h1 style={{fontSize:29,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Agenda</h1><p style={{color:P.muted,fontSize:13.5,margin:"5px 0 0"}}>Administra tus citas, consultas y procedimientos.</p></div>
+      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}><button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Bloques de tiempo</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 14px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Todos los consultorios ▾</button><button style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={nueva}>+ Nueva cita</button></div>
+     </div>
+     <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>{["Vista diaria","Vista semanal","Vista mensual","Lista de citas"].map((v,i)=><span key={v} style={{border:`1px solid ${i===0?P.purple:LINE}`,background:i===0?P.purple:P.white,color:i===0?"#fff":P.muted,borderRadius:10,padding:"9px 15px",fontSize:13.5,fontWeight:600,cursor:"pointer"}}>{v}</span>)}</div>
+     <div style={{...card2,marginTop:14,overflow:"hidden"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:`1px solid ${LINE}`,flexWrap:"wrap"}}>
+       <span style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>‹</span><span style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>›</span>
+       <b style={{fontSize:15}}>{fechaLarga}</b><span style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"6px 12px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Hoy</span>
+       <div style={{display:"flex",background:P.canvas,borderRadius:9,padding:3,marginLeft:"auto"}}>{["Día","Semana","Mes"].map((s,i)=><span key={s} style={{padding:"6px 14px",fontSize:13,fontWeight:600,borderRadius:7,cursor:"pointer",background:i===0?P.purple:"transparent",color:i===0?"#fff":P.muted}}>{s}</span>)}</div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"70px 1fr 1fr 1fr",position:"relative"}}>
+       <div style={{padding:"12px 14px",borderBottom:`1px solid ${LINE}`,borderRight:`1px solid ${LINE}`,fontSize:13,fontWeight:700}}>Hora</div>
+       {[["#16A66A","Consultorio 1","Consulta general"],["#1769E0","Consultorio 2","Procedimientos"],["#6C5CF6","Consultorio 3","Control y seguimiento"]].map(([c,t,s],i)=><div key={i} style={{padding:"12px 14px",borderBottom:`1px solid ${LINE}`,borderRight:i<2?`1px solid ${LINE}`:"0",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:7}}>{gdot(c as string)}<div>{t as string}<span style={{fontSize:11,color:P.muted,fontWeight:400,display:"block",marginTop:1}}>{s as string}</span></div></div>)}
+       {hours.map((h,ri)=>{const last=ri===hours.length-1;return <Fragment key={h}>
+        <div style={{borderRight:`1px solid ${LINE}`,borderBottom:last?"0":`1px solid #F2F4F9`,padding:"6px 8px",fontSize:11.5,color:P.muted,textAlign:"right",height:56}}>{hLabel(h)}</div>
+        {slot(apAt(col1,h))}{slot(apAt(col2,h))}{slot(apAt(col3,h),true)}
+       </Fragment>;})}
+       <div style={{position:"absolute",left:70,right:0,top:nowTop,height:2,background:"#F0455E",zIndex:5}}><span style={{position:"absolute",left:0,top:-9,background:"#F0455E",color:"#fff",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:5}}>{horaAhora}</span></div>
+      </div>
+      <div style={{display:"flex",gap:18,flexWrap:"wrap",padding:"14px 16px",fontSize:12,color:P.muted}}>{[["#1769E0","Consulta general"],["#16A66A","Control / Seguimiento"],["#6C5CF6","Primera vez"],["#E5983B","Procedimiento"],["#8B7DF8","Vacunación"],["#20B7D9","Resultados"],["#F0455E","Urgencia"]].map(([c,l])=><span key={l} style={{display:"flex",alignItems:"center",gap:7}}>{gdot(c as string)}{l as string}</span>)}</div>
+     </div>
+    </div>
+    <div style={{display:"flex",flexDirection:"column",gap:16}} className="mos-agr">
+     <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,fontWeight:700}}><span>‹ {meses[mm]!.replace(/^\w/,c=>c.toUpperCase())} {yy}</span><span style={{color:P.muted}}>‹ ›</span></div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,textAlign:"center",fontSize:12}}>
+       {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map(d=><span key={d} style={{padding:"7px 0",color:P.muted,fontWeight:600}}>{d}</span>)}
+       {Array.from({length:firstDow}).map((_,i)=><span key={"e"+i}/>)}
+       {Array.from({length:daysInM}).map((_,i)=>{const day=i+1;const isToday=day===dd;return <span key={day} style={{padding:"7px 0",borderRadius:7,cursor:"pointer",background:isToday?P.purple:"transparent",color:isToday?"#fff":P.ink,fontWeight:isToday?700:400}}>{day}</span>;})}
+      </div>
+     </div>
+     <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 10px"}}><span style={sect}>Resumen del día</span><span style={link}>Ver reportes →</span></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:"0 16px 16px"}}>
+       {([["#EEEBFD","#6C5CF6","M4 5h16v16H4zM8 3v4M16 3v4","12","Citas programadas"],["#E6F6EE","#16A66A","M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z","9","Atendidas"],["#FBF0DC","#B7791F","M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0","2","En espera"],["#FDECEE","#F0455E","M9 9l6 6M15 9l-6 6M21 12a9 9 0 11-18 0 9 9 0 0118 0","1","Canceladas"]] as const).map(([bg,fg,d,v,l])=><div key={l} style={{display:"flex",gap:11,alignItems:"center",padding:12,border:`1px solid ${LINE}`,borderRadius:12}}>{rkico(bg,fg,d)}<div><div style={{fontSize:20,fontWeight:800}}>{v}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div></div>)}
+      </div>
+     </div>
+     <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 6px"}}><span style={sect}>Próximas citas</span><span style={link}>Ver todas →</span></div>
+      {[["2:00 p.m.","MF","María Fernández López","Primera vez","esp"],["2:30 p.m.","VG","Control asma","Valeria Gómez (14 años)","esp"],["3:00 p.m.","LS","Laura Sánchez López","Ansiedad","conf"],["4:00 p.m.","DL","Daniel López Vargas","Revisión postoperatoria","conf"]].map(([tm,ini,n,m,st],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 16px",borderTop:`1px solid #F1F3F9`}}><span style={{fontSize:13,color:P.muted,width:52,flex:"0 0 auto"}}>{tm}</span><span style={{width:34,height:34,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{ini}</span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{n}</div><div style={{fontSize:11.5,color:P.muted}}>{m}</div></div><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",...(st==="esp"?{background:"#FDE7EA",color:"#D23651"}:{background:"#E6F6EE",color:"#16A66A"})}}>{st==="esp"?"En espera":"Confirmada"}</span></div>)}
+     </div>
+     <div style={card2}><div style={{padding:"16px 16px 4px"}}><span style={sect}>Acciones rápidas</span></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"8px 16px 16px"}}>{["Nueva cita","Reprogramar citas","Bloque de tiempo","Ver disponibilidad","Lista de espera","Exportar agenda","Enviar recordatorios","Configuración"].map(a=><button key={a} style={{display:"flex",alignItems:"center",gap:9,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 12px",fontSize:12.5,fontWeight:600,cursor:"pointer",color:P.ink,fontFamily:UI}} onClick={nueva}><span style={{width:7,height:7,borderRadius:"50%",background:P.purple,flex:"0 0 auto"}}/>{a}</button>)}</div>
+     </div>
+    </div>
    </div>;
   })() : (<>
   {/* PATIENT HEADER — contexto del paciente SIEMPRE visible (design-contract) */}
