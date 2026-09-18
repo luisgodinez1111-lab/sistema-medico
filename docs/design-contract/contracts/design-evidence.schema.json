@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Medical OS Design Evidence",
+  "type": "object",
+  "required": [
+    "surfaceId",
+    "commit",
+    "environment",
+    "requirements",
+    "tests",
+    "screenshots",
+    "evidenceClass",
+    "gateState"
+  ],
+  "properties": {
+    "surfaceId": {
+      "type": "string"
+    },
+    "commit": {
+      "type": "string",
+      "minLength": 7
+    },
+    "environment": {
+      "type": "string"
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbiddenStates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "failurePoints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "command",
+          "exitCode"
+        ],
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "exitCode": {
+            "type": "integer"
+          },
+          "hash": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "screenshots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "viewport",
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "viewport": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "evidenceClass": {
+      "enum": [
+        "SOURCE",
+        "EXECUTED_MODEL",
+        "EXECUTED_RUNTIME",
+        "HUMAN_APPROVED"
+      ]
+    },
+    "gateState": {
+      "enum": [
+        "PASS",
+        "PENDING_EVIDENCE",
+        "BLOCKED",
+        "PENDING_HUMAN_REVIEW"
+      ]
+    },
+    "knownGaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "residualRisks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

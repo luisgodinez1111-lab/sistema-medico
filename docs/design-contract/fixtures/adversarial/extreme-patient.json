@@ -1,0 +1,25 @@
+{
+  "fixtureId": "ADV-EXTREME-001",
+  "patient": {
+    "id": "fixture-patient-extreme",
+    "displayName": "María Fernanda de los Ángeles Hernández-Ramírez y Santiago",
+    "dobState": "PARTIAL",
+    "identityState": "TEMPORARY_RECONCILIATION_REQUIRED"
+  },
+  "counts": {
+    "activeProblems": 27,
+    "activeMedications": 14,
+    "allergies": 9,
+    "criticalResults": 3,
+    "correctedResults": 2,
+    "conflictingResults": 1,
+    "obligations": 6,
+    "overdue": 2,
+    "blocking": 1
+  },
+  "system": {
+    "ai": "DEGRADED",
+    "network": "DEGRADED",
+    "projection": "STALE"
+  }
+}

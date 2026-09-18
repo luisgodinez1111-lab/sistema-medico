@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "authorityClass": "SUBORDINATE_AI_DESIGN_IMPLEMENTATION_CONTRACT",
+  "notAFifthMaster": true,
+  "designAuthority": "Clinical Experience & Design System v3.2",
+  "evidenceLaw": "SOURCE != EXECUTED_MODEL != EXECUTED_RUNTIME != HUMAN_APPROVED",
+  "defaultGate": "PENDING_EVIDENCE",
+  "firstGoldenLoop": "GUX-001"
+}

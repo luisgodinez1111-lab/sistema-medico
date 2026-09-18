@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "connection",
+    "coverage"
+  ],
+  "properties": {
+    "connection": {
+      "type": "string",
+      "pattern": "^CONN-"
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": {
+        "enum": [
+          "NOT_APPLICABLE",
+          "SOURCE_ONLY",
+          "EXECUTED_MODEL",
+          "EXECUTED_RUNTIME",
+          "HUMAN_APPROVED",
+          "FAILED",
+          "BLOCKED",
+          "STALE_EVIDENCE"
+        ]
+      }
+    }
+  }
+}
