@@ -243,6 +243,7 @@ const RAIL_CSS=`
 @media(max-width:900px){.mos-kpis{grid-template-columns:1fr 1fr!important}.mos-banners{grid-template-columns:1fr!important}.mos-mid{grid-template-columns:1fr!important}.mos-low{grid-template-columns:1fr!important}.mos-low2{grid-template-columns:1fr!important}}
 @media(max-width:1150px){.mos-detail{display:none!important}}
 @media(max-width:1100px){.mos-ag{grid-template-columns:1fr!important}}
+@media(max-width:1150px){.mos-res{grid-template-columns:1fr!important}.mos-res .mos-detail{display:block!important;border-left:0!important;border-top:1px solid #E4E9F2}}
 .mos-phone{width:270px;max-width:100%;margin:14px auto 0;border-radius:30px;background:#0C2148;padding:9px;box-shadow:0 18px 44px rgba(16,42,86,.22)}
 .mos-phone .screen{background:#F4F7FB;border-radius:23px;overflow:hidden}
 .mos-pnav{display:flex;justify-content:space-around;align-items:center;padding:9px 4px;background:#fff;border-top:1px solid #E4E9F2}
@@ -431,7 +432,7 @@ export default function Workspace(){
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"exp">("inicio"); // inicio · pacientes · consulta · agenda · exp(expediente crudo)
+ const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
  const[cForm,setCForm]=useState({motivo:"",historia:"",antec:"",plan:""}); // borrador de la consulta actual
@@ -878,8 +879,8 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {SIDE_NAV.map(it=>{const isInicio=it.label==="Inicio";const isPac=it.label==="Pacientes";const isCon=it.label==="Consulta";const isAg=it.label==="Agenda";const on=isInicio?view==="inicio":isPac?view==="pacientes":isCon?view==="consulta":isAg?view==="agenda":(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
-     <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(isInicio){setView("inicio");window.scrollTo({top:0,behavior:"smooth"});}else if(isPac){setView("pacientes");window.scrollTo({top:0,behavior:"smooth"});}else if(isCon){setView("consulta");window.scrollTo({top:0,behavior:"smooth"});}else if(isAg){setView("agenda");window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
+    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
+     <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){setView(vTarget);window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
       <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
      </button>);})}
    </nav>
@@ -1291,6 +1292,76 @@ export default function Workspace(){
      <div style={card2}><div style={{padding:"16px 16px 4px"}}><span style={sect}>Acciones rápidas</span></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"8px 16px 16px"}}>{["Nueva cita","Reprogramar citas","Bloque de tiempo","Ver disponibilidad","Lista de espera","Exportar agenda","Enviar recordatorios","Configuración"].map(a=><button key={a} style={{display:"flex",alignItems:"center",gap:9,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 12px",fontSize:12.5,fontWeight:600,cursor:"pointer",color:P.ink,fontFamily:UI}} onClick={nueva}><span style={{width:7,height:7,borderRadius:"50%",background:P.purple,flex:"0 0 auto"}}/>{a}</button>)}</div>
      </div>
+    </div>
+   </div>;
+  })() : view==="resultados" ? (()=>{
+   // ===== VISTA RESULTADOS (gestión global de estudios) — S6.png =====
+   const card2:React.CSSProperties={...card,marginTop:0};
+   const link:React.CSSProperties={color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"};
+   const fdrop:React.CSSProperties={display:"inline-flex",alignItems:"center",gap:7,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 13px",fontSize:13,fontWeight:500,cursor:"pointer",whiteSpace:"nowrap"};
+   const kico=(bg:string,fg:string,d:string)=><span style={{width:42,height:42,borderRadius:11,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
+   const kcard:React.CSSProperties={...card2,padding:16,display:"flex",gap:13,alignItems:"center"};
+   const initials=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+   const stB=(s:string):[string,string]=>s==="Crítico"?["#FDE7EA","#D23651"]:s==="Alerta"?["#FBF0DC","#B7791F"]:["#E6F6EE","#16A66A"];
+   type Res={fecha:string;hora:string;pac:string;age:string;sexo:string;estudio:string;sub:string;tipo:string;hall:string[];hallCrit:boolean;estado:string};
+   const ROWS:Res[]=[
+    {fecha:"16 sep 2026",hora:"1:15 p.m.",pac:"María Fernández López",age:"28 años",sexo:"F",estudio:"Biometría hemática",sub:"Completa",tipo:"Laboratorio",hall:["Leucocitos 14.8 ↑","Neutrófilos 82% ↑"],hallCrit:true,estado:"Crítico"},
+    {fecha:"15 sep 2026",hora:"10:30 a.m.",pac:"Juan Pérez García",age:"58 años",sexo:"M",estudio:"Química sanguínea",sub:"Perfil completo",tipo:"Laboratorio",hall:["Glucosa 168 ↑","HbA1c 8.1% ↑"],hallCrit:true,estado:"Alerta"},
+    {fecha:"14 sep 2026",hora:"9:20 a.m.",pac:"Ana Ramírez Torres",age:"72 años",sexo:"F",estudio:"Rx de tórax",sub:"PA y lateral",tipo:"Imagen",hall:["Sin datos de consolidación.","Silueta cardiaca normal."],hallCrit:false,estado:"Normal"},
+    {fecha:"12 sep 2026",hora:"4:45 p.m.",pac:"Carlos Díaz Martínez",age:"45 años",sexo:"M",estudio:"Perfil lipídico",sub:"",tipo:"Laboratorio",hall:["LDL 162 ↑","Triglicéridos 281 ↑"],hallCrit:true,estado:"Alerta"},
+    {fecha:"10 sep 2026",hora:"11:10 a.m.",pac:"Sofía Vega Ramírez",age:"31 años",sexo:"F",estudio:"USG obstétrico",sub:"Primer trimestre",tipo:"Imagen",hall:["Embarazo intrauterino viable","EG: 10.2 semanas"],hallCrit:false,estado:"Normal"},
+    {fecha:"08 sep 2026",hora:"3:00 p.m.",pac:"Miguel Ruiz Herrera",age:"49 años",sexo:"M",estudio:"TAC de abdomen",sub:"Con contraste",tipo:"Imagen",hall:["Apendicitis aguda no complicada"],hallCrit:false,estado:"Alerta"},
+    {fecha:"05 sep 2026",hora:"9:15 a.m.",pac:"Laura Sánchez López",age:"39 años",sexo:"F",estudio:"Examen general de orina",sub:"",tipo:"Laboratorio",hall:["Esterasa leucocitaria +","Nitritos +"],hallCrit:true,estado:"Alerta"},
+    {fecha:"03 sep 2026",hora:"12:20 p.m.",pac:"Elena Prado Núñez",age:"47 años",sexo:"F",estudio:"Papanicolaou",sub:"",tipo:"Patología",hall:["Negativo para lesión intraepitelial o malignidad"],hallCrit:false,estado:"Normal"},
+   ];
+   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"12px 14px",borderBottom:`1px solid ${LINE}`};
+   const td:React.CSSProperties={padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13,verticalAlign:"top"};
+   // Gráfica de evolución (SVG hecha a mano) — valores representativos de leucocitos.
+   const chart=(()=>{const pts=[7.2,7.4,7.8,8.4,7.6,14.8];const W=320,H=150,padL=34,cb=118,top=30;const dmin=0,dmax=15;const x=(i:number)=>50+i/(pts.length-1)*(296-50);const y=(v:number)=>top+(1-(v-dmin)/(dmax-dmin))*(cb-top);const line=pts.map((p,i)=>`${x(i).toFixed(0)},${y(p).toFixed(0)}`).join(" ");
+    return <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto"}} role="img" aria-label="Evolución de leucocitos"><rect x={padL} y={y(15)} width={272} height={y(10)-y(15)} fill="#FDECEE"/><line x1={padL} y1={y(15)} x2={306} y2={y(15)} stroke="#F0455E" strokeDasharray="3 3" strokeWidth="1"/>{[15,10,5,0].map(t=><text key={t} x={30} y={y(t)+3} textAnchor="end" fontSize="9" fill="#9AA0BC">{t}</text>)}<polyline points={line} fill="none" stroke={P.purple} strokeWidth="2.2"/>{pts.map((p,i)=>i<pts.length-1?<circle key={i} cx={x(i)} cy={y(p)} r={3} fill="#fff" stroke={P.purple} strokeWidth="2"/>:<circle key={i} cx={x(i)} cy={y(p)} r={4.5} fill="#F0455E"/>)}{["Abr","May","Jun","Jul","Ago","Sep"].map((m,i)=><text key={m} x={x(i)} y={140} textAnchor="middle" fontSize="9" fill="#9AA0BC">{m}</text>)}</svg>;})();
+   return <div style={{display:"grid",gridTemplateColumns:"1fr 372px",gap:0}} className="mos-res">
+    <div style={{padding:"20px 24px 40px"}}>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+      <div><h1 style={{fontSize:29,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Resultados</h1><p style={{color:P.muted,fontSize:13.5,margin:"5px 0 0"}}>Consulta, analiza y da seguimiento a los estudios de tus pacientes.</p></div>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{...fdrop,padding:"10px 16px",fontWeight:600}}>Exportar</button><button style={{...fdrop,padding:"10px 16px",fontWeight:600}}>Cargar resultado</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Resultados diagnósticos"),0);}}>+ Nuevo resultado</button></div>
+     </div>
+     <div style={{display:"flex",gap:4,marginTop:16,borderBottom:`1px solid ${LINE}`,overflowX:"auto"}}>{["Todos","Laboratorio","Imagen","Patología","Otros","Tendencias"].map((t,i)=><span key={t} style={{padding:"11px 15px",fontSize:13.5,fontWeight:i===0?700:500,color:i===0?P.purple:P.muted,cursor:"pointer",borderBottom:i===0?`2px solid ${P.purple}`:"2px solid transparent",whiteSpace:"nowrap"}}>{t}</span>)}</div>
+     <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}><div style={{flex:1,minWidth:200,display:"flex",alignItems:"center",gap:9,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 13px",color:P.muted,fontSize:13.5}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>Buscar por paciente, estudio o hallazgo…</div><span style={fdrop}>Últimos 6 meses ▾</span><span style={fdrop}>Todos los tipos ▾</span><span style={fdrop}>Todos los estados ▾</span></div>
+     <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginTop:16}} className="mos-kpis">
+      <div style={kcard}>{kico("#EEEBFD",P.purple,"M7 3h10v18H7zM10 8h4M10 12h4")}<div><div style={{fontSize:12.5,color:P.muted}}>Total de resultados</div><div style={{fontSize:24,fontWeight:800}}>1,248</div></div></div>
+      <div style={kcard}>{kico("#E6F6EE",P.green,"M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z")}<div><div style={{fontSize:12.5,color:P.muted}}>Resultados normales</div><div style={{fontSize:24,fontWeight:800}}>892 <span style={{fontSize:12,color:P.muted,fontWeight:600}}>(71%)</span></div></div></div>
+      <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 4l9 15.5H3zM12 10v4M12 17h.01")}<div><div style={{fontSize:12.5,color:P.muted}}>Resultados con alerta</div><div style={{fontSize:24,fontWeight:800}}>284 <span style={{fontSize:12,color:P.muted,fontWeight:600}}>(23%)</span></div></div></div>
+      <div style={kcard}>{kico("#FDECEE",P.red,"M7 3h10v18H7zM10 8h4")}<div><div style={{fontSize:12.5,color:P.muted}}>Resultados críticos</div><div style={{fontSize:24,fontWeight:800}}>72 <span style={{fontSize:12,color:P.muted,fontWeight:600}}>(6%)</span></div></div></div>
+     </div>
+     <div style={{...card2,marginTop:16,overflow:"hidden"}}>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+       <thead><tr><th style={{...th,width:32}}></th>{["Fecha","Paciente","Estudio","Tipo","Principales hallazgos","Estado",""].map((h,i)=><th key={i} style={th}>{h}</th>)}</tr></thead>
+       <tbody>{ROWS.map((r,i)=>{const[sbg,sfg]=stB(r.estado);return <tr key={i} style={{background:i===0?"#F6F5FE":"transparent",cursor:"pointer"}}>
+        <td style={td}><span style={{width:16,height:16,border:"1.6px solid #C7CCE0",borderRadius:4,display:"inline-block"}}/></td>
+        <td style={td}>{r.fecha}<div style={{color:"#9AA0BC",fontSize:11}}>{r.hora}</div></td>
+        <td style={td}><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{width:34,height:34,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{initials(r.pac)}</span><div><div style={{fontWeight:600}}>{r.pac}</div><div style={{fontSize:11,color:"#9AA0BC"}}>{r.age} · {r.sexo}</div></div></div></td>
+        <td style={td}>{r.estudio}{r.sub&&<div style={{color:P.muted}}>{r.sub}</div>}</td>
+        <td style={{...td,color:r.tipo==="Laboratorio"?P.blue:P.ink}}>{r.tipo}</td>
+        <td style={td}>{r.hall.map((h,j)=><div key={j} style={{color:r.hallCrit?"#D23651":P.ink,fontWeight:r.hallCrit?600:400}}>{h}</div>)}</td>
+        <td style={td}><span style={{fontSize:11.5,fontWeight:600,borderRadius:999,padding:"3px 11px",background:sbg,color:sfg}}>{r.estado}</span></td>
+        <td style={{...td,color:"#9AA0BC",fontWeight:800}}>···</td>
+       </tr>;})}</tbody>
+      </table></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",fontSize:13,color:P.muted,flexWrap:"wrap",gap:10}}><span>Mostrando 1–8 de 1,248 resultados</span><div style={{display:"flex",gap:5}}>{["‹","1","2","3","4","5","…","156","›"].map((p,i)=><span key={i} style={{minWidth:32,height:32,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:13,cursor:"pointer",padding:"0 6px"}}>{p}</span>)}</div><span style={fdrop}>8 por página ▾</span></div>
+     </div>
+    </div>
+    <div style={{borderLeft:`1px solid ${LINE}`,background:P.white,padding:"18px 20px",minHeight:"100vh"}} className="mos-detail">
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",color:P.muted,fontSize:13.5,fontWeight:600}}><span style={{cursor:"pointer"}}>← Volver a resultados</span><span style={{cursor:"pointer",fontWeight:800}}>···</span></div>
+     <div style={{display:"flex",alignItems:"center",gap:12,marginTop:14}}><span style={{width:52,height:52,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontWeight:700,fontSize:16}}>MF</span><div style={{flex:1}}><div style={{fontWeight:800,fontSize:16}}>María Fernández López</div><div style={{fontSize:12.5,color:P.muted}}>28 años · F</div><div style={{fontSize:11,color:P.muted}}>CURP: FEFM960812MCHRRR04</div></div><span style={{fontSize:11.5,fontWeight:600,borderRadius:999,padding:"3px 11px",background:"#FDE7EA",color:"#D23651"}}>Resultado crítico</span></div>
+     <div style={{display:"flex",gap:18,borderBottom:`1px solid ${LINE}`,margin:"16px 0"}}>{["Resumen","Tendencia","Interpretación","Archivo"].map((t,i)=><span key={t} style={{fontSize:13.5,color:i===0?P.purple:P.muted,fontWeight:i===0?700:500,paddingBottom:9,borderBottom:i===0?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{t}</span>)}</div>
+     <div style={{display:"flex",gap:12,alignItems:"center"}}><span style={{width:44,height:44,borderRadius:11,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"/></svg></span><div><div style={{fontWeight:700,fontSize:15}}>Biometría hemática completa</div><div style={{fontSize:12,color:P.muted}}>16 de septiembre de 2026 · 1:15 p.m.</div><div style={{fontSize:12,color:P.muted}}>Laboratorio Central · Folio: LC-260916-00123</div></div></div>
+     <div style={{background:"#FDECEE",border:"1px solid #F6CDD3",borderRadius:12,padding:"13px 15px",marginTop:12}}><div style={{display:"flex",gap:8,alignItems:"center",fontWeight:700,color:"#D23651",fontSize:13.5}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 4l9 15.5H3zM12 10v4M12 17h.01"/></svg>Hallazgos críticos</div><div style={{fontSize:12.5,marginTop:6}}>Leucocitos: 14.8 x10³/µL (↑)<br/>Neutrófilos: 82% (↑)</div><div style={{color:P.blue,fontSize:12.5,fontWeight:600,marginTop:6,cursor:"pointer"}}>Ver interpretación completa →</div></div>
+     <div style={{fontSize:14,fontWeight:700,margin:"16px 0 8px"}}>Valores principales</div>
+     <table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Parámetro","Resultado","Rango de referencia","Estado"].map(h=><th key={h} style={{textAlign:"left",fontSize:11,padding:"7px 6px",color:"#9AA0BC"}}>{h}</th>)}</tr></thead><tbody>{([["Leucocitos","14.8 x10³/µL","4.0 – 10.0","Crítico"],["Neutrófilos","82 %","40 – 70","Crítico"],["Hemoglobina","13.2 g/dL","12.0 – 16.0","Normal"],["Plaquetas","320 x10³/µL","150 – 450","Normal"]] as const).map(([p,r,rf,st])=>{const[sb,sf]=stB(st);return <tr key={p}><td style={{fontSize:12.5,padding:"8px 6px",borderBottom:`1px solid #F4F6FB`,color:st==="Crítico"?"#D23651":P.ink,fontWeight:st==="Crítico"?600:400}}>{p}</td><td style={{fontSize:12.5,padding:"8px 6px",borderBottom:`1px solid #F4F6FB`}}>{r}</td><td style={{fontSize:12.5,padding:"8px 6px",borderBottom:`1px solid #F4F6FB`}}>{rf}</td><td style={{padding:"8px 6px",borderBottom:`1px solid #F4F6FB`}}><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:sb,color:sf}}>{st}</span></td></tr>;})}</tbody></table>
+     <div style={{...link,marginTop:8}}>Ver todos los parámetros (22) →</div>
+     <div style={{fontSize:14,fontWeight:700,margin:"16px 0 8px"}}>Evolución de leucocitos</div>
+     <div style={{border:`1px solid ${LINE}`,borderRadius:12,padding:12}}>{chart}</div>
+     <div style={{display:"flex",gap:8,marginTop:14}}><button style={{...fdrop,flex:1,justifyContent:"center",padding:9}}>Descargar PDF</button><button style={{...fdrop,flex:1,justifyContent:"center",padding:9}}>Compartir</button><button style={{flex:1,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:9,fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI}} onClick={()=>setView("consulta")}>Agregar a consulta</button></div>
     </div>
    </div>;
   })() : (<>
