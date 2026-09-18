@@ -17,7 +17,7 @@ export async function GET(req:Request){
   const{claims,ctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"order:write",purpose:"TREATMENT"});
   const rows=await ordersRegistry(ctx);
-  const items=rows.map(r=>({orderId:r.orderId,patientId:r.patientId,patientName:r.patientName,orderType:r.orderType,typeLabel:TYPE_UI[r.orderType]??"Otro",detail:r.detail,status:r.status,createdAt:r.createdAt}));
+  const items=rows.map(r=>({orderId:r.orderId,patientId:r.patientId,patientName:r.patientName,orderType:r.orderType,typeLabel:TYPE_UI[r.orderType]??"Otro",detail:r.detail,status:r.status,createdAt:r.createdAt,version:r.version}));
   const total=items.length;
   const solicitadas=items.filter(i=>i.status==="Solicitada").length;
   const enviadas=items.filter(i=>i.status==="Enviada").length;

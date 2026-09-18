@@ -13,8 +13,15 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  logout:async()=>{},
  apiRequest:async(path:string)=>{
   if(path.includes("/api/v1/orders"))return{status:200,body:{
-   items:[{orderId:"od1",patientId:"p1",patientName:"Ana López García",orderType:"LAB",typeLabel:"Laboratorio",detail:"Biometría hemática completa",status:"Completada",createdAt:"2026-09-17T00:00:00Z"}],
-   total:1,solicitadas:0,enviadas:0,completadas:1}};
+   items:[
+    {orderId:"od1",patientId:"p1",patientName:"Ana López García",orderType:"LAB",typeLabel:"Laboratorio",detail:"Biometría hemática completa",status:"Completada",createdAt:"2026-09-17T00:00:00Z",version:3},
+    {orderId:"od2",patientId:"p2",patientName:"Carlos Mendoza",orderType:"IMAGING",typeLabel:"Imagenología",detail:"Radiografía de tórax",status:"Solicitada",createdAt:"2026-09-16T00:00:00Z",version:1},
+   ],total:2,solicitadas:1,enviadas:0,completadas:1}};
+  if(path.includes("/api/v1/patients")&&!path.match(/patients\//))return{status:200,body:{patients:[
+   {patientId:"p1",name:"Ana López García",status:"ACTIVE",birthDate:"1990-01-01",sexAtBirth:"FEMALE"},
+   {patientId:"p2",name:"Carlos Mendoza",status:"ACTIVE",birthDate:"1970-01-01",sexAtBirth:"MALE"},
+  ]}};
+  if(path.includes("/api/v1/worklist"))return{status:200,body:{gaps:[],patientCount:2}};
   if(path.includes("/api/v1/results"))return{status:200,body:{
    items:[
     {resultId:"r1",patientId:"p1",patientName:"Ana López García",analyte:"GLUCOSE",value:"520",critical:true,status:"CRITICAL",interpretation:"Hiperglucemia de pánico",tipo:"Laboratorio",estado:"Hallazgos",lifecycle:"RECEIVED",receivedAt:"2026-09-17T00:00:00Z"},
@@ -134,6 +141,30 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText(/Medicamentos activos/)).toBeTruthy();
   fireEvent.click(lastTab(/^Seguimiento$/));
   expect(screen.getByText(/Tareas de seguimiento/)).toBeTruthy();
+ });
+
+ it("vista Órdenes: cableada a /api/v1/orders — KPIs reales, lista, detalle vivo y creador funcional",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Órdenes"}));
+  expect(screen.getByRole("heading",{name:"Órdenes"})).toBeTruthy();
+  // KPIs derivados del registro real (2 totales, 1 solicitada, 1 completada)
+  expect(await screen.findByText("Órdenes totales")).toBeTruthy();
+  expect(screen.getByText("Solicitadas")).toBeTruthy();
+  expect(screen.getByText("Completadas")).toBeTruthy();
+  // filas del registro (paciente + estudio + estado en TEXTO); aparece en la fila y en el detalle -> AllByText
+  expect((await screen.findAllByText("Biometría hemática completa")).length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Radiografía de tórax").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Completada").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Solicitada").length).toBeGreaterThan(0);
+  // seleccionar una orden Solicitada muestra el detalle con su acción real de transición
+  fireEvent.click(screen.getAllByText("Radiografía de tórax")[0]!);
+  expect(screen.getByText(/Enviar al laboratorio/)).toBeTruthy(); // acción placement disponible en estado Solicitada
+  expect(screen.getAllByText("Seguimiento").length).toBeGreaterThan(0); // "Seguimiento" (detalle) + acceso del sidebar
+  // el botón "+ Nueva orden" abre el creador con la secuencia de opciones (paciente + tipo + sugerencias)
+  fireEvent.click(screen.getByRole("button",{name:"+ Nueva orden"}));
+  expect(screen.getByText("Nueva orden clínica")).toBeTruthy();
+  expect(screen.getByText("Tipo de estudio")).toBeTruthy();
+  expect(screen.getByText("Perfil lipídico")).toBeTruthy(); // sugerencia de laboratorio (cada opción rellena el estudio)
  });
 
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{

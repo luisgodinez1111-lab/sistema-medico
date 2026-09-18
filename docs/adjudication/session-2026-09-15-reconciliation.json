@@ -2567,6 +2567,33 @@
    "epic": "K/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-ORDERS-LIFECYCLE-UI-001",
+   "name": "Órdenes — módulo funcional de punta a punta (crear + ciclo de vida + navegación interconectada)",
+   "risk": "C5",
+   "eng_authority_note": "Eleva la vista Órdenes de datos estáticos/placeholder a un módulo REAL totalmente interconectado. Fuente única ordersRegistry (GET /api/v1/orders) ahora con 'version' por orden. Cada control ejecuta una acción real: (1) '+ Nueva orden' abre un creador con secuencia de opciones (paciente del tenant real + tipo LAB/IMAGING/PROCEDURE/REFERRAL/PATHOLOGY + sugerencias por tipo que rellenan el estudio) -> POST /orders (crea DRAFT y recarga); (2) seleccionar una fila actualiza el panel de detalle vivo (paciente, estudio, estado, seguimiento por transicion); (3) transiciones reales del ciclo de vida por estado: Solicitada->'Enviar al laboratorio' (POST placement, if-match version), Enviada->'Marcar completada' (POST fulfillment), y 'Cancelar orden' (POST cancellation con motivo), todas con concurrencia optimista; (4) 'Abrir en el expediente' navega al paciente y abre su pestaña Órdenes en Consulta (interconexion entre ventanas); (5) filtros reales por texto, tipo (sub-pestañas) y estado; KPIs (total/solicitadas/enviadas/completadas/canceladas) y donut 'por tipo' derivados del registro real. Honestidad: se retiró la afirmación de conexion SILBAL 'en tiempo real'; se declara en pantalla que el registro/ciclo de vida es real y que la integracion con laboratorio externo es representativa (el envio se registra como transicion interna, no se transmite a un laboratorio real).",
+   "invariants": [
+    "Toda accion pasa por el kernel event-sourced (runClinicalCommand): crear/placement/fulfillment/cancellation con auditoria e idempotencia",
+    "Transiciones con concurrencia optimista (if-match = version del registro); version = nº de eventos del agregado",
+    "Maquina de estados de la orden: DRAFT->ORDERED->FULFILLED o ->CANCELLED (assertOrderTransition); acciones de la UI solo ofrecen transiciones validas por estado",
+    "order:write para crear/transicionar y para GET del registro; scope faltante -> 403",
+    "Estado-UI derivado por transicion (Solicitada/Enviada/Completada/Cancelada); nada hardcodeado",
+    "Estado vacio honesto cuando no hay ordenes; sin datos ficticios presentados como reales; integracion externa declarada representativa"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (ordersRegistry: +version por conteo de eventos)",
+    "apps/web/app/api/v1/orders/route.ts (GET expone version)",
+    "apps/web/app/workspace/page.tsx (vista Órdenes reescrita: creador + transiciones + navegacion + filtros; submitOrder/orderTransition/reloadOrders)"
+   ],
+   "tests": [
+    "scripts/v22/live-orders-registry-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Órdenes: KPIs/lista/detalle/creador)"
+   ],
+   "runtime_evidence": "scripts/v22/live-orders-registry-proof.mts — PASS 16/16 vs Neon 2026-09-18 (crear 201; placement/fulfillment/cancellation OK; registro con estado por transicion Completada/Enviada/Solicitada/Cancelada; join de paciente; version Solicitada=1/Enviada=2/Completada=3; conteos; sin-scope 403). En el smoke runner de CI. Render test 25/25 (jsdom): KPIs reales, filas del registro, detalle vivo con accion placement, y creador con secuencia de opciones. Fidelidad verificada por preview + captura.",
+   "epic": "M/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

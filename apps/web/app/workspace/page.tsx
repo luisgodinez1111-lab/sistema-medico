@@ -544,7 +544,14 @@ export default function Workspace(){
  const[consTabs,setConsTabs]=useState<ConsTabs|null>(null); // pestañas por paciente de Consulta (cableado)
  const[resTab,setResTab]=useState<"resultados"|"solicitudes"|"seguimiento"|"referencia"|"alertas">("resultados");
  const[resReg,setResReg]=useState<ResultsRegistry|null>(null); // registro de resultados clínica-wide (cableado)
- const[ordReg,setOrdReg]=useState<{items:{orderId:string;patientName:string;typeLabel:string;detail:string;status:string;createdAt:string}[];total:number;solicitadas:number;enviadas:number;completadas:number}|null>(null);
+ const[ordReg,setOrdReg]=useState<{items:{orderId:string;patientId:string;patientName:string;orderType:string;typeLabel:string;detail:string;status:string;createdAt:string;version:number}[];total:number;solicitadas:number;enviadas:number;completadas:number}|null>(null);
+ const[ordSel,setOrdSel]=useState<string|null>(null); // orderId seleccionado (panel de detalle) de la vista Órdenes
+ const[ordBusy,setOrdBusy]=useState(false); // transición de orden en curso
+ const[ordMsg,setOrdMsg]=useState<string|null>(null); // aviso tras una acción (creada/enviada/completada/cancelada)
+ const[ordNew,setOrdNew]=useState(false); // panel "Nueva orden" abierto
+ const[ordForm,setOrdForm]=useState<{patientId:string;orderType:string;detail:string}>({patientId:"",orderType:"LAB",detail:""});
+ const[ordQuery,setOrdQuery]=useState(""); // búsqueda por paciente/estudio en la vista Órdenes
+ const[ordStatus,setOrdStatus]=useState(""); // filtro por estado ("":todos)
  const[cForm,setCForm]=useState({motivo:"",historia:"",antec:"",plan:""}); // borrador de la consulta actual
  type AgendaAppt={appointmentId:string;patientId:string;patientName:string;startAt:string;endAt:string|null;reason:string;consultorio:string|null;apptType:string|null;status:string};
  const[agenda,setAgenda]=useState<{appointments:AgendaAppt[];counts:{programadas:number;atendidas:number;enEspera:number;canceladas:number}}|null>(null);
@@ -598,9 +605,9 @@ export default function Workspace(){
   }catch{/* agenda no disponible */}})();
   return()=>{cancelled=true;};
  },[view,ready,session]);
- // Inicio y Pacientes: cargan worklist (tareas del consultorio) + lista de pacientes reales.
+ // Inicio, Pacientes y Órdenes: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
-  if((view!=="inicio"&&view!=="pacientes")||!ready||!session)return;
+  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes")||!ready||!session)return;
   let cancelled=false;
   (async()=>{
    try{
@@ -773,13 +780,13 @@ export default function Workspace(){
 
  // Auto-carga del registro de resultados (vista Resultados) — GET clínica-wide con estado-UI derivado + KPIs.
  useEffect(()=>{
-  if(view!=="resultados"||!ready||!session)return;
+  if((view!=="resultados"&&view!=="ordenes")||!ready||!session)return;
   let cancelled=false;
   (async()=>{
-   try{
+   if(view==="resultados"){try{
     const r=await apiRequest("/api/v1/results",{method:"GET"});
     if(!cancelled&&r.status===200)setResReg(r.body as unknown as ResultsRegistry);
-   }catch{/* registro no disponible */}
+   }catch{/* registro no disponible */}}
    try{
     const r=await apiRequest("/api/v1/orders",{method:"GET"});
     if(!cancelled&&r.status===200)setOrdReg(r.body as unknown as typeof ordReg);
@@ -1118,6 +1125,27 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setPatientList((r.body["patients"] as {patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string}[])??[]);
  });
+ // ===== Acciones REALES de la vista Órdenes (crear + transiciones del ciclo de vida) =====
+ const reloadOrders=async()=>{const r=await apiRequest("/api/v1/orders",{method:"GET"});if(r.status===200)setOrdReg(r.body as unknown as typeof ordReg);};
+ const submitOrder=async()=>{
+  if(!ordForm.patientId||!ordForm.detail.trim()){setOrdMsg("Selecciona un paciente e indica el estudio.");return;}
+  setOrdBusy(true);setOrdMsg(null);
+  try{
+   const id=uuid();
+   const r=await apiRequest("/api/v1/orders",{method:"POST",body:{orderId:id,patientId:ordForm.patientId,orderType:ordForm.orderType,detail:ordForm.detail.trim(),occurredAt:nowIso()}});
+   if(r.status>=400){setOrdMsg(errMsg(r));return;}
+   await reloadOrders();setOrdSel(id);setOrdNew(false);setOrdForm({patientId:"",orderType:"LAB",detail:""});setOrdMsg("Orden creada y registrada.");
+  }catch(e){setOrdMsg(String(e));}finally{setOrdBusy(false);}
+ };
+ const orderTransition=async(orderId:string,version:number,path:"placement"|"fulfillment"|"cancellation",okMsg:string)=>{
+  setOrdBusy(true);setOrdMsg(null);
+  try{
+   const body=path==="cancellation"?{reason:"Cancelada por el médico",occurredAt:nowIso()}:{occurredAt:nowIso()};
+   const r=await apiRequest(`/api/v1/orders/${orderId}/${path}`,{method:"POST",body,ifMatch:version});
+   if(r.status>=400){setOrdMsg(errMsg(r));return;}
+   await reloadOrders();setOrdMsg(okMsg);
+  }catch(e){setOrdMsg(String(e));}finally{setOrdBusy(false);}
+ };
  const loadPanel=()=>call("panel",async()=>{
   const r=await apiRequest("/api/v1/worklist",{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
@@ -1858,86 +1886,121 @@ export default function Workspace(){
     </div>)}
    </div>;
   })() : view==="ordenes" ? (()=>{
-   // ===== MÓDULO ÓRDENES — SORDENES (7 pestañas + SILBAL), pestaña "Todas las órdenes" =====
+   // ===== MÓDULO ÓRDENES — cableado REAL de punta a punta (crear + ciclo de vida + navegación) =====
+   // Fuente única: ordersRegistry (GET /api/v1/orders). Acciones: POST create / placement / fulfillment / cancellation.
+   // Todo interconectado: seleccionar una orden actualiza el detalle; abrir lleva al expediente del paciente en Consulta.
    const card2:React.CSSProperties={...card,marginTop:0};
    const OTABS:[typeof ordTab,string,string][]=[["todas","Todas las órdenes","M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"],["laboratorio","Laboratorio","M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"],["imagenologia","Imagenología","M3 5h18v14H3zM3 15l5-5 4 4"],["gabinete","Gabinete","M7 3h10v18H7z"],["interconsultas","Interconsultas","M8 11a3 3 0 100-6 3 3 0 000 6zM2 20a6 6 0 0112 0M16 4.5a3 3 0 010 6M22 20a6 6 0 00-5-5.9"],["procedimientos","Procedimientos","M14 4l6 6M6 14l4 4M16.5 6.5l-10 10"],["otros","Otros","M4 5h16v14H4z"]];
    const kico=(bg:string,fg:string,d:string)=><span style={{width:40,height:40,borderRadius:11,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
    const kcard:React.CSSProperties={...card2,padding:15,display:"flex",gap:12,alignItems:"center"};
-   const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"14px 0 6px"};
+   const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"};
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
-   const chk=(on:boolean,l:string)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{on?"✓":""}</span>{l}</label>;
-   const initials=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
-   const st=(s:string):[string,string]=>s==="Con resultado"?["#E6F6EE","#16A66A"]:s==="Programada"?["#EAF1FD","#1769E0"]:s==="Crítico"?["#FDE7EA","#D23651"]:["#FBF0DC","#B7791F"];
-   type Ord={fecha:string;hora:string;pac:string;sexo:string;estudio:string;tipo:string;tipoIco:string;estado:string};
-   const ORDS:Ord[]=[{fecha:"17 sep 2026",hora:"14:32",pac:"Ana López García",sexo:"F, 34 años",estudio:"Biometría hemática completa",tipo:"Laboratorio",tipoIco:"🧪",estado:"Pendiente"},{fecha:"17 sep 2026",hora:"10:15",pac:"Mateo Ramírez",sexo:"M, 5 años",estudio:"EGO",tipo:"Laboratorio",tipoIco:"🧪",estado:"Con resultado"},{fecha:"16 sep 2026",hora:"18:40",pac:"Carlos Mendoza",sexo:"M, 56 años",estudio:"Perfil lipídico",tipo:"Laboratorio",tipoIco:"🧪",estado:"Crítico"},{fecha:"16 sep 2026",hora:"12:05",pac:"María Torres",sexo:"F, 28 años",estudio:"HbA1c",tipo:"Laboratorio",tipoIco:"🧪",estado:"Con resultado"},{fecha:"15 sep 2026",hora:"09:20",pac:"Diego Salas",sexo:"M, 3 años",estudio:"Radiografía de tórax",tipo:"Imagenología",tipoIco:"🩻",estado:"Pendiente"},{fecha:"14 sep 2026",hora:"16:10",pac:"Laura Fernández",sexo:"F, 42 años",estudio:"Ultrasonido abdominal",tipo:"Imagenología",tipoIco:"🩻",estado:"Programada"},{fecha:"12 sep 2026",hora:"11:48",pac:"José Ramírez",sexo:"M, 52 años",estudio:"TSH, T4 libre",tipo:"Laboratorio",tipoIco:"🧪",estado:"Con resultado"},{fecha:"10 sep 2026",hora:"13:22",pac:"Daniel Cruz",sexo:"M, 37 años",estudio:"Electrocardiograma",tipo:"Gabinete",tipoIco:"🫀",estado:"Pendiente"}];
    const th:React.CSSProperties={textAlign:"left",fontSize:11,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`};
    const td:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,verticalAlign:"top"};
-   const dk:React.CSSProperties={color:P.muted,width:120,flex:"0 0 auto"};
-   const silbal=<span style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8,paddingRight:4}}><span style={{fontWeight:800,color:"#1e40af",fontSize:14}}>◈ SILBAL</span><span style={{width:8,height:8,borderRadius:"50%",background:"#16A66A"}}/><span style={{fontSize:11,lineHeight:1.3}}><b style={{color:"#16A66A"}}>Conectado</b><br/><span style={{color:P.muted}}>Última sync: 17 sep 2026, 14:32</span></span></span>;
-   const goOrd=()=>{setView("exp");setTimeout(()=>scrollToSection("Órdenes clínicas"),0);};
+   const dk:React.CSSProperties={color:P.muted,width:130,flex:"0 0 auto"};
+   const chip:React.CSSProperties={border:`1px solid ${LINE}`,background:P.white,color:P.ink,borderRadius:20,padding:"6px 11px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:UI};
+   const initials=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+   const TYPE_ICO:Record<string,string>={LAB:"🧪",IMAGING:"🩻",PROCEDURE:"🫀",REFERRAL:"👥",PATHOLOGY:"🔬"};
+   const TYPE_LBL:Record<string,string>={LAB:"Laboratorio",IMAGING:"Imagenología",PROCEDURE:"Procedimiento",REFERRAL:"Interconsulta",PATHOLOGY:"Patología"};
+   const SUGG:Record<string,string[]>={LAB:["Biometría hemática completa","Química sanguínea (6 elementos)","Perfil lipídico","HbA1c","Examen general de orina","TSH y T4 libre"],IMAGING:["Radiografía de tórax PA","Ultrasonido abdominal","Tomografía simple de cráneo","Mastografía"],PROCEDURE:["Electrocardiograma","Espirometría","Endoscopia","Prueba de esfuerzo"],REFERRAL:["Cardiología","Endocrinología","Nefrología","Oftalmología"],PATHOLOGY:["Biopsia","Citología cervical","Estudio histopatológico"]};
+   const stx=(s:string):[string,string]=>s==="Completada"?["#E6F6EE","#16A66A"]:s==="Enviada"?["#EAF1FD","#1769E0"]:s==="Cancelada"?["#F0F1F4","#8A8FA3"]:["#FBF0DC","#B7791F"];
+   const fmtDT=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleString("es-MX",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});};
+   const items=ordReg?.items??[];
+   const useRealO=items.length>0;
+   const KNOWN=["LAB","IMAGING","PROCEDURE","REFERRAL"];
+   const TAB_TYPES:Record<string,string[]>={laboratorio:["LAB"],imagenologia:["IMAGING"],gabinete:["PROCEDURE"],interconsultas:["REFERRAL"],procedimientos:["PROCEDURE"]};
+   const byTab=ordTab==="todas"?items:ordTab==="otros"?items.filter(o=>!KNOWN.includes(o.orderType)):items.filter(o=>(TAB_TYPES[ordTab]??[]).includes(o.orderType));
+   const q=ordQuery.trim().toLowerCase();
+   const filtered=byTab.filter(o=>(!q||o.patientName.toLowerCase().includes(q)||o.detail.toLowerCase().includes(q))&&(!ordStatus||o.status===ordStatus));
+   const kTot=useRealO?ordReg!.total:28,kSol=useRealO?items.filter(o=>o.status==="Solicitada").length:12,kEnv=useRealO?items.filter(o=>o.status==="Enviada").length:8,kCom=useRealO?items.filter(o=>o.status==="Completada").length:6,kCan=useRealO?items.filter(o=>o.status==="Cancelada").length:2;
+   const selected=useRealO?(items.find(o=>o.orderId===ordSel)??items[0]!):null;
+   const patName=(pid:string)=>patientList?.find(p=>p.patientId===pid)?.name;
+   const openInRecord=(pid:string,name:string)=>{selectPatientRaw(pid,name);setView("consulta");setCTab("ordenes");window.scrollTo({top:0,behavior:"smooth"});};
+   const donutDefs:[string,string,string][]=[["LAB","Laboratorio","#E5983B"],["IMAGING","Imagenología","#F0455E"],["PROCEDURE","Procedimiento","#20B7D9"],["REFERRAL","Interconsulta","#6C5CF6"],["PATHOLOGY","Patología","#9AA0BC"]];
+   const donut=donutDefs.map(([t,l,c])=>({t,l,c,n:items.filter(o=>o.orderType===t).length}));
+   const donTot=donut.reduce((a,b)=>a+b.n,0)||1;
+   let acc=0;const stops=donut.filter(d=>d.n>0).map(d=>{const from=(acc/donTot*100).toFixed(2);acc+=d.n;const to=(acc/donTot*100).toFixed(2);return `${d.c} ${from}% ${to}%`;}).join(",");
+   const conic=useRealO&&stops?`conic-gradient(${stops})`:"conic-gradient(#E5983B 0 57%,#F0455E 57% 78%,#20B7D9 78% 89%,#6C5CF6 89% 96%,#9AA0BC 96% 100%)";
+   const timeline=(s:string):[string,string,boolean][]=>{
+    if(s==="Cancelada")return[["Orden creada","Solicitud registrada en el expediente",true],["Orden cancelada","Cancelada por el médico",true]];
+    return[["Orden creada","Solicitud registrada en el expediente",true],["Enviada al laboratorio",s==="Enviada"||s==="Completada"?"Estudio en proceso":"Pendiente de envío",s==="Enviada"||s==="Completada"],["Resultado / cumplida",s==="Completada"?"Orden completada":"Se notificará al registrar el resultado",s==="Completada"]];
+   };
    return <div style={{padding:"18px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
-     <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M7 3h10v18H7zM10 8h4M10 12h4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Órdenes</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Solicita, gestiona y da seguimiento a estudios de laboratorio, imagenología y otros a través del SILBAL.</p></div></div>
-     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={goOrd}>Orden rápida</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Plantillas</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={goOrd}>+ Nueva orden ▾</button></div>
+     <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M7 3h10v18H7zM10 8h4M10 12h4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Órdenes</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Solicita, envía y da seguimiento a estudios de laboratorio, imagenología, gabinete e interconsultas. Cada orden se registra en el expediente y avanza por su ciclo de vida.</p></div></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{void reloadOrders();setOrdMsg("Lista actualizada.");}}>↻ Actualizar</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setOrdNew(v=>!v);setOrdMsg(null);}}>{ordNew?"Cerrar":"+ Nueva orden"}</button></div>
     </div>
-    <div style={{display:"flex",alignItems:"center",marginTop:14,borderBottom:`1px solid ${LINE}`,gap:2,overflowX:"auto"}}>{OTABS.map(([k,l,d])=><button key={k} onClick={()=>setOrdTab(k)} style={{display:"flex",alignItems:"center",gap:8,padding:"12px 15px",fontSize:13.5,fontWeight:ordTab===k?700:500,color:ordTab===k?P.purple:P.muted,cursor:"pointer",borderBottom:ordTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,fontFamily:UI,whiteSpace:"nowrap"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg>{l}</button>)}{silbal}</div>
+    <div style={{display:"flex",alignItems:"center",marginTop:14,borderBottom:`1px solid ${LINE}`,gap:2,overflowX:"auto"}}>{OTABS.map(([k,l,d])=><button key={k} onClick={()=>setOrdTab(k)} style={{display:"flex",alignItems:"center",gap:8,padding:"12px 15px",fontSize:13.5,fontWeight:ordTab===k?700:500,color:ordTab===k?P.purple:P.muted,cursor:"pointer",borderBottom:ordTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,fontFamily:UI,whiteSpace:"nowrap"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg>{l}{k!=="todas"&&<span style={{fontSize:10.5,fontWeight:700,background:"#EEF0F5",color:P.muted,borderRadius:999,padding:"1px 7px"}}>{ordTab==="otros"?items.filter(o=>!KNOWN.includes(o.orderType)).length:items.filter(o=>(TAB_TYPES[k]??[]).includes(o.orderType)).length}</span>}</button>)}<span style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:7,paddingRight:4,fontSize:11.5,color:P.muted}}><span style={{width:8,height:8,borderRadius:"50%",background:P.green}}/>Registro en vivo · {kTot} órdenes</span></div>
+    {ordMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:"#EEF6FF",border:"1px solid #CFE0F7",borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:P.blue,fontWeight:700}}>ℹ</span><span style={{flex:1}}>{ordMsg}</span><button onClick={()=>setOrdMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+    {ordNew&&<div style={{...card2,marginTop:16,padding:18}}>
+     <div style={{fontWeight:800,fontSize:16,marginBottom:14}}>Nueva orden clínica</div>
+     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}} className="mos-med2">
+      <div><div style={flbl}>Paciente</div><select value={ordForm.patientId} onChange={e=>setOrdForm({...ordForm,patientId:e.target.value})} style={selSty}><option value="">Selecciona un paciente…</option>{(patientList??[]).map(p=><option key={p.patientId} value={p.patientId}>{p.name}</option>)}</select>{(patientList??[]).length===0&&<div style={{fontSize:11.5,color:P.muted,marginTop:5}}>No hay pacientes en el tenant. Registra uno en «Pacientes» primero.</div>}</div>
+      <div><div style={flbl}>Tipo de estudio</div><select value={ordForm.orderType} onChange={e=>setOrdForm({...ordForm,orderType:e.target.value,detail:""})} style={selSty}>{[["LAB","Laboratorio"],["IMAGING","Imagenología"],["PROCEDURE","Procedimiento / Gabinete"],["REFERRAL","Interconsulta"],["PATHOLOGY","Patología"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
+     </div>
+     <div style={{marginTop:12}}><div style={flbl}>Estudio / indicación</div><input value={ordForm.detail} onChange={e=>setOrdForm({...ordForm,detail:e.target.value})} placeholder="Escribe o elige una sugerencia" style={{...selSty,padding:"10px 11px"}}/></div>
+     <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>{(SUGG[ordForm.orderType]??[]).map(s=><button key={s} onClick={()=>setOrdForm(f=>({...f,detail:s}))} style={ordForm.detail===s?{...chip,borderColor:P.purple,background:"#EEEBFD",color:P.purple}:chip}>{s}</button>)}</div>
+     <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void submitOrder()} disabled={ordBusy||!ordForm.patientId||!ordForm.detail.trim()} style={{border:0,background:(ordBusy||!ordForm.patientId||!ordForm.detail.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(ordBusy||!ordForm.patientId||!ordForm.detail.trim())?"default":"pointer",fontFamily:UI}}>{ordBusy?"Creando…":"Crear orden"}</button><button onClick={()=>setOrdNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
+    </div>}
     <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
-     <div style={kcard}>{kico("#EEEBFD",P.purple,"M7 3h10v18H7z")}<div><div style={{fontSize:22,fontWeight:800}}>28</div><div style={{fontSize:11.5,color:P.muted}}>Órdenes totales · Este mes</div></div></div>
-     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div><div style={{fontSize:22,fontWeight:800}}>12</div><div style={{fontSize:11.5,color:P.muted}}>Pendientes · Sin resultado</div></div></div>
-     <div style={kcard}>{kico("#E6F6EE",P.green,"M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z")}<div><div style={{fontSize:22,fontWeight:800}}>14</div><div style={{fontSize:11.5,color:P.muted}}>Con resultados (50%)</div></div></div>
-     <div style={kcard}>{kico("#E7EEFB",P.blue,"M4 5h16v16H4zM8 3v4M16 3v4")}<div><div style={{fontSize:22,fontWeight:800}}>2</div><div style={{fontSize:11.5,color:P.muted}}>Programadas · Esta semana</div></div></div>
-     <div style={kcard}>{kico("#FDECEE",P.red,"M12 4l9 15.5H3zM12 10v4M12 17h.01")}<div><div style={{fontSize:22,fontWeight:800,color:"#D23651"}}>2</div><div style={{fontSize:11.5,color:P.muted}}>Resultados críticos</div></div></div>
+     <div style={kcard}>{kico("#EEEBFD",P.purple,"M7 3h10v18H7z")}<div><div style={{fontSize:22,fontWeight:800}}>{kTot}</div><div style={{fontSize:11.5,color:P.muted}}>Órdenes totales</div></div></div>
+     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div><div style={{fontSize:22,fontWeight:800}}>{kSol}</div><div style={{fontSize:11.5,color:P.muted}}>Solicitadas</div></div></div>
+     <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 15V4m0 0l-4 4m4-4l4 4M4 20h16")}<div><div style={{fontSize:22,fontWeight:800}}>{kEnv}</div><div style={{fontSize:11.5,color:P.muted}}>Enviadas</div></div></div>
+     <div style={kcard}>{kico("#E6F6EE",P.green,"M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z")}<div><div style={{fontSize:22,fontWeight:800}}>{kCom}</div><div style={{fontSize:11.5,color:P.muted}}>Completadas</div></div></div>
+     <div style={kcard}>{kico("#F0F1F4","#8A8FA3","M6 6l12 12M6 18L18 6")}<div><div style={{fontSize:22,fontWeight:800,color:"#8A8FA3"}}>{kCan}</div><div style={{fontSize:11.5,color:P.muted}}>Canceladas</div></div></div>
     </div>
-    {ordTab!=="todas"?(
-     <div style={{...card2,marginTop:16,padding:"60px 20px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:700}}>Pestaña «{OTABS.find(t=>t[0]===ordTab)?.[1]}»</div><p style={{color:P.muted,fontSize:14,maxWidth:520,margin:"8px auto 0"}}>Se está construyendo al nivel exacto de tu diseño. Próxima entrega — cada categoría de órdenes (laboratorio, imagenología, gabinete, interconsultas, procedimientos, otros) es una pantalla completa con integración SILBAL.</p><button style={{marginTop:14,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={goOrd}>Abrir órdenes en el expediente →</button></div>
-    ):(<><div style={{display:"grid",gridTemplateColumns:"230px 1fr 320px",gap:14,marginTop:16,alignItems:"start"}} className="mos-ord3">
+    <div style={{display:"grid",gridTemplateColumns:"230px 1fr 320px",gap:14,marginTop:16,alignItems:"start"}} className="mos-ord3">
      <div style={{...card2,padding:16}}>
-      <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}}>Limpiar</span></div>
-      <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",fontSize:12.5,color:P.muted,margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>Buscar por paciente, estudio o folio…</div>
-      <div style={flbl}>Tipo de orden</div><select style={selSty}><option>Todos</option><option>Laboratorio</option><option>Imagenología</option><option>Gabinete</option></select>
-      <div style={flbl}>Estado</div><select style={selSty}><option>Todos</option><option>Pendiente</option><option>Con resultado</option><option>Crítico</option></select>
-      <div style={flbl}>Fecha de creación</div><div style={{...selSty,color:P.muted,fontSize:12}}>01/08/2026 – 30/09/2026</div>
-      <div style={flbl}>Paciente</div><select style={selSty}><option>Todos</option></select>
-      <div style={flbl}>Solicitado por</div><select style={selSty}><option>Yo ({docDisplay})</option></select>
-      <div style={{marginTop:12}}>{chk(true,"Solo pendientes")}{chk(false,"Solo resultados críticos")}{chk(false,"Solo mis pacientes")}</div>
-      <button style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,marginTop:12}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 15V4m0 0l-4 4m4-4l4 4M4 20h16"/></svg>Exportar listado</button>
+      <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}} onClick={()=>{setOrdQuery("");setOrdStatus("");setOrdTab("todas");}}>Limpiar</span></div>
+      <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input value={ordQuery} onChange={e=>setOrdQuery(e.target.value)} placeholder="Buscar paciente o estudio…" style={{border:0,outline:"none",fontSize:12.5,fontFamily:UI,color:P.ink,width:"100%",background:"transparent"}}/></div>
+      <div style={flbl}>Tipo de orden</div><select value={ordTab} onChange={e=>setOrdTab(e.target.value as typeof ordTab)} style={selSty}><option value="todas">Todos</option><option value="laboratorio">Laboratorio</option><option value="imagenologia">Imagenología</option><option value="gabinete">Gabinete</option><option value="interconsultas">Interconsultas</option><option value="procedimientos">Procedimientos</option><option value="otros">Otros</option></select>
+      <div style={{...flbl,marginTop:14}}>Estado</div><select value={ordStatus} onChange={e=>setOrdStatus(e.target.value)} style={selSty}><option value="">Todos</option><option value="Solicitada">Solicitada</option><option value="Enviada">Enviada</option><option value="Completada">Completada</option><option value="Cancelada">Cancelada</option></select>
+      <div style={{...flbl,marginTop:14}}>Solicitado por</div><div style={{...selSty,color:P.muted,fontSize:12}}>Yo ({docDisplay})</div>
+      <button style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,marginTop:14}} onClick={()=>{setOrdNew(true);window.scrollTo({top:0,behavior:"smooth"});}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M12 5v14M5 12h14"/></svg>Nueva orden</button>
      </div>
      <div style={{...card2,padding:6}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 12px 8px"}}><span style={{fontSize:16,fontWeight:700}}>Órdenes (28)</span><span style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"6px 11px",fontSize:12,cursor:"pointer"}}>Más recientes ▾</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 12px 8px"}}><span style={{fontSize:16,fontWeight:700}}>Órdenes ({filtered.length})</span><span style={{fontSize:12,color:P.muted}}>{ordTab==="todas"?"Todas":OTABS.find(t=>t[0]===ordTab)?.[1]}{ordStatus?` · ${ordStatus}`:""}</span></div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
-       <thead><tr><th style={{...th,width:26}}></th>{["Fecha","Paciente","Estudio / Orden","Estado","Acciones"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
-       <tbody>{ORDS.map((o,i)=>{const[bg,fg]=st(o.estado);return <tr key={i} style={{background:i===0?"#F6F5FE":"transparent",cursor:"pointer"}} onClick={goOrd}>
-        <td style={td}><span style={{width:16,height:16,border:"1.6px solid #C7CCE0",borderRadius:4,display:"inline-block"}}/></td>
-        <td style={td}>{o.fecha}<div style={{color:"#9AA0BC"}}>{o.hora}</div></td>
-        <td style={td}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:10,fontWeight:700,flex:"0 0 auto"}}>{initials(o.pac)}</span><div><div style={{fontWeight:600}}>{o.pac}</div><div style={{color:"#9AA0BC"}}>{o.sexo}</div></div></div></td>
-        <td style={td}><div style={{fontWeight:600}}>{o.estudio}</div><div style={{color:P.purple,fontSize:11}}>{o.tipoIco} {o.tipo}</div></td>
-        <td style={td}><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:bg,color:fg}}>{o.estado==="Crítico"?"⚠ Crítico":o.estado}</span></td>
-        <td style={td}><span style={{color:"#9AA0BC",fontWeight:800,border:`1px solid ${LINE}`,borderRadius:8,padding:"2px 8px"}}>···</span></td>
+       <thead><tr>{["Fecha","Paciente","Estudio / Orden","Estado","Acciones"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
+       <tbody>{!useRealO?(
+        <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"40px 12px"}}>Aún no hay órdenes en el registro. Usa «+ Nueva orden» para crear la primera.</td></tr>
+       ):filtered.length===0?(
+        <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"40px 12px"}}>Ninguna orden coincide con el filtro.</td></tr>
+       ):filtered.map(o=>{const[bg,fg]=stx(o.status);const on=(selected?.orderId===o.orderId);return <tr key={o.orderId} style={{background:on?"#F6F5FE":"transparent",cursor:"pointer"}} onClick={()=>setOrdSel(o.orderId)}>
+        <td style={td}>{fmtDT(o.createdAt).split(",")[0]}<div style={{color:"#9AA0BC"}}>{(fmtDT(o.createdAt).split(",")[1]??"").trim()}</div></td>
+        <td style={td}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:10,fontWeight:700,flex:"0 0 auto"}}>{initials(o.patientName)}</span><div style={{fontWeight:600}}>{o.patientName}</div></div></td>
+        <td style={td}><div style={{fontWeight:600}}>{o.detail}</div><div style={{color:P.purple,fontSize:11}}>{TYPE_ICO[o.orderType]??"📄"} {o.typeLabel}</div></td>
+        <td style={td}><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:bg,color:fg}}>{o.status}</span></td>
+        <td style={td}><span style={{color:P.blue,fontWeight:600,fontSize:12,cursor:"pointer"}} onClick={ev=>{ev.stopPropagation();openInRecord(o.patientId,o.patientName);}}>Abrir →</span></td>
        </tr>;})}</tbody>
       </table></div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:12,fontSize:12.5,color:P.muted}}><span>Mostrando 1–10 de 28 órdenes</span><div style={{display:"flex",gap:5}}>{["‹","1","2","3","›"].map((p,i)=><span key={i} style={{minWidth:30,height:30,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:7,display:"grid",placeItems:"center",fontSize:13,cursor:"pointer",padding:"0 6px"}}>{p}</span>)}</div></div>
      </div>
      <div style={{...card2,padding:16}} className="mos-detail">
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><span style={{fontSize:15,fontWeight:700}}>Detalle de la orden</span><span style={{color:"#9AA0BC",fontWeight:800,cursor:"pointer"}}>···</span></div>
-      <div style={{display:"flex",gap:11,marginTop:12}}><span style={{width:44,height:44,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:14,fontWeight:700,flex:"0 0 auto"}}>AG</span><div><div style={{fontWeight:800,fontSize:15}}>Ana López García</div><div style={{fontSize:12,color:P.muted}}>Femenino, 34 años</div><div style={{fontSize:11,color:P.muted}}>Expediente: LC260917-0042</div></div></div>
-      <div style={{display:"flex",gap:16,borderBottom:`1px solid ${LINE}`,margin:"12px 0",fontSize:12.5}}>{["Información","Resultados","Historial","Notas"].map((t,i)=><span key={t} style={{paddingBottom:8,color:i===0?P.purple:P.muted,fontWeight:i===0?700:400,borderBottom:i===0?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{t}</span>)}</div>
-      <div style={{display:"flex",gap:10,alignItems:"center"}}><span style={{width:36,height:36,borderRadius:9,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"/></svg></span><div><div style={{fontWeight:700,fontSize:13.5}}>Estudio</div><div style={{fontSize:12.5}}>Biometría hemática completa</div></div></div>
-      <div style={{marginTop:12}}>{[["Tipo","Laboratorio"],["Fecha de solicitud","17 sep 2026, 14:32"],["Prioridad","Normal"],["Estado","Pendiente"],["Solicitado por",docDisplay],["Centro / Laboratorio","SILBAL – Laboratorio Central"]].map(([k,v])=><div key={k} style={{display:"flex",fontSize:12.5,padding:"4px 0"}}><span style={dk}>{k}</span><span>{v}</span></div>)}</div>
-      <div style={{fontSize:13,fontWeight:700,margin:"12px 0 6px"}}>Indicaciones clínicas</div>
-      <div style={{background:"#F7F8FC",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:12.5,color:P.muted}}>Control de rutina. Paciente asintomática.</div>
-      <div style={{display:"flex",gap:8,margin:"12px 0"}}><button style={{flex:1,justifyContent:"center",display:"flex",alignItems:"center",gap:6,border:"1px solid #CFE0F7",background:P.white,color:P.blue,borderRadius:9,padding:8,fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>↗ Ver en SILBAL</button><button style={{flex:1,border:"1px solid #F3C9C9",background:P.white,color:"#D23651",borderRadius:9,padding:8,fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>Cancelar orden</button></div>
-      <div style={{fontSize:13,fontWeight:700,margin:"6px 0 6px"}}>Seguimiento</div>
-      <div style={{position:"relative",paddingLeft:20,marginTop:8}}>
-       <div style={{position:"absolute",left:5,top:4,bottom:4,width:2,background:"#EDEFF6"}}/>
-       {[["Orden creada","17 sep 2026, 14:32 · "+docDisplay,true],["Enviada a SILBAL","17 sep 2026, 14:33 · Sistema",true],["Resultado pendiente","Se notificará automáticamente",false]].map(([t,s,done],i)=><div key={i} style={{position:"relative",padding:"6px 0",fontSize:12}}><span style={{position:"absolute",left:-19,top:9,width:11,height:11,borderRadius:"50%",background:"#fff",border:`2px solid ${done?P.purple:"#C7CCE0"}`}}/><b style={{color:done?P.ink:P.muted}}>{t as string}</b><br/><span style={{color:P.muted}}>{s as string}</span></div>)}
-      </div>
+      <div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Detalle de la orden</div>
+      {!selected?(
+       <div style={{padding:"40px 8px",textAlign:"center",color:P.muted}}><div style={{fontSize:30,marginBottom:8}}>📋</div><div style={{fontSize:13.5,fontWeight:600,color:P.ink}}>Selecciona una orden</div><p style={{fontSize:12.5,margin:"6px 0 0"}}>Elige una fila de la lista para ver su detalle, seguimiento y acciones.</p></div>
+      ):(<>
+       <div style={{display:"flex",gap:11,marginTop:2}}><span style={{width:44,height:44,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:14,fontWeight:700,flex:"0 0 auto"}}>{initials(selected.patientName)}</span><div><div style={{fontWeight:800,fontSize:15}}>{selected.patientName}</div><div style={{fontSize:11.5,color:P.muted}}>Expediente: {selected.patientId.slice(0,8).toUpperCase()}</div></div></div>
+       <div style={{display:"flex",gap:10,alignItems:"center",marginTop:14}}><span style={{width:36,height:36,borderRadius:9,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}>{TYPE_ICO[selected.orderType]??"📄"}</span><div><div style={{fontWeight:700,fontSize:13.5}}>Estudio</div><div style={{fontSize:12.5}}>{selected.detail}</div></div></div>
+       <div style={{marginTop:12}}>{[["Tipo",TYPE_LBL[selected.orderType]??selected.typeLabel],["Fecha de solicitud",fmtDT(selected.createdAt)],["Estado",selected.status],["Solicitado por",docDisplay]].map(([k,v])=><div key={k} style={{display:"flex",fontSize:12.5,padding:"4px 0"}}><span style={dk}>{k}</span><span style={{fontWeight:k==="Estado"?700:400}}>{v}</span></div>)}</div>
+       <div style={{display:"flex",flexDirection:"column",gap:8,margin:"14px 0"}}>
+        {selected.status==="Solicitada"&&<button onClick={()=>void orderTransition(selected.orderId,selected.version,"placement","Orden enviada al laboratorio.")} disabled={ordBusy} style={{justifyContent:"center",display:"flex",alignItems:"center",gap:6,border:0,background:ordBusy?"#C7CCE0":P.blue,color:"#fff",borderRadius:9,padding:10,fontWeight:700,fontSize:13,cursor:ordBusy?"default":"pointer",fontFamily:UI}}>Enviar al laboratorio →</button>}
+        {selected.status==="Enviada"&&<button onClick={()=>void orderTransition(selected.orderId,selected.version,"fulfillment","Orden marcada como completada.")} disabled={ordBusy} style={{justifyContent:"center",display:"flex",alignItems:"center",gap:6,border:0,background:ordBusy?"#C7CCE0":P.green,color:"#fff",borderRadius:9,padding:10,fontWeight:700,fontSize:13,cursor:ordBusy?"default":"pointer",fontFamily:UI}}>Marcar completada ✓</button>}
+        <button onClick={()=>openInRecord(selected.patientId,selected.patientName)} style={{justifyContent:"center",display:"flex",alignItems:"center",gap:6,border:"1px solid #CFE0F7",background:P.white,color:P.blue,borderRadius:9,padding:9,fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>Abrir en el expediente →</button>
+        {(selected.status==="Solicitada"||selected.status==="Enviada")&&<button onClick={()=>void orderTransition(selected.orderId,selected.version,"cancellation","Orden cancelada.")} disabled={ordBusy} style={{border:"1px solid #F3C9C9",background:P.white,color:"#D23651",borderRadius:9,padding:9,fontWeight:600,fontSize:12.5,cursor:ordBusy?"default":"pointer",fontFamily:UI}}>Cancelar orden</button>}
+       </div>
+       <div style={{fontSize:13,fontWeight:700,margin:"6px 0 6px"}}>Seguimiento</div>
+       <div style={{position:"relative",paddingLeft:20,marginTop:8}}>
+        <div style={{position:"absolute",left:5,top:4,bottom:4,width:2,background:"#EDEFF6"}}/>
+        {timeline(selected.status).map(([t,s,done],i)=><div key={i} style={{position:"relative",padding:"6px 0",fontSize:12}}><span style={{position:"absolute",left:-19,top:9,width:11,height:11,borderRadius:"50%",background:"#fff",border:`2px solid ${done?(selected.status==="Cancelada"?"#8A8FA3":P.purple):"#C7CCE0"}`}}/><b style={{color:done?P.ink:P.muted}}>{t}</b><br/><span style={{color:P.muted}}>{s}</span></div>)}
+       </div>
+      </>)}
      </div>
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"340px 1fr 1fr",gap:14,marginTop:16,alignItems:"start"}} className="mos-ord2">
-     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Órdenes por tipo</div><div style={{display:"flex",gap:16,alignItems:"center"}}><div style={{width:96,height:96,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:"conic-gradient(#E5983B 0 57%,#F0455E 57% 78%,#20B7D9 78% 89%,#6C5CF6 89% 96%,#9AA0BC 96% 100%)"}}><div style={{width:62,height:62,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:16,fontWeight:800}}>28</div><div style={{fontSize:9,color:P.muted}}>Órdenes</div></div></div></div><div style={{flex:1}}>{[["#E5983B","Laboratorio","16 (57%)"],["#F0455E","Imagenología","6 (21%)"],["#20B7D9","Gabinete","3 (11%)"],["#6C5CF6","Interconsultas","2 (7%)"],["#9AA0BC","Otros","1 (4%)"]].map(([c,l,p])=><div key={l} style={{display:"flex",alignItems:"center",gap:7,fontSize:12,padding:"3px 0"}}><span style={{width:8,height:8,borderRadius:"50%",background:c as string}}/>{l as string}<b style={{marginLeft:"auto"}}>{p as string}</b></div>)}</div></div></div>
-     <div style={{...card2,padding:16,display:"flex",gap:12,alignItems:"center",background:"#F2FBF5",borderColor:"#CDEBD8"}}><span style={{width:34,height:34,borderRadius:"50%",background:"#16A66A",color:"#fff",display:"grid",placeItems:"center",flex:"0 0 auto"}}>✓</span><div><div style={{fontWeight:700,fontSize:14}}>Conexión SILBAL</div><div style={{fontSize:12.5,color:P.muted}}>Sistema conectado correctamente. Las órdenes se envían y consultan en tiempo real.</div><button style={{marginTop:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"7px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>↻ Probar conexión</button></div></div>
-     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Accesos rápidos</div>{["Catálogo de estudios SILBAL","Guías de indicaciones (GPC)","Plantillas de órdenes","Historial de interacciones"].map((a,i)=><div key={a} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:i<3?`1px solid #F1F3F9`:"0",fontSize:13,color:P.blue,fontWeight:500,cursor:"pointer"}}>{a} ›</div>)}</div>
-    </div></>)}
+    <div style={{display:"grid",gridTemplateColumns:"340px 1fr",gap:14,marginTop:16,alignItems:"start"}} className="mos-ord2">
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Órdenes por tipo</div><div style={{display:"flex",gap:16,alignItems:"center"}}><div style={{width:96,height:96,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:conic}}><div style={{width:62,height:62,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:16,fontWeight:800}}>{useRealO?donTot:28}</div><div style={{fontSize:9,color:P.muted}}>Órdenes</div></div></div></div><div style={{flex:1}}>{(useRealO?donut.filter(d=>d.n>0):donutDefs.map(([t,l,c],idx)=>({t,l,c,n:[16,6,3,2,1][idx]!}))).map(d=><div key={d.t} style={{display:"flex",alignItems:"center",gap:7,fontSize:12,padding:"3px 0"}}><span style={{width:8,height:8,borderRadius:"50%",background:d.c}}/>{d.l}<b style={{marginLeft:"auto"}}>{d.n} ({Math.round(d.n/(useRealO?donTot:28)*100)}%)</b></div>)}</div></div></div>
+     <div style={{...card2,padding:16,display:"flex",gap:12,alignItems:"flex-start"}}><span style={{width:34,height:34,borderRadius:"50%",background:"#E6F6EE",color:P.green,display:"grid",placeItems:"center",flex:"0 0 auto"}}>✓</span><div><div style={{fontWeight:700,fontSize:14}}>Registro de órdenes en vivo</div><div style={{fontSize:12.5,color:P.muted,marginTop:2}}>Cada orden se persiste como evento clínico y avanza por su ciclo de vida (Solicitada → Enviada → Completada, o Cancelada) con concurrencia optimista y auditoría. La integración con laboratorio externo (envío automático de folios) es representativa en esta versión: el envío se registra como transición interna, no se transmite a un laboratorio real.</div></div></div>
+    </div>
    </div>;
   })() : view==="alergias" ? (()=>{
    // ===== MÓDULO ALERGIAS (S-ALERGIAS) — registro clínica-wide cableado a GET /api/v1/allergies =====
