@@ -64,6 +64,40 @@ const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
 type Snap=Readonly<{demographics:{age:number;sex:string;birthDate:string};problems:string[];allergies:string[];vitals:Record<string,string>;labs:{hba1c?:number;creatinine?:number;glucose?:number;ldl?:number;egfr?:number;egfrStage?:string};findings:{domain:string;severity:"CRITICAL"|"WARNING"|"INFO";summary:string}[]}>;
 const SEX_ES:Record<string,string>={FEMALE:"Femenino",MALE:"Masculino",INTERSEX:"Intersexual",UNKNOWN:"Sin especificar"};
 type RxCheck=Readonly<{drug:{input:string;resolved:{ingredient:string;classes:string[]}|null};egfr:number|null;checks:{id:string;label:string;status:"OK"|"WARN"|"BLOCK";detail:string}[];monitoring:{test:string;note:string;dueInDays:number}[];indications:string;verdict:"OK"|"WARN"|"BLOCK"}>;
+// Panel 4 — evolución longitudinal
+type Series=readonly{value:number;at:string}[];
+type Trends=Readonly<{series:Record<string,Series>;latest:{LDL:number|null;CREATININE:number|null;UACR:number|null;EGFR:number|null}}>;
+type TrendKey="HBA1C"|"GLUCOSE"|"LDL"|"CREATININE";
+const CHART:Record<TrendKey,{label:string;unit:string;target?:number;targetLabel?:string;domain:[number,number]}>={
+ HBA1C:{label:"HbA1c",unit:"%",target:7,targetLabel:"Objetivo <7%",domain:[4,11]},
+ GLUCOSE:{label:"Glucosa (ayuno)",unit:"mg/dL",target:100,targetLabel:"Meta <100 mg/dL",domain:[60,220]},
+ LDL:{label:"Colesterol LDL",unit:"mg/dL",target:100,targetLabel:"Meta <100 mg/dL",domain:[40,220]},
+ CREATININE:{label:"Creatinina",unit:"mg/dL",domain:[0.4,3]},
+};
+const fmtN=(v:number)=>v%1?v.toFixed(1):String(v);
+function trendChart(series:Series,key:TrendKey){
+ const cfg=CHART[key];
+ if(!series.length)return <div style={{padding:"28px 0",textAlign:"center",color:"#8a8b9a",fontSize:13}}>Sin datos de {cfg.label} todavía. Registra resultados para ver la tendencia.</div>;
+ const W=680,H=250,padL=42,padR=14,padT=18,padB=38,cb=H-padB;
+ const vals=series.map(p=>p.value);
+ const dmin=Math.min(cfg.domain[0],...vals),dmax=Math.max(cfg.domain[1],...vals);
+ const x=(i:number)=>padL+(series.length===1?0.5:i/(series.length-1))*(W-padL-padR);
+ const y=(v:number)=>padT+(1-(v-dmin)/(dmax-dmin||1))*(cb-padT);
+ const line=series.map((p,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(" ");
+ const area=`M${x(0).toFixed(1)},${cb} `+series.map((p,i)=>`L${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(" ")+` L${x(series.length-1).toFixed(1)},${cb} Z`;
+ const yticks=[dmin,(dmin+dmax)/2,dmax];
+ const fmt=(at:string)=>{try{return new Date(at).toLocaleDateString("es-MX",{month:"short",year:"2-digit"});}catch{return "";}};
+ const xIdx=series.length<=6?series.map((_,i)=>i):[0,Math.round((series.length-1)/2),series.length-1];
+ return <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",maxWidth:W}} role="img" aria-label={`Tendencia de ${cfg.label}`}>
+  {cfg.target!==undefined&&y(cfg.target)<cb&&<rect x={padL} y={y(cfg.target)} width={W-padL-padR} height={cb-y(cfg.target)} fill="#EAF7EF"/>}
+  {yticks.map((t,i)=><g key={i}><line x1={padL} y1={y(t)} x2={W-padR} y2={y(t)} stroke="#EEF1F6"/><text x={padL-6} y={y(t)+3} textAnchor="end" fontSize="10" fill="#8a8b9a">{fmtN(t)}</text></g>)}
+  {cfg.target!==undefined&&<><line x1={padL} y1={y(cfg.target)} x2={W-padR} y2={y(cfg.target)} stroke="#168B5B" strokeDasharray="4 3" strokeWidth="1.2"/><text x={padL+6} y={y(cfg.target)-4} textAnchor="start" fontSize="10" fontWeight="600" fill="#168B5B">{cfg.targetLabel}</text></>}
+  <path d={area} fill="#1769E014"/>
+  <path d={line} fill="none" stroke="#1769E0" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round"/>
+  {series.map((p,i)=>{const last=i===series.length-1;return <g key={i}><circle cx={x(i)} cy={y(p.value)} r={last?4.5:3.2} fill="#fff" stroke="#1769E0" strokeWidth={last?2.4:1.8}/><text x={x(i)} y={y(p.value)-9} textAnchor="middle" fontSize="10" fontWeight={last?700:600} fill={last?"#14213D":"#5F6B7A"}>{fmtN(p.value)}</text></g>;})}
+  {xIdx.map(i=>{const s=series[i];return s?<text key={i} x={x(i)} y={H-14} textAnchor="middle" fontSize="10" fill="#8a8b9a">{fmt(s.at)}</text>:null;})}
+ </svg>;
+}
 // Severidad de hallazgo -> etiqueta + color del panel "Alertas y sugerencias".
 const SEV:Record<"CRITICAL"|"WARNING"|"INFO",{label:string;bg:string;fg:string;bd:string}>={
  CRITICAL:{label:"ALTA",bg:"#FDEAEA",fg:"#B3261E",bd:"#F3C9C9"},
@@ -93,7 +127,7 @@ const content:React.CSSProperties={maxWidth:1140,margin:"0 auto",padding:`${S[5]
 // Nav-rail: módulos agrupados por dominio clínico. Navega por el <h2> de cada sección (sin ids duplicados).
 const NAV:{group:string;items:{label:string;h2:string}[]}[]=[
  {group:"Vista",items:[{label:"Panel del clínico",h2:"Panel del clínico"},{label:"Paciente",h2:"Paciente"},{label:"Timeline",h2:"Timeline del paciente"}]},
- {group:"Consulta",items:[{label:"Encuentro",h2:"Encuentro"},{label:"Medicación",h2:"Medicación"},{label:"Prescripción segura",h2:"Prescripción segura"},{label:"Resultados",h2:"Resultados diagnósticos"},{label:"Órdenes",h2:"Órdenes clínicas"},{label:"Documentos",h2:"Documentos clínicos"}]},
+ {group:"Consulta",items:[{label:"Encuentro",h2:"Encuentro"},{label:"Medicación",h2:"Medicación"},{label:"Prescripción segura",h2:"Prescripción segura"},{label:"Resultados",h2:"Resultados diagnósticos"},{label:"Tendencias",h2:"Evolución longitudinal"},{label:"Órdenes",h2:"Órdenes clínicas"},{label:"Documentos",h2:"Documentos clínicos"}]},
  {group:"Historia",items:[{label:"Alergias",h2:"Alergias"},{label:"Problemas",h2:"Lista de problemas"},{label:"Signos vitales",h2:"Signos vitales"},{label:"Vacunas",h2:"Vacunas"},{label:"Plan de cuidados",h2:"Plan de cuidados"}]},
  {group:"Coordinación",items:[{label:"Interconsultas",h2:"Interconsultas"},{label:"Agenda",h2:"Agenda"},{label:"Obligaciones",h2:"Obligaciones de seguimiento"}]},
  {group:"Hospital",items:[{label:"Internamiento",h2:"Internamiento"},{label:"Triage",h2:"Triage"},{label:"Cirugía",h2:"Cirugía"},{label:"Transfusiones",h2:"Transfusiones"},{label:"Diálisis",h2:"Diálisis"},{label:"Heridas",h2:"Cuidado de heridas"},{label:"Muestras",h2:"Muestras de laboratorio"}]},
@@ -303,6 +337,7 @@ export default function Workspace(){
  const[snap,setSnap]=useState<Snap|null>(null); // snapshot de consulta (hero panel 1)
  const[rxDrug,setRxDrug]=useState("");const[rxDose,setRxDose]=useState("");const[rxRoute,setRxRoute]=useState("Oral");const[rxFreq,setRxFreq]=useState("");
  const[rxCheck,setRxCheck]=useState<RxCheck|null>(null);const[rxMsg,setRxMsg]=useState("");
+ const[trends,setTrends]=useState<Trends|null>(null);const[trendKey,setTrendKey]=useState<TrendKey>("HBA1C");
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string}[]|null>(null);
  const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
  const[busy,setBusy]=useState("");
@@ -331,6 +366,9 @@ export default function Workspace(){
     const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET"});
     if(cancelled)return;
     setSnap(sp.status<400&&sp.body["registered"]?(sp.body as unknown as Snap):null);
+    const tr=await apiRequest(`/api/v1/patients/${patientId}/trends`,{method:"GET"});
+    if(cancelled)return;
+    setTrends(tr.status<400?(tr.body as unknown as Trends):null);
    }catch{/* red caída: el header simplemente no muestra chips */}
   },450);
   return()=>{cancelled=true;clearTimeout(t);};
@@ -983,6 +1021,29 @@ export default function Workspace(){
      </div>
     </div>;})}
    </div>}
+  </section>
+
+  {/* EVOLUCIÓN LONGITUDINAL (panel 4) */}
+  <section style={card}>
+   <div><h2 style={{fontSize:18,margin:0}}>Evolución longitudinal</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Tendencias que cuentan la historia completa. Valores medidos, sin proyección.</p></div>
+   <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:12}}>
+    {(["HBA1C","GLUCOSE","LDL","CREATININE"] as TrendKey[]).map(k=><button key={k} onClick={()=>setTrendKey(k)} style={{background:trendKey===k?"#E7EEFB":"transparent",color:trendKey===k?P.blue:P.muted,border:`1px solid ${trendKey===k?"#CFE0F7":LINE}`,borderRadius:999,padding:"6px 14px",fontSize:13,fontWeight:trendKey===k?700:500,fontFamily:UI,cursor:"pointer"}}>{CHART[k].label}</button>)}
+   </div>
+   <div style={{marginTop:14,border:`1px solid ${LINE}`,borderRadius:14,padding:"14px 16px",background:"#fff"}}>
+    <div style={{fontSize:13,fontWeight:700,marginBottom:6}}>{CHART[trendKey].label} <span style={{color:P.muted,fontWeight:500}}>({CHART[trendKey].unit})</span></div>
+    {trends?trendChart(trends.series[trendKey]??[],trendKey):<div style={{padding:"28px 0",textAlign:"center",color:"#8a8b9a",fontSize:13}}>Selecciona un paciente para ver sus tendencias.</div>}
+   </div>
+   {trends&&(()=>{
+    const rc=(label:string,v:number|null,unit:string,warn:boolean)=>(<div style={{minWidth:0,background:"#fff",border:`1px solid ${warn?"#F0DBB8":LINE}`,borderRadius:14,padding:"14px 16px"}}><div style={{fontSize:12,color:P.muted,marginBottom:4}}>{label}</div><div style={{fontSize:22,fontWeight:800,color:warn?"#A15C00":P.ink}}>{v??"—"} <span style={{fontSize:12,fontWeight:600,color:P.muted}}>{v!==null?unit:""}</span></div></div>);
+    const L=trends.latest;
+    return <><div style={{fontSize:13,fontWeight:700,margin:"18px 0 10px"}}>Otros resultados relevantes</div>
+     <div className="mos-vitals">
+      {rc("Colesterol LDL",L.LDL,"mg/dL",L.LDL!==null&&L.LDL>=100)}
+      {rc("Creatinina",L.CREATININE,"mg/dL",L.CREATININE!==null&&L.CREATININE>1.3)}
+      {rc("TFG (eGFR)",L.EGFR,"mL/min",L.EGFR!==null&&L.EGFR<60)}
+      {rc("UACR",L.UACR,"mg/g",L.UACR!==null&&L.UACR>=30)}
+     </div></>;
+   })()}
   </section>
 
   {/* ALERGIAS */}

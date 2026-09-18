@@ -189,6 +189,22 @@ export async function latestResultValueForAnalyte(ctx:HttpTenantContext,patientI
   const v=rows[0]?.value;return v==null?undefined:String(v);
  }) as Promise<string|undefined>;
 }
+
+// EPIC CH — Serie temporal de un analito (evolución longitudinal, panel 4). Todos los resultados
+// RECEIVED de ese analito, orden ascendente por fecha. RLS-scoped; valores numéricos.
+export async function analyteSeries(ctx:HttpTenantContext,patientId:string,analyte:string):Promise<{value:number;at:string}[]>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select r.payload->>'value' as value, r.occurred_at as at
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
+     and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
+   order by r.occurred_at asc, r.sequence asc`;
+  return rows.map(r=>{const o=r as Record<string,unknown>;return{value:Number(o.value),at:String(o.at)};}).filter(p=>Number.isFinite(p.value));
+ }) as Promise<{value:number;at:string}[]>;
+}
 // EPIC AY — Condiciones ACTIVAS del paciente (lista de problemas, CIE-10). RLS-scoped. Para el gate de
 // contraindicación fármaco–condición en la prescripción. Activa = último kind ADDED/REACTIVATED/MARKED_CHRONIC
 // (no RESOLVED ni MARKED_ERROR). Devuelve el código CIE-10 normalizado.
