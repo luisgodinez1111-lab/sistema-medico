@@ -12,6 +12,12 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
  apiRequest:async(path:string)=>{
+  if(path.includes("/api/v1/problems"))return{status:200,body:{
+   items:[
+    {problemId:"q1",patientId:"p1",patientName:"Ana López García",code:"E11.9",description:"Diabetes mellitus tipo 2",category:"Endocrinológicos",chronic:false,status:"ACTIVE",statusLabel:"Activo",recordedAt:"2026-09-15T00:00:00Z",registeredBy:"actor1"},
+    {problemId:"q2",patientId:"p2",patientName:"Carlos Mendoza",code:"J45.909",description:"Asma",category:"Respiratorios",chronic:true,status:"CHRONIC",statusLabel:"En seguimiento",recordedAt:"2026-09-05T00:00:00Z",registeredBy:"actor1"},
+    {problemId:"q3",patientId:"p3",patientName:"María Torres",code:"K29.70",description:"Gastritis",category:"Digestivos",chronic:false,status:"RESOLVED",statusLabel:"Resuelto",recordedAt:"2026-08-20T00:00:00Z",registeredBy:"actor1"},
+   ],total:3,byStatus:{activos:1,enSeguimiento:1,resueltos:1,inactivos:0},byCategory:{Endocrinológicos:1,Respiratorios:1,Digestivos:1},topPatients:[{name:"Ana López García",count:1},{name:"Carlos Mendoza",count:1}]}};
   if(path.includes("/api/v1/allergies"))return{status:200,body:{
    items:[
     {allergyId:"a1",patientId:"p1abc123",patientName:"Ana López García",substance:"Penicilina",type:"Medicamento",reaction:"Urticaria generalizada",severity:"SEVERE",severityLabel:"Grave",status:"ACTIVE",statusLabel:"Activa",recordedAt:"2024-03-12T10:15:00Z",registeredBy:"actor1"},
@@ -60,7 +66,7 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Problemas"}));
+const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Vacunas"}));
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
@@ -133,6 +139,28 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
+ });
+
+ it("vista Problemas (S-PROBLEMAS): registro clínica-wide cableado a GET /api/v1/problems + navegación a form y plantillas",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Problemas"}));
+  expect(screen.getByRole("heading",{name:"Problemas"})).toBeTruthy();
+  expect((await screen.findAllByText("Ana López García",{},{timeout:2500})).length).toBeGreaterThan(0); // fila + detalle
+  expect(screen.getByText("Detalle del problema")).toBeTruthy();
+  expect(screen.getAllByText("En seguimiento").length).toBeGreaterThan(0); // estado en TEXTO
+  expect(screen.getByText(/Problemas por categoría/)).toBeTruthy();
+  expect(screen.getByText("Estado de problemas")).toBeTruthy();
+  expect(screen.getByText("Pacientes con más problemas")).toBeTruthy();
+  // navegación a "Nuevo problema" (form cableado a CIE-10)
+  fireEvent.click(screen.getByRole("button",{name:/Nuevo problema/}));
+  expect(screen.getByRole("heading",{name:"Nuevo problema"})).toBeTruthy();
+  expect(screen.getByText("1. Información del problema")).toBeTruthy();
+  expect(screen.getByRole("button",{name:/Guardar problema/})).toBeTruthy();
+  fireEvent.click(screen.getByRole("button",{name:"← Volver"}));
+  // navegación a Plantillas
+  fireEvent.click(screen.getByRole("button",{name:/Plantillas/}));
+  expect(screen.getByRole("heading",{name:"Plantillas de problemas"})).toBeTruthy();
+  expect(screen.getAllByText("Diabetes mellitus tipo 2").length).toBeGreaterThan(0);
  });
 
  it("vista Alergias (S-ALERGIAS): registro clínica-wide cableado a GET /api/v1/allergies — KPIs, tabla, detalle y gráficas",async()=>{

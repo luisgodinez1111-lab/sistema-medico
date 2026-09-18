@@ -49,6 +49,7 @@ const SMOKE:readonly string[]=[
  "live-agenda-day-proof",                   // Agenda del día: citas+consultorio+tipo+estado, GET por fecha con conteos
  "live-interactions-proof",                 // Interacciones (conjunto): pares + factores, 4 niveles + mecanismo/recomendación
  "live-allergy-registry-proof",             // Registro de alergias clínica-wide: tipo derivado + estado + conteos gravedad/tipo
+ "live-problem-registry-proof",             // Registro de problemas clínica-wide: categoría-UI + estado por transición + conteos
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

@@ -2161,6 +2161,32 @@
    "epic": "R/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-PROBLEM-REGISTRY-001",
+   "name": "Registro de problemas (clínica-wide) + Nuevo problema + Plantillas — módulo Problemas cableado a SQL",
+   "risk": "C5",
+   "eng_authority_note": "Módulo Problemas de 3 pantallas a fidelidad exacta de los mockups. (1) LISTA: header, 5 KPIs (registrados/activos/en seguimiento/resueltos/inactivos), 3 columnas Filtros/tabla/Detalle con alertas, gráficas donut por categoría CIE-10 + barras por estado + pacientes con más problemas + accesos rápidos; cableada a reader nuevo problemRegistry + GET /api/v1/problems (evento PROBLEM_ADDED + estado por última transición de ciclo de vida ADDED/REACTIVATED->ACTIVE, MARKED_CHRONIC->CHRONIC, RESOLVED, ENTERED_IN_ERROR->INACTIVE; join paciente; categoría-UI derivada; conteos por estado/categoría + top de pacientes). (2) NUEVO PROBLEMA: form con búsqueda CIE-10 en vivo (GET /terminology/icd10) + guardado real (POST /problems) usando el paciente en contexto. (3) PLANTILLAS: catálogo de plantillas por categoría con detalle y 'Usar plantilla' que prellena el form. Datos representativos idénticos a la imagen cuando el tenant no tiene problemas sembrados.",
+   "invariants": [
+    "ESTADO del problema = última transición de CICLO DE VIDA (ignora EPISTEMIC/EVIDENCE que no cambian estado)",
+    "Categoría-UI derivada de la categoría del catálogo CIE-10; el resto cae en 'Otros'",
+    "Búsqueda CIE-10 y guardado del form usan endpoints reales (terminology + problems); código validado contra el catálogo",
+    "problem:write para el registro (GET) y para crear/transicionar; patient:read para la búsqueda CIE-10; scope faltante -> 403",
+    "Fallback representativo = imagen exacta cuando total=0; KPIs/gráficas reflejan lo real cuando existe"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (problemRegistry + ProblemRow)",
+    "apps/web/app/api/v1/problems/route.ts (GET registro + conteos por estado/categoría + top pacientes)",
+    "apps/web/app/workspace/page.tsx (vista Problemas: lista cableada + form Nuevo problema + Plantillas + VMAP + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-problem-registry-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Problemas: KPIs, tabla, detalle, gráficas + navegación a form y plantillas)"
+   ],
+   "runtime_evidence": "scripts/v22/live-problem-registry-proof.mts — PASS 16/16 vs Neon 2026-09-18 (5 problemas de 3 pacientes con categorías Endocrino/Cardiovascular/Salud mental/Respiratorio/Digestivo, categoría-UI derivada, join del nombre, transición RESOLVED y CHRONIC reflejadas en estado/etiqueta, conteos por estado 3/1/1, conteos por categoría, top de pacientes, sin-scope 403). En el smoke runner de CI. Render test 11/11 (jsdom). Fidelidad de la lista verificada por preview + captura.",
+   "epic": "Q/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
