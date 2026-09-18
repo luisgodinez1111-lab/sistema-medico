@@ -2316,6 +2316,32 @@
    "epic": "BA/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-CLAIMS-REGISTRY-001",
+   "name": "Facturación — registro de facturas clínica-wide + KPIs + emisión cableados a SQL",
+   "risk": "C5",
+   "eng_authority_note": "Vista Facturación a fidelidad exacta del mockup (header con acciones, 4 KPIs, tabla de facturas con tabs/filtros/export, gráficas de métodos de pago + ingresos mensuales + top servicios, wizard 'Nueva factura' de 4 pasos). Cableada a reader nuevo claimsRegistry + GET /api/v1/claims: por cada agregado Claim toma el evento CLAIM_DRAFTED (monto/moneda/paciente) y su ESTADO por la última transición (DRAFTED/CODED/SUBMITTED->PENDING, PAID->PAID/Pagada, REJECTED, VOIDED->Cancelada), une el nombre del paciente, genera folio secuencial y computa KPIs (ingresos pagados del periodo, facturas emitidas, pendientes conteo+monto, cancelaciones). El wizard 'Nueva factura' calcula el total en vivo de los conceptos y 'Emitir factura' hace POST /api/v1/claims con el paciente en contexto. Métodos de pago / ingresos mensuales / top servicios son representativos.",
+   "invariants": [
+    "ESTADO de la factura = última transición del agregado; Pagada=PAID, Pendiente=DRAFT/CODED/SUBMITTED, Cancelada=VOID",
+    "Ingresos = suma de montos de facturas PAID; pendientes = conteo+monto de PENDING; cancelaciones = conteo VOID",
+    "Folio secuencial descendente derivado del orden; join del nombre del paciente casteado a uuid",
+    "billing:write para el registro (GET) y para emitir (POST); scope faltante -> 403",
+    "La emisión usa el paciente en contexto y el total de conceptos; sin paciente el wizard avisa y no escribe"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (claimsRegistry + ClaimRow)",
+    "apps/web/app/api/v1/claims/route.ts (GET registro + KPIs)",
+    "apps/web/app/workspace/page.tsx (vista Facturación completa + wizard Nueva factura + VMAP + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-claims-registry-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Facturación: KPIs, tabla, wizard, gráficas)"
+   ],
+   "runtime_evidence": "scripts/v22/live-claims-registry-proof.mts — PASS 13/13 vs Neon 2026-09-18 (4 facturas de 2 pacientes, 2 pagadas por transición draft->code->submit->pay, 1 anulada, KPIs ingresos 1700 / emitidas 4 / pendientes 1 monto 350 / cancelaciones 1, folio secuencial F-000004, join del nombre, etiquetas ES Pagada/Cancelada, sin-scope 403). En el smoke runner de CI. Render test 17/17 (jsdom). Fidelidad verificada por preview + captura.",
+   "epic": "Y/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

@@ -75,6 +75,8 @@ type CarePlanSnap=Readonly<{counts:{problems:number;medications:number;allergies
 type RefContext=Readonly<{allergies:string[];medications:string[];problems:{code:string;description:string}[];labs:{hba1c:string|null};vitals:{bp:string|null;hr:string|null;imc:string|null}}>;
 type FUDelta={first:number;last:number}|null;
 type FollowUpSnap=Readonly<{tasks:{obligationId:string;task:string;dueAt:string;status:string;statusLabel:string;done:boolean}[];vitalsTrend:{series:{BP:number[];HR:number[];WEIGHT:number[];IMC:number[]};avg:{ta:string|null;bp:number|null;hr:number|null;weight:number|null;imc:number|null}};indicators:{hba1c:FUDelta;ldl:FUDelta;weight:FUDelta;imc:FUDelta};counts:{problems:number;medications:number;allergies:number}}>;
+type ClaimItem=Readonly<{claimId:string;folio:string;patientId:string;patientName:string;amount:number;currency:string;status:string;statusLabel:string;recordedAt:string}>;
+type ClaimsRegistry=Readonly<{items:ClaimItem[];total:number;incomeThisMonth:number;issuedCount:number;pendingCount:number;pendingAmount:number;cancellations:number}>;
 const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
 const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
@@ -456,7 +458,7 @@ export default function Workspace(){
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"interconsulta"|"seguimiento"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
+ const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"interconsulta"|"seguimiento"|"facturacion"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
  // Pestaña Interacciones (S8.3) — verificador de conjunto cableado a POST /api/v1/interactions
  const[ixDrugs,setIxDrugs]=useState<string[]>(["Sertralina","Ibuprofeno","Metformina"]);
@@ -503,6 +505,11 @@ export default function Workspace(){
  // Vista Seguimiento (S-SEGUIMIENTO) — snapshot compuesto cableado a GET /patients/:id/follow-up
  const[fuSnap,setFuSnap]=useState<FollowUpSnap|null>(null);
  const[segTab,setSegTab]=useState<"seguimiento"|"evolucion"|"graficas"|"metas"|"recordatorios"|"alertas">("seguimiento");
+ // Vista Facturación (S-FACTURACION) — registro clínica-wide cableado a GET /api/v1/claims; emisión -> POST /claims
+ const[claimsReg,setClaimsReg]=useState<ClaimsRegistry|null>(null);
+ const[facTab,setFacTab]=useState<"facturas"|"recibos"|"notas"|"cotizaciones">("facturas");
+ const[nfConcepts,setNfConcepts]=useState<{desc:string;qty:number;price:number}[]>([{desc:"Consulta médica",qty:1,price:500},{desc:"Aplicación de vacuna",qty:1,price:350}]);
+ const[nfBusy,setNfBusy]=useState(false);const[nfMsg,setNfMsg]=useState("");
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
@@ -667,6 +674,19 @@ export default function Workspace(){
   })();
   return()=>{cancelled=true;};
  },[view,ready,session,patientId]);
+
+ // Auto-carga del registro de facturación (vista Facturación) — GET clínica-wide con KPIs.
+ useEffect(()=>{
+  if(view!=="facturacion"||!ready||!session)return;
+  let cancelled=false;
+  (async()=>{
+   try{
+    const r=await apiRequest("/api/v1/claims",{method:"GET"});
+    if(!cancelled&&r.status===200)setClaimsReg(r.body as unknown as ClaimsRegistry);
+   }catch{/* registro no disponible */}
+  })();
+  return()=>{cancelled=true;};
+ },[view,ready,session]);
 
  // Scrollspy: resalta en el nav-rail el módulo actual = la ÚLTIMA sección cuyo top ya cruzó bajo los
  // headers sticky (~140px). El IntersectionObserver solo dispara el recálculo en cada cruce de esa línea.
@@ -1055,7 +1075,7 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado",Interconsultas:"interconsulta",Seguimiento:"seguimiento"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
+    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado",Interconsultas:"interconsulta",Seguimiento:"seguimiento",["Facturación"]:"facturacion"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
      <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){setView(vTarget);window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
       <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
      </button>);})}
@@ -2573,6 +2593,107 @@ export default function Workspace(){
       </div>
       <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8}}>✔ Tareas de seguimiento</div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"5px 11px",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:UI}}>+ Agregar</button></div>{tasks.map((t,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<tasks.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:17,height:17,borderRadius:5,border:t.done?"0":"1.7px solid #C7CCE0",background:t.done?P.purple:"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:10,flex:"0 0 auto"}}>{t.done?"✓":""}</span><span style={{flex:1,fontSize:13,color:t.done?P.muted:P.ink,textDecoration:t.done?"line-through":"none"}}>{t.task}</span><span style={{fontSize:11.5,color:P.muted,textDecoration:t.done?"line-through":"none",whiteSpace:"nowrap"}}>📅 {fmtDue(t.dueAt)}</span></div>)}</div>
       <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8}}>▤ Notas del seguimiento</div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"5px 11px",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:UI}}>+ Agregar</button></div>{[["17 sep 2026, 10:24","Paciente motivada, buena adherencia. Se refuerza seguimiento en 4 semanas."],["15 ago 2026, 09:10","TA en metas. Continúa tratamiento sin cambios."]].map(([d,n],i)=><div key={i} style={{padding:"9px 0",borderBottom:i<1?`1px solid #F2F4F9`:"0"}}><div style={{fontSize:11.5,color:P.muted,display:"flex",justifyContent:"space-between"}}>{d}<span style={{cursor:"pointer"}}>⋯</span></div><div style={{fontSize:12.5,lineHeight:1.5,marginTop:3}}>{n}</div><div style={{fontSize:11,color:P.muted,textAlign:"right",marginTop:3}}>Dr. Luis Godinez</div></div>)}</div>
+     </div>
+    </div>
+   </div>;
+  })() : view==="facturacion" ? (()=>{
+   // ===== MÓDULO FACTURACIÓN (S-FACTURACION) — registro clínica-wide cableado a GET /claims; emisión -> POST /claims =====
+   const card2:React.CSSProperties={...card,marginTop:0};
+   const initials=(n:string)=>n.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+   const money=(n:number)=>"$"+n.toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+   const fmtD=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
+   const useReal=!!claimsReg&&claimsReg.total>0;
+   type FRow={folio:string;date:string;patient:string;rfc:string;concept:string;total:number;estado:string};
+   const REP_CONCEPTS=["Consulta médica","Consulta + estudios","Consulta de control","Procedimiento","Consulta médica","Paquete de control","Certificado médico","Consulta + receta","Control crónico","Procedimiento"];
+   const REP:FRow[]=[
+    {folio:"F-000245",date:"17 sep 2026",patient:"Ana López García",rfc:"LOGA900101...",concept:"Consulta médica",total:500,estado:"Pagada"},
+    {folio:"F-000244",date:"16 sep 2026",patient:"Mateo Ramírez",rfc:"RAMA850101...",concept:"Consulta + estudios",total:1200,estado:"Pagada"},
+    {folio:"F-000243",date:"15 sep 2026",patient:"Carlos Mendoza",rfc:"MECG781231...",concept:"Consulta de control",total:500,estado:"Pendiente"},
+    {folio:"F-000242",date:"14 sep 2026",patient:"María Torres",rfc:"TOMM920202...",concept:"Procedimiento",total:1800,estado:"Pagada"},
+    {folio:"F-000241",date:"12 sep 2026",patient:"Diego Salas",rfc:"SADD890512...",concept:"Consulta médica",total:500,estado:"Pagada"},
+    {folio:"F-000240",date:"10 sep 2026",patient:"Laura Fernández",rfc:"FEGL880321...",concept:"Paquete de control",total:1000,estado:"Pendiente"},
+    {folio:"F-000239",date:"08 sep 2026",patient:"José Ramírez",rfc:"RAJJ750909...",concept:"Certificado médico",total:350,estado:"Pagada"},
+    {folio:"F-000238",date:"05 sep 2026",patient:"Daniel Cruz",rfc:"CUDA900707...",concept:"Consulta + receta",total:500,estado:"Pagada"},
+    {folio:"F-000237",date:"01 sep 2026",patient:"Sofía Hernández",rfc:"HERS860420...",concept:"Control crónico",total:500,estado:"Pagada"},
+    {folio:"F-000236",date:"28 ago 2026",patient:"Ricardo Villegas",rfc:"VIRR801015...",concept:"Procedimiento",total:1500,estado:"Pendiente"},
+   ];
+   const rows:FRow[]=useReal?claimsReg!.items.slice(0,10).map((it,i)=>({folio:it.folio,date:fmtD(it.recordedAt),patient:it.patientName,rfc:"—",concept:REP_CONCEPTS[i%REP_CONCEPTS.length]!,total:it.amount,estado:it.statusLabel})):REP;
+   const kIngresos=useReal?claimsReg!.incomeThisMonth:24680;
+   const kEmitidas=useReal?claimsReg!.issuedCount:48;
+   const kPend=useReal?claimsReg!.pendingCount:6,kPendAmt=useReal?claimsReg!.pendingAmount:3950;
+   const kCanc=useReal?claimsReg!.cancellations:0;
+   const nfTotal=nfConcepts.reduce((s,c)=>s+c.qty*c.price,0);
+   const setConcept=(i:number,patch:Partial<{desc:string;qty:number;price:number}>)=>setNfConcepts(nfConcepts.map((c,j)=>j===i?{...c,...patch}:c));
+   const emit=async()=>{
+    if(!patientId){setNfMsg("Selecciona un paciente para emitir la factura.");return;}
+    if(nfTotal<=0){setNfMsg("Agrega al menos un concepto con importe.");return;}
+    setNfBusy(true);setNfMsg("");
+    try{const r=await apiRequest("/api/v1/claims",{method:"POST",body:{claimId:crypto.randomUUID(),patientId,amount:String(nfTotal),currency:"MXN",occurredAt:new Date().toISOString()}});
+     if(r.status===201||r.status===200){setNfMsg("Factura emitida ✓");const g=await apiRequest("/api/v1/claims",{method:"GET"});if(g.status===200)setClaimsReg(g.body as unknown as ClaimsRegistry);}
+     else setNfMsg("No se pudo emitir (estado "+r.status+").");
+    }catch{setNfMsg("Error al emitir la factura.");}finally{setNfBusy(false);}
+   };
+   const estSty=(k:string):React.CSSProperties=>{const m:Record<string,[string,string]>={Pagada:["#E6F6EE","#16A66A"],Pendiente:["#FBF0DC","#B7791F"],Cancelada:["#EEF1F7","#6B7191"],Rechazada:["#FDECEE","#C9364A"]};const[b,f]=m[k]??m.Pendiente!;return{background:b,color:f,borderRadius:16,padding:"3px 12px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"};};
+   const kico=(bg:string,fg:string,d:string)=><span style={{width:48,height:48,borderRadius:"50%",background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
+   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+   const tdc:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
+   const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
+   const stepN=(n:number)=><span style={{width:20,height:20,borderRadius:"50%",background:P.purple,color:"#fff",display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{n}</span>;
+   const FAC_TABS:[typeof facTab,string][]=[["facturas","Facturas"],["recibos","Recibos de pago"],["notas","Notas de crédito"],["cotizaciones","Cotizaciones"]];
+   return <div style={{padding:"18px 24px 40px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M9 3h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h1V4a1 1 0 011-1zM9 12h6M9 16h4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Facturación</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Emite facturas, controla pagos y administra tus ingresos.</p></div></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⚙ Configuración fiscal</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>◔ Reportes</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>+ Nueva factura ▾</button></div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
+     <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#E6F6EE","#16A66A","M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6")}<div><div style={{fontSize:24,fontWeight:800}}>{money(kIngresos)}</div><div style={{fontSize:11.5,color:P.muted}}>Ingresos este mes</div><div style={{fontSize:11.5,color:"#16A66A",fontWeight:700,marginTop:2}}>↑ +18% vs. mes anterior</div></div></div>
+     <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#E7EEFB",P.blue,"M9 3h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h1V4a1 1 0 011-1z")}<div><div style={{fontSize:24,fontWeight:800}}>{kEmitidas}</div><div style={{fontSize:11.5,color:P.muted}}>Facturas emitidas</div></div></div>
+     <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{kPend}</div><div style={{fontSize:11.5,color:P.muted}}>Pendientes de pago</div><div style={{fontSize:11.5,color:P.amber,fontWeight:700,marginTop:2}}>{money(kPendAmt)}</div></div></div>
+     <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#FDECEE",P.red,"M18 6L6 18M6 6l12 12")}<div><div style={{fontSize:24,fontWeight:800}}>{kCanc}</div><div style={{fontSize:11.5,color:P.muted}}>Cancelaciones</div></div></div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 380px",gap:16,marginTop:16,alignItems:"start"}} className="mos-fac">
+     {/* Columna izquierda: tabla + gráficas */}
+     <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{...card2,padding:0,overflow:"hidden"}}>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px 0",flexWrap:"wrap",gap:10}}>
+        <div style={{display:"flex",gap:4}}>{FAC_TABS.map(([k,l])=><button key={k} onClick={()=>setFacTab(k)} style={{padding:"10px 12px",fontSize:13.5,fontWeight:facTab===k?700:500,color:facTab===k?P.purple:P.muted,borderBottom:facTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>{l}</button>)}</div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}><select style={{...selSty,width:"auto",padding:"7px 10px"}} defaultValue="Más filtros"><option>Más filtros</option></select><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"7px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>↧ Exportar</button></div>
+       </div>
+       <div style={{borderTop:`1px solid ${LINE}`,display:"flex",gap:10,padding:"12px 16px",flexWrap:"wrap"}}><div style={{position:"relative",flex:1,minWidth:180}}><input placeholder="Buscar por folio, paciente, RFC..." style={{...selSty,paddingLeft:32}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div><select style={{...selSty,width:"auto"}} defaultValue="Todas las fechas"><option>📅 Todas las fechas</option></select><select style={{...selSty,width:"auto"}} defaultValue="Todos los estados"><option>Todos los estados</option></select></div>
+       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+        <thead><tr><th style={{...th,width:30}}></th><th style={th}>Folio</th><th style={th}>Fecha</th><th style={th}>Paciente</th><th style={th}>RFC</th><th style={th}>Concepto</th><th style={{...th,textAlign:"right"}}>Total</th><th style={th}>Estado</th><th style={{...th,textAlign:"right"}}>Acc.</th></tr></thead>
+        <tbody>{rows.map((r,i)=><tr key={i}><td style={tdc}><span style={{width:15,height:15,borderRadius:4,border:"1.6px solid #C7CCE0",display:"inline-block"}}/></td><td style={{...tdc,fontWeight:700,color:P.ink}}>{r.folio}</td><td style={{...tdc,color:P.muted}}>{r.date}</td><td style={tdc}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:26,height:26,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:10,fontWeight:700,flex:"0 0 auto"}}>{initials(r.patient)}</span><span style={{fontWeight:600}}>{r.patient}</span></div></td><td style={{...tdc,color:P.muted,fontFamily:"monospace",fontSize:11.5}}>{r.rfc}</td><td style={tdc}>{r.concept}</td><td style={{...tdc,textAlign:"right",fontWeight:700}}>{money(r.total)}</td><td style={tdc}><span style={estSty(r.estado)}>{r.estado}</span></td><td style={{...tdc,textAlign:"right",color:P.muted,fontWeight:700}}>⋯</td></tr>)}</tbody>
+       </table></div>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 16px",fontSize:13,color:P.muted,flexWrap:"wrap",gap:10}}><span>Mostrando 1–{rows.length} de {kEmitidas} facturas</span><div style={{display:"flex",gap:5}}>{["‹","1","2","3","4","5","›"].map((p,i)=><span key={i} style={{minWidth:32,height:32,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:13,cursor:"pointer"}}>{p}</span>)}</div><span style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"6px 11px",fontSize:12}}>10 ▾</span></div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1.1fr 1fr",gap:14,alignItems:"start"}} className="mos-fac2">
+       <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div style={{fontSize:14.5,fontWeight:800}}>Métodos de pago</div><span style={{fontSize:12,color:P.blue,cursor:"pointer"}}>⚙ Configurar</span></div>{[["Efectivo",true],["Tarjeta de crédito/débito",true],["Transferencia bancaria",true],["Mercado Pago / CoDi",false]].map(([l,on],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<3?`1px solid #F2F4F9`:"0"}}><span style={{width:30,height:30,borderRadius:8,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 7h18v10H3zM3 11h18"/></svg></span><span style={{flex:1,fontSize:13,fontWeight:500}}>{l as string}</span><span style={{width:36,height:20,borderRadius:12,background:on?"#16A66A":"#D5D9E6",position:"relative",cursor:"pointer"}}><span style={{position:"absolute",top:2,left:on?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .15s"}}/></span></div>)}</div>
+       <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div style={{fontSize:14.5,fontWeight:800}}>Ingresos mensuales</div><select style={{...selSty,width:"auto",padding:"5px 8px",fontSize:12}} defaultValue="Este año"><option>Este año</option></select></div><div style={{display:"flex",alignItems:"flex-end",gap:5,height:120,position:"relative"}}>{[[ "Ene",8],["Feb",10],["Mar",13],["Abr",11],["May",15],["Jun",14],["Jul",16],["Ago",18],["Sep",30],["Oct",13],["Nov",12],["Dic",11]].map(([m,h],i)=><div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}><div style={{position:"relative",width:"100%",display:"flex",justifyContent:"center"}}>{(m as string)==="Sep"&&<span style={{position:"absolute",bottom:"100%",marginBottom:4,background:P.purple,color:"#fff",fontSize:10,fontWeight:700,borderRadius:6,padding:"2px 6px",whiteSpace:"nowrap"}}>$24,680</span>}<div style={{width:"70%",height:(h as number)*3.6,background:(m as string)==="Sep"?P.purple:"#C9D0E8",borderRadius:"4px 4px 0 0"}}/></div><span style={{fontSize:9.5,color:P.muted}}>{m as string}</span></div>)}</div></div>
+       <div style={{...card2,padding:16}}><div style={{fontSize:14.5,fontWeight:800,marginBottom:10}}>Top servicios facturados</div>{[["Consulta médica",42,42],["Procedimientos",18,18],["Vacunas",15,15],["Certificados",12,12],["Estudios",8,8],["Otros",5,5]].map(([l,n,pc],i)=><div key={i} style={{marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}><span>{l as string}</span><span style={{color:P.muted}}><b style={{color:P.ink}}>{n as number}</b> {pc as number}%</span></div><div style={{height:6,borderRadius:6,background:"#EEF1F7",overflow:"hidden"}}><div style={{height:"100%",width:`${(pc as number)*2}%`,maxWidth:"100%",background:P.purple,borderRadius:6}}/></div></div>)}</div>
+      </div>
+     </div>
+     {/* Columna derecha: Nueva factura */}
+     <div style={{...card2,padding:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div style={{fontSize:17,fontWeight:800}}>Nueva factura</div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"7px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>⊟ Usar plantilla</button></div>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>{stepN(1)}<span style={{fontSize:13.5,fontWeight:700}}>Paciente</span></div>
+      <div style={{position:"relative",marginBottom:8}}><input placeholder="Buscar paciente por nombre o expediente..." style={{...selSty,paddingLeft:32}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
+      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",border:`1px solid ${LINE}`,borderRadius:10,marginBottom:16}}><span style={{width:34,height:34,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:12,fontWeight:700}}>{initials(patientName||"Ana López García")}</span><div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700}}>{patientName||"Ana López García"}</div><div style={{fontSize:11,color:P.muted,fontFamily:"monospace"}}>RFC: LOGA900101MCHPRN09</div></div><span style={{color:P.muted,cursor:"pointer"}}>×</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}>{stepN(2)}<span style={{fontSize:13.5,fontWeight:700}}>Conceptos</span></div><button onClick={()=>setNfConcepts([...nfConcepts,{desc:"Nuevo concepto",qty:1,price:0}])} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:8,padding:"6px 11px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:UI}}>+ Agregar concepto</button></div>
+      <div style={{fontSize:11,color:"#9AA0BC",display:"grid",gridTemplateColumns:"1fr 46px 62px 62px 20px",gap:6,padding:"0 2px 4px",fontWeight:600}}><span>Descripción</span><span>Cant.</span><span style={{textAlign:"right"}}>Precio</span><span style={{textAlign:"right"}}>Importe</span><span/></div>
+      {nfConcepts.map((c,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 46px 62px 62px 20px",gap:6,alignItems:"center",padding:"4px 0"}}><input value={c.desc} onChange={e=>setConcept(i,{desc:e.target.value})} style={{...selSty,padding:"7px 8px",fontSize:12.5}}/><input value={c.qty} onChange={e=>setConcept(i,{qty:Number(e.target.value)||0})} style={{...selSty,padding:"7px 4px",fontSize:12.5,textAlign:"center"}}/><input value={c.price} onChange={e=>setConcept(i,{price:Number(e.target.value)||0})} style={{...selSty,padding:"7px 6px",fontSize:12.5,textAlign:"right"}}/><span style={{fontSize:12.5,fontWeight:600,textAlign:"right"}}>{money(c.qty*c.price)}</span><span onClick={()=>setNfConcepts(nfConcepts.filter((_,j)=>j!==i))} style={{color:P.red,cursor:"pointer",textAlign:"center"}}>🗑</span></div>)}
+      <div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${LINE}`,display:"flex",flexDirection:"column",gap:6,fontSize:13}}>
+       <div style={{display:"flex",justifyContent:"space-between",color:P.muted}}><span>Subtotal</span><span style={{fontWeight:600,color:P.ink}}>{money(nfTotal)}</span></div>
+       <div style={{display:"flex",justifyContent:"space-between",color:P.muted}}><span>IVA (0%)</span><span style={{fontWeight:600,color:P.ink}}>{money(0)}</span></div>
+       <div style={{display:"flex",justifyContent:"space-between",fontSize:16,fontWeight:800}}><span>Total</span><span>{money(nfTotal)}</span></div>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8,margin:"16px 0 8px"}}>{stepN(3)}<span style={{fontSize:13.5,fontWeight:700}}>Forma de pago</span></div>
+      <div style={{display:"flex",gap:8}}><select style={{...selSty,flex:1}} defaultValue="Transferencia bancaria"><option>Transferencia bancaria</option><option>Efectivo</option><option>Tarjeta</option></select><input type="date" defaultValue="2026-09-17" style={{...selSty,width:"auto"}}/></div>
+      <div style={{display:"flex",alignItems:"center",gap:8,margin:"16px 0 8px"}}>{stepN(4)}<span style={{fontSize:13.5,fontWeight:700}}>Datos fiscales</span></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><div style={{fontSize:11,fontWeight:700,color:P.muted,marginBottom:4}}>Uso CFDI</div><select style={{...selSty,padding:"8px 8px",fontSize:12}} defaultValue="G03"><option>G03 - Gastos en general</option></select></div><div><div style={{fontSize:11,fontWeight:700,color:P.muted,marginBottom:4}}>Régimen fiscal</div><select style={{...selSty,padding:"8px 8px",fontSize:12}} defaultValue="612"><option>612 - Personas Físicas con Actividades E…</option></select></div></div>
+      <div style={{marginTop:10}}><div style={{fontSize:11,fontWeight:700,color:P.muted,marginBottom:4}}>Método de pago</div><select style={{...selSty,padding:"8px 8px",fontSize:12}} defaultValue="PUE"><option>PUE - Pago en una sola exhibición</option></select></div>
+      <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12.5,margin:"12px 0",cursor:"pointer"}}><span style={{width:16,height:16,borderRadius:4,background:P.purple,color:"#fff",display:"grid",placeItems:"center",fontSize:10}}>✓</span>Enviar por correo al paciente</label>
+      {nfMsg&&<div style={{marginBottom:10,padding:"9px 12px",borderRadius:9,background:nfMsg.includes("✓")?"#E6F6EE":"#FDF4E6",border:`1px solid ${nfMsg.includes("✓")?"#BFE6CF":"#F2E1C0"}`,fontSize:12.5,color:nfMsg.includes("✓")?"#166534":"#7A5A16"}}>{nfMsg}</div>}
+      <div style={{display:"flex",gap:10}}><button style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>◉ Vista previa</button><button onClick={emit} disabled={nfBusy} style={{flex:1,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>{nfBusy?"Emitiendo…":"➤ Emitir factura ▾"}</button></div>
      </div>
     </div>
    </div>;

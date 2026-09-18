@@ -55,6 +55,7 @@ const SMOKE:readonly string[]=[
  "live-care-plan-snapshot-proof",           // Plan de cuidado: snapshot compuesto (problemas + conteos + metas + métricas)
  "live-referral-context-proof",             // Interconsulta: contexto del paciente (alergias/meds/problemas/labs/vitales) + envío
  "live-follow-up-snapshot-proof",           // Seguimiento: tareas (obligaciones) + tendencia vitales + indicadores clave
+ "live-claims-registry-proof",              // Facturación: registro de facturas clínica-wide + KPIs (ingresos/emitidas/pendientes)
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];
