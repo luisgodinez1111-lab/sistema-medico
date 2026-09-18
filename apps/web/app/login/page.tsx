@@ -1,6 +1,6 @@
 "use client";
 import{useEffect,useState}from"react";
-import{createAuth0Client,type Auth0Client}from"@auth0/auth0-spa-js";
+import{Auth0Client}from"@auth0/auth0-spa-js";
 import{exchangeForSession,storeSession,getStoredSession,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
 import{primitive,semantic,typography}from"../../../../packages/design-system/src";
 // EPIC J / eje E — PUERTA ÚNICA de sesión (auth split premium clínico). Una sola ventana:
@@ -81,34 +81,41 @@ export default function LoginPage(){
   if(!DOMAIN||!CLIENT_ID||!AUDIENCE){setPhase("config");return;}
   const domain:string=DOMAIN,clientId:string=CLIENT_ID,audience:string=AUDIENCE;
   let cancelled=false;
+  const params=new URLSearchParams(location.search);
+  const urlErr=params.get("error");
+  const returning=params.has("code")&&params.has("state");
+  // Cliente LISTO de inmediato: el constructor NO hace el checkSession con iframe del factory
+  // (que se cuelga hasta el timeout con cookies de terceros bloqueadas). La puerta no espera.
+  const c=new Auth0Client({domain,clientId,authorizationParams:{redirect_uri:window.location.origin+"/login",audience},cacheLocation:"memory"});
+  setClient(c);
+  if(urlErr){
+   setDetail(`${urlErr}: ${params.get("error_description")??""}`);
+   window.history.replaceState({},document.title,"/login");
+   setPhase("error");return;
+  }
+  // Vuelta desde Auth0 -> "verificando"; visita normal -> muestra la puerta YA y verifica en 2.º plano.
+  setPhase(returning?"authenticating":"anonymous");
   (async()=>{
    try{
-    const c=await createAuth0Client({domain,clientId,authorizationParams:{redirect_uri:window.location.origin+"/login",audience},cacheLocation:"memory"});
-    if(cancelled)return;setClient(c);
-    const params=new URLSearchParams(location.search);
-    const urlErr=params.get("error");
-    if(urlErr){
-     setDetail(`${urlErr}: ${params.get("error_description")??""}`);
-     window.history.replaceState({},document.title,"/login");
-     setPhase("error");return;
-    }
-    if(location.search.includes("code=")&&location.search.includes("state=")){
+    if(returning){
      await c.handleRedirectCallback();
      window.history.replaceState({},document.title,"/login");
     }
-    if(await c.isAuthenticated()){
+    const existing=getStoredSession();
+    if(existing){if(cancelled)return;setPhase("redirecting");window.location.replace("/workspace");return;}
+    // Sesión SSO activa? Silencioso (resuelve/rechaza rápido). Si falla, se queda la puerta visible.
+    const idpToken=await c.getTokenSilently({authorizationParams:{audience}}).catch(()=>null);
+    if(cancelled)return;
+    if(typeof idpToken==="string"&&idpToken){
      setPhase("authenticating");
-     const idpToken=await c.getTokenSilently({authorizationParams:{audience}});
-     if(typeof idpToken!=="string"||!idpToken)throw new Error("OIDC_TOKEN_UNAVAILABLE");
      const s:MedicalSession=await exchangeForSession(idpToken);storeSession(s);
      if(cancelled)return;
      setPhase("redirecting");
      window.location.replace("/workspace");
-    }else{
-     const existing=getStoredSession();
-     if(existing){setPhase("redirecting");window.location.replace("/workspace");}
-     else setPhase("anonymous");
-    }
+    }else if(returning){
+     setDetail("No se pudo emitir la sesión clínica tras el inicio de sesión. Reintenta.");
+     setPhase("error");
+    } // si no: permanece en "anonymous" con el botón "Entrar con Auth0" ya visible
    }catch(e){if(!cancelled){setDetail(String(e));setPhase("error");}}
   })();
   return()=>{cancelled=true;};
