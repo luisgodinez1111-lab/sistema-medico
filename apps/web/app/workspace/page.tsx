@@ -2,6 +2,7 @@
 import{useEffect,useState}from"react";
 import{getStoredSession,apiRequest,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
 import{summarizePatient}from"../../../../packages/patient-summary/src";
+import{primitive,typography}from"../../../../packages/design-system/src";
 // EPIC K — Espacio de trabajo clínico. Consume los endpoints ya probados con la sesión autenticada.
 // Módulos: encuentro (abrir->valorar->firmar) y medicación (proponer->prescribir->activar->suspender),
 // ambos para el mismo paciente, con concurrencia optimista (If-Match).
@@ -70,13 +71,20 @@ function probActions(p:{id:string;state:ProbSt}):{label:string;path:string;body:
  return[];
 }
 
-const wrap:React.CSSProperties={maxWidth:900,margin:"0 auto",padding:32};
-const card:React.CSSProperties={background:"white",border:"1px solid #e7e6f2",borderRadius:18,padding:24,boxShadow:"0 6px 20px #19145b0a",marginTop:20};
-const btn:React.CSSProperties={background:"#6255c7",color:"white",border:0,borderRadius:10,padding:"10px 16px",fontWeight:700,cursor:"pointer",fontSize:14};
-const ghost:React.CSSProperties={...btn,background:"transparent",color:"#6255c7",border:"1px solid #d9d6f2"};
-const input:React.CSSProperties={width:"100%",boxSizing:"border-box",padding:"10px 12px",border:"1px solid #d9d6f2",borderRadius:10,fontSize:14,fontFamily:"inherit"};
-const mono:React.CSSProperties={fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,background:"#f4f3fb",padding:"2px 6px",borderRadius:6};
-const lbl:React.CSSProperties={fontSize:13,fontWeight:600,color:"#4b4c5e",display:"block",margin:"12px 0 6px"};
+// Tokens del design-system (único origen de verdad). El app-shell y las tarjetas se derivan de aquí.
+const P=primitive.color,S=primitive.space,UI=typography.family.ui;
+const LINE="#E4E9F2";
+const shell:React.CSSProperties={minHeight:"100vh",background:P.canvas,fontFamily:UI,color:P.ink};
+const appbar:React.CSSProperties={position:"sticky",top:0,zIndex:30,background:P.white,borderBottom:`1px solid ${LINE}`,padding:"11px 22px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"};
+const patientBar:React.CSSProperties={position:"sticky",top:57,zIndex:25,background:"rgba(255,255,255,.92)",backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",borderBottom:`1px solid ${LINE}`,padding:"11px 22px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:16};
+const content:React.CSSProperties={maxWidth:1080,margin:"0 auto",padding:`${S[5]}px ${S[5]}px ${S[12]}px`};
+const wrap:React.CSSProperties={maxWidth:1080,margin:"0 auto",padding:S[8],minHeight:"100vh",background:P.canvas,fontFamily:UI,color:P.ink};
+const card:React.CSSProperties={background:P.white,border:`1px solid ${LINE}`,borderRadius:16,padding:S[6],boxShadow:"0 1px 2px rgba(16,42,86,.04),0 8px 24px rgba(16,42,86,.05)",marginTop:S[5]};
+const btn:React.CSSProperties={background:P.blue,color:"#fff",border:0,borderRadius:10,padding:"10px 16px",fontWeight:700,cursor:"pointer",fontSize:14,fontFamily:UI};
+const ghost:React.CSSProperties={...btn,background:"transparent",color:P.blue,border:"1px solid #CFE0F7"};
+const input:React.CSSProperties={width:"100%",boxSizing:"border-box",padding:"10px 12px",border:`1px solid ${LINE}`,borderRadius:10,fontSize:14,fontFamily:"inherit",background:"#fff",color:P.ink};
+const mono:React.CSSProperties={fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,background:"#EEF3FB",color:"#33507D",padding:"2px 6px",borderRadius:6};
+const lbl:React.CSSProperties={fontSize:13,fontWeight:600,color:"#3C4658",display:"block",margin:"12px 0 6px"};
 function stateBadge(s:string){const m:Record<string,[string,string]>={SIGNED:["#e8f7ee","#1a7f43"],READY_TO_SIGN:["#fff4e5","#a15c00"],OPEN:["#eef0ff","#3f3aa0"],PROPOSED:["#eef0ff","#3f3aa0"],PRESCRIBED:["#eaf3ff","#1f5fb0"],ACTIVE:["#e8f7ee","#1a7f43"],STOPPED:["#f1f1f4","#5f6072"],RECEIVED:["#eef0ff","#3f3aa0"],VERIFIED:["#eaf3ff","#1f5fb0"],ACTIONED:["#fff4e5","#a15c00"],CLOSED:["#e8f7ee","#1a7f43"],DRAFT:["#eef0ff","#3f3aa0"],FINALIZED:["#eaf3ff","#1f5fb0"],AMENDED:["#e8f7ee","#1a7f43"],ORDERED:["#eaf3ff","#1f5fb0"],FULFILLED:["#e8f7ee","#1a7f43"],CANCELLED:["#f1f1f4","#5f6072"],IN_PROGRESS:["#fff4e5","#a15c00"],COMPLETED:["#e8f7ee","#1a7f43"],ACTIVE_PROB:["#eef0ff","#3f3aa0"],RESOLVED:["#f1f1f4","#5f6072"],CHRONIC:["#fff4e5","#a15c00"],ENTERED_IN_ERROR:["#f1f1f4","#5f6072"],REFUTED:["#f1f1f4","#5f6072"],INACTIVE:["#f1f1f4","#5f6072"],REQUESTED:["#eef0ff","#3f3aa0"],ACCEPTED:["#eaf3ff","#1f5fb0"],DECLINED:["#f1f1f4","#5f6072"],SCHEDULED:["#eef0ff","#3f3aa0"],CHECKED_IN:["#fff4e5","#a15c00"],NO_SHOW:["#f1f1f4","#5f6072"],DUE:["#eef0ff","#3f3aa0"],ADMINISTERED:["#e8f7ee","#1a7f43"],ADVERSE_EVENT:["#fdeaea","#b3261e"],RECORDED:["#e8f7ee","#1a7f43"],ON_HOLD:["#fff4e5","#a15c00"],ACHIEVED:["#e8f7ee","#1a7f43"],CODED:["#eaf3ff","#1f5fb0"],SUBMITTED:["#fff4e5","#a15c00"],PAID:["#e8f7ee","#1a7f43"],REJECTED:["#fdeaea","#b3261e"],VOIDED:["#f1f1f4","#5f6072"],DRAFTED:["#eef0ff","#3f3aa0"],PRESENTED:["#fff4e5","#a15c00"],GRANTED:["#e8f7ee","#1a7f43"],REVOKED:["#f1f1f4","#5f6072"],ADMITTED:["#e8f7ee","#1a7f43"],TRANSFERRED:["#fff4e5","#a15c00"],DISCHARGED:["#eef0ff","#3f3aa0"],COLLECTED:["#eef0ff","#3f3aa0"],RESULTED:["#e8f7ee","#1a7f43"],UNDER_REVIEW:["#fff4e5","#a15c00"],ESCALATED:["#fdeaea","#b3261e"],WAITING:["#eef0ff","#3f3aa0"],IN_TRIAGE:["#fff4e5","#a15c00"],TRIAGED:["#eaf3ff","#1f5fb0"],LWBS:["#f1f1f4","#5f6072"],HEALED:["#e8f7ee","#1a7f43"],CROSSMATCHED:["#eaf3ff","#1f5fb0"],TRANSFUSING:["#fff4e5","#a15c00"],REACTION:["#fdeaea","#b3261e"],TIMED_OUT:["#eaf3ff","#1f5fb0"],IN_SESSION:["#fff4e5","#a15c00"],INTERRUPTED:["#fdeaea","#b3261e"]};const c=m[s]??["#eef0ff","#3f3aa0"];return{display:"inline-block",background:c[0],color:c[1],fontWeight:700,fontSize:12,padding:"3px 10px",borderRadius:999};}
 const in7days=()=>new Date(Date.now()+7*864e5).toISOString();
 const uuid=()=>globalThis.crypto.randomUUID();
@@ -570,12 +578,35 @@ export default function Workspace(){
   <div style={card}><p>No hay una sesión activa.</p><a href="/login" style={{...btn,display:"inline-block",textDecoration:"none"}}>Iniciar sesión</a></div>
  </main>;
 
- return <main style={wrap}>
-  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-   <div><div style={{fontSize:13,color:"#6255c7",fontWeight:700}}>MEDICAL OS</div><h1 style={{fontSize:32,margin:"4px 0"}}>Espacio clínico</h1></div>
-   <button style={ghost} onClick={async()=>{await sessionLogout();location.href="/login";}}>Cerrar sesión</button>
+ return <div style={shell}>
+  {/* APP-SHELL — barra superior de marca + contexto de sesión */}
+  <header style={appbar}>
+   <div style={{display:"flex",alignItems:"center",gap:11}}>
+    <span style={{width:34,height:34,borderRadius:9,background:`linear-gradient(160deg,${P.navy},#15346B)`,display:"grid",placeItems:"center",flex:"0 0 auto"}}>
+     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M4 13h3.2l1.7-5.3 2.9 9 2-6.4 1.4 2.7H20" stroke="#fff" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    </span>
+    <div>
+     <div style={{fontSize:11,fontWeight:800,letterSpacing:".14em",color:P.blue}}>MEDICAL OS</div>
+     <div style={{fontSize:14,fontWeight:700,marginTop:1,letterSpacing:"-.01em"}}>Espacio clínico</div>
+    </div>
+   </div>
+   <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+    <span style={{fontSize:12,color:P.muted}}>Sesión <span style={mono}>{session.sessionId.slice(0,8)}</span> · hasta {new Date(session.expiresAt*1000).toLocaleTimeString()}</span>
+    <button style={{...ghost,padding:"8px 14px"}} onClick={async()=>{await sessionLogout();location.href="/login";}}>Cerrar sesión</button>
+   </div>
+  </header>
+  {/* PATIENT HEADER — contexto del paciente SIEMPRE visible (design-contract) */}
+  <div style={patientBar}>
+   <div style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
+    <span style={{width:38,height:38,borderRadius:"50%",background:patientName?"#E7EEFB":"#EFF1F5",color:patientName?P.blue:P.muted,display:"grid",placeItems:"center",fontWeight:700,fontSize:14,flex:"0 0 auto"}}>{patientName?patientName.trim().slice(0,2).toUpperCase():"—"}</span>
+    <div style={{minWidth:0}}>
+     <div style={{fontSize:15,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{patientName||"Paciente anónimo"}</div>
+     <div style={{fontSize:12,color:P.muted,marginTop:1}}>ID <span style={mono}>{patientId.slice(0,8)}</span> · paciente activo del expediente</div>
+    </div>
+   </div>
+   <button style={{...ghost,padding:"7px 12px",fontSize:13,flex:"0 0 auto"}} onClick={reset}>+ Paciente anónimo</button>
   </div>
-  <p style={{color:"#6d6e80"}}>Sesión <span style={mono}>{session.sessionId.slice(0,8)}</span> · válida hasta {new Date(session.expiresAt*1000).toLocaleTimeString()} · paciente {patientName?<b>{patientName}</b>:<span style={mono}>{patientId.slice(0,8)}</span>} <button style={{...ghost,padding:"2px 10px",fontSize:12,marginLeft:8}} onClick={reset}>Anónimo nuevo</button></p>
+  <main style={content}>
 
   {/* PANEL / WORKLIST POBLACIONAL */}
   <section style={card}>
@@ -1147,5 +1178,6 @@ export default function Workspace(){
   </section>
 
   {error&&<div style={{...card,borderColor:"#f0c6c0",background:"#fdf3f2"}}><b style={{color:"#c0392b"}}>Error</b><p style={{margin:"6px 0 0",color:"#7a3b34",wordBreak:"break-word"}}>{error}</p>{error.includes("SAFETY_BLOCKED")&&<p style={{margin:"6px 0 0",fontSize:12,color:"#a15c00"}}>💡 ¿Hay un resultado crítico sin cerrar para este paciente? Ciérralo abajo y vuelve a firmar.</p>}</div>}
- </main>;
+  </main>
+ </div>;
 }
