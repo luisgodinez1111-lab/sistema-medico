@@ -146,6 +146,7 @@ const SIDE_NAV:{label:string;h2:string;icon:string}[]=[
  {label:"Problemas",h2:"Lista de problemas",icon:"list"},
  {label:"Seguimiento",h2:"Seguimiento automático",icon:"bell"},
  {label:"Documentos",h2:"Documentos clínicos",icon:"doc"},
+ {label:"Portal paciente",h2:"Portal del paciente",icon:"phone"},
  {label:"Auditoría",h2:"Seguridad y auditoría",icon:"lock"},
 ];
 function NavIcon({k}:{k:string}){const P:Record<string,string>={
@@ -154,7 +155,7 @@ function NavIcon({k}:{k:string}){const P:Record<string,string>={
  flask:"M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3",chart:"M4 19V5M4 19h16M8 15l3-4 3 2 4-6",
  pill:"M10 4l10 10-6 6L4 10zM7 7l6 6",shield:"M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z",
  list:"M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",bell:"M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6M10 20a2 2 0 004 0",
- doc:"M7 3h7l4 4v14H7zM14 3v4h4",lock:"M6 11h12v9H6zM9 11V8a3 3 0 016 0v3"};
+ doc:"M7 3h7l4 4v14H7zM14 3v4h4",lock:"M6 11h12v9H6zM9 11V8a3 3 0 016 0v3",phone:"M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zM11 18h2"};
  return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={P[k]??P.home}/></svg>;}
 function scrollToSection(h2Text:string){
  if(!h2Text){window.scrollTo({top:0,behavior:"smooth"});return;}
@@ -189,6 +190,10 @@ const RAIL_CSS=`
 @media(max-width:1000px){.mos-side{display:none}.mos-grid{grid-template-columns:1fr}}
 .mos-topsearch{flex:1;max-width:440px;display:flex;align-items:center;gap:8px;background:#F1F4F9;border:1px solid #E4E9F2;border-radius:10px;padding:8px 12px}
 .mos-topsearch input{flex:1;border:0;background:transparent;outline:none;font-size:13.5px;font-family:inherit;color:#14213D}
+.mos-phone{width:270px;max-width:100%;margin:14px auto 0;border-radius:30px;background:#0C2148;padding:9px;box-shadow:0 18px 44px rgba(16,42,86,.22)}
+.mos-phone .screen{background:#F4F7FB;border-radius:23px;overflow:hidden}
+.mos-pnav{display:flex;justify-content:space-around;align-items:center;padding:9px 4px;background:#fff;border-top:1px solid #E4E9F2}
+.mos-pnav div{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9.5px;color:#8a8b9a}
 `;
 const wrap:React.CSSProperties={maxWidth:1080,margin:"0 auto",padding:S[8],minHeight:"100vh",background:P.canvas,fontFamily:UI,color:P.ink};
 const card:React.CSSProperties={background:P.white,border:`1px solid ${LINE}`,borderRadius:16,padding:S[6],boxShadow:"0 1px 2px rgba(16,42,86,.04),0 8px 24px rgba(16,42,86,.05)",marginTop:S[5]};
@@ -921,6 +926,55 @@ export default function Workspace(){
      </div>)}</div>:<div style={{fontSize:13,color:P.muted,padding:"12px 0"}}>Sin actividad registrada para este paciente todavía.</div>}
     </div>
    </div>
+  </section>
+
+  {/* PORTAL DEL PACIENTE (panel 6) — vista previa (solo lectura) del app del paciente, desde datos reales */}
+  <section style={card}>
+   <div><h2 style={{fontSize:18,margin:0}}>Portal del paciente</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Informado. Involucrado. Vista previa (solo lectura) de lo que ve el paciente en su app.</p></div>
+   {(()=>{
+    const t=tl??[];
+    const appts=t.filter(x=>x.aggregateType==="Appointment");
+    const nextAppt=appts.find(x=>x.latestKind==="SCHEDULED"||x.latestKind==="CHECKED_IN");
+    const resultsN=t.filter(x=>x.aggregateType==="DiagnosticResult").length;
+    const medsN=t.filter(x=>x.aggregateType==="Medication"&&!CANCEL_KINDS.has(x.latestKind)).length;
+    const followN=(gaps?.length??0)+t.filter(x=>x.aggregateType==="ClinicalObligation"&&followState(x.latestKind)==="pend").length;
+    const first=(patientName||"Paciente").trim().split(/\s+/)[0];
+    const row=(icon:React.ReactNode,title:string,sub:string,badge?:number,soon?:boolean)=>(
+     <div style={{display:"flex",alignItems:"center",gap:11,padding:"11px 13px",background:"#fff",borderBottom:`1px solid ${LINE}`}}>
+      <span style={{width:30,height:30,borderRadius:9,background:soon?"#F1F4F9":"#E7EEFB",color:soon?P.muted:P.blue,display:"grid",placeItems:"center",flex:"0 0 auto"}}>{icon}</span>
+      <div style={{minWidth:0,flex:1}}><div style={{fontSize:12.5,fontWeight:700}}>{title}</div><div style={{fontSize:10.5,color:P.muted,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{sub}</div></div>
+      {soon?<span style={{fontSize:9,fontWeight:700,color:P.muted,background:"#F1F4F9",borderRadius:999,padding:"2px 7px",flex:"0 0 auto"}}>Próximamente</span>
+       :badge!==undefined&&badge>0?<span style={{fontSize:10,fontWeight:800,color:"#fff",background:"#C9364A",borderRadius:999,minWidth:17,height:17,display:"grid",placeItems:"center",padding:"0 4px",flex:"0 0 auto"}}>{badge}</span>
+       :<span style={{color:"#C3CAD6",flex:"0 0 auto"}}>›</span>}
+     </div>);
+    const pIcon=(d:string)=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d}/></svg>;
+    return <div className="mos-phone">
+     <div className="screen">
+      <div style={{background:"linear-gradient(150deg,#1769E0,#20B7D9)",padding:"16px 16px 18px",color:"#fff"}}>
+       <div style={{fontSize:10,fontWeight:800,letterSpacing:".12em",opacity:.9}}>MEDICAL OS</div>
+       <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12}}>
+        <span style={{width:40,height:40,borderRadius:"50%",background:"#ffffff2e",display:"grid",placeItems:"center",fontWeight:700,fontSize:15}}>{(patientName||"P").trim().slice(0,2).toUpperCase()}</span>
+        <div><div style={{fontSize:16,fontWeight:800}}>Hola, {first}</div><div style={{fontSize:11.5,opacity:.9}}>Tu salud en tus manos</div></div>
+       </div>
+      </div>
+      <div>
+       {row(pIcon("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"),"Mis citas",nextAppt?`Próxima cita agendada`:appts.length?"Citas registradas":"Sin citas próximas")}
+       {row(pIcon("M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"),"Mis resultados",resultsN?`${resultsN} estudio(s) · laboratorios e imágenes`:"Sin resultados aún")}
+       {row(pIcon("M10 4l10 10-6 6L4 10z"),"Mis medicamentos",medsN?`${medsN} tratamiento(s) actual(es)`:"Sin medicamentos activos")}
+       {row(pIcon("M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6"),"Mi seguimiento","Pendientes y recordatorios",followN)}
+       {row(pIcon("M4 5h16v11H8l-4 4z"),"Mensajes","Comunicación con tu equipo",undefined,true)}
+       {row(pIcon("M4 5h11v14H4zM15 5h5v14h-5"),"Educación para mi salud","Artículos y recomendaciones",undefined,true)}
+      </div>
+      <div className="mos-pnav">
+       <div><span style={{color:P.blue}}>{pIcon("M4 11l8-6 8 6M6 10v9h12v-9")}</span><span style={{color:P.blue,fontWeight:700}}>Inicio</span></div>
+       <div>{pIcon("M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3")}<span>Resultados</span></div>
+       <div>{pIcon("M4 5h16v11H8l-4 4z")}<span>Mensajes</span></div>
+       <div>{pIcon("M4 6h16M4 12h16M4 18h16")}<span>Más</span></div>
+      </div>
+     </div>
+    </div>;
+   })()}
+   <p style={{fontSize:11,color:P.muted,textAlign:"center",marginTop:12}}>Espejo de solo lectura del expediente. El paciente no edita el registro clínico.</p>
   </section>
 
   {/* PANEL / WORKLIST POBLACIONAL */}
