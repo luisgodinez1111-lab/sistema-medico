@@ -160,6 +160,19 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
  });
 
+ it("vista Biblioteca Clínica (S-BIBLIOTECA): repositorio de conocimiento + herramientas reales enlazadas",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:/Biblioteca clínica/}));       // acceso en HERRAMIENTAS
+  expect(screen.getByRole("heading",{name:"Biblioteca Clínica"})).toBeTruthy();
+  expect(screen.getByText("Guías y protocolos")).toBeTruthy();                    // KPI
+  expect(screen.getByText("Especialidades")).toBeTruthy();
+  expect(screen.getByText("Contenido destacado")).toBeTruthy();
+  expect(screen.getAllByText("Diabetes mellitus tipo 2").length).toBeGreaterThan(0); // tarjeta destacada
+  expect(screen.getByText("Herramientas rápidas")).toBeTruthy();
+  expect(screen.getByText("Fuentes confiables")).toBeTruthy();
+  expect(screen.getByText(/Conocimiento que mejora vidas/)).toBeTruthy();
+ });
+
  it("vista Reportes (S-REPORTES): tablero analítico — KPIs y diagnósticos cableados a GET /reports + gráficas",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Reportes"}));

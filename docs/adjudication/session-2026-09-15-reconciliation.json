@@ -2443,6 +2443,29 @@
    "epic": "AD/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-CLINICAL-LIBRARY-UI-001",
+   "name": "Biblioteca Clínica — repositorio de conocimiento (referencia) con herramientas reales enlazadas",
+   "risk": "C3",
+   "eng_authority_note": "Vista Biblioteca Clínica (acceso en HERRAMIENTAS) a fidelidad exacta del mockup (header, 4 KPIs, 10 tabs, buscador+filtros, grid de Especialidades, Contenido destacado con tarjetas GPC/Protocolo/Calculadora/Escala, Herramientas rápidas, Fuentes confiables CENETEC/OMS/PubMed/AHA/ADA, columna de Mis favoritos/Recientes/Actualizaciones, banner). Es un REPOSITORIO DE CONOCIMIENTO curado (guías, protocolos, artículos, recursos): contenido de REFERENCIA presentacional, NO datos clínicos del kernel event-sourced (no aplica cablear a SQL de paciente). Las herramientas enlazadas que SÍ son reales/deterministas: la tarjeta 'INTERACCIONES' navega al verificador de interacciones cableado (CAP-DRUG-INTERACTION-SET-001) y las calculadoras apuntan a los cálculos deterministas verificados (eGFR CKD-EPI, IMC, CHA2DS2-VASc, NEWS2).",
+   "invariants": [
+    "Contenido de la biblioteca (guías/protocolos/artículos/fuentes) es de referencia curada, no derivado del kernel clínico",
+    "La tarjeta INTERACCIONES enlaza al verificador real (Medicamentos › Interacciones)",
+    "No maneja PHI ni escribe eventos; es navegación/consulta de conocimiento",
+    "Se distingue explícitamente el contenido de referencia de las herramientas deterministas reales",
+    "Fidelidad exacta a la imagen"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (vista Biblioteca Clínica + acceso desde TOOLS_NAV)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Biblioteca Clínica: KPIs, especialidades, contenido destacado, herramientas, fuentes)"
+   ],
+   "runtime_evidence": "Sin proof nuevo: módulo presentacional de referencia; las herramientas enlazadas reutilizan capacidades ya probadas (interacciones + calculadoras deterministas en el smoke runner). Render test 22/22 (jsdom). Fidelidad verificada por preview + captura.",
+   "epic": "REF/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
