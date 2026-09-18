@@ -69,19 +69,19 @@ export async function lookupReplay(ctx:HttpTenantContext,command:ClinicalCommand
 }
 
 // EPIC S — Registro de pacientes del tenant (RLS-scoped). Devuelve id + nombre (PHI) + estado.
-export type PatientRow=Readonly<{patientId:string;name:string;status:string}>;
+export type PatientRow=Readonly<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string}>;
 export async function listPatients(ctx:HttpTenantContext):Promise<ReadonlyArray<PatientRow>>{
  const sql=getSql();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
   const rows=await tx`
-   select r.aggregate_id, r.payload->>'name' as name,
+   select r.aggregate_id, r.payload->>'name' as name, r.payload->>'birthDate' as birth_date, r.payload->>'sexAtBirth' as sex_at_birth,
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_kind
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
    order by r.payload->>'name'`;
   const STATUS:Record<string,string>={REGISTERED:"ACTIVE",REACTIVATED:"ACTIVE",DEACTIVATED:"INACTIVE",DECEASED:"DECEASED"};
-  return rows.map(x=>({patientId:String(x.aggregate_id),name:String(x.name??""),status:STATUS[String(x.latest_kind??"REGISTERED")]??"ACTIVE"}));
+  return rows.map(x=>{const o=x as Record<string,unknown>;return{patientId:String(o.aggregate_id),name:String(o.name??""),status:STATUS[String(o.latest_kind??"REGISTERED")]??"ACTIVE",...(o.birth_date?{birthDate:String(o.birth_date)}:{}),...(o.sex_at_birth?{sexAtBirth:String(o.sex_at_birth)}:{})};});
  }) as Promise<ReadonlyArray<PatientRow>>;
 }
 // EPIC R — Gate de seguridad de medicación: sustancias con alergia ACTIVA del paciente (RLS-scoped).

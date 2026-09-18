@@ -241,6 +241,7 @@ const RAIL_CSS=`
 .mos-topsearch input{flex:1;border:0;background:transparent;outline:none;font-size:13.5px;font-family:inherit;color:#14213D}
 @media(max-width:1180px){.mos-mid{grid-template-columns:1fr 1fr!important}.mos-low2{grid-template-columns:1fr 1fr!important}}
 @media(max-width:900px){.mos-kpis{grid-template-columns:1fr 1fr!important}.mos-banners{grid-template-columns:1fr!important}.mos-mid{grid-template-columns:1fr!important}.mos-low{grid-template-columns:1fr!important}.mos-low2{grid-template-columns:1fr!important}}
+@media(max-width:1150px){.mos-detail{display:none!important}}
 .mos-phone{width:270px;max-width:100%;margin:14px auto 0;border-radius:30px;background:#0C2148;padding:9px;box-shadow:0 18px 44px rgba(16,42,86,.22)}
 .mos-phone .screen{background:#F4F7FB;border-radius:23px;overflow:hidden}
 .mos-pnav{display:flex;justify-content:space-around;align-items:center;padding:9px 4px;background:#fff;border-top:1px solid #E4E9F2}
@@ -429,10 +430,11 @@ export default function Workspace(){
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"exp">("inicio"); // Inicio = dashboard del consultorio; exp = expediente del paciente
+ const[view,setView]=useState<"inicio"|"pacientes"|"exp">("inicio"); // Inicio=dashboard · pacientes=gestión · exp=expediente
+ const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[clock,setClock]=useState<Date>(()=>new Date());
  const[topMenu,setTopMenu]=useState(false);
- const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string}[]|null>(null);
+ const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string}[]|null>(null);
  const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
  const[busy,setBusy]=useState("");
  const[error,setError]=useState("");
@@ -470,9 +472,9 @@ export default function Workspace(){
 
  // Reloj en vivo del dashboard (hora del consultorio).
  useEffect(()=>{const id=setInterval(()=>setClock(new Date()),1000*30);return()=>clearInterval(id);},[]);
- // Dashboard Inicio: carga worklist (tareas del consultorio, tenant-wide) + lista de pacientes reales.
+ // Inicio y Pacientes: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
-  if(view!=="inicio"||!ready||!session)return;
+  if((view!=="inicio"&&view!=="pacientes")||!ready||!session)return;
   let cancelled=false;
   (async()=>{
    try{
@@ -481,7 +483,7 @@ export default function Workspace(){
    }catch{/* worklist no disponible */}
    try{
     const r=await apiRequest("/api/v1/patients",{method:"GET"});
-    if(!cancelled&&r.status<400)setPatientList((r.body["patients"] as{patientId:string;name:string;status:string}[])??[]);
+    if(!cancelled&&r.status<400)setPatientList((r.body["patients"] as{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string}[])??[]);
    }catch{/* lista no disponible */}
   })();
   return()=>{cancelled=true;};
@@ -802,7 +804,7 @@ export default function Workspace(){
  const loadPatients=()=>call("pt-list",async()=>{
   const r=await apiRequest("/api/v1/patients",{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
-  setPatientList((r.body["patients"] as {patientId:string;name:string;status:string}[])??[]);
+  setPatientList((r.body["patients"] as {patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string}[])??[]);
  });
  const loadPanel=()=>call("panel",async()=>{
   const r=await apiRequest("/api/v1/worklist",{method:"GET"});
@@ -873,8 +875,8 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {SIDE_NAV.map(it=>{const isInicio=it.label==="Inicio";const on=isInicio?view==="inicio":(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
-     <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(isInicio){setView("inicio");window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
+    {SIDE_NAV.map(it=>{const isInicio=it.label==="Inicio";const isPac=it.label==="Pacientes";const on=isInicio?view==="inicio":isPac?view==="pacientes":(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
+     <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(isInicio){setView("inicio");window.scrollTo({top:0,behavior:"smooth"});}else if(isPac){setView("pacientes");window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
       <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
      </button>);})}
    </nav>
@@ -1055,6 +1057,94 @@ export default function Workspace(){
      <div style={cardP}><div style={h2row}><h2 style={{...h2s,fontSize:15}}>Mensajes y notificaciones <span style={{background:P.red,color:"#fff",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>3</span></h2><span style={link}>Ver todos →</span></div>
       {[["#5B8DEF","Nuevo resultado de laboratorio","Hoy 12:45 p.m."],["#16A66A","Interconsulta aceptada","Hoy 10:20 a.m."],["#E5983B","Documento pendiente por firmar","Ayer 6:15 p.m."]].map(([c,t,tm],i)=><div key={i} style={{display:"flex",gap:11,padding:"10px 18px",borderTop:`1px solid #F1F3F9`,alignItems:"flex-start"}}><span style={{width:8,height:8,borderRadius:"50%",background:c as string,marginTop:5,flex:"0 0 auto"}}/><div style={{flex:1,fontSize:13,fontWeight:600}}>{t as string}</div><span style={{fontSize:11.5,color:"#9AA0BC",whiteSpace:"nowrap"}}>{tm as string}</span></div>)}
      </div>
+    </div>
+   </div>;
+  })() : view==="pacientes" ? (()=>{
+   // ===== VISTA PACIENTES (gestión) — S3.png =====
+   const ageOf=(bd?:string):number|null=>{if(!bd)return null;const b=new Date(bd),n=new Date();let y=n.getFullYear()-b.getFullYear();if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))y--;return y;};
+   const sexAbbr=(s?:string)=>s==="FEMALE"?"F":s==="MALE"?"M":s==="INTERSEX"?"I":"—";
+   const initials=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"P";
+   type Row={patientId:string;name:string;status:string;age:number|null;sexo:string;curp:string;last:string;motivo:string};
+   const real=(patientList??[]).map(p=>({patientId:p.patientId,name:p.name,status:p.status,age:ageOf(p.birthDate),sexo:sexAbbr(p.sexAtBirth),curp:"—",last:"—",motivo:"—"}));
+   const demo:Row[]=[
+    {patientId:"d1",name:"María Fernández López",status:"ACTIVE",age:28,sexo:"F",curp:"FEFM960812MCHRRR04",last:"Hoy 2:00 p.m.",motivo:"Primera vez"},
+    {patientId:"d2",name:"Juan Pérez García",status:"ACTIVE",age:58,sexo:"M",curp:"PEGJ650320HCHRRN01",last:"Hoy 12:30 p.m.",motivo:"Control DM2"},
+    {patientId:"d3",name:"Ana Ramírez Torres",status:"ACTIVE",age:72,sexo:"F",curp:"RATA720114MCHMRN05",last:"Hoy 11:00 a.m.",motivo:"Resultados"},
+    {patientId:"d4",name:"Carlos Díaz Martínez",status:"ACTIVE",age:45,sexo:"M",curp:"DIMC800501HCHZRR09",last:"Hoy 9:30 a.m.",motivo:"Dolor abdominal"},
+    {patientId:"d5",name:"Sofía Vega Ramírez",status:"ACTIVE",age:31,sexo:"F",curp:"VERS910223MCHGMF02",last:"Hoy 8:00 a.m.",motivo:"Control prenatal"},
+    {patientId:"d6",name:"Miguel Ruiz Herrera",status:"INACTIVE",age:49,sexo:"M",curp:"RUHM760412HCHZRG03",last:"Ayer 4:15 p.m.",motivo:"HTA"},
+    {patientId:"d7",name:"Laura Sánchez López",status:"ACTIVE",age:39,sexo:"F",curp:"SALL851107MCHNPR01",last:"Ayer 11:20 a.m.",motivo:"Ansiedad"},
+    {patientId:"d8",name:"Oscar Reyes Morales",status:"ACTIVE",age:67,sexo:"M",curp:"REMO670905HCHYRS07",last:"15 sep 2026",motivo:"Control cardiovascular"},
+   ];
+   const usingReal=real.length>0;const rows:Row[]=usingReal?real:demo;
+   const total=usingReal?rows.length:1482;const activos=usingReal?rows.filter(r=>r.status==="ACTIVE").length:1263;
+   const sel:Row=rows[Math.min(selRow,rows.length-1)]??rows[0]??{patientId:"",name:"—",status:"ACTIVE",age:null,sexo:"—",curp:"—",last:"—",motivo:"—"};
+   const stTag=(s:string):[string,string,string]=>s==="ACTIVE"?["Activo","#E6F6EE","#16A66A"]:["Inactivo","#EEF0F5","#6B7391"];
+   const kico=(bg:string,d:string,st:string)=>(<span style={{width:42,height:42,borderRadius:11,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={st} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d}/></svg></span>);
+   const kcard:React.CSSProperties={...card,marginTop:0,padding:16,display:"flex",gap:13,alignItems:"center"};
+   const fdrop:React.CSSProperties={display:"inline-flex",alignItems:"center",gap:7,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 13px",fontSize:13,fontWeight:500,cursor:"pointer",whiteSpace:"nowrap"};
+   const dk:React.CSSProperties={color:P.muted,width:130,flex:"0 0 auto"};
+   const openExp=(r:Row)=>{if(!r.patientId.startsWith("d")){selectPatientRaw(r.patientId,r.name);setView("exp");}};
+   return <div style={{display:"flex"}}>
+    <div style={{flex:1,minWidth:0,padding:"22px 24px 40px"}}>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+      <div><h1 style={{fontSize:29,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Pacientes</h1><p style={{color:P.muted,fontSize:14,margin:"6px 0 0"}}>Gestiona, busca y da seguimiento a todos tus pacientes.</p></div>
+      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+       <button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 15V4m0 0l-4 4m4-4l4 4M4 20h16"/></svg>Importar</button>
+       <button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 9v11m0 0l4-4m-4 4l-4-4M4 4h16"/></svg>Exportar</button>
+       <button style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Paciente"),0);}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M12 5v14M5 12h14"/></svg>Nuevo paciente</button>
+      </div>
+     </div>
+     <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginTop:18}} className="mos-kpis">
+      <div style={kcard}>{kico("#EEEBFD","M8 11a3 3 0 100-6 3 3 0 000 6zM2 20a6 6 0 0112 0M16 4.5a3 3 0 010 6M22 20a6 6 0 00-5-5.9",P.purple)}<div><div style={{fontSize:12.5,color:P.muted}}>Total de pacientes</div><div style={{fontSize:24,fontWeight:800}}>{total.toLocaleString("es-MX")}</div></div></div>
+      <div style={kcard}>{kico("#E6F6EE","M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",P.green)}<div><div style={{fontSize:12.5,color:P.muted}}>Pacientes activos</div><div style={{fontSize:24,fontWeight:800}}>{activos.toLocaleString("es-MX")} <span style={{fontSize:12,color:P.green,fontWeight:600}}>● {total?Math.round(activos/total*100):0}%</span></div></div></div>
+      <div style={kcard}>{kico("#E7EEFB","M6 2h12l-1 6H7zM5 8h14l-1 12H6z",P.blue)}<div><div style={{fontSize:12.5,color:P.muted}}>Nuevos este mes</div><div style={{fontSize:24,fontWeight:800}}>{usingReal?rows.length:48} <span style={{fontSize:12,color:P.green,fontWeight:600}}>↑ +12%</span></div></div></div>
+      <div style={kcard}>{kico("#FDECEE","M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.5-7 10-7 10z",P.red)}<div><div style={{fontSize:12.5,color:P.muted}}>En seguimiento</div><div style={{fontSize:24,fontWeight:800}}>{usingReal?(gaps?.length??0):217}</div></div></div>
+     </div>
+     <div style={{display:"flex",gap:10,alignItems:"center",marginTop:16,flexWrap:"wrap"}}>
+      <div style={{flex:1,minWidth:200,display:"flex",alignItems:"center",gap:9,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 13px"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg><input placeholder="Buscar por nombre, CURP, teléfono, correo…" value={topSearch} onChange={e=>setTopSearch(e.target.value)} style={{border:0,outline:"none",background:"transparent",fontSize:13.5,fontFamily:UI,flex:1,color:P.ink}}/></div>
+      {["Todos los filtros","Estado: Todos","Sexo: Todos","Rango de edad","Más filtros"].map(f=><span key={f} style={fdrop}>{f} ▾</span>)}
+     </div>
+     <div style={{...card,marginTop:14,overflow:"hidden"}}>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+       <thead><tr>{["","Paciente","Edad","Sexo","Última consulta","Motivo","Estado","Acciones"].map((h,i)=><th key={i} style={{textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"12px 14px",borderBottom:`1px solid ${LINE}`,background:"#FAFBFD",width:i===0?36:undefined}}>{h}</th>)}</tr></thead>
+       <tbody>{rows.map((r,i)=>{const[stl,sbg,sfg]=stTag(r.status);const on=i===Math.min(selRow,rows.length-1);return <tr key={r.patientId} onClick={()=>setSelRow(i)} style={{background:on?"#F6F5FE":"transparent",cursor:"pointer"}}>
+        <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`}}><span style={{width:17,height:17,borderRadius:5,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:11}}>{on?"✓":""}</span></td>
+        <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`}}><div style={{display:"flex",alignItems:"center",gap:11}}><span style={{width:36,height:36,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:12,fontWeight:700,flex:"0 0 auto"}}>{initials(r.name)}</span><div><div style={{fontWeight:600,fontSize:13}}>{r.name}</div><div style={{fontSize:11,color:"#9AA0BC"}}>CURP: {r.curp}</div></div></div></td>
+        <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{r.age!=null?`${r.age} años`:"—"}</td>
+        <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{r.sexo}</td>
+        <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{r.last}</td>
+        <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{r.motivo}</td>
+        <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`}}><span style={{fontSize:11.5,fontWeight:600,borderRadius:999,padding:"3px 11px",background:sbg,color:sfg}}>{stl}</span></td>
+        <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,color:"#9AA0BC",fontWeight:800,cursor:"pointer"}} onClick={e=>{e.stopPropagation();openExp(r);}}>···</td>
+       </tr>;})}</tbody>
+      </table></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",fontSize:13,color:P.muted,flexWrap:"wrap",gap:10}}>
+       <span>Mostrando 1–{rows.length} de {total.toLocaleString("es-MX")} pacientes</span>
+       <div style={{display:"flex",gap:5}}>{["‹","1","2","3","4","5","…",String(Math.max(1,Math.ceil(total/10))),"›"].map((p,i)=><span key={i} style={{minWidth:32,height:32,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:13,cursor:"pointer",padding:"0 6px"}}>{p}</span>)}</div>
+       <span style={fdrop}>10 por página ▾</span>
+      </div>
+     </div>
+    </div>
+    {/* PANEL DE DETALLE del paciente seleccionado */}
+    <div style={{flex:"0 0 356px",borderLeft:`1px solid ${LINE}`,background:P.white,padding:22,minHeight:"100vh"}} className="mos-detail">
+     <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginBottom:8}}><button style={{display:"inline-flex",alignItems:"center",gap:7,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"7px 12px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 20h9M16.5 3.5a2 2 0 013 3L7 19l-4 1 1-4z"/></svg>Editar</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"7px 11px",cursor:"pointer",color:P.muted,fontWeight:800}}>···</button></div>
+     <div style={{width:76,height:76,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontWeight:800,fontSize:24}}>{initials(sel.name)}</div>
+     <div style={{fontSize:20,fontWeight:800,marginTop:12}}>{sel.name}</div>
+     <div style={{fontSize:13,color:P.muted}}>{sel.age!=null?`${sel.age} años · `:""}{sel.sexo==="F"?"Femenino":sel.sexo==="M"?"Masculino":"—"}</div>
+     <div style={{fontSize:12,color:P.muted}}>CURP: {sel.curp}</div>
+     {(()=>{const[stl,sbg,sfg]=stTag(sel.status);return <span style={{display:"inline-flex",alignItems:"center",gap:6,background:sbg,color:sfg,borderRadius:999,padding:"4px 12px",fontSize:12.5,fontWeight:600,marginTop:10}}>● Paciente {stl.toLowerCase()}</span>;})()}
+     <div style={{display:"flex",gap:18,borderBottom:`1px solid ${LINE}`,margin:"16px 0"}}>{["Resumen","Historial","Notas","Documentos"].map((t,i)=><span key={t} style={{fontSize:13.5,color:i===0?P.purple:P.muted,fontWeight:i===0?700:500,paddingBottom:9,borderBottom:i===0?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{t}</span>)}</div>
+     <div style={{fontSize:14,fontWeight:700,margin:"4px 0 10px"}}>Información general</div>
+     {[["Fecha de nacimiento",sel.age!=null?`${sel.age} años`:"—"],["Sexo",sel.sexo==="F"?"Femenino":sel.sexo==="M"?"Masculino":"—"],["Teléfono","—"],["Correo","—"],["Dirección","—"],["Estado civil","—"]].map(([k,v])=><div key={k} style={{display:"flex",fontSize:13,padding:"5px 0"}}><span style={dk}>{k}</span><span style={{fontWeight:500}}>{v}</span></div>)}
+     <div style={{fontSize:14,fontWeight:700,margin:"16px 0 10px"}}>Antecedentes relevantes</div>
+     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      {([["Alergias","#FDECEE","#D23651","Alergias"],["Problemas","#EEEBFD","#6C5CF6","Lista de problemas"],["Medicamentos","#E7F0FD","#1769E0","Medicación"],["Vacunas","#E6F6EE","#16A66A","Vacunas"]] as const).map(([lbl,bg,fg,h2])=><div key={lbl} onClick={()=>openExp(sel)} style={{display:"flex",alignItems:"center",gap:8,borderRadius:11,padding:"10px 12px",fontSize:13,fontWeight:600,background:bg,color:fg,cursor:"pointer"}}>{lbl}</div>)}
+     </div>
+     <div style={{fontSize:14,fontWeight:700,margin:"16px 0 10px"}}>Última consulta</div>
+     <div style={{background:"#F7F8FC",border:`1px solid ${LINE}`,borderRadius:12,padding:14,fontSize:13}}><b>{clock.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</b><div style={{color:P.muted,marginTop:6}}>Motivo: <b style={{color:P.ink}}>{sel.motivo}</b><br/>Médico: {docDisplay}</div><button style={{marginTop:10,width:"100%",justifyContent:"center",display:"flex",border:0,background:P.purple,color:"#fff",borderRadius:9,padding:"10px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}} onClick={()=>openExp(sel)}>Ver consulta</button></div>
+     <div style={{fontSize:14,fontWeight:700,margin:"16px 0 10px"}}>Próxima cita</div>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13,color:P.muted,gap:10}}><span>No tiene citas programadas</span><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"7px 12px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>Agendar cita</button></div>
     </div>
    </div>;
   })() : (<>
