@@ -102,6 +102,8 @@ const RAIL_CSS=`
 .mos-navitem{display:block;width:100%;text-align:left;background:transparent;border:0;border-radius:8px;padding:6px 10px;font-size:13px;font-family:inherit;color:#41506A;cursor:pointer;font-weight:500}
 .mos-navitem:hover{background:#EEF3FB;color:#1769E0}
 .mos-navitem:focus-visible{outline:2px solid #9DBEF0;outline-offset:1px}
+.mos-navitem.active{background:#E7EEFB;color:#1769E0;font-weight:700;box-shadow:inset 3px 0 0 #1769E0}
+.mos-navitem.active:hover{background:#E1EAFA}
 @media(max-width:900px){.mos-cols{display:block}.mos-rail{display:none}}
 `;
 const wrap:React.CSSProperties={maxWidth:1080,margin:"0 auto",padding:S[8],minHeight:"100vh",background:P.canvas,fontFamily:UI,color:P.ink};
@@ -278,6 +280,7 @@ export default function Workspace(){
  const[exportInfo,setExportInfo]=useState<{aggregateCount:number;eventCount:number;contentHash:string}|null>(null);
  const[panel,setPanel]=useState<{gaps:PanelGap[];patientCount:number}|null>(null);
  const[patientName,setPatientName]=useState("");
+ const[activeH2,setActiveH2]=useState(""); // scrollspy: módulo visible resaltado en el nav-rail
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string}[]|null>(null);
  const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
  const[busy,setBusy]=useState("");
@@ -307,6 +310,25 @@ export default function Workspace(){
   },450);
   return()=>{cancelled=true;clearTimeout(t);};
  },[patientId,ready,session]);
+
+ // Scrollspy: resalta en el nav-rail el módulo actual = la ÚLTIMA sección cuyo top ya cruzó bajo los
+ // headers sticky (~140px). El IntersectionObserver solo dispara el recálculo en cada cruce de esa línea.
+ useEffect(()=>{
+  if(!ready)return;
+  const sections=Array.from(document.querySelectorAll<HTMLElement>(".mos-main section"));
+  if(!sections.length)return;
+  const OFF=140;
+  const compute=()=>{
+   let cur:HTMLElement|undefined=sections[0];
+   for(const s of sections){if(s.getBoundingClientRect().top-OFF<=1)cur=s;else break;}
+   const h2=cur?.querySelector("h2")?.textContent?.trim();
+   if(h2)setActiveH2(h2);
+  };
+  const io=new IntersectionObserver(compute,{rootMargin:`-${OFF}px 0px 0px 0px`,threshold:[0,1]});
+  sections.forEach(s=>io.observe(s));
+  compute();
+  return()=>io.disconnect();
+ },[ready]);
 
  async function call(tag:string,fn:()=>Promise<void>){setBusy(tag);setError("");try{await fn();}catch(e){setError(String(e));}finally{setBusy("");}}
  const openEncounter=()=>call("open",async()=>{
@@ -678,7 +700,7 @@ export default function Workspace(){
    <nav className="mos-rail" aria-label="Módulos clínicos">
     {NAV.map((g,gi)=><div key={g.group}>
      <div className={"mos-navgroup"+(gi===0?" first":"")}>{g.group}</div>
-     {g.items.map(it=><button key={it.h2} className="mos-navitem" onClick={()=>scrollToSection(it.h2)}>{it.label}</button>)}
+     {g.items.map(it=><button key={it.h2} className={"mos-navitem"+(activeH2===it.h2?" active":"")} aria-current={activeH2===it.h2?"true":undefined} onClick={()=>scrollToSection(it.h2)}>{it.label}</button>)}
     </div>)}
    </nav>
    <div className="mos-main">
