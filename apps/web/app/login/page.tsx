@@ -3,43 +3,74 @@ import{useEffect,useState}from"react";
 import{createAuth0Client,type Auth0Client}from"@auth0/auth0-spa-js";
 import{exchangeForSession,storeSession,getStoredSession,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
 import{primitive,semantic,typography}from"../../../../packages/design-system/src";
-// EPIC J / eje E — PUERTA ÚNICA de sesión. Una sola ventana: identidad de la organización vía
-// Auth0 (PKCE en el navegador) -> access token (audience medical-os) -> intercambio en
-// /api/v1/sessions -> sesión clínica firmada -> se entra directo al espacio clínico.
-// No hay tarjeta-dashboard intermedia ni herramientas de prueba: login o transición, nada más.
-// Craft: tokens verbatim del design-system; estados transitorios en el MISMO marco visual.
+// EPIC J / eje E — PUERTA ÚNICA de sesión (auth split premium clínico). Una sola ventana:
+// panel de marca con la identidad del producto (Zero-Lost-Follow-Up) + tarjeta de acción.
+// Identidad de la organización vía Auth0 (PKCE) -> access token (audience medical-os) ->
+// intercambio en /api/v1/sessions -> sesión clínica firmada -> se entra directo al workspace.
+// Sin tarjeta-dashboard intermedia ni herramientas de prueba. Estados transitorios = spinner
+// branded en el MISMO marco. Tokens verbatim del design-system (single-source vía CSS vars).
 
 const DOMAIN=process.env.NEXT_PUBLIC_AUTH0_DOMAIN;
 const CLIENT_ID=process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID;
 const AUDIENCE=process.env.NEXT_PUBLIC_OIDC_AUDIENCE;
 
-// Un único estado enumerado para la puerta. "redirecting" = autenticado, entrando al workspace.
 type Phase="loading"|"config"|"anonymous"|"authenticating"|"redirecting"|"error";
 
-const INK=semantic.text.primary,MUTED=semantic.text.muted;
-const CANVAS=semantic.surface.canvas,RAISED=semantic.surface.raised;
-const BRAND=semantic.brand.primary,INTEL=semantic.brand.intelligence,CRIT=semantic.state.critical;
-const UI=typography.family.ui,MONOF=typography.family.mono;
-const R=primitive.radius,S=primitive.space;
-const LINE="#E4E9F2"; // hairline sutil derivado del navy; el design-system no define token de línea
+const P=primitive.color,R=primitive.radius,UI=typography.family.ui,MONOF=typography.family.mono;
+// CSS con los tokens interpolados (un único origen de verdad = design-system).
+const CSS=`
+.mos-auth{--navy:${P.navy};--blue:${P.blue};--purple:${P.purple};--cyan:${P.cyan};--green:${P.green};
+ --red:${P.red};--canvas:${P.canvas};--ink:${P.ink};--muted:${P.muted};--white:${P.white};--line:#E4E9F2;
+ --rmd:${R.md}px;--rxl:${R.xl}px;--ui:${UI};--mono:${MONOF};
+ font-family:var(--ui);color:var(--ink)}
+.mos-auth *{box-sizing:border-box}
+.mos-auth .auth{min-height:100vh;display:grid;grid-template-columns:1.05fr .95fr;background:var(--canvas)}
+.mos-auth .brand-panel{position:relative;background:linear-gradient(160deg,#0C2148 0%,${P.navy} 55%,#15346B 100%);color:#EAF0FA;padding:56px 56px 48px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.mos-auth .brand-panel::after{content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;background:radial-gradient(120% 80% at 88% 8%,rgba(32,183,217,.16),transparent 60%),radial-gradient(90% 60% at 8% 100%,rgba(103,87,232,.16),transparent 60%)}
+.mos-auth .lockup{display:flex;align-items:center;gap:12px;position:relative;z-index:1}
+.mos-auth .mark{width:42px;height:42px;border-radius:11px;background:var(--white);display:grid;place-items:center;box-shadow:0 8px 24px rgba(6,16,38,.4)}
+.mos-auth .bname{font-size:12px;font-weight:800;letter-spacing:.16em;color:#fff}
+.mos-auth .bsub{font-size:12.5px;color:#9DB2D4;margin-top:3px}
+.mos-auth .mid{position:relative;z-index:1;max-width:34ch;display:flex;flex-direction:column;gap:28px}
+.mos-auth .mid h2{font-size:30px;line-height:1.18;letter-spacing:-.015em;margin:0;font-weight:700;text-wrap:balance;color:#fff}
+.mos-auth .mid p{font-size:14.5px;line-height:1.65;color:#B7C6E0;margin:14px 0 0;max-width:32ch}
+.mos-auth .trust{display:flex;flex-direction:column;gap:15px;padding-top:4px}
+.mos-auth .ti{display:flex;align-items:flex-start;gap:11px;font-size:13.5px;color:#C3D0E6;line-height:1.5}
+.mos-auth .ti svg{flex:0 0 auto;margin-top:1px}
+.mos-auth .ti b{color:#EAF0FA;font-weight:600}
+.mos-auth .pfoot{position:relative;z-index:1;font-size:12px;letter-spacing:.02em;color:#7E93B8;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mos-auth .pfoot .sep{width:4px;height:4px;border-radius:50%;background:#4A5F86}
+.mos-auth .action{display:grid;place-items:center;padding:40px 24px}
+.mos-auth .inner{width:100%;max-width:392px}
+.mos-auth .mbrand{display:none}
+.mos-auth .card{background:var(--white);border:1px solid var(--line);border-radius:var(--rxl);padding:34px 32px;box-shadow:0 16px 48px rgba(16,42,86,.09);display:flex;flex-direction:column;gap:22px;min-height:150px;justify-content:center}
+.mos-auth h1{font-size:25px;line-height:1.15;letter-spacing:-.01em;margin:0;font-weight:700}
+.mos-auth .lede{color:var(--muted);font-size:14.5px;line-height:1.6;margin:8px 0 0}
+.mos-auth .btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;background:var(--blue);color:#fff;border:0;border-radius:var(--rmd);padding:14px 18px;font-family:var(--ui);font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 8px 20px rgba(23,105,224,.24);transition:filter .16s ease,transform .16s ease}
+.mos-auth .btn:hover{filter:brightness(1.06)}.mos-auth .btn:active{transform:translateY(1px)}
+.mos-auth .btn:focus-visible{outline:3px solid rgba(23,105,224,.4);outline-offset:2px}
+.mos-auth .btn.sec{background:transparent;color:var(--blue);box-shadow:none;width:auto;padding:10px 0;font-size:14px}
+.mos-auth .reassure{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px;line-height:1.5}
+.mos-auth .dot-ok{width:7px;height:7px;border-radius:50%;background:var(--green);flex:0 0 auto}
+.mos-auth .hr{height:1px;background:var(--line);border:0;margin:2px 0}
+.mos-auth .cfoot{color:var(--muted);font-size:11.5px;text-align:center;margin:18px 0 0}
+.mos-auth .transient{display:flex;align-items:center;gap:12px;font-size:15px;font-weight:500;color:var(--ink)}
+.mos-auth .spin{width:19px;height:19px;border-radius:50%;border:2.5px solid rgba(23,105,224,.22);border-top-color:var(--blue);animation:mos-sp .7s linear infinite}
+.mos-auth .mono{font-family:var(--mono);font-size:12px;background:#f4f3fb;padding:2px 6px;border-radius:${R.sm}px}
+.mos-auth ul.cfg{color:var(--muted);font-size:13.5px;line-height:2;margin:0;padding-left:18px}
+@keyframes mos-sp{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.mos-auth .spin{animation:none}}
+@media(max-width:880px){
+ .mos-auth .auth{grid-template-columns:1fr}
+ .mos-auth .brand-panel{display:none}
+ .mos-auth .action{padding:28px 18px;align-items:flex-start}
+ .mos-auth .inner{margin:0 auto}
+ .mos-auth .mbrand{display:flex;align-items:center;gap:11px;margin-bottom:22px}
+ .mos-auth .mmark{width:38px;height:38px;border-radius:10px;background:linear-gradient(160deg,#0C2148,#15346B);display:grid;place-items:center}
+}`;
 
-const page:React.CSSProperties={minHeight:"100vh",display:"grid",placeItems:"center",background:CANVAS,fontFamily:UI,color:INK,padding:S[5],boxSizing:"border-box"};
-const shell:React.CSSProperties={width:"100%",maxWidth:420,display:"flex",flexDirection:"column",gap:S[6]};
-const brandRow:React.CSSProperties={display:"flex",alignItems:"center",gap:S[3]};
-const mark:React.CSSProperties={width:40,height:40,borderRadius:R.md,background:`linear-gradient(135deg,${BRAND},${INTEL})`,display:"grid",placeItems:"center",color:"#fff",fontWeight:800,fontSize:18,letterSpacing:"-.02em",boxShadow:`0 6px 18px ${BRAND}33`};
-const card:React.CSSProperties={background:RAISED,border:`1px solid ${LINE}`,borderRadius:R.xl,padding:S[8],boxShadow:"0 12px 40px rgba(16,42,86,.08)",display:"flex",flexDirection:"column",gap:S[5]};
-const primaryBtn:React.CSSProperties={background:BRAND,color:"#fff",border:0,borderRadius:R.md,padding:`${S[3]}px ${S[5]}px`,fontFamily:UI,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%",boxShadow:`0 6px 16px ${BRAND}2e`,transition:"filter .18s ease"};
-const linkBtn:React.CSSProperties={background:"transparent",color:BRAND,border:0,fontFamily:UI,fontWeight:600,fontSize:14,cursor:"pointer",padding:0,textAlign:"left"};
-const mono:React.CSSProperties={fontFamily:MONOF,fontSize:12,background:"#f4f3fb",padding:"2px 6px",borderRadius:R.sm};
-const foot:React.CSSProperties={color:MUTED,fontSize:12.5,lineHeight:1.6,display:"flex",alignItems:"center",gap:8};
-
-function Spinner(){return <span aria-hidden style={{width:18,height:18,borderRadius:"50%",border:`2.5px solid ${BRAND}33`,borderTopColor:BRAND,display:"inline-block",animation:"mos-spin .7s linear infinite"}}/>;}
-function Transient({label}:{label:string}){
- // Estado transitorio: mismo marco, spinner branded. Nunca parece "otra ventana".
- return <div role="status" aria-live="polite" style={{display:"flex",alignItems:"center",gap:S[3],color:INK,fontSize:15,fontWeight:500}}>
-  <Spinner/><span>{label}</span>
- </div>;
-}
+const MarkGlyph=({stroke}:{stroke:string})=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M4 13h3.2l1.7-5.3 2.9 9 2-6.4 1.4 2.7H20" stroke={stroke} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+function Transient({label}:{label:string}){return <div className="transient" role="status" aria-live="polite"><span className="spin" aria-hidden/><span>{label}</span></div>;}
 
 export default function LoginPage(){
  const[phase,setPhase]=useState<Phase>("loading");
@@ -54,7 +85,6 @@ export default function LoginPage(){
    try{
     const c=await createAuth0Client({domain,clientId,authorizationParams:{redirect_uri:window.location.origin+"/login",audience},cacheLocation:"memory"});
     if(cancelled)return;setClient(c);
-    // Regreso desde Auth0 con error (?error=...): mostrarlo, no re-renderizar el login en bucle.
     const params=new URLSearchParams(location.search);
     const urlErr=params.get("error");
     if(urlErr){
@@ -62,7 +92,6 @@ export default function LoginPage(){
      window.history.replaceState({},document.title,"/login");
      setPhase("error");return;
     }
-    // Regreso desde Auth0 (?code&state): procesar y limpiar la URL.
     if(location.search.includes("code=")&&location.search.includes("state=")){
      await c.handleRedirectCallback();
      window.history.replaceState({},document.title,"/login");
@@ -74,7 +103,7 @@ export default function LoginPage(){
      const s:MedicalSession=await exchangeForSession(idpToken);storeSession(s);
      if(cancelled)return;
      setPhase("redirecting");
-     window.location.replace("/workspace"); // puerta única -> directo al espacio clínico
+     window.location.replace("/workspace");
     }else{
      const existing=getStoredSession();
      if(existing){setPhase("redirecting");window.location.replace("/workspace");}
@@ -88,54 +117,73 @@ export default function LoginPage(){
  async function login(){setDetail("");try{await client?.loginWithRedirect();}catch(e){setDetail(String(e));setPhase("error");}}
  async function resetAuth(){try{await sessionLogout();}catch{/* limpiar aunque falle */}location.reload();}
 
- return <main style={page}>
-  <style>{"@keyframes mos-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.mos-static [style*='mos-spin']{animation:none!important}}"}</style>
-  <div style={shell} className="mos-static">
-   <div style={brandRow}>
-    <div style={mark}>M</div>
-    <div>
-     <div style={{fontSize:12,fontWeight:800,letterSpacing:".14em",color:BRAND}}>MEDICAL OS</div>
-     <div style={{fontSize:13,color:MUTED,marginTop:2}}>Sistema clínico · acceso profesional</div>
+ return <main className="mos-auth">
+  <style>{CSS}</style>
+  <div className="auth">
+   <section className="brand-panel">
+    <div className="lockup">
+     <span className="mark"><MarkGlyph stroke={P.navy}/></span>
+     <div><div className="bname">MEDICAL OS</div><div className="bsub">Sistema clínico · acceso profesional</div></div>
     </div>
-   </div>
-
-   <div style={card}>
-    {phase==="loading"&&<Transient label="Preparando el acceso…"/>}
-    {phase==="authenticating"&&<Transient label="Verificando identidad y emitiendo sesión clínica…"/>}
-    {phase==="redirecting"&&<Transient label="Entrando al espacio clínico…"/>}
-
-    {phase==="anonymous"&&<>
+    <div className="mid">
      <div>
-      <h1 style={{fontSize:24,margin:0,letterSpacing:"-.01em"}}>Inicia sesión</h1>
-      <p style={{color:MUTED,fontSize:14.5,lineHeight:1.6,margin:`${S[2]}px 0 0`}}>Accede con la identidad de tu organización. Al continuar se emite una sesión clínica firmada para tu turno.</p>
+      <h2>Ningún resultado crítico se pierde. Ningún seguimiento se olvida.</h2>
+      <p>Inteligencia clínica determinista sobre un expediente longitudinal. La autoridad siempre es del médico.</p>
      </div>
-     <button style={primaryBtn} onClick={login}
-      onMouseEnter={e=>(e.currentTarget.style.filter="brightness(1.06)")}
-      onMouseLeave={e=>(e.currentTarget.style.filter="none")}>Entrar con Auth0</button>
-     <div style={foot}><span aria-hidden style={{color:semantic.state.success}}>●</span> Identidad verificada · sesión cifrada · trazabilidad de auditoría.</div>
-    </>}
-
-    {phase==="config"&&<>
-     <h1 style={{fontSize:22,margin:0}}>Configuración de acceso pendiente</h1>
-     <p style={{color:MUTED,fontSize:14,lineHeight:1.7,margin:0}}>Define estas variables públicas en el entorno y vuelve a desplegar:</p>
-     <ul style={{color:MUTED,fontSize:13.5,lineHeight:2,margin:0,paddingLeft:18}}>
-      <li><span style={mono}>NEXT_PUBLIC_AUTH0_DOMAIN</span></li>
-      <li><span style={mono}>NEXT_PUBLIC_AUTH0_CLIENT_ID</span></li>
-      <li><span style={mono}>NEXT_PUBLIC_OIDC_AUDIENCE</span></li>
-     </ul>
-    </>}
-
-    {phase==="error"&&<>
-     <h1 style={{fontSize:22,margin:0,color:CRIT}}>No se pudo iniciar sesión</h1>
-     <p style={{color:MUTED,fontSize:13.5,lineHeight:1.6,margin:0,wordBreak:"break-word"}}>{detail}</p>
-     <div style={{display:"flex",gap:S[4],alignItems:"center",flexWrap:"wrap"}}>
-      <button style={{...primaryBtn,width:"auto"}} onClick={()=>location.reload()}>Reintentar</button>
-      <button style={linkBtn} onClick={resetAuth}>Limpiar sesión y empezar de nuevo</button>
+     <div className="trust">
+      <div className="ti"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6l7-3z" stroke={P.cyan} strokeWidth="1.7" strokeLinejoin="round"/><path d="M9 12l2 2 4-4" stroke={P.cyan} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg><span><b>Identidad verificada</b> de tu organización y sesión cifrada por turno.</span></div>
+      <div className="ti"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 8v4l3 2" stroke={P.cyan} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="8.2" stroke={P.cyan} strokeWidth="1.7"/></svg><span><b>Trazabilidad de auditoría</b> inmutable en cada acción clínica.</span></div>
+      <div className="ti"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><rect x="4.5" y="4.5" width="15" height="15" rx="3" stroke={P.cyan} strokeWidth="1.7"/><path d="M8.5 12h7M12 8.5v7" stroke={P.cyan} strokeWidth="1.7" strokeLinecap="round"/></svg><span><b>Barreras de seguridad</b> en prescripción y resultados, sin excepción.</span></div>
      </div>
-    </>}
-   </div>
+    </div>
+    <div className="pfoot"><span>Medical OS · V2</span><span className="sep"/><span>México-first</span><span className="sep"/><span>Uso clínico autorizado</span></div>
+   </section>
 
-   <p style={{color:MUTED,fontSize:11.5,textAlign:"center",margin:0}}>Uso exclusivo de personal clínico autorizado.</p>
+   <section className="action">
+    <div className="inner">
+     <div className="mbrand">
+      <span className="mmark"><MarkGlyph stroke={P.white}/></span>
+      <div><div className="bname" style={{color:P.blue}}>MEDICAL OS</div><div className="bsub" style={{color:P.muted}}>Sistema clínico · acceso profesional</div></div>
+     </div>
+     <div className="card">
+      {phase==="loading"&&<Transient label="Preparando el acceso…"/>}
+      {phase==="authenticating"&&<Transient label="Verificando identidad y emitiendo sesión clínica…"/>}
+      {phase==="redirecting"&&<Transient label="Entrando al espacio clínico…"/>}
+
+      {phase==="anonymous"&&<>
+       <div>
+        <h1>Inicia sesión</h1>
+        <p className="lede">Accede con la identidad de tu organización. Al continuar se emite una sesión clínica firmada para tu turno.</p>
+       </div>
+       <button className="btn" onClick={login}>Entrar con Auth0
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M5 12h13m-5-5l5 5-5 5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+       </button>
+       <hr className="hr"/>
+       <div className="reassure"><span className="dot-ok"/> Uso exclusivo de personal clínico autorizado.</div>
+      </>}
+
+      {phase==="config"&&<>
+       <h1 style={{fontSize:21}}>Configuración de acceso pendiente</h1>
+       <p className="lede">Define estas variables públicas en el entorno y vuelve a desplegar:</p>
+       <ul className="cfg">
+        <li><span className="mono">NEXT_PUBLIC_AUTH0_DOMAIN</span></li>
+        <li><span className="mono">NEXT_PUBLIC_AUTH0_CLIENT_ID</span></li>
+        <li><span className="mono">NEXT_PUBLIC_OIDC_AUDIENCE</span></li>
+       </ul>
+      </>}
+
+      {phase==="error"&&<>
+       <h1 style={{fontSize:21,color:P.red}}>No se pudo iniciar sesión</h1>
+       <p className="lede" style={{wordBreak:"break-word"}}>{detail}</p>
+       <div style={{display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
+        <button className="btn" style={{width:"auto",padding:"12px 20px"}} onClick={()=>location.reload()}>Reintentar</button>
+        <button className="btn sec" onClick={resetAuth}>Limpiar sesión y empezar de nuevo</button>
+       </div>
+      </>}
+     </div>
+     <p className="cfoot">Medical OS · sesión protegida de extremo a extremo.</p>
+    </div>
+   </section>
   </div>
  </main>;
 }
