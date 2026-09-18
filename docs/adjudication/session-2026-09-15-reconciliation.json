@@ -2239,6 +2239,32 @@
    "epic": "W/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-CARE-PLAN-SNAPSHOT-001",
+   "name": "Plan de cuidado — snapshot compuesto por paciente cableado a SQL",
+   "risk": "C5",
+   "eng_authority_note": "Vista Plan de cuidado a fidelidad exacta del mockup (header, patient bar con 3 tarjetas de conteo, tabs, Diagnósticos/Problemas asociados, Objetivos del plan, Resumen, Intervenciones y recomendaciones, Cronograma de seguimiento, Metas y métricas, Educación/Notas/Documentos). Cableada a un SNAPSHOT COMPUESTO nuevo (GET /patients/:id/care-plan) que reúne readers existentes + uno nuevo: problemas del paciente (problemRegistry filtrado, con descripción CIE-10 y estado), conteos (problemas activos / medicamentos / alergias), metas del plan (carePlanGoals: agregados CarePlan del paciente con estado por transición) y métricas clave (HbA1c de labs vía latestResultValueForAnalyte, TA/Peso de vitales, IMC derivado peso/talla²). Las secciones de plan-template (intervenciones, cronograma, educación, notas, documentos) son representativas idénticas a la imagen; problemas/conteos/objetivos/métricas son reales cuando el paciente tiene datos.",
+   "invariants": [
+    "Problemas asociados = lista real del paciente con descripción CIE-10 y estado por transición",
+    "Metas del plan = agregados CarePlan del paciente; estado por última transición (PROPOSED/ACTIVE/ON_HOLD/ACHIEVED/CANCELLED)",
+    "Métricas: HbA1c del último resultado, TA/Peso del último vital, IMC derivado (peso/(talla/100)²)",
+    "careplan:write para el snapshot (GET); scope faltante -> 403; sin escritura",
+    "Fallback representativo = imagen exacta cuando el paciente no tiene datos (problemas/metas vacíos, métricas null)"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (carePlanGoals + CarePlanGoal; reutiliza problemRegistry/activeMedicationDrugCodes/activeAllergySubstances/latestResultValueForAnalyte/patientVitals)",
+    "apps/web/app/api/v1/patients/[patientId]/care-plan/route.ts (GET snapshot compuesto)",
+    "apps/web/app/workspace/page.tsx (vista Plan de cuidado completa + VMAP + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-care-plan-snapshot-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Plan de cuidado: problemas, objetivos, intervenciones, cronograma, métricas)"
+   ],
+   "runtime_evidence": "scripts/v22/live-care-plan-snapshot-proof.mts — PASS 15/15 vs Neon 2026-09-18 (3 problemas con descripción CIE-10 real, conteos problemas 3/alergias 1, 2 metas del plan con estado por transición (una activada 'Activa', otra 'Propuesta'), métricas HbA1c 8.1 de labs, TA 138/86 y Peso 78 de vitales, IMC derivado 30.1, sin-scope 403). En el smoke runner de CI. Render test 14/14 (jsdom). Fidelidad verificada por preview + captura.",
+   "epic": "X/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

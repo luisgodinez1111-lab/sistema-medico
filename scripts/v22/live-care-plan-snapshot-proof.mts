@@ -1,0 +1,65 @@
+// EPIC X/UI — Evidencia física: snapshot del Plan de cuidado de un paciente (vista Plan de cuidado). Compone
+// problemas asociados (descripción+estado) + conteos (problemas/medicamentos/alergias) + metas del plan
+// (CarePlan) + métricas (HbA1c de labs, TA/Peso/IMC de vitales). Determinista, RLS-scoped. vs Neon.
+import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";
+try{const e=fs.readFileSync(path.resolve(".env.local"),"utf8");for(const l of e.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(l.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}}catch{}
+if(!process.env.DATABASE_URL){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
+process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-x-snap-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
+const{signSession}=await import("../../packages/session/src");
+const patR=await import("../../apps/web/app/api/v1/patients/route");
+const prR=await import("../../apps/web/app/api/v1/problems/route");
+const alR=await import("../../apps/web/app/api/v1/allergies/route");
+const resR=await import("../../apps/web/app/api/v1/results/route");
+const vitR=await import("../../apps/web/app/api/v1/vitals/route");
+const cpR=await import("../../apps/web/app/api/v1/care-plans/route");
+const cpActR=await import("../../apps/web/app/api/v1/care-plans/[carePlanId]/activation/route");
+const snapR=await import("../../apps/web/app/api/v1/patients/[patientId]/care-plan/route");
+const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
+function tok(scopes=["patient:write","patient:read","problem:write","allergy:write","result:write","vital:write","careplan:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
+function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
+const idem=()=>crypto.randomUUID();let ts=Date.parse("2026-09-01T09:00:00.000Z");const at=()=>new Date(ts+=3600000).toISOString();
+function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
+async function reg(t:string,p:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:"Ana López García",birthDate:birth(34),sexAtBirth:"FEMALE",occurredAt:at()})}));}
+async function prob(t:string,p:string,code:string){await prR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({problemId:crypto.randomUUID(),patientId:p,code,occurredAt:at()})}));}
+async function allergy(t:string,p:string,s:string){await alR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({allergyId:crypto.randomUUID(),patientId:p,substance:s,severity:"MODERATE",reaction:"exantema",occurredAt:at()})}));}
+async function res(t:string,p:string,a:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,occurredAt:at()})}));}
+async function vital(t:string,p:string,vt:string,v:string,u:string,a:string){await vitR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:p,vitalType:vt,value:v,unit:u,occurredAt:a})}));}
+async function goal(t:string,p:string,category:string,g:string){const id=crypto.randomUUID();await cpR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({carePlanId:id,patientId:p,category,goal:g,occurredAt:at()})}));return id;}
+async function activateGoal(t:string,id:string){return cpActR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({carePlanId:id})});}
+async function snap(t:string,p:string){const r=await snapR.GET(new Request("http://l/",{method:"GET",headers:H(t)}),{params:Promise.resolve({patientId:p})});return{status:r.status,body:await r.json()};}
+const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+try{
+ const phys=tok();const p=crypto.randomUUID();await reg(phys,p);
+ await prob(phys,p,"E11.9");await prob(phys,p,"I10");await prob(phys,p,"E66.9"); // Diabetes / HTA / Obesidad
+ await allergy(phys,p,"Penicilina");
+ await res(phys,p,"HBA1C","8.1");
+ const va=at();await vital(phys,p,"BP","138/86","mmHg",va);await vital(phys,p,"WEIGHT","78","kg",va);await vital(phys,p,"HEIGHT","161","cm",va);
+ const g1=await goal(phys,p,"DIABETES","Lograr HbA1c < 7% en 3 meses");
+ await goal(phys,p,"HYPERTENSION","Mantener TA < 130/80 mmHg");
+ await activateGoal(phys,g1);
+
+ const S=await snap(phys,p);ok(S.status===200,"SNAP_200");
+ const b=S.body as{counts:{problems:number;medications:number;allergies:number};problems:{code:string;description:string;statusLabel:string}[];goals:{category:string;goal:string;statusLabel:string}[];metrics:{hba1c:string|null;bp:string|null;weight:string|null;imc:string|null}};
+ // problemas asociados con descripción real (CIE-10)
+ ok(b.problems.length===3,"THREE_PROBLEMS");
+ ok(b.problems.find(x=>x.code==="E11.9")?.description?.toLowerCase().includes("diabetes")??false,"PROBLEM_DESCRIPTION");
+ ok(b.problems.every(x=>!!x.statusLabel),"PROBLEM_STATUS_LABEL");
+ // conteos
+ ok(b.counts.problems===3,"COUNT_PROBLEMS_3");
+ ok(b.counts.allergies===1,"COUNT_ALLERGIES_1");
+ // metas del plan
+ ok(b.goals.length===2,"TWO_GOALS");
+ ok(b.goals.some(x=>x.category==="DIABETES"&&x.goal.includes("HbA1c")),"GOAL_CONTENT");
+ ok(b.goals.find(x=>x.category==="DIABETES")?.statusLabel==="Activa","GOAL_ACTIVATED");
+ ok(b.goals.find(x=>x.category==="HYPERTENSION")?.statusLabel==="Propuesta","GOAL_PROPOSED");
+ // métricas reales
+ ok(b.metrics.hba1c==="8.1","METRIC_HBA1C");
+ ok(b.metrics.bp==="138/86","METRIC_BP");
+ ok(b.metrics.weight==="78","METRIC_WEIGHT");
+ ok(b.metrics.imc==="30.1","METRIC_IMC_DERIVED");
+
+ // sin scope -> 403
+ const noScope=await snap(tok(["patient:read"]),p);
+ ok(noScope.status===403,"MISSING_SCOPE_403");
+}catch(e){result.status="FAIL";result.error=String(e);}
+console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

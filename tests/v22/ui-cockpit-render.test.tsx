@@ -72,7 +72,7 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Plan de cuidados"}));
+const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Interconsultas"}));
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
@@ -145,6 +145,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
+ });
+
+ it("vista Plan de cuidado (S-PLANCUIDADO): snapshot compuesto — problemas, objetivos, intervenciones, cronograma, métricas",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Plan de cuidados"}));
+  expect(screen.getByRole("heading",{name:"Plan de cuidado"})).toBeTruthy();
+  expect(screen.getByText(/Diagnósticos \/ Problemas asociados/)).toBeTruthy();
+  expect(screen.getAllByText("Diabetes mellitus tipo 2").length).toBeGreaterThan(0);   // problema asociado (rep/real)
+  expect(screen.getByText("Objetivos del plan")).toBeTruthy();
+  expect(screen.getByText("Intervenciones y recomendaciones")).toBeTruthy();
+  expect(screen.getByText("Cronograma de seguimiento")).toBeTruthy();
+  expect(screen.getByText("Metas y métricas")).toBeTruthy();                            // métricas reales/rep
+  expect(screen.getByText("Educación para el paciente")).toBeTruthy();
+  expect(screen.getByText("HbA1c")).toBeTruthy();
  });
 
  it("vista Signos vitales (S-SIGNOS): form + últimos registros + tendencias + referencia + alertas deterministas",async()=>{

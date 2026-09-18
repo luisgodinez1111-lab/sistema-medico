@@ -71,6 +71,7 @@ type ImmItem=Readonly<{immunizationId:string;patientId:string;patientName:string
 type ImmRegistry=Readonly<{items:ImmItem[];total:number;appliedCount:number;pendingCount:number;vaccinatedPatients:number;incompleteSchemes:number;byVaccine:Record<string,number>}>;
 type VitalRecord=Readonly<{at:string;ta:string;fc:string;fr:string;temp:string;spo2:string;peso:string;talla:string;imc:string}>;
 type VitalHistory=Readonly<{records:VitalRecord[];series:{BP:{value:number;at:string}[];HR:{value:number;at:string}[];WEIGHT:{value:number;at:string}[];IMC:{value:number;at:string}[]};latest:VitalRecord|null;count:number}>;
+type CarePlanSnap=Readonly<{counts:{problems:number;medications:number;allergies:number};problems:{code:string;description:string;status:string;statusLabel:string}[];goals:{category:string;goal:string;status:string;statusLabel:string}[];metrics:{hba1c:string|null;bp:string|null;weight:string|null;imc:string|null}}>;
 const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
 const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
@@ -452,7 +453,7 @@ export default function Workspace(){
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
+ const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
  // Pestaña Interacciones (S8.3) — verificador de conjunto cableado a POST /api/v1/interactions
  const[ixDrugs,setIxDrugs]=useState<string[]>(["Sertralina","Ibuprofeno","Metformina"]);
@@ -487,6 +488,9 @@ export default function Workspace(){
  const[svPeso,setSvPeso]=useState("");const[svTalla,setSvTalla]=useState("");const[svPab,setSvPab]=useState("");
  const[svPain,setSvPain]=useState("0");const[svEstado,setSvEstado]=useState("Bueno");const[svObs,setSvObs]=useState("");
  const[svBusy,setSvBusy]=useState(false);const[svMsg,setSvMsg]=useState("");
+ // Vista Plan de cuidado (S-PLANCUIDADO) — snapshot compuesto cableado a GET /patients/:id/care-plan
+ const[cpSnap,setCpSnap]=useState<CarePlanSnap|null>(null);
+ const[cpPlanTab,setCpPlanTab]=useState<"plan"|"historial"|"objetivos"|"educacion"|"notas">("plan");
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
@@ -609,6 +613,19 @@ export default function Workspace(){
     const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET"});
     if(!cancelled&&r.status===200)setVitHist(r.body as unknown as VitalHistory);
    }catch{/* historial no disponible */}
+  })();
+  return()=>{cancelled=true;};
+ },[view,ready,session,patientId]);
+
+ // Auto-carga del snapshot del Plan de cuidado del paciente en contexto.
+ useEffect(()=>{
+  if(view!=="planCuidado"||!ready||!session||!patientId)return;
+  let cancelled=false;
+  (async()=>{
+   try{
+    const r=await apiRequest(`/api/v1/patients/${patientId}/care-plan`,{method:"GET"});
+    if(!cancelled&&r.status===200)setCpSnap(r.body as unknown as CarePlanSnap);
+   }catch{/* snapshot no disponible */}
   })();
   return()=>{cancelled=true;};
  },[view,ready,session,patientId]);
@@ -1000,7 +1017,7 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
+    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
      <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){setView(vTarget);window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
       <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
      </button>);})}
@@ -2292,6 +2309,79 @@ export default function Workspace(){
      <div style={{...card2,padding:16}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><span style={{color:P.purple}}>▦</span><div style={{fontSize:15,fontWeight:700}}>Referencia de valores normales (adultos)</div></div><div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>{[["TA","90/60 – 120/80","mmHg"],["FC","60 – 100","lpm"],["FR","12 – 20","rpm"],["Temperatura","36.0 – 37.5","°C"],["SpO₂","≥ 95","%"]].map(([k,v,u])=><div key={k}><div style={{fontSize:12,fontWeight:700,color:P.purple}}>{k}</div><div style={{fontSize:13,fontWeight:600,marginTop:3}}>{v}</div><div style={{fontSize:11,color:P.muted}}>{u}</div></div>)}</div></div>
      <div style={{...card2,padding:16}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><span style={{color:alerts.length?P.red:P.amber}}>⚠</span><div style={{fontSize:15,fontWeight:700}}>Alertas clínicas</div></div>{alerts.length===0?<div style={{fontSize:13,color:P.muted,lineHeight:1.6}}>No hay alertas en los últimos registros.<br/>Los signos vitales se encuentran en rangos normales.</div>:<div style={{display:"flex",flexDirection:"column",gap:8}}>{alerts.map((a,i)=><div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",padding:"8px 11px",borderRadius:9,background:"#FDECEE",fontSize:12.5,color:"#9B1C2E"}}><span>⚠</span>{a}</div>)}</div>}</div>
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Acciones rápidas</div>{["Generar gráfica completa","Exportar a PDF","Registrar series de signos vitales","Configurar rangos de referencia"].map((a,i)=><div key={a} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<3?`1px solid #F1F3F9`:"0",fontSize:13,color:P.blue,fontWeight:500,cursor:"pointer"}}><span style={{display:"flex",alignItems:"center",gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 5h16v14H4z"/></svg>{a}</span><span>›</span></div>)}</div>
+    </div>
+   </div>;
+  })() : view==="planCuidado" ? (()=>{
+   // ===== MÓDULO PLAN DE CUIDADO (S-PLANCUIDADO) — snapshot compuesto cableado a GET /patients/:id/care-plan =====
+   const card2:React.CSSProperties={...card,marginTop:0};
+   const initials=(n:string)=>n.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+   const useReal=!!cpSnap;
+   const counts=cpSnap?cpSnap.counts:{problems:3,medications:2,allergies:1};
+   type PA={code:string;description:string;statusLabel:string};
+   const REP_PROB:PA[]=[{code:"E11.9",description:"Diabetes mellitus tipo 2",statusLabel:"Activo"},{code:"I10",description:"Hipertensión arterial",statusLabel:"En seguimiento"},{code:"E66.9",description:"Obesidad",statusLabel:"En seguimiento"}];
+   const problems:PA[]=(useReal&&cpSnap!.problems.length)?cpSnap!.problems:REP_PROB;
+   const REP_GOALS=[{goal:"Lograr HbA1c < 7% en 3 meses",statusLabel:"Activa"},{goal:"Mantener TA < 130/80 mmHg",statusLabel:"Activa"},{goal:"Reducir 5–10% del peso corporal en 6 meses",statusLabel:"Lograda"},{goal:"Mejorar adherencia al tratamiento",statusLabel:"Propuesta"},{goal:"Prevenir complicaciones a largo plazo",statusLabel:"Propuesta"}];
+   const goals=(useReal&&cpSnap!.goals.length)?cpSnap!.goals.map(g=>({goal:g.goal,statusLabel:g.statusLabel})):REP_GOALS;
+   const m=cpSnap?cpSnap.metrics:{hba1c:null,bp:null,weight:null,imc:null};
+   const hba1c=m.hba1c??"8.1",bp=m.bp??"138/86",weight=m.weight??"78",imc=m.imc??"30.2";
+   const dot=(c:string)=><span style={{width:9,height:9,borderRadius:"50%",background:c,flex:"0 0 auto"}}/>;
+   const estSty=(k:string):React.CSSProperties=>{const mm:Record<string,[string,string]>={Activo:["#FDECEE","#C9364A"],["En seguimiento"]:["#FBF0DC","#B7791F"],Resuelto:["#E6F6EE","#16A66A"],["En curso"]:["#E6F6EE","#16A66A"],Pendiente:["#FBF0DC","#B7791F"],Programado:["#E7EEFB","#1769E0"]};const[b,f]=mm[k]??mm.Activo!;return{background:b,color:f,borderRadius:16,padding:"3px 11px",fontSize:11.5,fontWeight:700,whiteSpace:"nowrap"};};
+   const cico=(c:string,d:string)=><span style={{width:34,height:34,borderRadius:9,background:c+"22",color:c,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={d}/></svg></span>;
+   const sec:React.CSSProperties={fontSize:15.5,fontWeight:800,display:"flex",alignItems:"center",gap:9,marginBottom:14};
+   const secIco=(c:string,d:string)=><span style={{width:28,height:28,borderRadius:8,background:c+"22",color:c,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={d}/></svg></span>;
+   const metric=(name:string,target:string,val:string,unit:string,good:boolean)=><div style={{marginBottom:13}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}><div><div style={{fontSize:13,fontWeight:700}}>{name}</div><div style={{fontSize:11,color:P.muted}}>{target}</div></div><div style={{fontSize:12,color:P.muted}}>Último: <b style={{color:P.ink}}>{val}{unit}</b></div></div><div style={{height:6,borderRadius:6,background:"#EEF1F7",overflow:"hidden",marginTop:5}}><div style={{height:"100%",width:good?"85%":"55%",background:good?"#16A66A":"#E5983B",borderRadius:6}}/></div></div>;
+   const PLAN_TABS:[typeof cpPlanTab,string][]=[["plan","Plan actual"],["historial","Historial de planes"],["objetivos","Objetivos"],["educacion","Educación"],["notas","Notas"]];
+   const clip="M9 3h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h1V4a1 1 0 011-1z";
+   return <div style={{padding:"18px 24px 40px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={clip}/><path d="M9 12l2 2 4-4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Plan de cuidado</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Define, organiza y da seguimiento al plan de cuidado integral del paciente.</p></div></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+      <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⊟ Plantillas</button>
+      <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⎙ Imprimir plan</button>
+      <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("consulta");setCTab("plan");}}>+ Nuevo plan de cuidado ▾</button>
+     </div>
+    </div>
+    <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"Ana López García")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientName||"Ana López García"}</div><div style={{fontSize:12.5,color:P.muted}}>Femenino, 34 años&nbsp;&nbsp;|&nbsp;&nbsp;Expediente: LC260917-0042&nbsp;&nbsp;|&nbsp;&nbsp;CURP: LOGA900101MCHPRN09</div></div></div>
+     <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+      <div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}>{cico(P.blue,clip)}<div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{counts.problems}</div><div style={{fontSize:11,color:P.muted}}>Problemas activos</div></div></div>
+      <div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}>{cico(P.green,"M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z")}<div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{counts.medications}</div><div style={{fontSize:11,color:P.muted}}>Medicamentos</div></div></div>
+      <div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}>{cico(P.red,"M10.3 3.9 1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z")}<div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{counts.allergies}</div><div style={{fontSize:11,color:P.muted}}>{counts.allergies===1?"Alergia":"Alergias"}</div></div></div>
+      <button onClick={()=>{setView("exp");}} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px 15px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver expediente →</button>
+     </div>
+    </div>
+    <div style={{...card2,marginTop:16,padding:"0 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+     <div style={{display:"flex",gap:4,overflowX:"auto"}}>{PLAN_TABS.map(([k,l])=><button key={k} onClick={()=>setCpPlanTab(k)} style={{padding:"14px 12px",fontSize:13.5,fontWeight:cpPlanTab===k?700:500,color:cpPlanTab===k?P.purple:P.muted,borderBottom:cpPlanTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>{l}</button>)}</div>
+     <div style={{display:"flex",gap:16,alignItems:"center",fontSize:12.5,color:P.muted,flexWrap:"wrap",padding:"8px 0"}}><span>Fecha de elaboración: <b style={{color:P.ink}}>17 sep 2026</b></span><span>Próxima revisión: <b style={{color:P.ink}}>15 oct 2026</b></span><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"8px 13px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>✎ Editar plan</button></div>
+    </div>
+    {/* Fila superior: problemas / objetivos / resumen */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-cp">
+     <div style={{...card2,padding:18}}><div style={sec}>{secIco(P.purple,clip)}Diagnósticos / Problemas asociados</div>{problems.map((p,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<problems.length-1?`1px solid #F2F4F9`:"0"}}>{dot(["#F0455E","#E5983B","#1769E0","#6C5CF6"][i%4]!)}<div style={{flex:1,minWidth:0}}><div style={{fontSize:13.5,fontWeight:600}}>{p.description}</div></div><span style={{fontSize:12,color:P.muted,fontWeight:600}}>{p.code}</span><span style={estSty(p.statusLabel)}>{p.statusLabel}</span></div>)}</div>
+     <div style={{...card2,padding:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={sec}>{secIco(P.green,"M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11")}Objetivos del plan</div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"5px 10px",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:UI}}>✎ Editar</button></div>{goals.map((g,i)=>{const done=g.statusLabel==="Lograda";return <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0"}}><span style={{width:18,height:18,borderRadius:"50%",border:done?"0":"1.8px solid #C7CCE0",background:done?"#16A66A":"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:11,flex:"0 0 auto"}}>{done?"✓":""}</span><span style={{fontSize:13.5,color:done?P.muted:P.ink,textDecoration:done?"line-through":"none"}}>{g.goal}</span></div>;})}</div>
+     <div style={{...card2,padding:18}}><div style={sec}>{secIco(P.blue,"M4 19V5M4 19h16M8 15l3-4 3 2 4-6")}Resumen</div><div style={{display:"flex",flexDirection:"column",gap:11,fontSize:12.5}}>{[["Fecha de inicio","17 sep 2026"],["Próxima revisión","15 oct 2026"]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between"}}><span style={{color:P.muted}}>{k}</span><b>{v}</b></div>)}<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{color:P.muted}}>Estado</span><span style={estSty("En curso")}>Activo</span></div>{[["Responsable","Dr. Luis Godinez"],["Tipo de plan","Integral"]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between"}}><span style={{color:P.muted}}>{k}</span><b>{v}</b></div>)}<div style={{fontSize:11.5,color:P.muted,marginTop:2}}>17 sep 2026, 10:24</div></div></div>
+    </div>
+    {/* Fila media: intervenciones / cronograma+métricas / educación+notas+documentos */}
+    <div style={{display:"grid",gridTemplateColumns:"1.3fr 0.9fr 0.9fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-cp2">
+     <div style={{...card2,padding:18}}><div style={sec}>{secIco(P.purple,"M4 6h16M4 12h16M4 18h10")}Intervenciones y recomendaciones</div>
+      {[["Tratamiento farmacológico","Ajuste y adherencia a medicamentos","En curso","M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z"],["Plan nutricional","Dieta mediterránea, control de porciones","En curso","M12 3a5 5 0 015 5c0 4-5 13-5 13S7 12 7 8a5 5 0 015-5z"],["Actividad física","150 min/semana + fuerza 2 días/semana","En curso","M6 12h12M9 8v8M15 8v8"],["Monitoreo en casa","TA, glucosa capilar, peso","En curso","M3 12l9-9 9 9M5 10v10h14V10"],["Educación al paciente","Enfermedad, autocuidado, signos de alarma","Pendiente","M4 6h16v10H4zM8 20h8"],["Estudios de seguimiento","Laboratorios y gabinete","Programado","M9 3h6l1 4H8z"],["Interconsultas","Nutrición, Endocrinología (según evolución)","Pendiente","M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2"]].map(([t,d,st,ic],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderBottom:i<6?`1px solid #F2F4F9`:"0"}}>{cico(P.purple,ic as string)}<div style={{flex:1,minWidth:0}}><div style={{fontSize:13.5,fontWeight:700}}>{t}</div><div style={{fontSize:12,color:P.muted}}>{d}</div></div><span style={estSty(st as string)}>{st}</span><span style={{color:P.muted,fontWeight:700,cursor:"pointer"}}>⋯</span></div>)}
+      <button style={{marginTop:14,border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>+ Agregar intervención</button>
+     </div>
+     <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{...card2,padding:18}}><div style={sec}>{secIco(P.blue,"M8 2v4M16 2v4M4 8h16M5 6h14v14H5z")}Cronograma de seguimiento</div>
+       {[["17 sep 2026","Plan de cuidado iniciado","done"],["01 oct 2026","Revisión de TA y glucosa (virtual)","curr"],["15 oct 2026","Consulta de seguimiento",""],["15 dic 2026","Laboratorios de control",""],["17 mar 2027","Evaluación de objetivos",""]].map(([d,t,s],i,arr)=><div key={i} style={{display:"flex",gap:11}}><div style={{display:"flex",flexDirection:"column",alignItems:"center"}}><span style={{width:16,height:16,borderRadius:"50%",border:s==="curr"?`2px solid ${P.blue}`:s==="done"?"0":"2px solid #C7CCE0",background:s==="done"?"#16A66A":s==="curr"?P.blue:"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:9,flex:"0 0 auto"}}>{s==="done"?"✓":""}</span>{i<arr.length-1&&<span style={{width:2,flex:1,background:"#E7E9F2",minHeight:22}}/>}</div><div style={{paddingBottom:14}}><div style={{fontSize:13,fontWeight:700}}>{d}</div><div style={{fontSize:12,color:P.muted}}>{t}</div></div></div>)}
+      </div>
+      <div style={{...card2,padding:18}}><div style={sec}>{secIco(P.purple,"M4 19V5M4 19h16M8 15l3-4 3 2 4-6")}Metas y métricas</div>
+       {metric("HbA1c","< 7%",hba1c,"%",Number(hba1c)<7)}
+       {metric("Presión arterial","< 130/80",bp,"",Number((bp.split("/")[0])||0)<130)}
+       {metric("Peso","-5 a 10%",weight," kg",false)}
+       {metric("IMC","< 25",imc,"",Number(imc)<25)}
+      </div>
+     </div>
+     <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{...card2,padding:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={sec}>{secIco(P.purple,"M12 14l9-5-9-5-9 5 9 5zM12 14v7")}Educación para el paciente</div><span style={{color:P.purple,fontWeight:700,cursor:"pointer"}}>+</span></div>{["Guía de alimentación en diabetes","Ejercicios recomendados","Técnica correcta de medición de TA","Signos de alarma","Cuidado de pies en diabetes"].map((e,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<4?`1px solid #F2F4F9`:"0",fontSize:13,color:P.blue,fontWeight:500,cursor:"pointer"}}><span style={{display:"flex",alignItems:"center",gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 5h12v14H4zM8 3h12v12"/></svg>{e}</span><span>⧉</span></div>)}</div>
+      <div style={{...card2,padding:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div style={{fontSize:15.5,fontWeight:800}}>Notas del plan</div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"5px 11px",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:UI}}>Agregar</button></div><div style={{fontSize:12.5,lineHeight:1.5}}><div style={{color:P.muted,marginBottom:4}}>17 sep 2026, 10:24</div>Se inicia plan integral. Paciente motivada. Se entrega material educativo y se programa seguimiento en 2 semanas.<div style={{color:P.muted,textAlign:"right",marginTop:6}}>Dr. Luis Godinez</div></div></div>
+      <div style={{...card2,padding:18}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div style={{fontSize:15.5,fontWeight:800}}>Documentos relacionados</div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"5px 11px",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:UI}}>Agregar</button></div>{["Plan de alimentación.pdf","Rutina de ejercicios.pdf","Consentimiento plan de cuidado.pdf"].map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 0",borderBottom:i<2?`1px solid #F2F4F9`:"0",fontSize:12.5}}><span style={{color:P.red}}>▤</span><span style={{flex:1,color:P.blue,fontWeight:500}}>{f}</span><span style={{color:P.muted,fontSize:11}}>17 sep 2026</span><span style={{color:P.muted,fontWeight:700,cursor:"pointer"}}>⋯</span></div>)}</div>
+     </div>
     </div>
    </div>;
   })() : (<>
