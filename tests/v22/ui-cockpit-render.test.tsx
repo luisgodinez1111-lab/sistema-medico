@@ -47,7 +47,7 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Medicamentos"}));
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
@@ -68,6 +68,17 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText(/Tareas clínicas prioritarias/)).toBeTruthy();
   expect(screen.getByText("Agenda de hoy")).toBeTruthy();
   expect(screen.getByText("Pacientes recientes")).toBeTruthy();
+ });
+
+ it("vista Consulta (workspace clínico) con las 7 pestañas + formulario",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+  expect(screen.getByRole("heading",{name:"Consulta"})).toBeTruthy();
+  expect(screen.getByText("1. Motivo de consulta")).toBeTruthy();
+  expect(screen.getAllByText("Signos vitales").length).toBeGreaterThan(0); // panel + acceso del sidebar
+  expect(screen.getByText("Resumen clínico")).toBeTruthy();
+  expect(screen.getByRole("button",{name:/Consulta actual/})).toBeTruthy(); // pestaña
+  expect(screen.getAllByRole("button",{name:/Plan de cuidados/}).length).toBeGreaterThan(1); // sidebar + pestaña
  });
 
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
