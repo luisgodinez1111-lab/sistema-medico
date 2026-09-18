@@ -1930,6 +1930,33 @@
       "epic": "CD",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-UI-GUX-001-001",
+      "name": "UI GUX-001 (Golden UX Loop) + integración del Design System",
+      "risk": "C5",
+      "eng_authority_note": "EJE E (UI/UX) — primer slice del AI Design Implementation Contract (subordinado al Design System v3.2). Materializa GUX-001 (resultado crítico -> bloqueo de firma -> resolución con evidencia -> readiness -> firma -> auditoría) como componente canónico (máquina de estados) sobre el backend Zero-Lost-Follow-Up ya construido. Integra el contrato como autoridad (docs/design-contract/).",
+      "invariants": [
+        "Los componentes canónicos son máquinas de estado (ui-sign-gate), no fragmentos visuales",
+        "Estado codificado en forma+ícono+texto (no solo color); patient context P0/P1/P2 siempre visible",
+        "Estados prohibidos vigilados en runtime (CRITICAL_OPEN+SIGN_READY, DRAFT+SIGNED_STYLE, UNKNOWN_COMMIT_STATE+SUCCESS)",
+        "Pendiente != éxito: la firma solo se confirma tras la respuesta autoritativa del servidor",
+        "Reconocer != resolver; el cierre exige evidencia. Gate del slice honesto: PENDING_EVIDENCE (falta viewports/axe/C5)"
+      ],
+      "implementation": [
+        "docs/design-contract/ (autoridad de diseño integrada: tokens, contratos, estados prohibidos, fixtures, manifiesto)",
+        "packages/design-system (tokens + assertNoForbidden)",
+        "packages/ui-sign-gate (máquina de estados pura)",
+        "apps/web/app/workspace/gux-001/page.tsx (componente React con test IDs)",
+        "docs/design-contract/evidence/GUX-001.md (reporte de evidencia)"
+      ],
+      "tests": [
+        "tests/v22/ui-sign-gate.test.ts"
+      ],
+      "runtime_evidence": "tests/v22/ui-sign-gate.test.ts — PASS 8/8 (BLOCKED sin firma, resolver exige evidencia, reconocer!=resolver, flujo completo BLOCKED->RESOLVING->READY->SIGNING->SIGNED, pending!=success, guard de estados prohibidos, ningún estado alcanzable viola el guard). Corre en CI (test:all). Artifact: https://claude.ai/artifact/E9mepsSyENL2pBghVL58wY. Gate del slice: PENDING_EVIDENCE (viewports/axe/C5 pendientes).",
+      "epic": "CE",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

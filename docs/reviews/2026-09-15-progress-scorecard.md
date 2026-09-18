@@ -24,7 +24,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | B. Identidad/Auth/Sesión + login | 8% | ~75% | 6.0 |
 | C. Verticales clínicos (~28 áreas PROD): amplitud + profundidad | 35% | ~34.7% | 12.1 |
 | D. AI copilot / inteligencia clínica | 18% | ~10% | 1.8 |
-| E. UI/UX de producto | 10% | ~21% | 2.1 |
+| E. UI/UX de producto | 10% | ~25% | 2.5 |
 | F. Adjudicación de trazabilidad (C5 humano) | 8% | ~20% | 1.6 |
 | G. Endurecimiento producción + compliance | 9% | ~35% | 3.2 |
 
@@ -118,6 +118,7 @@ V2 completa: construido + cableado + probado + **adjudicado (C5 humano)** + endu
 | 2026-09-17 | ADR-0220 + Epic CB: **eje D (AI copilot)** — ADR de diseño (IA de apoyo sobre núcleo determinista) + **choke point de seguridad SIN IA** (kill-switch, autoridad humana, presupuesto, envelope, provenance AI_SUGGESTED, stub determinista). Fase 1; R6 sigue en pausa. **Primer avance real del eje D** (5%→8%). | **~37%** |
 | 2026-09-17 | Epic CC: **eje D (AI copilot)** — fase 2 del ADR-0220: **eval harness** (calificador determinista que atrapa salidas inseguras de un LLM futuro; casos adversarios en CI) + **shadow mode** (corre en paralelo sin mostrar al médico; invariante de no-fuga). Sin IA. Eje D 8%→10%. | **~37%** |
 | 2026-09-17 | Epic CD: **profundidad clínica (eje C)** — Índice de Comorbilidad de Charlson: predictor de mortalidad a 10 años desde la lista de problemas + edad. Agrega la comorbilidad global; cross-vertical problema↔paciente. | **~37%** |
+| 2026-09-17 | Epic CE: **UI/UX (eje E)** — integra el AI Design Implementation Contract + materializa **GUX-001** (Golden UX Loop: resultado crítico → bloqueo de firma → resolución con evidencia → firma → auditoría) como componente canónico (máquina de estados testeada) + artifact. Design system integrado. Eje E 21%→25%. Gate del slice: PENDING_EVIDENCE. | **~37%** |
 
 ## Nota de auditoría — segunda pasada (2026-09-17): handlers sin cablear
 Hallazgo **#10**: **8 handlers de la línea L13–L18 NO los importa ninguna ruta** (features inalcanzables desde

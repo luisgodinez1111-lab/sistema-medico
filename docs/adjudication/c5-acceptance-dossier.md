@@ -3,9 +3,9 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **76**
+- Capacidades reconciliadas: **77**
 - Estado de evidencia: **COMPLETA ✅ (todo test/prueba citada existe en disco)**
-- Pendiente de aceptación humana C5: **76**
+- Pendiente de aceptación humana C5: **77**
 
 ## Riesgo C4
 
@@ -543,6 +543,13 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 - Prueba en vivo: `scripts/v22/live-charlson-proof.mts`
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
+### CAP-UI-GUX-001-001 — UI GUX-001 (Golden UX Loop) + integración del Design System
+- Epic: CE
+- Invariantes: 5
+- Tests: `tests/v22/ui-sign-gate.test.ts`
+- Prueba en vivo: —
+- Decisión propuesta: APPROVED_WITH_EVIDENCE
+
 ## Firma de aceptación C5 (humana)
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -623,3 +630,4 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 | CAP-AI-COPILOT-GATEWAY-001 | | | | |
 | CAP-AI-EVAL-HARNESS-001 | | | | |
 | CAP-COMORBIDITY-CHARLSON-001 | | | | |
+| CAP-UI-GUX-001-001 | | | | |
