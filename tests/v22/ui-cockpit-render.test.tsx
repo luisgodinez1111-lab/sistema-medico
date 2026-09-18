@@ -12,6 +12,13 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
  apiRequest:async(path:string)=>{
+  if(path.includes("/interactions"))return{status:200,body:{
+   findings:[
+    {kind:"pair",severity:"MAJOR",severityLabel:"Mayor",a:"sertralina",b:"ibuprofeno",mechanism:"Inhibición serotoninérgica de la agregación plaquetaria + gastroerosión.",recommendation:"Preferir paracetamol; gastroprotección si el AINE es necesario."},
+    {kind:"factor",severity:"MODERATE",severityLabel:"Moderada",a:"metformina",b:"Insuficiencia renal",mechanism:"Disminución de la eliminación renal: acumulación.",recommendation:"Ajustar dosis según TFGe."},
+   ],
+   counts:{CONTRAINDICATED:0,MAJOR:1,MODERATE:1,MINOR:0},highestSeverity:"MAJOR",highestSeverityLabel:"Mayor",
+   resolvedDrugs:[],resolvedFactors:[],unresolvedDrugs:[],unresolvedFactors:[]}};
   if(path.includes("/consultation-snapshot"))return{status:200,body:{registered:true,
    demographics:{age:54,sex:"FEMALE",birthDate:"1971-01-01"},problems:["E11.9","I10","N18.3"],allergies:["penicilina"],
    vitals:{BP:"128/78",HR:"72"},labs:{hba1c:7.1,creatinine:1.3,glucose:112,ldl:98,egfr:48,egfrStage:"G3a"},
@@ -120,6 +127,28 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
+ });
+
+ it("Medicamentos › Interacciones (S8.3): verificador de conjunto cableado — chips por defecto, factores y hallazgos con severidad",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:/Medicamentos/})); // vista Medicamentos
+  fireEvent.click(screen.getByRole("button",{name:/^Interacciones$/})); // pestaña
+  // entrada: medicamentos por defecto del ejemplo insignia + acción de verificación
+  expect(screen.getByText("Medicamentos a evaluar")).toBeTruthy();
+  expect(screen.getAllByText("Sertralina").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Ibuprofeno").length).toBeGreaterThan(0);
+  expect(screen.getByText("Factores del paciente")).toBeTruthy();
+  const verify=screen.getByRole("button",{name:"Verificar interacciones"});
+  expect(verify).toBeTruthy();
+  fireEvent.click(verify);
+  // resultado desde el endpoint (mock): hallazgo Mayor con etiqueta en TEXTO (no solo color) + mecanismo
+  const badge=await screen.findByText("Mayor",{},{timeout:2500});
+  expect(badge).toBeTruthy();
+  const panel=badge.closest("div")!;
+  expect(panel).toBeTruthy();
+  await waitFor(()=>expect(screen.getAllByText(/Mecanismo\./).length).toBeGreaterThan(0),{timeout:2500});
+  expect(screen.getAllByText(/Recomendación\./).length).toBeGreaterThan(0);
+  expect(screen.getByText(/severidad máxima/)).toBeTruthy();
  });
 
  it("accesibilidad: los paneles de presentación no tienen violaciones axe serias/críticas",async()=>{

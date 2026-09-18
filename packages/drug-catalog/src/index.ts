@@ -32,6 +32,10 @@ const DRUGS:Record<string,DrugEntry>={
  "losartan":{ingredient:"losartan",classes:["ARB"]},
  "espironolactona":{ingredient:"espironolactona",classes:["POTASSIUM_SPARING"]},
  "metformina":{ingredient:"metformina",classes:["BIGUANIDE"]},
+ "sertralina":{ingredient:"sertralina",classes:["SSRI","SEROTONERGIC"]},
+ "fluoxetina":{ingredient:"fluoxetina",classes:["SSRI","SEROTONERGIC"]},
+ "citalopram":{ingredient:"citalopram",classes:["SSRI","SEROTONERGIC"]},
+ "tramadol":{ingredient:"tramadol",classes:["OPIOID","SEROTONERGIC"]},
 };
 
 // EPIC AX — Interacciones farmacológicas por clase (pares peligrosos conocidos). Severidad MAJOR = bloquea.
@@ -183,4 +187,114 @@ export function checkDuplicateTherapy(newDrugCode:string,activeDrugCodes:readonl
   if(shared)return{duplicate:true,conflictDrug:active,sharedClass:shared};
  }
  return{duplicate:false};
+}
+
+// EPIC BN — Verificador de INTERACCIONES (conjunto). A diferencia de checkInteractions (dry-run de UNA
+// prescripción contra la lista activa, barrera de commit), este evalúa TODO un conjunto de fármacos entre sí
+// MÁS factores del paciente (alcohol, insuficiencia renal, embarazo…) y devuelve cada interacción con
+// severidad de 4 niveles + MECANISMO + RECOMENDACIÓN. Alimenta la pestaña "Interacciones" (verificación previa,
+// no bloqueo). Puro, sin PHI. Subconjunto de demostración; el vademécum oficial se cargaría de la fuente autorizada.
+export type InteractionSeverity="CONTRAINDICATED"|"MAJOR"|"MODERATE"|"MINOR";
+const SEVERITY_RANK:Record<InteractionSeverity,number>={CONTRAINDICATED:4,MAJOR:3,MODERATE:2,MINOR:1};
+// Etiqueta clínica en español para la UI (leyenda de severidad).
+export const SEVERITY_LABEL:Record<InteractionSeverity,string>={CONTRAINDICATED:"Contraindicada",MAJOR:"Mayor",MODERATE:"Moderada",MINOR:"Menor"};
+
+// Interacciones fármaco–fármaco por CLASE, con mecanismo y recomendación (conjunto simétrico).
+export type RichInteraction=Readonly<{classA:string;classB:string;severity:InteractionSeverity;mechanism:string;recommendation:string}>;
+const RICH_INTERACTIONS:readonly RichInteraction[]=[
+ {classA:"SEROTONERGIC",classB:"SEROTONERGIC",severity:"MAJOR",mechanism:"Efecto serotoninérgico aditivo: riesgo de síndrome serotoninérgico (hipertermia, rigidez, clonus, agitación).",recommendation:"Evitar la combinación o usar la mínima dosis con vigilancia estrecha; suspender ante los primeros signos."},
+ {classA:"SSRI",classB:"NSAID",severity:"MAJOR",mechanism:"Inhibición serotoninérgica de la agregación plaquetaria sumada al efecto gastroerosivo del AINE: sangrado digestivo.",recommendation:"Preferir paracetamol; si el AINE es necesario, añadir gastroprotección con IBP y vigilar sangrado."},
+ {classA:"SSRI",classB:"ANTICOAGULANT",severity:"MAJOR",mechanism:"Efecto antiagregante del SSRI sumado a la anticoagulación: riesgo hemorrágico aumentado.",recommendation:"Vigilar signos de sangrado; considerar antidepresivo con menor efecto plaquetario (p. ej. no serotoninérgico)."},
+ {classA:"ANTICOAGULANT",classB:"NSAID",severity:"MAJOR",mechanism:"AINE inhibe plaquetas y erosiona mucosa gástrica sobre un paciente anticoagulado: hemorragia mayor.",recommendation:"Evitar el AINE; usar paracetamol. Si es imprescindible, gastroprotección e INR/vigilancia estrecha."},
+ {classA:"ANTICOAGULANT",classB:"SALICYLATE",severity:"MAJOR",mechanism:"Doble efecto antiagregante/anticoagulante: hemorragia mayor.",recommendation:"Evitar salicilatos salvo indicación cardiológica explícita con balance riesgo-beneficio documentado."},
+ {classA:"ACE_INHIBITOR",classB:"POTASSIUM_SPARING",severity:"MAJOR",mechanism:"Retención aditiva de potasio: hiperkalemia grave.",recommendation:"Vigilar potasio sérico al inicio y tras cada ajuste; evitar suplementos de potasio."},
+ {classA:"ARB",classB:"POTASSIUM_SPARING",severity:"MAJOR",mechanism:"Retención aditiva de potasio: hiperkalemia grave.",recommendation:"Vigilar potasio sérico al inicio y tras cada ajuste; evitar suplementos de potasio."},
+ {classA:"ACE_INHIBITOR",classB:"ARB",severity:"MODERATE",mechanism:"Doble bloqueo del SRAA: hiperkalemia y deterioro de la función renal.",recommendation:"Evitar la combinación de rutina; si se usa, monitorizar potasio y creatinina."},
+ {classA:"ACE_INHIBITOR",classB:"NSAID",severity:"MODERATE",mechanism:"El AINE reduce la perfusión renal y antagoniza el efecto antihipertensivo del IECA.",recommendation:"Limitar el AINE a cursos cortos; vigilar presión arterial y función renal (triple whammy con diurético)."},
+ {classA:"OPIOID",classB:"NSAID",severity:"MINOR",mechanism:"Combinación analgésica frecuente; sin interacción farmacocinética relevante.",recommendation:"Combinación aceptable para dolor moderado; vigilar tolerancia gastrointestinal del AINE."},
+];
+function richPairFor(a:readonly string[],b:readonly string[]):RichInteraction|undefined{
+ const sa=new Set(a),sb=new Set(b);let best:RichInteraction|undefined;
+ for(const i of RICH_INTERACTIONS){
+  const hit=(sa.has(i.classA)&&sb.has(i.classB))||(sa.has(i.classB)&&sb.has(i.classA));
+  if(hit&&(!best||SEVERITY_RANK[i.severity]>SEVERITY_RANK[best.severity]))best=i;
+ }
+ return best;
+}
+
+// Factores del paciente (no farmacológicos) que modulan la seguridad de una clase. Código canónico + sinónimos.
+export type PatientFactor="ALCOHOL"|"RENAL_IMPAIRMENT"|"HEPATIC_IMPAIRMENT"|"PREGNANCY"|"ELDERLY";
+const FACTOR_SYNONYMS:Record<PatientFactor,readonly string[]>={
+ ALCOHOL:["alcohol","consumo de alcohol","etilismo","alcoholismo","alcohol activo"],
+ RENAL_IMPAIRMENT:["insuficiencia renal","enfermedad renal","erc","falla renal","renal","tfg baja"],
+ HEPATIC_IMPAIRMENT:["insuficiencia hepatica","hepatopatia","enfermedad hepatica","cirrosis","hepatico"],
+ PREGNANCY:["embarazo","gestacion","embarazada","gestante"],
+ ELDERLY:["adulto mayor","edad avanzada","anciano","geriatrico","mayor de 65"],
+};
+export const FACTOR_LABEL:Record<PatientFactor,string>={ALCOHOL:"Consumo de alcohol",RENAL_IMPAIRMENT:"Insuficiencia renal",HEPATIC_IMPAIRMENT:"Insuficiencia hepática",PREGNANCY:"Embarazo",ELDERLY:"Adulto mayor"};
+export type FactorRule=Readonly<{factor:PatientFactor;drugClass:string;severity:InteractionSeverity;mechanism:string;recommendation:string}>;
+const FACTOR_RULES:readonly FactorRule[]=[
+ {factor:"ALCOHOL",drugClass:"SSRI",severity:"MODERATE",mechanism:"Potenciación de la depresión del sistema nervioso central y aumento del riesgo de sangrado digestivo.",recommendation:"Aconsejar evitar el alcohol durante el tratamiento con el SSRI."},
+ {factor:"ALCOHOL",drugClass:"NSAID",severity:"MODERATE",mechanism:"Efecto gastroerosivo aditivo: mayor riesgo de hemorragia digestiva.",recommendation:"Evitar alcohol; considerar gastroprotección si el AINE es prolongado."},
+ {factor:"ALCOHOL",drugClass:"OPIOID",severity:"MAJOR",mechanism:"Depresión respiratoria y del SNC aditiva: riesgo de sedación grave.",recommendation:"Contraindicar el consumo de alcohol durante el tratamiento opioide."},
+ {factor:"ALCOHOL",drugClass:"BIGUANIDE",severity:"MODERATE",mechanism:"El alcohol aumenta el riesgo de acidosis láctica con metformina.",recommendation:"Evitar el consumo agudo/excesivo de alcohol."},
+ {factor:"RENAL_IMPAIRMENT",drugClass:"BIGUANIDE",severity:"MODERATE",mechanism:"Disminución de la eliminación renal de metformina: acumulación y riesgo de acidosis láctica.",recommendation:"Ajustar dosis según TFGe; contraindicada si TFGe<30 mL/min."},
+ {factor:"RENAL_IMPAIRMENT",drugClass:"NSAID",severity:"MINOR",mechanism:"Inhibición de prostaglandinas renales: reducción de la perfusión renal.",recommendation:"Usar la dosis mínima efectiva por el menor tiempo posible y vigilar la función renal."},
+ {factor:"RENAL_IMPAIRMENT",drugClass:"ACE_INHIBITOR",severity:"MODERATE",mechanism:"Riesgo de deterioro de la función renal e hiperkalemia en enfermedad renal.",recommendation:"Vigilar potasio y creatinina; nefroprotector pero requiere monitoreo estrecho."},
+ {factor:"HEPATIC_IMPAIRMENT",drugClass:"OPIOID",severity:"MODERATE",mechanism:"Metabolismo hepático reducido: acumulación y sedación prolongada.",recommendation:"Reducir dosis y espaciar intervalos; vigilar nivel de conciencia."},
+ {factor:"PREGNANCY",drugClass:"NSAID",severity:"MAJOR",mechanism:"AINE en el 3.º trimestre: cierre precoz del conducto arterioso y oligohidramnios.",recommendation:"Evitar AINE en el embarazo, en especial el 3.º trimestre; preferir paracetamol."},
+ {factor:"PREGNANCY",drugClass:"ACE_INHIBITOR",severity:"CONTRAINDICATED",mechanism:"Fetotoxicidad (oligohidramnios, daño renal fetal, malformaciones).",recommendation:"Contraindicado en el embarazo; suspender y cambiar a antihipertensivo seguro (p. ej. metildopa)."},
+ {factor:"PREGNANCY",drugClass:"ARB",severity:"CONTRAINDICATED",mechanism:"Fetotoxicidad análoga a los IECA.",recommendation:"Contraindicado en el embarazo; suspender y cambiar a antihipertensivo seguro."},
+];
+// Normaliza una etiqueta libre de factor a su código canónico (o undefined si no se reconoce).
+export function resolveFactor(raw:string):PatientFactor|undefined{
+ const s=norm(raw);
+ for(const[code,syns]of Object.entries(FACTOR_SYNONYMS) as [PatientFactor,readonly string[]][])
+  if(syns.some(x=>s.includes(norm(x))))return code;
+ return undefined;
+}
+
+export type InteractionFinding=Readonly<{
+ kind:"pair"|"factor";
+ severity:InteractionSeverity;
+ a:string;            // fármaco (nombre resuelto)
+ b:string;            // otro fármaco (pair) o etiqueta del factor (factor)
+ mechanism:string;
+ recommendation:string;
+}>;
+export type InteractionSetResult=Readonly<{
+ findings:readonly InteractionFinding[];
+ counts:Readonly<Record<InteractionSeverity,number>>;
+ unresolvedDrugs:readonly string[];   // fármacos no reconocidos en el catálogo (transparencia)
+ unresolvedFactors:readonly string[]; // factores no reconocidos
+ highestSeverity:InteractionSeverity|null;
+}>;
+// Evalúa TODO el conjunto: cada par de fármacos entre sí + cada fármaco contra cada factor del paciente.
+// Devuelve los hallazgos ordenados de mayor a menor severidad, con conteos por nivel y transparencia de lo no resuelto.
+export function checkInteractionSet(drugCodes:readonly string[],factorLabels:readonly string[]=[]):InteractionSetResult{
+ const resolved=drugCodes.map(c=>({code:c,drug:resolveDrug(c)}));
+ const unresolvedDrugs=resolved.filter(r=>!r.drug).map(r=>r.code);
+ const known=resolved.filter((r):r is{code:string;drug:DrugEntry}=>!!r.drug);
+ const findings:InteractionFinding[]=[];
+ // 1) pares fármaco–fármaco (combinaciones sin repetición)
+ for(let i=0;i<known.length;i++)for(let j=i+1;j<known.length;j++){
+  const A=known[i]!,B=known[j]!;
+  if(A.drug.ingredient===B.drug.ingredient)continue; // el mismo principio activo es duplicación, no interacción
+  const hit=richPairFor(A.drug.classes,B.drug.classes);
+  if(hit)findings.push({kind:"pair",severity:hit.severity,a:A.drug.ingredient,b:B.drug.ingredient,mechanism:hit.mechanism,recommendation:hit.recommendation});
+ }
+ // 2) fármaco–factor del paciente
+ const factors=factorLabels.map(f=>({label:f,code:resolveFactor(f)}));
+ const unresolvedFactors=factors.filter(f=>!f.code).map(f=>f.label);
+ for(const f of factors){if(!f.code)continue;
+  for(const k of known){
+   const rule=FACTOR_RULES.find(r=>r.factor===f.code&&k.drug.classes.includes(r.drugClass));
+   if(rule)findings.push({kind:"factor",severity:rule.severity,a:k.drug.ingredient,b:FACTOR_LABEL[f.code],mechanism:rule.mechanism,recommendation:rule.recommendation});
+  }
+ }
+ findings.sort((x,y)=>SEVERITY_RANK[y.severity]-SEVERITY_RANK[x.severity]);
+ const counts:Record<InteractionSeverity,number>={CONTRAINDICATED:0,MAJOR:0,MODERATE:0,MINOR:0};
+ for(const f of findings)counts[f.severity]++;
+ const highestSeverity=findings.length?findings[0]!.severity:null;
+ return{findings,counts,unresolvedDrugs,unresolvedFactors,highestSeverity};
 }

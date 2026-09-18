@@ -47,6 +47,7 @@ const SMOKE:readonly string[]=[
  "live-prescription-check-proof",           // eje E panel 3: dry-run de barreras de prescripción
  "live-patient-demographics-proof",         // Paciente ampliado: CURP + contacto (registro->lista->snapshot)
  "live-agenda-day-proof",                   // Agenda del día: citas+consultorio+tipo+estado, GET por fecha con conteos
+ "live-interactions-proof",                 // Interacciones (conjunto): pares + factores, 4 niveles + mecanismo/recomendación
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

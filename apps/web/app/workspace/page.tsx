@@ -56,6 +56,9 @@ type Dz=Readonly<{id:string;modality:string;state:DzSt;version:number}>;
 type TL=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;version:number;lastAt:string}>;
 type Gap=Readonly<{aggregateType:string;aggregateId:string;code:string;label:string;priority:"HIGH"|"MEDIUM"|"LOW"}>;
 type PanelGap=Gap&Readonly<{patientId:string}>;
+type IxSev="CONTRAINDICATED"|"MAJOR"|"MODERATE"|"MINOR";
+type IxFinding=Readonly<{kind:"pair"|"factor";severity:IxSev;severityLabel:string;a:string;b:string;mechanism:string;recommendation:string}>;
+type IxResult=Readonly<{findings:IxFinding[];counts:Record<IxSev,number>;highestSeverity:IxSev|null;highestSeverityLabel:string|null;resolvedDrugs:{input:string;ingredient:string|null;classes:string[]}[];resolvedFactors:{input:string;code:string|null}[];unresolvedDrugs:string[];unresolvedFactors:string[]}>;
 const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
 const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
@@ -439,6 +442,12 @@ export default function Workspace(){
  const[docMenu,setDocMenu]=useState(false);
  const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
+ // Pestaña Interacciones (S8.3) — verificador de conjunto cableado a POST /api/v1/interactions
+ const[ixDrugs,setIxDrugs]=useState<string[]>(["Sertralina","Ibuprofeno","Metformina"]);
+ const[ixFactors,setIxFactors]=useState<string[]>([]);
+ const[ixInput,setIxInput]=useState("");
+ const[ixRes,setIxRes]=useState<IxResult|null>(null);
+ const[ixBusy,setIxBusy]=useState(false);
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
@@ -1414,8 +1423,71 @@ export default function Workspace(){
      <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9 6.7 19l1-5.8L3.5 9.2l5.9-.9z")}<div><div style={{fontSize:22,fontWeight:800}}>28</div><div style={{fontSize:11.5,color:P.muted}}>Favoritos</div></div></div>
      <div style={kcard}>{kico("#EEEBFD",P.purple,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div><div style={{fontSize:22,fontWeight:800}}>8</div><div style={{fontSize:11.5,color:P.muted}}>Últimas prescripciones</div></div></div>
     </div>
-    {medTab!=="catalogo"?(
-     <div style={{...card2,marginTop:16,padding:"60px 20px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:700}}>Pestaña «{MTABS.find(t=>t[0]===medTab)?.[1]}»</div><p style={{color:P.muted,fontSize:14,maxWidth:520,margin:"8px auto 0"}}>Se está construyendo al nivel exacto de tu diseño (S8). Próxima entrega.{medTab==="interacciones"?" La verificación de interacciones ya tiene backend real (7 barreras + catálogo de fármacos) — se cablea en esta pestaña.":""}</p>{medTab==="interacciones"&&<button style={{marginTop:14,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("consulta");setCTab("actual");}}>Abrir prescripción segura →</button>}</div>
+    {medTab==="interacciones"?(()=>{
+     // ===== Pestaña "Interacciones" (S8.3) — verificador de conjunto REAL cableado a POST /api/v1/interactions =====
+     const IX_FACTORS=["Consumo de alcohol","Insuficiencia renal","Insuficiencia hepática","Embarazo","Adulto mayor"];
+     const sevSty:Record<IxSev,{bg:string;bd:string;fg:string}>={CONTRAINDICATED:{bg:"#FBE3E6",bd:"#E79AA3",fg:"#9B1C2E"},MAJOR:{bg:"#FDECEE",bd:"#F4B5BE",fg:"#D12C41"},MODERATE:{bg:"#FBF0DC",bd:"#EBD2A0",fg:"#B7791F"},MINOR:{bg:"#E7EEFB",bd:"#C5D6F2",fg:"#1769E0"}};
+     const SEV_ORDER:IxSev[]=["CONTRAINDICATED","MAJOR","MODERATE","MINOR"];const SEV_L:Record<IxSev,string>={CONTRAINDICATED:"Contraindicada",MAJOR:"Mayor",MODERATE:"Moderada",MINOR:"Menor"};
+     const addDrug=()=>{const v=ixInput.trim();if(!v)return;if(!ixDrugs.some(d=>d.toLowerCase()===v.toLowerCase()))setIxDrugs([...ixDrugs,v]);setIxInput("");setIxRes(null);};
+     const rmDrug=(d:string)=>{setIxDrugs(ixDrugs.filter(x=>x!==d));setIxRes(null);};
+     const toggleF=(f:string)=>{setIxFactors(ixFactors.includes(f)?ixFactors.filter(x=>x!==f):[...ixFactors,f]);setIxRes(null);};
+     const run=async()=>{setIxBusy(true);try{const r=await apiRequest("/api/v1/interactions",{method:"POST",body:{drugs:ixDrugs,factors:ixFactors}});if(r.status===200)setIxRes(r.body as unknown as IxResult);}finally{setIxBusy(false);}};
+     const fld:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:".03em"};
+     return <div style={{display:"grid",gridTemplateColumns:"320px 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-med2">
+      {/* — Columna de entrada — */}
+      <div style={{...card2,padding:18,display:"flex",flexDirection:"column",gap:16}}>
+       <div>
+        <div style={fld}>Medicamentos a evaluar</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:10}}>
+         {ixDrugs.length===0&&<span style={{fontSize:13,color:P.muted}}>Agrega dos o más medicamentos.</span>}
+         {ixDrugs.map(d=><span key={d} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#EEEBFD",color:P.purple,borderRadius:8,padding:"6px 10px",fontSize:13,fontWeight:600}}>{d}<button onClick={()=>rmDrug(d)} aria-label={`Quitar ${d}`} style={{border:0,background:"transparent",color:P.purple,cursor:"pointer",fontSize:14,lineHeight:1,padding:0,fontFamily:UI}}>×</button></span>)}
+        </div>
+        <div style={{display:"flex",gap:8}}>
+         <input value={ixInput} onChange={e=>setIxInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addDrug();}} placeholder="Ej. Sertralina, Ibuprofeno…" style={{flex:1,border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,fontFamily:UI,color:P.ink}}/>
+         <button onClick={addDrug} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:9,padding:"9px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Agregar</button>
+        </div>
+       </div>
+       <div>
+        <div style={fld}>Factores del paciente</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+         {IX_FACTORS.map(f=>{const on=ixFactors.includes(f);return <button key={f} onClick={()=>toggleF(f)} style={{display:"inline-flex",alignItems:"center",gap:6,border:on?`1px solid ${P.purple}`:`1px solid ${LINE}`,background:on?"#EEEBFD":P.white,color:on?P.purple:P.muted,borderRadius:20,padding:"7px 12px",fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:UI}}><span style={{width:14,height:14,borderRadius:4,border:on?"0":"1.5px solid #C7CCE0",background:on?P.purple:"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:9}}>{on?"✓":""}</span>{f}</button>;})}
+        </div>
+       </div>
+       <button onClick={run} disabled={ixBusy||ixDrugs.length<1} style={{border:0,background:ixDrugs.length<1?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"12px 16px",fontWeight:700,fontSize:14,cursor:ixDrugs.length<1?"default":"pointer",fontFamily:UI,opacity:ixBusy?.7:1}}>{ixBusy?"Analizando…":"Verificar interacciones"}</button>
+       <div style={{fontSize:11.5,color:P.muted,lineHeight:1.5}}>Motor determinista por clase farmacológica y factores del paciente. Sin IA. La verificación no bloquea la prescripción; es una consulta previa.</div>
+      </div>
+      {/* — Columna de resultados — */}
+      <div style={{...card2,padding:0,overflow:"hidden"}}>
+       <div style={{padding:"14px 18px",borderBottom:`1px solid ${LINE}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+        <div style={{fontWeight:700,fontSize:15}}>Resultado del análisis</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{SEV_ORDER.map(s=><span key={s} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11.5,color:P.muted}}><span style={{width:10,height:10,borderRadius:3,background:sevSty[s].fg}}/>{SEV_L[s]}{ixRes?` · ${ixRes.counts[s]}`:""}</span>)}</div>
+       </div>
+       <div style={{padding:18}}>
+        {!ixRes&&!ixBusy&&<div style={{padding:"48px 20px",textAlign:"center",color:P.muted}}><div style={{fontSize:32,marginBottom:8}}>🔎</div><div style={{fontSize:14,fontWeight:600,color:P.ink}}>Sin análisis todavía</div><p style={{fontSize:13,maxWidth:360,margin:"6px auto 0"}}>Agrega los medicamentos (y factores del paciente) y pulsa «Verificar interacciones».</p></div>}
+        {ixBusy&&<div style={{padding:"48px 20px",textAlign:"center",color:P.muted,fontSize:14}}>Analizando el conjunto…</div>}
+        {ixRes&&!ixBusy&&<>
+         {ixRes.findings.length===0?(
+          <div style={{display:"flex",alignItems:"center",gap:12,padding:"16px 18px",borderRadius:12,background:"#E6F6EE",border:"1px solid #BFE6CF"}}><span style={{width:38,height:38,borderRadius:"50%",background:"#16A66A",color:"#fff",display:"grid",placeItems:"center",flex:"0 0 auto"}}>✓</span><div><div style={{fontWeight:700,fontSize:14}}>Sin interacciones detectadas</div><div style={{fontSize:13,color:P.muted}}>No se encontraron interacciones ni conflictos por factores para este conjunto.</div></div></div>
+         ):(
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+           {ixRes.highestSeverity&&<div style={{fontSize:13,color:P.muted}}><b style={{color:P.ink}}>{ixRes.findings.length}</b> hallazgo(s) · severidad máxima <b style={{color:sevSty[ixRes.highestSeverity].fg}}>{ixRes.highestSeverityLabel}</b></div>}
+           {ixRes.findings.map((f,i)=>{const st=sevSty[f.severity];return <div key={i} style={{border:`1px solid ${st.bd}`,background:st.bg,borderRadius:12,padding:"14px 16px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+             <div style={{fontWeight:700,fontSize:14,color:P.ink}}>{f.a} <span style={{color:st.fg}}>{f.kind==="factor"?"×":"↔"}</span> {f.b}</div>
+             <span style={{background:st.fg,color:"#fff",borderRadius:20,padding:"3px 11px",fontSize:11.5,fontWeight:700,whiteSpace:"nowrap"}}>{f.severityLabel}</span>
+            </div>
+            <div style={{fontSize:12.5,color:"#4B5168",marginTop:8,lineHeight:1.5}}><b style={{color:P.ink}}>Mecanismo.</b> {f.mechanism}</div>
+            <div style={{fontSize:12.5,color:"#4B5168",marginTop:5,lineHeight:1.5}}><b style={{color:P.ink}}>Recomendación.</b> {f.recommendation}</div>
+           </div>;})}
+          </div>
+         )}
+         {(ixRes.unresolvedDrugs.length>0||ixRes.unresolvedFactors.length>0)&&<div style={{marginTop:14,padding:"11px 14px",borderRadius:10,background:"#FDF4E6",border:"1px solid #F2E1C0",fontSize:12.5,color:"#7A5A16"}}>No reconocidos en el catálogo de demostración (verificación limitada): {[...ixRes.unresolvedDrugs,...ixRes.unresolvedFactors].join(", ")}.</div>}
+        </>}
+       </div>
+      </div>
+     </div>;
+    })():medTab!=="catalogo"?(
+     <div style={{...card2,marginTop:16,padding:"60px 20px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:700}}>Pestaña «{MTABS.find(t=>t[0]===medTab)?.[1]}»</div><p style={{color:P.muted,fontSize:14,maxWidth:520,margin:"8px auto 0"}}>Se está construyendo al nivel exacto de tu diseño (S8). Próxima entrega.</p></div>
     ):(
     <div style={{display:"grid",gridTemplateColumns:"250px 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-med2">
      <div style={{...card2,padding:16}}>
