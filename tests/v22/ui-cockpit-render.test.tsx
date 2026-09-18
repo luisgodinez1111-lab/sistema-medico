@@ -47,7 +47,7 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Medicamentos"}));
+const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Alergias"}));
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
