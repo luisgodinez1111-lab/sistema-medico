@@ -61,7 +61,7 @@ const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Ord
 const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
  const m:[string,string][]=[["N18.3","ERC G3a"],["N18.4","ERC G3b"],["N18.5","ERC G4"],["N18.6","ERC G5"],["N18","ERC"],["I10","HTA"],["E11","DM2"],["E10","DM1"],["E78","Dislipidemia"],["I50","IC"],["I48","FA"],["J44","EPOC"],["J45","Asma"],["I25","Cardiopatía isq."],["E66","Obesidad"],["M15","Osteoartrosis"],["M17","Gonartrosis"],["F32","Depresión"],["K21","ERGE"]];
  for(const[p,l]of m)if(c.startsWith(p))return l;return c;};
-type Snap=Readonly<{demographics:{age:number;sex:string;birthDate:string};problems:string[];allergies:string[];vitals:Record<string,string>;labs:{hba1c?:number;creatinine?:number;glucose?:number;ldl?:number;egfr?:number;egfrStage?:string};findings:{domain:string;severity:"CRITICAL"|"WARNING"|"INFO";summary:string}[]}>;
+type Snap=Readonly<{demographics:{age:number;sex:string;birthDate:string;name?:string;curp?:string;phone?:string;email?:string;address?:string;occupation?:string;maritalStatus?:string};problems:string[];allergies:string[];vitals:Record<string,string>;labs:{hba1c?:number;creatinine?:number;glucose?:number;ldl?:number;egfr?:number;egfrStage?:string};findings:{domain:string;severity:"CRITICAL"|"WARNING"|"INFO";summary:string}[]}>;
 const SEX_ES:Record<string,string>={FEMALE:"Femenino",MALE:"Masculino",INTERSEX:"Intersexual",UNKNOWN:"Sin especificar"};
 // Tiempo relativo compacto (panel de auditoría / actividad).
 function relTime(iso:string):string{try{const d=Date.now()-new Date(iso).getTime();const m=Math.floor(d/60000);if(m<1)return "ahora";if(m<60)return `hace ${m} min`;const h=Math.floor(m/60);if(h<24)return `hace ${h} h`;const dd=Math.floor(h/24);return dd<30?`hace ${dd} d`:new Date(iso).toLocaleDateString("es-MX",{day:"2-digit",month:"short"});}catch{return "";}}
@@ -438,8 +438,9 @@ export default function Workspace(){
  const[cForm,setCForm]=useState({motivo:"",historia:"",antec:"",plan:""}); // borrador de la consulta actual
  const[clock,setClock]=useState<Date>(()=>new Date());
  const[topMenu,setTopMenu]=useState(false);
- const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string}[]|null>(null);
+ const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string}[]|null>(null);
  const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
+ const[regExtra,setRegExtra]=useState({curp:"",phone:"",email:"",address:"",occupation:"",maritalStatus:""});
  const[busy,setBusy]=useState("");
  const[error,setError]=useState("");
 
@@ -487,7 +488,7 @@ export default function Workspace(){
    }catch{/* worklist no disponible */}
    try{
     const r=await apiRequest("/api/v1/patients",{method:"GET"});
-    if(!cancelled&&r.status<400)setPatientList((r.body["patients"] as{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string}[])??[]);
+    if(!cancelled&&r.status<400)setPatientList((r.body["patients"] as{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string}[])??[]);
    }catch{/* lista no disponible */}
   })();
   return()=>{cancelled=true;};
@@ -808,7 +809,7 @@ export default function Workspace(){
  const loadPatients=()=>call("pt-list",async()=>{
   const r=await apiRequest("/api/v1/patients",{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
-  setPatientList((r.body["patients"] as {patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string}[])??[]);
+  setPatientList((r.body["patients"] as {patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string}[])??[]);
  });
  const loadPanel=()=>call("panel",async()=>{
   const r=await apiRequest("/api/v1/worklist",{method:"GET"});
@@ -816,9 +817,10 @@ export default function Workspace(){
   setPanel({gaps:(r.body["gaps"] as PanelGap[])??[],patientCount:Number(r.body["patientCount"]??0)});
  });
  const registerPatient=()=>call("pt-reg",async()=>{
-  const id=uuid();const r=await apiRequest("/api/v1/patients",{method:"POST",body:{patientId:id,name:regName,birthDate:regDob||"1990-01-01",sexAtBirth:regSex,occurredAt:nowIso()}});
+  const id=uuid();const e=regExtra;
+  const r=await apiRequest("/api/v1/patients",{method:"POST",body:{patientId:id,name:regName,birthDate:regDob||"1990-01-01",sexAtBirth:regSex,occurredAt:nowIso(),...(e.curp?{curp:e.curp}:{}),...(e.phone?{phone:e.phone}:{}),...(e.email?{email:e.email}:{}),...(e.address?{address:e.address}:{}),...(e.occupation?{occupation:e.occupation}:{}),...(e.maritalStatus?{maritalStatus:e.maritalStatus}:{})}});
   if(r.status>=400){setError(errMsg(r));return;}
-  selectPatientRaw(id,regName);setPatientList(l=>[{patientId:id,name:regName,status:"ACTIVE"},...(l??[])]);setRegName("");setRegDob("");
+  selectPatientRaw(id,regName);setPatientList(l=>[{patientId:id,name:regName,status:"ACTIVE",...(regDob?{birthDate:regDob}:{}),sexAtBirth:regSex,...(e.curp?{curp:e.curp}:{})},...(l??[])]);setRegName("");setRegDob("");setRegExtra({curp:"",phone:"",email:"",address:"",occupation:"",maritalStatus:""});
  });
  const exportRecord=()=>call("exp",async()=>{
   const r=await apiRequest(`/api/v1/patients/${patientId}/export`,{method:"GET"});
@@ -1069,7 +1071,7 @@ export default function Workspace(){
    const sexAbbr=(s?:string)=>s==="FEMALE"?"F":s==="MALE"?"M":s==="INTERSEX"?"I":"—";
    const initials=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"P";
    type Row={patientId:string;name:string;status:string;age:number|null;sexo:string;curp:string;last:string;motivo:string};
-   const real=(patientList??[]).map(p=>({patientId:p.patientId,name:p.name,status:p.status,age:ageOf(p.birthDate),sexo:sexAbbr(p.sexAtBirth),curp:"—",last:"—",motivo:"—"}));
+   const real=(patientList??[]).map(p=>({patientId:p.patientId,name:p.name,status:p.status,age:ageOf(p.birthDate),sexo:sexAbbr(p.sexAtBirth),curp:p.curp||"—",last:"—",motivo:"—"}));
    const demo:Row[]=[
     {patientId:"d1",name:"María Fernández López",status:"ACTIVE",age:28,sexo:"F",curp:"FEFM960812MCHRRR04",last:"Hoy 2:00 p.m.",motivo:"Primera vez"},
     {patientId:"d2",name:"Juan Pérez García",status:"ACTIVE",age:58,sexo:"M",curp:"PEGJ650320HCHRRN01",last:"Hoy 12:30 p.m.",motivo:"Control DM2"},
@@ -1112,7 +1114,7 @@ export default function Workspace(){
      <div style={{...card,marginTop:14,overflow:"hidden"}}>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr>{["","Paciente","Edad","Sexo","Última consulta","Motivo","Estado","Acciones"].map((h,i)=><th key={i} style={{textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"12px 14px",borderBottom:`1px solid ${LINE}`,background:"#FAFBFD",width:i===0?36:undefined}}>{h}</th>)}</tr></thead>
-       <tbody>{rows.map((r,i)=>{const[stl,sbg,sfg]=stTag(r.status);const on=i===Math.min(selRow,rows.length-1);return <tr key={r.patientId} onClick={()=>setSelRow(i)} style={{background:on?"#F6F5FE":"transparent",cursor:"pointer"}}>
+       <tbody>{rows.map((r,i)=>{const[stl,sbg,sfg]=stTag(r.status);const on=i===Math.min(selRow,rows.length-1);return <tr key={r.patientId} onClick={()=>{setSelRow(i);if(!r.patientId.startsWith("d"))selectPatientRaw(r.patientId,r.name);}} style={{background:on?"#F6F5FE":"transparent",cursor:"pointer"}}>
         <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`}}><span style={{width:17,height:17,borderRadius:5,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:11}}>{on?"✓":""}</span></td>
         <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`}}><div style={{display:"flex",alignItems:"center",gap:11}}><span style={{width:36,height:36,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:12,fontWeight:700,flex:"0 0 auto"}}>{initials(r.name)}</span><div><div style={{fontWeight:600,fontSize:13}}>{r.name}</div><div style={{fontSize:11,color:"#9AA0BC"}}>CURP: {r.curp}</div></div></div></td>
         <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{r.age!=null?`${r.age} años`:"—"}</td>
@@ -1140,7 +1142,7 @@ export default function Workspace(){
      {(()=>{const[stl,sbg,sfg]=stTag(sel.status);return <span style={{display:"inline-flex",alignItems:"center",gap:6,background:sbg,color:sfg,borderRadius:999,padding:"4px 12px",fontSize:12.5,fontWeight:600,marginTop:10}}>● Paciente {stl.toLowerCase()}</span>;})()}
      <div style={{display:"flex",gap:18,borderBottom:`1px solid ${LINE}`,margin:"16px 0"}}>{["Resumen","Historial","Notas","Documentos"].map((t,i)=><span key={t} style={{fontSize:13.5,color:i===0?P.purple:P.muted,fontWeight:i===0?700:500,paddingBottom:9,borderBottom:i===0?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{t}</span>)}</div>
      <div style={{fontSize:14,fontWeight:700,margin:"4px 0 10px"}}>Información general</div>
-     {[["Fecha de nacimiento",sel.age!=null?`${sel.age} años`:"—"],["Sexo",sel.sexo==="F"?"Femenino":sel.sexo==="M"?"Masculino":"—"],["Teléfono","—"],["Correo","—"],["Dirección","—"],["Estado civil","—"]].map(([k,v])=><div key={k} style={{display:"flex",fontSize:13,padding:"5px 0"}}><span style={dk}>{k}</span><span style={{fontWeight:500}}>{v}</span></div>)}
+     {(()=>{const sd=(patientId===sel.patientId?snap?.demographics:undefined);const dob=sd?.birthDate?`${new Date(sd.birthDate).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})}${sel.age!=null?` (${sel.age} años)`:""}`:(sel.age!=null?`${sel.age} años`:"—");return [["Fecha de nacimiento",dob],["Sexo",sel.sexo==="F"?"Femenino":sel.sexo==="M"?"Masculino":"—"],["Teléfono",sd?.phone||"—"],["Correo",sd?.email||"—"],["Dirección",sd?.address||"—"],["Ocupación",sd?.occupation||"—"],["Estado civil",sd?.maritalStatus||"—"]].map(([k,v])=><div key={k} style={{display:"flex",fontSize:13,padding:"5px 0"}}><span style={dk}>{k}</span><span style={{fontWeight:500}}>{v}</span></div>);})()}
      <div style={{fontSize:14,fontWeight:700,margin:"16px 0 10px"}}>Antecedentes relevantes</div>
      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
       {([["Alergias","#FDECEE","#D23651","Alergias"],["Problemas","#EEEBFD","#6C5CF6","Lista de problemas"],["Medicamentos","#E7F0FD","#1769E0","Medicación"],["Vacunas","#E6F6EE","#16A66A","Vacunas"]] as const).map(([lbl,bg,fg,h2])=><div key={lbl} onClick={()=>openExp(sel)} style={{display:"flex",alignItems:"center",gap:8,borderRadius:11,padding:"10px 12px",fontSize:13,fontWeight:600,background:bg,color:fg,cursor:"pointer"}}>{lbl}</div>)}
@@ -1183,7 +1185,7 @@ export default function Workspace(){
     </div>
     <div style={{...card2,display:"flex",alignItems:"center",gap:18,padding:"16px 20px",marginTop:16,flexWrap:"wrap"}}>
      <span style={{width:66,height:66,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontWeight:800,fontSize:22,flex:"0 0 auto"}}>{initials}</span>
-     <div style={{flex:1,minWidth:180}}><div><span style={{fontSize:21,fontWeight:800}}>{pName}</span><span style={{background:"#E6F6EE",color:"#16A66A",borderRadius:999,padding:"3px 11px",fontSize:12,fontWeight:600,marginLeft:10}}>Paciente activo</span></div><div style={{fontSize:13,color:P.muted,marginTop:3}}>{age} años · {sexoEs}{snap?.demographics.birthDate?` · ${new Date(snap.demographics.birthDate).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})}`:""}</div><div style={{fontSize:13,color:P.muted}}>ID <span style={mono}>{patientId.slice(0,8)}</span></div></div>
+     <div style={{flex:1,minWidth:180}}><div><span style={{fontSize:21,fontWeight:800}}>{pName}</span><span style={{background:"#E6F6EE",color:"#16A66A",borderRadius:999,padding:"3px 11px",fontSize:12,fontWeight:600,marginLeft:10}}>Paciente activo</span></div><div style={{fontSize:13,color:P.muted,marginTop:3}}>{age} años · {sexoEs}{snap?.demographics.birthDate?` · ${new Date(snap.demographics.birthDate).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})}`:""}</div><div style={{fontSize:13,color:P.muted}}>{snap?.demographics.curp?<>CURP: <span style={mono}>{snap.demographics.curp}</span></>:<>ID <span style={mono}>{patientId.slice(0,8)}</span></>}</div></div>
      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,flex:"0 0 auto"}}>
       {antp("#FDECEE","#D23651",`Alergias (${alN})`,"M12 4l9 15.5H3zM12 10v4M12 17h.01")}
       {antp("#EEEBFD","#6C5CF6",`Problemas (${prN})`,"M9 4h6v2H9zM7 5H6v16h12V5h-1")}
@@ -1564,6 +1566,14 @@ export default function Workspace(){
     <input style={input} type="date" value={regDob} onChange={e=>setRegDob(e.target.value)} />
     <select style={input} value={regSex} onChange={e=>setRegSex(e.target.value)}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select>
     <button style={btn} disabled={busy!==""||!regName} onClick={registerPatient}>{busy==="pt-reg"?"Registrando…":"Registrar"}</button>
+   </div>
+   <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:10}}>
+    <input style={input} value={regExtra.curp} onChange={e=>setRegExtra(x=>({...x,curp:e.target.value.toUpperCase()}))} placeholder="CURP" maxLength={18} />
+    <input style={input} value={regExtra.phone} onChange={e=>setRegExtra(x=>({...x,phone:e.target.value}))} placeholder="Teléfono" />
+    <input style={input} value={regExtra.email} onChange={e=>setRegExtra(x=>({...x,email:e.target.value}))} placeholder="Correo electrónico" />
+    <input style={input} value={regExtra.address} onChange={e=>setRegExtra(x=>({...x,address:e.target.value}))} placeholder="Dirección (ciudad, estado)" />
+    <input style={input} value={regExtra.occupation} onChange={e=>setRegExtra(x=>({...x,occupation:e.target.value}))} placeholder="Ocupación" />
+    <select style={input} value={regExtra.maritalStatus} onChange={e=>setRegExtra(x=>({...x,maritalStatus:e.target.value}))}><option value="">Estado civil…</option><option>Soltero(a)</option><option>Casado(a)</option><option>Unión libre</option><option>Divorciado(a)</option><option>Viudo(a)</option></select>
    </div>
    <div style={{marginTop:10}}><button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={loadPatients}>{busy==="pt-list"?"Cargando…":"Cargar / buscar pacientes"}</button></div>
    {patientList&&<div style={{marginTop:12,display:"flex",flexDirection:"column",gap:6,maxHeight:220,overflowY:"auto"}}>

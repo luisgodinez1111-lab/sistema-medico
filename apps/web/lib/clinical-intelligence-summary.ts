@@ -69,7 +69,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
 // determinista (R6 en pausa: sin IA generativa). PHI cruda -> endpoint autorizado (patient:read/TREATMENT).
 export type ConsultationSnapshot=
  |{registered:false}
- |{registered:true;demographics:{age:number;sex:string;birthDate:string};problems:string[];allergies:string[];
+ |{registered:true;demographics:{age:number;sex:string;birthDate:string;name?:string;curp?:string;phone?:string;email?:string;address?:string;occupation?:string;maritalStatus?:string};problems:string[];allergies:string[];
    vitals:Record<string,string>;labs:{hba1c?:number|undefined;creatinine?:number|undefined;glucose?:number|undefined;ldl?:number|undefined;egfr?:number|undefined;egfrStage?:string|undefined};
    findings:Finding[]};
 export async function gatherConsultationSnapshot(ctx:HttpTenantContext,patientId:string):Promise<ConsultationSnapshot>{
@@ -88,6 +88,6 @@ export async function gatherConsultationSnapshot(ctx:HttpTenantContext,patientId
  ]);
  let egfr:number|undefined,egfrStage:string|undefined;
  if(age>=18&&(sex==="FEMALE"||sex==="MALE")&&creat!==undefined){const e=computeEGFR(Number(creat),age,sex as Sex);if(e){egfr=e.egfr;egfrStage=e.stage;}}
- return{registered:true,demographics:{age,sex:sex??"UNKNOWN",birthDate:demo.birthDate},problems:[...problems],allergies:[...allergies],
+ return{registered:true,demographics:{age,sex:sex??"UNKNOWN",birthDate:demo.birthDate,...(demo.name?{name:demo.name}:{}),...(demo.curp?{curp:demo.curp}:{}),...(demo.phone?{phone:demo.phone}:{}),...(demo.email?{email:demo.email}:{}),...(demo.address?{address:demo.address}:{}),...(demo.occupation?{occupation:demo.occupation}:{}),...(demo.maritalStatus?{maritalStatus:demo.maritalStatus}:{})},problems:[...problems],allergies:[...allergies],
   vitals,labs:{hba1c:num(hba1c),creatinine:num(creat),glucose:num(glucose),ldl:num(ldl),egfr,egfrStage},findings:intel.findings};
 }

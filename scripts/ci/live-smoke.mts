@@ -45,6 +45,7 @@ const SMOKE:readonly string[]=[
  "live-consultation-snapshot-proof",        // eje E panel 1: snapshot de consulta determinista
  "live-trends-proof",                       // eje E panel 4: series longitudinales de analitos
  "live-prescription-check-proof",           // eje E panel 3: dry-run de barreras de prescripción
+ "live-patient-demographics-proof",         // Paciente ampliado: CURP + contacto (registro->lista->snapshot)
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

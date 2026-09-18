@@ -69,19 +69,19 @@ export async function lookupReplay(ctx:HttpTenantContext,command:ClinicalCommand
 }
 
 // EPIC S — Registro de pacientes del tenant (RLS-scoped). Devuelve id + nombre (PHI) + estado.
-export type PatientRow=Readonly<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string}>;
+export type PatientRow=Readonly<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string}>;
 export async function listPatients(ctx:HttpTenantContext):Promise<ReadonlyArray<PatientRow>>{
  const sql=getSql();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
   const rows=await tx`
-   select r.aggregate_id, r.payload->>'name' as name, r.payload->>'birthDate' as birth_date, r.payload->>'sexAtBirth' as sex_at_birth,
+   select r.aggregate_id, r.payload->>'name' as name, r.payload->>'birthDate' as birth_date, r.payload->>'sexAtBirth' as sex_at_birth, r.payload->>'curp' as curp,
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_kind
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
    order by r.payload->>'name'`;
   const STATUS:Record<string,string>={REGISTERED:"ACTIVE",REACTIVATED:"ACTIVE",DEACTIVATED:"INACTIVE",DECEASED:"DECEASED"};
-  return rows.map(x=>{const o=x as Record<string,unknown>;return{patientId:String(o.aggregate_id),name:String(o.name??""),status:STATUS[String(o.latest_kind??"REGISTERED")]??"ACTIVE",...(o.birth_date?{birthDate:String(o.birth_date)}:{}),...(o.sex_at_birth?{sexAtBirth:String(o.sex_at_birth)}:{})};});
+  return rows.map(x=>{const o=x as Record<string,unknown>;return{patientId:String(o.aggregate_id),name:String(o.name??""),status:STATUS[String(o.latest_kind??"REGISTERED")]??"ACTIVE",...(o.birth_date?{birthDate:String(o.birth_date)}:{}),...(o.sex_at_birth?{sexAtBirth:String(o.sex_at_birth)}:{}),...(o.curp?{curp:String(o.curp)}:{})};});
  }) as Promise<ReadonlyArray<PatientRow>>;
 }
 // EPIC R — Gate de seguridad de medicación: sustancias con alergia ACTIVA del paciente (RLS-scoped).
@@ -113,16 +113,17 @@ export async function activeMedicationDrugCodes(ctx:HttpTenantContext,patientId:
  }) as Promise<string[]>;
 }
 // EPIC BK/BL — Demografía del paciente (nacimiento + sexo, del evento REGISTERED). RLS-scoped.
-export type PatientDemographics=Readonly<{birthDate?:string;sexAtBirth?:string}>;
+export type PatientDemographics=Readonly<{birthDate?:string;sexAtBirth?:string;curp?:string;phone?:string;email?:string;address?:string;occupation?:string;maritalStatus?:string;name?:string}>;
 export async function patientDemographics(ctx:HttpTenantContext,patientId:string):Promise<PatientDemographics|undefined>{
  const sql=getSql();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
-  const rows=await tx`select r.payload->>'birthDate' as bd, r.payload->>'sexAtBirth' as sx from clinical_events r where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=${patientId} limit 1`;
-  if(!rows[0])return undefined;
-  const d:{birthDate?:string;sexAtBirth?:string}={};
-  if(rows[0].bd!=null)d.birthDate=String(rows[0].bd);
-  if(rows[0].sx!=null)d.sexAtBirth=String(rows[0].sx);
+  const rows=await tx`select r.payload->>'birthDate' as bd, r.payload->>'sexAtBirth' as sx, r.payload->>'name' as nm, r.payload->>'curp' as curp, r.payload->>'phone' as phone, r.payload->>'email' as email, r.payload->>'address' as address, r.payload->>'occupation' as occupation, r.payload->>'maritalStatus' as marital from clinical_events r where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=${patientId} limit 1`;
+  const row=rows[0] as Record<string,unknown>|undefined;
+  if(!row)return undefined;
+  const d:{-readonly[K in keyof PatientDemographics]:PatientDemographics[K]}={};
+  const set=(k:keyof PatientDemographics,v:unknown)=>{if(v!=null)d[k]=String(v);};
+  set("birthDate",row.bd);set("sexAtBirth",row.sx);set("name",row.nm);set("curp",row.curp);set("phone",row.phone);set("email",row.email);set("address",row.address);set("occupation",row.occupation);set("maritalStatus",row.marital);
   return d;
  }) as Promise<PatientDemographics|undefined>;
 }

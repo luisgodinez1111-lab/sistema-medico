@@ -2058,6 +2058,31 @@
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true,
       "gate_note": "UI de presentación probada en jsdom; validación autenticada en navegador real + contraste WCAG/viewports (GUX PENDING_EVIDENCE) siguen pendientes."
+    },
+    {
+      "id": "CAP-PATIENT-DEMOGRAPHICS-001",
+      "name": "Modelo de Paciente ampliado — CURP + contacto (México)",
+      "risk": "C5",
+      "eng_authority_note": "Amplía el agregado Paciente (event-sourced) con datos demográficos de México: CURP + teléfono/correo/dirección/ocupación/estado civil. Opcionales y retrocompatibles. Cableado de punta a punta: registro (POST /patients) -> lista (listPatients con CURP) -> snapshot de consulta (demographics con contacto) -> UI (formulario, lista/detalle de Pacientes, header de Consulta).",
+      "invariants": [
+        "Campos opcionales y RETROCOMPATIBLES: pacientes previos sin contacto no rompen (undefined)",
+        "CURP normalizado a mayúsculas en el registro",
+        "Se leen del evento PATIENT_REGISTERED (payload JSON), RLS-scoped por tenant",
+        "patient:write para registrar; patient:read para leer; aislamiento cross-tenant"
+      ],
+      "implementation": [
+        "apps/web/lib/patient-lifecycle.ts (RegisterBody + payload ampliado)",
+        "apps/web/lib/clinical-runtime.ts (patientDemographics + listPatients con CURP)",
+        "apps/web/lib/clinical-intelligence-summary.ts (snapshot demographics con contacto)",
+        "apps/web/app/workspace/page.tsx (formulario de registro + vista Pacientes + header de Consulta)"
+      ],
+      "tests": [
+        "scripts/v22/live-patient-demographics-proof.mts"
+      ],
+      "runtime_evidence": "scripts/v22/live-patient-demographics-proof.mts — PASS 14/14 vs Neon 2026-09-18 (registro 201; lista con CURP en mayúsculas + DOB/sexo; snapshot con curp/phone/email/address/occupation/marital/name + edad derivada; retrocompatibilidad sin contacto). En el smoke runner de CI.",
+      "epic": "CL",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [

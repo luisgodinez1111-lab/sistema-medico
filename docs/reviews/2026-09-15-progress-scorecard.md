@@ -198,3 +198,22 @@ Panel 2 (Apoyo de IA) es el único pendiente — **en pausa R6** (sin IA generat
   navegador (el agente no puede autenticar en Auth0). Verificado por typecheck + build + preview fiel +
   live-proofs de la capa de datos. Falta la revisión visual autenticada del usuario.
 - **DEUDA — GUX PENDING_EVIDENCE:** contraste WCAG, viewports deterministas y C5 humano siguen pendientes.
+
+## Sesión 2026-09-18 — Vistas de nivel-sistema (S1–S6) + Paciente real (backend)
+
+Tras materializar las pantallas del sistema que el usuario entregó por imágenes (sidebar exacto S1;
+dashboard Inicio S2; gestión de Pacientes S3; workspace de Consulta con pestaña actual S4; Agenda S5;
+Resultados S6 — todas con view routing en apps/web/app/workspace/page.tsx, render test cubriendo el shell,
+Inicio y Consulta), se decidió (elección del usuario) **pivotar de diseño a cableado real**.
+
+**Paciente real (Epic CL, backend):** el agregado Paciente event-sourced se amplió con datos demográficos
+de México — **CURP + teléfono/correo/dirección/ocupación/estado civil** — opcionales y retrocompatibles.
+Cableado de punta a punta: registro → lista (`listPatients` con CURP) → snapshot de consulta (demographics
+con contacto) → UI (formulario de registro, lista/detalle de Pacientes, header de Consulta con CURP real).
+**Live-proof `live-patient-demographics-proof.mts` PASS 14/14 vs Neon** (registro→lista→snapshot +
+retrocompatibilidad), en el smoke runner de CI. Capacidad CAP-PATIENT-DEMOGRAPHICS-001 en el registro (82).
+
+**Estado honesto de las vistas de sistema:** son de alta fidelidad y navegables, con datos REALES donde el
+backend los tiene (paciente/edad/sexo/CURP/contacto ahora reales; snapshot/CDS/worklist/care-gaps ya reales)
+y **representativos** donde falta backend (agenda por consultorio, métricas del consultorio, agregación de
+resultados cross-paciente, notificaciones, motivos). Cada uno es un tramo de cableado pendiente, documentado.

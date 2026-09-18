@@ -16,13 +16,16 @@ function authzRead(claims:{sub:string;tenantId:string;roles:readonly string[];sc
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
 }
 
-const RegisterBody=z.object({patientId:z.string().uuid(),name:z.string().min(1),birthDate:z.string().min(1),sexAtBirth:z.enum(["FEMALE","MALE","INTERSEX","UNKNOWN"]),occurredAt:z.string().datetime()});
+// EPIC CL — datos demográficos ampliados (México): CURP + contacto. Opcionales y retrocompatibles.
+const RegisterBody=z.object({patientId:z.string().uuid(),name:z.string().min(1),birthDate:z.string().min(1),sexAtBirth:z.enum(["FEMALE","MALE","INTERSEX","UNKNOWN"]),occurredAt:z.string().datetime(),
+ curp:z.string().trim().max(18).optional(),phone:z.string().trim().max(30).optional(),email:z.string().trim().max(120).optional(),address:z.string().trim().max(200).optional(),occupation:z.string().trim().max(120).optional(),maritalStatus:z.string().trim().max(40).optional()});
+const extra=(b:{curp?:string|undefined;phone?:string|undefined;email?:string|undefined;address?:string|undefined;occupation?:string|undefined;maritalStatus?:string|undefined})=>({...(b.curp?{curp:b.curp.toUpperCase()}:{}),...(b.phone?{phone:b.phone}:{}),...(b.email?{email:b.email}:{}),...(b.address?{address:b.address}:{}),...(b.occupation?{occupation:b.occupation}:{}),...(b.maritalStatus?{maritalStatus:b.maritalStatus}:{})});
 export async function handlePatientRegister(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authzWrite(claims);
   const idempotencyKey=req.headers.get("idempotency-key");if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,RegisterBody);
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.patientId,expectedVersion:0,eventType:"PATIENT_REGISTERED",payload:{kind:"REGISTERED",name:b.name,birthDate:b.birthDate,sexAtBirth:b.sexAtBirth},occurredAt:b.occurredAt,topic:"patient.registered"});
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.patientId,expectedVersion:0,eventType:"PATIENT_REGISTERED",payload:{kind:"REGISTERED",name:b.name,birthDate:b.birthDate,sexAtBirth:b.sexAtBirth,...extra(b)},occurredAt:b.occurredAt,topic:"patient.registered"});
   const result=await runClinicalCommand(ctx,cmd);const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({patientId:b.patientId,status:"ACTIVE",name:b.name,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
