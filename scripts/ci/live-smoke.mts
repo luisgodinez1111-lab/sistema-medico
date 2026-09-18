@@ -42,6 +42,9 @@ const SMOKE:readonly string[]=[
  "live-aa-gradient-proof",                  // profundidad: gradiente alveolo-arterial de O2
  "live-ai-copilot-gateway-proof",           // eje D: choke point de seguridad del copilot (sin IA)
  "live-charlson-proof",                     // profundidad: índice de comorbilidad de Charlson
+ "live-consultation-snapshot-proof",        // eje E panel 1: snapshot de consulta determinista
+ "live-trends-proof",                       // eje E panel 4: series longitudinales de analitos
+ "live-prescription-check-proof",           // eje E panel 3: dry-run de barreras de prescripción
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

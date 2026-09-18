@@ -1959,6 +1959,79 @@
       "epic": "CE",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-CONSULTATION-SNAPSHOT-001",
+      "name": "Snapshot de consulta (panel 1: Vista principal – Durante la consulta)",
+      "risk": "C5",
+      "eng_authority_note": "EJE E (UI/UX) panel 1 del dashboard objetivo. Reader gatherConsultationSnapshot + endpoint GET /consultation-snapshot: demografía, valores clínicos actuales, problemas/alergias y findings CDS. Reutiliza readers RLS-scoped y gatherClinicalIntelligence (ya probados). Núcleo determinista (R6 en pausa: sin IA generativa).",
+      "invariants": [
+        "Determinista: sin IA generativa; hallazgos por reglas/guías (assembleFindings)",
+        "RLS-scoped por tenant; PHI cruda solo vía endpoint autorizado (patient:read/TREATMENT)",
+        "registered=false para paciente no registrado -> 404; scope faltante -> 403",
+        "eGFR derivado por CKD-EPI (creatinina+edad+sexo); estadio ERC coherente"
+      ],
+      "implementation": [
+        "apps/web/lib/clinical-intelligence-summary.ts (gatherConsultationSnapshot)",
+        "apps/web/app/api/v1/patients/[patientId]/consultation-snapshot/route.ts",
+        "apps/web/app/workspace/page.tsx (hero de consulta)"
+      ],
+      "tests": [
+        "scripts/v22/live-consultation-snapshot-proof.mts"
+      ],
+      "runtime_evidence": "scripts/v22/live-consultation-snapshot-proof.mts — PASS 11/11 vs Neon 2026-09-17 (200, registered, edad 54, sexo, 3 problemas, HbA1c 7.1, eGFR con estadio, findings array, alergia presente, no-registrado 404, sin-scope 403). En el smoke runner de CI (scripts/ci/live-smoke.mts).",
+      "epic": "CF",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-TRENDS-LONGITUDINAL-001",
+      "name": "Evolución longitudinal (panel 4: Resultados y tendencias)",
+      "risk": "C5",
+      "eng_authority_note": "EJE E panel 4. Reader analyteSeries (serie temporal RLS-scoped de un analito) + endpoint GET /trends: series de HbA1c/Glucosa/LDL/Creatinina + últimos valores (LDL/Creatinina/eGFR/UACR). Gráfica SVG hecha a mano (sin librería). Valores medidos, sin proyección.",
+      "invariants": [
+        "Serie ordenada ascendente por occurred_at (evolución cronológica real)",
+        "RLS-scoped por tenant; patient:read/TREATMENT; scope faltante -> 403",
+        "Valores medidos; sin proyección/extrapolación ni IA generativa",
+        "eGFR de últimos valores derivado por CKD-EPI"
+      ],
+      "implementation": [
+        "apps/web/lib/clinical-runtime.ts (analyteSeries)",
+        "apps/web/app/api/v1/patients/[patientId]/trends/route.ts",
+        "apps/web/app/workspace/page.tsx (sección Evolución longitudinal + trendChart SVG)"
+      ],
+      "tests": [
+        "scripts/v22/live-trends-proof.mts"
+      ],
+      "runtime_evidence": "scripts/v22/live-trends-proof.mts — PASS 8/8 vs Neon 2026-09-17 (200, serie HbA1c len 3, orden ascendente 8.2/7.5/7.1, ordenada por tiempo, últimos LDL/Creatinina/eGFR, sin-scope 403). En el smoke runner de CI.",
+      "epic": "CH",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-PRESCRIPTION-CHECK-001",
+      "name": "Prescripción segura – dry-run de verificación (panel 3)",
+      "risk": "C5",
+      "eng_authority_note": "EJE E panel 3. Endpoint POST /prescription-check: DRY-RUN que compone las barreras de seguridad (alergia + reactividad cruzada, interacción, duplicado terapéutico, contraindicación por dx, dosis-techo, ajuste renal por eGFR) + monitorización, SIN escribir. Reutiliza drug-catalog + medication-validation ya probados.",
+      "invariants": [
+        "Dry-run: NO escribe; solo verifica (idempotente, sin efectos)",
+        "Veredicto BLOCK si cualquier barrera bloquea; la UI deshabilita enviar si BLOCK",
+        "Reactividad cruzada beta-lactámico: alergia a penicilina bloquea amoxicilina",
+        "Ajuste renal por eGFR medido; fármaco fuera de catálogo -> WARN (verificación limitada), sin crash",
+        "RLS-scoped; patient:read/TREATMENT; scope faltante -> 403"
+      ],
+      "implementation": [
+        "apps/web/app/api/v1/patients/[patientId]/prescription-check/route.ts",
+        "packages/drug-catalog, packages/medication-validation (barreras reutilizadas)",
+        "apps/web/app/workspace/page.tsx (sección Prescripción segura)"
+      ],
+      "tests": [
+        "scripts/v22/live-prescription-check-proof.mts"
+      ],
+      "runtime_evidence": "scripts/v22/live-prescription-check-proof.mts — PASS 10/10 vs Neon 2026-09-17 (amoxicilina->BLOQUEO por reactividad cruzada + veredicto BLOCK, metformina+eGFR bajo->ajuste renal flag + veredicto!=OK, paracetamol->sin alergia + no bloqueado + indicaciones, fármaco desconocido->WARN, sin-scope 403). En el smoke runner de CI.",
+      "epic": "CG",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true
     }
   ],
   "honest_gaps": [
