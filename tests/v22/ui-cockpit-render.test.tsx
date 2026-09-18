@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import{describe,it,expect,vi,beforeAll,afterEach}from"vitest";
-import{render,screen,cleanup,waitFor}from"@testing-library/react";
+import{render,screen,cleanup,waitFor,fireEvent}from"@testing-library/react";
 import axe from"axe-core";
 // EPIC CI/CJ/CK — pruebas de RENDER (jsdom) del cockpit del expediente y de los paneles de presentación
 // (Seguimiento automático, Portal del paciente, Seguridad y auditoría). Cierran la deuda de "sin render test":
@@ -45,6 +45,10 @@ const noSeriousAxe=async(node:Element,label:string)=>{
  expect(serious,`${label} — violaciones serias: ${JSON.stringify(serious)}`).toEqual([]);
 };
 
+// Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
+// EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
+const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Pacientes"}));
+
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
   render(<Workspace/>);
@@ -53,12 +57,22 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByRole("button",{name:/Clinical Intelligence/})).toBeTruthy();
   expect(screen.getByRole("button",{name:/Configuración/})).toBeTruthy();   // sección HERRAMIENTAS
   expect(screen.getByRole("button",{name:/Contraer menú/})).toBeTruthy();    // colapsar
-  expect(screen.getByText(/Médico tratante/)).toBeTruthy();                  // perfil del médico (fallback)
-  expect(screen.getByPlaceholderText(/Buscar paciente, documento, estudio/)).toBeTruthy();
+  expect(screen.getAllByText(/Médico tratante/).length).toBeGreaterThan(0);  // perfil del médico (fallback)
+  expect(screen.getByPlaceholderText(/Buscar paciente por nombre/)).toBeTruthy();
+ });
+
+ it("vista Inicio (dashboard del consultorio) se materializa al montar",async()=>{
+  render(<Workspace/>);
+  expect(screen.getByRole("heading",{name:"Inicio"})).toBeTruthy();
+  expect(screen.getByText(/resumen de hoy/)).toBeTruthy();
+  expect(screen.getByText(/Tareas clínicas prioritarias/)).toBeTruthy();
+  expect(screen.getByText("Agenda de hoy")).toBeTruthy();
+  expect(screen.getByText("Pacientes recientes")).toBeTruthy();
  });
 
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
   render(<Workspace/>);
+  toExpediente();
   expect(await screen.findByText(/Vista principal/,{},{timeout:2500})).toBeTruthy();
   expect(screen.getAllByText("HTA").length).toBeGreaterThan(0);     // chip dx desde CIE-10 (I10)
   expect(screen.getAllByText("ERC G3a").length).toBeGreaterThan(0); // N18.3 -> etiqueta
@@ -67,6 +81,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("panel 5 (Seguimiento automático): tabs + estado en TEXTO, no solo color",async()=>{
   render(<Workspace/>);
+  toExpediente();
   const h=await screen.findByRole("heading",{name:"Seguimiento automático"},{timeout:2500});
   expect(h).toBeTruthy();
   const sec=h.closest("section")!;
@@ -76,6 +91,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("panel 6 (Portal del paciente): saludo + features no construidas marcadas 'Próximamente' (verdad clínica)",async()=>{
   render(<Workspace/>);
+  toExpediente();
   const h=await screen.findByRole("heading",{name:"Portal del paciente"},{timeout:2500});
   const sec=h.closest("section")!;
   expect(sec.textContent).toMatch(/Hola,/);
@@ -87,6 +103,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("panel 7 (Seguridad y auditoría): estado del sistema + actividad desde la cadena (estado en texto)",async()=>{
   render(<Workspace/>);
+  toExpediente();
   await screen.findByText(/Vista principal/,{},{timeout:2500}); // el hero prueba que la auto-carga (timeline incluido) completó
   const sec=screen.getByRole("heading",{name:"Seguridad y auditoría"}).closest("section")!;
   expect(sec.textContent).toMatch(/Estado del sistema/);
@@ -96,6 +113,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("accesibilidad: los paneles de presentación no tienen violaciones axe serias/críticas",async()=>{
   render(<Workspace/>);
+  toExpediente();
   const seg=(await screen.findByRole("heading",{name:"Seguimiento automático"},{timeout:2500})).closest("section")!;
   const por=screen.getByRole("heading",{name:"Portal del paciente"}).closest("section")!;
   const aud=screen.getByRole("heading",{name:"Seguridad y auditoría"}).closest("section")!;
