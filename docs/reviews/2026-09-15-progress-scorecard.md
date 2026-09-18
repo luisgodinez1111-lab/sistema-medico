@@ -190,8 +190,10 @@ Panel 2 (Apoyo de IA) es el único pendiente — **en pausa R6** (sin IA generat
   (CF 11/11, CG 10/10, CH 8/8) en el smoke runner de CI + registro de adjudicación (capacidades
   CAP-CONSULTATION-SNAPSHOT-001, CAP-PRESCRIPTION-CHECK-001, CAP-TRENDS-LONGITUDINAL-001). Los paneles 5/6/7
   derivan de readers YA probados (timeline, care-gaps).
-- **DEUDA — sin render test:** el shell del cockpit y los paneles 5/6/7 son presentación sobre datos ya
-  probados, pero **no tienen render test** (jsdom) como sí lo tiene GUX-001. Pendiente para cerrar el rigor.
+- **CERRADO — render test:** `tests/v22/ui-cockpit-render.test.tsx` PASS 6/6 en jsdom cubre el shell del
+  cockpit y los paneles 1/5/6/7 (materialización desde datos deterministas, estado en texto no-solo-color,
+  "Próximamente" honesto, espejo solo-lectura del portal, axe sin violaciones serias en los paneles de
+  presentación). Corre en CI (test:all). Capacidad CAP-UI-COCKPIT-001 en el registro (81 capacidades).
 - **DEUDA — validación autenticada:** ningún panel se ha verificado renderizado con sesión real en el
   navegador (el agente no puede autenticar en Auth0). Verificado por typecheck + build + preview fiel +
   live-proofs de la capa de datos. Falta la revisión visual autenticada del usuario.

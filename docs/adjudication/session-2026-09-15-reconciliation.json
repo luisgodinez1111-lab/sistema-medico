@@ -2032,6 +2032,32 @@
       "epic": "CG",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true
+    },
+    {
+      "id": "CAP-UI-COCKPIT-001",
+      "name": "Cockpit del expediente + paneles de presentación (dashboard objetivo)",
+      "risk": "C5",
+      "eng_authority_note": "EJE E (UI/UX) — materializa el mockup objetivo del usuario: expediente como dashboard de múltiples ventanas con sidebar oscuro + topbar (buscador global) + rejilla. 7 de 8 paneles (1 consulta, 3 prescripción, 4 tendencias, 5 seguimiento, 6 portal, 7 auditoría); panel 2 (IA) en pausa R6. Los paneles de presentación (5/6/7) derivan de readers YA probados (timeline, care-gaps); 1/3/4 de endpoints con live-proof (CF/CG/CH).",
+      "invariants": [
+        "Presentación sobre datos deterministas ya probados; sin backend nuevo para 5/6/7",
+        "Verdad clínica: features no construidas (Mensajes/Educación) marcadas Próximamente, no se fingen",
+        "Physician Control: el portal del paciente es espejo de SOLO LECTURA (no edita el registro)",
+        "Estado en TEXTO (no solo color): badges de seguimiento, estados de auditoría, Próximamente",
+        "Panel 2 (IA generativa) NO cableado — R6 en pausa"
+      ],
+      "implementation": [
+        "apps/web/app/workspace/page.tsx (shell cockpit + paneles 1/3/4/5/6/7)",
+        "apps/web/lib/clinical-intelligence-summary.ts, apps/web/lib/clinical-runtime.ts (readers)",
+        "packages/design-system (tokens)"
+      ],
+      "tests": [
+        "tests/v22/ui-cockpit-render.test.tsx"
+      ],
+      "runtime_evidence": "tests/v22/ui-cockpit-render.test.tsx — PASS 6/6 en jsdom (render con datos deterministas mockeados): shell con sidebar+buscador; hero desde snapshot (chips dx CIE-10, vitales); panel 5 tabs+estado en texto+footer Zero-Lost; panel 6 saludo + Próximamente (>=2) + espejo solo-lectura; panel 7 estado del sistema + actividad (SIGNED en texto); axe sin violaciones serias/críticas en los 3 paneles de presentación. Corre en CI (test:all).",
+      "epic": "CI-CK",
+      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+      "requires_human_c5_acceptance": true,
+      "gate_note": "UI de presentación probada en jsdom; validación autenticada en navegador real + contraste WCAG/viewports (GUX PENDING_EVIDENCE) siguen pendientes."
     }
   ],
   "honest_gaps": [
