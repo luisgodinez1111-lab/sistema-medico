@@ -72,7 +72,7 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));
+const toExpediente=()=>fireEvent.click(screen.getByRole("button",{name:"Plan de cuidados"}));
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
@@ -145,6 +145,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);
   await waitFor(()=>expect(sec.textContent).toMatch(/SIGNED/),{timeout:2500}); // estado del evento en TEXTO (no solo color)
+ });
+
+ it("vista Signos vitales (S-SIGNOS): form + últimos registros + tendencias + referencia + alertas deterministas",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));
+  expect(screen.getByRole("heading",{name:"Signos vitales"})).toBeTruthy();
+  expect(screen.getByText("Registrar signos vitales")).toBeTruthy();          // título del form
+  expect(screen.getByPlaceholderText("36.5")).toBeTruthy();                    // campo temperatura
+  expect(screen.getByText("Últimos registros")).toBeTruthy();
+  expect(screen.getAllByText("120/80").length).toBeGreaterThan(0);            // fila representativa
+  expect(screen.getByText("Tendencias")).toBeTruthy();
+  expect(screen.getByText(/Referencia de valores normales/)).toBeTruthy();
+  expect(screen.getByText("Alertas clínicas")).toBeTruthy();
+  expect(screen.getByRole("button",{name:/Guardar signos vitales/})).toBeTruthy();
  });
 
  it("vista Vacunas (S-VACUNAS): registro clínica-wide cableado a GET /api/v1/immunizations — KPIs, tabla, detalle y cobertura",async()=>{

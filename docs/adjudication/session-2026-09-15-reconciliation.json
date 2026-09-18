@@ -2213,6 +2213,32 @@
    "epic": "V/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-VITALS-HISTORY-001",
+   "name": "Signos vitales — form cableado a POST + historial/tendencias por paciente cableados a SQL",
+   "risk": "C5",
+   "eng_authority_note": "Vista Signos vitales a fidelidad exacta del mockup (header, patient bar con chips Alergias/Problemas/Medicamentos, form de registro con IMC auto-calculado, Últimos registros, Tendencias con sparklines, Referencia de valores normales, Alertas clínicas, Acciones rápidas). Cableado real: (1) IMC = peso/talla² determinista en cliente; (2) 'Guardar signos vitales' hace POST /api/v1/vitals por cada signo capturado (BP/HR/RESP/TEMP/SPO2/WEIGHT/HEIGHT) con el paciente en contexto; (3) reader nuevo patientVitals + GET /patients/:id/vitals agrupa los puntos VITAL_RECORDED por TOMA (mismo occurredAt) en filas TA/FC/FR/Temp/SpO2/Peso/IMC, deriva IMC y series de tendencia (TA sistólica/FC/Peso/IMC); (4) Alertas clínicas computadas del último registro contra rangos de referencia de adultos. Datos representativos idénticos a la imagen cuando no hay paciente en contexto.",
+   "invariants": [
+    "IMC derivado determinísticamente (peso/(talla/100)²), redondeado a 1 decimal; campo de solo lectura",
+    "Una TOMA = varios tipos de vital con el mismo occurredAt; se agrupan en una fila del historial",
+    "Series de tendencia ascendentes por fecha; alertas por comparación con rangos (TA 90/60–120/80, FC 60–100, FR 12–20, Temp 36–37.5, SpO2 ≥95)",
+    "patient:read para el historial (GET); vital:write para registrar (POST); scope faltante -> 403",
+    "El guardado usa el paciente en contexto; sin paciente el form avisa y no escribe"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (patientVitals + VitalPoint)",
+    "apps/web/app/api/v1/patients/[patientId]/vitals/route.ts (GET agrupado + IMC + series)",
+    "apps/web/app/workspace/page.tsx (vista Signos vitales: form cableado + historial/tendencias + alertas + VMAP + auto-carga)"
+   ],
+   "tests": [
+    "scripts/v22/live-vitals-history-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Signos vitales: form, últimos registros, tendencias, referencia, alertas)"
+   ],
+   "runtime_evidence": "scripts/v22/live-vitals-history-proof.mts — PASS 10/10 vs Neon 2026-09-18 (3 tomas de 7 tipos c/u, agrupación por toma con la más reciente primero, IMC derivado 29.6 = 65.7/1.49², resumen latest, series de TA sistólica 126->120 / peso / IMC ascendentes, aislamiento por paciente, sin-scope 403). En el smoke runner de CI. Render test 13/13 (jsdom). Fidelidad verificada por preview + captura.",
+   "epic": "W/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

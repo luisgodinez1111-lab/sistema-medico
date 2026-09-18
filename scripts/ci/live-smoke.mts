@@ -51,6 +51,7 @@ const SMOKE:readonly string[]=[
  "live-allergy-registry-proof",             // Registro de alergias clínica-wide: tipo derivado + estado + conteos gravedad/tipo
  "live-problem-registry-proof",             // Registro de problemas clínica-wide: categoría-UI + estado por transición + conteos
  "live-immunization-registry-proof",        // Registro de vacunas clínica-wide: estado + lote/fecha administración + cobertura
+ "live-vitals-history-proof",               // Historial de signos vitales por paciente: agrupación por toma + IMC + series
 ];
 const hasDb=!!process.env.DATABASE_URL;
 const results:{name:string;status:"PASS"|"FAIL"|"SKIP";code:number}[]=[];

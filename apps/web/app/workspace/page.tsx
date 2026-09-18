@@ -69,6 +69,8 @@ type IcdEntry=Readonly<{code:string;description:string;category:string}>;
 type ImmStatus="COMPLETE"|"PENDING"|"REFUSED"|"ADVERSE";
 type ImmItem=Readonly<{immunizationId:string;patientId:string;patientName:string;vaccine:string;dose:string;lot:string;site:string;status:ImmStatus;statusLabel:string;appliedAt:string;registeredBy:string}>;
 type ImmRegistry=Readonly<{items:ImmItem[];total:number;appliedCount:number;pendingCount:number;vaccinatedPatients:number;incompleteSchemes:number;byVaccine:Record<string,number>}>;
+type VitalRecord=Readonly<{at:string;ta:string;fc:string;fr:string;temp:string;spo2:string;peso:string;talla:string;imc:string}>;
+type VitalHistory=Readonly<{records:VitalRecord[];series:{BP:{value:number;at:string}[];HR:{value:number;at:string}[];WEIGHT:{value:number;at:string}[];IMC:{value:number;at:string}[]};latest:VitalRecord|null;count:number}>;
 const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
 const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
@@ -450,7 +452,7 @@ export default function Workspace(){
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
+ const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
  // Pestaña Interacciones (S8.3) — verificador de conjunto cableado a POST /api/v1/interactions
  const[ixDrugs,setIxDrugs]=useState<string[]>(["Sertralina","Ibuprofeno","Metformina"]);
@@ -478,6 +480,13 @@ export default function Workspace(){
  // Vista Vacunas (S-VACUNAS) — registro clínica-wide cableado a GET /api/v1/immunizations
  const[immReg,setImmReg]=useState<ImmRegistry|null>(null);const[immSel,setImmSel]=useState(0);
  const[immSearch,setImmSearch]=useState("");const[immStatusF,setImmStatusF]=useState("Todos");
+ // Vista Signos vitales (S-SIGNOS) — historial por paciente cableado a GET /patients/:id/vitals + form -> POST /vitals
+ const[vitHist,setVitHist]=useState<VitalHistory|null>(null);
+ const[svTemp,setSvTemp]=useState("");const[svFc,setSvFc]=useState("");const[svFr,setSvFr]=useState("");
+ const[svBpS,setSvBpS]=useState("");const[svBpD,setSvBpD]=useState("");const[svSpo2,setSvSpo2]=useState("");
+ const[svPeso,setSvPeso]=useState("");const[svTalla,setSvTalla]=useState("");const[svPab,setSvPab]=useState("");
+ const[svPain,setSvPain]=useState("0");const[svEstado,setSvEstado]=useState("Bueno");const[svObs,setSvObs]=useState("");
+ const[svBusy,setSvBusy]=useState(false);const[svMsg,setSvMsg]=useState("");
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
@@ -590,6 +599,19 @@ export default function Workspace(){
   })();
   return()=>{cancelled=true;};
  },[view,ready,session]);
+
+ // Auto-carga del historial de signos vitales del paciente en contexto (vista Signos vitales).
+ useEffect(()=>{
+  if(view!=="signos"||!ready||!session||!patientId)return;
+  let cancelled=false;
+  (async()=>{
+   try{
+    const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET"});
+    if(!cancelled&&r.status===200)setVitHist(r.body as unknown as VitalHistory);
+   }catch{/* historial no disponible */}
+  })();
+  return()=>{cancelled=true;};
+ },[view,ready,session,patientId]);
 
  // Scrollspy: resalta en el nav-rail el módulo actual = la ÚLTIMA sección cuyo top ya cruzó bajo los
  // headers sticky (~140px). El IntersectionObserver solo dispara el recálculo en cada cruce de esa línea.
@@ -978,7 +1000,7 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
+    {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
      <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){setView(vTarget);window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
       <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
      </button>);})}
@@ -2142,6 +2164,134 @@ export default function Workspace(){
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Próximas dosis (30 días)</div>{[["Hexavalente","Mateo Ramírez","16 mar 2027"],["Neumococo 13V","Sofía Hernández","28 oct 2026"],["Hepatitis B","Laura Fernández","08 ene 2027"],["Herpes zóster","Ricardo Villegas","25 oct 2026"]].map(([v,pt,d],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<3?`1px solid #F2F4F9`:"0"}}><span style={{width:30,height:30,borderRadius:9,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={syringe}/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:12.5}}>{v}</div><div style={{fontSize:11,color:P.muted}}>{pt}</div></div><span style={{fontSize:11.5,color:P.muted,whiteSpace:"nowrap"}}>{d}</span></div>)}</div>
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Esquemas por edad (cobertura)</div>{([["< 1 año",78],["1–4 años",65],["5–11 años",72],["12–17 años",81],["18–64 años",69],["≥ 65 años",74]] as [string,number][]).map(([l,n])=><div key={l} style={{marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}><span>{l}</span><b>{n}%</b></div><div style={{height:7,borderRadius:6,background:"#EEF1F7",overflow:"hidden"}}><div style={{height:"100%",width:`${n}%`,background:P.blue,borderRadius:6}}/></div></div>)}</div>
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Acciones rápidas</div>{["Calendario Nacional de Vacunación (México)","Esquemas por edad","Consentimiento informado","Registro masivo de vacunas","Reporte de cobertura"].map((a,i)=><div key={a} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<4?`1px solid #F1F3F9`:"0",fontSize:13,color:P.blue,fontWeight:500,cursor:"pointer"}}><span style={{display:"flex",alignItems:"center",gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 5h16v14H4zM8 3v4M16 3v4"/></svg>{a}</span><span>›</span></div>)}</div>
+    </div>
+   </div>;
+  })() : view==="signos" ? (()=>{
+   // ===== MÓDULO SIGNOS VITALES (S-SIGNOS) — form cableado a POST /vitals + historial/tendencias por paciente =====
+   const card2:React.CSSProperties={...card,marginTop:0};
+   const initials=(n:string)=>n.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+   const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"10px 12px",fontSize:14,background:P.white,fontFamily:UI,color:P.ink};
+   const flbl:React.CSSProperties={fontSize:12.5,fontWeight:700,margin:"0 0 6px"};
+   const fmtDT=(iso:string)=>{if(!iso)return["—",""];const d=new Date(iso);if(isNaN(d.getTime()))return["—",""];return[d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"}),d.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})];};
+   const imcCalc=svPeso&&svTalla&&Number(svTalla)>0?(Number(svPeso)/Math.pow(Number(svTalla)/100,2)).toFixed(1):"";
+   const saveVitals=async()=>{
+    if(!patientId){setSvMsg("Selecciona un paciente en el buscador superior para guardar los signos vitales.");return;}
+    const at=new Date().toISOString();const toSave:[string,string,string][]=[];
+    if(svBpS&&svBpD)toSave.push(["BP",`${svBpS}/${svBpD}`,"mmHg"]);
+    if(svFc)toSave.push(["HR",svFc,"lpm"]);if(svFr)toSave.push(["RESP",svFr,"rpm"]);
+    if(svTemp)toSave.push(["TEMP",svTemp,"°C"]);if(svSpo2)toSave.push(["SPO2",svSpo2,"%"]);
+    if(svPeso)toSave.push(["WEIGHT",svPeso,"kg"]);if(svTalla)toSave.push(["HEIGHT",svTalla,"cm"]);
+    if(!toSave.length){setSvMsg("Captura al menos un signo vital.");return;}
+    setSvBusy(true);setSvMsg("");
+    try{for(const[vt,val,u]of toSave){await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId:crypto.randomUUID(),patientId,vitalType:vt,value:val,unit:u,occurredAt:at}});}
+     const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET"});if(r.status===200)setVitHist(r.body as unknown as VitalHistory);
+     setSvMsg("Signos vitales guardados ✓");setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvPab("");setSvObs("");
+    }catch{setSvMsg("Error al guardar los signos vitales.");}finally{setSvBusy(false);}
+   };
+   const clearForm=()=>{setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvTalla("");setSvPab("");setSvPain("0");setSvObs("");setSvMsg("");};
+   const useReal=!!vitHist&&vitHist.count>0;
+   const REPREC:VitalRecord[]=[
+    {at:"2026-09-17T10:24:00Z",ta:"120/80",fc:"72",fr:"16",temp:"36.5",spo2:"98",peso:"65.7",talla:"149",imc:"29.6"},
+    {at:"2026-09-08T09:15:00Z",ta:"118/76",fc:"68",fr:"15",temp:"36.4",spo2:"98",peso:"66.1",talla:"149",imc:"29.9"},
+    {at:"2026-09-01T11:02:00Z",ta:"122/78",fc:"74",fr:"16",temp:"36.6",spo2:"99",peso:"66.8",talla:"149",imc:"30.1"},
+    {at:"2026-08-12T09:40:00Z",ta:"124/82",fc:"76",fr:"16",temp:"36.5",spo2:"98",peso:"67.3",talla:"149",imc:"30.3"},
+    {at:"2026-07-25T10:10:00Z",ta:"126/84",fc:"78",fr:"17",temp:"36.7",spo2:"98",peso:"68.0",talla:"149",imc:"30.6"},
+   ];
+   const records=useReal?vitHist!.records:REPREC;
+   const sys=(ta:string)=>{const m=/^(\d+)/.exec(ta);return m?Number(m[1]):0;};
+   const repSeries=(f:(r:VitalRecord)=>number)=>[...REPREC].reverse().map(r=>f(r));
+   const sBP=useReal?vitHist!.series.BP.map(p=>p.value):repSeries(r=>sys(r.ta));
+   const sHR=useReal?vitHist!.series.HR.map(p=>p.value):repSeries(r=>Number(r.fc));
+   const sWT=useReal?vitHist!.series.WEIGHT.map(p=>p.value):repSeries(r=>Number(r.peso));
+   const sIMC=useReal?vitHist!.series.IMC.map(p=>p.value):repSeries(r=>Number(r.imc));
+   const latest=records[0];
+   const spark=(vals:number[],color:string)=>{if(!vals.length)return null;const w=150,h=44,pad=4;const mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1;const step=vals.length>1?(w-pad*2)/(vals.length-1):0;
+    const pt=(v:number,i:number)=>[pad+i*step,h-pad-((v-mn)/rng)*(h-pad*2)];
+    const d=vals.map((v,i)=>{const[x,y]=pt(v,i);return `${i===0?"M":"L"}${x.toFixed(1)} ${y.toFixed(1)}`;}).join(" ");
+    const[lx,ly]=pt(vals[vals.length-1]!,vals.length-1);
+    return <svg width={w} height={h} style={{display:"block"}} aria-hidden><path d={`${d} L${(pad+(vals.length-1)*step).toFixed(1)} ${h} L${pad} ${h} Z`} fill={color} opacity={.09}/><path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/><circle cx={lx} cy={ly} r={3} fill={color}/></svg>;};
+   // Referencias y alertas deterministas (adultos)
+   const alerts:string[]=[];
+   if(latest){const s=sys(latest.ta),fc=Number(latest.fc),fr=Number(latest.fr),tp=Number(latest.temp),sp=Number(latest.spo2);
+    if(s&&(s<90||s>139))alerts.push(`Presión arterial fuera de rango (${latest.ta} mmHg)`);
+    if(fc&&(fc<60||fc>100))alerts.push(`Frecuencia cardíaca fuera de rango (${fc} lpm)`);
+    if(fr&&(fr<12||fr>20))alerts.push(`Frecuencia respiratoria fuera de rango (${fr} rpm)`);
+    if(tp&&(tp<36||tp>37.5))alerts.push(`Temperatura fuera de rango (${tp} °C)`);
+    if(sp&&sp<95)alerts.push(`Saturación de O₂ baja (${sp}%)`);}
+   const chip=(ico:string,c:string,l:string,v:string)=><div style={{...card2,padding:"12px 14px",display:"flex",alignItems:"center",gap:10,flex:"0 0 auto"}}><span style={{width:34,height:34,borderRadius:9,background:c+"22",color:c,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={ico}/></svg></span><div><div style={{fontSize:12.5,fontWeight:700}}>{l}</div><div style={{fontSize:11.5,color:P.muted}}>{v}</div></div></div>;
+   const trendCard=(ico:string,c:string,title:string,unit:string,vals:number[],last:string)=><div style={{border:`1px solid ${LINE}`,borderRadius:12,padding:13}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}><span style={{width:26,height:26,borderRadius:7,background:c+"22",color:c,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d={ico}/></svg></span><div style={{fontSize:12,fontWeight:700,lineHeight:1.1}}>{title}<div style={{fontSize:10.5,color:P.muted,fontWeight:500}}>{unit}</div></div></div>{spark(vals,c)}<div style={{fontSize:20,fontWeight:800,marginTop:6}}>{last}</div><div style={{fontSize:11.5,color:P.muted,display:"flex",justifyContent:"space-between"}}>Último registro <span>›</span></div></div>;
+   const th:React.CSSProperties={textAlign:"left",fontSize:11,color:"#9AA0BC",fontWeight:600,padding:"9px 8px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+   const tdc:React.CSSProperties={padding:"9px 8px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
+   const num:React.CSSProperties={...selSty};
+   const heartIco="M12 21C12 21 4 13.5 4 8.5A4 4 0 0112 6a4 4 0 018 2.5C20 13.5 12 21 12 21z";
+   const actIco="M3 12h4l3 8 4-16 3 8h4";
+   return <div style={{padding:"18px 24px 40px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden><path d={actIco}/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Signos vitales</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Registra, visualiza y da seguimiento a los signos vitales de tus pacientes.</p></div></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+      <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⊟ Plantilla rápida</button>
+      <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>◔ Tendencias</button>
+      <button onClick={saveVitals} style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>+ Registrar signos vitales ▾</button>
+     </div>
+    </div>
+    <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"Ana López García")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientName||"Ana López García"}</div><div style={{fontSize:12.5,color:P.muted}}>Femenino, 34 años&nbsp;&nbsp;|&nbsp;&nbsp;Expediente: LC260917-0042&nbsp;&nbsp;|&nbsp;&nbsp;CURP: LOGA900101MCHPRN09</div></div></div>
+     <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>{chip("M10.3 3.9 1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z",P.red,"Alergias","1 registrada")}{chip("M9 3h6l1 4H8zM7 7h10l1 13H6z",P.blue,"Problemas","3 activos")}{chip("M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z",P.green,"Medicamentos","2 en uso")}<button onClick={()=>{setView("exp");}} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px 15px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver expediente →</button></div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-signos">
+     {/* Form */}
+     <div style={{...card2,padding:20}}>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:14}}>Registrar signos vitales</div>
+      <div style={flbl}>Fecha y hora</div>
+      <div style={{display:"flex",gap:8,marginBottom:14}}><input type="date" defaultValue="2026-09-17" style={{...selSty,flex:1}}/><input type="time" defaultValue="10:24" style={{...selSty,flex:1}}/><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"0 14px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ahora</button></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+       <div><div style={flbl}>Temperatura (°C)</div><input value={svTemp} onChange={e=>setSvTemp(e.target.value)} placeholder="36.5" style={num}/></div>
+       <div><div style={flbl}>Frecuencia cardíaca (lpm)</div><input value={svFc} onChange={e=>setSvFc(e.target.value)} placeholder="72" style={num}/></div>
+       <div><div style={flbl}>Frecuencia respiratoria (rpm)</div><input value={svFr} onChange={e=>setSvFr(e.target.value)} placeholder="16" style={num}/></div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginTop:12}}>
+       <div><div style={flbl}>Presión arterial (mmHg)</div><div style={{display:"flex",alignItems:"center",gap:6}}><input value={svBpS} onChange={e=>setSvBpS(e.target.value)} placeholder="120" style={{...num,textAlign:"center"}}/><span style={{color:P.muted}}>/</span><input value={svBpD} onChange={e=>setSvBpD(e.target.value)} placeholder="80" style={{...num,textAlign:"center"}}/></div></div>
+       <div><div style={flbl}>Saturación O₂ (%)</div><input value={svSpo2} onChange={e=>setSvSpo2(e.target.value)} placeholder="98" style={num}/></div>
+       <div><div style={flbl}>Peso (kg)</div><input value={svPeso} onChange={e=>setSvPeso(e.target.value)} placeholder="65.7" style={num}/></div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginTop:12}}>
+       <div><div style={flbl}>Talla (cm)</div><input value={svTalla} onChange={e=>setSvTalla(e.target.value)} placeholder="149" style={num}/></div>
+       <div><div style={flbl}>IMC (kg/m²)</div><input value={imcCalc} readOnly placeholder="—" style={{...num,background:"#F2F4F9",color:P.muted}}/></div>
+       <div><div style={flbl}>Perímetro abdominal (cm)</div><input value={svPab} onChange={e=>setSvPab(e.target.value)} placeholder="88" style={num}/></div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:14,alignItems:"start"}}>
+       <div><div style={flbl}>Dolor (EVA 0–10)</div><div style={{display:"flex",alignItems:"center",gap:10}}><input type="range" min={0} max={10} value={svPain} onChange={e=>setSvPain(e.target.value)} style={{flex:1}}/><input value={svPain} onChange={e=>setSvPain(e.target.value)} style={{...num,width:56,textAlign:"center"}}/></div></div>
+       <div><div style={flbl}>Estado general</div><select value={svEstado} onChange={e=>setSvEstado(e.target.value)} style={selSty}>{["Bueno","Regular","Delicado","Grave"].map(o=><option key={o}>{o}</option>)}</select></div>
+      </div>
+      <div style={{marginTop:14}}><div style={flbl}>Observaciones</div><textarea value={svObs} onChange={e=>setSvObs(e.target.value.slice(0,500))} placeholder="Agrega observaciones relevantes..." style={{...selSty,minHeight:80,resize:"vertical"}}/><div style={{textAlign:"right",fontSize:11,color:P.muted}}>{svObs.length}/500</div></div>
+      {svMsg&&<div style={{marginTop:10,padding:"10px 13px",borderRadius:10,background:svMsg.includes("✓")?"#E6F6EE":"#FDF4E6",border:`1px solid ${svMsg.includes("✓")?"#BFE6CF":"#F2E1C0"}`,fontSize:13,color:svMsg.includes("✓")?"#166534":"#7A5A16"}}>{svMsg}</div>}
+      <div style={{display:"flex",gap:12,marginTop:14}}><button onClick={clearForm} style={{flex:"0 0 34%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"12px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Limpiar</button><button onClick={saveVitals} disabled={svBusy} style={{flex:1,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"12px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:UI}}>{svBusy?"Guardando…":"✓ Guardar signos vitales"}</button></div>
+     </div>
+     {/* Últimos registros + Tendencias */}
+     <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{...card2,padding:0,overflow:"hidden"}}>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px"}}><div style={{fontSize:16,fontWeight:800}}>Últimos registros</div><span style={{fontSize:12.5,color:P.blue,cursor:"pointer"}}>Ver todos →</span></div>
+       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+        <thead><tr><th style={th}>Fecha y hora</th><th style={th}>TA (mmHg)</th><th style={th}>FC (lpm)</th><th style={th}>FR (rpm)</th><th style={th}>Temp (°C)</th><th style={th}>SpO₂ (%)</th><th style={th}>Peso (kg)</th><th style={th}>IMC</th><th style={{...th,textAlign:"right"}}>Acc.</th></tr></thead>
+        <tbody>{records.slice(0,6).map((r,i)=>{const[d,t]=fmtDT(r.at);return <tr key={i}><td style={tdc}><div style={{fontWeight:600}}>{d}</div><div style={{fontSize:11,color:P.muted}}>{t}</div></td><td style={tdc}>{r.ta||"—"}</td><td style={tdc}>{r.fc||"—"}</td><td style={tdc}>{r.fr||"—"}</td><td style={tdc}>{r.temp||"—"}</td><td style={tdc}>{r.spo2||"—"}</td><td style={tdc}>{r.peso||"—"}</td><td style={tdc}>{r.imc||"—"}</td><td style={{...tdc,textAlign:"right",color:P.muted,fontWeight:700}}>⋯</td></tr>;})}
+        {records.length===0&&<tr><td colSpan={9} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>Sin registros de signos vitales para este paciente.</td></tr>}
+        </tbody></table></div>
+      </div>
+      <div style={{...card2,padding:16}}>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div style={{fontSize:16,fontWeight:800}}>Tendencias</div><select style={{...selSty,width:"auto",padding:"7px 10px",fontSize:13}} defaultValue="Últimos 6 meses"><option>Últimos 6 meses</option></select></div>
+       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        {trendCard("M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z",P.blue,"Presión arterial","(mmHg)",sBP,latest?.ta||"—")}
+        {trendCard(heartIco,P.red,"Frecuencia cardíaca","(lpm)",sHR,latest?.fc||"—")}
+        {trendCard("M20 7h-9M14 17H5M17 3l3 4-3 4M7 21l-3-4 3-4",P.green,"Peso","(kg)",sWT,latest?.peso||"—")}
+        {trendCard("M12 3a9 9 0 100 18 9 9 0 000-18zM12 8v8",P.purple,"IMC","(kg/m²)",sIMC,latest?.imc||"—")}
+       </div>
+      </div>
+     </div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1.3fr 1.1fr 1fr",gap:14,marginTop:16,alignItems:"start"}} className="mos-signos2">
+     <div style={{...card2,padding:16}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><span style={{color:P.purple}}>▦</span><div style={{fontSize:15,fontWeight:700}}>Referencia de valores normales (adultos)</div></div><div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>{[["TA","90/60 – 120/80","mmHg"],["FC","60 – 100","lpm"],["FR","12 – 20","rpm"],["Temperatura","36.0 – 37.5","°C"],["SpO₂","≥ 95","%"]].map(([k,v,u])=><div key={k}><div style={{fontSize:12,fontWeight:700,color:P.purple}}>{k}</div><div style={{fontSize:13,fontWeight:600,marginTop:3}}>{v}</div><div style={{fontSize:11,color:P.muted}}>{u}</div></div>)}</div></div>
+     <div style={{...card2,padding:16}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><span style={{color:alerts.length?P.red:P.amber}}>⚠</span><div style={{fontSize:15,fontWeight:700}}>Alertas clínicas</div></div>{alerts.length===0?<div style={{fontSize:13,color:P.muted,lineHeight:1.6}}>No hay alertas en los últimos registros.<br/>Los signos vitales se encuentran en rangos normales.</div>:<div style={{display:"flex",flexDirection:"column",gap:8}}>{alerts.map((a,i)=><div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",padding:"8px 11px",borderRadius:9,background:"#FDECEE",fontSize:12.5,color:"#9B1C2E"}}><span>⚠</span>{a}</div>)}</div>}</div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Acciones rápidas</div>{["Generar gráfica completa","Exportar a PDF","Registrar series de signos vitales","Configurar rangos de referencia"].map((a,i)=><div key={a} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<3?`1px solid #F1F3F9`:"0",fontSize:13,color:P.blue,fontWeight:500,cursor:"pointer"}}><span style={{display:"flex",alignItems:"center",gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 5h16v14H4z"/></svg>{a}</span><span>›</span></div>)}</div>
     </div>
    </div>;
   })() : (<>
