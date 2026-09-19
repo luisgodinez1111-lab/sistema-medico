@@ -553,6 +553,13 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText("Herramientas rápidas")).toBeTruthy();
   expect(screen.getByText("Fuentes confiables")).toBeTruthy();
   expect(screen.getByText(/Conocimiento que mejora vidas/)).toBeTruthy();
+  // auditoría: banner honesto (catálogo presentacional) + herramienta real enlazada; controles muertos eliminados
+  expect(screen.getByText(/Catálogo de referencia \(presentacional\)/)).toBeTruthy();
+  expect(screen.getByRole("button",{name:/Verificador de interacciones/})).toBeTruthy();
+  expect(screen.queryByText(/Subir documento/)).toBeNull();
+  expect(screen.queryByText(/Actualizar contenido/)).toBeNull();
+  expect(screen.queryByPlaceholderText(/Buscar en la biblioteca/)).toBeNull();
+  expect(screen.queryByText("Explorar biblioteca →")).toBeNull();
  });
 
  it("vista Reportes (S-REPORTES): tablero analítico — KPIs y diagnósticos cableados a GET /reports + gráficas",async()=>{

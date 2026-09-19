@@ -3472,6 +3472,28 @@
    "epic": "S-REPORTES/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-BIBLIOTECA-AUDIT-DEEP-001",
+   "name": "Biblioteca clínica — auditoría boton por boton: catálogo de referencia honesto, sin inventario ni descargas falsas",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria de Biblioteca clinica (vista auxiliar, fuera del sidebar principal). Es un repositorio de conocimiento sin backend: el contenido (nombres de guias/fuentes: CENETEC, OMS, PubMed, AHA, ADA) es referencia real pero no hay documentos, descargas ni busqueda implementadas. Antes se presentaba como una biblioteca surtida y descargable (inventario fabricado 1,250+/120+/500+/200+, conteos por especialidad 245/180/… total 1250, botones Descargar/Abrir/Ver por tarjeta, Subir documento, Actualizar contenido, Mis favoritos, buscador y 4 filtros, CTA Explorar biblioteca) — todo sin accion. Correccion honesta: (1) Añadido banner de gobernanza que declara el modulo como catalogo de referencia presentacional y aclara que descarga/subida/busqueda de documentos se conectaran con el repositorio; las herramientas operativas reales son el verificador de interacciones y las calculadoras del motor CDS. (2) Eliminados los inventarios fabricados: numeros de los 4 KPIs (ahora descriptores) y conteos por especialidad. (3) Eliminados controles muertos: Subir documento, Actualizar contenido, Mis favoritos, buscador + 4 filtros, botones Descargar/Abrir/Ver de las tarjetas destacadas, Ver todos, CTA Explorar biblioteca. (4) Herramientas rapidas reducidas a las REALES y cableadas: Verificador de interacciones (-> Medicamentos/Interacciones) e IMC/signos (-> Signos vitales); eliminadas las tiles no cableadas. Conservado como referencia claramente etiquetada: catalogo de especialidades, contenido destacado (nombres de guias reales), fuentes confiables, favoritos/recientes/actualizaciones (presentacional bajo el banner).",
+   "invariants": [
+    "Biblioteca no presenta inventario fabricado: sin conteos de guias/articulos/especialidades inventados",
+    "Ningun control implica una accion que no existe: sin Descargar/Subir/Buscar/Actualizar falsos",
+    "Un banner declara explicitamente el caracter presentacional del catalogo y cuales herramientas son reales",
+    "Las herramientas rapidas enlazan solo a funcionalidad real (verificador de interacciones, captura de signos)"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (banner de gobernanza; KPIs sin numeros fabricados; especialidades sin conteos; elimina header/busqueda/filtros/descargas/CTA muertos; herramientas rapidas reales cableadas)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Biblioteca S-BIBLIOTECA: banner presentacional + Verificador de interacciones; Subir documento/Actualizar contenido/buscador/Explorar biblioteca === null)"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): presentes el banner Catalogo de referencia (presentacional), el boton Verificador de interacciones y las secciones de referencia; queryByText/Placeholder(Subir documento / Actualizar contenido / Buscar en la biblioteca / Explorar biblioteca) === null. Typecheck limpio.",
+   "epic": "S-BIBLIOTECA/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
