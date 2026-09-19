@@ -2645,6 +2645,31 @@
    "epic": "CM/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-PATIENTS-UI-001",
+   "name": "Pacientes — búsqueda/filtros reales + creador inline + interconexión (Agenda/expediente)",
+   "risk": "C4",
+   "eng_authority_note": "Profundiza la vista Pacientes (ya cableada al registro real de pacientes) para que cada control ejecute una accion real. Busqueda en vivo por nombre/CURP y filtros por estado (Activo/Inactivo) y sexo que filtran la tabla real (con 'Limpiar filtros' y estado vacio honesto). '+ Nuevo paciente' abre un creador INLINE que registra un paciente real via POST /patients (reutiliza el flujo registerPatient con un flag inline: valida nombre, cierra el panel y avisa; la lista se actualiza en el acto). 'Exportar paciente' exporta el expediente del paciente SELECCIONADO via GET /patients/:id/export y muestra el manifiesto (agregados/eventos/hash). Interconexiones reales: 'Agendar cita' preselecciona al paciente en el creador de la vista Agenda y navega alli; las pestanas del detalle (Historial/Notas/Documentos) y las tarjetas de antecedentes (Alergias/Problemas/Medicacion/Vacunas) y 'Editar' navegan a la seccion correspondiente del expediente del paciente. Honestidad: 'Importar' (carga masiva) se declara deshabilitada/proxima; los KPIs se derivan del registro real; cuando el tenant no tiene pacientes se muestra un ejemplo claramente distinguible (ids demo no navegan/exportan).",
+   "invariants": [
+    "Busqueda y filtros operan sobre el registro real (patientList) del tenant; nada hardcodeado presentado como real",
+    "El creador inline registra via POST /patients (mismo comando event-sourced con idempotencia); requiere nombre",
+    "Exportar usa GET /patients/:id/export (manifiesto deterministico) solo para pacientes reales seleccionados",
+    "Las filas/acciones de ejemplo (ids demo, sin registro real) no navegan ni exportan",
+    "Interconexiones preservan el contexto del paciente (selectPatientRaw) antes de navegar a Agenda/expediente"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (vista Pacientes reescrita: busqueda/filtros, creador inline, export por paciente, interconexion Agenda/expediente; registerPatient(inline))"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Pacientes: lista/busqueda/filtro/creador/interconexion)",
+    "scripts/v22/live-patient-registry-proof.mts",
+    "scripts/v22/live-patient-demographics-proof.mts"
+   ],
+   "runtime_evidence": "Render test 28/28 (jsdom): filas reales del registro, busqueda que filtra en vivo (al escribir Carlos, Ana desaparece), Limpiar filtros restaura, creador inline con Registrar paciente, e interconexion Agendar cita -> abre el creador en la vista Agenda. Backends reutilizados ya probados en vivo: live-patient-registry-proof y live-patient-demographics-proof (registro->lista->snapshot con CURP/contacto) y el export deterministico (GET /patients/:id/export).",
+   "epic": "IDENT/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

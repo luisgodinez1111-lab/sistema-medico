@@ -213,6 +213,30 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getAllByText("Control DM2").length).toBeGreaterThan(0);
  });
 
+ it("vista Pacientes: lista real, búsqueda que filtra, creador inline y interconexión a Agenda",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Pacientes"}));
+  expect(screen.getByRole("heading",{name:"Pacientes"})).toBeTruthy();
+  // filas reales del registro de pacientes
+  expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Carlos Mendoza").length).toBeGreaterThan(0);
+  // la búsqueda filtra en vivo: al escribir "Carlos", Ana desaparece
+  fireEvent.change(screen.getByPlaceholderText(/Buscar por nombre o CURP/),{target:{value:"Carlos"}});
+  expect(screen.queryByText("Ana López García")).toBeNull();
+  expect(screen.getAllByText("Carlos Mendoza").length).toBeGreaterThan(0);
+  fireEvent.click(screen.getByText("Limpiar filtros"));
+  expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0);
+  // creador inline real
+  fireEvent.click(screen.getByRole("button",{name:"Nuevo paciente"}));
+  expect(screen.getByText("Nombre completo")).toBeTruthy();
+  expect(screen.getByRole("button",{name:"Registrar paciente"})).toBeTruthy();
+  fireEvent.click(screen.getByRole("button",{name:"Cerrar"}));
+  // interconexión: "Agendar cita" del paciente seleccionado abre el creador en la vista Agenda
+  fireEvent.click(screen.getByRole("button",{name:"Agendar cita"}));
+  expect(screen.getByRole("heading",{name:"Agenda"})).toBeTruthy();
+  expect(screen.getByText(/Nueva cita ·/)).toBeTruthy();
+ });
+
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
   render(<Workspace/>);
   toExpediente();

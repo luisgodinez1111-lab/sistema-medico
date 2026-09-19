@@ -572,6 +572,8 @@ export default function Workspace(){
  const[topMenu,setTopMenu]=useState(false);
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string}[]|null>(null);
  const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
+ const[patStatus,setPatStatus]=useState("");const[patSex,setPatSex]=useState(""); // filtros de la vista Pacientes ("":todos)
+ const[patNew,setPatNew]=useState(false);const[patMsg,setPatMsg]=useState<string|null>(null); // creador inline + aviso
  const[regExtra,setRegExtra]=useState({curp:"",phone:"",email:"",address:"",occupation:"",maritalStatus:""});
  const[busy,setBusy]=useState("");
  const[error,setError]=useState("");
@@ -1185,11 +1187,13 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setPanel({gaps:(r.body["gaps"] as PanelGap[])??[],patientCount:Number(r.body["patientCount"]??0)});
  });
- const registerPatient=()=>call("pt-reg",async()=>{
+ const registerPatient=(inline=false)=>call("pt-reg",async()=>{
+  if(!regName.trim()){if(inline)setPatMsg("Indica el nombre del paciente.");else setError("El nombre del paciente es obligatorio");return;}
   const id=uuid();const e=regExtra;
   const r=await apiRequest("/api/v1/patients",{method:"POST",body:{patientId:id,name:regName,birthDate:regDob||"1990-01-01",sexAtBirth:regSex,occurredAt:nowIso(),...(e.curp?{curp:e.curp}:{}),...(e.phone?{phone:e.phone}:{}),...(e.email?{email:e.email}:{}),...(e.address?{address:e.address}:{}),...(e.occupation?{occupation:e.occupation}:{}),...(e.maritalStatus?{maritalStatus:e.maritalStatus}:{})}});
-  if(r.status>=400){setError(errMsg(r));return;}
+  if(r.status>=400){if(inline)setPatMsg(errMsg(r));else setError(errMsg(r));return;}
   selectPatientRaw(id,regName);setPatientList(l=>[{patientId:id,name:regName,status:"ACTIVE",...(regDob?{birthDate:regDob}:{}),sexAtBirth:regSex,...(e.curp?{curp:e.curp}:{})},...(l??[])]);setRegName("");setRegDob("");setRegExtra({curp:"",phone:"",email:"",address:"",occupation:"",maritalStatus:""});
+  if(inline){setPatNew(false);setPatMsg("Paciente registrado.");}
  });
  const exportRecord=()=>call("exp",async()=>{
   const r=await apiRequest(`/api/v1/patients/${patientId}/export`,{method:"GET"});
@@ -1435,7 +1439,7 @@ export default function Workspace(){
     </div>
    </div>;
   })() : view==="pacientes" ? (()=>{
-   // ===== VISTA PACIENTES (gestión) — S3.png =====
+   // ===== VISTA PACIENTES — cableado REAL: búsqueda/filtros, creador inline, interconexión y navegación =====
    const ageOf=(bd?:string):number|null=>{if(!bd)return null;const b=new Date(bd),n=new Date();let y=n.getFullYear()-b.getFullYear();if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))y--;return y;};
    const sexAbbr=(s?:string)=>s==="FEMALE"?"F":s==="MALE"?"M":s==="INTERSEX"?"I":"—";
    const initials=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"P";
@@ -1451,39 +1455,63 @@ export default function Workspace(){
     {patientId:"d7",name:"Laura Sánchez López",status:"ACTIVE",age:39,sexo:"F",curp:"SALL851107MCHNPR01",last:"Ayer 11:20 a.m.",motivo:"Ansiedad"},
     {patientId:"d8",name:"Oscar Reyes Morales",status:"ACTIVE",age:67,sexo:"M",curp:"REMO670905HCHYRS07",last:"15 sep 2026",motivo:"Control cardiovascular"},
    ];
-   const usingReal=real.length>0;const rows:Row[]=usingReal?real:demo;
-   const total=usingReal?rows.length:1482;const activos=usingReal?rows.filter(r=>r.status==="ACTIVE").length:1263;
-   const sel:Row=rows[Math.min(selRow,rows.length-1)]??rows[0]??{patientId:"",name:"—",status:"ACTIVE",age:null,sexo:"—",curp:"—",last:"—",motivo:"—"};
+   const usingReal=real.length>0;const allRows:Row[]=usingReal?real:demo;
+   const total=usingReal?allRows.length:1482;const activos=usingReal?allRows.filter(r=>r.status==="ACTIVE").length:1263;
+   const q=topSearch.trim().toLowerCase();
+   const rows=allRows.filter(r=>(!q||r.name.toLowerCase().includes(q)||r.curp.toLowerCase().includes(q))&&(!patStatus||r.status===patStatus)&&(!patSex||r.sexo===patSex));
+   const anyFilter=!!q||!!patStatus||!!patSex;
+   const sel:Row=rows[Math.min(selRow,Math.max(0,rows.length-1))]??rows[0]??{patientId:"",name:"—",status:"ACTIVE",age:null,sexo:"—",curp:"—",last:"—",motivo:"—"};
    const stTag=(s:string):[string,string,string]=>s==="ACTIVE"?["Activo","#E6F6EE","#16A66A"]:["Inactivo","#EEF0F5","#6B7391"];
    const kico=(bg:string,d:string,st:string)=>(<span style={{width:42,height:42,borderRadius:11,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={st} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d}/></svg></span>);
    const kcard:React.CSSProperties={...card,marginTop:0,padding:16,display:"flex",gap:13,alignItems:"center"};
-   const fdrop:React.CSSProperties={display:"inline-flex",alignItems:"center",gap:7,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 13px",fontSize:13,fontWeight:500,cursor:"pointer",whiteSpace:"nowrap"};
+   const selSty:React.CSSProperties={display:"inline-flex",alignItems:"center",gap:7,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 12px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:UI,color:P.ink};
    const dk:React.CSSProperties={color:P.muted,width:130,flex:"0 0 auto"};
-   const openExp=(r:Row)=>{if(!r.patientId.startsWith("d")){selectPatientRaw(r.patientId,r.name);setView("exp");}};
+   const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"};
+   const isReal=(r:Row)=>!r.patientId.startsWith("d");
+   const openExp=(r:Row)=>{if(isReal(r)){selectPatientRaw(r.patientId,r.name);setView("exp");}};
+   const goExpSec=(r:Row,h2:string)=>{if(isReal(r)){selectPatientRaw(r.patientId,r.name);setView("exp");setTimeout(()=>scrollToSection(h2),0);}};
+   const agendarPara=(r:Row)=>{if(isReal(r)){setApptForm(f=>({...f,patientId:r.patientId}));setApptNew(true);setAgendaDate(new Date().toISOString().slice(0,10));setView("agenda");window.scrollTo({top:0,behavior:"smooth"});}};
+   const exportSelected=async(r:Row)=>{if(!isReal(r)){setPatMsg("Selecciona un paciente real para exportar su expediente.");return;}setPatMsg(`Generando export del expediente de ${r.name}…`);try{const resp=await apiRequest(`/api/v1/patients/${r.patientId}/export`,{method:"GET"});if(resp.status>=400){setPatMsg(errMsg(resp));return;}const m=resp.body["manifest"] as{aggregateCount:number;eventCount:number};setPatMsg(`Export de ${r.name}: ${m.aggregateCount} agregados · ${m.eventCount} eventos · hash ${String(resp.body["contentHash"]??"").slice(0,12)}…`);}catch(e){setPatMsg(String(e));}};
+   const inp:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
    return <div style={{display:"flex"}}>
     <div style={{flex:1,minWidth:0,padding:"22px 24px 40px"}}>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
       <div><h1 style={{fontSize:29,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Pacientes</h1><p style={{color:P.muted,fontSize:14,margin:"6px 0 0"}}>Gestiona, busca y da seguimiento a todos tus pacientes.</p></div>
       <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-       <button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 15V4m0 0l-4 4m4-4l4 4M4 20h16"/></svg>Importar</button>
-       <button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 9v11m0 0l4-4m-4 4l-4-4M4 4h16"/></svg>Exportar</button>
-       <button style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Paciente"),0);}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M12 5v14M5 12h14"/></svg>Nuevo paciente</button>
+       <button title="Importación masiva próximamente" style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 15px",fontWeight:600,fontSize:13.5,cursor:"not-allowed",fontFamily:UI,color:"#C7CCE0"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 15V4m0 0l-4 4m4-4l4 4M4 20h16"/></svg>Importar</button>
+       <button onClick={()=>void exportSelected(sel)} style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 9v11m0 0l4-4m-4 4l-4-4M4 4h16"/></svg>Exportar paciente</button>
+       <button style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setPatNew(v=>!v);setPatMsg(null);}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M12 5v14M5 12h14"/></svg>{patNew?"Cerrar":"Nuevo paciente"}</button>
       </div>
      </div>
+     {patMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:"#EEF6FF",border:"1px solid #CFE0F7",borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:P.blue,fontWeight:700}}>ℹ</span><span style={{flex:1}}>{patMsg}</span><button onClick={()=>setPatMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+     {patNew&&<div style={{...card,marginTop:14,padding:18}}>
+      <div style={{fontWeight:800,fontSize:16,marginBottom:14}}>Nuevo paciente</div>
+      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:14}} className="mos-med2">
+       <div><div style={flbl}>Nombre completo</div><input value={regName} onChange={e=>setRegName(e.target.value)} placeholder="Ej. María Fernández López" style={inp}/></div>
+       <div><div style={flbl}>Fecha de nacimiento</div><input type="date" value={regDob} onChange={e=>setRegDob(e.target.value)} style={inp}/></div>
+       <div><div style={flbl}>Sexo</div><select value={regSex} onChange={e=>setRegSex(e.target.value)} style={inp}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select></div>
+      </div>
+      <div style={{marginTop:12,maxWidth:360}}><div style={flbl}>CURP (opcional)</div><input value={regExtra.curp} onChange={e=>setRegExtra({...regExtra,curp:e.target.value.toUpperCase()})} placeholder="18 caracteres" style={inp}/></div>
+      <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>registerPatient(true)} disabled={busy==="pt-reg"||!regName.trim()} style={{border:0,background:(busy==="pt-reg"||!regName.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(busy==="pt-reg"||!regName.trim())?"default":"pointer",fontFamily:UI}}>{busy==="pt-reg"?"Registrando…":"Registrar paciente"}</button><button onClick={()=>setPatNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
+     </div>}
      <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginTop:18}} className="mos-kpis">
       <div style={kcard}>{kico("#EEEBFD","M8 11a3 3 0 100-6 3 3 0 000 6zM2 20a6 6 0 0112 0M16 4.5a3 3 0 010 6M22 20a6 6 0 00-5-5.9",P.purple)}<div><div style={{fontSize:12.5,color:P.muted}}>Total de pacientes</div><div style={{fontSize:24,fontWeight:800}}>{total.toLocaleString("es-MX")}</div></div></div>
       <div style={kcard}>{kico("#E6F6EE","M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",P.green)}<div><div style={{fontSize:12.5,color:P.muted}}>Pacientes activos</div><div style={{fontSize:24,fontWeight:800}}>{activos.toLocaleString("es-MX")} <span style={{fontSize:12,color:P.green,fontWeight:600}}>● {total?Math.round(activos/total*100):0}%</span></div></div></div>
-      <div style={kcard}>{kico("#E7EEFB","M6 2h12l-1 6H7zM5 8h14l-1 12H6z",P.blue)}<div><div style={{fontSize:12.5,color:P.muted}}>Nuevos este mes</div><div style={{fontSize:24,fontWeight:800}}>{usingReal?rows.length:48} <span style={{fontSize:12,color:P.green,fontWeight:600}}>↑ +12%</span></div></div></div>
+      <div style={kcard}>{kico("#E7EEFB","M6 2h12l-1 6H7zM5 8h14l-1 12H6z",P.blue)}<div><div style={{fontSize:12.5,color:P.muted}}>{anyFilter?"Coinciden con el filtro":"En el registro"}</div><div style={{fontSize:24,fontWeight:800}}>{usingReal?rows.length:48}</div></div></div>
       <div style={kcard}>{kico("#FDECEE","M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.5-7 10-7 10z",P.red)}<div><div style={{fontSize:12.5,color:P.muted}}>En seguimiento</div><div style={{fontSize:24,fontWeight:800}}>{usingReal?(gaps?.length??0):217}</div></div></div>
      </div>
      <div style={{display:"flex",gap:10,alignItems:"center",marginTop:16,flexWrap:"wrap"}}>
-      <div style={{flex:1,minWidth:200,display:"flex",alignItems:"center",gap:9,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 13px"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg><input placeholder="Buscar por nombre, CURP, teléfono, correo…" value={topSearch} onChange={e=>setTopSearch(e.target.value)} style={{border:0,outline:"none",background:"transparent",fontSize:13.5,fontFamily:UI,flex:1,color:P.ink}}/></div>
-      {["Todos los filtros","Estado: Todos","Sexo: Todos","Rango de edad","Más filtros"].map(f=><span key={f} style={fdrop}>{f} ▾</span>)}
+      <div style={{flex:1,minWidth:200,display:"flex",alignItems:"center",gap:9,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 13px"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg><input placeholder="Buscar por nombre o CURP…" value={topSearch} onChange={e=>{setTopSearch(e.target.value);setSelRow(0);}} style={{border:0,outline:"none",background:"transparent",fontSize:13.5,fontFamily:UI,flex:1,color:P.ink}}/></div>
+      <select value={patStatus} onChange={e=>{setPatStatus(e.target.value);setSelRow(0);}} style={selSty}><option value="">Estado: Todos</option><option value="ACTIVE">Activos</option><option value="INACTIVE">Inactivos</option></select>
+      <select value={patSex} onChange={e=>{setPatSex(e.target.value);setSelRow(0);}} style={selSty}><option value="">Sexo: Todos</option><option value="F">Femenino</option><option value="M">Masculino</option></select>
+      {anyFilter&&<button onClick={()=>{setTopSearch("");setPatStatus("");setPatSex("");setSelRow(0);}} style={{...selSty,color:P.blue,fontWeight:600}}>Limpiar filtros</button>}
      </div>
      <div style={{...card,marginTop:14,overflow:"hidden"}}>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr>{["","Paciente","Edad","Sexo","Última consulta","Motivo","Estado","Acciones"].map((h,i)=><th key={i} style={{textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"12px 14px",borderBottom:`1px solid ${LINE}`,background:"#FAFBFD",width:i===0?36:undefined}}>{h}</th>)}</tr></thead>
-       <tbody>{rows.map((r,i)=>{const[stl,sbg,sfg]=stTag(r.status);const on=i===Math.min(selRow,rows.length-1);return <tr key={r.patientId} onClick={()=>{setSelRow(i);if(!r.patientId.startsWith("d"))selectPatientRaw(r.patientId,r.name);}} style={{background:on?"#F6F5FE":"transparent",cursor:"pointer"}}>
+       <tbody>{rows.length===0?(
+        <tr><td colSpan={8} style={{padding:"40px 14px",textAlign:"center",color:P.muted,fontSize:13}}>Ningún paciente coincide con la búsqueda o el filtro.</td></tr>
+       ):rows.map((r,i)=>{const[stl,sbg,sfg]=stTag(r.status);const on=i===Math.min(selRow,rows.length-1);return <tr key={r.patientId} onClick={()=>{setSelRow(i);if(isReal(r))selectPatientRaw(r.patientId,r.name);}} style={{background:on?"#F6F5FE":"transparent",cursor:"pointer"}}>
         <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`}}><span style={{width:17,height:17,borderRadius:5,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:11}}>{on?"✓":""}</span></td>
         <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`}}><div style={{display:"flex",alignItems:"center",gap:11}}><span style={{width:36,height:36,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:12,fontWeight:700,flex:"0 0 auto"}}>{initials(r.name)}</span><div><div style={{fontWeight:600,fontSize:13}}>{r.name}</div><div style={{fontSize:11,color:"#9AA0BC"}}>CURP: {r.curp}</div></div></div></td>
         <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{r.age!=null?`${r.age} años`:"—"}</td>
@@ -1491,35 +1519,33 @@ export default function Workspace(){
         <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{r.last}</td>
         <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{r.motivo}</td>
         <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`}}><span style={{fontSize:11.5,fontWeight:600,borderRadius:999,padding:"3px 11px",background:sbg,color:sfg}}>{stl}</span></td>
-        <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,color:"#9AA0BC",fontWeight:800,cursor:"pointer"}} onClick={e=>{e.stopPropagation();openExp(r);}}>···</td>
+        <td style={{padding:"11px 14px",borderBottom:`1px solid #F2F4F9`}}><span style={{color:isReal(r)?P.blue:"#C7CCE0",fontWeight:600,fontSize:12,cursor:isReal(r)?"pointer":"default"}} onClick={e=>{e.stopPropagation();openExp(r);}}>Abrir →</span></td>
        </tr>;})}</tbody>
       </table></div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",fontSize:13,color:P.muted,flexWrap:"wrap",gap:10}}>
-       <span>Mostrando 1–{rows.length} de {total.toLocaleString("es-MX")} pacientes</span>
-       <div style={{display:"flex",gap:5}}>{["‹","1","2","3","4","5","…",String(Math.max(1,Math.ceil(total/10))),"›"].map((p,i)=><span key={i} style={{minWidth:32,height:32,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:13,cursor:"pointer",padding:"0 6px"}}>{p}</span>)}</div>
-       <span style={fdrop}>10 por página ▾</span>
+       <span>Mostrando {rows.length} de {total.toLocaleString("es-MX")} pacientes{anyFilter?" (filtrado)":""}</span>
       </div>
      </div>
     </div>
     {/* PANEL DE DETALLE del paciente seleccionado */}
     <div style={{flex:"0 0 356px",borderLeft:`1px solid ${LINE}`,background:P.white,padding:22,minHeight:"100vh"}} className="mos-detail">
-     <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginBottom:8}}><button style={{display:"inline-flex",alignItems:"center",gap:7,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"7px 12px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 20h9M16.5 3.5a2 2 0 013 3L7 19l-4 1 1-4z"/></svg>Editar</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"7px 11px",cursor:"pointer",color:P.muted,fontWeight:800}}>···</button></div>
+     <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginBottom:8}}><button onClick={()=>goExpSec(sel,"Paciente")} style={{display:"inline-flex",alignItems:"center",gap:7,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"7px 12px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 20h9M16.5 3.5a2 2 0 013 3L7 19l-4 1 1-4z"/></svg>Editar</button></div>
      <div style={{width:76,height:76,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontWeight:800,fontSize:24}}>{initials(sel.name)}</div>
      <div style={{fontSize:20,fontWeight:800,marginTop:12}}>{sel.name}</div>
      <div style={{fontSize:13,color:P.muted}}>{sel.age!=null?`${sel.age} años · `:""}{sel.sexo==="F"?"Femenino":sel.sexo==="M"?"Masculino":"—"}</div>
      <div style={{fontSize:12,color:P.muted}}>CURP: {sel.curp}</div>
      {(()=>{const[stl,sbg,sfg]=stTag(sel.status);return <span style={{display:"inline-flex",alignItems:"center",gap:6,background:sbg,color:sfg,borderRadius:999,padding:"4px 12px",fontSize:12.5,fontWeight:600,marginTop:10}}>● Paciente {stl.toLowerCase()}</span>;})()}
-     <div style={{display:"flex",gap:18,borderBottom:`1px solid ${LINE}`,margin:"16px 0"}}>{["Resumen","Historial","Notas","Documentos"].map((t,i)=><span key={t} style={{fontSize:13.5,color:i===0?P.purple:P.muted,fontWeight:i===0?700:500,paddingBottom:9,borderBottom:i===0?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{t}</span>)}</div>
+     <div style={{display:"flex",gap:18,borderBottom:`1px solid ${LINE}`,margin:"16px 0"}}>{([["Resumen",""],["Historial","Timeline del paciente"],["Notas","Encuentro"],["Documentos","Documentos clínicos"]] as const).map(([t,h2],i)=><span key={t} onClick={h2?()=>goExpSec(sel,h2):undefined} style={{fontSize:13.5,color:i===0?P.purple:P.muted,fontWeight:i===0?700:500,paddingBottom:9,borderBottom:i===0?`2px solid ${P.purple}`:"0",cursor:h2?"pointer":"default"}}>{t}</span>)}</div>
      <div style={{fontSize:14,fontWeight:700,margin:"4px 0 10px"}}>Información general</div>
      {(()=>{const sd=(patientId===sel.patientId?snap?.demographics:undefined);const dob=sd?.birthDate?`${new Date(sd.birthDate).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})}${sel.age!=null?` (${sel.age} años)`:""}`:(sel.age!=null?`${sel.age} años`:"—");return [["Fecha de nacimiento",dob],["Sexo",sel.sexo==="F"?"Femenino":sel.sexo==="M"?"Masculino":"—"],["Teléfono",sd?.phone||"—"],["Correo",sd?.email||"—"],["Dirección",sd?.address||"—"],["Ocupación",sd?.occupation||"—"],["Estado civil",sd?.maritalStatus||"—"]].map(([k,v])=><div key={k} style={{display:"flex",fontSize:13,padding:"5px 0"}}><span style={dk}>{k}</span><span style={{fontWeight:500}}>{v}</span></div>);})()}
      <div style={{fontSize:14,fontWeight:700,margin:"16px 0 10px"}}>Antecedentes relevantes</div>
      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-      {([["Alergias","#FDECEE","#D23651","Alergias"],["Problemas","#EEEBFD","#6C5CF6","Lista de problemas"],["Medicamentos","#E7F0FD","#1769E0","Medicación"],["Vacunas","#E6F6EE","#16A66A","Vacunas"]] as const).map(([lbl,bg,fg,h2])=><div key={lbl} onClick={()=>openExp(sel)} style={{display:"flex",alignItems:"center",gap:8,borderRadius:11,padding:"10px 12px",fontSize:13,fontWeight:600,background:bg,color:fg,cursor:"pointer"}}>{lbl}</div>)}
+      {([["Alergias","#FDECEE","#D23651","Alergias"],["Problemas","#EEEBFD","#6C5CF6","Lista de problemas"],["Medicamentos","#E7F0FD","#1769E0","Medicación"],["Vacunas","#E6F6EE","#16A66A","Vacunas"]] as const).map(([lbl,bg,fg,h2])=><div key={lbl} onClick={()=>goExpSec(sel,h2)} style={{display:"flex",alignItems:"center",gap:8,borderRadius:11,padding:"10px 12px",fontSize:13,fontWeight:600,background:bg,color:fg,cursor:"pointer"}}>{lbl}</div>)}
      </div>
      <div style={{fontSize:14,fontWeight:700,margin:"16px 0 10px"}}>Última consulta</div>
      <div style={{background:"#F7F8FC",border:`1px solid ${LINE}`,borderRadius:12,padding:14,fontSize:13}}><b>{clock.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</b><div style={{color:P.muted,marginTop:6}}>Motivo: <b style={{color:P.ink}}>{sel.motivo}</b><br/>Médico: {docDisplay}</div><button style={{marginTop:10,width:"100%",justifyContent:"center",display:"flex",border:0,background:P.purple,color:"#fff",borderRadius:9,padding:"10px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}} onClick={()=>openExp(sel)}>Ver consulta</button></div>
      <div style={{fontSize:14,fontWeight:700,margin:"16px 0 10px"}}>Próxima cita</div>
-     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13,color:P.muted,gap:10}}><span>No tiene citas programadas</span><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"7px 12px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>Agendar cita</button></div>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13,color:P.muted,gap:10}}><span>No tiene citas programadas</span><button onClick={()=>agendarPara(sel)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"7px 12px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>Agendar cita</button></div>
     </div>
    </div>;
   })() : view==="consulta" ? (()=>{
@@ -3687,7 +3713,7 @@ export default function Workspace(){
     <input style={input} value={regName} onChange={e=>setRegName(e.target.value)} placeholder="Nombre completo" />
     <input style={input} type="date" value={regDob} onChange={e=>setRegDob(e.target.value)} />
     <select style={input} value={regSex} onChange={e=>setRegSex(e.target.value)}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select>
-    <button style={btn} disabled={busy!==""||!regName} onClick={registerPatient}>{busy==="pt-reg"?"Registrando…":"Registrar"}</button>
+    <button style={btn} disabled={busy!==""||!regName} onClick={()=>registerPatient()}>{busy==="pt-reg"?"Registrando…":"Registrar"}</button>
    </div>
    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:10}}>
     <input style={input} value={regExtra.curp} onChange={e=>setRegExtra(x=>({...x,curp:e.target.value.toUpperCase()}))} placeholder="CURP" maxLength={18} />
