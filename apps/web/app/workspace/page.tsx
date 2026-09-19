@@ -505,6 +505,8 @@ export default function Workspace(){
  const[pfResults,setPfResults]=useState<IcdEntry[]>([]);const[pfBusy,setPfBusy]=useState(false);const[pfMsg,setPfMsg]=useState("");
  // Vista Vacunas (S-VACUNAS) — registro clínica-wide cableado a GET /api/v1/immunizations
  const[immReg,setImmReg]=useState<ImmRegistry|null>(null);const[immSel,setImmSel]=useState(0);
+ const[vacNew,setVacNew]=useState(false);const[vacBusy,setVacBusy]=useState(false);const[vacMsg,setVacMsg]=useState<string|null>(null);
+ const[vacForm,setVacForm]=useState<{patientId:string;vaccineCode:string;dose:string;lot:string;site:string}>({patientId:"",vaccineCode:"",dose:"1/1",lot:"",site:"Brazo izquierdo"});
  const[immSearch,setImmSearch]=useState("");const[immStatusF,setImmStatusF]=useState("Todos");
  // Vista Signos vitales (S-SIGNOS) — historial por paciente cableado a GET /patients/:id/vitals + form -> POST /vitals
  const[vitHist,setVitHist]=useState<VitalHistory|null>(null);
@@ -633,7 +635,7 @@ export default function Workspace(){
  },[view,ready,session,agendaDate]);
  // Inicio, Pacientes, Órdenes y Agenda: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
-  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda"&&view!=="alergias")||!ready||!session)return;
+  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda"&&view!=="alergias"&&view!=="vacunas")||!ready||!session)return;
   let cancelled=false;
   (async()=>{
    try{
@@ -933,6 +935,25 @@ export default function Workspace(){
    }
    const n=cOrdSel.length;setCOrdSel([]);setCOrdMsg(`${n} orden(es) creada(s) y registrada(s) en el expediente ✓`);
   }catch(e){setCOrdMsg(String(e));}finally{setCOrdBusy(false);}
+ };
+ // ===== Vacunas: registro inline real (POST /immunizations; si hay lote+sitio, administra) + recarga =====
+ const reloadImmunizations=async()=>{const r=await apiRequest("/api/v1/immunizations",{method:"GET"});if(r.status===200)setImmReg(r.body as unknown as ImmRegistry);};
+ const createImmunizationInline=async()=>{
+  if(!vacForm.patientId||!vacForm.vaccineCode.trim()){setVacMsg("Selecciona un paciente e indica la vacuna.");return;}
+  setVacBusy(true);setVacMsg(null);
+  try{
+   const id=uuid();
+   const r=await apiRequest("/api/v1/immunizations",{method:"POST",body:{immunizationId:id,patientId:vacForm.patientId,vaccineCode:vacForm.vaccineCode.trim(),dose:vacForm.dose.trim()||"1/1",occurredAt:nowIso()}});
+   if(r.status>=400){setVacMsg(errMsg(r));return;}
+   let applied=false;
+   if(vacForm.lot.trim()&&vacForm.site.trim()){
+    const a=await apiRequest(`/api/v1/immunizations/${id}/administration`,{method:"POST",body:{lot:vacForm.lot.trim(),site:vacForm.site.trim(),occurredAt:nowIso()},ifMatch:Number(r.body["version"]??1)});
+    if(a.status>=400){setVacMsg(`Vacuna registrada (pendiente); no se pudo administrar: ${errMsg(a)}`);await reloadImmunizations();setVacBusy(false);return;}
+    applied=true;
+   }
+   await reloadImmunizations();setVacNew(false);setVacForm({patientId:"",vaccineCode:"",dose:"1/1",lot:"",site:"Brazo izquierdo"});
+   setVacMsg(applied?"Vacuna registrada y aplicada ✓":"Vacuna registrada como pendiente ✓ (captura lote y sitio para marcarla aplicada).");
+  }catch(e){setVacMsg(String(e));}finally{setVacBusy(false);}
  };
  // ===== Alergias: creación inline real (POST /allergies) + recarga del registro clínica-wide =====
  const reloadAllergies=async()=>{const r=await apiRequest("/api/v1/allergies",{method:"GET"});if(r.status===200)setAlergReg(r.body as unknown as AllergyRegistry);};
@@ -2701,9 +2722,25 @@ export default function Workspace(){
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
       <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⊟ Esquemas por edad</button>
       <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>▦ Calendario nacional</button>
-      <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("consulta");setCTab("actual");}}>+ Registrar vacuna ▾</button>
+      <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setVacNew(v=>!v);setVacMsg(null);}}>{vacNew?"Cerrar":"+ Registrar vacuna"}</button>
      </div>
     </div>
+    {vacMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:vacMsg.includes("✓")?"#F0FBF4":"#EEF6FF",border:`1px solid ${vacMsg.includes("✓")?"#CDEBD8":"#CFE0F7"}`,borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:vacMsg.includes("✓")?P.green:P.blue,fontWeight:700}}>{vacMsg.includes("✓")?"✓":"ℹ"}</span><span style={{flex:1}}>{vacMsg}</span><button onClick={()=>setVacMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+    {vacNew&&<div style={{...card2,marginTop:14,padding:18}}>
+     <div style={{fontWeight:800,fontSize:16,marginBottom:14}}>Registrar vacuna</div>
+     <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:14}} className="mos-med2">
+      <div><div style={{...flbl,margin:"0 0 6px"}}>Paciente</div><select value={vacForm.patientId} onChange={e=>setVacForm({...vacForm,patientId:e.target.value})} style={selSty}><option value="">Selecciona…</option>{(patientList??[]).map(p=><option key={p.patientId} value={p.patientId}>{p.name}</option>)}</select></div>
+      <div><div style={{...flbl,margin:"0 0 6px"}}>Vacuna</div><input value={vacForm.vaccineCode} onChange={e=>setVacForm({...vacForm,vaccineCode:e.target.value})} placeholder="Ej. Influenza" style={selSty}/></div>
+      <div><div style={{...flbl,margin:"0 0 6px"}}>Dosis</div><input value={vacForm.dose} onChange={e=>setVacForm({...vacForm,dose:e.target.value})} placeholder="1/1" style={selSty}/></div>
+     </div>
+     <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>{["Influenza","SRP","Neumococo 13V","Hexavalente","Hepatitis B","Tdap","COVID-19","Herpes zóster"].map(v=><button key={v} onClick={()=>setVacForm(f=>({...f,vaccineCode:v}))} style={vacForm.vaccineCode===v?{border:`1px solid ${P.purple}`,background:"#EEEBFD",color:P.purple,borderRadius:20,padding:"6px 11px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:UI}:{border:`1px solid ${LINE}`,background:P.white,color:P.ink,borderRadius:20,padding:"6px 11px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:UI}}>{v}</button>)}</div>
+     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginTop:12}}>
+      <div><div style={{...flbl,margin:"0 0 6px"}}>Lote (opcional — para aplicar ya)</div><input value={vacForm.lot} onChange={e=>setVacForm({...vacForm,lot:e.target.value})} placeholder="Ej. A3F2K" style={selSty}/></div>
+      <div><div style={{...flbl,margin:"0 0 6px"}}>Sitio de aplicación</div><select value={vacForm.site} onChange={e=>setVacForm({...vacForm,site:e.target.value})} style={selSty}><option>Brazo izquierdo</option><option>Brazo derecho</option><option>Muslo izquierdo</option><option>Muslo derecho</option><option>Glúteo</option></select></div>
+     </div>
+     <div style={{fontSize:11.5,color:P.muted,marginTop:8}}>Sin lote se registra como <b>pendiente</b>; con lote y sitio se marca <b>aplicada</b> en el acto.</div>
+     <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void createImmunizationInline()} disabled={vacBusy||!vacForm.patientId||!vacForm.vaccineCode.trim()} style={{border:0,background:(vacBusy||!vacForm.patientId||!vacForm.vaccineCode.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(vacBusy||!vacForm.patientId||!vacForm.vaccineCode.trim())?"default":"pointer",fontFamily:UI}}>{vacBusy?"Registrando…":"Registrar vacuna"}</button><button onClick={()=>setVacNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
+    </div>}
     <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
      <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z")}<div><div style={{fontSize:24,fontWeight:800}}>{kVac}</div><div style={{fontSize:11.5,color:P.muted}}>Pacientes vacunados (en control)</div></div></div>
      <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{kPend}</div><div style={{fontSize:11.5,color:P.muted}}>Dosis pendientes (próximas 30 días)</div></div></div>

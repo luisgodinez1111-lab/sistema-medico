@@ -323,6 +323,18 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText(/Alergia registrada/)).toBeTruthy();
  });
 
+ it("vista Vacunas: registrar una vacuna real desde el módulo (POST /immunizations)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Vacunas"}));
+  fireEvent.click(screen.getByRole("button",{name:"+ Registrar vacuna"}));
+  expect(screen.getByText(/Sin lote se registra/)).toBeTruthy(); // panel abierto
+  await screen.findByRole("option",{name:"Ana López García"});
+  fireEvent.change(screen.getAllByRole("combobox")[0]!,{target:{value:"p1"}}); // paciente
+  fireEvent.click(screen.getByRole("button",{name:"Influenza"}));              // vacuna (chip)
+  fireEvent.click(screen.getByRole("button",{name:"Registrar vacuna"}));       // sin lote -> pendiente
+  expect(await screen.findByText(/Vacuna registrada/)).toBeTruthy();
+ });
+
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
   render(<Workspace/>);
   toExpediente();

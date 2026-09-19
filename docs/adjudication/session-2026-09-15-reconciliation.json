@@ -2838,6 +2838,30 @@
    "epic": "R/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-IMMUNIZATIONS-CREATE-UI-001",
+   "name": "Vacunas — registro inline real (POST /immunizations; administra si hay lote+sitio)",
+   "risk": "C5",
+   "eng_authority_note": "Profundiza el modulo Vacunas (que ya leia el registro clinica-wide) con creacion REAL inline. '+ Registrar vacuna' abre un creador (paciente real + vacuna con chips sugeridos + dosis + lote/sitio opcionales) que persiste el esquema: POST /api/v1/immunizations (DUE) y, si se captura lote y sitio, encadena POST /immunizations/:id/administration (con if-match=version) para dejarla ADMINISTRADA (Completa); sin lote queda Pendiente. Recarga el registro clinica-wide. Aviso que distingue pendiente vs aplicada. Requiere paciente + vacuna; sin ellos el boton esta deshabilitado.",
+   "invariants": [
+    "La vacuna se persiste como evento real (POST /immunizations -> DUE) con idempotencia",
+    "La administracion es una transicion real (administration con if-match=version) -> ADMINISTERED; sin lote/sitio queda pendiente",
+    "El registro clinica-wide se recarga tras crear; nada queda solo en la UI",
+    "Requiere patientId + vaccineCode; si la administracion falla, la vacuna queda registrada como pendiente (se informa)"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (vacForm + createImmunizationInline + reloadImmunizations; modulo Vacunas con creador inline; patientList cargado en la vista)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Vacunas: registrar vacuna -> POST /immunizations)",
+    "scripts/v22/live-immunization-registry-proof.mts",
+    "scripts/v22/live-immunization-forecast-proof.mts"
+   ],
+   "runtime_evidence": "Render test 36/36 (jsdom): en Vacunas, + Registrar vacuna -> elegir paciente + Influenza -> Registrar -> POST /immunizations -> aviso de vacuna registrada. Backends reutilizados ya probados en vivo: live-immunization-registry-proof (registro + estado + lote/fecha + cobertura) y live-immunization-forecast-proof (pronostico por edad).",
+   "epic": "S/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
