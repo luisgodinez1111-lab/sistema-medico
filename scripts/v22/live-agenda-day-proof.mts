@@ -8,6 +8,9 @@ const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const apR=await import("../../apps/web/app/api/v1/appointments/route");
 const ciR=await import("../../apps/web/app/api/v1/appointments/[appointmentId]/check-in/route");
+const coR=await import("../../apps/web/app/api/v1/appointments/[appointmentId]/completion/route");
+const caR=await import("../../apps/web/app/api/v1/appointments/[appointmentId]/cancellation/route");
+const nsR=await import("../../apps/web/app/api/v1/appointments/[appointmentId]/no-show/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(scopes=["patient:write","appointment:write","appointment:read"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
@@ -21,21 +24,31 @@ try{
  const phys=tok();
  const p1=crypto.randomUUID();await reg(phys,p1,"María Fernández López");
  const p2=crypto.randomUUID();await reg(phys,p2,"Juan Pérez García");
- const a1=crypto.randomUUID(),a2=crypto.randomUUID(),a3=crypto.randomUUID();
+ const a1=crypto.randomUUID(),a2=crypto.randomUUID(),a3=crypto.randomUUID(),a4=crypto.randomUUID(),a5=crypto.randomUUID();
  const s1=await sched(phys,a1,p1,`${DATE}T09:00:00.000Z`,"Primera vez","Consultorio 1","PRIMERA_VEZ");ok(s1.status===201,"SCHEDULE_201");
  await sched(phys,a2,p2,`${DATE}T10:00:00.000Z`,"Control DM2","Consultorio 1","CONTROL");
  await sched(phys,a3,p1,`${DATE}T11:00:00.000Z`,"Vacuna influenza","Consultorio 2","VACUNACION");
- // transiciona a1 -> CHECKED_IN (en espera)
- await ciR.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:at})}),{params:Promise.resolve({appointmentId:a1})});
+ await sched(phys,a4,p2,`${DATE}T12:00:00.000Z`,"Cancelar","Consultorio 1","CONSULTA_GENERAL");
+ await sched(phys,a5,p1,`${DATE}T13:00:00.000Z`,"Inasistencia","Consultorio 1","CONSULTA_GENERAL");
+ const post=(mod:{POST:(r:Request,c:{params:Promise<{appointmentId:string}>})=>Promise<Response>},id:string,ifm:string,body:Record<string,unknown>={})=>mod.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":ifm}),body:JSON.stringify({occurredAt:at,...body})}),{params:Promise.resolve({appointmentId:id})});
+ // a1: SCHEDULED(v1) -> CHECKED_IN(v2) -> COMPLETED(v3)
+ await post(ciR,a1,"1");await post(coR,a1,"2");
+ // a4 -> CANCELLED ; a5 -> NO_SHOW
+ await post(caR,a4,"1",{reason:"Reprogramada por el paciente"});
+ await post(nsR,a5,"1");
  const g=await agenda(phys,DATE);
  ok(g.status===200,"AGENDA_200");
- const A=g.body.appointments as {appointmentId:string;patientName:string;startAt:string;consultorio:string;apptType:string;status:string}[];
- ok(A.length===3,"THREE_APPTS");
+ const A=g.body.appointments as {appointmentId:string;patientName:string;startAt:string;consultorio:string;apptType:string;status:string;version:number}[];
+ ok(A.length===5,"FIVE_APPTS");
  ok(A[0]!.startAt<A[1]!.startAt&&A[1]!.startAt<A[2]!.startAt,"SORTED_BY_TIME");
  ok(A[0]!.patientName==="María Fernández López","PATIENT_NAME_JOINED");
  ok(A[0]!.consultorio==="Consultorio 1"&&A[0]!.apptType==="PRIMERA_VEZ","CONSULTORIO_TYPE");
- ok(A.find(x=>x.appointmentId===a1)!.status==="CHECKED_IN","STATUS_CHECKED_IN");
- ok(g.body.counts.programadas===3&&g.body.counts.enEspera===1,"COUNTS");
+ const byId=(id:string)=>A.find(x=>x.appointmentId===id)!;
+ ok(byId(a1).status==="COMPLETED"&&byId(a1).version===3,"A1_COMPLETED_V3");
+ ok(byId(a2).status==="SCHEDULED"&&byId(a2).version===1,"A2_SCHEDULED_V1");
+ ok(byId(a4).status==="CANCELLED"&&byId(a4).version===2,"A4_CANCELLED_V2");
+ ok(byId(a5).status==="NO_SHOW"&&byId(a5).version===2,"A5_NOSHOW_V2");
+ ok(g.body.counts.programadas===5&&g.body.counts.atendidas===1&&g.body.counts.canceladas===2,"COUNTS");
  // otra fecha -> vacía
  const empty=await agenda(phys,"2026-11-21");ok(empty.body.appointments.length===0,"OTHER_DAY_EMPTY");
  // sin scope -> 403

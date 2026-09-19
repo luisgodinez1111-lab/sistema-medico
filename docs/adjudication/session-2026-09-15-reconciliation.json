@@ -2619,6 +2619,32 @@
    "epic": "AP/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-AGENDA-LIFECYCLE-UI-001",
+   "name": "Agenda — navegación de fecha en vivo + ciclo de vida de la cita + creación (interconectado)",
+   "risk": "C5",
+   "eng_authority_note": "Eleva la vista Agenda de una rejilla mayormente estática a un módulo funcional de punta a punta. Navegación de fecha REAL: flechas de día, boton Hoy y selección en el mini-calendario (con navegación de mes) cambian agendaDate y RE-CONSULTAN GET /appointments?date= (el efecto depende de agendaDate). ordersRegistry-equivalente: agendaForDate ahora expone version por cita (conteo de eventos) para concurrencia optimista. Clic en una cita (rejilla o lista) abre un panel de detalle vivo con acciones REALES por estado segun el FSM: SCHEDULED -> Registrar llegada (check-in) / Cancelar / Inasistencia; CHECKED_IN -> Marcar atendida (completion) / Cancelar; todas con if-match=version. '+ Nueva cita' abre un creador (paciente real + hora + consultorio + tipo + motivo) -> POST /appointments y recarga. Interconexion: 'Abrir consulta' navega al paciente y abre su Consulta. Vista 'Lista de citas' real (tabla del dia clicable); 'Vista semanal/mensual' declaradas proximamente (deshabilitadas, honestas). La linea de hora-actual solo se pinta cuando el dia seleccionado es hoy. Cuando no hay citas reales, la rejilla muestra un ejemplo claramente rotulado y el panel invita a crear una real.",
+   "invariants": [
+    "Toda accion de cita pasa por el kernel event-sourced (schedule/check-in/completion/cancellation/no-show) con auditoria e idempotencia",
+    "Transiciones con concurrencia optimista (if-match=version); version=nº de eventos del agregado",
+    "FSM de la cita respetado: SCHEDULED->{CHECKED_IN,CANCELLED,NO_SHOW}; CHECKED_IN->{COMPLETED,CANCELLED}; terminales sin acciones (assertAppointmentTransition)",
+    "appointment:read para el GET del dia; appointment:write para crear/transicionar; scope faltante -> 403",
+    "Navegacion de fecha re-consulta el backend (agendaDate en las dependencias del efecto); Inicio sigue mostrando hoy",
+    "Estados y conteos derivados del kernel; sin datos ficticios como reales (ejemplo de la rejilla rotulado cuando no hay citas)"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (agendaForDate: +version por conteo de eventos)",
+    "apps/web/app/workspace/page.tsx (vista Agenda reescrita: navegacion de fecha, detalle+ciclo de vida, creador, vista lista; reloadAgenda/apptTransition/createAppt)"
+   ],
+   "tests": [
+    "scripts/v22/live-agenda-day-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Agenda: citas/detalle/ciclo de vida/nueva cita/lista)"
+   ],
+   "runtime_evidence": "scripts/v22/live-agenda-day-proof.mts — PASS 13/13 vs Neon 2026-09-18 (agenda de 5 citas; a1 SCHEDULED->CHECKED_IN->COMPLETED version 3; a2 SCHEDULED version 1; a4 CANCELLED version 2; a5 NO_SHOW version 2; orden por hora; join de paciente; consultorio/tipo; conteos programadas=5/atendidas=1/canceladas=2; otro dia vacio; sin-scope 403). En el smoke runner de CI. Render test 27/27 (jsdom): citas reales, detalle con Registrar llegada, creador de nueva cita, vista Lista. Fidelidad verificada por preview + captura.",
+   "epic": "CM/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

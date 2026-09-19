@@ -17,6 +17,10 @@ vi.mock("../../apps/web/lib/session-client",()=>({
     {orderId:"od1",patientId:"p1",patientName:"Ana López García",orderType:"LAB",typeLabel:"Laboratorio",detail:"Biometría hemática completa",status:"Completada",createdAt:"2026-09-17T00:00:00Z",version:3},
     {orderId:"od2",patientId:"p2",patientName:"Carlos Mendoza",orderType:"IMAGING",typeLabel:"Imagenología",detail:"Radiografía de tórax",status:"Solicitada",createdAt:"2026-09-16T00:00:00Z",version:1},
    ],total:2,solicitadas:1,enviadas:0,completadas:1}};
+  if(path.includes("/api/v1/appointments")){const d=new Date().toISOString().slice(0,10);return{status:200,body:{date:d,appointments:[
+   {appointmentId:"ap1",patientId:"p1",patientName:"Ana López García",startAt:`${d}T09:00:00.000Z`,endAt:`${d}T09:30:00.000Z`,reason:"Control DM2",consultorio:"Consultorio 1",apptType:"CONTROL",status:"SCHEDULED",version:1},
+   {appointmentId:"ap2",patientId:"p2",patientName:"Carlos Mendoza",startAt:`${d}T10:00:00.000Z`,endAt:`${d}T10:30:00.000Z`,reason:"Radiografía de control",consultorio:"Consultorio 2",apptType:"PROCEDIMIENTO",status:"CHECKED_IN",version:2},
+  ],counts:{programadas:2,atendidas:0,enEspera:1,canceladas:0}}};}
   if(path.includes("/api/v1/patients")&&!path.match(/patients\//))return{status:200,body:{patients:[
    {patientId:"p1",name:"Ana López García",status:"ACTIVE",birthDate:"1990-01-01",sexAtBirth:"FEMALE"},
    {patientId:"p2",name:"Carlos Mendoza",status:"ACTIVE",birthDate:"1970-01-01",sexAtBirth:"MALE"},
@@ -187,6 +191,26 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText(/Interacciones por clase/)).toBeTruthy();
   expect(screen.getByText(/Vigilancia obligada/)).toBeTruthy();
   expect(screen.getAllByText("ANTICOAGULANT").length).toBeGreaterThan(0); // clase real de la matriz
+ });
+
+ it("vista Agenda: citas reales cableadas, navegación de fecha, detalle con ciclo de vida y nueva cita",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Agenda"}));
+  expect(screen.getByRole("heading",{name:"Agenda"})).toBeTruthy();
+  // citas reales del registro (aparecen en la rejilla y en "Próximas citas")
+  expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Carlos Mendoza").length).toBeGreaterThan(0);
+  // seleccionar la cita programada muestra su detalle con la acción real de ciclo de vida
+  fireEvent.click(screen.getAllByText("Ana López García")[0]!);
+  expect(screen.getByText("Detalle de la cita")).toBeTruthy();
+  expect(screen.getByText("Registrar llegada")).toBeTruthy(); // transición check-in (estado SCHEDULED)
+  // "+ Nueva cita" abre el creador real (paciente + hora + tipo + motivo)
+  fireEvent.click(screen.getByRole("button",{name:"+ Nueva cita"}));
+  expect(screen.getByText(/Nueva cita ·/)).toBeTruthy();
+  expect(screen.getByText("Tipo de cita")).toBeTruthy();
+  // vista Lista de citas: tabla real del día
+  fireEvent.click(screen.getByText("Lista de citas"));
+  expect(screen.getAllByText("Control DM2").length).toBeGreaterThan(0);
  });
 
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{

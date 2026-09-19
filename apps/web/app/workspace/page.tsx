@@ -559,8 +559,15 @@ export default function Workspace(){
  const[ordQuery,setOrdQuery]=useState(""); // búsqueda por paciente/estudio en la vista Órdenes
  const[ordStatus,setOrdStatus]=useState(""); // filtro por estado ("":todos)
  const[cForm,setCForm]=useState({motivo:"",historia:"",antec:"",plan:""}); // borrador de la consulta actual
- type AgendaAppt={appointmentId:string;patientId:string;patientName:string;startAt:string;endAt:string|null;reason:string;consultorio:string|null;apptType:string|null;status:string};
+ type AgendaAppt={appointmentId:string;patientId:string;patientName:string;startAt:string;endAt:string|null;reason:string;consultorio:string|null;apptType:string|null;status:string;version:number};
  const[agenda,setAgenda]=useState<{appointments:AgendaAppt[];counts:{programadas:number;atendidas:number;enEspera:number;canceladas:number}}|null>(null);
+ const[agendaDate,setAgendaDate]=useState<string>(new Date().toISOString().slice(0,10)); // fecha de la agenda (YYYY-MM-DD)
+ const[agendaView,setAgendaView]=useState<"dia"|"lista">("dia"); // vista de la agenda (rejilla del día / lista)
+ const[apptSel,setApptSel]=useState<string|null>(null);          // cita seleccionada (panel de detalle)
+ const[apptBusy,setApptBusy]=useState(false);                     // transición de cita en curso
+ const[apptMsg,setApptMsg]=useState<string|null>(null);           // aviso tras una acción de la agenda
+ const[apptNew,setApptNew]=useState(false);                       // panel "Nueva cita" abierto
+ const[apptForm,setApptForm]=useState<{patientId:string;time:string;reason:string;consultorio:string;apptType:string}>({patientId:"",time:"09:00",reason:"",consultorio:"Consultorio 1",apptType:"CONSULTA_GENERAL"});
  const[clock,setClock]=useState<Date>(()=>new Date());
  const[topMenu,setTopMenu]=useState(false);
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string}[]|null>(null);
@@ -605,15 +612,15 @@ export default function Workspace(){
  // Agenda del día real (vistas Agenda e Inicio).
  useEffect(()=>{
   if((view!=="agenda"&&view!=="inicio")||!ready||!session)return;
-  let cancelled=false;const date=new Date().toISOString().slice(0,10);
+  let cancelled=false;const date=view==="agenda"?agendaDate:new Date().toISOString().slice(0,10);
   (async()=>{try{const r=await apiRequest(`/api/v1/appointments?date=${date}`,{method:"GET"});
    if(!cancelled&&r.status<400)setAgenda({appointments:(r.body["appointments"] as AgendaAppt[])??[],counts:(r.body["counts"] as{programadas:number;atendidas:number;enEspera:number;canceladas:number})??{programadas:0,atendidas:0,enEspera:0,canceladas:0}});
   }catch{/* agenda no disponible */}})();
   return()=>{cancelled=true;};
- },[view,ready,session]);
- // Inicio, Pacientes y Órdenes: cargan worklist (tareas del consultorio) + lista de pacientes reales.
+ },[view,ready,session,agendaDate]);
+ // Inicio, Pacientes, Órdenes y Agenda: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
-  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes")||!ready||!session)return;
+  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda")||!ready||!session)return;
   let cancelled=false;
   (async()=>{
    try{
@@ -1152,6 +1159,27 @@ export default function Workspace(){
    await reloadOrders();setOrdMsg(okMsg);
   }catch(e){setOrdMsg(String(e));}finally{setOrdBusy(false);}
  };
+ // ===== Acciones REALES de la vista Agenda (crear cita + ciclo de vida) =====
+ const reloadAgenda=async()=>{const r=await apiRequest(`/api/v1/appointments?date=${agendaDate}`,{method:"GET"});if(r.status<400)setAgenda({appointments:(r.body["appointments"] as AgendaAppt[])??[],counts:(r.body["counts"] as{programadas:number;atendidas:number;enEspera:number;canceladas:number})??{programadas:0,atendidas:0,enEspera:0,canceladas:0}});};
+ const apptTransition=async(id:string,version:number,path:"check-in"|"completion"|"cancellation"|"no-show",okMsg:string)=>{
+  setApptBusy(true);setApptMsg(null);
+  try{
+   const body=path==="cancellation"?{reason:"Cancelada desde la agenda",occurredAt:nowIso()}:{occurredAt:nowIso()};
+   const r=await apiRequest(`/api/v1/appointments/${id}/${path}`,{method:"POST",body,ifMatch:version});
+   if(r.status>=400){setApptMsg(errMsg(r));return;}
+   await reloadAgenda();setApptMsg(okMsg);
+  }catch(e){setApptMsg(String(e));}finally{setApptBusy(false);}
+ };
+ const createAppt=async()=>{
+  if(!apptForm.patientId||!apptForm.reason.trim()){setApptMsg("Selecciona un paciente e indica el motivo.");return;}
+  setApptBusy(true);setApptMsg(null);
+  try{
+   const id=uuid();const startAt=`${agendaDate}T${apptForm.time}:00.000Z`;const endAt=new Date(new Date(startAt).getTime()+30*60000).toISOString();
+   const r=await apiRequest("/api/v1/appointments",{method:"POST",body:{appointmentId:id,patientId:apptForm.patientId,startAt,endAt,reason:apptForm.reason.trim(),consultorio:apptForm.consultorio,apptType:apptForm.apptType,occurredAt:nowIso()}});
+   if(r.status>=400){setApptMsg(errMsg(r));return;}
+   await reloadAgenda();setApptSel(id);setApptNew(false);setApptForm({patientId:"",time:"09:00",reason:"",consultorio:"Consultorio 1",apptType:"CONSULTA_GENERAL"});setApptMsg("Cita agendada.");
+  }catch(e){setApptMsg(String(e));}finally{setApptBusy(false);}
+ };
  const loadPanel=()=>call("panel",async()=>{
   const r=await apiRequest("/api/v1/worklist",{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
@@ -1595,23 +1623,30 @@ export default function Workspace(){
     </div>)}
    </div>;
   })() : view==="agenda" ? (()=>{
-   // ===== VISTA AGENDA (calendario / citas) — S5.png =====
+   // ===== VISTA AGENDA — cableado REAL: navegación de fecha (refetch), ciclo de vida de la cita y creación =====
    const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
    const dow=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
-   const dd=clock.getDate(),mm=clock.getMonth(),yy=clock.getFullYear();
-   const fechaLarga=`${dow[clock.getDay()]!.replace(/^\w/,c=>c.toUpperCase())}, ${dd} de ${meses[mm]} de ${yy}`;
+   const selDate=new Date(agendaDate+"T12:00:00");
+   const dd=selDate.getDate(),mm=selDate.getMonth(),yy=selDate.getFullYear();
+   const todayStr=new Date().toISOString().slice(0,10);const isTodaySel=agendaDate===todayStr;
+   const fechaLarga=`${dow[selDate.getDay()]!.replace(/^\w/,c=>c.toUpperCase())}, ${dd} de ${meses[mm]} de ${yy}`;
    const firstDow=new Date(yy,mm,1).getDay();const daysInM=new Date(yy,mm+1,0).getDate();
    const nowTop=48+((Math.max(7,Math.min(18,clock.getHours()+clock.getMinutes()/60))-7)*56);
    const horaAhora=clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase();
-   type Ap={h:number;t:string;n:string;m:string;c:"blue"|"green"|"purple"|"amber"|"red"};
+   const setDay=(iso:string)=>{setAgendaDate(iso);setApptSel(null);setApptNew(false);};
+   const shiftDay=(delta:number)=>{const d=new Date(agendaDate+"T12:00:00");d.setDate(d.getDate()+delta);setDay(d.toISOString().slice(0,10));};
+   const shiftMonth=(delta:number)=>{const d=new Date(agendaDate+"T12:00:00");d.setMonth(d.getMonth()+delta);setDay(d.toISOString().slice(0,10));};
+   const pickDay=(day:number)=>{const d=new Date(yy,mm,day,12);setDay(d.toISOString().slice(0,10));};
+   type Ap={h:number;t:string;n:string;m:string;c:"blue"|"green"|"purple"|"amber"|"red";id:string};
    const AC:Record<string,{bg:string;bd:string;fg:string}>={blue:{bg:"#EAF1FD",bd:"#1769E0",fg:"#123c73"},green:{bg:"#E7F7EE",bd:"#16A66A",fg:"#0d5c3b"},purple:{bg:"#EFEBFD",bd:"#6C5CF6",fg:"#382a8f"},amber:{bg:"#FBF2DF",bd:"#E5983B",fg:"#8a5a12"},red:{bg:"#FDEBEE",bd:"#F0455E",fg:"#9c1f34"}};
-   const demoCol1:Ap[]=[{h:8,t:"8:00–8:30",n:"Juan Pérez García",m:"Control DM2",c:"blue"},{h:9,t:"9:00–9:30",n:"Ana Ramírez Torres",m:"Resultado de laboratorio",c:"green"},{h:10,t:"10:00–10:30",n:"Carlos Díaz Martínez",m:"Dolor abdominal",c:"red"},{h:11,t:"11:00–11:30",n:"Sofía Vega Ramírez",m:"Control prenatal",c:"blue"},{h:12,t:"12:00–12:30",n:"Miguel Ruiz Herrera",m:"HTA",c:"purple"},{h:14,t:"2:00–2:30",n:"María Fernández López",m:"Primera vez",c:"purple"},{h:15,t:"3:00–3:30",n:"Laura Sánchez López",m:"Ansiedad",c:"green"},{h:16,t:"4:00–4:30",n:"Daniel López Vargas",m:"Revisión postoperatoria",c:"blue"}];
-   const demoCol2:Ap[]=[{h:8,t:"8:00–9:00 a.m.",n:"Procedimiento menor",m:"Curaciones",c:"amber"},{h:10,t:"10:00–11:00",n:"Aplicación de vacuna",m:"Influenza",c:"purple"},{h:12,t:"12:00–1:00",n:"Retiro de puntos",m:"Procedimiento",c:"red"},{h:15,t:"3:00–4:00",n:"Nebulización / Terapia",m:"Paciente pediátrico",c:"amber"}];
-   const demoCol3:Ap[]=[{h:9,t:"9:00–9:30 a.m.",n:"Control pediátrico",m:"Emilio Torres (6 años)",c:"purple"},{h:10,t:"10:30–11:00",n:"Control geriátrico",m:"Rosa Méndez (68 años)",c:"green"},{h:13,t:"1:00–1:30",n:"Resultados",m:"Luis Herrera",c:"blue"},{h:14,t:"2:30–3:00",n:"Control asma",m:"Valeria Gómez (14 años)",c:"red"},{h:16,t:"4:30–5:00",n:"Seguimiento",m:"José Ramírez",c:"green"}];
-   // Datos reales de la agenda cuando existen; si no, ejemplo pulido.
+   const ST:Record<string,[string,string,string]>={SCHEDULED:["Programada","#EAF1FD","#1769E0"],CHECKED_IN:["En espera","#FBF0DC","#B7791F"],COMPLETED:["Atendida","#E6F6EE","#16A66A"],CANCELLED:["Cancelada","#F0F1F4","#8A8FA3"],NO_SHOW:["Inasistencia","#FDE7EA","#D23651"]};
+   const stLabel=(s:string)=>ST[s]?.[0]??s;
+   const demoCol1:Ap[]=[{h:8,t:"8:00–8:30",n:"Juan Pérez García",m:"Control DM2",c:"blue",id:""},{h:9,t:"9:00–9:30",n:"Ana Ramírez Torres",m:"Resultado de laboratorio",c:"green",id:""},{h:10,t:"10:00–10:30",n:"Carlos Díaz Martínez",m:"Dolor abdominal",c:"red",id:""},{h:11,t:"11:00–11:30",n:"Sofía Vega Ramírez",m:"Control prenatal",c:"blue",id:""},{h:12,t:"12:00–12:30",n:"Miguel Ruiz Herrera",m:"HTA",c:"purple",id:""},{h:14,t:"2:00–2:30",n:"María Fernández López",m:"Primera vez",c:"purple",id:""},{h:15,t:"3:00–3:30",n:"Laura Sánchez López",m:"Ansiedad",c:"green",id:""},{h:16,t:"4:00–4:30",n:"Daniel López Vargas",m:"Revisión postoperatoria",c:"blue",id:""}];
+   const demoCol2:Ap[]=[{h:8,t:"8:00–9:00 a.m.",n:"Procedimiento menor",m:"Curaciones",c:"amber",id:""},{h:10,t:"10:00–11:00",n:"Aplicación de vacuna",m:"Influenza",c:"purple",id:""},{h:12,t:"12:00–1:00",n:"Retiro de puntos",m:"Procedimiento",c:"red",id:""},{h:15,t:"3:00–4:00",n:"Nebulización / Terapia",m:"Paciente pediátrico",c:"amber",id:""}];
+   const demoCol3:Ap[]=[{h:9,t:"9:00–9:30 a.m.",n:"Control pediátrico",m:"Emilio Torres (6 años)",c:"purple",id:""},{h:10,t:"10:30–11:00",n:"Control geriátrico",m:"Rosa Méndez (68 años)",c:"green",id:""},{h:13,t:"1:00–1:30",n:"Resultados",m:"Luis Herrera",c:"blue",id:""},{h:14,t:"2:30–3:00",n:"Control asma",m:"Valeria Gómez (14 años)",c:"red",id:""},{h:16,t:"4:30–5:00",n:"Seguimiento",m:"José Ramírez",c:"green",id:""}];
    const TYPE_COLOR:Record<string,"blue"|"green"|"purple"|"amber"|"red">={CONSULTA_GENERAL:"blue",RESULTADOS:"blue",CONTROL:"green",PRIMERA_VEZ:"purple",VACUNACION:"purple",PROCEDIMIENTO:"amber",URGENCIA:"red"};
-   const tHM=(iso:string)=>{const d=new Date(iso);let h=d.getHours();const mm=d.getMinutes().toString().padStart(2,"0");const ap=h<12?"a.m.":"p.m.";const h12=h%12||12;return `${h12}:${mm} ${ap}`;};
-   const toAp=(a:AgendaAppt):Ap=>({h:new Date(a.startAt).getHours(),t:`${tHM(a.startAt)}${a.endAt?"–"+tHM(a.endAt):""}`,n:a.patientName,m:a.reason,c:TYPE_COLOR[a.apptType??""]??"blue"});
+   const tHM=(iso:string)=>{const d=new Date(iso);const h=d.getUTCHours();const mn=d.getUTCMinutes().toString().padStart(2,"0");const ap=h<12?"a.m.":"p.m.";const h12=h%12||12;return `${h12}:${mn} ${ap}`;};
+   const toAp=(a:AgendaAppt):Ap=>({h:new Date(a.startAt).getUTCHours(),t:`${tHM(a.startAt)}${a.endAt?"–"+tHM(a.endAt):""}`,n:a.patientName,m:a.reason,c:TYPE_COLOR[a.apptType??""]??"blue",id:a.appointmentId});
    const realAppts=agenda?.appointments??[];const usingRealAg=realAppts.length>0;
    const byCons=(pred:(c:string|null)=>boolean)=>realAppts.filter(a=>pred(a.consultorio)).map(toAp);
    const col1=usingRealAg?byCons(c=>!c||/1/.test(c)):demoCol1;
@@ -1623,23 +1658,51 @@ export default function Workspace(){
    const card2:React.CSSProperties={...card,marginTop:0};
    const sect:React.CSSProperties={fontSize:15,fontWeight:700};
    const link:React.CSSProperties={color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"};
-   const slot=(a?:Ap,last?:boolean)=>{return <div style={{borderRight:last?"0":`1px solid ${LINE}`,borderBottom:`1px solid #F2F4F9`,height:56,padding:3}}>{a&&(()=>{const c=AC[a.c]!;return <div style={{borderRadius:8,padding:"6px 9px",fontSize:11,height:"100%",overflow:"hidden",borderLeft:`3px solid ${c.bd}`,background:c.bg,color:c.fg,cursor:"pointer"}}><div style={{fontSize:10,opacity:.85}}>{a.t}</div><div style={{fontWeight:700,fontSize:11.5}}>{a.n}</div><div style={{opacity:.8}}>{a.m}</div></div>;})()}</div>;};
+   const selAppt=realAppts.find(a=>a.appointmentId===apptSel)??null;
+   const openAppt=(a:AgendaAppt)=>{selectPatientRaw(a.patientId,a.patientName);setView("consulta");setCTab("actual");window.scrollTo({top:0,behavior:"smooth"});};
+   const slot=(a?:Ap,last?:boolean)=>{return <div style={{borderRight:last?"0":`1px solid ${LINE}`,borderBottom:`1px solid #F2F4F9`,height:56,padding:3}}>{a&&(()=>{const c=AC[a.c]!;const on=!!a.id&&a.id===apptSel;return <div onClick={a.id?()=>setApptSel(a.id):undefined} style={{borderRadius:8,padding:"6px 9px",fontSize:11,height:"100%",overflow:"hidden",borderLeft:`3px solid ${c.bd}`,background:c.bg,color:c.fg,cursor:a.id?"pointer":"default",outline:on?`2px solid ${P.purple}`:"none"}}><div style={{fontSize:10,opacity:.85}}>{a.t}</div><div style={{fontWeight:700,fontSize:11.5}}>{a.n}</div><div style={{opacity:.8}}>{a.m}</div></div>;})()}</div>;};
    const gdot=(c:string)=><span style={{width:8,height:8,borderRadius:"50%",background:c,flex:"0 0 auto"}}/>;
    const rkico=(bg:string,fg:string,d:string)=><span style={{width:38,height:38,borderRadius:10,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
-   const nueva=()=>{setView("exp");setTimeout(()=>scrollToSection("Agenda"),0);};
+   const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
+   const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"};
+   const dk:React.CSSProperties={color:P.muted,width:110,flex:"0 0 auto"};
+   const VPILLS:[typeof agendaView|"semana"|"mes",string][]=[["dia","Vista diaria"],["semana","Vista semanal"],["mes","Vista mensual"],["lista","Lista de citas"]];
    return <div style={{padding:"20px 24px 40px",display:"grid",gridTemplateColumns:"1fr 340px",gap:16,alignItems:"start"}} className="mos-ag">
     <div>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
-      <div><h1 style={{fontSize:29,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Agenda</h1><p style={{color:P.muted,fontSize:13.5,margin:"5px 0 0"}}>Administra tus citas, consultas y procedimientos.</p></div>
-      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}><button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Bloques de tiempo</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 14px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Todos los consultorios ▾</button><button style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={nueva}>+ Nueva cita</button></div>
+      <div><h1 style={{fontSize:29,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Agenda</h1><p style={{color:P.muted,fontSize:13.5,margin:"5px 0 0"}}>Administra tus citas: navega por fecha, registra llegada, completa o cancela, y agenda nuevas —todo en vivo.</p></div>
+      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{void reloadAgenda();setApptMsg("Agenda actualizada.");}}>↻ Actualizar</button><button style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setApptNew(v=>!v);setApptMsg(null);}}>{apptNew?"Cerrar":"+ Nueva cita"}</button></div>
      </div>
-     <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>{["Vista diaria","Vista semanal","Vista mensual","Lista de citas"].map((v,i)=><span key={v} style={{border:`1px solid ${i===0?P.purple:LINE}`,background:i===0?P.purple:P.white,color:i===0?"#fff":P.muted,borderRadius:10,padding:"9px 15px",fontSize:13.5,fontWeight:600,cursor:"pointer"}}>{v}</span>)}</div>
+     <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>{VPILLS.map(([k,l])=>{const on=agendaView===k;const dis=k==="semana"||k==="mes";return <span key={k} onClick={dis?undefined:()=>setAgendaView(k as typeof agendaView)} title={dis?"Próximamente":undefined} style={{border:`1px solid ${on?P.purple:LINE}`,background:on?P.purple:P.white,color:on?"#fff":dis?"#C7CCE0":P.muted,borderRadius:10,padding:"9px 15px",fontSize:13.5,fontWeight:600,cursor:dis?"not-allowed":"pointer"}}>{l}</span>;})}</div>
+     {apptMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:"#EEF6FF",border:"1px solid #CFE0F7",borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:P.blue,fontWeight:700}}>ℹ</span><span style={{flex:1}}>{apptMsg}</span><button onClick={()=>setApptMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+     {apptNew&&<div style={{...card2,marginTop:14,padding:18}}>
+      <div style={{fontWeight:800,fontSize:16,marginBottom:14}}>Nueva cita · {fechaLarga}</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}} className="mos-med2">
+       <div><div style={flbl}>Paciente</div><select value={apptForm.patientId} onChange={e=>setApptForm({...apptForm,patientId:e.target.value})} style={selSty}><option value="">Selecciona un paciente…</option>{(patientList??[]).map(p=><option key={p.patientId} value={p.patientId}>{p.name}</option>)}</select>{(patientList??[]).length===0&&<div style={{fontSize:11.5,color:P.muted,marginTop:5}}>No hay pacientes en el tenant. Registra uno en «Pacientes» primero.</div>}</div>
+       <div><div style={flbl}>Hora (UTC)</div><input type="time" value={apptForm.time} onChange={e=>setApptForm({...apptForm,time:e.target.value})} style={selSty}/></div>
+       <div><div style={flbl}>Consultorio</div><select value={apptForm.consultorio} onChange={e=>setApptForm({...apptForm,consultorio:e.target.value})} style={selSty}><option>Consultorio 1</option><option>Consultorio 2</option><option>Consultorio 3</option></select></div>
+       <div><div style={flbl}>Tipo de cita</div><select value={apptForm.apptType} onChange={e=>setApptForm({...apptForm,apptType:e.target.value})} style={selSty}>{[["CONSULTA_GENERAL","Consulta general"],["CONTROL","Control / Seguimiento"],["PRIMERA_VEZ","Primera vez"],["PROCEDIMIENTO","Procedimiento"],["VACUNACION","Vacunación"],["RESULTADOS","Resultados"],["URGENCIA","Urgencia"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
+      </div>
+      <div style={{marginTop:12}}><div style={flbl}>Motivo</div><input value={apptForm.reason} onChange={e=>setApptForm({...apptForm,reason:e.target.value})} placeholder="Ej. Control de diabetes" style={{...selSty,padding:"10px 11px"}}/></div>
+      <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void createAppt()} disabled={apptBusy||!apptForm.patientId||!apptForm.reason.trim()} style={{border:0,background:(apptBusy||!apptForm.patientId||!apptForm.reason.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(apptBusy||!apptForm.patientId||!apptForm.reason.trim())?"default":"pointer",fontFamily:UI}}>{apptBusy?"Agendando…":"Agendar cita"}</button><button onClick={()=>setApptNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
+     </div>}
      <div style={{...card2,marginTop:14,overflow:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:`1px solid ${LINE}`,flexWrap:"wrap"}}>
-       <span style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>‹</span><span style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>›</span>
-       <b style={{fontSize:15}}>{fechaLarga}</b><span style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"6px 12px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Hoy</span>
-       <div style={{display:"flex",background:P.canvas,borderRadius:9,padding:3,marginLeft:"auto"}}>{["Día","Semana","Mes"].map((s,i)=><span key={s} style={{padding:"6px 14px",fontSize:13,fontWeight:600,borderRadius:7,cursor:"pointer",background:i===0?P.purple:"transparent",color:i===0?"#fff":P.muted}}>{s}</span>)}</div>
+       <span onClick={()=>shiftDay(-1)} style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>‹</span><span onClick={()=>shiftDay(1)} style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>›</span>
+       <b style={{fontSize:15}}>{fechaLarga}</b><span onClick={()=>setDay(todayStr)} style={{border:`1px solid ${isTodaySel?P.purple:LINE}`,color:isTodaySel?P.purple:P.ink,borderRadius:8,padding:"6px 12px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Hoy</span>
+       <span style={{marginLeft:"auto",fontSize:12.5,color:P.muted}}>{usingRealAg?`${realAppts.length} cita(s)`:"sin citas · ejemplo"}</span>
       </div>
+      {agendaView==="lista"?(
+       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Hora","Paciente","Motivo","Consultorio","Estado"].map(h=><th key={h} style={{textAlign:"left",fontSize:11,color:"#9AA0BC",fontWeight:600,padding:"11px 14px",borderBottom:`1px solid ${LINE}`}}>{h}</th>)}</tr></thead><tbody>
+        {!usingRealAg?<tr><td colSpan={5} style={{padding:"36px 14px",textAlign:"center",color:P.muted,fontSize:13}}>Sin citas para este día. Usa «+ Nueva cita» para agendar.</td></tr>:realAppts.map(a=>{const st=ST[a.status]??["",P.canvas,P.muted];const on=a.appointmentId===apptSel;return <tr key={a.appointmentId} onClick={()=>setApptSel(a.appointmentId)} style={{cursor:"pointer",background:on?"#F6F5FE":"transparent"}}>
+         <td style={{padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5}}>{tHM(a.startAt)}</td>
+         <td style={{padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,fontWeight:600}}>{a.patientName}</td>
+         <td style={{padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5}}>{a.reason}</td>
+         <td style={{padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,color:P.muted}}>{a.consultorio??"—"}</td>
+         <td style={{padding:"10px 14px",borderBottom:`1px solid #F2F4F9`}}><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:st[1],color:st[2]}}>{st[0]}</span></td>
+        </tr>;})}
+       </tbody></table></div>
+      ):(<>
       <div style={{display:"grid",gridTemplateColumns:"70px 1fr 1fr 1fr",position:"relative"}}>
        <div style={{padding:"12px 14px",borderBottom:`1px solid ${LINE}`,borderRight:`1px solid ${LINE}`,fontSize:13,fontWeight:700}}>Hora</div>
        {[["#16A66A","Consultorio 1","Consulta general"],["#1769E0","Consultorio 2","Procedimientos"],["#6C5CF6","Consultorio 3","Control y seguimiento"]].map(([c,t,s],i)=><div key={i} style={{padding:"12px 14px",borderBottom:`1px solid ${LINE}`,borderRight:i<2?`1px solid ${LINE}`:"0",fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:7}}>{gdot(c as string)}<div>{t as string}<span style={{fontSize:11,color:P.muted,fontWeight:400,display:"block",marginTop:1}}>{s as string}</span></div></div>)}
@@ -1647,29 +1710,39 @@ export default function Workspace(){
         <div style={{borderRight:`1px solid ${LINE}`,borderBottom:last?"0":`1px solid #F2F4F9`,padding:"6px 8px",fontSize:11.5,color:P.muted,textAlign:"right",height:56}}>{hLabel(h)}</div>
         {slot(apAt(col1,h))}{slot(apAt(col2,h))}{slot(apAt(col3,h),true)}
        </Fragment>;})}
-       <div style={{position:"absolute",left:70,right:0,top:nowTop,height:2,background:"#F0455E",zIndex:5}}><span style={{position:"absolute",left:0,top:-9,background:"#F0455E",color:"#fff",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:5}}>{horaAhora}</span></div>
+       {isTodaySel&&<div style={{position:"absolute",left:70,right:0,top:nowTop,height:2,background:"#F0455E",zIndex:5}}><span style={{position:"absolute",left:0,top:-9,background:"#F0455E",color:"#fff",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:5}}>{horaAhora}</span></div>}
       </div>
       <div style={{display:"flex",gap:18,flexWrap:"wrap",padding:"14px 16px",fontSize:12,color:P.muted}}>{[["#1769E0","Consulta general"],["#16A66A","Control / Seguimiento"],["#6C5CF6","Primera vez"],["#E5983B","Procedimiento"],["#8B7DF8","Vacunación"],["#20B7D9","Resultados"],["#F0455E","Urgencia"]].map(([c,l])=><span key={l} style={{display:"flex",alignItems:"center",gap:7}}>{gdot(c as string)}{l as string}</span>)}</div>
+      </>)}
      </div>
     </div>
     <div style={{display:"flex",flexDirection:"column",gap:16}} className="mos-agr">
-     <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,fontWeight:700}}><span>‹ {meses[mm]!.replace(/^\w/,c=>c.toUpperCase())} {yy}</span><span style={{color:P.muted}}>‹ ›</span></div>
+     <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,fontWeight:700}}><span>{meses[mm]!.replace(/^\w/,c=>c.toUpperCase())} {yy}</span><span style={{color:P.muted,display:"flex",gap:10}}><span onClick={()=>shiftMonth(-1)} style={{cursor:"pointer"}}>‹</span><span onClick={()=>shiftMonth(1)} style={{cursor:"pointer"}}>›</span></span></div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,textAlign:"center",fontSize:12}}>
        {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map(d=><span key={d} style={{padding:"7px 0",color:P.muted,fontWeight:600}}>{d}</span>)}
        {Array.from({length:firstDow}).map((_,i)=><span key={"e"+i}/>)}
-       {Array.from({length:daysInM}).map((_,i)=>{const day=i+1;const isToday=day===dd;return <span key={day} style={{padding:"7px 0",borderRadius:7,cursor:"pointer",background:isToday?P.purple:"transparent",color:isToday?"#fff":P.ink,fontWeight:isToday?700:400}}>{day}</span>;})}
+       {Array.from({length:daysInM}).map((_,i)=>{const day=i+1;const isSel=day===dd;const isToday=new Date(yy,mm,day,12).toISOString().slice(0,10)===todayStr;return <span key={day} onClick={()=>pickDay(day)} style={{padding:"7px 0",borderRadius:7,cursor:"pointer",background:isSel?P.purple:"transparent",color:isSel?"#fff":P.ink,fontWeight:isSel||isToday?700:400,outline:isToday&&!isSel?`1px solid ${P.purple}`:"none"}}>{day}</span>;})}
       </div>
      </div>
-     <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 10px"}}><span style={sect}>Resumen del día</span><span style={link}>Ver reportes →</span></div>
+     {selAppt&&(()=>{const st=ST[selAppt.status]??["",P.canvas,P.muted];return <div style={{...card2,padding:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}><span style={sect}>Detalle de la cita</span><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:st[1],color:st[2]}}>{st[0]}</span></div>
+      <div style={{display:"flex",gap:11,marginTop:12}}><span style={{width:40,height:40,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:13,fontWeight:700,flex:"0 0 auto"}}>{(selAppt.patientName||"P").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()}</span><div><div style={{fontWeight:800,fontSize:14.5}}>{selAppt.patientName}</div><div style={{fontSize:12,color:P.muted}}>{tHM(selAppt.startAt)}{selAppt.endAt?"–"+tHM(selAppt.endAt):""}</div></div></div>
+      <div style={{marginTop:12}}>{[["Motivo",selAppt.reason],["Consultorio",selAppt.consultorio??"—"],["Estado",stLabel(selAppt.status)]].map(([k,v])=><div key={k} style={{display:"flex",fontSize:12.5,padding:"4px 0"}}><span style={dk}>{k}</span><span style={{fontWeight:k==="Estado"?700:400}}>{v}</span></div>)}</div>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>
+       {selAppt.status==="SCHEDULED"&&<button onClick={()=>void apptTransition(selAppt.appointmentId,selAppt.version,"check-in","Llegada registrada.")} disabled={apptBusy} style={{border:0,background:apptBusy?"#C7CCE0":P.blue,color:"#fff",borderRadius:9,padding:10,fontWeight:700,fontSize:13,cursor:apptBusy?"default":"pointer",fontFamily:UI}}>Registrar llegada</button>}
+       {selAppt.status==="CHECKED_IN"&&<button onClick={()=>void apptTransition(selAppt.appointmentId,selAppt.version,"completion","Cita completada.")} disabled={apptBusy} style={{border:0,background:apptBusy?"#C7CCE0":P.green,color:"#fff",borderRadius:9,padding:10,fontWeight:700,fontSize:13,cursor:apptBusy?"default":"pointer",fontFamily:UI}}>Marcar atendida ✓</button>}
+       <button onClick={()=>openAppt(selAppt)} style={{border:"1px solid #CFE0F7",background:P.white,color:P.blue,borderRadius:9,padding:9,fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>Abrir consulta →</button>
+       {(selAppt.status==="SCHEDULED"||selAppt.status==="CHECKED_IN")&&<div style={{display:"flex",gap:8}}><button onClick={()=>void apptTransition(selAppt.appointmentId,selAppt.version,"cancellation","Cita cancelada.")} disabled={apptBusy} style={{flex:1,border:"1px solid #F3C9C9",background:P.white,color:"#D23651",borderRadius:9,padding:9,fontWeight:600,fontSize:12.5,cursor:apptBusy?"default":"pointer",fontFamily:UI}}>Cancelar</button>{selAppt.status==="SCHEDULED"&&<button onClick={()=>void apptTransition(selAppt.appointmentId,selAppt.version,"no-show","Marcada como inasistencia.")} disabled={apptBusy} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,color:P.muted,borderRadius:9,padding:9,fontWeight:600,fontSize:12.5,cursor:apptBusy?"default":"pointer",fontFamily:UI}}>Inasistencia</button>}</div>}
+      </div>
+     </div>;})()}
+     <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 10px"}}><span style={sect}>Resumen del día</span></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:"0 16px 16px"}}>
-       {([["#EEEBFD","#6C5CF6","M4 5h16v16H4zM8 3v4M16 3v4",usingRealAg?agenda!.counts.programadas:12,"Citas programadas"],["#E6F6EE","#16A66A","M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",usingRealAg?agenda!.counts.atendidas:9,"Atendidas"],["#FBF0DC","#B7791F","M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0",usingRealAg?agenda!.counts.enEspera:2,"En espera"],["#FDECEE","#F0455E","M9 9l6 6M15 9l-6 6M21 12a9 9 0 11-18 0 9 9 0 0118 0",usingRealAg?agenda!.counts.canceladas:1,"Canceladas"]] as const).map(([bg,fg,d,v,l])=><div key={l} style={{display:"flex",gap:11,alignItems:"center",padding:12,border:`1px solid ${LINE}`,borderRadius:12}}>{rkico(bg,fg,d)}<div><div style={{fontSize:20,fontWeight:800}}>{v}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div></div>)}
+       {([["#EEEBFD","#6C5CF6","M4 5h16v16H4zM8 3v4M16 3v4",usingRealAg?agenda!.counts.programadas:12,"Programadas"],["#E6F6EE","#16A66A","M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",usingRealAg?agenda!.counts.atendidas:9,"Atendidas"],["#FBF0DC","#B7791F","M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0",usingRealAg?agenda!.counts.enEspera:2,"En espera"],["#FDECEE","#F0455E","M9 9l6 6M15 9l-6 6M21 12a9 9 0 11-18 0 9 9 0 0118 0",usingRealAg?agenda!.counts.canceladas:1,"Canc./Inasist."]] as const).map(([bg,fg,d,v,l])=><div key={l} style={{display:"flex",gap:11,alignItems:"center",padding:12,border:`1px solid ${LINE}`,borderRadius:12}}>{rkico(bg,fg,d)}<div><div style={{fontSize:20,fontWeight:800}}>{v}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div></div>)}
       </div>
      </div>
-     <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 6px"}}><span style={sect}>Próximas citas</span><span style={link}>Ver todas →</span></div>
-      {(usingRealAg?realAppts.filter(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN").slice(0,5).map(a=>[tHM(a.startAt),(a.patientName||"P").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase(),a.patientName,a.reason,a.status==="CHECKED_IN"?"esp":"conf"] as const):([["2:00 p.m.","MF","María Fernández López","Primera vez","esp"],["2:30 p.m.","VG","Control asma","Valeria Gómez (14 años)","esp"],["3:00 p.m.","LS","Laura Sánchez López","Ansiedad","conf"],["4:00 p.m.","DL","Daniel López Vargas","Revisión postoperatoria","conf"]] as const)).map(([tm,ini,n,m,st],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 16px",borderTop:`1px solid #F1F3F9`}}><span style={{fontSize:13,color:P.muted,width:52,flex:"0 0 auto"}}>{tm}</span><span style={{width:34,height:34,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{ini}</span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{n}</div><div style={{fontSize:11.5,color:P.muted}}>{m}</div></div><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",...(st==="esp"?{background:"#FDE7EA",color:"#D23651"}:{background:"#E6F6EE",color:"#16A66A"})}}>{st==="esp"?"En espera":"Confirmada"}</span></div>)}
-     </div>
-     <div style={card2}><div style={{padding:"16px 16px 4px"}}><span style={sect}>Acciones rápidas</span></div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"8px 16px 16px"}}>{["Nueva cita","Reprogramar citas","Bloque de tiempo","Ver disponibilidad","Lista de espera","Exportar agenda","Enviar recordatorios","Configuración"].map(a=><button key={a} style={{display:"flex",alignItems:"center",gap:9,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 12px",fontSize:12.5,fontWeight:600,cursor:"pointer",color:P.ink,fontFamily:UI}} onClick={nueva}><span style={{width:7,height:7,borderRadius:"50%",background:P.purple,flex:"0 0 auto"}}/>{a}</button>)}</div>
+     <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 6px"}}><span style={sect}>Próximas citas</span>{usingRealAg&&<span style={link} onClick={()=>setAgendaView("lista")}>Ver lista →</span>}</div>
+      {(usingRealAg?realAppts.filter(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN").slice(0,5):[]).map(a=><div key={a.appointmentId} onClick={()=>setApptSel(a.appointmentId)} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 16px",borderTop:`1px solid #F1F3F9`,cursor:"pointer",background:a.appointmentId===apptSel?"#F6F5FE":"transparent"}}><span style={{fontSize:13,color:P.muted,width:64,flex:"0 0 auto"}}>{tHM(a.startAt)}</span><span style={{width:34,height:34,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{(a.patientName||"P").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()}</span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{a.patientName}</div><div style={{fontSize:11.5,color:P.muted}}>{a.reason}</div></div><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",...(a.status==="CHECKED_IN"?{background:"#FBF0DC",color:"#B7791F"}:{background:"#EAF1FD",color:"#1769E0"})}}>{stLabel(a.status)}</span></div>)}
+      {!usingRealAg&&<div style={{padding:"14px 16px",fontSize:12.5,color:P.muted,borderTop:`1px solid #F1F3F9`}}>Sin citas reales para este día (se muestra un ejemplo en la rejilla). Agenda una con «+ Nueva cita».</div>}
      </div>
     </div>
    </div>;
