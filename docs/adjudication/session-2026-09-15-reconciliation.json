@@ -3078,6 +3078,29 @@
    "epic": "D/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-CONSULTA-AUDIT-DEEP-001",
+   "name": "Consulta — auditoría boton por boton: cero controles muertos/cosméticos en el workspace",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema del workspace de Consulta eliminando todo elemento decorativo sin accion. (1) Barra de formato falsa (B/I/U/•/1.) removida de Historia y Plan de manejo -> textareas reales. (2) Secciones 4 Interrogatorio por aparatos y 5 Exploracion fisica eran colapsables sin contenido; ahora son textareas REALES (cForm.interrog/explor) que composeNote incorpora a la valoracion del encuentro que se firma. (3) 6 Impresion diagnostica: eliminados el chip ✕ y el + Añadir muertos (y el placeholder J02.9/B34.9); ahora es solo lectura derivada de snap.problems con nota de que se gestiona en el panel Diagnosticos/Problemas ya cableado. (4) Resumen clinico: eliminado el ✎ Editar sin accion; los + Agregar cosmeticos (badd) sustituidos por botones Abrir → reales que navegan al expediente (Lista de problemas/Medicacion/Vacunas). (5) Clinical Intelligence y Recordatorios: eliminado el texto de ejemplo inventado cuando no hay hallazgos/gaps -> estado honesto vacio.",
+   "invariants": [
+    "Ningun control del workspace de Consulta es decorativo: cada boton/enlace ejecuta una accion o navega",
+    "Interrogatorio y Exploracion fisica persisten en la nota clinica firmada (composeNote)",
+    "La impresion diagnostica es solo lectura derivada del expediente; su edicion vive en el panel cableado de Diagnosticos/Problemas",
+    "Los paneles de apoyo (Clinical Intelligence, Recordatorios) no muestran datos inventados: solo hallazgos deterministas y gaps reales, con estado vacio honesto"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (cForm.interrog/explor; composeNote incluye interrogatorio/exploracion; rteBar y badd eliminados; sgo navega al expediente; impresion diagnostica solo-lectura; estados vacios honestos)",
+    "packages/patient-fold/src/index.ts (sin cambios)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Consulta: interrogatorio/exploracion alimentan la nota; ausencia de + Añadir muerto)"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): al escribir en Interrogatorio y Exploracion fisica y abrir Vista previa, la nota compuesta contiene INTERROGATORIO POR APARATOS Y SISTEMAS y EXPLORACIÓN FÍSICA; queryByText(\"+ Añadir\") es null (control muerto eliminado). Typecheck limpio.",
+   "epic": "D/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
