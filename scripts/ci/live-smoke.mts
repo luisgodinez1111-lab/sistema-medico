@@ -46,6 +46,7 @@ const SMOKE:readonly string[]=[
  "live-trends-proof",                       // eje E panel 4: series longitudinales de analitos
  "live-prescription-check-proof",           // eje E panel 3: dry-run de barreras de prescripción
  "live-patient-demographics-proof",         // Paciente ampliado: CURP + contacto (registro->lista->snapshot)
+ "live-patient-amend-proof",                // Paciente: corrección de datos (AMENDED) reflejada en lista + demografía
  "live-agenda-day-proof",                   // Agenda del día: citas+consultorio+tipo+estado, GET por fecha con conteos
  "live-interactions-proof",                 // Interacciones (conjunto): pares + factores, 4 niveles + mecanismo/recomendación
  "live-allergy-registry-proof",             // Registro de alergias clínica-wide: tipo derivado + estado + conteos gravedad/tipo

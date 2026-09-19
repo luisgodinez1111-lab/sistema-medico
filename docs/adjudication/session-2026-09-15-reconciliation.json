@@ -3027,6 +3027,34 @@
    "epic": "BB/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-PATIENTS-FICHA-EDIT-UI-001",
+   "name": "Pacientes — ficha contextual con pestañas en sitio y edición REAL (AMENDED)",
+   "risk": "C5",
+   "eng_authority_note": "Auditoria visual/funcional del modulo Pacientes: (1) La ficha del paciente ya NO se muestra por defecto; sólo aparece al SELECCIONAR un paciente real (patSelId) y se puede cerrar. (2) Sus pestañas se despliegan EN SITIO dentro de la ficha (no navegan a otra vista): Resumen (demografía real del snapshot + antecedentes reales alergias/problemas inline + acciones), Historial (timeline real del expediente, GET /patients/:id/timeline), Notas (documentos tipo nota, GET /patients/:id/documents), Documentos (todos los documentos). (3) Ver consulta y Agendar cita funcionan desde la ficha (interconexion con contexto). (4) Editar abre un formulario con los datos REALES del paciente y persiste via NUEVO evento del kernel PATIENT_AMENDED (POST /patients/:id/amendment, if-match=version): sobreescribe solo los campos provistos sin cambiar el estado; la lista y la demografia (snapshot) se recargan y reflejan la correccion. Los readers listPatients y patientDemographics coalescen el ultimo AMENDED sobre el REGISTERED. Diseno maduro: ficha con encabezado, barra de pestanas, espaciado y jerarquia consistentes.",
+   "invariants": [
+    "La ficha sólo existe con selección real (patSelId); no se muestra por defecto y es cerrable",
+    "Las pestañas Resumen/Historial/Notas/Documentos renderizan en sitio con datos reales del paciente en foco; no abren otra vista",
+    "Editar persiste via evento real PATIENT_AMENDED (if-match=version); no cambia el estado; sobreescribe sólo campos provistos",
+    "listPatients y patientDemographics reflejan el último AMENDED (coalesce sobre REGISTERED); campos no editados se preservan",
+    "Ver consulta / Agendar cita / Exportar operan sobre el paciente en foco con su contexto real"
+   ],
+   "implementation": [
+    "packages/patient-fold/src/index.ts (evento AMENDED: sobreescribe demografía, no cambia estado)",
+    "apps/web/lib/patient-lifecycle.ts (handlePatientAmend + AmendBody)",
+    "apps/web/app/api/v1/patients/[patientId]/amendment/route.ts (POST)",
+    "apps/web/lib/clinical-runtime.ts (listPatients + patientDemographics coalescen AMENDED; +version en PatientRow)",
+    "apps/web/app/workspace/page.tsx (vista Pacientes: ficha contextual + pestañas en sitio + openEdit/amendPatient; carga de documentos por paciente)"
+   ],
+   "tests": [
+    "scripts/v22/live-patient-amend-proof.mts",
+    "tests/v22/ui-cockpit-render.test.tsx (Pacientes: ficha contextual + Historial en sitio + edición real + Agendar cita)"
+   ],
+   "runtime_evidence": "scripts/v22/live-patient-amend-proof.mts — PASS 11/11 vs Neon 2026-09-19 (registrar -> AMEND nombre/CURP/telefono/ocupacion -> lista refleja nombre+CURP corregidos y estado sin cambios -> snapshot refleja contacto corregido y conserva birthDate no editado -> if-match desactualizado 409/412 -> sin-scope 403). En el smoke runner de CI. Render test 44/44 (jsdom): la ficha sólo aparece al seleccionar (sin Editar antes); Historial se despliega en sitio sin salir de Pacientes; Editar -> Guardar -> POST amendment -> ficha actualizada; Agendar cita interconecta con Agenda. Fidelidad verificada por preview + captura.",
+   "epic": "IDENT/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

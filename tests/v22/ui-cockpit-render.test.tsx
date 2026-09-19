@@ -24,13 +24,14 @@ vi.mock("../../apps/web/lib/session-client",()=>({
     {orderId:"od1",patientId:"p1",patientName:"Ana López García",orderType:"LAB",typeLabel:"Laboratorio",detail:"Biometría hemática completa",status:"Completada",createdAt:"2026-09-17T00:00:00Z",version:3},
     {orderId:"od2",patientId:"p2",patientName:"Carlos Mendoza",orderType:"IMAGING",typeLabel:"Imagenología",detail:"Radiografía de tórax",status:"Solicitada",createdAt:"2026-09-16T00:00:00Z",version:1},
    ],total:2,solicitadas:1,enviadas:0,completadas:1}};
+  if(path.includes("/amendment"))return{status:201,body:{version:2}};
   if(path.includes("/api/v1/appointments")){const d=new Date().toISOString().slice(0,10);return{status:200,body:{date:d,appointments:[
    {appointmentId:"ap1",patientId:"p1",patientName:"Ana López García",startAt:`${d}T09:00:00.000Z`,endAt:`${d}T09:30:00.000Z`,reason:"Control DM2",consultorio:"Consultorio 1",apptType:"CONTROL",status:"SCHEDULED",version:1},
    {appointmentId:"ap2",patientId:"p2",patientName:"Carlos Mendoza",startAt:`${d}T10:00:00.000Z`,endAt:`${d}T10:30:00.000Z`,reason:"Radiografía de control",consultorio:"Consultorio 2",apptType:"PROCEDIMIENTO",status:"CHECKED_IN",version:2},
   ],counts:{programadas:2,atendidas:0,enEspera:1,canceladas:0}}};}
   if(path.includes("/api/v1/patients")&&!path.match(/patients\//))return{status:200,body:{patients:[
-   {patientId:"p1",name:"Ana López García",status:"ACTIVE",birthDate:"1990-01-01",sexAtBirth:"FEMALE"},
-   {patientId:"p2",name:"Carlos Mendoza",status:"ACTIVE",birthDate:"1970-01-01",sexAtBirth:"MALE"},
+   {patientId:"p1",name:"Ana López García",status:"ACTIVE",birthDate:"1990-01-01",sexAtBirth:"FEMALE",curp:"LOGA900101MDFPRN08",version:1},
+   {patientId:"p2",name:"Carlos Mendoza",status:"ACTIVE",birthDate:"1970-01-01",sexAtBirth:"MALE",version:1},
   ]}};
   if(path.includes("/api/v1/worklist"))return{status:200,body:{gaps:[{patientId:"p1",aggregateType:"DiagnosticResult",aggregateId:"r1",code:"K",label:"Resultado crítico sin cerrar",priority:"HIGH"}],patientCount:2}};
   if(path.includes("/api/v1/results"))return{status:200,body:{
@@ -231,25 +232,40 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getAllByText("Control DM2").length).toBeGreaterThan(0);
  });
 
- it("vista Pacientes: lista real, búsqueda que filtra, creador inline y interconexión a Agenda",async()=>{
+ it("vista Pacientes: lista real, búsqueda filtra, y la ficha es contextual (sólo al seleccionar)",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Pacientes"}));
   expect(screen.getByRole("heading",{name:"Pacientes"})).toBeTruthy();
-  // filas reales del registro de pacientes
   expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0);
   expect(screen.getAllByText("Carlos Mendoza").length).toBeGreaterThan(0);
-  // la búsqueda filtra en vivo: al escribir "Carlos", Ana desaparece
+  // la ficha NO existe hasta seleccionar (sin botón Editar todavía)
+  expect(screen.queryByRole("button",{name:"Editar"})).toBeNull();
+  // la búsqueda filtra en vivo
   fireEvent.change(screen.getByPlaceholderText(/Buscar por nombre o CURP/),{target:{value:"Carlos"}});
   expect(screen.queryByText("Ana López García")).toBeNull();
-  expect(screen.getAllByText("Carlos Mendoza").length).toBeGreaterThan(0);
   fireEvent.click(screen.getByText("Limpiar filtros"));
-  expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0);
-  // creador inline real
-  fireEvent.click(screen.getByRole("button",{name:"Nuevo paciente"}));
-  expect(screen.getByText("Nombre completo")).toBeTruthy();
-  expect(screen.getByRole("button",{name:"Registrar paciente"})).toBeTruthy();
-  fireEvent.click(screen.getByRole("button",{name:"Cerrar"}));
-  // interconexión: "Agendar cita" del paciente seleccionado abre el creador en la vista Agenda
+  // seleccionar el paciente abre su FICHA contextual (nombre + Editar + pestañas)
+  fireEvent.click((await screen.findAllByText("Ana López García"))[0]!);
+  expect(await screen.findByRole("button",{name:"Editar"})).toBeTruthy();
+  expect(screen.getByText("Información general")).toBeTruthy();
+ });
+
+ it("vista Pacientes: ficha con pestañas en sitio (Historial), Agendar cita y edición real (POST amendment)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Pacientes"}));
+  fireEvent.click((await screen.findAllByText("Ana López García"))[0]!); // abre la ficha
+  await screen.findByRole("button",{name:"Editar"});
+  // pestaña Historial se despliega EN LA MISMA ficha (no navega)
+  fireEvent.click(screen.getByText("Historial"));
+  expect(screen.getByText(/Historial del expediente/)).toBeTruthy();
+  expect(screen.getByRole("heading",{name:"Pacientes"})).toBeTruthy(); // sigue en Pacientes (no abrió otra vista)
+  fireEvent.click(screen.getByText("Resumen")); // volver a Resumen
+  // Editar → formulario con datos reales → guardar (POST amendment)
+  fireEvent.click(screen.getByRole("button",{name:"Editar"}));
+  expect(screen.getByText("Editar ficha del paciente")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button",{name:"Guardar cambios"}));
+  expect(await screen.findByText(/Ficha del paciente actualizada/)).toBeTruthy();
+  // Agendar cita desde la ficha interconecta con Agenda
   fireEvent.click(screen.getByRole("button",{name:"Agendar cita"}));
   expect(screen.getByRole("heading",{name:"Agenda"})).toBeTruthy();
   expect(screen.getByText(/Nueva cita ·/)).toBeTruthy();

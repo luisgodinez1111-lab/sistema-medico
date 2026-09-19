@@ -69,19 +69,25 @@ export async function lookupReplay(ctx:HttpTenantContext,command:ClinicalCommand
 }
 
 // EPIC S — Registro de pacientes del tenant (RLS-scoped). Devuelve id + nombre (PHI) + estado.
-export type PatientRow=Readonly<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string}>;
+export type PatientRow=Readonly<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version:number}>;
 export async function listPatients(ctx:HttpTenantContext):Promise<ReadonlyArray<PatientRow>>{
  const sql=getSql();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
   const rows=await tx`
-   select r.aggregate_id, r.payload->>'name' as name, r.payload->>'birthDate' as birth_date, r.payload->>'sexAtBirth' as sex_at_birth, r.payload->>'curp' as curp,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_kind
+   select r.aggregate_id,
+     coalesce(a.payload->>'name', r.payload->>'name') as name,
+     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as birth_date,
+     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sex_at_birth,
+     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_kind,
+     (select count(*)::int from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=r.aggregate_id) as version
    from clinical_events r
+   left join lateral (select payload from clinical_events am where am.tenant_id=${ctx.tenantId} and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
-   order by r.payload->>'name'`;
+   order by coalesce(a.payload->>'name', r.payload->>'name')`;
   const STATUS:Record<string,string>={REGISTERED:"ACTIVE",REACTIVATED:"ACTIVE",DEACTIVATED:"INACTIVE",DECEASED:"DECEASED"};
-  return rows.map(x=>{const o=x as Record<string,unknown>;return{patientId:String(o.aggregate_id),name:String(o.name??""),status:STATUS[String(o.latest_kind??"REGISTERED")]??"ACTIVE",...(o.birth_date?{birthDate:String(o.birth_date)}:{}),...(o.sex_at_birth?{sexAtBirth:String(o.sex_at_birth)}:{}),...(o.curp?{curp:String(o.curp)}:{})};});
+  return rows.map(x=>{const o=x as Record<string,unknown>;return{patientId:String(o.aggregate_id),name:String(o.name??""),status:STATUS[String(o.latest_kind??"REGISTERED")]??"ACTIVE",version:Number(o.version??1),...(o.birth_date?{birthDate:String(o.birth_date)}:{}),...(o.sex_at_birth?{sexAtBirth:String(o.sex_at_birth)}:{}),...(o.curp?{curp:String(o.curp)}:{})};});
  }) as Promise<ReadonlyArray<PatientRow>>;
 }
 // EPIC R — Gate de seguridad de medicación: sustancias con alergia ACTIVA del paciente (RLS-scoped).
@@ -118,7 +124,19 @@ export async function patientDemographics(ctx:HttpTenantContext,patientId:string
  const sql=getSql();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
-  const rows=await tx`select r.payload->>'birthDate' as bd, r.payload->>'sexAtBirth' as sx, r.payload->>'name' as nm, r.payload->>'curp' as curp, r.payload->>'phone' as phone, r.payload->>'email' as email, r.payload->>'address' as address, r.payload->>'occupation' as occupation, r.payload->>'maritalStatus' as marital from clinical_events r where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=${patientId} limit 1`;
+  const rows=await tx`select
+     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as bd,
+     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sx,
+     coalesce(a.payload->>'name', r.payload->>'name') as nm,
+     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     coalesce(a.payload->>'phone', r.payload->>'phone') as phone,
+     coalesce(a.payload->>'email', r.payload->>'email') as email,
+     coalesce(a.payload->>'address', r.payload->>'address') as address,
+     coalesce(a.payload->>'occupation', r.payload->>'occupation') as occupation,
+     coalesce(a.payload->>'maritalStatus', r.payload->>'maritalStatus') as marital
+   from clinical_events r
+   left join lateral (select payload from clinical_events am where am.tenant_id=${ctx.tenantId} and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=${patientId} limit 1`;
   const row=rows[0] as Record<string,unknown>|undefined;
   if(!row)return undefined;
   const d:{-readonly[K in keyof PatientDemographics]:PatientDemographics[K]}={};

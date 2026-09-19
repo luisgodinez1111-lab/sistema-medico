@@ -62,3 +62,23 @@ export async function handlePatientReactivation(req:Request,patientId:string):Pr
   return await commit(ctx,idempotencyKey,expectedVersion,patientId,folded,"ACTIVE","PATIENT_REACTIVATED",{kind:"REACTIVATED"},b.occurredAt,"patient.reactivated");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
+
+// EPIC CL/UI — Corrección de datos del paciente (AMENDED): sobreescribe sólo los campos provistos; no cambia el estado.
+// Concurrencia optimista (If-Match). El nombre/CURP siguen siendo PHI (payload RLS, nunca en logs).
+const AmendBody=z.object({name:z.string().min(1).optional(),birthDate:z.string().min(1).optional(),sexAtBirth:z.enum(["FEMALE","MALE","INTERSEX","UNKNOWN"]).optional(),occurredAt:z.string().datetime(),
+ curp:z.string().trim().max(18).optional(),phone:z.string().trim().max(30).optional(),email:z.string().trim().max(120).optional(),address:z.string().trim().max(200).optional(),occupation:z.string().trim().max(120).optional(),maritalStatus:z.string().trim().max(40).optional()});
+export async function handlePatientAmend(req:Request,patientId:string):Promise<Response>{
+ try{
+  const{claims,ctx}=resolveVerified(req);authzWrite(claims);
+  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
+  const folded=foldPatient(await readAggregateEvents(ctx,patientId));
+  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Patient not found");
+  const b=await parseJson(req,AmendBody);
+  const fields={...(b.name!==undefined?{name:b.name}:{}),...(b.birthDate!==undefined?{birthDate:b.birthDate}:{}),...(b.sexAtBirth!==undefined?{sexAtBirth:b.sexAtBirth}:{}),...extra(b)};
+  if(Object.keys(fields).length===0)throw new ClinicalError("PRECONDITION_REQUIRED","No fields to amend");
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:patientId,expectedVersion,eventType:"PATIENT_AMENDED",payload:{kind:"AMENDED",...fields},occurredAt:b.occurredAt,topic:"patient.amended"});
+  let result=await lookupReplay(ctx,cmd);if(!result)result=await runClinicalCommand(ctx,cmd);
+  const r=result.response as{version:number;auditHash?:string};
+  return NextResponse.json({patientId,status:folded.status,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+ }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
