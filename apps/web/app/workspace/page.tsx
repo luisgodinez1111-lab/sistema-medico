@@ -542,6 +542,8 @@ export default function Workspace(){
  const[docForm,setDocForm]=useState<{docType:string;title:string;content:string}>({docType:"PROGRESS_NOTE",title:"",content:""});
  // Vista Obligaciones (S-OBLIGACIONES) — obligaciones regulatorias del consultorio cableadas a GET /regulatory-obligations
  const[regObSnap,setRegObSnap]=useState<RegObSnap|null>(null);
+ const[oblNew,setOblNew]=useState(false);const[oblBusy,setOblBusy]=useState(false);const[oblMsg,setOblMsg]=useState<string|null>(null);
+ const[oblForm,setOblForm]=useState<{name:string;category:string;periodicity:string;dueDate:string}>({name:"",category:"Fiscal (SAT)",periodicity:"Mensual",dueDate:""});
  const[oblTab,setOblTab]=useState<"todas"|"fiscales"|"salud"|"laborales"|"proteccion"|"administrativas"|"otros">("todas");
  // Vista Clinical Intelligence (S-CLINICALINTEL) — alertas y calculadoras DETERMINISTAS (R6 IA generativa en pausa)
  const[ciSnap,setCiSnap]=useState<CiSnap|null>(null);
@@ -939,6 +941,17 @@ export default function Workspace(){
    }
    const n=cOrdSel.length;setCOrdSel([]);setCOrdMsg(`${n} orden(es) creada(s) y registrada(s) en el expediente ✓`);
   }catch(e){setCOrdMsg(String(e));}finally{setCOrdBusy(false);}
+ };
+ // ===== Obligaciones regulatorias del consultorio: alta inline real (POST /regulatory-obligations) + recarga =====
+ const reloadRegObligations=async()=>{const r=await apiRequest("/api/v1/regulatory-obligations",{method:"GET"});if(r.status===200)setRegObSnap(r.body as unknown as RegObSnap);};
+ const createRegObligation=async()=>{
+  if(!oblForm.name.trim()){setOblMsg("Indica el nombre de la obligación.");return;}
+  setOblBusy(true);setOblMsg(null);
+  try{
+   const r=await apiRequest("/api/v1/regulatory-obligations",{method:"POST",body:{obligationId:uuid(),name:oblForm.name.trim(),category:oblForm.category,periodicity:oblForm.periodicity.trim()||"Única",...(oblForm.dueDate?{dueDate:`${oblForm.dueDate}T00:00:00.000Z`}:{}),occurredAt:nowIso()}});
+   if(r.status>=400){setOblMsg(errMsg(r));return;}
+   await reloadRegObligations();setOblNew(false);setOblForm({name:"",category:oblForm.category,periodicity:oblForm.periodicity,dueDate:""});setOblMsg("Obligación agregada; su estado se computa de la fecha límite ✓");
+  }catch(e){setOblMsg(String(e));}finally{setOblBusy(false);}
  };
  // ===== Documentos: crear un documento clínico real (POST /documents; contenido de texto) + recarga por paciente =====
  const createDocument=async()=>{
@@ -3439,8 +3452,22 @@ export default function Workspace(){
    return <div style={{padding:"18px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M5 5h14v14H5zM9 12l2 2 4-4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Obligaciones</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Cumple y da seguimiento a las obligaciones legales, fiscales y normativas de tu consultorio.</p></div></div>
-     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⚙ Configuración</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>↧ Exportar reporte</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>+ Agregar obligación ▾</button></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⚙ Configuración</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>↧ Exportar reporte</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setOblNew(v=>!v);setOblMsg(null);}}>{oblNew?"Cerrar":"+ Agregar obligación"}</button></div>
     </div>
+    {oblMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:oblMsg.includes("✓")?"#F0FBF4":"#EEF6FF",border:`1px solid ${oblMsg.includes("✓")?"#CDEBD8":"#CFE0F7"}`,borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:oblMsg.includes("✓")?P.green:P.blue,fontWeight:700}}>{oblMsg.includes("✓")?"✓":"ℹ"}</span><span style={{flex:1}}>{oblMsg}</span><button onClick={()=>setOblMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+    {oblNew&&<div style={{...card2,marginTop:14,padding:18}}>
+     <div style={{fontWeight:800,fontSize:16,marginBottom:14}}>Nueva obligación del consultorio</div>
+     <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14}} className="mos-med2">
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Nombre</div><input value={oblForm.name} onChange={e=>setOblForm({...oblForm,name:e.target.value})} placeholder="Ej. Declaración mensual de IVA" style={selSty}/></div>
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Categoría</div><select value={oblForm.category} onChange={e=>setOblForm({...oblForm,category:e.target.value})} style={selSty}>{["Fiscal (SAT)","Salud (COFEPRIS)","Laboral","Protección civil","Administrativa","Otros"].map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+     </div>
+     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginTop:12}}>
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Periodicidad</div><select value={oblForm.periodicity} onChange={e=>setOblForm({...oblForm,periodicity:e.target.value})} style={selSty}>{["Mensual","Trimestral","Semestral","Anual","Cada 5 años","Única"].map(p=><option key={p} value={p}>{p}</option>)}</select></div>
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Fecha límite (opcional)</div><input type="date" value={oblForm.dueDate} onChange={e=>setOblForm({...oblForm,dueDate:e.target.value})} style={selSty}/></div>
+     </div>
+     <div style={{fontSize:11.5,color:P.muted,marginTop:8}}>El estado (Al día / Próxima / Vencida) se <b>computa</b> de la fecha límite; sin fecha se marca <b>Vigente</b>.</div>
+     <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void createRegObligation()} disabled={oblBusy||!oblForm.name.trim()} style={{border:0,background:(oblBusy||!oblForm.name.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(oblBusy||!oblForm.name.trim())?"default":"pointer",fontFamily:UI}}>{oblBusy?"Agregando…":"Agregar obligación"}</button><button onClick={()=>setOblNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
+    </div>}
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
      <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#E6F6EE","#16A66A","M9 12l2 2 4-4M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{kAl}</div><div style={{fontSize:11.5,color:P.muted}}>Al día</div><div style={{fontSize:11,color:P.muted,fontWeight:600}}>{pct(kAl)}% del total</div></div></div>
      <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{kProx}</div><div style={{fontSize:11.5,color:P.muted}}>Próximas a vencer</div><div style={{fontSize:11,color:P.muted,fontWeight:600}}>{pct(kProx)}% del total</div></div></div>

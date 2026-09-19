@@ -2909,6 +2909,29 @@
    "epic": "BD/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-REGULATORY-OBLIGATIONS-CREATE-UI-001",
+   "name": "Obligaciones — alta inline real de obligaciones regulatorias del consultorio (POST /regulatory-obligations)",
+   "risk": "C4",
+   "eng_authority_note": "Profundiza el modulo Obligaciones (que ya leia las obligaciones regulatorias del consultorio con estado computado) con alta REAL inline. '+ Agregar obligación' abre un creador (nombre + categoria del enum del backend: Fiscal (SAT)/Salud (COFEPRIS)/Laboral/Proteccion civil/Administrativa/Otros + periodicidad + fecha limite opcional) que hace POST /api/v1/regulatory-obligations (agregado RegulatoryObligation event-sourced, tenant-level, sin PHI) y recarga el tablero. El ESTADO (Al dia/Proxima/Vencida/Vigente) lo COMPUTA el backend de la fecha limite (deterministico), no la UI. Requiere nombre; sin fecha se marca Vigente.",
+   "invariants": [
+    "La obligacion se persiste como evento real (POST /regulatory-obligations -> RegulatoryObligation CREATED) con idempotencia; tenant-level, sin PHI",
+    "Categoria restringida al enum del backend; el estado se computa de la fecha limite (deterministico), no en la UI",
+    "El tablero clinica-wide se recarga tras crear; nada queda solo en la UI",
+    "Requiere nombre; fecha limite opcional (sin fecha -> Vigente)"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (oblForm + createRegObligation + reloadRegObligations; modulo Obligaciones con creador inline)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Obligaciones: agregar obligacion -> POST /regulatory-obligations)",
+    "scripts/v22/live-regulatory-obligations-proof.mts"
+   ],
+   "runtime_evidence": "Render test 39/39 (jsdom): en Obligaciones, + Agregar obligación -> nombre + categoria -> Agregar -> POST /regulatory-obligations -> aviso de obligacion agregada. Backend reutilizado ya probado en vivo: live-regulatory-obligations-proof (estado computado de la fecha limite + KPIs + cumplimiento por categoria).",
+   "epic": "AC/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

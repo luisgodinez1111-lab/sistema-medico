@@ -356,6 +356,15 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText(/Documento creado/)).toBeTruthy();
  });
 
+ it("vista Obligaciones: agregar una obligación regulatoria real (POST /regulatory-obligations)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Obligaciones"}));
+  fireEvent.click(screen.getByRole("button",{name:"+ Agregar obligación"}));
+  fireEvent.change(screen.getByPlaceholderText(/Declaración mensual de IVA/),{target:{value:"Aviso de funcionamiento COFEPRIS"}});
+  fireEvent.click(screen.getByRole("button",{name:"Agregar obligación"}));
+  expect(await screen.findByText(/Obligación agregada/)).toBeTruthy();
+ });
+
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
   render(<Workspace/>);
   toExpediente();
