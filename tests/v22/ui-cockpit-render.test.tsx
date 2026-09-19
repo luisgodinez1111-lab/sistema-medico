@@ -597,12 +597,15 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   fireEvent.click(screen.getByRole("button",{name:"Documentos"}));
   expect(screen.getByRole("heading",{name:"Documentos"})).toBeTruthy();
   expect(screen.getByText("Carpetas")).toBeTruthy();
-  expect(screen.getByText("Todos los documentos")).toBeTruthy();
-  expect(screen.getAllByText(/Resultados_Laboratorio_17092026\.pdf/).length).toBeGreaterThan(0); // fila + preview (rep)
-  expect(screen.getByText("Documentos clínicos")).toBeTruthy();                 // chip
-  expect(screen.getByText(/Tipos de archivo permitidos/)).toBeTruthy();
+  expect(screen.getByText("Todos los documentos")).toBeTruthy();               // carpeta real (filtra la tabla)
+  expect(screen.getByText("Documentos clínicos")).toBeTruthy();                 // chip real
+  expect(screen.getByText("Detalle del documento")).toBeTruthy();              // panel de detalle real
   expect(screen.getByText(/Acciones rápidas/)).toBeTruthy();
-  expect(screen.getByText("Generar desde plantilla")).toBeTruthy();
+  expect(screen.getByText("Generar desde plantilla")).toBeTruthy();            // cableado a genDoc (POST /documents)
+  // auditoría: se eliminó la vista previa de PDF inventada y los controles muertos
+  expect(screen.queryByText("LABORATORIOS DEL NORTE")).toBeNull();
+  expect(screen.queryByText(/Carga masiva/)).toBeNull();
+  expect(screen.queryByText("Subido por")).toBeNull();
  });
 
  it("vista Facturación (S-FACTURACION): registro clínica-wide cableado a GET /api/v1/claims + wizard Nueva factura",async()=>{

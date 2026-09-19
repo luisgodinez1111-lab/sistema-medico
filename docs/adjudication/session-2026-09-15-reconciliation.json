@@ -3380,6 +3380,29 @@
    "epic": "S-FACTURACION/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-DOCUMENTOS-AUDIT-DEEP-001",
+   "name": "Documentos — auditoría boton por boton: registro real, carpetas que filtran, sin PDF inventado",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema de Documentos. La creacion ya era real (createDocument y genDoc -> POST /documents) y la lista se lee de GET /patients/:id/documents (docsSnap). Defectos corregidos: (1) Eliminado el fallback REP (10 documentos ficticios: Resultados_Laboratorio, USG_abdomen, etc.) y los totales/chips/carpetas ficticios -> tabla, chips y carpetas derivan de docsSnap real (0/vacio honesto); docLoaded=!!docsSnap. (2) Barra de paciente: eliminado el nombre ficticio Ana Lopez Garcia y demograficos inventados. (3) Encabezado: eliminados Plantillas y Carga masiva (sin accion). (4) Eliminada la barra de pestañas DOCS_TABS (8 tabs que no filtraban) y la fila de busqueda/Filtrar/Ordenar muerta. (5) Carpetas: antes docFolder no filtraba la tabla; ahora las carpetas (derivadas de byType real) FILTRAN de verdad la lista; eliminado el boton + de crear carpeta (sin accion). (6) Tabla: eliminadas las columnas Subido por (valor adivinado Medico tratante) y Tamaño (siempre —) y Acc. ⋯; eliminada la paginacion falsa; estado vacio honesto (sin paciente / cargando / sin documentos / carpeta vacia). (7) VISTA PREVIA: eliminado el PDF 100% inventado (LABORATORIOS DEL NORTE, biometria/quimica con valores fijos, firma Q.B. Mariana Torres) que se mostraba igual para cualquier documento -> reemplazado por Detalle del documento real (titulo, tipo, fecha, paciente) con boton Ver en el expediente y nota honesta. Conservado y confirmado real: creador Nuevo documento (POST /documents), Acciones rapidas (Nuevo documento, Generar desde plantilla -> genDoc real; Escanear/Solicitar marcados proximamente con honestidad), tarjetas informativas (tipos permitidos, NOM-024).",
+   "invariants": [
+    "Documentos no muestra archivos, chips ni carpetas de ejemplo: todo deriva de docsSnap real (0/vacio honesto)",
+    "Las carpetas filtran realmente la tabla por tipo (no son decorativas)",
+    "No se muestra una vista previa de PDF inventada: el panel muestra metadatos reales del documento seleccionado",
+    "No hay columnas ni controles ficticios: se eliminaron Subido por/Tamaño/Acc, paginacion, pestañas, busqueda y botones sin accion"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (elimina REP/fallbacks; docLoaded; carpetas filtran; barra de paciente real; elimina header/tabs/busqueda muertos; tabla 3 columnas reales; detalle real en vez de PDF inventado)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Documentos S-DOCUMENTOS: carpetas/chips/detalle reales + Generar desde plantilla; LABORATORIOS DEL NORTE/Carga masiva/Subido por === null)",
+    "scripts/v22/live-documents-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): Carpetas, Todos los documentos, chip Documentos clinicos, Detalle del documento y Generar desde plantilla presentes; queryByText(LABORATORIOS DEL NORTE / Carga masiva / Subido por) === null; el test de crear documento real (POST /documents) sigue verde. Typecheck limpio.",
+   "epic": "S-DOCUMENTOS/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

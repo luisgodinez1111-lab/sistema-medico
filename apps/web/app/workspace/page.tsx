@@ -3277,26 +3277,14 @@ export default function Workspace(){
    const initials=(n:string)=>n.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase();
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
    const fmtD=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
-   const useReal=!!docsSnap&&docsSnap.total>0;
+   const docLoaded=!!docsSnap;
    type DRow={title:string;type:string;date:string;by:string;size:string};
-   const REP:DRow[]=[
-    {title:"Resultados_Laboratorio_17092026.pdf",type:"Laboratorio",date:"17 sep 2026",by:"Dr. Luis Godinez",size:"245 KB"},
-    {title:"USG_abdomen.pdf",type:"Imagenología",date:"12 sep 2026",by:"Dr. Pérez (RAD)",size:"1.2 MB"},
-    {title:"Consentimiento_procedimiento.pdf",type:"Consentimiento",date:"10 sep 2026",by:"Dr. Luis Godinez",size:"180 KB"},
-    {title:"Interconsulta_Endocrinología.pdf",type:"Interconsulta",date:"08 sep 2026",by:"Dra. Martínez",size:"320 KB"},
-    {title:"Receta_25082026.pdf",type:"Receta",date:"25 ago 2026",by:"Dr. Luis Godinez",size:"95 KB"},
-    {title:"Nota_consulta_15082026.pdf",type:"Nota médica",date:"15 ago 2026",by:"Dr. Luis Godinez",size:"210 KB"},
-    {title:"TC_torax.pdf",type:"Imagenología",date:"01 ago 2026",by:"Dr. Sánchez (RAD)",size:"4.8 MB"},
-    {title:"Carnet_vacunacion.pdf",type:"Vacunas",date:"20 jul 2026",by:"Enfermería",size:"120 KB"},
-    {title:"Identificación_INE.pdf",type:"Administrativo",date:"10 jul 2026",by:"Recepción",size:"600 KB"},
-    {title:"Comprobante_domicilio.pdf",type:"Administrativo",date:"10 jul 2026",by:"Recepción",size:"350 KB"},
-   ];
-   const rows:DRow[]=useReal?docsSnap!.items.map(it=>({title:it.title,type:it.typeLabel,date:fmtD(it.createdAt),by:"Médico tratante",size:"—"})):REP;
-   const total=useReal?docsSnap!.total:24;
-   const chips=docsSnap?docsSnap.chips:{clinical:3,consents:2,studies:1};
-   const sel=rows[docSel]??rows[0]??REP[0]!;
-   const REP_FOLDERS:[string,number][]=[["Todos los documentos",24],["Consultas",8],["Estudios de laboratorio",5],["Estudios de imagen",3],["Consentimientos",4],["Recetas",3],["Notas médicas",4],["Interconsultas",2],["Administrativos",2],["Otros",1]];
-   const folders:[string,number][]=useReal?[["Todos los documentos",total],...Object.entries(docsSnap!.byType)]:REP_FOLDERS;
+   const allRows:DRow[]=(docsSnap?.items??[]).map(it=>({title:it.title,type:it.typeLabel,date:fmtD(it.createdAt),by:"Médico tratante",size:"—"}));
+   const rows:DRow[]=docFolder==="Todos los documentos"?allRows:allRows.filter(r=>r.type===docFolder);
+   const total=docsSnap?.total??0;
+   const chips=docsSnap?docsSnap.chips:{clinical:0,consents:0,studies:0};
+   const sel:DRow|null=rows[docSel]??rows[0]??null;
+   const folders:[string,number][]=[["Todos los documentos",total],...Object.entries(docsSnap?.byType??{})];
    const genDoc=async()=>{
     if(!patientId){setDocMsg("Selecciona un paciente para generar un documento.");return;}
     setDocMsg("");
@@ -3310,12 +3298,11 @@ export default function Workspace(){
    const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
    const tdc:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
    const chipC=(c:string,d:string,n:number,l:string)=><div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}><span style={{width:34,height:34,borderRadius:9,background:c+"22",color:c,display:"grid",placeItems:"center"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={d}/></svg></span><div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{n}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div></div>;
-   const DOCS_TABS:[typeof docsTab,string][]=[["todos","Todos"],["clinicos","Clínicos"],["administrativos","Administrativos"],["consentimientos","Consentimientos"],["estudios","Estudios"],["recetas","Recetas"],["notas","Notas"],["otros","Otros"]];
    const pdfIco="M6 2h9l5 5v15H6zM14 2v6h6";
    return <div style={{padding:"18px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Documentos</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Gestiona, organiza y comparte todos los documentos clínicos y administrativos de tus pacientes.</p></div></div>
-     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⊟ Plantillas</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⇪ Carga masiva</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setDocNew(v=>!v);setDocMsg("");}}>{docNew?"Cerrar":"+ Nuevo documento"}</button></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setDocNew(v=>!v);setDocMsg("");}}>{docNew?"Cerrar":"+ Nuevo documento"}</button></div>
     </div>
     {docNew&&<div style={{...card2,marginTop:16,padding:18}}>
      <div style={{fontWeight:800,fontSize:16,marginBottom:4}}>Nuevo documento clínico</div>
@@ -3328,48 +3315,36 @@ export default function Workspace(){
      <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void createDocument()} disabled={docBusy||!patientId||!docForm.title.trim()||!docForm.content.trim()} style={{border:0,background:(docBusy||!patientId||!docForm.title.trim()||!docForm.content.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(docBusy||!patientId||!docForm.title.trim()||!docForm.content.trim())?"default":"pointer",fontFamily:UI}}>{docBusy?"Creando…":"Crear documento"}</button><button onClick={()=>setDocNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
     </div>}
     <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
-     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"Ana López García")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientName||"Ana López García"}</div><div style={{fontSize:12.5,color:P.muted}}>Femenino, 34 años&nbsp;&nbsp;|&nbsp;&nbsp;Expediente: LC260917-0042&nbsp;&nbsp;|&nbsp;&nbsp;CURP: LOGA900101MCHPRN09</div></div></div>
+     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"—")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientName||"Sin paciente seleccionado"}</div><div style={{fontSize:12.5,color:P.muted}}>{patientId?"Documentos del paciente en contexto":"Selecciona un paciente en el buscador superior para ver y crear sus documentos"}</div></div></div>
      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>{chipC(P.blue,pdfIco,chips.clinical,"Documentos clínicos")}{chipC(P.green,"M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z",chips.consents,"Consentimientos")}{chipC(P.purple,"M4 5h16v14H4zM4 15l4-4 3 3 5-5 4 4",chips.studies,"Estudios de imagen")}<button onClick={()=>setView("exp")} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px 15px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver expediente →</button></div>
-    </div>
-    <div style={{...card2,marginTop:16,padding:"0 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
-     <div style={{display:"flex",gap:4,overflowX:"auto"}}>{DOCS_TABS.map(([k,l])=><button key={k} onClick={()=>setDocsTab(k)} style={{padding:"14px 12px",fontSize:13.5,fontWeight:docsTab===k?700:500,color:docsTab===k?P.purple:P.muted,borderBottom:docsTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>{l}</button>)}</div>
-     <div style={{display:"flex",gap:8,alignItems:"center",padding:"8px 0",flexWrap:"wrap"}}><div style={{position:"relative"}}><input placeholder="Buscar documentos..." style={{...selSty,paddingLeft:32,width:220}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 13px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>⚟ Filtrar</button><select style={{...selSty,width:"auto"}} defaultValue="Ordenar: Más reciente"><option>Ordenar: Más reciente</option></select></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"250px 1fr 380px",gap:16,marginTop:16,alignItems:"start"}} className="mos-doc">
      {/* Carpetas */}
-     <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontSize:15,fontWeight:800}}>Carpetas</div><span style={{width:26,height:26,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",color:P.purple,cursor:"pointer",fontWeight:700}}>+</span></div>{folders.map(([f,n],i)=>{const on=f===docFolder;return <div key={i} onClick={()=>setDocFolder(f)} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",borderRadius:9,cursor:"pointer",background:on?"#EEEBFD":"transparent"}}><span style={{color:i===0?P.purple:folderIco[i%folderIco.length]}}><svg width="17" height="17" viewBox="0 0 24 24" fill={on||i>0?"currentColor":"none"} stroke="currentColor" strokeWidth="1.6" opacity={i===0?1:.9}><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></span><span style={{flex:1,fontSize:13,fontWeight:on?700:500,color:on?P.purple:P.ink}}>{f}</span><span style={{fontSize:12,color:P.muted}}>{n}</span></div>;})}</div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:8}}>Carpetas</div>{folders.map(([f,n],i)=>{const on=f===docFolder;return <div key={i} onClick={()=>{setDocFolder(f);setDocSel(0);}} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",borderRadius:9,cursor:"pointer",background:on?"#EEEBFD":"transparent"}}><span style={{color:i===0?P.purple:folderIco[i%folderIco.length]}}><svg width="17" height="17" viewBox="0 0 24 24" fill={on||i>0?"currentColor":"none"} stroke="currentColor" strokeWidth="1.6" opacity={i===0?1:.9}><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></span><span style={{flex:1,fontSize:13,fontWeight:on?700:500,color:on?P.purple:P.ink}}>{f}</span><span style={{fontSize:12,color:P.muted}}>{n}</span></div>;})}</div>
      {/* Tabla */}
      <div style={{...card2,padding:0,overflow:"hidden"}}>
-      <div style={{padding:"14px 16px",fontSize:16,fontWeight:800}}>Documentos ({total})</div>
+      <div style={{padding:"14px 16px",fontSize:16,fontWeight:800}}>Documentos ({rows.length})</div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
-       <thead><tr><th style={{...th,width:30}}></th><th style={th}>Nombre</th><th style={th}>Tipo</th><th style={th}>Fecha</th><th style={th}>Subido por</th><th style={{...th,textAlign:"right"}}>Tamaño</th><th style={{...th,textAlign:"right"}}>Acc.</th></tr></thead>
-       <tbody>{rows.slice(0,10).map((r,i)=>{const on=i===docSel;return <tr key={i} onClick={()=>setDocSel(i)} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
-        <td style={tdc}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10}}>{on?"✓":""}</span></td>
+       <thead><tr><th style={th}>Nombre</th><th style={th}>Tipo</th><th style={{...th,textAlign:"right"}}>Fecha</th></tr></thead>
+       <tbody>{rows.length===0?<tr><td colSpan={3} style={{...tdc,textAlign:"center",color:P.muted,padding:"36px 12px"}}>{patientId?(docLoaded?(docFolder==="Todos los documentos"?"Sin documentos. Usa «+ Nuevo documento».":"Sin documentos en esta carpeta."):"Cargando documentos…"):"Selecciona un paciente para ver sus documentos."}</td></tr>:rows.map((r,i)=>{const on=i===docSel;return <tr key={i} onClick={()=>setDocSel(i)} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
         <td style={tdc}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{color:P.red,flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={pdfIco}/></svg></span><span style={{fontWeight:600,color:P.ink}}>{r.title}</span></div></td>
         <td style={tdc}><span style={typeSty(r.type)}>{r.type}</span></td>
-        <td style={{...tdc,color:P.muted}}>{r.date}</td>
-        <td style={tdc}>{r.by}</td>
-        <td style={{...tdc,textAlign:"right",color:P.muted}}>{r.size}</td>
-        <td style={{...tdc,textAlign:"right",color:P.muted,fontWeight:700}}>⋯</td>
+        <td style={{...tdc,color:P.muted,textAlign:"right"}}>{r.date}</td>
        </tr>;})}</tbody>
       </table></div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 16px",fontSize:13,color:P.muted,flexWrap:"wrap",gap:10}}><span>Mostrando 1-{Math.min(rows.length,10)} de {total} documentos</span><div style={{display:"flex",gap:5}}>{["‹","1","2","3","›"].map((p,i)=><span key={i} style={{minWidth:32,height:32,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:13,cursor:"pointer"}}>{p}</span>)}</div></div>
+      {rows.length>0&&<div style={{padding:"13px 16px",fontSize:13,color:P.muted}}>Mostrando {rows.length} de {total} documento(s)</div>}
      </div>
-     {/* Vista previa */}
+     {/* Detalle del documento seleccionado */}
      <div style={{...card2,padding:0,overflow:"hidden"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:`1px solid ${LINE}`}}><div style={{display:"flex",alignItems:"center",gap:9,minWidth:0}}><span style={{color:P.red,flex:"0 0 auto"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={pdfIco}/></svg></span><div style={{fontSize:13.5,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sel.title}</div></div><span style={{color:P.muted,cursor:"pointer"}}>✕</span></div>
-      <div style={{display:"flex",gap:14,padding:"0 16px",borderBottom:`1px solid ${LINE}`}}>{["Vista previa","Detalles","Historial"].map((t,i)=><span key={t} style={{padding:"12px 4px",fontSize:13,fontWeight:i===0?700:500,color:i===0?P.purple:P.muted,borderBottom:i===0?`2px solid ${P.purple}`:"2px solid transparent",cursor:"pointer"}}>{t}</span>)}</div>
-      <div style={{padding:14,background:"#F1F4FA"}}>
-       <div style={{background:P.white,border:`1px solid ${LINE}`,borderRadius:8,padding:14,fontSize:10.5,color:P.ink,minHeight:340}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",borderBottom:`1px solid ${LINE}`,paddingBottom:8}}><div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{color:P.blue}}>🧪</span><b style={{fontSize:11}}>LABORATORIOS DEL NORTE</b></div><b style={{fontSize:10}}>RESULTADOS DE LABORATORIO</b></div>
-        <div style={{display:"grid",gridTemplateColumns:"70px 1fr",gap:"2px 8px",margin:"8px 0",fontSize:10}}><span style={{color:P.muted}}>Paciente:</span><b>{patientName||"Ana López García"}</b><span style={{color:P.muted}}>Edad:</span><span>34 años</span><span style={{color:P.muted}}>Sexo:</span><span>Femenino</span><span style={{color:P.muted}}>Expediente:</span><span>LC260917-0042</span><span style={{color:P.muted}}>Fecha:</span><span>17/09/2026</span></div>
-        <div style={{fontWeight:700,margin:"6px 0 2px"}}>Biometría hemática</div>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:9.5}}><thead><tr>{["Estudio","Resultado","Unidad","Referencia"].map(h=><th key={h} style={{textAlign:"left",borderBottom:`1px solid ${LINE}`,padding:"3px 4px",color:P.muted}}>{h}</th>)}</tr></thead><tbody>{[["Hemoglobina","13.2","g/dL","12.0 - 16.0"],["Hematocrito","39.8","%","36 - 46"],["Leucocitos","6,800","/µL","4,000 - 11,000"],["Plaquetas","285,000","/µL","150,000 - 450,000"]].map((r,i)=><tr key={i}>{r.map((c,j)=><td key={j} style={{padding:"3px 4px",borderBottom:`1px solid #F2F4F9`,fontWeight:j===0?600:400}}>{c}</td>)}</tr>)}</tbody></table>
-        <div style={{fontWeight:700,margin:"8px 0 2px"}}>Química sanguínea</div>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:9.5}}><tbody>{[["Glucosa","98","mg/dL","70 - 99"],["Urea","28","mg/dL","10 - 50"],["Creatinina","0.8","mg/dL","0.6 - 1.2"],["TGO (AST)","24","U/L","< 40"],["TGP (ALT)","26","U/L","< 41"]].map((r,i)=><tr key={i}>{r.map((c,j)=><td key={j} style={{padding:"3px 4px",borderBottom:`1px solid #F2F4F9`,fontWeight:j===0?600:400}}>{c}</td>)}</tr>)}</tbody></table>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginTop:14}}><div style={{width:48,height:48,background:"#111",borderRadius:3}}/><div style={{textAlign:"right",fontSize:9}}><div style={{borderTop:"1px solid #333",paddingTop:2,fontWeight:700}}>Q.B. Mariana Torres</div><div style={{color:P.muted}}>Responsable sanitario</div><div style={{color:P.muted}}>Céd. Prof. 12345678</div></div></div>
+      <div style={{padding:"14px 16px",borderBottom:`1px solid ${LINE}`,fontSize:15,fontWeight:800}}>Detalle del documento</div>
+      {!sel?<div style={{padding:"40px 16px",textAlign:"center",color:P.muted,fontSize:13}}>{rows.length===0?"Crea un documento con «+ Nuevo documento».":"Selecciona un documento de la lista para ver su detalle."}</div>:<div style={{padding:"16px"}}>
+       <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{color:P.red,flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={pdfIco}/></svg></span><div style={{minWidth:0}}><div style={{fontSize:14,fontWeight:700}}>{sel.title}</div><span style={typeSty(sel.type)}>{sel.type}</span></div></div>
+       <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:9,fontSize:12.5}}>
+        {[["Tipo",sel.type],["Fecha de creación",sel.date],["Paciente",patientName||"—"]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",gap:10}}><span style={{color:P.muted}}>{k}</span><span style={{fontWeight:600,textAlign:"right"}}>{v}</span></div>)}
        </div>
-      </div>
+       <div style={{marginTop:14,fontSize:11.5,color:P.muted,background:"#F7F6FE",border:`1px solid #E2DEFB`,borderRadius:10,padding:"10px 12px"}}>Documento clínico firmable registrado en el expediente. La previsualización del contenido completo se abre desde el expediente del paciente.</div>
+       <button onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Documentos"),0);}} style={{marginTop:14,width:"100%",border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button>
+      </div>}
      </div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1.1fr 1.2fr 1fr",gap:14,marginTop:16,alignItems:"start"}} className="mos-doc2">
