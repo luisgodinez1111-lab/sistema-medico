@@ -2198,8 +2198,6 @@ export default function Workspace(){
    const kcard:React.CSSProperties={...card2,padding:15,display:"flex",gap:12,alignItems:"center"};
    const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"14px 0 6px"};
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
-   const chk=(on:boolean,l:string)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{on?"✓":""}</span>{l}</label>;
-   const rad=(on:boolean,l:string)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}}><span style={{width:15,height:15,borderRadius:"50%",border:on?`1.6px solid ${P.purple}`:"1.6px solid #C7CCE0",boxShadow:on?`inset 0 0 0 3px ${P.purple}`:"none",flex:"0 0 auto"}}/>{l}</label>;
    // ===== Catálogo REAL determinista (packages/drug-catalog) — principio activo + clases + categoría + reglas =====
    const cat=drugCatalog();
    const categories=[...new Set(cat.map(d=>d.category))].sort((a,b)=>a.localeCompare(b,"es"));

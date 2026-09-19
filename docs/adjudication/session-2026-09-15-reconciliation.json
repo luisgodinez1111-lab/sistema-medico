@@ -3148,6 +3148,28 @@
    "epic": "S7/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-MEDICAMENTOS-AUDIT-DEEP-001",
+   "name": "Medicamentos — auditoría boton por boton: catálogo/interacciones/alertas 100% reales (confirmado)",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema del modulo Medicamentos. Resultado: el modulo ya cumplia el estandar (cero datos ficticios, cero botones muertos). Confirmado cableado real: KPIs derivados del catalogo determinista (drugCatalog: principios activos, clases terapeuticas, con monitoreo, con alerta renal, reglas de interaccion); pestaña Catalogo con filtros REALES (busqueda + categoria + solo-monitoreo + solo-renal + Limpiar) sobre drugCatalog, filas seleccionables (medSel) con panel de detalle real (monitoreo, ajuste renal por TFG, interacciones de sus clases) y accion Prescribir -> lleva el principio activo al formulario del expediente (rxDrug + scrollToSection Medicacion); pestaña Interacciones cableada a POST /api/v1/interactions (verificador de conjunto por clase + factores del paciente, hallazgos con severidad/mecanismo/recomendacion, no reconocidos marcados); pestaña Alertas con reglas de interaccion reales + vigilancia obligada (monitoreo y contraindicacion renal) del catalogo. Plantillas/Prescripciones rapidas/Reportes se marcan honestamente como no implementadas (requieren almacen por medico / registro clinica-wide) con boton real para ir a prescribir. Unico cambio: eliminados dos helpers sin uso (chk, rad).",
+   "invariants": [
+    "Medicamentos no muestra datos ni contadores de ejemplo: todo deriva del catalogo determinista y del verificador real de interacciones",
+    "Cada control ejecuta accion: filtros filtran, Limpiar resetea, seleccion abre detalle, Prescribir lleva al expediente, Verificar llama a la API",
+    "Las pestañas no construidas (Plantillas/Rapidas/Reportes) se marcan como no implementadas con verdad clinica, no simuladas",
+    "Las reglas de seguridad mostradas (interaccion, monitoreo, renal) son las mismas que alimentan las barreras de prescripcion del expediente"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (confirmacion de cableado real de Medicamentos; elimina helpers chk/rad sin uso)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Medicamentos › Interacciones S8.3: verificador de conjunto cableado — chips, factores, hallazgos con severidad)"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): la pestaña Interacciones agrega farmacos, factores y produce hallazgos con severidad reales via POST /interactions. Typecheck limpio tras eliminar helpers muertos.",
+   "epic": "S8/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
