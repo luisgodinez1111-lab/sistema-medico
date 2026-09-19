@@ -540,6 +540,10 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   const save=screen.getByRole("button",{name:/Guardar cambios/});
   fireEvent.click(save);
   expect(await screen.findByText(/Cambios guardados/,{},{timeout:2000})).toBeTruthy();
+  // auditoría: banner presentacional honesto; sin control destructivo falso ni toggle de IA (R6 en pausa)
+  expect(screen.getByText(/Ajustes presentacionales/)).toBeTruthy();
+  expect(screen.queryByText(/Eliminar mi cuenta/)).toBeNull();
+  expect(screen.queryByText(/Sugerencias de diagnóstico con IA/)).toBeNull();
  });
 
  it("vista Biblioteca Clínica (S-BIBLIOTECA): repositorio de conocimiento + herramientas reales enlazadas",async()=>{

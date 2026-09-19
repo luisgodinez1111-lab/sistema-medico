@@ -3494,6 +3494,28 @@
    "epic": "S-BIBLIOTECA/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-CONFIGURACION-AUDIT-DEEP-001",
+   "name": "Configuración — auditoría: ajustes presentacionales honestos; sin control destructivo falso ni toggle de IA (R6)",
+   "risk": "C5",
+   "eng_authority_note": "Auditoria de Configuracion (vista de ajustes auxiliar). No hay backend de settings: la vista es un preview de preferencias (inputs con defaultValue no persistidos, toggles decorativos, botones sin accion); el propio boton Guardar ya declaraba preferencia local; sin backend de settings. Correccion enfocada en integridad y seguridad: (1) Añadido banner que declara explicitamente que los ajustes son presentacionales y no se persisten (los datos y acciones reales viven en cada modulo). (2) GOBERNANZA R6: eliminado el toggle Sugerencias de diagnostico con IA que estaba en ON, porque contradice la pausa intencional de IA generativa (R6). (3) SEGURIDAD: eliminado el boton destructivo 🗑 Eliminar mi cuenta (accion irreversible simulada que no hacia nada) junto con Exportar mis datos/Respaldar ahora no cableados -> reemplazados por una nota honesta de que exportacion/respaldo/eliminacion se habilitaran con el backend. El resto de la vista (informacion del consultorio, horarios, apariencia -color wired-, preferencias, regionales, cuenta, firma, integraciones, modulos activos, Guardar) permanece como preview claramente etiquetado por el banner.",
+   "invariants": [
+    "Configuracion declara explicitamente su caracter presentacional (sin backend de settings); no afirma persistir lo que no persiste",
+    "No se ofrece ningun toggle/боton de IA generativa (R6 en pausa): eliminado Sugerencias de diagnostico con IA",
+    "No hay controles destructivos falsos: eliminado Eliminar mi cuenta (accion irreversible simulada)",
+    "Guardar cambios declara que es preferencia local sin backend"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (banner presentacional; elimina toggle Sugerencias de diagnostico con IA; elimina boton Eliminar mi cuenta y export/respaldo no cableados -> nota honesta)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Configuracion S-CONFIG: banner presentacional + Guardar; Eliminar mi cuenta y Sugerencias de diagnostico con IA === null)"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): presentes las secciones, Modulos activos, la nota NOM-024, el banner Ajustes presentacionales y Guardar cambios -> Cambios guardados; queryByText(Eliminar mi cuenta / Sugerencias de diagnostico con IA) === null. Typecheck limpio.",
+   "epic": "S-CONFIG/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

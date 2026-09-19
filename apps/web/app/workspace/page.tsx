@@ -3552,6 +3552,7 @@ export default function Workspace(){
      <span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1L14.4 2h-4L10 3.9a7 7 0 00-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.4 2.4h4l.4-2.4a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6a7 7 0 00.1-1z"/></svg></span>
      <div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Configuración</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Personaliza tu espacio de trabajo, preferencias y módulos del sistema.</p></div>
     </div>
+    <div style={{...card2,marginTop:14,padding:"12px 16px",background:"#FDF4E6",border:"1px solid #F2E1C0",fontSize:12.5,color:"#7A5A16",lineHeight:1.5}}>Ajustes presentacionales: las preferencias mostradas <b>aún no se persisten</b> (no hay backend de configuración). Los datos clínicos y las acciones reales viven en cada módulo del expediente.</div>
     <div style={{...card2,marginTop:16,padding:"0 16px",display:"flex",gap:2,overflowX:"auto"}}>{CFG_TABS.map(t=><button key={t} onClick={()=>setCfgTab(t)} style={{padding:"14px 12px",fontSize:13.5,fontWeight:cfgTab===t?700:500,color:cfgTab===t?P.purple:P.muted,borderBottom:cfgTab===t?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>{t}</button>)}</div>
     <div style={{display:"grid",gridTemplateColumns:"1.15fr 1fr 0.95fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-cfg">
      {/* Col 1 */}
@@ -3586,7 +3587,7 @@ export default function Workspace(){
      <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <div style={{...card2,padding:18}}>{sec("M9 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z","Preferencias de consulta")}
        {[["Vista por defecto del expediente","Resumen clínico"],["Plantilla de nota médica por defecto","Consulta general (SOAP)"],["Sistema de unidades","Métrico (kg, cm)"],["Calculadora de dosis","Pediátrica y adultos"]].map(([l,v],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:11}}><span style={{fontSize:12.5,color:P.muted}}>{l}</span><select style={{...selSty,width:200}} defaultValue={v as string}><option>{v as string}</option></select></div>)}
-       <div style={{borderTop:`1px solid ${LINE}`,marginTop:6,paddingTop:12}}>{[["Mostrar alertas clínicas en tiempo real",true],["Sugerencias de diagnóstico con IA",true],["Recordatorios de estudios y seguimiento",true],["Mostrar interacciones medicamentosas",true],["Modo oscuro (solo para tu cuenta)",false]].map(([l,on],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0"}}><span style={{fontSize:13}}>{l as string}</span>{tog(on as boolean)}</div>)}</div>
+       <div style={{borderTop:`1px solid ${LINE}`,marginTop:6,paddingTop:12}}>{[["Mostrar alertas clínicas en tiempo real",true],["Recordatorios de estudios y seguimiento",true],["Mostrar interacciones medicamentosas",true],["Modo oscuro (solo para tu cuenta)",false]].map(([l,on],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0"}}><span style={{fontSize:13}}>{l as string}</span>{tog(on as boolean)}</div>)}</div>
       </div>
       <div style={{...card2,padding:18}}>{sec("M8 2v4M16 2v4M4 8h16M5 6h14v14H5z","Configuraciones regionales")}
        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -3601,8 +3602,7 @@ export default function Workspace(){
        </div>
       </div>
       <div style={{...card2,padding:18}}>{sec("M18 3a3 3 0 00-3 3M6 21a3 3 0 003-3M4 7h16v10H4z","Datos y seguridad")}
-       <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>↧ Exportar mis datos</button><button style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>↻ Respaldar ahora</button><button style={{flex:1,border:"1px solid #F6C9D0",background:"#FDECEE",color:P.red,borderRadius:10,padding:"11px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>🗑 Eliminar mi cuenta</button></div>
-       <div style={{fontSize:12,color:P.muted,marginTop:12,display:"flex",gap:7,alignItems:"center"}}><span style={{color:"#16A66A"}}>🛡</span>Tus datos están cifrados y protegidos conforme a la NOM-024-SSA3-2012.</div>
+       <div style={{fontSize:12,color:P.muted,display:"flex",gap:7,alignItems:"center"}}><span style={{color:"#16A66A"}}>🛡</span>Tus datos están cifrados y protegidos conforme a la NOM-024-SSA3-2012. La exportación, el respaldo y la eliminación de cuenta se habilitarán con el backend de configuración.</div>
       </div>
      </div>
      {/* Col 3 */}
