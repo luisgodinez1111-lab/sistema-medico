@@ -2767,6 +2767,30 @@
    "epic": "M/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-CONSULTA-PROBLEMS-UI-001",
+   "name": "Consulta — agregar diagnósticos CIE-10 reales a la lista de problemas (POST /problems)",
+   "risk": "C5",
+   "eng_authority_note": "Cablea el panel Diagnosticos/Problemas del formulario de Consulta, antes cosmetico (buscador inerte + chips estaticos), a la busqueda REAL en el catalogo CIE-10 (packages/terminology.searchIcd10) y a la creacion de problemas. Al teclear (>=2 chars) se muestra un desplegable de coincidencias del catalogo (codigo + descripcion); al elegir una, POST /api/v1/problems con ese codigo para el paciente en contexto (agregado ClinicalProblem event-sourced, codigo validado contra el catalogo por el backend), y se refresca el snapshot de consulta para reflejar el nuevo problema en los chips. Aviso de exito; 'Ver historial' navega al modulo Problemas. Requiere paciente en contexto.",
+   "invariants": [
+    "La busqueda usa el catalogo CIE-10 real (searchIcd10); no hay lista hardcodeada de diagnosticos",
+    "El problema se persiste como evento real (POST /problems -> ClinicalProblem) con codigo CIE-10 validado por el backend e idempotencia",
+    "Tras agregar, el snapshot de consulta se re-consulta para reflejar el problema (best-effort)",
+    "Requiere patientId en contexto; los chips leen del snapshot real del paciente"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (cDxQuery + addConsultaProblem; panel Diagnosticos de la Consulta con buscador CIE-10 + desplegable + POST)",
+    "import searchIcd10 de packages/terminology/src"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Consulta: buscar CIE-10 -> elegir -> POST /problems)",
+    "scripts/v22/live-problem-registry-proof.mts"
+   ],
+   "runtime_evidence": "Render test 33/33 (jsdom): en la Consulta, buscar \"diabetes\" muestra E11.9 del catalogo CIE-10 real y al elegirlo POST /problems -> aviso de problema agregado. Backend reutilizado ya probado en vivo: live-problem-registry-proof (crear + categoria-UI + estado por transicion + conteos).",
+   "epic": "Q/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

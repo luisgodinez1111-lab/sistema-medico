@@ -291,6 +291,16 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText(/registrada\(s\) en el expediente/i)).toBeTruthy();
  });
 
+ it("vista Consulta: agregar un diagnóstico CIE-10 real a la lista de problemas (POST /problems)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+  // buscar en el catálogo CIE-10 real (packages/terminology)
+  fireEvent.change(screen.getByPlaceholderText(/Buscar CIE-10 o descripción/),{target:{value:"diabetes"}});
+  const opt=await screen.findByText(/Diabetes mellitus tipo 2 sin complicaciones/);
+  fireEvent.click(opt); // agrega el problema -> POST /problems
+  expect(await screen.findByText(/agregado a la lista/i)).toBeTruthy();
+ });
+
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
   render(<Workspace/>);
   toExpediente();
