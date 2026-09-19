@@ -309,6 +309,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText(/ANTECEDENTES RELEVANTES: HTA/)).toBeTruthy();
  });
 
+ it("vista Alergias: registrar una alergia real desde el módulo (POST /allergies)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Alergias"}));
+  fireEvent.click(screen.getByRole("button",{name:"+ Nueva alergia"}));
+  expect(screen.getByText("Nueva alergia")).toBeTruthy();
+  // esperar a que la lista de pacientes cargue (opción del selector) y elegir paciente + sustancia + reacción
+  await screen.findByRole("option",{name:"Ana López García"});
+  fireEvent.change(screen.getAllByRole("combobox")[0]!,{target:{value:"p1"}});
+  fireEvent.change(screen.getByPlaceholderText(/Penicilina, Mariscos/),{target:{value:"Penicilina"}});
+  fireEvent.click(screen.getByRole("button",{name:"Urticaria"}));
+  fireEvent.click(screen.getByRole("button",{name:"Registrar alergia"}));
+  expect(await screen.findByText(/Alergia registrada/)).toBeTruthy();
+ });
+
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
   render(<Workspace/>);
   toExpediente();

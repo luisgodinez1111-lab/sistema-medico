@@ -489,6 +489,8 @@ export default function Workspace(){
  const[alergSel,setAlergSel]=useState(0);
  const[alergOnlyActive,setAlergOnlyActive]=useState(true);const[alergOnlySevere,setAlergOnlySevere]=useState(false);
  const[alergSearch,setAlergSearch]=useState("");const[alergType,setAlergType]=useState("Todos");
+ const[algNew,setAlgNew]=useState(false);const[algBusy,setAlgBusy]=useState(false);const[algMsg,setAlgMsg]=useState<string|null>(null);
+ const[algForm,setAlgForm]=useState<{patientId:string;substance:string;severity:string;reaction:string}>({patientId:"",substance:"",severity:"MODERATE",reaction:""});
  // Vista Problemas (S-PROBLEMAS) — lista clínica-wide cableada a GET /api/v1/problems + form + plantillas
  const[probScreen,setProbScreen]=useState<"lista"|"nuevo"|"plantillas">("lista");
  const[probReg,setProbReg]=useState<ProblemRegistry|null>(null);
@@ -631,7 +633,7 @@ export default function Workspace(){
  },[view,ready,session,agendaDate]);
  // Inicio, Pacientes, Órdenes y Agenda: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
-  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda")||!ready||!session)return;
+  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda"&&view!=="alergias")||!ready||!session)return;
   let cancelled=false;
   (async()=>{
    try{
@@ -931,6 +933,17 @@ export default function Workspace(){
    }
    const n=cOrdSel.length;setCOrdSel([]);setCOrdMsg(`${n} orden(es) creada(s) y registrada(s) en el expediente ✓`);
   }catch(e){setCOrdMsg(String(e));}finally{setCOrdBusy(false);}
+ };
+ // ===== Alergias: creación inline real (POST /allergies) + recarga del registro clínica-wide =====
+ const reloadAllergies=async()=>{const r=await apiRequest("/api/v1/allergies",{method:"GET"});if(r.status===200)setAlergReg(r.body as unknown as AllergyRegistry);};
+ const createAllergyInline=async()=>{
+  if(!algForm.patientId||!algForm.substance.trim()){setAlgMsg("Selecciona un paciente e indica la sustancia.");return;}
+  setAlgBusy(true);setAlgMsg(null);
+  try{
+   const r=await apiRequest("/api/v1/allergies",{method:"POST",body:{allergyId:uuid(),patientId:algForm.patientId,substance:algForm.substance.trim(),severity:algForm.severity,reaction:algForm.reaction.trim()||"No especificada",occurredAt:nowIso()}});
+   if(r.status>=400){setAlgMsg(errMsg(r));return;}
+   await reloadAllergies();setAlgNew(false);setAlgForm({patientId:"",substance:"",severity:"MODERATE",reaction:""});setAlgMsg("Alergia registrada. Ya bloquea la prescripción del fármaco relacionado.");
+  }catch(e){setAlgMsg(String(e));}finally{setAlgBusy(false);}
  };
  // Agrega un problema (CIE-10 del catálogo real) a la lista del paciente (POST /problems) y refresca el snapshot.
  const addConsultaProblem=async(code:string)=>{
@@ -2315,9 +2328,21 @@ export default function Workspace(){
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
       <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI,display:"flex",alignItems:"center",gap:7}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16v6H4zM4 14h16v6H4z"/></svg>Plantillas</button>
       <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI,display:"flex",alignItems:"center",gap:7}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 5v14M5 12h14"/></svg>Registro rápido</button>
-      <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("consulta");setCTab("actual");}}>+ Nueva alergia ▾</button>
+      <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setAlgNew(v=>!v);setAlgMsg(null);}}>{algNew?"Cerrar":"+ Nueva alergia"}</button>
      </div>
     </div>
+    {algMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:algMsg.includes("registrada")?"#F0FBF4":"#EEF6FF",border:`1px solid ${algMsg.includes("registrada")?"#CDEBD8":"#CFE0F7"}`,borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:algMsg.includes("registrada")?P.green:P.blue,fontWeight:700}}>{algMsg.includes("registrada")?"✓":"ℹ"}</span><span style={{flex:1}}>{algMsg}</span><button onClick={()=>setAlgMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+    {algNew&&<div style={{...card2,marginTop:14,padding:18}}>
+     <div style={{fontWeight:800,fontSize:16,marginBottom:14}}>Nueva alergia</div>
+     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}} className="mos-med2">
+      <div><div style={flbl}>Paciente</div><select value={algForm.patientId} onChange={e=>setAlgForm({...algForm,patientId:e.target.value})} style={selSty}><option value="">Selecciona…</option>{(patientList??[]).map(p=><option key={p.patientId} value={p.patientId}>{p.name}</option>)}</select></div>
+      <div><div style={flbl}>Sustancia</div><input value={algForm.substance} onChange={e=>setAlgForm({...algForm,substance:e.target.value})} placeholder="Ej. Penicilina, Mariscos, Látex" style={selSty}/></div>
+      <div><div style={flbl}>Severidad</div><select value={algForm.severity} onChange={e=>setAlgForm({...algForm,severity:e.target.value})} style={selSty}>{[["SEVERE","Grave"],["MODERATE","Moderada"],["MILD","Leve"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
+     </div>
+     <div style={{marginTop:12}}><div style={flbl}>Reacción</div><input value={algForm.reaction} onChange={e=>setAlgForm({...algForm,reaction:e.target.value})} placeholder="Ej. Urticaria, Anafilaxia, Broncoespasmo" style={selSty}/></div>
+     <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>{["Urticaria","Exantema","Broncoespasmo","Anafilaxia","Rinitis","Prurito"].map(rx=><button key={rx} onClick={()=>setAlgForm(f=>({...f,reaction:rx}))} style={algForm.reaction===rx?{border:`1px solid ${P.purple}`,background:"#EEEBFD",color:P.purple,borderRadius:20,padding:"6px 11px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:UI}:{border:`1px solid ${LINE}`,background:P.white,color:P.ink,borderRadius:20,padding:"6px 11px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:UI}}>{rx}</button>)}</div>
+     <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void createAllergyInline()} disabled={algBusy||!algForm.patientId||!algForm.substance.trim()} style={{border:0,background:(algBusy||!algForm.patientId||!algForm.substance.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(algBusy||!algForm.patientId||!algForm.substance.trim())?"default":"pointer",fontFamily:UI}}>{algBusy?"Registrando…":"Registrar alergia"}</button><button onClick={()=>setAlgNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
+    </div>}
     {/* KPIs */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
      <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z")}<div><div style={{fontSize:24,fontWeight:800}}>{patients}</div><div style={{fontSize:11.5,color:P.muted}}>Pacientes con alergias registradas</div></div></div>

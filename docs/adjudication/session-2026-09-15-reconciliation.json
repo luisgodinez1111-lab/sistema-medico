@@ -2814,6 +2814,30 @@
    "epic": "D/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-ALLERGIES-CREATE-UI-001",
+   "name": "Alergias — registro inline real desde el módulo (POST /allergies), alimenta el gate de prescripción",
+   "risk": "C5",
+   "eng_authority_note": "Profundiza el modulo Alergias (que ya leia el registro clinica-wide) con creacion REAL inline. '+ Nueva alergia' abre un creador (paciente real del tenant + sustancia + severidad SEVERE/MODERATE/MILD + reaccion, con chips de reaccion sugeridos) -> POST /api/v1/allergies (agregado Allergy event-sourced, tipo derivado por classifyAllergen en el backend) y recarga el registro. Interconexion de seguridad: la alergia registrada alimenta de inmediato el gate de alergia de la prescripcion (checkDrugAllergy por clase y reactividad cruzada beta-lactamicos), por lo que prescribir el farmaco relacionado queda bloqueado. Requiere paciente en contexto; sin sustancia, el boton esta deshabilitado. Aviso de exito que lo declara.",
+   "invariants": [
+    "La alergia se persiste como evento real (POST /allergies -> Allergy) con idempotencia; el tipo lo deriva el backend (classifyAllergen)",
+    "Alimenta el gate de alergia de la prescripcion (por clase + reactividad cruzada) ya existente y probado",
+    "Requiere patientId en contexto y sustancia; severidad restringida a SEVERE/MODERATE/MILD",
+    "El registro clinica-wide se recarga tras crear; nada queda solo en la UI"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (algForm + createAllergyInline + reloadAllergies; modulo Alergias con creador inline; patientList cargado en la vista)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Alergias: registrar alergia -> POST /allergies)",
+    "scripts/v22/live-allergy-registry-proof.mts",
+    "scripts/v22/live-allergy-medication-gate-proof.mts"
+   ],
+   "runtime_evidence": "Render test 35/35 (jsdom): en Alergias, + Nueva alergia -> elegir paciente + sustancia Penicilina + reaccion Urticaria -> Registrar -> POST /allergies -> aviso de alergia registrada. Backends reutilizados ya probados en vivo: live-allergy-registry-proof (registro + conteos por gravedad/tipo) y live-allergy-medication-gate-proof (la alergia bloquea la prescripcion del farmaco por clase y reactividad cruzada beta-lactamicos).",
+   "epic": "R/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
