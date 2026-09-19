@@ -696,6 +696,10 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText(/Problemas por categoría/)).toBeTruthy();
   expect(screen.getByText("Estado de problemas")).toBeTruthy();
   expect(screen.getByText("Pacientes con más problemas")).toBeTruthy();
+  // auditoría: el detalle abre el expediente (acción real) y se eliminaron los controles muertos
+  expect(screen.getByText(/Ver en el expediente/)).toBeTruthy();
+  expect(screen.queryByText("Exportar listado")).toBeNull();
+  expect(screen.queryByText("Accesos rápidos")).toBeNull();
   // navegación a "Nuevo problema" (form cableado a CIE-10)
   fireEvent.click(screen.getByRole("button",{name:/Nuevo problema/}));
   expect(screen.getByRole("heading",{name:"Nuevo problema"})).toBeTruthy();

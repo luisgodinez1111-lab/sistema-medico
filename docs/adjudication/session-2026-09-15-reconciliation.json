@@ -3216,6 +3216,30 @@
    "epic": "S-ALERGIAS/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-PROBLEMAS-AUDIT-DEEP-001",
+   "name": "Problemas — auditoría boton por boton (pantalla lista): registro real, cero controles muertos, fix de navegación",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema de Problemas (pantalla LISTA, la principal). Era una maqueta con fallback REP de 10 problemas ficticios + KPIs falsos (42/6/9/26/1), categorias y topPatients inventados, y el MISMO bug que Alergias: Ver en expediente usaba setPatientId(selp.id) donde selp.id es el problemId, no el paciente. Corregido: (1) Eliminado REP y todos los fallbacks -> allRows/KPIs/dona categorias/estado/topPatients derivan de probReg real (0/vacio honesto); probLoaded=!!probReg; selp null-safe con estado vacio. (2) BUG corregido: PRow.pid=it.patientId; Ver en el expediente usa selectPatientRaw(selp.pid,...) + scroll a Lista de problemas. (3) Eliminados controles muertos de la lista: selects de filtro Tipo/Categoria/Paciente/Fecha/Registrado por (sin estado); checkbox Solo con proximas citas (handler vacio); Exportar listado; checkboxes de fila y encabezado; select de orden; columna Acciones ⋯; paginacion falsa; ⋯ del detalle; pestañas Informacion/Evolucion/Tratamiento/Notas; boton Editar; datos hardcodeados del detalle (Expediente LC.../Registrado por Dr. Luis/Ultima actualizacion/Control/Notas metformina/Alerta HbA1c) -> ahora solo campos reales (codigo, fecha, tipo, estado); tarjeta Accesos rapidos con 3 de 4 enlaces muertos. (4) En la pantalla Nuevo problema: reemplazada la lista hardcodeada Problemas recientes del paciente (Diabetes/HTA/Ansiedad/Gastritis) por datos reales del registro con estado vacio honesto. Conservado y confirmado real: creador con busqueda CIE-10 (searchCie -> /terminology/icd10) y guardado (savePf -> POST /problems); filtros busqueda + estado + Limpiar; tabla seleccionable; navegacion a Plantillas y Nuevo. PENDIENTE (no ficticio en la pantalla principal): los contadores cosmeticos del catalogo de Plantillas (154/234) y algunos controles secundarios del form Nuevo (Prioridad/Categoria/Etiquetas/pestañas) quedan para una pasada posterior.",
+   "invariants": [
+    "La pantalla lista de Problemas no muestra datos de ejemplo: filas, KPIs, graficas y topPatients derivan de probReg real (0/vacio honesto)",
+    "Ver en el expediente navega al paciente correcto (patientId real), no al problemId",
+    "Cada control de la lista ejecuta accion: crear, buscar, filtrar por estado, Limpiar, seleccionar fila, ver en expediente, navegar a Plantillas",
+    "No hay controles decorativos en la lista: se eliminaron selects sin estado, checkboxes, exportar, paginacion, pestañas, orden y accesos sin accion",
+    "Problemas recientes (pantalla Nuevo) usa datos reales del registro, no una lista inventada"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (elimina REP y fallbacks; probLoaded; PRow.pid; fix Ver en expediente; elimina controles muertos de la lista; detalle real; grilla inferior a 3 columnas; Problemas recientes reales en Nuevo)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Problemas S-PROBLEMAS: registro real, Ver en el expediente presente; Exportar/Accesos rapidos === null; navegacion a Nuevo y Plantillas)",
+    "scripts/v22/live-problem-registry-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): lista, detalle y graficas desde el mock real (Ana Lopez, En seguimiento); Ver en el expediente presente; queryByText(Exportar listado / Accesos rapidos) === null; navegacion a Nuevo problema y Plantillas OK. Typecheck limpio.",
+   "epic": "S-PROBLEMAS/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
