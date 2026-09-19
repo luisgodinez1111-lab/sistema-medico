@@ -235,6 +235,9 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   // citas reales del registro (aparecen en la rejilla y en "Próximas citas")
   expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0);
   expect(screen.getAllByText("Carlos Mendoza").length).toBeGreaterThan(0);
+  // la rejilla ya NO muestra citas de ejemplo inventadas (auditoría: cero datos ficticios)
+  expect(screen.queryByText("Juan Pérez García")).toBeNull();
+  expect(screen.queryByText("Sofía Vega Ramírez")).toBeNull();
   // seleccionar la cita programada muestra su detalle con la acción real de ciclo de vida
   fireEvent.click(screen.getAllByText("Ana López García")[0]!);
   expect(screen.getByText("Detalle de la cita")).toBeTruthy();

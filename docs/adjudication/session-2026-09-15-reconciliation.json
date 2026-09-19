@@ -3101,6 +3101,29 @@
    "epic": "D/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-AGENDA-AUDIT-DEEP-001",
+   "name": "Agenda — auditoría boton por boton: rejilla y contadores 100% reales (sin citas de ejemplo)",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema de Agenda eliminando todo dato ficticio. Antes, cuando no habia citas reales (usingRealAg=false), la rejilla del dia mostraba 17 citas INVENTADAS (demoCol1/2/3: Juan Perez, Ana Ramirez, Sofia Vega, etc.) y el Resumen del dia mostraba contadores falsos 12/9/2/1. Ahora la vista se basa en agLoaded=!!agenda (payload cargado), no en el conteo: las columnas por consultorio se llenan solo con realAppts (rejilla vacia honesta si no hay citas), los contadores usan agenda.counts reales (0 si no hay), y todos los estados vacios son honestos (Sin citas para este dia / Sin proximas citas / Cargando agenda…). El resto de Agenda ya estaba cableado (navegacion de fecha con refetch, ↻ Actualizar, + Nueva cita -> createAppt, ciclo de vida check-in/completion/cancellation/no-show via apptTransition con optimistic concurrency, Abrir consulta -> openConsulta, mini-calendario, lista/dia). Vista semanal/mensual siguen marcadas Proximamente (verdad clinica).",
+   "invariants": [
+    "Agenda no muestra citas ni contadores de ejemplo: la rejilla, la lista, los contadores y Proximas citas se alimentan solo del payload real de la agenda",
+    "Con la agenda cargada y sin citas, la UI muestra estado vacio honesto (no datos ficticios)",
+    "Cada control de la cita (registrar llegada, atendida, cancelar, inasistencia, abrir consulta) ejecuta una transicion o navegacion real",
+    "Las vistas no construidas (semanal/mensual) se marcan Proximamente, no simuladas"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (elimina demoCol1/2/3; agLoaded=!!agenda; col1/2/3 solo de realAppts; contadores 0 si no cargada; estados vacios honestos en rejilla/lista/proximas)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Agenda: citas reales cableadas + queryByText de nombres de ejemplo === null)",
+    "scripts/v22/live-agenda-day-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): la rejilla muestra las citas reales del mock (Ana Lopez, Carlos Mendoza) y queryByText(\"Juan Perez Garcia\")/queryByText(\"Sofia Vega Ramirez\") === null (datos de ejemplo eliminados). Typecheck limpio.",
+   "epic": "D/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
