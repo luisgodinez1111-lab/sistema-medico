@@ -584,12 +584,15 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:/^Obligaciones/}));
   expect(screen.getByRole("heading",{name:"Obligaciones"})).toBeTruthy();
-  expect(screen.getByText("Total de obligaciones")).toBeTruthy();               // KPI
-  expect((await screen.findAllByText("Declaración mensual de IVA")).length).toBeGreaterThan(0); // fila (real) + calendario
-  expect(screen.getByText(/Calendario de próximas obligaciones/)).toBeTruthy();
-  expect(screen.getByText(/Cumplimiento por categoría/)).toBeTruthy();
-  expect(screen.getByText(/Recordatorios automáticos/)).toBeTruthy();
-  expect(screen.getByText(/Tareas pendientes/)).toBeTruthy();
+  expect(screen.getByText("Total de obligaciones")).toBeTruthy();               // KPI real
+  expect((await screen.findAllByText(/Obligaciones \(/)).length).toBeGreaterThan(0); // tabla real (conteo)
+  expect(screen.getByText(/Cumplimiento por categoría/)).toBeTruthy();          // gráfica real (compliance)
+  // auditoría: se eliminaron las secciones/controles hardcodeados o muertos
+  expect(screen.queryByText(/Calendario de próximas obligaciones/)).toBeNull();
+  expect(screen.queryByText(/Recordatorios automáticos/)).toBeNull();
+  expect(screen.queryByText(/Tareas pendientes/)).toBeNull();
+  expect(screen.queryByText("Documentos relacionados")).toBeNull();
+  expect(screen.queryByText(/Exportar reporte/)).toBeNull();
  });
 
  it("vista Documentos (S-DOCUMENTOS): carpetas + tabla de documentos + vista previa + acciones",async()=>{

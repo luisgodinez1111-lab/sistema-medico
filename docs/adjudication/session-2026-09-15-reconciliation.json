@@ -3403,6 +3403,29 @@
    "epic": "S-DOCUMENTOS/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-OBLIGACIONES-AUDIT-DEEP-001",
+   "name": "Obligaciones — auditoría boton por boton: registro real, tabs que filtran, sin secciones ficticias",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema de Obligaciones. La creacion ya era real (createRegObligation -> POST /regulatory-obligations) y el registro se lee de GET /regulatory-obligations (regObSnap); las pestañas por categoria ya filtraban de verdad. Defectos corregidos: (1) Eliminado el fallback REP (10 obligaciones ficticias) y los KPIs/total/compliance ficticios (21/12/6/3, compRep) -> tabla, KPIs y cumplimiento por categoria derivan de regObSnap real (0/vacio honesto); oblLoaded=!!regObSnap. (2) Encabezado: eliminados Configuracion y Exportar reporte (sin accion). (3) Barra de pestañas: conservada (filtra por categoria real); eliminada la fila de busqueda + selects de categoria/estado muertos. (4) Tabla: eliminadas la columna checkbox, la columna Acc. ⋯ y la paginacion falsa; estado vacio honesto (cargando / sin obligaciones / sin obligaciones en esta categoria). (5) Eliminadas secciones 100% hardcodeadas/muertas: Calendario de proximas obligaciones (5 hitos fijos CAL), Documentos relacionados (5 PDFs fijos), Ayuda y normatividad (5 enlaces sin accion), Recordatorios automaticos (toggle decorativo + Configurar sin accion), Tareas pendientes (5 tareas fijas). Conservado y confirmado real: creador Agregar obligacion (POST), pestañas por categoria, tabla, KPIs y Cumplimiento por categoria (regObSnap.compliance).",
+   "invariants": [
+    "Obligaciones no muestra filas, KPIs ni cumplimiento de ejemplo: todo deriva de regObSnap real (0/vacio honesto)",
+    "Las pestañas por categoria filtran realmente la tabla",
+    "No se presentan secciones sin fuente real: se eliminaron Calendario, Documentos relacionados, Ayuda, Recordatorios y Tareas pendientes hardcodeados",
+    "No hay controles decorativos: se eliminaron busqueda, selects, checkboxes, columna Acc, paginacion y botones de encabezado sin accion"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (elimina REP/fallbacks/CAL; oblLoaded; KPIs y compliance reales; tabla 5 columnas reales; elimina header/busqueda/paginacion muertos; elimina columna derecha y fila inferior ficticias; deja tabla + Cumplimiento reales)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Obligaciones S-OBLIGACIONES: KPI/tabla/Cumplimiento reales; Calendario/Recordatorios/Tareas pendientes/Documentos relacionados/Exportar reporte === null)",
+    "scripts/v22/live-regulatory-obligations-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): KPI Total de obligaciones, tabla Obligaciones (N) y Cumplimiento por categoria presentes; queryByText(Calendario de proximas obligaciones / Recordatorios automaticos / Tareas pendientes / Documentos relacionados / Exportar reporte) === null; el test de agregar obligacion real (POST) sigue verde. Typecheck limpio.",
+   "epic": "S-OBLIGACIONES/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
