@@ -386,6 +386,17 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText(/Interconsulta enviada/)).toBeTruthy();
  });
 
+ it("vista Resultados: registrar un resultado real (POST /results, interpretación derivada)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Resultados"}));
+  fireEvent.click(screen.getByRole("button",{name:"+ Registrar resultado"}));
+  const opt=await screen.findByRole("option",{name:"Ana López García"});
+  fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});          // paciente
+  fireEvent.change(screen.getByPlaceholderText("Ej. 520"),{target:{value:"520"}});
+  fireEvent.click(screen.getByRole("button",{name:"Registrar resultado"})); // submit
+  expect(await screen.findByText(/Resultado registrado/)).toBeTruthy();
+ });
+
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
   render(<Workspace/>);
   toExpediente();

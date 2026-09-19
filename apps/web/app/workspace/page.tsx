@@ -563,6 +563,8 @@ export default function Workspace(){
  const[consTabs,setConsTabs]=useState<ConsTabs|null>(null); // pestañas por paciente de Consulta (cableado)
  const[resTab,setResTab]=useState<"resultados"|"solicitudes"|"seguimiento"|"referencia"|"alertas">("resultados");
  const[resReg,setResReg]=useState<ResultsRegistry|null>(null); // registro de resultados clínica-wide (cableado)
+ const[resNew,setResNew]=useState(false);const[resBusy2,setResBusy2]=useState(false);const[resMsg2,setResMsg2]=useState<string|null>(null);
+ const[resForm,setResForm]=useState<{patientId:string;analyte:string;value:string}>({patientId:"",analyte:"GLUCOSE",value:""});
  const[ordReg,setOrdReg]=useState<{items:{orderId:string;patientId:string;patientName:string;orderType:string;typeLabel:string;detail:string;status:string;createdAt:string;version:number}[];total:number;solicitadas:number;enviadas:number;completadas:number}|null>(null);
  const[ordSel,setOrdSel]=useState<string|null>(null); // orderId seleccionado (panel de detalle) de la vista Órdenes
  const[ordBusy,setOrdBusy]=useState(false); // transición de orden en curso
@@ -643,7 +645,7 @@ export default function Workspace(){
  },[view,ready,session,agendaDate]);
  // Inicio, Pacientes, Órdenes y Agenda: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
-  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda"&&view!=="alergias"&&view!=="vacunas"&&view!=="facturacion"&&view!=="interconsulta")||!ready||!session)return;
+  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda"&&view!=="alergias"&&view!=="vacunas"&&view!=="facturacion"&&view!=="interconsulta"&&view!=="resultados")||!ready||!session)return;
   let cancelled=false;
   (async()=>{
    try{
@@ -943,6 +945,19 @@ export default function Workspace(){
    }
    const n=cOrdSel.length;setCOrdSel([]);setCOrdMsg(`${n} orden(es) creada(s) y registrada(s) en el expediente ✓`);
   }catch(e){setCOrdMsg(String(e));}finally{setCOrdBusy(false);}
+ };
+ // ===== Resultados: registrar un resultado real (POST /results; critical se DERIVA del valor por CDS) + recarga =====
+ const reloadResults=async()=>{const r=await apiRequest("/api/v1/results",{method:"GET"});if(r.status===200)setResReg(r.body as unknown as ResultsRegistry);};
+ const createResult=async()=>{
+  if(!resForm.patientId||!resForm.analyte.trim()||!resForm.value.trim()){setResMsg2("Selecciona paciente, analito y valor.");return;}
+  setResBusy2(true);setResMsg2(null);
+  try{
+   const r=await apiRequest("/api/v1/results",{method:"POST",body:{resultId:uuid(),patientId:resForm.patientId,orderId:uuid(),analyte:resForm.analyte.trim(),value:resForm.value.trim(),occurredAt:nowIso()}});
+   if(r.status>=400){setResMsg2(errMsg(r));return;}
+   const crit=r.body["critical"]===true;const delta=r.body["deltaFlagged"]===true;
+   await reloadResults();setResNew(false);setResForm({patientId:resForm.patientId,analyte:resForm.analyte,value:""});
+   setResMsg2(crit?`Resultado registrado ⚠ CRÍTICO${delta?" · Δ crítico vs previo":""} — requiere acción y bloquea la firma hasta cerrarse.`:`Resultado registrado ✓${delta?" · Δ vs previo":" (dentro de rango)"}.`);
+  }catch(e){setResMsg2(String(e));}finally{setResBusy2(false);}
  };
  // ===== Obligaciones regulatorias del consultorio: alta inline real (POST /regulatory-obligations) + recarga =====
  const reloadRegObligations=async()=>{const r=await apiRequest("/api/v1/regulatory-obligations",{method:"GET"});if(r.status===200)setRegObSnap(r.body as unknown as RegObSnap);};
@@ -1989,9 +2004,21 @@ export default function Workspace(){
    return <div style={{padding:"18px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Resultados</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Consulta, analiza y da seguimiento a estudios de laboratorio, imagenología y otros resultados.</p></div></div>
-     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 16px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Resultados diagnósticos"),0);}}>+ Registrar resultado</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Órdenes clínicas"),0);}}>Solicitar estudio</button></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 16px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setResNew(v=>!v);setResMsg2(null);}}>{resNew?"Cerrar":"+ Registrar resultado"}</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>setView("ordenes")}>Solicitar estudio</button></div>
     </div>
     <div style={{display:"flex",gap:2,marginTop:14,borderBottom:`1px solid ${LINE}`,overflowX:"auto"}}>{RTABS.map(([k,l,d])=><button key={k} onClick={()=>setResTab(k)} style={{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",fontSize:13.5,fontWeight:resTab===k?700:500,color:resTab===k?P.purple:P.muted,cursor:"pointer",borderBottom:resTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,fontFamily:UI,whiteSpace:"nowrap"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg>{l}</button>)}</div>
+    {resMsg2&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:resMsg2.includes("CRÍTICO")?"#FDECEE":resMsg2.includes("✓")?"#F0FBF4":"#EEF6FF",border:`1px solid ${resMsg2.includes("CRÍTICO")?"#F3C9C9":resMsg2.includes("✓")?"#CDEBD8":"#CFE0F7"}`,borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:resMsg2.includes("CRÍTICO")?P.red:resMsg2.includes("✓")?P.green:P.blue,fontWeight:700}}>{resMsg2.includes("CRÍTICO")?"⚠":resMsg2.includes("✓")?"✓":"ℹ"}</span><span style={{flex:1}}>{resMsg2}</span><button onClick={()=>setResMsg2(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+    {resNew&&<div style={{...card,marginTop:14,padding:18}}>
+     <div style={{fontWeight:800,fontSize:16,marginBottom:4}}>Registrar resultado</div>
+     <div style={{fontSize:12.5,color:P.muted,marginBottom:12}}>La interpretación (normal / crítico) la <b style={{color:P.ink}}>deriva el motor CDS</b> del valor; un crítico sin cerrar bloquea la firma.</div>
+     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 140px",gap:14}} className="mos-med2">
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Paciente</div><select value={resForm.patientId} onChange={e=>setResForm({...resForm,patientId:e.target.value})} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}><option value="">Selecciona…</option>{(patientList??[]).map(p=><option key={p.patientId} value={p.patientId}>{p.name}</option>)}</select></div>
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Analito</div><select value={resForm.analyte} onChange={e=>setResForm({...resForm,analyte:e.target.value})} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}>{labReferenceRanges().map(a=><option key={a.analyte} value={a.analyte}>{a.analyte}</option>)}</select></div>
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Valor</div><input value={resForm.value} onChange={e=>setResForm({...resForm,value:e.target.value})} placeholder="Ej. 520" style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}/></div>
+     </div>
+     {(()=>{const rng=labReferenceRanges().find(a=>a.analyte===resForm.analyte);return rng?<div style={{fontSize:11.5,color:P.muted,marginTop:8}}>Rango normal {resForm.analyte}: {rng.normalLow}–{rng.normalHigh}{rng.criticalLow!=null||rng.criticalHigh!=null?` · crítico <${rng.criticalLow??"—"} o >${rng.criticalHigh??"—"}`:""}</div>:null;})()}
+     <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void createResult()} disabled={resBusy2||!resForm.patientId||!resForm.value.trim()} style={{border:0,background:(resBusy2||!resForm.patientId||!resForm.value.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(resBusy2||!resForm.patientId||!resForm.value.trim())?"default":"pointer",fontFamily:UI}}>{resBusy2?"Registrando…":"Registrar resultado"}</button><button onClick={()=>setResNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
+    </div>}
     <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
      <div style={kcard}>{kico("#EEEBFD",P.purple,"M4 4h16v16H4zM8 9h8M8 13h5")}<div><div style={{fontSize:22,fontWeight:800}}>{kTot}</div><div style={{fontSize:11.5,color:P.muted}}>Resultados totales</div></div></div>
      <div style={kcard}>{kico("#FDECEE",P.red,"M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3")}<div><div style={{fontSize:22,fontWeight:800}}>{kAbn}</div><div style={{fontSize:11.5,color:P.muted}}>Con hallazgos anormales</div></div></div>

@@ -2978,6 +2978,31 @@
    "epic": "BF/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-RESULTS-CREATE-UI-001",
+   "name": "Resultados — registrar resultado real con interpretación derivada por CDS (POST /results)",
+   "risk": "C5",
+   "eng_authority_note": "Profundiza el modulo Resultados (que ya leia el registro clinica-wide) con registro REAL inline. '+ Registrar resultado' abre un creador (paciente real + analito del catalogo de rangos de referencia labReferenceRanges + valor; muestra el rango normal/critico del analito) que hace POST /api/v1/results (agregado DiagnosticResult, evento RESULT_RECEIVED). CLAVE: el flag critical, el status y la interpretacion los DERIVA el backend del valor real (classifyLab + delta-check vs previo), no la UI; el aviso refleja la respuesta (normal / CRITICO / Δ critico vs previo) y advierte que un critico sin cerrar bloquea la firma del encuentro (Zero-Lost-Follow-Up). Recarga el registro. Requiere paciente + analito + valor.",
+   "invariants": [
+    "critical/status/interpretacion los deriva el backend del valor (classifyLab + delta-check), nunca la UI",
+    "Se persiste como evento real (POST /results -> DiagnosticResult RECEIVED) con idempotencia",
+    "Un resultado critico sin cerrar bloquea la firma del encuentro (gate del kernel, ya probado)",
+    "El analito se elige del catalogo real de rangos (labReferenceRanges); el registro clinica-wide se recarga",
+    "Requiere patientId + analito + valor"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (resForm + createResult + reloadResults; modulo Resultados con creador; analito de labReferenceRanges; patientList cargado en la vista)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Resultados: registrar resultado -> POST /results)",
+    "scripts/v22/live-results-registry-proof.mts",
+    "scripts/v22/live-result-closed-loop-proof.mts"
+   ],
+   "runtime_evidence": "Render test 42/42 (jsdom): en Resultados, + Registrar resultado -> paciente + analito GLUCOSE + valor 520 -> Registrar -> POST /results -> aviso de resultado registrado. Backends reutilizados ya probados en vivo: live-results-registry-proof (estado-UI derivado + tipo + KPIs) y live-result-closed-loop-proof (un critico sin cerrar bloquea la firma; ciclo RECEIVED->VERIFIED->ACTIONED->CLOSED).",
+   "epic": "AQ/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
