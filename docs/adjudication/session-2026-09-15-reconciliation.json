@@ -2594,6 +2594,31 @@
    "epic": "M/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-MEDICATIONS-CATALOG-UI-001",
+   "name": "Medicamentos — catálogo determinista real + Alertas de seguridad + interconexión a prescripción",
+   "risk": "C5",
+   "eng_authority_note": "Eleva la vista Medicamentos de datos estáticos/placeholder a un módulo cableado al catálogo determinista real (packages/drug-catalog). Nuevos exports puros drugCatalog() (principios activos deduplicados por ingrediente, con categoría terapéutica en español, clases farmacológicas, reglas de monitoreo aplicables y regla renal por TFG) e interactionRules() (matriz de interacciones por clase). Pestaña Catálogo: KPIs reales (principios activos, clases, con monitoreo, con alerta renal, reglas de interacción), tabla filtrable (búsqueda, categoría, solo-monitoreo, solo-renal), y panel de detalle por fármaco (clases, monitoreo con periodicidad, umbrales renales BLOCK/CAUTION, interacciones de sus clases). Interconexión real: 'Prescribir' lleva el principio activo al formulario de prescripcion del expediente (setRxDrug + navegacion a la seccion Medicacion), donde corren las barreras reales (alergia, duplicidad, interaccion, contraindicacion, dosis). Pestaña Alertas: panel de conocimiento determinista con la matriz de interacciones por clase y la vigilancia obligada (monitoreo + contraindicacion/precaucion renal), sin IA. Honestidad: plantillas/prescripciones-rapidas/reportes se declaran pendientes de un almacen/registro clinica-wide (no fingidos); el catalogo se declara subconjunto de demostracion (vademecum oficial RxNorm/COFEPRIS aparte).",
+   "invariants": [
+    "Catálogo, clases y reglas provienen del motor determinista real (drug-catalog); coherentes con checkRenalDosing/monitoringFor/checkInteractions",
+    "drugCatalog() deduplica por principio activo (sinónimos colapsados) y ordena alfabéticamente; puro, sin PHI",
+    "La prescripción real y sus barreras de seguridad se ejecutan en el expediente del paciente (no en el catálogo)",
+    "Sin datos ficticios presentados como reales: KPIs y reglas derivados del catálogo; pestañas sin backend declaradas pendientes",
+    "Catálogo declarado subconjunto de demostración; fuente autorizada (RxNorm/COFEPRIS) aparte"
+   ],
+   "implementation": [
+    "packages/drug-catalog/src/index.ts (nuevos exports drugCatalog + interactionRules + tipo DrugCatalogItem)",
+    "apps/web/app/workspace/page.tsx (vista Medicamentos: Catálogo real + detalle + Alertas + interconexión prescribir)"
+   ],
+   "tests": [
+    "tests/v22/drug-catalog.test.ts",
+    "tests/v22/ui-cockpit-render.test.tsx (vista Medicamentos: catálogo/detalle/alertas)"
+   ],
+   "runtime_evidence": "tests/v22/drug-catalog.test.ts — 31/31 (deduplicación por principio activo, categoría/clases/reglas coherentes con el motor: metformina BIGUANIDE + MONITOR_RENAL + renal blockBelow 30, amoxicilina sin ajuste renal; matriz de interacciones con >=1 MAJOR). Render test 26/26 (jsdom): KPIs reales, filas del catálogo (metformina/losartan), detalle con monitoreo/función renal + acción Prescribir, pestaña Alertas con matriz por clase y vigilancia obligada. Fidelidad verificada por preview + captura.",
+   "epic": "AP/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

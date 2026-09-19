@@ -4,6 +4,7 @@ import{getStoredSession,apiRequest,logout as sessionLogout,type MedicalSession}f
 import{summarizePatient}from"../../../../packages/patient-summary/src";
 import{primitive,typography}from"../../../../packages/design-system/src";
 import{labReferenceRanges}from"../../../../packages/lab-reference/src";
+import{drugCatalog,interactionRules,type DrugCatalogItem}from"../../../../packages/drug-catalog/src";
 // EPIC K — Espacio de trabajo clínico. Consume los endpoints ya probados con la sesión autenticada.
 // Módulos: encuentro (abrir->valorar->firmar) y medicación (proponer->prescribir->activar->suspender),
 // ambos para el mismo paciente, con concurrencia optimista (If-Match).
@@ -471,6 +472,11 @@ export default function Workspace(){
  const[docMenu,setDocMenu]=useState(false);
  const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"interconsulta"|"seguimiento"|"facturacion"|"documentos"|"obligaciones"|"clinicalIntel"|"reportes"|"biblioteca"|"configuracion"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
+ const[medQuery,setMedQuery]=useState("");        // búsqueda en el catálogo de fármacos
+ const[medCat,setMedCat]=useState("");            // filtro por categoría terapéutica ("":todas)
+ const[medOnlyMon,setMedOnlyMon]=useState(false); // solo con monitoreo obligado
+ const[medOnlyRenal,setMedOnlyRenal]=useState(false); // solo con alerta renal
+ const[medSel,setMedSel]=useState<string|null>(null); // principio activo seleccionado (detalle)
  // Pestaña Interacciones (S8.3) — verificador de conjunto cableado a POST /api/v1/interactions
  const[ixDrugs,setIxDrugs]=useState<string[]>(["Sertralina","Ibuprofeno","Metformina"]);
  const[ixFactors,setIxFactors]=useState<string[]>([]);
@@ -1771,23 +1777,31 @@ export default function Workspace(){
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
    const chk=(on:boolean,l:string)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{on?"✓":""}</span>{l}</label>;
    const rad=(on:boolean,l:string)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}}><span style={{width:15,height:15,borderRadius:"50%",border:on?`1.6px solid ${P.purple}`:"1.6px solid #C7CCE0",boxShadow:on?`inset 0 0 0 3px ${P.purple}`:"none",flex:"0 0 auto"}}/>{l}</label>;
-   const CAT:Record<string,[string,string]>={"Analgésico":["#EEEBFD","#6C5CF6"],"AINE":["#E7EEFB","#1769E0"],"Antibiótico":["#E6F6EE","#16A66A"],"Antidiabético":["#FBF0DC","#B7791F"],"Antihipertensivo":["#FDECEE","#F0455E"],"Antidepresivo":["#F3EAFB","#9333EA"],"Gastrointestinal":["#E0F7FA","#0E7490"],"Respiratorio":["#E6F6EE","#16A66A"]};
-   type Med={gen:string;com:string;pres:string;via:string;cat:string;fav:boolean};
-   const MEDS:Med[]=[{gen:"Paracetamol",com:"Tempra®, Panadol®",pres:"500 mg tableta",via:"Oral",cat:"Analgésico",fav:true},{gen:"Ibuprofeno",com:"Advil®, Motrin®",pres:"400 mg tableta",via:"Oral",cat:"AINE",fav:false},{gen:"Amoxicilina",com:"Amoxil®, Hiconcil®",pres:"500 mg cápsula",via:"Oral",cat:"Antibiótico",fav:true},{gen:"Amoxicilina/Ácido clavulánico",com:"Augmentin®",pres:"875/125 mg tableta",via:"Oral",cat:"Antibiótico",fav:false},{gen:"Azitromicina",com:"Zitromax®",pres:"500 mg tableta",via:"Oral",cat:"Antibiótico",fav:false},{gen:"Metformina",com:"Glucophage®",pres:"850 mg tableta",via:"Oral",cat:"Antidiabético",fav:false},{gen:"Losartán",com:"Cozaar®",pres:"50 mg tableta",via:"Oral",cat:"Antihipertensivo",fav:true},{gen:"Sertralina",com:"Zoloft®",pres:"50 mg tableta",via:"Oral",cat:"Antidepresivo",fav:false},{gen:"Omeprazol",com:"Losec®",pres:"20 mg cápsula",via:"Oral",cat:"Gastrointestinal",fav:false},{gen:"Salbutamol",com:"Ventolin®",pres:"100 mcg/dosis inhalador",via:"Inhalada",cat:"Respiratorio",fav:false}];
+   // ===== Catálogo REAL determinista (packages/drug-catalog) — principio activo + clases + categoría + reglas =====
+   const cat=drugCatalog();
+   const categories=[...new Set(cat.map(d=>d.category))].sort((a,b)=>a.localeCompare(b,"es"));
+   const ixRules=interactionRules();
+   const catColor=(c:string):[string,string]=>c.startsWith("Antibiótico")?["#E6F6EE","#16A66A"]:c.startsWith("AINE")||c.startsWith("Salicilato")?["#E7EEFB","#1769E0"]:c.startsWith("Analgésico")?["#EEEBFD","#6C5CF6"]:c.startsWith("Antidiabético")?["#FBF0DC","#B7791F"]:c.includes("antihipertensivo")?["#FDECEE","#F0455E"]:c.startsWith("Antidepresivo")||c.startsWith("Serotoninérgico")?["#F3EAFB","#9333EA"]:c.startsWith("Anticoagulante")?["#FCE9E4","#C2410C"]:c.startsWith("Diurético")?["#E0F7FA","#0E7490"]:c.startsWith("Opioide")?["#F1F1F4","#8A8FA3"]:["#EEF0F5","#6B7391"];
+   const mq=medQuery.trim().toLowerCase();
+   const catFiltered=cat.filter(d=>(!mq||d.ingredient.includes(mq)||d.category.toLowerCase().includes(mq)||d.classes.some(cl=>cl.toLowerCase().includes(mq)))&&(!medCat||d.category===medCat)&&(!medOnlyMon||d.monitoring.length>0)&&(!medOnlyRenal||!!d.renal));
+   const selDrug:DrugCatalogItem|null=cat.find(d=>d.code===medSel)??null;
+   const kClases=categories.length,kMon=cat.filter(d=>d.monitoring.length>0).length,kRenal=cat.filter(d=>d.renal).length;
+   // Interconexión real: llevar el principio activo al formulario de prescripción del expediente (con barreras de seguridad).
+   const prescribe=(ingredient:string)=>{setRxDrug(ingredient);setView("exp");setTimeout(()=>scrollToSection("Medicación"),0);};
    const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"12px 14px",borderBottom:`1px solid ${LINE}`};
-   const td:React.CSSProperties={padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13};
+   const td:React.CSSProperties={padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13,verticalAlign:"top"};
    return <div style={{padding:"18px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
-     <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7zM7 8l6 6"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Medicamentos</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Gestión de medicamentos, catálogos, plantillas y prescripciones rápidas</p></div></div>
-     <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("consulta");setCTab("actual");}}>+ Nuevo medicamento ▾</button>
+     <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7zM7 8l6 6"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Medicamentos</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Catálogo de principios activos con sus reglas de seguridad (monitoreo, ajuste renal, interacciones). Prescribe desde aquí con verificación en el expediente.</p></div></div>
+     <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Medicación"),0);}}>+ Prescribir en el expediente →</button>
     </div>
     <div style={{display:"flex",gap:2,marginTop:14,borderBottom:`1px solid ${LINE}`,overflowX:"auto"}}>{MTABS.map(([k,l,d])=><button key={k} onClick={()=>setMedTab(k)} style={{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",fontSize:13.5,fontWeight:medTab===k?700:500,color:medTab===k?P.purple:P.muted,cursor:"pointer",borderBottom:medTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,fontFamily:UI,whiteSpace:"nowrap"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg>{l}</button>)}</div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
-     <div style={kcard}>{kico("#EEEBFD",P.purple,"M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z")}<div><div style={{fontSize:22,fontWeight:800}}>1,248</div><div style={{fontSize:11.5,color:P.muted}}>Medicamentos en catálogo</div></div></div>
-     <div style={kcard}>{kico("#E7EEFB",P.blue,"M7 3h10v18H7z")}<div><div style={{fontSize:22,fontWeight:800}}>56</div><div style={{fontSize:11.5,color:P.muted}}>Plantillas guardadas</div></div></div>
-     <div style={kcard}>{kico("#FDECEE",P.red,"M13 2L4 14h7l-1 8 9-12h-7z")}<div><div style={{fontSize:22,fontWeight:800}}>12</div><div style={{fontSize:11.5,color:P.muted}}>Alertas de interacción</div></div></div>
-     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9 6.7 19l1-5.8L3.5 9.2l5.9-.9z")}<div><div style={{fontSize:22,fontWeight:800}}>28</div><div style={{fontSize:11.5,color:P.muted}}>Favoritos</div></div></div>
-     <div style={kcard}>{kico("#EEEBFD",P.purple,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div><div style={{fontSize:22,fontWeight:800}}>8</div><div style={{fontSize:11.5,color:P.muted}}>Últimas prescripciones</div></div></div>
+     <div style={kcard}>{kico("#EEEBFD",P.purple,"M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z")}<div><div style={{fontSize:22,fontWeight:800}}>{cat.length}</div><div style={{fontSize:11.5,color:P.muted}}>Principios activos</div></div></div>
+     <div style={kcard}>{kico("#E7EEFB",P.blue,"M4 7h16M4 12h16M4 17h10")}<div><div style={{fontSize:22,fontWeight:800}}>{kClases}</div><div style={{fontSize:11.5,color:P.muted}}>Clases terapéuticas</div></div></div>
+     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div><div style={{fontSize:22,fontWeight:800}}>{kMon}</div><div style={{fontSize:11.5,color:P.muted}}>Con monitoreo obligado</div></div></div>
+     <div style={kcard}>{kico("#FDECEE",P.red,"M12 4l9 15.5H3zM12 10v4M12 17h.01")}<div><div style={{fontSize:22,fontWeight:800}}>{kRenal}</div><div style={{fontSize:11.5,color:P.muted}}>Con alerta renal por TFG</div></div></div>
+     <div style={kcard}>{kico("#F3EAFB","#9333EA","M8 8a4 4 0 118 0M8 16a4 4 0 108 0M12 8v8")}<div><div style={{fontSize:22,fontWeight:800}}>{ixRules.length}</div><div style={{fontSize:11.5,color:P.muted}}>Reglas de interacción</div></div></div>
     </div>
     {medTab==="interacciones"?(()=>{
      // ===== Pestaña "Interacciones" (S8.3) — verificador de conjunto REAL cableado a POST /api/v1/interactions =====
@@ -1852,36 +1866,68 @@ export default function Workspace(){
        </div>
       </div>
      </div>;
+    })():medTab==="alertas"?(()=>{
+     // ===== Pestaña "Alertas" — motor determinista de seguridad (reglas REALES del catálogo), sin IA =====
+     const sev=(s:string):[string,string]=>s==="MAJOR"?["#FDECEE","#D12C41"]:["#FBF0DC","#B7791F"];
+     const monDrugs=cat.filter(d=>d.monitoring.length>0);
+     const renalDrugs=cat.filter(d=>d.renal);
+     return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-med2">
+      <div style={{...card2,padding:0,overflow:"hidden"}}>
+       <div style={{padding:"14px 16px",borderBottom:`1px solid ${LINE}`,fontWeight:700,fontSize:15}}>Interacciones por clase ({ixRules.length})</div>
+       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Clase A","Clase B","Severidad","Efecto"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead><tbody>
+        {ixRules.map((r,i)=>{const[bg,fg]=sev(r.severity);return <tr key={i}><td style={{...td,fontWeight:600}}>{r.classA}</td><td style={{...td,fontWeight:600}}>{r.classB}</td><td style={td}><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:bg,color:fg}}>{r.severity==="MAJOR"?"Mayor (bloquea)":"Moderada"}</span></td><td style={{...td,color:P.muted}}>{r.note}</td></tr>;})}
+       </tbody></table></div>
+       <div style={{padding:"12px 16px",fontSize:11.5,color:P.muted,borderTop:`1px solid ${LINE}`}}>Estas reglas alimentan las barreras de prescripción del expediente (verificación previa a recetar). Motor determinista por clase farmacológica; sin IA.</div>
+      </div>
+      <div style={{...card2,padding:0,overflow:"hidden"}}>
+       <div style={{padding:"14px 16px",borderBottom:`1px solid ${LINE}`,fontWeight:700,fontSize:15}}>Vigilancia obligada</div>
+       <div style={{padding:"6px 16px 14px"}}>
+        <div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"10px 0 6px"}}>Requieren monitoreo ({monDrugs.length})</div>
+        {monDrugs.map(d=><div key={d.code} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 0",borderBottom:`1px solid #F2F4F9`,fontSize:12.5}}><span style={{width:8,height:8,borderRadius:"50%",background:P.amber,flex:"0 0 auto"}}/><b style={{textTransform:"capitalize",minWidth:110}}>{d.ingredient}</b><span style={{color:P.muted}}>{d.monitoring.map(m=>m.test).join(", ")} · c/{d.monitoring[0]!.dueInDays} d</span></div>)}
+        <div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"14px 0 6px"}}>Contraindicación / precaución renal por TFG ({renalDrugs.length})</div>
+        {renalDrugs.map(d=><div key={d.code} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 0",borderBottom:`1px solid #F2F4F9`,fontSize:12.5}}><span style={{width:8,height:8,borderRadius:"50%",background:P.red,flex:"0 0 auto"}}/><b style={{textTransform:"capitalize",minWidth:110}}>{d.ingredient}</b><span style={{color:P.muted}}>{d.renal!.blockBelow?`Contraindicada si TFG<${d.renal!.blockBelow}`:""}{d.renal!.cautionBelow?` · precaución <${d.renal!.cautionBelow}`:""}</span></div>)}
+       </div>
+      </div>
+     </div>;
     })():medTab!=="catalogo"?(
-     <div style={{...card2,marginTop:16,padding:"60px 20px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:700}}>Pestaña «{MTABS.find(t=>t[0]===medTab)?.[1]}»</div><p style={{color:P.muted,fontSize:14,maxWidth:520,margin:"8px auto 0"}}>Se está construyendo al nivel exacto de tu diseño (S8). Próxima entrega.</p></div>
+     <div style={{...card2,marginTop:16,padding:"48px 20px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:700}}>{MTABS.find(t=>t[0]===medTab)?.[1]}</div><p style={{color:P.muted,fontSize:14,maxWidth:560,margin:"8px auto 0"}}>{medTab==="reportes"?"Los reportes de prescripción requieren un registro de medicamentos por consultorio (agregado por clase/fármaco). El motor de prescripción y sus barreras ya son reales en el expediente; el tablero analítico se conecta cuando exista ese registro clínica-wide.":"Las plantillas y prescripciones rápidas necesitan un almacén de plantillas por médico (aún no implementado). Hoy la prescripción real —con verificación de alergia, duplicidad, interacción, contraindicación y dosis— se hace en el expediente del paciente."}</p><button style={{marginTop:14,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Medicación"),0);}}>Ir a prescribir en el expediente →</button></div>
     ):(
     <div style={{display:"grid",gridTemplateColumns:"250px 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-med2">
      <div style={{...card2,padding:16}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}}>Limpiar</span></div>
-      <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",fontSize:12.5,color:P.muted,margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>Buscar medicamento…</div>
-      <div style={flbl}>Categoría terapéutica</div><select style={selSty}><option>Todas</option>{Object.keys(CAT).map(c=><option key={c}>{c}</option>)}</select>
-      <div style={flbl}>Vía de administración</div><select style={selSty}><option>Todas</option><option>Oral</option><option>Inhalada</option><option>IV</option></select>
-      <div style={flbl}>Presentación</div><select style={selSty}><option>Todas</option></select>
-      <div style={flbl}>Disponibilidad</div>{chk(true,"Todos")}{chk(true,"En stock")}{chk(false,"Stock bajo")}{chk(false,"Sin stock")}
-      <div style={flbl}>Medicamentos especiales</div>{chk(false,"Controlados")}{chk(false,"Alto riesgo")}{chk(false,"Uso pediátrico")}{chk(false,"Uso en embarazo")}
-      <div style={flbl}>Ordenar por</div>{rad(true,"Nombre (A-Z)")}{rad(false,"Nombre (Z-A)")}{rad(false,"Más utilizados")}{rad(false,"Últimos agregados")}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}} onClick={()=>{setMedQuery("");setMedCat("");setMedOnlyMon(false);setMedOnlyRenal(false);}}>Limpiar</span></div>
+      <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input value={medQuery} onChange={e=>setMedQuery(e.target.value)} placeholder="Buscar principio activo o clase…" style={{border:0,outline:"none",fontSize:12.5,fontFamily:UI,color:P.ink,width:"100%",background:"transparent"}}/></div>
+      <div style={flbl}>Categoría terapéutica</div><select value={medCat} onChange={e=>setMedCat(e.target.value)} style={selSty}><option value="">Todas</option>{categories.map(c=><option key={c} value={c}>{c}</option>)}</select>
+      <div style={{...flbl,marginTop:14}}>Seguridad</div>
+      <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}} onClick={()=>setMedOnlyMon(v=>!v)}><span style={{width:16,height:16,borderRadius:4,border:medOnlyMon?"0":"1.6px solid #C7CCE0",background:medOnlyMon?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{medOnlyMon?"✓":""}</span>Solo con monitoreo obligado</label>
+      <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}} onClick={()=>setMedOnlyRenal(v=>!v)}><span style={{width:16,height:16,borderRadius:4,border:medOnlyRenal?"0":"1.6px solid #C7CCE0",background:medOnlyRenal?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{medOnlyRenal?"✓":""}</span>Solo con alerta renal por TFG</label>
+      <div style={{marginTop:14,padding:"11px 12px",borderRadius:10,background:"#F7F6FE",fontSize:12,color:P.muted,lineHeight:1.5}}><b style={{color:P.ink}}>Catálogo determinista.</b> Principio activo, clases y reglas de seguridad reales (packages/drug-catalog). Subconjunto de demostración; el vademécum oficial (RxNorm/COFEPRIS) se cargaría de la fuente autorizada.</div>
      </div>
      <div>
       <div style={{...card2,overflow:"hidden"}}>
-       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 16px 10px"}}><span style={{fontSize:17,fontWeight:700}}>Medicamentos (1,248)</span><button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"8px 13px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 15V4m0 0l-4 4m4-4l4 4M4 20h16"/></svg>Importar catálogo</button></div>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 16px 10px"}}><span style={{fontSize:17,fontWeight:700}}>Principios activos ({catFiltered.length})</span></div>
        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
-        <thead><tr><th style={{...th,width:34}}>★</th>{["Nombre genérico / comercial","Presentación","Vía","Categoría","Acciones"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
-        <tbody>{MEDS.map((m,i)=>{const[bg,fg]=CAT[m.cat]??["#EEF0F5","#6B7391"];return <tr key={i} style={{cursor:"pointer"}}>
-         <td style={td}><span style={{color:m.fav?P.purple:"#C7CCE0",cursor:"pointer",fontSize:15}}>{m.fav?"★":"☆"}</span></td>
-         <td style={td}><div style={{fontWeight:700}}>{m.gen}</div><div style={{fontSize:11.5,color:"#9AA0BC"}}>{m.com}</div></td>
-         <td style={td}>{m.pres}</td><td style={td}>{m.via}</td>
-         <td style={td}><span style={{fontSize:11.5,fontWeight:600,borderRadius:999,padding:"3px 11px",background:bg,color:fg}}>{m.cat}</span></td>
-         <td style={td}><span style={{color:"#9AA0BC",fontWeight:800,border:`1px solid ${LINE}`,borderRadius:8,padding:"3px 9px",cursor:"pointer"}} onClick={()=>{setView("consulta");setCTab("actual");}}>···</span></td>
+        <thead><tr>{["Principio activo","Clases","Categoría","Seguridad","Acción"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
+        <tbody>{catFiltered.length===0?(
+         <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"36px 14px"}}>Ningún principio activo coincide con el filtro.</td></tr>
+        ):catFiltered.map(d=>{const[bg,fg]=catColor(d.category);const on=medSel===d.code;return <tr key={d.code} style={{cursor:"pointer",background:on?"#F6F5FE":"transparent"}} onClick={()=>setMedSel(on?null:d.code)}>
+         <td style={td}><div style={{fontWeight:700,textTransform:"capitalize"}}>{d.ingredient}</div></td>
+         <td style={td}><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{d.classes.map(cl=><span key={cl} style={{fontSize:10,fontWeight:600,borderRadius:6,padding:"2px 6px",background:"#EEF0F5",color:P.muted}}>{cl}</span>)}</div></td>
+         <td style={td}><span style={{fontSize:11.5,fontWeight:600,borderRadius:999,padding:"3px 11px",background:bg,color:fg}}>{d.category}</span></td>
+         <td style={td}><div style={{display:"flex",gap:6}}>{d.monitoring.length>0&&<span title="Requiere monitoreo" style={{fontSize:14}}>🔬</span>}{d.renal&&<span title="Alerta renal por TFG" style={{fontSize:14}}>⚠️</span>}{d.monitoring.length===0&&!d.renal&&<span style={{color:"#C7CCE0"}}>—</span>}</div></td>
+         <td style={td}><span style={{color:P.purple,fontWeight:700,fontSize:12,cursor:"pointer"}} onClick={ev=>{ev.stopPropagation();prescribe(d.ingredient);}}>Prescribir →</span></td>
         </tr>;})}</tbody>
        </table></div>
-       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",fontSize:13,color:P.muted,flexWrap:"wrap",gap:10}}><span>Mostrando 1–10 de 1,248 medicamentos</span><div style={{display:"flex",gap:5}}>{["‹","1","2","3","4","5","…","125","›"].map((p,i)=><span key={i} style={{minWidth:32,height:32,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:13,cursor:"pointer",padding:"0 6px"}}>{p}</span>)}</div><span style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"6px 11px",fontSize:12,cursor:"pointer"}}>10 ▾</span></div>
       </div>
-      <div style={{...card2,marginTop:14,padding:"13px 16px",display:"flex",gap:10,alignItems:"center",background:"#F7F6FE"}}><span style={{color:P.purple}}>💡</span><div style={{fontSize:13,color:P.muted}}><b style={{color:P.ink}}>Tip.</b> Puedes agregar medicamentos a favoritos, crear plantillas y generar prescripciones rápidas desde aquí.</div></div>
+      {selDrug&&<div style={{...card2,marginTop:14,padding:16}}>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div><div style={{fontSize:16,fontWeight:800,textTransform:"capitalize"}}>{selDrug.ingredient}</div><div style={{fontSize:12.5,color:P.muted}}>{selDrug.category}</div></div><button style={{border:0,background:P.purple,color:"#fff",borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI}} onClick={()=>prescribe(selDrug.ingredient)}>Prescribir →</button></div>
+       <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:10}}>{selDrug.classes.map(cl=><span key={cl} style={{fontSize:11,fontWeight:600,borderRadius:7,padding:"3px 9px",background:"#EEEBFD",color:P.purple}}>{cl}</span>)}</div>
+       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginTop:14}} className="mos-med2">
+        <div><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Monitoreo obligado</div>{selDrug.monitoring.length===0?<div style={{fontSize:12.5,color:P.muted}}>Sin regla de monitoreo conocida.</div>:selDrug.monitoring.map((m,i)=><div key={i} style={{fontSize:12.5,padding:"5px 0",borderBottom:i<selDrug.monitoring.length-1?`1px solid #F2F4F9`:"0"}}><b>{m.test}</b> · cada {m.dueInDays} días<div style={{color:P.muted}}>{m.note}</div></div>)}</div>
+        <div><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Función renal (TFG)</div>{!selDrug.renal?<div style={{fontSize:12.5,color:P.muted}}>Sin ajuste renal conocido.</div>:<div style={{fontSize:12.5}}>{selDrug.renal.blockBelow&&<div style={{color:P.red,fontWeight:600}}>Contraindicada si TFG &lt; {selDrug.renal.blockBelow}</div>}{selDrug.renal.cautionBelow&&<div style={{color:P.amber,fontWeight:600}}>Precaución si TFG &lt; {selDrug.renal.cautionBelow}</div>}<div style={{color:P.muted,marginTop:4}}>{selDrug.renal.note}</div></div>}</div>
+       </div>
+       {(()=>{const rel=ixRules.filter(r=>selDrug.classes.includes(r.classA)||selDrug.classes.includes(r.classB));return rel.length>0&&<div style={{marginTop:14}}><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Interacciones de sus clases ({rel.length})</div>{rel.map((r,i)=><div key={i} style={{fontSize:12.5,padding:"5px 0",color:"#4B5168"}}><b>{r.classA} ↔ {r.classB}</b> <span style={{color:r.severity==="MAJOR"?P.red:P.amber,fontWeight:700}}>{r.severity==="MAJOR"?"Mayor":"Moderada"}</span> — {r.note}</div>)}</div>;})()}
+       <div style={{marginTop:12,fontSize:11.5,color:P.muted}}>La verificación completa (contra las alergias, medicación activa y problemas del paciente) se ejecuta al prescribir en el expediente.</div>
+      </div>}
      </div>
     </div>)}
    </div>;

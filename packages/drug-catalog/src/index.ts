@@ -314,3 +314,23 @@ export function checkInteractionSet(drugCodes:readonly string[],factorLabels:rea
  const highestSeverity=findings.length?findings[0]!.severity:null;
  return{findings,counts,unresolvedDrugs,unresolvedFactors,highestSeverity};
 }
+
+// EPIC AP/UI — Catálogo determinista para la vista Medicamentos. Ensambla, a partir de la base de fármacos
+// y las reglas puras ya definidas, un catálogo deduplicado por principio activo con su categoría terapéutica
+// (en español), reglas de monitoreo aplicables y regla renal (contraindicación/precaución por TFG). Puro, sin PHI.
+// Subconjunto de demostración; el catálogo oficial (RxNorm/COFEPRIS) se cargaría de la fuente autorizada.
+const CATEGORY_BY_CLASS:Record<string,string>={PENICILLIN:"Antibiótico (penicilinas)",CEPHALOSPORIN:"Antibiótico (cefalosporinas)",BETA_LACTAM:"Antibiótico betalactámico",MACROLIDE:"Antibiótico (macrólidos)",LINCOSAMIDE:"Antibiótico (lincosamidas)",SULFONAMIDE:"Antibiótico (sulfonamidas)",ANALGESIC_ANTIPYRETIC:"Analgésico / antipirético",NSAID:"AINE",SALICYLATE:"Salicilato",ANTICOAGULANT:"Anticoagulante",ACE_INHIBITOR:"IECA (antihipertensivo)",ARB:"ARA II (antihipertensivo)",POTASSIUM_SPARING:"Diurético ahorrador de potasio",BIGUANIDE:"Antidiabético (biguanida)",SSRI:"Antidepresivo (ISRS)",SEROTONERGIC:"Serotoninérgico",OPIOID:"Opioide"};
+export type DrugCatalogItem=Readonly<{code:string;ingredient:string;classes:readonly string[];category:string;monitoring:readonly MonitoringRule[];renal:RenalRule&{drugClass:string}|null}>;
+// Categoría del fármaco = etiqueta de su primera clase con categoría conocida (o "Otros").
+function categoryFor(classes:readonly string[]):string{for(const c of classes){const l=CATEGORY_BY_CLASS[c];if(l)return l;}return"Otros";}
+function renalRuleFor(classes:readonly string[]):(RenalRule&{drugClass:string})|null{for(const c of classes){const r=RENAL_RULES_BY_CLASS[c];if(r)return{...r,drugClass:c};}return null;}
+export function drugCatalog():DrugCatalogItem[]{
+ const seen=new Set<string>();const out:DrugCatalogItem[]=[];
+ for(const[code,entry]of Object.entries(DRUGS)){
+  if(seen.has(entry.ingredient))continue;seen.add(entry.ingredient);
+  out.push({code,ingredient:entry.ingredient,classes:entry.classes,category:categoryFor(entry.classes),monitoring:monitoringFor(code),renal:renalRuleFor(entry.classes)});
+ }
+ return out.sort((a,b)=>a.ingredient.localeCompare(b.ingredient,"es"));
+}
+// Matriz de interacciones por clase (para paneles de conocimiento/alertas de la UI). Copia inmutable.
+export function interactionRules():readonly DrugInteraction[]{return INTERACTIONS;}

@@ -167,6 +167,28 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText("Perfil lipídico")).toBeTruthy(); // sugerencia de laboratorio (cada opción rellena el estudio)
  });
 
+ it("vista Medicamentos: catálogo determinista real (drug-catalog) con detalle y pestaña Alertas",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Medicamentos"}));
+  expect(screen.getByRole("heading",{name:"Medicamentos"})).toBeTruthy();
+  expect(screen.getByText("Principios activos")).toBeTruthy();       // KPI real (nº del catálogo)
+  expect(screen.getByText("Con monitoreo obligado")).toBeTruthy();   // KPI real
+  expect(screen.getByText("Reglas de interacción")).toBeTruthy();    // KPI real
+  // filas reales del catálogo (principio activo)
+  expect(screen.getByText("metformina")).toBeTruthy();
+  expect(screen.getByText("losartan")).toBeTruthy();
+  // clic en una fila abre su detalle con reglas reales (monitoreo/renal)
+  fireEvent.click(screen.getByText("metformina"));
+  expect(screen.getAllByText(/Monitoreo obligado/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/Función renal/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/Prescribir/).length).toBeGreaterThan(0); // acción de interconexión al expediente
+  // pestaña Alertas: matriz de interacciones por clase (motor determinista real)
+  fireEvent.click(screen.getByRole("button",{name:/Alertas/}));
+  expect(screen.getByText(/Interacciones por clase/)).toBeTruthy();
+  expect(screen.getByText(/Vigilancia obligada/)).toBeTruthy();
+  expect(screen.getAllByText("ANTICOAGULANT").length).toBeGreaterThan(0); // clase real de la matriz
+ });
+
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
   render(<Workspace/>);
   toExpediente();

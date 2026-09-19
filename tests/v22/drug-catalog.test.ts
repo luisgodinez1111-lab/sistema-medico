@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{checkDrugAllergy,resolveDrug,checkContraindications}from"../../packages/drug-catalog/src";
+import{checkDrugAllergy,resolveDrug,checkContraindications,drugCatalog,interactionRules}from"../../packages/drug-catalog/src";
 describe("catálogo de fármacos + gate de alergia (EPIC AP)",()=>{
  it("resuelve el principio activo dentro del código",()=>{
   expect(resolveDrug("amoxicilina-500mg")?.ingredient).toBe("amoxicilina");
@@ -112,5 +112,34 @@ describe("ajuste/contraindicación renal por eGFR (EPIC BM)",()=>{
  it("fármaco sin regla renal (o desconocido) -> OK",()=>{
   expect(checkRenalDosing("amoxicilina-500",10).action).toBe("OK");
   expect(checkRenalDosing("desconocido-xyz",10).action).toBe("OK");
+ });
+});
+
+// EPIC AP/UI — catálogo determinista para la vista Medicamentos (drugCatalog + interactionRules).
+describe("catálogo determinista para la UI (drugCatalog)",()=>{
+ it("deduplica por principio activo y ordena alfabéticamente",()=>{
+  const c=drugCatalog();
+  expect(c.length).toBeGreaterThan(0);
+  const ings=c.map(d=>d.ingredient);
+  expect(new Set(ings).size).toBe(ings.length);           // sin duplicados (paracetamol/acetaminofen -> uno)
+  expect(ings.includes("paracetamol")).toBe(true);
+  expect(ings.includes("acetaminofen")).toBe(false);      // sinónimo colapsado al principio activo
+  const sorted=[...ings].sort((a,b)=>a.localeCompare(b,"es"));
+  expect(ings).toEqual(sorted);
+ });
+ it("cada ítem trae categoría, clases y reglas coherentes con el motor",()=>{
+  const c=drugCatalog();
+  const met=c.find(d=>d.ingredient==="metformina")!;
+  expect(met.category).toMatch(/Antidiab/);
+  expect(met.classes).toContain("BIGUANIDE");
+  expect(met.monitoring.map(m=>m.kind)).toContain("MONITOR_RENAL");
+  expect(met.renal?.blockBelow).toBe(30);                 // coherente con checkRenalDosing
+  const amox=c.find(d=>d.ingredient==="amoxicilina")!;
+  expect(amox.renal).toBeNull();                          // sin ajuste renal conocido
+ });
+ it("expone la matriz de interacciones por clase (>=1 regla MAJOR)",()=>{
+  const r=interactionRules();
+  expect(r.length).toBeGreaterThan(0);
+  expect(r.some(x=>x.severity==="MAJOR")).toBe(true);
  });
 });
