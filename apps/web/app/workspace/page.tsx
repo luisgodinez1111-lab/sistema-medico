@@ -559,6 +559,8 @@ export default function Workspace(){
  const[ordQuery,setOrdQuery]=useState(""); // búsqueda por paciente/estudio en la vista Órdenes
  const[ordStatus,setOrdStatus]=useState(""); // filtro por estado ("":todos)
  const[cForm,setCForm]=useState({motivo:"",historia:"",antec:"",plan:""}); // borrador de la consulta actual
+ const[cPreview,setCPreview]=useState(false); // vista previa de la nota compuesta (Consulta)
+ const[cMsg,setCMsg]=useState<string|null>(null); // aviso del flujo de encuentro (Consulta)
  type AgendaAppt={appointmentId:string;patientId:string;patientName:string;startAt:string;endAt:string|null;reason:string;consultorio:string|null;apptType:string|null;status:string;version:number};
  const[agenda,setAgenda]=useState<{appointments:AgendaAppt[];counts:{programadas:number;atendidas:number;enEspera:number;canceladas:number}}|null>(null);
  const[agendaDate,setAgendaDate]=useState<string>(new Date().toISOString().slice(0,10)); // fecha de la agenda (YYYY-MM-DD)
@@ -854,6 +856,38 @@ export default function Workspace(){
  const signEncounter=()=>call("sign",async()=>{if(!enc)return;
   const r=await apiRequest(`/api/v1/encounters/${enc.id}/signature`,{method:"POST",body:{occurredAt:nowIso()},ifMatch:enc.version});
   if(r.status>=400){setError(errMsg(r));return;}setEnc({...enc,state:"SIGNED",version:Number(r.body["version"]??enc.version+1),signatureDigest:String(r.body["signatureDigest"]??"")});
+ });
+ // Compone la nota clínica del encuentro (valoración) a partir del formulario estructurado de la Consulta.
+ function composeNote():string{
+  const parts:string[]=[];
+  if(cForm.motivo.trim())parts.push(`MOTIVO DE CONSULTA: ${cForm.motivo.trim()}`);
+  if(cForm.historia.trim())parts.push(`HISTORIA DE LA ENFERMEDAD ACTUAL: ${cForm.historia.trim()}`);
+  if(cForm.antec.trim())parts.push(`ANTECEDENTES RELEVANTES: ${cForm.antec.trim()}`);
+  const dx=(snap?.problems??[]).slice(0,4).map(c=>`${c} ${DX_LABEL(c)}`).join("; ");
+  if(dx)parts.push(`IMPRESIÓN DIAGNÓSTICA: ${dx}`);
+  return parts.join("\n")||"Consulta registrada.";
+ }
+ // Acción CONTEXTUAL del encuentro desde la Consulta: abre -> guarda valoración -> firma (FSM real, con gate de firma).
+ const consultaAdvance=()=>call("cadv",async()=>{
+  setCMsg(null);
+  if(!patientId){setCMsg("Selecciona un paciente para iniciar la consulta.");return;}
+  if(!enc){
+   const id=uuid();const r=await apiRequest("/api/v1/encounters",{method:"POST",body:{encounterId:id,patientId,occurredAt:nowIso()}});
+   if(r.status>=400){setCMsg(errMsg(r));return;}
+   setEnc({id,state:"OPEN",version:Number(r.body["version"]??1)});setCMsg("Encuentro abierto. Documenta y guarda la valoración.");return;
+  }
+  if(enc.state==="OPEN"){
+   const assessmentText=composeNote();const planText=cForm.plan.trim()||"Plan pendiente de detallar.";
+   setAssessment(assessmentText);setPlan(planText);
+   const r=await apiRequest(`/api/v1/encounters/${enc.id}/assessment`,{method:"POST",body:{assessment:assessmentText,plan:planText,occurredAt:nowIso()},ifMatch:enc.version});
+   if(r.status>=400){setCMsg(errMsg(r));return;}
+   setEnc({...enc,state:"READY_TO_SIGN",version:Number(r.body["version"]??enc.version+1)});setCMsg("Valoración guardada. Lista para firmar.");return;
+  }
+  if(enc.state==="READY_TO_SIGN"){
+   const r=await apiRequest(`/api/v1/encounters/${enc.id}/signature`,{method:"POST",body:{occurredAt:nowIso()},ifMatch:enc.version});
+   if(r.status>=400){setCMsg(errMsg(r));return;} // el backend bloquea la firma si hay un resultado crítico sin cerrar
+   setEnc({...enc,state:"SIGNED",version:Number(r.body["version"]??enc.version+1),signatureDigest:String(r.body["signatureDigest"]??"")});setCMsg("Consulta firmada (registro inmutable).");return;
+  }
  });
  const proposeMed=()=>call("med-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/medications",{method:"POST",body:{medicationId:id,patientId,drugCode:drug,dose,route,frequency:freq,occurredAt:nowIso()}});
@@ -1571,13 +1605,19 @@ export default function Workspace(){
    const badd=<span style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"4px 10px",fontSize:12,fontWeight:600,color:P.purple,cursor:"pointer",whiteSpace:"nowrap"}}>+ Agregar</span>;
    return <div style={{padding:"20px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
-     <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{width:34,height:34,borderRadius:9,border:`1px solid ${LINE}`,background:P.white,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}} onClick={()=>setView("inicio")}>←</span><div><h1 style={{fontSize:27,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Consulta</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Registro y gestión de la consulta médica</p></div></div>
-     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-      <button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Guardar borrador</button>
-      <button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Vista previa</button>
-      <button style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:"linear-gradient(90deg,#6C5CF6,#5B6BF0)",color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI,boxShadow:"0 6px 16px #6c5cf640"}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Encuentro"),0);}}>+ Firmar consulta</button>
-     </div>
+     <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{width:34,height:34,borderRadius:9,border:`1px solid ${LINE}`,background:P.white,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}} onClick={()=>setView("inicio")}>←</span><div><div style={{display:"flex",alignItems:"center",gap:10}}><h1 style={{fontSize:27,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Consulta</h1>{enc&&(()=>{const m=enc.state==="SIGNED"?["#E6F6EE","#16A66A","Firmada"]:enc.state==="READY_TO_SIGN"?["#FBF0DC","#B7791F","Lista para firmar"]:["#EAF1FD","#1769E0","Abierta"];return <span style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:m[0],color:m[1]}}>Encuentro · {m[2]}</span>;})()}</div><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Registro y gestión de la consulta médica</p></div></div>
+     {(()=>{
+      const st=enc?.state;const label=!patientId?"Selecciona un paciente":!enc?"Abrir encuentro":st==="OPEN"?"Guardar valoración":st==="READY_TO_SIGN"?"Firmar consulta":"✓ Consulta firmada";
+      const disabled=busy!==""||!patientId||st==="SIGNED";
+      const primaryBg=st==="READY_TO_SIGN"?"linear-gradient(90deg,#16A66A,#12905c)":"linear-gradient(90deg,#6C5CF6,#5B6BF0)";
+      return <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+       <button onClick={()=>setCPreview(v=>!v)} style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:cPreview?"#EEEBFD":P.white,color:cPreview?P.purple:P.ink,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Vista previa</button>
+       <button onClick={consultaAdvance} disabled={disabled} style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:disabled?"#C7CCE0":primaryBg,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:disabled?"default":"pointer",fontFamily:UI,boxShadow:disabled?"none":"0 6px 16px #6c5cf640"}}>{busy==="cadv"?"Procesando…":label}</button>
+      </div>;
+     })()}
     </div>
+    {cMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:enc?.state==="SIGNED"?"#F0FBF4":"#EEF6FF",border:`1px solid ${enc?.state==="SIGNED"?"#CDEBD8":"#CFE0F7"}`,borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:enc?.state==="SIGNED"?P.green:P.blue,fontWeight:700}}>{enc?.state==="SIGNED"?"✓":"ℹ"}</span><span style={{flex:1}}>{cMsg}{enc?.signatureDigest?<> Firma: <span style={mono}>{enc.signatureDigest.slice(0,24)}…</span></>:null}</span><button onClick={()=>setCMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+    {cPreview&&<div style={{...card,marginTop:14,padding:18}}><div style={{fontWeight:800,fontSize:15,marginBottom:10}}>Vista previa de la nota clínica</div><pre style={{whiteSpace:"pre-wrap",fontFamily:UI,fontSize:13,color:P.ink,margin:0,lineHeight:1.6}}>{composeNote()}{"\n\nPLAN DE MANEJO: "+(cForm.plan.trim()||"—")}</pre><div style={{fontSize:11.5,color:P.muted,marginTop:10}}>Así se guardará la valoración del encuentro al firmar. Médico: {docDisplay}.</div></div>}
     <div style={{...card2,display:"flex",alignItems:"center",gap:18,padding:"16px 20px",marginTop:16,flexWrap:"wrap"}}>
      <span style={{width:66,height:66,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontWeight:800,fontSize:22,flex:"0 0 auto"}}>{initials}</span>
      <div style={{flex:1,minWidth:180}}><div><span style={{fontSize:21,fontWeight:800}}>{pName}</span><span style={{background:"#E6F6EE",color:"#16A66A",borderRadius:999,padding:"3px 11px",fontSize:12,fontWeight:600,marginLeft:10}}>Paciente activo</span></div><div style={{fontSize:13,color:P.muted,marginTop:3}}>{age} años · {sexoEs}{snap?.demographics.birthDate?` · ${new Date(snap.demographics.birthDate).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})}`:""}</div><div style={{fontSize:13,color:P.muted}}>{snap?.demographics.curp?<>CURP: <span style={mono}>{snap.demographics.curp}</span></>:<>ID <span style={mono}>{patientId.slice(0,8)}</span></>}</div></div>
@@ -1624,9 +1664,9 @@ export default function Workspace(){
     ):(
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-mid">
      <div style={{display:"flex",flexDirection:"column",gap:16}}>
-      <div style={sec}><h3 style={sect}>1. Motivo de consulta</h3><textarea style={ta} value={cForm.motivo} onChange={e=>setCForm(f=>({...f,motivo:e.target.value.slice(0,500)}))} placeholder="Motivo de la consulta…"/><div style={cc}>{cForm.motivo.length}/500</div></div>
-      <div style={sec}><h3 style={sect}>2. Historia de la enfermedad actual</h3><div style={{border:`1px solid ${LINE}`,borderRadius:11,overflow:"hidden"}}>{rteBar}<textarea style={{width:"100%",border:0,outline:"none",padding:"12px 14px",fontSize:13.5,fontFamily:UI,resize:"vertical",minHeight:90,boxSizing:"border-box"}} value={cForm.historia} onChange={e=>setCForm(f=>({...f,historia:e.target.value.slice(0,2000)}))} placeholder="Padecimiento actual…"/></div><div style={cc}>{cForm.historia.length}/2000</div></div>
-      <div style={sec}><h3 style={sect}>3. Antecedentes relevantes</h3><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>{["HTA","DM2","Asma","Alergias","Quirúrgicos","Tabaquismo","Alcohol","Otros"].map(a=><label key={a} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,cursor:"pointer"}}><span style={{width:17,height:17,borderRadius:5,border:a==="Alergias"?"0":"1.6px solid #C7CCE0",background:a==="Alergias"?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:11,flex:"0 0 auto"}}>{a==="Alergias"?"✓":""}</span>{a}</label>)}</div><textarea style={{...ta,marginTop:12}} value={cForm.antec} onChange={e=>setCForm(f=>({...f,antec:e.target.value.slice(0,1000)}))} placeholder="Detalle de antecedentes…"/><div style={cc}>{cForm.antec.length}/1000</div></div>
+      <div style={sec}><h3 style={sect}>1. Motivo de consulta</h3><textarea style={ta} disabled={!!enc&&enc.state!=="OPEN"} value={cForm.motivo} onChange={e=>setCForm(f=>({...f,motivo:e.target.value.slice(0,500)}))} placeholder="Motivo de la consulta…"/><div style={cc}>{cForm.motivo.length}/500</div></div>
+      <div style={sec}><h3 style={sect}>2. Historia de la enfermedad actual</h3><div style={{border:`1px solid ${LINE}`,borderRadius:11,overflow:"hidden"}}>{rteBar}<textarea style={{width:"100%",border:0,outline:"none",padding:"12px 14px",fontSize:13.5,fontFamily:UI,resize:"vertical",minHeight:90,boxSizing:"border-box"}} disabled={!!enc&&enc.state!=="OPEN"} value={cForm.historia} onChange={e=>setCForm(f=>({...f,historia:e.target.value.slice(0,2000)}))} placeholder="Padecimiento actual…"/></div><div style={cc}>{cForm.historia.length}/2000</div></div>
+      <div style={sec}><h3 style={sect}>3. Antecedentes relevantes</h3><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>{["HTA","DM2","Asma","Alergias","Quirúrgicos","Tabaquismo","Alcohol","Otros"].map(a=><label key={a} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,cursor:"pointer"}}><span style={{width:17,height:17,borderRadius:5,border:a==="Alergias"?"0":"1.6px solid #C7CCE0",background:a==="Alergias"?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:11,flex:"0 0 auto"}}>{a==="Alergias"?"✓":""}</span>{a}</label>)}</div><textarea style={{...ta,marginTop:12}} disabled={!!enc&&enc.state!=="OPEN"} value={cForm.antec} onChange={e=>setCForm(f=>({...f,antec:e.target.value.slice(0,1000)}))} placeholder="Detalle de antecedentes…"/><div style={cc}>{cForm.antec.length}/1000</div></div>
       {["4. Interrogatorio por aparatos y sistemas","5. Exploración física"].map(t=><div key={t} style={card2}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 18px",fontSize:15,fontWeight:700,cursor:"pointer"}}>{t}<span style={{color:P.muted}}>›</span></div></div>)}
       <div style={card2}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 18px 8px",fontSize:15,fontWeight:700}}>6. Impresión diagnóstica<span style={{color:P.muted}}>⌃</span></div><div style={{padding:"0 18px 18px",display:"flex",gap:10,flexWrap:"wrap"}}>{(snap?.problems??["J02.9","B34.9"]).slice(0,4).map(c=><span key={c} style={{display:"inline-flex",alignItems:"center",gap:8,background:"#F3F5FA",border:`1px solid ${LINE}`,borderRadius:9,padding:"6px 11px",fontSize:12.5,fontWeight:600}}>{c} {DX_LABEL(c)} <span style={{color:"#9AA0BC",cursor:"pointer"}}>✕</span></span>)}<span style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"6px 12px",fontSize:12.5,fontWeight:600,color:P.purple,cursor:"pointer"}}>+ Añadir</span></div></div>
      </div>
@@ -1634,7 +1674,7 @@ export default function Workspace(){
       <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Signos vitales</h3><span style={{fontSize:12,color:P.muted}}>{clock.toLocaleDateString("es-MX",{day:"numeric",month:"short"})} · {clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"})}</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>{([["TA",V["BP"]??"","mmHg"],["FC",V["HR"]??"","lpm"],["FR",V["RESP"]??"","rpm"],["Temp.",V["TEMP"]??"","°C"],["SpO₂",V["SPO2"]??"","%"]] as const).map(([l,v,u])=><div key={l}><label style={{fontSize:11.5,color:P.muted,display:"block",marginBottom:5,fontWeight:600}}>{l}</label><input defaultValue={v} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 6px",fontSize:15,fontWeight:700,textAlign:"center",fontFamily:UI,boxSizing:"border-box"}}/><div style={{fontSize:10.5,color:"#9AA0BC",textAlign:"center",marginTop:3}}>{u}</div></div>)}</div></div>
       <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Diagnósticos / Problemas</h3><span style={link} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Lista de problemas"),0);}}>Ver historial →</span></div><div style={{display:"flex",alignItems:"center",gap:9,border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 12px",fontSize:13,color:P.muted}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>Buscar CIE-10 o descripción…</div><div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>{(snap?.problems??["J02.9","B34.9"]).slice(0,3).map((c,i)=><span key={c} style={{display:"inline-flex",alignItems:"center",gap:8,background:"#F3F5FA",border:`1px solid ${LINE}`,borderRadius:9,padding:"6px 11px",fontSize:12.5,fontWeight:600}}>{c} {DX_LABEL(c)}{i===0&&<span style={{background:"#EEEBFD",color:"#6C5CF6",borderRadius:6,padding:"1px 7px",fontSize:10.5,fontWeight:700}}>Principal</span>}<span style={{color:"#9AA0BC",cursor:"pointer"}}>✕</span></span>)}</div></div>
       <div style={sec}><h3 style={sect}>Órdenes clínicas</h3><div style={{display:"flex",gap:16,borderBottom:`1px solid ${LINE}`,fontSize:13}}>{["Laboratorio","Imagen","Procedimiento","Interconsulta"].map((t,i)=><span key={t} style={{paddingBottom:8,color:i===0?P.purple:P.muted,fontWeight:i===0?700:400,borderBottom:i===0?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{t}</span>)}</div><div style={{marginTop:12}}>{["Biometría hemática completa","Proteína C reactiva","Exudado faríngeo (cultivo)","Prueba rápida de antígeno estreptococo"].map(o=><label key={o} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",fontSize:13.5,cursor:"pointer"}}><span style={{width:17,height:17,borderRadius:5,border:"1.6px solid #C7CCE0",flex:"0 0 auto"}}/>{o}</label>)}</div><button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 14px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,marginTop:8}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Órdenes clínicas"),0);}}>+ Crear orden</button></div>
-      <div style={sec}><h3 style={sect}>Plan de manejo</h3><div style={{border:`1px solid ${LINE}`,borderRadius:11,overflow:"hidden"}}>{rteBar}<textarea style={{width:"100%",border:0,outline:"none",padding:"12px 14px",fontSize:13.5,fontFamily:UI,resize:"vertical",minHeight:110,boxSizing:"border-box"}} value={cForm.plan} onChange={e=>setCForm(f=>({...f,plan:e.target.value}))} placeholder="Plan de manejo…"/></div></div>
+      <div style={sec}><h3 style={sect}>Plan de manejo</h3><div style={{border:`1px solid ${LINE}`,borderRadius:11,overflow:"hidden"}}>{rteBar}<textarea style={{width:"100%",border:0,outline:"none",padding:"12px 14px",fontSize:13.5,fontFamily:UI,resize:"vertical",minHeight:110,boxSizing:"border-box"}} disabled={!!enc&&enc.state!=="OPEN"} value={cForm.plan} onChange={e=>setCForm(f=>({...f,plan:e.target.value}))} placeholder="Plan de manejo…"/></div></div>
      </div>
      <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Resumen clínico</h3><span style={link}>✎ Editar</span></div>

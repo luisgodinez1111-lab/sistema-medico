@@ -2670,6 +2670,31 @@
    "epic": "IDENT/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-CONSULTA-ENCOUNTER-UI-001",
+   "name": "Consulta — documentación cableada al encuentro REAL (abrir → valorar → firmar, con gate de firma)",
+   "risk": "C5",
+   "eng_authority_note": "Cierra el hueco de mayor valor del corazón clínico: la vista Consulta (workspace pulido, pestaña 'Consulta actual') era local/cosmetica —cForm, 'Guardar borrador' y 'Firmar consulta' no persistian, solo navegaban—. Ahora la documentacion estructurada IMPULSA el encuentro event-sourced real. composeNote() compone la valoracion (SOAP) a partir de motivo/historia/antecedentes/impresion (esta ultima desde snap.problems+DX_LABEL); el plan de manejo va al campo plan del encuentro. Un boton primario CONTEXTUAL (consultaAdvance) avanza la maquina de estados real un paso a la vez: sin encuentro -> POST /encounters (Abrir); OPEN -> POST /encounters/:id/assessment con la nota compuesta (Guardar valoracion -> READY_TO_SIGN); READY_TO_SIGN -> POST /encounters/:id/signature (Firmar), con concurrencia optimista (if-match=version). Se muestra el badge de estado (Abierta/Lista para firmar/Firmada), un aviso por paso, la firma (signatureDigest) al firmar, y los campos de documentacion se BLOQUEAN una vez guardada la valoracion (solo editables en OPEN). 'Vista previa' muestra la nota que se guardara. CLAVE: la firma respeta el GATE del kernel (Zero-Lost-Follow-Up) — el backend bloquea la firma si hay un resultado critico sin cerrar, y ese error se muestra en el aviso.",
+   "invariants": [
+    "La Consulta escribe en el mismo agregado Encounter event-sourced que el expediente (POST encounters/assessment/signature); nada local se presenta como persistido",
+    "FSM real del encuentro: OPEN -> READY_TO_SIGN -> SIGNED, un paso por accion, con if-match=version (concurrencia optimista)",
+    "La firma respeta el gate de resultados criticos del kernel (Zero-Lost-Follow-Up): si el backend la bloquea, se muestra el error y no se marca firmada",
+    "La documentacion (motivo/historia/antecedentes/plan) se bloquea fuera de OPEN; el encuentro firmado es inmutable",
+    "La valoracion guardada es la nota compuesta determinista (composeNote); la Vista previa muestra exactamente lo que se guardara"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (composeNote + consultaAdvance; header de Consulta con badge/boton contextual/aviso/preview; bloqueo de campos fuera de OPEN)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Consulta: abrir -> valorar -> firmar)",
+    "scripts/v22/live-encounter-lifecycle-proof.mts",
+    "scripts/v22/live-result-closed-loop-proof.mts"
+   ],
+   "runtime_evidence": "Render test 29/29 (jsdom): con paciente en contexto, Abrir encuentro -> badge Abierta + Guardar valoracion -> badge Lista para firmar -> Firmar consulta -> badge Firmada + aviso Consulta firmada. Backend reutilizado ya probado en vivo: live-encounter-lifecycle-proof (maquina de estados, RLS, concurrencia, GATE de firma) y live-result-closed-loop-proof (un resultado critico sin cerrar bloquea la firma).",
+   "epic": "D/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

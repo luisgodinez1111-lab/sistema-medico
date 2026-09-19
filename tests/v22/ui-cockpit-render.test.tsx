@@ -12,6 +12,9 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
  apiRequest:async(path:string)=>{
+  if(path.includes("/assessment"))return{status:201,body:{version:2}};
+  if(path.includes("/signature"))return{status:201,body:{version:3,signatureDigest:"a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"}};
+  if(path.includes("/api/v1/encounters"))return{status:201,body:{version:1}};
   if(path.includes("/api/v1/orders"))return{status:200,body:{
    items:[
     {orderId:"od1",patientId:"p1",patientName:"Ana López García",orderType:"LAB",typeLabel:"Laboratorio",detail:"Biometría hemática completa",status:"Completada",createdAt:"2026-09-17T00:00:00Z",version:3},
@@ -235,6 +238,26 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   fireEvent.click(screen.getByRole("button",{name:"Agendar cita"}));
   expect(screen.getByRole("heading",{name:"Agenda"})).toBeTruthy();
   expect(screen.getByText(/Nueva cita ·/)).toBeTruthy();
+ });
+
+ it("vista Consulta: la documentación impulsa el encuentro REAL (abrir → valorar → firmar)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+  // con paciente en contexto y sin encuentro, la acción primaria abre el encuentro
+  expect(screen.getByRole("button",{name:"Abrir encuentro"})).toBeTruthy();
+  fireEvent.change(screen.getByPlaceholderText("Motivo de la consulta…"),{target:{value:"Cefalea de 3 días"}});
+  fireEvent.click(screen.getByRole("button",{name:"Abrir encuentro"}));
+  // OPEN: badge + siguiente paso (guardar valoración)
+  expect(await screen.findByRole("button",{name:"Guardar valoración"})).toBeTruthy();
+  expect(screen.getByText(/Encuentro · Abierta/)).toBeTruthy();
+  // guardar valoración → READY_TO_SIGN → firmar
+  fireEvent.click(screen.getByRole("button",{name:"Guardar valoración"}));
+  expect(await screen.findByRole("button",{name:"Firmar consulta"})).toBeTruthy();
+  expect(screen.getAllByText(/Lista para firmar/).length).toBeGreaterThan(0);
+  // firma real (registro inmutable) → estado SIGNED
+  fireEvent.click(screen.getByRole("button",{name:"Firmar consulta"}));
+  expect(await screen.findByText(/Encuentro · Firmada/)).toBeTruthy();
+  expect(screen.getAllByText(/Consulta firmada/).length).toBeGreaterThan(0);
  });
 
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
