@@ -15,6 +15,7 @@ vi.mock("../../apps/web/lib/session-client",()=>({
   if(path.includes("/api/v1/vitals"))return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
   if(path.includes("/api/v1/care-plans"))return{status:201,body:{version:1}};
   if(path.includes("/api/v1/documents"))return{status:201,body:{version:1}};
+  if(path.includes("/api/v1/referrals"))return{status:201,body:{version:1}};
   if(path.includes("/assessment"))return{status:201,body:{version:2}};
   if(path.includes("/signature"))return{status:201,body:{version:3,signatureDigest:"a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"}};
   if(path.includes("/api/v1/encounters"))return{status:201,body:{version:1}};
@@ -373,6 +374,16 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});
   fireEvent.click(screen.getByRole("button",{name:/Emitir factura/}));
   expect(await screen.findByText(/Factura emitida/)).toBeTruthy();
+ });
+
+ it("vista Interconsultas: enviar una interconsulta real al paciente elegido (POST /referrals)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Interconsultas"}));
+  const opt=await screen.findByRole("option",{name:"Ana López García"});
+  fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});           // selector de paciente real
+  fireEvent.change(screen.getByPlaceholderText(/Describe el motivo/),{target:{value:"Valoración por endocrinología"}});
+  fireEvent.click(screen.getByRole("button",{name:/Enviar interconsulta/}));
+  expect(await screen.findByText(/Interconsulta enviada/)).toBeTruthy();
  });
 
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{

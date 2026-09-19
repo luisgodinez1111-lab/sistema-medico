@@ -522,6 +522,7 @@ export default function Workspace(){
  const[cpForm,setCpForm]=useState<{category:string;goal:string}>({category:"DIABETES",goal:""});
  // Vista Interconsultas (S-INTERCONSULTA) — form Nueva interconsulta; panel derecho cableado a referral-context, envío -> POST /referrals
  const[refCtx,setRefCtx]=useState<RefContext|null>(null);
+ const[icPatientId,setIcPatientId]=useState(""); // paciente elegido para la interconsulta
  const[icTab,setIcTab]=useState<"datos"|"resumen"|"documentos"|"indicaciones">("datos");
  const[icSpecialty,setIcSpecialty]=useState("Endocrinología");const[icPriority,setIcPriority]=useState("Preferente (2–4 semanas)");const[icType,setIcType]=useState("Primera vez");
  const[icMotivo,setIcMotivo]=useState("");const[icResumen,setIcResumen]=useState("");
@@ -642,7 +643,7 @@ export default function Workspace(){
  },[view,ready,session,agendaDate]);
  // Inicio, Pacientes, Órdenes y Agenda: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
-  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda"&&view!=="alergias"&&view!=="vacunas"&&view!=="facturacion")||!ready||!session)return;
+  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda"&&view!=="alergias"&&view!=="vacunas"&&view!=="facturacion"&&view!=="interconsulta")||!ready||!session)return;
   let cancelled=false;
   (async()=>{
    try{
@@ -3069,11 +3070,12 @@ export default function Workspace(){
    const cProblems=ctxProblems.map(p=>shortOf(p.code)).join(", ");
    const cHba1c=(hasCtx&&refCtx!.labs.hba1c)?`HbA1c ${refCtx!.labs.hba1c}% (17 sep 2026)`:"HbA1c 8.1% (17 sep 2026)";
    const cVit=hasCtx&&(refCtx!.vitals.bp||refCtx!.vitals.imc)?`TA ${refCtx!.vitals.bp??"—"}  FC ${refCtx!.vitals.hr??"—"}  IMC ${refCtx!.vitals.imc??"—"}`:"TA 124/82  FC 76  IMC 30.2";
+   const icBillTo=icPatientId||patientId;
    const send=async()=>{
-    if(!patientId){setIcMsg("Selecciona un paciente en el buscador superior para enviar la interconsulta.");return;}
+    if(!icBillTo){setIcMsg("Selecciona un paciente para enviar la interconsulta.");return;}
     if(!icMotivo.trim()){setIcMsg("El motivo de interconsulta es obligatorio.");return;}
     setIcBusy(true);setIcMsg("");
-    try{const r=await apiRequest("/api/v1/referrals",{method:"POST",body:{referralId:crypto.randomUUID(),patientId,specialty:icSpecialty,reason:icMotivo,occurredAt:new Date().toISOString()}});
+    try{const r=await apiRequest("/api/v1/referrals",{method:"POST",body:{referralId:crypto.randomUUID(),patientId:icBillTo,specialty:icSpecialty,reason:icMotivo,occurredAt:new Date().toISOString()}});
      if(r.status===201||r.status===200){setIcMsg("Interconsulta enviada ✓");setIcMotivo("");setIcResumen("");}
      else setIcMsg("No se pudo enviar (estado "+r.status+").");
     }catch{setIcMsg("Error al enviar la interconsulta.");}finally{setIcBusy(false);}
@@ -3087,7 +3089,7 @@ export default function Workspace(){
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⊟ Plantillas</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>◉ Vista previa</button><button onClick={send} disabled={icBusy} style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>{icBusy?"Enviando…":"➤ Enviar interconsulta"}</button></div>
     </div>
     <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
-     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"Ana López García")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientName||"Ana López García"}</div><div style={{fontSize:12.5,color:P.muted}}>Femenino, 34 años&nbsp;&nbsp;|&nbsp;&nbsp;Expediente: LC260917-0042&nbsp;&nbsp;|&nbsp;&nbsp;CURP: LOGA900101MCHPRN09</div></div></div>
+     {(()=>{const bp=(patientList??[]).find(p=>p.patientId===icBillTo);const bname=bp?bp.name:patientName;return <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0,flexWrap:"wrap"}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(bname||"—")}</span><div style={{minWidth:0}}><select value={icPatientId||(bp?patientId:"")} onChange={e=>setIcPatientId(e.target.value)} style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"7px 10px",fontSize:15,fontWeight:700,fontFamily:UI,color:P.ink,background:P.white}}><option value="">Selecciona un paciente…</option>{(patientList??[]).map(p=><option key={p.patientId} value={p.patientId}>{p.name}</option>)}</select><div style={{fontSize:12.5,color:P.muted,marginTop:4}}>{bp?(bp.curp?`CURP: ${bp.curp}`:"Paciente del tenant"):"Elige a quién se solicita la interconsulta"}</div></div></div>;})()}
      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
       <div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}><span style={{width:32,height:32,borderRadius:9,background:P.blue+"22",color:P.blue,display:"grid",placeItems:"center"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={clip}/></svg></span><div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{ctxProblems.length}</div><div style={{fontSize:11,color:P.muted}}>Problemas activos</div></div></div>
       <div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}><span style={{width:32,height:32,borderRadius:9,background:P.green+"22",color:P.green,display:"grid",placeItems:"center"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z"/></svg></span><div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{hasCtx&&refCtx!.medications.length?refCtx!.medications.length:2}</div><div style={{fontSize:11,color:P.muted}}>Medicamentos</div></div></div>

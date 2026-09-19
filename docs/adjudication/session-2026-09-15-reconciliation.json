@@ -2955,6 +2955,29 @@
    "epic": "BE/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-REFERRALS-PATIENT-UI-001",
+   "name": "Interconsultas — envío real con selector de paciente cableado (POST /referrals)",
+   "risk": "C5",
+   "eng_authority_note": "El modulo Interconsultas ya enviaba interconsultas reales (especialidad + motivo -> POST /api/v1/referrals -> agregado Referral REQUESTED; panel derecho con contexto clinico del paciente cableado a referral-context), pero el paciente era el de CONTEXTO sin selector. Ahora la barra superior es un SELECTOR real cableado a la lista de pacientes del tenant (icPatientId); la interconsulta se solicita para el paciente ELEGIDO (icBillTo = icPatientId || contexto) y la tarjeta muestra su CURP real. Requiere paciente + motivo.",
+   "invariants": [
+    "La interconsulta se solicita para el paciente elegido en el selector (icBillTo), no siempre el de contexto",
+    "Se persiste como evento real (POST /referrals -> Referral REQUESTED) con idempotencia",
+    "Requiere paciente + motivo no vacio",
+    "El selector se alimenta de la lista real de pacientes del tenant"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (icPatientId + icBillTo; barra superior con selector real; send usa icBillTo; patientList cargado en la vista)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Interconsultas: elegir paciente + motivo -> Enviar -> POST /referrals)",
+    "scripts/v22/live-referral-context-proof.mts"
+   ],
+   "runtime_evidence": "Render test 41/41 (jsdom): en Interconsultas, elegir paciente en el selector real + motivo -> Enviar interconsulta -> POST /referrals -> aviso de interconsulta enviada. Backend reutilizado ya probado en vivo: live-referral-context-proof (contexto del paciente: alergias/meds/problemas/labs/vitales + envio).",
+   "epic": "BF/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
