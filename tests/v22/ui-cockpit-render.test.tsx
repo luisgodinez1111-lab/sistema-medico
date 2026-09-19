@@ -643,6 +643,10 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText("Información relevante del paciente")).toBeTruthy();  // panel derecho (rep/real)
   expect(screen.getByText("Plantillas rápidas")).toBeTruthy();
   expect(screen.getByRole("button",{name:/Enviar interconsulta/})).toBeTruthy();
+  // auditoría: se eliminaron secciones/controles hardcodeados o muertos
+  expect(screen.queryByText("Antecedentes relevantes")).toBeNull();
+  expect(screen.queryByText("Estudios anexos")).toBeNull();
+  expect(screen.queryByText("Vista previa")).toBeNull();
  });
 
  it("vista Plan de cuidado (S-PLANCUIDADO): secciones reales del snapshot (problemas, objetivos, métricas) sin maqueta",async()=>{

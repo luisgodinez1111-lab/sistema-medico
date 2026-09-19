@@ -3311,6 +3311,29 @@
    "epic": "S-PLANCUIDADO/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-INTERCONSULTA-AUDIT-DEEP-001",
+   "name": "Interconsultas — auditoría boton por boton: contexto real, resumen persistido, sin maqueta",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema de Interconsultas. El envio ya era real (send -> POST /referrals). Defectos corregidos: (1) Fallbacks ficticios del contexto del paciente (refCtx): alergias Amoxicilina (rash), medicacion Metformina/Losartan, problemas E11.9/E66.9/I10, HbA1c 8.1%, TA 124/82 -> ahora muestran el contexto real (referral-context) o estados honestos (Sin alergias registradas / Sin medicacion activa / Sin problemas activos / Sin laboratorios recientes / Sin signos vitales recientes); conteos de chips reales (0 si no hay contexto). (2) BUG de perdida de datos: el Resumen clinico (marcado obligatorio *) se capturaba pero NO se enviaba; ahora se anexa al reason del referral (se persiste). (3) Eliminada la barra de pestañas IC_TABS (datos/resumen/documentos/indicaciones) que NO cambiaba el contenido. (4) Eliminada la barra de formato B/I/U falsa del Resumen clinico -> textarea plano. (5) Diagnosticos relacionados: eliminado el buscador muerto y las × sin accion -> chips de solo lectura del contexto real, con nota de que se editan en Problemas. (6) Estudios anexos: eliminado el dropzone no funcional y los 2 archivos hardcodeados (Laboratorios_17092026.pdf, USG_abdomen.pdf). (7) Tarjeta Antecedentes relevantes 100% hardcodeada (DM2 2023, etc.) + Editar antecedentes muerto: eliminada. (8) Botones de encabezado Plantillas y Vista previa (sin accion): eliminados. Conservado y confirmado real: selector de paciente (icPatientId), Especialidad/Prioridad/Tipo, Motivo, envio (POST /referrals), Plantillas rapidas (rellenan especialidad+motivo), Ver expediente, panel de contexto real (referral-context).",
+   "invariants": [
+    "Interconsultas no muestra contexto clinico de ejemplo: alergias/medicacion/problemas/labs/vitales vienen de referral-context real o muestran estado honesto",
+    "El resumen clinico capturado se persiste (se anexa al reason del referral); no se descarta",
+    "Cada control ejecuta accion: seleccionar paciente, plantilla (rellena), enviar (POST); no hay pestañas inertes, buscadores muertos, dropzones falsos ni archivos hardcodeados",
+    "Los diagnosticos mostrados son contexto de solo lectura del expediente; se editan en Problemas"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (refCtx sin fallbacks ficticios; reason incluye icResumen; elimina IC_TABS, barra B/I/U, buscador/dropzone/archivos falsos, tarjeta Antecedentes y botones de encabezado)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Interconsultas S-INTERCONSULTA: form + contexto + envio; Antecedentes relevantes/Estudios anexos/Vista previa === null)",
+    "scripts/v22/live-referral-context-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): el form (Especialidad/Motivo/Resumen), el panel Informacion relevante del paciente, Plantillas rapidas y Enviar interconsulta siguen presentes; queryByText(Antecedentes relevantes / Estudios anexos / Vista previa) === null. El test de envio real (POST /referrals) sigue verde. Typecheck limpio.",
+   "epic": "S-INTERCONSULTA/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
