@@ -2862,6 +2862,29 @@
    "epic": "S/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-CAREPLAN-CREATE-UI-001",
+   "name": "Plan de cuidado — agregar metas reales al plan del paciente (POST /care-plans)",
+   "risk": "C4",
+   "eng_authority_note": "Profundiza el modulo Plan de cuidado (que ya leia el snapshot compuesto por paciente) con creacion REAL de metas. '+ Nueva meta' abre un creador (categoria del enum del backend: Diabetes/Hipertension/Obesidad/Cardiovascular/Salud mental/Prenatal/Otro + objetivo libre) que hace POST /api/v1/care-plans para el paciente EN CONTEXTO (agregado CarePlan event-sourced, evento PROPOSED) y recarga el snapshot del plan (GET /patients/:id/care-plan) para reflejar la nueva meta. Opera por paciente: requiere patientId en contexto (lo indica el panel) y objetivo no vacio; sin ellos el boton esta deshabilitado.",
+   "invariants": [
+    "La meta se persiste como evento real (POST /care-plans -> CarePlan PROPOSED) con idempotencia",
+    "La categoria se restringe al enum del backend (DIABETES/HYPERTENSION/OBESITY/CARDIOVASCULAR/MENTAL_HEALTH/PRENATAL/OTHER)",
+    "Opera sobre el paciente en contexto (patientId); tras crear, el snapshot del plan se re-consulta",
+    "Requiere patientId + objetivo; nada queda solo en la UI"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (cpForm + addCarePlanGoal + reloadCarePlan; modulo Plan de cuidado con creador de metas)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Plan de cuidado: agregar meta -> POST /care-plans)",
+    "scripts/v22/live-care-plan-snapshot-proof.mts"
+   ],
+   "runtime_evidence": "Render test 37/37 (jsdom): en Plan de cuidado, + Nueva meta -> escribir objetivo -> Agregar meta -> POST /care-plans -> aviso de meta agregada. Backend reutilizado ya probado en vivo: live-care-plan-snapshot-proof (snapshot compuesto: problemas + conteos + metas + metricas).",
+   "epic": "BC/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

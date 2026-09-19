@@ -518,6 +518,8 @@ export default function Workspace(){
  // Vista Plan de cuidado (S-PLANCUIDADO) — snapshot compuesto cableado a GET /patients/:id/care-plan
  const[cpSnap,setCpSnap]=useState<CarePlanSnap|null>(null);
  const[cpPlanTab,setCpPlanTab]=useState<"plan"|"historial"|"objetivos"|"educacion"|"notas">("plan");
+ const[cpNew,setCpNew]=useState(false);const[cpBusy,setCpBusy]=useState(false);const[cpMsg,setCpMsg]=useState<string|null>(null);
+ const[cpForm,setCpForm]=useState<{category:string;goal:string}>({category:"DIABETES",goal:""});
  // Vista Interconsultas (S-INTERCONSULTA) — form Nueva interconsulta; panel derecho cableado a referral-context, envío -> POST /referrals
  const[refCtx,setRefCtx]=useState<RefContext|null>(null);
  const[icTab,setIcTab]=useState<"datos"|"resumen"|"documentos"|"indicaciones">("datos");
@@ -935,6 +937,18 @@ export default function Workspace(){
    }
    const n=cOrdSel.length;setCOrdSel([]);setCOrdMsg(`${n} orden(es) creada(s) y registrada(s) en el expediente ✓`);
   }catch(e){setCOrdMsg(String(e));}finally{setCOrdBusy(false);}
+ };
+ // ===== Plan de cuidado: agregar meta real al plan del paciente en contexto (POST /care-plans) + recarga =====
+ const reloadCarePlan=async()=>{if(!patientId)return;const r=await apiRequest(`/api/v1/patients/${patientId}/care-plan`,{method:"GET"});if(r.status===200)setCpSnap(r.body as unknown as CarePlanSnap);};
+ const addCarePlanGoal=async()=>{
+  if(!patientId){setCpMsg("Selecciona un paciente para agregar una meta al plan.");return;}
+  if(!cpForm.goal.trim()){setCpMsg("Escribe el objetivo/meta.");return;}
+  setCpBusy(true);setCpMsg(null);
+  try{
+   const r=await apiRequest("/api/v1/care-plans",{method:"POST",body:{carePlanId:uuid(),patientId,category:cpForm.category,goal:cpForm.goal.trim(),occurredAt:nowIso()}});
+   if(r.status>=400){setCpMsg(errMsg(r));return;}
+   await reloadCarePlan();setCpNew(false);setCpForm({category:cpForm.category,goal:""});setCpMsg("Meta agregada al plan de cuidado ✓");
+  }catch(e){setCpMsg(String(e));}finally{setCpBusy(false);}
  };
  // ===== Vacunas: registro inline real (POST /immunizations; si hay lote+sitio, administra) + recarga =====
  const reloadImmunizations=async()=>{const r=await apiRequest("/api/v1/immunizations",{method:"GET"});if(r.status===200)setImmReg(r.body as unknown as ImmRegistry);};
@@ -2956,9 +2970,19 @@ export default function Workspace(){
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
       <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⊟ Plantillas</button>
       <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⎙ Imprimir plan</button>
-      <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("consulta");setCTab("plan");}}>+ Nuevo plan de cuidado ▾</button>
+      <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setCpNew(v=>!v);setCpMsg(null);}}>{cpNew?"Cerrar":"+ Nueva meta"}</button>
      </div>
     </div>
+    {cpMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:cpMsg.includes("✓")?"#F0FBF4":"#EEF6FF",border:`1px solid ${cpMsg.includes("✓")?"#CDEBD8":"#CFE0F7"}`,borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:cpMsg.includes("✓")?P.green:P.blue,fontWeight:700}}>{cpMsg.includes("✓")?"✓":"ℹ"}</span><span style={{flex:1}}>{cpMsg}</span><button onClick={()=>setCpMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+    {cpNew&&<div style={{...card2,marginTop:14,padding:18}}>
+     <div style={{fontWeight:800,fontSize:16,marginBottom:4}}>Nueva meta del plan de cuidado</div>
+     <div style={{fontSize:12.5,color:P.muted,marginBottom:12}}>Para <b style={{color:P.ink}}>{patientName||"el paciente en contexto"}</b>{!patientId?" — selecciona un paciente primero":""}.</div>
+     <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:14}} className="mos-med2">
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Categoría</div><select value={cpForm.category} onChange={e=>setCpForm({...cpForm,category:e.target.value})} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}>{[["DIABETES","Diabetes"],["HYPERTENSION","Hipertensión"],["OBESITY","Obesidad"],["CARDIOVASCULAR","Cardiovascular"],["MENTAL_HEALTH","Salud mental"],["PRENATAL","Prenatal"],["OTHER","Otro"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Objetivo / meta</div><input value={cpForm.goal} onChange={e=>setCpForm({...cpForm,goal:e.target.value})} placeholder="Ej. Lograr HbA1c < 7% en 3 meses" style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}/></div>
+     </div>
+     <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void addCarePlanGoal()} disabled={cpBusy||!patientId||!cpForm.goal.trim()} style={{border:0,background:(cpBusy||!patientId||!cpForm.goal.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(cpBusy||!patientId||!cpForm.goal.trim())?"default":"pointer",fontFamily:UI}}>{cpBusy?"Agregando…":"Agregar meta"}</button><button onClick={()=>setCpNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
+    </div>}
     <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"Ana López García")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientName||"Ana López García"}</div><div style={{fontSize:12.5,color:P.muted}}>Femenino, 34 años&nbsp;&nbsp;|&nbsp;&nbsp;Expediente: LC260917-0042&nbsp;&nbsp;|&nbsp;&nbsp;CURP: LOGA900101MCHPRN09</div></div></div>
      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>

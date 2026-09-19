@@ -13,6 +13,7 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  logout:async()=>{},
  apiRequest:async(path:string)=>{
   if(path.includes("/api/v1/vitals"))return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
+  if(path.includes("/api/v1/care-plans"))return{status:201,body:{version:1}};
   if(path.includes("/assessment"))return{status:201,body:{version:2}};
   if(path.includes("/signature"))return{status:201,body:{version:3,signatureDigest:"a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"}};
   if(path.includes("/api/v1/encounters"))return{status:201,body:{version:1}};
@@ -333,6 +334,15 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   fireEvent.click(screen.getByRole("button",{name:"Influenza"}));              // vacuna (chip)
   fireEvent.click(screen.getByRole("button",{name:"Registrar vacuna"}));       // sin lote -> pendiente
   expect(await screen.findByText(/Vacuna registrada/)).toBeTruthy();
+ });
+
+ it("vista Plan de cuidado: agregar una meta real al plan del paciente (POST /care-plans)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Plan de cuidados"}));
+  fireEvent.click(screen.getByRole("button",{name:"+ Nueva meta"}));
+  fireEvent.change(screen.getByPlaceholderText(/HbA1c < 7%/),{target:{value:"Bajar 5% de peso en 3 meses"}});
+  fireEvent.click(screen.getByRole("button",{name:"Agregar meta"}));
+  expect(await screen.findByText(/Meta agregada al plan/)).toBeTruthy();
  });
 
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
