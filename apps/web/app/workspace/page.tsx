@@ -1660,16 +1660,9 @@ export default function Workspace(){
    const initials=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"P";
    type Row={patientId:string;name:string;status:string;age:number|null;sexo:string;curp:string};
    const real=(patientList??[]).map(p=>({patientId:p.patientId,name:p.name,status:p.status,age:ageOf(p.birthDate),sexo:sexAbbr(p.sexAtBirth),curp:p.curp||"—"}));
-   const demo:Row[]=[
-    {patientId:"d1",name:"María Fernández López",status:"ACTIVE",age:28,sexo:"F",curp:"FEFM960812MCHRRR04"},
-    {patientId:"d2",name:"Juan Pérez García",status:"ACTIVE",age:58,sexo:"M",curp:"PEGJ650320HCHRRN01"},
-    {patientId:"d3",name:"Ana Ramírez Torres",status:"ACTIVE",age:72,sexo:"F",curp:"RATA720114MCHMRN05"},
-    {patientId:"d4",name:"Carlos Díaz Martínez",status:"ACTIVE",age:45,sexo:"M",curp:"DIMC800501HCHZRR09"},
-    {patientId:"d5",name:"Sofía Vega Ramírez",status:"ACTIVE",age:31,sexo:"F",curp:"VERS910223MCHGMF02"},
-    {patientId:"d6",name:"Miguel Ruiz Herrera",status:"INACTIVE",age:49,sexo:"M",curp:"RUHM760412HCHZRG03"},
-   ];
-   const usingReal=real.length>0;const allRows:Row[]=usingReal?real:demo;
-   const total=usingReal?allRows.length:1482;const activos=usingReal?allRows.filter(r=>r.status==="ACTIVE").length:1263;
+   // Solo pacientes REALES del tenant. Sin filas de ejemplo (evita clics inertes): si no hay, estado vacío honesto.
+   const loading=patientList===null;const allRows:Row[]=real;
+   const total=allRows.length;const activos=allRows.filter(r=>r.status==="ACTIVE").length;
    const q=topSearch.trim().toLowerCase();
    const rows=allRows.filter(r=>(!q||r.name.toLowerCase().includes(q)||r.curp.toLowerCase().includes(q))&&(!patStatus||r.status===patStatus)&&(!patSex||r.sexo===patSex));
    const anyFilter=!!q||!!patStatus||!!patSex;
@@ -1680,7 +1673,7 @@ export default function Workspace(){
    const dk:React.CSSProperties={color:P.muted,width:140,flex:"0 0 auto",fontSize:12.5};
    const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"};
    const inp:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink,boxSizing:"border-box"};
-   const isReal=(r:Row)=>!r.patientId.startsWith("d");
+   const isReal=(_r:Row)=>true; // todas las filas son pacientes reales del tenant
    const selectRow=(r:Row)=>{if(isReal(r)){setPatSelId(r.patientId);selectPatientRaw(r.patientId,r.name);setPatTab("resumen");setPatEdit(false);}else{setPatSelId(null);}};
    const exportSelected=async(pid:string,name:string)=>{setPatMsg(`Generando export del expediente de ${name}…`);try{const resp=await apiRequest(`/api/v1/patients/${pid}/export`,{method:"GET"});if(resp.status>=400){setPatMsg(errMsg(resp));return;}const m=resp.body["manifest"] as{aggregateCount:number;eventCount:number};setPatMsg(`Export de ${name}: ${m.aggregateCount} agregados · ${m.eventCount} eventos · hash ${String(resp.body["contentHash"]??"").slice(0,12)}…`);}catch(e){setPatMsg(String(e));}};
    // Paciente en foco (la ficha SÓLO existe si hay selección real):
@@ -1715,8 +1708,8 @@ export default function Workspace(){
      <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginTop:18}} className="mos-kpis">
       <div style={kcard}>{kico("#EEEBFD","M8 11a3 3 0 100-6 3 3 0 000 6zM2 20a6 6 0 0112 0M16 4.5a3 3 0 010 6M22 20a6 6 0 00-5-5.9",P.purple)}<div><div style={{fontSize:12.5,color:P.muted}}>Total de pacientes</div><div style={{fontSize:24,fontWeight:800}}>{total.toLocaleString("es-MX")}</div></div></div>
       <div style={kcard}>{kico("#E6F6EE","M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",P.green)}<div><div style={{fontSize:12.5,color:P.muted}}>Pacientes activos</div><div style={{fontSize:24,fontWeight:800}}>{activos.toLocaleString("es-MX")} <span style={{fontSize:12,color:P.green,fontWeight:600}}>● {total?Math.round(activos/total*100):0}%</span></div></div></div>
-      <div style={kcard}>{kico("#E7EEFB","M6 2h12l-1 6H7zM5 8h14l-1 12H6z",P.blue)}<div><div style={{fontSize:12.5,color:P.muted}}>{anyFilter?"Coinciden con el filtro":"En el registro"}</div><div style={{fontSize:24,fontWeight:800}}>{usingReal?rows.length:48}</div></div></div>
-      <div style={kcard}>{kico("#FDECEE","M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.5-7 10-7 10z",P.red)}<div><div style={{fontSize:12.5,color:P.muted}}>En seguimiento</div><div style={{fontSize:24,fontWeight:800}}>{usingReal?(gaps?.length??0):217}</div></div></div>
+      <div style={kcard}>{kico("#E7EEFB","M6 2h12l-1 6H7zM5 8h14l-1 12H6z",P.blue)}<div><div style={{fontSize:12.5,color:P.muted}}>{anyFilter?"Coinciden con el filtro":"En el registro"}</div><div style={{fontSize:24,fontWeight:800}}>{rows.length}</div></div></div>
+      <div style={kcard}>{kico("#FDECEE","M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.5-7 10-7 10z",P.red)}<div><div style={{fontSize:12.5,color:P.muted}}>En seguimiento</div><div style={{fontSize:24,fontWeight:800}}>{(patSelId&&patientId===patSelId)?(gaps?.length??0):"—"}</div></div></div>
      </div>
      <div style={{display:"flex",gap:10,alignItems:"center",marginTop:16,flexWrap:"wrap"}}>
       <div style={{flex:1,minWidth:200,display:"flex",alignItems:"center",gap:9,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 13px"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg><input placeholder="Buscar por nombre o CURP…" value={topSearch} onChange={e=>setTopSearch(e.target.value)} style={{border:0,outline:"none",background:"transparent",fontSize:13.5,fontFamily:UI,flex:1,color:P.ink}}/></div>
@@ -1728,7 +1721,7 @@ export default function Workspace(){
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr>{["Paciente","Edad","Sexo","Estado","Acciones"].map((h,i)=><th key={i} style={{textAlign:i>=3?"right":"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"12px 16px",borderBottom:`1px solid ${LINE}`,background:"#FAFBFD"}}>{h}</th>)}</tr></thead>
        <tbody>{rows.length===0?(
-        <tr><td colSpan={5} style={{padding:"40px 14px",textAlign:"center",color:P.muted,fontSize:13}}>Ningún paciente coincide con la búsqueda o el filtro.</td></tr>
+        <tr><td colSpan={5} style={{padding:"44px 16px",textAlign:"center",color:P.muted,fontSize:13.5}}>{loading?"Cargando pacientes…":allRows.length===0?<span>Aún no hay pacientes registrados. Usa <b style={{color:P.ink}}>«Nuevo paciente»</b> para crear el primero.</span>:"Ningún paciente coincide con la búsqueda o el filtro."}</td></tr>
        ):rows.map(r=>{const[stl,sbg,sfg]=stTag(r.status);const on=isReal(r)&&r.patientId===patSelId;return <tr key={r.patientId} onClick={()=>selectRow(r)} style={{background:on?"#F6F5FE":"transparent",cursor:isReal(r)?"pointer":"default",borderLeft:on?`3px solid ${P.purple}`:"3px solid transparent"}}>
         <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`}}><div style={{display:"flex",alignItems:"center",gap:11}}><span style={{width:38,height:38,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:12.5,fontWeight:700,flex:"0 0 auto"}}>{initials(r.name)}</span><div><div style={{fontWeight:600,fontSize:13.5}}>{r.name}</div><div style={{fontSize:11,color:"#9AA0BC"}}>CURP: {r.curp}</div></div></div></td>
         <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{r.age!=null?`${r.age} años`:"—"}</td>
