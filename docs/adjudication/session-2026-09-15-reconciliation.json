@@ -2791,6 +2791,29 @@
    "epic": "Q/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-CONSULTA-ANTECEDENTES-UI-001",
+   "name": "Consulta — antecedentes marcados se componen en la nota del encuentro (persisten al firmar)",
+   "risk": "C4",
+   "eng_authority_note": "Cablea los checkboxes de Antecedentes relevantes de la Consulta (HTA/DM2/Asma/Alergias/Quirurgicos/Tabaquismo/Alcohol/Otros), antes cosmeticos (uno hardcodeado marcado, sin efecto), a una seleccion REAL (cAntec) que se COMPONE en la valoracion del encuentro. composeNote() ahora concatena los antecedentes marcados + el texto libre en la seccion ANTECEDENTES RELEVANTES de la nota; esa nota se persiste tal cual al guardar la valoracion (POST /encounters/:id/assessment) y queda inmutable al firmar. Los checkboxes y el textarea se bloquean fuera del estado OPEN (consistente con el resto de la documentacion). No hay agregado 'antecedente' aparte: por diseno los antecedentes son parte de la nota clinica del encuentro, y la Vista previa muestra exactamente lo que se guardara.",
+   "invariants": [
+    "Los antecedentes marcados no quedan solo en la UI: se componen en la nota (composeNote) que persiste el encuentro real (assessment)",
+    "La Vista previa refleja exactamente la nota que se guardara (antecedentes incluidos)",
+    "Checkboxes y texto se bloquean fuera de OPEN; el encuentro firmado es inmutable",
+    "Sin datos ficticios: ningun antecedente viene premarcado ni hardcodeado"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (cAntec + composeNote actualizado; checkboxes de Antecedentes controlados y bloqueados fuera de OPEN)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Consulta: antecedente marcado -> aparece en la nota compuesta)",
+    "scripts/v22/live-encounter-lifecycle-proof.mts"
+   ],
+   "runtime_evidence": "Render test 34/34 (jsdom): marcar el antecedente HTA y abrir Vista previa muestra ANTECEDENTES RELEVANTES: HTA en la nota que se guardara. La persistencia de esa nota va por el mismo flujo ya probado en vivo: live-encounter-lifecycle-proof (assessment -> READY_TO_SIGN -> signature inmutable).",
+   "epic": "D/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
