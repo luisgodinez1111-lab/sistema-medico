@@ -3124,6 +3124,30 @@
    "epic": "D/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-RESULTADOS-AUDIT-DEEP-001",
+   "name": "Resultados — auditoría boton por boton: navegador real (filtros/lista/detalle) sin maqueta ni datos falsos",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema del modulo Resultados. La pestaña por defecto era una maqueta estatica: filtros sin funcion (busqueda como texto, selects sin estado, checkboxes fijos, rango de fechas fijo, boton Limpiar muerto), lista NO seleccionable (primera fila siempre resaltada, sin onClick), paginacion falsa (1 2 3 …), boton Mas recientes muerto, y un panel de detalle 100% hardcodeado (Biometria hematica / Ana Lopez / Laboratorio Chopo / Folio LC260917-0042 / tabla de 24 parametros ficticia / Descargar PDF muerto / pestañas sin estado). Ademas KPIs falsos (245/48/32/18 y Estudios por vencer 12) y fallbacks ficticios en todas las pestañas (REP_RESL, REPA, REPS, REPO). Reconstruido REAL: filtros cableados (input de busqueda + tipo + estado + Limpiar) que filtran resReg.items; lista de resultados reales seleccionable (onClick -> resSel, resaltado real, conteo real, estado vacio honesto); panel de detalle derivado del resultado seleccionado (analito, valor con color por criticidad, rango normal y limites de panico del motor CDS via labReferenceRanges, clasificacion CDS, interpretacion determinista real, ciclo de vida RECEIVED/VERIFIED/ACTIONED/CLOSED, navegacion a seguimiento). KPIs ahora reales (0 si vacio); 5º KPI ficticio eliminado. Alertas/Seguimiento/Solicitudes sin fallback ficticio (estado vacio honesto); boton Revisar de Alertas cableado (abre el resultado en la pestaña Resultados).",
+   "invariants": [
+    "La pestaña Resultados no contiene maqueta: filtros, lista y detalle se alimentan solo de resReg.items reales",
+    "La lista es seleccionable y el detalle refleja el resultado elegido (no un caso hardcodeado)",
+    "Los KPIs y conteos son reales (0 si no hay datos); ningun numero ni fila es de ejemplo",
+    "Cada control ejecuta accion: busqueda/tipo/estado filtran, Limpiar resetea, Revisar abre el resultado, Ver seguimiento cambia de pestaña",
+    "La interpretacion y clasificacion mostradas provienen del motor CDS determinista, no de texto inventado"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (resSel/resQ/resTypeF/resEstadoF; filteredItems+selItem; rebuild 3 columnas; KPIs reales; elimina REP_RESL/REPA/REPS/REPO/chk/RRow; Revisar cableado)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Resultados S7: detalle real Clasificacion CDS + Ciclo de vida; Descargar PDF y Folio falso === null; filtro de busqueda filtra la lista)",
+    "scripts/v22/live-results-registry-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): la lista muestra GLUCOSE real del mock; el detalle muestra Clasificacion CDS y Ciclo de vida derivados del item; queryByText(\"Descargar PDF\") y queryByText(\"Laboratorio Chopo · Folio: LC260917-0042\") === null; escribir en el input de busqueda un termino inexistente muestra Ningun resultado coincide. Typecheck limpio.",
+   "epic": "S7/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

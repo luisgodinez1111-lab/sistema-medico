@@ -505,6 +505,15 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect((await screen.findAllByText("GLUCOSE")).length).toBeGreaterThan(0);      // analito real (mock)
   expect(screen.getAllByText(/Hallazgos/).length).toBeGreaterThan(0);            // estado-UI derivado en TEXTO
   expect(screen.getByText("Con hallazgos anormales")).toBeTruthy();
+  // el panel de detalle es REAL (deriva del resultado seleccionado), no una maqueta hardcodeada
+  expect(screen.getByText("Clasificación CDS")).toBeTruthy();
+  expect(screen.getByText("Ciclo de vida")).toBeTruthy();
+  expect(screen.queryByText("Descargar PDF")).toBeNull();                        // botón muerto eliminado
+  expect(screen.queryByText("Laboratorio Chopo · Folio: LC260917-0042")).toBeNull(); // datos falsos eliminados
+  // el filtro de búsqueda es un input REAL que filtra la lista
+  fireEvent.change(screen.getByPlaceholderText(/Buscar por estudio o paciente/),{target:{value:"zzz-no-existe"}});
+  expect(screen.getByText(/Ningún resultado coincide/)).toBeTruthy();
+  fireEvent.change(screen.getByPlaceholderText(/Buscar por estudio o paciente/),{target:{value:""}});
   // pestañas restantes cableadas:
   fireEvent.click(screen.getByRole("button",{name:/^Solicitudes/}));
   expect(await screen.findByText(/Solicitudes de estudio/)).toBeTruthy();
