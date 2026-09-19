@@ -397,6 +397,16 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText(/Resultado registrado/)).toBeTruthy();
  });
 
+ it("vista Signos vitales: registrar signos vitales reales al paciente elegido (POST /vitals)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));
+  const opt=await screen.findByRole("option",{name:"Ana López García"});
+  fireEvent.change(opt.closest("select")!,{target:{value:"p1"}}); // selector de paciente (selectPatientRaw)
+  fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"78"}}); // frecuencia cardíaca
+  fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
+  expect(await screen.findByText(/Signos vitales guardados/)).toBeTruthy();
+ });
+
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
   render(<Workspace/>);
   toExpediente();

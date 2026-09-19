@@ -3003,6 +3003,30 @@
    "epic": "AQ/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-VITALS-MODULE-PATIENT-UI-001",
+   "name": "Signos vitales — registro por módulo con selector de paciente cableado (POST /vitals)",
+   "risk": "C5",
+   "eng_authority_note": "El modulo Signos vitales ya guardaba signos vitales reales (saveVitals -> POST /api/v1/vitals por cada vital capturado + recarga del historial por paciente), pero operaba sobre el paciente de CONTEXTO sin selector. Ahora la barra superior es un SELECTOR real cableado a la lista de pacientes del tenant que, al elegir, fija el paciente activo (selectPatientRaw): el historial (GET /patients/:id/vitals) y el registro (POST /vitals) operan sobre ese paciente. Cada vital (TA/FC/FR/Temp/SpO2/peso/talla) se persiste como evento del agregado VitalSign; la interpretacion critica la deriva el kernel y un vital critico sin cerrar bloquea la firma (Zero-Lost-Follow-Up).",
+   "invariants": [
+    "Cada vital se persiste como evento real (POST /vitals -> VitalSign) con idempotencia; nada queda solo en la UI",
+    "El selector fija el paciente activo (selectPatientRaw); historial y registro operan sobre ese paciente",
+    "La interpretacion critica la deriva el kernel; un vital critico sin cerrar bloquea la firma del encuentro",
+    "Reutiliza el contrato de tipos/unidades ya usado en Consulta (sin logica duplicada divergente)"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (modulo Signos vitales: barra superior con selector real -> selectPatientRaw; patientList cargado en la vista; saveVitals ya existente)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Signos vitales: elegir paciente + FC -> Guardar -> POST /vitals)",
+    "scripts/v22/live-vitals-history-proof.mts",
+    "scripts/v22/live-critical-vital-signing-loop-proof.mts"
+   ],
+   "runtime_evidence": "Render test 43/43 (jsdom): en Signos vitales, elegir paciente en el selector real + capturar FC -> Guardar signos vitales -> POST /vitals -> aviso de signos vitales guardados. Backends reutilizados ya probados en vivo: live-vitals-history-proof (historial por paciente + IMC + series) y live-critical-vital-signing-loop-proof (un vital critico sin cerrar bloquea la firma).",
+   "epic": "BB/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
