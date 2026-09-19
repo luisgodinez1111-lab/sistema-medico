@@ -618,18 +618,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByRole("button",{name:/Emitir factura/})).toBeTruthy();
  });
 
- it("vista Seguimiento (S-SEGUIMIENTO): historia + tendencia de vitales + indicadores + tareas + próxima cita",async()=>{
+ it("vista Seguimiento (S-SEGUIMIENTO): tendencia de vitales + indicadores + tareas reales, sin maqueta",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:/^Seguimiento/}));
   expect(screen.getByRole("heading",{name:"Seguimiento"})).toBeTruthy();
-  expect(screen.getByText("Historia de seguimiento")).toBeTruthy();
-  expect(screen.getByText("Control de DM2")).toBeTruthy();                       // entrada de la historia (rep)
-  expect(screen.getByText("Tendencia de signos vitales")).toBeTruthy();          // sparklines (real/rep)
-  expect(screen.getByText("Indicadores clave")).toBeTruthy();                    // HbA1c/LDL/Peso/IMC
-  expect(screen.getByText(/Próxima cita de seguimiento/)).toBeTruthy();
+  // secciones reales derivadas del snapshot (GET /follow-up)
+  expect(screen.getByText("Tendencia de signos vitales")).toBeTruthy();
+  expect(screen.getByText(/Indicadores clave/)).toBeTruthy();
   expect(screen.getByText(/Tareas de seguimiento/)).toBeTruthy();
-  expect(screen.getByText("Solicitar HbA1c en 3 meses")).toBeTruthy();           // tarea (real/rep)
-  expect(screen.getByText("HbA1c")).toBeTruthy();
+  // auditoría: se eliminaron la historia hardcodeada, la próxima cita ficticia, notas y controles muertos
+  expect(screen.queryByText("Historia de seguimiento")).toBeNull();
+  expect(screen.queryByText("Control de DM2")).toBeNull();
+  expect(screen.queryByText(/Próxima cita de seguimiento/)).toBeNull();
+  expect(screen.queryByText("Notas del seguimiento")).toBeNull();
+  expect(screen.queryByText("Registro rápido")).toBeNull();
  });
 
  it("vista Interconsultas (S-INTERCONSULTA): form Nueva interconsulta + panel de contexto + envío",async()=>{

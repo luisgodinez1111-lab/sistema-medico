@@ -3334,6 +3334,29 @@
    "epic": "S-INTERCONSULTA/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-SEGUIMIENTO-AUDIT-DEEP-001",
+   "name": "Seguimiento — auditoría boton por boton: solo el espinazo real del snapshot, sin maqueta",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema de Seguimiento. El snapshot real (fuSnap via GET /follow-up) provee counts/vitalsTrend(series,avg)/indicators/tasks; la vista añadia mucha maqueta. Corregido: (1) Eliminados todos los fallbacks ficticios: counts {3,2,1}, series de vitales ([120,122,...] etc), avg (124/82...), indicadores (HbA1c 8.1->7.2, LDL 142->110, etc.), REP_TASKS (5 tareas) y HIST (5 entradas de historia). Ahora counts/series/avg/indicadores/tareas derivan de fuSnap real (vacio honesto). (2) Barra de paciente: eliminado el nombre ficticio Ana Lopez Garcia y demograficos inventados -> paciente real o pedir seleccion. (3) Eliminada la seccion Historia de seguimiento (5 entradas hardcodeadas + Filtrar + buscador + ✎/› por fila + Cargar mas): no tiene fuente real en el snapshot. (4) Eliminada la tarjeta Proxima cita de seguimiento (fecha/estado/motivo hardcodeados + Cambiar/Reprogramar/Enviar recordatorio muertos) y la tarjeta Notas del seguimiento (2 notas fijas + Agregar). (5) Eliminados controles muertos: barra de pestañas SEG_TABS (6 tabs que no cambiaban contenido); selectores de rango de fecha (x3); botones de encabezado Registro rapido, Graficas, Mas opciones. (6) Indicadores clave: eliminada la barra de progreso de ancho fijo 62% (ficticia) -> solo primer->ultimo valor real con flecha de tendencia. La vista queda con el espinazo REAL: barra de paciente + Tendencia de signos (sparklines reales) + Indicadores clave (reales) + Tareas de seguimiento (reales, solo lectura). Conservado real: + Nuevo seguimiento (abre Consulta pestaña seguimiento), Ver expediente, contadores del snapshot.",
+   "invariants": [
+    "Seguimiento no muestra historia, proxima cita, notas, indicadores ni tendencias de ejemplo: todo deriva de fuSnap real (vacio honesto)",
+    "No se presentan secciones sin fuente real: se eliminaron Historia de seguimiento, Proxima cita y Notas hardcodeadas",
+    "Cada control ejecuta accion: Nuevo seguimiento, Ver expediente; se eliminaron pestañas inertes, selectores de fecha y botones sin accion",
+    "Los indicadores muestran primer->ultimo valor real; no hay barras de progreso de ancho ficticio"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (elimina fallbacks counts/series/avg/ind/REP_TASKS/HIST; fuLoaded; barra de paciente real; elimina SEG_TABS/selectores/botones muertos; elimina Historia/Proxima cita/Notas; indRows reales; deja Tendencia+Indicadores+Tareas reales)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Seguimiento S-SEGUIMIENTO: Tendencia/Indicadores/Tareas reales; Historia de seguimiento/Control de DM2/Proxima cita/Notas/Registro rapido === null)",
+    "scripts/v22/live-follow-up-snapshot-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): presentes Tendencia de signos vitales, Indicadores clave y Tareas de seguimiento; queryByText(Historia de seguimiento / Control de DM2 / Proxima cita de seguimiento / Notas del seguimiento / Registro rapido) === null. Typecheck limpio.",
+   "epic": "S-SEGUIMIENTO/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
