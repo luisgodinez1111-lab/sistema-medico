@@ -424,7 +424,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   // elegir el paciente al que se factura (selector real cableado a la lista de pacientes)
   const opt=await screen.findByRole("option",{name:"Ana López García"});
   fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});
-  fireEvent.click(screen.getByRole("button",{name:/Emitir factura/}));
+  fireEvent.click(screen.getByRole("button",{name:/Registrar cargo/}));
   expect(await screen.findByText(/Factura emitida/)).toBeTruthy();
  });
 
@@ -611,11 +611,15 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByRole("heading",{name:"Facturación"})).toBeTruthy();
   expect(screen.getByText("Facturas emitidas")).toBeTruthy();                    // KPI
   expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0); // fila (real) + wizard
-  expect(screen.getByText("Nueva factura")).toBeTruthy();                        // wizard
+  expect(screen.getByText("Nueva factura")).toBeTruthy();                        // creador real
   expect(screen.getByText("Conceptos")).toBeTruthy();
-  expect(screen.getByText("Métodos de pago")).toBeTruthy();
-  expect(screen.getByText("Top servicios facturados")).toBeTruthy();
-  expect(screen.getByRole("button",{name:/Emitir factura/})).toBeTruthy();
+  expect(screen.getByRole("button",{name:/Registrar cargo/})).toBeTruthy();
+  // auditoría: se eliminaron gráficas/controles hardcodeados o muertos
+  expect(screen.queryByText("Métodos de pago")).toBeNull();
+  expect(screen.queryByText("Top servicios facturados")).toBeNull();
+  expect(screen.queryByText("Ingresos mensuales")).toBeNull();
+  expect(screen.queryByText("Configuración fiscal")).toBeNull();
+  expect(screen.queryByText("Datos fiscales")).toBeNull();
  });
 
  it("vista Seguimiento (S-SEGUIMIENTO): tendencia de vitales + indicadores + tareas reales, sin maqueta",async()=>{

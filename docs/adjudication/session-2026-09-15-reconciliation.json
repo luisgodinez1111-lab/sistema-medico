@@ -3357,6 +3357,29 @@
    "epic": "S-SEGUIMIENTO/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-FACTURACION-AUDIT-DEEP-001",
+   "name": "Facturación — auditoría boton por boton: registro real, creador honesto, sin gráficas ni fiscales ficticios",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema de Facturación. La emision ya era real (emit -> POST /claims con monto/moneda/paciente) y el registro se lee de GET /claims. Defectos corregidos: (1) Tabla: eliminado el fallback REP (10 facturas ficticias) y REP_CONCEPTS (el concepto se inventaba con REP_CONCEPTS[i%..] incluso para filas reales) y el RFC ficticio -> la tabla muestra solo columnas reales (Folio, Fecha, Paciente, Total, Estado) desde claimsReg; KPIs reales (0 si vacio); claimsLoaded=!!claimsReg; estado vacio honesto. (2) KPI Ingresos: eliminado el ↑ +18% vs mes anterior hardcodeado. (3) Eliminados controles muertos de la tabla: pestañas FAC_TABS (facturas/recibos/notas/cotizaciones sin branch), Mas filtros, Exportar, buscador y selects de fecha/estado, checkboxes de fila/encabezado, columna Acc. ⋯, paginacion falsa. (4) Eliminada la fila de graficas 100% hardcodeadas: Metodos de pago (toggles de config sin persistencia + Configurar), Ingresos mensuales (12 meses fijos + ,680), Top servicios facturados (6 fijos). (5) Encabezado: eliminados Configuracion fiscal y Reportes (sin accion). (6) Creador Nueva factura: conservados Paciente + Conceptos (agregar/editar/eliminar/totales reales) + emit; eliminados los pasos que se capturaban pero NO se enviaban (Forma de pago, fecha, Datos fiscales CFDI/regimen/metodo, casilla Enviar por correo) y los botones muertos Usar plantilla y Vista previa; el boton se renombra a Registrar cargo con una nota honesta de que la facturacion fiscal CFDI se conectara con el PAC. Conservado y confirmado real: selector de paciente, conceptos, totales, emit (POST /claims) y recarga del registro.",
+   "invariants": [
+    "Facturación no muestra facturas, KPIs ni graficas de ejemplo: tabla y KPIs derivan de claimsReg real (0/vacio honesto)",
+    "La tabla solo muestra columnas con dato real (sin concepto ni RFC inventados)",
+    "El creador solo captura lo que se persiste (paciente, conceptos, monto); no presenta campos fiscales que se descartan",
+    "No hay controles decorativos: se eliminaron pestañas, filtros, exportar, paginacion, graficas hardcodeadas y botones sin accion"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (elimina REP/REP_CONCEPTS/RFC; claimsLoaded; tabla real 5 columnas; KPIs reales; elimina FAC_TABS/filtros/paginacion/graficas/encabezado muerto; creador reducido a paciente+conceptos+emit)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Facturación S-FACTURACION: registro real + creador; Registrar cargo emite POST /claims; Metodos de pago/Top servicios/Ingresos mensuales/Configuracion fiscal/Datos fiscales === null)",
+    "scripts/v22/live-claims-registry-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): KPIs y tabla desde el mock real; seleccionar paciente y pulsar Registrar cargo emite (POST /claims) y muestra Factura emitida; queryByText(Metodos de pago / Top servicios facturados / Ingresos mensuales / Configuracion fiscal / Datos fiscales) === null. Typecheck limpio.",
+   "epic": "S-FACTURACION/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
