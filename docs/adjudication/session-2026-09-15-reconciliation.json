@@ -2695,6 +2695,30 @@
    "epic": "D/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-INICIO-DASHBOARD-UI-001",
+   "name": "Inicio — dashboard interconectado por contexto de paciente + KPIs de la agenda real",
+   "risk": "C4",
+   "eng_authority_note": "Profundiza el dashboard Inicio (ya cableado a worklist/pacientes/agenda) para que cada acceso lleve al destino REAL con contexto. KPIs derivados de datos reales: 'Citas de hoy' y 'Consultas atendidas' se calculan de la agenda del dia (agenda.appointments / counts.atendidas), 'Pendientes criticos' del contador real, 'Proxima cita' de la agenda. Interconexion por contexto de paciente: al hacer clic en una TAREA del worklist (que lleva patientId), en un ITEM de la agenda del dia, o en una fila de 'Pacientes recientes', se abre la Consulta de ESE paciente (selectPatientRaw + vista consulta). Accesos rapidos y enlaces redirigidos a las VISTAS DE MODULO reales en vez de hacer scroll al expediente crudo: Nueva consulta->Consulta, Registrar resultado->Resultados, Crear orden->Ordenes (abre creador), Prescribir->Medicamentos, Agendar cita->Agenda (abre creador), Interconsulta->Interconsultas; banners->Resultados / Medicamentos>Interacciones; Recursos clinicos->Biblioteca; CI->Clinical Intelligence. Honestidad: los paneles analiticos sin backend (Indicadores del consultorio, distribucion de motivos, hallazgos poblacionales de CI) se rotulan 'representativo'/ejemplo, no se presentan como datos reales del tenant.",
+   "invariants": [
+    "Los KPIs de citas/atendidas/proxima se derivan de la agenda real del tenant; el contador de criticos es real",
+    "La interconexion preserva el contexto (selectPatientRaw con el patientId real) antes de abrir la Consulta",
+    "Los accesos navegan a las vistas de modulo reales construidas en la sesion (no scroll a secciones del expediente crudo)",
+    "Los paneles sin backend estan rotulados como representativos; no se presentan numeros ficticios como reales"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (vista Inicio: openPatientCtx + KPIs de agenda + tareas/agenda/pacientes clicables por contexto + accesos a vistas de modulo + rotulos honestos)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Inicio: KPIs de agenda + tarea que abre la Consulta del paciente)",
+    "scripts/v22/live-patient-registry-proof.mts",
+    "scripts/v22/live-agenda-day-proof.mts"
+   ],
+   "runtime_evidence": "Render test 30/30 (jsdom): KPIs Citas de hoy / Consultas atendidas derivados de la agenda mock (2 citas), y una tarea real del worklist (con patientId) que al hacer clic abre la vista Consulta del paciente. Backends reutilizados ya probados en vivo: live-patient-registry-proof, live-agenda-day-proof (agenda del dia + conteos) y el worklist real.",
+   "epic": "UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

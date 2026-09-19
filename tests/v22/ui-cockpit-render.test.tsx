@@ -28,7 +28,7 @@ vi.mock("../../apps/web/lib/session-client",()=>({
    {patientId:"p1",name:"Ana López García",status:"ACTIVE",birthDate:"1990-01-01",sexAtBirth:"FEMALE"},
    {patientId:"p2",name:"Carlos Mendoza",status:"ACTIVE",birthDate:"1970-01-01",sexAtBirth:"MALE"},
   ]}};
-  if(path.includes("/api/v1/worklist"))return{status:200,body:{gaps:[],patientCount:2}};
+  if(path.includes("/api/v1/worklist"))return{status:200,body:{gaps:[{patientId:"p1",aggregateType:"DiagnosticResult",aggregateId:"r1",code:"K",label:"Resultado crítico sin cerrar",priority:"HIGH"}],patientCount:2}};
   if(path.includes("/api/v1/results"))return{status:200,body:{
    items:[
     {resultId:"r1",patientId:"p1",patientName:"Ana López García",analyte:"GLUCOSE",value:"520",critical:true,status:"CRITICAL",interpretation:"Hiperglucemia de pánico",tipo:"Laboratorio",estado:"Hallazgos",lifecycle:"RECEIVED",receivedAt:"2026-09-17T00:00:00Z"},
@@ -114,7 +114,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   render(<Workspace/>);
   expect(screen.getByRole("button",{name:/Inicio/})).toBeTruthy();
   expect(screen.getByRole("button",{name:/Pacientes/})).toBeTruthy();
-  expect(screen.getByRole("button",{name:/Clinical Intelligence/})).toBeTruthy();
+  expect(screen.getByRole("button",{name:"Clinical Intelligence"})).toBeTruthy();
   expect(screen.getByRole("button",{name:/Configuración/})).toBeTruthy();   // sección HERRAMIENTAS
   expect(screen.getByRole("button",{name:/Contraer menú/})).toBeTruthy();    // colapsar
   expect(screen.getAllByText(/Médico tratante/).length).toBeGreaterThan(0);  // perfil del médico (fallback)
@@ -128,6 +128,17 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText(/Tareas clínicas prioritarias/)).toBeTruthy();
   expect(screen.getByText("Agenda de hoy")).toBeTruthy();
   expect(screen.getByText("Pacientes recientes")).toBeTruthy();
+ });
+
+ it("vista Inicio: KPIs derivados de la agenda real + tarea que abre la Consulta del paciente",async()=>{
+  render(<Workspace/>);
+  // KPIs derivados de la agenda real (no hardcodeados)
+  expect(await screen.findByText("Citas de hoy")).toBeTruthy();
+  expect(screen.getByText("Consultas atendidas")).toBeTruthy();
+  // la tarea real del worklist lleva patientId -> al hacer clic abre la Consulta de ese paciente (interconexión)
+  const task=await screen.findByText("Resultado crítico sin cerrar");
+  fireEvent.click(task);
+  expect(screen.getByRole("heading",{name:"Consulta"})).toBeTruthy();
  });
 
  it("vista Consulta (workspace clínico) con las 7 pestañas + formulario",async()=>{
