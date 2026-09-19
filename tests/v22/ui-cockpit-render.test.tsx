@@ -681,9 +681,14 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText("Detalle de la vacuna")).toBeTruthy();
   expect(screen.getAllByText("Completa").length).toBeGreaterThan(0);           // estado en TEXTO
   expect(screen.getAllByText("Pendiente").length).toBeGreaterThan(0);
-  expect(screen.getByText(/Cobertura de vacunas/)).toBeTruthy();              // donut cobertura
-  expect(screen.getAllByText(/Próximas dosis/).length).toBeGreaterThan(0);
-  expect(screen.getAllByText(/Esquemas por edad/).length).toBeGreaterThan(0);
+  expect(screen.getByText(/Dosis por vacuna/)).toBeTruthy();                  // donut real (byVaccine)
+  expect(screen.getByText("Estado de vacunación")).toBeTruthy();             // barras reales
+  expect(screen.getAllByText(/Dosis pendientes/).length).toBeGreaterThan(0);  // lista real de pendientes
+  // auditoría: acción real de navegación + eliminación de secciones/controles ficticios
+  expect(screen.getByText(/Ver en el expediente/)).toBeTruthy();
+  expect(screen.queryByText("Acciones rápidas")).toBeNull();
+  expect(screen.queryByText("Exportar listado")).toBeNull();
+  expect(screen.queryByText(/Esquemas por edad \(cobertura\)/)).toBeNull();
  });
 
  it("vista Problemas (S-PROBLEMAS): registro clínica-wide cableado a GET /api/v1/problems + navegación a form y plantillas",async()=>{

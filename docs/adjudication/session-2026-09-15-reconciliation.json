@@ -3240,6 +3240,30 @@
    "epic": "S-PROBLEMAS/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-VACUNAS-AUDIT-DEEP-001",
+   "name": "Vacunas — auditoría boton por boton: registro real, cero controles muertos, fix de navegación",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema de Vacunas. Era una maqueta con fallback REP de 10 vacunas ficticias, KPIs falsos (312/128/24/6) incluido kRez=18 SIEMPRE ficticio (sin fuente real), y tarjetas inferiores inventadas. Corregido: (1) Eliminado REP y fallbacks -> allRows/KPIs/dona/estado/pendientes derivan de immReg real (0/vacio honesto); immLoaded=!!immReg; selv null-safe con estado vacio. (2) Eliminado el 5o KPI Pacientes en rezago (kRez=18 sin fuente) -> grilla de 4 KPIs reales (vaccinatedPatients, pendingCount, appliedCount, incompleteSchemes). (3) Detalle: eliminados campos inventados (Expediente LC..., Fabricante Sanofi Pasteur, Via IM deltoides, Aplicada por Dr. Luis, Institucion, Notas Sin reacciones, Proxima dosis) -> ahora solo campos reales (fecha, dosis, lote, sitio, estado); pid=it.patientId; boton Ver en el expediente REAL (selectPatientRaw + scroll a Vacunas) en lugar de Editar registro / Imprimir comprobante muertos. (4) Eliminados controles muertos: botones de encabezado Esquemas por edad y Calendario nacional; selects de filtro Grupo edad/Tipo/Institucion/Fecha; checkboxes Solo proximas dosis/Solo esquema nacional/Solo influenza COVID (handlers vacios); Exportar; checkboxes de fila/encabezado; select de orden; columnas Proxima dosis (siempre —) y Acc. ⋯; paginacion falsa; ⋯ del detalle; pestañas Informacion/Historial. (5) Fila inferior: reemplazadas las tarjetas ficticias (Proximas dosis hardcodeadas, Esquemas por edad con % inventados, Acciones rapidas con 5 enlaces muertos) por tres reales: Dosis por vacuna (dona byVaccine), Estado de vacunacion (barras Completa/Pendiente/Rechazada reales) y Dosis pendientes (lista real filtrada). Conservado y confirmado real: creador + Registrar vacuna -> createImmunizationInline (POST /immunizations); filtros busqueda + estado + Limpiar; tabla seleccionable.",
+   "invariants": [
+    "Vacunas no muestra datos ni KPIs de ejemplo: filas, KPIs, dona, estado y pendientes derivan de immReg real (0/vacio honesto)",
+    "No hay KPI sin fuente: se elimino Pacientes en rezago (kRez ficticio)",
+    "El detalle muestra solo campos reales del registro (fecha, dosis, lote, sitio, estado), no fabricante/via/institucion inventados",
+    "Ver en el expediente navega al paciente correcto (patientId real)",
+    "No hay controles decorativos: se eliminaron selects sin estado, checkboxes vacios, exportar, orden, paginacion, pestañas y accesos sin accion"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (elimina REP/fallbacks/kRez; immLoaded; VRow.pid; detalle real + Ver en expediente; elimina controles muertos; fila inferior real: dona byVaccine + estado + pendientes)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Vacunas S-VACUNAS: registro real, Dosis por vacuna/Estado de vacunacion/Dosis pendientes reales, Ver en el expediente; Acciones rapidas/Exportar/Esquemas por edad === null)",
+    "scripts/v22/live-immunization-registry-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): tabla/detalle/graficas desde el mock real (Ana Lopez, Completa/Pendiente); Dosis por vacuna, Estado de vacunacion y Dosis pendientes presentes; Ver en el expediente presente; queryByText(Acciones rapidas / Exportar listado / Esquemas por edad (cobertura)) === null. Typecheck limpio.",
+   "epic": "S-VACUNAS/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
