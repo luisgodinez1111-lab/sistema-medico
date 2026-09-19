@@ -3288,6 +3288,29 @@
    "epic": "S-SIGNOS/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-PLANCUIDADO-AUDIT-DEEP-001",
+   "name": "Plan de cuidado — auditoría boton por boton: solo el espinazo real del snapshot, sin maqueta",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema de Plan de cuidado. Era una maqueta muy grande: el snapshot real (cpSnap via GET /care-plans) solo provee counts/problems/goals/metrics, pero la vista mostraba ademas secciones enteras hardcodeadas sin fuente real y un paciente ficticio por defecto. Corregido: (1) Eliminados todos los fallbacks ficticios: REP_PROB (3 problemas), REP_GOALS (5 metas), counts {3,2,1} y metricas {8.1/138-86/78/30.2} -> problems/goals/counts/metrics derivan de cpSnap real (0/vacio honesto); cpLoaded=!!cpSnap. (2) Barra de paciente: eliminado el nombre ficticio Ana Lopez Garcia por defecto y los demograficos inventados (Femenino 34 anios / Expediente LC.../CURP LOGA...) -> muestra el paciente real o pide seleccionar. (3) Eliminados controles muertos: botones de encabezado Plantillas e Imprimir plan; la barra de pestañas (Plan actual/Historial/Objetivos/Educacion/Notas) que NO cambiaba el contenido; fechas de elaboracion/revision hardcodeadas; botones Editar plan y Editar objetivos. (4) Eliminadas secciones 100% hardcodeadas sin fuente real: Resumen (Responsable Dr. Luis, Tipo Integral, fechas), Intervenciones y recomendaciones (7 filas fijas + Agregar), Cronograma de seguimiento (5 hitos fijos), Educacion para el paciente (5 enlaces), Notas del plan (nota fija), Documentos relacionados (3 PDFs fijos). (5) La vista queda con el espinazo REAL: barra de paciente real + creador Nueva meta (addCarePlanGoal POST /care-plans) + tres tarjetas reales del snapshot: Diagnosticos/Problemas asociados, Objetivos del plan (con estado y estado vacio honesto) y Metas y metricas (HbA1c/TA/Peso/IMC solo si existen; nota honesta si no). Conservado y confirmado real: contadores del snapshot, Ver expediente.",
+   "invariants": [
+    "Plan de cuidado no muestra problemas, metas, metricas ni paciente de ejemplo: todo deriva de cpSnap real (0/vacio honesto)",
+    "No se presentan secciones sin fuente real: se eliminaron Intervenciones, Cronograma, Educacion, Notas y Documentos hardcodeados",
+    "Cada control ejecuta accion: Nueva meta (POST), Ver expediente; se eliminaron pestañas inertes y botones Editar/Imprimir/Plantillas sin accion",
+    "Las metricas se muestran solo cuando existen en el snapshot; si no, se declara que se derivan de resultados y signos vitales"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (elimina REP_PROB/REP_GOALS/counts/metrics fallback; cpLoaded; barra de paciente real; elimina header buttons/tabs/fechas/editar; elimina filas hardcodeadas; deja 3 tarjetas reales; quita PLAN_TABS)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Plan de cuidado S-PLANCUIDADO: 3 tarjetas reales + Nueva meta; Intervenciones/Cronograma/Educacion/Documentos/Imprimir plan === null)",
+    "scripts/v22/live-care-plan-snapshot-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): presentes Diagnosticos/Problemas asociados, Objetivos del plan, Metas y metricas y el boton Nueva meta; queryByText(Intervenciones y recomendaciones / Cronograma de seguimiento / Educacion para el paciente / Documentos relacionados / Imprimir plan) === null. El test de agregar meta real (POST /care-plans) sigue verde. Typecheck limpio.",
+   "epic": "S-PLANCUIDADO/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
