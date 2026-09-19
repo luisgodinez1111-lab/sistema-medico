@@ -559,13 +559,16 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Reportes"}));
   expect(screen.getByRole("heading",{name:"Reportes"})).toBeTruthy();
-  expect(screen.getByText("Pacientes atendidos")).toBeTruthy();                  // KPI (real/rep)
-  expect((await screen.findAllByText("Diabetes mellitus tipo 2")).length).toBeGreaterThan(0); // diagnóstico real (mock)
-  expect(screen.getByText(/Consultas por día/)).toBeTruthy();
-  expect(screen.getByText(/Diagnósticos principales/)).toBeTruthy();
-  expect(screen.getByText("Medicamentos más prescritos")).toBeTruthy();
-  expect(screen.getByText("Indicadores de calidad")).toBeTruthy();
-  expect(screen.getByText(/Reportes rápidos/)).toBeTruthy();
+  expect(screen.getByText("Pacientes atendidos")).toBeTruthy();                  // KPI real
+  expect(screen.getByText("Ingresos totales")).toBeTruthy();                     // KPI real
+  expect(screen.getByText(/Diagnósticos principales/)).toBeTruthy();            // real (repSnap.topDiagnoses)
+  // auditoría: se eliminaron las gráficas/secciones y trends hardcodeados
+  expect(screen.queryByText(/Consultas por día/)).toBeNull();
+  expect(screen.queryByText("Medicamentos más prescritos")).toBeNull();
+  expect(screen.queryByText("Indicadores de calidad")).toBeNull();
+  expect(screen.queryByText(/Reportes rápidos/)).toBeNull();
+  expect(screen.queryByText(/vs. mes anterior/)).toBeNull();
+  expect(screen.queryByText(/Exportar PDF/)).toBeNull();
  });
 
  it("vista Clinical Intelligence (S-CLINICALINTEL): apoyo determinista real; IA generativa (R6) marcada como no disponible",async()=>{

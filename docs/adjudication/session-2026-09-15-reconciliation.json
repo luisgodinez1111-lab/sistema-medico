@@ -3449,6 +3449,29 @@
    "epic": "S-CLINICALINTEL/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-REPORTES-AUDIT-DEEP-001",
+   "name": "Reportes — auditoría boton por boton: solo indicadores con dato agregado real, sin gráficas ficticias",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema de Reportes (ultimo modulo del sidebar). El tablero era casi por completo una maqueta: repSnap real solo aporta patientsAttended, income y topDiagnoses, pero la vista mostraba ~10 graficas hardcodeadas. Corregido: (1) Eliminados los fallbacks ficticios (kPac 248, kIng 124680, REP_DX) -> KPIs y Diagnosticos principales derivan de repSnap real (0/vacio honesto); repLoaded=!!repSnap. (2) KPIs: eliminados los 3 hardcodeados (Consultas 312, Ordenes 1,024, Satisfaccion 4.8) y TODOS los ↑ X% vs mes anterior inventados -> quedan 2 KPIs reales (Pacientes atendidos, Ingresos totales). (3) Encabezado: eliminados Exportar PDF, Programar envio y Nuevo reporte (sin accion). (4) Barra de pestañas REP_TABS (10 tabs sin branch) + selector de rango de fecha eliminados. (5) Eliminadas TODAS las graficas hardcodeadas sin fuente real: Consultas por dia (18 barras fijas), Tipos de consulta (donut fijo), Pacientes por edad, Medicamentos mas prescritos, Procedimientos mas realizados, Indicadores de calidad (rings fijos), Origen de pacientes (donut fijo), Comparativo mensual (linea fija), Reportes rapidos (6 botones muertos), Reportes programados (toggles/config muertos). (6) Conservado real: Diagnosticos principales (CIE-10) desde repSnap.topDiagnoses. Se añade una nota honesta de que las graficas adicionales se habilitaran cuando exista el agregado clinica-wide.",
+   "invariants": [
+    "Reportes no muestra graficas, KPIs ni trends de ejemplo: solo indicadores con dato agregado real (repSnap)",
+    "Los unicos KPIs son los reales (pacientes atendidos, ingresos); no hay % de variacion inventado",
+    "Diagnosticos principales deriva de repSnap.topDiagnoses; estado vacio honesto",
+    "No hay controles decorativos: se eliminaron pestañas, selector de fecha, exportar/programar/nuevo y las tarjetas de reportes rapidos/programados sin accion"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (elimina REP_DX/REP_TABS/donut/ring/barRow y fallbacks; repLoaded; deja 2 KPIs reales + Diagnosticos principales real + nota honesta)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Reportes S-REPORTES: KPIs reales + Diagnosticos principales; Consultas por dia/Medicamentos mas prescritos/Indicadores de calidad/Reportes rapidos/vs. mes anterior/Exportar PDF === null)",
+    "scripts/v22/live-reports-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): presentes Pacientes atendidos, Ingresos totales y Diagnosticos principales; queryByText(Consultas por dia / Medicamentos mas prescritos / Indicadores de calidad / Reportes rapidos / vs. mes anterior / Exportar PDF) === null. Typecheck limpio.",
+   "epic": "S-REPORTES/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
