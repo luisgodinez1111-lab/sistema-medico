@@ -3264,6 +3264,30 @@
    "epic": "S-VACUNAS/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-SIGNOS-AUDIT-DEEP-001",
+   "name": "Signos vitales — auditoría boton por boton: historial/tendencias reales, form solo con campos persistidos",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema de Signos vitales. El form ya guardaba real (saveVitals -> POST /vitals para BP/HR/RESP/TEMP/SPO2/WEIGHT/HEIGHT). Defectos corregidos: (1) Eliminado REPREC (5 registros ficticios) y todos los fallbacks de series -> records/series/alertas derivan de vitHist real (vacio honesto; estados: sin paciente / cargando / sin registros). (2) Campos capturados pero NO persistidos por el backend (vitalType es enum estricto sin WAIST/PAIN/estado/nota): eliminados Perimetro abdominal, Dolor EVA, Estado general y Observaciones (eran engañosos). (3) Fila Fecha y hora editable + boton Ahora: saveVitals siempre usa la hora actual, asi que los inputs engañaban -> reemplazados por nota Se registra con la fecha y hora actuales. (4) Chips de la barra del paciente con conteos ficticios (Alergias 1 / Problemas 3 / Medicamentos 2) eliminados; Ver expediente se deshabilita sin paciente. (5) Controles muertos eliminados: botones de encabezado Plantilla rapida y Tendencias; Ver todos de Ultimos registros; columna Acc. ⋯; select Ultimos 6 meses de Tendencias; tarjeta Acciones rapidas (Generar grafica/Exportar PDF/Registrar series/Configurar rangos). Conservado y confirmado real: selector de paciente (selectPatientRaw), IMC derivado, guardado real de los 7 signos, sparklines/tendencias reales, alertas deterministas por rango sobre el ultimo registro real, tabla de referencia (dato determinista).",
+   "invariants": [
+    "Signos vitales no muestra historial, series ni alertas de ejemplo: todo deriva de vitHist real (vacio honesto)",
+    "El formulario solo contiene campos que el backend persiste (7 signos + IMC derivado); no captura datos que se descartan",
+    "No hay inputs engañosos: el registro usa la hora actual y se declara asi",
+    "No hay conteos ni controles ficticios: chips de contexto, exportar, orden, paginacion y accesos sin accion eliminados",
+    "Las alertas provienen del motor determinista por rango sobre el ultimo registro real"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (elimina REPREC/fallbacks; svHist; historial/series reales; quita campos no persistidos y fila fecha/hora; quita chips ficticios, botones y tarjeta muertos; estados vacios honestos)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Signos S-SIGNOS: sin fila ficticia 120/80; nota de hora actual; Acciones rapidas/Plantilla rapida/Estado general === null)",
+    "scripts/v22/live-vitals-history-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): el historial ya no muestra 120/80 (fila ficticia eliminada); presente la nota Se registra con la fecha y hora actuales; queryByText(Acciones rapidas / Plantilla rapida / Estado general) === null. El test de guardado real (POST /vitals) sigue verde. Typecheck limpio.",
+   "epic": "S-SIGNOS/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

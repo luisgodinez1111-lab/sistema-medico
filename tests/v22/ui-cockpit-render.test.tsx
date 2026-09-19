@@ -665,12 +665,18 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByRole("heading",{name:"Signos vitales"})).toBeTruthy();
   expect(screen.getByText("Registrar signos vitales")).toBeTruthy();          // título del form
   expect(screen.getByPlaceholderText("36.5")).toBeTruthy();                    // campo temperatura
-  expect(screen.getByText("Últimos registros")).toBeTruthy();
-  expect(screen.getAllByText("120/80").length).toBeGreaterThan(0);            // fila representativa
+  expect(screen.getByText(/Últimos registros/)).toBeTruthy();
+  // el historial ya NO muestra datos de ejemplo (fila representativa eliminada)
+  expect(screen.queryByText("120/80")).toBeNull();                            // sin fila ficticia
   expect(screen.getByText("Tendencias")).toBeTruthy();
   expect(screen.getByText(/Referencia de valores normales/)).toBeTruthy();
   expect(screen.getByText("Alertas clínicas")).toBeTruthy();
   expect(screen.getByRole("button",{name:/Guardar signos vitales/})).toBeTruthy();
+  // auditoría: se registra con hora actual y se eliminaron controles/campos muertos
+  expect(screen.getByText(/Se registra con la fecha y hora actuales/)).toBeTruthy();
+  expect(screen.queryByText("Acciones rápidas")).toBeNull();
+  expect(screen.queryByText("Plantilla rápida")).toBeNull();
+  expect(screen.queryByText("Estado general")).toBeNull();                    // campo no persistido, eliminado
  });
 
  it("vista Vacunas (S-VACUNAS): registro clínica-wide cableado a GET /api/v1/immunizations — KPIs, tabla, detalle y cobertura",async()=>{
