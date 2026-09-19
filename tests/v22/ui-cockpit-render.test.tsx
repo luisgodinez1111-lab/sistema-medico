@@ -12,6 +12,7 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
  apiRequest:async(path:string)=>{
+  if(path.includes("/api/v1/vitals"))return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
   if(path.includes("/assessment"))return{status:201,body:{version:2}};
   if(path.includes("/signature"))return{status:201,body:{version:3,signatureDigest:"a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"}};
   if(path.includes("/api/v1/encounters"))return{status:201,body:{version:1}};
@@ -269,6 +270,15 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   fireEvent.click(screen.getByRole("button",{name:"Firmar consulta"}));
   expect(await screen.findByText(/Encuentro · Firmada/)).toBeTruthy();
   expect(screen.getAllByText(/Consulta firmada/).length).toBeGreaterThan(0);
+ });
+
+ it("vista Consulta: los signos vitales se guardan como eventos reales (POST /vitals)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+  // capturar la TA en la grilla de signos vitales y guardar
+  fireEvent.change(screen.getByPlaceholderText("120/80"),{target:{value:"128/82"}});
+  fireEvent.click(screen.getByRole("button",{name:"Guardar signos vitales"}));
+  expect(await screen.findByText(/guardados en el expediente/i)).toBeTruthy();
  });
 
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{

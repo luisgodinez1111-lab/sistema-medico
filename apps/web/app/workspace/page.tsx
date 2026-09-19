@@ -561,6 +561,8 @@ export default function Workspace(){
  const[cForm,setCForm]=useState({motivo:"",historia:"",antec:"",plan:""}); // borrador de la consulta actual
  const[cPreview,setCPreview]=useState(false); // vista previa de la nota compuesta (Consulta)
  const[cMsg,setCMsg]=useState<string|null>(null); // aviso del flujo de encuentro (Consulta)
+ const[cVit,setCVit]=useState({ta:"",fc:"",fr:"",temp:"",spo2:""}); // signos vitales de la Consulta
+ const[cVitMsg,setCVitMsg]=useState<string|null>(null);const[cVitBusy,setCVitBusy]=useState(false);
  type AgendaAppt={appointmentId:string;patientId:string;patientName:string;startAt:string;endAt:string|null;reason:string;consultorio:string|null;apptType:string|null;status:string;version:number};
  const[agenda,setAgenda]=useState<{appointments:AgendaAppt[];counts:{programadas:number;atendidas:number;enEspera:number;canceladas:number}}|null>(null);
  const[agendaDate,setAgendaDate]=useState<string>(new Date().toISOString().slice(0,10)); // fecha de la agenda (YYYY-MM-DD)
@@ -889,6 +891,28 @@ export default function Workspace(){
    setEnc({...enc,state:"SIGNED",version:Number(r.body["version"]??enc.version+1),signatureDigest:String(r.body["signatureDigest"]??"")});setCMsg("Consulta firmada (registro inmutable).");return;
   }
  });
+ // Guarda los signos vitales de la Consulta como eventos reales (POST /vitals); surfacea la interpretación crítica del kernel.
+ const saveConsultaVitals=async()=>{
+  if(!patientId){setCVitMsg("Selecciona un paciente para guardar los signos vitales.");return;}
+  const at=nowIso();const toSave:[string,string,string][]=[];
+  if(cVit.ta.trim())toSave.push(["BP",cVit.ta.trim(),"mmHg"]);
+  if(cVit.fc.trim())toSave.push(["HR",cVit.fc.trim(),"lpm"]);
+  if(cVit.fr.trim())toSave.push(["RESP",cVit.fr.trim(),"rpm"]);
+  if(cVit.temp.trim())toSave.push(["TEMP",cVit.temp.trim(),"°C"]);
+  if(cVit.spo2.trim())toSave.push(["SPO2",cVit.spo2.trim(),"%"]);
+  if(!toSave.length){setCVitMsg("Captura al menos un signo vital.");return;}
+  setCVitBusy(true);setCVitMsg(null);
+  try{
+   const marks:string[]=[];
+   for(const[vt,val,u]of toSave){
+    const r=await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId:uuid(),patientId,vitalType:vt,value:val,unit:u,occurredAt:at}});
+    if(r.status>=400){setCVitMsg(errMsg(r));setCVitBusy(false);return;}
+    if(String(r.body["status"]??"")==="CRITICAL")marks.push(`${vt} ${val}: ${String(r.body["interpretation"]??"crítico")}`);
+   }
+   setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});
+   setCVitMsg(marks.length?`Guardados. ⚠ ${marks.length} signo(s) crítico(s) — ${marks.join("; ")}. Un vital crítico sin firmar bloquea la firma.`:"Signos vitales guardados en el expediente ✓");
+  }catch(e){setCVitMsg(String(e));}finally{setCVitBusy(false);}
+ };
  const proposeMed=()=>call("med-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/medications",{method:"POST",body:{medicationId:id,patientId,drugCode:drug,dose,route,frequency:freq,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
@@ -1674,7 +1698,11 @@ export default function Workspace(){
       <div style={card2}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 18px 8px",fontSize:15,fontWeight:700}}>6. Impresión diagnóstica<span style={{color:P.muted}}>⌃</span></div><div style={{padding:"0 18px 18px",display:"flex",gap:10,flexWrap:"wrap"}}>{(snap?.problems??["J02.9","B34.9"]).slice(0,4).map(c=><span key={c} style={{display:"inline-flex",alignItems:"center",gap:8,background:"#F3F5FA",border:`1px solid ${LINE}`,borderRadius:9,padding:"6px 11px",fontSize:12.5,fontWeight:600}}>{c} {DX_LABEL(c)} <span style={{color:"#9AA0BC",cursor:"pointer"}}>✕</span></span>)}<span style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"6px 12px",fontSize:12.5,fontWeight:600,color:P.purple,cursor:"pointer"}}>+ Añadir</span></div></div>
      </div>
      <div style={{display:"flex",flexDirection:"column",gap:16}}>
-      <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Signos vitales</h3><span style={{fontSize:12,color:P.muted}}>{clock.toLocaleDateString("es-MX",{day:"numeric",month:"short"})} · {clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"})}</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>{([["TA",V["BP"]??"","mmHg"],["FC",V["HR"]??"","lpm"],["FR",V["RESP"]??"","rpm"],["Temp.",V["TEMP"]??"","°C"],["SpO₂",V["SPO2"]??"","%"]] as const).map(([l,v,u])=><div key={l}><label style={{fontSize:11.5,color:P.muted,display:"block",marginBottom:5,fontWeight:600}}>{l}</label><input defaultValue={v} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 6px",fontSize:15,fontWeight:700,textAlign:"center",fontFamily:UI,boxSizing:"border-box"}}/><div style={{fontSize:10.5,color:"#9AA0BC",textAlign:"center",marginTop:3}}>{u}</div></div>)}</div></div>
+      <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Signos vitales</h3><span style={{fontSize:12,color:P.muted}}>{clock.toLocaleDateString("es-MX",{day:"numeric",month:"short"})} · {clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"})}</span></div>
+       <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>{([["TA","ta",V["BP"]??"120/80","mmHg"],["FC","fc",V["HR"]??"72","lpm"],["FR","fr",V["RESP"]??"16","rpm"],["Temp.","temp",V["TEMP"]??"36.5","°C"],["SpO₂","spo2",V["SPO2"]??"98","%"]] as const).map(([l,k,ph,u])=><div key={l}><label style={{fontSize:11.5,color:P.muted,display:"block",marginBottom:5,fontWeight:600}}>{l}</label><input value={cVit[k]} onChange={e=>setCVit(s=>({...s,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 6px",fontSize:15,fontWeight:700,textAlign:"center",fontFamily:UI,boxSizing:"border-box",color:P.ink}}/><div style={{fontSize:10.5,color:"#9AA0BC",textAlign:"center",marginTop:3}}>{u}</div></div>)}</div>
+       <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12,flexWrap:"wrap"}}><button onClick={()=>void saveConsultaVitals()} disabled={cVitBusy} style={{border:0,background:cVitBusy?"#C7CCE0":P.purple,color:"#fff",borderRadius:9,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:cVitBusy?"default":"pointer",fontFamily:UI}}>{cVitBusy?"Guardando…":"Guardar signos vitales"}</button><span style={link} onClick={()=>{if(patientId){setView("signos");}}}>Ver historial →</span></div>
+       {cVitMsg&&<div style={{marginTop:10,fontSize:12.5,color:cVitMsg.includes("⚠")?"#B3261E":cVitMsg.includes("✓")?"#1A7F43":P.muted,fontWeight:600}}>{cVitMsg}</div>}
+      </div>
       <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Diagnósticos / Problemas</h3><span style={link} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Lista de problemas"),0);}}>Ver historial →</span></div><div style={{display:"flex",alignItems:"center",gap:9,border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 12px",fontSize:13,color:P.muted}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>Buscar CIE-10 o descripción…</div><div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>{(snap?.problems??["J02.9","B34.9"]).slice(0,3).map((c,i)=><span key={c} style={{display:"inline-flex",alignItems:"center",gap:8,background:"#F3F5FA",border:`1px solid ${LINE}`,borderRadius:9,padding:"6px 11px",fontSize:12.5,fontWeight:600}}>{c} {DX_LABEL(c)}{i===0&&<span style={{background:"#EEEBFD",color:"#6C5CF6",borderRadius:6,padding:"1px 7px",fontSize:10.5,fontWeight:700}}>Principal</span>}<span style={{color:"#9AA0BC",cursor:"pointer"}}>✕</span></span>)}</div></div>
       <div style={sec}><h3 style={sect}>Órdenes clínicas</h3><div style={{display:"flex",gap:16,borderBottom:`1px solid ${LINE}`,fontSize:13}}>{["Laboratorio","Imagen","Procedimiento","Interconsulta"].map((t,i)=><span key={t} style={{paddingBottom:8,color:i===0?P.purple:P.muted,fontWeight:i===0?700:400,borderBottom:i===0?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{t}</span>)}</div><div style={{marginTop:12}}>{["Biometría hemática completa","Proteína C reactiva","Exudado faríngeo (cultivo)","Prueba rápida de antígeno estreptococo"].map(o=><label key={o} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",fontSize:13.5,cursor:"pointer"}}><span style={{width:17,height:17,borderRadius:5,border:"1.6px solid #C7CCE0",flex:"0 0 auto"}}/>{o}</label>)}</div><button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 14px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,marginTop:8}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Órdenes clínicas"),0);}}>+ Crear orden</button></div>
       <div style={sec}><h3 style={sect}>Plan de manejo</h3><div style={{border:`1px solid ${LINE}`,borderRadius:11,overflow:"hidden"}}>{rteBar}<textarea style={{width:"100%",border:0,outline:"none",padding:"12px 14px",fontSize:13.5,fontFamily:UI,resize:"vertical",minHeight:110,boxSizing:"border-box"}} disabled={!!enc&&enc.state!=="OPEN"} value={cForm.plan} onChange={e=>setCForm(f=>({...f,plan:e.target.value}))} placeholder="Plan de manejo…"/></div></div>

@@ -2719,6 +2719,31 @@
    "epic": "UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-CONSULTA-VITALS-UI-001",
+   "name": "Consulta — signos vitales cableados a POST /vitals (con interpretación crítica y gate de firma)",
+   "risk": "C5",
+   "eng_authority_note": "Cablea la grilla de signos vitales de la Consulta (TA/FC/FR/Temp/SpO2), antes no controlada (defaultValue, nunca persistia), al endpoint REAL POST /api/v1/vitals. Inputs controlados (cVit) con placeholder del ultimo valor conocido; boton 'Guardar signos vitales' que POSTea cada vital capturado como evento (vitalId,patientId,vitalType,value,unit,occurredAt) via el agregado VitalSign event-sourced, reutilizando el mapeo de tipos/unidades del modulo Signos vitales (BP mmHg / HR lpm / RESP rpm / TEMP C / SPO2 %). Surfacea la INTERPRETACION determinista del kernel: si un vital vuelve status CRITICAL, se muestra el aviso con el detalle y se advierte que un vital critico sin firmar BLOQUEA la firma del encuentro (mismo gate Zero-Lost-Follow-Up que ya aplica el backend). 'Ver historial' navega al modulo Signos vitales. Requiere paciente en contexto; sin captura, avisa.",
+   "invariants": [
+    "Cada vital se persiste como evento real (POST /vitals -> agregado VitalSign) con idempotencia; nada queda solo en la UI",
+    "La interpretacion (NORMAL/CRITICAL) proviene del kernel determinista, no de la UI",
+    "Un vital critico sin firmar bloquea la firma del encuentro (gate del kernel, ya probado)",
+    "Requiere patientId en contexto; sin vitales capturados no hace POST",
+    "Reutiliza el contrato de tipos/unidades del modulo Signos vitales (sin logica duplicada divergente)"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (cVit + saveConsultaVitals; grilla de vitales de la Consulta controlada + boton + aviso)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Consulta: guardar signos vitales -> POST /vitals)",
+    "scripts/v22/live-critical-vital-signing-loop-proof.mts",
+    "scripts/v22/live-vitals-history-proof.mts"
+   ],
+   "runtime_evidence": "Render test 31/31 (jsdom): capturar TA en la grilla de la Consulta y Guardar -> POST /vitals -> aviso de guardado. Backend reutilizado ya probado en vivo: live-critical-vital-signing-loop-proof (un vital critico sin cerrar bloquea la firma del encuentro) y live-vitals-history-proof (historial por paciente + IMC + series).",
+   "epic": "D/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
