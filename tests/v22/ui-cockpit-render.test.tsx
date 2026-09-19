@@ -365,6 +365,16 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText(/Obligación agregada/)).toBeTruthy();
  });
 
+ it("vista Facturación: emitir una factura real al paciente elegido (POST /claims)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Facturación"}));
+  // elegir el paciente al que se factura (selector real cableado a la lista de pacientes)
+  const opt=await screen.findByRole("option",{name:"Ana López García"});
+  fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});
+  fireEvent.click(screen.getByRole("button",{name:/Emitir factura/}));
+  expect(await screen.findByText(/Factura emitida/)).toBeTruthy();
+ });
+
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
   render(<Workspace/>);
   toExpediente();

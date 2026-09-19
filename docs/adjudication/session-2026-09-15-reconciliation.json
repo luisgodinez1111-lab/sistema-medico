@@ -2932,6 +2932,29 @@
    "epic": "AC/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-BILLING-PATIENT-UI-001",
+   "name": "Facturación — emisión real con selector de paciente cableado (POST /claims)",
+   "risk": "C5",
+   "eng_authority_note": "El modulo Facturacion ya emitia facturas reales (conceptos editables -> POST /api/v1/claims con importe/moneda -> recarga del registro), pero el paso 1 'Paciente' era cosmetico (buscador inerte + tarjeta fija del paciente en contexto), por lo que siempre facturaba al patientId de contexto. Ahora el paso 1 es un SELECTOR real cableado a la lista de pacientes del tenant (nfPatientId); la factura se emite al paciente ELEGIDO (billTo = nfPatientId || contexto) y la tarjeta muestra su CURP real. '+ Nueva factura' reinicia el formulario (concepto base + limpia paciente/aviso). Requiere paciente y al menos un concepto con importe > 0.",
+   "invariants": [
+    "La factura se emite al paciente elegido en el selector (billTo), no siempre al de contexto",
+    "La emision persiste como evento real (POST /claims -> Claim DRAFTED) con idempotencia; el registro clinica-wide se recarga",
+    "Requiere paciente + total > 0 (al menos un concepto con importe)",
+    "El selector se alimenta de la lista real de pacientes del tenant"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (nfPatientId + billTo; paso 1 con selector real; emit usa billTo; patientList cargado en la vista; boton Nueva factura reinicia)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Facturacion: elegir paciente -> Emitir -> POST /claims)",
+    "scripts/v22/live-claims-registry-proof.mts"
+   ],
+   "runtime_evidence": "Render test 40/40 (jsdom): en Facturacion, elegir el paciente en el selector real -> Emitir factura -> POST /claims -> aviso de factura emitida. Backend reutilizado ya probado en vivo: live-claims-registry-proof (registro de facturas clinica-wide + KPIs ingresos/emitidas/pendientes + ciclo de vida).",
+   "epic": "BE/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

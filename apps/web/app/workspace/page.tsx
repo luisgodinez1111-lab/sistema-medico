@@ -533,6 +533,7 @@ export default function Workspace(){
  const[claimsReg,setClaimsReg]=useState<ClaimsRegistry|null>(null);
  const[facTab,setFacTab]=useState<"facturas"|"recibos"|"notas"|"cotizaciones">("facturas");
  const[nfConcepts,setNfConcepts]=useState<{desc:string;qty:number;price:number}[]>([{desc:"Consulta médica",qty:1,price:500},{desc:"Aplicación de vacuna",qty:1,price:350}]);
+ const[nfPatientId,setNfPatientId]=useState(""); // paciente elegido para la factura (Facturación)
  const[nfBusy,setNfBusy]=useState(false);const[nfMsg,setNfMsg]=useState("");
  // Vista Documentos (S-DOCUMENTOS) — lista por paciente cableada a GET /patients/:id/documents
  const[docsSnap,setDocsSnap]=useState<DocsSnap|null>(null);
@@ -641,7 +642,7 @@ export default function Workspace(){
  },[view,ready,session,agendaDate]);
  // Inicio, Pacientes, Órdenes y Agenda: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
-  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda"&&view!=="alergias"&&view!=="vacunas")||!ready||!session)return;
+  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda"&&view!=="alergias"&&view!=="vacunas"&&view!=="facturacion")||!ready||!session)return;
   let cancelled=false;
   (async()=>{
    try{
@@ -3235,11 +3236,12 @@ export default function Workspace(){
    const kCanc=useReal?claimsReg!.cancellations:0;
    const nfTotal=nfConcepts.reduce((s,c)=>s+c.qty*c.price,0);
    const setConcept=(i:number,patch:Partial<{desc:string;qty:number;price:number}>)=>setNfConcepts(nfConcepts.map((c,j)=>j===i?{...c,...patch}:c));
+   const billTo=nfPatientId||patientId;
    const emit=async()=>{
-    if(!patientId){setNfMsg("Selecciona un paciente para emitir la factura.");return;}
+    if(!billTo){setNfMsg("Selecciona un paciente para emitir la factura.");return;}
     if(nfTotal<=0){setNfMsg("Agrega al menos un concepto con importe.");return;}
     setNfBusy(true);setNfMsg("");
-    try{const r=await apiRequest("/api/v1/claims",{method:"POST",body:{claimId:crypto.randomUUID(),patientId,amount:String(nfTotal),currency:"MXN",occurredAt:new Date().toISOString()}});
+    try{const r=await apiRequest("/api/v1/claims",{method:"POST",body:{claimId:crypto.randomUUID(),patientId:billTo,amount:String(nfTotal),currency:"MXN",occurredAt:new Date().toISOString()}});
      if(r.status===201||r.status===200){setNfMsg("Factura emitida ✓");const g=await apiRequest("/api/v1/claims",{method:"GET"});if(g.status===200)setClaimsReg(g.body as unknown as ClaimsRegistry);}
      else setNfMsg("No se pudo emitir (estado "+r.status+").");
     }catch{setNfMsg("Error al emitir la factura.");}finally{setNfBusy(false);}
@@ -3254,7 +3256,7 @@ export default function Workspace(){
    return <div style={{padding:"18px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M9 3h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h1V4a1 1 0 011-1zM9 12h6M9 16h4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Facturación</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Emite facturas, controla pagos y administra tus ingresos.</p></div></div>
-     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⚙ Configuración fiscal</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>◔ Reportes</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>+ Nueva factura ▾</button></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>⚙ Configuración fiscal</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>◔ Reportes</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setNfConcepts([{desc:"Consulta médica",qty:1,price:500}]);setNfPatientId("");setNfMsg("");}}>+ Nueva factura</button></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
      <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#E6F6EE","#16A66A","M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6")}<div><div style={{fontSize:24,fontWeight:800}}>{money(kIngresos)}</div><div style={{fontSize:11.5,color:P.muted}}>Ingresos este mes</div><div style={{fontSize:11.5,color:"#16A66A",fontWeight:700,marginTop:2}}>↑ +18% vs. mes anterior</div></div></div>
@@ -3287,8 +3289,10 @@ export default function Workspace(){
      <div style={{...card2,padding:18}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div style={{fontSize:17,fontWeight:800}}>Nueva factura</div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"7px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>⊟ Usar plantilla</button></div>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>{stepN(1)}<span style={{fontSize:13.5,fontWeight:700}}>Paciente</span></div>
-      <div style={{position:"relative",marginBottom:8}}><input placeholder="Buscar paciente por nombre o expediente..." style={{...selSty,paddingLeft:32}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
-      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",border:`1px solid ${LINE}`,borderRadius:10,marginBottom:16}}><span style={{width:34,height:34,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:12,fontWeight:700}}>{initials(patientName||"Ana López García")}</span><div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700}}>{patientName||"Ana López García"}</div><div style={{fontSize:11,color:P.muted,fontFamily:"monospace"}}>RFC: LOGA900101MCHPRN09</div></div><span style={{color:P.muted,cursor:"pointer"}}>×</span></div>
+      {(()=>{const bill=nfPatientId||patientId;const bp=(patientList??[]).find(p=>p.patientId===bill);const bname=bp?bp.name:(nfPatientId?"":patientName);return <>
+       <select value={nfPatientId||(patientId&&bp?patientId:"")} onChange={e=>setNfPatientId(e.target.value)} style={{...selSty,marginBottom:8}}><option value="">Selecciona un paciente…</option>{(patientList??[]).map(p=><option key={p.patientId} value={p.patientId}>{p.name}</option>)}</select>
+       {bname?<div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",border:`1px solid ${LINE}`,borderRadius:10,marginBottom:16}}><span style={{width:34,height:34,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:12,fontWeight:700}}>{initials(bname)}</span><div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700}}>{bname}</div><div style={{fontSize:11,color:P.muted,fontFamily:"monospace"}}>{bp?.curp?`CURP: ${bp.curp}`:"Paciente del tenant"}</div></div></div>:<div style={{fontSize:12,color:P.muted,marginBottom:16}}>Elige el paciente al que se emitirá la factura.</div>}
+      </>;})()}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}>{stepN(2)}<span style={{fontSize:13.5,fontWeight:700}}>Conceptos</span></div><button onClick={()=>setNfConcepts([...nfConcepts,{desc:"Nuevo concepto",qty:1,price:0}])} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:8,padding:"6px 11px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:UI}}>+ Agregar concepto</button></div>
       <div style={{fontSize:11,color:"#9AA0BC",display:"grid",gridTemplateColumns:"1fr 46px 62px 62px 20px",gap:6,padding:"0 2px 4px",fontWeight:600}}><span>Descripción</span><span>Cant.</span><span style={{textAlign:"right"}}>Precio</span><span style={{textAlign:"right"}}>Importe</span><span/></div>
       {nfConcepts.map((c,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 46px 62px 62px 20px",gap:6,alignItems:"center",padding:"4px 0"}}><input value={c.desc} onChange={e=>setConcept(i,{desc:e.target.value})} style={{...selSty,padding:"7px 8px",fontSize:12.5}}/><input value={c.qty} onChange={e=>setConcept(i,{qty:Number(e.target.value)||0})} style={{...selSty,padding:"7px 4px",fontSize:12.5,textAlign:"center"}}/><input value={c.price} onChange={e=>setConcept(i,{price:Number(e.target.value)||0})} style={{...selSty,padding:"7px 6px",fontSize:12.5,textAlign:"right"}}/><span style={{fontSize:12.5,fontWeight:600,textAlign:"right"}}>{money(c.qty*c.price)}</span><span onClick={()=>setNfConcepts(nfConcepts.filter((_,j)=>j!==i))} style={{color:P.red,cursor:"pointer",textAlign:"center"}}>🗑</span></div>)}
