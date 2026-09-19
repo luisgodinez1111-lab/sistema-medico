@@ -3170,6 +3170,29 @@
    "epic": "S8/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-ORDENES-AUDIT-DEEP-001",
+   "name": "Órdenes — auditoría boton por boton: KPIs y distribución 100% reales (sin fallback ficticio)",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema del modulo Ordenes. El modulo ya estaba bien cableado (registro real ordReg via GET /api/v1/orders, creador -> submitOrder POST /orders, ciclo de vida placement/fulfillment/cancellation via orderTransition con concurrencia optimista, lista seleccionable con detalle vivo, filtros reales busqueda+tipo+estado+Limpiar, Abrir -> openConsulta pestaña ordenes, timeline de seguimiento real). Unico defecto: fallbacks ficticios cuando no habia ordenes (useRealO=items.length>0 caia a KPIs falsos 28/12/8/6/2, dona con distribucion inventada [16,6,3,2,1] y total 28, gradiente conic hardcodeado). Corregido a ordLoaded=!!ordReg: KPIs reales (0 si vacio) derivados de ordReg.total y de los items por estado; dona con donCount real (0 si vacio), gradiente conic real o anillo gris vacio, y leyenda real con estado vacio honesto (Sin ordenes registradas); mensaje de lista vacia distingue cargando vs sin ordenes. Eliminado helper patName sin uso.",
+   "invariants": [
+    "Ordenes no muestra KPIs ni distribucion de ejemplo: todo deriva de ordReg real (0 si vacio)",
+    "Con el registro cargado y sin ordenes, la UI muestra estado vacio honesto (dona gris, leyenda vacia, lista vacia)",
+    "Cada control ejecuta accion: crear, enviar, completar, cancelar (transiciones reales), filtrar, Abrir en expediente",
+    "La dona Ordenes por tipo refleja el conteo real por orderType, no una distribucion fija"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (ordLoaded=!!ordReg; KPIs y dona reales; conic/donCount honestos; lista vacia con cargando/sin-ordenes; elimina patName)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Ordenes: KPIs reales, lista, detalle, transiciones, creador; Ordenes por tipo real y sin estado vacio con datos)",
+    "scripts/v22/live-orders-registry-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): KPIs derivados del registro real; la seccion Ordenes por tipo aparece y queryByText(/Sin ordenes registradas/)===null con datos reales del mock. Typecheck limpio tras eliminar patName.",
+   "epic": "S8/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

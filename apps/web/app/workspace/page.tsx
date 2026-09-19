@@ -2373,21 +2373,21 @@ export default function Workspace(){
    const stx=(s:string):[string,string]=>s==="Completada"?["#E6F6EE","#16A66A"]:s==="Enviada"?["#EAF1FD","#1769E0"]:s==="Cancelada"?["#F0F1F4","#8A8FA3"]:["#FBF0DC","#B7791F"];
    const fmtDT=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleString("es-MX",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});};
    const items=ordReg?.items??[];
-   const useRealO=items.length>0;
+   const ordLoaded=!!ordReg;
    const KNOWN=["LAB","IMAGING","PROCEDURE","REFERRAL"];
    const TAB_TYPES:Record<string,string[]>={laboratorio:["LAB"],imagenologia:["IMAGING"],gabinete:["PROCEDURE"],interconsultas:["REFERRAL"],procedimientos:["PROCEDURE"]};
    const byTab=ordTab==="todas"?items:ordTab==="otros"?items.filter(o=>!KNOWN.includes(o.orderType)):items.filter(o=>(TAB_TYPES[ordTab]??[]).includes(o.orderType));
    const q=ordQuery.trim().toLowerCase();
    const filtered=byTab.filter(o=>(!q||o.patientName.toLowerCase().includes(q)||o.detail.toLowerCase().includes(q))&&(!ordStatus||o.status===ordStatus));
-   const kTot=useRealO?ordReg!.total:28,kSol=useRealO?items.filter(o=>o.status==="Solicitada").length:12,kEnv=useRealO?items.filter(o=>o.status==="Enviada").length:8,kCom=useRealO?items.filter(o=>o.status==="Completada").length:6,kCan=useRealO?items.filter(o=>o.status==="Cancelada").length:2;
-   const selected=useRealO?(items.find(o=>o.orderId===ordSel)??items[0]!):null;
-   const patName=(pid:string)=>patientList?.find(p=>p.patientId===pid)?.name;
+   const kTot=ordReg?.total??0,kSol=items.filter(o=>o.status==="Solicitada").length,kEnv=items.filter(o=>o.status==="Enviada").length,kCom=items.filter(o=>o.status==="Completada").length,kCan=items.filter(o=>o.status==="Cancelada").length;
+   const selected=items.find(o=>o.orderId===ordSel)??items[0]??null;
    const openInRecord=(pid:string,name:string)=>openConsulta(pid,name,"ordenes");
    const donutDefs:[string,string,string][]=[["LAB","Laboratorio","#E5983B"],["IMAGING","Imagenología","#F0455E"],["PROCEDURE","Procedimiento","#20B7D9"],["REFERRAL","Interconsulta","#6C5CF6"],["PATHOLOGY","Patología","#9AA0BC"]];
    const donut=donutDefs.map(([t,l,c])=>({t,l,c,n:items.filter(o=>o.orderType===t).length}));
    const donTot=donut.reduce((a,b)=>a+b.n,0)||1;
    let acc=0;const stops=donut.filter(d=>d.n>0).map(d=>{const from=(acc/donTot*100).toFixed(2);acc+=d.n;const to=(acc/donTot*100).toFixed(2);return `${d.c} ${from}% ${to}%`;}).join(",");
-   const conic=useRealO&&stops?`conic-gradient(${stops})`:"conic-gradient(#E5983B 0 57%,#F0455E 57% 78%,#20B7D9 78% 89%,#6C5CF6 89% 96%,#9AA0BC 96% 100%)";
+   const donCount=donut.reduce((a,b)=>a+b.n,0);
+   const conic=stops?`conic-gradient(${stops})`:"conic-gradient(#EEF0F5 0 100%)";
    const timeline=(s:string):[string,string,boolean][]=>{
     if(s==="Cancelada")return[["Orden creada","Solicitud registrada en el expediente",true],["Orden cancelada","Cancelada por el médico",true]];
     return[["Orden creada","Solicitud registrada en el expediente",true],["Enviada al laboratorio",s==="Enviada"||s==="Completada"?"Estudio en proceso":"Pendiente de envío",s==="Enviada"||s==="Completada"],["Resultado / cumplida",s==="Completada"?"Orden completada":"Se notificará al registrar el resultado",s==="Completada"]];
@@ -2429,8 +2429,8 @@ export default function Workspace(){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 12px 8px"}}><span style={{fontSize:16,fontWeight:700}}>Órdenes ({filtered.length})</span><span style={{fontSize:12,color:P.muted}}>{ordTab==="todas"?"Todas":OTABS.find(t=>t[0]===ordTab)?.[1]}{ordStatus?` · ${ordStatus}`:""}</span></div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr>{["Fecha","Paciente","Estudio / Orden","Estado","Acciones"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
-       <tbody>{!useRealO?(
-        <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"40px 12px"}}>Aún no hay órdenes en el registro. Usa «+ Nueva orden» para crear la primera.</td></tr>
+       <tbody>{items.length===0?(
+        <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"40px 12px"}}>{ordLoaded?"Aún no hay órdenes en el registro. Usa «+ Nueva orden» para crear la primera.":"Cargando órdenes…"}</td></tr>
        ):filtered.length===0?(
         <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"40px 12px"}}>Ninguna orden coincide con el filtro.</td></tr>
        ):filtered.map(o=>{const[bg,fg]=stx(o.status);const on=(selected?.orderId===o.orderId);return <tr key={o.orderId} style={{background:on?"#F6F5FE":"transparent",cursor:"pointer"}} onClick={()=>setOrdSel(o.orderId)}>
@@ -2465,7 +2465,7 @@ export default function Workspace(){
      </div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"340px 1fr",gap:14,marginTop:16,alignItems:"start"}} className="mos-ord2">
-     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Órdenes por tipo</div><div style={{display:"flex",gap:16,alignItems:"center"}}><div style={{width:96,height:96,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:conic}}><div style={{width:62,height:62,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:16,fontWeight:800}}>{useRealO?donTot:28}</div><div style={{fontSize:9,color:P.muted}}>Órdenes</div></div></div></div><div style={{flex:1}}>{(useRealO?donut.filter(d=>d.n>0):donutDefs.map(([t,l,c],idx)=>({t,l,c,n:[16,6,3,2,1][idx]!}))).map(d=><div key={d.t} style={{display:"flex",alignItems:"center",gap:7,fontSize:12,padding:"3px 0"}}><span style={{width:8,height:8,borderRadius:"50%",background:d.c}}/>{d.l}<b style={{marginLeft:"auto"}}>{d.n} ({Math.round(d.n/(useRealO?donTot:28)*100)}%)</b></div>)}</div></div></div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Órdenes por tipo</div><div style={{display:"flex",gap:16,alignItems:"center"}}><div style={{width:96,height:96,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:conic}}><div style={{width:62,height:62,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:16,fontWeight:800}}>{donCount}</div><div style={{fontSize:9,color:P.muted}}>Órdenes</div></div></div></div><div style={{flex:1}}>{donCount===0?<div style={{fontSize:12.5,color:P.muted}}>Sin órdenes registradas. La distribución por tipo aparece al crear órdenes.</div>:donut.filter(d=>d.n>0).map(d=><div key={d.t} style={{display:"flex",alignItems:"center",gap:7,fontSize:12,padding:"3px 0"}}><span style={{width:8,height:8,borderRadius:"50%",background:d.c}}/>{d.l}<b style={{marginLeft:"auto"}}>{d.n} ({Math.round(d.n/donTot*100)}%)</b></div>)}</div></div></div>
      <div style={{...card2,padding:16,display:"flex",gap:12,alignItems:"flex-start"}}><span style={{width:34,height:34,borderRadius:"50%",background:"#E6F6EE",color:P.green,display:"grid",placeItems:"center",flex:"0 0 auto"}}>✓</span><div><div style={{fontWeight:700,fontSize:14}}>Registro de órdenes en vivo</div><div style={{fontSize:12.5,color:P.muted,marginTop:2}}>Cada orden se persiste como evento clínico y avanza por su ciclo de vida (Solicitada → Enviada → Completada, o Cancelada) con concurrencia optimista y auditoría. La integración con laboratorio externo (envío automático de folios) es representativa en esta versión: el envío se registra como transición interna, no se transmite a un laboratorio real.</div></div></div>
     </div>
    </div>;

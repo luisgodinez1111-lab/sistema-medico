@@ -204,6 +204,9 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText("Nueva orden clínica")).toBeTruthy();
   expect(screen.getByText("Tipo de estudio")).toBeTruthy();
   expect(screen.getByText("Perfil lipídico")).toBeTruthy(); // sugerencia de laboratorio (cada opción rellena el estudio)
+  // la distribución "Órdenes por tipo" es REAL (deriva del registro), no una dona de ejemplo
+  expect(screen.getByText("Órdenes por tipo")).toBeTruthy();
+  expect(screen.queryByText(/Sin órdenes registradas/)).toBeNull(); // hay órdenes reales en el mock
  });
 
  it("vista Medicamentos: catálogo determinista real (drug-catalog) con detalle y pestaña Alertas",async()=>{
