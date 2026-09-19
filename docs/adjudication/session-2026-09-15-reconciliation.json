@@ -3426,6 +3426,29 @@
    "epic": "S-OBLIGACIONES/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-CLINICALINTEL-AUDIT-DEEP-001",
+   "name": "Clinical Intelligence — auditoría boton por boton: IA generativa simulada eliminada (R6 en pausa), determinista real",
+   "risk": "C5",
+   "eng_authority_note": "Auditoria extrema de Clinical Intelligence respetando la regla del proyecto R6-PAUSED (IA generativa en pausa; no hay LLM en produccion). El defecto mas grave: se SIMULABA IA generativa como si fuera real -> un chat Asistente clinico con IA con badge En linea ✦, selector de modelo GPT Clinico, una conversacion con una respuesta larga hardcodeada presentada como salida del modelo, quick-actions y boton Enviar, y un Diagnostico diferencial (IA) con probabilidades inventadas (95/78/68%). Correccion (honestidad + R6-paused): (1) Eliminado por completo el chat generativo simulado -> reemplazado por panel Apoyo clinico determinista que muestra los hallazgos REALES del motor CDS (ciSnap.findings) con estado vacio honesto y una nota de gobernanza clara: la IA generativa no esta disponible (R6 en pausa), solo operan componentes deterministas. (2) Diagnostico diferencial probabilistico (IA) eliminado -> nota honesta de no disponible por R6. (3) Alertas clinicas: real-only desde ciSnap.findings (eliminado el fallback HbA1c/IMC ficticio); estado vacio honesto. (4) Barra de paciente: eliminado el nombre ficticio Ana Lopez Garcia y demograficos; chips Medicamentos 2 e Interconsultas 3 ficticios eliminados (quedan Problemas y Alergias reales). (5) Encabezado: eliminados Configuracion de IA y Nueva consulta con IA (implicaban IA generativa). (6) Barra de pestañas CI_TABS (7 tabs sin branch) eliminada. (7) Guias de practica clinica: convertidas en catalogo estatico honesto (sin enlaces muertos con ›). (8) Calculadoras: catalogo determinista sin falsa interactividad; nota honesta de que el calculo ocurre al capturar datos. Conservado y confirmado real: hallazgos y alertas deterministas del motor CDS.",
+   "invariants": [
+    "No se simula IA generativa: no hay chat, modelo, conversacion hardcodeada ni diferencial probabilistico presentados como salida de IA (R6 en pausa)",
+    "Los hallazgos y alertas provienen del motor CDS determinista real (ciSnap.findings); sin fallback ficticio; estado vacio honesto",
+    "La barra de paciente y los chips reflejan datos reales (problemas/alergias); no hay nombre ni conteos de ejemplo",
+    "Toda seccion no disponible se declara explicitamente como en pausa (R6), no se simula"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (elimina chat/diferencial simulados y CI_TABS/dxDiff; alerts real-only; panel Apoyo clinico determinista con findings reales + nota R6; barra de paciente real; guias/calculadoras honestas)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Clinical Intelligence S-CLINICALINTEL: Apoyo clinico determinista + Alertas + Calculadoras + nota de pausa; Asistente clinico con IA/GPT Clinico/Diagnostico diferencial (IA)/Configuracion de IA === null)",
+    "scripts/v22/live-clinical-intelligence-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): presentes Apoyo clinico determinista, Alertas clinicas, Calculadoras clinicas y la nota en pausa intencional; queryByText(Asistente clinico con IA / GPT Clinico / Diagnostico diferencial (IA) / Configuracion de IA) === null. Typecheck limpio.",
+   "epic": "S-CLINICALINTEL/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

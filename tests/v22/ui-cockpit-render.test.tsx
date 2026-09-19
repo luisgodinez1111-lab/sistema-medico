@@ -568,16 +568,19 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText(/Reportes rápidos/)).toBeTruthy();
  });
 
- it("vista Clinical Intelligence (S-CLINICALINTEL): asistente representativo + alertas deterministas + calculadoras (R6 en pausa)",async()=>{
+ it("vista Clinical Intelligence (S-CLINICALINTEL): apoyo determinista real; IA generativa (R6) marcada como no disponible",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Clinical Intelligence"}));
   expect(screen.getByRole("heading",{name:"Clinical Intelligence"})).toBeTruthy();
-  expect(screen.getByText(/Asistente clínico con IA/)).toBeTruthy();
+  expect(screen.getByText("Apoyo clínico determinista")).toBeTruthy();          // panel determinista real
   expect(screen.getAllByText(/Alertas clínicas/).length).toBeGreaterThan(0);
-  expect(screen.getAllByText(/HbA1c 8.1%/).length).toBeGreaterThan(0);           // alerta (rep/real)
-  expect(screen.getByText(/Diagnóstico diferencial \(IA\)/)).toBeTruthy();
   expect(screen.getByText(/Calculadoras clínicas/)).toBeTruthy();
-  expect(screen.getByText(/IA generativa \(R6\) está en pausa/)).toBeTruthy();   // nota de gobernanza honesta
+  expect(screen.getAllByText(/en pausa intencional/).length).toBeGreaterThan(0); // nota de gobernanza honesta
+  // auditoría: se eliminó la IA generativa simulada (chat, diferencial probabilístico) y controles muertos
+  expect(screen.queryByText(/Asistente clínico con IA/)).toBeNull();
+  expect(screen.queryByText("GPT Clínico")).toBeNull();
+  expect(screen.queryByText(/Diagnóstico diferencial \(IA\)/)).toBeNull();
+  expect(screen.queryByText(/Configuración de IA/)).toBeNull();
  });
 
  it("vista Obligaciones (S-OBLIGACIONES): regulatorias del consultorio cableadas a GET /regulatory-obligations",async()=>{
