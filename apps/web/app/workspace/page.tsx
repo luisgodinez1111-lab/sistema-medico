@@ -560,6 +560,10 @@ export default function Workspace(){
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
+ const[consultaPid,setConsultaPid]=useState<string|null>(null); // paciente de la consulta abierta (null = panel de consultas)
+ const[consultaNewPid,setConsultaNewPid]=useState(""); // selector "iniciar nueva consulta" en el panel
+ // Abre el workspace de la consulta de un paciente (desde el panel, agenda, pacientes, etc.).
+ const openConsulta=(pid:string,name:string,tab:typeof cTab="actual")=>{selectPatientRaw(pid,name);setConsultaPid(pid);setCTab(tab);setView("consulta");window.scrollTo({top:0,behavior:"smooth"});};
  const[consTabs,setConsTabs]=useState<ConsTabs|null>(null); // pestañas por paciente de Consulta (cableado)
  const[resTab,setResTab]=useState<"resultados"|"solicitudes"|"seguimiento"|"referencia"|"alertas">("resultados");
  const[resReg,setResReg]=useState<ResultsRegistry|null>(null); // registro de resultados clínica-wide (cableado)
@@ -647,7 +651,7 @@ export default function Workspace(){
  },[view,patSelId,ready,session]);
  // Agenda del día real (vistas Agenda e Inicio).
  useEffect(()=>{
-  if((view!=="agenda"&&view!=="inicio")||!ready||!session)return;
+  if((view!=="agenda"&&view!=="inicio"&&view!=="consulta")||!ready||!session)return;
   let cancelled=false;const date=view==="agenda"?agendaDate:new Date().toISOString().slice(0,10);
   (async()=>{try{const r=await apiRequest(`/api/v1/appointments?date=${date}`,{method:"GET"});
    if(!cancelled&&r.status<400)setAgenda({appointments:(r.body["appointments"] as AgendaAppt[])??[],counts:(r.body["counts"] as{programadas:number;atendidas:number;enEspera:number;canceladas:number})??{programadas:0,atendidas:0,enEspera:0,canceladas:0}});
@@ -656,7 +660,7 @@ export default function Workspace(){
  },[view,ready,session,agendaDate]);
  // Inicio, Pacientes, Órdenes y Agenda: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
-  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda"&&view!=="alergias"&&view!=="vacunas"&&view!=="facturacion"&&view!=="interconsulta"&&view!=="resultados"&&view!=="signos")||!ready||!session)return;
+  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda"&&view!=="alergias"&&view!=="vacunas"&&view!=="facturacion"&&view!=="interconsulta"&&view!=="resultados"&&view!=="signos"&&view!=="consulta")||!ready||!session)return;
   let cancelled=false;
   (async()=>{
    try{
@@ -1466,7 +1470,7 @@ export default function Workspace(){
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
     {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado",Interconsultas:"interconsulta",Seguimiento:"seguimiento",["Facturación"]:"facturacion",Documentos:"documentos",Obligaciones:"obligaciones",["Clinical Intelligence"]:"clinicalIntel",Reportes:"reportes"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (
-     <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){setView(vTarget);window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
+     <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){if(vTarget==="consulta")setConsultaPid(null);setView(vTarget);window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
       <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&n>0&&<span className={"mos-badge "+(it.badgeColor??"p")}>{n}</span>}
      </button>);})}
    </nav>
@@ -1549,7 +1553,7 @@ export default function Workspace(){
    const qa=(label:string,d:string,onClick:()=>void)=>(<button style={qbtn} onClick={onClick}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={P.purple} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d}/></svg>{label}</button>);
    const go=(h2:string)=>{setView("exp");scrollToSection(h2);};
    // Interconexión con contexto: abre al paciente concreto en su Consulta (desde tareas/agenda/lista).
-   const openPatientCtx=(pid:string,name:string)=>{if(pid){selectPatientRaw(pid,name);setView("consulta");setCTab("actual");window.scrollTo({top:0,behavior:"smooth"});}else{go("Panel del clínico");}};
+   const openPatientCtx=(pid:string,name:string)=>{if(pid){openConsulta(pid,name);}else{go("Panel del clínico");}};
    const citasHoy=agenda?.appointments.length??0;const atendidasHoy=agenda?.counts.atendidas??0;
    return <div style={{padding:"22px 26px 40px",maxWidth:1400,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
@@ -1602,7 +1606,7 @@ export default function Workspace(){
       </div>
       <div style={cardP}><div style={h2row}><h2 style={h2s}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={P.purple} strokeWidth="1.9" aria-hidden><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones rápidas</h2></div>
        <div style={{padding:8}}>
-        {qa("Nueva consulta","M12 5v14M5 12h14",()=>{setView("consulta");setCTab("actual");})}
+        {qa("Nueva consulta","M12 5v14M5 12h14",()=>{setConsultaPid(null);setView("consulta");})}
         {qa("Registrar resultado","M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3",()=>setView("resultados"))}
         {qa("Crear orden clínica","M8 4h8v3H8zM6 5H5v16h14V5h-1M8 12h8M8 16h5",()=>{setView("ordenes");setOrdNew(true);})}
         {qa("Prescribir medicamento","M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7zM7 8l6 6",()=>setView("medicamentos"))}
@@ -1771,7 +1775,7 @@ export default function Workspace(){
         </div>
         <div style={{fontSize:13.5,fontWeight:800,margin:"18px 0 10px"}}>Acciones</div>
         <div style={{display:"flex",flexDirection:"column",gap:9}}>
-         <button onClick={()=>{selectPatientRaw(fp.patientId,fp.name);setView("consulta");setCTab("actual");window.scrollTo({top:0,behavior:"smooth"});}} style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Ver consulta</button>
+         <button onClick={()=>openConsulta(fp.patientId,fp.name)} style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Ver consulta</button>
          <div style={{display:"flex",gap:9}}>
           <button onClick={()=>{setApptForm(f=>({...f,patientId:fp.patientId}));setApptNew(true);setAgendaDate(new Date().toISOString().slice(0,10));setView("agenda");window.scrollTo({top:0,behavior:"smooth"});}} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Agendar cita</button>
           <button onClick={()=>void exportSelected(fp.patientId,fp.name)} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Exportar</button>
@@ -1798,6 +1802,43 @@ export default function Workspace(){
     </aside>}
    </div>;
   })() : view==="consulta" ? (()=>{
+   // ===== PANEL DE CONSULTAS (landing) — sin paciente en foco: citas de hoy + iniciar nueva consulta =====
+   if(!consultaPid){
+    const card2:React.CSSProperties={...card,marginTop:0};
+    const ini=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"P";
+    const tHM=(iso:string)=>{const d=new Date(iso);if(isNaN(d.getTime()))return"—";const h=d.getUTCHours();const mn=d.getUTCMinutes().toString().padStart(2,"0");const ap=h<12?"a.m.":"p.m.";const h12=h%12||12;return `${h12}:${mn} ${ap}`;};
+    const ST:Record<string,[string,string,string]>={SCHEDULED:["Programada","#EAF1FD","#1769E0"],CHECKED_IN:["En espera","#FBF0DC","#B7791F"],COMPLETED:["Atendida","#E6F6EE","#16A66A"],CANCELLED:["Cancelada","#F0F1F4","#8A8FA3"],NO_SHOW:["Inasistencia","#FDE7EA","#D23651"]};
+    const appts=(agenda?.appointments??[]).slice().sort((a,b)=>a.startAt.localeCompare(b.startAt));
+    const pend=appts.filter(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN");
+    const cnt=agenda?.counts??{programadas:appts.length,atendidas:0,enEspera:0,canceladas:0};
+    const kc=(bg:string,fg:string,d:string,n:number|string,l:string)=><div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}><span style={{width:44,height:44,borderRadius:12,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span><div><div style={{fontSize:24,fontWeight:800}}>{n}</div><div style={{fontSize:11.5,color:P.muted}}>{l}</div></div></div>;
+    const npName=(patientList??[]).find(p=>p.patientId===consultaNewPid)?.name??"";
+    return <div style={{padding:"22px 26px 40px",maxWidth:1120,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M6 4v5a5 5 0 0010 0V4M11 14v2a4 4 0 008 0M19 12a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Consultas</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Panel del día. Inicia una nueva consulta o abre la de una cita agendada.</p></div></div>
+      <button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setApptNew(true);setAgendaDate(new Date().toISOString().slice(0,10));setView("agenda");window.scrollTo({top:0,behavior:"smooth"});}}>+ Agendar consulta</button>
+     </div>
+     <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14,marginTop:18}} className="mos-kpis">
+      {kc("#EEEBFD",P.purple,"M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",cnt.programadas,"Citas de hoy")}
+      {kc("#FBF0DC",P.amber,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0",cnt.enEspera,"En espera")}
+      {kc("#E6F6EE",P.green,"M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",cnt.atendidas,"Atendidas hoy")}
+     </div>
+     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-mid">
+      <div style={{...card2,padding:18}}>
+       <div style={{fontSize:16,fontWeight:800,marginBottom:4}}>Iniciar nueva consulta</div>
+       <div style={{fontSize:12.5,color:P.muted,marginBottom:14}}>Elige el paciente para abrir su expediente de consulta.</div>
+       <div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Paciente</div>
+       <select value={consultaNewPid} onChange={e=>setConsultaNewPid(e.target.value)} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"10px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}><option value="">Selecciona un paciente…</option>{(patientList??[]).map(p=><option key={p.patientId} value={p.patientId}>{p.name}</option>)}</select>
+       {(patientList??[]).length===0&&<div style={{fontSize:11.5,color:P.muted,marginTop:6}}>No hay pacientes en el tenant. Regístralos en «Pacientes».</div>}
+       <button disabled={!consultaNewPid} onClick={()=>openConsulta(consultaNewPid,npName)} style={{marginTop:14,width:"100%",justifyContent:"center",display:"flex",border:0,background:consultaNewPid?P.purple:"#C7CCE0",color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:14,cursor:consultaNewPid?"pointer":"default",fontFamily:UI}}>Abrir consulta</button>
+      </div>
+      <div style={{...card2,padding:0,overflow:"hidden"}}>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 18px 10px"}}><div style={{fontSize:16,fontWeight:800}}>Citas de hoy ({pend.length} por atender)</div><span style={{color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"}} onClick={()=>setView("agenda")}>Ver agenda →</span></div>
+       {appts.length===0?<div style={{padding:"28px 18px",textAlign:"center",color:P.muted,fontSize:13}}>No hay citas para hoy. Usa «+ Agendar consulta».</div>:appts.slice(0,8).map(a=>{const st=ST[a.status]??["",P.canvas,P.muted];const canOpen=a.status==="SCHEDULED"||a.status==="CHECKED_IN";return <div key={a.appointmentId} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 18px",borderTop:`1px solid #F1F3F9`}}><span style={{fontSize:12.5,color:P.muted,width:64,flex:"0 0 auto"}}>{tHM(a.startAt)}</span><span style={{width:34,height:34,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{ini(a.patientName)}</span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{a.patientName}</div><div style={{fontSize:11.5,color:P.muted}}>{a.reason}</div></div><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:st[1],color:st[2]}}>{st[0]}</span><button disabled={!canOpen} onClick={()=>openConsulta(a.patientId,a.patientName)} style={{border:0,background:canOpen?P.purple:"#EEF0F5",color:canOpen?"#fff":"#9AA0BC",borderRadius:8,padding:"7px 12px",fontWeight:700,fontSize:12,cursor:canOpen?"pointer":"default",fontFamily:UI}}>Abrir</button></div>;})}
+      </div>
+     </div>
+    </div>;
+   }
    // ===== VISTA CONSULTA (workspace clínico) — S4.png, pestaña "Consulta actual" =====
    const pName=patientName||"María Fernández López";
    const age=snap?.demographics.age??28;
@@ -1820,7 +1861,7 @@ export default function Workspace(){
    const badd=<span style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"4px 10px",fontSize:12,fontWeight:600,color:P.purple,cursor:"pointer",whiteSpace:"nowrap"}}>+ Agregar</span>;
    return <div style={{padding:"20px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
-     <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{width:34,height:34,borderRadius:9,border:`1px solid ${LINE}`,background:P.white,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}} onClick={()=>setView("inicio")}>←</span><div><div style={{display:"flex",alignItems:"center",gap:10}}><h1 style={{fontSize:27,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Consulta</h1>{enc&&(()=>{const m=enc.state==="SIGNED"?["#E6F6EE","#16A66A","Firmada"]:enc.state==="READY_TO_SIGN"?["#FBF0DC","#B7791F","Lista para firmar"]:["#EAF1FD","#1769E0","Abierta"];return <span style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:m[0],color:m[1]}}>Encuentro · {m[2]}</span>;})()}</div><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Registro y gestión de la consulta médica</p></div></div>
+     <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{width:34,height:34,borderRadius:9,border:`1px solid ${LINE}`,background:P.white,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}} title="Volver al panel de consultas" onClick={()=>setConsultaPid(null)}>←</span><div><div style={{display:"flex",alignItems:"center",gap:10}}><h1 style={{fontSize:27,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Consulta</h1>{enc&&(()=>{const m=enc.state==="SIGNED"?["#E6F6EE","#16A66A","Firmada"]:enc.state==="READY_TO_SIGN"?["#FBF0DC","#B7791F","Lista para firmar"]:["#EAF1FD","#1769E0","Abierta"];return <span style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:m[0],color:m[1]}}>Encuentro · {m[2]}</span>;})()}</div><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Registro y gestión de la consulta médica</p></div></div>
      {(()=>{
       const st=enc?.state;const label=!patientId?"Selecciona un paciente":!enc?"Abrir encuentro":st==="OPEN"?"Guardar valoración":st==="READY_TO_SIGN"?"Firmar consulta":"✓ Consulta firmada";
       const disabled=busy!==""||!patientId||st==="SIGNED";
@@ -1961,7 +2002,7 @@ export default function Workspace(){
    const sect:React.CSSProperties={fontSize:15,fontWeight:700};
    const link:React.CSSProperties={color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"};
    const selAppt=realAppts.find(a=>a.appointmentId===apptSel)??null;
-   const openAppt=(a:AgendaAppt)=>{selectPatientRaw(a.patientId,a.patientName);setView("consulta");setCTab("actual");window.scrollTo({top:0,behavior:"smooth"});};
+   const openAppt=(a:AgendaAppt)=>openConsulta(a.patientId,a.patientName);
    const slot=(a?:Ap,last?:boolean)=>{return <div style={{borderRight:last?"0":`1px solid ${LINE}`,borderBottom:`1px solid #F2F4F9`,height:56,padding:3}}>{a&&(()=>{const c=AC[a.c]!;const on=!!a.id&&a.id===apptSel;return <div onClick={a.id?()=>setApptSel(a.id):undefined} style={{borderRadius:8,padding:"6px 9px",fontSize:11,height:"100%",overflow:"hidden",borderLeft:`3px solid ${c.bd}`,background:c.bg,color:c.fg,cursor:a.id?"pointer":"default",outline:on?`2px solid ${P.purple}`:"none"}}><div style={{fontSize:10,opacity:.85}}>{a.t}</div><div style={{fontWeight:700,fontSize:11.5}}>{a.n}</div><div style={{opacity:.8}}>{a.m}</div></div>;})()}</div>;};
    const gdot=(c:string)=><span style={{width:8,height:8,borderRadius:"50%",background:c,flex:"0 0 auto"}}/>;
    const rkico=(bg:string,fg:string,d:string)=><span style={{width:38,height:38,borderRadius:10,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
@@ -2348,7 +2389,7 @@ export default function Workspace(){
    const kTot=useRealO?ordReg!.total:28,kSol=useRealO?items.filter(o=>o.status==="Solicitada").length:12,kEnv=useRealO?items.filter(o=>o.status==="Enviada").length:8,kCom=useRealO?items.filter(o=>o.status==="Completada").length:6,kCan=useRealO?items.filter(o=>o.status==="Cancelada").length:2;
    const selected=useRealO?(items.find(o=>o.orderId===ordSel)??items[0]!):null;
    const patName=(pid:string)=>patientList?.find(p=>p.patientId===pid)?.name;
-   const openInRecord=(pid:string,name:string)=>{selectPatientRaw(pid,name);setView("consulta");setCTab("ordenes");window.scrollTo({top:0,behavior:"smooth"});};
+   const openInRecord=(pid:string,name:string)=>openConsulta(pid,name,"ordenes");
    const donutDefs:[string,string,string][]=[["LAB","Laboratorio","#E5983B"],["IMAGING","Imagenología","#F0455E"],["PROCEDURE","Procedimiento","#20B7D9"],["REFERRAL","Interconsulta","#6C5CF6"],["PATHOLOGY","Patología","#9AA0BC"]];
    const donut=donutDefs.map(([t,l,c])=>({t,l,c,n:items.filter(o=>o.orderType===t).length}));
    const donTot=donut.reduce((a,b)=>a+b.n,0)||1;

@@ -3055,6 +3055,29 @@
    "epic": "IDENT/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-CONSULTA-PANEL-UI-001",
+   "name": "Consulta — panel de consultas del día; el workspace se abre al elegir paciente/cita",
+   "risk": "C4",
+   "eng_authority_note": "Corrige que la vista Consulta entrara directo al workspace del paciente en contexto (el ultimo registrado). Ahora Consulta es un PANEL (landing) cuando no hay consulta en foco (consultaPid=null): KPIs del dia (citas/en espera/atendidas de la agenda real), tarjeta 'Iniciar nueva consulta' con selector de paciente del tenant, y lista 'Citas de hoy' (agenda real) con boton Abrir por cita. El workspace clinico del paciente SOLO se abre al elegir un paciente/cita (openConsulta: selectPatientRaw + consultaPid + view). El sidebar 'Consulta' resetea a panel; los accesos que abren la consulta de un paciente (Pacientes 'Ver consulta', Agenda 'Abrir', Inicio tareas/agenda, Ordenes) usan openConsulta y entran al workspace; la flecha del workspace vuelve al panel. '+ Agendar consulta' abre el creador de la Agenda.",
+   "invariants": [
+    "Consulta abre un panel del dia por defecto; el workspace de un paciente sólo se abre al elegir paciente/cita explicitamente",
+    "El panel se alimenta de datos reales: agenda del dia (citas/estados/conteos) y lista de pacientes del tenant",
+    "Sólo se pueden abrir consultas de citas Programadas/En espera; el sidebar Consulta y la flecha del workspace vuelven al panel",
+    "openConsulta fija el contexto real del paciente (selectPatientRaw) antes de mostrar el workspace"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (consultaPid + openConsulta; landing de Consulta con agenda+selector; sidebar/entradas actualizadas; carga de agenda+patientList en la vista)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Consulta: es un panel; abrir cita -> workspace; helper abrirConsulta en el resto)",
+    "scripts/v22/live-agenda-day-proof.mts"
+   ],
+   "runtime_evidence": "Render test 45/45 (jsdom): al entrar a Consulta aparece el PANEL (Consultas + Iniciar nueva consulta + Citas de hoy) y NO el workspace (sin 1. Motivo de consulta); al pulsar Abrir en una cita se entra al workspace del paciente. Los demas tests de Consulta abren el workspace via el panel (helper). Agenda del dia reutiliza live-agenda-day-proof.",
+   "epic": "D/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

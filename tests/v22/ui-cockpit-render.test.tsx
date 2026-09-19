@@ -108,6 +108,9 @@ const noSeriousAxe=async(node:Element,label:string)=>{
  expect(serious,`${label} — violaciones serias: ${JSON.stringify(serious)}`).toEqual([]);
 };
 
+// Consulta ahora abre un PANEL de consultas; el workspace clínico se abre eligiendo un paciente e "Abrir consulta".
+const abrirConsulta=async()=>{fireEvent.click(screen.getByRole("button",{name:"Consulta"}));const opt=await screen.findByRole("option",{name:"Ana López García"});fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});fireEvent.click(screen.getByRole("button",{name:"Abrir consulta"}));};
+
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
 // Todos los accesos del sidebar son ahora vistas de nivel-sistema; al expediente crudo (cockpit) se llega
@@ -146,9 +149,22 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByRole("heading",{name:"Consulta"})).toBeTruthy();
  });
 
- it("vista Consulta (workspace clínico) con las 7 pestañas + formulario",async()=>{
+ it("vista Consulta: es un PANEL (citas de hoy + iniciar nueva consulta), no abre el último px directo",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+  // panel del día, NO el workspace de un paciente
+  expect(screen.getByRole("heading",{name:"Consultas"})).toBeTruthy();
+  expect(await screen.findByText("Iniciar nueva consulta")).toBeTruthy();
+  expect(screen.getAllByText(/Citas de hoy/).length).toBeGreaterThan(0);
+  expect(screen.queryByText("1. Motivo de consulta")).toBeNull(); // aún no hay consulta abierta
+  // abrir la consulta de una cita del día -> entra al workspace del paciente
+  fireEvent.click(screen.getAllByRole("button",{name:"Abrir"})[0]!);
+  expect(await screen.findByText("1. Motivo de consulta")).toBeTruthy();
+ });
+
+ it("vista Consulta (workspace clínico) con las 7 pestañas + formulario",async()=>{
+  render(<Workspace/>);
+  await abrirConsulta();
   expect(screen.getByRole("heading",{name:"Consulta"})).toBeTruthy();
   expect(screen.getByText("1. Motivo de consulta")).toBeTruthy();
   expect(screen.getAllByText("Signos vitales").length).toBeGreaterThan(0); // panel + acceso del sidebar
@@ -273,7 +289,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("vista Consulta: la documentación impulsa el encuentro REAL (abrir → valorar → firmar)",async()=>{
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+  await abrirConsulta();
   // con paciente en contexto y sin encuentro, la acción primaria abre el encuentro
   expect(screen.getByRole("button",{name:"Abrir encuentro"})).toBeTruthy();
   fireEvent.change(screen.getByPlaceholderText("Motivo de la consulta…"),{target:{value:"Cefalea de 3 días"}});
@@ -293,7 +309,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("vista Consulta: los signos vitales se guardan como eventos reales (POST /vitals)",async()=>{
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+  await abrirConsulta();
   // capturar la TA en la grilla de signos vitales y guardar
   fireEvent.change(screen.getByPlaceholderText("120/80"),{target:{value:"128/82"}});
   fireEvent.click(screen.getByRole("button",{name:"Guardar signos vitales"}));
@@ -302,7 +318,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("vista Consulta: crear órdenes reales desde el formulario (POST /orders)",async()=>{
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+  await abrirConsulta();
   // seleccionar un estudio de laboratorio marca el checkbox y actualiza el botón
   fireEvent.click(screen.getByText("Biometría hemática completa"));
   const create=screen.getByRole("button",{name:/Crear 1 orden/});
@@ -312,7 +328,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("vista Consulta: agregar un diagnóstico CIE-10 real a la lista de problemas (POST /problems)",async()=>{
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+  await abrirConsulta();
   // buscar en el catálogo CIE-10 real (packages/terminology)
   fireEvent.change(screen.getByPlaceholderText(/Buscar CIE-10 o descripción/),{target:{value:"diabetes"}});
   const opt=await screen.findByText(/Diabetes mellitus tipo 2 sin complicaciones/);
@@ -322,7 +338,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("vista Consulta: los antecedentes marcados se componen en la nota del encuentro",async()=>{
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+  await abrirConsulta();
   fireEvent.click(screen.getByText("HTA")); // marca el antecedente (checkbox real)
   fireEvent.click(screen.getByRole("button",{name:"Vista previa"})); // la nota compuesta muestra lo que se guardará
   expect(await screen.findByText(/ANTECEDENTES RELEVANTES: HTA/)).toBeTruthy();
