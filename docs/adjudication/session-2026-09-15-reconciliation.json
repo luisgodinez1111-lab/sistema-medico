@@ -2885,6 +2885,30 @@
    "epic": "BC/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-DOCUMENTS-CREATE-UI-001",
+   "name": "Documentos — crear documento clínico real desde el módulo (POST /documents)",
+   "risk": "C5",
+   "eng_authority_note": "Cablea la creacion de documentos del modulo Documentos: el boton del header (antes cosmetico, '+ Subir documento' sin onClick) ahora es '+ Nuevo documento' y abre un creador (tipo del enum del backend: Nota de evolucion/Resumen de alta/Interconsulta/Nota de procedimiento/Otro + titulo + contenido de texto) que hace POST /api/v1/documents para el paciente EN CONTEXTO (agregado ClinicalDocument event-sourced, evento CREATED) y recarga la lista por paciente (GET /patients/:id/documents). Honestidad: se declara documento de TEXTO firmable, no carga de archivos (no hay almacenamiento binario); las acciones rapidas no implementadas (Escanear con camara, Solicitar al paciente) avisan 'proximamente' en lugar de simular. Se conserva 'Generar desde plantilla' (genDoc, ya real). Requiere paciente + titulo + contenido.",
+   "invariants": [
+    "El documento se persiste como evento real (POST /documents -> ClinicalDocument CREATED) con idempotencia",
+    "Tipo restringido al enum del backend (PROGRESS_NOTE/DISCHARGE_SUMMARY/REFERRAL/PROCEDURE_NOTE/OTHER)",
+    "Opera por paciente; tras crear, la lista por paciente se re-consulta",
+    "Honestidad: documento de texto (no carga de archivos); acciones no implementadas declaradas proximamente, no simuladas",
+    "Requiere patientId + titulo + contenido no vacios"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (docForm + createDocument; modulo Documentos con creador; acciones rapidas honestas)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Documentos: crear documento -> POST /documents)",
+    "scripts/v22/live-documents-proof.mts"
+   ],
+   "runtime_evidence": "Render test 38/38 (jsdom): en Documentos, + Nuevo documento -> tipo/titulo/contenido -> Crear documento -> POST /documents -> aviso de documento creado. Backend reutilizado ya probado en vivo: live-documents-proof (lista por paciente + tipo-UI + estado + conteos por carpeta).",
+   "epic": "BD/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [

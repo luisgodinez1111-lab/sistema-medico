@@ -14,6 +14,7 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  apiRequest:async(path:string)=>{
   if(path.includes("/api/v1/vitals"))return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
   if(path.includes("/api/v1/care-plans"))return{status:201,body:{version:1}};
+  if(path.includes("/api/v1/documents"))return{status:201,body:{version:1}};
   if(path.includes("/assessment"))return{status:201,body:{version:2}};
   if(path.includes("/signature"))return{status:201,body:{version:3,signatureDigest:"a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"}};
   if(path.includes("/api/v1/encounters"))return{status:201,body:{version:1}};
@@ -343,6 +344,16 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   fireEvent.change(screen.getByPlaceholderText(/HbA1c < 7%/),{target:{value:"Bajar 5% de peso en 3 meses"}});
   fireEvent.click(screen.getByRole("button",{name:"Agregar meta"}));
   expect(await screen.findByText(/Meta agregada al plan/)).toBeTruthy();
+ });
+
+ it("vista Documentos: crear un documento clínico real (POST /documents)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Documentos"}));
+  fireEvent.click(screen.getByRole("button",{name:"+ Nuevo documento"}));
+  fireEvent.change(screen.getByPlaceholderText(/Nota de evolución 19/),{target:{value:"Nota de evolución"}});
+  fireEvent.change(screen.getByPlaceholderText("Contenido del documento…"),{target:{value:"Paciente estable, continúa tratamiento."}});
+  fireEvent.click(screen.getByRole("button",{name:"Crear documento"}));
+  expect(await screen.findByText(/Documento creado/)).toBeTruthy();
  });
 
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
