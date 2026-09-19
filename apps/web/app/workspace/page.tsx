@@ -2472,34 +2472,22 @@ export default function Workspace(){
   })() : view==="alergias" ? (()=>{
    // ===== MÓDULO ALERGIAS (S-ALERGIAS) — registro clínica-wide cableado a GET /api/v1/allergies =====
    const card2:React.CSSProperties={...card,marginTop:0};
-   type ARow={id:string;name:string;age:string;substance:string;type:AllergenType;reaction:string;sevKey:"Grave"|"Moderada"|"Leve"|"Incierta";estado:string;active:boolean;severe:boolean;exp:string;date:string;by:string;notes:string};
+   type ARow={id:string;pid:string;name:string;age:string;substance:string;type:AllergenType;reaction:string;sevKey:"Grave"|"Moderada"|"Leve"|"Incierta";estado:string;active:boolean;severe:boolean;exp:string;date:string;by:string;notes:string};
    const initials=(n:string)=>n.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase();
    const SEV_KEY:Record<string,"Grave"|"Moderada"|"Leve">={SEVERE:"Grave",MODERATE:"Moderada",MILD:"Leve"};
    const fmtDate=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})+", "+d.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});};
-   const useReal=!!alergReg&&alergReg.total>0;
-   // Datos representativos = imagen exacta (cuando la BD del tenant aún no tiene alergias sembradas).
-   const REP:ARow[]=[
-    {id:"r1",name:"Ana López García",age:"F, 34 años",substance:"Penicilina",type:"Medicamento",reaction:"Urticaria",sevKey:"Grave",estado:"Activa",active:true,severe:true,exp:"LC260917-0042",date:"12 mar 2024, 10:15",by:"Dr. Luis Godinez",notes:"Reacción inmediata posterior a la administración. Sin dificultad respiratoria. Evitar toda la familia de betalactámicos."},
-    {id:"r2",name:"Mateo Ramírez",age:"M, 5 años",substance:"Amoxicilina",type:"Medicamento",reaction:"Exantema",sevKey:"Moderada",estado:"Activa",active:true,severe:false,exp:"LC190320-0118",date:"04 abr 2024, 09:20",by:"Dr. Luis Godinez",notes:"Exantema maculopapular a las 48 h. Suspender aminopenicilinas."},
-    {id:"r3",name:"Carlos Mendoza",age:"M, 56 años",substance:"AINEs (ibuprofeno)",type:"Medicamento",reaction:"Broncoespasmo",sevKey:"Grave",estado:"Activa",active:true,severe:true,exp:"LC120168-0075",date:"18 abr 2024, 12:40",by:"Dr. Luis Godinez",notes:"Broncoespasmo tras ibuprofeno. Evitar AINE; usar paracetamol."},
-    {id:"r4",name:"María Torres",age:"F, 28 años",substance:"Mariscos",type:"Alimento",reaction:"Anafilaxia",sevKey:"Grave",estado:"Activa",active:true,severe:true,exp:"LC050596-0203",date:"22 abr 2024, 16:05",by:"Dr. Luis Godinez",notes:"Anafilaxia con crustáceos. Portar autoinyector de adrenalina."},
-    {id:"r5",name:"Diego Salas",age:"M, 3 años",substance:"Huevo",type:"Alimento",reaction:"Urticaria",sevKey:"Moderada",estado:"Activa",active:true,severe:false,exp:"LC301021-0311",date:"29 abr 2024, 11:10",by:"Dr. Luis Godinez",notes:"Urticaria con clara de huevo. Vigilar vacunas cultivadas en huevo."},
-    {id:"r6",name:"Laura Fernández",age:"F, 42 años",substance:"Látex",type:"Ambiental",reaction:"Rinitis",sevKey:"Leve",estado:"Activa",active:true,severe:false,exp:"LC170882-0044",date:"02 may 2024, 08:50",by:"Dr. Luis Godinez",notes:"Rinitis de contacto con látex. Usar guantes libres de látex."},
-    {id:"r7",name:"José Ramírez",age:"M, 52 años",substance:"Iodados (contraste)",type:"Contraste",reaction:"Urticaria / prurito",sevKey:"Moderada",estado:"Activa",active:true,severe:false,exp:"LC230372-0156",date:"06 may 2024, 14:25",by:"Dr. Luis Godinez",notes:"Reacción a medio de contraste yodado. Premedicar o usar alternativa."},
-    {id:"r8",name:"Daniel Cruz",age:"M, 37 años",substance:"Sulfamidas",type:"Medicamento",reaction:"Steven-Johnson",sevKey:"Grave",estado:"Activa",active:true,severe:true,exp:"LC110787-0289",date:"09 may 2024, 10:00",by:"Dr. Luis Godinez",notes:"Antecedente de SSJ por sulfonamidas. Contraindicación absoluta."},
-    {id:"r9",name:"Sofía Hernández",age:"F, 1 año",substance:"Proteína de leche de vaca",type:"Alimento",reaction:"Diarrea / exantema",sevKey:"Moderada",estado:"Activa",active:true,severe:false,exp:"LC140623-0402",date:"13 may 2024, 09:35",by:"Dr. Luis Godinez",notes:"APLV: diarrea y exantema. Fórmula extensamente hidrolizada."},
-    {id:"r10",name:"Ricardo Villegas",age:"M, 68 años",substance:"Polen (gramíneas)",type:"Ambiental",reaction:"Rinitis",sevKey:"Leve",estado:"Activa",active:true,severe:false,exp:"LC080356-0067",date:"16 may 2024, 13:15",by:"Dr. Luis Godinez",notes:"Rinitis estacional por gramíneas. Antihistamínico en temporada."},
-   ];
-   const allRows:ARow[]=useReal?alergReg!.items.map((it,i)=>({id:it.allergyId||`a${i}`,name:it.patientName,age:"",substance:it.substance,type:it.type,reaction:it.reaction,sevKey:SEV_KEY[it.severity]??"Leve",estado:it.statusLabel,active:it.status==="ACTIVE",severe:it.severity==="SEVERE",exp:it.patientId.slice(0,8).toUpperCase(),date:fmtDate(it.recordedAt),by:it.registeredBy?"Médico tratante":"—",notes:it.reaction})):REP;
+   const alergLoaded=!!alergReg;
+   // Registro clínica-wide REAL (GET /api/v1/allergies); sin datos de ejemplo.
+   const allRows:ARow[]=(alergReg?.items??[]).map((it,i)=>({id:it.allergyId||`a${i}`,pid:it.patientId,name:it.patientName,age:"",substance:it.substance,type:it.type,reaction:it.reaction,sevKey:SEV_KEY[it.severity]??"Leve",estado:it.statusLabel,active:it.status==="ACTIVE",severe:it.severity==="SEVERE",exp:it.patientId.slice(0,8).toUpperCase(),date:fmtDate(it.recordedAt),by:it.registeredBy?"Médico tratante":"—",notes:it.reaction}));
    // Filtros (cliente): búsqueda, tipo, solo activas, solo graves
    const rows=allRows.filter(r=>(!alergOnlyActive||r.active)&&(!alergOnlySevere||r.severe)&&(alergType==="Todos"||r.type===alergType)&&(!alergSearch||`${r.name} ${r.substance}`.toLowerCase().includes(alergSearch.toLowerCase())));
-   const sel:ARow=rows[alergSel]??rows[0]??REP[0]!;
-   // KPIs + gráficas desde datos reales cuando existen; si no, cifras representativas de la imagen.
-   const total=useReal?alergReg!.total:156;
-   const patients=useReal?alergReg!.patientsWithAllergies:156;
-   const cGrave=useReal?alergReg!.bySeverity.grave:28,cMod=useReal?alergReg!.bySeverity.moderada:14,cLeve=useReal?alergReg!.bySeverity.leve:114,cInc=useReal?alergReg!.bySeverity.incierta:0;
+   const sel:ARow|null=rows[alergSel]??rows[0]??null;
+   // KPIs + gráficas desde datos reales (0 si el registro está vacío).
+   const total=alergReg?.total??0;
+   const patients=alergReg?.patientsWithAllergies??0;
+   const cGrave=alergReg?.bySeverity.grave??0,cMod=alergReg?.bySeverity.moderada??0,cLeve=alergReg?.bySeverity.leve??0,cInc=alergReg?.bySeverity.incierta??0;
    const pct=(n:number)=>total?Math.round(n/total*100):0;
-   const T=useReal?alergReg!.byType:{Medicamento:72,Alimento:34,Ambiental:28,Contraste:12,Otros:10};
+   const T=alergReg?.byType??{Medicamento:0,Alimento:0,Ambiental:0,Contraste:0,Otros:0};
    const typeSegs:[AllergenType,string,number][]=[["Medicamento","#F0455E",T.Medicamento],["Alimento","#6C5CF6",T.Alimento],["Ambiental","#E5983B",T.Ambiental],["Contraste","#20B7D9",T.Contraste],["Otros","#9AA0BC",T.Otros]];
    let acc=0;const stops=typeSegs.map(([,c,n])=>{const a=total?acc/total*100:0;acc+=n;const b=total?acc/total*100:0;return `${c} ${a}% ${b}%`;}).join(",");
    const sevBadge=(k:string):React.CSSProperties=>{const m:Record<string,[string,string]>={Grave:["#FDECEE","#C9364A"],Moderada:["#FBF0DC","#B7791F"],Leve:["#E6F6EE","#16A66A"],Incierta:["#EEF1F7","#6B7191"]};const[bg,fg]=m[k]??m.Leve!;return{background:bg,color:fg,borderRadius:16,padding:"3px 11px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"};};
@@ -2511,14 +2499,12 @@ export default function Workspace(){
    const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"14px 0 6px"};
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
    const chk=(on:boolean,l:string,tog:()=>void)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}} onClick={tog}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{on?"✓":""}</span>{l}</label>;
-   const alertBeta=/penicil|amoxi|betalact|cefal|sulfa|aine|ibuprof/i.test(sel.substance);
+   const alertBeta=!!sel&&/penicil|amoxi|betalact|cefal|sulfa|aine|ibuprof/i.test(sel.substance);
    return <div style={{padding:"18px 24px 40px"}}>
     {/* Encabezado */}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Alergias</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Gestiona y da seguimiento a las alergias de tus pacientes. Mejor seguridad, mejores decisiones.</p></div></div>
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-      <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI,display:"flex",alignItems:"center",gap:7}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16v6H4zM4 14h16v6H4z"/></svg>Plantillas</button>
-      <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI,display:"flex",alignItems:"center",gap:7}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 5v14M5 12h14"/></svg>Registro rápido</button>
       <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setAlgNew(v=>!v);setAlgMsg(null);}}>{algNew?"Cerrar":"+ Nueva alergia"}</button>
      </div>
     </div>
@@ -2550,47 +2536,37 @@ export default function Workspace(){
       <div style={{position:"relative",marginTop:10}}><input value={alergSearch} onChange={e=>{setAlergSearch(e.target.value);setAlergSel(0);}} placeholder="Buscar paciente o alérgeno..." style={{...selSty,padding:"9px 11px 9px 32px"}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
       <div style={flbl}>Tipo de alérgeno</div>
       <select value={alergType} onChange={e=>{setAlergType(e.target.value);setAlergSel(0);}} style={selSty}>{["Todos","Medicamento","Alimento","Ambiental","Contraste","Otros"].map(o=><option key={o}>{o}</option>)}</select>
-      <div style={flbl}>Gravedad de la reacción</div><select style={selSty} defaultValue="Todos"><option>Todos</option><option>Grave</option><option>Moderada</option><option>Leve</option></select>
-      <div style={flbl}>Estado</div><select style={selSty} defaultValue="Todos"><option>Todos</option><option>Activa</option><option>Inactiva</option><option>Refutada</option></select>
-      <div style={flbl}>Fecha de registro</div>
-      <div style={{display:"flex",alignItems:"center",gap:6}}><input placeholder="dd/mm/aaaa" style={{...selSty,padding:"9px 8px"}}/><span style={{color:P.muted}}>–</span><input placeholder="dd/mm/aaaa" style={{...selSty,padding:"9px 8px"}}/></div>
-      <div style={flbl}>Paciente</div><select style={selSty} defaultValue="Todos"><option>Todos</option></select>
-      <div style={{marginTop:12,borderTop:`1px solid ${LINE}`,paddingTop:10}}>
+      <div style={{marginTop:14,borderTop:`1px solid ${LINE}`,paddingTop:10}}>
        {chk(alergOnlySevere,"Solo graves",()=>{setAlergOnlySevere(!alergOnlySevere);setAlergSel(0);})}
        {chk(alergOnlyActive,"Solo activas",()=>{setAlergOnlyActive(!alergOnlyActive);setAlergSel(0);})}
-       {chk(false,"Solo con notas",()=>{})}
       </div>
-      <button style={{marginTop:12,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Exportar listado</button>
+      <div style={{marginTop:14,fontSize:12,color:P.muted}}>{rows.length} de {allRows.length} alergia(s)</div>
      </div>
      {/* Tabla */}
      <div style={{...card2,padding:0,overflow:"hidden"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",flexWrap:"wrap",gap:10}}>
        <div style={{fontSize:16,fontWeight:800}}>Alergias ({rows.length})</div>
-       <div style={{display:"flex",gap:8,alignItems:"center"}}><select style={{...selSty,width:"auto",padding:"7px 10px"}} defaultValue="Más recientes"><option>Más recientes</option><option>Más antiguas</option><option>Gravedad</option></select><span style={{width:34,height:34,border:`1px solid ${LINE}`,borderRadius:9,display:"grid",placeItems:"center",cursor:"pointer"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span></div>
       </div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
-       <thead><tr><th style={{...th,width:34}}><span style={{width:16,height:16,borderRadius:4,border:"1.6px solid #C7CCE0",display:"inline-block"}}/></th><th style={th}>Paciente</th><th style={th}>Alérgeno</th><th style={th}>Tipo</th><th style={th}>Reacción</th><th style={th}>Gravedad</th><th style={th}>Estado</th><th style={{...th,textAlign:"right"}}>Acciones</th></tr></thead>
+       <thead><tr><th style={th}>Paciente</th><th style={th}>Alérgeno</th><th style={th}>Tipo</th><th style={th}>Reacción</th><th style={th}>Gravedad</th><th style={th}>Estado</th></tr></thead>
        <tbody>{rows.map((r,i)=>{const on=i===alergSel;return <tr key={r.id} onClick={()=>setAlergSel(i)} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
-        <td style={td}><span style={{width:16,height:16,borderRadius:4,border:"1.6px solid #C7CCE0",display:"inline-block"}}/></td>
         <td style={td}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{width:30,height:30,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{initials(r.name)}</span><div style={{minWidth:0}}><div style={{fontWeight:600,fontSize:13,whiteSpace:"nowrap"}}>{r.name}</div>{r.age&&<div style={{fontSize:11,color:P.muted}}>{r.age}</div>}</div></div></td>
         <td style={{...td,fontWeight:600}}>{r.substance}</td>
         <td style={{...td,color:P.muted}}>{r.type}</td>
         <td style={td}>{r.reaction}</td>
         <td style={td}><span style={sevBadge(r.sevKey)}>{r.sevKey}</span></td>
         <td style={td}><span style={estadoBadge(r.active)}>{r.estado}</span></td>
-        <td style={{...td,textAlign:"right",color:P.muted,fontWeight:700}}>⋯</td>
        </tr>;})}
-       {rows.length===0&&<tr><td colSpan={8} style={{...td,textAlign:"center",color:P.muted,padding:"30px"}}>Sin alergias que coincidan con los filtros.</td></tr>}
+       {rows.length===0&&<tr><td colSpan={6} style={{...td,textAlign:"center",color:P.muted,padding:"30px"}}>{alergLoaded?(allRows.length===0?"Sin alergias registradas. Usa «+ Nueva alergia».":"Ninguna alergia coincide con los filtros."):"Cargando registro…"}</td></tr>}
        </tbody>
       </table></div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 16px",fontSize:13,color:P.muted,flexWrap:"wrap",gap:10}}><span>Mostrando 1–{rows.length} de {total} alergias</span><div style={{display:"flex",gap:5}}>{["‹","1","2","3","4","5","›"].map((p,i)=><span key={i} style={{minWidth:32,height:32,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:13,cursor:"pointer"}}>{p}</span>)}</div><span style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"6px 11px",fontSize:12}}>10 ▾</span></div>
+      {rows.length>0&&<div style={{padding:"13px 16px",fontSize:13,color:P.muted}}>Mostrando {rows.length} de {allRows.length} alergia(s) del registro</div>}
      </div>
      {/* Detalle */}
      <div style={{...card2,padding:0,overflow:"hidden"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:`1px solid ${LINE}`}}><div style={{fontSize:15,fontWeight:800}}>Detalle de la alergia</div><span style={{color:P.muted,fontWeight:700,cursor:"pointer"}}>⋯</span></div>
-      <div style={{padding:"14px 16px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:`1px solid ${LINE}`}}><div style={{fontSize:15,fontWeight:800}}>Detalle de la alergia</div></div>
+      {!sel?<div style={{padding:"40px 16px",textAlign:"center",color:P.muted,fontSize:13}}>{allRows.length===0?"Registra una alergia con «+ Nueva alergia».":"Selecciona una alergia de la lista para ver su detalle."}</div>:<div style={{padding:"14px 16px"}}>
        <div style={{display:"flex",gap:11,alignItems:"center"}}><span style={{width:44,height:44,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:14,fontWeight:700,flex:"0 0 auto"}}>{initials(sel.name)}</span><div><div style={{fontWeight:700,fontSize:14.5}}>{sel.name}</div><div style={{fontSize:11.5,color:P.muted}}>{sel.age||"Paciente"}</div><div style={{fontSize:11.5,color:P.muted}}>Expediente: {sel.exp}</div></div></div>
-       <div style={{display:"flex",gap:4,marginTop:12,borderBottom:`1px solid ${LINE}`}}>{["Información","Historial","Notas"].map((t,i)=><span key={t} style={{padding:"8px 10px",fontSize:12.5,fontWeight:i===0?700:500,color:i===0?P.purple:P.muted,borderBottom:i===0?`2px solid ${P.purple}`:"2px solid transparent",cursor:"pointer"}}>{t}</span>)}</div>
        <div style={{display:"flex",gap:10,alignItems:"center",marginTop:14}}><span style={{width:38,height:38,borderRadius:10,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7zM7 8l6 6"/></svg></span><div><div style={{fontWeight:700,fontSize:14}}>{sel.substance}</div><div style={{fontSize:12,color:P.muted}}>{sel.type}</div></div></div>
        <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:9}}>
         {[["Fecha de registro",sel.date],["Reacción",sel.reaction]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",gap:10,fontSize:12.5}}><span style={{color:P.muted}}>{k}</span><span style={{fontWeight:600,textAlign:"right"}}>{v}</span></div>)}
@@ -2601,18 +2577,16 @@ export default function Workspace(){
        </div>
        {alertBeta&&<div style={{marginTop:12,display:"flex",gap:9,padding:"11px 13px",borderRadius:11,background:"#FDECEE",border:"1px solid #F6C9D0"}}><span style={{color:P.red,flex:"0 0 auto"}}>⚠</span><div><div style={{fontWeight:700,fontSize:12.5,color:"#9B1C2E"}}>Alerta clínica</div><div style={{fontSize:12,color:"#7A2531",marginTop:2}}>Evitar {sel.substance.toLowerCase().includes("sulfa")?"sulfonamidas":sel.substance.toLowerCase().includes("aine")||sel.substance.toLowerCase().includes("ibuprof")?"AINE":"penicilinas"} y considerar reactividad cruzada con otros de su familia.</div></div></div>}
        <div style={{display:"flex",gap:10,marginTop:14}}>
-        <button style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Editar</button>
-        <button onClick={()=>{setPatientId(sel.id);setView("exp");}} style={{flex:1,border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"9px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en expediente</button>
+        <button onClick={()=>{selectPatientRaw(sel.pid,sel.name);setView("exp");setTimeout(()=>scrollToSection("Alergias"),0);}} style={{flex:1,border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"9px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button>
        </div>
-      </div>
+      </div>}
      </div>
     </div>
     {/* Fila inferior: gráficas + recomendaciones + accesos */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginTop:16,alignItems:"start"}} className="mos-alerg2">
-     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Alergias por tipo de alérgeno</div><div style={{display:"flex",gap:14,alignItems:"center"}}><div style={{width:100,height:100,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:`conic-gradient(${stops})`}}><div style={{width:64,height:64,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:16,fontWeight:800}}>{total}</div><div style={{fontSize:9,color:P.muted}}>Alergias</div></div></div></div><div style={{flex:1}}>{typeSegs.map(([l,c,n])=><div key={l} style={{display:"flex",alignItems:"center",gap:7,fontSize:12,padding:"3px 0"}}><span style={{width:8,height:8,borderRadius:"50%",background:c}}/>{l==="Medicamento"?"Medicamentos":l==="Alimento"?"Alimentos":l==="Ambiental"?"Ambientales":l==="Contraste"?"Contrastes":"Otros"}<b style={{marginLeft:"auto"}}>{n} ({pct(n)}%)</b></div>)}</div></div></div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14,marginTop:16,alignItems:"start"}} className="mos-alerg2">
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Alergias por tipo de alérgeno</div><div style={{display:"flex",gap:14,alignItems:"center"}}><div style={{width:100,height:100,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:total>0?`conic-gradient(${stops})`:"#EEF0F5"}}><div style={{width:64,height:64,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:16,fontWeight:800}}>{total}</div><div style={{fontSize:9,color:P.muted}}>Alergias</div></div></div></div><div style={{flex:1}}>{total===0?<div style={{fontSize:12.5,color:P.muted}}>Sin alergias registradas.</div>:typeSegs.map(([l,c,n])=><div key={l} style={{display:"flex",alignItems:"center",gap:7,fontSize:12,padding:"3px 0"}}><span style={{width:8,height:8,borderRadius:"50%",background:c}}/>{l==="Medicamento"?"Medicamentos":l==="Alimento"?"Alimentos":l==="Ambiental"?"Ambientales":l==="Contraste"?"Contrastes":"Otros"}<b style={{marginLeft:"auto"}}>{n} ({pct(n)}%)</b></div>)}</div></div></div>
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Alergias por gravedad</div>{([["Graves",cGrave,"#F0455E"],["Moderadas",cMod,"#E5983B"],["Leves",cLeve,"#16A66A"],["Inciertas",cInc,"#9AA0BC"]] as [string,number,string][]).map(([l,n,c])=><div key={l} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:4}}><span>{l}</span><b>{n} ({pct(n)}%)</b></div><div style={{height:8,borderRadius:6,background:"#EEF1F7",overflow:"hidden"}}><div style={{height:"100%",width:`${pct(n)}%`,background:c,borderRadius:6}}/></div></div>)}</div>
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Recomendaciones</div>{["Verificar alergias antes de prescribir.","Usar alertas en recetas y procedimientos.","Registrar reacciones con el mayor detalle posible.","Educar al paciente sobre signos de alarma.","Revisar historial en cada consulta."].map((r,i)=><div key={i} style={{display:"flex",gap:9,alignItems:"flex-start",padding:"7px 0",fontSize:12.5}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={P.purple} strokeWidth="1.9" style={{flex:"0 0 auto",marginTop:1}}><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>{r}</div>)}</div>
-     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Accesos rápidos</div>{["Catálogo de alérgenos","Plantillas de notas","Registro educativo para pacientes","Imprimir tarjeta de alergias"].map((a,i)=><div key={a} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<3?`1px solid #F1F3F9`:"0",fontSize:13,color:P.blue,fontWeight:500,cursor:"pointer"}}><span style={{display:"flex",alignItems:"center",gap:8}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 5h16v14H4zM8 3v4M16 3v4"/></svg>{a}</span><span>›</span></div>)}</div>
     </div>
    </div>;
   })() : view==="problemas" ? (()=>{

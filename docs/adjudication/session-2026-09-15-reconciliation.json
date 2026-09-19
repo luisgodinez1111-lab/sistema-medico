@@ -3193,6 +3193,29 @@
    "epic": "S8/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-ALERGIAS-AUDIT-DEEP-001",
+   "name": "Alergias — auditoría boton por boton: registro real, cero controles muertos, fix de navegación",
+   "risk": "C4",
+   "eng_authority_note": "Auditoria extrema de Alergias. Era una maqueta con muchos controles muertos y un fallback de 10 pacientes ficticios (REP) + KPIs falsos (156/156/28/14/114, byType 72/34/28/12/10). Corregido: (1) Eliminado REP y todos los fallbacks -> allRows/KPIs/graficas derivan de alergReg real (0 si vacio); alergLoaded=!!alergReg; estados vacios honestos en tabla, detalle y dona. (2) BUG REAL corregido: Ver en expediente usaba setPatientId(sel.id) donde sel.id es el allergyId, no el paciente; ahora usa sel.pid (patientId real) con selectPatientRaw + scroll a Alergias. (3) Eliminados controles muertos: botones de encabezado Plantillas y Registro rapido (sin accion); selects de filtro Gravedad/Estado/Fecha/Paciente (sin estado); checkbox Solo con notas (handler vacio); boton Exportar listado; checkboxes de seleccion de fila y de encabezado; select de orden y toggle de vista; columna Acciones con ⋯; paginacion 1 2 3 4 5 falsa; ⋯ del detalle; pestañas Informacion/Historial/Notas sin estado; boton Editar sin accion; tarjeta Accesos rapidos (4 enlaces sin accion). (4) Conservado y confirmado real: creador + Nueva alergia -> createAllergyInline (POST /allergies); filtros busqueda + tipo + Solo graves + Solo activas + Limpiar; tabla seleccionable; alerta clinica por reactividad cruzada (regex sobre la sustancia). Recomendaciones se conserva como guia educativa (no es dato ni control).",
+   "invariants": [
+    "Alergias no muestra pacientes, KPIs ni graficas de ejemplo: todo deriva de alergReg real (0 si vacio)",
+    "Ver en el expediente navega al paciente correcto (patientId real), no al allergyId",
+    "Cada control ejecuta accion: crear, filtrar (busqueda/tipo/graves/activas), Limpiar, seleccionar fila, ver en expediente",
+    "No hay controles decorativos: se eliminaron selects, checkboxes, exportar, paginacion, pestañas y accesos sin accion"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (elimina REP y fallbacks; alergLoaded; ARow.pid; fix Ver en expediente; elimina controles muertos; estados vacios honestos; grilla inferior a 3 columnas)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Alergias S-ALERGIAS: registro real, Ver en el expediente presente; Exportar/Accesos rapidos/Registro rapido === null)",
+    "scripts/v22/live-allergy-registry-proof.mts"
+   ],
+   "runtime_evidence": "Render test 46/46 (jsdom): tabla y detalle desde el mock real (Ana Lopez, Grave); Ver en el expediente presente; queryByText(Exportar listado / Accesos rapidos / Registro rapido) === null. Typecheck limpio.",
+   "epic": "S-ALERGIAS/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

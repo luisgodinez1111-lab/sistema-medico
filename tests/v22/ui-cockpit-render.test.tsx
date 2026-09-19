@@ -719,7 +719,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText(/Alergias por tipo de alérgeno/)).toBeTruthy();   // gráfica de tipo
   expect(screen.getByText(/Alergias por gravedad/)).toBeTruthy();           // gráfica de gravedad
   expect(screen.getByText("Recomendaciones")).toBeTruthy();
-  expect(screen.getByText("Accesos rápidos")).toBeTruthy();
+  // auditoría: el detalle abre el expediente (acción real) y se eliminaron los controles muertos
+  expect(screen.getByText(/Ver en el expediente/)).toBeTruthy();
+  expect(screen.queryByText("Exportar listado")).toBeNull();
+  expect(screen.queryByText("Accesos rápidos")).toBeNull();
+  expect(screen.queryByText("Registro rápido")).toBeNull();
  });
 
  it("Medicamentos › Interacciones (S8.3): verificador de conjunto cableado — chips por defecto, factores y hallazgos con severidad",async()=>{
