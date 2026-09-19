@@ -281,6 +281,16 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText(/guardados en el expediente/i)).toBeTruthy();
  });
 
+ it("vista Consulta: crear órdenes reales desde el formulario (POST /orders)",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+  // seleccionar un estudio de laboratorio marca el checkbox y actualiza el botón
+  fireEvent.click(screen.getByText("Biometría hemática completa"));
+  const create=screen.getByRole("button",{name:/Crear 1 orden/});
+  fireEvent.click(create);
+  expect(await screen.findByText(/registrada\(s\) en el expediente/i)).toBeTruthy();
+ });
+
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
   render(<Workspace/>);
   toExpediente();

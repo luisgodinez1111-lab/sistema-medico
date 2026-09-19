@@ -563,6 +563,8 @@ export default function Workspace(){
  const[cMsg,setCMsg]=useState<string|null>(null); // aviso del flujo de encuentro (Consulta)
  const[cVit,setCVit]=useState({ta:"",fc:"",fr:"",temp:"",spo2:""}); // signos vitales de la Consulta
  const[cVitMsg,setCVitMsg]=useState<string|null>(null);const[cVitBusy,setCVitBusy]=useState(false);
+ const[cOrdCat,setCOrdCat]=useState<"LAB"|"IMAGING"|"PROCEDURE"|"REFERRAL">("LAB"); // categoría de órdenes de la Consulta
+ const[cOrdSel,setCOrdSel]=useState<string[]>([]);const[cOrdMsg,setCOrdMsg]=useState<string|null>(null);const[cOrdBusy,setCOrdBusy]=useState(false);
  type AgendaAppt={appointmentId:string;patientId:string;patientName:string;startAt:string;endAt:string|null;reason:string;consultorio:string|null;apptType:string|null;status:string;version:number};
  const[agenda,setAgenda]=useState<{appointments:AgendaAppt[];counts:{programadas:number;atendidas:number;enEspera:number;canceladas:number}}|null>(null);
  const[agendaDate,setAgendaDate]=useState<string>(new Date().toISOString().slice(0,10)); // fecha de la agenda (YYYY-MM-DD)
@@ -912,6 +914,19 @@ export default function Workspace(){
    setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});
    setCVitMsg(marks.length?`Guardados. ⚠ ${marks.length} signo(s) crítico(s) — ${marks.join("; ")}. Un vital crítico sin firmar bloquea la firma.`:"Signos vitales guardados en el expediente ✓");
   }catch(e){setCVitMsg(String(e));}finally{setCVitBusy(false);}
+ };
+ // Crea órdenes clínicas reales desde la Consulta (POST /orders) por cada estudio seleccionado, con el tipo de la categoría.
+ const createConsultaOrders=async()=>{
+  if(!patientId){setCOrdMsg("Selecciona un paciente para crear órdenes.");return;}
+  if(!cOrdSel.length){setCOrdMsg("Selecciona al menos un estudio.");return;}
+  setCOrdBusy(true);setCOrdMsg(null);
+  try{
+   for(const detail of cOrdSel){
+    const r=await apiRequest("/api/v1/orders",{method:"POST",body:{orderId:uuid(),patientId,orderType:cOrdCat,detail,occurredAt:nowIso()}});
+    if(r.status>=400){setCOrdMsg(errMsg(r));setCOrdBusy(false);return;}
+   }
+   const n=cOrdSel.length;setCOrdSel([]);setCOrdMsg(`${n} orden(es) creada(s) y registrada(s) en el expediente ✓`);
+  }catch(e){setCOrdMsg(String(e));}finally{setCOrdBusy(false);}
  };
  const proposeMed=()=>call("med-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/medications",{method:"POST",body:{medicationId:id,patientId,drugCode:drug,dose,route,frequency:freq,occurredAt:nowIso()}});
@@ -1704,7 +1719,17 @@ export default function Workspace(){
        {cVitMsg&&<div style={{marginTop:10,fontSize:12.5,color:cVitMsg.includes("⚠")?"#B3261E":cVitMsg.includes("✓")?"#1A7F43":P.muted,fontWeight:600}}>{cVitMsg}</div>}
       </div>
       <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Diagnósticos / Problemas</h3><span style={link} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Lista de problemas"),0);}}>Ver historial →</span></div><div style={{display:"flex",alignItems:"center",gap:9,border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 12px",fontSize:13,color:P.muted}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>Buscar CIE-10 o descripción…</div><div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>{(snap?.problems??["J02.9","B34.9"]).slice(0,3).map((c,i)=><span key={c} style={{display:"inline-flex",alignItems:"center",gap:8,background:"#F3F5FA",border:`1px solid ${LINE}`,borderRadius:9,padding:"6px 11px",fontSize:12.5,fontWeight:600}}>{c} {DX_LABEL(c)}{i===0&&<span style={{background:"#EEEBFD",color:"#6C5CF6",borderRadius:6,padding:"1px 7px",fontSize:10.5,fontWeight:700}}>Principal</span>}<span style={{color:"#9AA0BC",cursor:"pointer"}}>✕</span></span>)}</div></div>
-      <div style={sec}><h3 style={sect}>Órdenes clínicas</h3><div style={{display:"flex",gap:16,borderBottom:`1px solid ${LINE}`,fontSize:13}}>{["Laboratorio","Imagen","Procedimiento","Interconsulta"].map((t,i)=><span key={t} style={{paddingBottom:8,color:i===0?P.purple:P.muted,fontWeight:i===0?700:400,borderBottom:i===0?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{t}</span>)}</div><div style={{marginTop:12}}>{["Biometría hemática completa","Proteína C reactiva","Exudado faríngeo (cultivo)","Prueba rápida de antígeno estreptococo"].map(o=><label key={o} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",fontSize:13.5,cursor:"pointer"}}><span style={{width:17,height:17,borderRadius:5,border:"1.6px solid #C7CCE0",flex:"0 0 auto"}}/>{o}</label>)}</div><button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 14px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,marginTop:8}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Órdenes clínicas"),0);}}>+ Crear orden</button></div>
+      {(()=>{
+       const CORD:[typeof cOrdCat,string,string[]][]=[["LAB","Laboratorio",["Biometría hemática completa","Química sanguínea (6 elementos)","Perfil lipídico","Examen general de orina","Proteína C reactiva","Exudado faríngeo (cultivo)"]],["IMAGING","Imagen",["Radiografía de tórax PA","Ultrasonido abdominal","Tomografía simple de cráneo","Mastografía"]],["PROCEDURE","Procedimiento",["Electrocardiograma","Espirometría","Prueba de esfuerzo"]],["REFERRAL","Interconsulta",["Cardiología","Endocrinología","Nefrología","Oftalmología"]]];
+       const studies=CORD.find(c=>c[0]===cOrdCat)?.[2]??[];
+       const toggle=(o:string)=>setCOrdSel(s=>s.includes(o)?s.filter(x=>x!==o):[...s,o]);
+       return <div style={sec}><h3 style={sect}>Órdenes clínicas</h3>
+        <div style={{display:"flex",gap:16,borderBottom:`1px solid ${LINE}`,fontSize:13}}>{CORD.map(([k,l])=><span key={k} onClick={()=>{setCOrdCat(k);setCOrdSel([]);setCOrdMsg(null);}} style={{paddingBottom:8,color:cOrdCat===k?P.purple:P.muted,fontWeight:cOrdCat===k?700:400,borderBottom:cOrdCat===k?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{l}</span>)}</div>
+        <div style={{marginTop:12}}>{studies.map(o=>{const on=cOrdSel.includes(o);return <label key={o} onClick={()=>toggle(o)} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",fontSize:13.5,cursor:"pointer"}}><span style={{width:17,height:17,borderRadius:5,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:11,flex:"0 0 auto"}}>{on?"✓":""}</span>{o}</label>;})}</div>
+        <div style={{display:"flex",gap:10,alignItems:"center",marginTop:8,flexWrap:"wrap"}}><button onClick={()=>void createConsultaOrders()} disabled={cOrdBusy||cOrdSel.length===0} style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:(cOrdBusy||cOrdSel.length===0)?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:(cOrdBusy||cOrdSel.length===0)?"default":"pointer",fontFamily:UI}}>{cOrdBusy?"Creando…":`Crear ${cOrdSel.length||""} orden${cOrdSel.length===1?"":"es"}`.replace("  "," ")}</button><span style={link} onClick={()=>setView("ordenes")}>Abrir en Órdenes →</span></div>
+        {cOrdMsg&&<div style={{marginTop:10,fontSize:12.5,color:cOrdMsg.includes("✓")?"#1A7F43":P.muted,fontWeight:600}}>{cOrdMsg}</div>}
+       </div>;
+      })()}
       <div style={sec}><h3 style={sect}>Plan de manejo</h3><div style={{border:`1px solid ${LINE}`,borderRadius:11,overflow:"hidden"}}>{rteBar}<textarea style={{width:"100%",border:0,outline:"none",padding:"12px 14px",fontSize:13.5,fontFamily:UI,resize:"vertical",minHeight:110,boxSizing:"border-box"}} disabled={!!enc&&enc.state!=="OPEN"} value={cForm.plan} onChange={e=>setCForm(f=>({...f,plan:e.target.value}))} placeholder="Plan de manejo…"/></div></div>
      </div>
      <div style={{display:"flex",flexDirection:"column",gap:16}}>

@@ -2744,6 +2744,29 @@
    "epic": "D/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-CONSULTA-ORDERS-UI-001",
+   "name": "Consulta — crear órdenes clínicas reales desde el formulario (POST /orders)",
+   "risk": "C5",
+   "eng_authority_note": "Cablea el bloque de Ordenes clinicas del formulario de Consulta, antes cosmetico (pestanas estaticas + checkboxes sin efecto + boton que solo navegaba), a la creacion REAL de ordenes. Pestanas de categoria controladas (Laboratorio/Imagen/Procedimiento/Interconsulta -> orderType LAB/IMAGING/PROCEDURE/REFERRAL); cada categoria muestra un catalogo de estudios sugeridos; los checkboxes marcan una seleccion real (cOrdSel); 'Crear N orden(es)' hace POST /api/v1/orders por cada estudio seleccionado para el paciente en contexto, con el orderType de la categoria activa (agregado ClinicalOrder event-sourced con idempotencia). Aviso de exito; 'Abrir en Ordenes' navega al modulo Ordenes. Requiere paciente en contexto; sin seleccion, el boton esta deshabilitado.",
+   "invariants": [
+    "Cada orden se persiste como evento real (POST /orders -> ClinicalOrder) con idempotencia; los checkboxes ya no son cosmeticos",
+    "El orderType proviene de la categoria activa (LAB/IMAGING/PROCEDURE/REFERRAL), no hardcodeado por estudio",
+    "Requiere patientId en contexto; sin estudios seleccionados no hace POST (boton deshabilitado)",
+    "Reutiliza el mismo endpoint/contrato que el modulo Ordenes (sin logica duplicada divergente)"
+   ],
+   "implementation": [
+    "apps/web/app/workspace/page.tsx (cOrdCat/cOrdSel + createConsultaOrders; bloque de Ordenes de la Consulta cableado con categorias/estudios/boton)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (vista Consulta: seleccionar estudio -> Crear orden -> POST /orders)",
+    "scripts/v22/live-orders-registry-proof.mts"
+   ],
+   "runtime_evidence": "Render test 32/32 (jsdom): en la Consulta, seleccionar Biometria hematica completa marca el checkbox, el boton refleja Crear 1 orden, y al pulsarlo POST /orders -> aviso de orden registrada en el expediente. Backend reutilizado ya probado en vivo: live-orders-registry-proof (crear + ciclo de vida + estado por transicion + version + conteos + 403).",
+   "epic": "M/UI",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
   }
  ],
  "honest_gaps": [
