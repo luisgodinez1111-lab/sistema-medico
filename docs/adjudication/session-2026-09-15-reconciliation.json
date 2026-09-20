@@ -3595,6 +3595,31 @@
    "epic": "S-REPORTES/BACKEND",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-REPORTES-TRENDS-BACKEND-001",
+   "name": "Reportes — tendencia de consultas por día (encuentros) y medicamentos más prescritos (recetas reales)",
+   "risk": "C4",
+   "eng_authority_note": "Segundo incremento de agregados REALES del tablero de Reportes, derivados del event stream (RLS-scoped), sin mock. Se agregaron dos lecturas tenant-wide en clinical-runtime.ts: encounterAnalytics (agrupa ENCOUNTER_OPENED por fecha -> consultas por día; total y firmadas por ENCOUNTER_SIGNED) y medicationsPrescribed (agrupa por drugCode del evento base MEDICATION_PROPOSED SOLO los agregados Medication que alcanzaron MEDICATION_PRESCRIBED -> recetas reales, no propuestas). GET /api/v1/reports ahora compone además encountersTotal, encountersSigned, encountersByDay (con pct) y topMedications/prescriptionsTotal. Frontend: nueva fila con gráfica de barras 'Consultas por día' y lista 'Medicamentos más prescritos'; la nota honesta se reduce a lo que aún falta (tipos de consulta/agenda e indicadores de calidad). Sin escritura; scope record:export.",
+   "invariants": [
+    "consultas por día se derivan de eventos Encounter reales (ENCOUNTER_OPENED por fecha); firmadas de ENCOUNTER_SIGNED",
+    "medicamentos más prescritos cuentan SOLO recetas reales (agregados Medication con MEDICATION_PRESCRIBED), agrupadas por el drugCode del evento base",
+    "los indicadores no implementados no se simulan: la nota honesta declara lo que aún falta (tipos de consulta/agenda, calidad)",
+    "lectura sin escritura, RLS-scoped, scope record:export"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (encounterAnalytics, medicationsPrescribed)",
+    "apps/web/app/api/v1/reports/route.ts (compone encountersTotal/encountersSigned/encountersByDay/topMedications/prescriptionsTotal)",
+    "apps/web/app/workspace/page.tsx (ReportsSnap ampliado; fila Consultas por día + Medicamentos más prescritos; nota honesta reducida)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Reportes: Consultas por día, Medicamentos más prescritos y fármaco real presentes)",
+    "scripts/v22/live-reports-proof.mts"
+   ],
+   "runtime_evidence": "Live proof vs Neon PASS 21/21: además de lo anterior, siembra 3 encuentros (2 el 2026-10-01 + 1 el 2026-10-02) y 3 recetas reales PROPOSED->PRESCRIBED (paracetamol x2, metformina x1); GET /reports devuelve encountersTotal 3, encountersByDay con 2 días (2026-10-01=2, 2026-10-02=1), prescriptionsTotal 3, topMedications[0]=paracetamol=2 y metformina=1; sin scope -> 403. Render 46/46; typecheck limpio.",
+   "epic": "S-REPORTES/BACKEND",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

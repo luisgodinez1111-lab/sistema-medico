@@ -519,6 +519,45 @@ export async function officeSettings(ctx:HttpTenantContext):Promise<OfficeSettin
   return{settings:(row.settings as Record<string,unknown>)??{},version:Number(row.version??0)};
  }) as Promise<OfficeSettingsRead>;
 }
+// EPIC S-REPORTES — Tendencia de consultas por día del tablero. Cuenta encuentros por el evento base
+// ENCOUNTER_OPENED (kind OPENED) agrupados por la FECHA (día) en que ocurrieron, y el total de consultas
+// firmadas (ENCOUNTER_SIGNED) para el indicador de expedientes cerrados. Determinista, RLS-scoped, sin PHI.
+export type EncounterAnalytics=Readonly<{total:number;signed:number;byDay:ReadonlyArray<{date:string;count:number}>}>;
+export async function encounterAnalytics(ctx:HttpTenantContext):Promise<EncounterAnalytics>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const dayRows=await tx`
+   select to_char(a.occurred_at,'YYYY-MM-DD') as day, count(*)::int as n
+   from clinical_events a
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Encounter' and a.payload->>'kind'='OPENED'
+   group by day order by day asc`;
+  const signedRows=await tx`
+   select count(*)::int as n from clinical_events a
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Encounter' and a.payload->>'kind'='SIGNED'`;
+  const byDay=dayRows.map(r=>{const o=r as Record<string,unknown>;return{date:String(o.day??""),count:Number(o.n??0)};});
+  const total=byDay.reduce((s,d)=>s+d.count,0);
+  const signed=Number((signedRows[0] as Record<string,unknown>|undefined)?.n??0);
+  return{total,signed,byDay};
+ }) as Promise<EncounterAnalytics>;
+}
+// EPIC S-REPORTES — Medicamentos más prescritos del tablero. Toma cada agregado Medication cuyo ciclo llegó a
+// MEDICATION_PRESCRIBED (una receta real, no solo propuesta), y agrupa por el drugCode del evento base
+// MEDICATION_PROPOSED. Devuelve el top por frecuencia. Determinista, RLS-scoped, sin PHI (solo el fármaco).
+export type PrescribedDrugRow=Readonly<{drugCode:string;count:number}>;
+export async function medicationsPrescribed(ctx:HttpTenantContext):Promise<ReadonlyArray<PrescribedDrugRow>>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select base.payload->>'drugCode' as drug, count(*)::int as n
+   from clinical_events base
+   where base.tenant_id=${ctx.tenantId} and base.aggregate_type='Medication' and base.payload->>'kind'='PROPOSED'
+     and exists (select 1 from clinical_events pr where pr.tenant_id=${ctx.tenantId} and pr.aggregate_id=base.aggregate_id and pr.payload->>'kind'='PRESCRIBED')
+   group by drug order by n desc`;
+  return rows.map(r=>{const o=r as Record<string,unknown>;return{drugCode:String(o.drug??""),count:Number(o.n??0)};}).filter(x=>x.drugCode);
+ }) as Promise<ReadonlyArray<PrescribedDrugRow>>;
+}
 // EPIC AY — Condiciones ACTIVAS del paciente (lista de problemas, CIE-10). RLS-scoped. Para el gate de
 // contraindicación fármaco–condición en la prescripción. Activa = último kind ADDED/REACTIVATED/MARKED_CHRONIC
 // (no RESOLVED ni MARKED_ERROR). Devuelve el código CIE-10 normalizado.

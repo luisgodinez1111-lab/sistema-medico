@@ -1,12 +1,13 @@
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
-import{listPatients,claimsRegistry,problemRegistry,ordersRegistry,resultsRegistry,immunizationRegistry}from"../../../../lib/clinical-runtime";
+import{listPatients,claimsRegistry,problemRegistry,ordersRegistry,resultsRegistry,immunizationRegistry,encounterAnalytics,medicationsPrescribed}from"../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../lib/http-command";
 // EPIC AD/UI — GET /api/v1/reports -> tablero analítico del consultorio (vista Reportes).
 // Compone métricas REALES desde el event stream (registros clínica-wide, RLS-scoped): pacientes atendidos
 // (padrón), ingresos (facturas pagadas), diagnósticos principales (CIE-10), órdenes totales y POR TIPO,
-// procedimientos más realizados, resultados registrados y vacunas aplicadas. Determinista, sin escritura.
+// procedimientos más realizados, resultados registrados, vacunas aplicadas, tendencia de consultas por día
+// (encuentros) y medicamentos más prescritos (recetas reales). Determinista, sin escritura.
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const ORDER_TYPE_LBL:Record<string,string>={LAB:"Laboratorio",IMAGING:"Imagenología",PROCEDURE:"Procedimiento",REFERRAL:"Interconsulta",PATHOLOGY:"Patología"};
@@ -14,13 +15,15 @@ export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"record:export",purpose:"TREATMENT"});
-  const[patients,claimRows,problemRows,orderRows,resultRows,immRows]=await Promise.all([
+  const[patients,claimRows,problemRows,orderRows,resultRows,immRows,encAnalytics,rxRows]=await Promise.all([
    listPatients(ctx),
    claimsRegistry(ctx),
    problemRegistry(ctx),
    ordersRegistry(ctx),
    resultsRegistry(ctx),
    immunizationRegistry(ctx),
+   encounterAnalytics(ctx),
+   medicationsPrescribed(ctx),
   ]);
   const income=Math.round(claimRows.filter(c=>c.status==="PAID").reduce((s,c)=>{const n=parseFloat(String(c.amount).replace(/[^0-9.]/g,""));return s+(Number.isFinite(n)?n:0);},0)*100)/100;
   // Diagnósticos principales por CIE-10 (top 5).
@@ -38,6 +41,12 @@ export async function GET(req:Request){
   for(const o of orderRows)if(o.orderType==="PROCEDURE"&&o.detail)byProc.set(o.detail,(byProc.get(o.detail)??0)+1);
   const procTotalN=[...byProc.values()].reduce((a,b)=>a+b,0)||1;
   const topProcedures=[...byProc.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([detail,n])=>({detail,count:n,pct:Math.round(n/procTotalN*100)}));
+  // Tendencia de consultas por día (encuentros abiertos) — serie del tablero, ya ordenada por fecha asc.
+  const maxDay=encAnalytics.byDay.reduce((m,d)=>Math.max(m,d.count),0)||1;
+  const encountersByDay=encAnalytics.byDay.map(d=>({date:d.date,count:d.count,pct:Math.round(d.count/maxDay*100)}));
+  // Medicamentos más prescritos (recetas reales) — top 5 por frecuencia.
+  const rxTotal=rxRows.reduce((s,r)=>s+r.count,0);
+  const topMedications=rxRows.slice(0,5).map(r=>({drugCode:r.drugCode,count:r.count,pct:rxTotal?Math.round(r.count/rxTotal*100):0}));
   return NextResponse.json({
    patientsAttended:patients.length,
    income,
@@ -48,6 +57,11 @@ export async function GET(req:Request){
    topProcedures,
    resultsTotal:resultRows.length,
    immunizationsApplied:immRows.filter(i=>i.status==="COMPLETE").length,
+   encountersTotal:encAnalytics.total,
+   encountersSigned:encAnalytics.signed,
+   encountersByDay,
+   prescriptionsTotal:rxTotal,
+   topMedications,
   },{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
