@@ -1,14 +1,15 @@
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
-import{listPatients,claimsRegistry,problemRegistry,ordersRegistry,resultsRegistry,immunizationRegistry,encounterAnalytics,medicationsPrescribed,appointmentsByType}from"../../../../lib/clinical-runtime";
+import{listPatients,claimsRegistry,problemRegistry,ordersRegistry,resultsRegistry,immunizationRegistry,encounterAnalytics,medicationsPrescribed,appointmentsByType,appointmentOutcomes}from"../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../lib/http-command";
 // EPIC AD/UI — GET /api/v1/reports -> tablero analítico del consultorio (vista Reportes).
 // Compone métricas REALES desde el event stream (registros clínica-wide, RLS-scoped): pacientes atendidos
 // (padrón), ingresos (facturas pagadas), diagnósticos principales (CIE-10), órdenes totales y POR TIPO,
 // procedimientos más realizados, resultados registrados, vacunas aplicadas, tendencia de consultas por día
-// (encuentros), medicamentos más prescritos (recetas reales) y tipos de consulta (desde la agenda).
-// Determinista, sin escritura.
+// (encuentros), medicamentos más prescritos (recetas reales), tipos de consulta (desde la agenda) e
+// indicadores de calidad deterministas (expedientes cerrados, asistencia, inasistencia, HbA1c en control),
+// cada uno con su meta y marcado como no computable si no hay denominador. Determinista, sin escritura.
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const ORDER_TYPE_LBL:Record<string,string>={LAB:"Laboratorio",IMAGING:"Imagenología",PROCEDURE:"Procedimiento",REFERRAL:"Interconsulta",PATHOLOGY:"Patología"};
@@ -17,7 +18,7 @@ export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"record:export",purpose:"TREATMENT"});
-  const[patients,claimRows,problemRows,orderRows,resultRows,immRows,encAnalytics,rxRows,apptRows]=await Promise.all([
+  const[patients,claimRows,problemRows,orderRows,resultRows,immRows,encAnalytics,rxRows,apptRows,apptOut]=await Promise.all([
    listPatients(ctx),
    claimsRegistry(ctx),
    problemRegistry(ctx),
@@ -27,6 +28,7 @@ export async function GET(req:Request){
    encounterAnalytics(ctx),
    medicationsPrescribed(ctx),
    appointmentsByType(ctx),
+   appointmentOutcomes(ctx),
   ]);
   const income=Math.round(claimRows.filter(c=>c.status==="PAID").reduce((s,c)=>{const n=parseFloat(String(c.amount).replace(/[^0-9.]/g,""));return s+(Number.isFinite(n)?n:0);},0)*100)/100;
   // Diagnósticos principales por CIE-10 (top 5).
@@ -53,6 +55,23 @@ export async function GET(req:Request){
   // Tipos de consulta (desde la agenda) — conteo real por apptType, con etiqueta legible y porcentaje.
   const apptTotal=apptRows.reduce((s,a)=>s+a.count,0);
   const appointmentsByTypeOut=apptRows.map(a=>({type:a.apptType,label:APPT_TYPE_LBL[a.apptType]??"Otro",count:a.count,pct:apptTotal?Math.round(a.count/apptTotal*100):0}));
+  // Indicadores de CALIDAD deterministas — cada uno computado del event stream real, con su meta clínica y
+  // dirección (mayor/menor es mejor). Si no hay denominador, el indicador NO se inventa: computable=false.
+  // HbA1c en control: proporción de resultados de HbA1c por debajo de 7% (calidad del control glucémico del lab).
+  const a1cRows=resultRows.filter(r=>String(r.analyte).toUpperCase()==="HBA1C");
+  const a1cInControl=a1cRows.filter(r=>{const v=parseFloat(String(r.value).replace(/[^0-9.]/g,""));return Number.isFinite(v)&&v<7;}).length;
+  type QI={key:string;label:string;numerator:number;denominator:number;pct:number;target:number;direction:"higher"|"lower";met:boolean;computable:boolean;note:string};
+  const mkQI=(key:string,label:string,num:number,den:number,target:number,direction:"higher"|"lower",note:string):QI=>{
+   const computable=den>0;const pct=computable?Math.round(num/den*100):0;
+   const met=computable&&(direction==="higher"?pct>=target:pct<=target);
+   return{key,label,numerator:num,denominator:den,pct,target,direction,met,computable,note};
+  };
+  const qualityIndicators:QI[]=[
+   mkQI("closed_records","Expedientes cerrados (notas firmadas)",encAnalytics.signed,encAnalytics.total,90,"higher","Consultas con nota clínica firmada respecto al total de consultas abiertas."),
+   mkQI("attendance","Asistencia efectiva",apptOut.completed,apptOut.total,80,"higher","Citas completadas respecto al total de citas agendadas."),
+   mkQI("no_show","Inasistencia (no-show)",apptOut.noShow,apptOut.total,10,"lower","Citas marcadas como inasistencia respecto al total de citas agendadas."),
+   mkQI("glycemic_control","HbA1c en control (<7%)",a1cInControl,a1cRows.length,70,"higher","Resultados de HbA1c por debajo de 7% respecto al total de HbA1c registradas."),
+  ];
   return NextResponse.json({
    patientsAttended:patients.length,
    income,
@@ -70,6 +89,7 @@ export async function GET(req:Request){
    topMedications,
    appointmentsTotal:apptTotal,
    appointmentsByType:appointmentsByTypeOut,
+   qualityIndicators,
   },{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

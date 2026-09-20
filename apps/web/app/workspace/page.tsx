@@ -91,7 +91,7 @@ type RegObSnap=Readonly<{items:RegObItem[];total:number;alDia:number;proximas:nu
 type OfficeSettings={officeName:string;specialty:string;rfc:string;cedula:string;address:string;phone:string;email:string;timezone:string;language:string;color:string;theme:string;fontSize:string;realtimeAlerts:boolean;followupReminders:boolean;showInteractions:boolean;darkMode:boolean};
 type CiFinding=Readonly<{domain:string;severity:string;summary:string}>;
 type CiSnap=Readonly<{registered:boolean;problems?:string[];allergies?:string[];labs?:{hba1c?:number;egfr?:number};findings?:CiFinding[];demographics?:{age:number;sex:string}}>;
-type ReportsSnap=Readonly<{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;description:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;label:string;count:number;pct:number}[];topProcedures:{detail:string;count:number;pct:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[];appointmentsTotal:number;appointmentsByType:{type:string;label:string;count:number;pct:number}[]}>;
+type ReportsSnap=Readonly<{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;description:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;label:string;count:number;pct:number}[];topProcedures:{detail:string;count:number;pct:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[];appointmentsTotal:number;appointmentsByType:{type:string;label:string;count:number;pct:number}[];qualityIndicators:{key:string;label:string;numerator:number;denominator:number;pct:number;target:number;direction:"higher"|"lower";met:boolean;computable:boolean;note:string}[]}>;
 const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
 const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
@@ -3512,6 +3512,7 @@ export default function Workspace(){
    const topMeds=repSnap?.topMedications??[];const rxTot=repSnap?.prescriptionsTotal??0;
    const apptByType=repSnap?.appointmentsByType??[];const apptTot=repSnap?.appointmentsTotal??0;
    const APTC=["#6C5CF6","#1769E0","#E5983B","#16A66A","#E0574B","#9AA0BC","#0FA3B1","#B8B0DE"];
+   const qInd=repSnap?.qualityIndicators??[];
    const capMonth=(iso:string):string=>{const p=iso.split("-");if(p.length<3)return iso;const md=`${p[2]}/${p[1]}`;return md;};
    const OBC=["#6C5CF6","#1769E0","#E5983B","#16A66A","#9AA0BC"];
    const obTot=obt.reduce((a,b)=>a+b.count,0);let oacc=0;
@@ -3554,7 +3555,15 @@ export default function Workspace(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:"6px 16px",marginTop:12}}>{apptByType.map((a,i)=><div key={a.type} style={{display:"flex",alignItems:"center",gap:7,fontSize:12}}><span style={{width:9,height:9,borderRadius:"50%",background:APTC[i%APTC.length],flex:"0 0 auto"}}/><span style={{flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{a.label}</span><b>{a.count}</b><span style={{color:P.muted,width:34,textAlign:"right"}}>{a.pct}%</span></div>)}</div>
      </div>}
     </div>
-    <div style={{...card2,marginTop:16,padding:"14px 16px",fontSize:12,color:P.muted,lineHeight:1.5}}>Indicadores con dato agregado real del registro clínica-wide: pacientes, ingresos (facturas pagadas), diagnósticos principales, órdenes (total y por tipo), procedimientos, resultados, vacunas aplicadas, consultas por día (encuentros), medicamentos más prescritos (recetas reales) y tipos de consulta (desde la agenda). Falta por conectar: indicadores de calidad (requieren definir las reglas y metas clínicas de cada indicador).</div>
+    <div style={{...card2,marginTop:16,padding:16}}>
+     <div style={{fontSize:15,fontWeight:800,marginBottom:4}}>Indicadores de calidad</div>
+     <div style={{fontSize:11.5,color:P.muted,marginBottom:12}}>Cada indicador se calcula del expediente real, con su meta clínica. Los que aún no tienen datos suficientes se marcan como “sin datos”, no se inventan.</div>
+     {qInd.length===0?<div style={{fontSize:12.5,color:P.muted}}>{repLoaded?"Sin indicadores disponibles.":"Cargando…"}</div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(230px,1fr))",gap:12}}>{qInd.map(q=>{const col=!q.computable?P.muted:q.met?"#16A66A":P.amber;const barBg="#EEF1F7";return <div key={q.key} style={{border:`1px solid ${LINE}`,borderRadius:11,padding:"12px 13px"}}>
+      <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8}}><span style={{fontSize:12.5,fontWeight:700,lineHeight:1.25}}>{q.label}</span><span style={{fontSize:18,fontWeight:800,color:col,flex:"0 0 auto"}}>{q.computable?`${q.pct}%`:"—"}</span></div>
+      <div style={{height:7,borderRadius:5,background:barBg,overflow:"hidden",margin:"8px 0 6px"}}><div style={{height:"100%",width:`${q.computable?q.pct:0}%`,background:col,borderRadius:5,opacity:.9}}/></div>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:P.muted}}><span>{q.computable?`${q.numerator}/${q.denominator}`:"sin datos"}</span><span>Meta {q.direction==="higher"?"≥":"≤"} {q.target}%{q.computable?` · ${q.met?"cumple":"por debajo"}`:""}</span></div>
+     </div>;})}</div>}
+    </div>
    </div>;
   })() : view==="biblioteca" ? (()=>{
    // ===== MÓDULO BIBLIOTECA CLÍNICA (S-BIBLIOTECA) — repositorio de conocimiento curado (referencia) =====

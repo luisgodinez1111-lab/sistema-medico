@@ -1,8 +1,8 @@
 // EPIC AD/UI — Evidencia física: tablero analítico del consultorio (vista Reportes). Siembra pacientes,
 // problemas (CIE-10), facturas (algunas pagadas), órdenes, encuentros (consultas por día) y recetas reales
 // (PROPOSED->PRESCRIBED), y verifica GET /reports -> pacientes + ingresos + diagnósticos + órdenes por tipo
-// + procedimientos + consultas por día (encuentros) + medicamentos más prescritos + tipos de consulta (agenda).
-// Determinista, RLS-scoped. vs Neon.
+// + procedimientos + consultas por día (encuentros) + medicamentos más prescritos + tipos de consulta (agenda)
+// + indicadores de calidad (asistencia, inasistencia, HbA1c en control, expedientes cerrados). RLS-scoped. vs Neon.
 import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";
 try{const e=fs.readFileSync(path.resolve(".env.local"),"utf8");for(const l of e.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(l.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}}catch{}
 if(!process.env.DATABASE_URL){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
@@ -20,12 +20,19 @@ const encR=await import("../../apps/web/app/api/v1/encounters/route");
 const medR=await import("../../apps/web/app/api/v1/medications/route");
 const medRx=await import("../../apps/web/app/api/v1/medications/[medicationId]/prescription/route");
 const apptR=await import("../../apps/web/app/api/v1/appointments/route");
+const apptCi=await import("../../apps/web/app/api/v1/appointments/[appointmentId]/check-in/route");
+const apptCo=await import("../../apps/web/app/api/v1/appointments/[appointmentId]/completion/route");
+const apptNs=await import("../../apps/web/app/api/v1/appointments/[appointmentId]/no-show/route");
+const resR=await import("../../apps/web/app/api/v1/results/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
-function tok(scopes=["patient:write","patient:read","problem:write","billing:write","record:export","order:write","encounter:write","medication:propose","medication:write","appointment:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
+function tok(scopes=["patient:write","patient:read","problem:write","billing:write","record:export","order:write","encounter:write","medication:propose","medication:write","appointment:write","result:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 async function order(t:string,p:string,orderType:string,detail:string){await ordR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({orderId:crypto.randomUUID(),patientId:p,orderType,detail,occurredAt:at()})}));}
 async function openEnc(t:string,p:string,occurredAt:string){await encR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:crypto.randomUUID(),patientId:p,occurredAt})}));}
 async function rx(t:string,p:string,drugCode:string){const id=crypto.randomUUID();await medR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:p,drugCode,dose:"1 tab",route:"oral",frequency:"c/8h",occurredAt:at()})}));await medRx.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({medicationId:id})});}
-async function appt(t:string,p:string,apptType:string){await apptR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({appointmentId:crypto.randomUUID(),patientId:p,startAt:at(),reason:"Cita",apptType,occurredAt:at()})}));}
+async function appt(t:string,p:string,apptType:string):Promise<string>{const id=crypto.randomUUID();await apptR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({appointmentId:id,patientId:p,startAt:at(),reason:"Cita",apptType,occurredAt:at()})}));return id;}
+async function complete(t:string,id:string){await apptCi.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({appointmentId:id})});await apptCo.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({appointmentId:id})});}
+async function noShow(t:string,id:string){await apptNs.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({appointmentId:id})});}
+async function a1c(t:string,p:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:"HBA1C",value:v,occurredAt:at()})}));}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const idem=()=>crypto.randomUUID();let ts=Date.parse("2026-09-01T09:00:00.000Z");const at=()=>new Date(ts+=3600000).toISOString();
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
@@ -54,11 +61,15 @@ try{
  // recetas reales (PROPOSED->PRESCRIBED): paracetamol x2 (p1,p2) + metformina x1 (p3) = 3 recetas
  await rx(phys,p1,"paracetamol");await rx(phys,p2,"paracetamol");await rx(phys,p3,"metformina");
  // tipos de consulta (agenda): CONTROL x3, PRIMERA_VEZ x1, VACUNACION x1 = 5 citas
- await appt(phys,p1,"CONTROL");await appt(phys,p2,"CONTROL");await appt(phys,p3,"CONTROL");
- await appt(phys,p1,"PRIMERA_VEZ");await appt(phys,p2,"VACUNACION");
+ const a1=await appt(phys,p1,"CONTROL");const a2=await appt(phys,p2,"CONTROL");const a3=await appt(phys,p3,"CONTROL");
+ const a4=await appt(phys,p1,"PRIMERA_VEZ");await appt(phys,p2,"VACUNACION");
+ // desenlaces de calidad: 3 completadas (asistencia 60%), 1 no-show (inasistencia 20%), 1 sigue agendada
+ await complete(phys,a1);await complete(phys,a2);await complete(phys,a3);await noShow(phys,a4);
+ // HbA1c: 3 en control (<7) + 1 fuera (8.0) -> control glucémico 75% (meta >=70 -> cumple)
+ await a1c(phys,p1,"6.5");await a1c(phys,p2,"6.0");await a1c(phys,p3,"5.8");await a1c(phys,p1,"8.0");
 
  const R=await reports(phys);ok(R.status===200,"REPORTS_200");
- const b=R.body as{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;count:number;pct:number}[];topProcedures:{detail:string;count:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[];appointmentsTotal:number;appointmentsByType:{type:string;label:string;count:number;pct:number}[]};
+ const b=R.body as{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;count:number;pct:number}[];topProcedures:{detail:string;count:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[];appointmentsTotal:number;appointmentsByType:{type:string;label:string;count:number;pct:number}[];qualityIndicators:{key:string;label:string;numerator:number;denominator:number;pct:number;target:number;direction:string;met:boolean;computable:boolean}[]};
  ok(b.patientsAttended===3,"PATIENTS_3");
  ok(b.income===1700,"INCOME_1700");
  ok(b.diagnosesTotal===6,"DX_TOTAL_6");
@@ -90,6 +101,14 @@ try{
  ok(b.appointmentsByType[0]!.label==="Control","APPT_LABEL_CONTROL");
  ok(b.appointmentsByType.find(a=>a.type==="PRIMERA_VEZ")?.count===1,"APPT_PRIMERA_VEZ_1");
  ok(b.appointmentsByType.find(a=>a.type==="VACUNACION")?.count===1,"APPT_VACUNACION_1");
+ // indicadores de calidad deterministas
+ const qi=(k:string)=>b.qualityIndicators.find(x=>x.key===k);
+ ok(qi("attendance")?.numerator===3&&qi("attendance")?.denominator===5&&qi("attendance")?.pct===60,"QI_ATTENDANCE_60");
+ ok(qi("attendance")?.met===false,"QI_ATTENDANCE_NOT_MET"); // 60 < meta 80
+ ok(qi("no_show")?.numerator===1&&qi("no_show")?.pct===20&&qi("no_show")?.met===false,"QI_NOSHOW_20_NOT_MET"); // 20 > meta 10 (menor es mejor)
+ ok(qi("glycemic_control")?.numerator===3&&qi("glycemic_control")?.denominator===4&&qi("glycemic_control")?.pct===75,"QI_GLYCEMIC_75");
+ ok(qi("glycemic_control")?.met===true,"QI_GLYCEMIC_MET"); // 75 >= meta 70
+ ok(qi("closed_records")?.denominator===3&&qi("closed_records")?.computable===true,"QI_CLOSED_COMPUTABLE"); // 3 consultas abiertas, 0 firmadas
 
  // sin scope -> 403
  const noScope=await reports(tok(["patient:read"]));

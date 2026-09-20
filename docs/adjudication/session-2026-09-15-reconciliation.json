@@ -3645,6 +3645,31 @@
    "epic": "S-REPORTES/BACKEND",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-REPORTES-QUALITY-BACKEND-001",
+   "name": "Reportes — indicadores de calidad deterministas (expedientes cerrados, asistencia, inasistencia, HbA1c en control)",
+   "risk": "C4",
+   "eng_authority_note": "Cierre del tablero de Reportes: indicadores de CALIDAD computados del event stream real (RLS-scoped), sin mock y sin simular. Nueva lectura tenant-wide appointmentOutcomes (estado final por última transición de cada Appointment) en clinical-runtime.ts. GET /api/v1/reports compone qualityIndicators, cada uno con numerador/denominador/pct, meta clínica, dirección (mayor o menor es mejor) y bandera computable: (1) expedientes cerrados = notas firmadas/consultas (encounterAnalytics), meta >=90%; (2) asistencia efectiva = citas COMPLETED/total, meta >=80%; (3) inasistencia = citas NO_SHOW/total, meta <=10% (menor es mejor); (4) HbA1c en control = resultados HBA1C con valor <7 / total HBA1C (resultsRegistry), meta >=70%. Regla de honestidad clave: si un indicador no tiene denominador, computable=false y la UI muestra 'sin datos' en vez de inventar un valor. Frontend: tarjeta 'Indicadores de calidad' con tiles (pct, barra, meta, cumple/por debajo, color semántico verde/ámbar separado del acento). Sin escritura; scope record:export. Con esto el tablero de Reportes queda 100% sobre dato real: no quedan indicadores por conectar.",
+   "invariants": [
+    "cada indicador de calidad se computa del event stream real (encuentros firmados, desenlaces de citas, resultados HbA1c), nunca de mock",
+    "un indicador sin denominador se marca computable=false y se muestra como 'sin datos'; no se inventa un porcentaje",
+    "la meta y la dirección (mayor/menor es mejor) son explícitas; el color semántico de cumplimiento es independiente del acento",
+    "lectura sin escritura, RLS-scoped, scope record:export"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (appointmentOutcomes)",
+    "apps/web/app/api/v1/reports/route.ts (compone qualityIndicators con meta/direccion/computable; HbA1c en control desde resultsRegistry)",
+    "apps/web/app/workspace/page.tsx (ReportsSnap ampliado; tarjeta Indicadores de calidad con tiles y estado de cumplimiento; se elimina la nota de 'falta por conectar')"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Reportes: Indicadores de calidad, indicador computado y 'sin datos' presentes)",
+    "scripts/v22/live-reports-proof.mts"
+   ],
+   "runtime_evidence": "Live proof vs Neon PASS 32/32: además de lo anterior, transiciona 3 citas a COMPLETED y 1 a NO_SHOW, y siembra 4 HbA1c (3 <7 + 1 =8.0); GET /reports devuelve asistencia 3/5=60% (no cumple meta 80), inasistencia 1/5=20% (no cumple meta <=10), HbA1c en control 3/4=75% (cumple meta >=70), expedientes cerrados con denominador 3 y computable=true; sin scope -> 403. Render 46/46; typecheck limpio.",
+   "epic": "S-REPORTES/BACKEND",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [
