@@ -13,12 +13,30 @@ const AGG="OfficeSettings";
 // bajo distintos tenants no colisiona (cada tenant tiene su propia serie de versiones).
 export const OFFICE_SETTINGS_ID="0ff1ce00-0000-4000-8000-000000000001";
 
+// Días de la semana (orden fijo) y módulos del sistema — catálogos canónicos de los ajustes de horario/módulos.
+export const SCHEDULE_DAYS=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"] as const;
+export const MODULE_KEYS=["Pacientes","Agenda","Consulta","Resultados","Órdenes","Interconsultas","Seguimiento","Facturación","Documentos","Obligaciones","Clinical Intelligence","Reportes","Biblioteca clínica"] as const;
+// Horario por defecto del consultorio: L–V 08:00–15:00, Sáb 08:00–13:00, Dom cerrado.
+export const DEFAULT_SCHEDULE=SCHEDULE_DAYS.map(day=>{
+ if(day==="Domingo")return{day,open:false,from:"",to:""};
+ if(day==="Sábado")return{day,open:true,from:"08:00",to:"13:00"};
+ return{day,open:true,from:"08:00",to:"15:00"};
+});
+// Módulos activos por defecto: todos habilitados.
+export const DEFAULT_MODULES:Record<string,boolean>=Object.fromEntries(MODULE_KEYS.map(k=>[k,true]));
+
 // Valores por defecto de los ajustes persistibles. El resto de la vista Configuracion sigue siendo presentacional.
 export const DEFAULT_OFFICE_SETTINGS={
  officeName:"",specialty:"",rfc:"",cedula:"",address:"",phone:"",email:"",timezone:"",language:"es",
  color:"#6C5CF6",theme:"Claro",fontSize:"Normal",
  realtimeAlerts:true,followupReminders:true,showInteractions:true,darkMode:false,
+ schedule:DEFAULT_SCHEDULE,modules:DEFAULT_MODULES,
 } as const;
+
+// Una fila de horario: día conocido, abierto/cerrado y las horas (HH:MM o vacío si está cerrado).
+const HHMM=/^([01]\d|2[0-3]):[0-5]\d$/;
+const ScheduleRow=z.object({day:z.enum(SCHEDULE_DAYS),open:z.boolean(),
+ from:z.string().refine(v=>v===""||HHMM.test(v),"HH:MM"),to:z.string().refine(v=>v===""||HHMM.test(v),"HH:MM")}).strict();
 
 // Todos los campos son opcionales en la entrada: se hace merge sobre los ajustes actuales (o los defaults).
 const SettingsSchema=z.object({
@@ -27,6 +45,9 @@ const SettingsSchema=z.object({
  email:z.string().max(120).optional(),timezone:z.string().max(80).optional(),language:z.string().max(40).optional(),
  color:z.string().max(9).optional(),theme:z.string().max(20).optional(),fontSize:z.string().max(20).optional(),
  realtimeAlerts:z.boolean().optional(),followupReminders:z.boolean().optional(),showInteractions:z.boolean().optional(),darkMode:z.boolean().optional(),
+ schedule:z.array(ScheduleRow).max(7).optional(),
+ // Módulos: mapa parcial módulo->activo. Se acepta un subconjunto, pero solo claves de módulos conocidos.
+ modules:z.record(z.string().max(40),z.boolean()).refine(m=>Object.keys(m).every(k=>(MODULE_KEYS as readonly string[]).includes(k)),"Módulo desconocido").optional(),
 }).strict();
 const UpdateBody=z.object({settings:SettingsSchema,occurredAt:z.string().datetime()});
 
@@ -50,7 +71,11 @@ export async function handleOfficeSettingsUpdate(req:Request):Promise<Response>{
   const b=await parseJson(req,UpdateBody);
   const cur=await officeSettings(ctx);
   if(cur.version!==expectedVersion)throw new ClinicalError("CONCURRENCY_CONFLICT","Settings changed since last read",{expected:expectedVersion,actual:cur.version});
-  const merged={...DEFAULT_OFFICE_SETTINGS,...cur.settings,...b.settings};
+  // Merge: los escalares y el horario se reemplazan por lo recibido; los MÓDULOS se fusionan en profundidad
+  // (un PUT parcial de módulos preserva los no enviados). schedule llega completo desde la UI.
+  const curModules=(cur.settings.modules as Record<string,boolean>|undefined)??{};
+  const merged={...DEFAULT_OFFICE_SETTINGS,...cur.settings,...b.settings,
+   modules:{...DEFAULT_MODULES,...curModules,...(b.settings.modules??{})}};
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:OFFICE_SETTINGS_ID,expectedVersion,eventType:"OFFICE_SETTINGS_UPDATED",payload:{kind:"UPDATED",settings:merged},occurredAt:b.occurredAt,topic:"office_settings.updated"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};

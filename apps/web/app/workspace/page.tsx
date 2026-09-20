@@ -88,7 +88,10 @@ type ResultsRegistry=Readonly<{items:ResultItem[];total:number;abnormal:number;e
 type ConsTabs=Readonly<{results:{analyte:string;value:string;estado:string;critical:boolean;receivedAt:string}[];orders:{typeLabel:string;detail:string;status:string;createdAt:string}[];medications:string[];planGoals:{goal:string;statusLabel:string}[];documents:{title:string;typeLabel:string;createdAt:string}[];obligations:{task:string;dueAt:string;statusLabel:string;done:boolean}[]}>;
 type RegObItem=Readonly<{obligationId:string;name:string;category:string;periodicity:string;dueDate:string|null;estado:string;daysUntil:number|null}>;
 type RegObSnap=Readonly<{items:RegObItem[];total:number;alDia:number;proximas:number;vencidas:number;compliance:Record<string,number>}>;
-type OfficeSettings={officeName:string;specialty:string;rfc:string;cedula:string;address:string;phone:string;email:string;timezone:string;language:string;color:string;theme:string;fontSize:string;realtimeAlerts:boolean;followupReminders:boolean;showInteractions:boolean;darkMode:boolean};
+type ScheduleRow={day:string;open:boolean;from:string;to:string};
+type OfficeSettings={officeName:string;specialty:string;rfc:string;cedula:string;address:string;phone:string;email:string;timezone:string;language:string;color:string;theme:string;fontSize:string;realtimeAlerts:boolean;followupReminders:boolean;showInteractions:boolean;darkMode:boolean;schedule:ScheduleRow[];modules:Record<string,boolean>};
+const CFG_MODULES=["Pacientes","Agenda","Consulta","Resultados","Órdenes","Interconsultas","Seguimiento","Facturación","Documentos","Obligaciones","Clinical Intelligence","Reportes","Biblioteca clínica"];
+const CFG_SCHEDULE:ScheduleRow[]=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"].map(day=>day==="Domingo"?{day,open:false,from:"",to:""}:day==="Sábado"?{day,open:true,from:"08:00",to:"13:00"}:{day,open:true,from:"08:00",to:"15:00"});
 type CiFinding=Readonly<{domain:string;severity:string;summary:string}>;
 type CiSnap=Readonly<{registered:boolean;problems?:string[];allergies?:string[];labs?:{hba1c?:number;egfr?:number};findings?:CiFinding[];demographics?:{age:number;sex:string}}>;
 type ReportsSnap=Readonly<{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;description:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;label:string;count:number;pct:number}[];topProcedures:{detail:string;count:number;pct:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[];appointmentsTotal:number;appointmentsByType:{type:string;label:string;count:number;pct:number}[];qualityIndicators:{key:string;label:string;numerator:number;denominator:number;pct:number;target:number;direction:"higher"|"lower";met:boolean;computable:boolean;note:string}[]}>;
@@ -562,7 +565,7 @@ export default function Workspace(){
  // Vista Configuración (S-CONFIG) — ajustes/preferencias del consultorio (presentacional)
  const[cfgTab,setCfgTab]=useState("General");
  // Ajustes del consultorio cableados a /api/v1/office-settings (persistidos, concurrencia optimista If-Match).
- const CFG_DEFAULTS:OfficeSettings={officeName:"",specialty:"",rfc:"",cedula:"",address:"",phone:"",email:"",timezone:"",language:"es",color:"#6C5CF6",theme:"Claro",fontSize:"Normal",realtimeAlerts:true,followupReminders:true,showInteractions:true,darkMode:false};
+ const CFG_DEFAULTS:OfficeSettings={officeName:"",specialty:"",rfc:"",cedula:"",address:"",phone:"",email:"",timezone:"",language:"es",color:"#6C5CF6",theme:"Claro",fontSize:"Normal",realtimeAlerts:true,followupReminders:true,showInteractions:true,darkMode:false,schedule:CFG_SCHEDULE,modules:Object.fromEntries(CFG_MODULES.map(k=>[k,true]))};
  const[cfgSettings,setCfgSettings]=useState<OfficeSettings>(CFG_DEFAULTS);
  const[cfgVer,setCfgVer]=useState(0);const[cfgLoaded,setCfgLoaded]=useState(false);const[cfgBusy,setCfgBusy]=useState(false);const[cfgMsg,setCfgMsg]=useState<string|null>(null);
  const setCfg=<K extends keyof OfficeSettings>(k:K,v:OfficeSettings[K])=>{setCfgSettings(s=>({...s,[k]:v}));setCfgMsg(null);};
@@ -851,7 +854,12 @@ export default function Workspace(){
   (async()=>{
    try{
     const r=await apiRequest("/api/v1/office-settings",{method:"GET"});
-    if(!cancelled&&r.status===200){const b=r.body as{settings:OfficeSettings;version:number};setCfgSettings(b.settings);setCfgVer(b.version);setCfgLoaded(true);}
+    if(!cancelled&&r.status===200){const b=r.body as{settings:Partial<OfficeSettings>;version:number};
+     // Fusiona con defaults para tolerar ajustes previos sin horario/módulos (retrocompatibilidad).
+     const merged:OfficeSettings={...CFG_DEFAULTS,...b.settings,
+      schedule:Array.isArray(b.settings.schedule)&&b.settings.schedule.length?b.settings.schedule:CFG_DEFAULTS.schedule,
+      modules:{...CFG_DEFAULTS.modules,...(b.settings.modules??{})}};
+     setCfgSettings(merged);setCfgVer(b.version);setCfgLoaded(true);}
    }catch{/* ajustes no disponibles */}
   })();
   return()=>{cancelled=true;};
@@ -3628,6 +3636,11 @@ export default function Workspace(){
    const lbl:React.CSSProperties={fontSize:12,color:P.muted,fontWeight:600,margin:"0 0 5px"};
    const sec=(ico:string,t:string)=><div style={{fontSize:16,fontWeight:800,display:"flex",alignItems:"center",gap:9,marginBottom:16}}><span style={{width:28,height:28,borderRadius:8,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={ico}/></svg></span>{t}</div>;
    const tog=(on:boolean)=><span style={{width:38,height:22,borderRadius:12,background:on?P.purple:"#D5D9E6",position:"relative",flex:"0 0 auto",cursor:"pointer"}}><span style={{position:"absolute",top:2,left:on?18:2,width:18,height:18,borderRadius:"50%",background:"#fff"}}/></span>;
+   // Toggle FUNCIONAL (real): dispara onClick y refleja el estado controlado. Accesible por teclado.
+   const togBtn=(on:boolean,onClick:()=>void,label:string)=><button type="button" role="switch" aria-checked={on} aria-label={label} onClick={onClick} style={{width:38,height:22,borderRadius:12,background:on?P.purple:"#D5D9E6",position:"relative",flex:"0 0 auto",cursor:"pointer",border:0,padding:0}}><span style={{position:"absolute",top:2,left:on?18:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .15s"}}/></button>;
+   // Helpers de ajustes compuestos (horario/módulos): actualizan el estado controlado que persiste el PUT.
+   const setSchedRow=(i:number,patch:Partial<ScheduleRow>)=>setCfg("schedule",cfgSettings.schedule.map((r,ix)=>ix===i?{...r,...patch}:r));
+   const toggleModule=(k:string)=>setCfg("modules",{...cfgSettings.modules,[k]:!cfgSettings.modules[k]});
    const CFG_TABS=["General","Consultorio","Usuarios y permisos","Plantillas","Integraciones","Notificaciones","Seguridad","Respaldo","Suscripción","Avanzado"];
    const clip="M9 3h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h1V4a1 1 0 011-1z";
    return <div style={{padding:"18px 24px 40px"}}>
@@ -3635,7 +3648,7 @@ export default function Workspace(){
      <span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1L14.4 2h-4L10 3.9a7 7 0 00-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.4 2.4h4l.4-2.4a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6a7 7 0 00.1-1z"/></svg></span>
      <div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Configuración</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Personaliza tu espacio de trabajo, preferencias y módulos del sistema.</p></div>
     </div>
-    <div style={{...card2,marginTop:14,padding:"12px 16px",background:"#EEF6FF",border:"1px solid #CFE0F7",fontSize:12.5,color:"#1c3c66",lineHeight:1.5}}>La <b>Información del consultorio</b>, la <b>apariencia</b> (color/tema/tamaño) y las <b>preferencias de consulta</b> se <b>guardan de verdad</b> (persistidas por tenant con concurrencia optimista). Las demás secciones (cuenta, firma, integraciones, respaldo) siguen siendo presentacionales.</div>
+    <div style={{...card2,marginTop:14,padding:"12px 16px",background:"#EEF6FF",border:"1px solid #CFE0F7",fontSize:12.5,color:"#1c3c66",lineHeight:1.5}}>La <b>Información del consultorio</b>, la <b>apariencia</b> (color/tema/tamaño), las <b>preferencias de consulta</b>, los <b>horarios de atención</b> y los <b>módulos activos</b> se <b>guardan de verdad</b> (persistidos por tenant con concurrencia optimista). Las demás secciones (cuenta, firma, integraciones, respaldo) siguen siendo presentacionales.</div>
     <div style={{...card2,marginTop:16,padding:"0 16px",display:"flex",gap:2,overflowX:"auto"}}>{CFG_TABS.map(t=><button key={t} onClick={()=>setCfgTab(t)} style={{padding:"14px 12px",fontSize:13.5,fontWeight:cfgTab===t?700:500,color:cfgTab===t?P.purple:P.muted,borderBottom:cfgTab===t?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>{t}</button>)}</div>
     <div style={{display:"grid",gridTemplateColumns:"1.15fr 1fr 0.95fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-cfg">
      {/* Col 1 */}
@@ -3655,7 +3668,8 @@ export default function Workspace(){
        </div>
       </div>
       <div style={{...card2,padding:18}}>{sec("M8 2v4M16 2v4M4 8h16M5 6h14v14H5z","Horarios de atención")}
-       {([["Lunes","08:00","15:00",true],["Martes","08:00","15:00",true],["Miércoles","08:00","15:00",true],["Jueves","08:00","15:00",true],["Viernes","08:00","15:00",true],["Sábado","08:00","13:00",true],["Domingo","Cerrado","",false]] as [string,string,string,boolean][]).map(([d,a,b,on])=><div key={d} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0"}}><span style={{width:74,fontSize:13,fontWeight:600}}>{d}</span>{on?<><input defaultValue={a} style={{...selSty,width:76,padding:"7px 8px",textAlign:"center"}}/><span style={{color:P.muted}}>–</span><input defaultValue={b} style={{...selSty,width:76,padding:"7px 8px",textAlign:"center"}}/></>:<div style={{...selSty,flex:1,color:P.muted,display:"flex",alignItems:"center",gap:6}}>Cerrado ⏱</div>}<span style={{flex:1}}/>{tog(on)}<span style={{color:P.purple,fontWeight:700,cursor:"pointer",marginLeft:6}}>+</span></div>)}
+       {cfgSettings.schedule.map((row,i)=><div key={row.day} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0"}}><span style={{width:84,fontSize:13,fontWeight:600}}>{row.day}</span>{row.open?<><input type="time" value={row.from} onChange={e=>setSchedRow(i,{from:e.target.value})} aria-label={`Apertura ${row.day}`} style={{...selSty,width:96,padding:"7px 8px",textAlign:"center"}}/><span style={{color:P.muted}}>–</span><input type="time" value={row.to} onChange={e=>setSchedRow(i,{to:e.target.value})} aria-label={`Cierre ${row.day}`} style={{...selSty,width:96,padding:"7px 8px",textAlign:"center"}}/></>:<div style={{...selSty,flex:1,color:P.muted,display:"flex",alignItems:"center",gap:6}}>Cerrado</div>}<span style={{flex:1}}/>{togBtn(row.open,()=>setSchedRow(i,row.open?{open:false,from:"",to:""}:{open:true,from:"08:00",to:"15:00"}),`${row.day} ${row.open?"abierto":"cerrado"}`)}</div>)}
+       <div style={{fontSize:11.5,color:P.muted,marginTop:10}}>Se guardan a nivel del consultorio con «Guardar cambios».</div>
       </div>
       <div style={{...card2,padding:18}}>{sec("M12 3l7 4v5c0 4-3 7-7 8-4-1-7-4-7-8V7z","Apariencia del sistema")}
        <div style={{display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap"}}>
@@ -3706,11 +3720,12 @@ export default function Workspace(){
     {/* Módulos activos + Guardar */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 380px",gap:16,marginTop:16,alignItems:"start"}} className="mos-cfg2">
      <div style={{...card2,padding:18}}>{sec("M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z","Módulos activos")}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"2px 24px"}}>{["Pacientes","Agenda","Consulta","Resultados","Órdenes","Interconsultas","Seguimiento","Facturación","Documentos","Obligaciones","Clinical Intelligence","Reportes","Biblioteca clínica"].map((m,i)=><div key={m} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid #F6F7FB`}}><span style={{display:"flex",alignItems:"center",gap:9,fontSize:13}}><span style={{color:P.purple}}>▤</span>{m}</span>{tog(true)}</div>)}</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"2px 24px"}}>{CFG_MODULES.map(m=>{const on=cfgSettings.modules[m]!==false;return <div key={m} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid #F6F7FB`}}><span style={{display:"flex",alignItems:"center",gap:9,fontSize:13,color:on?P.ink:P.muted}}><span style={{color:on?P.purple:"#C7CCE0"}}>▤</span>{m}</span>{togBtn(on,()=>toggleModule(m),`Módulo ${m}`)}</div>;})}</div>
+      <div style={{fontSize:11.5,color:P.muted,marginTop:12}}>Activa o desactiva módulos del sistema; la preferencia se guarda a nivel del consultorio con «Guardar cambios».</div>
      </div>
      <div style={{...card2,padding:18,display:"flex",flexDirection:"column",gap:12}}>
       <div style={{fontSize:14,fontWeight:700}}>Guardar configuración</div>
-      <div style={{fontSize:12.5,color:P.muted,lineHeight:1.5}}>La información del consultorio, la apariencia y las preferencias de consulta se guardan a nivel del consultorio (persistidas, con concurrencia optimista).</div>
+      <div style={{fontSize:12.5,color:P.muted,lineHeight:1.5}}>La información del consultorio, la apariencia, las preferencias, los horarios de atención y los módulos activos se guardan a nivel del consultorio (persistidos, con concurrencia optimista).</div>
       {cfgMsg&&<div style={{padding:"9px 12px",borderRadius:9,background:cfgMsg.includes("✓")?"#E6F6EE":"#FDF4E6",fontSize:12.5,color:cfgMsg.includes("✓")?"#166534":"#7A5A16",fontWeight:600}}>{cfgMsg}</div>}
       <button onClick={()=>void saveOfficeSettings()} disabled={cfgBusy||!cfgLoaded} style={{border:0,background:(cfgBusy||!cfgLoaded)?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"12px",fontWeight:700,fontSize:14,cursor:(cfgBusy||!cfgLoaded)?"default":"pointer",fontFamily:UI}}>{cfgBusy?"Guardando…":"✓ Guardar cambios"}</button>
      </div>

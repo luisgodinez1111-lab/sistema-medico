@@ -3546,6 +3546,30 @@
    "requires_human_c5_acceptance": false
   },
   {
+   "id": "CAP-OFFICE-SETTINGS-SCHEDULE-BACKEND-001",
+   "name": "Configuración — horarios de atención y módulos activos reales (persistidos, controlados)",
+   "risk": "C4",
+   "eng_authority_note": "Se conectaron los dos ultimos controles muertos de Configuracion sobre el MISMO agregado OfficeSettings (event-sourced, sin mock). (1) Horarios de atencion: antes eran inputs con defaultValue sin persistir y un toggle cosmetico; ahora son un arreglo controlado de 7 dias {day,open,from,to} con inputs type=time reales, toggle FUNCIONAL abrir/cerrar (role=switch, accesible por teclado), validacion HH:MM en backend (24h) y default L-V 08:00-15:00, Sab 08:00-13:00, Dom cerrado. (2) Modulos activos: antes 13 toggles cosmeticos tog(true); ahora un mapa modulo->activo controlado, toggle funcional por modulo, validado contra el catalogo canonico (rechaza modulo desconocido) y con merge PROFUNDO (un PUT parcial preserva los modulos no enviados). Ambos se guardan con el boton Guardar existente (PUT If-Match). Se elimino el boton '+' muerto del horario. Banner de honestidad actualizado: consultorio/apariencia/preferencias/horarios/modulos se guardan de verdad; cuenta/firma/integraciones/respaldo siguen presentacionales. Schema .strict() ampliado con schedule (ScheduleRow con enum de dia y refine HH:MM) y modules (record string->bool con refine de membresia).",
+   "invariants": [
+    "Horarios y modulos se persisten en el evento OFFICE_SETTINGS_UPDATED (event-sourced), no en memoria ni con defaultValue cosmetico",
+    "Los toggles de dia-abierto y de modulo son funcionales (role=switch, aria-checked) y reflejan el estado controlado; no hay control muerto",
+    "El backend valida las horas como HH:MM (24h) y rechaza modulos fuera del catalogo canonico (400); no persiste basura",
+    "El merge de modulos es profundo: un PUT parcial preserva los modulos no enviados; sigue bajo If-Match y scope settings:write"
+   ],
+   "implementation": [
+    "apps/web/lib/office-settings-lifecycle.ts (SCHEDULE_DAYS/MODULE_KEYS/DEFAULT_SCHEDULE/DEFAULT_MODULES; ScheduleRow; schema schedule+modules; merge profundo de modulos)",
+    "apps/web/app/workspace/page.tsx (tipos ScheduleRow/OfficeSettings; CFG_SCHEDULE/CFG_MODULES; carga con merge de defaults; togBtn funcional; setSchedRow/toggleModule; Horarios y Modulos controlados; banner)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Configuracion: Horarios de atencion presente, input Apertura Lunes editable, toggle role=switch de modulo Facturacion funcional)",
+    "scripts/v22/live-office-settings-proof.mts"
+   ],
+   "runtime_evidence": "Live proof vs Neon PASS 25/25: GET incluye defaults de horario (7 dias, Lun 08:00-15:00, Dom cerrado) y modulos (todos activos); PUT de horario+modulos aplica (cierra Sabado, Lunes 09:00-14:00, desactiva Facturacion), preserva la info previa del consultorio y el resto de modulos (merge profundo), GET refleja lo persistido; hora invalida 25:99 -> 400; modulo desconocido -> 400; ademas todo lo previo (merge, 409, aislamiento por tenant, 403 sin scope). Render 46/46; typecheck limpio.",
+   "epic": "S-CONFIG/BACKEND",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
+  },
+  {
    "id": "CAP-DOCUMENT-REPOSITORY-BACKEND-001",
    "name": "Documentos — repositorio: GET de un documento con contenido real, adenda append-only y firma",
    "risk": "C4",
