@@ -485,6 +485,9 @@ export default function Workspace(){
  const[signBusy,setSignBusy]=useState(false);const[signErr,setSignErr]=useState("");
  // Enmienda de un documento firmado: el texto lo escribe el médico (antes se enviaba el literal "Addendum clínico").
  const[amendAsk,setAmendAsk]=useState<Doc|null>(null);const[amendText,setAmendText]=useState("");
+ // Auditoría L-10/L-11: las verticales hospitalarias solo se pintan si el SERVIDOR las declara encendidas
+ // (GET /api/v1/features). Por defecto, y ante cualquier fallo, APAGADAS.
+ const[hospitalOn,setHospitalOn]=useState(false);
  const[ackMed,setAckMed]=useState<{med:Med;message:string}|null>(null);const[ackWhy,setAckWhy]=useState("");const[rxMsg,setRxMsg]=useState("");
  const[trends,setTrends]=useState<Trends|null>(null);const[trendKey,setTrendKey]=useState<TrendKey>("HBA1C");
  const[followTab,setFollowTab]=useState<"pend"|"prog"|"done"|"all">("pend");
@@ -718,6 +721,13 @@ export default function Workspace(){
   if(!s){window.location.replace("/login");return;} // guard duro: el espacio clínico exige sesión
   setSession(s);setPatientId(uuid());setReady(true);
  },[]);
+ // Capacidades del servidor (auditoría L-10/L-11). Si la consulta falla, las verticales hospitalarias quedan APAGADAS.
+ useEffect(()=>{
+  if(!ready||!session)return;let cancelled=false;
+  (async()=>{try{const r=await apiRequest("/api/v1/features",{method:"GET"});if(!cancelled)setHospitalOn(r.status===200&&r.body["hospitalVerticals"]===true);}
+   catch{if(!cancelled)setHospitalOn(false);}})(); // sin red: apagado; no es un error que el médico deba ver
+  return()=>{cancelled=true;};
+ },[ready,session]);
 
  // Auto-carga silenciosa del contexto de seguridad (timeline + care-gaps) al cambiar de paciente,
  // para que los contadores del patient header estén SIEMPRE presentes. Debounce para no disparar
@@ -4524,7 +4534,7 @@ export default function Workspace(){
   </section>
 
   {/* INTERNAMIENTO / HOSPITALIZACIÓN */}
-  <section style={card}>
+  {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Internamiento</h2>
    <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Episodio de hospitalización: admitir → trasladar (unidad) → dar de alta; cancelable si fue admisión por error. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"180px 1fr",gap:10,marginTop:12}}>
@@ -4543,10 +4553,10 @@ export default function Workspace(){
      </div>
     </div>)}
    </div>}
-  </section>
+  </section>}
 
   {/* MUESTRAS / CADENA DE CUSTODIA */}
-  <section style={card}>
+  {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Muestras de laboratorio</h2>
    <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Cadena de custodia pre-analítica: recolectar → enviar → recibir → resultar; rechazable en cualquier etapa. Una muestra rechazada aparece como pendiente HIGH en care gaps.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
@@ -4565,7 +4575,7 @@ export default function Workspace(){
      </div>
     </div>;})}
    </div>}
-  </section>
+  </section>}
 
   {/* INCIDENTES / SEGURIDAD DEL PACIENTE */}
   <section style={card}>
@@ -4591,7 +4601,7 @@ export default function Workspace(){
   </section>
 
   {/* TRIAGE / CLASIFICACIÓN DE ACUIDAD */}
-  <section style={card}>
+  {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Triage</h2>
    <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Clasificación de acuidad (urgencias): arribar → iniciar → clasificar ESI (re-evaluable) → cerrar, o LWBS. Un paciente sin triage completado es un pendiente HIGH en care gaps.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginTop:12}}>
@@ -4607,10 +4617,10 @@ export default function Workspace(){
      </div>
     </div>)}
    </div>}
-  </section>
+  </section>}
 
   {/* HERIDAS / LESIONES POR PRESIÓN */}
-  <section style={card}>
+  {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Cuidado de heridas</h2>
    <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Lesión por presión (UPP) longitudinal: documentar estadio → re-valorar (append-only) → cicatrizar/escalar. Métrica de calidad. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"180px 180px auto",gap:10,marginTop:12}}>
@@ -4631,10 +4641,10 @@ export default function Workspace(){
      </div>
     </div>)}
    </div>}
-  </section>
+  </section>}
 
   {/* TRANSFUSIONES */}
-  <section style={card}>
+  {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Transfusiones</h2>
    <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Medicina transfusional con verificación pre-transfusional: ordenar → cruzar (crossmatch) → iniciar → completar; una reacción se registra como pendiente HIGH (hemovigilancia). Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 120px auto",gap:10,marginTop:12}}>
@@ -4654,10 +4664,10 @@ export default function Workspace(){
      </div>
     </div>;})}
    </div>}
-  </section>
+  </section>}
 
   {/* CIRUGÍA / QUIRÓFANO */}
-  <section style={card}>
+  {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Cirugía</h2>
    <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Caso quirúrgico con barrera de seguridad: agendar → time-out OMS (checklist) → iniciar → completar. No se puede iniciar sin el time-out. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 150px auto",gap:10,marginTop:12}}>
@@ -4675,10 +4685,10 @@ export default function Workspace(){
      </div>
     </div>;})}
    </div>}
-  </section>
+  </section>}
 
   {/* DIÁLISIS */}
-  <section style={card}>
+  {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Diálisis</h2>
    <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Terapia de reemplazo renal: agendar → iniciar → completar; una interrupción por complicación se registra como pendiente HIGH y puede reanudarse. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 200px auto",gap:10,marginTop:12}}>
@@ -4699,7 +4709,7 @@ export default function Workspace(){
      </div>
     </div>)}
    </div>}
-  </section>
+  </section>}
 
   {/* DOCUMENTOS CLÍNICOS */}
   <section style={card}>
