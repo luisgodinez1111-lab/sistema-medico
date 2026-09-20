@@ -14,6 +14,7 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  apiRequest:async(path:string)=>{
   if(path.includes("/api/v1/vitals"))return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
   if(path.includes("/api/v1/care-plans"))return{status:201,body:{version:1}};
+  if(path.match(/\/api\/v1\/documents\/[^/]+$/))return{status:200,body:{documentId:"dc1",patientId:"p1",title:"Nota de evolución",docType:"PROGRESS_NOTE",typeLabel:"Nota médica",content:"Paciente estable. Continúa tratamiento.",state:"SIGNED",statusLabel:"Firmado",version:3,createdAt:"2026-09-17T00:00:00Z",addenda:[],signature:{authorId:"u1",contentHash:"a".repeat(64),signatureDigest:"b".repeat(64),signedAt:"2026-09-17T01:00:00Z"}}};
   if(path.includes("/api/v1/documents"))return{status:201,body:{version:1}};
   if(path.includes("/api/v1/referrals"))return{status:201,body:{version:1}};
   if(path.includes("/assessment"))return{status:201,body:{version:2}};

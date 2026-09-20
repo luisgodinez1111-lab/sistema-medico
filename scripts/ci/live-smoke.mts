@@ -61,6 +61,7 @@ const SMOKE:readonly string[]=[
  "live-regulatory-obligations-proof",       // Obligaciones regulatorias del consultorio: estado computado + KPIs + cumplimiento
  "live-reports-proof",                      // Reportes: tablero analítico (pacientes + ingresos pagados + diagnósticos top)
  "live-office-settings-proof",              // Configuración: ajustes del consultorio (singleton por tenant, If-Match, merge, aislamiento)
+ "live-document-detail-proof",              // Documentos: repositorio (GET :id) con contenido real, adenda append-only y firma
  "live-results-registry-proof",             // Resultados: registro clínica-wide (estado-UI derivado + tipo + KPIs)
  "live-orders-registry-proof",              // Resultados › Solicitudes: registro de órdenes (tipo-UI + estado por transición)
  "live-consultation-tabs-proof",            // Consulta: pestañas por paciente (resultados/órdenes/meds/plan/docs/seguimiento)

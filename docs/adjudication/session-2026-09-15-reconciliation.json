@@ -3544,6 +3544,33 @@
    "epic": "S-CONFIG/BACKEND",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-DOCUMENT-REPOSITORY-BACKEND-001",
+   "name": "Documentos — repositorio: GET de un documento con contenido real, adenda append-only y firma",
+   "risk": "C4",
+   "eng_authority_note": "Completada la pieza que faltaba del repositorio de documentos: la LECTURA de un documento individual con su CONTENIDO real. El backend ya persistia contenido y soportaba el ciclo de vida (borrador -> finalizar -> firmar -> enmendar, addendum append-only) pero no habia forma de recuperar el contenido; el detalle de la vista Documentos solo mostraba metadatos con nota de proximamente. Implementado: documentDetail(ctx,documentId) en clinical-runtime pliega TODOS los eventos del agregado ClinicalDocument (CREATED/FINALIZED/SIGNED/AMENDED) en orden -> {contenido, titulo, tipo, estado, version, createdAt, adenda[], firma{authorId,contentHash,signatureDigest,signedAt}}, RLS-scoped, nunca borra (cada enmienda suma). handleDocumentGet + ruta GET /api/v1/documents/:documentId (scope document:write, 404 si no existe). Frontend cableado: al abrir Documentos se precarga el contenido del primer documento y cada fila lo carga al hacer clic; el panel de detalle muestra el CONTENIDO real, la adenda y el sello de firma (antes: solo metadatos + nota de proximamente).",
+   "invariants": [
+    "El contenido real del documento se puede recuperar via GET /api/v1/documents/:id (pliega los eventos, RLS-scoped)",
+    "La adenda es append-only: el GET devuelve todas las enmiendas en orden; nada se borra",
+    "La firma (contentHash + signatureDigest + authorId + signedAt) se expone cuando el documento esta firmado",
+    "Documento inexistente -> 404; lectura requiere scope document:write",
+    "El detalle de la vista Documentos muestra el contenido real (no maqueta ni nota de proximamente)"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (documentDetail: fold de eventos -> contenido/estado/adenda/firma, RLS-scoped)",
+    "apps/web/lib/document-lifecycle.ts (handleDocumentGet)",
+    "apps/web/app/api/v1/documents/[documentId]/route.ts (GET)",
+    "apps/web/app/workspace/page.tsx (DocDetail + loadDoc; precarga del primero y carga por clic; panel de detalle con contenido/adenda/firma reales)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Documentos: mock del GET :id -> el detalle muestra contenido/estado)",
+    "scripts/v22/live-document-detail-proof.mts"
+   ],
+   "runtime_evidence": "Live proof vs Neon PASS 14/14: crear -> finalizar -> firmar -> enmendar; GET devuelve contenido real, titulo/paciente reales, estado AMENDED, version 4, firma con hashes de 64, y 1 adenda; documento inexistente -> 404; sin scope -> 403. Render test 46/46; typecheck limpio.",
+   "epic": "S-DOCUMENTOS/BACKEND",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

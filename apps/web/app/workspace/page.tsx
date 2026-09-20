@@ -82,6 +82,7 @@ type ClaimItem=Readonly<{claimId:string;folio:string;patientId:string;patientNam
 type ClaimsRegistry=Readonly<{items:ClaimItem[];total:number;incomeThisMonth:number;issuedCount:number;pendingCount:number;pendingAmount:number;cancellations:number}>;
 type DocItem=Readonly<{documentId:string;title:string;docType:string;typeLabel:string;status:string;statusLabel:string;createdAt:string;actorId:string}>;
 type DocsSnap=Readonly<{items:DocItem[];total:number;byType:Record<string,number>;chips:{clinical:number;consents:number;studies:number}}>;
+type DocDetail=Readonly<{documentId:string;patientId:string;title:string;docType:string;typeLabel:string;content:string;state:string;statusLabel:string;version:number;createdAt:string;addenda:{addendum:string;authorId:string;at:string}[];signature:{authorId:string;contentHash:string;signatureDigest:string;signedAt:string}|null}>;
 type ResultItem=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;critical:boolean;status:string;interpretation:string;tipo:string;estado:string;lifecycle:string;receivedAt:string}>;
 type ResultsRegistry=Readonly<{items:ResultItem[];total:number;abnormal:number;enSeguimiento:number;pendientes:number}>;
 type ConsTabs=Readonly<{results:{analyte:string;value:string;estado:string;critical:boolean;receivedAt:string}[];orders:{typeLabel:string;detail:string;status:string;createdAt:string}[];medications:string[];planGoals:{goal:string;statusLabel:string}[];documents:{title:string;typeLabel:string;createdAt:string}[];obligations:{task:string;dueAt:string;statusLabel:string;done:boolean}[]}>;
@@ -539,6 +540,8 @@ export default function Workspace(){
  const[nfBusy,setNfBusy]=useState(false);const[nfMsg,setNfMsg]=useState("");
  // Vista Documentos (S-DOCUMENTOS) — lista por paciente cableada a GET /patients/:id/documents
  const[docsSnap,setDocsSnap]=useState<DocsSnap|null>(null);
+ const[docDetail,setDocDetail]=useState<DocDetail|null>(null);const[docDetBusy,setDocDetBusy]=useState(false);
+ const loadDoc=async(id:string)=>{setDocDetBusy(true);setDocDetail(null);try{const r=await apiRequest(`/api/v1/documents/${id}`,{method:"GET"});if(r.status===200)setDocDetail(r.body as unknown as DocDetail);}catch{/* documento no disponible */}finally{setDocDetBusy(false);}};
  const[docsTab,setDocsTab]=useState<"todos"|"clinicos"|"administrativos"|"consentimientos"|"estudios"|"recetas"|"notas"|"otros">("todos");
  const[docSel,setDocSel]=useState(0);const[docFolder,setDocFolder]=useState("Todos los documentos");const[docMsg,setDocMsg]=useState("");
  const[docNew,setDocNew]=useState(false);const[docBusy,setDocBusy]=useState(false);
@@ -807,6 +810,13 @@ export default function Workspace(){
   })();
   return()=>{cancelled=true;};
  },[view,ready,session,patientId]);
+
+ // Al cargar la lista de documentos, precarga el contenido REAL del primero (repositorio GET /documents/:id).
+ useEffect(()=>{
+  if(view!=="documentos")return;const first=docsSnap?.items?.[0];
+  if(first&&docDetail?.documentId!==first.documentId)void loadDoc(first.documentId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+ },[view,docsSnap]);
 
  // Auto-carga de las obligaciones regulatorias del consultorio (vista Obligaciones) — nivel tenant, sin paciente.
  useEffect(()=>{
@@ -3305,8 +3315,8 @@ export default function Workspace(){
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
    const fmtD=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
    const docLoaded=!!docsSnap;
-   type DRow={title:string;type:string;date:string;by:string;size:string};
-   const allRows:DRow[]=(docsSnap?.items??[]).map(it=>({title:it.title,type:it.typeLabel,date:fmtD(it.createdAt),by:"Médico tratante",size:"—"}));
+   type DRow={id:string;title:string;type:string;date:string;by:string;size:string};
+   const allRows:DRow[]=(docsSnap?.items??[]).map(it=>({id:it.documentId,title:it.title,type:it.typeLabel,date:fmtD(it.createdAt),by:"Médico tratante",size:"—"}));
    const rows:DRow[]=docFolder==="Todos los documentos"?allRows:allRows.filter(r=>r.type===docFolder);
    const total=docsSnap?.total??0;
    const chips=docsSnap?docsSnap.chips:{clinical:0,consents:0,studies:0};
@@ -3353,7 +3363,7 @@ export default function Workspace(){
       <div style={{padding:"14px 16px",fontSize:16,fontWeight:800}}>Documentos ({rows.length})</div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr><th style={th}>Nombre</th><th style={th}>Tipo</th><th style={{...th,textAlign:"right"}}>Fecha</th></tr></thead>
-       <tbody>{rows.length===0?<tr><td colSpan={3} style={{...tdc,textAlign:"center",color:P.muted,padding:"36px 12px"}}>{patientId?(docLoaded?(docFolder==="Todos los documentos"?"Sin documentos. Usa «+ Nuevo documento».":"Sin documentos en esta carpeta."):"Cargando documentos…"):"Selecciona un paciente para ver sus documentos."}</td></tr>:rows.map((r,i)=>{const on=i===docSel;return <tr key={i} onClick={()=>setDocSel(i)} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
+       <tbody>{rows.length===0?<tr><td colSpan={3} style={{...tdc,textAlign:"center",color:P.muted,padding:"36px 12px"}}>{patientId?(docLoaded?(docFolder==="Todos los documentos"?"Sin documentos. Usa «+ Nuevo documento».":"Sin documentos en esta carpeta."):"Cargando documentos…"):"Selecciona un paciente para ver sus documentos."}</td></tr>:rows.map((r,i)=>{const on=i===docSel;return <tr key={i} onClick={()=>{setDocSel(i);void loadDoc(r.id);}} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
         <td style={tdc}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{color:P.red,flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={pdfIco}/></svg></span><span style={{fontWeight:600,color:P.ink}}>{r.title}</span></div></td>
         <td style={tdc}><span style={typeSty(r.type)}>{r.type}</span></td>
         <td style={{...tdc,color:P.muted,textAlign:"right"}}>{r.date}</td>
@@ -3365,11 +3375,14 @@ export default function Workspace(){
      <div style={{...card2,padding:0,overflow:"hidden"}}>
       <div style={{padding:"14px 16px",borderBottom:`1px solid ${LINE}`,fontSize:15,fontWeight:800}}>Detalle del documento</div>
       {!sel?<div style={{padding:"40px 16px",textAlign:"center",color:P.muted,fontSize:13}}>{rows.length===0?"Crea un documento con «+ Nuevo documento».":"Selecciona un documento de la lista para ver su detalle."}</div>:<div style={{padding:"16px"}}>
-       <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{color:P.red,flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={pdfIco}/></svg></span><div style={{minWidth:0}}><div style={{fontSize:14,fontWeight:700}}>{sel.title}</div><span style={typeSty(sel.type)}>{sel.type}</span></div></div>
+       <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{color:P.red,flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={pdfIco}/></svg></span><div style={{minWidth:0}}><div style={{fontSize:14,fontWeight:700}}>{docDetail?.title??sel.title}</div><span style={typeSty(docDetail?.typeLabel??sel.type)}>{docDetail?.typeLabel??sel.type}</span>{docDetail&&<span style={{marginLeft:6,fontSize:11,fontWeight:700,color:docDetail.state==="SIGNED"||docDetail.state==="AMENDED"?"#16A66A":P.amber}}>· {docDetail.statusLabel}</span>}</div></div>
        <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:9,fontSize:12.5}}>
-        {[["Tipo",sel.type],["Fecha de creación",sel.date],["Paciente",patientName||"—"]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",gap:10}}><span style={{color:P.muted}}>{k}</span><span style={{fontWeight:600,textAlign:"right"}}>{v}</span></div>)}
+        {[["Tipo",docDetail?.typeLabel??sel.type],["Fecha de creación",docDetail?fmtD(docDetail.createdAt):sel.date],["Paciente",patientName||"—"]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",gap:10}}><span style={{color:P.muted}}>{k}</span><span style={{fontWeight:600,textAlign:"right"}}>{v}</span></div>)}
        </div>
-       <div style={{marginTop:14,fontSize:11.5,color:P.muted,background:"#F7F6FE",border:`1px solid #E2DEFB`,borderRadius:10,padding:"10px 12px"}}>Documento clínico firmable registrado en el expediente. La previsualización del contenido completo se abre desde el expediente del paciente.</div>
+       <div style={{marginTop:14,fontSize:12,fontWeight:700,marginBottom:6}}>Contenido</div>
+       {docDetBusy?<div style={{fontSize:12.5,color:P.muted}}>Cargando contenido…</div>:docDetail?<div style={{background:"#F7F8FC",border:`1px solid ${LINE}`,borderRadius:10,padding:"12px 14px",fontSize:12.5,lineHeight:1.55,whiteSpace:"pre-wrap",maxHeight:220,overflow:"auto",color:P.ink}}>{docDetail.content}</div>:<div style={{fontSize:12.5,color:P.muted}}>Selecciona el documento para ver su contenido.</div>}
+       {docDetail&&docDetail.addenda.length>0&&<div style={{marginTop:12}}><div style={{fontSize:12,fontWeight:700,marginBottom:6}}>Adenda ({docDetail.addenda.length})</div>{docDetail.addenda.map((a,i)=><div key={i} style={{fontSize:12,lineHeight:1.5,padding:"8px 11px",borderRadius:9,background:"#FFF9EC",border:"1px solid #F2E1C0",marginBottom:6}}>{a.addendum}<div style={{fontSize:10.5,color:P.muted,marginTop:3}}>{fmtD(a.at)}</div></div>)}</div>}
+       {docDetail?.signature&&<div style={{marginTop:12,fontSize:11.5,color:"#166534",background:"#E6F6EE",border:"1px solid #BFE6CF",borderRadius:9,padding:"9px 11px"}}>✓ Firmado · digest <span style={{fontFamily:"monospace"}}>{docDetail.signature.signatureDigest.slice(0,16)}…</span></div>}
        <button onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Documentos"),0);}} style={{marginTop:14,width:"100%",border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button>
       </div>}
      </div>

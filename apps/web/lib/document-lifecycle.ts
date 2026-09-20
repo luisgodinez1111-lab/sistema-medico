@@ -4,7 +4,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldDocument,assertDocumentTransition,type FoldedDocument,type DocumentState}from"../../../packages/document-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,documentDetail}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC I — Ciclo de vida del documento clínico sobre el kernel. Autoridad PROD-014-R022 /
@@ -45,6 +45,19 @@ export async function handleDocumentAutosave(req:Request):Promise<Response>{
   // El contenido definitivo se persiste en FINALIZE o SIGN.
   const contentHash=crypto.createHash("sha256").update(b.content).digest("hex");
   return NextResponse.json({documentId:b.documentId,contentHash,autosavedAt:b.occurredAt,note:"AUTOSAVE_ONLY_NO_EVENT"},{status:200});
+ }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
+
+// GET (repositorio) — UN documento con su CONTENIDO real, adenda (append-only) y firma. Solo lectura, RLS-scoped.
+const TYPE_UI:Record<string,string>={PROGRESS_NOTE:"Nota médica",DISCHARGE_SUMMARY:"Alta",REFERRAL:"Interconsulta",PROCEDURE_NOTE:"Procedimiento",OTHER:"Otro"};
+const STATUS_ES:Record<string,string>={DRAFT:"Borrador",FINALIZED:"Finalizado",SIGNED:"Firmado",AMENDED:"Enmendado"};
+export async function handleDocumentGet(req:Request,documentId:string):Promise<Response>{
+ try{
+  const{claims,ctx}=resolveVerified(req);
+  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:write",purpose:"TREATMENT"});
+  const d=await documentDetail(ctx,documentId);
+  if(!d.exists)throw new ClinicalError("NOT_FOUND","Document not found");
+  return NextResponse.json({...d,typeLabel:TYPE_UI[d.docType]??"Otro",statusLabel:STATUS_ES[d.state]??"Borrador"},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
