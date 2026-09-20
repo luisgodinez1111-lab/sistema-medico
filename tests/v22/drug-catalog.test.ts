@@ -109,9 +109,24 @@ describe("ajuste/contraindicación renal por eGFR (EPIC BM)",()=>{
   expect(checkRenalDosing("ibuprofeno-400",20).action).toBe("BLOCK");
   expect(checkRenalDosing("ibuprofeno-400",50).action).toBe("OK");
  });
- it("fármaco sin regla renal (o desconocido) -> OK",()=>{
-  expect(checkRenalDosing("amoxicilina-500",10).action).toBe("OK");
-  expect(checkRenalDosing("desconocido-xyz",10).action).toBe("OK");
+ // Auditoría 2026-09-19 (C-03/C-05): "no pude evaluar" NUNCA es "OK". Este test antes fijaba el fallo abierto.
+ it("fármaco en catálogo SIN regla renal -> NOT_COVERED (no es 'OK')",()=>{
+  const r=checkRenalDosing("amoxicilina-500",10);
+  expect(r.action).toBe("NOT_COVERED");expect(r.reason).toBe("NO_RENAL_RULE");
+ });
+ it("fármaco FUERA de catálogo -> NOT_EVALUATED (no es 'OK')",()=>{
+  const r=checkRenalDosing("desconocido-xyz",10);
+  expect(r.action).toBe("NOT_EVALUATED");expect(r.reason).toBe("DRUG_NOT_IN_CATALOG");
+  // apixabán con TFG 15 era el caso real de la auditoría: devolvía {action:"OK"}.
+  expect(checkRenalDosing("apixaban",15).action).toBe("NOT_EVALUATED");
+ });
+ it("las demás barreras declaran si pudieron evaluar",()=>{
+  expect(checkInteractions("desconocido-xyz",["warfarina"])).toMatchObject({found:false,evaluated:false});
+  expect(checkInteractions("ibuprofeno-400",["medicina-rara"])).toMatchObject({evaluated:true,unresolvedActive:["medicina-rara"]});
+  expect(checkContraindications("desconocido-xyz",["N18.3"])).toMatchObject({found:false,evaluated:false});
+  expect(checkDuplicateTherapy("desconocido-xyz",["ibuprofeno"])).toMatchObject({duplicate:false,evaluated:false});
+  expect(checkDrugAllergy("desconocido-xyz",["AINE"])).toMatchObject({blocked:false,classEvaluated:false});
+  expect(checkDrugAllergy("ibuprofeno-400",["penicilina"])).toMatchObject({blocked:false,classEvaluated:true});
  });
 });
 

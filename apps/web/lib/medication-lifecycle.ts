@@ -4,11 +4,12 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldMedication,assertMedicationTransition,type FoldedMedication}from"../../../packages/medication-fold/src";
 import{type MedicationState}from"../../../packages/medication-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid}from"./http-command";
 import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindications,resolveDrug,monitoringFor,checkRenalDosing}from"../../../packages/drug-catalog/src";
 import{validateMedicationOrder,normalizeRoute,checkDoseCeiling,checkPediatricDose}from"../../../packages/medication-validation/src";
+import{evaluatePrescriptionSafety,summarizeForEvent,ageInYears}from"../../../packages/prescription-safety/src";
 // EPIC H — Ciclo de vida de medicación sobre el kernel. Physician Control:
 // PROPOSE lo puede hacer cualquier clínico (o IA), PRESCRIBE exige médico (IA nunca prescribe).
 // EXEC-0014: Lifecycle PROPOSED->PRESCRIBED->STARTED->ACTIVE->HELD->STOPPED->CANCELLED
@@ -69,6 +70,8 @@ async function commitTransition(ctx:Parameters<typeof runClinicalCommand>[0],ide
 }
 
 const WhenBody=z.object({occurredAt:z.string().datetime()});
+// PRESCRIBE admite la confirmación explícita del médico cuando alguna barrera no pudo evaluarse (queda en el evento).
+const PrescribeBody=z.object({occurredAt:z.string().datetime(),acknowledgeUnverified:z.boolean().optional(),unverifiedJustification:z.string().max(500).optional()});
 const DAY_MS=86_400_000;
 // EPIC BA — Crea automáticamente las obligaciones de monitoreo del fármaco al prescribir (Zero-Lost-Follow-Up).
 // Idempotente: ids/keys derivados de la key de la prescripción + slot; un reintento reconstruye lo mismo.
@@ -89,30 +92,28 @@ async function createMonitoringObligations(ctx:Parameters<typeof runClinicalComm
 export async function handleMedicationPrescription(req:Request,medicationId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded,claims}=await loadForTransition(req,medicationId,true);
-  const b=await parseJson(req,WhenBody);
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType:"MEDICATION_PRESCRIBED",payload:{kind:"PRESCRIBED",prescriberId:claims.sub},occurredAt:b.occurredAt,topic:"medication.prescribed"});
+  const b=await parseJson(req,PrescribeBody);
+  // Auditoría 2026-09-19 (C-03/C-04): evaluador ÚNICO de barreras (el mismo del dry-run /prescription-check).
+  // Antes, un fármaco fuera del catálogo omitía TODAS las barreras en silencio. Ahora cada barrera queda en un
+  // estado explícito y, si alguna NO pudo evaluarse, el médico debe confirmarlo expresamente (queda en el evento).
+  const[substances,activeDrugs,conditions,egfr,weightKg,demo]=await Promise.all([
+   activeAllergySubstances(ctx,folded.patientId),activeMedicationDrugCodes(ctx,folded.patientId),activeProblemCodes(ctx,folded.patientId),
+   patientEgfr(ctx,folded.patientId),patientWeightKg(ctx,folded.patientId),patientDemographics(ctx,folded.patientId)]);
+  const safety=evaluatePrescriptionSafety({drugCode:folded.drugCode,dose:folded.dose,route:folded.route,frequency:folded.frequency,
+   allergySubstances:substances,activeDrugCodes:activeDrugs,activeConditionCodes:conditions,egfr,weightKg,
+   ageYears:demo?.birthDate?ageInYears(demo.birthDate,b.occurredAt):undefined});
+  const acknowledged=b.acknowledgeUnverified===true;
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType:"MEDICATION_PRESCRIBED",
+   payload:{kind:"PRESCRIBED",prescriberId:claims.sub,safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification})},occurredAt:b.occurredAt,topic:"medication.prescribed"});
   let result=await lookupReplay(ctx,cmd);
   if(!result){
    assertMedicationTransition(folded.state,"PRESCRIBED");
-   // Gate de seguridad: alergia activa + drug-catalog
-   const substances=await activeAllergySubstances(ctx,folded.patientId);
-   const conflict=checkDrugAllergy(folded.drugCode,substances);
-   if(conflict.blocked)throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: patient has an active allergy to ${conflict.allergen} (${conflict.via==="class"?"reactividad cruzada de clase":"principio activo"})`);
-   // EPIC AW — Duplicación terapéutica: no prescribir un fármaco de la MISMA clase que uno ya activo.
-   const activeDrugs=await activeMedicationDrugCodes(ctx,folded.patientId);
-   const dup=checkDuplicateTherapy(folded.drugCode,activeDrugs);
-   if(dup.duplicate)throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: duplicación terapéutica con ${dup.conflictDrug} (clase ${dup.sharedClass}). Suspenda el fármaco activo primero u ordene con justificación.`);
-   // EPIC AX — Interacción farmacológica MAJOR con un fármaco activo -> bloquea.
-   const ix=checkInteractions(folded.drugCode,activeDrugs);
-   if(ix.found&&ix.severity==="MAJOR")throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: interacción MAJOR con ${ix.conflictDrug} — ${ix.note}.`);
-   // EPIC AY — Contraindicación fármaco–condición: fármaco contraindicado por una condición ACTIVA (CIE-10) -> bloquea si MAJOR.
-   const conditions=await activeProblemCodes(ctx,folded.patientId);
-   const ci=checkContraindications(folded.drugCode,conditions);
-   if(ci.found&&ci.severity==="MAJOR")throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: contraindicado por la condición activa ${ci.condition} — ${ci.note}.`);
-   // EPIC BM — Función renal MEDIDA (eGFR): contraindica el fármaco por debajo de su umbral renal.
-   const egfr=await patientEgfr(ctx,folded.patientId);
-   if(egfr!==undefined){const rd=checkRenalDosing(folded.drugCode,egfr);
-    if(rd.action==="BLOCK")throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: función renal insuficiente (TFG ${egfr} < ${rd.threshold}) — ${rd.note}.`,{egfr,threshold:rd.threshold});}
+   const blocked=safety.barriers.filter(x=>x.status==="BLOCKED"&&x.id!=="order");
+   if(blocked.length>0)throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: ${blocked.map(x=>x.detail).join(" · ")}`,{barriers:blocked.map(x=>x.id)});
+   if(safety.requiresAcknowledgement&&!acknowledged)throw new ClinicalError("SAFETY_ACK_REQUIRED",
+    `Verificación automática incompleta (${safety.notEvaluated.join(", ")}): ${safety.catalogResolved?"faltan datos del paciente para evaluar":"el fármaco no está en el catálogo"}. Confirme expresamente que prescribe bajo su criterio clínico (acknowledgeUnverified) e indique la justificación.`,
+    {notEvaluated:safety.notEvaluated});
+   if(safety.requiresAcknowledgement&&(b.unverifiedJustification??"").trim().length<10)throw new ClinicalError("VALIDATION_ERROR","unverifiedJustification (≥10 caracteres) es obligatoria al prescribir sin verificación automática completa");
    // EXEC-0014 / EPIC BA: al prescribir, crear las obligaciones de monitoreo del fármaco (INR, creatinina/TFG, potasio...).
    result=await runClinicalCommand(ctx,cmd);
    await createMonitoringObligations(ctx,idempotencyKey,folded.patientId,claims.sub,folded.drugCode,b.occurredAt);

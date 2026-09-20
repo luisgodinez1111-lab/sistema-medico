@@ -111,7 +111,7 @@ const DONE_KINDS=new Set(["COMPLETED","FULFILLED","ADMINISTERED","ACHIEVED","CLO
 const SCHED_KINDS=new Set(["IN_PROGRESS","ACCEPTED","CHECKED_IN","SCHEDULED","ACTIVE","PROGRESSED"]);
 const CANCEL_KINDS=new Set(["CANCELLED","DECLINED","NO_SHOW","REVOKED","ENTERED_IN_ERROR"]);
 function followState(kind:string):"pend"|"prog"|"done"|"skip"{if(DONE_KINDS.has(kind))return "done";if(CANCEL_KINDS.has(kind))return "skip";if(SCHED_KINDS.has(kind))return "prog";return "pend";}
-type RxCheck=Readonly<{drug:{input:string;resolved:{ingredient:string;classes:string[]}|null};egfr:number|null;checks:{id:string;label:string;status:"OK"|"WARN"|"BLOCK";detail:string}[];monitoring:{test:string;note:string;dueInDays:number}[];indications:string;verdict:"OK"|"WARN"|"BLOCK"}>;
+type RxCheck=Readonly<{drug:{input:string;resolved:{ingredient:string;classes:string[]}|null};egfr:number|null;checks:{id:string;label:string;status:"OK"|"WARN"|"BLOCK"|"NOT_EVALUATED"|"NOT_COVERED"|"NA";detail:string}[];monitoring:{test:string;note:string;dueInDays:number}[];indications:string;verdict:"OK"|"WARN"|"BLOCK";requiresAcknowledgement?:boolean;notEvaluated?:string[];notCovered?:string[]}>;
 // Panel 4 — evolución longitudinal
 type Series=readonly{value:number;at:string}[];
 type Trends=Readonly<{series:Record<string,Series>;latest:{LDL:number|null;CREATININE:number|null;UACR:number|null;EGFR:number|null}}>;
@@ -471,7 +471,9 @@ export default function Workspace(){
  const[activeH2,setActiveH2]=useState(""); // scrollspy: módulo visible resaltado en el nav-rail
  const[snap,setSnap]=useState<Snap|null>(null); // snapshot de consulta (hero panel 1)
  const[rxDrug,setRxDrug]=useState("");const[rxDose,setRxDose]=useState("");const[rxRoute,setRxRoute]=useState("Oral");const[rxFreq,setRxFreq]=useState("");
- const[rxCheck,setRxCheck]=useState<RxCheck|null>(null);const[rxMsg,setRxMsg]=useState("");
+ const[rxCheck,setRxCheck]=useState<RxCheck|null>(null);
+ // Confirmación EXPLÍCITA del médico cuando el servidor no pudo evaluar alguna barrera (428 SAFETY_ACK_REQUIRED).
+ const[ackMed,setAckMed]=useState<{med:Med;message:string}|null>(null);const[ackWhy,setAckWhy]=useState("");const[rxMsg,setRxMsg]=useState("");
  const[trends,setTrends]=useState<Trends|null>(null);const[trendKey,setTrendKey]=useState<TrendKey>("HBA1C");
  const[followTab,setFollowTab]=useState<"pend"|"prog"|"done"|"all">("pend");
  const[topSearch,setTopSearch]=useState("");
@@ -1176,9 +1178,19 @@ export default function Workspace(){
  const advanceMed=(m:Med)=>call("med-"+m.id,async()=>{
   const n=medNext(m);if(!n)return;
   const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:m.version});
+  const code=(r.body["error"] as{code?:string}|undefined)?.code;
+  if(r.status===428&&code==="SAFETY_ACK_REQUIRED"){setAckWhy("");setAckMed({med:m,message:String((r.body["error"] as{message?:string}|undefined)?.message??"")});return;}
   if(r.status>=400){setError(errMsg(r));return;}
   setMeds(ms=>ms.map(x=>x.id===m.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
+ // Reenvía PRESCRIBE con la confirmación expresa y la justificación del médico; ambas quedan en el evento inmutable.
+ const confirmAckMed=()=>{const a=ackMed;if(!a)return;return call("med-"+a.med.id,async()=>{
+  const n=medNext(a.med);if(!n)return;
+  const r=await apiRequest(n.path,{method:"POST",body:{...n.body,acknowledgeUnverified:true,unverifiedJustification:ackWhy.trim()},ifMatch:a.med.version});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setMeds(ms=>ms.map(x=>x.id===a.med.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
+  setAckMed(null);setAckWhy("");
+ });};
  // Panel 3 — verificación de seguridad SIN escribir (dry-run de las barreras) y envío de la Rx.
  const verifyRx=()=>call("rxcheck",async()=>{
   setRxMsg("");
@@ -4131,17 +4143,18 @@ export default function Workspace(){
     {snap?.labs.egfr!==undefined&&<span style={{fontSize:12,color:P.muted}}>eGFR paciente: <b>{snap?.labs.egfr} mL/min</b>{snap?.labs.egfrStage?` · ERC ${snap.labs.egfrStage}`:""}</span>}
    </div>
    <div className="mos-rx-form">
-    <input style={input} value={rxDrug} onChange={e=>setRxDrug(e.target.value)} placeholder="Buscar medicamento (ej. metformina, losartan)" />
-    <input style={input} value={rxDose} onChange={e=>setRxDose(e.target.value)} placeholder="Dosis (500mg)" />
-    <select style={input} value={rxRoute} onChange={e=>setRxRoute(e.target.value)}><option>Oral</option><option>IV</option><option>IM</option><option>SC</option><option>Tópica</option></select>
-    <input style={input} value={rxFreq} onChange={e=>setRxFreq(e.target.value)} placeholder="Frecuencia (c/12h)" />
+    <input style={input} value={rxDrug} onChange={e=>{setRxDrug(e.target.value);setRxCheck(null);}} placeholder="Buscar medicamento (ej. metformina, losartan)" />
+    <input style={input} value={rxDose} onChange={e=>{setRxDose(e.target.value);setRxCheck(null);}} placeholder="Dosis (500mg)" />
+    <select style={input} value={rxRoute} onChange={e=>{setRxRoute(e.target.value);setRxCheck(null);}}><option>Oral</option><option>IV</option><option>IM</option><option>SC</option><option>Tópica</option></select>
+    <input style={input} value={rxFreq} onChange={e=>{setRxFreq(e.target.value);setRxCheck(null);}} placeholder="Frecuencia (c/12h)" />
     <button style={btn} disabled={busy!==""||!rxDrug||!rxDose||!rxFreq} onClick={verifyRx}>{busy==="rxcheck"?"Verificando…":"Verificar"}</button>
    </div>
    {rxMsg&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:12,background:"#EAF7EF",border:"1px solid #CDEBD8",color:"#1A7F43",fontSize:13,fontWeight:600}}>{rxMsg}</div>}
    {rxCheck&&(()=>{
     const v=rxCheck.verdict;
-    const vm=v==="OK"?{bg:"#EAF7EF",bd:"#CDEBD8",fg:"#1A7F43",txt:"Verificación superada — dosis y seguridad adecuadas"}:v==="WARN"?{bg:"#FFF7EC",bd:"#F0DBB8",fg:"#A15C00",txt:"Requiere criterio clínico — revisa las advertencias"}:{bg:"#FDEEEE",bd:"#F3C9C9",fg:"#B3261E",txt:"Prescripción bloqueada — corrige antes de enviar"};
-    const ic=(s:string)=>s==="OK"?"✓":s==="WARN"?"⚠":"✕";const icc=(s:string)=>s==="OK"?"#1A7F43":s==="WARN"?"#A15C00":"#B3261E";
+    const vm=v==="OK"?{bg:"#EAF7EF",bd:"#CDEBD8",fg:"#1A7F43",txt:(rxCheck.notCovered?.length??0)>0?"Sin conflictos en lo evaluado — hay barreras sin regla en el catálogo (en gris)":"Verificación superada — todas las barreras evaluadas"}:v==="WARN"?{bg:"#FFF7EC",bd:"#F0DBB8",fg:"#A15C00",txt:rxCheck.requiresAcknowledgement?"Verificación INCOMPLETA — hay barreras que no se pudieron evaluar; al prescribir deberás confirmarlo":"Requiere criterio clínico — revisa las advertencias"}:{bg:"#FDEEEE",bd:"#F3C9C9",fg:"#B3261E",txt:"Prescripción bloqueada — corrige antes de enviar"};
+    const unev=(s:string)=>s==="NOT_EVALUATED"||s==="NOT_COVERED"||s==="NA";
+    const ic=(s:string)=>s==="OK"?"✓":s==="WARN"?"⚠":s==="NA"?"–":unev(s)?"?":"✕";const icc=(s:string)=>s==="OK"?"#1A7F43":s==="WARN"?"#A15C00":unev(s)?"#5F6B7A":"#B3261E";
     return <div style={{marginTop:14}}>
      <div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",borderRadius:12,background:vm.bg,border:`1px solid ${vm.bd}`,color:vm.fg,fontWeight:700,fontSize:14,flexWrap:"wrap"}}>
       <span style={{fontSize:16}}>{ic(v)}</span>{vm.txt}
@@ -4643,6 +4656,16 @@ export default function Workspace(){
    </div>}
   </section>
 
+  {ackMed&&<div className="span2" role="alertdialog" aria-labelledby="ack-title" style={{...card,borderColor:"#F0DBB8",background:"#FFF7EC"}}>
+   <b id="ack-title" style={{color:"#8A4B00"}}>Verificación automática incompleta — {ackMed.med.label}</b>
+   <p style={{margin:"6px 0 0",color:"#5A3A0A",wordBreak:"break-word"}}>{ackMed.message}</p>
+   <label htmlFor="ack-why" style={{display:"block",margin:"10px 0 4px",fontSize:12,fontWeight:700,color:"#5A3A0A"}}>Justificación clínica (queda en el expediente, mínimo 10 caracteres)</label>
+   <textarea id="ack-why" value={ackWhy} onChange={e=>setAckWhy(e.target.value)} rows={2} maxLength={500} style={{...input,width:"100%",resize:"vertical"}} />
+   <div style={{display:"flex",gap:10,marginTop:10,justifyContent:"flex-end"}}>
+    <button style={{...ghost,padding:"9px 16px"}} onClick={()=>{setAckMed(null);setAckWhy("");}}>Cancelar</button>
+    <button style={{...btn,opacity:ackWhy.trim().length<10?.5:1}} disabled={busy!==""||ackWhy.trim().length<10} onClick={confirmAckMed}>Prescribir bajo mi criterio clínico</button>
+   </div>
+  </div>}
   {error&&<div className="span2" style={{...card,borderColor:"#f0c6c0",background:"#fdf3f2"}}><b style={{color:"#c0392b"}}>Error</b><p style={{margin:"6px 0 0",color:"#7a3b34",wordBreak:"break-word"}}>{error}</p>{error.includes("SAFETY_BLOCKED")&&<p style={{margin:"6px 0 0",fontSize:12,color:"#a15c00"}}>💡 ¿Hay un resultado crítico sin cerrar para este paciente? Ciérralo abajo y vuelve a firmar.</p>}</div>}
   </main>
   </>)}

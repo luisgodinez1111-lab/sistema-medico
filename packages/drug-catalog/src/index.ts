@@ -52,17 +52,20 @@ function interactionFor(a:readonly string[],b:readonly string[]):DrugInteraction
  const sa=new Set(a),sb=new Set(b);
  return INTERACTIONS.find(i=>(sa.has(i.classA)&&sb.has(i.classB))||(sa.has(i.classB)&&sb.has(i.classA)));
 }
-export type InteractionHit=Readonly<{found:boolean;severity?:"MAJOR"|"MODERATE";note?:string;conflictDrug?:string}>;
+// `evaluated=false` => el fármaco a prescribir NO está en el catálogo: NO se verificó nada (nunca leer como "sin
+// interacciones"). `unresolvedActive` = fármacos activos del paciente fuera de catálogo (cobertura parcial).
+export type InteractionHit=Readonly<{found:boolean;evaluated:boolean;unresolvedActive:readonly string[];severity?:"MAJOR"|"MODERATE";note?:string;conflictDrug?:string}>;
 // ¿El fármaco a prescribir interactúa con alguno ya activo? Devuelve la interacción de mayor severidad.
 export function checkInteractions(newDrugCode:string,activeDrugCodes:readonly string[]):InteractionHit{
- const nd=resolveDrug(newDrugCode);if(!nd)return{found:false};
- let best:InteractionHit={found:false};
+ const nd=resolveDrug(newDrugCode);if(!nd)return{found:false,evaluated:false,unresolvedActive:[]};
+ const unresolvedActive=activeDrugCodes.filter(a=>norm(a)!==norm(newDrugCode)&&!resolveDrug(a));
+ let best:InteractionHit={found:false,evaluated:true,unresolvedActive};
  for(const active of activeDrugCodes){
   if(norm(active)===norm(newDrugCode))continue;
   const ad=resolveDrug(active);if(!ad)continue;
   const hit=interactionFor(nd.classes,ad.classes);
-  if(hit){if(hit.severity==="MAJOR")return{found:true,severity:"MAJOR",note:hit.note,conflictDrug:active};
-   if(!best.found)best={found:true,severity:hit.severity,note:hit.note,conflictDrug:active};}
+  if(hit){if(hit.severity==="MAJOR")return{found:true,evaluated:true,unresolvedActive,severity:"MAJOR",note:hit.note,conflictDrug:active};
+   if(!best.found)best={found:true,evaluated:true,unresolvedActive,severity:hit.severity,note:hit.note,conflictDrug:active};}
  }
  return best;
 }
@@ -74,10 +77,17 @@ const RENAL_RULES_BY_CLASS:Record<string,RenalRule>={
  BIGUANIDE:{blockBelow:30,cautionBelow:45,note:"Metformina: contraindicada si TFG<30 (acidosis láctica); ajustar/vigilar entre 30–45"},
  NSAID:{blockBelow:30,note:"AINE: evitar si TFG<30 (nefrotoxicidad / deterioro renal)"},
 };
-export type RenalDosing=Readonly<{action:"BLOCK"|"CAUTION"|"OK";note?:string;threshold?:number;drugClass?:string}>;
+// "OK" SOLO si existe una regla renal para el fármaco y el eGFR la supera. Sin regla en el catálogo => "NOT_COVERED";
+// fármaco fuera de catálogo => "NOT_EVALUATED". Ninguno de los dos significa "seguro" (auditoría 2026-09-19, C-03).
+export type RenalDosing=Readonly<{action:"BLOCK"|"CAUTION"|"OK"|"NOT_COVERED"|"NOT_EVALUATED";note?:string;threshold?:number;drugClass?:string;reason?:"DRUG_NOT_IN_CATALOG"|"NO_RENAL_RULE"}>;
+// ¿El catálogo tiene alguna regla renal para este fármaco? (para distinguir "sin regla" de "regla superada").
+export function renalRuleForDrug(drugCode:string):(RenalRule&{drugClass:string})|undefined{
+ const d=resolveDrug(drugCode);return d?renalRuleFor(d.classes)??undefined:undefined;
+}
 // ¿La función renal (eGFR) contraindica o exige precaución para este fármaco? Devuelve la acción más severa.
 export function checkRenalDosing(drugCode:string,egfr:number):RenalDosing{
- const d=resolveDrug(drugCode);if(!d)return{action:"OK"};
+ const d=resolveDrug(drugCode);if(!d)return{action:"NOT_EVALUATED",reason:"DRUG_NOT_IN_CATALOG",note:"Fármaco fuera del catálogo: ajuste renal NO evaluado"};
+ if(!renalRuleFor(d.classes))return{action:"NOT_COVERED",reason:"NO_RENAL_RULE",note:"El catálogo no tiene regla renal para este fármaco: ajuste renal NO evaluado"};
  let best:RenalDosing={action:"OK"};
  for(const cl of d.classes){
   const r=RENAL_RULES_BY_CLASS[cl];if(!r)continue;
@@ -98,19 +108,19 @@ const CONTRAINDICATIONS:readonly DrugCondition[]=[
  {drugClass:"BIGUANIDE",icd10Prefix:"N18",severity:"MODERATE",note:"Metformina en ERC: riesgo de acidosis láctica; contraindicada si TFG<30, ajustar dosis y vigilar"},
  {drugClass:"ACE_INHIBITOR",icd10Prefix:"N18",severity:"MODERATE",note:"IECA en ERC: vigilar potasio y creatinina (nefroprotector pero requiere monitoreo estrecho)"},
 ];
-export type ContraindicationHit=Readonly<{found:boolean;severity?:"MAJOR"|"MODERATE";note?:string;condition?:string}>;
+export type ContraindicationHit=Readonly<{found:boolean;evaluated:boolean;severity?:"MAJOR"|"MODERATE";note?:string;condition?:string}>;
 // ¿El fármaco a prescribir está contraindicado por alguna condición activa? Devuelve la de mayor severidad.
 export function checkContraindications(newDrugCode:string,activeConditionCodes:readonly string[]):ContraindicationHit{
- const nd=resolveDrug(newDrugCode);if(!nd)return{found:false};
+ const nd=resolveDrug(newDrugCode);if(!nd)return{found:false,evaluated:false};
  const classes=new Set(nd.classes);
- let best:ContraindicationHit={found:false};
+ let best:ContraindicationHit={found:false,evaluated:true};
  for(const raw of activeConditionCodes){
   const code=raw.trim().toUpperCase();if(!code)continue;
   for(const ci of CONTRAINDICATIONS){
    if(!classes.has(ci.drugClass))continue;
    if(!code.startsWith(ci.icd10Prefix))continue;
-   if(ci.severity==="MAJOR")return{found:true,severity:"MAJOR",note:ci.note,condition:raw};
-   if(!best.found)best={found:true,severity:"MODERATE",note:ci.note,condition:raw};
+   if(ci.severity==="MAJOR")return{found:true,evaluated:true,severity:"MAJOR",note:ci.note,condition:raw};
+   if(!best.found)best={found:true,evaluated:true,severity:"MODERATE",note:ci.note,condition:raw};
   }
  }
  return best;
@@ -157,7 +167,9 @@ function allergyClasses(substance:string):string[]{
  for(const[k,v]of Object.entries(ALLERGY_SYNONYMS))if(s.includes(k))for(const cl of v)out.add(cl);
  return[...out];
 }
-export type AllergyConflict=Readonly<{blocked:boolean;allergen?:string;via?:"class"|"ingredient"}>;
+// `classEvaluated=false` => fármaco fuera de catálogo: solo se comparó por nombre; la reactividad cruzada por
+// CLASE (p. ej. penicilina ↔ cefalosporina, AINE ↔ AINE) NO se pudo evaluar.
+export type AllergyConflict=Readonly<{blocked:boolean;classEvaluated:boolean;allergen?:string;via?:"class"|"ingredient"}>;
 // ¿Prescribir `drugCode` entra en conflicto con alguna sustancia de alergia activa?
 export function checkDrugAllergy(drugCode:string,substances:readonly string[]):AllergyConflict{
  const c=norm(drugCode);const drug=resolveDrug(drugCode);
@@ -165,28 +177,28 @@ export function checkDrugAllergy(drugCode:string,substances:readonly string[]):A
  for(const raw of substances){
   const s=norm(raw);if(!s)continue;
   // 1) match por clase de alérgeno (incluye reactividad cruzada beta-lactámicos)
-  if(drug){const acs=allergyClasses(raw);if(acs.some(x=>drugClasses.has(x)))return{blocked:true,allergen:raw,via:"class"};
-   if(s.includes(drug.ingredient))return{blocked:true,allergen:raw,via:"ingredient"};}
+  if(drug){const acs=allergyClasses(raw);if(acs.some(x=>drugClasses.has(x)))return{blocked:true,classEvaluated:true,allergen:raw,via:"class"};
+   if(s.includes(drug.ingredient))return{blocked:true,classEvaluated:true,allergen:raw,via:"ingredient"};}
   // 2) fallback por subcadena del principio activo en el código (compatibilidad)
-  if(c.includes(s))return{blocked:true,allergen:raw,via:"ingredient"};
+  if(c.includes(s))return{blocked:true,classEvaluated:!!drug,allergen:raw,via:"ingredient"};
  }
- return{blocked:false};
+ return{blocked:false,classEvaluated:!!drug};
 }
 
 // EPIC AW — Duplicación terapéutica: ¿el fármaco a prescribir comparte CLASE con alguno ya activo?
 // (p. ej. dos AINE, dos beta-lactámicos, dos IECA). Reutiliza el catálogo de clases. Puro, sin PHI.
-export type DuplicateTherapy=Readonly<{duplicate:boolean;conflictDrug?:string;sharedClass?:string}>;
+export type DuplicateTherapy=Readonly<{duplicate:boolean;evaluated:boolean;conflictDrug?:string;sharedClass?:string}>;
 export function checkDuplicateTherapy(newDrugCode:string,activeDrugCodes:readonly string[]):DuplicateTherapy{
- const nd=resolveDrug(newDrugCode);if(!nd)return{duplicate:false};
+ const nd=resolveDrug(newDrugCode);if(!nd)return{duplicate:false,evaluated:false};
  const ndClasses=new Set(nd.classes);const nIng=nd.ingredient;
  for(const active of activeDrugCodes){
   if(norm(active)===norm(newDrugCode))continue; // no se compara consigo mismo
   const ad=resolveDrug(active);if(!ad)continue;
-  if(ad.ingredient===nIng)return{duplicate:true,conflictDrug:active,sharedClass:nd.classes[0]??nIng}; // mismo principio activo
+  if(ad.ingredient===nIng)return{duplicate:true,evaluated:true,conflictDrug:active,sharedClass:nd.classes[0]??nIng}; // mismo principio activo
   const shared=ad.classes.find(cl=>ndClasses.has(cl));
-  if(shared)return{duplicate:true,conflictDrug:active,sharedClass:shared};
+  if(shared)return{duplicate:true,evaluated:true,conflictDrug:active,sharedClass:shared};
  }
- return{duplicate:false};
+ return{duplicate:false,evaluated:true};
 }
 
 // EPIC R/UI — Clasificación determinista del alérgeno por sustancia (para el registro de alergias: tipo + gráficas).
