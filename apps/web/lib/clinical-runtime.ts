@@ -678,7 +678,10 @@ export async function readAggregateEvents(ctx:HttpTenantContext,aggregateId:stri
 // enmienda suma. version = nº de eventos del agregado.
 export type DocAddendum=Readonly<{addendum:string;authorId:string;at:string}>;
 export type DocSignature=Readonly<{authorId:string;contentHash:string;signatureDigest:string;signedAt:string}>;
-export type DocumentDetail=Readonly<{exists:boolean;documentId:string;patientId:string;title:string;docType:string;content:string;state:"DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED";version:number;createdAt:string;addenda:DocAddendum[];signature:DocSignature|null}>;
+// Un archivo binario adjunto (PHI) guardado en Vercel Blob privado. En el event stream SOLO va la referencia
+// (pathname del blob + hash + metadatos), nunca el binario. attachmentId = id determinista del evento adjunto.
+export type DocAttachment=Readonly<{attachmentId:string;filename:string;mime:string;size:number;pathname:string;contentHash:string;authorId:string;attachedAt:string}>;
+export type DocumentDetail=Readonly<{exists:boolean;documentId:string;patientId:string;title:string;docType:string;content:string;state:"DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED";version:number;createdAt:string;addenda:DocAddendum[];signature:DocSignature|null;attachments:DocAttachment[]}>;
 export async function documentDetail(ctx:HttpTenantContext,documentId:string):Promise<DocumentDetail>{
  const sql=getSql();
  return sql.begin(async tx=>{
@@ -688,17 +691,19 @@ export async function documentDetail(ctx:HttpTenantContext,documentId:string):Pr
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalDocument' and a.aggregate_id=${documentId}
    order by a.sequence asc`;
-  if(rows.length===0)return{exists:false,documentId,patientId:"",title:"",docType:"",content:"",state:"DRAFT",version:0,createdAt:"",addenda:[],signature:null};
-  let patientId="",title="",docType="",content="",createdAt="",state:DocumentDetail["state"]="DRAFT",signature:DocSignature|null=null;const addenda:DocAddendum[]=[];
+  if(rows.length===0)return{exists:false,documentId,patientId:"",title:"",docType:"",content:"",state:"DRAFT",version:0,createdAt:"",addenda:[],signature:null,attachments:[]};
+  let patientId="",title="",docType="",content="",createdAt="",state:DocumentDetail["state"]="DRAFT",signature:DocSignature|null=null;const addenda:DocAddendum[]=[];const attachments:DocAttachment[]=[];
   for(const r of rows){const o=r as Record<string,unknown>;const p=(o.payload??{}) as Record<string,unknown>;const at=o.occurred_at?new Date(String(o.occurred_at)).toISOString():"";
    switch(String(p.kind)){
     case"CREATED":patientId=String(p.patientId??"");docType=String(p.docType??"OTHER");title=String(p.title??"");content=String(p.content??"");createdAt=at;state="DRAFT";break;
     case"FINALIZED":state="FINALIZED";break;
     case"SIGNED":state="SIGNED";signature={authorId:String(p.authorId??""),contentHash:String(p.contentHash??""),signatureDigest:String(p.signatureDigest??""),signedAt:String(p.signedAt??at)};break;
     case"AMENDED":state="AMENDED";addenda.push({addendum:String(p.addendum??""),authorId:String(p.authorId??""),at:String(p.amendedAt??at)});break;
+    case"ATTACHED":attachments.push({attachmentId:String(p.attachmentId??""),filename:String(p.filename??"archivo"),mime:String(p.mime??"application/octet-stream"),size:Number(p.size??0),pathname:String(p.pathname??""),contentHash:String(p.contentHash??""),authorId:String(p.authorId??""),attachedAt:String(p.attachedAt??at)});break;
+    case"ATTACHMENT_REMOVED":{const rid=String(p.attachmentId??"");const idx=attachments.findIndex(a=>a.attachmentId===rid);if(idx>=0)attachments.splice(idx,1);break;}
    }
   }
-  return{exists:true,documentId,patientId,title,docType,content,state,version:rows.length,createdAt,addenda,signature};
+  return{exists:true,documentId,patientId,title,docType,content,state,version:rows.length,createdAt,addenda,signature,attachments};
  }) as Promise<DocumentDetail>;
 }
 // EPIC D — Gate Zero Lost Follow-Up: obligaciones críticas (URGENT) del paciente sin resolver.

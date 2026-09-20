@@ -51,3 +51,26 @@ export async function apiRequest(path:string,init:{method:string;body?:unknown;i
  try{body=await res.json() as Record<string,unknown>;}catch{/* sin cuerpo */}
  return{status:res.status,body};
 }
+// Subida multipart autenticada (adjuntos binarios). NO fijamos content-type: el navegador pone el boundary.
+// Idempotency-Key para que el reintento sea idempotente; cookie httpOnly same-origin para la auth.
+export async function apiUpload(path:string,formData:FormData,fetchImpl:typeof fetch=fetch):Promise<ApiResult>{
+ const headers:Record<string,string>={...authHeader(),"idempotency-key":globalThis.crypto.randomUUID()};
+ const res=await fetchImpl(path,{method:"POST",headers,credentials:"same-origin",body:formData});
+ let body:Record<string,unknown>={};
+ try{body=await res.json() as Record<string,unknown>;}catch{/* sin cuerpo */}
+ return{status:res.status,body};
+}
+// DELETE autenticado con Idempotency-Key (p. ej. quitar un adjunto).
+export async function apiDelete(path:string,fetchImpl:typeof fetch=fetch):Promise<ApiResult>{
+ const headers:Record<string,string>={...authHeader(),"idempotency-key":globalThis.crypto.randomUUID()};
+ const res=await fetchImpl(path,{method:"DELETE",headers,credentials:"same-origin"});
+ let body:Record<string,unknown>={};
+ try{body=await res.json() as Record<string,unknown>;}catch{/* sin cuerpo */}
+ return{status:res.status,body};
+}
+// Descarga binaria autenticada: devuelve un Blob (o null) para verlo/guardarlo desde la UI.
+export async function apiDownload(path:string,fetchImpl:typeof fetch=fetch):Promise<Blob|null>{
+ const res=await fetchImpl(path,{method:"GET",headers:{...authHeader()},credentials:"same-origin"});
+ if(!res.ok)return null;
+ return await res.blob();
+}

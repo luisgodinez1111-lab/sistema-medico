@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@auth0/auth0-spa-js": "^2.26.0",
+    "@vercel/blob": "^2.8.0",
     "jose": "^6.2.12",
     "next": "^15.5.0",
     "postgres": "^3.4.7",

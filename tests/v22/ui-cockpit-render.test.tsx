@@ -14,7 +14,7 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  apiRequest:async(path:string)=>{
   if(path.includes("/api/v1/vitals"))return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
   if(path.includes("/api/v1/care-plans"))return{status:201,body:{version:1}};
-  if(path.match(/\/api\/v1\/documents\/[^/]+$/))return{status:200,body:{documentId:"dc1",patientId:"p1",title:"Nota de evolución",docType:"PROGRESS_NOTE",typeLabel:"Nota médica",content:"Paciente estable. Continúa tratamiento.",state:"SIGNED",statusLabel:"Firmado",version:3,createdAt:"2026-09-17T00:00:00Z",addenda:[],signature:{authorId:"u1",contentHash:"a".repeat(64),signatureDigest:"b".repeat(64),signedAt:"2026-09-17T01:00:00Z"}}};
+  if(path.match(/\/api\/v1\/documents\/[^/]+$/))return{status:200,body:{documentId:"dc1",patientId:"p1",title:"Nota de evolución",docType:"PROGRESS_NOTE",typeLabel:"Nota médica",content:"Paciente estable. Continúa tratamiento.",state:"SIGNED",statusLabel:"Firmado",version:3,createdAt:"2026-09-17T00:00:00Z",addenda:[],signature:{authorId:"u1",contentHash:"a".repeat(64),signatureDigest:"b".repeat(64),signedAt:"2026-09-17T01:00:00Z"},attachments:[{attachmentId:"at1",filename:"laboratorio.pdf",mime:"application/pdf",size:23456,pathname:"tenants/t/documents/dc1/at1.pdf",contentHash:"c".repeat(64),authorId:"u1",attachedAt:"2026-09-17T02:00:00Z"}]}};
   if(path.includes("/api/v1/documents"))return{status:201,body:{version:1}};
   if(path.includes("/api/v1/referrals"))return{status:201,body:{version:1}};
   if(path.includes("/assessment"))return{status:201,body:{version:2}};
@@ -647,10 +647,14 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText("Detalle del documento")).toBeTruthy();              // panel de detalle real
   expect(screen.getByText(/Acciones rápidas/)).toBeTruthy();
   expect(screen.getByText("Generar desde plantilla")).toBeTruthy();            // cableado a genDoc (POST /documents)
-  // auditoría: se eliminó la vista previa de PDF inventada y los controles muertos
+  // adjuntos reales (Vercel Blob privado): tipos y límite reflejan el backend, no valores inventados
+  expect(screen.getByText(/25 MB/)).toBeTruthy();                              // límite real del backend
+  expect(screen.getByText(/Vercel Blob/)).toBeTruthy();                        // almacenamiento real declarado
+  // auditoría: se eliminó la vista previa de PDF inventada, los controles muertos y tipos no soportados
   expect(screen.queryByText("LABORATORIOS DEL NORTE")).toBeNull();
   expect(screen.queryByText(/Carga masiva/)).toBeNull();
   expect(screen.queryByText("Subido por")).toBeNull();
+  expect(screen.queryByText("DICOM")).toBeNull();                              // tipo no soportado por el backend: eliminado
  });
 
  it("vista Facturación (S-FACTURACION): registro clínica-wide cableado a GET /api/v1/claims + wizard Nueva factura",async()=>{

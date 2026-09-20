@@ -3597,6 +3597,35 @@
    "requires_human_c5_acceptance": false
   },
   {
+   "id": "CAP-DOCUMENT-ATTACHMENTS-BLOB-BACKEND-001",
+   "name": "Documentos — adjuntos binarios (PHI) en Vercel Blob privado: subir, ver y quitar",
+   "risk": "C5",
+   "eng_authority_note": "Implementada la carga/descarga real de archivos binarios (PHI) del repositorio de documentos, con almacenamiento aprovisionado de verdad: Vercel Blob store PRIVADO 'documentos-clinicos' (store_mApfMkpkN9h17iia, iad1) creado y enlazado al proyecto; paquete @vercel/blob 2.8.0. Invariante de arquitectura respetado: el BINARIO vive SOLO en el Blob privado; en el event stream va únicamente la referencia (pathname del blob + sha256 del contenido + metadatos: filename, mime, size, authorId, attachedAt), nunca el binario. Nuevos eventos del agregado ClinicalDocument: DOCUMENT_ATTACHED y DOCUMENT_ATTACHMENT_REMOVED (append-only; el detalle se pliega y ATTACHMENT_REMOVED solo lo retira de la lista, el evento queda). Endpoints: POST /documents/:id/attachments (multipart, Idempotency-Key, scope document:write) sube al blob PRIMERO y registra el evento; si el commit falla borra el blob (sin huérfanos). GET /documents/:id/attachments/:attachmentId descarga SIEMPRE a través de la Function autorizada (nunca URL pública), verificando tenant+scope, streameando el blob privado. DELETE quita el adjunto (borra el blob + evento). Validación: allowlist de MIME (PDF, PNG, JPG, WEBP, GIF, TIFF), tamaño máx 25 MB, ruta del blob aislada por tenant (tenants/<tenantId>/documents/<docId>/<attachmentId>.<ext>). Frontend: en el detalle del documento, botón Adjuntar (input file real), lista de adjuntos con Ver (abre el binario descargado por la Function) y Quitar; tarjeta de tipos permitidos y límite corregida a lo REAL (PDF+imágenes, 25 MB, Vercel Blob), eliminando los tipos inventados (DICOM/DOC/XLS) y el límite falso de 10 MB. Helpers apiUpload/apiDelete/apiDownload en session-client (multipart + binario autenticado por cookie httpOnly same-origin).",
+   "invariants": [
+    "El binario nunca entra al event stream: solo se persiste la referencia (pathname del blob + sha256 + metadatos) en DOCUMENT_ATTACHED",
+    "La descarga se sirve SIEMPRE por una Function autorizada (tenant+scope), nunca por URL pública; el store es privado",
+    "Subida atómica de facto: se sube al blob y luego se registra el evento; si el commit falla, se borra el blob (sin huérfanos)",
+    "Allowlist de tipos (PDF/PNG/JPG/WEBP/GIF/TIFF) y tamaño máx 25 MB validados en el backend; ruta del blob aislada por tenant",
+    "Historial append-only: quitar un adjunto registra ATTACHMENT_REMOVED (el evento de alta permanece); requiere scope document:write"
+   ],
+   "implementation": [
+    "apps/web/lib/document-lifecycle.ts (handleDocumentAttach/handleDocumentDownload/handleDocumentAttachmentRemove; put/get/del privados; allowlist+tamaño; rollback de blob)",
+    "apps/web/lib/clinical-runtime.ts (documentDetail pliega DOCUMENT_ATTACHED/ATTACHMENT_REMOVED -> attachments[]; tipo DocAttachment)",
+    "apps/web/app/api/v1/documents/[documentId]/attachments/route.ts (POST) y .../attachments/[attachmentId]/route.ts (GET/DELETE)",
+    "apps/web/lib/session-client.ts (apiUpload/apiDelete/apiDownload)",
+    "apps/web/app/workspace/page.tsx (detalle: adjuntar/ver/quitar reales; tarjeta de tipos y límite corregida a lo real)",
+    "Vercel Blob store privado 'documentos-clinicos' enlazado; @vercel/blob 2.8.0; BLOB_READ_WRITE_TOKEN en el proyecto"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Documentos: tipos/límite reales -> 25 MB y Vercel Blob presentes, DICOM eliminado)",
+    "scripts/v22/live-document-attachment-proof.mts"
+   ],
+   "runtime_evidence": "Live proof vs Neon + Blob real PASS 16/16: sube un adjunto (multipart) -> 201 con sha256/size/mime correctos y ruta aislada por tenant; el detalle del documento refleja el adjunto (sin volcar el binario); descarga por la Function -> bytes IDÉNTICOS (mismo sha256) + content-type; tipo no permitido -> 400; sin scope -> 403 en subida y descarga; eliminar -> el binario se borra, desaparece del detalle y la descarga posterior da 404. No se registra en el smoke curado por depender del token de Blob (SKIP con DB presente contaría como FAIL). Render 46/46; typecheck limpio.",
+   "epic": "S-DOCUMENTOS/BLOB",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
+  },
+  {
    "id": "CAP-REPORTES-AGGREGATES-BACKEND-001",
    "name": "Reportes — agregados reales adicionales: órdenes (total y por tipo), procedimientos, resultados, vacunas",
    "risk": "C4",

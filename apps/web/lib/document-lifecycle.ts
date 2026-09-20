@@ -4,6 +4,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldDocument,assertDocumentTransition,type FoldedDocument,type DocumentState}from"../../../packages/document-fold/src";
+import{put,del,get}from"@vercel/blob";
 import{runClinicalCommand,lookupReplay,readAggregateEvents,documentDetail}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
@@ -106,5 +107,99 @@ export async function handleDocumentAmendment(req:Request,documentId:string):Pro
   const{ctx,idempotencyKey,expectedVersion,folded,claims}=await loadForTransition(req,documentId,true);
   const b=await parseJson(req,AmendBody);
   return await commit(ctx,idempotencyKey,expectedVersion,documentId,folded,"AMENDED","DOCUMENT_AMENDED",{kind:"AMENDED",authorId:claims.sub,addendum:b.addendum,amendedAt:b.occurredAt},b.occurredAt,"document.amended");
+ }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
+
+// ===== Adjuntos binarios (PHI) en Vercel Blob PRIVADO =====
+// El binario vive SOLO en el Blob store privado; en el event stream va únicamente la referencia (pathname del
+// blob + hash + metadatos), coherente con el invariante "sin binarios en el event stream". La descarga se sirve
+// SIEMPRE a través de una Function autorizada (nunca URL pública), verificando tenant + scope.
+const MAX_ATTACHMENT_BYTES=25*1024*1024; // 25 MB
+const ALLOWED_MIME=new Set(["application/pdf","image/png","image/jpeg","image/webp","image/gif","image/tiff"]);
+const EXT_BY_MIME:Record<string,string>={"application/pdf":"pdf","image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif","image/tiff":"tif"};
+// uuid determinista a partir de un texto (para que el reintento con el mismo Idempotency-Key sea idempotente).
+function derivedUuid(seed:string):string{const h=crypto.createHash("sha256").update(seed).digest("hex");return `${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-8${h.slice(17,20)}-${h.slice(20,32)}`;}
+function safeName(name:string):string{return (name||"archivo").normalize("NFKD").replace(/[^\w.\-]+/g,"_").slice(0,80)||"archivo";}
+function blobToken():string{const t=process.env.BLOB_READ_WRITE_TOKEN;if(!t)throw new ClinicalError("DEPENDENCY_UNAVAILABLE","Blob store no configurado (BLOB_READ_WRITE_TOKEN ausente)");return t;}
+
+// POST /api/v1/documents/:id/attachments  (multipart/form-data: campo "file"). Sube el binario al Blob privado y
+// registra el evento DOCUMENT_ATTACHED. No cambia el estado del documento (se puede adjuntar a un borrador o firmado).
+export async function handleDocumentAttach(req:Request,documentId:string):Promise<Response>{
+ try{
+  const{claims,ctx}=resolveVerified(req);
+  const c=claims as Claims;
+  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"document:write",purpose:"TREATMENT"});
+  const idempotencyKey=req.headers.get("idempotency-key");
+  if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
+  const detail=await documentDetail(ctx,documentId);
+  if(!detail.exists)throw new ClinicalError("NOT_FOUND","Document not found");
+  // Lee el archivo del multipart.
+  const form=await req.formData().catch(()=>{throw new ClinicalError("VALIDATION_ERROR","multipart/form-data con campo 'file' requerido");});
+  const file=form.get("file");
+  if(!(file instanceof File))throw new ClinicalError("VALIDATION_ERROR","Campo 'file' ausente o inválido");
+  const mime=file.type||"application/octet-stream";
+  if(!ALLOWED_MIME.has(mime))throw new ClinicalError("VALIDATION_ERROR",`Tipo de archivo no permitido (${mime}). Permitidos: PDF, PNG, JPG, WEBP, GIF, TIFF`);
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  if(bytes.byteLength===0)throw new ClinicalError("VALIDATION_ERROR","Archivo vacío");
+  if(bytes.byteLength>MAX_ATTACHMENT_BYTES)throw new ClinicalError("VALIDATION_ERROR",`Archivo demasiado grande (${bytes.byteLength} bytes; máx ${MAX_ATTACHMENT_BYTES})`);
+  const contentHash=crypto.createHash("sha256").update(bytes).digest("hex");
+  const attachmentId=derivedUuid(`${idempotencyKey}:${documentId}:attachment`);
+  const filename=safeName(file.name);
+  // Aislamiento por tenant en la ruta del blob; nombre determinista para idempotencia del reintento.
+  const pathname=`tenants/${c.tenantId}/documents/${documentId}/${attachmentId}.${EXT_BY_MIME[mime]??"bin"}`;
+  const occurredAt=new Date().toISOString();
+  // Sube PRIMERO al blob (privado, sin sufijo aleatorio para que el reintento sobrescriba la misma ruta).
+  await put(pathname,Buffer.from(bytes),{access:"private",token:blobToken(),contentType:mime,addRandomSuffix:false,allowOverwrite:true});
+  // Luego registra el evento. Si el commit falla, borra el blob para no dejar huérfanos.
+  try{
+   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:documentId,expectedVersion:detail.version,eventType:"DOCUMENT_ATTACHED",payload:{kind:"ATTACHED",attachmentId,filename,mime,size:bytes.byteLength,pathname,contentHash,authorId:c.sub,attachedAt:occurredAt},occurredAt,topic:"document.attached"});
+   let result=await lookupReplay(ctx,cmd);
+   if(!result)result=await runClinicalCommand(ctx,cmd);
+   const r=result.response as{version:number;auditHash?:string};
+   return NextResponse.json({documentId,attachmentId,filename,mime,size:bytes.byteLength,pathname,contentHash,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+  }catch(commitErr){
+   // rollback del binario: el evento no se registró, el blob no debe quedar
+   await del(pathname,{token:blobToken()}).catch(()=>{/* mejor esfuerzo; no enmascarar el error original */});
+   throw commitErr;
+  }
+ }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
+
+// GET /api/v1/documents/:id/attachments/:attachmentId  -> descarga el binario a través de la Function (privado).
+export async function handleDocumentDownload(req:Request,documentId:string,attachmentId:string):Promise<Response>{
+ try{
+  const{claims,ctx}=resolveVerified(req);
+  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:write",purpose:"TREATMENT"});
+  const detail=await documentDetail(ctx,documentId);
+  if(!detail.exists)throw new ClinicalError("NOT_FOUND","Document not found");
+  const att=detail.attachments.find(a=>a.attachmentId===attachmentId);
+  if(!att)throw new ClinicalError("NOT_FOUND","Attachment not found");
+  const res=await get(att.pathname,{access:"private",token:blobToken()});
+  if(!res||res.statusCode!==200||!res.stream)throw new ClinicalError("NOT_FOUND","Attachment blob not found");
+  return new Response(res.stream,{status:200,headers:{"content-type":att.mime,"content-disposition":`inline; filename="${att.filename}"`,"cache-control":"private, no-store"}});
+ }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
+
+// DELETE /api/v1/documents/:id/attachments/:attachmentId  -> quita un adjunto (borra el blob y registra
+// ATTACHMENT_REMOVED, APPEND-ONLY: el historial del evento queda; solo desaparece de la lista y del store).
+export async function handleDocumentAttachmentRemove(req:Request,documentId:string,attachmentId:string):Promise<Response>{
+ try{
+  const{claims,ctx}=resolveVerified(req);
+  const c=claims as Claims;
+  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"document:write",purpose:"TREATMENT"});
+  const idempotencyKey=req.headers.get("idempotency-key");
+  if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
+  const detail=await documentDetail(ctx,documentId);
+  if(!detail.exists)throw new ClinicalError("NOT_FOUND","Document not found");
+  const att=detail.attachments.find(a=>a.attachmentId===attachmentId);
+  if(!att)throw new ClinicalError("NOT_FOUND","Attachment not found");
+  const occurredAt=new Date().toISOString();
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:documentId,expectedVersion:detail.version,eventType:"DOCUMENT_ATTACHMENT_REMOVED",payload:{kind:"ATTACHMENT_REMOVED",attachmentId,authorId:c.sub,removedAt:occurredAt},occurredAt,topic:"document.attachment_removed"});
+  let result=await lookupReplay(ctx,cmd);
+  if(!result)result=await runClinicalCommand(ctx,cmd);
+  // borra el binario del store (mejor esfuerzo; el evento es la fuente de verdad)
+  await del(att.pathname,{token:blobToken()}).catch(()=>{/* ya pudo no existir */});
+  const r=result.response as{version:number;auditHash?:string};
+  return NextResponse.json({documentId,attachmentId,removed:true,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

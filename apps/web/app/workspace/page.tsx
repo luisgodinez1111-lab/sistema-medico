@@ -1,6 +1,6 @@
 "use client";
-import{useEffect,useState,Fragment}from"react";
-import{getStoredSession,apiRequest,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
+import{useEffect,useState,useRef,Fragment}from"react";
+import{getStoredSession,apiRequest,apiUpload,apiDelete,apiDownload,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
 import{summarizePatient}from"../../../../packages/patient-summary/src";
 import{primitive,typography}from"../../../../packages/design-system/src";
 import{labReferenceRanges}from"../../../../packages/lab-reference/src";
@@ -82,7 +82,8 @@ type ClaimItem=Readonly<{claimId:string;folio:string;patientId:string;patientNam
 type ClaimsRegistry=Readonly<{items:ClaimItem[];total:number;incomeThisMonth:number;issuedCount:number;pendingCount:number;pendingAmount:number;cancellations:number}>;
 type DocItem=Readonly<{documentId:string;title:string;docType:string;typeLabel:string;status:string;statusLabel:string;createdAt:string;actorId:string}>;
 type DocsSnap=Readonly<{items:DocItem[];total:number;byType:Record<string,number>;chips:{clinical:number;consents:number;studies:number}}>;
-type DocDetail=Readonly<{documentId:string;patientId:string;title:string;docType:string;typeLabel:string;content:string;state:string;statusLabel:string;version:number;createdAt:string;addenda:{addendum:string;authorId:string;at:string}[];signature:{authorId:string;contentHash:string;signatureDigest:string;signedAt:string}|null}>;
+type DocAttachment={attachmentId:string;filename:string;mime:string;size:number;pathname:string;contentHash:string;authorId:string;attachedAt:string};
+type DocDetail=Readonly<{documentId:string;patientId:string;title:string;docType:string;typeLabel:string;content:string;state:string;statusLabel:string;version:number;createdAt:string;addenda:{addendum:string;authorId:string;at:string}[];signature:{authorId:string;contentHash:string;signatureDigest:string;signedAt:string}|null;attachments:DocAttachment[]}>;
 type ResultItem=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;critical:boolean;status:string;interpretation:string;tipo:string;estado:string;lifecycle:string;receivedAt:string}>;
 type ResultsRegistry=Readonly<{items:ResultItem[];total:number;abnormal:number;enSeguimiento:number;pendientes:number}>;
 type ConsTabs=Readonly<{results:{analyte:string;value:string;estado:string;critical:boolean;receivedAt:string}[];orders:{typeLabel:string;detail:string;status:string;createdAt:string}[];medications:string[];planGoals:{goal:string;statusLabel:string}[];documents:{title:string;typeLabel:string;createdAt:string}[];obligations:{task:string;dueAt:string;statusLabel:string;done:boolean}[]}>;
@@ -545,6 +546,36 @@ export default function Workspace(){
  const[docsSnap,setDocsSnap]=useState<DocsSnap|null>(null);
  const[docDetail,setDocDetail]=useState<DocDetail|null>(null);const[docDetBusy,setDocDetBusy]=useState(false);
  const loadDoc=async(id:string)=>{setDocDetBusy(true);setDocDetail(null);try{const r=await apiRequest(`/api/v1/documents/${id}`,{method:"GET"});if(r.status===200)setDocDetail(r.body as unknown as DocDetail);}catch{/* documento no disponible */}finally{setDocDetBusy(false);}};
+ // Adjuntos binarios (PHI) en Vercel Blob privado: subir (multipart), ver (descarga por la Function) y quitar.
+ const attInputRef=useRef<HTMLInputElement|null>(null);
+ const[attBusy,setAttBusy]=useState(false);const[attMsg,setAttMsg]=useState<string|null>(null);
+ const ATT_MAX=25*1024*1024;const ATT_MIME=["application/pdf","image/png","image/jpeg","image/webp","image/gif","image/tiff"];
+ const onPickAttachment=async(file:File|undefined)=>{
+  if(!file||!docDetail)return;
+  if(!ATT_MIME.includes(file.type)){setAttMsg("Tipo no permitido. Se aceptan PDF e imágenes (PNG, JPG, WEBP, GIF, TIFF).");return;}
+  if(file.size>ATT_MAX){setAttMsg("Archivo demasiado grande (máx. 25 MB).");return;}
+  setAttBusy(true);setAttMsg(null);
+  try{const fd=new FormData();fd.append("file",file);
+   const r=await apiUpload(`/api/v1/documents/${docDetail.documentId}/attachments`,fd);
+   if(r.status===200||r.status===201){setAttMsg("Archivo adjuntado ✓");await loadDoc(docDetail.documentId);}
+   else setAttMsg((r.body as{error?:{message?:string}})?.error?.message??`No se pudo adjuntar (estado ${r.status}).`);
+  }catch{setAttMsg("Error al adjuntar el archivo.");}finally{setAttBusy(false);}
+ };
+ const viewAttachment=async(a:DocAttachment)=>{
+  if(!docDetail)return;setAttMsg(null);
+  try{const blob=await apiDownload(`/api/v1/documents/${docDetail.documentId}/attachments/${a.attachmentId}`);
+   if(!blob){setAttMsg("No se pudo abrir el archivo.");return;}
+   const url=URL.createObjectURL(blob);window.open(url,"_blank","noopener");setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch{setAttMsg("Error al abrir el archivo.");}
+ };
+ const removeAttachment=async(a:DocAttachment)=>{
+  if(!docDetail)return;setAttBusy(true);setAttMsg(null);
+  try{const r=await apiDelete(`/api/v1/documents/${docDetail.documentId}/attachments/${a.attachmentId}`);
+   if(r.status===200){setAttMsg("Adjunto eliminado ✓");await loadDoc(docDetail.documentId);}
+   else setAttMsg(`No se pudo eliminar (estado ${r.status}).`);
+  }catch{setAttMsg("Error al eliminar el adjunto.");}finally{setAttBusy(false);}
+ };
+ const fmtBytes=(n:number)=>n<1024?`${n} B`:n<1048576?`${(n/1024).toFixed(0)} KB`:`${(n/1048576).toFixed(1)} MB`;
  const[docsTab,setDocsTab]=useState<"todos"|"clinicos"|"administrativos"|"consentimientos"|"estudios"|"recetas"|"notas"|"otros">("todos");
  const[docSel,setDocSel]=useState(0);const[docFolder,setDocFolder]=useState("Todos los documentos");const[docMsg,setDocMsg]=useState("");
  const[docNew,setDocNew]=useState(false);const[docBusy,setDocBusy]=useState(false);
@@ -3391,13 +3422,27 @@ export default function Workspace(){
        {docDetBusy?<div style={{fontSize:12.5,color:P.muted}}>Cargando contenido…</div>:docDetail?<div style={{background:"#F7F8FC",border:`1px solid ${LINE}`,borderRadius:10,padding:"12px 14px",fontSize:12.5,lineHeight:1.55,whiteSpace:"pre-wrap",maxHeight:220,overflow:"auto",color:P.ink}}>{docDetail.content}</div>:<div style={{fontSize:12.5,color:P.muted}}>Selecciona el documento para ver su contenido.</div>}
        {docDetail&&docDetail.addenda.length>0&&<div style={{marginTop:12}}><div style={{fontSize:12,fontWeight:700,marginBottom:6}}>Adenda ({docDetail.addenda.length})</div>{docDetail.addenda.map((a,i)=><div key={i} style={{fontSize:12,lineHeight:1.5,padding:"8px 11px",borderRadius:9,background:"#FFF9EC",border:"1px solid #F2E1C0",marginBottom:6}}>{a.addendum}<div style={{fontSize:10.5,color:P.muted,marginTop:3}}>{fmtD(a.at)}</div></div>)}</div>}
        {docDetail?.signature&&<div style={{marginTop:12,fontSize:11.5,color:"#166534",background:"#E6F6EE",border:"1px solid #BFE6CF",borderRadius:9,padding:"9px 11px"}}>✓ Firmado · digest <span style={{fontFamily:"monospace"}}>{docDetail.signature.signatureDigest.slice(0,16)}…</span></div>}
+       {docDetail&&<div style={{marginTop:14}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+         <div style={{fontSize:12.5,fontWeight:700}}>Archivos adjuntos {docDetail.attachments.length>0&&`(${docDetail.attachments.length})`}</div>
+         <button onClick={()=>attInputRef.current?.click()} disabled={attBusy} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:8,padding:"5px 11px",fontWeight:700,fontSize:12,cursor:attBusy?"default":"pointer",fontFamily:UI}}>{attBusy?"Subiendo…":"⤒ Adjuntar archivo"}</button>
+         <input ref={attInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,application/pdf,image/*" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];void onPickAttachment(f??undefined);e.target.value="";}}/>
+        </div>
+        {attMsg&&<div style={{marginBottom:8,padding:"7px 10px",borderRadius:8,background:attMsg.includes("✓")?"#E6F6EE":"#FDF4E6",fontSize:11.5,color:attMsg.includes("✓")?"#166534":"#7A5A16"}}>{attMsg}</div>}
+        {docDetail.attachments.length===0?<div style={{fontSize:12,color:P.muted}}>Sin archivos adjuntos. Sube PDF o imágenes (privado, cifrado).</div>:docDetail.attachments.map(a=><div key={a.attachmentId} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 10px",border:`1px solid ${LINE}`,borderRadius:9,marginBottom:6}}>
+         <span style={{color:P.red,flex:"0 0 auto"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M6 2h9l5 5v15H6z"/></svg></span>
+         <div style={{minWidth:0,flex:1}}><div style={{fontSize:12.5,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{a.filename}</div><div style={{fontSize:10.5,color:P.muted}}>{fmtBytes(a.size)} · {fmtD(a.attachedAt)}</div></div>
+         <button onClick={()=>void viewAttachment(a)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:7,padding:"4px 9px",fontSize:11.5,fontWeight:600,cursor:"pointer",fontFamily:UI,flex:"0 0 auto"}}>Ver</button>
+         <button onClick={()=>void removeAttachment(a)} disabled={attBusy} title="Quitar adjunto" style={{border:`1px solid #E7C9C4`,background:P.white,color:P.red,borderRadius:7,padding:"4px 8px",fontSize:11.5,fontWeight:600,cursor:attBusy?"default":"pointer",fontFamily:UI,flex:"0 0 auto"}}>Quitar</button>
+        </div>)}
+       </div>}
        <button onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Documentos"),0);}} style={{marginTop:14,width:"100%",border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button>
       </div>}
      </div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1.1fr 1.2fr 1fr",gap:14,marginTop:16,alignItems:"start"}} className="mos-doc2">
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:12}}>⚡ Acciones rápidas</div>{docMsg&&<div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:docMsg.includes("✓")?"#E6F6EE":"#FDF4E6",fontSize:12,color:docMsg.includes("✓")?"#166534":"#7A5A16"}}>{docMsg}</div>}<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{[["⤒","Nuevo documento",()=>{setDocNew(true);setDocMsg("");}],["◉","Escanear con cámara",()=>setDocMsg("Escaneo con cámara: próximamente (requiere captura/almacenamiento de archivos).")],["▤","Generar desde plantilla",genDoc],["➤","Solicitar al paciente",()=>setDocMsg("Solicitud al portal del paciente: próximamente.")]].map(([ic,l,fn],i)=><button key={i} onClick={fn as ()=>void} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:11,padding:"16px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:8,cursor:"pointer",fontFamily:UI}}><span style={{width:38,height:38,borderRadius:10,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:16}}>{ic as string}</span><span style={{fontSize:12.5,fontWeight:600}}>{l as string}</span></button>)}</div></div>
-     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:12}}>▤ Tipos de archivo permitidos</div><div style={{display:"flex",gap:10,justifyContent:"space-between",flexWrap:"wrap"}}>{[["PDF",P.red],["JPG/PNG",P.amber],["DICOM",P.blue],["DOC/DOCX",P.blue],["XLS/XLSX",P.green]].map(([l,c],i)=><div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1}}><span style={{width:44,height:44,borderRadius:10,background:(c as string)+"22",color:c as string,display:"grid",placeItems:"center"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M6 2h9l5 5v15H6z"/></svg></span><span style={{fontSize:11.5,fontWeight:600,textAlign:"center"}}>{l as string}</span></div>)}</div><div style={{fontSize:11.5,color:P.muted,marginTop:12}}>Tamaño máximo: 10 MB por archivo</div></div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:12}}>▤ Tipos de archivo permitidos</div><div style={{display:"flex",gap:10,justifyContent:"space-between",flexWrap:"wrap"}}>{[["PDF",P.red],["JPG",P.amber],["PNG",P.amber],["WEBP",P.blue],["GIF/TIFF",P.green]].map(([l,c],i)=><div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1}}><span style={{width:44,height:44,borderRadius:10,background:(c as string)+"22",color:c as string,display:"grid",placeItems:"center"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M6 2h9l5 5v15H6z"/></svg></span><span style={{fontSize:11.5,fontWeight:600,textAlign:"center"}}>{l as string}</span></div>)}</div><div style={{fontSize:11.5,color:P.muted,marginTop:12}}>Tamaño máximo: 25 MB por archivo · almacenamiento privado y cifrado (Vercel Blob), ligado al documento en el expediente.</div></div>
      <div style={{...card2,padding:16,background:"#F7F6FE",borderColor:"#E2DEFB"}}><div style={{display:"flex",gap:10}}><span style={{color:P.purple}}>ⓘ</span><div><div style={{fontWeight:700,fontSize:13.5}}>Nota</div><div style={{fontSize:12.5,color:P.muted,marginTop:2,lineHeight:1.5}}>Los documentos se almacenan de forma segura y cifrada, cumpliendo con la NOM-024-SSA3-2012.</div></div></div></div>
     </div>
    </div>;
