@@ -3620,6 +3620,31 @@
    "epic": "S-REPORTES/BACKEND",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-REPORTES-APPTTYPES-BACKEND-001",
+   "name": "Reportes — tipos de consulta desde la agenda (appointmentsByType real)",
+   "risk": "C4",
+   "eng_authority_note": "Tercer incremento de agregados REALES del tablero de Reportes, derivado del event stream (RLS-scoped), sin mock. Nueva lectura tenant-wide appointmentsByType en clinical-runtime.ts: cuenta las citas por el evento base APPOINTMENT_SCHEDULED agrupadas por su apptType (CONSULTA_GENERAL/CONTROL/PRIMERA_VEZ/PROCEDIMIENTO/VACUNACION/RESULTADOS/URGENCIA; las citas sin tipo caen en SIN_TIPO). GET /api/v1/reports compone appointmentsTotal y appointmentsByType (con etiqueta legible APPT_TYPE_LBL y porcentaje). Frontend: nueva tarjeta 'Tipos de consulta' con barra apilada + leyenda por tipo. La nota honesta se reduce a lo único que aún falta: indicadores de calidad (requieren definir reglas/metas clínicas). Sin escritura; scope record:export.",
+   "invariants": [
+    "tipos de consulta se derivan de eventos Appointment reales (APPOINTMENT_SCHEDULED agrupados por apptType), no de mock",
+    "las citas sin apptType se agrupan explícitamente como SIN_TIPO; el porcentaje se calcula sobre el total real de citas",
+    "los indicadores de calidad no se simulan: la nota honesta declara que aún faltan por definir reglas/metas",
+    "lectura sin escritura, RLS-scoped, scope record:export"
+   ],
+   "implementation": [
+    "apps/web/lib/clinical-runtime.ts (appointmentsByType)",
+    "apps/web/app/api/v1/reports/route.ts (compone appointmentsTotal/appointmentsByType con APPT_TYPE_LBL)",
+    "apps/web/app/workspace/page.tsx (ReportsSnap ampliado; tarjeta Tipos de consulta con barra apilada + leyenda; nota honesta reducida a indicadores de calidad)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Reportes: Tipos de consulta y etiqueta real presentes)",
+    "scripts/v22/live-reports-proof.mts"
+   ],
+   "runtime_evidence": "Live proof vs Neon PASS 26/26: además de lo anterior, siembra 5 citas (CONTROL x3, PRIMERA_VEZ x1, VACUNACION x1); GET /reports devuelve appointmentsTotal 5, appointmentsByType[0]=CONTROL=3 con etiqueta 'Control', PRIMERA_VEZ=1 y VACUNACION=1; sin scope -> 403. Render 46/46; typecheck limpio.",
+   "epic": "S-REPORTES/BACKEND",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

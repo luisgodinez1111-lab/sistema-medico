@@ -1,7 +1,8 @@
 // EPIC AD/UI — Evidencia física: tablero analítico del consultorio (vista Reportes). Siembra pacientes,
 // problemas (CIE-10), facturas (algunas pagadas), órdenes, encuentros (consultas por día) y recetas reales
 // (PROPOSED->PRESCRIBED), y verifica GET /reports -> pacientes + ingresos + diagnósticos + órdenes por tipo
-// + procedimientos + consultas por día (encuentros) + medicamentos más prescritos. Determinista, RLS-scoped. vs Neon.
+// + procedimientos + consultas por día (encuentros) + medicamentos más prescritos + tipos de consulta (agenda).
+// Determinista, RLS-scoped. vs Neon.
 import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";
 try{const e=fs.readFileSync(path.resolve(".env.local"),"utf8");for(const l of e.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(l.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}}catch{}
 if(!process.env.DATABASE_URL){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
@@ -18,11 +19,13 @@ const ordR=await import("../../apps/web/app/api/v1/orders/route");
 const encR=await import("../../apps/web/app/api/v1/encounters/route");
 const medR=await import("../../apps/web/app/api/v1/medications/route");
 const medRx=await import("../../apps/web/app/api/v1/medications/[medicationId]/prescription/route");
+const apptR=await import("../../apps/web/app/api/v1/appointments/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
-function tok(scopes=["patient:write","patient:read","problem:write","billing:write","record:export","order:write","encounter:write","medication:propose","medication:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
+function tok(scopes=["patient:write","patient:read","problem:write","billing:write","record:export","order:write","encounter:write","medication:propose","medication:write","appointment:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 async function order(t:string,p:string,orderType:string,detail:string){await ordR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({orderId:crypto.randomUUID(),patientId:p,orderType,detail,occurredAt:at()})}));}
 async function openEnc(t:string,p:string,occurredAt:string){await encR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:crypto.randomUUID(),patientId:p,occurredAt})}));}
 async function rx(t:string,p:string,drugCode:string){const id=crypto.randomUUID();await medR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:p,drugCode,dose:"1 tab",route:"oral",frequency:"c/8h",occurredAt:at()})}));await medRx.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({medicationId:id})});}
+async function appt(t:string,p:string,apptType:string){await apptR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({appointmentId:crypto.randomUUID(),patientId:p,startAt:at(),reason:"Cita",apptType,occurredAt:at()})}));}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const idem=()=>crypto.randomUUID();let ts=Date.parse("2026-09-01T09:00:00.000Z");const at=()=>new Date(ts+=3600000).toISOString();
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
@@ -50,9 +53,12 @@ try{
  await openEnc(phys,p3,"2026-10-02T10:00:00.000Z");
  // recetas reales (PROPOSED->PRESCRIBED): paracetamol x2 (p1,p2) + metformina x1 (p3) = 3 recetas
  await rx(phys,p1,"paracetamol");await rx(phys,p2,"paracetamol");await rx(phys,p3,"metformina");
+ // tipos de consulta (agenda): CONTROL x3, PRIMERA_VEZ x1, VACUNACION x1 = 5 citas
+ await appt(phys,p1,"CONTROL");await appt(phys,p2,"CONTROL");await appt(phys,p3,"CONTROL");
+ await appt(phys,p1,"PRIMERA_VEZ");await appt(phys,p2,"VACUNACION");
 
  const R=await reports(phys);ok(R.status===200,"REPORTS_200");
- const b=R.body as{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;count:number;pct:number}[];topProcedures:{detail:string;count:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[]};
+ const b=R.body as{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;count:number;pct:number}[];topProcedures:{detail:string;count:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[];appointmentsTotal:number;appointmentsByType:{type:string;label:string;count:number;pct:number}[]};
  ok(b.patientsAttended===3,"PATIENTS_3");
  ok(b.income===1700,"INCOME_1700");
  ok(b.diagnosesTotal===6,"DX_TOTAL_6");
@@ -78,6 +84,12 @@ try{
  ok(b.prescriptionsTotal===3,"RX_TOTAL_3");
  ok(b.topMedications[0]!.drugCode==="paracetamol"&&b.topMedications[0]!.count===2,"TOP_MED_PARACETAMOL_2");
  ok(b.topMedications.find(m=>m.drugCode==="metformina")?.count===1,"MED_METFORMINA_1");
+ // tipos de consulta (agenda): total 5, CONTROL con 3 (top), etiqueta legible
+ ok(b.appointmentsTotal===5,"APPT_TOTAL_5");
+ ok(b.appointmentsByType[0]!.type==="CONTROL"&&b.appointmentsByType[0]!.count===3,"APPT_TOP_CONTROL_3");
+ ok(b.appointmentsByType[0]!.label==="Control","APPT_LABEL_CONTROL");
+ ok(b.appointmentsByType.find(a=>a.type==="PRIMERA_VEZ")?.count===1,"APPT_PRIMERA_VEZ_1");
+ ok(b.appointmentsByType.find(a=>a.type==="VACUNACION")?.count===1,"APPT_VACUNACION_1");
 
  // sin scope -> 403
  const noScope=await reports(tok(["patient:read"]));

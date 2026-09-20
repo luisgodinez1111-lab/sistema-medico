@@ -91,7 +91,7 @@ type RegObSnap=Readonly<{items:RegObItem[];total:number;alDia:number;proximas:nu
 type OfficeSettings={officeName:string;specialty:string;rfc:string;cedula:string;address:string;phone:string;email:string;timezone:string;language:string;color:string;theme:string;fontSize:string;realtimeAlerts:boolean;followupReminders:boolean;showInteractions:boolean;darkMode:boolean};
 type CiFinding=Readonly<{domain:string;severity:string;summary:string}>;
 type CiSnap=Readonly<{registered:boolean;problems?:string[];allergies?:string[];labs?:{hba1c?:number;egfr?:number};findings?:CiFinding[];demographics?:{age:number;sex:string}}>;
-type ReportsSnap=Readonly<{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;description:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;label:string;count:number;pct:number}[];topProcedures:{detail:string;count:number;pct:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[]}>;
+type ReportsSnap=Readonly<{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;description:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;label:string;count:number;pct:number}[];topProcedures:{detail:string;count:number;pct:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[];appointmentsTotal:number;appointmentsByType:{type:string;label:string;count:number;pct:number}[]}>;
 const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
 const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
@@ -3510,6 +3510,8 @@ export default function Workspace(){
    const obt=repSnap?.ordersByType??[];const topProc=repSnap?.topProcedures??[];
    const encDays=repSnap?.encountersByDay??[];const encTot=repSnap?.encountersTotal??0;const encSig=repSnap?.encountersSigned??0;
    const topMeds=repSnap?.topMedications??[];const rxTot=repSnap?.prescriptionsTotal??0;
+   const apptByType=repSnap?.appointmentsByType??[];const apptTot=repSnap?.appointmentsTotal??0;
+   const APTC=["#6C5CF6","#1769E0","#E5983B","#16A66A","#E0574B","#9AA0BC","#0FA3B1","#B8B0DE"];
    const capMonth=(iso:string):string=>{const p=iso.split("-");if(p.length<3)return iso;const md=`${p[2]}/${p[1]}`;return md;};
    const OBC=["#6C5CF6","#1769E0","#E5983B","#16A66A","#9AA0BC"];
    const obTot=obt.reduce((a,b)=>a+b.count,0);let oacc=0;
@@ -3545,7 +3547,14 @@ export default function Workspace(){
       {topMeds.length===0?<div style={{fontSize:12.5,color:P.muted}}>{repLoaded?"Sin recetas emitidas en el periodo.":"Cargando…"}</div>:topMeds.map((m,i)=>{const w=topMeds[0]?Math.round(m.count/topMeds[0].count*100):0;return <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0"}}><span style={{flex:1,fontSize:12.5,textTransform:"capitalize",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{m.drugCode}</span><div style={{width:70,height:8,borderRadius:6,background:"#EEF1F7",overflow:"hidden"}}><div style={{height:"100%",width:`${w}%`,background:"#16A66A",borderRadius:6,opacity:.85}}/></div><span style={{fontSize:12.5,fontWeight:700,width:24,textAlign:"right"}}>{m.count}</span><span style={{fontSize:12,color:P.muted,width:32,textAlign:"right"}}>{m.pct}%</span></div>;})}
      </div>
     </div>
-    <div style={{...card2,marginTop:16,padding:"14px 16px",fontSize:12,color:P.muted,lineHeight:1.5}}>Indicadores con dato agregado real del registro clínica-wide: pacientes, ingresos (facturas pagadas), diagnósticos principales, órdenes (total y por tipo), procedimientos, resultados, vacunas aplicadas, consultas por día (encuentros) y medicamentos más prescritos (recetas reales). Faltan por conectar: tipos de consulta (agenda) e indicadores de calidad.</div>
+    <div style={{...card2,marginTop:16,padding:16}}>
+     <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:12}}><div style={{fontSize:15,fontWeight:800}}>Tipos de consulta</div><div style={{fontSize:11.5,color:P.muted}}>{apptTot} citas en la agenda</div></div>
+     {apptByType.length===0?<div style={{fontSize:12.5,color:P.muted}}>{repLoaded?"Sin citas agendadas en el periodo.":"Cargando…"}</div>:<div>
+      <div style={{display:"flex",height:14,borderRadius:7,overflow:"hidden",background:"#EEF1F7"}}>{apptByType.map((a,i)=><div key={a.type} style={{width:`${a.pct}%`,background:APTC[i%APTC.length]}} title={`${a.label}: ${a.count} (${a.pct}%)`}/>)}</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:"6px 16px",marginTop:12}}>{apptByType.map((a,i)=><div key={a.type} style={{display:"flex",alignItems:"center",gap:7,fontSize:12}}><span style={{width:9,height:9,borderRadius:"50%",background:APTC[i%APTC.length],flex:"0 0 auto"}}/><span style={{flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{a.label}</span><b>{a.count}</b><span style={{color:P.muted,width:34,textAlign:"right"}}>{a.pct}%</span></div>)}</div>
+     </div>}
+    </div>
+    <div style={{...card2,marginTop:16,padding:"14px 16px",fontSize:12,color:P.muted,lineHeight:1.5}}>Indicadores con dato agregado real del registro clínica-wide: pacientes, ingresos (facturas pagadas), diagnósticos principales, órdenes (total y por tipo), procedimientos, resultados, vacunas aplicadas, consultas por día (encuentros), medicamentos más prescritos (recetas reales) y tipos de consulta (desde la agenda). Falta por conectar: indicadores de calidad (requieren definir las reglas y metas clínicas de cada indicador).</div>
    </div>;
   })() : view==="biblioteca" ? (()=>{
    // ===== MÓDULO BIBLIOTECA CLÍNICA (S-BIBLIOTECA) — repositorio de conocimiento curado (referencia) =====
