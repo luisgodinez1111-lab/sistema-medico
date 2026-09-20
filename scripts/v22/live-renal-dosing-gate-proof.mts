@@ -12,14 +12,14 @@ const rx=await import("../../apps/web/app/api/v1/medications/[medicationId]/pres
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(scopes=["patient:write","result:write","medication:propose","medication:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
-const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});const ISO="2026-09-14T09:00:00.000Z";const idem=()=>crypto.randomUUID();
+const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});const ISO=new Date(Date.now()-3_600_000).toISOString()/* reloj RELATIVO: la creatinina obsoleta ya no se usa para el eGFR */;const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
 async function register(t:string,p:string,y:number){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:"Prueba",birthDate:birth(y),sexAtBirth:"MALE",occurredAt:ISO})}));}
 async function creat(t:string,p:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:"CREATININE",value:v,occurredAt:ISO})}));}
 const order={dose:"850mg",route:"VO",frequency:"c/12h"};
 async function propose(t:string,p:string,drugCode:string,o=order){const id=crypto.randomUUID();await meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:p,drugCode,...o,occurredAt:ISO})}));return id;}
-const B=(t:string)=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})});
+const B=(t:string,extra:Record<string,unknown>={})=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,...extra})});
 try{
  const phys=tok();
  // 1) hombre 70a con creatinina 4.0 -> TFG ~15 (<30): metformina BLOQUEADA 403
@@ -33,10 +33,18 @@ try{
  const p2=crypto.randomUUID();await register(phys,p2,40);await creat(phys,p2,"0.9");
  const mf2=await propose(phys,p2,"metformina-850");
  r=await rx.POST(new Request("http://l/",B(phys)),MP(mf2));ok(r.status===201,"METFORMIN_NORMAL_EGFR_ALLOWED_201");
- // 4) sin eGFR computable (sin creatinina) -> el gate renal no bloquea (fail-open): metformina PERMITIDA
+ // 4) Auditoría C-05 — sin creatinina la barrera renal NO se pudo evaluar. Antes: 201 silencioso ("fail-open" presentado como
+ //    seguro). Ahora: 428 SAFETY_ACK_REQUIRED nombrando la barrera; sin justificación suficiente 400; con confirmación 201.
  const p3=crypto.randomUUID();await register(phys,p3,40);
  const mf3=await propose(phys,p3,"metformina-850");
- r=await rx.POST(new Request("http://l/",B(phys)),MP(mf3));ok(r.status===201,"NO_EGFR_NOT_BLOCKED_201");
+ r=await rx.POST(new Request("http://l/",B(phys)),MP(mf3));let j=await r.json();
+ ok(r.status===428&&j.error.code==="SAFETY_ACK_REQUIRED","NO_EGFR_REQUIRES_ACK_428");
+ r=await rx.POST(new Request("http://l/",B(phys,{acknowledgeUnverified:true,unverifiedJustification:"ok"})),MP(mf3));ok(r.status===400,"ACK_WITHOUT_JUSTIFICATION_400");
+ r=await rx.POST(new Request("http://l/",B(phys,{acknowledgeUnverified:true,unverifiedJustification:"Sin creatinina disponible; se solicita hoy y se revalora en 72 h"})),MP(mf3));j=await r.json();
+ ok(r.status===201&&j.state==="PRESCRIBED","NO_EGFR_ACKNOWLEDGED_201");
+ // 4b) la confirmación NO levanta un BLOQUEO: metformina con TFG<30 sigue en 403 aunque el médico "confirme"
+ const mfBlocked=await propose(phys,p1,"metformina-850");
+ r=await rx.POST(new Request("http://l/",B(phys,{acknowledgeUnverified:true,unverifiedJustification:"Intento de saltar el bloqueo con confirmación"})),MP(mfBlocked));ok(r.status===403,"ACK_DOES_NOT_OVERRIDE_BLOCK_403");
  // 5) amoxicilina (sin regla renal) con TFG baja -> PERMITIDA
  const am=await propose(phys,p1,"amoxicilina-500",{dose:"500mg",route:"VO",frequency:"c/8h"});
  r=await rx.POST(new Request("http://l/",B(phys)),MP(am));ok(r.status===201,"NONRENAL_DRUG_ALLOWED_201");

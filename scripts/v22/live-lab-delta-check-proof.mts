@@ -37,5 +37,16 @@ try{
  // 6) valor absoluto de pánico sigue siendo crítico por classifyLab (sin depender del delta)
  const p6=crypto.randomUUID();
  r=await receive(phys,p6,"POTASSIUM","7.0");j=await r.json();ok(j.critical===true,"ABSOLUTE_PANIC_STILL_CRITICAL");
+ // 7) REINTENTO idempotente de un resultado con Δ crítico (misma llave, mismo cuerpo) -> 200 con la respuesta original.
+ //    Antes el "previo" era el propio resultado ya guardado: el payload cambiaba y el kernel respondía conflicto.
+ const p7=crypto.randomUUID();await receive(phys,p7,"CREATININE","0.9");
+ const key=idem();const body=JSON.stringify({resultId:crypto.randomUUID(),patientId:p7,orderId:crypto.randomUUID(),analyte:"CREATININE",value:"1.9",unit:"mg/dL",occurredAt:at()});
+ const send=()=>results.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":key}),body}));
+ r=await send();j=await r.json();ok(r.status===201&&j.deltaFlagged===true&&j.replayed===false,"DELTA_RESULT_FIRST_201");
+ r=await send();j=await r.json();ok(r.status===200&&j.replayed===true&&j.deltaFlagged===true&&j.critical===true,"DELTA_RESULT_REPLAY_200");
+ // 8) la respuesta dice el estado REAL de la interpretación (no solo `critical`): anormal no crítico ≠ "dentro de rango"
+ const p8=crypto.randomUUID();
+ r=await receive(phys,p8,"POTASSIUM","5.8");j=await r.json();ok(j.critical===false&&j.status==="ABNORMAL"&&typeof j.interpretation==="string","ABNORMAL_STATUS_RETURNED");
+ r=await receive(phys,crypto.randomUUID(),"POTASSIUM","4.2");j=await r.json();ok(j.status==="NORMAL"&&j.canonicalUnit==="mEq/L"&&j.unitAssumed===true,"NORMAL_STATUS_AND_ASSUMED_UNIT_DECLARED");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

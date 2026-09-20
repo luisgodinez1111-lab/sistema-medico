@@ -23,6 +23,9 @@ const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});
 const ISO="2026-04-04T08:00:00.000Z";
 const idem=()=>crypto.randomUUID();
 
+// Contrato de la remediación (auditoría C-03/C-05, lote 1): con barreras NO verificables (paciente sintético sin edad, peso o
+// eGFR) PRESCRIBE responde 428 hasta que el médico confirma y justifica. Las barreras BLOQUEADAS siguen devolviendo 403.
+const ACK={acknowledgeUnverified:true,unverifiedJustification:"Prueba en vivo: paciente sintético sin datos para verificar"};
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
 function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
@@ -43,9 +46,11 @@ try{
  r=await rx.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),MP(med));
  ok(r.status===403,"NURSE_PRESCRIBE_FORBIDDEN_403");
 
- // 3) El MÉDICO prescribe -> 201 PRESCRIBED v2.
+ // 3) El MÉDICO prescribe. Paciente sintético sin datos -> primero 428 (nada se da por verificado), luego con confirmación 201 v2.
+ r=await rx.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),MP(med));
+ ok(r.status===428&&(await r.json()).error.code==="SAFETY_ACK_REQUIRED","PHYSICIAN_PRESCRIBE_UNVERIFIED_428");
  const idemRx=idem();
- const rxReq=()=>new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idemRx,"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})});
+ const rxReq=()=>new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idemRx,"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,...ACK})});
  r=await rx.POST(rxReq(),MP(med));
  ok(r.status===201&&(await r.json()).state==="PRESCRIBED","PHYSICIAN_PRESCRIBE_201_v2");
 

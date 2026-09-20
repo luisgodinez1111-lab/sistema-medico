@@ -3,6 +3,7 @@ import crypto from"node:crypto";
 import{executeAtomicClinicalCommand,type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
 import{canonicalize}from"../../../packages/canonical-json/src";
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
+import{normalizeLabValue}from"../../../packages/lab-reference/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{sliSpan,flowForTopic}from"../../../packages/observability/src";
 import{computeEGFR,type Sex}from"../../../packages/renal-function/src";
@@ -151,6 +152,8 @@ export async function patientBirthDate(ctx:HttpTenantContext,patientId:string):P
 }
 // EPIC BM — eGFR del paciente (CKD-EPI) desde demografía + última creatinina. undefined si no computable
 // (sin datos, pediátrico, sexo no binario). Para el gate renal de la prescripción.
+// Antigüedad máxima de la creatinina para decidir dosis (criterio de ingeniería, pendiente de validación clínica).
+const EGFR_MAX_CREATININE_AGE_DAYS=365;
 export async function patientEgfr(ctx:HttpTenantContext,patientId:string):Promise<number|undefined>{
  const demo=await patientDemographics(ctx,patientId);
  if(!demo?.birthDate)return undefined;
@@ -160,9 +163,14 @@ export async function patientEgfr(ctx:HttpTenantContext,patientId:string):Promis
  let age=a.getUTCFullYear()-b.getUTCFullYear();
  if(a.getUTCMonth()<b.getUTCMonth()||(a.getUTCMonth()===b.getUTCMonth()&&a.getUTCDate()<b.getUTCDate()))age-=1;
  if(age<18)return undefined; // CKD-EPI adulto; en pediatría se usa Schwartz
- const scr=await latestResultValueForAnalyte(ctx,patientId,"CREATININE");
- if(scr===undefined)return undefined;
- return computeEGFR(Number(scr),age,sex as Sex)?.egfr;
+ // Auditoría C-01/C-12: la barrera renal de prescripción NO debe decidir con una creatinina en otra unidad, implausible
+ // u obsoleta. Si el dato no es utilizable, el eGFR es "desconocido" (=> la barrera queda NOT_EVALUATED, nunca "OK").
+ const r=await latestAnalyteReading(ctx,patientId,"CREATININE");
+ if(!r)return undefined;
+ const n=normalizeLabValue("CREATININE",r.value);
+ if(!n.ok)return undefined;
+ if((Date.now()-new Date(r.occurredAt).getTime())/86_400_000>EGFR_MAX_CREATININE_AGE_DAYS)return undefined;
+ return computeEGFR(n.canonicalValue,age,sex as Sex)?.egfr;
 }
 // EPIC BK — Códigos de vacunas ADMINISTRADAS del paciente (último kind ADMINISTERED). RLS-scoped.
 export async function administeredVaccineCodes(ctx:HttpTenantContext,patientId:string):Promise<string[]>{
@@ -195,18 +203,50 @@ export async function latestVitalsByType(ctx:HttpTenantContext,patientId:string)
 }
 // EPIC BB — Valor PREVIO del mismo analito del paciente (resultado más reciente ya recibido). RLS-scoped.
 // Para el delta check de laboratorio en la recepción de un resultado nuevo. Devuelve el value textual o undefined.
-export async function latestResultValueForAnalyte(ctx:HttpTenantContext,patientId:string,analyte:string):Promise<string|undefined>{
+// `excludeResultId`: al RECIBIR un resultado, el "previo" jamás debe ser el propio resultado. Sin esto, el REINTENTO
+// idempotente de un resultado con Δ crítico se comparaba contra sí mismo, producía otro payload y el kernel lo rechazaba
+// por "misma llave, distinto contenido" en vez de devolver la respuesta original.
+export async function latestResultValueForAnalyte(ctx:HttpTenantContext,patientId:string,analyte:string,excludeResultId?:string):Promise<string|undefined>{
  const sql=getSql();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
   const rows=await tx`
-   select r.payload->>'value' as value
+   select coalesce(r.payload->>'canonicalValue',r.payload->>'value') as value
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
+     and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
+     and r.aggregate_id::text<>${excludeResultId??""}
+   order by r.occurred_at desc, r.sequence desc limit 1`;
+  const v=rows[0]?.value;if(v==null)return undefined;
+  // Auditoría C-01: un valor físicamente IMPLAUSIBLE en la unidad canónica (evento antiguo capturado sin unidad en otra
+  // escala) no se entrega como "el último valor" a ningún consumidor (paneles, contexto de referencia, delta-check).
+  const n=normalizeLabValue(analyte,String(v));
+  return !n.ok&&n.reason==="IMPLAUSIBLE"?undefined:String(v);
+ }) as Promise<string|undefined>;
+}
+
+// Auditoría 2026-09-19 (C-01/C-11/C-12) — Lectura COMPLETA del último resultado de un analito para CÁLCULOS:
+// valor en unidad canónica + unidad declarada + si la unidad fue asumida + fecha + muestra + id del resultado.
+// `latestResultValueForAnalyte` devuelve solo el número y por eso ninguna calculadora podía verificar nada.
+export type AnalyteReading=Readonly<{analyte:string;rawValue:string;value:number;unit:string|null;canonicalUnit:string|null;unitAssumed:boolean;occurredAt:string;resultId:string;specimenId:string|null}>;
+export async function latestAnalyteReading(ctx:HttpTenantContext,patientId:string,analyte:string):Promise<AnalyteReading|undefined>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select r.aggregate_id as result_id, r.occurred_at as at, r.payload->>'value' as raw, r.payload->>'canonicalValue' as canonical,
+          r.payload->>'unit' as unit, r.payload->>'canonicalUnit' as canonical_unit, r.payload->>'unitAssumed' as unit_assumed, r.payload->>'specimenId' as specimen_id
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
      and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
    order by r.occurred_at desc, r.sequence desc limit 1`;
-  const v=rows[0]?.value;return v==null?undefined:String(v);
- }) as Promise<string|undefined>;
+  const o=rows[0] as Record<string,unknown>|undefined;if(!o)return undefined;
+  const raw=String(o["raw"]??"");const canonical=o["canonical"]==null?Number(raw.trim().replace(",",".")):Number(o["canonical"]);
+  // Eventos anteriores a esta corrección no traen unidad: se declara `unitAssumed` (la plausibilidad se valida al usarlo).
+  const legacy=o["canonical"]==null;
+  return{analyte:analyte.toUpperCase(),rawValue:raw,value:canonical,unit:o["unit"]==null?null:String(o["unit"]),canonicalUnit:o["canonical_unit"]==null?null:String(o["canonical_unit"]),
+   unitAssumed:legacy?true:String(o["unit_assumed"])==="true",occurredAt:new Date(String(o["at"])).toISOString(),resultId:String(o["result_id"]),specimenId:o["specimen_id"]==null?null:String(o["specimen_id"])};
+ }) as Promise<AnalyteReading|undefined>;
 }
 
 // EPIC CH — Serie temporal de un analito (evolución longitudinal, panel 4). Todos los resultados
@@ -216,12 +256,13 @@ export async function analyteSeries(ctx:HttpTenantContext,patientId:string,analy
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
   const rows=await tx`
-   select r.payload->>'value' as value, r.occurred_at as at
+   select coalesce(r.payload->>'canonicalValue',r.payload->>'value') as value, r.occurred_at as at
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
      and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
    order by r.occurred_at asc, r.sequence asc`;
-  return rows.map(r=>{const o=r as Record<string,unknown>;return{value:Number(o.value),at:String(o.at)};}).filter(p=>Number.isFinite(p.value));
+  // Los puntos implausibles se EXCLUYEN de la serie: un solo valor en otra escala deforma la tendencia y su pendiente.
+  return rows.map(r=>{const o=r as Record<string,unknown>;return{value:Number(o.value),at:String(o.at)};}).filter(p=>Number.isFinite(p.value)&&normalizeLabValue(analyte,p.value).ok);
  }) as Promise<{value:number;at:string}[]>;
 }
 

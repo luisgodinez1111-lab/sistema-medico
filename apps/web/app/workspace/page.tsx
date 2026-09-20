@@ -3,7 +3,7 @@ import{useEffect,useState,useRef,Fragment}from"react";
 import{getStoredSession,apiRequest,apiUpload,apiDelete,apiDownload,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
 import{summarizePatient}from"../../../../packages/patient-summary/src";
 import{primitive,typography}from"../../../../packages/design-system/src";
-import{labReferenceRanges}from"../../../../packages/lab-reference/src";
+import{labReferenceRanges,acceptedUnitsOf,canonicalUnitOf}from"../../../../packages/lab-reference/src";
 import{drugCatalog,interactionRules,type DrugCatalogItem}from"../../../../packages/drug-catalog/src";
 import{searchIcd10}from"../../../../packages/terminology/src";
 // EPIC K — Espacio de trabajo clínico. Consume los endpoints ya probados con la sesión autenticada.
@@ -440,7 +440,9 @@ export default function Workspace(){
  const[meds,setMeds]=useState<Med[]>([]);
  const[drug,setDrug]=useState("");const[dose,setDose]=useState("");const[route,setRoute]=useState("VO");const[freq,setFreq]=useState("");
  const[results,setResults]=useState<Result[]>([]);
- const[resName,setResName]=useState("");const[resCritical,setResCritical]=useState(false);
+ // Auditoría U-07/U-15: este formulario enviaba {critical} marcado a mano y SIN analito ni valor (el servidor respondía 400 siempre).
+ // Ahora captura analito + valor + unidad, igual que la vista Resultados; la criticidad la deriva el servidor del valor.
+ const[resQuick,setResQuick]=useState<{analyte:string;value:string;unit:string}>({analyte:"GLUCOSE",value:"",unit:canonicalUnitOf("GLUCOSE")??""});
  const[docs,setDocs]=useState<Doc[]>([]);
  const[docTitle,setDocTitle]=useState("");const[docContent,setDocContent]=useState("");const[docType,setDocType]=useState("PROGRESS_NOTE");
  const[orders,setOrders]=useState<Order[]>([]);
@@ -660,7 +662,8 @@ export default function Workspace(){
  const[resTab,setResTab]=useState<"resultados"|"solicitudes"|"seguimiento"|"referencia"|"alertas">("resultados");
  const[resReg,setResReg]=useState<ResultsRegistry|null>(null); // registro de resultados clínica-wide (cableado)
  const[resNew,setResNew]=useState(false);const[resBusy2,setResBusy2]=useState(false);const[resMsg2,setResMsg2]=useState<string|null>(null);
- const[resForm,setResForm]=useState<{patientId:string;analyte:string;value:string}>({patientId:"",analyte:"GLUCOSE",value:""});
+ // U-07: la UNIDAD es obligatoria al capturar un resultado (de ella dependen rangos, críticos y todas las calculadoras).
+ const[resForm,setResForm]=useState<{patientId:string;analyte:string;value:string;unit:string}>({patientId:"",analyte:"GLUCOSE",value:"",unit:canonicalUnitOf("GLUCOSE")??""});
  const[resSel,setResSel]=useState<string|null>(null); // resultId seleccionado en el navegador de resultados
  const[resQ,setResQ]=useState("");const[resTypeF,setResTypeF]=useState("Todos");const[resEstadoF,setResEstadoF]=useState("Todos"); // filtros reales del navegador
  const[ordReg,setOrdReg]=useState<{items:{orderId:string;patientId:string;patientName:string;orderType:string;typeLabel:string;detail:string;status:string;createdAt:string;version:number}[];total:number;solicitadas:number;enviadas:number;completadas:number}|null>(null);
@@ -1094,11 +1097,17 @@ export default function Workspace(){
   if(!resForm.patientId||!resForm.analyte.trim()||!resForm.value.trim()){setResMsg2("Selecciona paciente, analito y valor.");return;}
   setResBusy2(true);setResMsg2(null);
   try{
-   const r=await apiRequest("/api/v1/results",{method:"POST",body:{resultId:uuid(),patientId:resForm.patientId,orderId:uuid(),analyte:resForm.analyte.trim(),value:resForm.value.trim(),occurredAt:nowIso()}});
+   const r=await apiRequest("/api/v1/results",{method:"POST",body:{resultId:uuid(),patientId:resForm.patientId,orderId:uuid(),analyte:resForm.analyte.trim(),value:resForm.value.trim(),...(resForm.unit?{unit:resForm.unit}:{}),occurredAt:nowIso()}});
    if(r.status>=400){setResMsg2(errMsg(r));return;}
    const crit=r.body["critical"]===true;const delta=r.body["deltaFlagged"]===true;
-   await reloadResults();setResNew(false);setResForm({patientId:resForm.patientId,analyte:resForm.analyte,value:""});
-   setResMsg2(crit?`Resultado registrado ⚠ CRÍTICO${delta?" · Δ crítico vs previo":""} — requiere acción y bloquea la firma hasta cerrarse.`:`Resultado registrado ✓${delta?" · Δ vs previo":" (dentro de rango)"}.`);
+   await reloadResults();setResNew(false);setResForm({patientId:resForm.patientId,analyte:resForm.analyte,value:"",unit:resForm.unit});
+   // El mensaje refleja el estado REAL que devolvió el servidor; "dentro de rango" solo si el estado es NORMAL.
+   const st=typeof r.body["status"]==="string"?r.body["status"]:"UNKNOWN";const interp=typeof r.body["interpretation"]==="string"?r.body["interpretation"]:"";
+   const noUnit=r.body["unitAssumed"]===true?" · se registró SIN unidad (se asumió la canónica)":"";
+   setResMsg2(crit?`Resultado registrado ⚠ CRÍTICO${delta?" · Δ crítico vs previo":""} — requiere acción y bloquea la firma hasta cerrarse.`
+    :st==="NORMAL"?`Resultado registrado ✓ (dentro de rango)${noUnit}.`
+    :st==="ABNORMAL"?`Resultado registrado — FUERA de rango (no crítico)${interp?`: ${interp}`:""}${noUnit}.`
+    :`Resultado registrado — sin rango de referencia para interpretarlo${noUnit}.`);
   }catch(e){setResMsg2(String(e));}finally{setResBusy2(false);}
  };
  // ===== Obligaciones regulatorias del consultorio: alta inline real (POST /regulatory-obligations) + recarga =====
@@ -1214,10 +1223,11 @@ export default function Workspace(){
   setRxCheck(null);setRxMsg("✓ Prescripción registrada como PROPOSED. Gestiona su ciclo (prescribir → activar) en el módulo Medicación.");
  });
  const receiveResult=()=>call("res-new",async()=>{
-  const id=uuid();const r=await apiRequest("/api/v1/results",{method:"POST",body:{resultId:id,patientId,orderId:uuid(),critical:resCritical,occurredAt:nowIso()}});
+  if(!resQuick.value.trim()){setError("Capture el valor del resultado.");return;}
+  const id=uuid();const r=await apiRequest("/api/v1/results",{method:"POST",body:{resultId:id,patientId,orderId:uuid(),analyte:resQuick.analyte,value:resQuick.value.trim(),...(resQuick.unit?{unit:resQuick.unit}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setResults(rs=>[...rs,{id,label:resName||"Resultado diagnóstico",critical:resCritical,state:"RECEIVED",version:Number(r.body["version"]??1)}]);
-  setResName("");setResCritical(false);
+  setResults(rs=>[...rs,{id,label:`${resQuick.analyte} ${resQuick.value.trim()} ${resQuick.unit}`.trim(),critical:r.body["critical"]===true,state:"RECEIVED",version:Number(r.body["version"]??1)}]);
+  setResQuick(q=>({...q,value:""}));
  });
  const advanceResult=(res:Result)=>call("res-"+res.id,async()=>{
   const n=resNext(res);if(!n)return;
@@ -2263,8 +2273,8 @@ export default function Workspace(){
      <div style={{fontSize:12.5,color:P.muted,marginBottom:12}}>La interpretación (normal / crítico) la <b style={{color:P.ink}}>deriva el motor CDS</b> del valor; un crítico sin cerrar bloquea la firma.</div>
      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 140px",gap:14}} className="mos-med2">
       <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Paciente</div><select value={resForm.patientId} onChange={e=>setResForm({...resForm,patientId:e.target.value})} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}><option value="">Selecciona…</option>{(patientList??[]).map(p=><option key={p.patientId} value={p.patientId}>{p.name}</option>)}</select></div>
-      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Analito</div><select value={resForm.analyte} onChange={e=>setResForm({...resForm,analyte:e.target.value})} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}>{labReferenceRanges().map(a=><option key={a.analyte} value={a.analyte}>{a.analyte}</option>)}</select></div>
-      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Valor</div><input value={resForm.value} onChange={e=>setResForm({...resForm,value:e.target.value})} placeholder="Ej. 520" style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}/></div>
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Analito</div><select value={resForm.analyte} onChange={e=>setResForm({...resForm,analyte:e.target.value,unit:canonicalUnitOf(e.target.value)??""})} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}>{labReferenceRanges().map(a=><option key={a.analyte} value={a.analyte}>{a.analyte}</option>)}</select></div>
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Valor</div><div style={{display:"flex",gap:6}}><input aria-label="Valor del resultado" inputMode="decimal" value={resForm.value} onChange={e=>setResForm({...resForm,value:e.target.value})} placeholder="Ej. 95" style={{flex:"1 1 auto",minWidth:0,border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}/><select aria-label="Unidad del resultado" value={resForm.unit} onChange={e=>setResForm({...resForm,unit:e.target.value})} style={{flex:"0 0 auto",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 8px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}>{acceptedUnitsOf(resForm.analyte).map(u=><option key={u} value={u}>{u}</option>)}</select></div></div>
      </div>
      {(()=>{const rng=labReferenceRanges().find(a=>a.analyte===resForm.analyte);return rng?<div style={{fontSize:11.5,color:P.muted,marginTop:8}}>Rango normal {resForm.analyte}: {rng.normalLow}–{rng.normalHigh}{rng.criticalLow!=null||rng.criticalHigh!=null?` · crítico <${rng.criticalLow??"—"} o >${rng.criticalHigh??"—"}`:""}</div>:null;})()}
      <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void createResult()} disabled={resBusy2||!resForm.patientId||!resForm.value.trim()} style={{border:0,background:(resBusy2||!resForm.patientId||!resForm.value.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(resBusy2||!resForm.patientId||!resForm.value.trim())?"default":"pointer",fontFamily:UI}}>{resBusy2?"Registrando…":"Registrar resultado"}</button><button onClick={()=>setResNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
@@ -4206,8 +4216,10 @@ export default function Workspace(){
    <h2 style={{fontSize:18,margin:0}}>Resultados diagnósticos</h2>
    <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Closed-loop: un resultado <b>crítico</b> que requirió acción y no se ha cerrado <b>bloquea la firma</b> del encuentro (Zero Lost Follow-Up).</p>
    <div style={{display:"flex",gap:10,marginTop:12,alignItems:"center",flexWrap:"wrap"}}>
-    <input style={{...input,maxWidth:340}} value={resName} onChange={e=>setResName(e.target.value)} placeholder="Estudio (ej. Hemograma, Rx tórax)" />
-    <label style={{fontSize:13,color:"#4b4c5e",display:"flex",alignItems:"center",gap:6}}><input type="checkbox" checked={resCritical} onChange={e=>setResCritical(e.target.checked)} /> Crítico</label>
+    <select aria-label="Analito" style={{...input,maxWidth:200}} value={resQuick.analyte} onChange={e=>setResQuick({analyte:e.target.value,value:"",unit:canonicalUnitOf(e.target.value)??""})}>{labReferenceRanges().map(a=><option key={a.analyte} value={a.analyte}>{a.analyte}</option>)}</select>
+    <input aria-label="Valor" inputMode="decimal" style={{...input,maxWidth:120}} value={resQuick.value} onChange={e=>setResQuick({...resQuick,value:e.target.value})} placeholder="Valor" />
+    <select aria-label="Unidad" style={{...input,maxWidth:120}} value={resQuick.unit} onChange={e=>setResQuick({...resQuick,unit:e.target.value})}>{acceptedUnitsOf(resQuick.analyte).map(u=><option key={u} value={u}>{u}</option>)}</select>
+    <span style={{fontSize:12,color:"#6b6c7e"}}>La criticidad se deriva del valor.</span>
     <button style={btn} disabled={busy!==""} onClick={receiveResult}>{busy==="res-new"?"Registrando…":"Registrar resultado"}</button>
    </div>
    {results.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>

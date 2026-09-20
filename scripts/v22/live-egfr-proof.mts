@@ -11,12 +11,15 @@ const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(scopes=["patient:write","patient:read","result:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const PP=(id:string)=>({params:Promise.resolve({patientId:id})});
-const ISO="2026-09-14T09:00:00.000Z";const idem=()=>crypto.randomUUID();
+const ISO=new Date(Date.now()-3_600_000).toISOString()/* reloj RELATIVO: la creatinina obsoleta ya no se usa para el eGFR */;const idem=()=>crypto.randomUUID();
 let ts=Date.parse(ISO);const nextAt=()=>new Date(ts+=60000).toISOString(); // timestamps crecientes (la más reciente gana)
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 function birth(yearsAgo:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-yearsAgo);return d.toISOString().slice(0,10);}
 async function register(t:string,p:string,sex:string,yearsAgo:number){await pat.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:"Prueba",birthDate:birth(yearsAgo),sexAtBirth:sex,occurredAt:ISO})}));}
 async function creat(t:string,p:string,value:string){await res.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:"CREATININE",value,occurredAt:nextAt()})}));}
+// Variante con control total de la captura (hora, unidad) para probar unidades, plausibilidad y vigencia de punta a punta.
+async function resAt(t:string,p:string,a:string,v:string,occurredAt:string,extra:Record<string,unknown>={}){const r=await res.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,occurredAt,...extra})}));return{status:r.status,body:await r.json()};}
+const daysAgo=(d:number)=>new Date(Date.now()-d*86_400_000).toISOString();
 async function egfr(t:string,p:string){const r=await eg.GET(new Request("http://l/",{headers:H(t)}),PP(p));return{status:r.status,body:await r.json()};}
 try{
  const phys=tok();
@@ -36,6 +39,16 @@ try{
  // 5) adulto sin creatinina -> no computable
  const p4=crypto.randomUUID();await register(phys,p4,"MALE",40);
  g=await egfr(phys,p4);ok(g.body.computable===false&&/creatinina/i.test(g.body.reason),"NO_CREATININE_NOT_COMPUTABLE");
+ // 5b) Auditoría C-01 — creatinina en µmol/L (88.4 = 1.0 mg/dL): mismo eGFR que el caso 1, y la respuesta declara la procedencia
+ const p5=crypto.randomUUID();await register(phys,p5,"MALE",50);const rc=await resAt(phys,p5,"CREATININE","88.4",daysAgo(1),{unit:"µmol/L"});
+ ok(rc.status===201&&rc.body.canonicalValue===1&&rc.body.canonicalUnit==="mg/dL"&&rc.body.unitAssumed===false,"UMOL_CONVERTED_AT_RECEIVE");
+ g=await egfr(phys,p5);ok(g.body.computable===true&&g.body.creatinineMgDl===1&&g.body.egfr>=85&&g.body.egfr<=98,"UMOL_SAME_EGFR_AS_MGDL");
+ ok(Array.isArray(g.body.inputs)&&g.body.inputs[0]?.analyte==="CREATININE"&&g.body.algorithm?.id==="CKD-EPI-2021","PROVENANCE_AND_ALGORITHM_RETURNED");
+ // 5c) 88.4 SIN unidad NO se acepta como mg/dL (antes: eGFR ≈ 0 -> "falla renal terminal" y bloqueo/alerta falsos)
+ const bad=await resAt(phys,p5,"CREATININE","88.4",daysAgo(0));ok(bad.status===400,"IMPLAUSIBLE_CREATININE_REJECTED_400");
+ // 5d) creatinina de hace 400 días -> no computable (no describe la función renal actual)
+ const p6=crypto.randomUUID();await register(phys,p6,"MALE",60);await resAt(phys,p6,"CREATININE","1.1",daysAgo(400));
+ g=await egfr(phys,p6);ok(g.body.computable===false&&g.body.stale.length===1&&/obsoleto/i.test(g.body.reason),"STALE_CREATININE_NOT_COMPUTABLE");
  // 6) paciente no registrado -> 404
  g=await egfr(phys,crypto.randomUUID());ok(g.status===404,"UNREGISTERED_404");
  // 7) sin scope patient:read -> 403

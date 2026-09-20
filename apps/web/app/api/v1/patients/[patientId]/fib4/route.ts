@@ -2,7 +2,8 @@ import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
 import{fib4}from"../../../../../../../../packages/liver-fibrosis/src";
-import{patientDemographics,latestResultValueForAnalyte}from"../../../../../../lib/clinical-runtime";
+import{patientDemographics}from"../../../../../../lib/clinical-runtime";
+import{readAnalyteInputs,provenance,MAX_AGE_DAYS,COHERENCE_HOURS,notComputable}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
 // EPIC BR — GET /api/v1/patients/:id/fib4 (índice de fibrosis hepática FIB-4)
@@ -21,15 +22,12 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const demo=await patientDemographics(tctx,patientId);
   if(!demo?.birthDate)throw new ClinicalError("NOT_FOUND","Patient not registered (demographics unavailable)");
   const age=ageYears(demo.birthDate);
-  const[ast,alt,plt]=await Promise.all([
-   num(latestResultValueForAnalyte(tctx,patientId,"AST")),
-   num(latestResultValueForAnalyte(tctx,patientId,"ALT")),
-   num(latestResultValueForAnalyte(tctx,patientId,"PLATELETS")),
-  ]);
-  const missing=["AST","ALT","PLATELETS"].filter((_,i)=>[ast,alt,plt][i]===undefined);
-  if(missing.length)return NextResponse.json({patientId,computable:false,reason:`Requiere ${missing.join("+")}`},{status:200});
+  // AST, ALT y plaquetas VERIFICADOS (unidad canónica: plaquetas en 10^3/µL — antes 250000 /µL daba FIB-4 = 0.00) y de un mismo periodo.
+  const inp=await readAnalyteInputs(tctx,patientId,[{analyte:"AST",maxAgeDays:MAX_AGE_DAYS.LIVER_PANEL},{analyte:"ALT",maxAgeDays:MAX_AGE_DAYS.LIVER_PANEL},{analyte:"PLATELETS",maxAgeDays:MAX_AGE_DAYS.LIVER_PANEL}],{coherenceHours:COHERENCE_HOURS.LIVER_PANEL});
+  if(!inp.ok)return NextResponse.json({patientId,computable:false,...notComputable(inp)},{status:200});
+  const ast=inp.values["AST"],alt=inp.values["ALT"],plt=inp.values["PLATELETS"];
   const r=fib4(age,ast!,alt!,plt!);
   if(!r)return NextResponse.json({patientId,computable:false,reason:"Valores inválidos"},{status:200});
-  return NextResponse.json({patientId,computable:true,ageYears:age,fib4:r.value,risk:r.risk,interpretation:r.interpretation},{status:200});
+  return NextResponse.json({patientId,computable:true,ageYears:age,fib4:r.value,risk:r.risk,interpretation:r.interpretation,algorithm:{id:"FIB-4",version:"1"},inputs:provenance(inp.inputs),warnings:inp.warnings},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

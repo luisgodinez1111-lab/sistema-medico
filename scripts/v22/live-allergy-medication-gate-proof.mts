@@ -15,6 +15,9 @@ function tok(t:string,scopes=["allergy:write","medication:propose","medication:w
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const AP=(id:string)=>({params:Promise.resolve({allergyId:id})});const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});
 const ISO="2026-09-10T10:00:00.000Z";const idem=()=>crypto.randomUUID();
+// Contrato de la remediación (auditoría C-03/C-05, lote 1): con barreras NO verificables (paciente sintético sin edad, peso o
+// eGFR) PRESCRIBE responde 428 hasta que el médico confirma y justifica. Las barreras BLOQUEADAS siguen devolviendo 403.
+const ACK={acknowledgeUnverified:true,unverifiedJustification:"Prueba en vivo: paciente sintético sin datos para verificar"};
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
  const phys=tok(TA);const pat=crypto.randomUUID();
@@ -26,13 +29,13 @@ try{
  const med=crypto.randomUUID();
  await meds.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:med,patientId:pat,drugCode:"amoxicilina-500",dose:"500mg",route:"VO",frequency:"c/8h",occurredAt:ISO})}));
  // *** GATE *** prescribir -> BLOQUEADO 403 por alergia activa
- r=await rx.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),MP(med));
+ r=await rx.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,...ACK})}),MP(med));
  ok(r.status===403,"PRESCRIBE_BLOCKED_BY_ALLERGY_403");
  // Inactivar la alergia
  r=await alInact.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),AP(alg));
  ok(r.status===201&&(await r.json()).state==="INACTIVE","ALLERGY_INACTIVATED_201");
  // Prescribir de nuevo -> AHORA 201
- r=await rx.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),MP(med));
+ r=await rx.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,...ACK})}),MP(med));
  ok(r.status===201&&(await r.json()).state==="PRESCRIBED","PRESCRIBE_UNBLOCKED_AFTER_INACTIVATE_201");
  // Reactivar alergia + SM
  r=await alReact.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO})}),AP(alg));

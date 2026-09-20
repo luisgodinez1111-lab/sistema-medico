@@ -4,7 +4,9 @@
 // PAO2 = FiO2·(Patm − PH2O) − PaCO2/0.8. Aire ambiente FiO2=0.21; nivel del mar Patm=760, PH2O=47 mmHg.
 // Parametrizable por altitud (relevante en México: p.ej. CDMX ~585 mmHg) vía atmPressure.
 export type AaGradientOptions=Readonly<{fio2?:number;atmPressure?:number}>;
-export type AaGradientResult=Readonly<{alveolarPo2:number;gradient:number;expected:number;elevated:boolean;interpretation:string}>;
+// `expectedValid=false` con O₂ suplementario: la fórmula del gradiente esperado por edad (2.5 + 0.21·edad) SOLO vale
+// respirando aire ambiente; con FiO₂ > 0.21 el gradiente "normal" sube y no debe compararse (usar PaO₂/FiO₂).
+export type AaGradientResult=Readonly<{alveolarPo2:number;gradient:number;expected:number;expectedValid:boolean;elevated:boolean;fio2:number;atmPressure:number;pfRatio:number;interpretation:string}>;
 export function aaGradient(pao2:number,paco2:number,ageYears:number,opts:AaGradientOptions={}):AaGradientResult|undefined{
  if(![pao2,paco2,ageYears].every(Number.isFinite)||pao2<=0||paco2<=0||ageYears<0)return undefined;
  const fio2=opts.fio2??0.21;const atm=opts.atmPressure??760;
@@ -12,9 +14,12 @@ export function aaGradient(pao2:number,paco2:number,ageYears:number,opts:AaGradi
  const alveolarPo2=Math.round((fio2*(atm-47)-paco2/0.8)*10)/10;
  const gradient=Math.round((alveolarPo2-pao2)*10)/10;
  const expected=Math.round((2.5+0.21*ageYears)*10)/10; // gradiente normal esperado por edad
- const elevated=gradient>expected;
- const interpretation=elevated
-  ?"Gradiente A-a elevado: problema de intercambio gaseoso (V/Q, shunt o difusión)"
-  :"Gradiente A-a normal: hipoxemia por hipoventilación (o intercambio conservado)";
- return{alveolarPo2,gradient,expected,elevated,interpretation};
+ const roomAir=Math.abs(fio2-0.21)<0.005;const pfRatio=Math.round(pao2/fio2);
+ const elevated=roomAir&&gradient>expected;
+ const interpretation=!roomAir
+  ?`Con O₂ suplementario (FiO₂ ${fio2}) el gradiente esperado por edad NO aplica; PaO₂/FiO₂ = ${pfRatio}${pfRatio<300?" (<300: alteración del intercambio gaseoso)":""}`
+  :elevated
+   ?"Gradiente A-a elevado: problema de intercambio gaseoso (V/Q, shunt o difusión)"
+   :"Gradiente A-a normal: hipoxemia por hipoventilación (o intercambio conservado)";
+ return{alveolarPo2,gradient,expected,expectedValid:roomAir,elevated,fio2,atmPressure:atm,pfRatio,interpretation};
 }

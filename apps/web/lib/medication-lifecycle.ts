@@ -107,6 +107,9 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
    payload:{kind:"PRESCRIBED",prescriberId:claims.sub,safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification})},occurredAt:b.occurredAt,topic:"medication.prescribed"});
   let result=await lookupReplay(ctx,cmd);
   if(!result){
+   // Orden de precondiciones: PRIMERO la versión. No se le pide al médico que confirme y justifique una prescripción
+   // sobre una vista obsoleta del expediente: con If-Match desfasado responde 409 y el cliente debe releer.
+   if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
    assertMedicationTransition(folded.state,"PRESCRIBED");
    const blocked=safety.barriers.filter(x=>x.status==="BLOCKED"&&x.id!=="order");
    if(blocked.length>0)throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: ${blocked.map(x=>x.detail).join(" · ")}`,{barriers:blocked.map(x=>x.id)});

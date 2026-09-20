@@ -8,13 +8,16 @@ import axe from"axe-core";
 // no-solo-color (estados y "Próximamente" en TEXTO) y sin violaciones de accesibilidad serias detectables.
 
 // Datos canónicos que alimentan la auto-carga del workspace (timeline + care-gaps + snapshot + trends).
+// Cuerpos de los POST que emite la UI (para afirmar QUÉ se envía, no solo que "algo" se envió).
+const{posted}=vi.hoisted(()=>({posted:[] as {path:string;body:unknown}[]}));
 vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
  apiUpload:async()=>({status:201,body:{version:1}}),
  apiDelete:async()=>({status:200,body:{removed:true,version:1}}),
  apiDownload:async()=>null,
- apiRequest:async(path:string)=>{
+ apiRequest:async(path:string,init?:{method?:string;body?:unknown})=>{
+  if(init?.method==="POST")posted.push({path,body:init.body});
   if(path.includes("/api/v1/vitals"))return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
   if(path.includes("/api/v1/care-plans"))return{status:201,body:{version:1}};
   if(path.match(/\/api\/v1\/documents\/[^/]+$/))return{status:200,body:{documentId:"dc1",patientId:"p1",title:"Nota de evolución",docType:"PROGRESS_NOTE",typeLabel:"Nota médica",content:"Paciente estable. Continúa tratamiento.",state:"SIGNED",statusLabel:"Firmado",version:3,createdAt:"2026-09-17T00:00:00Z",addenda:[],signature:{authorId:"u1",contentHash:"a".repeat(64),signatureDigest:"b".repeat(64),signedAt:"2026-09-17T01:00:00Z"},attachments:[{attachmentId:"at1",filename:"laboratorio.pdf",mime:"application/pdf",size:23456,pathname:"tenants/t/documents/dc1/at1.pdf",contentHash:"c".repeat(64),authorId:"u1",attachedAt:"2026-09-17T02:00:00Z"}]}};
@@ -450,9 +453,15 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   fireEvent.click(screen.getByRole("button",{name:"+ Registrar resultado"}));
   const opt=await screen.findByRole("option",{name:"Ana López García"});
   fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});          // paciente
-  fireEvent.change(screen.getByPlaceholderText("Ej. 520"),{target:{value:"520"}});
+  // Auditoría U-07: la unidad es parte del dato. El selector arranca en la canónica del analito y ofrece las alternativas.
+  const unitSel=screen.getByLabelText("Unidad del resultado") as HTMLSelectElement;
+  expect(unitSel.value).toBe("mg/dL");expect(Array.from(unitSel.options).map(o=>o.value)).toEqual(["mg/dL","mmol/L"]);
+  fireEvent.change(unitSel,{target:{value:"mmol/L"}});
+  fireEvent.change(screen.getByLabelText("Valor del resultado"),{target:{value:"7"}});
   fireEvent.click(screen.getByRole("button",{name:"Registrar resultado"})); // submit
   expect(await screen.findByText(/Resultado registrado/)).toBeTruthy();
+  const sent=posted.filter(p=>p.path==="/api/v1/results").at(-1)?.body as {analyte?:string;value?:string;unit?:string}|undefined;
+  expect(sent).toMatchObject({analyte:"GLUCOSE",value:"7",unit:"mmol/L"});
  });
 
  it("vista Signos vitales: registrar signos vitales reales al paciente elegido (POST /vitals)",async()=>{

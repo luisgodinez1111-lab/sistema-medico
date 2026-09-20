@@ -13,7 +13,7 @@ const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(scopes=["patient:write","patient:read","result:write","allergy:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const PP=(id:string)=>({params:Promise.resolve({patientId:id})});
-let ts=Date.parse("2026-09-14T09:00:00.000Z");const at=()=>new Date(ts+=60000).toISOString();const idem=()=>crypto.randomUUID();
+let ts=Date.now()-3_600_000/* reloj RELATIVO: las calculadoras rechazan datos obsoletos; una fecha fija haría caducar la prueba */;const at=()=>new Date(ts+=60000).toISOString();const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
 async function reg(t:string,p:string,y:number,sex:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:"Prueba",birthDate:birth(y),sexAtBirth:sex,occurredAt:at()})}));}
@@ -44,9 +44,13 @@ try{
  ok(c.body.verdict!=="BLOCK","PARACETAMOL_NOT_BLOCKED");
  ok(!!c.body.indications,"INDICATIONS_PRESENT");
 
- // 4) fármaco fuera de catálogo -> WARN (verificación limitada), no crashea
+ // 4) Auditoría C-03 — fármaco fuera de catálogo: NINGUNA barrera dependiente del catálogo se da por buena. Antes "WARN" con
+ //    el resto en OK; ahora NOT_EVALUATED explícito, confirmación requerida y ninguna barrera clínica en "OK".
  const u=await check(phys,p,"medicamentox","1 tab","Oral","c/24h");
- ok(u.status===200&&find(u.body,"catalog")?.status==="WARN","UNKNOWN_DRUG_WARN");
+ ok(u.status===200&&find(u.body,"catalog")?.status==="NOT_EVALUATED","UNKNOWN_DRUG_NOT_EVALUATED");
+ ok(u.body.requiresAcknowledgement===true&&u.body.verdict==="WARN","UNKNOWN_DRUG_REQUIRES_ACK");
+ ok(["interaction","duplicate","contraindication","doseCeiling","renal"].every(id=>find(u.body,id)?.status==="NOT_EVALUATED"),"UNKNOWN_DRUG_NO_FALSE_OK");
+ ok(Array.isArray(u.body.notEvaluated)&&u.body.notEvaluated.includes("catalog"),"NOT_EVALUATED_LISTED");
 
  // 5) sin scope -> 403
  const noScope=await check(tok(["result:write"]),p,"paracetamol","500mg","Oral","c/8h");

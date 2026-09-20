@@ -25,6 +25,17 @@ describe("aaGradient (aire ambiente, nivel del mar)",()=>{
   const sea=aaGradient(90,40,40)!;const alt=aaGradient(90,40,40,{atmPressure:585})!; // CDMX
   expect(alt.alveolarPo2).toBeLessThan(sea.alveolarPo2);
  });
+ // Auditoría 2026-09-19 (C-18): la FiO₂ real es obligatoria; con O₂ suplementario el "esperado por edad" NO aplica.
+ it("con O₂ suplementario (FiO₂ 0.40): el gradiente sube pero NO se declara 'elevado' contra la fórmula de aire ambiente",()=>{
+  const r=aaGradient(90,40,60,{fio2:0.4})!; // PAO2 = 0.4*713 - 50 = 235.2; grad = 145.2
+  expect(r.alveolarPo2).toBeCloseTo(235.2,1);expect(r.gradient).toBeCloseTo(145.2,1);
+  expect(r.expectedValid).toBe(false);expect(r.elevated).toBe(false);
+  expect(r.pfRatio).toBe(225);expect(r.interpretation).toMatch(/NO aplica/);expect(r.interpretation).toMatch(/<300/);
+ });
+ it("aire ambiente: expectedValid=true y devuelve la FiO₂ y la presión usadas (procedencia del cálculo)",()=>{
+  const r=aaGradient(95,40,30,{atmPressure:585})!;
+  expect(r).toMatchObject({expectedValid:true,fio2:0.21,atmPressure:585});expect(r.pfRatio).toBe(452);
+ });
  it("valores inválidos -> undefined",()=>{
   expect(aaGradient(0,40,40)).toBeUndefined();
   expect(aaGradient(90,40,40,{fio2:2})).toBeUndefined();

@@ -15,10 +15,13 @@ function tok(scopes=["medication:propose","medication:write","obligation:write"]
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});const OP=(id:string)=>({params:Promise.resolve({obligationId:id})});
 const ISO="2026-09-14T09:00:00.000Z";const idem=()=>crypto.randomUUID();
+// Contrato de la remediación (auditoría C-03/C-05, lote 1): con barreras NO verificables (paciente sintético sin edad, peso o
+// eGFR) PRESCRIBE responde 428 hasta que el médico confirma y justifica. Las barreras BLOQUEADAS siguen devolviendo 403.
+const ACK={acknowledgeUnverified:true,unverifiedJustification:"Prueba en vivo: paciente sintético sin datos para verificar"};
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 async function propose(t:string,pat:string,drugCode:string,dose:string,frequency:string){const id=crypto.randomUUID();await meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:pat,drugCode,dose,route:"VO",frequency,occurredAt:ISO})}));return id;}
 // prescribe con una idempotency-key CONOCIDA para poder derivar el id de la obligación auto-creada.
-async function prescribe(t:string,medId:string,key:string){return rx.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":key,"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),MP(medId));}
+async function prescribe(t:string,medId:string,key:string){return rx.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":key,"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,...ACK})}),MP(medId));}
 try{
  const phys=tok();const pat=crypto.randomUUID();
  // 1) warfarina -> al prescribir se crea la obligación MONITOR_INR (agg slot 0)

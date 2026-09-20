@@ -1,36 +1,35 @@
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{anionGap,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../../../../../../../packages/lab-derivations/src";
-import{latestResultValueForAnalyte}from"../../../../../../lib/clinical-runtime";
+import{latestAnalyteReading}from"../../../../../../lib/clinical-runtime";
+import{verifyAnalyteReadings,provenance,MAX_AGE_DAYS,COHERENCE_HOURS}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
 // EPIC BN — GET /api/v1/patients/:id/metabolic-panel (derivaciones multi-analito: anion gap, calcio corregido)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
-async function val(fn:Promise<string|undefined>):Promise<number|undefined>{const s=await fn;if(s===undefined)return undefined;const n=Number(s);return Number.isFinite(n)?n:undefined;}
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
-  const[na,cl,hco3,ca,alb,glu,bun]=await Promise.all([
-   val(latestResultValueForAnalyte(tctx,patientId,"SODIUM")),
-   val(latestResultValueForAnalyte(tctx,patientId,"CHLORIDE")),
-   val(latestResultValueForAnalyte(tctx,patientId,"BICARBONATE")),
-   val(latestResultValueForAnalyte(tctx,patientId,"CALCIUM")),
-   val(latestResultValueForAnalyte(tctx,patientId,"ALBUMIN")),
-   val(latestResultValueForAnalyte(tctx,patientId,"GLUCOSE")),
-   val(latestResultValueForAnalyte(tctx,patientId,"BUN")),
-  ]);
-  const ag=(na!==undefined&&cl!==undefined&&hco3!==undefined)?anionGap(na,cl,hco3):undefined;
-  const cca=(ca!==undefined&&alb!==undefined)?correctedCalcium(ca,alb):undefined;
-  const cna=(na!==undefined&&glu!==undefined)?correctedSodiumForGlucose(na,glu):undefined;
-  const osm=(na!==undefined&&glu!==undefined&&bun!==undefined)?calculatedOsmolality(na,glu,bun):undefined;
+  // Se lee cada analito UNA vez (valor canónico + unidad + fecha) y cada derivada exige sus entradas plausibles,
+  // vigentes y de la MISMA extracción (≤24 h): una brecha aniónica con sodio de hoy y cloro del mes pasado no es válida.
+  const NAMES=["SODIUM","CHLORIDE","BICARBONATE","CALCIUM","ALBUMIN","GLUCOSE","BUN"] as const;
+  const readings=await Promise.all(NAMES.map(a=>latestAnalyteReading(tctx,patientId,a)));
+  const pick=(...as:(typeof NAMES[number])[])=>verifyAnalyteReadings(as.map(a=>({analyte:a,maxAgeDays:MAX_AGE_DAYS.METABOLIC_PANEL})),as.map(a=>readings[NAMES.indexOf(a)]),{coherenceHours:COHERENCE_HOURS.METABOLIC_PANEL});
+  const gAg=pick("SODIUM","CHLORIDE","BICARBONATE"),gCa=pick("CALCIUM","ALBUMIN"),gNa=pick("SODIUM","GLUCOSE"),gOsm=pick("SODIUM","GLUCOSE","BUN");
+  const ag=gAg.ok?anionGap(gAg.values["SODIUM"]!,gAg.values["CHLORIDE"]!,gAg.values["BICARBONATE"]!):undefined;
+  const cca=gCa.ok?correctedCalcium(gCa.values["CALCIUM"]!,gCa.values["ALBUMIN"]!):undefined;
+  const cna=gNa.ok?correctedSodiumForGlucose(gNa.values["SODIUM"]!,gNa.values["GLUCOSE"]!):undefined;
+  const osm=gOsm.ok?calculatedOsmolality(gOsm.values["SODIUM"]!,gOsm.values["GLUCOSE"]!,gOsm.values["BUN"]!):undefined;
   const missing:string[]=[];
-  if(ag===undefined)missing.push("anionGap: requiere SODIUM+CHLORIDE+BICARBONATE");
-  if(cca===undefined)missing.push("correctedCalcium: requiere CALCIUM+ALBUMIN");
-  if(cna===undefined)missing.push("correctedSodium: requiere SODIUM+GLUCOSE");
-  if(osm===undefined)missing.push("osmolality: requiere SODIUM+GLUCOSE+BUN");
-  return NextResponse.json({patientId,anionGap:ag??null,correctedCalcium:cca??null,correctedSodium:cna??null,osmolality:osm??null,missing},{status:200});
+  if(!gAg.ok)missing.push(`anionGap: ${gAg.reason}`);
+  if(!gCa.ok)missing.push(`correctedCalcium: ${gCa.reason}`);
+  if(!gNa.ok)missing.push(`correctedSodium: ${gNa.reason}`);
+  if(!gOsm.ok)missing.push(`osmolality: ${gOsm.reason}`);
+  const used=[gAg,gCa,gNa,gOsm].flatMap(g=>g.ok?g.inputs:[]);const inputs=provenance(used.filter((x,i)=>used.findIndex(y=>y.analyte===x.analyte)===i));
+  return NextResponse.json({patientId,anionGap:ag??null,correctedCalcium:cca??null,correctedSodium:cna??null,osmolality:osm??null,missing,
+   caveat:"Brecha aniónica SIN corrección por albúmina y sin delta-delta.",algorithm:{id:"METABOLIC-DERIVATIONS",version:"1"},inputs},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
