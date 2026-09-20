@@ -3571,6 +3571,30 @@
    "epic": "S-DOCUMENTOS/BACKEND",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": false
+  },
+  {
+   "id": "CAP-REPORTES-AGGREGATES-BACKEND-001",
+   "name": "Reportes — agregados reales adicionales: órdenes (total y por tipo), procedimientos, resultados, vacunas",
+   "risk": "C4",
+   "eng_authority_note": "Ampliado el tablero de Reportes con MAS agregados REALES derivados del event stream (registros clinica-wide, RLS-scoped), sin mock. Antes solo pacientes/ingresos/diagnosticos. Ahora GET /api/v1/reports tambien compone: ordersTotal (nº de ordenes), ordersByType (conteo+pct por LAB/IMAGING/PROCEDURE/REFERRAL/PATHOLOGY desde ordersRegistry), topProcedures (ordenes tipo PROCEDURE agrupadas por descripcion, top 5), resultsTotal (resultsRegistry) e immunizationsApplied (immunizationRegistry status COMPLETE). Frontend: KPIs ampliados a 5 (pacientes, ingresos, ordenes, resultados, vacunas), nueva fila Ordenes por tipo (dona real) + Procedimientos mas realizados (barras reales); nota honesta lista lo real y lo que aun falta (tendencias por dia/encuentros, tipos de consulta/agenda, medicamentos, calidad). Sin escritura; scope record:export.",
+   "invariants": [
+    "Los agregados de Reportes se derivan del event stream real (ordersRegistry/resultsRegistry/immunizationRegistry/problemRegistry/claims/padron), no de mock",
+    "ordersByType y topProcedures reflejan conteos reales por tipo/descripcion; suman y porcentúan sobre el total real",
+    "Los indicadores no implementados no se simulan: la nota declara lo que falta por conectar",
+    "Lectura sin escritura, RLS-scoped, scope record:export"
+   ],
+   "implementation": [
+    "apps/web/app/api/v1/reports/route.ts (compone ordersTotal/ordersByType/topProcedures/resultsTotal/immunizationsApplied)",
+    "apps/web/app/workspace/page.tsx (ReportsSnap ampliado; 5 KPIs; Ordenes por tipo dona real + Procedimientos mas realizados; nota honesta)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Reportes: KPIs de ordenes/vacunas, Ordenes por tipo y Procedimientos mas realizados presentes)",
+    "scripts/v22/live-reports-proof.mts"
+   ],
+   "runtime_evidence": "Live proof vs Neon PASS 14/14: siembra 3 pacientes, 6 diagnosticos, 2 facturas pagadas y 5 ordenes (LAB x2/IMAGING x1/PROCEDURE x2); GET /reports devuelve pacientes 3, ingresos 1700, dx total 6 (top E11.9=3, 50%), ordenes total 5, por tipo LAB=2/IMAGING=1/PROCEDURE=2, procedimiento top Electrocardiograma=2, y resultsTotal/immunizationsApplied como numeros; sin scope -> 403. Render 46/46; typecheck limpio.",
+   "epic": "S-REPORTES/BACKEND",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

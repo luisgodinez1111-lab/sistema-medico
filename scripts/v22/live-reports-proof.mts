@@ -13,8 +13,10 @@ const clCode=await import("../../apps/web/app/api/v1/claims/[claimId]/coding/rou
 const clSub=await import("../../apps/web/app/api/v1/claims/[claimId]/submission/route");
 const clPay=await import("../../apps/web/app/api/v1/claims/[claimId]/payment/route");
 const repR=await import("../../apps/web/app/api/v1/reports/route");
+const ordR=await import("../../apps/web/app/api/v1/orders/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
-function tok(scopes=["patient:write","patient:read","problem:write","billing:write","record:export"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
+function tok(scopes=["patient:write","patient:read","problem:write","billing:write","record:export","order:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
+async function order(t:string,p:string,orderType:string,detail:string){await ordR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({orderId:crypto.randomUUID(),patientId:p,orderType,detail,occurredAt:at()})}));}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const idem=()=>crypto.randomUUID();let ts=Date.parse("2026-09-01T09:00:00.000Z");const at=()=>new Date(ts+=3600000).toISOString();
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
@@ -33,9 +35,13 @@ try{
  await prob(phys,p3,"E66.9");
  // facturas pagadas: 500 + 1200 = 1700
  await paidClaim(phys,p1,"500");await paidClaim(phys,p2,"1200");
+ // órdenes: LAB x2, IMAGING x1, PROCEDURE x2 (Electrocardiograma x2) = 5 total
+ await order(phys,p1,"LAB","Biometría hemática");await order(phys,p2,"LAB","Química sanguínea");
+ await order(phys,p3,"IMAGING","Radiografía de tórax");
+ await order(phys,p1,"PROCEDURE","Electrocardiograma");await order(phys,p2,"PROCEDURE","Electrocardiograma");
 
  const R=await reports(phys);ok(R.status===200,"REPORTS_200");
- const b=R.body as{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;count:number;pct:number}[]};
+ const b=R.body as{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;count:number;pct:number}[];topProcedures:{detail:string;count:number}[];resultsTotal:number;immunizationsApplied:number};
  ok(b.patientsAttended===3,"PATIENTS_3");
  ok(b.income===1700,"INCOME_1700");
  ok(b.diagnosesTotal===6,"DX_TOTAL_6");
@@ -43,6 +49,15 @@ try{
  ok(b.topDiagnoses[0]!.code==="E11.9"&&b.topDiagnoses[0]!.count===3,"TOP_DX_E119");
  ok(b.topDiagnoses.find(x=>x.code==="I10")?.count===2,"DX_I10_2");
  ok(b.topDiagnoses[0]!.pct===50,"TOP_DX_PCT_50"); // 3/6
+ // órdenes: total 5, por tipo real
+ ok(b.ordersTotal===5,"ORDERS_TOTAL_5");
+ ok(b.ordersByType.find(x=>x.type==="LAB")?.count===2,"ORDERS_LAB_2");
+ ok(b.ordersByType.find(x=>x.type==="IMAGING")?.count===1,"ORDERS_IMAGING_1");
+ ok(b.ordersByType.find(x=>x.type==="PROCEDURE")?.count===2,"ORDERS_PROCEDURE_2");
+ // procedimientos más realizados: Electrocardiograma con 2
+ ok(b.topProcedures[0]!.detail==="Electrocardiograma"&&b.topProcedures[0]!.count===2,"TOP_PROC_EKG_2");
+ // resultados y vacunas aplicadas: agregados presentes (números; sin sembrar quedan en 0)
+ ok(typeof b.resultsTotal==="number"&&typeof b.immunizationsApplied==="number","RESULTS_VAC_WIRED");
 
  // sin scope -> 403
  const noScope=await reports(tok(["patient:read"]));

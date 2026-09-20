@@ -40,7 +40,7 @@ vi.mock("../../apps/web/lib/session-client",()=>({
     {resultId:"r1",patientId:"p1",patientName:"Ana López García",analyte:"GLUCOSE",value:"520",critical:true,status:"CRITICAL",interpretation:"Hiperglucemia de pánico",tipo:"Laboratorio",estado:"Hallazgos",lifecycle:"RECEIVED",receivedAt:"2026-09-17T00:00:00Z"},
     {resultId:"r2",patientId:"p2",patientName:"Carlos Mendoza",analyte:"CREATININE",value:"0.9",critical:false,status:"NORMAL",interpretation:"Normal",tipo:"Laboratorio",estado:"En seguimiento",lifecycle:"ACTIONED",receivedAt:"2026-09-16T00:00:00Z"},
    ],total:2,abnormal:1,enSeguimiento:1,pendientes:1}};
-  if(path.includes("/api/v1/reports"))return{status:200,body:{patientsAttended:248,income:124680,diagnosesTotal:159,topDiagnoses:[{code:"E11.9",description:"Diabetes mellitus tipo 2",count:42,pct:13},{code:"I10",description:"Hipertensión esencial",count:38,pct:12}]}};
+  if(path.includes("/api/v1/reports"))return{status:200,body:{patientsAttended:248,income:124680,diagnosesTotal:159,topDiagnoses:[{code:"E11.9",description:"Diabetes mellitus tipo 2",count:42,pct:13},{code:"I10",description:"Hipertensión esencial",count:38,pct:12}],ordersTotal:24,ordersByType:[{type:"LAB",label:"Laboratorio",count:14,pct:58},{type:"IMAGING",label:"Imagenología",count:6,pct:25},{type:"PROCEDURE",label:"Procedimiento",count:4,pct:17}],topProcedures:[{detail:"Electrocardiograma",count:3,pct:75},{detail:"Curación simple",count:1,pct:25}],resultsTotal:37,immunizationsApplied:12}};
   if(path.includes("/api/v1/office-settings"))return{status:200,body:{settings:{officeName:"",specialty:"",rfc:"",cedula:"",address:"",phone:"",email:"",timezone:"",language:"es",color:"#6C5CF6",theme:"Claro",fontSize:"Normal",realtimeAlerts:true,followupReminders:true,showInteractions:true,darkMode:false},version:0}};
   if(path.includes("/api/v1/regulatory-obligations"))return{status:200,body:{
    items:[
@@ -577,7 +577,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByRole("heading",{name:"Reportes"})).toBeTruthy();
   expect(screen.getByText("Pacientes atendidos")).toBeTruthy();                  // KPI real
   expect(screen.getByText("Ingresos totales")).toBeTruthy();                     // KPI real
-  expect(screen.getByText(/Diagnósticos principales/)).toBeTruthy();            // real (repSnap.topDiagnoses)
+  expect(await screen.findByText("Órdenes y estudios")).toBeTruthy();           // KPI real (ordersTotal)
+  expect(screen.getByText("Vacunas aplicadas")).toBeTruthy();                    // KPI real (immunizationsApplied)
+  expect(screen.getByText(/Diagnósticos principales/)).toBeTruthy();            // real (topDiagnoses)
+  expect(screen.getByText("Órdenes por tipo")).toBeTruthy();                     // dona real (ordersByType)
+  expect(screen.getByText("Procedimientos más realizados")).toBeTruthy();        // real (topProcedures)
   // auditoría: se eliminaron las gráficas/secciones y trends hardcodeados
   expect(screen.queryByText(/Consultas por día/)).toBeNull();
   expect(screen.queryByText("Medicamentos más prescritos")).toBeNull();
