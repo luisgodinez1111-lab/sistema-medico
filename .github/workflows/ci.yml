@@ -1,0 +1,60 @@
+# CI única de Medical OS (remediación de auditoría 2026-09-19, hallazgos P-01/P-02/P-11).
+# Antes había 5 workflows por push (4 repetían install + typecheck + tests y dos "laboratorios" heredados no
+# podían fallar por construcción): ~1,000 corridas en 4 días agotaron los minutos de Actions. Ahora: UNA
+# corrida por push, cancelando la anterior de la misma rama, y sin disparar por cambios solo documentales.
+# Acciones fijadas por SHA (cadena de suministro).
+name: ci
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**/*.md', 'release/**', 'registry_meta_*.json']
+  pull_request:
+    paths-ignore: ['docs/**', '**/*.md', 'release/**', 'registry_meta_*.json']
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  verify:
+    name: typecheck estricto + tests + gates de autoridad
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck estricto (raíz) y de la app que se despliega
+        run: pnpm typecheck && pnpm typecheck:web
+      - name: Suite de tests
+        run: pnpm test
+      - name: Gates de autoridad (trazabilidad + admisión de release)
+        run: pnpm traceability:check && pnpm release:check
+  live-smoke:
+    name: regresión en vivo contra Postgres desechable
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_DB: medical_os_test, POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/medical_os_test?sslmode=disable
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/medical_os_test?sslmode=disable
+      CI_DB_BOOTSTRAP_ALLOW: '1'
+      SESSION_SIGNING_SECRET: ci-live-regression-secret
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Bootstrap de BD desechable (roles + migraciones)
+        run: pnpm exec tsx scripts/ci/bootstrap-db.mts
+      - name: Smoke de regresión en vivo (kernel + lazos de seguridad + CDS)
+        run: pnpm exec tsx scripts/ci/live-smoke.mts

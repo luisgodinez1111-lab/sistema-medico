@@ -9,3 +9,9 @@ coverage/
 .env.local
 .vercel
 .env*
+
+# Artefactos de build y duplicados de macOS/iCloud (auditoría 2026-09-19, P-17)
+*.tsbuildinfo
+* 2.*
+* 2
+!.env.example

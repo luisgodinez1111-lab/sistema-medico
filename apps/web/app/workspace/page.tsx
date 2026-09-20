@@ -3044,7 +3044,7 @@ export default function Workspace(){
    const sIMC=vitHist?.series.IMC.map(p=>p.value)??[];
    const latest=records[0];
    const spark=(vals:number[],color:string)=>{if(!vals.length)return null;const w=150,h=44,pad=4;const mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1;const step=vals.length>1?(w-pad*2)/(vals.length-1):0;
-    const pt=(v:number,i:number)=>[pad+i*step,h-pad-((v-mn)/rng)*(h-pad*2)];
+    const pt=(v:number,i:number):[number,number]=>[pad+i*step,h-pad-((v-mn)/rng)*(h-pad*2)];
     const d=vals.map((v,i)=>{const[x,y]=pt(v,i);return `${i===0?"M":"L"}${x.toFixed(1)} ${y.toFixed(1)}`;}).join(" ");
     const[lx,ly]=pt(vals[vals.length-1]!,vals.length-1);
     return <svg width={w} height={h} style={{display:"block"}} aria-hidden><path d={`${d} L${(pad+(vals.length-1)*step).toFixed(1)} ${h} L${pad} ${h} Z`} fill={color} opacity={.09}/><path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/><circle cx={lx} cy={ly} r={3} fill={color}/></svg>;};
@@ -3263,7 +3263,7 @@ export default function Workspace(){
    const counts=fuSnap?fuSnap.counts:{problems:0,medications:0,allergies:0};
    const fmtDue=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?iso:d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
    const spark=(vals:number[],color:string)=>{if(!vals.length)return null;const w=140,h=40,pad=4;const mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1;const step=vals.length>1?(w-pad*2)/(vals.length-1):0;
-    const pt=(v:number,i:number)=>[pad+i*step,h-pad-((v-mn)/rng)*(h-pad*2)];
+    const pt=(v:number,i:number):[number,number]=>[pad+i*step,h-pad-((v-mn)/rng)*(h-pad*2)];
     const d=vals.map((v,i)=>{const[x,y]=pt(v,i);return `${i===0?"M":"L"}${x.toFixed(1)} ${y.toFixed(1)}`;}).join(" ");
     return <svg width={w} height={h} style={{display:"block"}} aria-hidden><path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>{vals.map((v,i)=>{const[x,y]=pt(v,i);return <circle key={i} cx={x} cy={y} r={2.5} fill="#fff" stroke={color} strokeWidth={1.5}/>;})}</svg>;};
    // Tendencia de signos vitales (real o representativa)
@@ -3674,7 +3674,7 @@ export default function Workspace(){
    const FAV=[["Antibióticos en IVU no complicada","GPC México 2024",P.blue],["Vacunación en el adulto","Esquema actualizado 2024",P.red],["Interpretación de EKG","Guía práctica",P.purple],["Dosis pediátricas","Calculadora","#16A66A"],["Manejo de asma","GPC México 2023",P.blue]];
    const REC=[["Colecistitis aguda","Protocolo | hace 2 horas",P.blue],["Insuficiencia renal aguda","GPC | hace 5 horas",P.red],["Anticonceptivos hormonales","Guía | hace 1 día","#16A66A"],["Crisis de ansiedad","Protocolo | hace 2 días",P.purple],["Interpretación de laboratorios","Guía | hace 3 días",P.blue]];
    const UPD=[["GPC Obesidad 2024","Hace 1 semana"],["Calendario de vacunación 2024","Hace 2 semanas"],["Manejo de dengue","Hace 3 semanas"]];
-   const SRC=[["CENETEC","México"],["OMS","Internacional"],["PubMed","Artículos"],["AHA","Cardiología"],["ADA","Diabetes"]];
+   const SRC:[string,string][]=[["CENETEC","México"],["OMS","Internacional"],["PubMed","Artículos"],["AHA","Cardiología"],["ADA","Diabetes"]];
    const listItem=(t:string,s:string,c:string,i:number,last:number)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<last?`1px solid #F2F4F9`:"0"}}><span style={{width:26,height:26,borderRadius:7,background:c+"22",color:c,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 2h9l5 5v15H6z"/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontSize:12.5,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t}</div><div style={{fontSize:11,color:P.muted}}>{s}</div></div><span style={{color:P.muted,fontWeight:700,cursor:"pointer"}}>⋯</span></div>;
    return <div style={{padding:"18px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>

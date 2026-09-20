@@ -1,8 +1,9 @@
 import{NextResponse}from"next/server";
+import{z}from"zod";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{checkInteractionSet,SEVERITY_LABEL,resolveDrug,resolveFactor}from"../../../../../../packages/drug-catalog/src";
 import{toHttpError}from"../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../lib/http-command";
+import{resolveVerified,principalFrom,parseJson}from"../../../../lib/http-command";
 // EPIC BN — POST /api/v1/interactions  (Medicamentos › pestaña "Interacciones", verificador de conjunto)
 // Evalúa TODO un conjunto de fármacos entre sí MÁS factores del paciente (alcohol, insuficiencia renal,
 // embarazo…). Determinista, sin PHI, sin escritura. Devuelve cada hallazgo con severidad de 4 niveles
@@ -10,13 +11,15 @@ import{resolveVerified,principalFrom}from"../../../../lib/http-command";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 
+const Body=z.object({drugs:z.array(z.string().max(120)).max(60).default([]),factors:z.array(z.string().max(120)).max(30).default([])});
 export async function POST(req:Request){
  try{
   const{claims}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"medication:propose",purpose:"TREATMENT"});
-  const body=await req.json().catch(()=>({}));
-  const drugs=Array.isArray(body.drugs)?body.drugs.map((d:unknown)=>String(d??"").trim()).filter(Boolean):[];
-  const factors=Array.isArray(body.factors)?body.factors.map((f:unknown)=>String(f??"").trim()).filter(Boolean):[];
+  // Validación de entrada con esquema (como el resto de rutas): listas acotadas de texto; nada de `any`.
+  const body=await parseJson(req,Body);
+  const clean=(xs:readonly string[]):string[]=>xs.map(x=>x.trim()).filter(Boolean);
+  const drugs=clean(body.drugs),factors=clean(body.factors);
   const result=checkInteractionSet(drugs,factors);
   // Etiquetas en español + eco de lo que resolvió el catálogo (transparencia clínica).
   const findings=result.findings.map(f=>({...f,severityLabel:SEVERITY_LABEL[f.severity]}));
