@@ -3594,6 +3594,32 @@
    "requires_human_c5_acceptance": false
   },
   {
+   "id": "CAP-PHYSICIAN-PROFILE-SIGNATURE-BLOB-BACKEND-001",
+   "name": "Configuración — firma y sello del médico (imágenes) en Vercel Blob privado, por-usuario",
+   "risk": "C5",
+   "eng_authority_note": "Conectada la firma y el sello profesional del médico (antes: SVG hardcodeado 'Dr. Luis Godinez' + botones muertos 'Subir firma'/'Configurar sello'). Nuevo agregado event-sourced PhysicianProfile POR-USUARIO (aggregateId derivado de tenantId+sub del médico; RLS por tenant): la firma/sello son del médico, no del consultorio. Las imágenes (identidad profesional, sensibles) viven SOLO en Vercel Blob PRIVADO; en el event stream va únicamente la referencia (pathname + sha256 + mime + size). Eventos PROFILE_ASSET_SET / PROFILE_ASSET_REMOVED (el último ASSET_SET por tipo gana; ASSET_REMOVED limpia). Endpoints: GET /physician-profile (metadatos + version), POST/GET/DELETE /physician-profile/assets/:kind (kind ∈ signature|stamp). La descarga se sirve SIEMPRE por la Function autorizada (scope settings:write) con useCache:false (lectura fresca tras reemplazo); nunca URL pública. Subida atómica de facto: sube al blob y luego registra el evento; si el commit falla, borra el blob. Allowlist de imagen (PNG/JPG/WEBP), máx 5 MB, ruta del blob aislada por tenant y por médico. Frontend: la tarjeta Firma y sello muestra las imágenes reales (o 'Sin firma/sello cargada'), con Subir/Reemplazar (input file) y Quitar; se elimina la firma inventada. Banner de honestidad actualizado.",
+   "invariants": [
+    "La firma/sello son por-médico (aggregateId derivado del sub, RLS por tenant), no del consultorio; un médico no ve la firma de otro",
+    "El binario nunca entra al event stream: solo la referencia (pathname + sha256 + mime + size) en PROFILE_ASSET_SET",
+    "La descarga se sirve por Function autorizada (scope settings:write) con lectura fresca; el store es privado (nunca URL pública)",
+    "Allowlist de imagen (PNG/JPG/WEBP) y máx 5 MB validados en backend; subida con rollback de blob si el commit falla",
+    "Quitar registra PROFILE_ASSET_REMOVED (append-only) y borra el blob; el otro asset permanece"
+   ],
+   "implementation": [
+    "apps/web/lib/physician-profile-lifecycle.ts (foldProfile; handleProfileGet/AssetUpload/AssetDownload/AssetRemove; put/get(useCache:false)/del privados)",
+    "apps/web/app/api/v1/physician-profile/route.ts (GET) y .../assets/[kind]/route.ts (POST/GET/DELETE)",
+    "apps/web/app/workspace/page.tsx (tarjeta Firma y sello real: subir/reemplazar/quitar, imágenes via apiDownload->objectURL; carga al entrar en Configuración; banner)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Configuración: Firma y sello con estado honesto 'Sin firma/sello cargada', sin firma inventada)",
+    "scripts/v22/live-physician-profile-proof.mts"
+   ],
+   "runtime_evidence": "Live proof vs Neon + Blob real PASS 18/18: perfil inicial vacío; sube firma -> 201/v1 con sha256/mime correctos; el perfil refleja la firma; descarga -> bytes IDÉNTICOS + content-type; sube sello -> ambos presentes; re-sube firma (misma ruta, nuevo hash) y la descarga fresca devuelve el nuevo contenido; tipo no permitido (PDF) -> 400; kind desconocido -> 404; sin scope -> 403 en subida y descarga; otro médico ve su propio perfil vacío (aislamiento por usuario); quitar firma -> blob borrado + ASSET_REMOVED, el sello permanece, descarga posterior 404. No se registra en el smoke curado por depender del token de Blob. Render 46/46; typecheck limpio.",
+   "epic": "S-CONFIG/FIRMA",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": true
+  },
+  {
    "id": "CAP-DOCUMENT-REPOSITORY-BACKEND-001",
    "name": "Documentos — repositorio: GET de un documento con contenido real, adenda append-only y firma",
    "risk": "C4",

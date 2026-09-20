@@ -576,6 +576,42 @@ export default function Workspace(){
   }catch{setAttMsg("Error al eliminar el adjunto.");}finally{setAttBusy(false);}
  };
  const fmtBytes=(n:number)=>n<1024?`${n} B`:n<1048576?`${(n/1024).toFixed(0)} KB`:`${(n/1048576).toFixed(1)} MB`;
+ // Perfil del médico: firma y sello (imágenes) en Vercel Blob privado, ligadas al médico (no al consultorio).
+ const sigInputRef=useRef<HTMLInputElement|null>(null);const stampInputRef=useRef<HTMLInputElement|null>(null);
+ const[profHas,setProfHas]=useState<{signature:boolean;stamp:boolean}>({signature:false,stamp:false});
+ const[profUrls,setProfUrls]=useState<{signature:string|null;stamp:string|null}>({signature:null,stamp:null});
+ const[profBusy,setProfBusy]=useState(false);const[profMsg,setProfMsg]=useState<string|null>(null);
+ const PROF_MIME=["image/png","image/jpeg","image/webp"];
+ const loadProfile=async()=>{
+  try{const r=await apiRequest("/api/v1/physician-profile",{method:"GET"});
+   if(r.status!==200)return;
+   const b=r.body as{signature:unknown;stamp:unknown};
+   const has={signature:b.signature!==null&&b.signature!==undefined,stamp:b.stamp!==null&&b.stamp!==undefined};
+   setProfHas(has);
+   for(const k of["signature","stamp"] as const){
+    if(has[k]){const blob=await apiDownload(`/api/v1/physician-profile/assets/${k}`);if(blob){const url=URL.createObjectURL(blob);setProfUrls(u=>{if(u[k])URL.revokeObjectURL(u[k]!);return{...u,[k]:url};});}}
+    else setProfUrls(u=>{if(u[k])URL.revokeObjectURL(u[k]!);return{...u,[k]:null};});
+   }
+  }catch{/* perfil no disponible */}
+ };
+ const uploadProfileAsset=async(kind:"signature"|"stamp",file:File|undefined)=>{
+  if(!file)return;
+  if(!PROF_MIME.includes(file.type)){setProfMsg("Usa una imagen PNG, JPG o WEBP.");return;}
+  if(file.size>5*1024*1024){setProfMsg("Imagen demasiado grande (máx. 5 MB).");return;}
+  setProfBusy(true);setProfMsg(null);
+  try{const fd=new FormData();fd.append("file",file);
+   const r=await apiUpload(`/api/v1/physician-profile/assets/${kind}`,fd);
+   if(r.status===200||r.status===201){setProfMsg(kind==="signature"?"Firma guardada ✓":"Sello guardado ✓");await loadProfile();}
+   else setProfMsg((r.body as{error?:{message?:string}})?.error?.message??`No se pudo subir (estado ${r.status}).`);
+  }catch{setProfMsg("Error al subir la imagen.");}finally{setProfBusy(false);}
+ };
+ const removeProfileAsset=async(kind:"signature"|"stamp")=>{
+  setProfBusy(true);setProfMsg(null);
+  try{const r=await apiDelete(`/api/v1/physician-profile/assets/${kind}`);
+   if(r.status===200){setProfMsg(kind==="signature"?"Firma eliminada ✓":"Sello eliminado ✓");await loadProfile();}
+   else setProfMsg(`No se pudo eliminar (estado ${r.status}).`);
+  }catch{setProfMsg("Error al eliminar.");}finally{setProfBusy(false);}
+ };
  const[docsTab,setDocsTab]=useState<"todos"|"clinicos"|"administrativos"|"consentimientos"|"estudios"|"recetas"|"notas"|"otros">("todos");
  const[docSel,setDocSel]=useState(0);const[docFolder,setDocFolder]=useState("Todos los documentos");const[docMsg,setDocMsg]=useState("");
  const[docNew,setDocNew]=useState(false);const[docBusy,setDocBusy]=useState(false);
@@ -892,6 +928,7 @@ export default function Workspace(){
       modules:{...CFG_DEFAULTS.modules,...(b.settings.modules??{})}};
      setCfgSettings(merged);setCfgVer(b.version);setCfgLoaded(true);}
    }catch{/* ajustes no disponibles */}
+   if(!cancelled)void loadProfile(); // firma y sello del médico (Blob privado)
   })();
   return()=>{cancelled=true;};
  },[view,ready,session]);
@@ -3693,7 +3730,7 @@ export default function Workspace(){
      <span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1L14.4 2h-4L10 3.9a7 7 0 00-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.4 2.4h4l.4-2.4a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6a7 7 0 00.1-1z"/></svg></span>
      <div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Configuración</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Personaliza tu espacio de trabajo, preferencias y módulos del sistema.</p></div>
     </div>
-    <div style={{...card2,marginTop:14,padding:"12px 16px",background:"#EEF6FF",border:"1px solid #CFE0F7",fontSize:12.5,color:"#1c3c66",lineHeight:1.5}}>La <b>Información del consultorio</b>, la <b>apariencia</b> (color/tema/tamaño), las <b>preferencias de consulta</b>, las <b>configuraciones regionales</b>, los <b>horarios de atención</b> y los <b>módulos activos</b> se <b>guardan de verdad</b> (persistidos por tenant con concurrencia optimista). Las demás secciones (cuenta, firma, integraciones, respaldo) siguen siendo presentacionales.</div>
+    <div style={{...card2,marginTop:14,padding:"12px 16px",background:"#EEF6FF",border:"1px solid #CFE0F7",fontSize:12.5,color:"#1c3c66",lineHeight:1.5}}>La <b>Información del consultorio</b>, la <b>apariencia</b> (color/tema/tamaño), las <b>preferencias de consulta</b>, las <b>configuraciones regionales</b>, los <b>horarios de atención</b>, los <b>módulos activos</b> y la <b>firma y sello</b> del médico se <b>guardan de verdad</b> (persistidos, con almacenamiento privado para las imágenes). Las demás secciones (cuenta, integraciones, respaldo) siguen siendo presentacionales.</div>
     <div style={{...card2,marginTop:16,padding:"0 16px",display:"flex",gap:2,overflowX:"auto"}}>{CFG_TABS.map(t=><button key={t} onClick={()=>setCfgTab(t)} style={{padding:"14px 12px",fontSize:13.5,fontWeight:cfgTab===t?700:500,color:cfgTab===t?P.purple:P.muted,borderBottom:cfgTab===t?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>{t}</button>)}</div>
     <div style={{display:"grid",gridTemplateColumns:"1.15fr 1fr 0.95fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-cfg">
      {/* Col 1 */}
@@ -3754,8 +3791,17 @@ export default function Workspace(){
        <div><div style={lbl}>Contraseña</div><div style={{display:"flex",gap:8}}><input type="password" defaultValue="password" style={{...selSty,flex:1}}/><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"0 14px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>Cambiar</button></div></div>
       </div>
       <div style={{...card2,padding:18}}>{sec("M3 17l6-6 4 4 8-8","Firma y sello")}
-       <div style={{border:`1px solid ${LINE}`,borderRadius:11,padding:18,textAlign:"center"}}><svg width="120" height="40" viewBox="0 0 120 40" style={{margin:"0 auto"}}><path d="M8 28 Q20 8 32 24 T56 20 Q70 12 78 26" fill="none" stroke={P.ink} strokeWidth="1.6"/></svg><div style={{fontWeight:700,fontSize:13,marginTop:6}}>Dr. Luis Godinez</div><div style={{fontSize:11,color:P.muted}}>Médico General</div><div style={{fontSize:11,color:P.muted}}>Ced. Prof. 12345678</div></div>
-       <div style={{display:"flex",gap:10,marginTop:12}}><button style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>↥ Subir firma</button><button style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>◉ Configurar sello</button></div>
+       {profMsg&&<div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:profMsg.includes("✓")?"#E6F6EE":"#FDF4E6",fontSize:12,color:profMsg.includes("✓")?"#166534":"#7A5A16"}}>{profMsg}</div>}
+       <div style={{fontSize:11.5,color:P.muted,marginBottom:10,lineHeight:1.5}}>Sube tu firma y sello profesional (imagen PNG/JPG/WEBP). Se guardan de forma privada y cifrada (Vercel Blob), ligados a tu cuenta de médico.</div>
+       {([["signature","Firma","M3 17l6-6 4 4 8-8"],["stamp","Sello","M12 3a4 4 0 100 8 4 4 0 000-8zM6 21v-3a2 2 0 012-2h8a2 2 0 012 2v3"]] as ["signature"|"stamp",string,string][]).map(([kind,label])=>{const url=profUrls[kind];const has=profHas[kind];const ref=kind==="signature"?sigInputRef:stampInputRef;return <div key={kind} style={{marginBottom:12}}>
+        <div style={{fontSize:12,fontWeight:700,marginBottom:6}}>{label}</div>
+        <div style={{border:`1px solid ${LINE}`,borderRadius:11,padding:14,minHeight:64,display:"grid",placeItems:"center",background:"#FBFBFE"}}>{url?<img src={url} alt={label} style={{maxHeight:56,maxWidth:"100%",objectFit:"contain"}}/>:<span style={{fontSize:12,color:P.muted}}>Sin {label.toLowerCase()} cargada</span>}</div>
+        <input ref={ref} type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];void uploadProfileAsset(kind,f??undefined);e.target.value="";}}/>
+        <div style={{display:"flex",gap:8,marginTop:8}}>
+         <button onClick={()=>ref.current?.click()} disabled={profBusy} style={{flex:1,border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:9,padding:"8px",fontWeight:700,fontSize:12,cursor:profBusy?"default":"pointer",fontFamily:UI}}>{has?`Reemplazar ${label.toLowerCase()}`:`↥ Subir ${label.toLowerCase()}`}</button>
+         {has&&<button onClick={()=>void removeProfileAsset(kind)} disabled={profBusy} style={{border:`1px solid #E7C9C4`,background:P.white,color:P.red,borderRadius:9,padding:"8px 12px",fontWeight:600,fontSize:12,cursor:profBusy?"default":"pointer",fontFamily:UI}}>Quitar</button>}
+        </div>
+       </div>;})}
       </div>
       <div style={{...card2,padding:18}}>{sec("M13 7l-6 6a3 3 0 004 4l6-6M11 17l6-6a3 3 0 00-4-4l-6 6","Integraciones rápidas")}
        {[["Correo (SMTP)"],["WhatsApp Business"],["Laboratorio"],["PACS / Imagenología"],["EMR externo (HL7/FHIR)"]].map(([n],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<4?`1px solid #F2F4F9`:"0"}}><span style={{display:"flex",alignItems:"center",gap:9,fontSize:13,fontWeight:500}}><span style={{width:26,height:26,borderRadius:7,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center"}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16v16H4z"/></svg></span>{n}</span><button style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:8,padding:"5px 13px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:UI}}>Conectar</button></div>)}

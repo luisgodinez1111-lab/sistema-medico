@@ -11,6 +11,9 @@ import axe from"axe-core";
 vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
+ apiUpload:async()=>({status:201,body:{version:1}}),
+ apiDelete:async()=>({status:200,body:{removed:true,version:1}}),
+ apiDownload:async()=>null,
  apiRequest:async(path:string)=>{
   if(path.includes("/api/v1/vitals"))return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
   if(path.includes("/api/v1/care-plans"))return{status:201,body:{version:1}};
@@ -41,6 +44,7 @@ vi.mock("../../apps/web/lib/session-client",()=>({
     {resultId:"r2",patientId:"p2",patientName:"Carlos Mendoza",analyte:"CREATININE",value:"0.9",critical:false,status:"NORMAL",interpretation:"Normal",tipo:"Laboratorio",estado:"En seguimiento",lifecycle:"ACTIONED",receivedAt:"2026-09-16T00:00:00Z"},
    ],total:2,abnormal:1,enSeguimiento:1,pendientes:1}};
   if(path.includes("/api/v1/reports"))return{status:200,body:{patientsAttended:248,income:124680,diagnosesTotal:159,topDiagnoses:[{code:"E11.9",description:"Diabetes mellitus tipo 2",count:42,pct:13},{code:"I10",description:"Hipertensión esencial",count:38,pct:12}],ordersTotal:24,ordersByType:[{type:"LAB",label:"Laboratorio",count:14,pct:58},{type:"IMAGING",label:"Imagenología",count:6,pct:25},{type:"PROCEDURE",label:"Procedimiento",count:4,pct:17}],topProcedures:[{detail:"Electrocardiograma",count:3,pct:75},{detail:"Curación simple",count:1,pct:25}],resultsTotal:37,immunizationsApplied:12,encountersTotal:221,encountersSigned:198,encountersByDay:[{date:"2026-09-01",count:12,pct:80},{date:"2026-09-02",count:15,pct:100}],prescriptionsTotal:64,topMedications:[{drugCode:"paracetamol",count:22,pct:34},{drugCode:"metformina",count:14,pct:22}],appointmentsTotal:120,appointmentsByType:[{type:"CONTROL",label:"Control",count:54,pct:45},{type:"PRIMERA_VEZ",label:"Primera vez",count:30,pct:25},{type:"VACUNACION",label:"Vacunación",count:20,pct:17}],qualityIndicators:[{key:"closed_records",label:"Expedientes cerrados (notas firmadas)",numerator:198,denominator:221,pct:90,target:90,direction:"higher",met:true,computable:true,note:""},{key:"attendance",label:"Asistencia efectiva",numerator:96,denominator:120,pct:80,target:80,direction:"higher",met:true,computable:true,note:""},{key:"no_show",label:"Inasistencia (no-show)",numerator:18,denominator:120,pct:15,target:10,direction:"lower",met:false,computable:true,note:""},{key:"glycemic_control",label:"HbA1c en control (<7%)",numerator:0,denominator:0,pct:0,target:70,direction:"higher",met:false,computable:false,note:""}]}};
+  if(path.includes("/api/v1/physician-profile"))return{status:200,body:{signature:null,stamp:null,version:0}};
   if(path.includes("/api/v1/office-settings"))return{status:200,body:{settings:{officeName:"",specialty:"",rfc:"",cedula:"",address:"",phone:"",email:"",timezone:"",language:"es",color:"#6C5CF6",theme:"Claro",fontSize:"Normal",realtimeAlerts:true,followupReminders:true,showInteractions:true,darkMode:false,schedule:[{day:"Lunes",open:true,from:"08:00",to:"15:00"},{day:"Martes",open:true,from:"08:00",to:"15:00"},{day:"Miércoles",open:true,from:"08:00",to:"15:00"},{day:"Jueves",open:true,from:"08:00",to:"15:00"},{day:"Viernes",open:true,from:"08:00",to:"15:00"},{day:"Sábado",open:true,from:"08:00",to:"13:00"},{day:"Domingo",open:false,from:"",to:""}],modules:{Pacientes:true,Agenda:true,Consulta:true,Resultados:true,"Órdenes":true,Interconsultas:true,Seguimiento:true,"Facturación":true,Documentos:true,Obligaciones:true,"Clinical Intelligence":true,Reportes:true,"Biblioteca clínica":true},prefRecordView:"Resumen clínico",prefNoteTemplate:"Consulta general (SOAP)",prefUnits:"Métrico (kg, cm)",prefDoseCalc:"Pediátrica y adultos",regCountry:"México",regState:"",regCity:"",regPostalCode:"",regDateFormat:"dd/mm/aaaa",regTimeFormat:"24 horas",regCurrency:"MXN",regTaxRate:"16"},version:0}};
   if(path.includes("/api/v1/regulatory-obligations"))return{status:200,body:{
    items:[
@@ -554,6 +558,10 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   const estado=await screen.findByPlaceholderText("Ej. Chihuahua") as HTMLInputElement;
   fireEvent.change(estado,{target:{value:"Sonora"}});
   expect(estado.value).toBe("Sonora");
+  // firma y sello reales (Vercel Blob privado): sección presente con estado honesto (sin firma inventada)
+  expect(screen.getByText("Firma y sello")).toBeTruthy();
+  expect(screen.getByText("Sin firma cargada")).toBeTruthy();                    // estado real (no la firma falsa "Dr. Luis Godinez")
+  expect(screen.getByText("Sin sello cargada")).toBeTruthy();
   // los ajustes se cargan de /office-settings (input controlado real); editar y guardar
   const name=await screen.findByPlaceholderText(/Clínica Medical OS/,{},{timeout:2000});
   fireEvent.change(name,{target:{value:"Clínica Norte"}});
