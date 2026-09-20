@@ -3516,6 +3516,34 @@
    "epic": "S-CONFIG/UI",
    "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
    "requires_human_c5_acceptance": true
+  },
+  {
+   "id": "CAP-OFFICE-SETTINGS-BACKEND-001",
+   "name": "Configuración — backend real de ajustes del consultorio (singleton por tenant, event-sourced, If-Match)",
+   "risk": "C4",
+   "eng_authority_note": "Implementado el backend que faltaba para los ajustes del consultorio, sobre el mismo kernel event-sourced (no mock). Nuevo agregado OfficeSettings: singleton por tenant (aggregateId constante; la unicidad del kernel es por (tenant_id,aggregate_id), asi RLS separa cada tenant). El estado actual = payload.settings del ultimo evento OFFICE_SETTINGS_UPDATED; version = nº de eventos del agregado -> concurrencia optimista via If-Match. GET /api/v1/office-settings devuelve defaults+persistido+version; PUT hace merge de los campos recibidos sobre los actuales y persiste el objeto completo con If-Match (409 CONCURRENCY_CONFLICT si la version cambio). Scope nuevo settings:write añadido a PHYSICIAN/NURSE/CLINICAL_ADMIN en session-issuance. Campos persistidos: informacion del consultorio (nombre, especialidad, RFC, cedula, direccion, telefono, correo, zona horaria, idioma), apariencia (color, tema, tamaño) y preferencias de consulta (alertas en tiempo real, recordatorios, interacciones, modo oscuro). Frontend cableado: la vista Configuracion carga por GET al entrar (inputs controlados reales) y Guardar hace PUT con If-Match, refrescando version; banner actualizado a que estos ajustes se guardan de verdad (el resto sigue presentacional). Lectura officeSettings(ctx) en clinical-runtime, RLS-scoped.",
+   "invariants": [
+    "Los ajustes del consultorio se persisten en el kernel event-sourced (evento OFFICE_SETTINGS_UPDATED), no en memoria/mock",
+    "Singleton por tenant con aislamiento RLS: cada tenant tiene su propia serie de versiones y su propio estado",
+    "Concurrencia optimista: PUT con If-Match desactualizado devuelve 409 y no escribe",
+    "PUT hace merge (los campos omitidos conservan su valor previo); GET devuelve defaults+persistido+version",
+    "Escritura y lectura requieren scope settings:write (403 en su ausencia)"
+   ],
+   "implementation": [
+    "apps/web/lib/office-settings-lifecycle.ts (GET/PUT handlers, defaults, schema, merge, If-Match)",
+    "apps/web/lib/clinical-runtime.ts (officeSettings read: ultimo evento + version, RLS-scoped)",
+    "apps/web/app/api/v1/office-settings/route.ts (GET/PUT)",
+    "packages/session-issuance/src/index.ts (scope settings:write en PHYSICIAN/NURSE/CLINICAL_ADMIN)",
+    "apps/web/app/workspace/page.tsx (carga por GET + inputs controlados + Guardar via PUT If-Match; banner honesto)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Configuracion S-CONFIG: carga de /office-settings, editar y Guardar -> Cambios guardados)",
+    "scripts/v22/live-office-settings-proof.mts"
+   ],
+   "runtime_evidence": "Live proof vs Neon PASS 13/13: GET defaults+version 0, PUT If-Match aplica y sube version, GET refleja lo guardado, PUT parcial hace merge preservando lo previo, If-Match desactualizado -> 409, aislamiento por tenant (otro tenant ve defaults/version 0), scope faltante -> 403 en GET y PUT. Render test 46/46 (jsdom): la vista carga, edita y guarda. Typecheck limpio.",
+   "epic": "S-CONFIG/BACKEND",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
   }
  ],
  "honest_gaps": [

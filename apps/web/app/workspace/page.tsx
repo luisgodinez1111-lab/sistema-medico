@@ -87,6 +87,7 @@ type ResultsRegistry=Readonly<{items:ResultItem[];total:number;abnormal:number;e
 type ConsTabs=Readonly<{results:{analyte:string;value:string;estado:string;critical:boolean;receivedAt:string}[];orders:{typeLabel:string;detail:string;status:string;createdAt:string}[];medications:string[];planGoals:{goal:string;statusLabel:string}[];documents:{title:string;typeLabel:string;createdAt:string}[];obligations:{task:string;dueAt:string;statusLabel:string;done:boolean}[]}>;
 type RegObItem=Readonly<{obligationId:string;name:string;category:string;periodicity:string;dueDate:string|null;estado:string;daysUntil:number|null}>;
 type RegObSnap=Readonly<{items:RegObItem[];total:number;alDia:number;proximas:number;vencidas:number;compliance:Record<string,number>}>;
+type OfficeSettings={officeName:string;specialty:string;rfc:string;cedula:string;address:string;phone:string;email:string;timezone:string;language:string;color:string;theme:string;fontSize:string;realtimeAlerts:boolean;followupReminders:boolean;showInteractions:boolean;darkMode:boolean};
 type CiFinding=Readonly<{domain:string;severity:string;summary:string}>;
 type CiSnap=Readonly<{registered:boolean;problems?:string[];allergies?:string[];labs?:{hba1c?:number;egfr?:number};findings?:CiFinding[];demographics?:{age:number;sex:string}}>;
 type ReportsSnap=Readonly<{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;description:string;count:number;pct:number}[]}>;
@@ -556,7 +557,20 @@ export default function Workspace(){
  // Vista Biblioteca Clínica (S-BIBLIOTECA) — repositorio de conocimiento curado (presentacional); herramientas reales enlazadas
  const[bibTab,setBibTab]=useState("Todo");const[bibEsp,setBibEsp]=useState("Medicina general");
  // Vista Configuración (S-CONFIG) — ajustes/preferencias del consultorio (presentacional)
- const[cfgTab,setCfgTab]=useState("General");const[cfgSaved,setCfgSaved]=useState(false);const[cfgColor,setCfgColor]=useState("#6C5CF6");
+ const[cfgTab,setCfgTab]=useState("General");
+ // Ajustes del consultorio cableados a /api/v1/office-settings (persistidos, concurrencia optimista If-Match).
+ const CFG_DEFAULTS:OfficeSettings={officeName:"",specialty:"",rfc:"",cedula:"",address:"",phone:"",email:"",timezone:"",language:"es",color:"#6C5CF6",theme:"Claro",fontSize:"Normal",realtimeAlerts:true,followupReminders:true,showInteractions:true,darkMode:false};
+ const[cfgSettings,setCfgSettings]=useState<OfficeSettings>(CFG_DEFAULTS);
+ const[cfgVer,setCfgVer]=useState(0);const[cfgLoaded,setCfgLoaded]=useState(false);const[cfgBusy,setCfgBusy]=useState(false);const[cfgMsg,setCfgMsg]=useState<string|null>(null);
+ const setCfg=<K extends keyof OfficeSettings>(k:K,v:OfficeSettings[K])=>{setCfgSettings(s=>({...s,[k]:v}));setCfgMsg(null);};
+ const saveOfficeSettings=async()=>{
+  setCfgBusy(true);setCfgMsg(null);
+  try{const r=await apiRequest("/api/v1/office-settings",{method:"PUT",body:{settings:cfgSettings,occurredAt:new Date().toISOString()},ifMatch:cfgVer});
+   if(r.status===200||r.status===201){const b=r.body as{settings:OfficeSettings;version:number};setCfgSettings(b.settings);setCfgVer(b.version);setCfgMsg("Cambios guardados ✓");}
+   else if(r.status===409){setCfgMsg("La configuración cambió en otra sesión; se recargó. Revisa y vuelve a guardar.");const g=await apiRequest("/api/v1/office-settings",{method:"GET"});if(g.status===200){const b=g.body as{settings:OfficeSettings;version:number};setCfgSettings(b.settings);setCfgVer(b.version);}}
+   else setCfgMsg("No se pudo guardar (estado "+r.status+").");
+  }catch{setCfgMsg("Error al guardar la configuración.");}finally{setCfgBusy(false);}
+ };
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"gabinete"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
  const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
@@ -819,6 +833,19 @@ export default function Workspace(){
   })();
   return()=>{cancelled=true;};
  },[view,ready,session,patientId]);
+
+ // Auto-carga de los ajustes del consultorio (vista Configuración) — GET singleton por tenant + versión.
+ useEffect(()=>{
+  if(view!=="configuracion"||!ready||!session)return;
+  let cancelled=false;
+  (async()=>{
+   try{
+    const r=await apiRequest("/api/v1/office-settings",{method:"GET"});
+    if(!cancelled&&r.status===200){const b=r.body as{settings:OfficeSettings;version:number};setCfgSettings(b.settings);setCfgVer(b.version);setCfgLoaded(true);}
+   }catch{/* ajustes no disponibles */}
+  })();
+  return()=>{cancelled=true;};
+ },[view,ready,session]);
 
  // Auto-carga del tablero de Reportes (KPIs de pacientes/ingresos + diagnósticos principales, nivel tenant).
  useEffect(()=>{
@@ -3552,7 +3579,7 @@ export default function Workspace(){
      <span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1L14.4 2h-4L10 3.9a7 7 0 00-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.4 2.4h4l.4-2.4a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6a7 7 0 00.1-1z"/></svg></span>
      <div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Configuración</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Personaliza tu espacio de trabajo, preferencias y módulos del sistema.</p></div>
     </div>
-    <div style={{...card2,marginTop:14,padding:"12px 16px",background:"#FDF4E6",border:"1px solid #F2E1C0",fontSize:12.5,color:"#7A5A16",lineHeight:1.5}}>Ajustes presentacionales: las preferencias mostradas <b>aún no se persisten</b> (no hay backend de configuración). Los datos clínicos y las acciones reales viven en cada módulo del expediente.</div>
+    <div style={{...card2,marginTop:14,padding:"12px 16px",background:"#EEF6FF",border:"1px solid #CFE0F7",fontSize:12.5,color:"#1c3c66",lineHeight:1.5}}>La <b>Información del consultorio</b>, la <b>apariencia</b> (color/tema/tamaño) y las <b>preferencias de consulta</b> se <b>guardan de verdad</b> (persistidas por tenant con concurrencia optimista). Las demás secciones (cuenta, firma, integraciones, respaldo) siguen siendo presentacionales.</div>
     <div style={{...card2,marginTop:16,padding:"0 16px",display:"flex",gap:2,overflowX:"auto"}}>{CFG_TABS.map(t=><button key={t} onClick={()=>setCfgTab(t)} style={{padding:"14px 12px",fontSize:13.5,fontWeight:cfgTab===t?700:500,color:cfgTab===t?P.purple:P.muted,borderBottom:cfgTab===t?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>{t}</button>)}</div>
     <div style={{display:"grid",gridTemplateColumns:"1.15fr 1fr 0.95fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-cfg">
      {/* Col 1 */}
@@ -3560,16 +3587,15 @@ export default function Workspace(){
       <div style={{...card2,padding:18}}>{sec(clip,"Información del consultorio")}
        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{display:"flex",gap:12,alignItems:"center"}}><span style={{width:52,height:52,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={clip}/></svg></span><div><div style={{fontSize:17,fontWeight:800}}>Clínica Medical OS</div><div style={{fontSize:12,color:P.muted}}>Medicina general y atención integral</div></div></div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"8px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>◉ Cambiar logo</button></div>
        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-        <div><div style={lbl}>Nombre del consultorio</div><input defaultValue="Clínica Medical OS" style={selSty}/></div>
-        <div><div style={lbl}>Especialidad principal</div><select style={selSty} defaultValue="Medicina General"><option>Medicina General</option></select></div>
-        <div><div style={lbl}>RFC</div><input defaultValue="XAXX010101000" style={selSty}/></div>
-        <div><div style={lbl}>Cédula profesional</div><input defaultValue="12345678" style={selSty}/></div>
-        <div><div style={lbl}>Dirección</div><input defaultValue="Av. Teófilo Borunda 11811, Chihuahua, Chih." style={selSty}/></div>
-        <div><div style={lbl}>Cédula de especialidad (opcional)</div><input placeholder="Ej. 87654321" style={selSty}/></div>
-        <div><div style={lbl}>Teléfono</div><input defaultValue="614 123 4567" style={selSty}/></div>
-        <div><div style={lbl}>Zona horaria</div><select style={selSty} defaultValue="tz"><option value="tz">(GMT-06:00) Chihuahua</option></select></div>
-        <div><div style={lbl}>Correo electrónico</div><input defaultValue="contacto@medicalos.mx" style={selSty}/></div>
-        <div><div style={lbl}>Idioma</div><select style={selSty} defaultValue="es"><option value="es">Español (México)</option></select></div>
+        <div><div style={lbl}>Nombre del consultorio</div><input value={cfgSettings.officeName} onChange={e=>setCfg("officeName",e.target.value)} placeholder="Ej. Clínica Medical OS" style={selSty}/></div>
+        <div><div style={lbl}>Especialidad principal</div><input value={cfgSettings.specialty} onChange={e=>setCfg("specialty",e.target.value)} placeholder="Ej. Medicina General" style={selSty}/></div>
+        <div><div style={lbl}>RFC</div><input value={cfgSettings.rfc} onChange={e=>setCfg("rfc",e.target.value)} placeholder="Ej. XAXX010101000" style={selSty}/></div>
+        <div><div style={lbl}>Cédula profesional</div><input value={cfgSettings.cedula} onChange={e=>setCfg("cedula",e.target.value)} placeholder="Ej. 12345678" style={selSty}/></div>
+        <div><div style={lbl}>Dirección</div><input value={cfgSettings.address} onChange={e=>setCfg("address",e.target.value)} placeholder="Calle, número, ciudad" style={selSty}/></div>
+        <div><div style={lbl}>Zona horaria</div><input value={cfgSettings.timezone} onChange={e=>setCfg("timezone",e.target.value)} placeholder="Ej. (GMT-06:00) Chihuahua" style={selSty}/></div>
+        <div><div style={lbl}>Teléfono</div><input value={cfgSettings.phone} onChange={e=>setCfg("phone",e.target.value)} placeholder="Ej. 614 123 4567" style={selSty}/></div>
+        <div><div style={lbl}>Correo electrónico</div><input value={cfgSettings.email} onChange={e=>setCfg("email",e.target.value)} placeholder="contacto@consultorio.mx" style={selSty}/></div>
+        <div><div style={lbl}>Idioma</div><select value={cfgSettings.language} onChange={e=>setCfg("language",e.target.value)} style={selSty}><option value="es">Español (México)</option><option value="en">English</option></select></div>
        </div>
       </div>
       <div style={{...card2,padding:18}}>{sec("M8 2v4M16 2v4M4 8h16M5 6h14v14H5z","Horarios de atención")}
@@ -3577,9 +3603,9 @@ export default function Workspace(){
       </div>
       <div style={{...card2,padding:18}}>{sec("M12 3l7 4v5c0 4-3 7-7 8-4-1-7-4-7-8V7z","Apariencia del sistema")}
        <div style={{display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap"}}>
-        <div><div style={lbl}>Color principal</div><div style={{display:"flex",gap:8}}>{["#4653C4","#6C5CF6","#1769E0","#20B7D9","#16A66A","#E5983B","#F0455E"].map(c=><span key={c} onClick={()=>setCfgColor(c)} style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",boxShadow:cfgColor===c?`0 0 0 3px ${c}44`:"none",border:cfgColor===c?"2px solid #fff":"none"}}/>)}</div></div>
-        <div><div style={lbl}>Tema</div><select style={{...selSty,width:120}} defaultValue="Claro"><option>Claro</option><option>Oscuro</option></select></div>
-        <div><div style={lbl}>Tamaño de fuente</div><select style={{...selSty,width:120}} defaultValue="Normal"><option>Normal</option><option>Grande</option></select></div>
+        <div><div style={lbl}>Color principal</div><div style={{display:"flex",gap:8}}>{["#4653C4","#6C5CF6","#1769E0","#20B7D9","#16A66A","#E5983B","#F0455E"].map(c=><span key={c} onClick={()=>setCfg("color",c)} style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",boxShadow:cfgSettings.color===c?`0 0 0 3px ${c}44`:"none",border:cfgSettings.color===c?"2px solid #fff":"none"}}/>)}</div></div>
+        <div><div style={lbl}>Tema</div><select value={cfgSettings.theme} onChange={e=>setCfg("theme",e.target.value)} style={{...selSty,width:120}}><option>Claro</option><option>Oscuro</option></select></div>
+        <div><div style={lbl}>Tamaño de fuente</div><select value={cfgSettings.fontSize} onChange={e=>setCfg("fontSize",e.target.value)} style={{...selSty,width:120}}><option>Normal</option><option>Grande</option></select></div>
        </div>
       </div>
      </div>
@@ -3587,7 +3613,7 @@ export default function Workspace(){
      <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <div style={{...card2,padding:18}}>{sec("M9 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z","Preferencias de consulta")}
        {[["Vista por defecto del expediente","Resumen clínico"],["Plantilla de nota médica por defecto","Consulta general (SOAP)"],["Sistema de unidades","Métrico (kg, cm)"],["Calculadora de dosis","Pediátrica y adultos"]].map(([l,v],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:11}}><span style={{fontSize:12.5,color:P.muted}}>{l}</span><select style={{...selSty,width:200}} defaultValue={v as string}><option>{v as string}</option></select></div>)}
-       <div style={{borderTop:`1px solid ${LINE}`,marginTop:6,paddingTop:12}}>{[["Mostrar alertas clínicas en tiempo real",true],["Recordatorios de estudios y seguimiento",true],["Mostrar interacciones medicamentosas",true],["Modo oscuro (solo para tu cuenta)",false]].map(([l,on],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0"}}><span style={{fontSize:13}}>{l as string}</span>{tog(on as boolean)}</div>)}</div>
+       <div style={{borderTop:`1px solid ${LINE}`,marginTop:6,paddingTop:12}}>{([["Mostrar alertas clínicas en tiempo real","realtimeAlerts"],["Recordatorios de estudios y seguimiento","followupReminders"],["Mostrar interacciones medicamentosas","showInteractions"],["Modo oscuro (solo para tu cuenta)","darkMode"]] as [string,keyof OfficeSettings][]).map(([l,k])=>{const on=cfgSettings[k] as boolean;return <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0"}}><span style={{fontSize:13}}>{l}</span><span onClick={()=>setCfg(k,!on as never)} style={{width:38,height:22,borderRadius:12,background:on?P.purple:"#D5D9E6",position:"relative",flex:"0 0 auto",cursor:"pointer"}}><span style={{position:"absolute",top:2,left:on?18:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .15s"}}/></span></div>;})}</div>
       </div>
       <div style={{...card2,padding:18}}>{sec("M8 2v4M16 2v4M4 8h16M5 6h14v14H5z","Configuraciones regionales")}
        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -3628,9 +3654,9 @@ export default function Workspace(){
      </div>
      <div style={{...card2,padding:18,display:"flex",flexDirection:"column",gap:12}}>
       <div style={{fontSize:14,fontWeight:700}}>Guardar configuración</div>
-      <div style={{fontSize:12.5,color:P.muted,lineHeight:1.5}}>Los cambios se aplican a tu espacio de trabajo. Algunas preferencias son por cuenta y otras a nivel del consultorio.</div>
-      {cfgSaved&&<div style={{padding:"9px 12px",borderRadius:9,background:"#E6F6EE",fontSize:12.5,color:"#166534",fontWeight:600}}>Cambios guardados ✓ <span style={{color:P.muted,fontWeight:400}}>(preferencia local; sin backend de settings)</span></div>}
-      <button onClick={()=>{setCfgSaved(true);}} style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"12px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:UI}}>✓ Guardar cambios</button>
+      <div style={{fontSize:12.5,color:P.muted,lineHeight:1.5}}>La información del consultorio, la apariencia y las preferencias de consulta se guardan a nivel del consultorio (persistidas, con concurrencia optimista).</div>
+      {cfgMsg&&<div style={{padding:"9px 12px",borderRadius:9,background:cfgMsg.includes("✓")?"#E6F6EE":"#FDF4E6",fontSize:12.5,color:cfgMsg.includes("✓")?"#166534":"#7A5A16",fontWeight:600}}>{cfgMsg}</div>}
+      <button onClick={()=>void saveOfficeSettings()} disabled={cfgBusy||!cfgLoaded} style={{border:0,background:(cfgBusy||!cfgLoaded)?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"12px",fontWeight:700,fontSize:14,cursor:(cfgBusy||!cfgLoaded)?"default":"pointer",fontFamily:UI}}>{cfgBusy?"Guardando…":"✓ Guardar cambios"}</button>
      </div>
     </div>
    </div>;

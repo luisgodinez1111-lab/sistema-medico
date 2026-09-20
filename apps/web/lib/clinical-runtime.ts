@@ -500,6 +500,25 @@ export async function regulatoryObligations(ctx:HttpTenantContext):Promise<Regul
    createdAt:o.created_at?new Date(String(o.created_at)).toISOString():""};});
  }) as Promise<RegulatoryObligationRow[]>;
 }
+// EPIC S-CONFIG — Ajustes del consultorio (singleton por tenant, no PHI). Mismo kernel event-sourced:
+// el estado actual = payload.settings del último evento OFFICE_SETTINGS_UPDATED. version = nº de eventos del
+// agregado (concurrencia optimista If-Match). Si no hay eventos, settings vacío y version 0. RLS-scoped.
+export type OfficeSettingsRead=Readonly<{settings:Record<string,unknown>;version:number}>;
+export async function officeSettings(ctx:HttpTenantContext):Promise<OfficeSettingsRead>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select a.payload->'settings' as settings,
+     (select count(*)::int from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id) as version
+   from clinical_events a
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='OfficeSettings' and a.payload->>'kind'='UPDATED'
+   order by a.sequence desc limit 1`;
+  const row=rows[0] as Record<string,unknown>|undefined;
+  if(!row)return{settings:{},version:0};
+  return{settings:(row.settings as Record<string,unknown>)??{},version:Number(row.version??0)};
+ }) as Promise<OfficeSettingsRead>;
+}
 // EPIC AY — Condiciones ACTIVAS del paciente (lista de problemas, CIE-10). RLS-scoped. Para el gate de
 // contraindicación fármaco–condición en la prescripción. Activa = último kind ADDED/REACTIVATED/MARKED_CHRONIC
 // (no RESOLVED ni MARKED_ERROR). Devuelve el código CIE-10 normalizado.

@@ -40,6 +40,7 @@ vi.mock("../../apps/web/lib/session-client",()=>({
     {resultId:"r2",patientId:"p2",patientName:"Carlos Mendoza",analyte:"CREATININE",value:"0.9",critical:false,status:"NORMAL",interpretation:"Normal",tipo:"Laboratorio",estado:"En seguimiento",lifecycle:"ACTIONED",receivedAt:"2026-09-16T00:00:00Z"},
    ],total:2,abnormal:1,enSeguimiento:1,pendientes:1}};
   if(path.includes("/api/v1/reports"))return{status:200,body:{patientsAttended:248,income:124680,diagnosesTotal:159,topDiagnoses:[{code:"E11.9",description:"Diabetes mellitus tipo 2",count:42,pct:13},{code:"I10",description:"Hipertensión esencial",count:38,pct:12}]}};
+  if(path.includes("/api/v1/office-settings"))return{status:200,body:{settings:{officeName:"",specialty:"",rfc:"",cedula:"",address:"",phone:"",email:"",timezone:"",language:"es",color:"#6C5CF6",theme:"Claro",fontSize:"Normal",realtimeAlerts:true,followupReminders:true,showInteractions:true,darkMode:false},version:0}};
   if(path.includes("/api/v1/regulatory-obligations"))return{status:200,body:{
    items:[
     {obligationId:"o1",name:"Declaración mensual de IVA",category:"Fiscal (SAT)",periodicity:"Mensual",dueDate:"2026-09-20T00:00:00Z",estado:"Próxima",daysUntil:5},
@@ -528,20 +529,23 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText(/Alertas de resultados/)).toBeTruthy();
  });
 
- it("vista Configuración (S-CONFIG): ajustes del consultorio — secciones, módulos y guardar",async()=>{
+ it("vista Configuración (S-CONFIG): ajustes del consultorio cableados a /office-settings — cargar, editar y guardar",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:/^Configuración/}));           // acceso en HERRAMIENTAS
   expect(screen.getByRole("heading",{name:"Configuración"})).toBeTruthy();
-  expect(screen.getByText("Información del consultorio")).toBeTruthy();
+  expect(screen.getAllByText("Información del consultorio").length).toBeGreaterThan(0);
   expect(screen.getByText("Preferencias de consulta")).toBeTruthy();
-  expect(screen.getByText("Horarios de atención")).toBeTruthy();
   expect(screen.getByText("Módulos activos")).toBeTruthy();
   expect(screen.getByText(/NOM-024/)).toBeTruthy();                                // nota de seguridad
-  const save=screen.getByRole("button",{name:/Guardar cambios/});
+  // los ajustes se cargan de /office-settings (input controlado real); editar y guardar
+  const name=await screen.findByPlaceholderText(/Clínica Medical OS/,{},{timeout:2000});
+  fireEvent.change(name,{target:{value:"Clínica Norte"}});
+  const save=await screen.findByRole("button",{name:/Guardar cambios/});
+  await waitFor(()=>expect((save as HTMLButtonElement).disabled).toBe(false),{timeout:2000});
   fireEvent.click(save);
   expect(await screen.findByText(/Cambios guardados/,{},{timeout:2000})).toBeTruthy();
-  // auditoría: banner presentacional honesto; sin control destructivo falso ni toggle de IA (R6 en pausa)
-  expect(screen.getByText(/Ajustes presentacionales/)).toBeTruthy();
+  // auditoría: banner honesto (ahora se persisten); sin control destructivo falso ni toggle de IA (R6 en pausa)
+  expect(screen.getByText(/guardan de verdad/)).toBeTruthy();
   expect(screen.queryByText(/Eliminar mi cuenta/)).toBeNull();
   expect(screen.queryByText(/Sugerencias de diagnóstico con IA/)).toBeNull();
  });
