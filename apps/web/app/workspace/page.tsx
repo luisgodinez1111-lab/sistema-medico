@@ -470,6 +470,9 @@ export default function Workspace(){
  const[patientName,setPatientName]=useState("");
  const[activeH2,setActiveH2]=useState(""); // scrollspy: módulo visible resaltado en el nav-rail
  const[snap,setSnap]=useState<Snap|null>(null); // snapshot de consulta (hero panel 1)
+ // Estado EXPLÍCITO de la carga del expediente: un fallo de red/HTTP nunca debe verse como "sin hallazgos"
+ // (auditoría 2026-09-19, U-03). "error" => la UI lo dice y ofrece reintentar; los datos quedan en null (desconocido).
+ const[chartState,setChartState]=useState<"idle"|"loading"|"ready"|"error">("idle");const[chartReload,setChartReload]=useState(0);
  const[rxDrug,setRxDrug]=useState("");const[rxDose,setRxDose]=useState("");const[rxRoute,setRxRoute]=useState("Oral");const[rxFreq,setRxFreq]=useState("");
  const[rxCheck,setRxCheck]=useState<RxCheck|null>(null);
  // Confirmación EXPLÍCITA del médico cuando el servidor no pudo evaluar alguna barrera (428 SAFETY_ACK_REQUIRED).
@@ -712,24 +715,29 @@ export default function Workspace(){
  useEffect(()=>{
   if(!patientId||!ready||!session)return;
   let cancelled=false;
+  // Cambio de paciente: se borra DE INMEDIATO lo del paciente anterior (nunca datos de A bajo la identidad de B; U-05).
+  setTl(null);setGaps(null);setSnap(null);setTrends(null);setChartState("loading");
   const t=setTimeout(async()=>{
+   // 404 = paciente sin datos/sin registrar (legítimo). Cualquier otro >=400 o excepción = NO SE SABE => "error".
+   let failed=false;const known=(s:number)=>{if(s>=400&&s!==404)failed=true;return s<400;};
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/timeline`,{method:"GET"});
     if(cancelled)return;
-    setTl(r.status<400?((r.body["items"] as TL[])??[]):[]);
+    setTl(known(r.status)?((r.body["items"] as TL[])??[]):r.status===404?[]:null);
     const g=await apiRequest(`/api/v1/patients/${patientId}/care-gaps`,{method:"GET"});
     if(cancelled)return;
-    setGaps(g.status<400?((g.body["gaps"] as Gap[])??[]):[]);
+    setGaps(known(g.status)?((g.body["gaps"] as Gap[])??[]):g.status===404?[]:null);
     const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET"});
     if(cancelled)return;
-    setSnap(sp.status<400&&sp.body["registered"]?(sp.body as unknown as Snap):null);
+    setSnap(known(sp.status)&&sp.body["registered"]?(sp.body as unknown as Snap):null);
     const tr=await apiRequest(`/api/v1/patients/${patientId}/trends`,{method:"GET"});
     if(cancelled)return;
-    setTrends(tr.status<400?(tr.body as unknown as Trends):null);
-   }catch{/* red caída: el header simplemente no muestra chips */}
+    setTrends(known(tr.status)?(tr.body as unknown as Trends):null);
+    setChartState(failed?"error":"ready");
+   }catch{if(!cancelled)setChartState("error");}
   },450);
   return()=>{cancelled=true;clearTimeout(t);};
- },[patientId,ready,session]);
+ },[patientId,ready,session,chartReload]);
 
  // Reloj en vivo del dashboard (hora del consultorio).
  useEffect(()=>{const id=setInterval(()=>setClock(new Date()),1000*30);return()=>clearInterval(id);},[]);
@@ -1654,6 +1662,11 @@ export default function Workspace(){
      </div>
     </div>
    </header>
+   {/* Aviso GLOBAL: si el expediente no se pudo cargar, los contadores/avisos NO son confiables (U-03). */}
+   {chartState==="error"&&<div role="alert" style={{margin:"10px 24px 0",padding:"10px 14px",borderRadius:12,background:"#FDEEEE",border:"1px solid #F3C9C9",color:"#8C1D18",fontSize:13.5,fontWeight:600,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+    <span>No se pudo cargar el expediente de este paciente. Alertas, seguimiento y resultados pueden estar incompletos: no asuma que "no hay pendientes".</span>
+    <button onClick={()=>setChartReload(n=>n+1)} style={{marginLeft:"auto",border:"1px solid #B3261E",background:"#fff",color:"#B3261E",borderRadius:9,padding:"6px 12px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Reintentar</button>
+   </div>}
   {view==="inicio" ? (()=>{
    // ===== DASHBOARD INICIO (consultorio) — S2.png =====
    const fecha=clock.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).replace(/^\w/,c=>c.toUpperCase());
@@ -1662,12 +1675,12 @@ export default function Workspace(){
    const prTag=(pr:string):[string,string,string]=>pr==="HIGH"?["Crítico","#FDE7EA","#D23651"]:pr==="MEDIUM"?["Seguimiento","#EEEBFD","#6C5CF6"]:["Administrativo","#EEF0F5","#6B7391"];
    // Tareas: worklist real (tenant-wide) si hay; si no, ejemplo pulido.
    const realTasks=(panel?.gaps??[]).slice(0,6).map(g=>({title:g.label,who:nameOf(g.patientId),pr:g.priority as string,pid:g.patientId}));
-   const demoTasks=[{title:"Resultado crítico: Potasio 6.2 mmol/L",who:"Pérez López, Juan · 58 años",pr:"HIGH",pid:""},{title:"Signos vitales críticos (TA 190/110)",who:"Ramírez Torres, Ana · 72 años",pr:"HIGH",pid:""},{title:"Seguimiento pendiente",who:"Díaz Martínez, Carlos · 45 años",pr:"MEDIUM",pid:""},{title:"Revisar interacción medicamentosa",who:"González Ruiz, María · 66 años",pr:"MEDIUM",pid:""},{title:"Firmar consentimiento pendiente",who:"López Sánchez, Daniel · 34 años",pr:"LOW",pid:""}];
-   const tasks=realTasks.length?realTasks:demoTasks;
+   // Verdad clínica (U-02): SOLO tareas reales. Antes, sin datos se pintaban tareas inventadas ("Potasio 6.2 mmol/L").
+   const tasks=realTasks;
    // Pacientes recientes: lista real si hay; si no, ejemplo.
    const stEs=(s:string):[string,string,string]=>s==="ACTIVE"?["Activo","#E6F6EE","#16A66A"]:s==="INACTIVE"?["Inactivo","#EEF0F5","#6B7391"]:["Pendiente","#FBF0DC","#B7791F"];
    const realPts=(patientList??[]).slice(0,5).map(p=>({name:p.name,status:p.status,patientId:p.patientId}));
-   const demoPts=[{name:"María Fernández",status:"PEND",age:"28 años",last:"Hoy 2:00 p.m.",motivo:"Primera vez"},{name:"Juan Pérez López",status:"ACTIVE",age:"58 años",last:"Hoy 12:30 p.m.",motivo:"Control DM2"},{name:"Ana Ramírez Torres",status:"PEND",age:"72 años",last:"Hoy 11:00 a.m.",motivo:"Resultados"},{name:"Carlos Díaz Martínez",status:"ACTIVE",age:"45 años",last:"Hoy 9:30 a.m.",motivo:"Dolor abdominal"},{name:"Sofía Vega Ramírez",status:"ACTIVE",age:"31 años",last:"Hoy 8:00 a.m.",motivo:"Control prenatal"}];
+   // (U-02) Sin pacientes de ejemplo: si no hay registros, la tabla lo dice.
    const usingRealPts=realPts.length>0;
    const initials=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
    const critCount=notifCount;
@@ -1707,6 +1720,7 @@ export default function Workspace(){
     {/* Mid: tareas | agenda | (CI + acciones) */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-mid">
      <div style={cardP}><div style={h2row}><h2 style={h2s}>Tareas clínicas prioritarias <span style={{background:P.purple,color:"#fff",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>{tasks.length}</span></h2><span style={link} onClick={()=>go("Panel del clínico")}>Ver todas →</span></div>
+      {tasks.length===0&&<div style={{padding:"18px",fontSize:13,color:P.muted,borderTop:`1px solid ${LINE}`}}>{panel?"Sin tareas clínicas prioritarias.":"Cargando tareas…"}</div>}
       {tasks.map((t,i)=>{const[tag,tbg,tfg]=prTag(t.pr);return <div key={i} title={t.pid?"Abrir consulta del paciente":undefined} style={{display:"flex",gap:12,padding:"12px 18px",borderTop:`1px solid #F1F3F9`,cursor:"pointer"}} onClick={()=>openPatientCtx(t.pid,t.who)}>
        <span style={{width:34,height:34,borderRadius:9,background:tbg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><span style={{width:8,height:8,borderRadius:"50%",background:tfg}}/></span>
        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13.5,fontWeight:600}}>{t.title}</div><div style={{fontSize:12,color:P.muted}}>{t.who}</div></div>
@@ -1716,7 +1730,8 @@ export default function Workspace(){
      <div style={cardP}><div style={h2row}><h2 style={h2s}>Agenda de hoy</h2><span style={link} onClick={()=>setView("agenda")}>Ver agenda →</span></div>
       <div style={{padding:"4px 18px 14px",position:"relative"}}>
        <div style={{position:"absolute",left:73,top:8,bottom:14,width:2,background:"#EDEFF6"}}/>
-       {(agenda?.appointments.length?agenda.appointments.slice(0,8).map(a=>({tm:new Date(a.startAt).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase(),txt:`${a.patientName} · ${a.reason}`,on:a.status==="CHECKED_IN",pid:a.patientId,name:a.patientName})):([["8:00 a.m.","García Herrera, Laura · Control DM2",false],["9:00 a.m.","Martínez Soto, Roberto · Infección respiratoria",false],["10:00 a.m.","Vega Ramírez, Sofía · Control prenatal",false],["11:00 a.m.","Luna Pérez, Miguel · Dolor abdominal",false],["12:00 p.m.","Torres Jiménez, Carmen · Resultados de laboratorio",false],["2:00 p.m.","María Fernández · Primera vez",true],["3:00 p.m.","Hernández Ruiz, Alfonso · Control HTA",false],["4:00 p.m.","Mesas Rodríguez, Valeria · Retiro de DIU",false]] as [string,string,boolean][]).map(([tm,txt,on])=>({tm,txt,on,pid:"",name:""}))).map((it,i)=>(
+       {!(agenda?.appointments.length)&&<div style={{padding:"10px 0 10px 84px",fontSize:13,color:P.muted}}>{agenda?"Sin citas registradas para hoy.":"Cargando agenda…"}</div>}
+       {(agenda?.appointments.length?agenda.appointments.slice(0,8).map(a=>({tm:new Date(a.startAt).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase(),txt:`${a.patientName} · ${a.reason}`,on:a.status==="CHECKED_IN",pid:a.patientId,name:a.patientName})):([] as {tm:string;txt:string;on:boolean;pid:string;name:string}[])).map((it,i)=>(
         <div key={i} onClick={()=>openPatientCtx(it.pid,it.name)} title={it.pid?"Abrir consulta del paciente":undefined} style={{display:"flex",gap:14,padding:it.on?"9px 12px":"9px 0",position:"relative",cursor:it.pid?"pointer":"default",...(it.on?{background:"#F1EFFE",border:"1px solid #D9D3FA",borderRadius:12,margin:"2px -12px"}:{})}}>
          <span style={{fontSize:12,color:P.muted,width:62,flex:"0 0 auto",textAlign:"right",paddingTop:1}}>{it.tm}</span>
          <span style={{width:11,height:11,borderRadius:"50%",background:it.on?P.purple:"#fff",border:`2px solid ${it.on?P.purple:"#C9CEE6"}`,flex:"0 0 auto",marginTop:3,zIndex:1}}/>
@@ -1751,7 +1766,7 @@ export default function Workspace(){
      <div style={cardP}><div style={h2row}><h2 style={h2s}>Pacientes recientes</h2><span style={link} onClick={()=>setView("pacientes")}>Ver todas →</span></div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr>{["Nombre","Edad","Última consulta","Motivo","Estado"].map(h=><th key={h} style={{textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"8px 18px",borderBottom:`1px solid ${LINE}`}}>{h}</th>)}</tr></thead>
-       <tbody>{(usingRealPts?realPts:demoPts).map((p,i)=>{const[stl,sbg,sfg]=stEs(p.status);const d=p as{name:string;status:string;age?:string;last?:string;motivo?:string;patientId?:string};return <tr key={i}>
+       <tbody>{!usingRealPts&&<tr><td colSpan={6} style={{padding:"22px 14px",textAlign:"center",color:P.muted,fontSize:13}}>{patientList?"Aún no hay pacientes registrados.":"Cargando pacientes…"}</td></tr>}{realPts.map((p,i)=>{const[stl,sbg,sfg]=stEs(p.status);const d=p as{name:string;status:string;age?:string;last?:string;motivo?:string;patientId?:string};return <tr key={i}>
         <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13}}><span style={{display:"flex",alignItems:"center",gap:10,fontWeight:600,cursor:"pointer"}} onClick={()=>d.patientId?openPatientCtx(d.patientId,p.name):setView("pacientes")}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700}}>{initials(p.name)}</span>{p.name}</span></td>
         <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13,color:P.muted}}>{d.age??"—"}</td>
         <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13,color:P.muted}}>{d.last??"—"}</td>
@@ -1969,14 +1984,16 @@ export default function Workspace(){
     </div>;
    }
    // ===== VISTA CONSULTA (workspace clínico) — S4.png, pestaña "Consulta actual" =====
-   const pName=patientName||"María Fernández López";
-   const age=snap?.demographics.age??28;
-   const sexo=snap?snap.demographics.sex:"FEMALE";
+   // Verdad clínica (auditoría 2026-09-19, U-01): SIN valores de maqueta. Lo que no se ha cargado se muestra
+   // como desconocido ("—"), nunca como una paciente inventada con alergias y problemas ficticios.
+   const pName=patientName||"";
+   const age:number|null=snap?.demographics.age??null;
+   const sexo=snap?.demographics.sex;
    const sexoEs=sexo==="FEMALE"?"Femenino":sexo==="MALE"?"Masculino":"—";
-   const alN=snap?snap.allergies.length:1,prN=snap?snap.problems.length:2;
+   const alN:number|null=snap?snap.allergies.length:null,prN:number|null=snap?snap.problems.length:null;
    const findings=snap?.findings??[];
    const V=snap?.vitals??{};
-   const initials=pName.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+   const initials=pName.trim()?pName.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase():"—";
    const card2:React.CSSProperties={...card,marginTop:0};
    const sec:React.CSSProperties={...card2,padding:18};
    const sect:React.CSSProperties={fontSize:15,fontWeight:700,margin:"0 0 12px"};
@@ -2005,10 +2022,10 @@ export default function Workspace(){
     {cPreview&&<div style={{...card,marginTop:14,padding:18}}><div style={{fontWeight:800,fontSize:15,marginBottom:10}}>Vista previa de la nota clínica</div><pre style={{whiteSpace:"pre-wrap",fontFamily:UI,fontSize:13,color:P.ink,margin:0,lineHeight:1.6}}>{composeNote()}{"\n\nPLAN DE MANEJO: "+(cForm.plan.trim()||"—")}</pre><div style={{fontSize:11.5,color:P.muted,marginTop:10}}>Así se guardará la valoración del encuentro al firmar. Médico: {docDisplay}.</div></div>}
     <div style={{...card2,display:"flex",alignItems:"center",gap:18,padding:"16px 20px",marginTop:16,flexWrap:"wrap"}}>
      <span style={{width:66,height:66,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontWeight:800,fontSize:22,flex:"0 0 auto"}}>{initials}</span>
-     <div style={{flex:1,minWidth:180}}><div><span style={{fontSize:21,fontWeight:800}}>{pName}</span><span style={{background:"#E6F6EE",color:"#16A66A",borderRadius:999,padding:"3px 11px",fontSize:12,fontWeight:600,marginLeft:10}}>Paciente activo</span></div><div style={{fontSize:13,color:P.muted,marginTop:3}}>{age} años · {sexoEs}{snap?.demographics.birthDate?` · ${new Date(snap.demographics.birthDate).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})}`:""}</div><div style={{fontSize:13,color:P.muted}}>{snap?.demographics.curp?<>CURP: <span style={mono}>{snap.demographics.curp}</span></>:<>ID <span style={mono}>{patientId.slice(0,8)}</span></>}</div></div>
+     <div style={{flex:1,minWidth:180}}><div><span style={{fontSize:21,fontWeight:800}}>{pName||"Sin paciente seleccionado"}</span>{snap?<span style={{background:"#E6F6EE",color:"#0F7A4D",borderRadius:999,padding:"3px 11px",fontSize:12,fontWeight:600,marginLeft:10}}>Paciente activo</span>:chartState==="error"?<span role="alert" style={{background:"#FDEEEE",color:"#B3261E",borderRadius:999,padding:"3px 11px",fontSize:12,fontWeight:700,marginLeft:10}}>Expediente no disponible · <button onClick={()=>setChartReload(n=>n+1)} style={{border:0,background:"transparent",color:"#B3261E",textDecoration:"underline",cursor:"pointer",font:"inherit",padding:0}}>Reintentar</button></span>:<span style={{background:"#EEF0F6",color:"#4A5568",borderRadius:999,padding:"3px 11px",fontSize:12,fontWeight:600,marginLeft:10}}>{chartState==="loading"?"Cargando expediente…":"Paciente sin registrar"}</span>}</div><div style={{fontSize:13,color:P.muted,marginTop:3}}>{age===null?"Edad —":`${age} años`} · {sexoEs}{snap?.demographics.birthDate?` · ${new Date(snap.demographics.birthDate).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})}`:""}</div><div style={{fontSize:13,color:P.muted}}>{snap?.demographics.curp?<>CURP: <span style={mono}>{snap.demographics.curp}</span></>:<>ID <span style={mono}>{patientId.slice(0,8)}</span></>}</div></div>
      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,flex:"0 0 auto"}}>
-      {antp("#FDECEE","#D23651",`Alergias (${alN})`,"M12 4l9 15.5H3zM12 10v4M12 17h.01")}
-      {antp("#EEEBFD","#6C5CF6",`Problemas (${prN})`,"M9 4h6v2H9zM7 5H6v16h12V5h-1")}
+      {antp("#FDECEE","#D23651",`Alergias (${alN??"—"})`,"M12 4l9 15.5H3zM12 10v4M12 17h.01")}
+      {antp("#EEEBFD","#6C5CF6",`Problemas (${prN??"—"})`,"M9 4h6v2H9zM7 5H6v16h12V5h-1")}
       {antp("#E7F0FD","#1769E0","Medicamentos","M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z")}
       {antp("#E6F6EE","#16A66A","Vacunas","M14 4l6 6M6 14l4 4M16.5 6.5l-10 10")}
      </div>
@@ -2068,7 +2085,7 @@ export default function Workspace(){
         {cDxQuery.trim().length>=2&&(()=>{const res=searchIcd10(cDxQuery.trim(),6);return <div style={{position:"absolute",left:0,right:0,top:"calc(100% + 4px)",background:P.white,border:`1px solid ${LINE}`,borderRadius:10,boxShadow:"0 8px 24px #1a1d2914",zIndex:20,overflow:"hidden"}}>{res.length?res.map(e=><div key={e.code} onClick={()=>void addConsultaProblem(e.code)} style={{display:"flex",gap:8,padding:"9px 12px",fontSize:12.5,cursor:cDxBusy?"default":"pointer",borderBottom:`1px solid #F4F6FB`,alignItems:"baseline"}}><b style={{color:P.purple,flex:"0 0 auto"}}>{e.code}</b><span style={{color:P.ink}}>{e.description}</span></div>):<div style={{padding:"10px 12px",fontSize:12.5,color:P.muted}}>Sin coincidencias en el catálogo CIE-10.</div>}</div>;})()}
        </div>
        {cDxMsg&&<div style={{marginTop:10,fontSize:12.5,color:cDxMsg.includes("✓")?"#1A7F43":P.muted,fontWeight:600}}>{cDxMsg}</div>}
-       <div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>{(snap?.problems??["J02.9","B34.9"]).slice(0,4).map((c,i)=><span key={c} style={{display:"inline-flex",alignItems:"center",gap:8,background:"#F3F5FA",border:`1px solid ${LINE}`,borderRadius:9,padding:"6px 11px",fontSize:12.5,fontWeight:600}}>{c} {DX_LABEL(c)}{i===0&&<span style={{background:"#EEEBFD",color:"#6C5CF6",borderRadius:6,padding:"1px 7px",fontSize:10.5,fontWeight:700}}>Principal</span>}</span>)}{(snap?.problems??[]).length===0&&<span style={{fontSize:12.5,color:P.muted}}>Sin problemas activos. Busca un CIE-10 para agregar.</span>}</div>
+       <div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>{(snap?.problems??[]).slice(0,4).map((c,i)=><span key={c} style={{display:"inline-flex",alignItems:"center",gap:8,background:"#F3F5FA",border:`1px solid ${LINE}`,borderRadius:9,padding:"6px 11px",fontSize:12.5,fontWeight:600}}>{c} {DX_LABEL(c)}{i===0&&<span style={{background:"#EEEBFD",color:"#6C5CF6",borderRadius:6,padding:"1px 7px",fontSize:10.5,fontWeight:700}}>Principal</span>}</span>)}{(snap?.problems??[]).length===0&&<span style={{fontSize:12.5,color:P.muted}}>Sin problemas activos. Busca un CIE-10 para agregar.</span>}</div>
       </div>
       {(()=>{
        const CORD:[typeof cOrdCat,string,string[]][]=[["LAB","Laboratorio",["Biometría hemática completa","Química sanguínea (6 elementos)","Perfil lipídico","Examen general de orina","Proteína C reactiva","Exudado faríngeo (cultivo)"]],["IMAGING","Imagen",["Radiografía de tórax PA","Ultrasonido abdominal","Tomografía simple de cráneo","Mastografía"]],["PROCEDURE","Procedimiento",["Electrocardiograma","Espirometría","Prueba de esfuerzo"]],["REFERRAL","Interconsulta",["Cardiología","Endocrinología","Nefrología","Oftalmología"]]];
@@ -2795,7 +2812,7 @@ export default function Workspace(){
 
    // ---------- PANTALLA: PLANTILLAS DE PROBLEMAS (catálogo) ----------
    if(probScreen==="plantillas"){
-    const CATS:[string,number][]=[["Todas las plantillas",154],["Cardiovasculares",18],["Endocrinológicas",16],["Respiratorias",14],["Digestivas",12],["Neurológicas",11],["Psiquiátricas",10],["Ginecológicas",10],["Pediátricas",12],["Infecciosas",15],["Dermatológicas",9],["Musculoesqueléticas",9],["Genitourinarias",8],["Oncológicas",6],["Oftalmológicas",5],["Otorrinolaringológicas",6],["Hematológicas",4],["Otros",19]];
+    const CAT_NAMES=["Todas las plantillas","Cardiovasculares","Endocrinológicas","Respiratorias","Digestivas","Neurológicas","Psiquiátricas","Ginecológicas","Pediátricas","Infecciosas","Dermatológicas","Musculoesqueléticas","Genitourinarias","Oncológicas","Oftalmológicas","Otorrinolaringológicas","Hematológicas","Otros"] as const;
     type Tpl={name:string;code:string;desc:string;cat:string;fav:boolean};
     const TPLS:Tpl[]=[
      {name:"Diabetes mellitus tipo 2",code:"E11.9",desc:"Enfermedad crónica metabólica con hiperglucemia.",cat:"Endocrinológicas",fav:true},
@@ -2811,6 +2828,8 @@ export default function Workspace(){
      {name:"Hipercolesterolemia",code:"E78.0",desc:"Elevación del colesterol total en sangre.",cat:"Cardiovasculares",fav:false},
      {name:"Obesidad",code:"E66.9",desc:"Exceso de grasa corporal (IMC ≥ 30).",cat:"Endocrinológicas",fav:false},
     ];
+    // Conteos reales por categoría, derivados de TPLS (sin cifras de maqueta; auditoría U-11).
+    const CATS:[string,number][]=CAT_NAMES.map(c=>[c,c==="Todas las plantillas"?TPLS.length:TPLS.filter(x=>x.cat===c).length]);
     const tpls=TPLS.filter(t=>probPlantCat==="Todas las plantillas"||t.cat===probPlantCat);
     const selT=tpls[0]??TPLS[0]!;
     const useTpl=(t:Tpl)=>{setPfName(`${t.code} · ${t.name}`);setPfCode(t.code);setPfType("Crónico");setProbScreen("nuevo");};
@@ -2825,7 +2844,7 @@ export default function Workspace(){
       <div style={{...card2,padding:16}}>
        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div style={{fontSize:16,fontWeight:800}}>Plantillas ({tpls.length})</div><select style={{...selSty,width:"auto",padding:"7px 10px"}} defaultValue="Más utilizadas"><option>Más utilizadas</option></select></div>
        <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:12}}>{tpls.map(t=><div key={t.code} style={{border:`1px solid ${LINE}`,borderRadius:12,padding:14,display:"flex",flexDirection:"column",gap:8}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{width:40,height:40,borderRadius:11,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 3h6l1 4H8zM7 7h10l1 13H6z"/></svg></span><span style={{color:t.fav?P.purple:"#C7CCE0"}}>{t.fav?"★":"☆"}</span></div><div><div style={{fontWeight:700,fontSize:14}}>{t.name}</div><div style={{fontSize:12,color:P.purple,fontWeight:600}}>{t.code}</div></div><div style={{fontSize:12,color:P.muted,lineHeight:1.4,minHeight:32}}>{t.desc}</div><button onClick={()=>useTpl(t)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"8px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>Usar plantilla</button></div>)}</div>
-       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:14,fontSize:13,color:P.muted}}><span>Mostrando 1–{tpls.length} de 154 plantillas</span><div style={{display:"flex",gap:5}}>{["‹","1","2","3","4","5","›"].map((p,i)=><span key={i} style={{minWidth:30,height:30,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:12.5,cursor:"pointer"}}>{p}</span>)}</div></div>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:14,fontSize:13,color:P.muted}}><span>Mostrando {tpls.length} de {TPLS.length} plantillas</span><div style={{display:"flex",gap:5}}>{["1"].map((p,i)=><span key={i} style={{minWidth:30,height:30,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:12.5,cursor:"pointer"}}>{p}</span>)}</div></div>
       </div>
       <div style={{...card2,padding:0,overflow:"hidden"}}>
        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:`1px solid ${LINE}`}}><div style={{fontSize:15,fontWeight:800}}>Detalle de la plantilla</div><span style={{color:P.muted,cursor:"pointer"}}>✕</span></div>
@@ -2838,7 +2857,7 @@ export default function Workspace(){
          <div><div style={{color:P.muted,marginBottom:3}}>CIE-10</div><b>{selT.code}</b></div>
          <div><div style={{color:P.muted,marginBottom:5}}>Palabras clave</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{["diabetes","hiperglucemia","crónica","control"].map(k=><span key={k} style={{background:"#F2F4F9",color:P.muted,borderRadius:7,padding:"3px 8px",fontSize:11.5}}>{k}</span>)}</div></div>
          <div><div style={{color:P.muted,marginBottom:5}}>Incluye campos</div>{["Fecha de diagnóstico","Control (activo/inactivo)","Gravedad","Notas clínicas","Plan de manejo","Alertas y recordatorios"].map(f=><div key={f} style={{display:"flex",gap:8,alignItems:"center",padding:"3px 0"}}><span style={{color:"#16A66A"}}>✓</span>{f}</div>)}</div>
-         <div><div style={{color:P.muted,marginBottom:3}}>Usada en</div><b>234 pacientes</b> <span style={{color:P.muted}}>· Última vez: 15 sep 2026</span></div>
+         {/* (U-11) Sin estadísticas de uso: esa medición no existe; no se inventa. */}
         </div>
         <button onClick={()=>useTpl(selT)} style={{marginTop:14,width:"100%",border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Usar plantilla</button>
         <button style={{marginTop:8,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>✎ Editar plantilla</button>
