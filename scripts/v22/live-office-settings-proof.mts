@@ -48,6 +48,8 @@ try{
  ok(sch3[0]!.from==="09:00"&&sch3[0]!.to==="14:00"&&sch3[5]!.day==="Sábado"&&sch3[5]!.open===false,"SCHEDULE_APPLIED");
  ok((p3.body.settings.modules as Record<string,boolean>)["Facturación"]===false,"MODULE_DISABLED");
  ok((p3.body.settings.modules as Record<string,boolean>)["Pacientes"]===true,"MODULE_MERGE_PRESERVES"); // partial no borra otros módulos
+ // 4c) defaults de preferencias/regionales presentes en el GET inicial
+ ok(g0.body.settings.prefRecordView==="Resumen clínico"&&g0.body.settings.regCurrency==="MXN"&&g0.body.settings.regTaxRate==="16","PREF_REG_DEFAULTS");
  // el merge del horario/módulos preserva la info previa del consultorio
  ok(p3.body.settings.officeName==="Clínica Norte"&&p3.body.settings.phone==="614 000 1111","SCHEDULE_MERGE_PRESERVES");
  // GET refleja horario + módulos persistidos
@@ -59,6 +61,11 @@ try{
  // rechaza módulo desconocido -> 400
  const badMod=await put(phys,{modules:{Inexistente:false}},3);
  ok(badMod.status===400,"MODULE_UNKNOWN_400");
+ // 4d) PUT de preferencias de consulta + regionales (If-Match 3 -> v4) con merge que preserva lo previo
+ const p4=await put(phys,{prefRecordView:"Cronología",prefUnits:"Imperial (lb, in)",regState:"Chihuahua",regCity:"Chihuahua",regTaxRate:"8",regCurrency:"USD"},3);
+ ok(p4.status===201&&p4.body.version===4,"PREF_REG_PUT_VERSION_4");
+ ok(p4.body.settings.prefRecordView==="Cronología"&&p4.body.settings.prefUnits==="Imperial (lb, in)"&&p4.body.settings.regState==="Chihuahua"&&p4.body.settings.regTaxRate==="8"&&p4.body.settings.regCurrency==="USD","PREF_REG_APPLIED");
+ ok(p4.body.settings.officeName==="Clínica Norte"&&(p4.body.settings.modules as Record<string,boolean>)["Facturación"]===false&&(p4.body.settings.schedule as {open:boolean}[])[5]!.open===false,"PREF_REG_MERGE_PRESERVES");
  // 5) conflicto de versión: If-Match desactualizado -> 409
  const stale=await put(phys,{officeName:"Otro"},1);
  ok(stale.status===409,"STALE_IFMATCH_409");

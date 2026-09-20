@@ -31,6 +31,10 @@ export const DEFAULT_OFFICE_SETTINGS={
  color:"#6C5CF6",theme:"Claro",fontSize:"Normal",
  realtimeAlerts:true,followupReminders:true,showInteractions:true,darkMode:false,
  schedule:DEFAULT_SCHEDULE,modules:DEFAULT_MODULES,
+ // Preferencias de consulta
+ prefRecordView:"Resumen clínico",prefNoteTemplate:"Consulta general (SOAP)",prefUnits:"Métrico (kg, cm)",prefDoseCalc:"Pediátrica y adultos",
+ // Configuraciones regionales
+ regCountry:"México",regState:"",regCity:"",regPostalCode:"",regDateFormat:"dd/mm/aaaa",regTimeFormat:"24 horas",regCurrency:"MXN",regTaxRate:"16",
 } as const;
 
 // Una fila de horario: día conocido, abierto/cerrado y las horas (HH:MM o vacío si está cerrado).
@@ -48,6 +52,11 @@ const SettingsSchema=z.object({
  schedule:z.array(ScheduleRow).max(7).optional(),
  // Módulos: mapa parcial módulo->activo. Se acepta un subconjunto, pero solo claves de módulos conocidos.
  modules:z.record(z.string().max(40),z.boolean()).refine(m=>Object.keys(m).every(k=>(MODULE_KEYS as readonly string[]).includes(k)),"Módulo desconocido").optional(),
+ // Preferencias de consulta (presentacionales pero persistidas por consultorio)
+ prefRecordView:z.string().max(60).optional(),prefNoteTemplate:z.string().max(80).optional(),prefUnits:z.string().max(40).optional(),prefDoseCalc:z.string().max(60).optional(),
+ // Configuraciones regionales
+ regCountry:z.string().max(60).optional(),regState:z.string().max(60).optional(),regCity:z.string().max(60).optional(),regPostalCode:z.string().max(12).optional(),
+ regDateFormat:z.string().max(20).optional(),regTimeFormat:z.string().max(20).optional(),regCurrency:z.string().max(10).optional(),regTaxRate:z.string().max(6).optional(),
 }).strict();
 const UpdateBody=z.object({settings:SettingsSchema,occurredAt:z.string().datetime()});
 

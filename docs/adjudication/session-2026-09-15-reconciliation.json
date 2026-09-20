@@ -3570,6 +3570,30 @@
    "requires_human_c5_acceptance": false
   },
   {
+   "id": "CAP-OFFICE-SETTINGS-PREFS-BACKEND-001",
+   "name": "Configuración — preferencias de consulta y configuraciones regionales reales (persistidas, controladas)",
+   "risk": "C3",
+   "eng_authority_note": "Se conectaron los ultimos selects/inputs presentacionales de Configuracion sobre el MISMO agregado OfficeSettings (event-sourced, If-Match), eliminando el ultimo defaultValue cosmetico de la vista. (1) Preferencias de consulta: prefRecordView, prefNoteTemplate, prefUnits, prefDoseCalc -> selects controlados con opciones reales, persistidos. (2) Configuraciones regionales: regCountry, regState, regCity, regPostalCode, regDateFormat, regTimeFormat, regCurrency, regTaxRate -> selects/inputs controlados, persistidos. Schema .strict() ampliado con estos campos (strings acotados). Merge estandar (los campos omitidos conservan su valor previo; modules sigue con merge profundo). Frontend: valores controlados via cfgSettings + setCfg, guardados con el boton Guardar existente (PUT If-Match). Banner de honestidad actualizado: consultorio/apariencia/preferencias/regionales/horarios/modulos se guardan de verdad; cuenta/firma/integraciones/respaldo siguen presentacionales.",
+   "invariants": [
+    "Preferencias de consulta y configuraciones regionales se persisten en OFFICE_SETTINGS_UPDATED (event-sourced), no con defaultValue cosmetico",
+    "Los controles son controlados (value+onChange) y reflejan el estado cargado por GET; sin control muerto",
+    "El schema valida y acota estos campos; el merge conserva lo omitido y sigue bajo If-Match y scope settings:write",
+    "El banner declara con honestidad que se guardan de verdad; lo que sigue presentacional se declara como tal"
+   ],
+   "implementation": [
+    "apps/web/lib/office-settings-lifecycle.ts (DEFAULT_OFFICE_SETTINGS + SettingsSchema con prefs/regionales)",
+    "apps/web/app/workspace/page.tsx (tipo OfficeSettings + CFG_DEFAULTS ampliados; selects/inputs controlados; banner)"
+   ],
+   "tests": [
+    "tests/v22/ui-cockpit-render.test.tsx (Configuracion: Configuraciones regionales presente, input Estado/Provincia controlado y editable)",
+    "scripts/v22/live-office-settings-proof.mts"
+   ],
+   "runtime_evidence": "Live proof vs Neon PASS 29/29: GET inicial incluye defaults de prefs/regionales (Resumen clinico, MXN, 16); PUT de preferencias + regionales (If-Match 3 -> v4) aplica (Cronologia, Imperial, Chihuahua, 8%, USD) y el merge preserva la info previa del consultorio, los modulos (Facturacion=false) y el horario (Sabado cerrado); ademas todo lo previo (horario/modulos, hora invalida 400, modulo desconocido 400, 409, aislamiento por tenant, 403 sin scope). Render 46/46; typecheck limpio.",
+   "epic": "S-CONFIG/BACKEND",
+   "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
+   "requires_human_c5_acceptance": false
+  },
+  {
    "id": "CAP-DOCUMENT-REPOSITORY-BACKEND-001",
    "name": "Documentos — repositorio: GET de un documento con contenido real, adenda append-only y firma",
    "risk": "C4",
