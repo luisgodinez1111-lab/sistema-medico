@@ -2,11 +2,11 @@ import{NextResponse}from"next/server";
 import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
-import{foldMedication,assertMedicationTransition,type FoldedMedication}from"../../../packages/medication-fold/src";
+import{foldMedication,assertMedicationTransition,assertMedicationAnnotation,type FoldedMedication,type MedAnnotationKind}from"../../../packages/medication-fold/src";
 import{type MedicationState}from"../../../packages/medication-domain/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid}from"./http-command";
+import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid,replayStablePayload}from"./http-command";
 import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindications,resolveDrug,monitoringFor,checkRenalDosing}from"../../../packages/drug-catalog/src";
 import{validateMedicationOrder,normalizeRoute,checkDoseCeiling,checkPediatricDose}from"../../../packages/medication-validation/src";
 import{evaluatePrescriptionSafety,summarizeForEvent,ageInYears}from"../../../packages/prescription-safety/src";
@@ -68,6 +68,19 @@ async function commitTransition(ctx:Parameters<typeof runClinicalCommand>[0],ide
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({medicationId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
+// Anotación: el estado NO cambia (la respuesta devuelve el estado vigente). Misma disciplina que una transición: replay
+// idempotente primero, versión (If-Match) antes que cualquier otra precondición, y guardas de dominio al final.
+async function commitAnnotation(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,medicationId:string,folded:FoldedMedication,kind:MedAnnotationKind,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string,guard?:()=>void,extra:Record<string,unknown>={}){
+ const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType,payload,occurredAt,topic});
+ let result=await lookupReplay(ctx,cmd);
+ if(!result){
+  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
+  assertMedicationAnnotation(folded.state,kind);guard?.();
+  result=await runClinicalCommand(ctx,cmd);
+ }
+ const r=result.response as{version:number;auditHash?:string};
+ return NextResponse.json({medicationId,state:folded.state,annotation:kind,version:r.version,auditHash:r.auditHash,replayed:result.replayed,...extra},{status:result.replayed?200:201});
+}
 
 const WhenBody=z.object({occurredAt:z.string().datetime()});
 // PRESCRIBE admite la confirmación explícita del médico cuando alguna barrera no pudo evaluarse (queda en el evento).
@@ -88,6 +101,26 @@ async function createMonitoringObligations(ctx:Parameters<typeof runClinicalComm
   if(!r)r=await runClinicalCommand(ctx,cmd);
  }
 }
+// Evaluación de barreras COMPARTIDA por PRESCRIBE y MODIFY: mismos datos del paciente, mismo evaluador puro. La propia
+// medicación se EXCLUYE de la lista de activos (al modificarla está ACTIVE y se marcaría duplicada consigo misma).
+type OrderFields=Readonly<{dose:string;route:string;frequency:string}>;
+async function evaluateSafetyFor(ctx:Parameters<typeof runClinicalCommand>[0],medicationId:string,folded:FoldedMedication,order:OrderFields,asOf:string){
+ const[substances,activeDrugs,conditions,egfr,weightKg,demo]=await Promise.all([
+  activeAllergySubstances(ctx,folded.patientId),activeMedicationDrugCodes(ctx,folded.patientId,medicationId),activeProblemCodes(ctx,folded.patientId),
+  patientEgfr(ctx,folded.patientId),patientWeightKg(ctx,folded.patientId),patientDemographics(ctx,folded.patientId)]);
+ return evaluatePrescriptionSafety({drugCode:folded.drugCode,dose:order.dose,route:order.route,frequency:order.frequency,
+  allergySubstances:substances,activeDrugCodes:activeDrugs,activeConditionCodes:conditions,egfr,weightKg,
+  ageYears:demo?.birthDate?ageInYears(demo.birthDate,asOf):undefined});
+}
+// Aplica el veredicto del evaluador: BLOQUEO -> 403; no verificable sin confirmación -> 428; confirmación sin justificación -> 400.
+function enforceSafety(safety:ReturnType<typeof evaluatePrescriptionSafety>,verb:string,acknowledged:boolean,justification:string|undefined){
+ const blocked=safety.barriers.filter(x=>x.status==="BLOCKED"&&x.id!=="order");
+ if(blocked.length>0)throw new ClinicalError("SAFETY_BLOCKED",`Cannot ${verb}: ${blocked.map(x=>x.detail).join(" · ")}`,{barriers:blocked.map(x=>x.id)});
+ if(safety.requiresAcknowledgement&&!acknowledged)throw new ClinicalError("SAFETY_ACK_REQUIRED",
+  `Verificación automática incompleta (${safety.notEvaluated.join(", ")}): ${safety.catalogResolved?"faltan datos del paciente para evaluar":"el fármaco no está en el catálogo"}. Confirme expresamente que procede bajo su criterio clínico (acknowledgeUnverified) e indique la justificación.`,
+  {notEvaluated:safety.notEvaluated});
+ if(safety.requiresAcknowledgement&&(justification??"").trim().length<10)throw new ClinicalError("VALIDATION_ERROR","unverifiedJustification (≥10 caracteres) es obligatoria cuando la verificación automática es incompleta");
+}
 // PRESCRIBE = PROPOSED -> PRESCRIBED. EXIGE médico (Physician Control): la IA nunca prescribe.
 export async function handleMedicationPrescription(req:Request,medicationId:string):Promise<Response>{
  try{
@@ -96,27 +129,18 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
   // Auditoría 2026-09-19 (C-03/C-04): evaluador ÚNICO de barreras (el mismo del dry-run /prescription-check).
   // Antes, un fármaco fuera del catálogo omitía TODAS las barreras en silencio. Ahora cada barrera queda en un
   // estado explícito y, si alguna NO pudo evaluarse, el médico debe confirmarlo expresamente (queda en el evento).
-  const[substances,activeDrugs,conditions,egfr,weightKg,demo]=await Promise.all([
-   activeAllergySubstances(ctx,folded.patientId),activeMedicationDrugCodes(ctx,folded.patientId),activeProblemCodes(ctx,folded.patientId),
-   patientEgfr(ctx,folded.patientId),patientWeightKg(ctx,folded.patientId),patientDemographics(ctx,folded.patientId)]);
-  const safety=evaluatePrescriptionSafety({drugCode:folded.drugCode,dose:folded.dose,route:folded.route,frequency:folded.frequency,
-   allergySubstances:substances,activeDrugCodes:activeDrugs,activeConditionCodes:conditions,egfr,weightKg,
-   ageYears:demo?.birthDate?ageInYears(demo.birthDate,b.occurredAt):undefined});
+  const safety=await evaluateSafetyFor(ctx,medicationId,folded,{dose:folded.dose,route:folded.route,frequency:folded.frequency},b.occurredAt);
   const acknowledged=b.acknowledgeUnverified===true;
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType:"MEDICATION_PRESCRIBED",
-   payload:{kind:"PRESCRIBED",prescriberId:claims.sub,safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification})},occurredAt:b.occurredAt,topic:"medication.prescribed"});
+  // El resumen de barreras lo calcula el servidor y depende del estado del paciente: estable ante reintentos (ver replayStablePayload).
+  const payload=await replayStablePayload(ctx,idempotencyKey,medicationId,b,()=>({kind:"PRESCRIBED",prescriberId:claims.sub,safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification})}));
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType:"MEDICATION_PRESCRIBED",payload,occurredAt:b.occurredAt,topic:"medication.prescribed"});
   let result=await lookupReplay(ctx,cmd);
   if(!result){
    // Orden de precondiciones: PRIMERO la versión. No se le pide al médico que confirme y justifique una prescripción
    // sobre una vista obsoleta del expediente: con If-Match desfasado responde 409 y el cliente debe releer.
    if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
    assertMedicationTransition(folded.state,"PRESCRIBED");
-   const blocked=safety.barriers.filter(x=>x.status==="BLOCKED"&&x.id!=="order");
-   if(blocked.length>0)throw new ClinicalError("SAFETY_BLOCKED",`Cannot prescribe: ${blocked.map(x=>x.detail).join(" · ")}`,{barriers:blocked.map(x=>x.id)});
-   if(safety.requiresAcknowledgement&&!acknowledged)throw new ClinicalError("SAFETY_ACK_REQUIRED",
-    `Verificación automática incompleta (${safety.notEvaluated.join(", ")}): ${safety.catalogResolved?"faltan datos del paciente para evaluar":"el fármaco no está en el catálogo"}. Confirme expresamente que prescribe bajo su criterio clínico (acknowledgeUnverified) e indique la justificación.`,
-    {notEvaluated:safety.notEvaluated});
-   if(safety.requiresAcknowledgement&&(b.unverifiedJustification??"").trim().length<10)throw new ClinicalError("VALIDATION_ERROR","unverifiedJustification (≥10 caracteres) es obligatoria al prescribir sin verificación automática completa");
+   enforceSafety(safety,"prescribe",acknowledged,b.unverifiedJustification);
    // EXEC-0014 / EPIC BA: al prescribir, crear las obligaciones de monitoreo del fármaco (INR, creatinina/TFG, potasio...).
    result=await runClinicalCommand(ctx,cmd);
    await createMonitoringObligations(ctx,idempotencyKey,folded.patientId,claims.sub,folded.drugCode,b.occurredAt);
@@ -142,23 +166,52 @@ export async function handleMedicationHold(req:Request,medicationId:string):Prom
   return await commitTransition(ctx,idempotencyKey,expectedVersion,medicationId,folded,"HELD","MEDICATION_HELD",{kind:"HELD",reason:b.reason},b.occurredAt,"medication.held");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-// RESUME = HELD -> ACTIVE. Reanudación tras suspensión.
+// RESUME = HELD -> ACTIVE. Reanudación tras suspensión. Durante la suspensión el paciente pudo iniciar otro fármaco, sumar
+// un diagnóstico o deteriorar su función renal: reanudar vuelve a poner el fármaco EN CURSO, así que pasa por el MISMO
+// evaluador que PRESCRIBE (bloqueo -> 403; no verificable -> 428 con confirmación y justificación).
+const ResumeBody=z.object({occurredAt:z.string().datetime(),acknowledgeUnverified:z.boolean().optional(),unverifiedJustification:z.string().max(500).optional()});
 export async function handleMedicationResume(req:Request,medicationId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,medicationId,true);
-  const b=await parseJson(req,WhenBody);
-  return await commitTransition(ctx,idempotencyKey,expectedVersion,medicationId,folded,"ACTIVE","MEDICATION_RESUMED",{kind:"RESUMED"},b.occurredAt,"medication.resumed");
+  const b=await parseJson(req,ResumeBody);
+  const safety=await evaluateSafetyFor(ctx,medicationId,folded,{dose:folded.dose,route:folded.route,frequency:folded.frequency},b.occurredAt);
+  const acknowledged=b.acknowledgeUnverified===true;
+  const payload=await replayStablePayload(ctx,idempotencyKey,medicationId,b,()=>({kind:"RESUMED",safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification})}));
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType:"MEDICATION_RESUMED",payload,occurredAt:b.occurredAt,topic:"medication.resumed"});
+  let result=await lookupReplay(ctx,cmd);
+  if(!result){
+   if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
+   assertMedicationTransition(folded.state,"ACTIVE");
+   if(folded.state!=="HELD")throw new ClinicalError("CONFLICT",`Illegal medication transition ${folded.state} -> ACTIVE (resume requires HELD)`,{from:folded.state});
+   enforceSafety(safety,"resume",acknowledged,b.unverifiedJustification);
+   result=await runClinicalCommand(ctx,cmd);
+  }
+  const r=result.response as{version:number;auditHash?:string};
+  return NextResponse.json({medicationId,state:"ACTIVE",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-// MODIFY = Cambio de dosis/ruta/frecuencia en ACTIVE/HELD. Captura razón + override warning.
-const ModifyBody=z.object({dose:z.string().optional(),route:z.string().optional(),frequency:z.string().optional(),calculatedDose:z.string().optional(),reason:z.string().min(1),overrideWarning:z.boolean().default(false),occurredAt:z.string().datetime()});
+// MODIFY = cambio de dosis/vía/frecuencia de una medicación EN CURSO (ACTIVE/HELD). Es una ANOTACIÓN: no cambia el estado.
+// Auditoría L-04: antes pedía la transición X->X y respondía 409 siempre. Además, al hacerla funcionar, NO puede ser un atajo
+// para saltarse las barreras: la orden resultante pasa por la MISMA validación de orden y el MISMO evaluador que PRESCRIBE
+// (un `overrideWarning` afirmado por el cliente no es una verificación). Exige razón clínica del cambio.
+const ModifyBody=z.object({dose:z.string().min(1).optional(),route:z.string().min(1).optional(),frequency:z.string().min(1).optional(),calculatedDose:z.string().optional(),reason:z.string().min(3).max(500),
+ acknowledgeUnverified:z.boolean().optional(),unverifiedJustification:z.string().max(500).optional(),occurredAt:z.string().datetime()});
 export async function handleMedicationModification(req:Request,medicationId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,medicationId,true);
   const b=await parseJson(req,ModifyBody);
-  // EXEC-0014: Si clinician override safety warning, capture reason
-  const payload={kind:"MODIFIED",dose:b.dose,route:b.route,frequency:b.frequency,calculatedDose:b.calculatedDose,reason:b.reason,overrideWarning:b.overrideWarning};
-  return await commitTransition(ctx,idempotencyKey,expectedVersion,medicationId,folded,folded.state,"MEDICATION_MODIFIED",payload,b.occurredAt,"medication.modified");
+  if(b.dose===undefined&&b.route===undefined&&b.frequency===undefined)throw new ClinicalError("VALIDATION_ERROR","Indique al menos un cambio: dose, route o frequency");
+  const next:OrderFields={dose:b.dose??folded.dose,route:b.route!==undefined?normalizeRoute(b.route):folded.route,frequency:b.frequency??folded.frequency};
+  const v=validateMedicationOrder(next);
+  if(!v.ok)throw new ClinicalError("VALIDATION_ERROR",`Orden de medicación no válida: ${v.errors.join("; ")}`,{errors:v.errors});
+  const safety=await evaluateSafetyFor(ctx,medicationId,folded,next,b.occurredAt);
+  const acknowledged=b.acknowledgeUnverified===true;
+  // `previous` y `safety` dependen del estado del agregado/paciente: estables ante reintentos (ver replayStablePayload).
+  const payload=await replayStablePayload(ctx,idempotencyKey,medicationId,b,()=>({kind:"MODIFIED",reason:b.reason,
+   dose:b.dose!==undefined?next.dose:undefined,route:b.route!==undefined?next.route:undefined,frequency:b.frequency!==undefined?next.frequency:undefined,calculatedDose:b.calculatedDose,
+   previous:{dose:folded.dose,route:folded.route,frequency:folded.frequency},safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification})}));
+  return await commitAnnotation(ctx,idempotencyKey,expectedVersion,medicationId,folded,"MODIFIED","MEDICATION_MODIFIED",payload,b.occurredAt,"medication.modified",
+   ()=>enforceSafety(safety,"modify",acknowledged,b.unverifiedJustification),{order:next});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 // DISCONTINUE = {ACTIVE,HELD} -> STOPPED. Exige razón (trazabilidad clínica).
@@ -176,7 +229,7 @@ export async function handleMedicationReconciliation(req:Request,medicationId:st
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,medicationId,true);
   const b=await parseJson(req,ReconcileBody);
-  const payload={kind:"RECONCILED",reconciliationStatus:b.status,note:b.note};
-  return await commitTransition(ctx,idempotencyKey,expectedVersion,medicationId,folded,folded.state,"MEDICATION_RECONCILED",payload,b.occurredAt,"medication.reconciled");
+  const payload:Record<string,unknown>={kind:"RECONCILED",reconciliationStatus:b.status};if(b.note!==undefined)payload["note"]=b.note;
+  return await commitAnnotation(ctx,idempotencyKey,expectedVersion,medicationId,folded,"RECONCILED","MEDICATION_RECONCILED",payload,b.occurredAt,"medication.reconciled");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

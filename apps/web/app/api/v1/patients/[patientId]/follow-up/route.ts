@@ -51,7 +51,8 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   };
   const activeProblems=allProblems.filter(p=>p.patientId===patientId&&(p.status==="ACTIVE"||p.status==="CHRONIC")).length;
   return NextResponse.json({
-   tasks:tasks.map(t=>({obligationId:t.obligationId,task:t.task,dueAt:t.dueAt,status:t.status,statusLabel:OBL_ES[t.status]??"Pendiente",done:t.status==="COMPLETED"})),
+   // Auditoría L-01: cada tarea declara si BLOQUEA la firma del encuentro y por qué (URGENT / OVERDUE / INVALID_DUE_DATE).
+   tasks:tasks.map(t=>({obligationId:t.obligationId,task:t.task,dueAt:t.dueAt,status:t.status,statusLabel:OBL_ES[t.status]??"Pendiente",done:t.status==="COMPLETED",priority:t.priority,blocksSignature:t.blocksSignature})),
    vitalsTrend,indicators,
    counts:{problems:activeProblems,medications:meds.length,allergies:allergies.length},
   },{status:200});

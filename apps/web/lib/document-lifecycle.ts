@@ -7,7 +7,7 @@ import{foldDocument,assertDocumentTransition,type FoldedDocument,type DocumentSt
 import{put,del,get}from"@vercel/blob";
 import{runClinicalCommand,lookupReplay,readAggregateEvents,documentDetail}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload}from"./http-command";
 // EPIC I — Ciclo de vida del documento clínico sobre el kernel. Autoridad PROD-014-R022 /
 // PROD-022-R018: la firma produce un snapshot reproducible (contentHash) y las correcciones son
 // addendum/amendment APPEND-ONLY; nunca se borra el historial. Physician Control: solo un médico
@@ -34,21 +34,10 @@ export async function handleDocumentCreate(req:Request):Promise<Response>{
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
-// AUTOSAVE (draft persist) - NO crea evento en event store, solo actualiza contenido local.
-// EXEC-0009: Autosave must never masquerade as signature.
-const AutosaveBody=z.object({documentId:z.string().uuid(),content:z.string().min(1),title:z.string().optional(),occurredAt:z.string().datetime()});
-export async function handleDocumentAutosave(req:Request):Promise<Response>{
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:write",purpose:"TREATMENT"});
-  const b=await parseJson(req,AutosaveBody);
-  // Autosave NO va a event store. Solo actualiza proyección local/cliente.
-  // El contenido definitivo se persiste en FINALIZE o SIGN.
-  const contentHash=crypto.createHash("sha256").update(b.content).digest("hex");
-  return NextResponse.json({documentId:b.documentId,contentHash,autosavedAt:b.occurredAt,note:"AUTOSAVE_ONLY_NO_EVENT"},{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
-}
-
+// Auditoría 2026-09-19 (L-03): aquí vivía `handleDocumentAutosave`, un handler SIN RUTA que respondía `autosavedAt` y un
+// `contentHash` sin persistir nada. Un "guardado" que no guarda es peor que no tenerlo: se eliminó. El contenido de un
+// documento es INMUTABLE desde su creación (no existe evento de revisión); si se necesita editar borradores, debe añadirse
+// un evento DOCUMENT_REVISED al fold, no un autoguardado simulado.
 // GET (repositorio) — UN documento con su CONTENIDO real, adenda (append-only) y firma. Solo lectura, RLS-scoped.
 const TYPE_UI:Record<string,string>={PROGRESS_NOTE:"Nota médica",DISCHARGE_SUMMARY:"Alta",REFERRAL:"Interconsulta",PROCEDURE_NOTE:"Procedimiento",OTHER:"Otro"};
 const STATUS_ES:Record<string,string>={DRAFT:"Borrador",FINALIZED:"Finalizado",SIGNED:"Firmado",AMENDED:"Enmendado"};
@@ -71,15 +60,19 @@ async function loadForTransition(req:Request,documentId:string,requirePhysician:
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Document not found");
  return{claims:c,ctx,idempotencyKey,expectedVersion,folded};
 }
-async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,documentId:string,folded:FoldedDocument,to:DocumentState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string,extra:Record<string,unknown>={}){
+async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,documentId:string,folded:FoldedDocument,to:DocumentState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string,extra:Record<string,unknown>={},guard?:()=>void){
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:documentId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
- if(!result){assertDocumentTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
+ if(!result){
+  if(guard&&expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Document changed since last read",{expected:expectedVersion,actual:folded.version});
+  assertDocumentTransition(folded.state,to);guard?.();result=await runClinicalCommand(ctx,cmd);}
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({documentId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed,...extra},{status:result.replayed?200:201});
 }
 
 const WhenBody=z.object({occurredAt:z.string().datetime()});
+const SignBody=z.object({occurredAt:z.string().datetime(),contentHash:z.string().regex(/^[0-9a-f]{64}$/,"contentHash must be a sha256 hex digest")});
+export function documentContentHash(content:string):string{return crypto.createHash("sha256").update(content).digest("hex");}
 // FINALIZE = DRAFT -> FINALIZED (contenido listo para firmar, distinct from draft save).
 export async function handleDocumentFinalization(req:Request,documentId:string):Promise<Response>{
  try{
@@ -93,10 +86,17 @@ export async function handleDocumentFinalization(req:Request,documentId:string):
 export async function handleDocumentSignature(req:Request,documentId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded,claims}=await loadForTransition(req,documentId,true);
-  const b=await parseJson(req,WhenBody);
-  const contentHash=crypto.createHash("sha256").update(folded.content).digest("hex");
-  const signatureDigest=crypto.createHash("sha256").update(`${documentId}:${expectedVersion}:${contentHash}:${claims.sub}:${b.occurredAt}`).digest("hex");
-  return await commit(ctx,idempotencyKey,expectedVersion,documentId,folded,"SIGNED","DOCUMENT_SIGNED",{kind:"SIGNED",authorId:claims.sub,contentHash,signatureDigest,signedAt:b.occurredAt},b.occurredAt,"document.signed",{signatureDigest,contentHash});
+  const b=await parseJson(req,SignBody);
+  const contentHash=documentContentHash(folded.content);
+  // Auditoría L-02: la hora de firma es la del SERVIDOR (la del cliente queda solo como dato forense). Auditoría L-03: el
+  // cliente declara la huella del contenido que MUESTRA; si no coincide con lo persistido, no se firma.
+  const payload=await replayStablePayload(ctx,idempotencyKey,documentId,b,()=>{
+   const signedAt=new Date().toISOString();
+   return{kind:"SIGNED",authorId:claims.sub,contentHash,signedAt,signedAtSource:"SERVER",clientOccurredAt:b.occurredAt,signedVersion:expectedVersion,
+    signatureDigest:crypto.createHash("sha256").update(`${documentId}:${expectedVersion}:${contentHash}:${claims.sub}:${signedAt}`).digest("hex")};});
+  const signedAt=String(payload["signedAt"]);const signatureDigest=String(payload["signatureDigest"]);
+  return await commit(ctx,idempotencyKey,expectedVersion,documentId,folded,"SIGNED","DOCUMENT_SIGNED",payload,signedAt,"document.signed",{signatureDigest,contentHash,signedAt},
+   ()=>{if(b.contentHash!==contentHash)throw new ClinicalError("CONFLICT","El contenido en pantalla no coincide con el documento guardado (SIGNED_CONTENT_MISMATCH). Recargue el documento y revíselo antes de firmar.");});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 // AMEND = {SIGNED,AMENDED} -> AMENDED. Addendum APPEND-ONLY; nunca modifica el snapshot firmado.

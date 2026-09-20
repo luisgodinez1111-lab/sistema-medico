@@ -7,6 +7,7 @@ import{normalizeLabValue}from"../../../packages/lab-reference/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{sliSpan,flowForTopic}from"../../../packages/observability/src";
 import{computeEGFR,type Sex}from"../../../packages/renal-function/src";
+import{signatureBlockReason,type SignatureBlockReason}from"../../../packages/obligation-fold/src";
 // EPIC B — Runtime clínico de la capa app: conexión a Postgres y ejecución del kernel
 // atómico ya probado, SIEMPRE bajo el rol NOBYPASSRLS `medical_os_runtime`.
 // Lección de runtime (sesión 15-sep): el owner de Neon tiene BYPASSRLS -> si el pool
@@ -57,6 +58,14 @@ export async function runClinicalCommand(ctx:HttpTenantContext,command:ClinicalC
 // EPIC D — Replay idempotente previo a la validación de state-machine: si este Idempotency-Key
 // ya produjo ESTE comando exacto (mismo hash) y quedó COMPLETED, devuelve la respuesta guardada.
 // Así un reintento de una transición ya aplicada no choca con la SM (el estado ya avanzó).
+// Auditoría L-04/K-05 — Eventos de ANOTACIÓN por tipo de agregado: enriquecen el agregado sin cambiar su estado. Toda
+// consulta genérica que derive el estado del "último evento" debe ignorarlos; si no, corregir el teléfono de un paciente
+// fallecido lo mostraba ACTIVO, y modificar una dosis habría sacado la medicación de la lista de activas.
+// Alias fijo `c` (el de las subconsultas latest_kind). AMENDED es anotación SOLO en Patient (en VitalSign/Document es estado).
+const lifecycleEventOnly=(tx:postgres.TransactionSql)=>tx`not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED'))`;
 export async function lookupReplay(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult|null>{
  const hash=crypto.createHash("sha256").update(canonicalize(command)).digest("hex");
  const sql=getSql();
@@ -81,7 +90,7 @@ export async function listPatients(ctx:HttpTenantContext):Promise<ReadonlyArray<
      coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as birth_date,
      coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sex_at_birth,
      coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_kind,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and ${lifecycleEventOnly(tx)} order by sequence desc limit 1) as latest_kind,
      (select count(*)::int from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=r.aggregate_id) as version
    from clinical_events r
    left join lateral (select payload from clinical_events am where am.tenant_id=${ctx.tenantId} and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
@@ -107,7 +116,11 @@ export async function activeAllergySubstances(ctx:HttpTenantContext,patientId:st
 }
 // EPIC AW — Medicaciones ACTIVAS del paciente (último kind ACTIVATED). RLS-scoped. Para el check de
 // duplicación terapéutica en la prescripción. Devuelve drugCode.
-export async function activeMedicationDrugCodes(ctx:HttpTenantContext,patientId:string):Promise<string[]>{
+// Auditoría L-04/K-05: el estado se deriva del último evento DE CICLO DE VIDA. Antes era "último evento = ACTIVATED": una
+// medicación reanudada (RESUMED) dejaba de contar como activa, y cualquier anotación (MODIFIED/RECONCILED) la habría hecho
+// desaparecer de las barreras de interacción y duplicidad. `excludeMedicationId`: al MODIFICAR una medicación activa no
+// debe compararse consigo misma.
+export async function activeMedicationDrugCodes(ctx:HttpTenantContext,patientId:string,excludeMedicationId?:string):Promise<string[]>{
  const sql=getSql();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
@@ -115,7 +128,9 @@ export async function activeMedicationDrugCodes(ctx:HttpTenantContext,patientId:
    select r.payload->>'drugCode' as drug_code
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Medication' and r.payload->>'kind'='PROPOSED' and r.payload->>'patientId'=${patientId}
-     and (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1)='ACTIVATED'`;
+     and r.aggregate_id::text<>${excludeMedicationId??""}
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id
+           and c.payload->>'kind' not in ('MODIFIED','RECONCILED') order by sequence desc limit 1) in ('ACTIVATED','RESUMED')`;
   return rows.map(x=>String(x.drug_code??"")).filter(Boolean);
  }) as Promise<string[]>;
 }
@@ -411,21 +426,22 @@ export async function carePlanGoals(ctx:HttpTenantContext,patientId:string):Prom
 // EPIC BA/UI — Obligaciones de seguimiento de UN paciente (vista Seguimiento › Tareas de seguimiento). Por cada
 // agregado ClinicalObligation toma el evento base OBLIGATION_CREATED (tarea/fecha límite) y su ESTADO por la
 // última transición (CREATED->OPEN, STARTED->IN_PROGRESS, COMPLETED, CANCELLED). RLS-scoped.
-export type FollowUpTask=Readonly<{obligationId:string;task:string;dueAt:string;status:"OPEN"|"IN_PROGRESS"|"COMPLETED"|"CANCELLED"}>;
+export type FollowUpTask=Readonly<{obligationId:string;task:string;dueAt:string;status:"OPEN"|"IN_PROGRESS"|"COMPLETED"|"CANCELLED";priority:string;blocksSignature:SignatureBlockReason|null}>;
 const OBLIGATION_STATUS:Record<string,"OPEN"|"IN_PROGRESS"|"COMPLETED"|"CANCELLED">={CREATED:"OPEN",STARTED:"IN_PROGRESS",COMPLETED:"COMPLETED",CANCELLED:"CANCELLED"};
 export async function patientObligations(ctx:HttpTenantContext,patientId:string):Promise<FollowUpTask[]>{
  const sql=getSql();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
   const rows=await tx`
-   select a.aggregate_id, a.payload->>'obligationKind' as task, a.payload->>'dueAt' as due_at,
+   select a.aggregate_id, a.payload->>'obligationKind' as task, a.payload->>'dueAt' as due_at, a.payload->>'priority' as priority,
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=${patientId}
    order by a.payload->>'dueAt' asc`;
-  return rows.map(r=>{const o=r as Record<string,unknown>;return{
-   obligationId:String(o.aggregate_id),task:String(o.task??""),dueAt:o.due_at?String(o.due_at):"",
-   status:OBLIGATION_STATUS[String(o.last_kind??"CREATED")]??"OPEN"};});
+  const asOf=new Date().toISOString();
+  return rows.map(r=>{const o=r as Record<string,unknown>;
+   const status=OBLIGATION_STATUS[String(o.last_kind??"CREATED")]??"OPEN";const dueAt=o.due_at?String(o.due_at):"";const priority=o.priority==null?"ROUTINE":String(o.priority);
+   return{obligationId:String(o.aggregate_id),task:String(o.task??""),dueAt,status,priority,blocksSignature:signatureBlockReason({state:status,priority,dueAt},asOf)??null};});
  }) as Promise<FollowUpTask[]>;
 }
 // EPIC Y/UI — Registro de facturación de TODA la clínica (vista Facturación). Por cada agregado Claim toma el
@@ -644,7 +660,8 @@ export async function activeProblemCodes(ctx:HttpTenantContext,patientId:string)
    select r.payload->>'code' as code
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='ClinicalProblem' and r.payload->>'kind'='ADDED' and r.payload->>'patientId'=${patientId}
-     and (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) in ('ADDED','REACTIVATED','MARKED_CHRONIC')`;
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id
+           and c.payload->>'kind' not in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED') order by sequence desc limit 1) in ('ADDED','REACTIVATED','MARKED_CHRONIC')`;
   return rows.map(x=>String(x.code??"")).filter(Boolean);
  }) as Promise<string[]>;
 }
@@ -657,8 +674,8 @@ export async function readPatientTimeline(ctx:HttpTenantContext,patientId:string
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
   const rows=await tx`
    select r.aggregate_id, r.aggregate_type,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_kind,
-     (select payload->>'status' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_status,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and ${lifecycleEventOnly(tx)} order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and ${lifecycleEventOnly(tx)} order by sequence desc limit 1) as latest_status,
      max(r.sequence) as version, min(r.occurred_at) as opened_at, max(r.occurred_at) as last_at
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_id in (
@@ -677,7 +694,7 @@ export async function readTenantOpenAggregates(ctx:HttpTenantContext):Promise<Re
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
   const rows=await tx`
    select r.aggregate_id, r.aggregate_type, r.payload->>'patientId' as patient_id,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_kind,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and ${lifecycleEventOnly(tx)} order by sequence desc limit 1) as latest_kind,
      (select payload->>'status' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_status
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.sequence=1 and r.payload->>'patientId' is not null`;
@@ -711,6 +728,16 @@ export async function readEncounterEvents(ctx:HttpTenantContext,encounterId:stri
  }) as Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>;
 }
 // EPIC G — Lector genérico de eventos de un agregado (RLS-scoped, con payload).
+// Payload de UN evento por su id, acotado al agregado esperado (RLS-scoped). El id del evento es determinista respecto de
+// la llave de idempotencia (derivedUuid(key,"event")), así que esto responde: "¿esta llave ya produjo su evento, y con qué?".
+export async function readEventPayloadById(ctx:HttpTenantContext,eventId:string,aggregateId:string):Promise<Record<string,unknown>|undefined>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`select payload from clinical_events where tenant_id=${ctx.tenantId} and id=${eventId} and aggregate_id=${aggregateId} limit 1`;
+  const p=rows[0]?.payload;return p&&typeof p==="object"?p as Record<string,unknown>:undefined;
+ }) as Promise<Record<string,unknown>|undefined>;
+}
 export async function readAggregateEvents(ctx:HttpTenantContext,aggregateId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
  return readEncounterEvents(ctx,aggregateId);
 }
@@ -748,17 +775,36 @@ export async function documentDetail(ctx:HttpTenantContext,documentId:string):Pr
  }) as Promise<DocumentDetail>;
 }
 // EPIC D — Gate Zero Lost Follow-Up: obligaciones críticas (URGENT) del paciente sin resolver.
-export async function countUnresolvedCriticalObligations(ctx:HttpTenantContext,patientId:string):Promise<number>{
+// Auditoría 2026-09-19 (L-01) — GATE REAL de obligaciones. Antes contaba filas de `clinical_inbox`, tabla en la que ningún
+// código inserta (el rol de la app solo tiene SELECT): devolvía SIEMPRE 0 y el médico podía firmar con cualquier seguimiento
+// crítico abierto. Ahora se deriva de la ÚNICA fuente de verdad, el stream de eventos de ClinicalObligation, y el criterio es
+// la función pura `signatureBlockReason` (URGENTE o VENCIDA, sin resolver). La hora de referencia es la del SERVIDOR.
+export type BlockingObligation=Readonly<{obligationId:string;reason:SignatureBlockReason;priority:string;dueAt:string}>;
+export async function blockingObligations(ctx:HttpTenantContext,patientId:string,asOfIso:string=new Date().toISOString()):Promise<BlockingObligation[]>{
  const sql=getSql();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
-  const rows=await tx`select count(*)::int n from clinical_inbox where tenant_id=${ctx.tenantId} and patient_id=${patientId} and priority='URGENT' and resolved_at is null`;
-  return Number(rows[0]?.n??0);
- }) as Promise<number>;
+  const rows=await tx`
+   select a.aggregate_id, a.payload->>'dueAt' as due_at, a.payload->>'priority' as priority,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+   from clinical_events a
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=${patientId}`;
+  const out:BlockingObligation[]=[];
+  for(const r of rows){const o=r as Record<string,unknown>;
+   const state=OBLIGATION_STATUS[String(o.last_kind??"CREATED")]??"OPEN"; // kind desconocido => OPEN (fail-closed: sigue contando)
+   const dueAt=o.due_at==null?"":String(o.due_at);const priority=o.priority==null?"ROUTINE":String(o.priority);
+   const reason=signatureBlockReason({state,priority,dueAt},asOfIso);
+   if(reason)out.push({obligationId:String(o.aggregate_id),reason,priority,dueAt});}
+  return out;
+ }) as Promise<BlockingObligation[]>;
 }
-// EPIC G — Cierre del loop Zero Lost Follow-Up: resultados diagnósticos CRÍTICOS del paciente que
-// requirieron acción (ACTIONED) y no se han cerrado (sin evento CLOSED). Consulta el event stream
-// directamente (sin proyección), plegando por aggregate_id vía NOT EXISTS.
+export async function countUnresolvedCriticalObligations(ctx:HttpTenantContext,patientId:string):Promise<number>{
+ return(await blockingObligations(ctx,patientId)).length;
+}
+// EPIC G — Cierre del loop Zero Lost Follow-Up: resultados diagnósticos CRÍTICOS del paciente que no se han CERRADO.
+// Auditoría 2026-09-19 (L-01/C-20): antes solo contaban los que ya estaban en ACTIONED, de modo que el caso MÁS peligroso
+// —un crítico recién RECIBIDO o solo VERIFICADO, que nadie ha atendido— no bloqueaba la firma, aunque la propia UI promete
+// "bloquea la firma hasta cerrarse". Ahora cuenta todo crítico (por valor o por Δ) sin evento CLOSED.
 export async function countOpenCriticalResults(ctx:HttpTenantContext,patientId:string):Promise<number>{
  const sql=getSql();
  return sql.begin(async tx=>{
@@ -767,7 +813,7 @@ export async function countOpenCriticalResults(ctx:HttpTenantContext,patientId:s
    select count(distinct r.aggregate_id)::int n
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult'
-     and r.payload->>'kind'='ACTIONED' and r.payload->>'patientId'=${patientId} and r.payload->>'critical'='true'
+     and r.payload->>'kind'='RECEIVED' and r.payload->>'patientId'=${patientId} and r.payload->>'critical'='true'
      and not exists(
       select 1 from clinical_events c
       where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and c.payload->>'kind'='CLOSED')`;

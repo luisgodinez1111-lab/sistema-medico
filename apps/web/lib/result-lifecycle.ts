@@ -6,7 +6,7 @@ import{foldResult,assertResultTransition,type FoldedResult}from"../../../package
 import{type ResultState}from"../../../packages/order-result-domain/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents,latestResultValueForAnalyte}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload}from"./http-command";
 import{classifyLab,normalizeLabValue,deltaCheck}from"../../../packages/lab-reference/src";
 // EPIC G — Ciclo de vida del resultado diagnóstico (closed-loop de seguimiento) sobre el kernel.
 // EPIC AQ (profundidad): si se envía analito+valor, el flag `critical` se DERIVA del valor (valores de pánico).
@@ -49,13 +49,16 @@ export async function handleResultReceived(req:Request):Promise<Response>{
   if(norm.ok){payload["unit"]=b.unit?.trim()||null;payload["canonicalValue"]=norm.canonicalValue;payload["canonicalUnit"]=norm.canonicalUnit;payload["unitAssumed"]=norm.unitAssumed;}
   if(b.specimenId)payload["specimenId"]=b.specimenId;
   if(delta.flagged){payload["deltaFlagged"]=true;payload["deltaSeverity"]=delta.severity;payload["deltaChangeAbs"]=delta.changeAbs;payload["deltaChangePct"]=delta.changePct;payload["priorValue"]=prior;}
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.resultId,expectedVersion:0,eventType:"RESULT_RECEIVED",payload,occurredAt:b.occurredAt,topic:"result.received"});
+  // El Δ vs previo depende de los demás resultados del paciente: estable ante reintentos (ver replayStablePayload).
+  const stable=await replayStablePayload(ctx,idempotencyKey,b.resultId,b,()=>payload);
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.resultId,expectedVersion:0,eventType:"RESULT_RECEIVED",payload:stable,occurredAt:b.occurredAt,topic:"result.received"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   // La respuesta dice la VERDAD de la interpretación: NORMAL / ABNORMAL / CRITICAL / UNKNOWN (antes solo `critical`, y la UI
   // anunciaba "dentro de rango" para todo lo no crítico, incluidos valores anormales y analitos sin rango tabulado).
-  return NextResponse.json({resultId:b.resultId,state:"RECEIVED",critical,status:payload["status"],interpretation,deltaFlagged:delta.flagged,
-   ...(norm.ok?{canonicalValue:norm.canonicalValue,canonicalUnit:norm.canonicalUnit,unitAssumed:norm.unitAssumed}:{}),
+  // Se responde con lo PERSISTIDO (`stable`): en un reintento es la interpretación original, no una recalculada.
+  return NextResponse.json({resultId:b.resultId,state:"RECEIVED",critical:stable["critical"]===true,status:stable["status"],interpretation:stable["interpretation"],deltaFlagged:stable["deltaFlagged"]===true,
+   ...(stable["canonicalValue"]!==undefined?{canonicalValue:stable["canonicalValue"],canonicalUnit:stable["canonicalUnit"],unitAssumed:stable["unitAssumed"]}:{}),
    version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

@@ -25,6 +25,8 @@ function H(t:string|null,extra:Record<string,string>={}){const x:Record<string,s
 const RP=(id:string)=>({params:Promise.resolve({resultId:id})});
 const EP=(id:string)=>({params:Promise.resolve({encounterId:id})});
 const ISO="2026-03-03T09:00:00.000Z";
+// Auditoría L-03: huella del contenido que se firma (sha256 de `${assessment}\n${plan}`); aquí la nota es "a" / "p".
+const HASH_AP=crypto.createHash("sha256").update("a\np").digest("hex");
 const idem=()=>crypto.randomUUID();
 
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
@@ -63,13 +65,13 @@ try{
  await rVerify.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),RP(cres));
  await rAction.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({ownerId:crypto.randomUUID(),dueAt:"2026-03-10T00:00:00.000Z",occurredAt:ISO})}),RP(cres));
  // 3) firmar el encuentro -> BLOQUEADO 403 (Zero Lost Follow-Up)
- r=await sign.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO})}),EP(enc));
+ r=await sign.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO,contentHash:HASH_AP})}),EP(enc));
  ok(r.status===403,"SIGN_BLOCKED_BY_OPEN_CRITICAL_RESULT_403");
  // 4) cerrar el resultado con evidencia (resuelve la obligación)
  r=await rClose.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"3"}),body:JSON.stringify({evidence:"paciente contactado y tratado",occurredAt:ISO})}),RP(cres));
  ok(r.status===201&&(await r.json()).state==="CLOSED","RESULT_CLOSED_201_v4");
  // 5) firmar de nuevo -> AHORA SÍ 201 SIGNED (loop resuelto)
- r=await sign.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO})}),EP(enc));
+ r=await sign.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO,contentHash:HASH_AP})}),EP(enc));
  const s=await r.json();
  ok(r.status===201&&s.status==="SIGNED"&&s.version===3,"SIGN_UNBLOCKED_AFTER_CLOSURE_201");
 
@@ -81,8 +83,22 @@ try{
  await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:nres,patientId:pat2,orderId:crypto.randomUUID(),analyte:"GLUCOSE",value:"100",occurredAt:ISO})}));
  await rVerify.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),RP(nres));
  await rAction.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({ownerId:crypto.randomUUID(),dueAt:"2026-03-10T00:00:00.000Z",occurredAt:ISO})}),RP(nres));
- r=await sign.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO})}),EP(enc2));
+ r=await sign.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO,contentHash:HASH_AP})}),EP(enc2));
  ok(r.status===201,"NON_CRITICAL_RESULT_DOES_NOT_BLOCK_201");
+
+ // === C2) Auditoría L-01/C-20 — el caso MÁS peligroso: un crítico recién RECIBIDO que NADIE ha visto también bloquea la firma.
+ //         Antes solo contaban los que ya estaban en ACTIONED, aunque la UI promete "bloquea la firma hasta cerrarse".
+ const enc4=crypto.randomUUID(),pat4=crypto.randomUUID(),unseen=crypto.randomUUID();
+ await open.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:enc4,patientId:pat4,occurredAt:ISO})}));
+ await assess.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({assessment:"a",plan:"p",occurredAt:ISO})}),EP(enc4));
+ await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:unseen,patientId:pat4,orderId:crypto.randomUUID(),analyte:"POTASSIUM",value:"7.0",unit:"mEq/L",occurredAt:ISO})}));
+ const sign4=()=>sign.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO,contentHash:HASH_AP})}),EP(enc4));
+ r=await sign4();let b4=await r.json();ok(r.status===403&&/1 resultado\(s\) crítico\(s\) sin cerrar/.test(b4.error.message),"UNSEEN_CRITICAL_RESULT_BLOCKS_SIGN_403");
+ await rVerify.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),RP(unseen));
+ r=await sign4();ok(r.status===403,"VERIFIED_CRITICAL_RESULT_STILL_BLOCKS_403");
+ await rAction.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({ownerId:crypto.randomUUID(),dueAt:"2026-03-10T00:00:00.000Z",occurredAt:ISO})}),RP(unseen));
+ await rClose.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"3"}),body:JSON.stringify({evidence:"Hiperkalemia tratada; control 4.8",occurredAt:ISO})}),RP(unseen));
+ r=await sign4();b4=await r.json();ok(r.status===201&&b4.status==="SIGNED","SIGN_AFTER_CRITICAL_CLOSED_201");
 
  // === D) Aislamiento cross-tenant sobre el resultado ===
  const physB=tok(TENANT_B,["PHYSICIAN"]);

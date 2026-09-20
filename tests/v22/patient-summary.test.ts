@@ -50,3 +50,10 @@ describe("patient summary (EPIC P — computed state)",()=>{
  });
  it("vacío -> todo en cero",()=>{expect(summarizePatient([])).toEqual({activeAllergies:0,activeProblems:0,openObligations:0,activeMedications:0,openResults:0,openOrders:0,signedEncounters:0,openReferrals:0,upcomingAppointments:0,pendingImmunizations:0,activeCarePlans:0,openClaims:0,grantedConsents:0,activeAdmissions:0,totalItems:0});});
 });
+// Auditoría 2026-09-19 (K-05): una medicación REANUDADA (HELD -> RESUMED) está activa.
+describe("patient-summary — medicación reanudada (auditoría K-05)",()=>{
+ it("RESUMED cuenta como activa; HELD y STOPPED no",()=>{
+  const s=summarizePatient([{aggregateType:"Medication",latestKind:"RESUMED"},{aggregateType:"Medication",latestKind:"HELD"},{aggregateType:"Medication",latestKind:"STOPPED"},{aggregateType:"Medication",latestKind:"ACTIVATED"}] as never);
+  expect(s.activeMedications).toBe(2);
+ });
+});

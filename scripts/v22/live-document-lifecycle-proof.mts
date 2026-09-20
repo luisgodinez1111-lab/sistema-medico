@@ -41,20 +41,26 @@ try{
  ok(r.status===201&&(await r.json()).state==="FINALIZED","FINALIZE_201_v2");
 
  // 3) *** PHYSICIAN CONTROL *** la enfermera NO puede firmar -> 403.
- r=await sig.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO})}),DP(doc));
+ r=await sig.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO,contentHash:expectedHash})}),DP(doc));
  ok(r.status===403,"NURSE_SIGN_FORBIDDEN_403");
+ // 3b) Auditoría L-03 — sin huella, o con la huella de OTRO texto, no se firma: lo firmado debe ser lo que el médico ve.
+ r=await sig.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO})}),DP(doc));
+ ok(r.status===400,"SIGN_WITHOUT_CONTENT_HASH_400");
+ r=await sig.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO,contentHash:crypto.createHash("sha256").update("otro texto").digest("hex")})}),DP(doc));
+ ok(r.status===409&&/SIGNED_CONTENT_MISMATCH/.test((await r.json()).error.message),"SIGN_CONTENT_MISMATCH_409");
 
  // 4) El médico firma -> 201 SIGNED v3 + snapshot reproducible (contentHash = sha256(content)).
  const idemSign=idem();
- const signReq=()=>new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idemSign,"if-match":"2"}),body:JSON.stringify({occurredAt:ISO})});
- r=await sig.POST(signReq(),DP(doc));
+ const signReq=()=>new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idemSign,"if-match":"2"}),body:JSON.stringify({occurredAt:ISO,contentHash:expectedHash})});
+ const t0=Date.now();r=await sig.POST(signReq(),DP(doc));
  const s=await r.json();
  ok(r.status===201&&s.state==="SIGNED"&&s.version===3,"SIGN_201_v3");
+ ok(Math.abs(Date.parse(s.signedAt)-t0)<120_000&&s.signedAt!==ISO,"SIGNED_AT_IS_SERVER_TIME"); // auditoría L-02
  ok(s.contentHash===expectedHash&&typeof s.signatureDigest==="string","REPRODUCIBLE_SNAPSHOT_HASH");
 
  // 5) Replay idempotente de la firma -> 200.
  r=await sig.POST(signReq(),DP(doc));
- ok(r.status===200&&(await r.json()).replayed===true,"SIGN_REPLAY_200");
+ const s2=await r.json();ok(r.status===200&&s2.replayed===true&&s2.signatureDigest===s.signatureDigest&&s2.signedAt===s.signedAt,"SIGN_REPLAY_200_SAME_SIGNATURE");
 
  // 6) *** INMUTABILIDAD *** no se puede re-finalizar un documento firmado -> 409.
  r=await fin.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"3"}),body:JSON.stringify({occurredAt:ISO})}),DP(doc));
@@ -74,7 +80,7 @@ try{
  // 9) SM ilegal: firmar un borrador sin finalizar -> 409.
  const doc2=crypto.randomUUID();
  await docs.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({documentId:doc2,patientId:crypto.randomUUID(),docType:"REFERRAL",title:"Ref",content:"x",occurredAt:ISO})}));
- r=await sig.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),DP(doc2));
+ r=await sig.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,contentHash:crypto.createHash("sha256").update("x").digest("hex")})}),DP(doc2));
  ok(r.status===409,"SIGN_DRAFT_ILLEGAL_409");
 
  // 10) Concurrencia optimista: If-Match equivocado -> 409.

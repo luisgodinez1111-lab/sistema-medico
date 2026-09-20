@@ -3,7 +3,9 @@ import{type z}from"zod";
 import{resolvePrincipal}from"../../../packages/http-principal/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
-import{sessionSecret}from"./clinical-runtime";
+import{canonicalize}from"../../../packages/canonical-json/src";
+import{type HttpTenantContext}from"../../../packages/http-principal/src";
+import{sessionSecret,readEventPayloadById}from"./clinical-runtime";
 // EPIC D/G — Helpers compartidos por los verticales que escriben comandos clínicos vía HTTP.
 // Envelope determinista (idempotencia estilo Stripe) + concurrencia optimista vía If-Match.
 
@@ -52,6 +54,27 @@ export function buildCommand(a:{idempotencyKey:string;aggregateType:string;aggre
   outboxId:derivedUuid(a.idempotencyKey,"outbox"),topic:a.topic,auditId:derivedUuid(a.idempotencyKey,"audit"),
   correlationId:derivedUuid(a.idempotencyKey,"correlation"),occurredAt:a.occurredAt,
  };
+}
+// PAYLOAD ESTABLE ANTE REINTENTOS (auditoría L-02/L-04). El kernel decide el replay comparando el hash del comando COMPLETO.
+// Cuando el payload lleva valores que pone el SERVIDOR (hora de firma, resumen de barreras, valores previos), un reintento
+// los recalcula distintos, el hash no coincide y un reintento legítimo acaba en conflicto en vez de devolver la respuesta
+// original. Como el id del evento es determinista respecto de la llave, si esa llave YA produjo su evento se reutiliza
+// exactamente su payload. `requestDigest` (huella del cuerpo del cliente) conserva la regla "misma llave + petición distinta
+// = conflicto": sin ella, un segundo cuerpo distinto recibiría en silencio la respuesta del primero.
+export async function replayStablePayload(ctx:HttpTenantContext,idempotencyKey:string,aggregateId:string,clientBody:unknown,build:()=>Record<string,unknown>):Promise<Record<string,unknown>>{
+ const requestDigest=crypto.createHash("sha256").update(canonicalize(clientBody)).digest("hex");
+ const prior=await readEventPayloadById(ctx,derivedUuid(idempotencyKey,"event"),aggregateId);
+ if(prior){
+  if(prior["requestDigest"]!==requestDigest)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
+  return prior;
+ }
+ return{...stripUndefined(build()),requestDigest};
+}
+// JSONB no guarda claves `undefined`: si el primer intento las llevara, el payload leído en el reintento ya no sería idéntico.
+function stripUndefined<T>(v:T):T{
+ if(Array.isArray(v))return v.map(stripUndefined) as unknown as T;
+ if(v!==null&&typeof v==="object")return Object.fromEntries(Object.entries(v as Record<string,unknown>).filter(([,x])=>x!==undefined).map(([k,x])=>[k,stripUndefined(x)])) as T;
+ return v;
 }
 export async function parseJson<T>(req:Request,schema:z.ZodType<T>):Promise<T>{
  let raw:unknown;

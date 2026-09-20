@@ -316,10 +316,35 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   fireEvent.click(screen.getByRole("button",{name:"Guardar valoración"}));
   expect(await screen.findByRole("button",{name:"Firmar consulta"})).toBeTruthy();
   expect(screen.getAllByText(/Lista para firmar/).length).toBeGreaterThan(0);
-  // firma real (registro inmutable) → estado SIGNED
+  // Auditoría L-03/U-06: "Firmar consulta" NO firma; abre la confirmación con el texto GUARDADO y su huella.
   fireEvent.click(screen.getByRole("button",{name:"Firmar consulta"}));
+  const dlg=await screen.findByRole("alertdialog");
+  expect(dlg.textContent).toMatch(/MOTIVO DE CONSULTA: Cefalea de 3 días/);   // el médico ve lo que firma
+  expect(dlg.textContent).toMatch(/inmutable/);expect(dlg.textContent).toMatch(/SHA-256\): [0-9a-f]{64}/);
+  expect(screen.queryByText(/Encuentro · Firmada/)).toBeNull();                 // aún NO está firmado
+  // firma real (registro inmutable) → estado SIGNED; la huella del contenido mostrado viaja al servidor
+  fireEvent.click(screen.getByRole("button",{name:"Firmar definitivamente"}));
   expect(await screen.findByText(/Encuentro · Firmada/)).toBeTruthy();
   expect(screen.getAllByText(/Consulta firmada/).length).toBeGreaterThan(0);
+  expect(screen.queryByRole("alertdialog")).toBeNull();
+  const signed=posted.filter(p=>p.path.endsWith("/signature")).at(-1)?.body as {contentHash?:string}|undefined;
+  expect(signed?.contentHash).toMatch(/^[0-9a-f]{64}$/);
+ });
+ it("vista Consulta: si el formulario cambia tras guardar, se GUARDA DE NUEVO antes de firmar (nunca se firma una versión anterior)",async()=>{
+  render(<Workspace/>);
+  await abrirConsulta();
+  fireEvent.change(screen.getByPlaceholderText("Motivo de la consulta…"),{target:{value:"Cefalea de 3 días"}});
+  fireEvent.click(screen.getByRole("button",{name:"Abrir encuentro"}));
+  fireEvent.click(await screen.findByRole("button",{name:"Guardar valoración"}));
+  await screen.findByRole("button",{name:"Firmar consulta"});
+  const before=posted.filter(p=>p.path.endsWith("/assessment")).length;
+  fireEvent.change(screen.getByPlaceholderText("Motivo de la consulta…"),{target:{value:"Cefalea de 3 días con fotofobia"}});
+  fireEvent.click(screen.getByRole("button",{name:"Firmar consulta"}));
+  const dlg=await screen.findByRole("alertdialog");
+  expect(dlg.textContent).toMatch(/con fotofobia/);                              // lo que se firmará YA incluye el cambio
+  expect(posted.filter(p=>p.path.endsWith("/assessment")).length).toBe(before+1); // se re-guardó la valoración
+  fireEvent.click(screen.getByRole("button",{name:"Cancelar"}));
+  expect(screen.queryByRole("alertdialog")).toBeNull();expect(screen.queryByText(/Encuentro · Firmada/)).toBeNull();
  });
 
  it("vista Consulta: interrogatorio y exploración física son campos REALES que alimentan la nota clínica",async()=>{

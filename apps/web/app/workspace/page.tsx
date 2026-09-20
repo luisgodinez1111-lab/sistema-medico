@@ -77,7 +77,7 @@ type VitalHistory=Readonly<{records:VitalRecord[];series:{BP:{value:number;at:st
 type CarePlanSnap=Readonly<{counts:{problems:number;medications:number;allergies:number};problems:{code:string;description:string;status:string;statusLabel:string}[];goals:{category:string;goal:string;status:string;statusLabel:string}[];metrics:{hba1c:string|null;bp:string|null;weight:string|null;imc:string|null}}>;
 type RefContext=Readonly<{allergies:string[];medications:string[];problems:{code:string;description:string}[];labs:{hba1c:string|null};vitals:{bp:string|null;hr:string|null;imc:string|null}}>;
 type FUDelta={first:number;last:number}|null;
-type FollowUpSnap=Readonly<{tasks:{obligationId:string;task:string;dueAt:string;status:string;statusLabel:string;done:boolean}[];vitalsTrend:{series:{BP:number[];HR:number[];WEIGHT:number[];IMC:number[]};avg:{ta:string|null;bp:number|null;hr:number|null;weight:number|null;imc:number|null}};indicators:{hba1c:FUDelta;ldl:FUDelta;weight:FUDelta;imc:FUDelta};counts:{problems:number;medications:number;allergies:number}}>;
+type FollowUpSnap=Readonly<{tasks:{obligationId:string;task:string;dueAt:string;status:string;statusLabel:string;done:boolean;priority?:string;blocksSignature?:"URGENT"|"OVERDUE"|"INVALID_DUE_DATE"|null}[];vitalsTrend:{series:{BP:number[];HR:number[];WEIGHT:number[];IMC:number[]};avg:{ta:string|null;bp:number|null;hr:number|null;weight:number|null;imc:number|null}};indicators:{hba1c:FUDelta;ldl:FUDelta;weight:FUDelta;imc:FUDelta};counts:{problems:number;medications:number;allergies:number}}>;
 type ClaimItem=Readonly<{claimId:string;folio:string;patientId:string;patientName:string;amount:number;currency:string;status:string;statusLabel:string;recordedAt:string}>;
 type ClaimsRegistry=Readonly<{items:ClaimItem[];total:number;incomeThisMonth:number;issuedCount:number;pendingCount:number;pendingAmount:number;cancellations:number}>;
 type DocItem=Readonly<{documentId:string;title:string;docType:string;typeLabel:string;status:string;statusLabel:string;createdAt:string;actorId:string}>;
@@ -323,8 +323,9 @@ function resNext(r:Result):{label:string;path:string;body:Record<string,unknown>
 // Siguiente transición de un documento clínico (borrador -> finalizado -> firmado -> enmendado).
 function docNext(d:Doc):{label:string;path:string;body:Record<string,unknown>;to:DocState}|null{
  if(d.state==="DRAFT")return{label:"Finalizar",path:`/api/v1/documents/${d.id}/finalization`,body:{occurredAt:nowIso()},to:"FINALIZED"};
- if(d.state==="FINALIZED")return{label:"Firmar",path:`/api/v1/documents/${d.id}/signature`,body:{occurredAt:nowIso()},to:"SIGNED"};
- if(d.state==="SIGNED"||d.state==="AMENDED")return{label:"Enmendar",path:`/api/v1/documents/${d.id}/amendment`,body:{addendum:"Addendum clínico",occurredAt:nowIso()},to:"AMENDED"};
+ // Firmar y Enmendar NO se ejecutan desde aquí: pasan por confirmación (contenido + huella) y por texto real del médico.
+ if(d.state==="FINALIZED")return{label:"Revisar y firmar",path:"",body:{},to:"SIGNED"};
+ if(d.state==="SIGNED"||d.state==="AMENDED")return{label:"Enmendar…",path:"",body:{},to:"AMENDED"};
  return null;
 }
 function orderNext(o:Order):{label:string;path:string;body:Record<string,unknown>;to:OrderSt}|null{
@@ -478,6 +479,12 @@ export default function Workspace(){
  const[rxDrug,setRxDrug]=useState("");const[rxDose,setRxDose]=useState("");const[rxRoute,setRxRoute]=useState("Oral");const[rxFreq,setRxFreq]=useState("");
  const[rxCheck,setRxCheck]=useState<RxCheck|null>(null);
  // Confirmación EXPLÍCITA del médico cuando el servidor no pudo evaluar alguna barrera (428 SAFETY_ACK_REQUIRED).
+ // Auditoría L-03/U-06 — FIRMA CON CONFIRMACIÓN: el médico ve el texto PERSISTIDO que se va a firmar; su huella (sha256) viaja
+ // al servidor, que rechaza la firma si no coincide con lo guardado. Nada se firma con un solo clic ni "a ciegas" desde una lista.
+ const[signAsk,setSignAsk]=useState<{kind:"encounter";title:string;text:string;hash:string}|{kind:"document";doc:Doc;title:string;text:string;hash:string}|null>(null);
+ const[signBusy,setSignBusy]=useState(false);const[signErr,setSignErr]=useState("");
+ // Enmienda de un documento firmado: el texto lo escribe el médico (antes se enviaba el literal "Addendum clínico").
+ const[amendAsk,setAmendAsk]=useState<Doc|null>(null);const[amendText,setAmendText]=useState("");
  const[ackMed,setAckMed]=useState<{med:Med;message:string}|null>(null);const[ackWhy,setAckWhy]=useState("");const[rxMsg,setRxMsg]=useState("");
  const[trends,setTrends]=useState<Trends|null>(null);const[trendKey,setTrendKey]=useState<TrendKey>("HBA1C");
  const[followTab,setFollowTab]=useState<"pend"|"prog"|"done"|"all">("pend");
@@ -1017,10 +1024,40 @@ export default function Workspace(){
   const r=await apiRequest(`/api/v1/encounters/${enc.id}/assessment`,{method:"POST",body:{assessment,plan,occurredAt:nowIso()},ifMatch:enc.version});
   if(r.status>=400){setError(errMsg(r));return;}setEnc({...enc,state:"READY_TO_SIGN",version:Number(r.body["version"]??enc.version+1)});
  });
- const signEncounter=()=>call("sign",async()=>{if(!enc)return;
-  const r=await apiRequest(`/api/v1/encounters/${enc.id}/signature`,{method:"POST",body:{occurredAt:nowIso()},ifMatch:enc.version});
-  if(r.status>=400){setError(errMsg(r));return;}setEnc({...enc,state:"SIGNED",version:Number(r.body["version"]??enc.version+1),signatureDigest:String(r.body["signatureDigest"]??"")});
+ // Huella del contenido mostrado. Sin WebCrypto no hay firma: no existe un camino alterno "sin huella".
+ async function sha256Hex(text:string):Promise<string>{
+  if(!globalThis.crypto?.subtle)throw new Error("Este navegador no permite calcular la huella del contenido (WebCrypto no disponible); no se puede firmar.");
+  const d=await globalThis.crypto.subtle.digest("SHA-256",new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,"0")).join("");
+ }
+ // Abre la confirmación con el texto de la valoración GUARDADA (assessment + plan), que es exactamente lo que firma el servidor.
+ const askSignEncounter=async(a:string,pl:string)=>{setSignErr("");const text=`${a}\n${pl}`;setSignAsk({kind:"encounter",title:"Nota de la consulta",text,hash:await sha256Hex(text)});};
+ const signEncounter=()=>call("sign",async()=>{if(!enc)return;await askSignEncounter(assessment,plan);});
+ const askSignDocument=(d:Doc)=>call("doc-"+d.id,async()=>{
+  // Se firma lo PERSISTIDO: se relee el documento del servidor y eso es lo que el médico revisa.
+  const r=await apiRequest(`/api/v1/documents/${d.id}`,{method:"GET"});
+  if(r.status!==200){setError(errMsg(r));return;}
+  const text=String(r.body["content"]??"");const version=Number(r.body["version"]??d.version);
+  setSignErr("");setSignAsk({kind:"document",doc:{...d,version},title:String(r.body["title"]??d.label),text,hash:await sha256Hex(text)});
  });
+ const confirmSign=async()=>{
+  if(!signAsk||signBusy)return;setSignBusy(true);setSignErr("");
+  try{
+   if(signAsk.kind==="encounter"){
+    if(!enc){setSignErr("No hay un encuentro abierto.");return;}
+    const r=await apiRequest(`/api/v1/encounters/${enc.id}/signature`,{method:"POST",body:{occurredAt:nowIso(),contentHash:signAsk.hash},ifMatch:enc.version});
+    if(r.status>=400){setSignErr(errMsg(r));return;} // p. ej. pendientes críticos sin cerrar, o el contenido cambió
+    setEnc({...enc,state:"SIGNED",version:Number(r.body["version"]??enc.version+1),signatureDigest:String(r.body["signatureDigest"]??"")});
+    setCMsg("Consulta firmada (registro inmutable).");
+   }else{
+    const d=signAsk.doc;
+    const r=await apiRequest(`/api/v1/documents/${d.id}/signature`,{method:"POST",body:{occurredAt:nowIso(),contentHash:signAsk.hash},ifMatch:d.version});
+    if(r.status>=400){setSignErr(errMsg(r));return;}
+    setDocs(ds=>ds.map(x=>x.id===d.id?{...x,state:"SIGNED",version:Number(r.body["version"]??d.version+1)}:x));
+   }
+   setSignAsk(null);
+  }catch(e){setSignErr(String(e));}finally{setSignBusy(false);}
+ };
  // Compone la nota clínica del encuentro (valoración) a partir del formulario estructurado de la Consulta.
  function composeNote():string{
   const parts:string[]=[];
@@ -1051,9 +1088,16 @@ export default function Workspace(){
    setEnc({...enc,state:"READY_TO_SIGN",version:Number(r.body["version"]??enc.version+1)});setCMsg("Valoración guardada. Lista para firmar.");return;
   }
   if(enc.state==="READY_TO_SIGN"){
-   const r=await apiRequest(`/api/v1/encounters/${enc.id}/signature`,{method:"POST",body:{occurredAt:nowIso()},ifMatch:enc.version});
-   if(r.status>=400){setCMsg(errMsg(r));return;} // el backend bloquea la firma si hay un resultado crítico sin cerrar
-   setEnc({...enc,state:"SIGNED",version:Number(r.body["version"]??enc.version+1),signatureDigest:String(r.body["signatureDigest"]??"")});setCMsg("Consulta firmada (registro inmutable).");return;
+   // Auditoría L-03: el formulario sigue editable tras "Guardar valoración". Si cambió, se GUARDA DE NUEVO (nueva versión)
+   // antes de firmar; así lo que se firma nunca es una versión anterior a la que el médico tiene delante.
+   let a=assessment,pl=plan;const nowA=composeNote(),nowP=cForm.plan.trim()||"Plan pendiente de detallar.";
+   if(nowA!==a||nowP!==pl){
+    const r=await apiRequest(`/api/v1/encounters/${enc.id}/assessment`,{method:"POST",body:{assessment:nowA,plan:nowP,occurredAt:nowIso()},ifMatch:enc.version});
+    if(r.status>=400){setCMsg(errMsg(r));return;}
+    a=nowA;pl=nowP;setAssessment(a);setPlan(pl);setEnc({...enc,version:Number(r.body["version"]??enc.version+1)});
+    setCMsg("Los cambios del formulario se guardaron en la valoración. Revise el texto y confirme la firma.");
+   }
+   await askSignEncounter(a,pl);return;
   }
  });
  // Guarda los signos vitales de la Consulta como eventos reales (POST /vitals); surfacea la interpretación crítica del kernel.
@@ -1241,7 +1285,17 @@ export default function Workspace(){
   setDocs(ds=>[...ds,{id,label:`${docTitle||"Documento"} (${docType})`,state:"DRAFT",version:Number(r.body["version"]??1)}]);
   setDocTitle("");setDocContent("");
  });
- const advanceDoc=(d:Doc)=>call("doc-"+d.id,async()=>{
+ const advanceDoc=(d:Doc)=>{
+  if(d.state==="FINALIZED"){void askSignDocument(d);return;}          // firmar: siempre con revisión del contenido persistido
+  if(d.state==="SIGNED"||d.state==="AMENDED"){setAmendText("");setAmendAsk(d);return;} // enmendar: el texto lo escribe el médico
+  return advanceDocNow(d);
+ };
+ const confirmAmend=()=>{const d=amendAsk;if(!d||amendText.trim().length<10)return;return call("doc-"+d.id,async()=>{
+  const r=await apiRequest(`/api/v1/documents/${d.id}/amendment`,{method:"POST",body:{addendum:amendText.trim(),occurredAt:nowIso()},ifMatch:d.version});
+  if(r.status>=400){setError(errMsg(r));return;}
+  setDocs(ds=>ds.map(x=>x.id===d.id?{...x,state:"AMENDED",version:Number(r.body["version"]??d.version+1)}:x));setAmendAsk(null);setAmendText("");
+ });};
+ const advanceDocNow=(d:Doc)=>call("doc-"+d.id,async()=>{
   const n=docNext(d);if(!n)return;
   const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:d.version});
   if(r.status>=400){setError(errMsg(r));return;}
@@ -3345,7 +3399,7 @@ export default function Workspace(){
      </div>
      {/* Columna derecha: tareas reales del seguimiento */}
      <div style={{display:"flex",flexDirection:"column",gap:16}}>
-      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8,marginBottom:10}}>✔ Tareas de seguimiento{tasks.length>0?` (${tasks.length})`:""}</div>{tasks.length===0?<div style={{fontSize:12.5,color:P.muted}}>{patientId?(fuLoaded?"Sin tareas de seguimiento abiertas. Se generan desde las obligaciones del expediente.":"Cargando…"):"Selecciona un paciente."}</div>:tasks.map((t,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<tasks.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:17,height:17,borderRadius:5,border:t.done?"0":"1.7px solid #C7CCE0",background:t.done?P.purple:"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:10,flex:"0 0 auto"}}>{t.done?"✓":""}</span><span style={{flex:1,fontSize:13,color:t.done?P.muted:P.ink,textDecoration:t.done?"line-through":"none"}}>{t.task}</span><span style={{fontSize:11.5,color:P.muted,textDecoration:t.done?"line-through":"none",whiteSpace:"nowrap"}}>📅 {fmtDue(t.dueAt)}</span></div>)}</div>
+      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8,marginBottom:10}}>✔ Tareas de seguimiento{tasks.length>0?` (${tasks.length})`:""}</div>{tasks.length===0?<div style={{fontSize:12.5,color:P.muted}}>{patientId?(fuLoaded?"Sin tareas de seguimiento abiertas. Se generan desde las obligaciones del expediente.":"Cargando…"):"Selecciona un paciente."}</div>:tasks.map((t,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<tasks.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:17,height:17,borderRadius:5,border:t.done?"0":"1.7px solid #C7CCE0",background:t.done?P.purple:"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:10,flex:"0 0 auto"}}>{t.done?"✓":""}</span><span style={{flex:1,fontSize:13,color:t.done?P.muted:P.ink,textDecoration:t.done?"line-through":"none"}}>{t.task}</span>{t.blocksSignature&&<span title="Mientras esté sin resolver no se puede firmar la consulta de este paciente. Complétela con evidencia o cancélela con motivo." style={{background:"#FDEEEE",color:"#8C1D18",border:"1px solid #F3C9C9",borderRadius:999,padding:"2px 8px",fontSize:10.5,fontWeight:800,whiteSpace:"nowrap"}}>{t.blocksSignature==="URGENT"?"URGENTE":t.blocksSignature==="OVERDUE"?"VENCIDA":"SIN FECHA VÁLIDA"} · bloquea la firma</span>}<span style={{fontSize:11.5,color:P.muted,textDecoration:t.done?"line-through":"none",whiteSpace:"nowrap"}}>📅 {fmtDue(t.dueAt)}</span></div>)}</div>
      </div>
     </div>
    </div>;
@@ -4701,5 +4755,32 @@ export default function Workspace(){
   </main>
   </>)}
   </div>
+  {signAsk&&<div style={{position:"fixed",inset:0,background:"rgba(20,22,40,.55)",display:"grid",placeItems:"center",zIndex:1000,padding:16}}>
+   <div role="alertdialog" aria-modal="true" aria-labelledby="sign-title" aria-describedby="sign-desc" style={{background:"#fff",borderRadius:16,maxWidth:720,width:"100%",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+    <div style={{padding:"18px 22px 10px"}}>
+     <b id="sign-title" style={{fontSize:17,color:"#1C1E33"}}>Confirmar firma — {signAsk.title}</b>
+     <p id="sign-desc" style={{margin:"6px 0 0",fontSize:13,color:"#4b4c5e"}}>Este es el texto <b>guardado</b> que quedará firmado. Una vez firmado es <b>inmutable</b>: cualquier corrección posterior será una enmienda que se añade, nunca un reemplazo. La fecha y hora de la firma las pone el servidor.</p>
+    </div>
+    <pre tabIndex={0} aria-label="Contenido que se firmará" style={{margin:"0 22px",padding:14,background:"#F6F7FB",border:"1px solid #E3E6F0",borderRadius:10,overflow:"auto",whiteSpace:"pre-wrap",wordBreak:"break-word",fontFamily:"inherit",fontSize:13.5,lineHeight:1.5,color:"#1C1E33",flex:"1 1 auto"}}>{signAsk.text}</pre>
+    <p style={{margin:"8px 22px 0",fontSize:11.5,color:"#6b6c7e",fontFamily:"ui-monospace,monospace",wordBreak:"break-all"}}>Huella del contenido (SHA-256): {signAsk.hash}</p>
+    {signErr&&<p role="alert" style={{margin:"10px 22px 0",padding:"9px 12px",borderRadius:9,background:"#FDEEEE",border:"1px solid #F3C9C9",color:"#8C1D18",fontSize:13,fontWeight:600}}>{signErr}</p>}
+    <div style={{display:"flex",gap:10,justifyContent:"flex-end",padding:"14px 22px 18px"}}>
+     <button style={{...ghost,padding:"10px 18px"}} disabled={signBusy} onClick={()=>{setSignAsk(null);setSignErr("");}}>Cancelar</button>
+     <button style={{...btn,background:"#16A66A"}} disabled={signBusy} onClick={confirmSign}>{signBusy?"Firmando…":"Firmar definitivamente"}</button>
+    </div>
+   </div>
+  </div>}
+  {amendAsk&&<div style={{position:"fixed",inset:0,background:"rgba(20,22,40,.55)",display:"grid",placeItems:"center",zIndex:1000,padding:16}}>
+   <div role="dialog" aria-modal="true" aria-labelledby="amend-title" style={{background:"#fff",borderRadius:16,maxWidth:600,width:"100%",padding:"18px 22px",boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+    <b id="amend-title" style={{fontSize:17,color:"#1C1E33"}}>Enmienda — {amendAsk.label}</b>
+    <p style={{margin:"6px 0 10px",fontSize:13,color:"#4b4c5e"}}>La enmienda se <b>añade</b> al documento firmado; el contenido original no se modifica.</p>
+    <label htmlFor="amend-text" style={{display:"block",fontSize:12,fontWeight:700,color:"#4b4c5e",marginBottom:4}}>Texto de la enmienda (mínimo 10 caracteres)</label>
+    <textarea id="amend-text" value={amendText} onChange={e=>setAmendText(e.target.value)} rows={4} maxLength={4000} style={{...input,width:"100%",resize:"vertical"}} />
+    <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:12}}>
+     <button style={{...ghost,padding:"10px 18px"}} onClick={()=>{setAmendAsk(null);setAmendText("");}}>Cancelar</button>
+     <button style={{...btn,opacity:amendText.trim().length<10?.5:1}} disabled={busy!==""||amendText.trim().length<10} onClick={confirmAmend}>Añadir enmienda</button>
+    </div>
+   </div>
+  </div>}
  </div>;
 }

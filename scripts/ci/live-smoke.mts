@@ -28,6 +28,7 @@ const SMOKE:readonly string[]=[
  "live-immunization-forecast-proof",        // profundidad: pronóstico de vacunación por edad
  "live-egfr-proof",                         // profundidad: función renal (CKD-EPI) + estadio ERC
  "live-renal-dosing-gate-proof",            // barrera 7: contraindicación renal por eGFR medido
+ "live-medication-annotations-proof",       // auditoría L-04/K-05: suspender/reanudar/modificar reevalúan barreras; anotaciones no cambian el estado
  "live-metabolic-panel-proof",              // profundidad: derivaciones multi-analito (anion gap, calcio corregido)
  "live-bmi-proof",                          // profundidad: IMC + clasificación WHO
  "live-glycemic-status-proof",              // profundidad: control glucémico (HbA1c -> eAG, marco diabético)

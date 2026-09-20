@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
-import{foldProblem,assertProblemTransition,type FoldedProblem,type ProblemState}from"../../../packages/problem-fold/src";
+import{foldProblem,assertProblemTransition,assertProblemAnnotation,type FoldedProblem,type ProblemState,type ProblemAnnotationKind}from"../../../packages/problem-fold/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
@@ -43,6 +43,18 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({problemId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
+// Auditoría L-04 — ANOTACIÓN (estado epistémico / evidencia): no cambia el estado del problema. Antes se pedía la
+// "transición" X->X, que ningún fold admite, y estas dos rutas respondían 409 siempre.
+async function commitAnnotation(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,problemId:string,folded:FoldedProblem,kind:ProblemAnnotationKind,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
+ const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:problemId,expectedVersion,eventType,payload,occurredAt,topic});
+ let result=await lookupReplay(ctx,cmd);
+ if(!result){
+  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Problem changed since last read",{expected:expectedVersion,actual:folded.version});
+  assertProblemAnnotation(folded.state,kind);result=await runClinicalCommand(ctx,cmd);
+ }
+ const r=result.response as{version:number;auditHash?:string};
+ return NextResponse.json({problemId,state:folded.state,annotation:kind,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+}
 
 const WhenBody=z.object({occurredAt:z.string().datetime()});
 const ResolveBody=z.object({note:z.string().min(1),occurredAt:z.string().datetime()});
@@ -51,13 +63,16 @@ const EvidenceBody=z.object({evidenceFor:z.array(z.string()).optional(),evidence
 
 export async function handleProblemEpistemicUpdate(req:Request,problemId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,problemId);const b=await parseJson(req,EpistemicBody);
-  return await commit(ctx,idempotencyKey,expectedVersion,problemId,folded,folded.state,"PROBLEM_EPISTEMIC_CHANGED",{kind:"EPISTEMIC_CHANGED",epistemic:b.epistemic},b.occurredAt,"problem.epistemic_changed");
+  return await commitAnnotation(ctx,idempotencyKey,expectedVersion,problemId,folded,"EPISTEMIC_CHANGED","PROBLEM_EPISTEMIC_CHANGED",{kind:"EPISTEMIC_CHANGED",epistemic:b.epistemic},b.occurredAt,"problem.epistemic_changed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
 export async function handleProblemEvidenceUpdate(req:Request,problemId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,problemId);const b=await parseJson(req,EvidenceBody);
-  return await commit(ctx,idempotencyKey,expectedVersion,problemId,folded,folded.state,"PROBLEM_EVIDENCE_UPDATED",{kind:"EVIDENCE_UPDATED",evidenceFor:b.evidenceFor,evidenceAgainst:b.evidenceAgainst,confidence:b.confidence},b.occurredAt,"problem.evidence_updated");
+  if(b.evidenceFor===undefined&&b.evidenceAgainst===undefined&&b.confidence===undefined)throw new ClinicalError("VALIDATION_ERROR","Indique evidenceFor, evidenceAgainst o confidence");
+  const payload:Record<string,unknown>={kind:"EVIDENCE_UPDATED"};
+  if(b.evidenceFor!==undefined)payload["evidenceFor"]=b.evidenceFor;if(b.evidenceAgainst!==undefined)payload["evidenceAgainst"]=b.evidenceAgainst;if(b.confidence!==undefined)payload["confidence"]=b.confidence;
+  return await commitAnnotation(ctx,idempotencyKey,expectedVersion,problemId,folded,"EVIDENCE_UPDATED","PROBLEM_EVIDENCE_UPDATED",payload,b.occurredAt,"problem.evidence_updated");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 export async function handleProblemResolution(req:Request,problemId:string):Promise<Response>{

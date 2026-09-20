@@ -19,7 +19,7 @@ export function summarizePatient(items:readonly TimelineLike[]):PatientSummary{
    case"Allergy":if(k==="RECORDED"||k==="REACTIVATED")activeAllergies++;break;
    case"ClinicalProblem":if(k==="ADDED"||k==="REACTIVATED"||k==="MARKED_CHRONIC")activeProblems++;break;
    case"ClinicalObligation":if(k!=="COMPLETED"&&k!=="CANCELLED")openObligations++;break;
-   case"Medication":if(k==="ACTIVATED")activeMedications++;break;
+   case"Medication":if(k==="ACTIVATED"||k==="RESUMED")activeMedications++;break; // auditoría K-05: una medicación reanudada está ACTIVA
    case"DiagnosticResult":if(k!=="CLOSED")openResults++;break;
    case"ClinicalOrder":if(k!=="FULFILLED"&&k!=="CANCELLED")openOrders++;break;
    case"Encounter":if(k==="SIGNED")signedEncounters++;break;
