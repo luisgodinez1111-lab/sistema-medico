@@ -172,7 +172,9 @@ export async function activeMedicationDrugCodes(ctx:HttpTenantContext,patientId:
  }) as Promise<string[]>;
 }
 // EPIC BK/BL — Demografía del paciente (nacimiento + sexo, del evento REGISTERED). RLS-scoped.
-export type PatientDemographics=Readonly<{birthDate?:string;sexAtBirth?:string;curp?:string;phone?:string;email?:string;address?:string;occupation?:string;maritalStatus?:string;name?:string}>;
+// Auditoría L-06: `guardian` (tutor o representante legal) para menores de edad; lo fija el alta o una enmienda.
+export type PatientGuardian=Readonly<{name:string;relationship:string;phone?:string}>;
+export type PatientDemographics=Readonly<{birthDate?:string;sexAtBirth?:string;curp?:string;phone?:string;email?:string;address?:string;occupation?:string;maritalStatus?:string;name?:string;guardian?:PatientGuardian}>;
 export async function patientDemographics(ctx:HttpTenantContext,patientId:string):Promise<PatientDemographics|undefined>{
  const sql=getSql();
  return sql.begin(async tx=>{
@@ -186,17 +188,39 @@ export async function patientDemographics(ctx:HttpTenantContext,patientId:string
      coalesce(a.payload->>'email', r.payload->>'email') as email,
      coalesce(a.payload->>'address', r.payload->>'address') as address,
      coalesce(a.payload->>'occupation', r.payload->>'occupation') as occupation,
-     coalesce(a.payload->>'maritalStatus', r.payload->>'maritalStatus') as marital
+     coalesce(a.payload->>'maritalStatus', r.payload->>'maritalStatus') as marital,
+     coalesce(a.payload->'guardian', r.payload->'guardian') as guardian
    from clinical_events r
    left join lateral (select payload from clinical_events am where am.tenant_id=${ctx.tenantId} and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=${patientId} limit 1`;
   const row=rows[0] as Record<string,unknown>|undefined;
   if(!row)return undefined;
   const d:{-readonly[K in keyof PatientDemographics]:PatientDemographics[K]}={};
-  const set=(k:keyof PatientDemographics,v:unknown)=>{if(v!=null)d[k]=String(v);};
+  const set=(k:Exclude<keyof PatientDemographics,"guardian">,v:unknown)=>{if(v!=null)d[k]=String(v);};
   set("birthDate",row.bd);set("sexAtBirth",row.sx);set("name",row.nm);set("curp",row.curp);set("phone",row.phone);set("email",row.email);set("address",row.address);set("occupation",row.occupation);set("maritalStatus",row.marital);
+  const g=row.guardian as{name?:unknown;relationship?:unknown;phone?:unknown}|null|undefined;
+  if(g&&typeof g==="object"&&typeof g.name==="string"&&g.name.trim()!==""){d.guardian={name:g.name,relationship:typeof g.relationship==="string"?g.relationship:"",...(typeof g.phone==="string"&&g.phone?{phone:g.phone}:{})};}
   return d;
  }) as Promise<PatientDemographics|undefined>;
+}
+// Auditoría L-06 — detección de duplicados al dar de alta: misma CURP en el tenant (identidad legal única) o mismo nombre
+// normalizado + misma fecha de nacimiento (sospecha fuerte que el usuario puede confirmar como no duplicado).
+export type PatientDuplicate=Readonly<{patientId:string;by:"CURP"|"NAME_BIRTHDATE"}>;
+export async function findPatientDuplicate(ctx:HttpTenantContext,q:{curp?:string|undefined;normalizedName?:string|undefined;birthDate?:string|undefined}):Promise<PatientDuplicate|undefined>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  if(q.curp){
+   const byCurp=await tx`select r.aggregate_id from clinical_events r where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(r.payload->>'curp')=${q.curp} limit 1`;
+   const row=byCurp[0] as{aggregate_id:string}|undefined;if(row)return{patientId:String(row.aggregate_id),by:"CURP"};
+  }
+  if(!q.normalizedName||!q.birthDate)return undefined;
+  // Nombre: se compara sin acentos ni mayúsculas (unaccent no está garantizado en Neon: se normaliza en SQL con translate).
+  const byName=await tx`select r.aggregate_id from clinical_events r where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+    and r.payload->>'birthDate'=${q.birthDate}
+    and btrim(regexp_replace(lower(translate(r.payload->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=${q.normalizedName} limit 1`;
+  const row=byName[0] as{aggregate_id:string}|undefined;return row?{patientId:String(row.aggregate_id),by:"NAME_BIRTHDATE"}:undefined;
+ }) as Promise<PatientDuplicate|undefined>;
 }
 // EPIC BK — Fecha de nacimiento del paciente (del evento REGISTERED). RLS-scoped. Para el pronóstico de vacunación.
 export async function patientBirthDate(ctx:HttpTenantContext,patientId:string):Promise<string|undefined>{
@@ -488,7 +512,8 @@ export async function patientObligations(ctx:HttpTenantContext,patientId:string)
 // EPIC Y/UI — Registro de facturación de TODA la clínica (vista Facturación). Por cada agregado Claim toma el
 // evento base CLAIM_DRAFTED (monto/moneda/paciente/fecha) y su ESTADO por la última transición
 // (DRAFTED/CODED/SUBMITTED->PENDING, PAID->PAID, REJECTED->REJECTED, VOIDED->VOID). Une el nombre del paciente. RLS-scoped.
-export type ClaimRow=Readonly<{claimId:string;patientId:string;patientName:string;amount:string;currency:string;status:"PENDING"|"PAID"|"REJECTED"|"VOID";recordedAt:string}>;
+// Auditoría L-09: `paidAt` (fecha del evento PAID) permite calcular los ingresos DEL PERIODO; antes se sumaba toda la historia.
+export type ClaimRow=Readonly<{claimId:string;patientId:string;patientName:string;amount:string;currency:string;status:"PENDING"|"PAID"|"REJECTED"|"VOID";recordedAt:string;paidAt:string|null}>;
 const CLAIM_STATUS:Record<string,"PENDING"|"PAID"|"REJECTED"|"VOID">={DRAFTED:"PENDING",CODED:"PENDING",SUBMITTED:"PENDING",PAID:"PAID",REJECTED:"REJECTED",VOIDED:"VOID"};
 export async function claimsRegistry(ctx:HttpTenantContext):Promise<ClaimRow[]>{
  const sql=getSql();
@@ -497,6 +522,7 @@ export async function claimsRegistry(ctx:HttpTenantContext):Promise<ClaimRow[]>{
   const rows=await tx`
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'amount' as amount, a.payload->>'currency' as currency, a.occurred_at as recorded_at,
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select c.occurred_at from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id and c.payload->>'kind'='PAID' order by sequence desc limit 1) as paid_at,
      (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Claim' and a.payload->>'kind'='DRAFTED'
@@ -505,7 +531,8 @@ export async function claimsRegistry(ctx:HttpTenantContext):Promise<ClaimRow[]>{
    claimId:String(o.aggregate_id),patientId:String(o.pid??""),patientName:String(o.patient_name??"Paciente"),
    amount:String(o.amount??"0"),currency:String(o.currency??"MXN"),
    status:CLAIM_STATUS[String(o.last_kind??"DRAFTED")]??"PENDING",
-   recordedAt:o.recorded_at?new Date(String(o.recorded_at)).toISOString():""};});
+   recordedAt:o.recorded_at?new Date(String(o.recorded_at)).toISOString():"",
+   paidAt:o.paid_at?new Date(String(o.paid_at)).toISOString():null};});
  }) as Promise<ClaimRow[]>;
 }
 // EPIC Z/UI — Documentos clínicos de UN paciente (vista Documentos). Por cada agregado ClinicalDocument toma el

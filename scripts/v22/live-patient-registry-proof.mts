@@ -44,7 +44,7 @@ try{
  // Auditoría S-08 — PAGINACIÓN por cursor y búsqueda en el servidor (en un tenant limpio, con nombres controlados).
  const TP=crypto.randomUUID();const physP=tok(TP);
  const names=["Ana Zapata","Bruno Ortiz","Carla Ruiz","Diego Peña","Elena Soto"];
- for(const n of names)await pt.POST(new Request("http://l/",{method:"POST",headers:H(physP,{"idempotency-key":idem()}),body:JSON.stringify({patientId:crypto.randomUUID(),name:n,birthDate:"1980-05-05",sexAtBirth:"UNKNOWN",...(n==="Carla Ruiz"?{curp:"RUCA800505MDFZRR09"}:{}),occurredAt:ISO})}));
+ for(const n of names)await pt.POST(new Request("http://l/",{method:"POST",headers:H(physP,{"idempotency-key":idem()}),body:JSON.stringify({patientId:crypto.randomUUID(),name:n,birthDate:"1980-05-05",sexAtBirth:"UNKNOWN",...(n==="Carla Ruiz"?{curp:"RUCA800505MDFZRL03"}:{}),occurredAt:ISO})}));
  const get=async(qs:string)=>{const rr=await pt.GET(new Request("http://l/?"+qs,{headers:H(physP)}));return{status:rr.status,body:await rr.json() as {patients:{name:string}[];nextCursor:string|null;total:number}};};
  let g=await get("limit=2");ok(g.status===200&&g.body.patients.map(x=>x.name).join("|")==="Ana Zapata|Bruno Ortiz"&&g.body.total===5&&!!g.body.nextCursor,"PAGE_1_OF_3_SORTED_WITH_TOTAL");
  g=await get("limit=2&cursor="+encodeURIComponent(g.body.nextCursor!));ok(g.body.patients.map(x=>x.name).join("|")==="Carla Ruiz|Diego Peña"&&!!g.body.nextCursor,"PAGE_2_FOLLOWS_CURSOR");

@@ -123,11 +123,11 @@ export async function handleDocumentUploadComplete(req:Request):Promise<Response
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.documentId,expectedVersion:1,eventType:"DOCUMENT_UPLOADED",payload:{kind:"UPLOADED",sha256:b.sha256,sizeBytes:b.sizeBytes,uploadStatus:"COMPLETE",scanStatus:"PENDING"},occurredAt:new Date().toISOString(),topic:"document.uploaded"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
-  // Trigger malware scan (async worker en producción)
-  // Aquí simulamos scan inmediato
-  const scanCmd=buildCommand({idempotencyKey:crypto.randomUUID(),aggregateType:AGG,aggregateId:b.documentId,expectedVersion:r.version,eventType:"DOCUMENT_SCAN_COMPLETE",payload:{kind:"SCAN_COMPLETE",scanStatus:"CLEAN",scanDetails:{engine:"clamav",version:"1.0"}},occurredAt:new Date().toISOString(),topic:"document.scan_complete"});
-  await runClinicalCommand(ctx,scanCmd);
-  return NextResponse.json({documentId:b.documentId,status:"SCAN_CLEAN",version:r.version},{status:200});
+  // Auditoría 2026-09-19 (L-14): aquí se "simulaba" el antivirus grabando un evento SCAN_COMPLETE con
+  // {scanStatus:"CLEAN", engine:"clamav"} que ningún motor había producido: una verificación falsa en el registro
+  // inmutable. No existe escáner desplegado; el documento queda SCAN_PENDING y solo un escáner real (que reciba el
+  // binario y firme su resultado) podrá registrar SCAN_COMPLETE. Fail-closed: nada aguas abajo trata PENDING como limpio.
+  return NextResponse.json({documentId:b.documentId,status:"SCAN_PENDING",scanStatus:"PENDING",version:r.version,note:"Sin escáner de malware desplegado: el documento no se considera limpio"},{status:202});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
@@ -165,7 +165,8 @@ export async function handleDocumentExtract(req:Request):Promise<Response>{
   const validation=validateExtraction(extractedFields,b.documentType);
   if(!validation.valid)throw new ClinicalError("VALIDATION_ERROR",`Extraction validation failed: ${validation.errors.join("; ")}`);
   // Construir objetos clínicos
-  const metadata:DocumentMetadata={documentId:b.documentId,tenantId:"",patientId:"",uploadedBy:"",originalFilename:"",mimeType:"",sizeBytes:0,sha256:"",uploadStatus:"COMPLETE",scanStatus:"CLEAN",provenance:[]};
+  // L-14: la extracción no afirma un escaneo limpio que no ocurrió; los metadatos reales vendrían del stream del documento.
+  const metadata:DocumentMetadata={documentId:b.documentId,tenantId:"",patientId:"",uploadedBy:"",originalFilename:"",mimeType:"",sizeBytes:0,sha256:"",uploadStatus:"COMPLETE",scanStatus:"PENDING",provenance:[]};
   const clinicalObjects=buildClinicalObjects(extractedFields,b.documentType,metadata);
   const provenance=createProvenanceLinks(b.documentId,extractedFields);
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.documentId,expectedVersion:3,eventType:"DOCUMENT_EXTRACTED",payload:{kind:"EXTRACTED",extractedFields,clinicalObjects,provenance,extractionStatus:"COMPLETE"},occurredAt:new Date().toISOString(),topic:"document.extracted"});

@@ -128,8 +128,12 @@ export async function handleAiGatewayExecute(req:Request):Promise<Response>{
    failure_mode:envelope.failureMode,
   },{
    killSwitchEnabled:taskCard.killSwitch,
-   hasEvidence:true,
-   humanApproved:true,
+   // Auditoría 2026-09-19 (L-14): estos dos valores estaban FIJADOS a `true`, con lo que el sobre de seguridad "verificaba"
+   // evidencia y aprobación humana que nunca existieron. Antes de ejecutar el modelo no hay evidencia (la produce la
+   // llamada, y se valida en 5c) y no existe todavía un flujo de aprobación humana previa: se declara lo que hay. Con
+   // ello toda tarea C4/C5 queda BLOQUEADA por el sobre hasta que exista ese flujo (R6 en pausa). Fail-closed, no simulado.
+   hasEvidence:false,
+   humanApproved:false,
   });
   if(envelopeCheck.status!=="ALLOWED")throw new ClinicalError("SAFETY_BLOCKED",`AI task blocked by envelope: ${envelopeCheck.status}`);
 

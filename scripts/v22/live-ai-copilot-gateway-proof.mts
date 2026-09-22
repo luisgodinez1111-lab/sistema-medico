@@ -14,7 +14,7 @@ function H(t:string,x:Record<string,string>={}){return{"content-type":"applicati
 let ts=Date.parse("2026-09-14T09:00:00.000Z");const at=()=>new Date(ts+=60000).toISOString();const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 async function assist(t:string,body:unknown){const r=await ai.POST(new Request("http://l/",{method:"POST",headers:H(t),body:JSON.stringify(body)}));return{status:r.status,body:await r.json()};}
-async function reg(t:string,p:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:"Prueba",birthDate:"1980-01-01",sexAtBirth:"MALE",occurredAt:at()})}));}
+async function reg(t:string,p:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:`Prueba ${p.slice(0,8)}`,birthDate:"1980-01-01",sexAtBirth:"MALE",occurredAt:at()})}));}
 async function critVital(t:string,p:string){await vit.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:p,vitalType:"SPO2",value:"85",unit:"%",occurredAt:at()})}));}
 try{
  const phys=tok();const pat=crypto.randomUUID();await reg(phys,pat);

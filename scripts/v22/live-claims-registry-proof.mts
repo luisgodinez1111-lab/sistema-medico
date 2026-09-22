@@ -23,7 +23,7 @@ async function submit(t:string,id:string){return clSub.POST(new Request("http://
 async function pay(t:string,id:string){return clPay.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"3"}),body:JSON.stringify({reference:"PAY-"+id.slice(0,8),occurredAt:at()})}),{params:Promise.resolve({claimId:id})});}
 async function paid(t:string,id:string){await code(t,id);await submit(t,id);return pay(t,id);}
 async function voidC(t:string,id:string){return clVoid.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({reason:"Duplicada",occurredAt:at()})}),{params:Promise.resolve({claimId:id})});}
-async function list(t:string){const r=await clR.GET(new Request("http://l/",{method:"GET",headers:H(t)}));return{status:r.status,body:await r.json()};}
+async function list(t:string,month?:string){const r=await clR.GET(new Request(`http://l/${month?`?month=${month}`:""}`,{method:"GET",headers:H(t)}));return{status:r.status,body:await r.json()};}
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
  const phys=tok();const p1=crypto.randomUUID(),p2=crypto.randomUUID();
@@ -37,18 +37,25 @@ try{
  await paid(phys,c2.id);
  const vr=await voidC(phys,c4.id);ok(vr.status===200||vr.status===201,"VOID_OK");
 
- const L=await list(phys);ok(L.status===200,"LIST_200");
- const b=L.body as{total:number;incomeThisMonth:number;issuedCount:number;pendingCount:number;pendingAmount:number;cancellations:number;items:{folio:string;patientName:string;amount:number;statusLabel:string;status:string}[]};
- ok(b.total===4,"TOTAL_4");
- ok(b.issuedCount===4,"ISSUED_4");
- // 2 pagadas (500+1200=1700)
- ok(b.incomeThisMonth===1700,"INCOME_1700");
+ // Auditoría L-09: una factura pagada en AGOSTO no cuenta en los ingresos de septiembre (antes se sumaba toda la historia).
+ const c5=await draft(phys,p1,"999");await code(phys,c5.id);await submit(phys,c5.id);
+ const pAug=await clPay.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"3"}),body:JSON.stringify({reference:"PAY-AGO",occurredAt:"2026-08-15T16:00:00.000Z"})}),{params:Promise.resolve({claimId:c5.id})});
+ ok(pAug.status===200||pAug.status===201,"PAY_AUGUST_OK");
+
+ const L=await list(phys,"2026-09");ok(L.status===200,"LIST_200");
+ const b=L.body as{total:number;incomePeriod:string;incomeThisMonth:number;incomeAllTime:number;issuedCount:number;pendingCount:number;pendingAmount:number;cancellations:number;items:{folio:string;patientName:string;amount:number;statusLabel:string;status:string}[]};
+ ok(b.total===5,"TOTAL_5");
+ ok(b.issuedCount===5,"ISSUED_5");
+ // 2 pagadas en septiembre (500+1200=1700); la de agosto (999) solo en el histórico y en su propio mes
+ ok(b.incomePeriod==="2026-09"&&b.incomeThisMonth===1700,"INCOME_SEPTEMBER_1700_EXCLUDES_AUGUST");
+ ok(b.incomeAllTime===2699,"INCOME_ALL_TIME_2699");
+ ok(((await list(phys,"2026-08")).body as{incomeThisMonth:number}).incomeThisMonth===999,"INCOME_AUGUST_999");
  // 1 pendiente (350)
  ok(b.pendingCount===1&&b.pendingAmount===350,"PENDING_1_350");
  // 1 cancelada
  ok(b.cancellations===1,"CANCELLATIONS_1");
  // folios secuenciales: la más reciente F-000004
- ok(b.items[0]!.folio==="F-000004","FOLIO_SEQUENTIAL");
+ ok(b.items[0]!.folio==="F-000005","FOLIO_SEQUENTIAL");
  // join del nombre + etiqueta ES
  ok(b.items.some(i=>i.patientName==="Ana López García"),"PATIENT_JOIN");
  ok(b.items.some(i=>i.statusLabel==="Pagada")&&b.items.some(i=>i.statusLabel==="Cancelada"),"LABELS_ES");

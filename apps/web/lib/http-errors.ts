@@ -17,9 +17,11 @@ const KERNEL:Record<string,ClinicalErrorCode>={
 const EXPOSED_DETAILS:Partial<Record<ClinicalErrorCode,readonly string[]>>={
  SAFETY_BLOCKED:["barriers","hard","overridable","missing"],
  SAFETY_ACK_REQUIRED:["notEvaluated"],
- VALIDATION_ERROR:["unmatched","missing"], // U-19 barreras no bloqueantes nombradas; U-20 campos legales que faltan en la receta
+ VALIDATION_ERROR:["unmatched","missing","curpIssue"], // U-19 barreras no bloqueantes nombradas; U-20 campos legales que faltan en la receta
  CONCURRENCY_CONFLICT:["expected","actual"],
  PRECONDITION_REQUIRED:["reason"], // L-05: PHYSICIAN_CREDENTIALS_REQUIRED lleva a la UI al perfil profesional
+ CONFLICT:["conflictWith","conflictReason","duplicateOf","duplicateBy"], // L-12 cita en traslape; L-06 paciente duplicado (identificadores, no PHI)
+ // VALIDATION_ERROR también expone `curpIssue` (L-06): código estable del defecto de la CURP.
 };
 export type HttpError=Readonly<{status:number;body:{error:{code:string;message:string;details?:Readonly<Record<string,unknown>>}}}>;
 function exposedDetails(e:ClinicalError):Readonly<Record<string,unknown>>|undefined{

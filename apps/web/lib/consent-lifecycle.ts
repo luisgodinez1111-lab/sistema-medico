@@ -3,9 +3,10 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldConsent,assertConsentTransition,type FoldedConsent,type ConsentState}from"../../../packages/consent-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,patientDemographics}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{isMinor}from"../../../packages/mx-identity/src";
 // EPIC Z — Ciclo de vida de un consentimiento informado: DRAFTED -> PRESENTED -> {GRANTED, DECLINED}; GRANTED -> REVOKED.
 // Registro clínico-legal (NOM-004 / aviso de privacidad). Redactar/presentar/registrar respuesta exige scope consent:write.
 const AGG="Consent";
@@ -48,10 +49,22 @@ export async function handleConsentPresentation(req:Request,consentId:string):Pr
   return await commit(ctx,idempotencyKey,expectedVersion,consentId,folded,"PRESENTED","CONSENT_PRESENTED",{kind:"PRESENTED"},b.occurredAt,"consent.presented");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const GrantBody=z.object({signerName:z.string().min(1),occurredAt:z.string().datetime()});
+// Auditoría 2026-09-19 (L-06): un MENOR de edad no otorga por sí mismo el consentimiento informado (LGS art. 81, RLGSMPSAM
+// art. 81; NOM-004 numeral 10.1.1): firma el tutor o representante legal REGISTRADO en el expediente (`signerRole:
+// "GUARDIAN"`, con el nombre del tutor). Sin tutor registrado -> 428 GUARDIAN_REQUIRED. Con edad desconocida (paciente sin
+// alta demográfica) no se afirma la mayoría de edad: se registra con `ageUnverified:true` en el evento.
+const GrantBody=z.object({signerName:z.string().min(1),signerRole:z.enum(["PATIENT","GUARDIAN"]).default("PATIENT"),occurredAt:z.string().datetime()});
 export async function handleConsentGrant(req:Request,consentId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,consentId);const b=await parseJson(req,GrantBody);
-  return await commit(ctx,idempotencyKey,expectedVersion,consentId,folded,"GRANTED","CONSENT_GRANTED",{kind:"GRANTED",signerName:b.signerName},b.occurredAt,"consent.granted");
+  const demo=folded.patientId?await patientDemographics(ctx,folded.patientId):undefined;
+  const minor=demo?.birthDate?isMinor(demo.birthDate,b.occurredAt):undefined;
+  const payload:Record<string,unknown>={kind:"GRANTED",signerName:b.signerName,signerRole:b.signerRole};
+  if(minor===true){
+   if(!demo?.guardian)throw new ClinicalError("PRECONDITION_REQUIRED","El paciente es menor de edad y no tiene tutor o representante legal registrado: regístrelo antes de recabar el consentimiento",{reason:"GUARDIAN_REQUIRED"});
+   if(b.signerRole!=="GUARDIAN")throw new ClinicalError("VALIDATION_ERROR","El consentimiento de un menor lo firma su tutor o representante legal (signerRole GUARDIAN)");
+   payload["guardian"]={name:demo.guardian.name,relationship:demo.guardian.relationship};
+  }else if(minor===undefined)payload["ageUnverified"]=true;
+  return await commit(ctx,idempotencyKey,expectedVersion,consentId,folded,"GRANTED","CONSENT_GRANTED",payload,b.occurredAt,"consent.granted");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});

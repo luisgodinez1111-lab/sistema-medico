@@ -80,7 +80,7 @@ type RefContext=Readonly<{allergies:string[];medications:string[];problems:{code
 type FUDelta={first:number;last:number}|null;
 type FollowUpSnap=Readonly<{tasks:{obligationId:string;task:string;dueAt:string;status:string;statusLabel:string;done:boolean;priority?:string;blocksSignature?:"URGENT"|"OVERDUE"|"INVALID_DUE_DATE"|null}[];vitalsTrend:{series:{BP:number[];HR:number[];WEIGHT:number[];IMC:number[]};avg:{ta:string|null;bp:number|null;hr:number|null;weight:number|null;imc:number|null}};indicators:{hba1c:FUDelta;ldl:FUDelta;weight:FUDelta;imc:FUDelta};counts:{problems:number;medications:number;allergies:number}}>;
 type ClaimItem=Readonly<{claimId:string;folio:string;patientId:string;patientName:string;amount:number;currency:string;status:string;statusLabel:string;recordedAt:string}>;
-type ClaimsRegistry=Readonly<{items:ClaimItem[];total:number;incomeThisMonth:number;issuedCount:number;pendingCount:number;pendingAmount:number;cancellations:number}>;
+type ClaimsRegistry=Readonly<{items:ClaimItem[];total:number;incomePeriod?:string;incomeThisMonth:number;incomeAllTime?:number;issuedCount:number;pendingCount:number;pendingAmount:number;cancellations:number}>;
 type DocItem=Readonly<{documentId:string;title:string;docType:string;typeLabel:string;status:string;statusLabel:string;createdAt:string;actorId:string}>;
 type DocsSnap=Readonly<{items:DocItem[];total:number;byType:Record<string,number>;chips:{clinical:number;consents:number;studies:number}}>;
 type DocAttachment={attachmentId:string;filename:string;mime:string;size:number;pathname:string;contentHash:string;authorId:string;attachedAt:string};
@@ -788,6 +788,11 @@ export default function Workspace(){
  const[patEdit,setPatEdit]=useState(false);const[editBusy,setEditBusy]=useState(false);
  const[editForm,setEditForm]=useState<{name:string;birthDate:string;sexAtBirth:string;curp:string;phone:string;email:string;address:string;occupation:string;maritalStatus:string}>({name:"",birthDate:"",sexAtBirth:"UNKNOWN",curp:"",phone:"",email:"",address:"",occupation:"",maritalStatus:""});
  const[regExtra,setRegExtra]=useState({curp:"",phone:"",email:"",address:"",occupation:"",maritalStatus:""});
+ // Auditoría L-06: tutor o representante legal (obligatorio en la práctica para menores: sin él no hay consentimiento) y
+ // confirmación explícita cuando el servidor detecta un homónimo con la misma fecha de nacimiento.
+ const[regGuardian,setRegGuardian]=useState({name:"",relationship:"",phone:""});
+ const[regDup,setRegDup]=useState<{message:string;inline:boolean}|null>(null);
+ const regIsMinor=(()=>{if(!regDob)return false;const b=new Date(`${regDob}T00:00:00Z`),a=new Date();let y=a.getUTCFullYear()-b.getUTCFullYear();if(a.getUTCMonth()<b.getUTCMonth()||(a.getUTCMonth()===b.getUTCMonth()&&a.getUTCDate()<b.getUTCDate()))y-=1;return y>=0&&y<18;})();
  const[busy,setBusy]=useState("");
  const[error,setError]=useState("");
 
@@ -1737,7 +1742,9 @@ export default function Workspace(){
   if(!apptForm.patientId||!apptForm.reason.trim()){setApptMsg("Selecciona un paciente e indica el motivo.");return;}
   setApptBusy(true);setApptMsg(null);
   try{
-   const id=uuid();const startAt=`${agendaDate}T${apptForm.time}:00.000Z`;const endAt=new Date(new Date(startAt).getTime()+30*60000).toISOString();
+   // Auditoría L-12: la hora capturada es hora LOCAL del consultorio; antes se etiquetaba como UTC ("Z") y una cita de las
+   // 10:00 quedaba registrada a las 04:00. Se convierte con el reloj del navegador y se envía como instante UTC.
+   const id=uuid();const startAt=new Date(`${agendaDate}T${apptForm.time}:00`).toISOString();const endAt=new Date(new Date(startAt).getTime()+30*60000).toISOString();
    const r=await apiRequest("/api/v1/appointments",{method:"POST",body:{appointmentId:id,patientId:apptForm.patientId,startAt,endAt,reason:apptForm.reason.trim(),consultorio:apptForm.consultorio,apptType:apptForm.apptType,occurredAt:nowIso()}});
    if(r.status>=400){setApptMsg(errMsg(r));return;}
    await reloadAgenda();setApptSel(id);setApptNew(false);setApptForm({patientId:"",time:"09:00",reason:"",consultorio:"Consultorio 1",apptType:"CONSULTA_GENERAL"});setApptMsg("Cita agendada.");
@@ -1748,14 +1755,36 @@ export default function Workspace(){
   if(r.status>=400){setError(errMsg(r));return;}
   setPanel({gaps:(r.body["gaps"] as PanelGap[])??[],patientCount:Number(r.body["patientCount"]??0)});
  });
- const registerPatient=(inline=false)=>call("pt-reg",async()=>{
-  if(!regName.trim()){if(inline)setPatMsg("Indica el nombre del paciente.");else setError("El nombre del paciente es obligatorio");return;}
-  const id=uuid();const e=regExtra;
-  const r=await apiRequest("/api/v1/patients",{method:"POST",body:{patientId:id,name:regName,birthDate:regDob||"1990-01-01",sexAtBirth:regSex,occurredAt:nowIso(),...(e.curp?{curp:e.curp}:{}),...(e.phone?{phone:e.phone}:{}),...(e.email?{email:e.email}:{}),...(e.address?{address:e.address}:{}),...(e.occupation?{occupation:e.occupation}:{}),...(e.maritalStatus?{maritalStatus:e.maritalStatus}:{})}});
-  if(r.status>=400){if(inline)setPatMsg(errMsg(r));else setError(errMsg(r));return;}
-  selectPatientRaw(id,regName);setPatientList(l=>[{patientId:id,name:regName,status:"ACTIVE",...(regDob?{birthDate:regDob}:{}),sexAtBirth:regSex,...(e.curp?{curp:e.curp}:{})},...(l??[])]);setRegName("");setRegDob("");setRegExtra({curp:"",phone:"",email:"",address:"",occupation:"",maritalStatus:""});
-  if(inline){setPatNew(false);setPatMsg("Paciente registrado.");}
+ const registerPatient=(inline=false,confirmNotDuplicate=false)=>call("pt-reg",async()=>{
+  const say=(m:string)=>{if(inline)setPatMsg(m);else setError(m);};
+  if(!regName.trim()){say("Indica el nombre del paciente.");return;}
+  // Auditoría L-06 / U-01: antes, sin fecha de nacimiento se registraba "1990-01-01" (una edad inventada que alimenta dosis
+  // pediátricas, tamizajes y consentimiento). La fecha es obligatoria.
+  if(!regDob){say("Indica la fecha de nacimiento: sin ella no se calcula la edad y no se registra un dato inventado.");return;}
+  const id=uuid();const e=regExtra;setRegDup(null);
+  const guardian=regGuardian.name.trim()&&regGuardian.relationship.trim()?{name:regGuardian.name.trim(),relationship:regGuardian.relationship.trim(),...(regGuardian.phone.trim()?{phone:regGuardian.phone.trim()}:{})}:undefined;
+  const r=await apiRequest("/api/v1/patients",{method:"POST",body:{patientId:id,name:regName.trim(),birthDate:regDob,sexAtBirth:regSex,occurredAt:nowIso(),...(e.curp?{curp:e.curp}:{}),...(e.phone?{phone:e.phone}:{}),...(e.email?{email:e.email}:{}),...(e.address?{address:e.address}:{}),...(e.occupation?{occupation:e.occupation}:{}),...(e.maritalStatus?{maritalStatus:e.maritalStatus}:{}),...(guardian?{guardian}:{}),...(confirmNotDuplicate?{confirmNotDuplicate:true}:{})}});
+  if(r.status===409){const d=(r.body["error"] as{message?:string;details?:{duplicateBy?:string}}|undefined);
+   if(d?.details?.duplicateBy==="NAME_BIRTHDATE"){setRegDup({message:String(d.message??""),inline});return;}
+   say(String(d?.message??errMsg(r)));return;}
+  if(r.status>=400){say(errMsg(r));return;}
+  const warn=(r.body["warnings"] as string[]|undefined)?.includes("MINOR_WITHOUT_GUARDIAN");
+  selectPatientRaw(id,regName);setPatientList(l=>[{patientId:id,name:regName,status:"ACTIVE",birthDate:regDob,sexAtBirth:regSex,...(e.curp?{curp:e.curp}:{})},...(l??[])]);setRegName("");setRegDob("");setRegExtra({curp:"",phone:"",email:"",address:"",occupation:"",maritalStatus:""});setRegGuardian({name:"",relationship:"",phone:""});
+  if(inline){setPatNew(false);setPatMsg(warn?"Paciente registrado. Es menor de edad y no tiene tutor registrado: añádelo desde Editar antes de recabar consentimientos.":"Paciente registrado.");}
+  else if(warn)setError("Menor de edad sin tutor registrado: añade al tutor o representante legal antes de recabar consentimientos.");
  });
+ const guardianFields=(style:React.CSSProperties)=>regIsMinor?<div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:10,marginTop:10}}>
+  <input style={style} value={regGuardian.name} onChange={e=>setRegGuardian(g=>({...g,name:e.target.value}))} placeholder="Tutor o representante legal (menor de edad)" aria-label="Nombre del tutor" />
+  <input style={style} value={regGuardian.relationship} onChange={e=>setRegGuardian(g=>({...g,relationship:e.target.value}))} placeholder="Parentesco" aria-label="Parentesco del tutor" />
+  <input style={style} value={regGuardian.phone} onChange={e=>setRegGuardian(g=>({...g,phone:e.target.value}))} placeholder="Teléfono del tutor" aria-label="Teléfono del tutor" />
+ </div>:null;
+ const dupPanel=(inline:boolean)=>regDup&&regDup.inline===inline?<div role="alertdialog" aria-labelledby="dup-title" style={{marginTop:10,padding:"10px 14px",borderRadius:12,background:"#FFF7EC",border:"1px solid #F0DBB8",color:"#5A3A0A",fontSize:13}}>
+  <b id="dup-title">Posible duplicado</b><div style={{marginTop:4}}>{regDup.message}</div>
+  <div style={{display:"flex",gap:8,marginTop:8,justifyContent:"flex-end"}}>
+   <button style={{...ghost,padding:"7px 12px"}} onClick={()=>setRegDup(null)}>Cancelar</button>
+   <button style={{...btn,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>registerPatient(inline,true)}>Es una persona distinta: registrar</button>
+  </div>
+ </div>:null;
  // ===== Pacientes: editar (AMENDED) la ficha del paciente con datos reales (POST /patients/:id/amendment) =====
  const openEdit=(pid:string)=>{
   const p=(patientList??[]).find(x=>x.patientId===pid);const sd=(patientId===pid?snap?.demographics:undefined);
@@ -2079,7 +2108,8 @@ export default function Workspace(){
        <div><div style={flbl}>Fecha de nacimiento</div><input type="date" value={regDob} onChange={e=>setRegDob(e.target.value)} style={inp}/></div>
        <div><div style={flbl}>Sexo</div><select value={regSex} onChange={e=>setRegSex(e.target.value)} style={inp}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select></div>
       </div>
-      <div style={{marginTop:12,maxWidth:360}}><div style={flbl}>CURP (opcional)</div><input value={regExtra.curp} onChange={e=>setRegExtra({...regExtra,curp:e.target.value.toUpperCase()})} placeholder="18 caracteres" style={inp}/></div>
+      <div style={{marginTop:12,maxWidth:360}}><div style={flbl}>CURP (opcional; se valida el dígito verificador)</div><input value={regExtra.curp} onChange={e=>setRegExtra({...regExtra,curp:e.target.value.toUpperCase()})} placeholder="18 caracteres" maxLength={18} style={inp}/></div>
+      {guardianFields(inp)}{dupPanel(true)}
       <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>registerPatient(true)} disabled={busy==="pt-reg"||!regName.trim()} style={{border:0,background:(busy==="pt-reg"||!regName.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(busy==="pt-reg"||!regName.trim())?"default":"pointer",fontFamily:UI}}>{busy==="pt-reg"?"Registrando…":"Registrar paciente"}</button><button onClick={()=>setPatNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
      </div>}
      <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginTop:18}} className="mos-kpis">
@@ -3622,7 +3652,7 @@ export default function Workspace(){
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setNfConcepts([{desc:"Consulta médica",qty:1,price:500}]);setNfPatientId("");setNfMsg("");}}>+ Nueva factura</button></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
-     <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#E6F6EE","#16A66A","M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6")}<div><div style={{fontSize:24,fontWeight:800}}>{money(kIngresos)}</div><div style={{fontSize:11.5,color:P.muted}}>Ingresos este mes</div></div></div>
+     <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#E6F6EE","#16A66A","M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6")}<div><div style={{fontSize:24,fontWeight:800}}>{money(kIngresos)}</div><div style={{fontSize:11.5,color:P.muted}}>Ingresos del mes{claimsReg?.incomePeriod?` (${claimsReg.incomePeriod})`:""}</div></div></div>
      <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#E7EEFB",P.blue,"M9 3h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h1V4a1 1 0 011-1z")}<div><div style={{fontSize:24,fontWeight:800}}>{kEmitidas}</div><div style={{fontSize:11.5,color:P.muted}}>Facturas emitidas</div></div></div>
      <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{kPend}</div><div style={{fontSize:11.5,color:P.muted}}>Pendientes de pago</div><div style={{fontSize:11.5,color:P.amber,fontWeight:700,marginTop:2}}>{money(kPendAmt)}</div></div></div>
      <div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}>{kico("#FDECEE",P.red,"M18 6L6 18M6 6l12 12")}<div><div style={{fontSize:24,fontWeight:800}}>{kCanc}</div><div style={{fontSize:11.5,color:P.muted}}>Cancelaciones</div></div></div>
@@ -4312,8 +4342,9 @@ export default function Workspace(){
     <input style={input} value={regName} onChange={e=>setRegName(e.target.value)} placeholder="Nombre completo" />
     <input style={input} type="date" value={regDob} onChange={e=>setRegDob(e.target.value)} />
     <select style={input} value={regSex} onChange={e=>setRegSex(e.target.value)}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select>
-    <button style={btn} disabled={busy!==""||!regName} onClick={()=>registerPatient()}>{busy==="pt-reg"?"Registrando…":"Registrar"}</button>
+    <button style={btn} disabled={busy!==""||!regName||!regDob} onClick={()=>registerPatient()}>{busy==="pt-reg"?"Registrando…":"Registrar"}</button>
    </div>
+   {guardianFields(input)}{dupPanel(false)}
    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:10}}>
     <input style={input} value={regExtra.curp} onChange={e=>setRegExtra(x=>({...x,curp:e.target.value.toUpperCase()}))} placeholder="CURP" maxLength={18} />
     <input style={input} value={regExtra.phone} onChange={e=>setRegExtra(x=>({...x,phone:e.target.value}))} placeholder="Teléfono" />

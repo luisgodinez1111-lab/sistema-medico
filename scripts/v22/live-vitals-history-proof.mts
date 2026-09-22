@@ -13,7 +13,7 @@ function tok(scopes=["patient:write","patient:read","vital:write"]){return signS
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const idem=()=>crypto.randomUUID();
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
-async function reg(t:string,p:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:"Ana López García",birthDate:birth(34),sexAtBirth:"FEMALE",occurredAt:new Date().toISOString()})}));}
+async function reg(t:string,p:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:`Ana López García ${p.slice(0,8)}`,birthDate:birth(34),sexAtBirth:"FEMALE",occurredAt:new Date().toISOString()})}));}
 async function vital(t:string,p:string,vitalType:string,value:string,unit:string,at:string){return vitR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:p,vitalType,value,unit,occurredAt:at})}));}
 // una "toma" = varios tipos con el MISMO occurredAt
 async function toma(t:string,p:string,at:string,bp:string,hr:string,resp:string,temp:string,spo2:string,weight:string,height:string){

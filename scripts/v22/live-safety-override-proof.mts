@@ -78,7 +78,7 @@ try{
  // 8) bloqueo DURO (b): niño de 2 años SIN peso al proponer (dosis/kg no evaluable -> 201); se registra 10 kg después; al
  //    prescribir, paracetamol 500 mg c/6h = 200 mg/kg/día bloquea por dosis pediátrica y NINGUNA anulación lo levanta.
  const child=crypto.randomUUID();
- const reg=await patR.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({patientId:child,name:"Prueba",birthDate:new Date(Date.now()-2.5*365.25*864e5).toISOString().slice(0,10),sexAtBirth:"MALE",occurredAt:ISO})}));
+ const reg=await patR.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({patientId:child,name:`Prueba ${child.slice(0,8)}`,birthDate:new Date(Date.now()-2.5*365.25*864e5).toISOString().slice(0,10),sexAtBirth:"MALE",occurredAt:ISO})}));
  ok(reg.status===201,"CHILD_REGISTERED");
  const med3=await propose(phys,child,"paracetamol-500",{dose:"500mg",frequency:"c/6h"});
  const w=await vitals.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:child,vitalType:"WEIGHT",value:"10",unit:"kg",occurredAt:"2026-09-10T10:05:00.000Z"})}));

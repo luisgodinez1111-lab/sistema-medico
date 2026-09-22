@@ -16,23 +16,37 @@ export type KnowledgePackage={
   redFlags:RuleDefinition[];
   focusedExam:RuleDefinition[];
   differentialHints:RuleDefinition[];
-  orderConsiderations:RuleDefinition[];
-  followUpRules:RuleDefinition[];
+  orderConsiderations:SuggestionRule[]; // sugerencias: sin severidad (el motor emite urgencia ROUTINE)
+  followUpRules:SuggestionRule[];
   safetyNet:RuleDefinition[];
 };
+export type SuggestionRule=Omit<RuleDefinition,"severity">;
+
+// Auditoría 2026-09-19 (L-13): las condiciones eran CADENAS evaluadas con `new Function(...)`. Aunque hoy los paquetes de
+// conocimiento son constantes del código, una regla que llegara a registrarse por API sería ejecución remota de código.
+// Ahora una condición es una FUNCIÓN TIPADA sobre un contexto cerrado (`RuleContext`): no existe evaluación dinámica de
+// texto en ningún punto del motor. Un paquete que quiera venir de datos deberá traducirse a este contrato con un parser
+// propio y acotado, nunca con eval.
+export type RuleContext=Readonly<{
+  age:number;sex:"M"|"F"|"O";chiefComplaint:string;
+  recentVitals:readonly{type:string;value:number;timestamp:string}[];
+  recentResults:readonly{code:string;value:number;unit:string;timestamp:string}[];
+  hasProblem:(codePrefix:string)=>boolean;hasMedication:(codePrefix:string)=>boolean;hasAllergy:(substance:string)=>boolean;
+}>;
+export type RuleCondition=(c:RuleContext)=>boolean;
 
 export type ApplicabilityRule={
-  condition:string;
+  condition:RuleCondition;
   include:boolean;
 };
 
 export type QuestionDefinition={
-  id:string;text:string;trigger:string;
+  id:string;text:string;trigger:RuleCondition;
   expectedAnswers:string[];required:boolean;
 };
 
 export type RuleDefinition={
-  id:string;condition:string;action:string;severity:"INFO"|"CONSIDER"|"IMPORTANT"|"CRITICAL";
+  id:string;condition:RuleCondition;action:string;severity:"INFO"|"CONSIDER"|"IMPORTANT"|"CRITICAL";
   evidence:string[];version:string;
 };
 
@@ -93,28 +107,23 @@ export class ClinicalIntelligenceEngine{
       // con reglas -> aplica si alguna condición matchea con include:true.
       const applies=pkg.applicability.length===0
         ?true
-        :pkg.applicability.some((rule:{condition:string;include:boolean})=>this.evalCondition(rule.condition,state,chiefComplaint)&&rule.include);
+        :pkg.applicability.some((rule:ApplicabilityRule)=>this.evalCondition(rule.condition,state,chiefComplaint)&&rule.include);
       if(applies)applicable.push(pkg);
     }
     return applicable;
   }
 
-  private evalCondition(condition:string,state:any,chiefComplaint?:string){
-    try{
-      const ctx={age:state.age,sex:state.sex,
-        hasProblem:(code:string)=>state.activeProblems.some((p:{code:string})=>p.code.startsWith(code)),
-        hasMedication:(code:string)=>state.activeMedications.some((m:{code:string})=>m.code.startsWith(code)),
-        hasAllergy:(sub:string)=>state.allergies.some((a:{substance:string})=>a.substance.toLowerCase().includes(sub.toLowerCase())),
-        chiefComplaint:chiefComplaint??"",
-        recentVitals:state.recentVitals,
-        recentResults:state.recentResults,
-      };
-      // AUDITORÍA 2026-09-17: antes era new Function("ctx","return "+condition)(ctx), pero las condiciones
-      // usan identificadores desnudos (chiefComplaint, recentVitals, hasProblem(...)) -> ReferenceError ->
-      // catch -> false -> NINGUNA regla disparaba. Se pasa cada clave del contexto como parámetro nombrado.
-      const keys=Object.keys(ctx);
-      return new Function(...keys,"return ("+condition+")")(...keys.map(k=>(ctx as Record<string,unknown>)[k]));
-    }catch{return false;}
+  private evalCondition(condition:RuleCondition,state:PatientStateSummary,chiefComplaint?:string):boolean{
+    const ctx:RuleContext={age:state.age,sex:state.sex,
+      hasProblem:(code:string)=>state.activeProblems.some(p=>p.code.startsWith(code)),
+      hasMedication:(code:string)=>state.activeMedications.some(m=>m.code.startsWith(code)),
+      hasAllergy:(sub:string)=>state.allergies.some(a=>a.substance.toLowerCase().includes(sub.toLowerCase())),
+      chiefComplaint:chiefComplaint??"",
+      recentVitals:state.recentVitals,
+      recentResults:state.recentResults,
+    };
+    // Una regla que lanza no dispara (y no tumba la evaluación del resto). Sin `new Function`: la condición es código tipado.
+    try{return condition(ctx)===true;}catch{return false;}
   }
 
   private applyPackage(pkg:any,state:any,chiefComplaint:string|undefined,output:any){
@@ -179,58 +188,58 @@ export class ClinicalIntelligenceEngine{
 }
 
 // Pre-built knowledge packages for common scenarios
-export const DEFAULT_KNOWLEDGE_PACKAGES=[
+export const DEFAULT_KNOWLEDGE_PACKAGES:KnowledgePackage[]=[
   {
     id:"chest-pain",version:"1.0",specialty:"emergency",effectiveDate:"2026-01-01",
     reviewers:[{id:"cardiology-chief",role:"cardiologist"}],
     sources:[{citation:"ACC/AHA Guidelines"}],
-    applicability:[{condition:'chiefComplaint==="chest pain"',include:true}],
+    applicability:[{condition:(c)=>(c.chiefComplaint==="chest pain"),include:true}],
     questions:[
-      {id:"q1",text:"¿Dolor irradiado a brazo/mentón/espalda?",trigger:'chiefComplaint==="chest pain"',expectedAnswers:["si","no"],required:true},
-      {id:"q2",text:"¿Sudoración fría / disnea / náuseas?",trigger:'chiefComplaint==="chest pain"',expectedAnswers:["si","no"],required:true},
+      {id:"q1",text:"¿Dolor irradiado a brazo/mentón/espalda?",trigger:(c)=>(c.chiefComplaint==="chest pain"),expectedAnswers:["si","no"],required:true},
+      {id:"q2",text:"¿Sudoración fría / disnea / náuseas?",trigger:(c)=>(c.chiefComplaint==="chest pain"),expectedAnswers:["si","no"],required:true},
     ],
     redFlags:[
-      {id:"rf1",condition:'chiefComplaint==="chest pain" && recentVitals.some(v=>v.type==="HR" && v.value>120)',action:"Taquicardia con dolor torácico: descartar SCA/PE",severity:"CRITICAL",evidence:["ACC Guidelines"],version:"1.0"},
-      {id:"rf2",condition:'chiefComplaint==="chest pain" && recentResults.some(r=>r.code==="TROP" && r.value>0.04)',action:"Troponina elevada: SCA probable",severity:"CRITICAL",evidence:["ACC Guidelines"],version:"1.0"},
+      {id:"rf1",condition:(c)=>(c.chiefComplaint==="chest pain" && c.recentVitals.some(v=>v.type==="HR" && v.value>120)),action:"Taquicardia con dolor torácico: descartar SCA/PE",severity:"CRITICAL",evidence:["ACC Guidelines"],version:"1.0"},
+      {id:"rf2",condition:(c)=>(c.chiefComplaint==="chest pain" && c.recentResults.some(r=>r.code==="TROP" && r.value>0.04)),action:"Troponina elevada: SCA probable",severity:"CRITICAL",evidence:["ACC Guidelines"],version:"1.0"},
     ],
     focusedExam:[
-      {id:"fe1",condition:'chiefComplaint==="chest pain"',action:"Auscultación cardíaca/pulmonar; pulsos periféricos; JVP",evidence:["Physical exam guidelines"],severity:"INFO",version:"1.0"},
+      {id:"fe1",condition:(c)=>(c.chiefComplaint==="chest pain"),action:"Auscultación cardíaca/pulmonar; pulsos periféricos; JVP",evidence:["Physical exam guidelines"],severity:"INFO",version:"1.0"},
     ],
     differentialHints:[
-      {id:"dh1",condition:'chiefComplaint==="chest pain"',action:"Síndrome coronario agudo",evidence:["Typical presentation"],severity:"INFO",version:"1.0"},
-      {id:"dh2",condition:'chiefComplaint==="chest pain" && recentVitals.some(v=>v.type==="RR" && v.value>24)',action:"Tromboembolismo pulmonar",evidence:["Wells criteria"],severity:"INFO",version:"1.0"},
+      {id:"dh1",condition:(c)=>(c.chiefComplaint==="chest pain"),action:"Síndrome coronario agudo",evidence:["Typical presentation"],severity:"INFO",version:"1.0"},
+      {id:"dh2",condition:(c)=>(c.chiefComplaint==="chest pain" && c.recentVitals.some(v=>v.type==="RR" && v.value>24)),action:"Tromboembolismo pulmonar",evidence:["Wells criteria"],severity:"INFO",version:"1.0"},
     ],
     orderConsiderations:[
-      {id:"oc1",condition:'chiefComplaint==="chest pain"',action:"ECG 12 derivaciones STAT",evidence:["ACC Guidelines"],version:"1.0"},
-      {id:"oc2",condition:'chiefComplaint==="chest pain"',action:"Troponina seriada 0/3h",evidence:["ACC Guidelines"],version:"1.0"},
-      {id:"oc3",condition:'chiefComplaint==="chest pain" && recentVitals.some(v=>v.type==="RR" && v.value>24)',action:"AngioTC torácica / D-dímero",evidence:["PE workup"],version:"1.0"},
+      {id:"oc1",condition:(c)=>(c.chiefComplaint==="chest pain"),action:"ECG 12 derivaciones STAT",evidence:["ACC Guidelines"],version:"1.0"},
+      {id:"oc2",condition:(c)=>(c.chiefComplaint==="chest pain"),action:"Troponina seriada 0/3h",evidence:["ACC Guidelines"],version:"1.0"},
+      {id:"oc3",condition:(c)=>(c.chiefComplaint==="chest pain" && c.recentVitals.some(v=>v.type==="RR" && v.value>24)),action:"AngioTC torácica / D-dímero",evidence:["PE workup"],version:"1.0"},
     ],
     followUpRules:[
-      {id:"fu1",condition:'chiefComplaint==="chest pain"',action:"Control cardiología 7 días",evidence:["Post-ACS followup"],version:"1.0"},
+      {id:"fu1",condition:(c)=>(c.chiefComplaint==="chest pain"),action:"Control cardiología 7 días",evidence:["Post-ACS followup"],version:"1.0"},
     ],
     safetyNet:[
-      {id:"sn1",condition:'chiefComplaint==="chest pain"',action:"Si empeora dolor / disnea / síncope -> reevaluación inmediata",evidence:["Safety net guidelines"],severity:"INFO",version:"1.0"},
+      {id:"sn1",condition:(c)=>(c.chiefComplaint==="chest pain"),action:"Si empeora dolor / disnea / síncope -> reevaluación inmediata",evidence:["Safety net guidelines"],severity:"INFO",version:"1.0"},
     ],
   },
   {
     id:"hypertension-followup",version:"1.0",specialty:"primary-care",effectiveDate:"2026-01-01",
     reviewers:[{id:"pcp-chief",role:"family-medicine"}],
     sources:[{citation:"JNC 8 / ACC/AHA 2017"}],
-    applicability:[{condition:'hasProblem("I10")',include:true}],
+    applicability:[{condition:(c)=>(c.hasProblem("I10")),include:true}],
     questions:[],
     redFlags:[
-      {id:"rf1",condition:'recentVitals.some(v=>v.type==="BP" && (v.value>180 || v.value<90))',action:"HTA no controlada / crisis hipertensiva",severity:"CRITICAL",evidence:["JNC 8"],version:"1.0"},
+      {id:"rf1",condition:(c)=>(c.recentVitals.some(v=>v.type==="BP" && (v.value>180 || v.value<90))),action:"HTA no controlada / crisis hipertensiva",severity:"CRITICAL",evidence:["JNC 8"],version:"1.0"},
     ],
     focusedExam:[
-      {id:"fe1",condition:'hasProblem("I10")',action:"Fundoscopia; ruidos cardíacos; pulsos femorales",evidence:["HTN workup"],severity:"INFO",version:"1.0"},
+      {id:"fe1",condition:(c)=>(c.hasProblem("I10")),action:"Fundoscopia; ruidos cardíacos; pulsos femorales",evidence:["HTN workup"],severity:"INFO",version:"1.0"},
     ],
     differentialHints:[],
     orderConsiderations:[
-      {id:"oc1",condition:'hasProblem("I10") && recentResults.some(r=>r.code==="CREAT" && r.value>1.3)',action:"Monitor función renal / electrolitos",evidence:["ACEI/ARB monitoring"],version:"1.0"},
-      {id:"oc2",condition:'hasProblem("I10") && hasMedication("C09")',action:"K+ y Cr a 1-2 semanas de iniciar ARA-II/IECA",evidence:["Guideline monitoring"],version:"1.0"},
+      {id:"oc1",condition:(c)=>(c.hasProblem("I10") && c.recentResults.some(r=>r.code==="CREAT" && r.value>1.3)),action:"Monitor función renal / electrolitos",evidence:["ACEI/ARB monitoring"],version:"1.0"},
+      {id:"oc2",condition:(c)=>(c.hasProblem("I10") && c.hasMedication("C09")),action:"K+ y Cr a 1-2 semanas de iniciar ARA-II/IECA",evidence:["Guideline monitoring"],version:"1.0"},
     ],
     followUpRules:[
-      {id:"fu1",condition:'hasProblem("I10")',action:"Control BP 1 mes; ACR anual",evidence:["Guideline followup"],version:"1.0"},
+      {id:"fu1",condition:(c)=>(c.hasProblem("I10")),action:"Control BP 1 mes; ACR anual",evidence:["Guideline followup"],version:"1.0"},
     ],
     safetyNet:[],
   },

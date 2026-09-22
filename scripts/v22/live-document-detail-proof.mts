@@ -17,7 +17,7 @@ function tok(scopes=["patient:write","patient:read","document:write"]){return si
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const idem=()=>crypto.randomUUID();let ts=Date.parse("2026-09-01T09:00:00.000Z");const at=()=>new Date(ts+=3600000).toISOString();
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
-async function reg(t:string,p:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:"Ana López García",birthDate:birth(34),sexAtBirth:"FEMALE",occurredAt:at()})}));}
+async function reg(t:string,p:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:`Ana López García ${p.slice(0,8)}`,birthDate:birth(34),sexAtBirth:"FEMALE",occurredAt:at()})}));}
 async function create(t:string,p:string){const id=crypto.randomUUID();const r=await docR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({documentId:id,patientId:p,docType:"PROGRESS_NOTE",title:"Nota de evolución 01/09/2026",content:"Paciente estable. Continúa tratamiento.",occurredAt:at()})}));return{id,status:r.status};}
 async function finalize(t:string,id:string,v:number){return finR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({documentId:id})});}
 // Auditoría L-03: la firma exige la huella (sha256) del contenido que el cliente muestra.

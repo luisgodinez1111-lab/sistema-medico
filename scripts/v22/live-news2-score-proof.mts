@@ -19,7 +19,7 @@ async function rec(t:string,pat:string,vitalType:string,value:string){await vita
 // Auditoría C-09: el O₂ suplementario y el nivel de conciencia se DECLARAN (?o2=&avpu=); NEWS2 exige un adulto registrado.
 async function getNews2(t:string,pat:string,qs="?o2=false&avpu=A"){const r=await news2.GET(new Request("http://l/"+qs,{headers:H(t)}),PP(pat));return{status:r.status,body:await r.json()};}
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
-async function reg(t:string,p:string,y:number){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:"Prueba NEWS2",birthDate:birth(y),sexAtBirth:"MALE",occurredAt:at()})}));}
+async function reg(t:string,p:string,y:number){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:`Prueba NEWS2 ${p.slice(0,8)}`,birthDate:birth(y),sexAtBirth:"MALE",occurredAt:at()})}));}
 try{
  const phys=tok();
  // 1) paciente estable -> score 0, LOW
