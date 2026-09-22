@@ -18,9 +18,9 @@
 | **S**poofing | Sesión falsificada / sin auth | Verificación de sesión firmada + scope/purpose | CAP-IDENTITY-001, CAP-AUTHZ-001 |
 | **T**ampering | Alterar un registro clínico | Event store append-only + cadena de auditoría encadenada (hash) | db/migrations/0013_transactional_authority_and_audit.sql; CAP-BACKUP-DR-001 |
 | **R**epudiation | Negar una acción firmada | Auditoría por evento (actor, purpose, correlación) encadenada | db/migrations/0013_transactional_authority_and_audit.sql |
-| **I**nformation disclosure | Fuga cross-tenant / PHI en logs | RLS forzado (rol NOBYPASSRLS) + telemetría sin PHI (allowlist) | db/policies/tenant_rls_v3.sql; CAP-OBSERVABILITY-SLI-001 |
+| **I**nformation disclosure | Fuga cross-tenant / PHI en logs | RLS forzado (rol NOBYPASSRLS) + telemetría sin PHI (allowlist) | db/migrations/0012 (tenant_isolation_v16) y 0020 (tenant_isolation_v20); `pnpm db:check` verifica que ninguna tabla con tenant_id carece de RLS ni de política; CAP-OBSERVABILITY-SLI-001 |
 | **D**enial of service | Indisponibilidad del almacén | Fail-closed 503 (nunca 'guardado' en falso) + recuperabilidad (DR) | CAP-BACKUP-DR-001; tests/v22/downtime-no-false-save.test.ts |
-| **E**levation of privilege | Escalar rol/tenant | Authz por rol/scope/purpose; RLS no confía en el front | CAP-AUTHZ-001; db/policies/tenant_rls_v3.sql |
+| **E**levation of privilege | Escalar rol/tenant | Authz por rol/scope/purpose; RLS no confía en el front | CAP-AUTHZ-001; ADR-0230 (scope obligatorio, escritura ⇒ lectura); db/migrations/0012 y 0020 |
 
 ## Invariantes de seguridad (no negociables)
 

@@ -11,10 +11,7 @@ services:
     volumes: ['..:/workspace']
     command: ['sh','-lc','corepack enable && pnpm install --frozen-lockfile && pnpm build:web']
     depends_on: {postgres: {condition: service_healthy}}
-  worker:
-    image: node:22-bookworm-slim
-    working_dir: /workspace
-    volumes: ['..:/workspace']
-    command: ['sh','-lc','corepack enable && pnpm install --frozen-lockfile && node apps/worker/src/index.ts']
-    depends_on: {postgres: {condition: service_healthy}}
+  # Auditoría 2026-09-19 (D-03): aquí había un servicio "worker" que ejecutaba `node apps/worker/src/index.ts` — un módulo
+  # TypeScript de dos líneas sin bucle ni acceso a la base. No existe un consumidor del outbox desplegado; el outbox es una
+  # cola reservada (ver ADR-0031, addendum 2026-09-22) y no se finge lo contrario aquí.
 volumes: {medical_os_pg: {}}

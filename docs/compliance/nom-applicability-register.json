@@ -49,7 +49,8 @@
         "CAP-IDENTITY-001",
         "CAP-AUTHZ-001",
         "CAP-OBSERVABILITY-SLI-001",
-        "db/policies/tenant_rls_v3.sql"
+        "db/migrations/0012_schema_integrity_and_runtime_hardening.sql",
+        "db/migrations/0020_rls_completion_and_legacy_tables.sql"
       ],
       "addressedBy": "Aislamiento por tenant (RLS forzado), autorización por rol/scope/purpose-of-use, y telemetría sin PHI por defecto (allowlist). Consentimiento registrado (CAP-CONSENT-001).",
       "gaps": "Aviso de privacidad formal, flujo de derechos ARCO, gobierno de transferencias y notificación de brechas."
