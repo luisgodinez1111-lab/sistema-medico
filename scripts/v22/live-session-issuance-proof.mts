@@ -1,11 +1,7 @@
 // EPIC E — Evidencia física del boundary de emisión de sesión + round-trip login->abrir encuentro.
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-session-issuance-proof.mts
-import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";
-try{
- const envRaw=fs.readFileSync(path.resolve(".env.local"),"utf8");
- for(const line of envRaw.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(line.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}
-}catch{/* env ya cargado */}
-if(!process.env.DATABASE_URL){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
+import crypto from"node:crypto";
+import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 // Entorno de desarrollo controlado para este proof (verificador dev opt-in explícito).
 process.env.AUTH_MODE="development";
 process.env.ALLOW_DEV_IDENTITY="true";

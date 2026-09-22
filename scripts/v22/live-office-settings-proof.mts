@@ -3,9 +3,8 @@
 // guardado -> PUT parcial (merge preserva lo previo) -> PUT de horario/módulos (horas HH:MM, cierre de días, módulos
 // activos con merge profundo, rechazo de hora inválida y de módulo desconocido) -> conflicto de versión (409) ->
 // aislamiento por tenant -> scope faltante (403). vs Neon.
-import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";
-try{const e=fs.readFileSync(path.resolve(".env.local"),"utf8");for(const l of e.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(l.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}}catch{}
-if(!process.env.DATABASE_URL){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
+import crypto from"node:crypto";
+import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-sconfig-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const R=await import("../../apps/web/app/api/v1/office-settings/route");

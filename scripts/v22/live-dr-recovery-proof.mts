@@ -5,9 +5,8 @@
 //  - Reconciliación de recuperación (ENG-055-R005): re-aplicar el MISMO comando NO duplica eventos (idempotente).
 //  - RLS aísla por tenant.
 // A diferencia de restore-drill.mts (source vs target), corre contra un solo DB con un tenant aleatorio -> apto para CI.
-import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";
-try{const e=fs.readFileSync(path.resolve(".env.local"),"utf8");for(const l of e.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(l.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}}catch{}
-if(!process.env.DATABASE_URL){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
+import crypto from"node:crypto";
+import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const direct=(u:string)=>u.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,"");
 const RUNTIME_ROLE="medical_os_runtime";
 const{default:postgres}=await import("postgres");

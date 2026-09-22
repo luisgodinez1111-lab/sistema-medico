@@ -1,21 +1,10 @@
 // EPIC B — Evidencia física del vertical clínico autenticado (endpoint real contra Neon).
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-encounter-endpoint-proof.mts
-// Requiere DATABASE_URL (Neon) en .env.local. El secreto de sesión se fija aquí para
+// Requiere TEST_DATABASE_URL (base desechable). El secreto de sesión se fija aquí para
 // firmar tokens de prueba consistentes con el verificador del endpoint.
-import fs from"node:fs";
-import path from"node:path";
 import crypto from"node:crypto";
 
-// --- cargar .env.local (DATABASE_URL) sin sobreescribir el entorno existente ---
-try{
- const envRaw=fs.readFileSync(path.resolve(".env.local"),"utf8");
- for(const line of envRaw.split("\n")){
-  const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(line.trim());
-  if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");
- }
-}catch{/* .env.local ausente: se asume entorno ya cargado */}
-
-if(!process.env.DATABASE_URL){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
+import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-b-live-proof-secret";
 const SECRET=process.env.SESSION_SIGNING_SECRET;
 

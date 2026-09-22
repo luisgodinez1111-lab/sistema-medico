@@ -13,6 +13,8 @@
     "verify:v5": "node release/v5/self-check.mjs",
     "db:check": "node release/v5/sql-check.mjs",
     "audit:verify": "tsx scripts/ops/verify-audit-chain.mts",
+    "db:migrate": "tsx scripts/db/migrate.mts",
+    "db:manifest": "tsx scripts/db/manifest.mts",
     "verify:v12": "node release/v12/self-check.mjs && node release/v12/vertical-runtime-conformance.mjs && node release/v12/sql-static-check.mjs",
     "test:v12": "vitest run tests/v12",
     "build:web": "next build apps/web",

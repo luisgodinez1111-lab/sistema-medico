@@ -5,7 +5,7 @@
 //
 // SEGURIDAD: aplica DDL y crea roles. Está pensado SOLO para un Postgres desechable (contenedor de CI o
 // branch de Neon). REHÚSA correr si CI_DB_BOOTSTRAP_ALLOW no está en "1" (evita ejecutarlo contra una BD real).
-import fs from"node:fs";import path from"node:path";
+import fs from"node:fs";
 const URL_=process.env.DATABASE_URL;
 if(!URL_){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
 if(process.env.CI_DB_BOOTSTRAP_ALLOW!=="1"){console.log(JSON.stringify({status:"REFUSED",reason:"CI_DB_BOOTSTRAP_ALLOW!=1",hint:"solo contra un Postgres desechable"}));process.exit(2);}
@@ -18,9 +18,13 @@ try{
  // 1) Roles (idempotente). 2) Grant del rol runtime al usuario conector (para SET ROLE).
  await owner.unsafe(fs.readFileSync("db/roles_v16.sql","utf8"));out.steps.push("roles_v16");
  await owner.unsafe(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.roleid JOIN pg_roles g ON g.oid=m.member WHERE r.rolname='${RUNTIME_ROLE}' AND g.rolname=current_user) THEN EXECUTE 'GRANT ${RUNTIME_ROLE} TO '||quote_ident(current_user); END IF; END $$;`);out.steps.push("grant_runtime_role");
- // 3) Migraciones en orden (0001..N). En un contenedor limpio corren una sola vez.
+ // 3) Migraciones con el MISMO migrador que producción (auditoría P-06): tabla de control + checksums. En un contenedor
+ //    limpio aplica 0001..N; si se re-ejecuta, aplica solo las pendientes y detecta deriva.
+ const{spawnSync}=await import("node:child_process");
+ const mig=spawnSync("pnpm",["-s","exec","tsx","scripts/db/migrate.mts","up"],{encoding:"utf8",env:process.env});
+ if(mig.status!==0)throw new Error(`db:migrate up falló: ${(mig.stderr||mig.stdout).trim().slice(-400)}`);
  const files=fs.readdirSync("db/migrations").filter(f=>/^\d+_.*\.sql$/.test(f)).sort();
- for(const f of files){await owner.unsafe(fs.readFileSync(path.join("db/migrations",f),"utf8"));out.steps.push(f);}
+ out.steps.push(`db:migrate up (${files.length} migraciones en el repo)`);
  // 4) Sanity: la tabla núcleo existe.
  const present=await owner`select to_regclass('public.clinical_events') as t`;
  if(!present[0]!.t)throw new Error("clinical_events ausente tras las migraciones");
