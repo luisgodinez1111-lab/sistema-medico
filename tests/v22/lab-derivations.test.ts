@@ -55,3 +55,14 @@ describe("calculatedOsmolality (EPIC BY)",()=>{
  });
  it("valores inválidos -> undefined",()=>{expect(calculatedOsmolality(0,90,14)).toBeUndefined();});
 });
+// Auditoría 2026-09-19 (C-22): brecha aniónica corregida por albúmina (Figge).
+describe("brecha aniónica corregida por albúmina",()=>{
+ it("con albúmina 2.0 g/dL una brecha cruda 'normal' de 11 se vuelve 16 (alta): la hipoalbuminemia la enmascaraba",()=>{
+  const r=anionGap(140,105,24,2.0)!;
+  expect(r.raw).toBe(11);expect(r.value).toBe(16);expect(r.status).toBe("HIGH");expect(r.albuminCorrected).toBe(true);expect(r.interpretation).toMatch(/corregida por albúmina/);
+ });
+ it("con albúmina normal (4.0) no cambia; sin albúmina se declara sin corregir",()=>{
+  expect(anionGap(140,105,24,4.0)!.value).toBe(11);
+  const r=anionGap(140,105,24)!;expect(r.value).toBe(11);expect(r.albuminCorrected).toBe(false);expect(r.interpretation).toMatch(/sin corregir/);
+ });
+});

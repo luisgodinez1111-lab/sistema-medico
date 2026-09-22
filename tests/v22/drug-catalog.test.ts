@@ -90,14 +90,14 @@ describe("contraindicación fármaco–condición (EPIC AY)",()=>{
  it("AINE + insuficiencia cardíaca (I50.9) -> MAJOR",()=>{
   expect(checkContraindications("naproxeno-500",["I50.9"]).severity).toBe("MAJOR");
  });
- it("AINE + gastritis (K29.70) -> MODERATE (alerta, no bloquea)",()=>{
-  expect(checkContraindications("ketorolaco-30",["K29.70"])).toMatchObject({found:true,severity:"MODERATE"});
+ it("AINE + gastritis (K29.7) -> MODERATE (alerta, no bloquea)",()=>{
+  expect(checkContraindications("ketorolaco-30",["K29.7"])).toMatchObject({found:true,severity:"MODERATE"});
  });
  it("metformina + ERC (N18.3) -> MODERATE (precaución por TFG)",()=>{
   expect(checkContraindications("metformina-850",["N18.3"]).severity).toBe("MODERATE");
  });
  it("prioriza MAJOR sobre MODERATE cuando coexisten condiciones",()=>{
-  expect(checkContraindications("ibuprofeno-400",["K29.70","N18.3"]).severity).toBe("MAJOR");
+  expect(checkContraindications("ibuprofeno-400",["K29.7","N18.3"]).severity).toBe("MAJOR");
  });
  it("sin condición contraindicante -> permitido",()=>{
   expect(checkContraindications("ibuprofeno-400",["E11.9","I10"]).found).toBe(false);

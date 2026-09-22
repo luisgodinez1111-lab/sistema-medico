@@ -23,3 +23,10 @@ describe("meldScore",()=>{
   expect(meldScore(2,0,1.5)).toBeUndefined();
  });
 });
+// Auditoría 2026-09-19 (C-19): en diálisis (≥2 sesiones/semana) la creatinina se fija en 4.0 (UNOS).
+describe("MELD con diálisis (C-19)",()=>{
+ it("la misma bilirrubina e INR con creatinina 1.2 en diálisis puntúa como creatinina 4.0",()=>{
+  const sin=meldScore(3,2,1.2)!,con=meldScore(3,2,1.2,{dialysis:true})!,cuatro=meldScore(3,2,4)!;
+  expect(con.score).toBe(cuatro.score);expect(con.score).toBeGreaterThan(sin.score);
+ });
+});

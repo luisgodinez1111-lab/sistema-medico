@@ -21,3 +21,12 @@ describe("terminología CIE-10 (EPIC AM)",()=>{
   expect(searchIcd10("")).toEqual([]);
  });
 });
+// Auditoría 2026-09-19 (U-13, K-04): en México rige la CIE-10 de la OMS (NOM-024), no la ICD-10-CM de EE. UU.
+describe("CIE-10 OMS, no ICD-10-CM",()=>{
+ it("todos los códigos tienen formato OMS (categoría de 3 o subcategoría de 4 caracteres); ninguno de 5–7 caracteres",()=>{
+  const codes=searchIcd10("",1000).length?searchIcd10("",1000):[];void codes;
+  for(const q of["a","e","i","j","k","f","z","m","n","r","g","o"])for(const e of searchIcd10(q,1000))expect(e.code,e.code).toMatch(/^[A-Z]\d{2}(\.\d)?$/);
+  for(const cm of["E11.65","J45.909","K29.70","I25.10","I48.91","F17.210","Z00.00"])expect(isValidIcd10(cm),cm).toBe(false);
+  for(const who of["J45.9","K29.7","I25.1","I48.9","E11.2","Z00.0"])expect(isValidIcd10(who),who).toBe(true);
+ });
+});

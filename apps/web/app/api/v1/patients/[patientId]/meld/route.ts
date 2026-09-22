@@ -16,12 +16,13 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const inp=await readAnalyteInputs(tctx,patientId,[{analyte:"BILIRUBIN",maxAgeDays:MAX_AGE_DAYS.MELD},{analyte:"INR",maxAgeDays:MAX_AGE_DAYS.MELD},{analyte:"CREATININE",maxAgeDays:MAX_AGE_DAYS.MELD}],{coherenceHours:COHERENCE_HOURS.MELD});
   if(!inp.ok)return NextResponse.json({patientId,computable:false,...notComputable(inp)},{status:200});
   const bili=inp.values["BILIRUBIN"],inr=inp.values["INR"],creat=inp.values["CREATININE"];
-  const r=meldScore(bili!,inr!,creat!);
+  // Auditoría C-19: la diálisis se DECLARA (?dialysis=true|false); sin declarar, el resultado lo dice y no asume.
+  const q=new URL(req.url).searchParams.get("dialysis");const dialysis=q==="true"?true:q==="false"?false:undefined;
+  const r=meldScore(bili!,inr!,creat!,{dialysis:dialysis===true});
   if(!r)return NextResponse.json({patientId,computable:false,reason:"Valores inválidos"},{status:200});
-  return NextResponse.json({patientId,computable:true,meld:r.score,risk:r.risk,mortality90d:r.mortality90d,
-   // MELD clásico (UNOS 2002). NO es el MELD-Na ni el MELD 3.0 usados hoy para asignación de trasplante, y no recibe
-   // el dato de diálisis (≥2 sesiones/semana ⇒ creatinina = 4.0): en un paciente en diálisis SUBESTIMA el puntaje.
-   caveat:"MELD clásico: no es MELD-Na/MELD 3.0 y no considera diálisis (subestima en pacientes en terapia de reemplazo renal).",
+  return NextResponse.json({patientId,computable:true,meld:r.score,risk:r.risk,mortality90d:r.mortality90d,dialysis:dialysis??null,
+   // MELD clásico (UNOS 2002): pronóstico de gravedad. NO es el MELD-Na ni el MELD 3.0 que hoy asignan la prioridad de trasplante.
+   caveat:dialysis===undefined?"MELD clásico (pronóstico; NO es el MELD-Na/MELD 3.0 de asignación de trasplante). Diálisis NO declarada: si el paciente recibe ≥2 sesiones/semana el puntaje real es mayor (declare ?dialysis=true).":"MELD clásico (pronóstico; NO es el MELD-Na/MELD 3.0 de asignación de trasplante).",
    algorithm:{id:"MELD-UNOS-2002",version:"1"},inputs:provenance(inp.inputs),warnings:inp.warnings},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

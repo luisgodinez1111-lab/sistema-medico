@@ -26,11 +26,11 @@ try{
  await reg(phys,p1,"Ana López García",34,"FEMALE");
  await reg(phys,p2,"Carlos Mendoza",56,"MALE");
  await reg(phys,p3,"María Torres",28,"FEMALE");
- // p1: Diabetes(E11.9)+Hipertensión(I10); p2: Asma(J45.909)+Gastritis(K29.70); p3: Ansiedad(F41.9)
+ // p1: Diabetes(E11.9)+Hipertensión(I10); p2: Asma(J45.9)+Gastritis(K29.7); p3: Ansiedad(F41.9)
  const dm=await add(phys,p1,"E11.9");
  const htn=await add(phys,p1,"I10");
- const asma=await add(phys,p2,"J45.909");
- const gas=await add(phys,p2,"K29.70");
+ const asma=await add(phys,p2,"J45.9");
+ const gas=await add(phys,p2,"K29.7");
  const anx=await add(phys,p3,"F41.9");
  ok(dm.status===201&&asma.status===201&&anx.status===201,"ADD_201");
 
@@ -52,7 +52,7 @@ try{
  ok(byCode(gas.code)?.status==="RESOLVED"&&byCode(gas.code)?.statusLabel==="Resuelto","STATUS_RESOLVED");
  ok(byCode(asma.code)?.status==="CHRONIC"&&byCode(asma.code)?.statusLabel==="En seguimiento","STATUS_CHRONIC");
  ok(byCode(dm.code)?.status==="ACTIVE","STATUS_ACTIVE");
- // conteos por estado: 3 activos (E11.9,I10,F41.9), 1 en seguimiento (J45.909), 1 resuelto (K29.70)
+ // conteos por estado: 3 activos (E11.9,I10,F41.9), 1 en seguimiento (J45.9), 1 resuelto (K29.7)
  ok(b.byStatus.activos===3&&b.byStatus.enSeguimiento===1&&b.byStatus.resueltos===1,"STATUS_COUNTS");
  // conteos por categoría
  ok(b.byCategory.Endocrinológicos===1&&b.byCategory.Cardiovasculares===1&&b.byCategory.Psiquiátricos===1,"CATEGORY_COUNTS");

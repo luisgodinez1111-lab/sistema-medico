@@ -19,7 +19,9 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const readings=await Promise.all(NAMES.map(a=>latestAnalyteReading(tctx,patientId,a)));
   const pick=(...as:(typeof NAMES[number])[])=>verifyAnalyteReadings(as.map(a=>({analyte:a,maxAgeDays:MAX_AGE_DAYS.METABOLIC_PANEL})),as.map(a=>readings[NAMES.indexOf(a)]),{coherenceHours:COHERENCE_HOURS.METABOLIC_PANEL});
   const gAg=pick("SODIUM","CHLORIDE","BICARBONATE"),gCa=pick("CALCIUM","ALBUMIN"),gNa=pick("SODIUM","GLUCOSE"),gOsm=pick("SODIUM","GLUCOSE","BUN");
-  const ag=gAg.ok?anionGap(gAg.values["SODIUM"]!,gAg.values["CHLORIDE"]!,gAg.values["BICARBONATE"]!):undefined;
+  // C-22: la brecha se corrige por albúmina cuando hay una albúmina coherente con la misma extracción; si no, se declara sin corregir.
+  const gAgAlb=pick("SODIUM","CHLORIDE","BICARBONATE","ALBUMIN");
+  const ag=gAg.ok?anionGap(gAg.values["SODIUM"]!,gAg.values["CHLORIDE"]!,gAg.values["BICARBONATE"]!,gAgAlb.ok?gAgAlb.values["ALBUMIN"]:undefined):undefined;
   const cca=gCa.ok?correctedCalcium(gCa.values["CALCIUM"]!,gCa.values["ALBUMIN"]!):undefined;
   const cna=gNa.ok?correctedSodiumForGlucose(gNa.values["SODIUM"]!,gNa.values["GLUCOSE"]!):undefined;
   const osm=gOsm.ok?calculatedOsmolality(gOsm.values["SODIUM"]!,gOsm.values["GLUCOSE"]!,gOsm.values["BUN"]!):undefined;

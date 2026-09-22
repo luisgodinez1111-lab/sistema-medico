@@ -9,14 +9,20 @@ function round1(n:number):number{return Math.round(n*10)/10;}
 // aumentada (cetoacidosis, uremia, lactato, tóxicos). Puro. ----
 export type AnionGapStatus="HIGH"|"NORMAL"|"LOW";
 export type AnionGap=Readonly<{value:number;status:AnionGapStatus;interpretation:string}>;
-export function anionGap(sodium:number,chloride:number,bicarbonate:number):AnionGap|undefined{
+// Auditoría 2026-09-19 (C-22): la hipoalbuminemia BAJA la brecha y enmascara una acidosis de brecha aumentada. Con albúmina
+// (g/dL) se corrige (Figge): AG + 2.5·(4 − albúmina). Sin albúmina se informa la brecha cruda y se declara sin corregir.
+export type AnionGapEx=AnionGap&Readonly<{raw:number;albuminCorrected:boolean;albuminGdl?:number}>;
+export function anionGap(sodium:number,chloride:number,bicarbonate:number,albuminGdl?:number):AnionGapEx|undefined{
  if(![sodium,chloride,bicarbonate].every(Number.isFinite))return undefined;
- const value=round1(sodium-chloride-bicarbonate);
+ const raw=round1(sodium-chloride-bicarbonate);
+ const albuminCorrected=albuminGdl!==undefined&&Number.isFinite(albuminGdl)&&albuminGdl>0;
+ const value=albuminCorrected?round1(raw+2.5*(4-albuminGdl)):raw;
  let status:AnionGapStatus,interpretation:string;
  if(value>12){status="HIGH";interpretation="Brecha aniónica elevada: acidosis metabólica de brecha aumentada (cetoacidosis, uremia, lactato, tóxicos)";}
  else if(value<8){status="LOW";interpretation="Brecha aniónica baja (hipoalbuminemia, paraproteínas)";}
  else{status="NORMAL";interpretation="Brecha aniónica normal";}
- return{value,status,interpretation};
+ if(albuminCorrected)interpretation+=` (corregida por albúmina ${albuminGdl} g/dL; cruda ${raw})`;else interpretation+=" (sin corregir por albúmina: una hipoalbuminemia la subestima)";
+ return albuminCorrected?{value,status,interpretation,raw,albuminCorrected,albuminGdl:albuminGdl!}:{value,status,interpretation,raw,albuminCorrected};
 }
 
 // ---- Sodio corregido por glucemia (EPIC BY). La hiperglucemia arrastra agua al intravascular y DILUYE el

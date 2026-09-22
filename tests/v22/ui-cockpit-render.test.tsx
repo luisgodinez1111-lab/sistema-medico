@@ -68,8 +68,8 @@ vi.mock("../../apps/web/lib/session-client",()=>({
   if(path.includes("/api/v1/problems"))return{status:200,body:{
    items:[
     {problemId:"q1",patientId:"p1",patientName:"Ana López García",code:"E11.9",description:"Diabetes mellitus tipo 2",category:"Endocrinológicos",chronic:false,status:"ACTIVE",statusLabel:"Activo",recordedAt:"2026-09-15T00:00:00Z",registeredBy:"actor1"},
-    {problemId:"q2",patientId:"p2",patientName:"Carlos Mendoza",code:"J45.909",description:"Asma",category:"Respiratorios",chronic:true,status:"CHRONIC",statusLabel:"En seguimiento",recordedAt:"2026-09-05T00:00:00Z",registeredBy:"actor1"},
-    {problemId:"q3",patientId:"p3",patientName:"María Torres",code:"K29.70",description:"Gastritis",category:"Digestivos",chronic:false,status:"RESOLVED",statusLabel:"Resuelto",recordedAt:"2026-08-20T00:00:00Z",registeredBy:"actor1"},
+    {problemId:"q2",patientId:"p2",patientName:"Carlos Mendoza",code:"J45.9",description:"Asma",category:"Respiratorios",chronic:true,status:"CHRONIC",statusLabel:"En seguimiento",recordedAt:"2026-09-05T00:00:00Z",registeredBy:"actor1"},
+    {problemId:"q3",patientId:"p3",patientName:"María Torres",code:"K29.7",description:"Gastritis",category:"Digestivos",chronic:false,status:"RESOLVED",statusLabel:"Resuelto",recordedAt:"2026-08-20T00:00:00Z",registeredBy:"actor1"},
    ],total:3,byStatus:{activos:1,enSeguimiento:1,resueltos:1,inactivos:0},byCategory:{Endocrinológicos:1,Respiratorios:1,Digestivos:1},topPatients:[{name:"Ana López García",count:1},{name:"Carlos Mendoza",count:1}]}};
   if(path.includes("/api/v1/allergies"))return{status:200,body:{
    items:[

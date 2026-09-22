@@ -2162,7 +2162,7 @@ export default function Workspace(){
       <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Diagnósticos / Problemas</h3><span style={link} onClick={()=>setView("problemas")}>Ver historial →</span></div>
        <div style={{position:"relative"}}>
         <div style={{display:"flex",alignItems:"center",gap:9,border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 12px"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input value={cDxQuery} onChange={e=>{setCDxQuery(e.target.value);setCDxMsg(null);}} placeholder="Buscar CIE-10 o descripción…" style={{border:0,outline:"none",fontSize:13,fontFamily:UI,color:P.ink,width:"100%",background:"transparent"}}/></div>
-        {cDxQuery.trim().length>=2&&(()=>{const res=searchIcd10(cDxQuery.trim(),6);return <div style={{position:"absolute",left:0,right:0,top:"calc(100% + 4px)",background:P.white,border:`1px solid ${LINE}`,borderRadius:10,boxShadow:"0 8px 24px #1a1d2914",zIndex:20,overflow:"hidden"}}>{res.length?res.map(e=><div key={e.code} onClick={()=>void addConsultaProblem(e.code)} style={{display:"flex",gap:8,padding:"9px 12px",fontSize:12.5,cursor:cDxBusy?"default":"pointer",borderBottom:`1px solid #F4F6FB`,alignItems:"baseline"}}><b style={{color:P.purple,flex:"0 0 auto"}}>{e.code}</b><span style={{color:P.ink}}>{e.description}</span></div>):<div style={{padding:"10px 12px",fontSize:12.5,color:P.muted}}>Sin coincidencias en el catálogo CIE-10.</div>}</div>;})()}
+        {cDxQuery.trim().length>=2&&(()=>{const res=searchIcd10(cDxQuery.trim(),10);return <div style={{position:"absolute",left:0,right:0,top:"calc(100% + 4px)",background:P.white,border:`1px solid ${LINE}`,borderRadius:10,boxShadow:"0 8px 24px #1a1d2914",zIndex:20,overflow:"hidden"}}>{res.length?res.map(e=><div key={e.code} onClick={()=>void addConsultaProblem(e.code)} style={{display:"flex",gap:8,padding:"9px 12px",fontSize:12.5,cursor:cDxBusy?"default":"pointer",borderBottom:`1px solid #F4F6FB`,alignItems:"baseline"}}><b style={{color:P.purple,flex:"0 0 auto"}}>{e.code}</b><span style={{color:P.ink}}>{e.description}</span></div>):<div style={{padding:"10px 12px",fontSize:12.5,color:P.muted}}>Sin coincidencias en el catálogo CIE-10.</div>}</div>;})()}
        </div>
        {cDxMsg&&<div style={{marginTop:10,fontSize:12.5,color:cDxMsg.includes("✓")?"#1A7F43":P.muted,fontWeight:600}}>{cDxMsg}</div>}
        <div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>{(snap?.problems??[]).slice(0,4).map((c,i)=><span key={c} style={{display:"inline-flex",alignItems:"center",gap:8,background:"#F3F5FA",border:`1px solid ${LINE}`,borderRadius:9,padding:"6px 11px",fontSize:12.5,fontWeight:600}}>{c} {DX_LABEL(c)}{i===0&&<span style={{background:"#EEEBFD",color:"#6C5CF6",borderRadius:6,padding:"1px 7px",fontSize:10.5,fontWeight:700}}>Principal</span>}</span>)}{(snap?.problems??[]).length===0&&<span style={{fontSize:12.5,color:P.muted}}>Sin problemas activos. Busca un CIE-10 para agregar.</span>}</div>
@@ -2833,7 +2833,7 @@ export default function Workspace(){
       else setPfMsg("No se pudo guardar (estado "+r.status+").");
      }catch{setPfMsg("Error al guardar el problema.");}finally{setPfBusy(false);}
     };
-    const COMMON:[string,string][]=[["E11.9","Diabetes mellitus tipo 2"],["I10","Hipertensión esencial (primaria)"],["J06.9","Infección aguda de vías respiratorias superiores"],["J45.909","Asma, no especificada"],["K29.70","Gastritis, no especificada"],["F41.9","Trastorno de ansiedad generalizada"],["M54.5","Lumbalgia no especificada"],["N39.0","Infección de vías urinarias, sitio no especificado"]];
+    const COMMON:[string,string][]=[["E11.9","Diabetes mellitus tipo 2"],["I10","Hipertensión esencial (primaria)"],["J06.9","Infección aguda de vías respiratorias superiores"],["J45.9","Asma, no especificada"],["K29.7","Gastritis, no especificada"],["F41.9","Trastorno de ansiedad generalizada"],["M54.5","Lumbalgia no especificada"],["N39.0","Infección de vías urinarias, sitio no especificado"]];
     return <div style={{padding:"18px 24px 40px"}}>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
       <div style={{display:"flex",alignItems:"center",gap:14}}><button onClick={()=>setProbScreen("lista")} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 14px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,display:"flex",alignItems:"center",gap:6}}>← Volver</button><div><h1 style={{fontSize:26,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Nuevo problema</h1><p style={{color:P.muted,fontSize:13,margin:"3px 0 0"}}>Registra un nuevo problema de salud en el expediente del paciente.</p></div></div>
@@ -4353,12 +4353,12 @@ export default function Workspace(){
    <h2 style={{fontSize:18,margin:0}}>Lista de problemas</h2>
    <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Diagnósticos codificados en <b>CIE-10</b> (validados contra el catálogo; la descripción es canónica). PROD-011 + interoperabilidad NOM-024.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginTop:12}}>
-    <input style={input} list="icd10-list" value={probCode} onChange={e=>setProbCode(e.target.value.toUpperCase())} placeholder="Código CIE-10 (ej. E11, I10, J45.909)" />
+    <input style={input} list="icd10-list" value={probCode} onChange={e=>setProbCode(e.target.value.toUpperCase())} placeholder="Código CIE-10 (ej. E11, I10, J45.9)" />
     <button style={btn} disabled={busy!==""||!probCode} onClick={createProblem}>{busy==="pb-new"?"Añadiendo…":"Añadir problema"}</button>
    </div>
    <datalist id="icd10-list">
     <option value="E11">Diabetes mellitus tipo 2</option><option value="I10">Hipertensión esencial</option><option value="E66.9">Obesidad</option>
-    <option value="J45.909">Asma</option><option value="J44.9">EPOC</option><option value="N18.3">ERC estadio 3</option>
+    <option value="J45.9">Asma</option><option value="J44.9">EPOC</option><option value="N18.3">ERC estadio 3</option>
     <option value="F41.9">Ansiedad</option><option value="F32.9">Depresión</option><option value="M54.5">Lumbalgia</option><option value="I50.9">Insuficiencia cardíaca</option>
    </datalist>
    {problems.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
