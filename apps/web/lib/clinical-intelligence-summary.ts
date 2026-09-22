@@ -9,7 +9,7 @@ import{computeNEWS2}from"../../../packages/lab-reference/src";
 import{glycemicAssessment}from"../../../packages/glycemic/src";
 import{cha2ds2vasc}from"../../../packages/stroke-risk/src";
 import{fib4}from"../../../packages/liver-fibrosis/src";
-import{computeBMI,heightToMeters}from"../../../packages/anthropometrics/src";
+import{bmiFromVitals}from"../../../packages/anthropometrics/src";
 import{forecastImmunizations,forecastSummary}from"../../../packages/immunization-schedule/src";
 import{assembleFindings,summarize,type SummaryInputs,type Finding}from"../../../packages/clinical-summary/src";
 // EPIC BS — Reúne los datos del paciente (RLS-scoped) y computa los CDS deterministas; delega la priorización
@@ -41,7 +41,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  ]);
  const inp:{-readonly[K in keyof SummaryInputs]:SummaryInputs[K]}={openCriticalResults:openRes,openCriticalVitals:openVit};
  // NEWS2
- let sbp:number|undefined;const bp=vitals["BP"];if(bp){const m=/^(\d{2,3})/.exec(bp.trim());if(m)sbp=Number(m[1]);}
+ const sbp=vitals["BP"]?parseBp(vitals["BP"])?.systolic:undefined; // C-21: parser único
  // Auditoría C-09: NEWS2 solo en adultos; el O₂ suplementario y la conciencia no se registran como signos vitales -> el
  // resultado queda INCOMPLETE salvo que ya sea HIGH/MEDIUM con lo disponible (nunca "bajo" por datos ausentes).
  if(age>=16){const n2=computeNEWS2({resp:num(vitals["RESP"]),spo2:num(vitals["SPO2"]),temp:num(vitals["TEMP"]),hr:num(vitals["HR"]),sbp});
@@ -58,8 +58,8 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  // FIB-4
  if(liver){const fr=fib4(age,liver["AST"]!,liver["ALT"]!,liver["PLATELETS"]!);if(fr)inp.fib4={value:fr.value,risk:fr.risk};}
  // IMC
- const w=num(vitals["WEIGHT"]);const h=heightToMeters(num(vitals["HEIGHT"])??NaN);
- if(w!==undefined&&h!==undefined){const b=computeBMI(w,h);if(b)inp.bmi={category:b.category};}
+ const b=bmiFromVitals({value:vitals["WEIGHT"]},{value:vitals["HEIGHT"]}); // C-21: implementación única (unidad de talla inferida: latestVitalsByType no la trae)
+ if(b)inp.bmi={category:b.category};
  // Vacunas vencidas (solo pediatría tiene esquema aquí)
  // Auditoría C-10: el pronóstico ya distingue ventanas de edad (NOT_APPLICABLE no cuenta): vale para todas las edades.
  {const fc=forecastImmunizations(demo.birthDate,vaccines,asOf);inp.overdueVaccines=forecastSummary(fc).overdue;}

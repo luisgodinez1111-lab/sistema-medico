@@ -1,3 +1,5 @@
+import{parseBp}from"../../../../../../../../packages/bp-staging/src";
+import{bmiFromVitals}from"../../../../../../../../packages/anthropometrics/src";
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{patientObligations,patientVitals,analyteSeries,problemRegistry,activeMedicationDrugCodes,activeAllergySubstances,type VitalPoint}from"../../../../../../lib/clinical-runtime";
@@ -9,7 +11,7 @@ import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const OBL_ES:Record<string,string>={OPEN:"Pendiente",IN_PROGRESS:"En progreso",COMPLETED:"Completada",CANCELLED:"Cancelada"};
-function sys(ta:string):number|null{const m=/^(\d+)/.exec(ta.trim());return m?Number(m[1]):null;}
+const sys=(ta:string):number|null=>parseBp(ta)?.systolic??null; // C-21: parser único
 function avg(ns:number[]):number|null{return ns.length?Math.round(ns.reduce((a,b)=>a+b,0)/ns.length):null;}
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
@@ -27,11 +29,12 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   ]);
   // Agrupar vitales por toma (occurredAt) y construir series ascendentes.
   const byAt=new Map<string,Record<string,string>>();
-  for(const p of points as VitalPoint[]){const g=byAt.get(p.at)??{};g[p.vitalType]=p.value;byAt.set(p.at,g);}
+  for(const p of points as VitalPoint[]){const g=byAt.get(p.at)??{};g[p.vitalType]=p.value;if(p.vitalType==="HEIGHT")g["HEIGHT_UNIT"]=p.unit;byAt.set(p.at,g);}
   const ats=[...byAt.keys()].sort();
-  let lastHeight=0;for(const p of points as VitalPoint[]){if(p.vitalType==="HEIGHT"){lastHeight=Number(p.value)||lastHeight;}}
-  const recs=ats.map(at=>{const g=byAt.get(at)!;const w=Number(g.WEIGHT??0),h=Number(g.HEIGHT??lastHeight);
-   const imc=w&&h?Math.round(w/Math.pow(h/100,2)*10)/10:null;
+  // La talla cambia poco: si en una toma no se midió, se usa la última conocida (con su unidad). IMC por la implementación única (C-21).
+  let lastHeight:{value:string;unit:string|undefined}|undefined;for(const p of points as VitalPoint[]){if(p.vitalType==="HEIGHT")lastHeight={value:p.value,unit:p.unit};}
+  const recs=ats.map(at=>{const g=byAt.get(at)!;const h=g.HEIGHT!==undefined?{value:g.HEIGHT,unit:g.HEIGHT_UNIT}:lastHeight;
+   const imc=bmiFromVitals({value:g.WEIGHT},h)?.bmi??null;
    return{bp:g.BP?sys(g.BP):null,ta:g.BP??null,hr:g.HR?Number(g.HR):null,weight:g.WEIGHT?Number(g.WEIGHT):null,imc};});
   const bpS=recs.map(r=>r.bp).filter((x):x is number=>x!==null);
   const hrS=recs.map(r=>r.hr).filter((x):x is number=>x!==null);

@@ -1,3 +1,4 @@
+import{parseBp}from"../../../../../../../../packages/bp-staging/src";
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
@@ -21,7 +22,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const[vitals,inp]=await Promise.all([latestVitalsByType(tctx,patientId),readAnalyteInputs(tctx,patientId,[{analyte:"BUN",maxAgeDays:MAX_AGE_DAYS.ACUTE_INFECTION}])]);
   if(!inp.ok)return NextResponse.json({patientId,computable:false,...notComputable(inp)},{status:200});
   const bun:number|undefined=inp.values["BUN"];const resp=num(vitals["RESP"]);
-  let sys:number|undefined,dia:number|undefined;const bp=vitals["BP"];if(bp){const m=/^(\d{2,3})\s*\/\s*(\d{2,3})$/.exec(bp.trim());if(m){sys=Number(m[1]);dia=Number(m[2]);}}
+  const pb=vitals["BP"]?parseBp(vitals["BP"]):undefined;const sys=pb?.systolic,dia=pb?.diastolic; // C-21: parser único
   const missing:string[]=[];
   if(bun===undefined)missing.push("BUN");
   if(resp===undefined)missing.push("RESP");

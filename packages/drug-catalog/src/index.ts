@@ -81,27 +81,50 @@ export function checkInteractions(newDrugCode:string,activeDrugCodes:readonly st
 // EPIC BM — Ajuste/contraindicación renal por FUNCIÓN medida (eGFR). Complementa la contraindicación por
 // DIAGNÓSTICO (EPIC AY) con la función renal real. BLOCK si eGFR < umbral de contraindicación; CAUTION si
 // < umbral de precaución. Reutiliza las clases del catálogo. Umbrales de demostración (vademécum oficial aparte).
-export type RenalRule=Readonly<{blockBelow?:number;cautionBelow?:number;note:string}>;
+// Auditoría 2026-09-19 (C-15): había ajuste renal para 2 clases de 27 fármacos (rivaroxabán con TFG 15, espironolactona con
+// TFG 20 y enalapril con TFG 15 salían "OK"). Ahora cada clase del catálogo declara su regla, y un ingrediente puede
+// sobrescribir la de su clase. `noAdjustment` = revisado y sin ajuste renal (distinto de "sin regla"). Umbrales de ficha
+// técnica / KDIGO (uso ambulatorio). PENDIENTE de validación clínica.
+export type RenalRule=Readonly<{blockBelow?:number;cautionBelow?:number;noAdjustment?:boolean;note:string}>;
 const RENAL_RULES_BY_CLASS:Record<string,RenalRule>={
  BIGUANIDE:{blockBelow:30,cautionBelow:45,note:"Metformina: contraindicada si TFG<30 (acidosis láctica); ajustar/vigilar entre 30–45"},
- NSAID:{blockBelow:30,note:"AINE: evitar si TFG<30 (nefrotoxicidad / deterioro renal)"},
+ NSAID:{blockBelow:30,cautionBelow:60,note:"AINE: evitar si TFG<30 (nefrotoxicidad); entre 30–60 ciclo corto, dosis mínima y vigilar creatinina"},
+ ANTICOAGULANT:{noAdjustment:true,note:"Antagonistas de vitamina K: sin ajuste renal (guiar por INR)"},
+ ACE_INHIBITOR:{cautionBelow:30,note:"IECA con TFG<30: iniciar con dosis baja, vigilar potasio y creatinina a la semana"},
+ ARB:{cautionBelow:30,note:"ARA-II con TFG<30: iniciar con dosis baja, vigilar potasio y creatinina"},
+ POTASSIUM_SPARING:{blockBelow:30,cautionBelow:50,note:"Espironolactona: evitar si TFG<30 (hiperkalemia grave); entre 30–50 dosis reducida y potasio a la semana"},
+ SULFONAMIDE:{blockBelow:15,cautionBelow:30,note:"TMP-SMX: evitar si TFG<15; entre 15–30 mitad de dosis; riesgo de hiperkalemia y elevación de creatinina"},
+ PENICILLIN:{cautionBelow:30,note:"Penicilinas con TFG<30: alargar el intervalo (p. ej. amoxicilina c/12–24 h)"},
+ CEPHALOSPORIN:{cautionBelow:50,note:"Cefalosporinas orales con TFG<50: reducir dosis o alargar intervalo"},
+ MACROLIDE:{noAdjustment:true,note:"Azitromicina: sin ajuste renal"},
+ LINCOSAMIDE:{noAdjustment:true,note:"Clindamicina: sin ajuste renal"},
+ ANALGESIC_ANTIPYRETIC:{noAdjustment:true,note:"Paracetamol: sin ajuste por TFG (intervalo ≥6 h en insuficiencia grave)"},
+ SSRI:{noAdjustment:true,note:"ISRS: sin ajuste renal relevante"},
+ OPIOID:{cautionBelow:30,note:"Tramadol con TFG<30: intervalo ≥12 h, máximo 200 mg/día; evitar liberación prolongada"},
+};
+const RENAL_RULES_BY_INGREDIENT:Record<string,RenalRule>={
+ rivaroxaban:{blockBelow:15,cautionBelow:50,note:"Rivaroxabán: evitar si TFG<15; entre 15–49 reducir a 15 mg/día (fibrilación auricular)"},
+ ceftriaxona:{noAdjustment:true,note:"Ceftriaxona: sin ajuste renal (vigilar si hay insuficiencia hepática concomitante)"},
+ lisinopril:{cautionBelow:30,note:"Lisinopril con TFG<30: iniciar 2.5–5 mg/día; vigilar potasio y creatinina"},
 };
 // "OK" SOLO si existe una regla renal para el fármaco y el eGFR la supera. Sin regla en el catálogo => "NOT_COVERED";
 // fármaco fuera de catálogo => "NOT_EVALUATED". Ninguno de los dos significa "seguro" (auditoría 2026-09-19, C-03).
 export type RenalDosing=Readonly<{action:"BLOCK"|"CAUTION"|"OK"|"NOT_COVERED"|"NOT_EVALUATED";note?:string;threshold?:number;drugClass?:string;reason?:"DRUG_NOT_IN_CATALOG"|"NO_RENAL_RULE"}>;
 // ¿El catálogo tiene alguna regla renal para este fármaco? (para distinguir "sin regla" de "regla superada").
 export function renalRuleForDrug(drugCode:string):(RenalRule&{drugClass:string})|undefined{
- const d=resolveDrug(drugCode);return d?renalRuleFor(d.classes)??undefined:undefined;
+ const d=resolveDrug(drugCode);return d?renalRuleFor(d.classes,d.ingredient)??undefined:undefined;
 }
 // ¿La función renal (eGFR) contraindica o exige precaución para este fármaco? Devuelve la acción más severa.
 export function checkRenalDosing(drugCode:string,egfr:number):RenalDosing{
  const d=resolveDrug(drugCode);if(!d)return{action:"NOT_EVALUATED",reason:"DRUG_NOT_IN_CATALOG",note:"Fármaco fuera del catálogo: ajuste renal NO evaluado"};
- if(!renalRuleFor(d.classes))return{action:"NOT_COVERED",reason:"NO_RENAL_RULE",note:"El catálogo no tiene regla renal para este fármaco: ajuste renal NO evaluado"};
- let best:RenalDosing={action:"OK"};
- for(const cl of d.classes){
-  const r=RENAL_RULES_BY_CLASS[cl];if(!r)continue;
-  if(r.blockBelow!==undefined&&egfr<r.blockBelow)return{action:"BLOCK",note:r.note,threshold:r.blockBelow,drugClass:cl};
-  if(r.cautionBelow!==undefined&&egfr<r.cautionBelow&&best.action==="OK")best={action:"CAUTION",note:r.note,threshold:r.cautionBelow,drugClass:cl};
+ // La regla del INGREDIENTE manda sobre la de su clase (rivaroxabán ≠ warfarina aunque ambos sean ANTICOAGULANT).
+ const ri=RENAL_RULES_BY_INGREDIENT[d.ingredient];
+ const rules:(RenalRule&{drugClass:string})[]=ri?[{...ri,drugClass:d.ingredient}]:d.classes.flatMap(cl=>{const r=RENAL_RULES_BY_CLASS[cl];return r?[{...r,drugClass:cl}]:[];});
+ if(rules.length===0)return{action:"NOT_COVERED",reason:"NO_RENAL_RULE",note:"El catálogo no tiene regla renal para este fármaco: ajuste renal NO evaluado"};
+ let best:RenalDosing=rules.every(r=>r.noAdjustment)?{action:"OK",note:rules[0]!.note,drugClass:rules[0]!.drugClass}:{action:"OK",drugClass:rules[0]!.drugClass};
+ for(const r of rules){
+  if(r.blockBelow!==undefined&&egfr<r.blockBelow)return{action:"BLOCK",note:r.note,threshold:r.blockBelow,drugClass:r.drugClass};
+  if(r.cautionBelow!==undefined&&egfr<r.cautionBelow&&best.action==="OK")best={action:"CAUTION",note:r.note,threshold:r.cautionBelow,drugClass:r.drugClass};
  }
  return best;
 }
@@ -388,12 +411,14 @@ const CATEGORY_BY_CLASS:Record<string,string>={PENICILLIN:"Antibiótico (penicil
 export type DrugCatalogItem=Readonly<{code:string;ingredient:string;classes:readonly string[];category:string;monitoring:readonly MonitoringRule[];renal:RenalRule&{drugClass:string}|null}>;
 // Categoría del fármaco = etiqueta de su primera clase con categoría conocida (o "Otros").
 function categoryFor(classes:readonly string[]):string{for(const c of classes){const l=CATEGORY_BY_CLASS[c];if(l)return l;}return"Otros";}
-function renalRuleFor(classes:readonly string[]):(RenalRule&{drugClass:string})|null{for(const c of classes){const r=RENAL_RULES_BY_CLASS[c];if(r)return{...r,drugClass:c};}return null;}
+function renalRuleFor(classes:readonly string[],ingredient?:string):(RenalRule&{drugClass:string})|null{
+ if(ingredient){const ri=RENAL_RULES_BY_INGREDIENT[ingredient];if(ri)return{...ri,drugClass:ingredient};}
+ for(const c of classes){const r=RENAL_RULES_BY_CLASS[c];if(r)return{...r,drugClass:c};}return null;}
 export function drugCatalog():DrugCatalogItem[]{
  const seen=new Set<string>();const out:DrugCatalogItem[]=[];
  for(const[code,entry]of Object.entries(DRUGS)){
   if(seen.has(entry.ingredient))continue;seen.add(entry.ingredient);
-  out.push({code,ingredient:entry.ingredient,classes:entry.classes,category:categoryFor(entry.classes),monitoring:monitoringFor(code),renal:renalRuleFor(entry.classes)});
+  out.push({code,ingredient:entry.ingredient,classes:entry.classes,category:categoryFor(entry.classes),monitoring:monitoringFor(code),renal:renalRuleFor(entry.classes,entry.ingredient)}); // C-15: la regla del ingrediente manda
  }
  return out.sort((a,b)=>a.ingredient.localeCompare(b.ingredient,"es"));
 }

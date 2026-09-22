@@ -1,3 +1,4 @@
+import{bmiFromVitals}from"../../../../../../../../packages/anthropometrics/src";
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{problemRegistry,carePlanGoals,activeMedicationDrugCodes,activeAllergySubstances,latestResultValueForAnalyte,patientVitals,type VitalPoint}from"../../../../../../lib/clinical-runtime";
@@ -12,6 +13,7 @@ export const dynamic="force-dynamic";
 const PROB_ES:Record<string,string>={ACTIVE:"Activo",CHRONIC:"En seguimiento",RESOLVED:"Resuelto",INACTIVE:"Inactivo"};
 const GOAL_ES:Record<string,string>={PROPOSED:"Propuesta",ACTIVE:"Activa",ON_HOLD:"En pausa",ACHIEVED:"Lograda",CANCELLED:"Cancelada"};
 function latestOf(points:VitalPoint[],type:string):string|null{const p=points.find(x=>x.vitalType===type);return p?p.value:null;}
+function latestUnitOf(points:VitalPoint[],type:string):string|undefined{return points.find(x=>x.vitalType===type)?.unit;}
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
@@ -28,8 +30,8 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const problems=allProblems.filter(p=>p.patientId===patientId).map(p=>({code:p.code,description:p.description,status:p.status,statusLabel:PROB_ES[p.status]??"Activo"}));
   const activeProblems=problems.filter(p=>p.status==="ACTIVE"||p.status==="CHRONIC").length;
   const points=vitals as VitalPoint[];
-  const bp=latestOf(points,"BP"),weight=latestOf(points,"WEIGHT"),height=latestOf(points,"HEIGHT");
-  const imc=weight&&height&&Number(height)>0?String(Math.round(Number(weight)/Math.pow(Number(height)/100,2)*10)/10):null;
+  const bp=latestOf(points,"BP"),weight=latestOf(points,"WEIGHT"),height=latestOf(points,"HEIGHT"),heightUnit=latestUnitOf(points,"HEIGHT");
+  const imc=(()=>{const b=bmiFromVitals({value:weight},{value:height,unit:heightUnit});return b?String(b.bmi):null;})(); // C-21: IMC único
   return NextResponse.json({
    counts:{problems:activeProblems,medications:meds.length,allergies:allergies.length},
    problems,

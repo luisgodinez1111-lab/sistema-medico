@@ -94,8 +94,9 @@ export function evaluatePrescriptionSafety(i:PrescriptionSafetyInput):Prescripti
 
  // 6) Dosis-techo absoluta (mg/día)
  if(!drug)push("doseCeiling","NOT_EVALUATED","Dosis máxima NO evaluada (fármaco fuera de catálogo).","DRUG_NOT_IN_CATALOG");
- else{const dc=checkDoseCeiling(drug.ingredient,i.dose,i.frequency);
-  if(dc.checked)push("doseCeiling",dc.exceeded?"BLOCKED":"PASSED",dc.exceeded?`${dc.computedMgPerDay} mg/día excede el máximo ${dc.maxMgPerDay} mg/día`:`${dc.computedMgPerDay} mg/día · dentro del máximo ${dc.maxMgPerDay} mg/día`);
+ else{const dc=checkDoseCeiling(drug.ingredient,i.dose,i.frequency,i.drugCode); // C-15: "2 tab" se acota con la concentración del código
+  if(dc.checked)push("doseCeiling",dc.exceeded?"BLOCKED":"PASSED",`${dc.exceeded?`${dc.computedMgPerDay} mg/día excede el máximo ${dc.maxMgPerDay} mg/día`:`${dc.computedMgPerDay} mg/día · dentro del máximo ${dc.maxMgPerDay} mg/día`}${dc.derivedFromUnits?" (mg calculados a partir de la concentración del código)":""}`);
+  else if(dc.noCeiling)push("doseCeiling","NOT_APPLICABLE","Sin tope diario fijo: se dosifica por objetivo terapéutico o vía hospitalaria (revisado)");
   else if(dc.maxMgPerDay===undefined)push("doseCeiling","NOT_COVERED","El catálogo no tiene dosis máxima para este fármaco: NO evaluada.","NO_RULE_IN_CATALOG");
   else push("doseCeiling","NOT_EVALUATED",`Dosis o frecuencia no interpretables (p. ej. "tab", "PRN"): máximo ${dc.maxMgPerDay} mg/día NO verificado.`,"DOSE_NOT_PARSEABLE");}
 

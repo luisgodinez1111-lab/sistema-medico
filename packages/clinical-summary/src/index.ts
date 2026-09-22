@@ -26,8 +26,9 @@ export function assembleFindings(i:SummaryInputs):Finding[]{
   else if(i.news2.band==="MEDIUM")f.push({domain:"deterioro",severity:"WARNING",summary:`NEWS2 ${i.news2.score}${i.news2.missing?.length?"+":""} (medio): vigilancia estrecha`});
   // Auditoría C-09: un NEWS2 incompleto NO es "riesgo bajo"; se dice qué falta.
   else if(i.news2.band==="INCOMPLETE")f.push({domain:"deterioro",severity:"INFO",summary:`NEWS2 incompleto (falta: ${(i.news2.missing??[]).join(", ")}): no se puede afirmar riesgo bajo`});}
- if(i.egfr){const s=i.egfr.stage;if(s==="G5"||s==="G4")f.push({domain:"renal",severity:"WARNING",summary:`ERC ${s} (TFG ${i.egfr.egfr}): ajustar fármacos por función renal`});
-  else if(s==="G3a"||s==="G3b")f.push({domain:"renal",severity:"WARNING",summary:`ERC ${s} (TFG ${i.egfr.egfr}): vigilar dosis renales`});}
+ // Auditoría C-22: una creatinina da una categoría G PUNTUAL; "ERC" exige cronicidad (≥ 90 días), que aquí no se conoce.
+ if(i.egfr){const s=i.egfr.stage;if(s==="G5"||s==="G4")f.push({domain:"renal",severity:"WARNING",summary:`TFG ${i.egfr.egfr} (${s}, puntual): ajustar fármacos por función renal y confirmar cronicidad`});
+  else if(s==="G3a"||s==="G3b")f.push({domain:"renal",severity:"WARNING",summary:`TFG ${i.egfr.egfr} (${s}, puntual): vigilar dosis renales y confirmar cronicidad`});}
  if(i.glycemic){if(i.glycemic.category==="POOR")f.push({domain:"glucémico",severity:"WARNING",summary:i.glycemic.label});
   else if(i.glycemic.category==="DIABETES_RANGE")f.push({domain:"glucémico",severity:"WARNING",summary:i.glycemic.label});
   else if(i.glycemic.category==="ABOVE_TARGET"||i.glycemic.category==="PREDIABETES")f.push({domain:"glucémico",severity:"INFO",summary:i.glycemic.label});}

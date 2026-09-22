@@ -1,3 +1,4 @@
+import { parseBp } from "../../bp-staging/src"; // C-21: único parser de presión arterial del repo
 // EPIC AQ + AN — Rangos de referencia clínicos (PROFUNDIDAD del eje C / CDS).
 // Deriva el estado clínico (NORMAL/ABNORMAL/CRITICAL) y el flag `critical` del VALOR real, en vez de
 // confiar en un booleano del cliente. Alimenta los closed-loops de resultados críticos (Zero Lost
@@ -248,8 +249,8 @@ export const VITAL_PLAUSIBLE: Readonly<Record<string, readonly [number, number]>
 export function vitalPlausible(vitalType: string, value: string): { ok: true } | { ok: false; message: string } {
   const t = vitalType.trim().toUpperCase();
   if (t === "BP") {
-    const m = /^(\d{2,3})\s*\/\s*(\d{2,3})$/.exec(String(value).trim()); if (!m) return { ok: false, message: "Formato de presión no reconocido (esperado S/D)" };
-    const s = Number(m[1]), d = Number(m[2]); const [sl, sh] = VITAL_PLAUSIBLE["BP_SYS"]!, [dl, dh] = VITAL_PLAUSIBLE["BP_DIA"]!;
+    const pb = parseBp(String(value)); if (!pb) return { ok: false, message: "Formato de presión no reconocido (esperado S/D)" };
+    const s = pb.systolic, d = pb.diastolic; const [sl, sh] = VITAL_PLAUSIBLE["BP_SYS"]!, [dl, dh] = VITAL_PLAUSIBLE["BP_DIA"]!;
     if (s < sl || s > sh || d < dl || d > dh || d >= s) return { ok: false, message: `Presión ${s}/${d} no es plausible (sistólica ${sl}–${sh}, diastólica ${dl}–${dh}, diastólica < sistólica)` };
     return { ok: true };
   }
@@ -283,8 +284,8 @@ export function classifyVital(vitalType: string, value: string, ctx: VitalContex
   const band = bandFor(ctx.ageYears); const pediatric = ctx.ageYears !== undefined && Number.isFinite(ctx.ageYears) && ctx.ageYears < 13;
   switch (t) {
     case "BP": {
-      const m = /^(\d{2,3})\s*\/\s*(\d{2,3})$/.exec(String(value).trim())!;
-      const s = Number(m[1]), d = Number(m[2]);
+      const pb = parseBp(String(value))!; // plausibilidad ya verificó el formato
+      const s = pb.systolic, d = pb.diastolic;
       if (pediatric) {
         const a = ctx.ageYears!; const hypo = a < 1 ? 70 : Math.min(90, 70 + 2 * Math.floor(a)); // PALS: <1 a 70; 1–10 a 70+2·edad; ≥10 a 90
         if (s < hypo) return crit(s < hypo - 15 ? "CRITICAL" : "ABNORMAL", s < hypo - 15 ? `Hipotensión severa para la edad (sistólica < ${hypo})` : `Hipotensión para la edad (sistólica < ${hypo})`, { ageBand: band.label });

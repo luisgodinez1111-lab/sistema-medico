@@ -38,7 +38,7 @@ export async function handleMedicationProposal(req:Request):Promise<Response>{
   if(!v.ok)throw new ClinicalError("VALIDATION_ERROR",`Orden de medicación no válida: ${v.errors.join("; ")}`,{errors:v.errors});
   // EPIC AZ (profundidad/seguridad): tope de dosis máxima diaria — atrapa sobredosis (dose ceiling).
   const ing=resolveDrug(b.drugCode)?.ingredient;
-  if(ing){const dc=checkDoseCeiling(ing,b.dose,b.frequency);
+  if(ing){const dc=checkDoseCeiling(ing,b.dose,b.frequency,b.drugCode); // C-15: "2 tab" se acota con la concentración del código
    if(dc.checked&&dc.exceeded)throw new ClinicalError("SAFETY_BLOCKED",`Dosis diaria excede el máximo de ${ing}: ${dc.computedMgPerDay}mg/día > ${dc.maxMgPerDay}mg/día. Reduzca la dosis o la frecuencia (o modifique con justificación clínica).`,{computedMgPerDay:dc.computedMgPerDay,maxMgPerDay:dc.maxMgPerDay});
    // EPIC BD (profundidad/seguridad pediátrica): en peso pediátrico, valida mg/kg/día (el ceiling absoluto no protege a un niño).
    const w=await patientWeightKg(ctx,b.patientId);

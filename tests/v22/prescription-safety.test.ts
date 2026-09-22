@@ -18,9 +18,9 @@ describe("evaluador único de seguridad de prescripción",()=>{
   for(const id of["catalog","interaction","duplicate","contraindication","doseCeiling","renal"] as const)expect(st(e,id)).toBe("NOT_EVALUATED");
   expect(e.barriers.some(b=>b.status==="PASSED"&&b.id!=="order")).toBe(false); // ninguna barrera clínica "pasó"
  });
- it("fármaco en catálogo SIN regla renal -> NOT_COVERED (gris), no 'OK'; no fuerza confirmación",()=>{
+ it("amoxicilina con TFG 10 -> CAUTION renal (C-15: antes 'sin regla'); no fuerza confirmación pero el veredicto es REVIEW",()=>{
   const e=evaluatePrescriptionSafety({...base,drugCode:"amoxicilina-500",dose:"500mg",frequency:"c/8h",egfr:10});
-  expect(st(e,"renal")).toBe("NOT_COVERED");expect(e.notCovered).toContain("renal");expect(e.requiresAcknowledgement).toBe(false);
+  expect(st(e,"renal")).toBe("CAUTION");expect(e.verdict).toBe("REVIEW");expect(e.requiresAcknowledgement).toBe(false);
  });
  it("fármaco CON regla renal y paciente SIN eGFR -> NOT_EVALUATED y confirmación",()=>{
   const e=evaluatePrescriptionSafety({...base,drugCode:"metformina-850",dose:"850mg",frequency:"c/12h",egfr:undefined});
@@ -38,8 +38,8 @@ describe("evaluador único de seguridad de prescripción",()=>{
   const e=evaluatePrescriptionSafety({...base,drugCode:"paracetamol",dose:"500mg",frequency:"c/6h",weightKg:10,ageYears:2});
   expect(st(e,"pediatricDose")).toBe("BLOCKED");expect(e.verdict).toBe("BLOCK");
  });
- it("dosis no interpretable ('2 tab') con techo conocido -> NOT_EVALUATED, no 'OK'",()=>{
-  const e=evaluatePrescriptionSafety({...base,dose:"2 tab"});
+ it("dosis en tabletas SIN concentración en el código ('2 tab' de 'ibuprofeno') -> NOT_EVALUATED, no 'OK'",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"ibuprofeno",dose:"2 tab"});
   expect(["NOT_EVALUATED","BLOCKED"]).toContain(st(e,"doseCeiling")); // si la orden es inválida, además bloquea por formato
   expect(st(e,"doseCeiling")).not.toBe("PASSED");
  });
@@ -89,5 +89,20 @@ describe("interacciones y factores del paciente en el evaluador (auditoría C-17
  it("paciente de 78 años + AINE -> CAUTION por adulto mayor (Beers), no 'sin interacciones'",()=>{
   const e=evaluatePrescriptionSafety({...base,ageYears:78});
   expect(st(e,"interaction")).toBe("CAUTION");expect(e.barriers.find(b=>b.id==="interaction")?.detail).toMatch(/Adulto mayor/);
+ });
+});
+describe("techos de dosis (auditoría C-15)",()=>{
+ it("'2 tab' de ibuprofeno-400 c/6h = 3200 mg/día: se acota con la concentración del código (antes: NO evaluado)",()=>{
+  const e=evaluatePrescriptionSafety({...base,dose:"2 tab",frequency:"c/6h"});
+  expect(st(e,"doseCeiling")).toBe("PASSED");expect(e.barriers.find(b=>b.id==="doseCeiling")?.detail).toMatch(/3200 mg\/día.*concentración/);
+  expect(st(evaluatePrescriptionSafety({...base,dose:"3 tab",frequency:"c/6h"}),"doseCeiling")).toBe("BLOCKED"); // 4800 > 3200
+ });
+ it("warfarina: sin tope fijo (por INR) -> NOT_APPLICABLE revisado, no 'sin regla'",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"warfarina-5",dose:"5mg",frequency:"c/24h"});
+  expect(st(e,"doseCeiling")).toBe("NOT_APPLICABLE");
+ });
+ it("'PRN' sigue sin poder acotarse: NOT_EVALUATED (exige confirmación), nunca OK",()=>{
+  const e=evaluatePrescriptionSafety({...base,frequency:"PRN"});
+  expect(["NOT_EVALUATED","BLOCKED"]).toContain(st(e,"doseCeiling"));expect(st(e,"doseCeiling")).not.toBe("PASSED");
  });
 });

@@ -4,6 +4,7 @@ import{getStoredSession,apiRequest,apiUpload,apiDelete,apiDownload,logout as ses
 import{summarizePatient}from"../../../../packages/patient-summary/src";
 import{primitive,typography}from"../../../../packages/design-system/src";
 import{labReferenceRanges,acceptedUnitsOf,canonicalUnitOf}from"../../../../packages/lab-reference/src";
+import{parseBp}from"../../../../packages/bp-staging/src";
 import{drugCatalog,interactionRules,type DrugCatalogItem}from"../../../../packages/drug-catalog/src";
 import{searchIcd10}from"../../../../packages/terminology/src";
 // EPIC K — Espacio de trabajo clínico. Consume los endpoints ya probados con la sesión autenticada.
@@ -96,7 +97,7 @@ const CFG_SCHEDULE:ScheduleRow[]=["Lunes","Martes","Miércoles","Jueves","Vierne
 type CiFinding=Readonly<{domain:string;severity:string;summary:string}>;
 type CiSnap=Readonly<{registered:boolean;problems?:string[];allergies?:string[];labs?:{hba1c?:number;egfr?:number};findings?:CiFinding[];demographics?:{age:number;sex:string}}>;
 type ReportsSnap=Readonly<{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;description:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;label:string;count:number;pct:number}[];topProcedures:{detail:string;count:number;pct:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[];appointmentsTotal:number;appointmentsByType:{type:string;label:string;count:number;pct:number}[];qualityIndicators:{key:string;label:string;numerator:number;denominator:number;pct:number;target:number;direction:"higher"|"lower";met:boolean;computable:boolean;note:string}[]}>;
-const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis"};
+const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis",Preventive:"Cuidado preventivo"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
 const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
  const m:[string,string][]=[["N18.3","ERC G3a"],["N18.4","ERC G3b"],["N18.5","ERC G4"],["N18.6","ERC G5"],["N18","ERC"],["I10","HTA"],["E11","DM2"],["E10","DM1"],["E78","Dislipidemia"],["I50","IC"],["I48","FA"],["J44","EPOC"],["J45","Asma"],["I25","Cardiopatía isq."],["E66","Obesidad"],["M15","Osteoartrosis"],["M17","Gonartrosis"],["F32","Depresión"],["K21","ERGE"]];
@@ -748,7 +749,9 @@ export default function Workspace(){
     setTl(known(r.status)?((r.body["items"] as TL[])??[]):r.status===404?[]:null);
     const g=await apiRequest(`/api/v1/patients/${patientId}/care-gaps`,{method:"GET"});
     if(cancelled)return;
-    setGaps(known(g.status)?((g.body["gaps"] as Gap[])??[]):g.status===404?[]:null);
+    // Auditoría C-20: además de los pendientes de flujo, las brechas de cuidado PREVENTIVO (por condición y edad).
+    const preventive=((g.body["preventive"] as{code:string;label:string;priority:Gap["priority"]}[]|undefined)??[]).map(x=>({aggregateType:"Preventive",aggregateId:x.code,code:x.code,label:x.label,priority:x.priority}));
+    setGaps(known(g.status)?[...((g.body["gaps"] as Gap[])??[]),...preventive]:g.status===404?[]:null);
     const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET"});
     if(cancelled)return;
     setSnap(known(sp.status)&&sp.body["registered"]?(sp.body as unknown as Snap):null);
@@ -3280,7 +3283,7 @@ export default function Workspace(){
      <div style={{...card2,padding:18}}><div style={sec}>{secIco(P.green,"M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11")}Objetivos del plan</div>{goals.length===0?<div style={{fontSize:12.5,color:P.muted}}>{cpLoaded?"Sin metas registradas. Usa «+ Nueva meta».":patientId?"Cargando…":"Selecciona un paciente."}</div>:goals.map((g,i)=>{const done=g.statusLabel==="Lograda";return <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0"}}><span style={{width:18,height:18,borderRadius:"50%",border:done?"0":"1.8px solid #C7CCE0",background:done?"#16A66A":"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:11,flex:"0 0 auto"}}>{done?"✓":""}</span><span style={{flex:1,fontSize:13.5,color:done?P.muted:P.ink,textDecoration:done?"line-through":"none"}}>{g.goal}</span><span style={estSty(g.statusLabel)}>{g.statusLabel}</span></div>;})}</div>
      <div style={{...card2,padding:18}}><div style={sec}>{secIco(P.blue,"M4 19V5M4 19h16M8 15l3-4 3 2 4-6")}Metas y métricas</div>{(!hba1c&&!bp&&!weight&&!imc)?<div style={{fontSize:12.5,color:P.muted}}>Sin métricas registradas para este paciente. Se derivan de resultados y signos vitales.</div>:<>
       {hba1c&&metric("HbA1c","Meta < 7%",hba1c,"%",Number(hba1c)<7)}
-      {bp&&metric("Presión arterial","Meta < 130/80",bp,"",Number((bp.split("/")[0])||0)<130)}
+      {bp&&metric("Presión arterial","Meta < 130/80",bp,"",(parseBp(bp)?.systolic??999)<130)}
       {weight&&metric("Peso","Seguimiento",weight," kg",false)}
       {imc&&metric("IMC","Meta < 25",imc,"",Number(imc)<25)}
      </>}</div>
@@ -3989,7 +3992,7 @@ export default function Workspace(){
        {vcard("Presión arterial",bp,"mmHg",hr?`FC ${hr} lpm`:"")}
        {vcard("Glucosa",snap.labs.glucose,"mg/dL","")}
        {vcard("HbA1c",snap.labs.hba1c,"%",snap.labs.hba1c!==undefined?(snap.labs.hba1c<7?"En meta (<7%)":"Sobre meta"):"",snap.labs.hba1c!==undefined&&snap.labs.hba1c>=7)}
-       {vcard("TFG (eGFR)",snap.labs.egfr,"mL/min",snap.labs.egfrStage?`ERC ${snap.labs.egfrStage}`:"",!!snap.labs.egfrStage&&snap.labs.egfrStage!=="G1"&&snap.labs.egfrStage!=="G2")}
+       {vcard("TFG (eGFR)",snap.labs.egfr,"mL/min",snap.labs.egfrStage?`TFG ${snap.labs.egfrStage} (puntual)`:"",!!snap.labs.egfrStage&&snap.labs.egfrStage!=="G1"&&snap.labs.egfrStage!=="G2")}
       </div>
       <div style={{fontSize:13,fontWeight:700,margin:"18px 0 8px"}}>Problemas activos</div>
       {snap.problems.length?<div style={{display:"flex",flexDirection:"column",gap:6}}>{snap.problems.slice(0,6).map(c=><div key={c} style={{display:"flex",alignItems:"center",gap:10,fontSize:13.5}}><span style={{width:7,height:7,borderRadius:"50%",background:P.blue,flex:"0 0 auto"}}/>{DX_LABEL(c)} <span style={mono}>{c}</span></div>)}</div>:<div style={{fontSize:13,color:P.muted}}>Sin problemas activos.</div>}
@@ -4240,7 +4243,7 @@ export default function Workspace(){
   <section className="span2" style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
     <div><h2 style={{fontSize:18,margin:0}}>Prescripción segura</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Verifica antes de prescribir. Previene errores, protege al paciente. Determinista, sin IA generativa.</p></div>
-    {snap?.labs.egfr!==undefined&&<span style={{fontSize:12,color:P.muted}}>eGFR paciente: <b>{snap?.labs.egfr} mL/min</b>{snap?.labs.egfrStage?` · ERC ${snap.labs.egfrStage}`:""}</span>}
+    {snap?.labs.egfr!==undefined&&<span style={{fontSize:12,color:P.muted}}>eGFR paciente: <b>{snap?.labs.egfr} mL/min</b>{snap?.labs.egfrStage?` · categoría ${snap.labs.egfrStage} (una creatinina: no confirma ERC)`:""}</span>}
    </div>
    <div className="mos-rx-form">
     <input style={input} value={rxDrug} onChange={e=>{setRxDrug(e.target.value);setRxCheck(null);}} placeholder="Buscar medicamento (ej. metformina, losartan)" />

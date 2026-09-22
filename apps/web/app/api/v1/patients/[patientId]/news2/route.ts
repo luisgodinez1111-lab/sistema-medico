@@ -1,3 +1,4 @@
+import{parseBp}from"../../../../../../../../packages/bp-staging/src";
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{computeNEWS2,type News2Params}from"../../../../../../../../packages/lab-reference/src";
@@ -27,7 +28,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const avpu=q.get("avpu")?.toUpperCase();const consciousness=avpu&&["A","V","P","U"].includes(avpu)?avpu:undefined;
   const vitals=await latestVitalsByType(tctx,patientId);
   // Presión: extraer la sistólica de "S/D".
-  let sbp:number|undefined;const bp=vitals["BP"];if(bp){const m=/^(\d{2,3})/.exec(bp.trim());if(m)sbp=Number(m[1]);}
+  const sbp=vitals["BP"]?parseBp(vitals["BP"])?.systolic:undefined; // C-21: parser único
   const params:News2Params={resp:num(vitals["RESP"]),spo2:num(vitals["SPO2"]),temp:num(vitals["TEMP"]),hr:num(vitals["HR"]),sbp,supplementalO2,spo2Scale,consciousness};
   const news2=computeNEWS2(params);
   return NextResponse.json({patientId,computable:true,ageYears:age,news2,algorithm:{id:"NEWS2-RCP-2017",spo2Scale},

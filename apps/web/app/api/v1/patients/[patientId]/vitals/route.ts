@@ -1,3 +1,5 @@
+import{parseBp}from"../../../../../../../../packages/bp-staging/src";
+import{bmiFromVitals}from"../../../../../../../../packages/anthropometrics/src";
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{patientVitals,type VitalPoint}from"../../../../../../lib/clinical-runtime";
@@ -9,8 +11,9 @@ import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const FIELD:Record<string,string>={BP:"ta",HR:"fc",RESP:"fr",TEMP:"temp",SPO2:"spo2",WEIGHT:"peso",HEIGHT:"talla"};
-function imcOf(pesoKg:number,tallaCm:number):number|null{if(!pesoKg||!tallaCm)return null;const m=tallaCm/100;return Math.round(pesoKg/(m*m)*10)/10;}
-function sys(ta:string):number|null{const m=/^(\d+)\s*\/\s*\d+/.exec(ta.trim());return m?Number(m[1]):null;}
+// C-21: IMC y sistólica por las implementaciones únicas (packages/anthropometrics, packages/bp-staging).
+const imcOf=(peso:string|undefined,talla:string|undefined,tallaUnit:string|undefined)=>bmiFromVitals({value:peso},{value:talla,unit:tallaUnit})?.bmi??null;
+const sys=(ta:string):number|null=>parseBp(ta)?.systolic??null;
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
@@ -19,9 +22,9 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const points=await patientVitals(tctx,patientId);
   // Agrupar por toma (occurredAt). Cada toma reúne los tipos con el mismo timestamp.
   const byAt=new Map<string,Record<string,string>>();
-  for(const p of points as VitalPoint[]){const key=p.at;const g=byAt.get(key)??{};const f=FIELD[p.vitalType];if(f)g[f]=p.value;byAt.set(key,g);}
+  for(const p of points as VitalPoint[]){const key=p.at;const g=byAt.get(key)??{};const f=FIELD[p.vitalType];if(f){g[f]=p.value;if(f==="talla")g["tallaUnit"]=p.unit;}byAt.set(key,g);}
   const ats=[...byAt.keys()].sort((a,b)=>b.localeCompare(a)); // desc
-  const records=ats.map(at=>{const g=byAt.get(at)!;const peso=Number(g.peso??0),talla=Number(g.talla??0);const imc=imcOf(peso,talla);
+  const records=ats.map(at=>{const g=byAt.get(at)!;const imc=imcOf(g.peso,g.talla,g.tallaUnit);
    return{at,ta:g.ta??"",fc:g.fc??"",fr:g.fr??"",temp:g.temp??"",spo2:g.spo2??"",peso:g.peso??"",talla:g.talla??"",imc:imc!==null?String(imc):""};});
   // Series de tendencia (ascendente por fecha) para las tarjetas
   const asc=[...records].reverse();

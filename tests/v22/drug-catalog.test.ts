@@ -129,14 +129,16 @@ describe("ajuste/contraindicación renal por eGFR (EPIC BM)",()=>{
   expect(checkRenalDosing("metformina-850",40).action).toBe("CAUTION");
   expect(checkRenalDosing("metformina-850",60).action).toBe("OK");
  });
- it("AINE + TFG<30 -> BLOCK; AINE TFG>=30 -> OK",()=>{
+ it("AINE + TFG<30 -> BLOCK; TFG 30–60 -> precaución (KDIGO); TFG>=60 -> OK",()=>{
   expect(checkRenalDosing("ibuprofeno-400",20).action).toBe("BLOCK");
-  expect(checkRenalDosing("ibuprofeno-400",50).action).toBe("OK");
+  expect(checkRenalDosing("ibuprofeno-400",50).action).toBe("CAUTION"); // C-15: antes OK
+  expect(checkRenalDosing("ibuprofeno-400",70).action).toBe("OK");
  });
- // Auditoría 2026-09-19 (C-03/C-05): "no pude evaluar" NUNCA es "OK". Este test antes fijaba el fallo abierto.
- it("fármaco en catálogo SIN regla renal -> NOT_COVERED (no es 'OK')",()=>{
-  const r=checkRenalDosing("amoxicilina-500",10);
-  expect(r.action).toBe("NOT_COVERED");expect(r.reason).toBe("NO_RENAL_RULE");
+ // Auditoría 2026-09-19 (C-03/C-05, C-15): "no pude evaluar" NUNCA es "OK"; y ahora todo el catálogo tiene regla renal
+ // (amoxicilina con TFG 10 exige alargar el intervalo: precaución, no 'sin regla').
+ it("amoxicilina con TFG 10 -> precaución con nota; con TFG 80 -> OK",()=>{
+  const r=checkRenalDosing("amoxicilina-500",10);expect(r.action).toBe("CAUTION");expect(r.note).toMatch(/intervalo/);
+  expect(checkRenalDosing("amoxicilina-500",80).action).toBe("OK");
  });
  it("fármaco FUERA de catálogo -> NOT_EVALUATED (no es 'OK')",()=>{
   const r=checkRenalDosing("desconocido-xyz",10);
@@ -174,7 +176,9 @@ describe("catálogo determinista para la UI (drugCatalog)",()=>{
   expect(met.monitoring.map(m=>m.kind)).toContain("MONITOR_RENAL");
   expect(met.renal?.blockBelow).toBe(30);                 // coherente con checkRenalDosing
   const amox=c.find(d=>d.ingredient==="amoxicilina")!;
-  expect(amox.renal).toBeNull();                          // sin ajuste renal conocido
+  expect(amox.renal?.cautionBelow).toBe(30);              // C-15: penicilinas alargan intervalo con TFG<30
+  const riva=c.find(d=>d.ingredient==="rivaroxaban")!;const warf=c.find(d=>d.ingredient==="warfarina")!;
+  expect(riva.renal?.blockBelow).toBe(15);expect(warf.renal?.noAdjustment).toBe(true); // el ingrediente manda sobre la clase
  });
  it("expone la matriz de interacciones por clase (>=1 regla MAJOR)",()=>{
   const r=interactionRules();
@@ -207,5 +211,22 @@ describe("interacciones: tabla única (C-17)",()=>{
  });
  it("embarazo + anticoagulante: contraindicado (faltaba)",()=>{
   expect(checkInteractionSet(["warfarina-5"],["embarazo"]).findings.some(f=>f.severity==="CONTRAINDICATED")).toBe(true);
+ });
+});
+// Auditoría 2026-09-19 (C-15): ajuste renal para todo el catálogo (antes 2 clases de 27) y techos con "N tab".
+describe("ajuste renal ampliado (C-15)",()=>{
+ it("los casos de la auditoría ya no salen OK: rivaroxabán TFG 15 -> precaución (y <15 bloquea); espironolactona TFG 20 -> BLOQUEA; enalapril TFG 15 -> precaución",()=>{
+  expect(checkRenalDosing("rivaroxaban-20",15).action).toBe("CAUTION");expect(checkRenalDosing("rivaroxaban-20",10).action).toBe("BLOCK");
+  expect(checkRenalDosing("espironolactona-25",20).action).toBe("BLOCK");
+  expect(checkRenalDosing("enalapril-10",15).action).toBe("CAUTION");
+ });
+ it("la regla del ingrediente manda sobre la de su clase: warfarina (sin ajuste, OK revisado) ≠ rivaroxabán",()=>{
+  const w=checkRenalDosing("warfarina-5",15);expect(w.action).toBe("OK");expect(w.note).toMatch(/INR/);
+  expect(checkRenalDosing("ceftriaxona-1g",20).action).toBe("OK");expect(checkRenalDosing("cefalexina-500",40).action).toBe("CAUTION");
+ });
+ it("ningún fármaco del catálogo queda sin regla renal (NOT_COVERED solo para lo no revisado)",async()=>{
+  const{drugCatalog}=await import("../../packages/drug-catalog/src");
+  const uncovered=drugCatalog().map(d=>d.code).filter(c=>checkRenalDosing(c,10).action==="NOT_COVERED");
+  expect(uncovered).toEqual([]);
  });
 });
