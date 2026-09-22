@@ -2,6 +2,7 @@
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-medication-lifecycle-proof.mts
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-h-secret";
 const SECRET=process.env.SESSION_SIGNING_SECRET;
@@ -28,7 +29,7 @@ function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.p
 try{
  const nurse=tok(TENANT_A,["NURSE"],["medication:propose"]);
  const physA=tok(TENANT_A,["PHYSICIAN"],["medication:propose","medication:write"]);await registerPhysicianCredentials(physA);
- const med=crypto.randomUUID(),pat=crypto.randomUUID();
+ const med=crypto.randomUUID(),pat=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat); /* L-07 */
  const drug={drugCode:"amoxicilina-500",dose:"500mg",route:"PO",frequency:"c/8h"};
 
  // 0) EPIC AV: orden con vía/dosis/frecuencia inválidas -> 400 VALIDATION_ERROR.
@@ -75,7 +76,7 @@ try{
 
  // 9) Concurrencia optimista: nueva medicación, prescribir con If-Match equivocado -> 409.
  const med2=crypto.randomUUID();
- await meds.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:med2,patientId:crypto.randomUUID(),...drug,occurredAt:ISO})}));
+ await meds.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:med2,patientId:await freshPatient(TENANT_A),...drug,occurredAt:ISO})}));
  r=await rx.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"7"}),body:JSON.stringify({occurredAt:ISO})}),MP(med2));
  ok(r.status===409,"OPTIMISTIC_CONFLICT_409");
 
@@ -86,7 +87,7 @@ try{
 
  // 11) Sin scope medication:propose -> 403 (aunque sea médico).
  const noScope=tok(TENANT_A,["PHYSICIAN"],[]);
- r=await meds.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:crypto.randomUUID(),patientId:crypto.randomUUID(),...drug,occurredAt:ISO})}));
+ r=await meds.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:crypto.randomUUID(),patientId:await freshPatient(TENANT_A),...drug,occurredAt:ISO})}));
  ok(r.status===403,"MISSING_SCOPE_403");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));

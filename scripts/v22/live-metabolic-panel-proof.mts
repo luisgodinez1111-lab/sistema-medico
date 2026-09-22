@@ -2,6 +2,7 @@
 // del paciente. Cross-analito. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bn-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const resR=await import("../../apps/web/app/api/v1/results/route");
@@ -17,7 +18,7 @@ async function panel(t:string,p:string){const r=await mp.GET(new Request("http:/
 try{
  const phys=tok();
  // 1) acidosis de brecha aumentada + hipocalcemia enmascarada + hiperglucemia (Na corregido, osmolalidad)
- const p1=crypto.randomUUID();
+ const p1=crypto.randomUUID();await ensurePatientIn(TA,p1); /* L-07 */
  for(const[a,v]of[["SODIUM","130"],["CHLORIDE","100"],["BICARBONATE","10"],["CALCIUM","8.0"],["ALBUMIN","2.0"],["GLUCOSE","600"],["BUN","40"]]as const)await res(phys,p1,a,v);
  let g=await panel(phys,p1);ok(g.status===200,"PANEL_200");
  // C-22: brecha cruda 20 (130-100-10) corregida por albúmina 2.0 -> 20 + 2.5·(4-2) = 25 (la hipoalbuminemia la subestimaba)
@@ -30,7 +31,7 @@ try{
  await res(phys,p1,"BICARBONATE","24");g=await panel(phys,p1);
  ok(g.body.anionGap.raw===6&&g.body.anionGap.value===11,"USES_LATEST_HCO3"); // cruda 130-100-24=6; corregida por albúmina 2.0 -> 11
  // 3) analitos faltantes -> derivación null + reportada en missing
- const p2=crypto.randomUUID();await res(phys,p2,"SODIUM","140");
+ const p2=crypto.randomUUID();await ensurePatientIn(TA,p2); /* L-07 */await res(phys,p2,"SODIUM","140");
  g=await panel(phys,p2);ok(g.body.anionGap===null&&g.body.correctedCalcium===null&&g.body.correctedSodium===null&&g.body.osmolality===null&&g.body.missing.length===4,"MISSING_REPORTED");
  // 4) aislamiento por paciente: p2 no ve los analitos de p1
  ok(g.body.correctedCalcium===null,"PER_PATIENT_ISOLATION");

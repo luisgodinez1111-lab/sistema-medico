@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldObligation,assertObligationTransition,type FoldedObligation,type ObligationSt}from"../../../packages/obligation-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC O — Ciclo de vida de la obligación (seguimiento): OPEN -> IN_PROGRESS -> COMPLETED / CANCELLED.
@@ -26,6 +26,7 @@ export async function handleObligationCreate(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   const payload:Record<string,unknown>={kind:"CREATED",patientId:b.patientId,ownerId:b.ownerId,dueAt:b.dueAt,obligationKind:b.kind,priority:b.priority};
   if(b.sourceVitalId)payload["sourceVitalId"]=b.sourceVitalId;if(b.sourceResultId)payload["sourceResultId"]=b.sourceResultId;
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.obligationId,expectedVersion:0,eventType:"OBLIGATION_CREATED",payload,occurredAt:b.occurredAt,topic:"obligation.created"});

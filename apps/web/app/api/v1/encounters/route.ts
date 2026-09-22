@@ -6,7 +6,7 @@ import{readerFor}from"../../../../lib/http-command";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../../../../packages/atomic-clinical-transaction-v3/src";
-import{runClinicalCommand,readEncounter,sessionSecret}from"../../../../lib/clinical-runtime";
+import{runClinicalCommand,readEncounter,sessionSecret,requireRegisteredPatient}from"../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../lib/http-errors";
 // EPIC B — Vertical clínico autenticado: abrir/leer un encuentro sobre el kernel probado.
 // Autoridad: PROD (encuentro) -> ENG (kernel atómico + RLS) -> EXEC-0003 (authz server-side,
@@ -47,6 +47,7 @@ export async function POST(req:Request){
   const parsed=OpenEncounter.safeParse(raw);
   if(!parsed.success)throw new ClinicalError("VALIDATION_ERROR","Invalid encounter payload",{issues:parsed.error.issues.length});
   const b=parsed.data;
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   // Envelope determinista: todo se deriva del Idempotency-Key (o del cuerpo del cliente),
   // nada de aleatorio por-request, para que el reintento sea idempotente de verdad.
   const command:ClinicalCommand={

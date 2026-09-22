@@ -4,7 +4,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldOrder,assertOrderTransition,type FoldedOrder}from"../../../packages/order-fold/src";
 import{type OrderState}from"../../../packages/order-result-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC M — Ciclo de vida de la orden clínica: DRAFT -> ORDERED -> FULFILLED (o CANCELLED).
@@ -21,6 +21,7 @@ export async function handleOrderCreate(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.orderId,expectedVersion:0,eventType:"ORDER_CREATED",payload:{kind:"CREATED",patientId:b.patientId,orderType:b.orderType,detail:b.detail},occurredAt:b.occurredAt,topic:"order.created"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};

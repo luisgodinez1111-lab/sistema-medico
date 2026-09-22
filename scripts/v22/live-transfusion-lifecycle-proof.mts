@@ -1,6 +1,7 @@
 // EPIC AJ — Evidencia física de la transfusión (ordenar/cruzar/iniciar/completar/reacción/cancelar) contra Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-aj-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const tf=await import("../../apps/web/app/api/v1/transfusions/route");
@@ -14,7 +15,7 @@ function tok(t:string,roles=["NURSE"],scopes=["transfusion:write"]){return signS
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const PP=(id:string)=>({params:Promise.resolve({transfusionId:id})});const ISO="2026-09-11T11:00:00.000Z";const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
-async function mk(t:string){const id=crypto.randomUUID();const r=await tf.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({transfusionId:id,patientId:crypto.randomUUID(),bloodProduct:"PRBC",units:"2",occurredAt:ISO})}));return{id,r};}
+async function mk(t:string){const id=crypto.randomUUID();const r=await tf.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({transfusionId:id,patientId:await freshPatient(TA),bloodProduct:"PRBC",units:"2",occurredAt:ISO})}));return{id,r};}
 const B=(t:string,v:number,body:Record<string,unknown>={})=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:ISO,...body})});
 try{
  const nurse=tok(TA);
@@ -41,7 +42,7 @@ try{
  r=await cm.POST(new Request("http://l/",B(nurseB,1)),PP(two.id));ok(r.status===404,"CROSS_TENANT_404");
  // sin scope transfusion:write -> 403
  const noScope=tok(TA,["NURSE"],["patient:read"]);
- r=await tf.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({transfusionId:crypto.randomUUID(),patientId:crypto.randomUUID(),bloodProduct:"FFP",units:"1",occurredAt:ISO})}));
+ r=await tf.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({transfusionId:crypto.randomUUID(),patientId:await freshPatient(TA),bloodProduct:"FFP",units:"1",occurredAt:ISO})}));
  ok(r.status===403,"MISSING_WRITE_SCOPE_403");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

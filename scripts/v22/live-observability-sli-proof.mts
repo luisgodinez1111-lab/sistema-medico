@@ -2,6 +2,7 @@
 // correlación + latencia, y el evento es PHI-free por construcción (allowlist). vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bg-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const obs=await import("../../packages/observability/src");
@@ -16,7 +17,7 @@ const off=obs.onSli(e=>captured.push(e));
 try{
  const phys=tok();
  // Abrir un encuentro = un comando del kernel (topic encounter.opened) -> emite un SLI de commit.
- const r=await enc.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:crypto.randomUUID(),patientId:crypto.randomUUID(),chiefComplaint:"dolor torácico",occurredAt:ISO})}));
+ const r=await enc.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:crypto.randomUUID(),patientId:await freshPatient(TA),chiefComplaint:"dolor torácico",occurredAt:ISO})}));
  ok(r.status===201||r.status===200,"ENCOUNTER_OPENED");
  ok(captured.length>=1,"SLI_EMITTED");
  const e=captured[captured.length-1]!;

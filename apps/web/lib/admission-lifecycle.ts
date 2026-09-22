@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldAdmission,assertAdmissionTransition,type FoldedAdmission,type AdmissionState}from"../../../packages/admission-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC AE — Ciclo de vida del internamiento: ADMITTED -> {TRANSFERRED*, DISCHARGED, CANCELLED}.
@@ -20,6 +20,7 @@ export async function handleAdmissionAdmit(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,AdmitBody);
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.admissionId,expectedVersion:0,eventType:"ADMISSION_ADMITTED",payload:{kind:"ADMITTED",patientId:b.patientId,unit:b.unit,reason:b.reason},occurredAt:b.occurredAt,topic:"admission.admitted"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};

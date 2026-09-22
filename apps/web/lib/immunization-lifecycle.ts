@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldImmunization,assertImmunizationTransition,type FoldedImmunization,type ImmunizationState}from"../../../packages/immunization-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC V — Ciclo de vida de una vacuna: DUE -> {ADMINISTERED, REFUSED}; ADMINISTERED -> ADVERSE_EVENT.
@@ -20,6 +20,7 @@ export async function handleImmunizationDue(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,DueBody);
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.immunizationId,expectedVersion:0,eventType:"IMMUNIZATION_DUE",payload:{kind:"DUE",patientId:b.patientId,vaccineCode:b.vaccineCode,dose:b.dose},occurredAt:b.occurredAt,topic:"immunization.due"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};

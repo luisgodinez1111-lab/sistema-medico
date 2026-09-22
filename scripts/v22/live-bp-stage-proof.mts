@@ -1,6 +1,7 @@
 // EPIC BT — Evidencia física: estadificación ACC/AHA de la última presión arterial del paciente. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bt-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const vit=await import("../../apps/web/app/api/v1/vitals/route");
@@ -16,16 +17,16 @@ async function get(t:string,p:string){const r=await bs.GET(new Request("http://l
 try{
  const phys=tok();
  // 1) 145/92 -> STAGE_2
- const p1=crypto.randomUUID();await bp(phys,p1,"145/92");
+ const p1=crypto.randomUUID();await ensurePatientIn(TA,p1); /* L-07 */await bp(phys,p1,"145/92");
  let g=await get(phys,p1);ok(g.status===200&&g.body.computable===true,"COMPUTABLE_200");
  ok(g.body.stage==="STAGE_2","STAGE_2");
  // 2) usa la MÁS RECIENTE: nueva 118/76 -> NORMAL
  await bp(phys,p1,"118/76");g=await get(phys,p1);ok(g.body.stage==="NORMAL","USES_LATEST_BP");
  // 3) crisis 190/100
- const p2=crypto.randomUUID();await bp(phys,p2,"190/100");
+ const p2=crypto.randomUUID();await ensurePatientIn(TA,p2); /* L-07 */await bp(phys,p2,"190/100");
  g=await get(phys,p2);ok(g.body.stage==="CRISIS","CRISIS");
  // 4) sin presión registrada -> no computable
- const p3=crypto.randomUUID();g=await get(phys,p3);ok(g.body.computable===false,"NO_BP_NOT_COMPUTABLE");
+ const p3=crypto.randomUUID();await ensurePatientIn(TA,p3); /* L-07 */g=await get(phys,p3);ok(g.body.computable===false,"NO_BP_NOT_COMPUTABLE");
  // 5) sin scope patient:read -> 403
  const noScope=tok(["vital:write"]);g=await get(noScope,p1);ok(g.status===403,"MISSING_SCOPE_403");
 }catch(e){result.status="FAIL";result.error=String(e);}

@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldProblem,assertProblemTransition,assertProblemAnnotation,type FoldedProblem,type ProblemState,type ProblemAnnotationKind}from"../../../packages/problem-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{normalizeIcd10,lookupIcd10}from"../../../packages/terminology/src";
@@ -26,6 +26,7 @@ export async function handleProblemCreate(req:Request):Promise<Response>{
   const{claims,ctx}=resolveVerified(req);authz(claims);
   const idempotencyKey=req.headers.get("idempotency-key");if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   // Profundidad clínica: el código debe existir en CIE-10; se codifica con su descripción canónica.
   const entry=lookupIcd10(b.code);
   if(!entry)throw new ClinicalError("VALIDATION_ERROR","Código CIE-10 no válido o no reconocido",{code:b.code});

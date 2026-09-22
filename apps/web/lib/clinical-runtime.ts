@@ -203,6 +203,21 @@ export async function patientDemographics(ctx:HttpTenantContext,patientId:string
   return d;
  }) as Promise<PatientDemographics|undefined>;
 }
+// Auditoría 2026-09-19 (L-07) — el `patientId` de un comando de creación debe ser un paciente REGISTRADO del tenant y no
+// fallecido: antes cualquier UUID válido creaba signos vitales, alergias, medicaciones o ingresos "huérfanos" (un error de
+// cliente o un identificador de otro tenant). NOT_FOUND si no existe; CONFLICT si está fallecido (los datos de un paciente
+// fallecido se corrigen con enmiendas, no con altas nuevas). Un paciente INACTIVO sigue admitiendo registros (p. ej. un
+// resultado que llega tras la baja).
+export async function requireRegisteredPatient(ctx:HttpTenantContext,patientId:string):Promise<void>{
+ const sql=getSql();
+ const status=await sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`select payload->>'kind' as kind from clinical_events where tenant_id=${ctx.tenantId} and aggregate_type='Patient' and aggregate_id=${patientId} and payload->>'kind' in ('REGISTERED','DEACTIVATED','REACTIVATED','DECEASED') order by sequence desc limit 1`;
+  const row=rows[0] as{kind:string}|undefined;return row?.kind??null;
+ }) as string|null;
+ if(status===null)throw new ClinicalError("NOT_FOUND","Patient not registered in this tenant",{patientId});
+ if(status==="DECEASED")throw new ClinicalError("CONFLICT","El paciente está registrado como fallecido: no se admiten registros clínicos nuevos",{patientId});
+}
 // Auditoría L-06 — detección de duplicados al dar de alta: misma CURP en el tenant (identidad legal única) o mismo nombre
 // normalizado + misma fecha de nacimiento (sospecha fuerte que el usuario puede confirmar como no duplicado).
 export type PatientDuplicate=Readonly<{patientId:string;by:"CURP"|"NAME_BIRTHDATE"}>;

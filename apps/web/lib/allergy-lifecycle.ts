@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldAllergy,assertAllergyTransition,type FoldedAllergy,type AllergyState}from"../../../packages/allergy-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC R — Ciclo de vida de la alergia: RECORDED(ACTIVE) -> REFUTED / INACTIVE; INACTIVE -> ACTIVE.
@@ -17,6 +17,7 @@ export async function handleAllergyCreate(req:Request):Promise<Response>{
   const{claims,ctx}=resolveVerified(req);authz(claims);
   const idempotencyKey=req.headers.get("idempotency-key");if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.allergyId,expectedVersion:0,eventType:"ALLERGY_RECORDED",payload:{kind:"RECORDED",patientId:b.patientId,substance:b.substance,severity:b.severity,reaction:b.reaction},occurredAt:b.occurredAt,topic:"allergy.recorded"});
   const result=await runClinicalCommand(ctx,cmd);const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({allergyId:b.allergyId,state:"ACTIVE",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});

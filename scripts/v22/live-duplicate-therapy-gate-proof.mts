@@ -1,6 +1,7 @@
 // EPIC AW — Evidencia física: no prescribir un fármaco de la MISMA clase que uno ya activo (duplicación terapéutica). vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-aw-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -19,7 +20,7 @@ const drug={dose:"400mg",route:"VO",frequency:"c/12h"};// c/12h: dentro del tope
 async function propose(t:string,pat:string,drugCode:string){const id=crypto.randomUUID();await meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:pat,drugCode,...drug,occurredAt:ISO})}));return id;}
 const B=(t:string,v:number)=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:ISO,...ACK})});
 try{
- const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();
+ const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
  // 1) ibuprofeno (AINE): proponer -> prescribir -> ACTIVAR
  const a=await propose(phys,pat,"ibuprofeno-400");
  let r=await rx.POST(new Request("http://l/",B(phys,1)),MP(a));ok(r.status===201,"IBUPROFEN_PRESCRIBED_201");
@@ -31,7 +32,7 @@ try{
  const c=await propose(phys,pat,"amoxicilina-500");
  r=await rx.POST(new Request("http://l/",B(phys,1)),MP(c));ok(r.status===201,"AMOXICILLIN_ALLOWED_201");
  // 4) control: otro paciente sin AINE activo -> naproxeno permitido
- const pat2=crypto.randomUUID();const d=await propose(phys,pat2,"naproxeno-500");
+ const pat2=crypto.randomUUID();await ensurePatientIn(TA,pat2); /* L-07 */const d=await propose(phys,pat2,"naproxeno-500");
  r=await rx.POST(new Request("http://l/",B(phys,1)),MP(d));ok(r.status===201,"NAPROXEN_ALLOWED_OTHER_PATIENT_201");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

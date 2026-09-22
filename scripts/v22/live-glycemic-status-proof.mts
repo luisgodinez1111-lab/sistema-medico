@@ -2,6 +2,7 @@
 // diabetes activa (E11). Cross-vertical resultado↔problema. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bp-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const resR=await import("../../apps/web/app/api/v1/results/route");
@@ -19,20 +20,20 @@ async function status(t:string,p:string){const r=await gs.GET(new Request("http:
 try{
  const phys=tok();
  // 1) NO diabético, HbA1c 6.5 -> marco TAMIZAJE -> DIABETES_RANGE (diagnóstico)
- const p1=crypto.randomUUID();await a1c(phys,p1,"6.5");
+ const p1=crypto.randomUUID();await ensurePatientIn(TA,p1); /* L-07 */await a1c(phys,p1,"6.5");
  let g=await status(phys,p1);ok(g.status===200&&g.body.computable===true,"COMPUTABLE_200");
  ok(g.body.knownDiabetic===false&&g.body.frame==="SCREENING"&&g.body.category==="DIABETES_RANGE","SCREENING_DIABETES_RANGE");
  ok(g.body.estimatedAvgGlucose>0,"HAS_EAG");
  // 2) diabético conocido (E11), MISMO HbA1c 6.5 -> marco DIABÉTICO -> CONTROLLED (en meta)
- const p2=crypto.randomUUID();await diagnose(phys,p2,"E11");await a1c(phys,p2,"6.5");
+ const p2=crypto.randomUUID();await ensurePatientIn(TA,p2); /* L-07 */await diagnose(phys,p2,"E11");await a1c(phys,p2,"6.5");
  g=await status(phys,p2);ok(g.body.knownDiabetic===true&&g.body.frame==="DIABETIC"&&g.body.category==="CONTROLLED","DIABETIC_CONTROLLED");
  // 3) diabético con HbA1c 9.0 -> POOR (mal control)
- const p3=crypto.randomUUID();await diagnose(phys,p3,"E11");await a1c(phys,p3,"9.0");
+ const p3=crypto.randomUUID();await ensurePatientIn(TA,p3); /* L-07 */await diagnose(phys,p3,"E11");await a1c(phys,p3,"9.0");
  g=await status(phys,p3);ok(g.body.category==="POOR","DIABETIC_POOR");
  // 4) usa la HbA1c MÁS RECIENTE: nueva 5.4 en el no diabético -> NORMAL
  await a1c(phys,p1,"5.4");g=await status(phys,p1);ok(g.body.category==="NORMAL","USES_LATEST_A1C");
  // 5) sin HbA1c -> no computable
- const p4=crypto.randomUUID();g=await status(phys,p4);ok(g.body.computable===false,"NO_A1C_NOT_COMPUTABLE");
+ const p4=crypto.randomUUID();await ensurePatientIn(TA,p4); /* L-07 */g=await status(phys,p4);ok(g.body.computable===false,"NO_A1C_NOT_COMPUTABLE");
  // 6) sin scope patient:read -> 403
  const noScope=tok(["result:write"]);g=await status(noScope,p2);ok(g.status===403,"MISSING_SCOPE_403");
 }catch(e){result.status="FAIL";result.error=String(e);}

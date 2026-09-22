@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldIncident,assertIncidentTransition,type FoldedIncident,type IncidentState}from"../../../packages/incident-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC AG — Ciclo de vida de un incidente de seguridad: REPORTED -> UNDER_REVIEW -> {ESCALATED, RESOLVED}.
@@ -20,6 +20,7 @@ export async function handleIncidentReport(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,ReportBody);
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.incidentId,expectedVersion:0,eventType:"INCIDENT_REPORTED",payload:{kind:"REPORTED",patientId:b.patientId,category:b.category,severity:b.severity,description:b.description},occurredAt:b.occurredAt,topic:"incident.reported"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};

@@ -4,6 +4,7 @@
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-oidc-login-proof.mts
 import crypto from"node:crypto";import http from"node:http";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 
 const{SignJWT,exportJWK,generateKeyPair}=await import("jose");
 const AUD="medical-os";
@@ -44,7 +45,7 @@ try{
  ok(r.status===201&&typeof b.token==="string","OIDC_LOGIN_201");
 
  // 2) ROUND-TRIP: la sesión emitida abre un encuentro real -> 201.
- r=await open.POST(new Request("http://l/",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+b.token,"idempotency-key":crypto.randomUUID()},body:JSON.stringify({encounterId:crypto.randomUUID(),patientId:crypto.randomUUID(),occurredAt:new Date().toISOString()})}));
+ r=await open.POST(new Request("http://l/",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+b.token,"idempotency-key":crypto.randomUUID()},body:JSON.stringify({encounterId:crypto.randomUUID(),patientId:await freshPatient(TENANT),occurredAt:new Date().toISOString()})}));
  ok(r.status===201&&(await r.json()).version===1,"OIDC_ROUNDTRIP_OPEN_201");
 
  // 3) Token expirado -> 401.

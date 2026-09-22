@@ -2,6 +2,7 @@
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-result-closed-loop-proof.mts
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-g-secret";
 const SECRET=process.env.SESSION_SIGNING_SECRET;
@@ -32,7 +33,7 @@ try{
  const physA=tok(TENANT_A,["PHYSICIAN"]);await registerPhysicianCredentials(physA);
 
  // === A) Ciclo de vida del resultado (camino feliz) ===
- const res=crypto.randomUUID(),pat=crypto.randomUUID(),ord=crypto.randomUUID();
+ const res=crypto.randomUUID(),pat=crypto.randomUUID(),ord=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat); /* L-07 */
  let r=await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:res,patientId:pat,orderId:ord,analyte:"POTASSIUM",value:"7.0",occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).version===1,"RESULT_RECEIVED_201_v1");
  r=await rVerify.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),RP(res));
@@ -46,12 +47,12 @@ try{
  ok(r.status===200&&(await r.json()).replayed===true,"RESULT_ACTION_REPLAY_200");
  // SM ilegal: saltar verificación no es válido (otra semilla)
  const res2=crypto.randomUUID();
- await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:res2,patientId:crypto.randomUUID(),orderId:crypto.randomUUID(),analyte:"GLUCOSE",value:"100",occurredAt:ISO})}));
+ await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:res2,patientId:await freshPatient(TENANT_A),orderId:crypto.randomUUID(),analyte:"GLUCOSE",value:"100",occurredAt:ISO})}));
  r=await rClose.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({evidence:"x",occurredAt:ISO})}),RP(res2));
  ok(r.status===409,"RESULT_ILLEGAL_SKIP_409");
 
  // === B) EL LOOP: un resultado crítico abierto BLOQUEA la firma; cerrarlo la DESBLOQUEA ===
- const enc=crypto.randomUUID(),loopPat=crypto.randomUUID();
+ const enc=crypto.randomUUID(),loopPat=crypto.randomUUID();await ensurePatientIn(TENANT_A,loopPat); /* L-07 */
  // 1) abrir + evaluar el encuentro del paciente
  await open.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:enc,patientId:loopPat,occurredAt:ISO})}));
  r=await assess.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({assessment:"a",plan:"p",occurredAt:ISO})}),EP(enc));
@@ -73,7 +74,7 @@ try{
  ok(r.status===201&&s.status==="SIGNED"&&s.version===3,"SIGN_UNBLOCKED_AFTER_CLOSURE_201");
 
  // === C) Control: un resultado NO crítico abierto NO bloquea la firma ===
- const enc2=crypto.randomUUID(),pat2=crypto.randomUUID();
+ const enc2=crypto.randomUUID(),pat2=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat2); /* L-07 */
  await open.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:enc2,patientId:pat2,occurredAt:ISO})}));
  await assess.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({assessment:"a",plan:"p",occurredAt:ISO})}),EP(enc2));
  const nres=crypto.randomUUID();
@@ -85,7 +86,7 @@ try{
 
  // === C2) Auditoría L-01/C-20 — el caso MÁS peligroso: un crítico recién RECIBIDO que NADIE ha visto también bloquea la firma.
  //         Antes solo contaban los que ya estaban en ACTIONED, aunque la UI promete "bloquea la firma hasta cerrarse".
- const enc4=crypto.randomUUID(),pat4=crypto.randomUUID(),unseen=crypto.randomUUID();
+ const enc4=crypto.randomUUID(),pat4=crypto.randomUUID(),unseen=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat4); /* L-07 */
  await open.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:enc4,patientId:pat4,occurredAt:ISO})}));
  await assess.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({assessment:"a",plan:"p",occurredAt:ISO})}),EP(enc4));
  await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:unseen,patientId:pat4,orderId:crypto.randomUUID(),analyte:"POTASSIUM",value:"7.0",unit:"mEq/L",occurredAt:ISO})}));
@@ -104,7 +105,7 @@ try{
 
  // === E) Physician Control: enfermera no escribe resultados ===
  const nurse=tok(TENANT_A,["NURSE"]);
- r=await results.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:crypto.randomUUID(),orderId:crypto.randomUUID(),analyte:"GLUCOSE",value:"100",occurredAt:ISO})}));
+ r=await results.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:await freshPatient(TENANT_A),orderId:crypto.randomUUID(),analyte:"GLUCOSE",value:"100",occurredAt:ISO})}));
  ok(r.status===403,"ROLE_FORBIDDEN_403");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));

@@ -2,6 +2,7 @@
 // (dose ceiling / sobredosis) en el propose. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-az-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const meds=await import("../../apps/web/app/api/v1/medications/route");
@@ -12,7 +13,7 @@ const ISO="2026-09-13T09:00:00.000Z";const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 async function propose(t:string,pat:string,drugCode:string,dose:string,frequency:string){return meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:crypto.randomUUID(),patientId:pat,drugCode,dose,route:"VO",frequency,occurredAt:ISO})}));}
 try{
- const phys=tok();const pat=crypto.randomUUID();
+ const phys=tok();const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
  // 1) ibuprofeno 800mg c/4h = 4800mg/día > 3200 -> BLOQUEADO 403
  let r=await propose(phys,pat,"ibuprofeno-800","800mg","c/4h");
  ok(r.status===403&&(await r.json()).error.code==="SAFETY_BLOCKED","IBUPROFEN_OVERDOSE_BLOCKED_403");

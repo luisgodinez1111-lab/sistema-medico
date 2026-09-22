@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldSpecimen,assertSpecimenTransition,type FoldedSpecimen,type SpecimenState}from"../../../packages/specimen-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC AF — Ciclo de vida de una muestra: COLLECTED -> IN_TRANSIT -> RECEIVED -> {RESULTED, REJECTED}.
@@ -20,6 +20,7 @@ export async function handleSpecimenCollect(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CollectBody);
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.specimenId,expectedVersion:0,eventType:"SPECIMEN_COLLECTED",payload:{kind:"COLLECTED",patientId:b.patientId,specimenType:b.specimenType,orderId:b.orderId??""},occurredAt:b.occurredAt,topic:"specimen.collected"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};

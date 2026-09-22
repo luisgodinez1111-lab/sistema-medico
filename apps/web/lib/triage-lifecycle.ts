@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldTriage,assertTriageTransition,type FoldedTriage,type TriageState}from"../../../packages/triage-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC AH — Ciclo de vida del triage: WAITING -> IN_TRIAGE -> TRIAGED (re-evaluable) -> CLOSED; o LWBS.
@@ -20,6 +20,7 @@ export async function handleTriageArrive(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,ArriveBody);
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.triageId,expectedVersion:0,eventType:"TRIAGE_ARRIVED",payload:{kind:"ARRIVED",patientId:b.patientId,chiefComplaint:b.chiefComplaint},occurredAt:b.occurredAt,topic:"triage.arrived"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};

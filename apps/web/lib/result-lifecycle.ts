@@ -4,7 +4,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldResult,assertResultTransition,type FoldedResult}from"../../../packages/result-fold/src";
 import{type ResultState}from"../../../packages/order-result-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,latestResultValueForAnalyte}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,latestResultValueForAnalyte,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload}from"./http-command";
 import{classifyLab,normalizeLabValue,deltaCheck}from"../../../packages/lab-reference/src";
@@ -30,6 +30,7 @@ export async function handleResultReceived(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,ReceiveBody);
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   // Auditoría C-01/C-12/U-07: unidad + plausibilidad ANTES de persistir. Un valor en unidad no reconocida o físicamente
   // implausible (p. ej. plaquetas 250000 sin unidad, glucosa 7 "mg/dL") se RECHAZA con un mensaje accionable, en vez de
   // guardarse y producir después un falso crítico o un score absurdo. Los resultados cualitativos (no numéricos) pasan.

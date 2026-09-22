@@ -2,6 +2,7 @@
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-encounter-lifecycle-proof.mts
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-d-lifecycle-secret";
 const SECRET=process.env.SESSION_SIGNING_SECRET;
@@ -32,7 +33,7 @@ const raw=process.env.DATABASE_URL.replace("-pooler","").replace(/([?&])channel_
 const sql=postgres(raw,{max:2,prepare:false,onnotice:()=>{}});
 try{
  const physA=tok(TENANT_A,["PHYSICIAN"]);await registerPhysicianCredentials(physA);
- const enc=crypto.randomUUID(),pat=crypto.randomUUID();
+ const enc=crypto.randomUUID(),pat=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat); /* L-07 */
 
  // 1) Abrir
  let r=await open.POST(new Request("http://l/",{method:"POST",headers:h(physA,{"idempotency-key":crypto.randomUUID()}),body:JSON.stringify({encounterId:enc,patientId:pat,occurredAt:ISO})}));
@@ -88,7 +89,7 @@ try{
 
  // 9) Concurrencia optimista: nuevo encuentro, assess con If-Match equivocado -> 409 (kernel)
  const enc2=crypto.randomUUID();
- await open.POST(new Request("http://l/",{method:"POST",headers:h(physA,{"idempotency-key":crypto.randomUUID()}),body:JSON.stringify({encounterId:enc2,patientId:crypto.randomUUID(),occurredAt:ISO})}));
+ await open.POST(new Request("http://l/",{method:"POST",headers:h(physA,{"idempotency-key":crypto.randomUUID()}),body:JSON.stringify({encounterId:enc2,patientId:await freshPatient(TENANT_A),occurredAt:ISO})}));
  r=await assess.POST(new Request("http://l/",{method:"POST",headers:h(physA,{"idempotency-key":crypto.randomUUID(),"if-match":"5"}),body:JSON.stringify({assessment:"a",plan:"b",occurredAt:ISO})}),P(enc2));
  ok(r.status===409,"OPTIMISTIC_CONFLICT_409");
 
@@ -104,7 +105,7 @@ try{
 
  // 12) Auditoría L-01 — Zero Lost Follow-Up con obligaciones REALES (eventos). Antes esta prueba insertaba a mano una fila
  //     en `clinical_inbox`, tabla en la que la aplicación jamás escribe: el gate era un placebo que devolvía siempre 0.
- const enc3=crypto.randomUUID(),pat3=crypto.randomUUID();
+ const enc3=crypto.randomUUID(),pat3=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat3); /* L-07 */
  await open.POST(new Request("http://l/",{method:"POST",headers:h(physA,{"idempotency-key":crypto.randomUUID()}),body:JSON.stringify({encounterId:enc3,patientId:pat3,occurredAt:ISO})}));
  await assess.POST(new Request("http://l/",{method:"POST",headers:h(physA,{"idempotency-key":crypto.randomUUID(),"if-match":"1"}),body:JSON.stringify({assessment:"a",plan:"b",occurredAt:ISO})}),P(enc3));
  const signEnc3=()=>sign.POST(new Request("http://l/",{method:"POST",headers:h(physA,{"idempotency-key":crypto.randomUUID(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO,contentHash:hashOf("a","b")})}),P(enc3));

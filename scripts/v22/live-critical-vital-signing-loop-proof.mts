@@ -2,6 +2,7 @@
 // de seguimiento ligada al vital (sourceVitalId) la DESBLOQUEA (cierra el lazo Zero Lost Follow-Up). vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-as-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -19,7 +20,7 @@ const result:{status:string;checks:string[];error?:string}={status:"PASS",checks
 const SIGN={contentHash:crypto.createHash("sha256").update("Dx\nPlan").digest("hex")};
 const B=(t:string,v:number,body:Record<string,unknown>={})=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:ISO,...body})});
 try{
- const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();const vid=crypto.randomUUID();const enc=crypto.randomUUID();
+ const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */const vid=crypto.randomUUID();const enc=crypto.randomUUID();
  // 1) signo vital CRÍTICO (crisis hipertensiva) para el paciente
  let r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:vid,patientId:pat,vitalType:"BP",value:"190/125",unit:"mmHg",occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).critical===true,"VITAL_CRITICAL_RECORDED");
@@ -34,14 +35,14 @@ try{
  // 5) firmar de nuevo -> DESBLOQUEADO
  r=await sign.POST(B(phys,2,SIGN),EP(enc));const s=await r.json();ok(r.status===201&&s.status==="SIGNED","SIGN_UNBLOCKED_AFTER_FOLLOWUP_201");
  // 6) control: otro paciente con vital crítico y SIN obligación sigue bloqueado
- const pat2=crypto.randomUUID();const enc2=crypto.randomUUID();
+ const pat2=crypto.randomUUID();await ensurePatientIn(TA,pat2); /* L-07 */const enc2=crypto.randomUUID();
  await vt.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:pat2,vitalType:"SPO2",value:"85",unit:"%",occurredAt:ISO})}));
  await open.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:enc2,patientId:pat2,occurredAt:ISO})}));
  await assess.POST(B(phys,1,{assessment:"Dx",plan:"Plan"}),EP(enc2));
  r=await sign.POST(B(phys,2,SIGN),EP(enc2));ok(r.status===403,"OTHER_PATIENT_STILL_BLOCKED_403");
  // 7) Auditoría L-01 — "atender" el vital con un seguimiento que YA VENCIÓ no desbloquea la firma: el vital deja de contar,
  //    pero el seguimiento vencido y sin resolver es, él mismo, un seguimiento perdido.
- const pat3=crypto.randomUUID();const enc3=crypto.randomUUID();const vid3=crypto.randomUUID();
+ const pat3=crypto.randomUUID();await ensurePatientIn(TA,pat3); /* L-07 */const enc3=crypto.randomUUID();const vid3=crypto.randomUUID();
  await vt.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:vid3,patientId:pat3,vitalType:"BP",value:"190/125",unit:"mmHg",occurredAt:ISO})}));
  await open.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:enc3,patientId:pat3,occurredAt:ISO})}));
  await assess.POST(B(phys,1,{assessment:"Dx",plan:"Plan"}),EP(enc3));

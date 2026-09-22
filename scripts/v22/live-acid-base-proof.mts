@@ -1,6 +1,7 @@
 // EPIC BX — Evidencia física: interpretación ácido-base (trastorno primario + Winters) desde pH/pCO2/HCO3. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bx-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const resR=await import("../../apps/web/app/api/v1/results/route");
@@ -19,7 +20,7 @@ async function get(t:string,p:string){const r=await ab.GET(new Request("http://l
 try{
  const phys=tok();
  // 1) acidosis metabólica con compensación adecuada: pH 7.30, HCO3 12, pCO2 26 (esperado 26)
- const p1=crypto.randomUUID();
+ const p1=crypto.randomUUID();await ensurePatientIn(TA,p1); /* L-07 */
  for(const[a,v]of[["PH","7.30"],["BICARBONATE","12"],["PCO2","26"]]as const)await res(phys,p1,a,v);
  let g=await get(phys,p1);ok(g.status===200&&g.body.computable===true,"COMPUTABLE_200");
  ok(g.body.primary==="METABOLIC_ACIDOSIS"&&g.body.expectedPco2===26,"METABOLIC_ACIDOSIS_WINTERS");
@@ -27,24 +28,24 @@ try{
  // 2) usa el pCO2 MÁS RECIENTE: sube a 40 -> acidosis respiratoria concurrente
  await res(phys,p1,"PCO2","40");g=await get(phys,p1);ok(/respiratoria concurrente/i.test(g.body.compensation),"MIXED_ON_LATEST_PCO2");
  // 3) acidosis respiratoria: pH 7.28, pCO2 60, HCO3 24
- const p2=crypto.randomUUID();
+ const p2=crypto.randomUUID();await ensurePatientIn(TA,p2); /* L-07 */
  for(const[a,v]of[["PH","7.28"],["PCO2","60"],["BICARBONATE","24"]]as const)await res(phys,p2,a,v);
  g=await get(phys,p2);ok(g.body.primary==="RESPIRATORY_ACIDOSIS","RESPIRATORY_ACIDOSIS");
  // 4) falta un analito -> no computable
- const p3=crypto.randomUUID();await res(phys,p3,"PH","7.4");await res(phys,p3,"PCO2","40");
+ const p3=crypto.randomUUID();await ensurePatientIn(TA,p3); /* L-07 */await res(phys,p3,"PH","7.4");await res(phys,p3,"PCO2","40");
  g=await get(phys,p3);ok(g.body.computable===false&&g.body.missing.includes("BICARBONATE")&&/bicarbonato/i.test(g.body.reason),"MISSING_ANALYTE");
  // 4b) Auditoría C-02 — gasometría OBSOLETA (3 días): no computable, con el analito en `stale`
- const p4=crypto.randomUUID();for(const[a,v]of[["PH","7.30"],["BICARBONATE","12"],["PCO2","26"]]as const)await resAt(phys,p4,a,v,hoursAgo(72));
+ const p4=crypto.randomUUID();await ensurePatientIn(TA,p4); /* L-07 */for(const[a,v]of[["PH","7.30"],["BICARBONATE","12"],["PCO2","26"]]as const)await resAt(phys,p4,a,v,hoursAgo(72));
  g=await get(phys,p4);ok(g.body.computable===false&&g.body.stale.length===3&&/obsoleto/i.test(g.body.reason),"STALE_BLOOD_GAS_NOT_COMPUTABLE");
  // 4c) Auditoría C-02 — pH de hace 1 h con pCO₂ de hace 20 h: extracciones distintas, no computable
- const p5=crypto.randomUUID();await resAt(phys,p5,"PH","7.30",hoursAgo(1));await resAt(phys,p5,"BICARBONATE","12",hoursAgo(1));await resAt(phys,p5,"PCO2","26",hoursAgo(20));
+ const p5=crypto.randomUUID();await ensurePatientIn(TA,p5); /* L-07 */await resAt(phys,p5,"PH","7.30",hoursAgo(1));await resAt(phys,p5,"BICARBONATE","12",hoursAgo(1));await resAt(phys,p5,"PCO2","26",hoursAgo(20));
  g=await get(phys,p5);ok(g.body.computable===false&&/extracciones distintas/i.test(g.body.reason),"DIFFERENT_DRAWS_NOT_COMPUTABLE");
  // 4d) ...pero la MISMA muestra (specimenId) sí es coherente aunque la captura se haya espaciado
- const p6=crypto.randomUUID();const specimenId=crypto.randomUUID();
+ const p6=crypto.randomUUID();await ensurePatientIn(TA,p6); /* L-07 */const specimenId=crypto.randomUUID();
  await resAt(phys,p6,"PH","7.30",hoursAgo(1),{specimenId});await resAt(phys,p6,"BICARBONATE","12",hoursAgo(3),{specimenId});await resAt(phys,p6,"PCO2","26",hoursAgo(5),{specimenId});
  g=await get(phys,p6);ok(g.body.computable===true&&g.body.primary==="METABOLIC_ACIDOSIS","SAME_SPECIMEN_IS_COHERENT");
  // 4e) pCO₂ en kPa se convierte (3.47 kPa = 26 mmHg) y un pH imposible se RECHAZA al capturarlo
- const p7=crypto.randomUUID();await resAt(phys,p7,"PH","7.30",hoursAgo(1));await resAt(phys,p7,"BICARBONATE","12",hoursAgo(1),{unit:"mmol/L"});await resAt(phys,p7,"PCO2","3.47",hoursAgo(1),{unit:"kPa"});
+ const p7=crypto.randomUUID();await ensurePatientIn(TA,p7); /* L-07 */await resAt(phys,p7,"PH","7.30",hoursAgo(1));await resAt(phys,p7,"BICARBONATE","12",hoursAgo(1),{unit:"mmol/L"});await resAt(phys,p7,"PCO2","3.47",hoursAgo(1),{unit:"kPa"});
  g=await get(phys,p7);ok(g.body.computable===true&&g.body.expectedPco2===26,"KPA_CONVERTED_TO_MMHG");
  ok(await resAt(phys,p7,"PH","74",hoursAgo(1))===400,"IMPLAUSIBLE_PH_REJECTED_400");
  // 5) sin scope patient:read -> 403

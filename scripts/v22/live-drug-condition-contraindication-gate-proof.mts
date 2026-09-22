@@ -2,6 +2,7 @@
 // paciente (lista de problemas CIE-10). Cross-vertical problema↔prescripción. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-ay-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -23,22 +24,22 @@ const B=(t:string)=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-ma
 try{
  const phys=tok();await registerPhysicianCredentials(phys);
  // 1) ERC activa (N18.3) -> prescribir ibuprofeno (AINE) = MAJOR -> BLOQUEADO 403
- const p1=crypto.randomUUID();await addProblem(phys,p1,"N18.3");
+ const p1=crypto.randomUUID();await ensurePatientIn(TA,p1); /* L-07 */await addProblem(phys,p1,"N18.3");
  const ib=await propose(phys,p1,"ibuprofeno-400");
  let r=await rx.POST(new Request("http://l/",B(phys)),MP(ib));ok(r.status===403&&(await r.json()).error.code==="SAFETY_BLOCKED","NSAID_CKD_BLOCKED_403");
  // 2) insuficiencia cardíaca (I50.9) -> naproxeno (AINE) = MAJOR -> BLOQUEADO
- const p2=crypto.randomUUID();await addProblem(phys,p2,"I50.9");
+ const p2=crypto.randomUUID();await ensurePatientIn(TA,p2); /* L-07 */await addProblem(phys,p2,"I50.9");
  const np=await propose(phys,p2,"naproxeno-500",{dose:"500mg",route:"VO",frequency:"c/12h"});
  r=await rx.POST(new Request("http://l/",B(phys)),MP(np));ok(r.status===403,"NSAID_HF_BLOCKED_403");
  // 3) ERC (N18.3) + metformina = MODERATE (no bloquea) -> PERMITIDO 201
- const p3=crypto.randomUUID();await addProblem(phys,p3,"N18.3");
+ const p3=crypto.randomUUID();await ensurePatientIn(TA,p3); /* L-07 */await addProblem(phys,p3,"N18.3");
  const mf=await propose(phys,p3,"metformina-850",{dose:"850mg",route:"VO",frequency:"c/12h"});
  r=await rx.POST(new Request("http://l/",B(phys)),MP(mf));ok(r.status===201,"METFORMIN_CKD_MODERATE_ALLOWED_201");
  // 4) mismo paciente ERC pero fármaco sin contraindicación (amoxicilina) -> PERMITIDO
  const am=await propose(phys,p1,"amoxicilina-500",{dose:"500mg",route:"VO",frequency:"c/8h"});
  r=await rx.POST(new Request("http://l/",B(phys)),MP(am));ok(r.status===201,"NONCONTRA_DRUG_ALLOWED_201");
  // 5) control: sin condición activa -> ibuprofeno PERMITIDO
- const p5=crypto.randomUUID();const ib2=await propose(phys,p5,"ibuprofeno-400");
+ const p5=crypto.randomUUID();await ensurePatientIn(TA,p5); /* L-07 */const ib2=await propose(phys,p5,"ibuprofeno-400");
  r=await rx.POST(new Request("http://l/",B(phys)),MP(ib2));ok(r.status===201,"NSAID_NO_CONDITION_ALLOWED_201");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

@@ -1,6 +1,7 @@
 // EPIC AC — Evidencia física del worklist poblacional del panel (care gaps de todos los pacientes) contra Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-ac-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const im=await import("../../apps/web/app/api/v1/immunizations/route");
@@ -15,7 +16,7 @@ const ISO="2026-07-07T07:00:00.000Z";const idem=()=>crypto.randomUUID();
 const P=(t:string,body:Record<string,unknown>)=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({...body,occurredAt:ISO})});
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
- const t=tok(TA);const patX=crypto.randomUUID(),patY=crypto.randomUUID();
+ const t=tok(TA);const patX=crypto.randomUUID(),patY=crypto.randomUUID();await ensurePatientIn(TA,patX); /* L-07 */await ensurePatientIn(TA,patY); /* L-07 */
  // paciente X: vacuna DUE (MEDIUM). paciente Y: interconsulta REQUESTED (LOW).
  await im.POST(P(t,{immunizationId:crypto.randomUUID(),patientId:patX,vaccineCode:"SRP",dose:"1"}));
  await ref.POST(P(t,{referralId:crypto.randomUUID(),patientId:patY,specialty:"Cardiología",reason:"Soplo"}));

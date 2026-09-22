@@ -1,6 +1,7 @@
 // EPIC AB — Evidencia física del export del expediente (manifiesto + hash reproducible, RLS) contra Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-ab-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const ref=await import("../../apps/web/app/api/v1/referrals/route");
@@ -15,7 +16,7 @@ const TP=(id:string)=>({params:Promise.resolve({patientId:id})});const IP=(id:st
 const P=(t:string,body:Record<string,unknown>)=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({...body,occurredAt:ISO})});
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
- const t=tok(TA);const pat=crypto.randomUUID();
+ const t=tok(TA);const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
  // dos agregados con varios eventos: interconsulta (1) + vacuna (2: DUE->ADMINISTERED)
  await ref.POST(P(t,{referralId:crypto.randomUUID(),patientId:pat,specialty:"Cardiología",reason:"Soplo"}));
  const iid=crypto.randomUUID();

@@ -2,6 +2,7 @@
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-document-lifecycle-proof.mts
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-i-secret";
 const SECRET=process.env.SESSION_SIGNING_SECRET;
@@ -25,7 +26,7 @@ function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.p
 try{
  const nurse=tok(TENANT_A,["NURSE"],["document:write"]);
  const physA=tok(TENANT_A,["PHYSICIAN"],["document:write"]);await registerPhysicianCredentials(physA);
- const doc=crypto.randomUUID(),pat=crypto.randomUUID();
+ const doc=crypto.randomUUID(),pat=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat); /* L-07 */
  const content="Nota de evolución: paciente estable, plan sin cambios.";
  const expectedHash=crypto.createHash("sha256").update(content).digest("hex");
 
@@ -76,7 +77,7 @@ try{
 
  // 9) SM ilegal: firmar un borrador sin finalizar -> 409.
  const doc2=crypto.randomUUID();
- await docs.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({documentId:doc2,patientId:crypto.randomUUID(),docType:"REFERRAL",title:"Ref",content:"x",occurredAt:ISO})}));
+ await docs.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({documentId:doc2,patientId:await freshPatient(TENANT_A),docType:"REFERRAL",title:"Ref",content:"x",occurredAt:ISO})}));
  r=await sig.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,contentHash:crypto.createHash("sha256").update("x").digest("hex")})}),DP(doc2));
  ok(r.status===409,"SIGN_DRAFT_ILLEGAL_409");
 
@@ -91,7 +92,7 @@ try{
 
  // 12) Sin scope document:write -> 403.
  const noScope=tok(TENANT_A,["PHYSICIAN"],[]);
- r=await docs.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({documentId:crypto.randomUUID(),patientId:crypto.randomUUID(),docType:"OTHER",title:"t",content:"c",occurredAt:ISO})}));
+ r=await docs.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({documentId:crypto.randomUUID(),patientId:await freshPatient(TENANT_A),docType:"OTHER",title:"t",content:"c",occurredAt:ISO})}));
  ok(r.status===403,"MISSING_SCOPE_403");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));

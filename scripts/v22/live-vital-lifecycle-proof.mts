@@ -1,6 +1,7 @@
 // EPIC W — Evidencia física de signos vitales (registrar/enmendar/marcar-error) contra Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-w-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const vt=await import("../../apps/web/app/api/v1/vitals/route");
@@ -11,7 +12,7 @@ function tok(t:string,roles=["NURSE"],scopes=["vital:write"]){return signSession
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const PP=(id:string)=>({params:Promise.resolve({vitalId:id})});const ISO="2026-09-11T11:00:00.000Z";const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
-async function mk(t:string){const id=crypto.randomUUID();const r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:id,patientId:crypto.randomUUID(),vitalType:"BP",value:"120/80",unit:"mmHg",occurredAt:ISO})}));return{id,r};}
+async function mk(t:string){const id=crypto.randomUUID();const r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:id,patientId:await freshPatient(TA),vitalType:"BP",value:"120/80",unit:"mmHg",occurredAt:ISO})}));return{id,r};}
 try{
  const nurse=tok(TA);
  // registrar -> enmendar -> re-enmendar
@@ -28,9 +29,9 @@ try{
  r=await am.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({value:"125/80",unit:"mmHg",reason:"y",occurredAt:ISO})}),PP(two.id));
  ok(r.status===409,"AMEND_AFTER_ERROR_409");
  // Auditoría C-13: un valor físicamente imposible se RECHAZA al capturar (400), no se guarda como "desconocido"
- r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:crypto.randomUUID(),vitalType:"WEIGHT",value:"700",unit:"kg",occurredAt:ISO})}));
+ r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:await freshPatient(TA),vitalType:"WEIGHT",value:"700",unit:"kg",occurredAt:ISO})}));
  ok(r.status===400&&(await r.json()).error.code==="VALIDATION_ERROR","IMPLAUSIBLE_WEIGHT_REJECTED_400");
- r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:crypto.randomUUID(),vitalType:"BP",value:"80/120",unit:"mmHg",occurredAt:ISO})}));
+ r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:await freshPatient(TA),vitalType:"BP",value:"80/120",unit:"mmHg",occurredAt:ISO})}));
  ok(r.status===400,"IMPLAUSIBLE_BP_REJECTED_400");
  // idempotencia: repetir la MISMA enmienda (misma idempotency-key) -> replay 200
  const three=await mk(nurse);const k=idem();
@@ -44,7 +45,7 @@ try{
  ok(r.status===404,"CROSS_TENANT_404");
  // sin scope vital:write -> 403
  const noScope=tok(TA,["NURSE"],["patient:read"]);
- r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:crypto.randomUUID(),vitalType:"HR",value:"72",unit:"bpm",occurredAt:ISO})}));
+ r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:await freshPatient(TA),vitalType:"HR",value:"72",unit:"bpm",occurredAt:ISO})}));
  ok(r.status===403,"MISSING_WRITE_SCOPE_403");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

@@ -1,6 +1,7 @@
 // EPIC AN — Evidencia física de la interpretación de signos vitales (NORMAL/ABNORMAL/CRITICAL) contra Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-an-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const vt=await import("../../apps/web/app/api/v1/vitals/route");
@@ -10,7 +11,7 @@ function tok(scopes=["vital:write"]){return signSession({sub:crypto.randomUUID()
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const PP=(id:string)=>({params:Promise.resolve({vitalId:id})});const ISO="2026-09-11T11:00:00.000Z";const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
-async function rec(t:string,vitalType:string,value:string,unit:string){const id=crypto.randomUUID();const r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:id,patientId:crypto.randomUUID(),vitalType,value,unit,occurredAt:ISO})}));return{id,body:await r.json(),st:r.status};}
+async function rec(t:string,vitalType:string,value:string,unit:string){const id=crypto.randomUUID();const r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:id,patientId:await freshPatient(TA),vitalType,value,unit,occurredAt:ISO})}));return{id,body:await r.json(),st:r.status};}
 try{
  const nurse=tok();
  // presión normal

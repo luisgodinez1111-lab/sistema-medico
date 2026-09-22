@@ -1,6 +1,7 @@
 // EPIC AA — Evidencia física del worklist de care gaps (reglas sobre el timeline) contra Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-aa-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const im=await import("../../apps/web/app/api/v1/immunizations/route");
@@ -16,7 +17,7 @@ const TP=(id:string)=>({params:Promise.resolve({patientId:id})});const ISO="2026
 const P=(t:string,body:Record<string,unknown>)=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({...body,occurredAt:ISO})});
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
- const t=tok(TA);const pat=crypto.randomUUID();
+ const t=tok(TA);const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
  // pendiente MEDIUM: vacuna DUE
  await im.POST(P(t,{immunizationId:crypto.randomUUID(),patientId:pat,vaccineCode:"SRP",dose:"1"}));
  // pendiente LOW: interconsulta REQUESTED (sin aceptar)

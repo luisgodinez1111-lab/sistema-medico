@@ -2,6 +2,7 @@
 // Demuestra lo que el match por subcadena NO detectaba: alergia a penicilina bloquea amoxicilina Y cefalexina.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-ap-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -22,7 +23,7 @@ async function proposeRx(t:string,pat:string,drugCode:string){
  return rx.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,...ACK})}),MP(med));
 }
 try{
- const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();
+ const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
  // alergia ACTIVA a penicilina (no menciona amoxicilina ni cefalexina)
  await al.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({allergyId:crypto.randomUUID(),patientId:pat,substance:"penicilina",severity:"SEVERE",reaction:"anafilaxia",occurredAt:ISO})}));
  // amoxicilina -> bloqueada por CLASE (penicilina). La subcadena NO lo detectaría.
@@ -32,7 +33,7 @@ try{
  // ibuprofeno -> sin conflicto con penicilina, se permite.
  r=await proposeRx(phys,pat,"ibuprofeno-400");ok(r.status===201,"IBUPROFEN_ALLOWED");
  // segundo paciente con alergia a AINE -> ibuprofeno bloqueado por clase NSAID.
- const pat2=crypto.randomUUID();
+ const pat2=crypto.randomUUID();await ensurePatientIn(TA,pat2); /* L-07 */
  await al.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({allergyId:crypto.randomUUID(),patientId:pat2,substance:"AINE",severity:"MODERATE",reaction:"urticaria",occurredAt:ISO})}));
  r=await proposeRx(phys,pat2,"ibuprofeno-400");ok(r.status===403,"IBUPROFEN_BLOCKED_NSAID_CLASS");
  // ...pero amoxicilina se permite para pat2 (sin conflicto con AINE).

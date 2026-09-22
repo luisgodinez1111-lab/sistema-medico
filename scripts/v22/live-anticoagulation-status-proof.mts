@@ -2,6 +2,7 @@
 // resultado(INR)↔medicación(anticoagulante). vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bu-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -26,7 +27,7 @@ async function get(t:string,pat:string){const r=await ac.GET(new Request("http:/
 try{
  const phys=tok();await registerPhysicianCredentials(phys);
  // 1) warfarina activa + INR 2.5 -> THERAPEUTIC, onAnticoagulant true
- const p1=crypto.randomUUID();await activateWarfarin(phys,p1);await inr(phys,p1,"2.5");
+ const p1=crypto.randomUUID();await ensurePatientIn(TA,p1); /* L-07 */await activateWarfarin(phys,p1);await inr(phys,p1,"2.5");
  let g=await get(phys,p1);ok(g.status===200&&g.body.computable===true,"COMPUTABLE_200");
  ok(g.body.status==="THERAPEUTIC"&&g.body.onAnticoagulant===true,"THERAPEUTIC_ON_ANTICOAG");
  // 2) usa el INR MÁS RECIENTE: 1.4 -> SUBTHERAPEUTIC
@@ -34,10 +35,10 @@ try{
  // 3) INR 6.0 -> CRITICAL_HIGH
  await inr(phys,p1,"6.0");g=await get(phys,p1);ok(g.body.status==="CRITICAL_HIGH","CRITICAL_HIGH");
  // 4) paciente SIN anticoagulante + INR 2.5 -> interpretado pero onAnticoagulant false + nota
- const p2=crypto.randomUUID();await inr(phys,p2,"2.5");
+ const p2=crypto.randomUUID();await ensurePatientIn(TA,p2); /* L-07 */await inr(phys,p2,"2.5");
  g=await get(phys,p2);ok(g.body.computable===true&&g.body.onAnticoagulant===false&&/vitamina K/i.test(g.body.note),"NO_ANTICOAG_NOTE");
  // 5) sin INR -> no computable
- const p3=crypto.randomUUID();g=await get(phys,p3);ok(g.body.computable===false,"NO_INR_NOT_COMPUTABLE");
+ const p3=crypto.randomUUID();await ensurePatientIn(TA,p3); /* L-07 */g=await get(phys,p3);ok(g.body.computable===false,"NO_INR_NOT_COMPUTABLE");
  // 6) sin scope patient:read -> 403
  const noScope=tok(["result:write"]);g=await get(noScope,p1);ok(g.status===403,"MISSING_SCOPE_403");
 }catch(e){result.status="FAIL";result.error=String(e);}

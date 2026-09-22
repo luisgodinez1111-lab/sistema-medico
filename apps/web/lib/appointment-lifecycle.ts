@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldAppointment,assertAppointmentTransition,type FoldedAppointment,type AppointmentState}from"../../../packages/appointment-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,agendaForDate}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,agendaForDate,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC U — Ciclo de vida de la cita: SCHEDULED -> CHECKED_IN -> COMPLETED (o CANCELLED/NO_SHOW).
@@ -48,6 +48,7 @@ export async function handleAppointmentSchedule(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,ScheduleBody);
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   const start=Date.parse(b.startAt);const endAt=b.endAt??new Date(start+DEFAULT_SLOT_MINUTES*60000).toISOString();const end=Date.parse(endAt);
   if(end<=start)throw new ClinicalError("VALIDATION_ERROR","endAt debe ser posterior a startAt");
   if(end-start>MAX_SLOT_HOURS*3600000)throw new ClinicalError("VALIDATION_ERROR",`La cita no puede durar más de ${MAX_SLOT_HOURS} horas`);

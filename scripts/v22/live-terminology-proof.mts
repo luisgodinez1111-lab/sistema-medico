@@ -1,6 +1,7 @@
 // EPIC AM — Evidencia física de la codificación CIE-10 (validación + descripción canónica + búsqueda) contra Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-am-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const pr=await import("../../apps/web/app/api/v1/problems/route");
@@ -13,12 +14,12 @@ const result:{status:string;checks:string[];error?:string}={status:"PASS",checks
 try{
  const phys=tok();
  // agregar problema con código CIE-10 válido -> se codifica con descripción canónica (aunque no mande description)
- let r=await pr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({problemId:crypto.randomUUID(),patientId:crypto.randomUUID(),code:"e11",occurredAt:ISO})}));
+ let r=await pr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({problemId:crypto.randomUUID(),patientId:await freshPatient(TA),code:"e11",occurredAt:ISO})}));
  const okBody=await r.json();
  ok(r.status===201,"PROBLEM_CODED_201");
  ok(okBody.code==="E11"&&okBody.description==="Diabetes mellitus tipo 2"&&okBody.codeSystem==="ICD-10","CANONICAL_DESCRIPTION_ATTACHED");
  // código inválido -> 400 VALIDATION_ERROR
- r=await pr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({problemId:crypto.randomUUID(),patientId:crypto.randomUUID(),code:"NOPE.123",occurredAt:ISO})}));
+ r=await pr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({problemId:crypto.randomUUID(),patientId:await freshPatient(TA),code:"NOPE.123",occurredAt:ISO})}));
  const bad=await r.json();
  ok(r.status===400&&bad.error.code==="VALIDATION_ERROR","INVALID_CODE_400");
  // búsqueda de terminología por texto

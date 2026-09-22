@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldTransfusion,assertTransfusionTransition,type FoldedTransfusion,type TransfusionState}from"../../../packages/transfusion-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC AJ — Ciclo de vida de una transfusión: ORDERED -> CROSSMATCHED -> TRANSFUSING -> {COMPLETED, REACTION}.
@@ -20,6 +20,7 @@ export async function handleTransfusionOrder(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,OrderBody);
+  await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.transfusionId,expectedVersion:0,eventType:"TRANSFUSION_ORDERED",payload:{kind:"ORDERED",patientId:b.patientId,bloodProduct:b.bloodProduct,units:b.units},occurredAt:b.occurredAt,topic:"transfusion.ordered"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};

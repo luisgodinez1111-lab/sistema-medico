@@ -1,6 +1,7 @@
 // EPIC N — Evidencia física del timeline del paciente (lectura/proyección RLS-scoped) contra Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-n-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const open=await import("../../apps/web/app/api/v1/encounters/route");
@@ -14,7 +15,7 @@ function H(t:string,x:Record<string,string>={}){return{"content-type":"applicati
 const TP=(id:string)=>({params:Promise.resolve({patientId:id})});const ISO="2026-07-07T07:00:00.000Z";const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
- const phys=tok(TA);const pat=crypto.randomUUID();
+ const phys=tok(TA);const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
  // Crear 3 items para el mismo paciente
  await open.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:crypto.randomUUID(),patientId:pat,occurredAt:ISO})}));
  await ords.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({orderId:crypto.randomUUID(),patientId:pat,orderType:"LAB",detail:"Hemograma",occurredAt:ISO})}));

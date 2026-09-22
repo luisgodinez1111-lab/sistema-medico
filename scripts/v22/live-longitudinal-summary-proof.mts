@@ -2,6 +2,7 @@
 // se crean ítems de varios verticales para UN paciente, se lee su timeline y summarizePatient los cuenta.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-p-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{summarizePatient}=await import("../../packages/patient-summary/src");
@@ -20,7 +21,7 @@ const TP=(id:string)=>({params:Promise.resolve({patientId:id})});const ISO="2026
 const P=(t:string,body:Record<string,unknown>)=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({...body,occurredAt:ISO})});
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
- const t=tok();const pat=crypto.randomUUID();
+ const t=tok();const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
  await ref.POST(P(t,{referralId:crypto.randomUUID(),patientId:pat,specialty:"Cardiología",reason:"Soplo"}));
  await ap.POST(P(t,{appointmentId:crypto.randomUUID(),patientId:pat,startAt:"2026-09-20T15:00:00.000Z",reason:"Control"}));
  await im.POST(P(t,{immunizationId:crypto.randomUUID(),patientId:pat,vaccineCode:"SRP",dose:"1"}));

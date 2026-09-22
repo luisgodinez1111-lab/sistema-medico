@@ -2,6 +2,7 @@
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-session-issuance-proof.mts
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 // Entorno de desarrollo controlado para este proof (verificador dev opt-in explícito).
 process.env.AUTH_MODE="development";
 process.env.ALLOW_DEV_IDENTITY="true";
@@ -34,7 +35,7 @@ try{
 
  // 3) ROUND-TRIP: el token emitido abre un encuentro real -> 201.
  const enc=crypto.randomUUID();
- r=await open.POST(new Request("http://l/",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+b.token,"idempotency-key":crypto.randomUUID()},body:JSON.stringify({encounterId:enc,patientId:crypto.randomUUID(),occurredAt:new Date().toISOString()})}));
+ r=await open.POST(new Request("http://l/",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+b.token,"idempotency-key":crypto.randomUUID()},body:JSON.stringify({encounterId:enc,patientId:await freshPatient(TENANT),occurredAt:new Date().toISOString()})}));
  ok(r.status===201&&(await r.json()).version===1,"ROUNDTRIP_OPEN_201");
 
  // 4) Aserción manipulada -> 401.

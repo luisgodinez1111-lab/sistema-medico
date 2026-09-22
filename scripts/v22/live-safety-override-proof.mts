@@ -10,6 +10,7 @@
 //     (403 antes de llegar a PRESCRIBE) y la dosis pediátrica por peso bloquea al prescribir cuando el peso se registró después.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"u19-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -39,7 +40,7 @@ async function propose(t:string,pat:string,drugCode:string,order:{dose:string;fr
 }
 const prescribe=(t:string,med:string,body:Record<string,unknown>,key=idem())=>rx.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":key,"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,...ACK,...body})}),MP(med));
 try{
- const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();
+ const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
  // Alergia GRAVE a penicilina -> amoxicilina BLOQUEADA por clase (anulable con justificación: p. ej. desensibilización).
  await al.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({allergyId:crypto.randomUUID(),patientId:pat,substance:"penicilina",severity:"SEVERE",reaction:"anafilaxia",occurredAt:ISO})}));
  const med=await propose(phys,pat,"amoxicilina-500",{dose:"500mg",frequency:"c/8h"});
@@ -73,7 +74,7 @@ try{
  r=await prescribe(phys,med,{overrideBarriers:["allergy"],overrideJustification:J},key);
  ok(r.status===200&&(await r.json()).replayed===true&&(await readAggregateEvents(ctx,med)).length===2,"IDEMPOTENT_RETRY_NO_DUPLICATE");
  // 8) bloqueo DURO (a): el techo diario se aplica ya al PROPONER: paracetamol 2000 mg c/4h = 12 g/día -> 403, nada escrito
- const pat2=crypto.randomUUID();const p2=await proposeRaw(phys,pat2,"paracetamol-500",{dose:"2000mg",frequency:"c/4h"});
+ const pat2=crypto.randomUUID();await ensurePatientIn(TA,pat2); /* L-07 */const p2=await proposeRaw(phys,pat2,"paracetamol-500",{dose:"2000mg",frequency:"c/4h"});
  ok(p2.r.status===403&&((await p2.r.json()) as Err).error.code==="SAFETY_BLOCKED"&&(await readAggregateEvents(ctx,p2.med)).length===0,"DOSE_CEILING_BLOCKS_AT_PROPOSAL_403");
  // 8) bloqueo DURO (b): niño de 2 años SIN peso al proponer (dosis/kg no evaluable -> 201); se registra 10 kg después; al
  //    prescribir, paracetamol 500 mg c/6h = 200 mg/kg/día bloquea por dosis pediátrica y NINGUNA anulación lo levanta.
