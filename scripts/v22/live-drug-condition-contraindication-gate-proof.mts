@@ -2,6 +2,7 @@
 // paciente (lista de problemas CIE-10). Cross-vertical problema↔prescripción. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-ay-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const meds=await import("../../apps/web/app/api/v1/medications/route");
@@ -20,7 +21,7 @@ async function addProblem(t:string,pat:string,code:string){const id=crypto.rando
 async function propose(t:string,pat:string,drugCode:string,o=order){const id=crypto.randomUUID();await meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:pat,drugCode,...o,occurredAt:ISO})}));return id;}
 const B=(t:string)=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,...ACK})});
 try{
- const phys=tok();
+ const phys=tok();await registerPhysicianCredentials(phys);
  // 1) ERC activa (N18.3) -> prescribir ibuprofeno (AINE) = MAJOR -> BLOQUEADO 403
  const p1=crypto.randomUUID();await addProblem(phys,p1,"N18.3");
  const ib=await propose(phys,p1,"ibuprofeno-400");

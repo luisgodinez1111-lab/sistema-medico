@@ -18,7 +18,17 @@ export type BarrierStatus=
  |"NOT_EVALUATED";  // debía evaluarse y no se pudo (fármaco fuera de catálogo, falta peso/eGFR, dosis no interpretable)
 export type BarrierReason=
  "DRUG_NOT_IN_CATALOG"|"ACTIVE_DRUGS_NOT_IN_CATALOG"|"NO_RULE_IN_CATALOG"|"NO_EGFR"|"NO_WEIGHT"|"DOSE_NOT_PARSEABLE"|"ADULT_PATIENT";
-export type BarrierResult=Readonly<{id:BarrierId;label:string;status:BarrierStatus;detail:string;reason?:BarrierReason}>;
+export type BarrierResult=Readonly<{id:BarrierId;label:string;status:BarrierStatus;detail:string;reason?:BarrierReason;overridable:boolean}>;
+// Auditoría 2026-09-19 (U-19): un BLOQUEO no es siempre una negación absoluta. Hay bloqueos que la práctica clínica anula
+// bajo criterio y responsabilidad del médico (alergia documentada sin alternativa, interacción mayor con monitorización,
+// duplicidad intencional, contraindicación relativa, ajuste renal en diálisis…) y bloqueos que este sistema NUNCA anula
+// porque no existe escenario clínico que los justifique: una orden mal formada y una dosis por encima del techo diario
+// absoluto o del máximo pediátrico por peso (ahí lo que procede es corregir la dosis). La anulación exige nombrar CADA
+// barrera anulada y una justificación clínica, y queda inmutable en el evento (ver `summarizeForEvent`).
+export const OVERRIDABLE_BARRIERS=["allergy","interaction","duplicate","contraindication","renal"] as const satisfies readonly BarrierId[];
+export const HARD_BARRIERS=["order","catalog","doseCeiling","pediatricDose"] as const satisfies readonly BarrierId[];
+export const isOverridable=(id:BarrierId):boolean=>(OVERRIDABLE_BARRIERS as readonly BarrierId[]).includes(id);
+export const OVERRIDE_MIN_JUSTIFICATION=20;
 export type PrescriptionSafetyInput=Readonly<{
  drugCode:string;dose:string;route:string;frequency:string;
  allergies:readonly AllergyRecord[];activeDrugCodes:readonly string[];activeConditionCodes:readonly string[];
@@ -30,6 +40,8 @@ export type PrescriptionSafetyEvaluation=Readonly<{
  verdict:SafetyVerdict;catalogResolved:boolean;ingredient:string|null;
  requiresAcknowledgement:boolean; // el médico debe confirmar EXPLÍCITAMENTE que prescribe sin verificación automática
  notEvaluated:readonly BarrierId[];notCovered:readonly BarrierId[];unresolvedActiveDrugs:readonly string[];
+ blockedOverridable:readonly BarrierId[]; // bloqueos que el médico PUEDE anular con justificación (U-19)
+ blockedHard:readonly BarrierId[];        // bloqueos que NO admiten anulación: hay que corregir la orden
  barriers:readonly BarrierResult[];
 }>;
 const LABEL:Record<BarrierId,string>={
@@ -49,7 +61,7 @@ export function ageInYears(birthDate:string,asOf:string):number|undefined{
 
 export function evaluatePrescriptionSafety(i:PrescriptionSafetyInput):PrescriptionSafetyEvaluation{
  const out:BarrierResult[]=[];
- const push=(id:BarrierId,status:BarrierStatus,detail:string,reason?:BarrierReason)=>{out.push(reason?{id,label:LABEL[id],status,detail,reason}:{id,label:LABEL[id],status,detail});};
+ const push=(id:BarrierId,status:BarrierStatus,detail:string,reason?:BarrierReason)=>{const overridable=isOverridable(id);out.push(reason?{id,label:LABEL[id],status,detail,reason,overridable}:{id,label:LABEL[id],status,detail,overridable});};
  const drug=resolveDrug(i.drugCode)??null;
 
  // 0) Formato de la orden
@@ -123,13 +135,47 @@ export function evaluatePrescriptionSafety(i:PrescriptionSafetyInput):Prescripti
  const verdict:SafetyVerdict=out.some(b=>b.status==="BLOCKED")?"BLOCK":(out.some(b=>b.status==="CAUTION")||notEvaluated.length>0)?"REVIEW":"CLEAR";
  // Confirmación expresa: barreras NO evaluadas, o una alergia documentada (leve / cruzada) que no bloquea pero no se ignora.
  const allergyCaution=out.some(b=>b.id==="allergy"&&b.status==="CAUTION");
+ const blocked=ids("BLOCKED");
  return{verdict,catalogResolved:!!drug,ingredient:drug?.ingredient??null,requiresAcknowledgement:notEvaluated.length>0||allergyCaution,
-  notEvaluated,notCovered,unresolvedActiveDrugs:ix.unresolvedActive,barriers:out};
+  notEvaluated,notCovered,unresolvedActiveDrugs:ix.unresolvedActive,
+  blockedOverridable:blocked.filter(isOverridable),blockedHard:blocked.filter(id=>!isOverridable(id)),barriers:out};
+}
+// ---------- Anulación justificada de un bloqueo (U-19) ----------
+// El cliente debe NOMBRAR cada barrera que anula (no hay "anular todo") y dar una justificación clínica. Decisión pura:
+//  · HARD_BLOCK: hay un bloqueo no anulable -> corregir la orden; ninguna justificación lo levanta.
+//  · OVERRIDE_REQUIRED: hay bloqueos anulables y falta nombrar alguno (o no se pidió anulación).
+//  · OVERRIDE_NOT_BLOCKED: se nombra una barrera que hoy NO bloquea (una anulación "por si acaso" no se registra).
+//  · JUSTIFICATION_TOO_SHORT: la justificación no alcanza el mínimo.
+//  · ok: `override` describe exactamente lo anulado (o null si no había nada que anular).
+export type OverrideRequest=Readonly<{barriers:readonly BarrierId[];justification:string}>;
+export type SafetyOverride=Readonly<{barriers:readonly BarrierId[];justification:string}>;
+export type OverrideDecision=
+ |Readonly<{ok:true;override:SafetyOverride|null}>
+ |Readonly<{ok:false;code:"HARD_BLOCK"|"OVERRIDE_REQUIRED"|"OVERRIDE_NOT_BLOCKED"|"JUSTIFICATION_TOO_SHORT";blocked:readonly BarrierId[];hard:readonly BarrierId[];overridable:readonly BarrierId[];unmatched:readonly BarrierId[]}>;
+export function decideOverride(e:PrescriptionSafetyEvaluation,req:OverrideRequest|undefined):OverrideDecision{
+ // La barrera `order` se valida antes (400 VALIDATION_ERROR) y no entra en el juicio de seguridad.
+ const blocked=e.barriers.filter(b=>b.status==="BLOCKED"&&b.id!=="order").map(b=>b.id);
+ const hard=blocked.filter(id=>!isOverridable(id));
+ const overridable=blocked.filter(isOverridable);
+ const fail=(code:Exclude<OverrideDecision,{ok:true}>["code"],unmatched:readonly BarrierId[]=[]):OverrideDecision=>({ok:false,code,blocked,hard,overridable,unmatched});
+ if(hard.length>0)return fail("HARD_BLOCK");
+ const named=[...new Set(req?.barriers??[])];
+ const notBlocking=named.filter(id=>!overridable.includes(id));
+ if(notBlocking.length>0)return fail("OVERRIDE_NOT_BLOCKED",notBlocking);
+ if(overridable.length===0)return{ok:true,override:null};
+ const missing=overridable.filter(id=>!named.includes(id));
+ if(req===undefined||missing.length>0)return fail("OVERRIDE_REQUIRED",missing);
+ const justification=req.justification.trim();
+ if(justification.length<OVERRIDE_MIN_JUSTIFICATION)return fail("JUSTIFICATION_TOO_SHORT");
+ return{ok:true,override:{barriers:[...overridable],justification}};
 }
 // Resumen compacto y SIN PHI para persistir en el evento MEDICATION_PRESCRIBED: deja constancia inmutable de
 // qué barreras se evaluaron, cuáles no, y si el médico aceptó explícitamente prescribir sin verificación.
-export type PersistedSafetySummary=Readonly<{verdict:SafetyVerdict;catalogResolved:boolean;barriers:readonly Readonly<{id:BarrierId;status:BarrierStatus;reason?:BarrierReason}>[];acknowledgedUnverified:boolean;justification?:string}>;
-export function summarizeForEvent(e:PrescriptionSafetyEvaluation,ack:{acknowledged:boolean;justification?:string|undefined}):PersistedSafetySummary{
+// `override` (U-19): qué bloqueos anuló el médico, con qué justificación y quién (sub del prescriptor).
+export type PersistedSafetySummary=Readonly<{verdict:SafetyVerdict;catalogResolved:boolean;barriers:readonly Readonly<{id:BarrierId;status:BarrierStatus;reason?:BarrierReason}>[];acknowledgedUnverified:boolean;justification?:string;
+ override?:Readonly<{barriers:readonly BarrierId[];justification:string;by:string}>}>;
+export function summarizeForEvent(e:PrescriptionSafetyEvaluation,ack:{acknowledged:boolean;justification?:string|undefined},override?:Readonly<{override:SafetyOverride|null;by:string}>):PersistedSafetySummary{
  const barriers=e.barriers.map(b=>b.reason?{id:b.id,status:b.status,reason:b.reason}:{id:b.id,status:b.status});
- return{verdict:e.verdict,catalogResolved:e.catalogResolved,barriers,acknowledgedUnverified:ack.acknowledged,...(ack.justification?{justification:ack.justification}:{})};
+ return{verdict:e.verdict,catalogResolved:e.catalogResolved,barriers,acknowledgedUnverified:ack.acknowledged,...(ack.justification?{justification:ack.justification}:{}),
+  ...(override?.override?{override:{barriers:override.override.barriers,justification:override.override.justification,by:override.by}}:{})};
 }

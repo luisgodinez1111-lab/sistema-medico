@@ -1,6 +1,7 @@
 // EPIC AX — Evidencia física: no prescribir un fármaco con interacción MAJOR con uno ya activo. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-ax-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const meds=await import("../../apps/web/app/api/v1/medications/route");
@@ -19,7 +20,7 @@ async function propose(t:string,pat:string,drugCode:string){const id=crypto.rand
 const B=(t:string,v:number)=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:ISO,...ACK})});
 async function activate(t:string,drugCode:string,pat:string){const id=await propose(t,pat,drugCode);await rx.POST(new Request("http://l/",B(t,1)),MP(id));await act.POST(new Request("http://l/",B(t,2)),MP(id));return id;}
 try{
- const phys=tok();
+ const phys=tok();await registerPhysicianCredentials(phys);
  // 1) warfarina activa -> prescribir ibuprofeno (anticoagulante + AINE) = MAJOR -> BLOQUEADO
  const p1=crypto.randomUUID();await activate(phys,"warfarina-5",p1);
  const ib=await propose(phys,p1,"ibuprofeno-400");

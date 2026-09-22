@@ -2,6 +2,7 @@
 // Demuestra lo que el match por subcadena NO detectaba: alergia a penicilina bloquea amoxicilina Y cefalexina.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-ap-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const al=await import("../../apps/web/app/api/v1/allergies/route");
@@ -21,7 +22,7 @@ async function proposeRx(t:string,pat:string,drugCode:string){
  return rx.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,...ACK})}),MP(med));
 }
 try{
- const phys=tok();const pat=crypto.randomUUID();
+ const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();
  // alergia ACTIVA a penicilina (no menciona amoxicilina ni cefalexina)
  await al.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({allergyId:crypto.randomUUID(),patientId:pat,substance:"penicilina",severity:"SEVERE",reaction:"anafilaxia",occurredAt:ISO})}));
  // amoxicilina -> bloqueada por CLASE (penicilina). La subcadena NO lo detectaría.

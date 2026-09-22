@@ -2,6 +2,7 @@
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-medication-lifecycle-proof.mts
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-h-secret";
 const SECRET=process.env.SESSION_SIGNING_SECRET;
 
@@ -26,7 +27,7 @@ const result:{status:string;checks:string[];error?:string}={status:"PASS",checks
 function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
  const nurse=tok(TENANT_A,["NURSE"],["medication:propose"]);
- const physA=tok(TENANT_A,["PHYSICIAN"],["medication:propose","medication:write"]);
+ const physA=tok(TENANT_A,["PHYSICIAN"],["medication:propose","medication:write"]);await registerPhysicianCredentials(physA);
  const med=crypto.randomUUID(),pat=crypto.randomUUID();
  const drug={drugCode:"amoxicilina-500",dose:"500mg",route:"PO",frequency:"c/8h"};
 
@@ -79,7 +80,7 @@ try{
  ok(r.status===409,"OPTIMISTIC_CONFLICT_409");
 
  // 10) Cross-tenant: médico de tenant B no ve la medicación de A -> 404.
- const physB=tok(TENANT_B,["PHYSICIAN"],["medication:propose","medication:write"]);
+ const physB=tok(TENANT_B,["PHYSICIAN"],["medication:propose","medication:write"]);await registerPhysicianCredentials(physB);
  r=await rx.POST(new Request("http://l/",{method:"POST",headers:H(physB,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),MP(med2));
  ok(r.status===404,"CROSS_TENANT_404");
 

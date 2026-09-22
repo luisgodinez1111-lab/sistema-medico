@@ -2,6 +2,7 @@
 // de seguimiento ligada al vital (sourceVitalId) la DESBLOQUEA (cierra el lazo Zero Lost Follow-Up). vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-as-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const vt=await import("../../apps/web/app/api/v1/vitals/route");
@@ -18,7 +19,7 @@ const result:{status:string;checks:string[];error?:string}={status:"PASS",checks
 const SIGN={contentHash:crypto.createHash("sha256").update("Dx\nPlan").digest("hex")};
 const B=(t:string,v:number,body:Record<string,unknown>={})=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:ISO,...body})});
 try{
- const phys=tok();const pat=crypto.randomUUID();const vid=crypto.randomUUID();const enc=crypto.randomUUID();
+ const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();const vid=crypto.randomUUID();const enc=crypto.randomUUID();
  // 1) signo vital CRÍTICO (crisis hipertensiva) para el paciente
  let r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:vid,patientId:pat,vitalType:"BP",value:"190/125",unit:"mmHg",occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).critical===true,"VITAL_CRITICAL_RECORDED");

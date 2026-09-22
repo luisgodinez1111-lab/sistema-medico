@@ -1,6 +1,7 @@
 // EPIC AW — Evidencia física: no prescribir un fármaco de la MISMA clase que uno ya activo (duplicación terapéutica). vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-aw-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const meds=await import("../../apps/web/app/api/v1/medications/route");
@@ -18,7 +19,7 @@ const drug={dose:"400mg",route:"VO",frequency:"c/12h"};// c/12h: dentro del tope
 async function propose(t:string,pat:string,drugCode:string){const id=crypto.randomUUID();await meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:pat,drugCode,...drug,occurredAt:ISO})}));return id;}
 const B=(t:string,v:number)=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:ISO,...ACK})});
 try{
- const phys=tok();const pat=crypto.randomUUID();
+ const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();
  // 1) ibuprofeno (AINE): proponer -> prescribir -> ACTIVAR
  const a=await propose(phys,pat,"ibuprofeno-400");
  let r=await rx.POST(new Request("http://l/",B(phys,1)),MP(a));ok(r.status===201,"IBUPROFEN_PRESCRIBED_201");

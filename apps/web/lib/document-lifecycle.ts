@@ -8,6 +8,7 @@ import{put,del,get}from"@vercel/blob";
 import{runClinicalCommand,lookupReplay,readAggregateEvents,documentDetail}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload}from"./http-command";
+import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
 // EPIC I — Ciclo de vida del documento clínico sobre el kernel. Autoridad PROD-014-R022 /
 // PROD-022-R018: la firma produce un snapshot reproducible (contentHash) y las correcciones son
 // addendum/amendment APPEND-ONLY; nunca se borra el historial. Physician Control: solo un médico
@@ -88,15 +89,17 @@ export async function handleDocumentSignature(req:Request,documentId:string):Pro
   const{ctx,idempotencyKey,expectedVersion,folded,claims}=await loadForTransition(req,documentId,true);
   const b=await parseJson(req,SignBody);
   const contentHash=documentContentHash(folded.content);
+  const cred=await physicianCredentials(ctx,claims); // L-05: identidad legal del firmante
   // Auditoría L-02: la hora de firma es la del SERVIDOR (la del cliente queda solo como dato forense). Auditoría L-03: el
   // cliente declara la huella del contenido que MUESTRA; si no coincide con lo persistido, no se firma.
   const payload=await replayStablePayload(ctx,idempotencyKey,documentId,b,()=>{
    const signedAt=new Date().toISOString();
-   return{kind:"SIGNED",authorId:claims.sub,contentHash,signedAt,signedAtSource:"SERVER",clientOccurredAt:b.occurredAt,signedVersion:expectedVersion,
+   return{kind:"SIGNED",authorId:claims.sub,signer:cred?{fullName:cred.fullName,cedulaProfesional:cred.cedulaProfesional}:undefined,contentHash,signedAt,signedAtSource:"SERVER",clientOccurredAt:b.occurredAt,signedVersion:expectedVersion,
     signatureDigest:crypto.createHash("sha256").update(`${documentId}:${expectedVersion}:${contentHash}:${claims.sub}:${signedAt}`).digest("hex")};});
   const signedAt=String(payload["signedAt"]);const signatureDigest=String(payload["signatureDigest"]);
   return await commit(ctx,idempotencyKey,expectedVersion,documentId,folded,"SIGNED","DOCUMENT_SIGNED",payload,signedAt,"document.signed",{signatureDigest,contentHash,signedAt},
-   ()=>{if(b.contentHash!==contentHash)throw new ClinicalError("CONFLICT","El contenido en pantalla no coincide con el documento guardado (SIGNED_CONTENT_MISMATCH). Recargue el documento y revíselo antes de firmar.");});
+   ()=>{if(b.contentHash!==contentHash)throw new ClinicalError("CONFLICT","El contenido en pantalla no coincide con el documento guardado (SIGNED_CONTENT_MISMATCH). Recargue el documento y revíselo antes de firmar.");
+    assertPhysicianCredentials(cred);}); // L-05: sin cédula registrada no hay firma (428)
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 // AMEND = {SIGNED,AMENDED} -> AMENDED. Addendum APPEND-ONLY; nunca modifica el snapshot firmado.

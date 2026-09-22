@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{evaluatePrescriptionSafety,summarizeForEvent,ageInYears,type PrescriptionSafetyInput,type BarrierId}from"../../packages/prescription-safety/src";
+import{evaluatePrescriptionSafety,summarizeForEvent,ageInYears,decideOverride,OVERRIDABLE_BARRIERS,HARD_BARRIERS,OVERRIDE_MIN_JUSTIFICATION,type PrescriptionSafetyInput,type BarrierId}from"../../packages/prescription-safety/src";
 // Auditoría 2026-09-19 (C-03, C-04, C-05, C-14, C-16): "no pude evaluar" NUNCA se presenta como "seguro".
 // Estos casos fijan el comportamiento correcto del evaluador ÚNICO que comparten el dry-run y PRESCRIBE.
 const base:PrescriptionSafetyInput={drugCode:"ibuprofeno-400",dose:"400mg",route:"Oral",frequency:"c/8h",
@@ -57,6 +57,52 @@ describe("evaluador único de seguridad de prescripción",()=>{
   expect(s.acknowledgedUnverified).toBe(true);expect(s.catalogResolved).toBe(false);
   expect(Object.keys(s.barriers[0]!).sort()).toEqual(expect.arrayContaining(["id","status"]));
   expect(JSON.stringify(s)).not.toMatch(/eGFR|mg\/día|kg/);
+ });
+});
+// Auditoría 2026-09-19 (U-19): anulación justificada de un bloqueo. Nombrada barrera por barrera, con justificación, y
+// NUNCA sobre techo de dosis / dosis pediátrica / orden mal formada.
+describe("anulación justificada de un bloqueo (U-19)",()=>{
+ const J="Paciente en diálisis trisemanal; dosis acordada con nefrología";
+ it("las listas de barreras anulables y duras son complementarias y cubren todas las barreras",()=>{
+  const all:BarrierId[]=["order","catalog","allergy","interaction","duplicate","contraindication","doseCeiling","pediatricDose","renal"];
+  expect([...OVERRIDABLE_BARRIERS,...HARD_BARRIERS].sort()).toEqual([...all].sort());
+  expect(OVERRIDABLE_BARRIERS).not.toContain("doseCeiling");expect(OVERRIDABLE_BARRIERS).not.toContain("pediatricDose");
+ });
+ it("sin bloqueo: ok y sin anulación que registrar; nombrar una barrera que no bloquea se rechaza",()=>{
+  const e=evaluatePrescriptionSafety(base);
+  expect(e.blockedOverridable).toEqual([]);expect(e.blockedHard).toEqual([]);
+  expect(decideOverride(e,undefined)).toEqual({ok:true,override:null});
+  const d=decideOverride(e,{barriers:["renal"],justification:J});
+  expect(d.ok).toBe(false);if(!d.ok){expect(d.code).toBe("OVERRIDE_NOT_BLOCKED");expect(d.unmatched).toEqual(["renal"]);}
+ });
+ it("bloqueo renal (metformina, TFG 20): sin anulación -> OVERRIDE_REQUIRED nombrando lo que falta; con anulación completa -> ok y queda registrada",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"metformina-850",dose:"850mg",frequency:"c/12h",egfr:20});
+  expect(e.blockedOverridable).toEqual(["renal"]);expect(e.blockedHard).toEqual([]);
+  const d0=decideOverride(e,undefined);expect(d0.ok).toBe(false);if(!d0.ok){expect(d0.code).toBe("OVERRIDE_REQUIRED");expect(d0.unmatched).toEqual(["renal"]);}
+  const d1=decideOverride(e,{barriers:["renal"],justification:"corto"});expect(d1.ok).toBe(false);if(!d1.ok)expect(d1.code).toBe("JUSTIFICATION_TOO_SHORT");
+  expect(J.length).toBeGreaterThanOrEqual(OVERRIDE_MIN_JUSTIFICATION);
+  const d2=decideOverride(e,{barriers:["renal"],justification:`  ${J}  `});
+  expect(d2).toEqual({ok:true,override:{barriers:["renal"],justification:J}});
+  const s=summarizeForEvent(e,{acknowledged:false},d2.ok?{override:d2.override,by:"user-1"}:undefined);
+  expect(s.override).toEqual({barriers:["renal"],justification:J,by:"user-1"});
+  expect(summarizeForEvent(e,{acknowledged:false}).override).toBeUndefined();
+ });
+ it("dos bloqueos anulables: hay que nombrar los dos (uno solo no basta)",()=>{
+  // duplicidad (naproxeno activo) + renal (ibuprofeno con TFG 25 exige precaución/bloqueo según regla) -> se usa contraindicación por dx
+  const e=evaluatePrescriptionSafety({...base,activeDrugCodes:["naproxeno-250"],egfr:20});
+  expect(e.blockedOverridable.length).toBeGreaterThanOrEqual(2);
+  const d=decideOverride(e,{barriers:["duplicate"],justification:J});
+  expect(d.ok).toBe(false);if(!d.ok){expect(d.code).toBe("OVERRIDE_REQUIRED");expect(d.unmatched).toEqual(e.blockedOverridable.filter(x=>x!=="duplicate"));}
+  const all=decideOverride(e,{barriers:e.blockedOverridable,justification:J});expect(all.ok).toBe(true);
+ });
+ it("techo de dosis y dosis pediátrica NO se anulan con ninguna justificación (HARD_BLOCK)",()=>{
+  const adult=evaluatePrescriptionSafety({...base,drugCode:"paracetamol-500",dose:"2000mg",frequency:"c/4h"});
+  expect(adult.blockedHard).toEqual(["doseCeiling"]);
+  const d=decideOverride(adult,{barriers:["renal","allergy"],justification:J});
+  expect(d.ok).toBe(false);if(!d.ok){expect(d.code).toBe("HARD_BLOCK");expect(d.hard).toEqual(["doseCeiling"]);}
+  const child=evaluatePrescriptionSafety({...base,drugCode:"paracetamol-500",dose:"500mg",frequency:"c/6h",weightKg:10,ageYears:2});
+  expect(child.blockedHard).toContain("pediatricDose");
+  expect(decideOverride(child,{barriers:[],justification:J}).ok).toBe(false);
  });
 });
 describe("ageInYears",()=>{

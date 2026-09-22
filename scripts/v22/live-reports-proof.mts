@@ -5,6 +5,7 @@
 // + indicadores de calidad (asistencia, inasistencia, HbA1c en control, expedientes cerrados). RLS-scoped. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-ad-rep-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -44,7 +45,7 @@ async function reports(t:string){const r=await repR.GET(new Request("http://l/",
 const ACK={acknowledgeUnverified:true,unverifiedJustification:"Prueba en vivo: paciente sintético sin datos para verificar"};
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
- const phys=tok();
+ const phys=tok();await registerPhysicianCredentials(phys);
  const p1=crypto.randomUUID(),p2=crypto.randomUUID(),p3=crypto.randomUUID();
  await reg(phys,p1,"Ana");await reg(phys,p2,"Mateo");await reg(phys,p3,"María");
  // diagnósticos: E11.9 x3, I10 x2, E66.9 x1

@@ -9,6 +9,7 @@ import{foldEncounter,assertTransition}from"../../../packages/encounter-fold/src"
 import{runClinicalCommand,lookupReplay,readEncounterEvents,blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,sessionSecret}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{readerFor,replayStablePayload}from"./http-command";
+import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
 // EPIC D — Ciclo de vida del encuentro sobre el kernel probado: assess (OPEN->READY_TO_SIGN)
 // y sign (READY_TO_SIGN->SIGNED). Concurrencia optimista real (If-Match=version) e invariantes
 // V2: Physician Control (solo un médico humano firma) y Zero Lost Follow-Up (no firmar con
@@ -84,13 +85,15 @@ export async function handleSignature(req:Request,encounterId:string):Promise<Re
   if(!parsed.success)throw new ClinicalError("VALIDATION_ERROR","Invalid signature payload",{issues:parsed.error.issues.length});
   if(folded.assessment===undefined||folded.plan===undefined)throw new ClinicalError("SAFETY_BLOCKED","Encounter has no assessment to sign");
   const contentHash=encounterContentHash(folded.assessment,folded.plan);
+  // Auditoría L-05: identidad legal del firmante (nombre y cédula) leída ANTES de construir el sello; sin ella no se firma.
+  const cred=await physicianCredentials(ctx,claims);
   // Auditoría L-02 — la HORA DE FIRMA la pone el SERVIDOR. Antes era `occurredAt` del cliente: un reloj desajustado (o un
   // cliente manipulado) fechaba una nota médico-legal en el pasado o en el futuro, y esa hora entraba en el sello. La hora
   // del cliente se conserva solo como dato forense. Estable ante reintentos (ver replayStablePayload).
   // Physician Control: la firma la produce el médico humano autenticado (claims.sub), nunca IA.
   const payload=await replayStablePayload(ctx,idempotencyKey,encounterId,parsed.data,()=>{
    const signedAt=new Date().toISOString();
-   return{kind:"SIGNED",authorId:claims.sub,contentHash,signedAt,signedAtSource:"SERVER",clientOccurredAt:parsed.data.occurredAt,signedVersion:expectedVersion,
+   return{kind:"SIGNED",authorId:claims.sub,signer:cred?{fullName:cred.fullName,cedulaProfesional:cred.cedulaProfesional}:undefined,contentHash,signedAt,signedAtSource:"SERVER",clientOccurredAt:parsed.data.occurredAt,signedVersion:expectedVersion,
     signatureDigest:crypto.createHash("sha256").update(`${encounterId}:${expectedVersion}:${contentHash}:${claims.sub}:${signedAt}`).digest("hex")};});
   const signedAt=String(payload["signedAt"]);const signatureDigest=String(payload["signatureDigest"]);
   const cmd=baseCommand(idempotencyKey,encounterId,expectedVersion,"ENCOUNTER_SIGNED",payload,signedAt,"encounter.signed");
@@ -100,6 +103,7 @@ export async function handleSignature(req:Request,encounterId:string):Promise<Re
    if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Encounter changed since last read",{expected:expectedVersion,actual:folded.version});
    assertTransition(folded.status,"SIGNED");
    if(parsed.data.contentHash!==contentHash)throw new ClinicalError("CONFLICT","El contenido en pantalla no coincide con la valoración guardada (SIGNED_CONTENT_MISMATCH). Guarde la valoración de nuevo y revise el texto antes de firmar.");
+   assertPhysicianCredentials(cred); // L-05: sin cédula registrada no hay firma (428)
    // Zero Lost Follow-Up (auditoría L-01): no se firma con seguimientos URGENTES o VENCIDOS sin resolver, ni con resultados
    // críticos sin cerrar, ni con signos vitales críticos sin atender. Todo se deriva del stream de eventos.
    const[obligations,criticalResults,criticalVitals]=await Promise.all([blockingObligations(ctx,folded.patientId,signedAt),countOpenCriticalResults(ctx,folded.patientId),countOpenCriticalVitals(ctx,folded.patientId)]);

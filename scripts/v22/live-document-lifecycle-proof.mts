@@ -2,6 +2,7 @@
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-document-lifecycle-proof.mts
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-i-secret";
 const SECRET=process.env.SESSION_SIGNING_SECRET;
 
@@ -23,7 +24,7 @@ const result:{status:string;checks:string[];error?:string}={status:"PASS",checks
 function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
  const nurse=tok(TENANT_A,["NURSE"],["document:write"]);
- const physA=tok(TENANT_A,["PHYSICIAN"],["document:write"]);
+ const physA=tok(TENANT_A,["PHYSICIAN"],["document:write"]);await registerPhysicianCredentials(physA);
  const doc=crypto.randomUUID(),pat=crypto.randomUUID();
  const content="Nota de evolución: paciente estable, plan sin cambios.";
  const expectedHash=crypto.createHash("sha256").update(content).digest("hex");
@@ -84,7 +85,7 @@ try{
  ok(r.status===409,"OPTIMISTIC_CONFLICT_409");
 
  // 11) Cross-tenant -> 404.
- const physB=tok(TENANT_B,["PHYSICIAN"],["document:write"]);
+ const physB=tok(TENANT_B,["PHYSICIAN"],["document:write"]);await registerPhysicianCredentials(physB);
  r=await fin.POST(new Request("http://l/",{method:"POST",headers:H(physB,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),DP(doc2));
  ok(r.status===404,"CROSS_TENANT_404");
 

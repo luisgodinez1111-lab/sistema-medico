@@ -2,6 +2,7 @@
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-result-closed-loop-proof.mts
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-g-secret";
 const SECRET=process.env.SESSION_SIGNING_SECRET;
 
@@ -28,7 +29,7 @@ const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
 function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
- const physA=tok(TENANT_A,["PHYSICIAN"]);
+ const physA=tok(TENANT_A,["PHYSICIAN"]);await registerPhysicianCredentials(physA);
 
  // === A) Ciclo de vida del resultado (camino feliz) ===
  const res=crypto.randomUUID(),pat=crypto.randomUUID(),ord=crypto.randomUUID();
@@ -97,7 +98,7 @@ try{
  r=await sign4();b4=await r.json();ok(r.status===201&&b4.status==="SIGNED","SIGN_AFTER_CRITICAL_CLOSED_201");
 
  // === D) Aislamiento cross-tenant sobre el resultado ===
- const physB=tok(TENANT_B,["PHYSICIAN"]);
+ const physB=tok(TENANT_B,["PHYSICIAN"]);await registerPhysicianCredentials(physB);
  r=await rVerify.POST(new Request("http://l/",{method:"POST",headers:H(physB,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),RP(res));
  ok(r.status===404,"CROSS_TENANT_RESULT_404");
 

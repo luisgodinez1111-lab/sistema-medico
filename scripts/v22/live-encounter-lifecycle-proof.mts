@@ -2,6 +2,7 @@
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-encounter-lifecycle-proof.mts
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-d-lifecycle-secret";
 const SECRET=process.env.SESSION_SIGNING_SECRET;
 
@@ -30,7 +31,7 @@ function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.p
 const raw=process.env.DATABASE_URL.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,"");
 const sql=postgres(raw,{max:2,prepare:false,onnotice:()=>{}});
 try{
- const physA=tok(TENANT_A,["PHYSICIAN"]);
+ const physA=tok(TENANT_A,["PHYSICIAN"]);await registerPhysicianCredentials(physA);
  const enc=crypto.randomUUID(),pat=crypto.randomUUID();
 
  // 1) Abrir
@@ -92,7 +93,7 @@ try{
  ok(r.status===409,"OPTIMISTIC_CONFLICT_409");
 
  // 10) Cross-tenant: médico de tenant B no ve el encuentro de A -> 404
- const physB=tok(TENANT_B,["PHYSICIAN"]);
+ const physB=tok(TENANT_B,["PHYSICIAN"]);await registerPhysicianCredentials(physB);
  r=await assess.POST(new Request("http://l/",{method:"POST",headers:h(physB,{"idempotency-key":crypto.randomUUID(),"if-match":"1"}),body:JSON.stringify({assessment:"a",plan:"b",occurredAt:ISO})}),P(enc));
  ok(r.status===404,"CROSS_TENANT_404");
 

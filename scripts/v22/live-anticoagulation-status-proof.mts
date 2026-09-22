@@ -2,6 +2,7 @@
 // resultado(INR)↔medicación(anticoagulante). vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bu-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const meds=await import("../../apps/web/app/api/v1/medications/route");
@@ -23,7 +24,7 @@ async function activateWarfarin(t:string,pat:string){const id=crypto.randomUUID(
 async function inr(t:string,pat:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:pat,orderId:crypto.randomUUID(),analyte:"INR",value:v,occurredAt:at()})}));}
 async function get(t:string,pat:string){const r=await ac.GET(new Request("http://l/",{headers:H(t)}),PP(pat));return{status:r.status,body:await r.json()};}
 try{
- const phys=tok();
+ const phys=tok();await registerPhysicianCredentials(phys);
  // 1) warfarina activa + INR 2.5 -> THERAPEUTIC, onAnticoagulant true
  const p1=crypto.randomUUID();await activateWarfarin(phys,p1);await inr(phys,p1,"2.5");
  let g=await get(phys,p1);ok(g.status===200&&g.body.computable===true,"COMPUTABLE_200");

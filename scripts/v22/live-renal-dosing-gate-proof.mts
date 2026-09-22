@@ -2,6 +2,7 @@
 // renal en la prescripción (metformina/AINE con TFG<30). Cross-vertical medicación←creatinina+demografía. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bm-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -20,7 +21,7 @@ const order={dose:"850mg",route:"VO",frequency:"c/12h"};
 async function propose(t:string,p:string,drugCode:string,o=order){const id=crypto.randomUUID();await meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:p,drugCode,...o,occurredAt:ISO})}));return id;}
 const B=(t:string,extra:Record<string,unknown>={})=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,...extra})});
 try{
- const phys=tok();
+ const phys=tok();await registerPhysicianCredentials(phys);
  // 1) hombre 70a con creatinina 4.0 -> TFG ~15 (<30): metformina BLOQUEADA 403
  const p1=crypto.randomUUID();await register(phys,p1,70);await creat(phys,p1,"4.0");
  const mf=await propose(phys,p1,"metformina-850");

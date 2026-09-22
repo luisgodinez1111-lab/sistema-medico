@@ -3,6 +3,7 @@
 // signos vitales, y verifica POST /referrals. Determinista, RLS-scoped. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-y-ctx-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -37,7 +38,7 @@ async function context(t:string,p:string){const r=await ctxR.GET(new Request("ht
 const ACK={acknowledgeUnverified:true,unverifiedJustification:"Prueba en vivo: paciente sintético sin datos para verificar"};
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
- const phys=tok();const p=crypto.randomUUID();await reg(phys,p);
+ const phys=tok();await registerPhysicianCredentials(phys);const p=crypto.randomUUID();await reg(phys,p);
  await prob(phys,p,"E11.9");await prob(phys,p,"I10");await prob(phys,p,"E66.9");
  await allergy(phys,p,"Amoxicilina");
  await medActive(phys,p,"metformina");await medActive(phys,p,"losartan");

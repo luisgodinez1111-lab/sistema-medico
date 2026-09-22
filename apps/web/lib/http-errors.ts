@@ -1,6 +1,7 @@
 import{ClinicalError,type ClinicalErrorCode}from"../../../packages/runtime-errors/src";
 // EPIC B — Traducción determinista de fallos de dominio a HTTP, fail-closed y sin PHI.
-// Nunca serializa `details` crudos ni el payload clínico: solo {code,message} estables.
+// Nunca serializa `details` crudos ni el payload clínico: solo {code,message} estables, más las claves de `details`
+// expresamente listadas en EXPOSED_DETAILS (identificadores de barrera y versiones; nunca valores clínicos).
 const STATUS:Record<ClinicalErrorCode,number>={
  VALIDATION_ERROR:400,UNAUTHENTICATED:401,FORBIDDEN:403,CROSS_TENANT:403,NOT_FOUND:404,
  CONFLICT:409,CONCURRENCY_CONFLICT:409,IDEMPOTENCY_CONFLICT:409,SAFETY_BLOCKED:403,
@@ -11,10 +12,25 @@ const KERNEL:Record<string,ClinicalErrorCode>={
  CONCURRENCY_CONFLICT:"CONCURRENCY_CONFLICT",IDEMPOTENCY_CONFLICT:"IDEMPOTENCY_CONFLICT",
  IDEMPOTENCY_IN_PROGRESS:"CONFLICT",
 };
-export type HttpError=Readonly<{status:number;body:{error:{code:string;message:string}}}>;
+// Auditoría U-19: la UI necesita saber QUÉ barreras bloquean y cuáles admiten anulación para ofrecer el diálogo correcto
+// (no se puede inferir del texto). Lista cerrada por código y por clave: lo que no está aquí no sale.
+const EXPOSED_DETAILS:Partial<Record<ClinicalErrorCode,readonly string[]>>={
+ SAFETY_BLOCKED:["barriers","hard","overridable","missing"],
+ SAFETY_ACK_REQUIRED:["notEvaluated"],
+ VALIDATION_ERROR:["unmatched","missing"], // U-19 barreras no bloqueantes nombradas; U-20 campos legales que faltan en la receta
+ CONCURRENCY_CONFLICT:["expected","actual"],
+ PRECONDITION_REQUIRED:["reason"], // L-05: PHYSICIAN_CREDENTIALS_REQUIRED lleva a la UI al perfil profesional
+};
+export type HttpError=Readonly<{status:number;body:{error:{code:string;message:string;details?:Readonly<Record<string,unknown>>}}}>;
+function exposedDetails(e:ClinicalError):Readonly<Record<string,unknown>>|undefined{
+ const keys=EXPOSED_DETAILS[e.code];if(!keys||!e.details)return undefined;
+ const out:Record<string,unknown>={};for(const k of keys)if(e.details[k]!==undefined)out[k]=e.details[k];
+ return Object.keys(out).length?out:undefined;
+}
 export function toHttpError(e:unknown):HttpError{
  if(e instanceof ClinicalError){
-  return{status:STATUS[e.code]??500,body:{error:{code:e.code,message:e.message}}};
+  const details=exposedDetails(e);
+  return{status:STATUS[e.code]??500,body:{error:details?{code:e.code,message:e.message,details}:{code:e.code,message:e.message}}};
  }
  if(e instanceof Error&&KERNEL[e.message]){
   const code=KERNEL[e.message] as ClinicalErrorCode;

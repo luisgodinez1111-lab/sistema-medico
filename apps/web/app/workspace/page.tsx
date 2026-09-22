@@ -112,7 +112,14 @@ const DONE_KINDS=new Set(["COMPLETED","FULFILLED","ADMINISTERED","ACHIEVED","CLO
 const SCHED_KINDS=new Set(["IN_PROGRESS","ACCEPTED","CHECKED_IN","SCHEDULED","ACTIVE","PROGRESSED"]);
 const CANCEL_KINDS=new Set(["CANCELLED","DECLINED","NO_SHOW","REVOKED","ENTERED_IN_ERROR"]);
 function followState(kind:string):"pend"|"prog"|"done"|"skip"{if(DONE_KINDS.has(kind))return "done";if(CANCEL_KINDS.has(kind))return "skip";if(SCHED_KINDS.has(kind))return "prog";return "pend";}
-type RxCheck=Readonly<{drug:{input:string;resolved:{ingredient:string;classes:string[]}|null};egfr:number|null;checks:{id:string;label:string;status:"OK"|"WARN"|"BLOCK"|"NOT_EVALUATED"|"NOT_COVERED"|"NA";detail:string}[];monitoring:{test:string;note:string;dueInDays:number}[];indications:string;verdict:"OK"|"WARN"|"BLOCK";requiresAcknowledgement?:boolean;notEvaluated?:string[];notCovered?:string[]}>;
+type RxCheck=Readonly<{drug:{input:string;resolved:{ingredient:string;classes:string[]}|null};egfr:number|null;checks:{id:string;label:string;status:"OK"|"WARN"|"BLOCK"|"NOT_EVALUATED"|"NOT_COVERED"|"NA";detail:string;overridable?:boolean}[];monitoring:{test:string;note:string;dueInDays:number}[];indications:string;verdict:"OK"|"WARN"|"BLOCK";requiresAcknowledgement?:boolean;notEvaluated?:string[];notCovered?:string[];blockedOverridable?:string[];blockedHard?:string[]}>;
+// Auditoría U-19: la dosis se captura como cantidad + unidad (nada de texto libre "1 tab" sin unidad); el servidor recibe "500 mg".
+const DOSE_UNITS=["mg","g","mcg","mL","UI","mEq","tab","cap","gotas","puff","amp"] as const;
+const composeDose=(amount:string,unit:string)=>amount.trim()?`${amount.trim()} ${unit}`:"";
+// Etiquetas de las barreras anulables para el diálogo de anulación (los ids vienen del servidor).
+const BARRIER_LABEL:Record<string,string>={allergy:"Alergia documentada",interaction:"Interacción farmacológica mayor",duplicate:"Duplicidad terapéutica",contraindication:"Contraindicación por diagnóstico",renal:"Ajuste renal (eGFR)",doseCeiling:"Dosis por encima del máximo diario",pediatricDose:"Dosis pediátrica por peso",order:"Orden mal formada",catalog:"Fármaco fuera de catálogo"};
+type BlockDetails=Readonly<{barriers?:string[];hard?:string[];overridable?:string[];missing?:string[]}>;
+const blockDetails=(r:{body:Record<string,unknown>}):BlockDetails=>((r.body["error"] as{details?:BlockDetails}|undefined)?.details)??{};
 // Panel 4 — evolución longitudinal
 type Series=readonly{value:number;at:string}[];
 type Trends=Readonly<{series:Record<string,Series>;latest:{LDL:number|null;CREATININE:number|null;UACR:number|null;EGFR:number|null}}>;
@@ -126,7 +133,7 @@ const CHART:Record<TrendKey,{label:string;unit:string;target?:number;targetLabel
 const fmtN=(v:number)=>v%1?v.toFixed(1):String(v);
 function trendChart(series:Series,key:TrendKey){
  const cfg=CHART[key];
- if(!series.length)return <div style={{padding:"28px 0",textAlign:"center",color:"#8a8b9a",fontSize:13}}>Sin datos de {cfg.label} todavía. Registra resultados para ver la tendencia.</div>;
+ if(!series.length)return <div style={{padding:"28px 0",textAlign:"center",color:P.muted,fontSize:13}}>Sin datos de {cfg.label} todavía. Registra resultados para ver la tendencia.</div>;
  const W=680,H=250,padL=42,padR=14,padT=18,padB=38,cb=H-padB;
  const vals=series.map(p=>p.value);
  const dmin=Math.min(cfg.domain[0],...vals),dmax=Math.max(cfg.domain[1],...vals);
@@ -320,7 +327,17 @@ function userMessage(e:unknown):string{
  if(/WebCrypto/i.test(m))return m; // mensaje ya redactado para el usuario
  return "No se pudo completar la acción. Vuelva a intentarlo; si persiste, avise a soporte.";
 }
-function errMsg(r:{status:number;body:Record<string,unknown>}):string{const e=r.body["error"] as{code?:string;message?:string}|undefined;return `${r.status} ${e?.code??""} ${e?.message??""}`.trim();}
+// Accesibilidad (auditoría 2026-09-19, R05b): un div/span que actúa como control se anuncia como botón y se opera con
+// teclado (Enter/Espacio); una fila/elemento de lista activable recibe foco y teclado sin cambiar su semántica de tabla/lista.
+type ActEvent=React.MouseEvent<HTMLElement>|React.KeyboardEvent<HTMLElement>;
+const keyAct=(onClick:(e:ActEvent)=>void)=>(e:React.KeyboardEvent<HTMLElement>)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();onClick(e);}};
+// Sin manejador (control inactivo) no se anuncia como botón ni recibe foco.
+const act=(onClick:((e:ActEvent)=>void)|undefined)=>onClick?{role:"button" as const,tabIndex:0,onClick,onKeyDown:keyAct(onClick)}:{};
+const actRow=(onClick:(e:ActEvent)=>void)=>({tabIndex:0,onClick,onKeyDown:keyAct(onClick)});
+function errMsg(r:{status:number;body:Record<string,unknown>}):string{const e=r.body["error"] as{code?:string;message?:string;details?:{reason?:string}}|undefined;
+ // L-05: el servidor exige la identidad profesional; se dice dónde completarla en lugar del código crudo.
+ if(r.status===428&&e?.details?.reason==="PHYSICIAN_CREDENTIALS_REQUIRED")return "Registra tu cédula profesional en Configuración → Identidad profesional antes de prescribir o firmar.";
+ return `${r.status} ${e?.code??""} ${e?.message??""}`.trim();}
 // Auditoría 2026-09-19 (U-16) — los "motivos" del registro inmutable NO son literales del código. Cada transición que lleva
 // un motivo/evidencia/desenlace lo marca con ASK(...) y el diálogo se lo pide al médico antes de enviar; sin texto, no se envía.
 type Ask=Readonly<{__ask:string;min:number;placeholder?:string}>;
@@ -459,7 +476,8 @@ export default function Workspace(){
  const[assessment,setAssessment]=useState("");
  const[plan,setPlan]=useState("");
  const[meds,setMeds]=useState<Med[]>([]);
- const[drug,setDrug]=useState("");const[dose,setDose]=useState("");const[route,setRoute]=useState("VO");const[freq,setFreq]=useState("");
+ const[drug,setDrug]=useState("");const[doseAmt,setDoseAmt]=useState("");const[doseUnit,setDoseUnit]=useState<string>("mg");const[route,setRoute]=useState("VO");const[freq,setFreq]=useState("");
+ const dose=composeDose(doseAmt,doseUnit);
  const[results,setResults]=useState<Result[]>([]);
  // Auditoría U-07/U-15: este formulario enviaba {critical} marcado a mano y SIN analito ni valor (el servidor respondía 400 siempre).
  // Ahora captura analito + valor + unidad, igual que la vista Resultados; la criticidad la deriva el servidor del valor.
@@ -496,7 +514,8 @@ export default function Workspace(){
  // Estado EXPLÍCITO de la carga del expediente: un fallo de red/HTTP nunca debe verse como "sin hallazgos"
  // (auditoría 2026-09-19, U-03). "error" => la UI lo dice y ofrece reintentar; los datos quedan en null (desconocido).
  const[chartState,setChartState]=useState<"idle"|"loading"|"ready"|"error">("idle");const[chartReload,setChartReload]=useState(0);
- const[rxDrug,setRxDrug]=useState("");const[rxDose,setRxDose]=useState("");const[rxRoute,setRxRoute]=useState("Oral");const[rxFreq,setRxFreq]=useState("");
+ const[rxDrug,setRxDrug]=useState("");const[rxDoseAmt,setRxDoseAmt]=useState("");const[rxDoseUnit,setRxDoseUnit]=useState<string>("mg");const[rxRoute,setRxRoute]=useState("Oral");const[rxFreq,setRxFreq]=useState("");
+ const rxDose=composeDose(rxDoseAmt,rxDoseUnit);
  const[rxCheck,setRxCheck]=useState<RxCheck|null>(null);
  // Confirmación EXPLÍCITA del médico cuando el servidor no pudo evaluar alguna barrera (428 SAFETY_ACK_REQUIRED).
  // Auditoría L-03/U-06 — FIRMA CON CONFIRMACIÓN: el médico ve el texto PERSISTIDO que se va a firmar; su huella (sha256) viaja
@@ -517,7 +536,9 @@ export default function Workspace(){
  // Auditoría L-10/L-11: las verticales hospitalarias solo se pintan si el SERVIDOR las declara encendidas
  // (GET /api/v1/features). Por defecto, y ante cualquier fallo, APAGADAS.
  const[hospitalOn,setHospitalOn]=useState(false);
- const[ackMed,setAckMed]=useState<{med:Med;message:string}|null>(null);const[ackWhy,setAckWhy]=useState("");const[rxMsg,setRxMsg]=useState("");
+ const[ackMed,setAckMed]=useState<{med:Med;message:string;override?:{barriers:string[];justification:string}}|null>(null);const[ackWhy,setAckWhy]=useState("");
+ // U-19: anulación justificada de un bloqueo anulable (el servidor dice cuáles); los duros no tienen diálogo: se corrige la orden.
+ const[overrideMed,setOverrideMed]=useState<{med:Med;message:string;barriers:string[]}|null>(null);const[overrideWhy,setOverrideWhy]=useState("");const[rxMsg,setRxMsg]=useState("");
  const[trends,setTrends]=useState<Trends|null>(null);const[trendKey,setTrendKey]=useState<TrendKey>("HBA1C");
  const[followTab,setFollowTab]=useState<"pend"|"prog"|"done"|"all">("pend");
  const[topSearch,setTopSearch]=useState("");
@@ -625,15 +646,32 @@ export default function Workspace(){
  // Perfil del médico: firma y sello (imágenes) en Vercel Blob privado, ligadas al médico (no al consultorio).
  const sigInputRef=useRef<HTMLInputElement|null>(null);const stampInputRef=useRef<HTMLInputElement|null>(null);
  const[profHas,setProfHas]=useState<{signature:boolean;stamp:boolean}>({signature:false,stamp:false});
+ // Auditoría L-05: identidad profesional del médico (nombre, cédula, institución) — exigida por el servidor para prescribir y firmar.
+ type Credentials={fullName:string;cedulaProfesional:string;institution:string;specialty:string;cedulaEspecialidad:string};
+ const CRED_EMPTY:Credentials={fullName:"",cedulaProfesional:"",institution:"",specialty:"",cedulaEspecialidad:""};
+ const[credSaved,setCredSaved]=useState<Credentials|null>(null);const[credForm,setCredForm]=useState<Credentials>(CRED_EMPTY);const[credMsg,setCredMsg]=useState<string|null>(null);const[credBusy,setCredBusy]=useState(false);
+ const credValid=credForm.fullName.trim().length>=3&&/^\d{7,8}$/.test(credForm.cedulaProfesional.trim())&&credForm.institution.trim().length>=2&&(credForm.cedulaEspecialidad.trim()===""||/^\d{7,8}$/.test(credForm.cedulaEspecialidad.trim()));
+ const saveCredentials=async()=>{
+  if(!credValid)return;setCredBusy(true);setCredMsg(null);
+  try{
+   const body:Record<string,string>={fullName:credForm.fullName.trim(),cedulaProfesional:credForm.cedulaProfesional.trim(),institution:credForm.institution.trim()};
+   if(credForm.specialty.trim())body["specialty"]=credForm.specialty.trim();if(credForm.cedulaEspecialidad.trim())body["cedulaEspecialidad"]=credForm.cedulaEspecialidad.trim();
+   const r=await apiRequest("/api/v1/physician-profile/credentials",{method:"POST",body});
+   if(r.status===200||r.status===201){setCredMsg("Identidad profesional guardada ✓");await loadProfile();}
+   else setCredMsg(errMsg(r));
+  }catch(e){setCredMsg(userMessage(e));}finally{setCredBusy(false);}
+ };
  const[profUrls,setProfUrls]=useState<{signature:string|null;stamp:string|null}>({signature:null,stamp:null});
  const[profBusy,setProfBusy]=useState(false);const[profMsg,setProfMsg]=useState<string|null>(null);
  const PROF_MIME=["image/png","image/jpeg","image/webp"];
  const loadProfile=async()=>{
   try{const r=await apiRequest("/api/v1/physician-profile",{method:"GET"});
    if(r.status!==200)return;
-   const b=r.body as{signature:unknown;stamp:unknown};
+   const b=r.body as{signature:unknown;stamp:unknown;credentials?:Partial<Credentials>|null};
    const has={signature:b.signature!==null&&b.signature!==undefined,stamp:b.stamp!==null&&b.stamp!==undefined};
    setProfHas(has);
+   const c=b.credentials?{...CRED_EMPTY,...Object.fromEntries(Object.entries(b.credentials).filter(([,v])=>typeof v==="string"))} as Credentials:null;
+   setCredSaved(c);setCredForm(c??CRED_EMPTY);
    for(const k of["signature","stamp"] as const){
     if(has[k]){const blob=await apiDownload(`/api/v1/physician-profile/assets/${k}`);if(blob){const url=URL.createObjectURL(blob);setProfUrls(u=>{if(u[k])URL.revokeObjectURL(u[k]!);return{...u,[k]:url};});}}
     else setProfUrls(u=>{if(u[k])URL.revokeObjectURL(u[k]!);return{...u,[k]:null};});
@@ -1311,7 +1349,7 @@ export default function Workspace(){
   const id=uuid();const r=await apiRequest("/api/v1/medications",{method:"POST",body:{medicationId:id,patientId,drugCode:drug,dose,route,frequency:freq,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
   setMeds(ms=>[...ms,{id,label:`${drug} ${dose} ${route} ${freq}`,state:"PROPOSED",version:Number(r.body["version"]??1)}]);
-  setDrug("");setDose("");setFreq("");
+  setDrug("");setDoseAmt("");setFreq("");
  });
  const advanceMed=(m:Med)=>call("med-"+m.id,async()=>{
   const n=medNext(m);if(!n)return;
@@ -1319,14 +1357,46 @@ export default function Workspace(){
   const r=await apiRequest(n.path,{method:"POST",body,ifMatch:m.version});
   const code=(r.body["error"] as{code?:string}|undefined)?.code;
   if(r.status===428&&code==="SAFETY_ACK_REQUIRED"){setAckWhy("");setAckMed({med:m,message:String((r.body["error"] as{message?:string}|undefined)?.message??"")});return;}
+  if(r.status===403&&code==="SAFETY_BLOCKED"){
+   const d=blockDetails(r);const message=String((r.body["error"] as{message?:string}|undefined)?.message??"");
+   if((d.hard?.length??0)>0){setError(`Bloqueo NO anulable (${d.hard!.map(x=>BARRIER_LABEL[x]??x).join(", ")}): corrige la dosis o la orden. ${message}`);return;}
+   if((d.overridable?.length??0)>0){setOverrideWhy("");setOverrideMed({med:m,message,barriers:d.overridable!});return;}
+  }
   if(r.status>=400){setError(errMsg(r));return;}
   setMeds(ms=>ms.map(x=>x.id===m.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
+ // Auditoría U-20: receta imprimible con los datos legales. El servidor devuelve el HTML (o 400 diciendo qué falta); se abre
+ // en una ventana nueva y se invoca la impresión del navegador (el PDF lo produce el navegador; no se instala nada).
+ const printPrescription=(ids:string[])=>call("rx-print",async()=>{
+  if(!patientId||ids.length===0)return;
+  const r=await apiRequest(`/api/v1/patients/${patientId}/prescription-print?medications=${ids.join(",")}`,{method:"GET"});
+  if(r.status>=400){setError(errMsg(r));return;}
+  const html=String(r.body["html"]??"");
+  const w=window.open("","_blank","noopener,width=900,height=1000");
+  if(!w){setError("El navegador bloqueó la ventana de impresión: permite ventanas emergentes para este sitio.");return;}
+  w.document.open();w.document.write(html);w.document.close();
+  w.addEventListener("load",()=>w.print());setTimeout(()=>{try{w.print();}catch{/* ya impreso o cerrado */}},600);
+ });
+ // U-19: reenvía la transición NOMBRANDO cada barrera anulada y con la justificación del médico (≥20 caracteres); ambas quedan
+ // en el evento inmutable junto con quién anuló. Si además hay barreras sin evaluar, el servidor pide la confirmación (428) y
+ // el diálogo de confirmación conserva la anulación.
+ const confirmOverrideMed=()=>{const o=overrideMed;if(!o)return;return call("med-"+o.med.id,async()=>{
+  const n=medNext(o.med);if(!n)return;
+  const body=await resolveAsks(n.body);if(!body)return;
+  const override={barriers:o.barriers,justification:overrideWhy.trim()};
+  const r=await apiRequest(n.path,{method:"POST",body:{...body,overrideBarriers:override.barriers,overrideJustification:override.justification},ifMatch:o.med.version});
+  const code=(r.body["error"] as{code?:string}|undefined)?.code;
+  if(r.status===428&&code==="SAFETY_ACK_REQUIRED"){setOverrideMed(null);setAckWhy("");setAckMed({med:o.med,message:String((r.body["error"] as{message?:string}|undefined)?.message??""),override});return;}
+  if(r.status>=400){setError(errMsg(r));return;}
+  setMeds(ms=>ms.map(x=>x.id===o.med.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
+  setOverrideMed(null);setOverrideWhy("");
+ });};
  // Reenvía PRESCRIBE con la confirmación expresa y la justificación del médico; ambas quedan en el evento inmutable.
  const confirmAckMed=()=>{const a=ackMed;if(!a)return;return call("med-"+a.med.id,async()=>{
   const n=medNext(a.med);if(!n)return;
   const body=await resolveAsks(n.body);if(!body)return;
-  const r=await apiRequest(n.path,{method:"POST",body:{...body,acknowledgeUnverified:true,unverifiedJustification:ackWhy.trim()},ifMatch:a.med.version});
+  const ov=a.override?{overrideBarriers:a.override.barriers,overrideJustification:a.override.justification}:{};
+  const r=await apiRequest(n.path,{method:"POST",body:{...body,...ov,acknowledgeUnverified:true,unverifiedJustification:ackWhy.trim()},ifMatch:a.med.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setMeds(ms=>ms.map(x=>x.id===a.med.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
   setAckMed(null);setAckWhy("");
@@ -1866,10 +1936,10 @@ export default function Workspace(){
     </div>
     {/* KPIs */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:16,marginTop:20}} className="mos-kpis">
-     <div style={kpiCard}>{kico("#EEEBFD",svg("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",P.purple))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Citas de hoy</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{citasHoy}</div><div style={{height:6,borderRadius:99,background:"#EDEFF6",overflow:"hidden"}}><i style={{display:"block",height:"100%",width:`${citasHoy?Math.round(atendidasHoy/citasHoy*100):0}%`,background:P.purple,borderRadius:99}}/></div><div style={{fontSize:11.5,marginTop:5}}><span style={link} onClick={()=>setView("agenda")}>Ver agenda →</span></div></div></div>
+     <div style={kpiCard}>{kico("#EEEBFD",svg("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",P.purple))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Citas de hoy</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{citasHoy}</div><div style={{height:6,borderRadius:99,background:"#EDEFF6",overflow:"hidden"}}><i style={{display:"block",height:"100%",width:`${citasHoy?Math.round(atendidasHoy/citasHoy*100):0}%`,background:P.purple,borderRadius:99}}/></div><div style={{fontSize:11.5,marginTop:5}}><span style={link} {...act(()=>setView("agenda"))}>Ver agenda →</span></div></div></div>
      <div style={kpiCard}>{kico("#E6F6EE",svg("M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",P.green))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Consultas atendidas</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{atendidasHoy}</div><div style={{fontSize:11.5,color:P.muted,marginTop:5}}>de {citasHoy} citas de hoy</div></div></div>
-     <div style={kpiCard}>{kico("#FDE7EA",svg("M7 3h7l4 4v14H7zM14 3v4h4M10 13h5M10 16h3",P.red))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Pendientes críticos</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{critCount}</div><div style={{fontSize:11.5,marginTop:5}}><span style={link} onClick={()=>setView("resultados")}>Ver resultados →</span></div></div></div>
-     <div style={kpiCard}>{kico("#E7EEFB",svg("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",P.blue))}<div style={{flex:1,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div>{(()=>{const nx=agenda?.appointments.find(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN");return <><div style={{fontSize:13,color:P.muted}}>Próxima cita</div><div style={{fontSize:22,fontWeight:800,margin:"2px 0"}}>{nx?new Date(nx.startAt).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase():"—"}</div><div style={{fontSize:11.5,color:P.muted}}>{nx?nx.patientName:"Sin citas próximas"}</div></>;})()}</div><span style={{width:30,height:30,borderRadius:"50%",background:"#E7EEFB",color:P.blue,display:"grid",placeItems:"center",cursor:"pointer"}} onClick={()=>setView("agenda")}>→</span></div></div>
+     <div style={kpiCard}>{kico("#FDE7EA",svg("M7 3h7l4 4v14H7zM14 3v4h4M10 13h5M10 16h3",P.red))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Pendientes críticos</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{critCount}</div><div style={{fontSize:11.5,marginTop:5}}><span style={link} {...act(()=>setView("resultados"))}>Ver resultados →</span></div></div></div>
+     <div style={kpiCard}>{kico("#E7EEFB",svg("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",P.blue))}<div style={{flex:1,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div>{(()=>{const nx=agenda?.appointments.find(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN");return <><div style={{fontSize:13,color:P.muted}}>Próxima cita</div><div style={{fontSize:22,fontWeight:800,margin:"2px 0"}}>{nx?new Date(nx.startAt).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase():"—"}</div><div style={{fontSize:11.5,color:P.muted}}>{nx?nx.patientName:"Sin citas próximas"}</div></>;})()}</div><span style={{width:30,height:30,borderRadius:"50%",background:"#E7EEFB",color:P.blue,display:"grid",placeItems:"center",cursor:"pointer"}} {...act(()=>setView("agenda"))}>→</span></div></div>
     </div>
     {/* Banners */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16}} className="mos-banners">
@@ -1878,20 +1948,20 @@ export default function Workspace(){
     </div>
     {/* Mid: tareas | agenda | (CI + acciones) */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-mid">
-     <div style={cardP}><div style={h2row}><h2 style={h2s}>Tareas clínicas prioritarias <span style={{background:P.purple,color:"#fff",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>{tasks.length}</span></h2><span style={link} onClick={()=>go("Panel del clínico")}>Ver todas →</span></div>
+     <div style={cardP}><div style={h2row}><h2 style={h2s}>Tareas clínicas prioritarias <span style={{background:P.purple,color:"#fff",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>{tasks.length}</span></h2><span style={link} {...act(()=>go("Panel del clínico"))}>Ver todas →</span></div>
       {tasks.length===0&&<div style={{padding:"18px",fontSize:13,color:P.muted,borderTop:`1px solid ${LINE}`}}>{panel?"Sin tareas clínicas prioritarias.":"Cargando tareas…"}</div>}
-      {tasks.map((t,i)=>{const[tag,tbg,tfg]=prTag(t.pr);return <div key={i} title={t.pid?"Abrir consulta del paciente":undefined} style={{display:"flex",gap:12,padding:"12px 18px",borderTop:`1px solid #F1F3F9`,cursor:"pointer"}} onClick={()=>openPatientCtx(t.pid,t.who)}>
+      {tasks.map((t,i)=>{const[tag,tbg,tfg]=prTag(t.pr);return <div key={i} title={t.pid?"Abrir consulta del paciente":undefined} style={{display:"flex",gap:12,padding:"12px 18px",borderTop:`1px solid #F1F3F9`,cursor:"pointer"}} {...act(()=>openPatientCtx(t.pid,t.who))}>
        <span style={{width:34,height:34,borderRadius:9,background:tbg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><span style={{width:8,height:8,borderRadius:"50%",background:tfg}}/></span>
        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13.5,fontWeight:600}}>{t.title}</div><div style={{fontSize:12,color:P.muted}}>{t.who}</div></div>
        <span style={{fontSize:10.5,fontWeight:700,borderRadius:6,padding:"3px 8px",background:tbg,color:tfg,whiteSpace:"nowrap",alignSelf:"flex-start"}}>{tag}</span>
       </div>;})}
      </div>
-     <div style={cardP}><div style={h2row}><h2 style={h2s}>Agenda de hoy</h2><span style={link} onClick={()=>setView("agenda")}>Ver agenda →</span></div>
+     <div style={cardP}><div style={h2row}><h2 style={h2s}>Agenda de hoy</h2><span style={link} {...act(()=>setView("agenda"))}>Ver agenda →</span></div>
       <div style={{padding:"4px 18px 14px",position:"relative"}}>
        <div style={{position:"absolute",left:73,top:8,bottom:14,width:2,background:"#EDEFF6"}}/>
        {!(agenda?.appointments.length)&&<div style={{padding:"10px 0 10px 84px",fontSize:13,color:P.muted}}>{agenda?"Sin citas registradas para hoy.":"Cargando agenda…"}</div>}
        {(agenda?.appointments.length?agenda.appointments.slice(0,8).map(a=>({tm:new Date(a.startAt).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase(),txt:`${a.patientName} · ${a.reason}`,on:a.status==="CHECKED_IN",pid:a.patientId,name:a.patientName})):([] as {tm:string;txt:string;on:boolean;pid:string;name:string}[])).map((it,i)=>(
-        <div key={i} onClick={()=>openPatientCtx(it.pid,it.name)} title={it.pid?"Abrir consulta del paciente":undefined} style={{display:"flex",gap:14,padding:it.on?"9px 12px":"9px 0",position:"relative",cursor:it.pid?"pointer":"default",...(it.on?{background:"#F1EFFE",border:"1px solid #D9D3FA",borderRadius:12,margin:"2px -12px"}:{})}}>
+        <div key={i} {...act(()=>openPatientCtx(it.pid,it.name))} title={it.pid?"Abrir consulta del paciente":undefined} style={{display:"flex",gap:14,padding:it.on?"9px 12px":"9px 0",position:"relative",cursor:it.pid?"pointer":"default",...(it.on?{background:"#F1EFFE",border:"1px solid #D9D3FA",borderRadius:12,margin:"2px -12px"}:{})}}>
          <span style={{fontSize:12,color:P.muted,width:62,flex:"0 0 auto",textAlign:"right",paddingTop:1}}>{it.tm}</span>
          <span style={{width:11,height:11,borderRadius:"50%",background:it.on?P.purple:"#fff",border:`2px solid ${it.on?P.purple:"#C9CEE6"}`,flex:"0 0 auto",marginTop:3,zIndex:1}}/>
          <div><div style={{fontSize:13,fontWeight:600,color:it.on?P.purple:P.ink}}>Consulta</div><div style={{fontSize:12,color:P.muted}}>{it.txt}</div></div>
@@ -1922,11 +1992,11 @@ export default function Workspace(){
     </div>
     {/* Pacientes recientes | recursos */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-low">
-     <div style={cardP}><div style={h2row}><h2 style={h2s}>Pacientes recientes</h2><span style={link} onClick={()=>setView("pacientes")}>Ver todas →</span></div>
+     <div style={cardP}><div style={h2row}><h2 style={h2s}>Pacientes recientes</h2><span style={link} {...act(()=>setView("pacientes"))}>Ver todas →</span></div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
-       <thead><tr>{["Nombre","Edad","Última consulta","Motivo","Estado"].map(h=><th key={h} style={{textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"8px 18px",borderBottom:`1px solid ${LINE}`}}>{h}</th>)}</tr></thead>
+       <thead><tr>{["Nombre","Edad","Última consulta","Motivo","Estado"].map(h=><th key={h} style={{textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"8px 18px",borderBottom:`1px solid ${LINE}`}}>{h}</th>)}</tr></thead>
        <tbody>{!usingRealPts&&<tr><td colSpan={6} style={{padding:"22px 14px",textAlign:"center",color:P.muted,fontSize:13}}>{patientList?"Aún no hay pacientes registrados.":"Cargando pacientes…"}</td></tr>}{realPts.map((p,i)=>{const[stl,sbg,sfg]=stEs(p.status);const d=p as{name:string;status:string;age?:string;last?:string;motivo?:string;patientId?:string};return <tr key={i}>
-        <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13}}><span style={{display:"flex",alignItems:"center",gap:10,fontWeight:600,cursor:"pointer"}} onClick={()=>d.patientId?openPatientCtx(d.patientId,p.name):setView("pacientes")}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700}}>{initials(p.name)}</span>{p.name}</span></td>
+        <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13}}><span style={{display:"flex",alignItems:"center",gap:10,fontWeight:600,cursor:"pointer"}} {...act(()=>d.patientId?openPatientCtx(d.patientId,p.name):setView("pacientes"))}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700}}>{initials(p.name)}</span>{p.name}</span></td>
         <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13,color:P.muted}}>{d.age??"—"}</td>
         <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13,color:P.muted}}>{d.last??"—"}</td>
         <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13}}>{d.motivo??"—"}</td>
@@ -1935,7 +2005,7 @@ export default function Workspace(){
       </table></div>
      </div>
      <div style={cardP}><div style={h2row}><h2 style={h2s}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={P.purple} strokeWidth="1.8" aria-hidden><path d="M4 5a2 2 0 012-2h9v18H6a2 2 0 01-2-2zM15 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3"/></svg>Recursos clínicos</h2></div>
-      <div style={{padding:"6px 8px"}}>{([["Calculadoras médicas",()=>setView("biblioteca")],["Interacciones medicamentosas",()=>{setView("medicamentos");setMedTab("interacciones");}],["CIE-10 / CUPS",()=>setView("biblioteca")],["Protocolos del consultorio",()=>setView("biblioteca")],["Guías de práctica clínica",()=>setView("biblioteca")]] as const).map(([r,fn])=><div key={r} onClick={fn} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,color:P.blue,fontSize:13.5,fontWeight:500,cursor:"pointer"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><path d="M8 6h9M8 12h9M8 18h6M4 6h.01M4 12h.01M4 18h.01"/></svg>{r}</div>)}</div>
+      <div style={{padding:"6px 8px"}}>{([["Calculadoras médicas",()=>setView("biblioteca")],["Interacciones medicamentosas",()=>{setView("medicamentos");setMedTab("interacciones");}],["CIE-10 / CUPS",()=>setView("biblioteca")],["Protocolos del consultorio",()=>setView("biblioteca")],["Guías de práctica clínica",()=>setView("biblioteca")]] as const).map(([r,fn])=><div key={r} {...act(fn)} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,color:P.blue,fontSize:13.5,fontWeight:500,cursor:"pointer"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><path d="M8 6h9M8 12h9M8 18h6M4 6h.01M4 12h.01M4 18h.01"/></svg>{r}</div>)}</div>
      </div>
     </div>
     {/* Indicadores | donut | mensajes */}
@@ -1955,7 +2025,7 @@ export default function Workspace(){
       </div>
      </div>
      <div style={cardP}><div style={h2row}><h2 style={{...h2s,fontSize:15}}>Mensajes y notificaciones <span style={{background:P.red,color:"#fff",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>3</span></h2><span style={link}>Ver todos →</span></div>
-      {[["#5B8DEF","Nuevo resultado de laboratorio","Hoy 12:45 p.m."],["#16A66A","Interconsulta aceptada","Hoy 10:20 a.m."],["#E5983B","Documento pendiente por firmar","Ayer 6:15 p.m."]].map(([c,t,tm],i)=><div key={i} style={{display:"flex",gap:11,padding:"10px 18px",borderTop:`1px solid #F1F3F9`,alignItems:"flex-start"}}><span style={{width:8,height:8,borderRadius:"50%",background:c as string,marginTop:5,flex:"0 0 auto"}}/><div style={{flex:1,fontSize:13,fontWeight:600}}>{t as string}</div><span style={{fontSize:11.5,color:"#9AA0BC",whiteSpace:"nowrap"}}>{tm as string}</span></div>)}
+      {[["#5B8DEF","Nuevo resultado de laboratorio","Hoy 12:45 p.m."],["#16A66A","Interconsulta aceptada","Hoy 10:20 a.m."],["#E5983B","Documento pendiente por firmar","Ayer 6:15 p.m."]].map(([c,t,tm],i)=><div key={i} style={{display:"flex",gap:11,padding:"10px 18px",borderTop:`1px solid #F1F3F9`,alignItems:"flex-start"}}><span style={{width:8,height:8,borderRadius:"50%",background:c as string,marginTop:5,flex:"0 0 auto"}}/><div style={{flex:1,fontSize:13,fontWeight:600}}>{t as string}</div><span style={{fontSize:11.5,color:P.muted,whiteSpace:"nowrap"}}>{tm as string}</span></div>)}
      </div>
     </div>
    </div>;
@@ -2026,11 +2096,11 @@ export default function Workspace(){
      </div>
      <div style={{...card,marginTop:14,overflow:"hidden"}}>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
-       <thead><tr>{["Paciente","Edad","Sexo","Estado","Acciones"].map((h,i)=><th key={i} style={{textAlign:i>=3?"right":"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"12px 16px",borderBottom:`1px solid ${LINE}`,background:"#FAFBFD"}}>{h}</th>)}</tr></thead>
+       <thead><tr>{["Paciente","Edad","Sexo","Estado","Acciones"].map((h,i)=><th key={i} style={{textAlign:i>=3?"right":"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"12px 16px",borderBottom:`1px solid ${LINE}`,background:"#FAFBFD"}}>{h}</th>)}</tr></thead>
        <tbody>{rows.length===0?(
         <tr><td colSpan={5} style={{padding:"44px 16px",textAlign:"center",color:P.muted,fontSize:13.5}}>{loading?"Cargando pacientes…":allRows.length===0?<span>Aún no hay pacientes registrados. Usa <b style={{color:P.ink}}>«Nuevo paciente»</b> para crear el primero.</span>:"Ningún paciente coincide con la búsqueda o el filtro."}</td></tr>
-       ):rows.map(r=>{const[stl,sbg,sfg]=stTag(r.status);const on=isReal(r)&&r.patientId===patSelId;return <tr key={r.patientId} onClick={()=>selectRow(r)} style={{background:on?"#F6F5FE":"transparent",cursor:isReal(r)?"pointer":"default",borderLeft:on?`3px solid ${P.purple}`:"3px solid transparent"}}>
-        <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`}}><div style={{display:"flex",alignItems:"center",gap:11}}><span style={{width:38,height:38,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:12.5,fontWeight:700,flex:"0 0 auto"}}>{initials(r.name)}</span><div><div style={{fontWeight:600,fontSize:13.5}}>{r.name}</div><div style={{fontSize:11,color:"#9AA0BC"}}>CURP: {r.curp}</div></div></div></td>
+       ):rows.map(r=>{const[stl,sbg,sfg]=stTag(r.status);const on=isReal(r)&&r.patientId===patSelId;return <tr key={r.patientId} {...actRow(()=>selectRow(r))} style={{background:on?"#F6F5FE":"transparent",cursor:isReal(r)?"pointer":"default",borderLeft:on?`3px solid ${P.purple}`:"3px solid transparent"}}>
+        <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`}}><div style={{display:"flex",alignItems:"center",gap:11}}><span style={{width:38,height:38,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:12.5,fontWeight:700,flex:"0 0 auto"}}>{initials(r.name)}</span><div><div style={{fontWeight:600,fontSize:13.5}}>{r.name}</div><div style={{fontSize:11,color:P.muted}}>CURP: {r.curp}</div></div></div></td>
         <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{r.age!=null?`${r.age} años`:"—"}</td>
         <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{sexEs(r.sexo)}</td>
         <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`,textAlign:"right"}}><span style={{fontSize:11.5,fontWeight:600,borderRadius:999,padding:"3px 11px",background:sbg,color:sfg}}>{stl}</span></td>
@@ -2049,7 +2119,7 @@ export default function Workspace(){
        <div style={{display:"flex",gap:13,minWidth:0}}><span style={{width:56,height:56,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontWeight:800,fontSize:20,flex:"0 0 auto"}}>{initials(fp.name)}</span><div style={{minWidth:0}}><div style={{fontSize:18,fontWeight:800,lineHeight:1.15}}>{fp.name}</div><div style={{fontSize:12.5,color:P.muted,marginTop:2}}>{fAge!=null?`${fAge} años · `:""}{sexEs(fp.sexAtBirth)}</div>{(()=>{const[stl,sbg,sfg]=stTag(fp.status);return <span style={{display:"inline-flex",alignItems:"center",gap:6,background:sbg,color:sfg,borderRadius:999,padding:"2px 10px",fontSize:11.5,fontWeight:700,marginTop:6}}>● {stl}</span>;})()}</div></div>
        <div style={{display:"flex",gap:6,flex:"0 0 auto"}}>{!patEdit&&<button onClick={()=>openEdit(fp.patientId)} title="Editar ficha" style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"7px 11px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI,display:"inline-flex",alignItems:"center",gap:6}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M12 20h9M16.5 3.5a2 2 0 013 3L7 19l-4 1 1-4z"/></svg>Editar</button>}<button onClick={()=>setPatSelId(null)} title="Cerrar ficha" style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,width:32,height:32,cursor:"pointer",color:P.muted,fontFamily:UI}}>×</button></div>
       </div>
-      {!patEdit&&<div style={{display:"flex",gap:16,borderBottom:`1px solid ${LINE}`,marginTop:16}}>{([["resumen","Resumen"],["historial","Historial"],["notas","Notas"],["documentos","Documentos"]] as const).map(([k,l])=><span key={k} onClick={()=>setPatTab(k)} style={{fontSize:13.5,color:patTab===k?P.purple:P.muted,fontWeight:patTab===k?700:500,paddingBottom:10,borderBottom:patTab===k?`2px solid ${P.purple}`:"2px solid transparent",cursor:"pointer"}}>{l}</span>)}</div>}
+      {!patEdit&&<div style={{display:"flex",gap:16,borderBottom:`1px solid ${LINE}`,marginTop:16}}>{([["resumen","Resumen"],["historial","Historial"],["notas","Notas"],["documentos","Documentos"]] as const).map(([k,l])=><span key={k} {...act(()=>setPatTab(k))} style={{fontSize:13.5,color:patTab===k?P.purple:P.muted,fontWeight:patTab===k?700:500,paddingBottom:10,borderBottom:patTab===k?`2px solid ${P.purple}`:"2px solid transparent",cursor:"pointer"}}>{l}</span>)}</div>}
      </div>
      <div style={{padding:"16px 22px 24px",overflowY:"auto",flex:1}}>
       {patEdit?(
@@ -2136,7 +2206,7 @@ export default function Workspace(){
        <button disabled={!consultaNewPid} onClick={()=>openConsulta(consultaNewPid,npName)} style={{marginTop:14,width:"100%",justifyContent:"center",display:"flex",border:0,background:consultaNewPid?P.purple:"#C7CCE0",color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:14,cursor:consultaNewPid?"pointer":"default",fontFamily:UI}}>Abrir consulta</button>
       </div>
       <div style={{...card2,padding:0,overflow:"hidden"}}>
-       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 18px 10px"}}><div style={{fontSize:16,fontWeight:800}}>Citas de hoy ({pend.length} por atender)</div><span style={{color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"}} onClick={()=>setView("agenda")}>Ver agenda →</span></div>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 18px 10px"}}><div style={{fontSize:16,fontWeight:800}}>Citas de hoy ({pend.length} por atender)</div><span style={{color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"}} {...act(()=>setView("agenda"))}>Ver agenda →</span></div>
        {appts.length===0?<div style={{padding:"28px 18px",textAlign:"center",color:P.muted,fontSize:13}}>No hay citas para hoy. Usa «+ Agendar consulta».</div>:appts.slice(0,8).map(a=>{const st=ST[a.status]??["",P.canvas,P.muted];const canOpen=a.status==="SCHEDULED"||a.status==="CHECKED_IN";return <div key={a.appointmentId} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 18px",borderTop:`1px solid #F1F3F9`}}><span style={{fontSize:12.5,color:P.muted,width:64,flex:"0 0 auto"}}>{tHM(a.startAt)}</span><span style={{width:34,height:34,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{ini(a.patientName)}</span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{a.patientName}</div><div style={{fontSize:11.5,color:P.muted}}>{a.reason}</div></div><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:st[1],color:st[2]}}>{st[0]}</span><button disabled={!canOpen} onClick={()=>openConsulta(a.patientId,a.patientName)} style={{border:0,background:canOpen?P.purple:"#EEF0F5",color:canOpen?"#fff":"#9AA0BC",borderRadius:8,padding:"7px 12px",fontWeight:700,fontSize:12,cursor:canOpen?"pointer":"default",fontFamily:UI}}>Abrir</button></div>;})}
       </div>
      </div>
@@ -2157,8 +2227,8 @@ export default function Workspace(){
    const sec:React.CSSProperties={...card2,padding:18};
    const sect:React.CSSProperties={fontSize:15,fontWeight:700,margin:"0 0 12px"};
    const ta:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:11,padding:"12px 14px",fontSize:13.5,fontFamily:UI,resize:"vertical",minHeight:64,color:P.ink,boxSizing:"border-box"};
-   const cc:React.CSSProperties={fontSize:11,color:"#9AA0BC",textAlign:"right",marginTop:5};
-   const antp=(bg:string,fg:string,label:string,d:string)=>(<div style={{display:"flex",alignItems:"center",gap:7,borderRadius:10,padding:"8px 12px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap",background:bg,color:fg,cursor:"pointer"}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection(label==="Alergias"?"Alergias":label==="Problemas"?"Lista de problemas":label==="Medicamentos"?"Medicación":"Vacunas"),0);}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg>{label}</div>);
+   const cc:React.CSSProperties={fontSize:11,color:P.muted,textAlign:"right",marginTop:5};
+   const antp=(bg:string,fg:string,label:string,d:string)=>(<div style={{display:"flex",alignItems:"center",gap:7,borderRadius:10,padding:"8px 12px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap",background:bg,color:fg,cursor:"pointer"}} {...act(()=>{setView("exp");setTimeout(()=>scrollToSection(label==="Alergias"?"Alergias":label==="Problemas"?"Lista de problemas":label==="Medicamentos"?"Medicación":"Vacunas"),0);})}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg>{label}</div>);
    const link:React.CSSProperties={color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"};
    // Botón real que abre la sección correspondiente del expediente (antes era un chip decorativo "+ Agregar" sin acción).
    const sgo=(label:string,section:string)=><button onClick={()=>{setView("exp");setTimeout(()=>scrollToSection(section),0);}} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"4px 10px",fontSize:12,fontWeight:600,color:P.purple,cursor:"pointer",whiteSpace:"nowrap",fontFamily:UI}}>{label}</button>;
@@ -2166,7 +2236,7 @@ export default function Workspace(){
    const rsum=(bg:string,fg:string,d:string,title:string,sub:string,right:React.ReactNode)=>(<div style={{display:"flex",gap:11,padding:"12px 0",borderTop:`1px solid #F1F3F9`,alignItems:"flex-start"}}><span style={{width:34,height:34,borderRadius:9,background:bg,color:fg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13.5}}>{title}</div><div style={{fontSize:12.5,color:P.muted}}>{sub}</div></div>{right}</div>);
    return <div style={{padding:"20px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
-     <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{width:34,height:34,borderRadius:9,border:`1px solid ${LINE}`,background:P.white,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}} title="Volver al panel de consultas" onClick={()=>setConsultaPid(null)}>←</span><div><div style={{display:"flex",alignItems:"center",gap:10}}><h1 style={{fontSize:27,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Consulta</h1>{enc&&(()=>{const m=enc.state==="SIGNED"?["#E6F6EE","#16A66A","Firmada"]:enc.state==="READY_TO_SIGN"?["#FBF0DC","#B7791F","Lista para firmar"]:["#EAF1FD","#1769E0","Abierta"];return <span style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:m[0],color:m[1]}}>Encuentro · {m[2]}</span>;})()}</div><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Registro y gestión de la consulta médica</p></div></div>
+     <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{width:34,height:34,borderRadius:9,border:`1px solid ${LINE}`,background:P.white,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}} title="Volver al panel de consultas" {...act(()=>setConsultaPid(null))}>←</span><div><div style={{display:"flex",alignItems:"center",gap:10}}><h1 style={{fontSize:27,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Consulta</h1>{enc&&(()=>{const m=enc.state==="SIGNED"?["#E6F6EE","#16A66A","Firmada"]:enc.state==="READY_TO_SIGN"?["#FBF0DC","#B7791F","Lista para firmar"]:["#EAF1FD","#1769E0","Abierta"];return <span style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:m[0],color:m[1]}}>Encuentro · {m[2]}</span>;})()}</div><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Registro y gestión de la consulta médica</p></div></div>
      {(()=>{
       // U-17 (CRITICAL_OPEN+SIGN_READY): con pendientes críticos abiertos la firma se presenta BLOQUEADA, no "lista"; el servidor
       // la rechazaría igual (Zero Lost Follow-Up), pero la interfaz no debe ofrecer como disponible lo que no lo está.
@@ -2191,7 +2261,7 @@ export default function Workspace(){
       {antp("#E7F0FD","#1769E0","Medicamentos","M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z")}
       {antp("#E6F6EE","#16A66A","Vacunas","M14 4l6 6M6 14l4 4M16.5 6.5l-10 10")}
      </div>
-     <div style={{borderLeft:`1px solid ${LINE}`,paddingLeft:18,fontSize:12.5,color:P.muted}}>Última consulta<div style={{color:P.ink,marginTop:5}}>{docDisplay}</div><span style={link} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Timeline del paciente"),0);}}>Ver historial →</span></div>
+     <div style={{borderLeft:`1px solid ${LINE}`,paddingLeft:18,fontSize:12.5,color:P.muted}}>Última consulta<div style={{color:P.ink,marginTop:5}}>{docDisplay}</div><span style={link} {...act(()=>{setView("exp");setTimeout(()=>scrollToSection("Timeline del paciente"),0);})}>Ver historial →</span></div>
     </div>
     <div style={{display:"flex",gap:4,marginTop:16,borderBottom:`1px solid ${LINE}`,overflowX:"auto"}}>
      {CTABS.map(([k,l])=><button key={k} onClick={()=>setCTab(k)} style={{padding:"12px 16px",fontSize:13.5,fontWeight:cTab===k?700:500,color:cTab===k?P.purple:P.muted,cursor:"pointer",borderBottom:cTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:"0",borderBottomWidth:2,fontFamily:UI,whiteSpace:"nowrap"}}>{l}</button>)}
@@ -2199,7 +2269,7 @@ export default function Workspace(){
     {cTab!=="actual"?(
      (()=>{
       const cc:React.CSSProperties={...card2,marginTop:16,padding:0,overflow:"hidden"};
-      const tth:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 14px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+      const tth:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"11px 14px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
       const ttd:React.CSSProperties={padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
       const pilr=(bg:string,fg:string,t:string)=><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:bg,color:fg}}>{t}</span>;
       const fmtC=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
@@ -2212,7 +2282,7 @@ export default function Workspace(){
        return <div style={cc}>{head("Órdenes del paciente",rows.length,"Órdenes clínicas","Abrir en el expediente")}{rows.length?<div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={tth}>Estudio</th><th style={tth}>Tipo</th><th style={tth}>Fecha</th><th style={{...tth,textAlign:"right"}}>Estado</th></tr></thead><tbody>{rows.map((r,i)=>{const[bg,fg]=est(r.status);return <tr key={i}><td style={{...ttd,fontWeight:600}}>{r.detail}</td><td style={{...ttd,color:P.muted}}>{r.typeLabel}</td><td style={{...ttd,color:P.muted}}>{fmtC(r.createdAt)}</td><td style={{...ttd,textAlign:"right"}}>{pilr(bg,fg,r.status)}</td></tr>;})}</tbody></table></div>:empty("Sin órdenes de estudio para este paciente.")}</div>;
       }
       if(cTab==="medicamentos"){const rows=consTabs?.medications??[];
-       return <div style={cc}>{head("Medicamentos activos",rows.length,"Medicación","Abrir en el expediente")}{rows.length?<div style={{padding:"4px 16px 16px"}}>{rows.map((m,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 0",borderBottom:i<rows.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:34,height:34,borderRadius:9,background:"#E6F6EE",color:"#16A66A",display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z"/></svg></span><span style={{flex:1,fontSize:13.5,fontWeight:600,textTransform:"capitalize"}}>{m}</span>{pilr("#E6F6EE","#16A66A","Activo")}</div>)}</div>:empty("Sin medicamentos activos para este paciente.")}</div>;
+       return <div style={cc}>{head("Medicamentos activos",rows.length,"Medicación","Abrir en el expediente")}{rows.length?<div style={{padding:"4px 16px 16px"}}>{rows.map((m,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 0",borderBottom:i<rows.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:34,height:34,borderRadius:9,background:"#E6F6EE",color:P.green,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z"/></svg></span><span style={{flex:1,fontSize:13.5,fontWeight:600,textTransform:"capitalize"}}>{m}</span>{pilr("#E6F6EE","#16A66A","Activo")}</div>)}</div>:empty("Sin medicamentos activos para este paciente.")}</div>;
       }
       if(cTab==="plan"){const rows=consTabs?.planGoals??[];const done=(s:string)=>s==="Lograda";
        return <div style={cc}>{head("Metas del plan de cuidado",rows.length,"Plan de cuidados","Abrir en el expediente")}{rows.length?<div style={{padding:"4px 16px 16px"}}>{rows.map((g,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"10px 0",borderBottom:i<rows.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:18,height:18,borderRadius:"50%",border:done(g.statusLabel)?"0":"1.8px solid #C7CCE0",background:done(g.statusLabel)?"#16A66A":"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:11,flex:"0 0 auto"}}>{done(g.statusLabel)?"✓":""}</span><span style={{flex:1,fontSize:13.5,color:done(g.statusLabel)?P.muted:P.ink,textDecoration:done(g.statusLabel)?"line-through":"none"}}>{g.goal}</span>{pilr("#EEEBFD",P.purple,g.statusLabel)}</div>)}</div>:empty("Sin metas de plan de cuidado para este paciente.")}</div>;
@@ -2237,14 +2307,14 @@ export default function Workspace(){
      </div>
      <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Signos vitales</h3><span style={{fontSize:12,color:P.muted}}>{clock.toLocaleDateString("es-MX",{day:"numeric",month:"short"})} · {clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"})}</span></div>
-       <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>{([["TA","ta",V["BP"]??"120/80","mmHg"],["FC","fc",V["HR"]??"72","lpm"],["FR","fr",V["RESP"]??"16","rpm"],["Temp.","temp",V["TEMP"]??"36.5","°C"],["SpO₂","spo2",V["SPO2"]??"98","%"]] as const).map(([l,k,ph,u])=><div key={l}><label style={{fontSize:11.5,color:P.muted,display:"block",marginBottom:5,fontWeight:600}}>{l}</label><input value={cVit[k]} onChange={e=>setCVit(s=>({...s,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 6px",fontSize:15,fontWeight:700,textAlign:"center",fontFamily:UI,boxSizing:"border-box",color:P.ink}}/><div style={{fontSize:10.5,color:"#9AA0BC",textAlign:"center",marginTop:3}}>{u}</div></div>)}</div>
-       <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12,flexWrap:"wrap"}}><button onClick={()=>void saveConsultaVitals()} disabled={cVitBusy} style={{border:0,background:cVitBusy?"#C7CCE0":P.purple,color:"#fff",borderRadius:9,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:cVitBusy?"default":"pointer",fontFamily:UI}}>{cVitBusy?"Guardando…":"Guardar signos vitales"}</button><span style={link} onClick={()=>{if(patientId){setView("signos");}}}>Ver historial →</span></div>
+       <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>{([["TA","ta",V["BP"]??"120/80","mmHg"],["FC","fc",V["HR"]??"72","lpm"],["FR","fr",V["RESP"]??"16","rpm"],["Temp.","temp",V["TEMP"]??"36.5","°C"],["SpO₂","spo2",V["SPO2"]??"98","%"]] as const).map(([l,k,ph,u])=><div key={l}><label style={{fontSize:11.5,color:P.muted,display:"block",marginBottom:5,fontWeight:600}}>{l}</label><input value={cVit[k]} onChange={e=>setCVit(s=>({...s,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 6px",fontSize:15,fontWeight:700,textAlign:"center",fontFamily:UI,boxSizing:"border-box",color:P.ink}}/><div style={{fontSize:10.5,color:P.muted,textAlign:"center",marginTop:3}}>{u}</div></div>)}</div>
+       <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12,flexWrap:"wrap"}}><button onClick={()=>void saveConsultaVitals()} disabled={cVitBusy} style={{border:0,background:cVitBusy?"#C7CCE0":P.purple,color:"#fff",borderRadius:9,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:cVitBusy?"default":"pointer",fontFamily:UI}}>{cVitBusy?"Guardando…":"Guardar signos vitales"}</button><span style={link} {...act(()=>{if(patientId){setView("signos");}})}>Ver historial →</span></div>
        {cVitMsg&&<div style={{marginTop:10,fontSize:12.5,color:cVitMsg.includes("⚠")?"#B3261E":cVitMsg.includes("✓")?"#1A7F43":P.muted,fontWeight:600}}>{cVitMsg}</div>}
       </div>
-      <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Diagnósticos / Problemas</h3><span style={link} onClick={()=>setView("problemas")}>Ver historial →</span></div>
+      <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Diagnósticos / Problemas</h3><span style={link} {...act(()=>setView("problemas"))}>Ver historial →</span></div>
        <div style={{position:"relative"}}>
         <div style={{display:"flex",alignItems:"center",gap:9,border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 12px"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input value={cDxQuery} onChange={e=>{setCDxQuery(e.target.value);setCDxMsg(null);}} placeholder="Buscar CIE-10 o descripción…" style={{border:0,outline:"none",fontSize:13,fontFamily:UI,color:P.ink,width:"100%",background:"transparent"}}/></div>
-        {cDxQuery.trim().length>=2&&(()=>{const res=searchIcd10(cDxQuery.trim(),10);return <div style={{position:"absolute",left:0,right:0,top:"calc(100% + 4px)",background:P.white,border:`1px solid ${LINE}`,borderRadius:10,boxShadow:"0 8px 24px #1a1d2914",zIndex:20,overflow:"hidden"}}>{res.length?res.map(e=><div key={e.code} onClick={()=>void addConsultaProblem(e.code)} style={{display:"flex",gap:8,padding:"9px 12px",fontSize:12.5,cursor:cDxBusy?"default":"pointer",borderBottom:`1px solid #F4F6FB`,alignItems:"baseline"}}><b style={{color:P.purple,flex:"0 0 auto"}}>{e.code}</b><span style={{color:P.ink}}>{e.description}</span></div>):<div style={{padding:"10px 12px",fontSize:12.5,color:P.muted}}>Sin coincidencias en el catálogo CIE-10.</div>}</div>;})()}
+        {cDxQuery.trim().length>=2&&(()=>{const res=searchIcd10(cDxQuery.trim(),10);return <div style={{position:"absolute",left:0,right:0,top:"calc(100% + 4px)",background:P.white,border:`1px solid ${LINE}`,borderRadius:10,boxShadow:"0 8px 24px #1a1d2914",zIndex:20,overflow:"hidden"}}>{res.length?res.map(e=><div key={e.code} {...act(()=>void addConsultaProblem(e.code))} style={{display:"flex",gap:8,padding:"9px 12px",fontSize:12.5,cursor:cDxBusy?"default":"pointer",borderBottom:`1px solid #F4F6FB`,alignItems:"baseline"}}><b style={{color:P.purple,flex:"0 0 auto"}}>{e.code}</b><span style={{color:P.ink}}>{e.description}</span></div>):<div style={{padding:"10px 12px",fontSize:12.5,color:P.muted}}>Sin coincidencias en el catálogo CIE-10.</div>}</div>;})()}
        </div>
        {cDxMsg&&<div style={{marginTop:10,fontSize:12.5,color:cDxMsg.includes("✓")?"#1A7F43":P.muted,fontWeight:600}}>{cDxMsg}</div>}
        <div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>{(snap?.problems??[]).slice(0,4).map((c,i)=><span key={c} style={{display:"inline-flex",alignItems:"center",gap:8,background:"#F3F5FA",border:`1px solid ${LINE}`,borderRadius:9,padding:"6px 11px",fontSize:12.5,fontWeight:600}}>{c} {DX_LABEL(c)}{i===0&&<span style={{background:"#EEEBFD",color:"#6C5CF6",borderRadius:6,padding:"1px 7px",fontSize:10.5,fontWeight:700}}>Principal</span>}</span>)}{(snap?.problems??[]).length===0&&<span style={{fontSize:12.5,color:P.muted}}>Sin problemas activos. Busca un CIE-10 para agregar.</span>}</div>
@@ -2254,9 +2324,9 @@ export default function Workspace(){
        const studies=CORD.find(c=>c[0]===cOrdCat)?.[2]??[];
        const toggle=(o:string)=>setCOrdSel(s=>s.includes(o)?s.filter(x=>x!==o):[...s,o]);
        return <div style={sec}><h3 style={sect}>Órdenes clínicas</h3>
-        <div style={{display:"flex",gap:16,borderBottom:`1px solid ${LINE}`,fontSize:13}}>{CORD.map(([k,l])=><span key={k} onClick={()=>{setCOrdCat(k);setCOrdSel([]);setCOrdMsg(null);}} style={{paddingBottom:8,color:cOrdCat===k?P.purple:P.muted,fontWeight:cOrdCat===k?700:400,borderBottom:cOrdCat===k?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{l}</span>)}</div>
+        <div style={{display:"flex",gap:16,borderBottom:`1px solid ${LINE}`,fontSize:13}}>{CORD.map(([k,l])=><span key={k} {...act(()=>{setCOrdCat(k);setCOrdSel([]);setCOrdMsg(null);})} style={{paddingBottom:8,color:cOrdCat===k?P.purple:P.muted,fontWeight:cOrdCat===k?700:400,borderBottom:cOrdCat===k?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{l}</span>)}</div>
         <div style={{marginTop:12}}>{studies.map(o=>{const on=cOrdSel.includes(o);return <label key={o} onClick={()=>toggle(o)} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",fontSize:13.5,cursor:"pointer"}}><span style={{width:17,height:17,borderRadius:5,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:11,flex:"0 0 auto"}}>{on?"✓":""}</span>{o}</label>;})}</div>
-        <div style={{display:"flex",gap:10,alignItems:"center",marginTop:8,flexWrap:"wrap"}}><button onClick={()=>void createConsultaOrders()} disabled={cOrdBusy||cOrdSel.length===0} style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:(cOrdBusy||cOrdSel.length===0)?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:(cOrdBusy||cOrdSel.length===0)?"default":"pointer",fontFamily:UI}}>{cOrdBusy?"Creando…":`Crear ${cOrdSel.length||""} orden${cOrdSel.length===1?"":"es"}`.replace("  "," ")}</button><span style={link} onClick={()=>setView("ordenes")}>Abrir en Órdenes →</span></div>
+        <div style={{display:"flex",gap:10,alignItems:"center",marginTop:8,flexWrap:"wrap"}}><button onClick={()=>void createConsultaOrders()} disabled={cOrdBusy||cOrdSel.length===0} style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:(cOrdBusy||cOrdSel.length===0)?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:(cOrdBusy||cOrdSel.length===0)?"default":"pointer",fontFamily:UI}}>{cOrdBusy?"Creando…":`Crear ${cOrdSel.length||""} orden${cOrdSel.length===1?"":"es"}`.replace("  "," ")}</button><span style={link} {...act(()=>setView("ordenes"))}>Abrir en Órdenes →</span></div>
         {cOrdMsg&&<div style={{marginTop:10,fontSize:12.5,color:cOrdMsg.includes("✓")?"#1A7F43":P.muted,fontWeight:600}}>{cOrdMsg}</div>}
        </div>;
       })()}
@@ -2269,8 +2339,8 @@ export default function Workspace(){
        {rsum("#E7F0FD","#1769E0","M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z","Medicamentos actuales","Revisar en el expediente",sgo("Abrir →","Medicación"))}
        {rsum("#E6F6EE","#16A66A","M14 4l6 6M6 14l4 4M16.5 6.5l-10 10","Vacunas","Revisar cartilla en el expediente",sgo("Abrir →","Vacunas"))}
       </div>
-      <div style={{...sec,background:"linear-gradient(180deg,#FBFAFF,#fff)"}}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={{...sect,color:P.purple,display:"flex",alignItems:"center",gap:7}}><NavIcon k="brain"/>Clinical Intelligence (IA)</h3></div><div style={{fontSize:12,fontWeight:600,color:P.muted,marginBottom:8}}>Alertas deterministas para este caso:</div>{findings.length===0?<div style={{fontSize:12.5,lineHeight:1.5,padding:"5px 0",color:P.muted}}>Sin alertas deterministas para los datos registrados. Se recalculan al documentar signos, diagnósticos y medicación.</div>:findings.slice(0,4).map((f,i)=><div key={i} style={{fontSize:12.5,lineHeight:1.5,padding:"5px 0",display:"flex",gap:8}}>• {f.summary}</div>)}<div style={{fontSize:11,color:"#9AA0BC",background:"#F3F2FB",borderRadius:8,padding:"8px 10px",marginTop:8}}>La IA ofrece información de apoyo. La decisión final es del médico. (Determinista · sin IA generativa)</div></div>
-      <div style={sec}><h3 style={{...sect,display:"flex",alignItems:"center",gap:8}}>Recordatorios y obligaciones {(gaps?.length??0)>0&&<span style={{background:"#F0455E",color:"#fff",borderRadius:999,padding:"1px 7px",fontSize:11}}>{gaps!.length}</span>}</h3>{(gaps?.length??0)===0?<div style={{fontSize:13,color:P.muted,padding:"9px 0"}}>Sin recordatorios pendientes para este paciente.</div>:gaps!.slice(0,3).map((g,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",fontSize:13,borderTop:i?`1px solid #F1F3F9`:"0"}}><div style={{flex:1}}>{g.label}</div><span style={{background:"#FBF0DC",color:"#B7791F",borderRadius:999,padding:"2px 9px",fontSize:10.5,fontWeight:700}}>Pendiente</span></div>)}<div style={{textAlign:"right",marginTop:6}}><span style={link} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Obligaciones de seguimiento"),0);}}>Ver todos →</span></div></div>
+      <div style={{...sec,background:"linear-gradient(180deg,#FBFAFF,#fff)"}}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={{...sect,color:P.purple,display:"flex",alignItems:"center",gap:7}}><NavIcon k="brain"/>Clinical Intelligence (IA)</h3></div><div style={{fontSize:12,fontWeight:600,color:P.muted,marginBottom:8}}>Alertas deterministas para este caso:</div>{findings.length===0?<div style={{fontSize:12.5,lineHeight:1.5,padding:"5px 0",color:P.muted}}>Sin alertas deterministas para los datos registrados. Se recalculan al documentar signos, diagnósticos y medicación.</div>:findings.slice(0,4).map((f,i)=><div key={i} style={{fontSize:12.5,lineHeight:1.5,padding:"5px 0",display:"flex",gap:8}}>• {f.summary}</div>)}<div style={{fontSize:11,color:P.muted,background:"#F3F2FB",borderRadius:8,padding:"8px 10px",marginTop:8}}>La IA ofrece información de apoyo. La decisión final es del médico. (Determinista · sin IA generativa)</div></div>
+      <div style={sec}><h3 style={{...sect,display:"flex",alignItems:"center",gap:8}}>Recordatorios y obligaciones {(gaps?.length??0)>0&&<span style={{background:"#F0455E",color:"#fff",borderRadius:999,padding:"1px 7px",fontSize:11}}>{gaps!.length}</span>}</h3>{(gaps?.length??0)===0?<div style={{fontSize:13,color:P.muted,padding:"9px 0"}}>Sin recordatorios pendientes para este paciente.</div>:gaps!.slice(0,3).map((g,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",fontSize:13,borderTop:i?`1px solid #F1F3F9`:"0"}}><div style={{flex:1}}>{g.label}</div><span style={{background:"#FBF0DC",color:"#B7791F",borderRadius:999,padding:"2px 9px",fontSize:10.5,fontWeight:700}}>Pendiente</span></div>)}<div style={{textAlign:"right",marginTop:6}}><span style={link} {...act(()=>{setView("exp");setTimeout(()=>scrollToSection("Obligaciones de seguimiento"),0);})}>Ver todos →</span></div></div>
      </div>
     </div>)}
    </div>;
@@ -2309,7 +2379,7 @@ export default function Workspace(){
    const link:React.CSSProperties={color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"};
    const selAppt=realAppts.find(a=>a.appointmentId===apptSel)??null;
    const openAppt=(a:AgendaAppt)=>openConsulta(a.patientId,a.patientName);
-   const slot=(a?:Ap,last?:boolean)=>{return <div style={{borderRight:last?"0":`1px solid ${LINE}`,borderBottom:`1px solid #F2F4F9`,height:56,padding:3}}>{a&&(()=>{const c=AC[a.c]!;const on=!!a.id&&a.id===apptSel;return <div onClick={a.id?()=>setApptSel(a.id):undefined} style={{borderRadius:8,padding:"6px 9px",fontSize:11,height:"100%",overflow:"hidden",borderLeft:`3px solid ${c.bd}`,background:c.bg,color:c.fg,cursor:a.id?"pointer":"default",outline:on?`2px solid ${P.purple}`:"none"}}><div style={{fontSize:10,opacity:.85}}>{a.t}</div><div style={{fontWeight:700,fontSize:11.5}}>{a.n}</div><div style={{opacity:.8}}>{a.m}</div></div>;})()}</div>;};
+   const slot=(a?:Ap,last?:boolean)=>{return <div style={{borderRight:last?"0":`1px solid ${LINE}`,borderBottom:`1px solid #F2F4F9`,height:56,padding:3}}>{a&&(()=>{const c=AC[a.c]!;const on=!!a.id&&a.id===apptSel;return <div {...act(a.id?()=>setApptSel(a.id):undefined)} style={{borderRadius:8,padding:"6px 9px",fontSize:11,height:"100%",overflow:"hidden",borderLeft:`3px solid ${c.bd}`,background:c.bg,color:c.fg,cursor:a.id?"pointer":"default",outline:on?`2px solid ${P.purple}`:"none"}}><div style={{fontSize:10,opacity:.85}}>{a.t}</div><div style={{fontWeight:700,fontSize:11.5}}>{a.n}</div><div style={{opacity:.8}}>{a.m}</div></div>;})()}</div>;};
    const gdot=(c:string)=><span style={{width:8,height:8,borderRadius:"50%",background:c,flex:"0 0 auto"}}/>;
    const rkico=(bg:string,fg:string,d:string)=><span style={{width:38,height:38,borderRadius:10,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
@@ -2322,7 +2392,7 @@ export default function Workspace(){
       <div><h1 style={{fontSize:29,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Agenda</h1><p style={{color:P.muted,fontSize:13.5,margin:"5px 0 0"}}>Administra tus citas: navega por fecha, registra llegada, completa o cancela, y agenda nuevas —todo en vivo.</p></div>
       <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{void reloadAgenda();setApptMsg("Agenda actualizada.");}}>↻ Actualizar</button><button style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setApptNew(v=>!v);setApptMsg(null);}}>{apptNew?"Cerrar":"+ Nueva cita"}</button></div>
      </div>
-     <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>{VPILLS.map(([k,l])=>{const on=agendaView===k;const dis=k==="semana"||k==="mes";return <span key={k} onClick={dis?undefined:()=>setAgendaView(k as typeof agendaView)} title={dis?"Próximamente":undefined} style={{border:`1px solid ${on?P.purple:LINE}`,background:on?P.purple:P.white,color:on?"#fff":dis?"#C7CCE0":P.muted,borderRadius:10,padding:"9px 15px",fontSize:13.5,fontWeight:600,cursor:dis?"not-allowed":"pointer"}}>{l}</span>;})}</div>
+     <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>{VPILLS.map(([k,l])=>{const on=agendaView===k;const dis=k==="semana"||k==="mes";return <span key={k} {...act(dis?undefined:()=>setAgendaView(k as typeof agendaView))} title={dis?"Próximamente":undefined} style={{border:`1px solid ${on?P.purple:LINE}`,background:on?P.purple:P.white,color:on?"#fff":dis?"#C7CCE0":P.muted,borderRadius:10,padding:"9px 15px",fontSize:13.5,fontWeight:600,cursor:dis?"not-allowed":"pointer"}}>{l}</span>;})}</div>
      {apptMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:"#EEF6FF",border:"1px solid #CFE0F7",borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:P.blue,fontWeight:700}}>ℹ</span><span style={{flex:1}}>{apptMsg}</span><button onClick={()=>setApptMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
      {apptNew&&<div style={{...card2,marginTop:14,padding:18}}>
       <div style={{fontWeight:800,fontSize:16,marginBottom:14}}>Nueva cita · {fechaLarga}</div>
@@ -2337,13 +2407,13 @@ export default function Workspace(){
      </div>}
      <div style={{...card2,marginTop:14,overflow:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:`1px solid ${LINE}`,flexWrap:"wrap"}}>
-       <span onClick={()=>shiftDay(-1)} style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>‹</span><span onClick={()=>shiftDay(1)} style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>›</span>
-       <b style={{fontSize:15}}>{fechaLarga}</b><span onClick={()=>setDay(todayStr)} style={{border:`1px solid ${isTodaySel?P.purple:LINE}`,color:isTodaySel?P.purple:P.ink,borderRadius:8,padding:"6px 12px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Hoy</span>
+       <span {...act(()=>shiftDay(-1))} style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>‹</span><span {...act(()=>shiftDay(1))} style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>›</span>
+       <b style={{fontSize:15}}>{fechaLarga}</b><span {...act(()=>setDay(todayStr))} style={{border:`1px solid ${isTodaySel?P.purple:LINE}`,color:isTodaySel?P.purple:P.ink,borderRadius:8,padding:"6px 12px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Hoy</span>
        <span style={{marginLeft:"auto",fontSize:12.5,color:P.muted}}>{agLoaded?`${realAppts.length} cita(s)`:"cargando…"}</span>
       </div>
       {agendaView==="lista"?(
-       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Hora","Paciente","Motivo","Consultorio","Estado"].map(h=><th key={h} style={{textAlign:"left",fontSize:11,color:"#9AA0BC",fontWeight:600,padding:"11px 14px",borderBottom:`1px solid ${LINE}`}}>{h}</th>)}</tr></thead><tbody>
-        {realAppts.length===0?<tr><td colSpan={5} style={{padding:"36px 14px",textAlign:"center",color:P.muted,fontSize:13}}>{agLoaded?"Sin citas para este día. Usa «+ Nueva cita» para agendar.":"Cargando agenda…"}</td></tr>:realAppts.map(a=>{const st=ST[a.status]??["",P.canvas,P.muted];const on=a.appointmentId===apptSel;return <tr key={a.appointmentId} onClick={()=>setApptSel(a.appointmentId)} style={{cursor:"pointer",background:on?"#F6F5FE":"transparent"}}>
+       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Hora","Paciente","Motivo","Consultorio","Estado"].map(h=><th key={h} style={{textAlign:"left",fontSize:11,color:P.muted,fontWeight:600,padding:"11px 14px",borderBottom:`1px solid ${LINE}`}}>{h}</th>)}</tr></thead><tbody>
+        {realAppts.length===0?<tr><td colSpan={5} style={{padding:"36px 14px",textAlign:"center",color:P.muted,fontSize:13}}>{agLoaded?"Sin citas para este día. Usa «+ Nueva cita» para agendar.":"Cargando agenda…"}</td></tr>:realAppts.map(a=>{const st=ST[a.status]??["",P.canvas,P.muted];const on=a.appointmentId===apptSel;return <tr key={a.appointmentId} {...actRow(()=>setApptSel(a.appointmentId))} style={{cursor:"pointer",background:on?"#F6F5FE":"transparent"}}>
          <td style={{padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5}}>{tHM(a.startAt)}</td>
          <td style={{padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,fontWeight:600}}>{a.patientName}</td>
          <td style={{padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5}}>{a.reason}</td>
@@ -2366,11 +2436,11 @@ export default function Workspace(){
      </div>
     </div>
     <div style={{display:"flex",flexDirection:"column",gap:16}} className="mos-agr">
-     <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,fontWeight:700}}><span>{meses[mm]!.replace(/^\w/,c=>c.toUpperCase())} {yy}</span><span style={{color:P.muted,display:"flex",gap:10}}><span onClick={()=>shiftMonth(-1)} style={{cursor:"pointer"}}>‹</span><span onClick={()=>shiftMonth(1)} style={{cursor:"pointer"}}>›</span></span></div>
+     <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,fontWeight:700}}><span>{meses[mm]!.replace(/^\w/,c=>c.toUpperCase())} {yy}</span><span style={{color:P.muted,display:"flex",gap:10}}><span {...act(()=>shiftMonth(-1))} style={{cursor:"pointer"}}>‹</span><span {...act(()=>shiftMonth(1))} style={{cursor:"pointer"}}>›</span></span></div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,textAlign:"center",fontSize:12}}>
        {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map(d=><span key={d} style={{padding:"7px 0",color:P.muted,fontWeight:600}}>{d}</span>)}
        {Array.from({length:firstDow}).map((_,i)=><span key={"e"+i}/>)}
-       {Array.from({length:daysInM}).map((_,i)=>{const day=i+1;const isSel=day===dd;const isToday=new Date(yy,mm,day,12).toISOString().slice(0,10)===todayStr;return <span key={day} onClick={()=>pickDay(day)} style={{padding:"7px 0",borderRadius:7,cursor:"pointer",background:isSel?P.purple:"transparent",color:isSel?"#fff":P.ink,fontWeight:isSel||isToday?700:400,outline:isToday&&!isSel?`1px solid ${P.purple}`:"none"}}>{day}</span>;})}
+       {Array.from({length:daysInM}).map((_,i)=>{const day=i+1;const isSel=day===dd;const isToday=new Date(yy,mm,day,12).toISOString().slice(0,10)===todayStr;return <span key={day} {...act(()=>pickDay(day))} style={{padding:"7px 0",borderRadius:7,cursor:"pointer",background:isSel?P.purple:"transparent",color:isSel?"#fff":P.ink,fontWeight:isSel||isToday?700:400,outline:isToday&&!isSel?`1px solid ${P.purple}`:"none"}}>{day}</span>;})}
       </div>
      </div>
      {selAppt&&(()=>{const st=ST[selAppt.status]??["",P.canvas,P.muted];return <div style={{...card2,padding:16}}>
@@ -2389,8 +2459,8 @@ export default function Workspace(){
        {([["#EEEBFD","#6C5CF6","M4 5h16v16H4zM8 3v4M16 3v4",agLoaded?agenda!.counts.programadas:0,"Programadas"],["#E6F6EE","#16A66A","M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",agLoaded?agenda!.counts.atendidas:0,"Atendidas"],["#FBF0DC","#B7791F","M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0",agLoaded?agenda!.counts.enEspera:0,"En espera"],["#FDECEE","#F0455E","M9 9l6 6M15 9l-6 6M21 12a9 9 0 11-18 0 9 9 0 0118 0",agLoaded?agenda!.counts.canceladas:0,"Canc./Inasist."]] as const).map(([bg,fg,d,v,l])=><div key={l} style={{display:"flex",gap:11,alignItems:"center",padding:12,border:`1px solid ${LINE}`,borderRadius:12}}>{rkico(bg,fg,d)}<div><div style={{fontSize:20,fontWeight:800}}>{v}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div></div>)}
       </div>
      </div>
-     {(()=>{const prox=realAppts.filter(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN");return <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 6px"}}><span style={sect}>Próximas citas</span>{prox.length>0&&<span style={link} onClick={()=>setAgendaView("lista")}>Ver lista →</span>}</div>
-      {prox.slice(0,5).map(a=><div key={a.appointmentId} onClick={()=>setApptSel(a.appointmentId)} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 16px",borderTop:`1px solid #F1F3F9`,cursor:"pointer",background:a.appointmentId===apptSel?"#F6F5FE":"transparent"}}><span style={{fontSize:13,color:P.muted,width:64,flex:"0 0 auto"}}>{tHM(a.startAt)}</span><span style={{width:34,height:34,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{(a.patientName||"P").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()}</span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{a.patientName}</div><div style={{fontSize:11.5,color:P.muted}}>{a.reason}</div></div><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",...(a.status==="CHECKED_IN"?{background:"#FBF0DC",color:"#B7791F"}:{background:"#EAF1FD",color:"#1769E0"})}}>{stLabel(a.status)}</span></div>)}
+     {(()=>{const prox=realAppts.filter(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN");return <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 6px"}}><span style={sect}>Próximas citas</span>{prox.length>0&&<span style={link} {...act(()=>setAgendaView("lista"))}>Ver lista →</span>}</div>
+      {prox.slice(0,5).map(a=><div key={a.appointmentId} {...act(()=>setApptSel(a.appointmentId))} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 16px",borderTop:`1px solid #F1F3F9`,cursor:"pointer",background:a.appointmentId===apptSel?"#F6F5FE":"transparent"}}><span style={{fontSize:13,color:P.muted,width:64,flex:"0 0 auto"}}>{tHM(a.startAt)}</span><span style={{width:34,height:34,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{(a.patientName||"P").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()}</span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{a.patientName}</div><div style={{fontSize:11.5,color:P.muted}}>{a.reason}</div></div><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",...(a.status==="CHECKED_IN"?{background:"#FBF0DC",color:"#B7791F"}:{background:"#EAF1FD",color:"#1769E0"})}}>{stLabel(a.status)}</span></div>)}
       {prox.length===0&&<div style={{padding:"14px 16px",fontSize:12.5,color:P.muted,borderTop:`1px solid #F1F3F9`}}>{agLoaded?"Sin próximas citas para este día. Agenda una con «+ Nueva cita».":"Cargando agenda…"}</div>}</div>;})()}
     </div>
    </div>;
@@ -2439,7 +2509,7 @@ export default function Workspace(){
     </div>
     {resTab!=="resultados"?(
      (()=>{
-      const th2:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+      const th2:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
       const td2:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
       if(resTab==="alertas"){
        const rows=(resReg?.items??[]).filter(i=>i.estado==="Hallazgos"||i.critical);
@@ -2464,7 +2534,7 @@ export default function Workspace(){
     ):(
     <div style={{display:"grid",gridTemplateColumns:"250px 1fr 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-res3">
      <div style={{...card2,padding:16}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={link} onClick={()=>{setResQ("");setResTypeF("Todos");setResEstadoF("Todos");}}>Limpiar</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={link} {...act(()=>{setResQ("");setResTypeF("Todos");setResEstadoF("Todos");})}>Limpiar</span></div>
       <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input value={resQ} onChange={e=>setResQ(e.target.value)} placeholder="Buscar por estudio o paciente…" style={{border:0,outline:"none",fontSize:12.5,width:"100%",fontFamily:UI,background:"transparent",color:P.ink}}/></div>
       <div style={flbl}>Tipo de estudio</div><select value={resTypeF} onChange={e=>setResTypeF(e.target.value)} style={selSty}><option>Todos</option><option>Laboratorio</option><option>Imagenología</option></select>
       <div style={flbl}>Estado</div><select value={resEstadoF} onChange={e=>setResEstadoF(e.target.value)} style={selSty}><option>Todos</option><option>Hallazgos</option><option>Normal</option><option>En seguimiento</option><option>En revisión</option></select>
@@ -2472,7 +2542,7 @@ export default function Workspace(){
      </div>
      <div style={{...card2,padding:8}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px"}}><span style={{fontSize:16,fontWeight:700}}>Resultados ({filteredItems.length})</span></div>
-      {filteredItems.map(it=>{const[bg,fg]=rb(it.estado);const on=selItem?.resultId===it.resultId;const ico=it.tipo==="Imagenología"?"img":"flask";return <div key={it.resultId} onClick={()=>setResSel(it.resultId)} style={{display:"flex",alignItems:"center",gap:11,padding:11,borderRadius:11,cursor:"pointer",border:on?"1px solid #E0DAFB":"1px solid transparent",background:on?"#F6F5FE":"transparent"}}><span style={{width:36,height:36,borderRadius:9,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={ricoPath[ico]??ricoPath.flask}/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13.5}}>{it.analyte}</div><div style={{fontSize:11.5,color:P.muted}}>{it.patientName} · {fmtResD(it.receivedAt)}</div></div>{pill(bg,fg,it.estado)}</div>;})}
+      {filteredItems.map(it=>{const[bg,fg]=rb(it.estado);const on=selItem?.resultId===it.resultId;const ico=it.tipo==="Imagenología"?"img":"flask";return <div key={it.resultId} {...act(()=>setResSel(it.resultId))} style={{display:"flex",alignItems:"center",gap:11,padding:11,borderRadius:11,cursor:"pointer",border:on?"1px solid #E0DAFB":"1px solid transparent",background:on?"#F6F5FE":"transparent"}}><span style={{width:36,height:36,borderRadius:9,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={ricoPath[ico]??ricoPath.flask}/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13.5}}>{it.analyte}</div><div style={{fontSize:11.5,color:P.muted}}>{it.patientName} · {fmtResD(it.receivedAt)}</div></div>{pill(bg,fg,it.estado)}</div>;})}
       {filteredItems.length===0&&<div style={{padding:"30px 10px",textAlign:"center",color:P.muted,fontSize:13}}>{resLoaded?(allItems.length===0?"Sin resultados registrados. Usa «+ Registrar resultado».":"Ningún resultado coincide con los filtros."):"Cargando resultados…"}</div>}
       {filteredItems.length>0&&<div style={{padding:"12px 10px",fontSize:12.5,color:P.muted}}>Mostrando {filteredItems.length} de {allItems.length} resultado(s)</div>}
      </div>
@@ -2513,7 +2583,7 @@ export default function Workspace(){
    const kClases=categories.length,kMon=cat.filter(d=>d.monitoring.length>0).length,kRenal=cat.filter(d=>d.renal).length;
    // Interconexión real: llevar el principio activo al formulario de prescripción del expediente (con barreras de seguridad).
    const prescribe=(ingredient:string)=>{setRxDrug(ingredient);setView("exp");setTimeout(()=>scrollToSection("Medicación"),0);};
-   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"12px 14px",borderBottom:`1px solid ${LINE}`};
+   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"12px 14px",borderBottom:`1px solid ${LINE}`};
    const td:React.CSSProperties={padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13,verticalAlign:"top"};
    return <div style={{padding:"18px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
@@ -2619,7 +2689,7 @@ export default function Workspace(){
     ):(
     <div style={{display:"grid",gridTemplateColumns:"250px 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-med2">
      <div style={{...card2,padding:16}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}} onClick={()=>{setMedQuery("");setMedCat("");setMedOnlyMon(false);setMedOnlyRenal(false);}}>Limpiar</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}} {...act(()=>{setMedQuery("");setMedCat("");setMedOnlyMon(false);setMedOnlyRenal(false);})}>Limpiar</span></div>
       <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input value={medQuery} onChange={e=>setMedQuery(e.target.value)} placeholder="Buscar principio activo o clase…" style={{border:0,outline:"none",fontSize:12.5,fontFamily:UI,color:P.ink,width:"100%",background:"transparent"}}/></div>
       <div style={flbl}>Categoría terapéutica</div><select value={medCat} onChange={e=>setMedCat(e.target.value)} style={selSty}><option value="">Todas</option>{categories.map(c=><option key={c} value={c}>{c}</option>)}</select>
       <div style={{...flbl,marginTop:14}}>Seguridad</div>
@@ -2634,12 +2704,12 @@ export default function Workspace(){
         <thead><tr>{["Principio activo","Clases","Categoría","Seguridad","Acción"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
         <tbody>{catFiltered.length===0?(
          <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"36px 14px"}}>Ningún principio activo coincide con el filtro.</td></tr>
-        ):catFiltered.map(d=>{const[bg,fg]=catColor(d.category);const on=medSel===d.code;return <tr key={d.code} style={{cursor:"pointer",background:on?"#F6F5FE":"transparent"}} onClick={()=>setMedSel(on?null:d.code)}>
+        ):catFiltered.map(d=>{const[bg,fg]=catColor(d.category);const on=medSel===d.code;return <tr key={d.code} style={{cursor:"pointer",background:on?"#F6F5FE":"transparent"}} {...actRow(()=>setMedSel(on?null:d.code))}>
          <td style={td}><div style={{fontWeight:700,textTransform:"capitalize"}}>{d.ingredient}</div></td>
          <td style={td}><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{d.classes.map(cl=><span key={cl} style={{fontSize:10,fontWeight:600,borderRadius:6,padding:"2px 6px",background:"#EEF0F5",color:P.muted}}>{cl}</span>)}</div></td>
          <td style={td}><span style={{fontSize:11.5,fontWeight:600,borderRadius:999,padding:"3px 11px",background:bg,color:fg}}>{d.category}</span></td>
          <td style={td}><div style={{display:"flex",gap:6}}>{d.monitoring.length>0&&<span title="Requiere monitoreo" style={{fontSize:14}}>🔬</span>}{d.renal&&<span title="Alerta renal por TFG" style={{fontSize:14}}>⚠️</span>}{d.monitoring.length===0&&!d.renal&&<span style={{color:"#C7CCE0"}}>—</span>}</div></td>
-         <td style={td}><span style={{color:P.purple,fontWeight:700,fontSize:12,cursor:"pointer"}} onClick={ev=>{ev.stopPropagation();prescribe(d.ingredient);}}>Prescribir →</span></td>
+         <td style={td}><span style={{color:P.purple,fontWeight:700,fontSize:12,cursor:"pointer"}} {...act(ev=>{ev.stopPropagation();prescribe(d.ingredient);})}>Prescribir →</span></td>
         </tr>;})}</tbody>
        </table></div>
       </div>
@@ -2666,7 +2736,7 @@ export default function Workspace(){
    const kcard:React.CSSProperties={...card2,padding:15,display:"flex",gap:12,alignItems:"center"};
    const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"};
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
-   const th:React.CSSProperties={textAlign:"left",fontSize:11,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`};
+   const th:React.CSSProperties={textAlign:"left",fontSize:11,color:P.muted,fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`};
    const td:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,verticalAlign:"top"};
    const dk:React.CSSProperties={color:P.muted,width:130,flex:"0 0 auto"};
    const chip:React.CSSProperties={border:`1px solid ${LINE}`,background:P.white,color:P.ink,borderRadius:20,padding:"6px 11px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:UI};
@@ -2722,7 +2792,7 @@ export default function Workspace(){
     </div>
     <div style={{display:"grid",gridTemplateColumns:"230px 1fr 320px",gap:14,marginTop:16,alignItems:"start"}} className="mos-ord3">
      <div style={{...card2,padding:16}}>
-      <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}} onClick={()=>{setOrdQuery("");setOrdStatus("");setOrdTab("todas");}}>Limpiar</span></div>
+      <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}} {...act(()=>{setOrdQuery("");setOrdStatus("");setOrdTab("todas");})}>Limpiar</span></div>
       <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input value={ordQuery} onChange={e=>setOrdQuery(e.target.value)} placeholder="Buscar paciente o estudio…" style={{border:0,outline:"none",fontSize:12.5,fontFamily:UI,color:P.ink,width:"100%",background:"transparent"}}/></div>
       <div style={flbl}>Tipo de orden</div><select value={ordTab} onChange={e=>setOrdTab(e.target.value as typeof ordTab)} style={selSty}><option value="todas">Todos</option><option value="laboratorio">Laboratorio</option><option value="imagenologia">Imagenología</option><option value="gabinete">Gabinete</option><option value="interconsultas">Interconsultas</option><option value="procedimientos">Procedimientos</option><option value="otros">Otros</option></select>
       <div style={{...flbl,marginTop:14}}>Estado</div><select value={ordStatus} onChange={e=>setOrdStatus(e.target.value)} style={selSty}><option value="">Todos</option><option value="Solicitada">Solicitada</option><option value="Enviada">Enviada</option><option value="Completada">Completada</option><option value="Cancelada">Cancelada</option></select>
@@ -2737,12 +2807,12 @@ export default function Workspace(){
         <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"40px 12px"}}>{ordLoaded?"Aún no hay órdenes en el registro. Usa «+ Nueva orden» para crear la primera.":"Cargando órdenes…"}</td></tr>
        ):filtered.length===0?(
         <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"40px 12px"}}>Ninguna orden coincide con el filtro.</td></tr>
-       ):filtered.map(o=>{const[bg,fg]=stx(o.status);const on=(selected?.orderId===o.orderId);return <tr key={o.orderId} style={{background:on?"#F6F5FE":"transparent",cursor:"pointer"}} onClick={()=>setOrdSel(o.orderId)}>
-        <td style={td}>{fmtDT(o.createdAt).split(",")[0]}<div style={{color:"#9AA0BC"}}>{(fmtDT(o.createdAt).split(",")[1]??"").trim()}</div></td>
+       ):filtered.map(o=>{const[bg,fg]=stx(o.status);const on=(selected?.orderId===o.orderId);return <tr key={o.orderId} style={{background:on?"#F6F5FE":"transparent",cursor:"pointer"}} {...actRow(()=>setOrdSel(o.orderId))}>
+        <td style={td}>{fmtDT(o.createdAt).split(",")[0]}<div style={{color:P.muted}}>{(fmtDT(o.createdAt).split(",")[1]??"").trim()}</div></td>
         <td style={td}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:10,fontWeight:700,flex:"0 0 auto"}}>{initials(o.patientName)}</span><div style={{fontWeight:600}}>{o.patientName}</div></div></td>
         <td style={td}><div style={{fontWeight:600}}>{o.detail}</div><div style={{color:P.purple,fontSize:11}}>{TYPE_ICO[o.orderType]??"📄"} {o.typeLabel}</div></td>
         <td style={td}><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:bg,color:fg}}>{o.status}</span></td>
-        <td style={td}><span style={{color:P.blue,fontWeight:600,fontSize:12,cursor:"pointer"}} onClick={ev=>{ev.stopPropagation();openInRecord(o.patientId,o.patientName);}}>Abrir →</span></td>
+        <td style={td}><span style={{color:P.blue,fontWeight:600,fontSize:12,cursor:"pointer"}} {...act(ev=>{ev.stopPropagation();openInRecord(o.patientId,o.patientName);})}>Abrir →</span></td>
        </tr>;})}</tbody>
       </table></div>
      </div>
@@ -2796,7 +2866,7 @@ export default function Workspace(){
    let acc=0;const stops=typeSegs.map(([,c,n])=>{const a=total?acc/total*100:0;acc+=n;const b=total?acc/total*100:0;return `${c} ${a}% ${b}%`;}).join(",");
    const sevBadge=(k:string):React.CSSProperties=>{const m:Record<string,[string,string]>={Grave:["#FDECEE","#C9364A"],Moderada:["#FBF0DC","#B7791F"],Leve:["#E6F6EE","#16A66A"],Incierta:["#EEF1F7","#6B7191"]};const[bg,fg]=m[k]??m.Leve!;return{background:bg,color:fg,borderRadius:16,padding:"3px 11px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"};};
    const estadoBadge=(active:boolean):React.CSSProperties=>({background:active?"#E6F6EE":"#EEF1F7",color:active?"#16A66A":"#6B7191",borderRadius:16,padding:"3px 11px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"});
-   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`};
+   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`};
    const td:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:13,verticalAlign:"middle"};
    const kico=(bg:string,fg:string,d:string)=><span style={{width:44,height:44,borderRadius:12,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
    const kcard:React.CSSProperties={...card2,padding:16,display:"flex",gap:13,alignItems:"center"};
@@ -2853,7 +2923,7 @@ export default function Workspace(){
       </div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr><th style={th}>Paciente</th><th style={th}>Alérgeno</th><th style={th}>Tipo</th><th style={th}>Reacción</th><th style={th}>Gravedad</th><th style={th}>Estado</th></tr></thead>
-       <tbody>{rows.map((r,i)=>{const on=i===alergSel;return <tr key={r.id} onClick={()=>setAlergSel(i)} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
+       <tbody>{rows.map((r,i)=>{const on=i===alergSel;return <tr key={r.id} {...actRow(()=>setAlergSel(i))} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
         <td style={td}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{width:30,height:30,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{initials(r.name)}</span><div style={{minWidth:0}}><div style={{fontWeight:600,fontSize:13,whiteSpace:"nowrap"}}>{r.name}</div>{r.age&&<div style={{fontSize:11,color:P.muted}}>{r.age}</div>}</div></div></td>
         <td style={{...td,fontWeight:600}}>{r.substance}</td>
         <td style={{...td,color:P.muted}}>{r.type}</td>
@@ -2945,9 +3015,9 @@ export default function Workspace(){
          <div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Nombre del problema / Diagnóstico <span style={{color:P.red}}>*</span></div>
          <div style={{position:"relative"}}>
           <div style={{display:"flex",gap:8}}><input value={pfName} onChange={e=>searchCie(e.target.value)} placeholder="Buscar en CIE-10 o escribir diagnóstico..." style={{...selSty,flex:1}}/><button onClick={()=>searchCie(pfName)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>⊟ Buscar en CIE-10</button></div>
-          {pfResults.length>0&&<div style={{position:"absolute",top:"110%",left:0,right:0,zIndex:5,background:P.white,border:`1px solid ${LINE}`,borderRadius:11,boxShadow:"0 12px 32px rgba(20,30,60,.14)",overflow:"hidden"}}>{pfResults.map(e=><div key={e.code} onClick={()=>pick(e)} style={{display:"flex",gap:12,padding:"11px 14px",cursor:"pointer",borderBottom:`1px solid #F2F4F9`,alignItems:"center"}}><span style={{fontWeight:700,color:P.purple,fontSize:13,minWidth:56}}>{e.code}</span><span style={{fontSize:13}}>{e.description}</span></div>)}</div>}
+          {pfResults.length>0&&<div style={{position:"absolute",top:"110%",left:0,right:0,zIndex:5,background:P.white,border:`1px solid ${LINE}`,borderRadius:11,boxShadow:"0 12px 32px rgba(20,30,60,.14)",overflow:"hidden"}}>{pfResults.map(e=><div key={e.code} {...act(()=>pick(e))} style={{display:"flex",gap:12,padding:"11px 14px",cursor:"pointer",borderBottom:`1px solid #F2F4F9`,alignItems:"center"}}><span style={{fontWeight:700,color:P.purple,fontSize:13,minWidth:56}}>{e.code}</span><span style={{fontSize:13}}>{e.description}</span></div>)}</div>}
          </div>
-         {pfCode&&<div style={{marginTop:8,fontSize:12,color:"#16A66A",fontWeight:600}}>✓ CIE-10 {pfCode} seleccionado</div>}
+         {pfCode&&<div style={{marginTop:8,fontSize:12,color:P.green,fontWeight:600}}>✓ CIE-10 {pfCode} seleccionado</div>}
          <div style={{fontSize:12.5,fontWeight:700,margin:"18px 0 6px"}}>Descripción clínica</div>
          <textarea value={pfDesc} onChange={e=>setPfDesc(e.target.value.slice(0,1000))} placeholder="Describe el problema, síntomas, evolución, hallazgos relevantes..." style={{...selSty,minHeight:120,resize:"vertical"}}/>
          <div style={{textAlign:"right",fontSize:11,color:P.muted}}>{pfDesc.length}/1000</div>
@@ -2975,11 +3045,11 @@ export default function Workspace(){
         <div style={{fontSize:15,fontWeight:800,marginBottom:10}}>Sugerencias de diagnósticos</div>
         <input onChange={e=>searchCie(e.target.value)} placeholder="Buscar en CIE-10..." style={selSty}/>
         <div style={{display:"flex",gap:14,marginTop:12,borderBottom:`1px solid ${LINE}`,fontSize:12.5}}>{["Más comunes","Recientes","Favoritos"].map((t,i)=><span key={t} style={{padding:"6px 0",fontWeight:i===0?700:500,color:i===0?P.purple:P.muted,borderBottom:i===0?`2px solid ${P.purple}`:"2px solid transparent",cursor:"pointer"}}>{t}</span>)}</div>
-        <div style={{marginTop:8}}>{COMMON.map(([c,d])=><div key={c} onClick={()=>pick({code:c,description:d,category:""})} style={{display:"flex",gap:10,padding:"9px 6px",cursor:"pointer",alignItems:"center",borderRadius:8}}><span style={{fontWeight:700,color:P.purple,fontSize:12.5,minWidth:52}}>{c}</span><span style={{fontSize:12.5}}>{d}</span></div>)}</div>
+        <div style={{marginTop:8}}>{COMMON.map(([c,d])=><div key={c} {...act(()=>pick({code:c,description:d,category:""}))} style={{display:"flex",gap:10,padding:"9px 6px",cursor:"pointer",alignItems:"center",borderRadius:8}}><span style={{fontWeight:700,color:P.purple,fontSize:12.5,minWidth:52}}>{c}</span><span style={{fontSize:12.5}}>{d}</span></div>)}</div>
         <button style={{marginTop:10,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>⧉ Explorar catálogo CIE-10</button>
        </div>
        <div style={{...card2,padding:16}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontSize:15,fontWeight:800}}>Problemas recientes en el registro</div><span style={{fontSize:12,color:P.blue,cursor:"pointer"}} onClick={()=>setProbScreen("lista")}>Ver todos</span></div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontSize:15,fontWeight:800}}>Problemas recientes en el registro</div><span style={{fontSize:12,color:P.blue,cursor:"pointer"}} {...act(()=>setProbScreen("lista"))}>Ver todos</span></div>
         {(()=>{const fD=(iso:string)=>{const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};const recent=(probReg?.items??[]).slice(0,5);if(recent.length===0)return <div style={{fontSize:12.5,color:P.muted,padding:"8px 0"}}>Aún no hay problemas registrados en el consultorio.</div>;return recent.map(it=><div key={it.problemId} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:`1px solid #F2F4F9`}}><span style={{width:8,height:8,borderRadius:"50%",background:it.status==="RESOLVED"?"#16A66A":it.statusLabel==="En seguimiento"?"#B7791F":"#C9364A",flex:"0 0 auto"}}/><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{it.description||it.code}</div><div style={{fontSize:11.5,color:P.muted}}>{it.code} · {it.patientName} · {fD(it.recordedAt)}</div></div><span style={estSty(it.statusLabel)}>{it.statusLabel}</span></div>);})()}
        </div>
        <div style={{...card2,padding:16,background:"#F7F6FE",borderColor:"#E2DEFB"}}><div style={{display:"flex",gap:10}}><span style={{color:P.purple}}>💡</span><div><div style={{fontWeight:700,fontSize:13}}>Tip</div><div style={{fontSize:12.5,color:P.muted,marginTop:2}}>Usa diagnósticos específicos con código CIE-10 para un mejor seguimiento, estadísticas y generación de reportes.</div></div></div></div>
@@ -3018,7 +3088,7 @@ export default function Workspace(){
      </div>
      <div style={{display:"flex",gap:10,marginTop:14,flexWrap:"wrap",alignItems:"center"}}><input placeholder="Buscar plantilla por nombre, CIE-10 o palabra clave..." style={{...selSty,flex:1,minWidth:220}}/><select style={{...selSty,width:"auto"}} defaultValue="Todas las categorías"><option>Todas las categorías</option></select><select style={{...selSty,width:"auto"}} defaultValue="Todos los grupos de edad"><option>Todos los grupos de edad</option></select><span style={{fontSize:12.5,color:P.blue,cursor:"pointer"}}>Limpiar</span></div>
      <div style={{display:"grid",gridTemplateColumns:"220px 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-prob-tpl">
-      <div style={{...card2,padding:14}}><div style={{fontSize:14,fontWeight:800,marginBottom:8}}>Categorías</div>{CATS.map(([c,n])=>{const on=c===probPlantCat;return <div key={c} onClick={()=>setProbPlantCat(c)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 10px",borderRadius:9,cursor:"pointer",background:on?"#EEEBFD":"transparent",color:on?P.purple:P.ink,fontWeight:on?700:500,fontSize:13}}><span>{c}</span><span style={{fontSize:11.5,color:on?P.purple:P.muted}}>{n}</span></div>;})}</div>
+      <div style={{...card2,padding:14}}><div style={{fontSize:14,fontWeight:800,marginBottom:8}}>Categorías</div>{CATS.map(([c,n])=>{const on=c===probPlantCat;return <div key={c} {...act(()=>setProbPlantCat(c))} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 10px",borderRadius:9,cursor:"pointer",background:on?"#EEEBFD":"transparent",color:on?P.purple:P.ink,fontWeight:on?700:500,fontSize:13}}><span>{c}</span><span style={{fontSize:11.5,color:on?P.purple:P.muted}}>{n}</span></div>;})}</div>
       <div style={{...card2,padding:16}}>
        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div style={{fontSize:16,fontWeight:800}}>Plantillas ({tpls.length})</div><select style={{...selSty,width:"auto",padding:"7px 10px"}} defaultValue="Más utilizadas"><option>Más utilizadas</option></select></div>
        <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:12}}>{tpls.map(t=><div key={t.code} style={{border:`1px solid ${LINE}`,borderRadius:12,padding:14,display:"flex",flexDirection:"column",gap:8}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{width:40,height:40,borderRadius:11,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 3h6l1 4H8zM7 7h10l1 13H6z"/></svg></span><span style={{color:t.fav?P.purple:"#C7CCE0"}}>{t.fav?"★":"☆"}</span></div><div><div style={{fontWeight:700,fontSize:14}}>{t.name}</div><div style={{fontSize:12,color:P.purple,fontWeight:600}}>{t.code}</div></div><div style={{fontSize:12,color:P.muted,lineHeight:1.4,minHeight:32}}>{t.desc}</div><button onClick={()=>useTpl(t)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"8px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>Usar plantilla</button></div>)}</div>
@@ -3034,7 +3104,7 @@ export default function Workspace(){
          <div><div style={{color:P.muted,marginBottom:3}}>Descripción</div><div style={{lineHeight:1.5}}>{selT.desc}</div></div>
          <div><div style={{color:P.muted,marginBottom:3}}>CIE-10</div><b>{selT.code}</b></div>
          <div><div style={{color:P.muted,marginBottom:5}}>Palabras clave</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{["diabetes","hiperglucemia","crónica","control"].map(k=><span key={k} style={{background:"#F2F4F9",color:P.muted,borderRadius:7,padding:"3px 8px",fontSize:11.5}}>{k}</span>)}</div></div>
-         <div><div style={{color:P.muted,marginBottom:5}}>Incluye campos</div>{["Fecha de diagnóstico","Control (activo/inactivo)","Gravedad","Notas clínicas","Plan de manejo","Alertas y recordatorios"].map(f=><div key={f} style={{display:"flex",gap:8,alignItems:"center",padding:"3px 0"}}><span style={{color:"#16A66A"}}>✓</span>{f}</div>)}</div>
+         <div><div style={{color:P.muted,marginBottom:5}}>Incluye campos</div>{["Fecha de diagnóstico","Control (activo/inactivo)","Gravedad","Notas clínicas","Plan de manejo","Alertas y recordatorios"].map(f=><div key={f} style={{display:"flex",gap:8,alignItems:"center",padding:"3px 0"}}><span style={{color:P.green}}>✓</span>{f}</div>)}</div>
          {/* (U-11) Sin estadísticas de uso: esa medición no existe; no se inventa. */}
         </div>
         <button onClick={()=>useTpl(selT)} style={{marginTop:14,width:"100%",border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Usar plantilla</button>
@@ -3062,7 +3132,7 @@ export default function Workspace(){
    const topP=probReg?.topPatients??[];
    const kico=(bg:string,fg:string,d:string)=><span style={{width:44,height:44,borderRadius:12,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
    const kcard:React.CSSProperties={...card2,padding:16,display:"flex",gap:13,alignItems:"center"};
-   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`};
+   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`};
    const tdc:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:13,verticalAlign:"middle"};
    const chk2=(on:boolean,l:string,tog:()=>void)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}} onClick={tog}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{on?"✓":""}</span>{l}</label>;
    return <div style={{padding:"18px 24px 40px"}}>
@@ -3093,7 +3163,7 @@ export default function Workspace(){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px"}}><div style={{fontSize:16,fontWeight:800}}>Problemas ({rows.length})</div></div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr><th style={th}>Problema / Diagnóstico</th><th style={th}>Paciente</th><th style={th}>Código CIE-10</th><th style={th}>Estado</th><th style={th}>Fecha de registro</th></tr></thead>
-       <tbody>{rows.map((r,i)=>{const on=i===probSel;return <tr key={r.id} onClick={()=>setProbSel(i)} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
+       <tbody>{rows.map((r,i)=>{const on=i===probSel;return <tr key={r.id} {...actRow(()=>setProbSel(i))} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
         <td style={tdc}><div style={{fontWeight:600}}>{r.name}</div><div style={{fontSize:11,color:P.muted}}>{r.type}</div></td>
         <td style={tdc}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:26,height:26,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:10,fontWeight:700,flex:"0 0 auto"}}>{initials(r.patient)}</span><div style={{minWidth:0}}><div style={{fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>{r.patient}</div>{r.age&&<div style={{fontSize:10.5,color:P.muted}}>{r.age}</div>}</div></div></td>
         <td style={{...tdc,fontWeight:600}}>{r.code}</td>
@@ -3145,7 +3215,7 @@ export default function Workspace(){
    const complete=selv?.estado==="Completa";
    const kico=(bg:string,fg:string,d:string)=><span style={{width:44,height:44,borderRadius:12,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
    const kcard:React.CSSProperties={...card2,padding:16,display:"flex",gap:13,alignItems:"center"};
-   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 10px",borderBottom:`1px solid ${LINE}`};
+   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"11px 10px",borderBottom:`1px solid ${LINE}`};
    const tdc:React.CSSProperties={padding:"10px 10px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,verticalAlign:"middle"};
    const chk2=(on:boolean,l:string,tog:()=>void)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}} onClick={tog}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{on?"✓":""}</span>{l}</label>;
    const syringe="M14 4l6 6M17 7l-9 9-4 1 1-4 9-9zM3 21l3-1";
@@ -3190,7 +3260,7 @@ export default function Workspace(){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px"}}><div style={{fontSize:16,fontWeight:800}}>Vacunación ({rows.length})</div></div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr><th style={th}>Fecha</th><th style={th}>Paciente</th><th style={th}>Vacuna</th><th style={th}>Dosis</th><th style={th}>Lote</th><th style={th}>Estado</th></tr></thead>
-       <tbody>{rows.map((r,i)=>{const on=i===immSel;return <tr key={r.id} onClick={()=>setImmSel(i)} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
+       <tbody>{rows.map((r,i)=>{const on=i===immSel;return <tr key={r.id} {...actRow(()=>setImmSel(i))} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
         <td style={{...tdc,color:P.muted,whiteSpace:"nowrap"}}>{r.date}</td>
         <td style={tdc}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:26,height:26,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:10,fontWeight:700,flex:"0 0 auto"}}>{initials(r.patient)}</span><div style={{minWidth:0}}><div style={{fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>{r.patient}</div>{r.age&&<div style={{fontSize:10.5,color:P.muted}}>{r.age}</div>}</div></div></td>
         <td style={{...tdc,fontWeight:600}}>{r.vaccine}</td>
@@ -3264,7 +3334,7 @@ export default function Workspace(){
      if(!val)continue;const a=classifyVital(vt,String(val),{ageYears});
      if(a.status==="CRITICAL"||a.status==="ABNORMAL")alerts.push(`${a.interpretation} (${val} ${unit})${a.status==="CRITICAL"?" — CRÍTICO":""}`);}}
    const trendCard=(ico:string,c:string,title:string,unit:string,vals:number[],last:string)=><div style={{border:`1px solid ${LINE}`,borderRadius:12,padding:13}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}><span style={{width:26,height:26,borderRadius:7,background:c+"22",color:c,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d={ico}/></svg></span><div style={{fontSize:12,fontWeight:700,lineHeight:1.1}}>{title}<div style={{fontSize:10.5,color:P.muted,fontWeight:500}}>{unit}</div></div></div>{spark(vals,c)}<div style={{fontSize:20,fontWeight:800,marginTop:6}}>{last}</div><div style={{fontSize:11.5,color:P.muted,display:"flex",justifyContent:"space-between"}}>Último registro <span>›</span></div></div>;
-   const th:React.CSSProperties={textAlign:"left",fontSize:11,color:"#9AA0BC",fontWeight:600,padding:"9px 8px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+   const th:React.CSSProperties={textAlign:"left",fontSize:11,color:P.muted,fontWeight:600,padding:"9px 8px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
    const tdc:React.CSSProperties={padding:"9px 8px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
    const num:React.CSSProperties={...selSty};
    const heartIco="M12 21C12 21 4 13.5 4 8.5A4 4 0 0112 6a4 4 0 018 2.5C20 13.5 12 21 12 21z";
@@ -3456,7 +3526,7 @@ export default function Workspace(){
        {infoRow(P.amber,"M9 3h6l1 4H8zM7 7h10l1 13H6z","Últimos laboratorios",cHba1c)}
        {infoRow(P.red,"M12 21C12 21 4 13.5 4 8.5A4 4 0 0112 6a4 4 0 018 2.5C20 13.5 12 21 12 21z","Signos vitales (última)",cVit)}
       </div>
-      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:8}}>Plantillas rápidas</div>{[["Endocrinología – DM2","Endocrinología","Valoración y manejo integral de diabetes mellitus tipo 2 con resistencia a la insulina."],["Cardiología – HTA","Cardiología","Valoración de hipertensión arterial y riesgo cardiovascular."],["Ginecología – SOP","Ginecología","Valoración por síndrome de ovario poliquístico."],["Nutrición – Obesidad","Nutrición","Valoración nutricional y plan de manejo de obesidad."],["Psiquiatría – Ansiedad/Depresión","Psiquiatría","Valoración por síntomas ansioso-depresivos."],["Dermatología – Acné","Dermatología","Valoración dermatológica por acné."]].map(([l,sp,mo],i)=><div key={i} onClick={()=>{setIcSpecialty(sp as string);setIcMotivo(mo as string);}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<5?`1px solid #F2F4F9`:"0",fontSize:13,color:P.ink,fontWeight:500,cursor:"pointer"}}><span style={{display:"flex",alignItems:"center",gap:8}}><span style={{color:P.blue}}>▤</span>{l}</span><span style={{color:P.muted}}>›</span></div>)}</div>
+      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:8}}>Plantillas rápidas</div>{[["Endocrinología – DM2","Endocrinología","Valoración y manejo integral de diabetes mellitus tipo 2 con resistencia a la insulina."],["Cardiología – HTA","Cardiología","Valoración de hipertensión arterial y riesgo cardiovascular."],["Ginecología – SOP","Ginecología","Valoración por síndrome de ovario poliquístico."],["Nutrición – Obesidad","Nutrición","Valoración nutricional y plan de manejo de obesidad."],["Psiquiatría – Ansiedad/Depresión","Psiquiatría","Valoración por síntomas ansioso-depresivos."],["Dermatología – Acné","Dermatología","Valoración dermatológica por acné."]].map(([l,sp,mo],i)=><div key={i} {...act(()=>{setIcSpecialty(sp as string);setIcMotivo(mo as string);})} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:i<5?`1px solid #F2F4F9`:"0",fontSize:13,color:P.ink,fontWeight:500,cursor:"pointer"}}><span style={{display:"flex",alignItems:"center",gap:8}}><span style={{color:P.blue}}>▤</span>{l}</span><span style={{color:P.muted}}>›</span></div>)}</div>
       <div style={{...card2,padding:16,background:"#F7F6FE",borderColor:"#E2DEFB"}}><div style={{display:"flex",gap:10}}><span style={{color:P.purple}}>💡</span><div><div style={{fontWeight:700,fontSize:13}}>Tip</div><div style={{fontSize:12.5,color:P.muted,marginTop:2}}>Incluye laboratorios, estudios de imagen y un resumen clínico claro para una mejor y más rápida atención.</div></div></div></div>
      </div>
     </div>
@@ -3542,7 +3612,7 @@ export default function Workspace(){
    };
    const estSty=(k:string):React.CSSProperties=>{const m:Record<string,[string,string]>={Pagada:["#E6F6EE","#16A66A"],Pendiente:["#FBF0DC","#B7791F"],Cancelada:["#EEF1F7","#6B7191"],Rechazada:["#FDECEE","#C9364A"]};const[b,f]=m[k]??m.Pendiente!;return{background:b,color:f,borderRadius:16,padding:"3px 12px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"};};
    const kico=(bg:string,fg:string,d:string)=><span style={{width:48,height:48,borderRadius:"50%",background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
-   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
    const tdc:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
    const stepN=(n:number)=><span style={{width:20,height:20,borderRadius:"50%",background:P.purple,color:"#fff",display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{n}</span>;
@@ -3578,8 +3648,8 @@ export default function Workspace(){
        {bname?<div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",border:`1px solid ${LINE}`,borderRadius:10,marginBottom:16}}><span style={{width:34,height:34,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:12,fontWeight:700}}>{initials(bname)}</span><div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700}}>{bname}</div><div style={{fontSize:11,color:P.muted,fontFamily:"monospace"}}>{bp?.curp?`CURP: ${bp.curp}`:"Paciente del tenant"}</div></div></div>:<div style={{fontSize:12,color:P.muted,marginBottom:16}}>Elige el paciente al que se emitirá la factura.</div>}
       </>;})()}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}>{stepN(2)}<span style={{fontSize:13.5,fontWeight:700}}>Conceptos</span></div><button onClick={()=>setNfConcepts([...nfConcepts,{desc:"Nuevo concepto",qty:1,price:0}])} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:8,padding:"6px 11px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:UI}}>+ Agregar concepto</button></div>
-      <div style={{fontSize:11,color:"#9AA0BC",display:"grid",gridTemplateColumns:"1fr 46px 62px 62px 20px",gap:6,padding:"0 2px 4px",fontWeight:600}}><span>Descripción</span><span>Cant.</span><span style={{textAlign:"right"}}>Precio</span><span style={{textAlign:"right"}}>Importe</span><span/></div>
-      {nfConcepts.map((c,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 46px 62px 62px 20px",gap:6,alignItems:"center",padding:"4px 0"}}><input value={c.desc} onChange={e=>setConcept(i,{desc:e.target.value})} style={{...selSty,padding:"7px 8px",fontSize:12.5}}/><input value={c.qty} onChange={e=>setConcept(i,{qty:Number(e.target.value)||0})} style={{...selSty,padding:"7px 4px",fontSize:12.5,textAlign:"center"}}/><input value={c.price} onChange={e=>setConcept(i,{price:Number(e.target.value)||0})} style={{...selSty,padding:"7px 6px",fontSize:12.5,textAlign:"right"}}/><span style={{fontSize:12.5,fontWeight:600,textAlign:"right"}}>{money(c.qty*c.price)}</span><span onClick={()=>setNfConcepts(nfConcepts.filter((_,j)=>j!==i))} style={{color:P.red,cursor:"pointer",textAlign:"center"}}>🗑</span></div>)}
+      <div style={{fontSize:11,color:P.muted,display:"grid",gridTemplateColumns:"1fr 46px 62px 62px 20px",gap:6,padding:"0 2px 4px",fontWeight:600}}><span>Descripción</span><span>Cant.</span><span style={{textAlign:"right"}}>Precio</span><span style={{textAlign:"right"}}>Importe</span><span/></div>
+      {nfConcepts.map((c,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 46px 62px 62px 20px",gap:6,alignItems:"center",padding:"4px 0"}}><input value={c.desc} onChange={e=>setConcept(i,{desc:e.target.value})} style={{...selSty,padding:"7px 8px",fontSize:12.5}}/><input value={c.qty} onChange={e=>setConcept(i,{qty:Number(e.target.value)||0})} style={{...selSty,padding:"7px 4px",fontSize:12.5,textAlign:"center"}}/><input value={c.price} onChange={e=>setConcept(i,{price:Number(e.target.value)||0})} style={{...selSty,padding:"7px 6px",fontSize:12.5,textAlign:"right"}}/><span style={{fontSize:12.5,fontWeight:600,textAlign:"right"}}>{money(c.qty*c.price)}</span><span {...act(()=>setNfConcepts(nfConcepts.filter((_,j)=>j!==i)))} style={{color:P.red,cursor:"pointer",textAlign:"center"}}>🗑</span></div>)}
       <div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${LINE}`,display:"flex",flexDirection:"column",gap:6,fontSize:13}}>
        <div style={{display:"flex",justifyContent:"space-between",color:P.muted}}><span>Subtotal</span><span style={{fontWeight:600,color:P.ink}}>{money(nfTotal)}</span></div>
        <div style={{display:"flex",justifyContent:"space-between",color:P.muted}}><span>IVA (0%)</span><span style={{fontWeight:600,color:P.ink}}>{money(0)}</span></div>
@@ -3615,7 +3685,7 @@ export default function Workspace(){
    };
    const typeSty=(k:string):React.CSSProperties=>{const m:Record<string,[string,string]>={Laboratorio:["#EEEBFD","#6C5CF6"],["Imagenología"]:["#E7EEFB","#1769E0"],Consentimiento:["#FBF0DC","#B7791F"],Interconsulta:["#E0F7FA","#0E7490"],Receta:["#E6F6EE","#16A66A"],["Nota médica"]:["#EEF1FB","#4653C4"],Vacunas:["#E6F6EE","#16A66A"],Administrativo:["#EEF1F7","#6B7191"],Procedimiento:["#EEEBFD","#6C5CF6"],Otro:["#EEF1F7","#6B7191"]};const[b,f]=m[k]??m.Otro!;return{background:b,color:f,borderRadius:8,padding:"3px 9px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"};};
    const folderIco=["#6C5CF6","#1769E0","#16A66A","#E5983B","#0E7490","#C9364A","#4653C4","#6B7191"];
-   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
    const tdc:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
    const chipC=(c:string,d:string,n:number,l:string)=><div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}><span style={{width:34,height:34,borderRadius:9,background:c+"22",color:c,display:"grid",placeItems:"center"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={d}/></svg></span><div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{n}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div></div>;
    const pdfIco="M6 2h9l5 5v15H6zM14 2v6h6";
@@ -3640,13 +3710,13 @@ export default function Workspace(){
     </div>
     <div style={{display:"grid",gridTemplateColumns:"250px 1fr 380px",gap:16,marginTop:16,alignItems:"start"}} className="mos-doc">
      {/* Carpetas */}
-     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:8}}>Carpetas</div>{folders.map(([f,n],i)=>{const on=f===docFolder;return <div key={i} onClick={()=>{setDocFolder(f);setDocSel(0);}} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",borderRadius:9,cursor:"pointer",background:on?"#EEEBFD":"transparent"}}><span style={{color:i===0?P.purple:folderIco[i%folderIco.length]}}><svg width="17" height="17" viewBox="0 0 24 24" fill={on||i>0?"currentColor":"none"} stroke="currentColor" strokeWidth="1.6" opacity={i===0?1:.9}><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></span><span style={{flex:1,fontSize:13,fontWeight:on?700:500,color:on?P.purple:P.ink}}>{f}</span><span style={{fontSize:12,color:P.muted}}>{n}</span></div>;})}</div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:8}}>Carpetas</div>{folders.map(([f,n],i)=>{const on=f===docFolder;return <div key={i} {...act(()=>{setDocFolder(f);setDocSel(0);})} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",borderRadius:9,cursor:"pointer",background:on?"#EEEBFD":"transparent"}}><span style={{color:i===0?P.purple:folderIco[i%folderIco.length]}}><svg width="17" height="17" viewBox="0 0 24 24" fill={on||i>0?"currentColor":"none"} stroke="currentColor" strokeWidth="1.6" opacity={i===0?1:.9}><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></span><span style={{flex:1,fontSize:13,fontWeight:on?700:500,color:on?P.purple:P.ink}}>{f}</span><span style={{fontSize:12,color:P.muted}}>{n}</span></div>;})}</div>
      {/* Tabla */}
      <div style={{...card2,padding:0,overflow:"hidden"}}>
       <div style={{padding:"14px 16px",fontSize:16,fontWeight:800}}>Documentos ({rows.length})</div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr><th style={th}>Nombre</th><th style={th}>Tipo</th><th style={{...th,textAlign:"right"}}>Fecha</th></tr></thead>
-       <tbody>{rows.length===0?<tr><td colSpan={3} style={{...tdc,textAlign:"center",color:P.muted,padding:"36px 12px"}}>{patientId?(docLoaded?(docFolder==="Todos los documentos"?"Sin documentos. Usa «+ Nuevo documento».":"Sin documentos en esta carpeta."):"Cargando documentos…"):"Selecciona un paciente para ver sus documentos."}</td></tr>:rows.map((r,i)=>{const on=i===docSel;return <tr key={i} onClick={()=>{setDocSel(i);void loadDoc(r.id);}} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
+       <tbody>{rows.length===0?<tr><td colSpan={3} style={{...tdc,textAlign:"center",color:P.muted,padding:"36px 12px"}}>{patientId?(docLoaded?(docFolder==="Todos los documentos"?"Sin documentos. Usa «+ Nuevo documento».":"Sin documentos en esta carpeta."):"Cargando documentos…"):"Selecciona un paciente para ver sus documentos."}</td></tr>:rows.map((r,i)=>{const on=i===docSel;return <tr key={i} {...actRow(()=>{setDocSel(i);void loadDoc(r.id);})} style={{cursor:"pointer",background:on?"#F7F6FE":"transparent"}}>
         <td style={tdc}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{color:P.red,flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={pdfIco}/></svg></span><span style={{fontWeight:600,color:P.ink}}>{r.title}</span></div></td>
         <td style={tdc}><span style={typeSty(r.type)}>{r.type}</span></td>
         <td style={{...tdc,color:P.muted,textAlign:"right"}}>{r.date}</td>
@@ -3706,7 +3776,7 @@ export default function Workspace(){
    const compliance:[string,number][]=regObSnap?Object.entries(regObSnap.compliance):[];
    const estSty=(k:string):React.CSSProperties=>{const m:Record<string,[string,string]>={["Al día"]:["#E6F6EE","#16A66A"],["Próxima"]:["#FBF0DC","#B7791F"],Vencida:["#FDECEE","#C9364A"],Vigente:["#E7EEFB","#1769E0"]};const[b,f]=m[k]??m["Al día"]!;return{background:b,color:f,borderRadius:8,padding:"4px 12px",fontSize:12.5,fontWeight:700,whiteSpace:"nowrap"};};
    const kico=(bg:string,fg:string,d:string)=><span style={{width:48,height:48,borderRadius:"50%",background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
-   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:"#9AA0BC",fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+   const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
    const tdc:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
    const OBL_TABS:[typeof oblTab,string][]=[["todas","Todas"],["fiscales","Fiscales (SAT)"],["salud","Salud (COFEPRIS)"],["laborales","Laborales"],["proteccion","Protección civil"],["administrativas","Administrativas"],["otros","Otros"]];
    const fileIco="M6 2h9l5 5v15H6zM14 2v6h6";
@@ -3897,12 +3967,12 @@ export default function Workspace(){
       <div style={{...card2,padding:16}}>
        <div style={{display:"flex",gap:4,borderBottom:`1px solid ${LINE}`,overflowX:"auto",marginBottom:14}}>{BIB_TABS.map(t=><button key={t} onClick={()=>setBibTab(t)} style={{padding:"10px 11px",fontSize:13,fontWeight:bibTab===t?700:500,color:bibTab===t?P.purple:P.muted,borderBottom:bibTab===t?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>{t}</button>)}</div>
        <div style={{fontSize:16,fontWeight:800,margin:"4px 0 10px"}}>Especialidades</div>
-       <div style={{display:"grid",gridTemplateColumns:"repeat(9,1fr)",gap:8}}>{ESP.map(([l,d,n,c])=>{const on=l===bibEsp;return <div key={l} onClick={()=>setBibEsp(l)} style={{border:on?`1.5px solid ${P.purple}`:`1px solid ${LINE}`,borderRadius:11,padding:"12px 4px",display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",background:on?"#F7F6FE":P.white}}><span style={{color:c as string}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d={d as string}/></svg></span><span style={{fontSize:10.5,fontWeight:700,textAlign:"center",lineHeight:1.1}}>{l}</span></div>;})}</div>
+       <div style={{display:"grid",gridTemplateColumns:"repeat(9,1fr)",gap:8}}>{ESP.map(([l,d,n,c])=>{const on=l===bibEsp;return <div key={l} {...act(()=>setBibEsp(l))} style={{border:on?`1.5px solid ${P.purple}`:`1px solid ${LINE}`,borderRadius:11,padding:"12px 4px",display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",background:on?"#F7F6FE":P.white}}><span style={{color:c as string}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d={d as string}/></svg></span><span style={{fontSize:10.5,fontWeight:700,textAlign:"center",lineHeight:1.1}}>{l}</span></div>;})}</div>
        <div style={{fontSize:16,fontWeight:800,margin:"18px 0 10px"}}>Contenido destacado <span style={{fontSize:12,fontWeight:500,color:P.muted}}>(referencia)</span></div>
        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>{FEAT.map((f,i)=><div key={i} style={{border:`1px solid ${LINE}`,borderRadius:12,padding:14,display:"flex",flexDirection:"column"}}><span style={badgeSty(f.bc)}>{f.badge}</span><div style={{fontSize:14.5,fontWeight:700,marginTop:10,lineHeight:1.2}}>{f.title}</div><div style={{fontSize:11.5,color:P.muted,marginTop:2}}>{f.sub}</div><div style={{fontSize:12,color:"#4B5168",marginTop:8,lineHeight:1.4,flex:1,minHeight:48}}>{f.desc}</div><div style={{fontSize:11,color:P.muted,marginTop:8}}>{f.src}</div></div>)}</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,alignItems:"start"}} className="mos-bib2">
-       <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:12}}>Herramientas rápidas</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{([["Verificador de interacciones","Motor determinista (real)",P.purple,()=>{setView("medicamentos");setMedTab("interacciones");}],["IMC y signos vitales","Cálculo al capturar en el módulo",P.amber,()=>setView("signos")]] as [string,string,string,()=>void][]).map(([t,s,c,fn],i)=><div key={i} onClick={fn} style={{border:`1px solid ${LINE}`,borderRadius:11,padding:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}><span style={{width:34,height:34,borderRadius:9,background:(c as string)+"22",color:c as string,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16v16H4zM8 8h8"/></svg></span><div><div style={{fontSize:12.5,fontWeight:700}}>{t}</div><div style={{fontSize:11,color:P.muted}}>{s}</div></div></div>)}</div></div>
+       <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:12}}>Herramientas rápidas</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{([["Verificador de interacciones","Motor determinista (real)",P.purple,()=>{setView("medicamentos");setMedTab("interacciones");}],["IMC y signos vitales","Cálculo al capturar en el módulo",P.amber,()=>setView("signos")]] as [string,string,string,()=>void][]).map(([t,s,c,fn],i)=><div key={i} {...act(fn)} style={{border:`1px solid ${LINE}`,borderRadius:11,padding:12,display:"flex",gap:10,alignItems:"center",cursor:"pointer"}}><span style={{width:34,height:34,borderRadius:9,background:(c as string)+"22",color:c as string,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16v16H4zM8 8h8"/></svg></span><div><div style={{fontSize:12.5,fontWeight:700}}>{t}</div><div style={{fontSize:11,color:P.muted}}>{s}</div></div></div>)}</div></div>
        <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:12}}>Fuentes confiables</div><div style={{display:"flex",gap:10,flexWrap:"wrap"}}>{SRC.map(([n,s],i)=><div key={i} style={{flex:"1 0 80px",border:`1px solid ${LINE}`,borderRadius:11,padding:"12px 6px",display:"flex",flexDirection:"column",alignItems:"center",gap:5,textAlign:"center"}}><span style={{width:32,height:32,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:800}}>{n.slice(0,2)}</span><span style={{fontSize:11.5,fontWeight:700}}>{n}</span><span style={{fontSize:10,color:P.muted}}>{s}</span></div>)}<div style={{flex:"1 0 80px",border:`1px solid ${LINE}`,borderRadius:11,display:"grid",placeItems:"center",color:P.muted}}>⋯</div></div></div>
       </div>
      </div>
@@ -3910,7 +3980,7 @@ export default function Workspace(){
      <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8}}><span style={{color:P.amber}}>★</span>Mis favoritos</div><span style={{fontSize:12,color:P.blue,cursor:"pointer"}}>Ver todos</span></div>{FAV.map(([t,s,c],i)=>listItem(t as string,s as string,c as string,i,FAV.length-1))}</div>
       <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8}}>◔ Recientes</div><span style={{fontSize:12,color:P.blue,cursor:"pointer"}}>Ver todos</span></div>{REC.map(([t,s,c],i)=>listItem(t as string,s as string,c as string,i,REC.length-1))}</div>
-      <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8}}>🔔 Actualizaciones</div><span style={{fontSize:12,color:P.blue,cursor:"pointer"}}>Ver todos</span></div>{UPD.map(([t,s],i)=><div key={i} style={{display:"flex",gap:9,alignItems:"center",padding:"8px 0",borderBottom:i<UPD.length-1?`1px solid #F2F4F9`:"0"}}><span style={{background:"#E6F6EE",color:"#16A66A",borderRadius:6,padding:"2px 8px",fontSize:10.5,fontWeight:700}}>Nuevo</span><div style={{flex:1}}><div style={{fontSize:12.5,fontWeight:700}}>{t}</div><div style={{fontSize:11,color:P.muted}}>{s}</div></div></div>)}</div>
+      <div style={{...card2,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8}}>🔔 Actualizaciones</div><span style={{fontSize:12,color:P.blue,cursor:"pointer"}}>Ver todos</span></div>{UPD.map(([t,s],i)=><div key={i} style={{display:"flex",gap:9,alignItems:"center",padding:"8px 0",borderBottom:i<UPD.length-1?`1px solid #F2F4F9`:"0"}}><span style={{background:"#E6F6EE",color:P.green,borderRadius:6,padding:"2px 8px",fontSize:10.5,fontWeight:700}}>Nuevo</span><div style={{flex:1}}><div style={{fontSize:12.5,fontWeight:700}}>{t}</div><div style={{fontSize:11,color:P.muted}}>{s}</div></div></div>)}</div>
      </div>
     </div>
     <div style={{...card2,marginTop:16,padding:"20px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16,background:"linear-gradient(90deg,#F3F0FF,#EEF4FF)"}}>
@@ -3948,7 +4018,6 @@ export default function Workspace(){
         <div><div style={lbl}>Nombre del consultorio</div><input value={cfgSettings.officeName} onChange={e=>setCfg("officeName",e.target.value)} placeholder="Ej. Clínica Medical OS" style={selSty}/></div>
         <div><div style={lbl}>Especialidad principal</div><input value={cfgSettings.specialty} onChange={e=>setCfg("specialty",e.target.value)} placeholder="Ej. Medicina General" style={selSty}/></div>
         <div><div style={lbl}>RFC</div><input value={cfgSettings.rfc} onChange={e=>setCfg("rfc",e.target.value)} placeholder="Ej. XAXX010101000" style={selSty}/></div>
-        <div><div style={lbl}>Cédula profesional</div><input value={cfgSettings.cedula} onChange={e=>setCfg("cedula",e.target.value)} placeholder="Ej. 12345678" style={selSty}/></div>
         <div><div style={lbl}>Dirección</div><input value={cfgSettings.address} onChange={e=>setCfg("address",e.target.value)} placeholder="Calle, número, ciudad" style={selSty}/></div>
         <div><div style={lbl}>Zona horaria</div><input value={cfgSettings.timezone} onChange={e=>setCfg("timezone",e.target.value)} placeholder="Ej. (GMT-06:00) Chihuahua" style={selSty}/></div>
         <div><div style={lbl}>Teléfono</div><input value={cfgSettings.phone} onChange={e=>setCfg("phone",e.target.value)} placeholder="Ej. 614 123 4567" style={selSty}/></div>
@@ -3962,7 +4031,7 @@ export default function Workspace(){
       </div>
       <div style={{...card2,padding:18}}>{sec("M12 3l7 4v5c0 4-3 7-7 8-4-1-7-4-7-8V7z","Apariencia del sistema")}
        <div style={{display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap"}}>
-        <div><div style={lbl}>Color principal</div><div style={{display:"flex",gap:8}}>{["#4653C4","#6C5CF6","#1769E0","#20B7D9","#16A66A","#E5983B","#F0455E"].map(c=><span key={c} onClick={()=>setCfg("color",c)} style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",boxShadow:cfgSettings.color===c?`0 0 0 3px ${c}44`:"none",border:cfgSettings.color===c?"2px solid #fff":"none"}}/>)}</div></div>
+        <div><div style={lbl}>Color principal</div><div style={{display:"flex",gap:8}}>{["#4653C4","#6C5CF6","#1769E0","#20B7D9","#16A66A","#E5983B","#F0455E"].map(c=><span key={c} {...act(()=>setCfg("color",c))} style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",boxShadow:cfgSettings.color===c?`0 0 0 3px ${c}44`:"none",border:cfgSettings.color===c?"2px solid #fff":"none"}}/>)}</div></div>
         <div><div style={lbl}>Tema</div><select value={cfgSettings.theme} onChange={e=>setCfg("theme",e.target.value)} style={{...selSty,width:120}}><option>Claro</option><option>Oscuro</option></select></div>
         <div><div style={lbl}>Tamaño de fuente</div><select value={cfgSettings.fontSize} onChange={e=>setCfg("fontSize",e.target.value)} style={{...selSty,width:120}}><option>Normal</option><option>Grande</option></select></div>
        </div>
@@ -3972,7 +4041,7 @@ export default function Workspace(){
      <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <div style={{...card2,padding:18}}>{sec("M9 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z","Preferencias de consulta")}
        {([["Vista por defecto del expediente","prefRecordView",["Resumen clínico","Cronología","Lista de problemas"]],["Plantilla de nota médica por defecto","prefNoteTemplate",["Consulta general (SOAP)","Nota de evolución","Nota de procedimiento"]],["Sistema de unidades","prefUnits",["Métrico (kg, cm)","Imperial (lb, in)"]],["Calculadora de dosis","prefDoseCalc",["Pediátrica y adultos","Solo adultos"]]] as [string,keyof OfficeSettings,string[]][]).map(([l,k,opts])=><div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:11}}><span style={{fontSize:12.5,color:P.muted}}>{l}</span><select value={cfgSettings[k] as string} onChange={e=>setCfg(k,e.target.value as never)} style={{...selSty,width:200}}>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select></div>)}
-       <div style={{borderTop:`1px solid ${LINE}`,marginTop:6,paddingTop:12}}>{([["Mostrar alertas clínicas en tiempo real","realtimeAlerts"],["Recordatorios de estudios y seguimiento","followupReminders"],["Mostrar interacciones medicamentosas","showInteractions"],["Modo oscuro (solo para tu cuenta)","darkMode"]] as [string,keyof OfficeSettings][]).map(([l,k])=>{const on=cfgSettings[k] as boolean;return <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0"}}><span style={{fontSize:13}}>{l}</span><span onClick={()=>setCfg(k,!on as never)} style={{width:38,height:22,borderRadius:12,background:on?P.purple:"#D5D9E6",position:"relative",flex:"0 0 auto",cursor:"pointer"}}><span style={{position:"absolute",top:2,left:on?18:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .15s"}}/></span></div>;})}</div>
+       <div style={{borderTop:`1px solid ${LINE}`,marginTop:6,paddingTop:12}}>{([["Mostrar alertas clínicas en tiempo real","realtimeAlerts"],["Recordatorios de estudios y seguimiento","followupReminders"],["Mostrar interacciones medicamentosas","showInteractions"],["Modo oscuro (solo para tu cuenta)","darkMode"]] as [string,keyof OfficeSettings][]).map(([l,k])=>{const on=cfgSettings[k] as boolean;return <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0"}}><span style={{fontSize:13}}>{l}</span><span {...act(()=>setCfg(k,!on as never))} style={{width:38,height:22,borderRadius:12,background:on?P.purple:"#D5D9E6",position:"relative",flex:"0 0 auto",cursor:"pointer"}}><span style={{position:"absolute",top:2,left:on?18:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .15s"}}/></span></div>;})}</div>
       </div>
       <div style={{...card2,padding:18}}>{sec("M8 2v4M16 2v4M4 8h16M5 6h14v14H5z","Configuraciones regionales")}
        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -3987,7 +4056,7 @@ export default function Workspace(){
        </div>
       </div>
       <div style={{...card2,padding:18}}>{sec("M18 3a3 3 0 00-3 3M6 21a3 3 0 003-3M4 7h16v10H4z","Datos y seguridad")}
-       <div style={{fontSize:12,color:P.muted,display:"flex",gap:7,alignItems:"center"}}><span style={{color:"#16A66A"}}>🛡</span>Los datos viajan cifrados (HTTPS) y se aíslan por consultorio en la base de datos; el cifrado en reposo lo aporta el proveedor de base de datos. No hay certificación NOM-024 ni proceso ARCO implementado todavía. La exportación, el respaldo y la eliminación de cuenta se habilitarán con el backend de configuración.</div>
+       <div style={{fontSize:12,color:P.muted,display:"flex",gap:7,alignItems:"center"}}><span style={{color:P.green}}>🛡</span>Los datos viajan cifrados (HTTPS) y se aíslan por consultorio en la base de datos; el cifrado en reposo lo aporta el proveedor de base de datos. No hay certificación NOM-024 ni proceso ARCO implementado todavía. La exportación, el respaldo y la eliminación de cuenta se habilitarán con el backend de configuración.</div>
       </div>
      </div>
      {/* Col 3 */}
@@ -3996,6 +4065,21 @@ export default function Workspace(){
        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{display:"flex",gap:11,alignItems:"center"}}><span style={{width:44,height:44,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:14,fontWeight:700}}>LG</span><div><div style={{fontSize:14,fontWeight:700}}>Dr. Luis Godinez</div><div style={{fontSize:11.5,color:P.muted}}>Médico General · Cédula: 12345678</div></div></div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"7px 11px",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:UI}}>Cambiar foto</button></div>
        {[["Nombre completo","Dr. Luis Godinez"],["Correo electrónico","luis@medicalos.mx"],["Teléfono","614 123 4567"]].map(([l,v])=><div key={l} style={{marginBottom:11}}><div style={lbl}>{l}</div><input defaultValue={v} style={selSty}/></div>)}
        <div><div style={lbl}>Contraseña</div><div style={{display:"flex",gap:8}}><input type="password" defaultValue="password" style={{...selSty,flex:1}}/><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"0 14px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>Cambiar</button></div></div>
+      </div>
+      <div style={{...card2,padding:18}}>{sec("M12 2l7 4v6c0 5-3 8-7 10-4-2-7-5-7-10V6l7-4z","Identidad profesional")}
+       <div style={{fontSize:11.5,color:P.muted,marginBottom:10,lineHeight:1.5}}>Nombre, cédula profesional e institución que expidió el título: la ley los exige en la receta (LGS art. 83; RIS art. 29) y el sistema no prescribe ni firma sin ellos. Quedan ligados a tu cuenta de médico, no al consultorio.</div>
+       {credMsg&&<div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:credMsg.includes("✓")?"#E6F6EE":"#FDF4E6",fontSize:12,color:credMsg.includes("✓")?"#166534":"#7A5A16"}}>{credMsg}</div>}
+       {!credSaved&&<div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:"#FDEEEE",fontSize:12,color:"#B3261E",fontWeight:600}}>Sin cédula registrada: no podrás prescribir ni firmar hasta completar este bloque.</div>}
+       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <div><label htmlFor="cred-name" style={lbl}>Nombre completo del médico</label><input id="cred-name" value={credForm.fullName} onChange={e=>setCredForm(f=>({...f,fullName:e.target.value}))} placeholder="Como aparece en la cédula" style={selSty}/></div>
+        <div><label htmlFor="cred-cedula" style={lbl}>Cédula profesional</label><input id="cred-cedula" value={credForm.cedulaProfesional} onChange={e=>setCredForm(f=>({...f,cedulaProfesional:e.target.value}))} placeholder="7 u 8 dígitos" inputMode="numeric" style={selSty}/></div>
+        <div><label htmlFor="cred-inst" style={lbl}>Institución que expidió el título</label><input id="cred-inst" value={credForm.institution} onChange={e=>setCredForm(f=>({...f,institution:e.target.value}))} placeholder="Ej. UNAM — Facultad de Medicina" style={selSty}/></div>
+        <div><label htmlFor="cred-esp" style={lbl}>Especialidad (opcional)</label><input id="cred-esp" value={credForm.specialty} onChange={e=>setCredForm(f=>({...f,specialty:e.target.value}))} placeholder="Ej. Medicina interna" style={selSty}/></div>
+        <div><label htmlFor="cred-cedesp" style={lbl}>Cédula de especialidad (opcional)</label><input id="cred-cedesp" value={credForm.cedulaEspecialidad} onChange={e=>setCredForm(f=>({...f,cedulaEspecialidad:e.target.value}))} placeholder="7 u 8 dígitos" inputMode="numeric" style={selSty}/></div>
+       </div>
+       <div style={{display:"flex",gap:8,marginTop:10,justifyContent:"flex-end"}}>
+        <button onClick={()=>void saveCredentials()} disabled={credBusy||!credValid} style={{border:`1px solid ${P.purple}`,background:P.purple,color:P.white,borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:12,cursor:credBusy||!credValid?"default":"pointer",opacity:credBusy||!credValid?.6:1,fontFamily:UI}}>{credBusy?"Guardando…":"Guardar identidad profesional"}</button>
+       </div>
       </div>
       <div style={{...card2,padding:18}}>{sec("M3 17l6-6 4 4 8-8","Firma y sello")}
        {profMsg&&<div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:profMsg.includes("✓")?"#E6F6EE":"#FDF4E6",fontSize:12,color:profMsg.includes("✓")?"#166534":"#7A5A16"}}>{profMsg}</div>}
@@ -4112,7 +4196,7 @@ export default function Workspace(){
   })()}
   {/* SEGUIMIENTO AUTOMÁTICO (panel 5) — Zero-Lost-Follow-Up desde timeline + care-gaps */}
   <section style={card}>
-   <div><h2 style={{fontSize:18,margin:0}}>Seguimiento automático</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Nada se pierde. Todo se coordina. Obligaciones e interconsultas con owner y cierre.</p></div>
+   <div><h2 style={{fontSize:18,margin:0}}>Seguimiento automático</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Nada se pierde. Todo se coordina. Obligaciones e interconsultas con owner y cierre.</p></div>
    {(()=>{
     const fromTl=(tl??[]).filter(t=>FOLLOW_TYPES.has(t.aggregateType)).map(t=>({label:TYPE_LABEL[t.aggregateType]??t.aggregateType,kind:t.latestKind,at:t.lastAt,status:followState(t.latestKind),type:t.aggregateType}));
     const fromGaps=(gaps??[]).map(g=>({label:g.label,kind:g.priority,at:"",status:"pend" as const,type:g.aggregateType}));
@@ -4136,7 +4220,7 @@ export default function Workspace(){
 
   {/* SEGURIDAD Y AUDITORÍA (panel 7) — estado del sistema + actividad desde la cadena de auditoría */}
   <section className="span2" style={card}>
-   <div><h2 style={{fontSize:18,margin:0}}>Seguridad y auditoría</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Confianza por diseño. Cada acción clínica queda registrada.</p></div>
+   <div><h2 style={{fontSize:18,margin:0}}>Seguridad y auditoría</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Confianza por diseño. Cada acción clínica queda registrada.</p></div>
    <div className="mos-rx-grid">
     <div style={{background:"linear-gradient(160deg,#0C2148,#15346B)",borderRadius:14,padding:"16px 18px",color:"#EAF0FA"}}>
      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><span style={{width:22,height:22,borderRadius:"50%",background:"#1A7F43",display:"grid",placeItems:"center",fontSize:13}}>✓</span><b style={{fontSize:14}}>Estado del sistema</b></div>
@@ -4156,7 +4240,7 @@ export default function Workspace(){
 
   {/* PORTAL DEL PACIENTE (panel 6) — vista previa (solo lectura) del app del paciente, desde datos reales */}
   <section style={card}>
-   <div><h2 style={{fontSize:18,margin:0}}>Portal del paciente</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Informado. Involucrado. Vista previa (solo lectura) de lo que ve el paciente en su app.</p></div>
+   <div><h2 style={{fontSize:18,margin:0}}>Portal del paciente</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Informado. Involucrado. Vista previa (solo lectura) de lo que ve el paciente en su app.</p></div>
    {(()=>{
     const t=tl??[];
     const appts=t.filter(x=>x.aggregateType==="Appointment");
@@ -4209,7 +4293,7 @@ export default function Workspace(){
     <h2 style={{fontSize:18,margin:0}}>Panel del clínico</h2>
     <button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={loadPanel}>{busy==="panel"?"Cargando…":"Cargar worklist"}</button>
    </div>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Pendientes clínicos accionables de TODO el panel (todos los pacientes del tenant), priorizados. Inteligencia por reglas, sin IA.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Pendientes clínicos accionables de TODO el panel (todos los pacientes del tenant), priorizados. Inteligencia por reglas, sin IA.</p>
    {panel&&<div style={{marginTop:12}}>
     {panel.gaps.length===0?<div style={{padding:"10px 14px",borderRadius:12,background:"#f4faf6",border:"1px solid #d6ecdd",fontSize:13,color:"#1a7f43"}}>✓ Sin pendientes accionables en el panel.</div>
      :<div><div style={{fontSize:12,color:"#6d6e80",marginBottom:8}}>{panel.gaps.length} pendientes · {panel.patientCount} pacientes</div>
@@ -4223,7 +4307,7 @@ export default function Workspace(){
   {/* PACIENTE (registro / selección) */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Paciente</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Registra un paciente o selecciónalo de la lista. El chart de abajo es del paciente activo.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Registra un paciente o selecciónalo de la lista. El chart de abajo es del paciente activo.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 160px 150px auto",gap:10,marginTop:12,alignItems:"center"}}>
     <input style={input} value={regName} onChange={e=>setRegName(e.target.value)} placeholder="Nombre completo" />
     <input style={input} type="date" value={regDob} onChange={e=>setRegDob(e.target.value)} />
@@ -4244,7 +4328,7 @@ export default function Workspace(){
     {patientTotal!==null&&patientList&&<span style={{fontSize:12,color:"#6b6c7e"}}>{patientMore?`Mostrando ${patientList.length} de ${patientTotal} pacientes — escriba para acotar la búsqueda`:`${patientList.length} de ${patientTotal} pacientes`}</span>}
    </div>
    {patientList&&<div style={{marginTop:12,display:"flex",flexDirection:"column",gap:6,maxHeight:220,overflowY:"auto"}}>
-    {patientList.length===0?<p style={{color:"#8a8b9a",fontSize:13}}>No hay pacientes registrados en este tenant.</p>
+    {patientList.length===0?<p style={{color:P.muted,fontSize:13}}>No hay pacientes registrados en este tenant.</p>
      :patientList.map(p=><div key={p.patientId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",border:"1px solid #eceafb",borderRadius:10,background:p.patientId===patientId?"#f4f3fb":"white"}}>
       <div><b style={{fontSize:14}}>{p.name}</b> <span style={stateBadge(p.status==="ACTIVE"?"ACTIVE":p.status==="INACTIVE"?"INACTIVE":"CANCELLED")}>{p.status}</span></div>
       <button style={{...ghost,padding:"6px 12px"}} onClick={()=>selectPatientRaw(p.patientId,p.name)}>{p.patientId===patientId?"Activo":"Seleccionar"}</button>
@@ -4261,13 +4345,13 @@ export default function Workspace(){
      <button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={loadTimeline}>{busy==="tl"?"Cargando…":"Actualizar"}</button>
     </div>
    </div>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Vista longitudinal de los items clínicos de este paciente (metadatos, sin contenido).</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Vista longitudinal de los items clínicos de este paciente (metadatos, sin contenido).</p>
    {exportInfo&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:12,background:"#f4f3fb",border:"1px solid #e0ddf3",fontSize:12}}>
     <b style={{color:"#3f3aa0"}}>Expediente exportado (JSON de eventos; no es el formato de intercambio NOM-024)</b> · {exportInfo.aggregateCount} agregados · {exportInfo.eventCount} eventos<br/>
     <span style={{color:"#6d6e80"}}>hash reproducible del contenido: </span><span style={mono}>{exportInfo.contentHash}</span>
    </div>}
-   {tl===null?<p style={{color:"#8a8b9a",fontSize:13,marginTop:12}}>Pulsa “Actualizar” para cargar el historial de este paciente.</p>
-    :tl.length===0?<p style={{color:"#8a8b9a",fontSize:13,marginTop:12}}>Sin items registrados para este paciente todavía.</p>
+   {tl===null?<p style={{color:P.muted,fontSize:13,marginTop:12}}>Pulsa “Actualizar” para cargar el historial de este paciente.</p>
+    :tl.length===0?<p style={{color:P.muted,fontSize:13,marginTop:12}}>Sin items registrados para este paciente todavía.</p>
     :<div>
      {(()=>{const s=summarizePatient(tl);const stat=(n:number,l:string,warn=false)=>(<div style={{flex:"1 1 90px",minWidth:90,textAlign:"center",padding:"10px 8px",borderRadius:12,background:warn&&n>0?"#fff4e5":"#f6f6fb",border:"1px solid #eceafb"}}><div style={{fontSize:22,fontWeight:800,color:warn&&n>0?"#a15c00":"#3f3aa0"}}>{n}</div><div style={{fontSize:11,color:"#6d6e80"}}>{l}</div></div>);
       return <div style={{display:"flex",gap:10,marginTop:14,flexWrap:"wrap"}}>{stat(s.activeAllergies,"Alergias activas",true)}{stat(s.activeProblems,"Problemas activos")}{stat(s.signedEncounters,"Encuentros firmados")}{stat(s.activeMedications,"Medicación activa")}{stat(s.openResults,"Resultados abiertos",true)}{stat(s.openOrders,"Órdenes pendientes")}{stat(s.openObligations,"Obligaciones abiertas",true)}{stat(s.openReferrals,"Interconsultas abiertas")}{stat(s.upcomingAppointments,"Citas próximas")}{stat(s.pendingImmunizations,"Vacunas pendientes",true)}{stat(s.activeCarePlans,"Metas activas")}{stat(s.openClaims,"Facturas abiertas")}{stat(s.grantedConsents,"Consentimientos vigentes")}{stat(s.activeAdmissions,"Internamientos activos",true)}</div>;})()}
@@ -4282,7 +4366,7 @@ export default function Workspace(){
      <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:8}}>
      {tl.map(x=><div key={x.aggregateId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",border:"1px solid #eceafb",borderRadius:10}}>
       <div><b style={{fontSize:14}}>{TYPE_LABEL[x.aggregateType]??x.aggregateType}</b> <span style={{...mono,marginLeft:6}}>{x.aggregateId.slice(0,8)}</span></div>
-      <div style={{display:"flex",gap:10,alignItems:"center"}}><span style={stateBadge(x.latestKind)}>{x.latestKind}</span><span style={{fontSize:12,color:"#8a8b9a"}}>v{x.version}</span></div>
+      <div style={{display:"flex",gap:10,alignItems:"center"}}><span style={stateBadge(x.latestKind)}>{x.latestKind}</span><span style={{fontSize:12,color:P.muted}}>v{x.version}</span></div>
      </div>)}
     </div></div>}
   </section>
@@ -4315,10 +4399,13 @@ export default function Workspace(){
   {/* MEDICACIÓN */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Medicación</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Proponer una medicación no exige ser médico; sólo un médico puede prescribirla (Physician Control).</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Proponer una medicación no exige ser médico; sólo un médico puede prescribirla (Physician Control).</p>
    <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 90px 1fr",gap:10,marginTop:12}}>
     <input style={input} value={drug} onChange={e=>setDrug(e.target.value)} placeholder="Fármaco (ej. Amoxicilina)" />
-    <input style={input} value={dose} onChange={e=>setDose(e.target.value)} placeholder="Dosis (500mg)" />
+    <div style={{display:"flex",gap:6}}>
+     <input style={{...input,flex:1,minWidth:0}} type="number" inputMode="decimal" min={0} step="any" value={doseAmt} onChange={e=>setDoseAmt(e.target.value)} placeholder="Dosis (500mg)" aria-label="Cantidad de la dosis" />
+     <select style={{...input,width:86}} value={doseUnit} onChange={e=>setDoseUnit(e.target.value)} aria-label="Unidad de la dosis">{DOSE_UNITS.map(u=><option key={u} value={u}>{u}</option>)}</select>
+    </div>
     <input style={input} value={route} onChange={e=>setRoute(e.target.value)} placeholder="Vía" />
     <input style={input} value={freq} onChange={e=>setFreq(e.target.value)} placeholder="Frecuencia (c/8h)" />
    </div>
@@ -4326,24 +4413,29 @@ export default function Workspace(){
 
    {meds.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {meds.map(m=>{const n=medNext(m);return <div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{m.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{m.version}</div></div>
+     <div><b style={{fontSize:14}}>{m.label}</b><div style={{fontSize:12,color:P.muted}}>v{m.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(m.state)}>{m.state}</span>
+      {(m.state==="PRESCRIBED"||m.state==="ACTIVE")&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>printPrescription([m.id])} title="Receta con los datos legales (cédula, institución, domicilio)">Imprimir receta</button>}
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceMed(m)}>{busy==="med-"+m.id?"…":n.label}</button>}
      </div>
     </div>;})}
+    {meds.filter(m=>m.state==="PRESCRIBED"||m.state==="ACTIVE").length>1&&<div style={{display:"flex",justifyContent:"flex-end"}}><button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>printPrescription(meds.filter(m=>m.state==="PRESCRIBED"||m.state==="ACTIVE").map(m=>m.id))}>Imprimir receta con todas las prescritas</button></div>}
    </div>}
   </section>
 
   {/* PRESCRIPCIÓN SEGURA (panel 3) — dry-run de las barreras antes de prescribir */}
   <section className="span2" style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
-    <div><h2 style={{fontSize:18,margin:0}}>Prescripción segura</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Verifica antes de prescribir. Previene errores, protege al paciente. Determinista, sin IA generativa.</p></div>
+    <div><h2 style={{fontSize:18,margin:0}}>Prescripción segura</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Verifica antes de prescribir. Previene errores, protege al paciente. Determinista, sin IA generativa.</p></div>
     {snap?.labs.egfr!==undefined&&<span style={{fontSize:12,color:P.muted}}>eGFR paciente: <b>{snap?.labs.egfr} mL/min</b>{snap?.labs.egfrStage?` · categoría ${snap.labs.egfrStage} (una creatinina: no confirma ERC)`:""}</span>}
    </div>
    <div className="mos-rx-form">
     <input style={input} value={rxDrug} onChange={e=>{setRxDrug(e.target.value);setRxCheck(null);}} placeholder="Buscar medicamento (ej. metformina, losartan)" />
-    <input style={input} value={rxDose} onChange={e=>{setRxDose(e.target.value);setRxCheck(null);}} placeholder="Dosis (500mg)" />
+    <div style={{display:"flex",gap:6}}>
+     <input style={{...input,flex:1,minWidth:0}} type="number" inputMode="decimal" min={0} step="any" value={rxDoseAmt} onChange={e=>{setRxDoseAmt(e.target.value);setRxCheck(null);}} placeholder="Dosis" aria-label="Cantidad de la dosis" />
+     <select style={{...input,width:86}} value={rxDoseUnit} onChange={e=>{setRxDoseUnit(e.target.value);setRxCheck(null);}} aria-label="Unidad de la dosis">{DOSE_UNITS.map(u=><option key={u} value={u}>{u}</option>)}</select>
+    </div>
     <select style={input} value={rxRoute} onChange={e=>{setRxRoute(e.target.value);setRxCheck(null);}}><option>Oral</option><option>IV</option><option>IM</option><option>SC</option><option>Tópica</option></select>
     <input style={input} value={rxFreq} onChange={e=>{setRxFreq(e.target.value);setRxCheck(null);}} placeholder="Frecuencia (c/12h)" />
     <button style={btn} disabled={busy!==""||!rxDrug||!rxDose||!rxFreq} onClick={verifyRx}>{busy==="rxcheck"?"Verificando…":"Verificar"}</button>
@@ -4351,7 +4443,8 @@ export default function Workspace(){
    {rxMsg&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:12,background:"#EAF7EF",border:"1px solid #CDEBD8",color:"#1A7F43",fontSize:13,fontWeight:600}}>{rxMsg}</div>}
    {rxCheck&&(()=>{
     const v=rxCheck.verdict;
-    const vm=v==="OK"?{bg:"#EAF7EF",bd:"#CDEBD8",fg:"#1A7F43",txt:(rxCheck.notCovered?.length??0)>0?"Sin conflictos en lo evaluado — hay barreras sin regla en el catálogo (en gris)":"Verificación superada — todas las barreras evaluadas"}:v==="WARN"?{bg:"#FFF7EC",bd:"#F0DBB8",fg:"#A15C00",txt:rxCheck.requiresAcknowledgement?"Verificación INCOMPLETA — hay barreras que no se pudieron evaluar; al prescribir deberás confirmarlo":"Requiere criterio clínico — revisa las advertencias"}:{bg:"#FDEEEE",bd:"#F3C9C9",fg:"#B3261E",txt:"Prescripción bloqueada — corrige antes de enviar"};
+    const vm=v==="OK"?{bg:"#EAF7EF",bd:"#CDEBD8",fg:"#1A7F43",txt:(rxCheck.notCovered?.length??0)>0?"Sin conflictos en lo evaluado — hay barreras sin regla en el catálogo (en gris)":"Verificación superada — todas las barreras evaluadas"}:v==="WARN"?{bg:"#FFF7EC",bd:"#F0DBB8",fg:"#A15C00",txt:rxCheck.requiresAcknowledgement?"Verificación INCOMPLETA — hay barreras que no se pudieron evaluar; al prescribir deberás confirmarlo":"Requiere criterio clínico — revisa las advertencias"}:{bg:"#FDEEEE",bd:"#F3C9C9",fg:"#B3261E",txt:(rxCheck.blockedHard?.length??0)>0?"Prescripción bloqueada — no anulable: corrige la dosis o la orden":"Prescripción bloqueada — solo anulable al prescribir, con justificación clínica que queda en el expediente"};
+    const hardBlock=(rxCheck.blockedHard?.length??0)>0;
     const unev=(s:string)=>s==="NOT_EVALUATED"||s==="NOT_COVERED"||s==="NA";
     const ic=(s:string)=>s==="OK"?"✓":s==="WARN"?"⚠":s==="NA"?"–":unev(s)?"?":"✕";const icc=(s:string)=>s==="OK"?"#1A7F43":s==="WARN"?"#A15C00":unev(s)?"#5F6B7A":"#B3261E";
     return <div style={{marginTop:14}}>
@@ -4364,7 +4457,7 @@ export default function Workspace(){
        <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Barreras de seguridad</div>
        <div style={{display:"flex",flexDirection:"column",gap:7}}>{rxCheck.checks.map(c=><div key={c.id} style={{display:"flex",gap:9,alignItems:"flex-start",fontSize:13}}>
         <span style={{color:icc(c.status),fontWeight:800,flex:"0 0 auto",width:14}}>{ic(c.status)}</span>
-        <span><b style={{fontWeight:600}}>{c.label}</b><span style={{color:P.muted}}> — {c.detail}</span></span>
+        <span><b style={{fontWeight:600}}>{c.label}</b><span style={{color:P.muted}}> — {c.detail}</span>{c.status==="BLOCK"&&<span style={{marginLeft:6,fontSize:11,fontWeight:700,color:c.overridable?"#A15C00":"#B3261E"}}>{c.overridable?"anulable con justificación":"no anulable"}</span>}</span>
        </div>)}</div>
       </div>
       <div>
@@ -4375,7 +4468,7 @@ export default function Workspace(){
      </div>
      <div style={{display:"flex",gap:10,marginTop:16,justifyContent:"flex-end"}}>
       <button style={{...ghost,padding:"9px 16px"}} onClick={()=>setRxCheck(null)}>Cancelar</button>
-      <button style={{...btn,opacity:v==="BLOCK"?.5:1}} disabled={busy!==""||v==="BLOCK"} onClick={sendRx} title={v==="BLOCK"?"Corrige los bloqueos para enviar":""}>{busy==="rxsend"?"Enviando…":"Guardar y enviar"}</button>
+      <button style={{...btn,opacity:hardBlock?.5:1}} disabled={busy!==""||hardBlock} onClick={sendRx} title={hardBlock?"Bloqueo no anulable: corrige la dosis o la orden":v==="BLOCK"?"Se registra como propuesta; al prescribir deberás anular el bloqueo con justificación":""}>{busy==="rxsend"?"Enviando…":v==="BLOCK"?"Guardar (anular al prescribir)":"Guardar y enviar"}</button>
      </div>
     </div>;
    })()}
@@ -4384,7 +4477,7 @@ export default function Workspace(){
   {/* RESULTADOS DIAGNÓSTICOS */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Resultados diagnósticos</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Closed-loop: un resultado <b>crítico</b> que requirió acción y no se ha cerrado <b>bloquea la firma</b> del encuentro (Zero Lost Follow-Up).</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Closed-loop: un resultado <b>crítico</b> que requirió acción y no se ha cerrado <b>bloquea la firma</b> del encuentro (Zero Lost Follow-Up).</p>
    <div style={{display:"flex",gap:10,marginTop:12,alignItems:"center",flexWrap:"wrap"}}>
     <select aria-label="Analito" style={{...input,maxWidth:200}} value={resQuick.analyte} onChange={e=>setResQuick({analyte:e.target.value,value:"",unit:canonicalUnitOf(e.target.value)??""})}>{labReferenceRanges().map(a=><option key={a.analyte} value={a.analyte}>{a.analyte}</option>)}</select>
     <input aria-label="Valor" inputMode="decimal" style={{...input,maxWidth:120}} value={resQuick.value} onChange={e=>setResQuick({...resQuick,value:e.target.value})} placeholder="Valor" />
@@ -4394,7 +4487,7 @@ export default function Workspace(){
    </div>
    {results.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {results.map(res=>{const n=resNext(res);return <div key={res.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{res.label}{res.critical&&<span style={{...stateBadge("ACTIONED"),marginLeft:8,fontSize:11}}>CRÍTICO</span>}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{res.version}</div></div>
+     <div><b style={{fontSize:14}}>{res.label}{res.critical&&<span style={{...stateBadge("ACTIONED"),marginLeft:8,fontSize:11}}>CRÍTICO</span>}</b><div style={{fontSize:12,color:P.muted}}>v{res.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(res.state)}>{res.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceResult(res)}>{busy==="res-"+res.id?"…":n.label}</button>}
@@ -4405,13 +4498,13 @@ export default function Workspace(){
 
   {/* EVOLUCIÓN LONGITUDINAL (panel 4) */}
   <section className="span2" style={card}>
-   <div><h2 style={{fontSize:18,margin:0}}>Evolución longitudinal</h2><p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Tendencias que cuentan la historia completa. Valores medidos, sin proyección.</p></div>
+   <div><h2 style={{fontSize:18,margin:0}}>Evolución longitudinal</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Tendencias que cuentan la historia completa. Valores medidos, sin proyección.</p></div>
    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:12}}>
     {(["HBA1C","GLUCOSE","LDL","CREATININE"] as TrendKey[]).map(k=><button key={k} onClick={()=>setTrendKey(k)} style={{background:trendKey===k?"#E7EEFB":"transparent",color:trendKey===k?P.blue:P.muted,border:`1px solid ${trendKey===k?"#CFE0F7":LINE}`,borderRadius:999,padding:"6px 14px",fontSize:13,fontWeight:trendKey===k?700:500,fontFamily:UI,cursor:"pointer"}}>{CHART[k].label}</button>)}
    </div>
    <div style={{marginTop:14,border:`1px solid ${LINE}`,borderRadius:14,padding:"14px 16px",background:"#fff"}}>
     <div style={{fontSize:13,fontWeight:700,marginBottom:6}}>{CHART[trendKey].label} <span style={{color:P.muted,fontWeight:500}}>({CHART[trendKey].unit})</span></div>
-    {trends?trendChart(trends.series[trendKey]??[],trendKey):<div style={{padding:"28px 0",textAlign:"center",color:"#8a8b9a",fontSize:13}}>Selecciona un paciente para ver sus tendencias.</div>}
+    {trends?trendChart(trends.series[trendKey]??[],trendKey):<div style={{padding:"28px 0",textAlign:"center",color:P.muted,fontSize:13}}>Selecciona un paciente para ver sus tendencias.</div>}
    </div>
    {trends&&(()=>{
     const rc=(label:string,v:number|null,unit:string,warn:boolean)=>(<div style={{minWidth:0,background:"#fff",border:`1px solid ${warn?"#F0DBB8":LINE}`,borderRadius:14,padding:"14px 16px"}}><div style={{fontSize:12,color:P.muted,marginBottom:4}}>{label}</div><div style={{fontSize:22,fontWeight:800,color:warn?"#A15C00":P.ink}}>{v??"—"} <span style={{fontSize:12,fontWeight:600,color:P.muted}}>{v!==null?unit:""}</span></div></div>);
@@ -4429,7 +4522,7 @@ export default function Workspace(){
   {/* ALERGIAS */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Alergias</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Una alergia <b>activa</b> bloquea la prescripción de un fármaco que la contenga (gate de seguridad).</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Una alergia <b>activa</b> bloquea la prescripción de un fármaco que la contenga (gate de seguridad).</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 150px 1fr",gap:10,marginTop:12}}>
     <input style={input} value={alSub} onChange={e=>setAlSub(e.target.value)} placeholder="Sustancia (ej. amoxicilina)" />
     <select style={input} value={alSev} onChange={e=>setAlSev(e.target.value)}><option value="MILD">Leve</option><option value="MODERATE">Moderada</option><option value="SEVERE">Grave</option></select>
@@ -4438,7 +4531,7 @@ export default function Workspace(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!alSub} onClick={createAllergy}>{busy==="al-new"?"Registrando…":"Registrar alergia"}</button></div>
    {allergies.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {allergies.map(a=><div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{a.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{a.version}</div></div>
+     <div><b style={{fontSize:14}}>{a.label}</b><div style={{fontSize:12,color:P.muted}}>v{a.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={stateBadge(a.state)}>{a.state}</span>{alActions(a).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>doAllergyAction(a,act)}>{busy==="al-"+a.id?"…":act.label}</button>)}</div>
     </div>)}
    </div>}
@@ -4447,7 +4540,7 @@ export default function Workspace(){
   {/* LISTA DE PROBLEMAS */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Lista de problemas</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Diagnósticos codificados en <b>CIE-10</b> (validados contra el catálogo; la descripción es canónica). PROD-011 + interoperabilidad NOM-024.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Diagnósticos codificados en <b>CIE-10</b> (validados contra el catálogo; la descripción es canónica). PROD-011 + interoperabilidad NOM-024.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginTop:12}}>
     <input style={input} list="icd10-list" value={probCode} onChange={e=>setProbCode(e.target.value.toUpperCase())} placeholder="Código CIE-10 (ej. E11, I10, J45.9)" />
     <button style={btn} disabled={busy!==""||!probCode} onClick={createProblem}>{busy==="pb-new"?"Añadiendo…":"Añadir problema"}</button>
@@ -4459,7 +4552,7 @@ export default function Workspace(){
    </datalist>
    {problems.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {problems.map(p=><div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{p.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{p.version}</div></div>
+     <div><b style={{fontSize:14}}>{p.label}</b><div style={{fontSize:12,color:P.muted}}>v{p.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={stateBadge(p.state)}>{p.state}</span>{probActions(p).map(a=><button key={a.label} style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>doProblemAction(p,a)}>{busy==="pb-"+p.id?"…":a.label}</button>)}</div>
     </div>)}
    </div>}
@@ -4468,7 +4561,7 @@ export default function Workspace(){
   {/* ÓRDENES CLÍNICAS */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Órdenes clínicas</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Lab, imagen, patología, procedimiento o referencia. Colocar/cumplir una orden exige médico.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Lab, imagen, patología, procedimiento o referencia. Colocar/cumplir una orden exige médico.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
     <select style={input} value={orderType} onChange={e=>setOrderType(e.target.value)}>
      <option value="LAB">Laboratorio</option><option value="IMAGING">Imagen</option><option value="PATHOLOGY">Patología</option><option value="PROCEDURE">Procedimiento</option><option value="REFERRAL">Referencia</option>
@@ -4478,7 +4571,7 @@ export default function Workspace(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!orderDetail} onClick={createOrder}>{busy==="ord-new"?"Creando…":"Crear orden"}</button></div>
    {orders.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {orders.map(o=>{const n=orderNext(o);return <div key={o.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{o.version}</div></div>
+     <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:P.muted}}>v{o.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(o.state)}>{o.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceOrder(o)}>{busy==="ord-"+o.id?"…":n.label}</button>}
@@ -4490,7 +4583,7 @@ export default function Workspace(){
   {/* INTERCONSULTAS / REFERENCIAS */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Interconsultas</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Referencia a especialista: solicitar → aceptar → completar (o declinar/cancelar). Agregado propio con máquina de estados y aislamiento por tenant.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Referencia a especialista: solicitar → aceptar → completar (o declinar/cancelar). Agregado propio con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:10,marginTop:12}}>
     <input style={input} value={refSpecialty} onChange={e=>setRefSpecialty(e.target.value)} placeholder="Especialidad (ej. Cardiología)" />
     <input style={input} value={refReason} onChange={e=>setRefReason(e.target.value)} placeholder="Motivo (ej. Soplo sistólico)" />
@@ -4498,7 +4591,7 @@ export default function Workspace(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!refSpecialty||!refReason} onClick={createReferral}>{busy==="ref-new"?"Solicitando…":"Solicitar interconsulta"}</button></div>
    {referrals.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {referrals.map(rr=>{const n=referralNext(rr);const closable=rr.state==="REQUESTED"||rr.state==="ACCEPTED";return <div key={rr.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{rr.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{rr.version}</div></div>
+     <div><b style={{fontSize:14}}>{rr.label}</b><div style={{fontSize:12,color:P.muted}}>v{rr.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(rr.state)}>{rr.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceReferral(rr)}>{busy==="ref-"+rr.id?"…":n.label}</button>}
@@ -4511,7 +4604,7 @@ export default function Workspace(){
   {/* AGENDA / CITAS */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Agenda</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Cita del paciente: agendar → registrar llegada → completar (o no-show/cancelar). Agregado con máquina de estados y aislamiento por tenant.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cita del paciente: agendar → registrar llegada → completar (o no-show/cancelar). Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:10,marginTop:12}}>
     <input style={input} type="datetime-local" value={apptStart} onChange={e=>setApptStart(e.target.value)} />
     <input style={input} value={apptReason} onChange={e=>setApptReason(e.target.value)} placeholder="Motivo (ej. Control anual)" />
@@ -4521,7 +4614,7 @@ export default function Workspace(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!apptReason} onClick={createAppointment}>{busy==="apt-new"?"Agendando…":"Agendar cita"}</button></div>
    {appts.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {appts.map(a=>{const n=apptNext(a);const open=a.state==="SCHEDULED"||a.state==="CHECKED_IN";return <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{a.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{a.version}</div></div>
+     <div><b style={{fontSize:14}}>{a.label}</b><div style={{fontSize:12,color:P.muted}}>v{a.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(a.state)}>{a.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceAppt(a)}>{busy==="apt-"+a.id?"…":n.label}</button>}
@@ -4535,7 +4628,7 @@ export default function Workspace(){
   {/* VACUNAS / CARTILLA */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Vacunas</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Cartilla longitudinal: indicar → aplicar (o rechazar); tras aplicar puede registrarse un evento adverso (farmacovigilancia). Agregado con máquina de estados y aislamiento por tenant.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cartilla longitudinal: indicar → aplicar (o rechazar); tras aplicar puede registrarse un evento adverso (farmacovigilancia). Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",gap:10,marginTop:12}}>
     <input style={input} value={immCode} onChange={e=>setImmCode(e.target.value)} placeholder="Vacuna (ej. SRP, Hexavalente, Influenza)" />
     <input style={input} value={immDose} onChange={e=>setImmDose(e.target.value)} placeholder="Dosis" />
@@ -4543,7 +4636,7 @@ export default function Workspace(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!immCode} onClick={createImmunization}>{busy==="imm-new"?"Indicando…":"Indicar vacuna"}</button></div>
    {imms.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {imms.map(i=><div key={i.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{i.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{i.version}</div></div>
+     <div><b style={{fontSize:14}}>{i.label}</b><div style={{fontSize:12,color:P.muted}}>v{i.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(i.state)}>{i.state}</span>
       {immActions(i).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ADVERSE_EVENT"||act.to==="REFUSED"?{color:"#a15c00",borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doImmAction(i,act)}>{busy==="imm-"+i.id?"…":act.label}</button>)}
@@ -4555,7 +4648,7 @@ export default function Workspace(){
   {/* SIGNOS VITALES */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Signos vitales</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Observaciones append-only: el valor histórico nunca se sobrescribe; cada corrección es una enmienda con motivo. Se puede marcar una toma como capturada por error.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Observaciones append-only: el valor histórico nunca se sobrescribe; cada corrección es una enmienda con motivo. Se puede marcar una toma como capturada por error.</p>
    <div style={{display:"grid",gridTemplateColumns:"150px 1fr 120px",gap:10,marginTop:12}}>
     <select style={input} value={vitType} onChange={e=>setVitType(e.target.value)}>
      <option value="BP">Presión (BP)</option><option value="HR">Frec. cardíaca</option><option value="TEMP">Temperatura</option><option value="SPO2">SpO₂</option><option value="RESP">Frec. respiratoria</option><option value="WEIGHT">Peso</option><option value="HEIGHT">Talla</option>
@@ -4566,7 +4659,7 @@ export default function Workspace(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!vitValue} onClick={createVital}>{busy==="vit-new"?"Registrando…":"Registrar signo vital"}</button></div>
    {vitals.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {vitals.map(v=><div key={v.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{v.vitalType}: {v.value} {v.unit}</b>{v.vstatus&&v.vstatus!=="UNKNOWN"&&<span style={{...(v.vstatus==="CRITICAL"?{background:"#fdeaea",color:"#b3261e"}:v.vstatus==="ABNORMAL"?{background:"#fff4e5",color:"#a15c00"}:{background:"#e8f7ee",color:"#1a7f43"}),marginLeft:8,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{v.interp}</span>}<div style={{fontSize:12,color:"#8a8b9a"}}>v{v.version}</div></div>
+     <div><b style={{fontSize:14}}>{v.vitalType}: {v.value} {v.unit}</b>{v.vstatus&&v.vstatus!=="UNKNOWN"&&<span style={{...(v.vstatus==="CRITICAL"?{background:"#fdeaea",color:"#b3261e"}:v.vstatus==="ABNORMAL"?{background:"#fff4e5",color:"#a15c00"}:{background:"#e8f7ee",color:"#1a7f43"}),marginLeft:8,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{v.interp}</span>}<div style={{fontSize:12,color:P.muted}}>v{v.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(v.state)}>{v.state}</span>
       {vitActions(v).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ENTERED_IN_ERROR"?{color:"#a15c00",borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doVitAction(v,act)}>{busy==="vit-"+v.id?"…":act.label}</button>)}
@@ -4578,7 +4671,7 @@ export default function Workspace(){
   {/* PLAN DE CUIDADOS / METAS */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Plan de cuidados</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Metas longitudinales de crónicos: proponer → activar → lograr, con pausa/reanudación. Agregado con máquina de estados y aislamiento por tenant.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Metas longitudinales de crónicos: proponer → activar → lograr, con pausa/reanudación. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
     <select style={input} value={planCat} onChange={e=>setPlanCat(e.target.value)}>
      <option value="DIABETES">Diabetes</option><option value="HYPERTENSION">Hipertensión</option><option value="OBESITY">Obesidad</option><option value="CARDIOVASCULAR">Cardiovascular</option><option value="MENTAL_HEALTH">Salud mental</option><option value="PRENATAL">Prenatal</option><option value="OTHER">Otro</option>
@@ -4588,7 +4681,7 @@ export default function Workspace(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!planGoal} onClick={createPlan}>{busy==="cp-new"?"Proponiendo…":"Proponer meta"}</button></div>
    {plans.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {plans.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{c.version}</div></div>
+     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>v{c.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(c.state)}>{c.state}</span>
       {cpActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="CANCELLED"?{color:"#a15c00",borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doPlanAction(c,act)}>{busy==="cp-"+c.id?"…":act.label}</button>)}
@@ -4600,7 +4693,7 @@ export default function Workspace(){
   {/* FACTURACIÓN / RECLAMACIONES */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Facturación</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Ciclo de ingresos (seguimiento de estado, no mueve dinero): borrador → codificar → enviar → pagada/rechazada, con reenvío. Agregado con máquina de estados y aislamiento por tenant.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Ciclo de ingresos (seguimiento de estado, no mueve dinero): borrador → codificar → enviar → pagada/rechazada, con reenvío. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",gap:10,marginTop:12}}>
     <input style={input} value={clmAmount} onChange={e=>setClmAmount(e.target.value)} placeholder="Monto (ej. 1500.00)" />
     <select style={input} value={clmCurrency} onChange={e=>setClmCurrency(e.target.value)}><option value="MXN">MXN</option><option value="USD">USD</option></select>
@@ -4608,7 +4701,7 @@ export default function Workspace(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!clmAmount} onClick={createClaim}>{busy==="clm-new"?"Creando…":"Crear reclamación"}</button></div>
    {claims.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {claims.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{c.version}</div></div>
+     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>v{c.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(c.state)}>{c.state}</span>
       {clmActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="VOIDED"||act.to==="REJECTED"?{color:"#a15c00",borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doClaimAction(c,act)}>{busy==="clm-"+c.id?"…":act.label}</button>)}
@@ -4620,7 +4713,7 @@ export default function Workspace(){
   {/* CONSENTIMIENTO INFORMADO */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Consentimiento informado</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Registro clínico-legal (NOM-004 / aviso de privacidad): redactar → presentar → otorgar/rechazar; un consentimiento otorgado puede revocarse. Agregado con máquina de estados y aislamiento por tenant.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Registro clínico-legal (NOM-004 / aviso de privacidad): redactar → presentar → otorgar/rechazar; un consentimiento otorgado puede revocarse. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
     <select style={input} value={csType} onChange={e=>setCsType(e.target.value)}>
      <option value="PROCEDURE">Procedimiento</option><option value="TREATMENT">Tratamiento</option><option value="ANESTHESIA">Anestesia</option><option value="DATA_SHARING">Compartir datos</option><option value="RESEARCH">Investigación</option>
@@ -4630,7 +4723,7 @@ export default function Workspace(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!csRef} onClick={createConsent}>{busy==="cs-new"?"Redactando…":"Redactar consentimiento"}</button></div>
    {consents.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {consents.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{c.version}</div></div>
+     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>v{c.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(c.state)}>{c.state}</span>
       {csActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="DECLINED"||act.to==="REVOKED"?{color:"#a15c00",borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doConsentAction(c,act)}>{busy==="cs-"+c.id?"…":act.label}</button>)}
@@ -4642,7 +4735,7 @@ export default function Workspace(){
   {/* INTERNAMIENTO / HOSPITALIZACIÓN */}
   {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Internamiento</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Episodio de hospitalización: admitir → trasladar (unidad) → dar de alta; cancelable si fue admisión por error. Agregado con máquina de estados y aislamiento por tenant.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Episodio de hospitalización: admitir → trasladar (unidad) → dar de alta; cancelable si fue admisión por error. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"180px 1fr",gap:10,marginTop:12}}>
     <select style={input} value={admUnit} onChange={e=>setAdmUnit(e.target.value)}>
      <option value="ER">Urgencias</option><option value="WARD">Hospitalización</option><option value="ICU">UCI</option><option value="OR">Quirófano</option><option value="MATERNITY">Maternidad</option><option value="PEDIATRICS">Pediatría</option>
@@ -4652,7 +4745,7 @@ export default function Workspace(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!admReason} onClick={createAdmission}>{busy==="adm-new"?"Admitiendo…":"Admitir paciente"}</button></div>
    {adms.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {adms.map(a=><div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>Unidad: {a.unit}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{a.version}</div></div>
+     <div><b style={{fontSize:14}}>Unidad: {a.unit}</b><div style={{fontSize:12,color:P.muted}}>v{a.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(a.state)}>{a.state}</span>
       {admActions(a).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="CANCELLED"?{color:"#a15c00",borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doAdmAction(a,act)}>{busy==="adm-"+a.id?"…":act.label}</button>)}
@@ -4664,7 +4757,7 @@ export default function Workspace(){
   {/* MUESTRAS / CADENA DE CUSTODIA */}
   {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Muestras de laboratorio</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Cadena de custodia pre-analítica: recolectar → enviar → recibir → resultar; rechazable en cualquier etapa. Una muestra rechazada aparece como pendiente HIGH en care gaps.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cadena de custodia pre-analítica: recolectar → enviar → recibir → resultar; rechazable en cualquier etapa. Una muestra rechazada aparece como pendiente HIGH en care gaps.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
     <select style={input} value={specType} onChange={e=>setSpecType(e.target.value)}>
      <option value="BLOOD">Sangre</option><option value="URINE">Orina</option><option value="TISSUE">Tejido</option><option value="SWAB">Hisopado</option><option value="CSF">LCR</option><option value="STOOL">Heces</option>
@@ -4673,7 +4766,7 @@ export default function Workspace(){
    </div>
    {specs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {specs.map(s=>{const n=spNext(s);const open=s.state!=="RESULTED"&&s.state!=="REJECTED";return <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{s.specimenType}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{s.version}</div></div>
+     <div><b style={{fontSize:14}}>{s.specimenType}</b><div style={{fontSize:12,color:P.muted}}>v{s.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(s.state)}>{s.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceSpecimen(s)}>{busy==="sp-"+s.id?"…":n.label}</button>}
@@ -4686,7 +4779,7 @@ export default function Workspace(){
   {/* INCIDENTES / SEGURIDAD DEL PACIENTE */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Incidentes de seguridad</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Reporte de eventos adversos (farmacovigilancia): reportar → revisar → escalar/resolver. Un incidente abierto aparece como pendiente HIGH en care gaps. Aislamiento por tenant.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Reporte de eventos adversos (farmacovigilancia): reportar → revisar → escalar/resolver. Un incidente abierto aparece como pendiente HIGH en care gaps. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 150px 1fr",gap:10,marginTop:12}}>
     <select style={input} value={incCat} onChange={e=>setIncCat(e.target.value)}>
      <option value="MEDICATION_ERROR">Error de medicación</option><option value="FALL">Caída</option><option value="EQUIPMENT">Equipo</option><option value="ADVERSE_DRUG_REACTION">RAM</option><option value="INFECTION">Infección</option><option value="OTHER">Otro</option>
@@ -4697,7 +4790,7 @@ export default function Workspace(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!incDesc} onClick={createIncident}>{busy==="inc-new"?"Reportando…":"Reportar incidente"}</button></div>
    {incs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {incs.map(i=><div key={i.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div style={{minWidth:0}}><b style={{fontSize:14}}>{i.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{i.version}</div></div>
+     <div style={{minWidth:0}}><b style={{fontSize:14}}>{i.label}</b><div style={{fontSize:12,color:P.muted}}>v{i.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(i.state)}>{i.state}</span>
       {incActions(i).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ESCALATED"?{color:"#a15c00",borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doIncAction(i,act)}>{busy==="inc-"+i.id?"…":act.label}</button>)}
@@ -4709,14 +4802,14 @@ export default function Workspace(){
   {/* TRIAGE / CLASIFICACIÓN DE ACUIDAD */}
   {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Triage</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Clasificación de acuidad (urgencias): arribar → iniciar → clasificar ESI (re-evaluable) → cerrar, o LWBS. Un paciente sin triage completado es un pendiente HIGH en care gaps.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Clasificación de acuidad (urgencias): arribar → iniciar → clasificar ESI (re-evaluable) → cerrar, o LWBS. Un paciente sin triage completado es un pendiente HIGH en care gaps.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginTop:12}}>
     <input style={input} value={trComplaint} onChange={e=>setTrComplaint(e.target.value)} placeholder="Motivo de consulta (ej. Dolor torácico)" />
     <button style={btn} disabled={busy!==""||!trComplaint} onClick={createTriage}>{busy==="tr-new"?"Registrando…":"Registrar arribo"}</button>
    </div>
    {triages.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {triages.map(t=><div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div style={{minWidth:0}}><b style={{fontSize:14}}>{t.chiefComplaint}{t.acuity>0&&<span style={{...stateBadge(t.acuity<=2?"ESCALATED":"TRIAGED"),marginLeft:8,fontSize:11}}>ESI-{t.acuity}</span>}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{t.version}</div></div>
+     <div style={{minWidth:0}}><b style={{fontSize:14}}>{t.chiefComplaint}{t.acuity>0&&<span style={{...stateBadge(t.acuity<=2?"ESCALATED":"TRIAGED"),marginLeft:8,fontSize:11}}>ESI-{t.acuity}</span>}</b><div style={{fontSize:12,color:P.muted}}>v{t.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(t.state)}>{t.state}</span>
       {trActions(t).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="LWBS"?{color:"#a15c00",borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doTriageAction(t,act)}>{busy==="tr-"+t.id?"…":act.label}</button>)}
@@ -4728,7 +4821,7 @@ export default function Workspace(){
   {/* HERIDAS / LESIONES POR PRESIÓN */}
   {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Cuidado de heridas</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Lesión por presión (UPP) longitudinal: documentar estadio → re-valorar (append-only) → cicatrizar/escalar. Métrica de calidad. Aislamiento por tenant.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Lesión por presión (UPP) longitudinal: documentar estadio → re-valorar (append-only) → cicatrizar/escalar. Métrica de calidad. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"180px 180px auto",gap:10,marginTop:12}}>
     <select style={input} value={wnLoc} onChange={e=>setWnLoc(e.target.value)}>
      <option value="SACRUM">Sacro</option><option value="HEEL">Talón</option><option value="ISCHIUM">Isquion</option><option value="TROCHANTER">Trocánter</option><option value="OCCIPUT">Occipucio</option><option value="ELBOW">Codo</option><option value="OTHER">Otro</option>
@@ -4740,7 +4833,7 @@ export default function Workspace(){
    </div>
    {wounds.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {wounds.map(w=><div key={w.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div style={{minWidth:0}}><b style={{fontSize:14}}>{w.location} · {w.stage}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{w.version}</div></div>
+     <div style={{minWidth:0}}><b style={{fontSize:14}}>{w.location} · {w.stage}</b><div style={{fontSize:12,color:P.muted}}>v{w.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(w.state)}>{w.state}</span>
       {wnActions(w).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ESCALATED"?{color:"#a15c00",borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doWoundAction(w,act)}>{busy==="wn-"+w.id?"…":act.label}</button>)}
@@ -4752,7 +4845,7 @@ export default function Workspace(){
   {/* TRANSFUSIONES */}
   {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Transfusiones</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Medicina transfusional con verificación pre-transfusional: ordenar → cruzar (crossmatch) → iniciar → completar; una reacción se registra como pendiente HIGH (hemovigilancia). Aislamiento por tenant.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Medicina transfusional con verificación pre-transfusional: ordenar → cruzar (crossmatch) → iniciar → completar; una reacción se registra como pendiente HIGH (hemovigilancia). Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 120px auto",gap:10,marginTop:12}}>
     <select style={input} value={tfProduct} onChange={e=>setTfProduct(e.target.value)}>
      <option value="PRBC">Concentrado eritrocitario</option><option value="PLATELETS">Plaquetas</option><option value="FFP">Plasma fresco</option><option value="CRYO">Crioprecipitados</option><option value="WHOLE_BLOOD">Sangre total</option>
@@ -4762,7 +4855,7 @@ export default function Workspace(){
    </div>
    {transfs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {transfs.map(t=>{const n=tfNext(t);return <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div style={{minWidth:0}}><b style={{fontSize:14}}>{t.product} · {t.units} U</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{t.version}</div></div>
+     <div style={{minWidth:0}}><b style={{fontSize:14}}>{t.product} · {t.units} U</b><div style={{fontSize:12,color:P.muted}}>v{t.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(t.state)}>{t.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceTransfusion(t)}>{busy==="tf-"+t.id?"…":n.label}</button>}
@@ -4775,7 +4868,7 @@ export default function Workspace(){
   {/* CIRUGÍA / QUIRÓFANO */}
   {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Cirugía</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Caso quirúrgico con barrera de seguridad: agendar → time-out OMS (checklist) → iniciar → completar. No se puede iniciar sin el time-out. Aislamiento por tenant.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Caso quirúrgico con barrera de seguridad: agendar → time-out OMS (checklist) → iniciar → completar. No se puede iniciar sin el time-out. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 150px auto",gap:10,marginTop:12}}>
     <input style={input} value={sgProc} onChange={e=>setSgProc(e.target.value)} placeholder="Procedimiento (ej. Colecistectomía)" />
     <select style={input} value={sgLat} onChange={e=>setSgLat(e.target.value)}><option value="NA">Sin lateralidad</option><option value="LEFT">Izquierdo</option><option value="RIGHT">Derecho</option><option value="BILATERAL">Bilateral</option></select>
@@ -4783,7 +4876,7 @@ export default function Workspace(){
    </div>
    {surgs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {surgs.map(s=>{const n=sgNext(s);const open=s.state==="SCHEDULED"||s.state==="TIMED_OUT";return <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div style={{minWidth:0}}><b style={{fontSize:14}}>{s.procedure}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{s.version}</div></div>
+     <div style={{minWidth:0}}><b style={{fontSize:14}}>{s.procedure}</b><div style={{fontSize:12,color:P.muted}}>v{s.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(s.state)}>{s.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceSurgery(s)}>{busy==="sg-"+s.id?"…":n.label}</button>}
@@ -4796,7 +4889,7 @@ export default function Workspace(){
   {/* DIÁLISIS */}
   {hospitalOn&&<section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Diálisis</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Terapia de reemplazo renal: agendar → iniciar → completar; una interrupción por complicación se registra como pendiente HIGH y puede reanudarse. Aislamiento por tenant.</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Terapia de reemplazo renal: agendar → iniciar → completar; una interrupción por complicación se registra como pendiente HIGH y puede reanudarse. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 200px auto",gap:10,marginTop:12}}>
     <select style={input} value={dzMod} onChange={e=>setDzMod(e.target.value)}>
      <option value="HEMODIALYSIS">Hemodiálisis</option><option value="PERITONEAL">Peritoneal</option><option value="HEMOFILTRATION">Hemofiltración</option>
@@ -4808,7 +4901,7 @@ export default function Workspace(){
    </div>
    {dialz.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {dialz.map(d=><div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div style={{minWidth:0}}><b style={{fontSize:14}}>{d.modality}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{d.version}</div></div>
+     <div style={{minWidth:0}}><b style={{fontSize:14}}>{d.modality}</b><div style={{fontSize:12,color:P.muted}}>v{d.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(d.state)}>{d.state}</span>
       {dzActions(d).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="INTERRUPTED"||act.to==="NO_SHOW"?{color:"#a15c00",borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doDialysisAction(d,act)}>{busy==="dz-"+d.id?"…":act.label}</button>)}
@@ -4820,7 +4913,7 @@ export default function Workspace(){
   {/* DOCUMENTOS CLÍNICOS */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Documentos clínicos</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>La firma produce un snapshot reproducible e inmutable; toda corrección posterior es un addendum append-only (PROD-014-R022).</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>La firma produce un snapshot reproducible e inmutable; toda corrección posterior es un addendum append-only (PROD-014-R022).</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 200px",gap:10,marginTop:12}}>
     <input style={input} value={docTitle} onChange={e=>setDocTitle(e.target.value)} placeholder="Título (ej. Nota de evolución)" />
     <select style={input} value={docType} onChange={e=>setDocType(e.target.value)}>
@@ -4832,7 +4925,7 @@ export default function Workspace(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!docContent} onClick={createDoc}>{busy==="doc-new"?"Creando…":"Crear documento"}</button></div>
    {docs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {docs.map(d=>{const n=docNext(d);return <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{d.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{d.version}</div></div>
+     <div><b style={{fontSize:14}}>{d.label}</b><div style={{fontSize:12,color:P.muted}}>v{d.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(d.state)}>{d.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceDoc(d)}>{busy==="doc-"+d.id?"…":n.label}</button>}
@@ -4844,19 +4937,30 @@ export default function Workspace(){
   {/* OBLIGACIONES / SEGUIMIENTO */}
   <section style={card}>
    <h2 style={{fontSize:18,margin:0}}>Obligaciones de seguimiento</h2>
-   <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Care gaps / follow-up. Completar exige evidencia (Zero Lost Follow-Up: nada se cierra sin constancia).</p>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Care gaps / follow-up. Completar exige evidencia (Zero Lost Follow-Up: nada se cierra sin constancia).</p>
    <div style={{display:"flex",gap:10,marginTop:12,alignItems:"center"}}>
     <input style={{...input,maxWidth:420}} value={obKind} onChange={e=>setObKind(e.target.value)} placeholder="Tipo (ej. Contactar por resultado crítico)" />
     <button style={btn} disabled={busy!==""||!obKind} onClick={createObligation}>{busy==="ob-new"?"Creando…":"Crear obligación"}</button>
    </div>
    {obligations.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {obligations.map(o=>{const n=obNext(o);return <div key={o.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:"#8a8b9a"}}>v{o.version}</div></div>
+     <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:P.muted}}>v{o.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}><span style={stateBadge(o.state)}>{o.state}</span>{n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceObligation(o)}>{busy==="ob-"+o.id?"…":n.label}</button>}</div>
     </div>;})}
    </div>}
   </section>
 
+  {overrideMed&&<div className="span2" role="alertdialog" aria-labelledby="override-title" style={{...card,borderColor:"#F3C9C9",background:"#FDEEEE"}}>
+   <b id="override-title" style={{color:"#B3261E"}}>Bloqueo de seguridad — {overrideMed.med.label}</b>
+   <p style={{margin:"6px 0 0",color:"#7a3b34",wordBreak:"break-word"}}>{overrideMed.message}</p>
+   <ul style={{margin:"8px 0 0",paddingLeft:18,color:"#7a3b34",fontSize:13}}>{overrideMed.barriers.map(b=><li key={b}>Vas a anular: <b>{BARRIER_LABEL[b]??b}</b></li>)}</ul>
+   <label htmlFor="override-why" style={{display:"block",margin:"10px 0 4px",fontSize:12,fontWeight:700,color:"#7a3b34"}}>Justificación clínica de la anulación (queda en el expediente con tu identidad; mínimo 20 caracteres)</label>
+   <textarea id="override-why" value={overrideWhy} onChange={e=>setOverrideWhy(e.target.value)} rows={2} maxLength={1000} style={{...input,width:"100%",resize:"vertical"}} />
+   <div style={{display:"flex",gap:10,marginTop:10,justifyContent:"flex-end"}}>
+    <button style={{...ghost,padding:"9px 16px"}} onClick={()=>{setOverrideMed(null);setOverrideWhy("");}}>Cancelar</button>
+    <button style={{...btn,background:"#B3261E",opacity:overrideWhy.trim().length<20?.5:1}} disabled={busy!==""||overrideWhy.trim().length<20} onClick={confirmOverrideMed}>Anular el bloqueo bajo mi responsabilidad</button>
+   </div>
+  </div>}
   {ackMed&&<div className="span2" role="alertdialog" aria-labelledby="ack-title" style={{...card,borderColor:"#F0DBB8",background:"#FFF7EC"}}>
    <b id="ack-title" style={{color:"#8A4B00"}}>Verificación automática incompleta — {ackMed.med.label}</b>
    <p style={{margin:"6px 0 0",color:"#5A3A0A",wordBreak:"break-word"}}>{ackMed.message}</p>

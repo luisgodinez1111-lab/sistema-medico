@@ -2,6 +2,7 @@
 // una obligación de monitoreo (Zero-Lost-Follow-Up). Cross-vertical medicación→obligación. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-ba-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{derivedUuid}=await import("../../apps/web/lib/http-command");
@@ -22,7 +23,7 @@ async function propose(t:string,pat:string,drugCode:string,dose:string,frequency
 // prescribe con una idempotency-key CONOCIDA para poder derivar el id de la obligación auto-creada.
 async function prescribe(t:string,medId:string,key:string){return rx.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":key,"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,...ACK})}),MP(medId));}
 try{
- const phys=tok();const pat=crypto.randomUUID();
+ const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();
  // 1) warfarina -> al prescribir se crea la obligación MONITOR_INR (agg slot 0)
  const w=await propose(phys,pat,"warfarina-5","5mg","c/24h");
  const kW=idem();let r=await prescribe(phys,w,kW);ok(r.status===201,"WARFARIN_PRESCRIBED_201");

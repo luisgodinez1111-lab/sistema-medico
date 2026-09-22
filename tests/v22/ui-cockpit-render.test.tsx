@@ -20,7 +20,13 @@ vi.mock("../../apps/web/lib/session-client",()=>({
   if(init?.method==="POST")posted.push({path,body:init.body});
   if(path.includes("/api/v1/vitals"))return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
   if(path.includes("/api/v1/care-plans"))return{status:201,body:{version:1}};
-  if(path.includes("/api/v1/medications"))return{status:201,body:{version:1}}; // proponer/prescribir/activar/suspender (U-16)
+  // U-19: PRESCRIBE con bloqueo ANULABLE (alergia) -> 403 con qué se puede anular; con la anulación nombrada -> 201.
+  if(path.endsWith("/prescription")&&init?.method==="POST"){
+   const b=init.body as{overrideBarriers?:string[];overrideJustification?:string};
+   if(!b.overrideBarriers)return{status:403,body:{error:{code:"SAFETY_BLOCKED",message:"Cannot prescribe: Alergia activa a penicilina (clase) — anulable solo bajo responsabilidad del médico",details:{barriers:["allergy"],hard:[],overridable:["allergy"],missing:["allergy"]}}}};
+   return{status:201,body:{version:2}};
+  }
+  if(path.includes("/api/v1/medications"))return{status:201,body:{version:1}}; // proponer/activar/suspender (U-16)
   if(path.match(/\/api\/v1\/documents\/[^/]+$/))return{status:200,body:{documentId:"dc1",patientId:"p1",title:"Nota de evolución",docType:"PROGRESS_NOTE",typeLabel:"Nota médica",content:"Paciente estable. Continúa tratamiento.",state:"SIGNED",statusLabel:"Firmado",version:3,createdAt:"2026-09-17T00:00:00Z",addenda:[],signature:{authorId:"u1",contentHash:"a".repeat(64),signatureDigest:"b".repeat(64),signedAt:"2026-09-17T01:00:00Z"},attachments:[{attachmentId:"at1",filename:"laboratorio.pdf",mime:"application/pdf",size:23456,pathname:"tenants/t/documents/dc1/at1.pdf",contentHash:"c".repeat(64),authorId:"u1",attachedAt:"2026-09-17T02:00:00Z"}]}};
   if(path.includes("/api/v1/documents"))return{status:201,body:{version:1}};
   if(path.includes("/api/v1/referrals"))return{status:201,body:{version:1}};
@@ -48,7 +54,8 @@ vi.mock("../../apps/web/lib/session-client",()=>({
     {resultId:"r2",patientId:"p2",patientName:"Carlos Mendoza",analyte:"CREATININE",value:"0.9",critical:false,status:"NORMAL",interpretation:"Normal",tipo:"Laboratorio",estado:"En seguimiento",lifecycle:"ACTIONED",receivedAt:"2026-09-16T00:00:00Z"},
    ],total:2,abnormal:1,enSeguimiento:1,pendientes:1}};
   if(path.includes("/api/v1/reports"))return{status:200,body:{patientsAttended:248,income:124680,diagnosesTotal:159,topDiagnoses:[{code:"E11.9",description:"Diabetes mellitus tipo 2",count:42,pct:13},{code:"I10",description:"Hipertensión esencial",count:38,pct:12}],ordersTotal:24,ordersByType:[{type:"LAB",label:"Laboratorio",count:14,pct:58},{type:"IMAGING",label:"Imagenología",count:6,pct:25},{type:"PROCEDURE",label:"Procedimiento",count:4,pct:17}],topProcedures:[{detail:"Electrocardiograma",count:3,pct:75},{detail:"Curación simple",count:1,pct:25}],resultsTotal:37,immunizationsApplied:12,encountersTotal:221,encountersSigned:198,encountersByDay:[{date:"2026-09-01",count:12,pct:80},{date:"2026-09-02",count:15,pct:100}],prescriptionsTotal:64,topMedications:[{drugCode:"paracetamol",count:22,pct:34},{drugCode:"metformina",count:14,pct:22}],appointmentsTotal:120,appointmentsByType:[{type:"CONTROL",label:"Control",count:54,pct:45},{type:"PRIMERA_VEZ",label:"Primera vez",count:30,pct:25},{type:"VACUNACION",label:"Vacunación",count:20,pct:17}],qualityIndicators:[{key:"closed_records",label:"Expedientes cerrados (notas firmadas)",numerator:198,denominator:221,pct:90,target:90,direction:"higher",met:true,computable:true,note:""},{key:"attendance",label:"Asistencia efectiva",numerator:96,denominator:120,pct:80,target:80,direction:"higher",met:true,computable:true,note:""},{key:"no_show",label:"Inasistencia (no-show)",numerator:18,denominator:120,pct:15,target:10,direction:"lower",met:false,computable:true,note:""},{key:"glycemic_control",label:"HbA1c en control (<7%)",numerator:0,denominator:0,pct:0,target:70,direction:"higher",met:false,computable:false,note:""}]}};
-  if(path.includes("/api/v1/physician-profile"))return{status:200,body:{signature:null,stamp:null,version:0}};
+  if(path.includes("/api/v1/physician-profile/credentials"))return{status:201,body:{version:1}};
+  if(path.includes("/api/v1/physician-profile"))return{status:200,body:{signature:null,stamp:null,credentials:null,version:0}};
   if(path.includes("/api/v1/office-settings"))return{status:200,body:{settings:{officeName:"",specialty:"",rfc:"",cedula:"",address:"",phone:"",email:"",timezone:"",language:"es",color:"#6C5CF6",theme:"Claro",fontSize:"Normal",realtimeAlerts:true,followupReminders:true,showInteractions:true,darkMode:false,schedule:[{day:"Lunes",open:true,from:"08:00",to:"15:00"},{day:"Martes",open:true,from:"08:00",to:"15:00"},{day:"Miércoles",open:true,from:"08:00",to:"15:00"},{day:"Jueves",open:true,from:"08:00",to:"15:00"},{day:"Viernes",open:true,from:"08:00",to:"15:00"},{day:"Sábado",open:true,from:"08:00",to:"13:00"},{day:"Domingo",open:false,from:"",to:""}],modules:{Pacientes:true,Agenda:true,Consulta:true,Resultados:true,"Órdenes":true,Interconsultas:true,Seguimiento:true,"Facturación":true,Documentos:true,Obligaciones:true,"Clinical Intelligence":true,Reportes:true,"Biblioteca clínica":true},prefRecordView:"Resumen clínico",prefNoteTemplate:"Consulta general (SOAP)",prefUnits:"Métrico (kg, cm)",prefDoseCalc:"Pediátrica y adultos",regCountry:"México",regState:"",regCity:"",regPostalCode:"",regDateFormat:"dd/mm/aaaa",regTimeFormat:"24 horas",regCurrency:"MXN",regTaxRate:"16"},version:0}};
   if(path.includes("/api/v1/regulatory-obligations"))return{status:200,body:{
    items:[
@@ -364,17 +371,31 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.queryByText(/Cefalea del paciente A/)).toBeNull();
  });
  // Auditoría U-16: un motivo clínico lo escribe el médico; nada se envía con un literal del código.
- it("vista Expediente: suspender un medicamento exige el motivo del médico y lo envía tal cual",async()=>{
+ it("vista Expediente: la dosis viaja con unidad, un bloqueo anulable exige nombrar la barrera y justificar (U-19), y suspender exige el motivo del médico tal cual (U-16)",async()=>{
   render(<Workspace/>);
   await toExpediente();
   // proponer -> prescribir -> activar (mocks 201) para llegar a un medicamento ACTIVO
   const form=within((await screen.findByRole("button",{name:"Proponer medicación"})).closest("section")!);
   fireEvent.change(form.getByPlaceholderText(/Fármaco \(ej\./),{target:{value:"ibuprofeno-400"}});
-  fireEvent.change(form.getByPlaceholderText(/Dosis \(500mg\)/),{target:{value:"400mg"}});
+  fireEvent.change(form.getByPlaceholderText(/Dosis \(500mg\)/),{target:{value:"400"}}); // U-19: cantidad + unidad (mg por defecto)
   fireEvent.change(form.getByPlaceholderText("Vía"),{target:{value:"VO"}});
   fireEvent.change(form.getByPlaceholderText(/Frecuencia \(c\/8h\)/),{target:{value:"c/8h"}});
   fireEvent.click(form.getByRole("button",{name:"Proponer medicación"}));
+  const proposed=posted.filter(p=>p.path==="/api/v1/medications").at(-1)?.body as {dose?:string}|undefined;
+  expect(proposed?.dose).toBe("400 mg"); // la dosis viaja con unidad explícita
+  // U-19: el bloqueo anulable abre el diálogo de anulación; sin 20 caracteres no se puede; la anulación nombra la barrera
   fireEvent.click(await screen.findByRole("button",{name:"Prescribir"}));
+  const ov=within(await screen.findByRole("alertdialog",{name:/Bloqueo de seguridad/}));
+  expect(ov.getByText(/Vas a anular:/).textContent).toContain("Alergia documentada");
+  const anular=ov.getByRole("button",{name:/Anular el bloqueo/}) as HTMLButtonElement;
+  expect(anular.disabled).toBe(true);
+  fireEvent.change(ov.getByLabelText(/Justificación clínica de la anulación/),{target:{value:"corta"}});
+  expect((ov.getByRole("button",{name:/Anular el bloqueo/}) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(ov.getByLabelText(/Justificación clínica de la anulación/),{target:{value:"Desensibilización programada con alergología"}});
+  fireEvent.click(ov.getByRole("button",{name:/Anular el bloqueo/}));
+  await waitFor(()=>expect(screen.queryByRole("alertdialog",{name:/Bloqueo de seguridad/})).toBeNull());
+  const rxSent=posted.filter(p=>p.path.endsWith("/prescription")).at(-1)?.body as {overrideBarriers?:string[];overrideJustification?:string}|undefined;
+  expect(rxSent?.overrideBarriers).toEqual(["allergy"]);expect(rxSent?.overrideJustification).toBe("Desensibilización programada con alergología");
   fireEvent.click(await screen.findByRole("button",{name:"Activar"}));
   fireEvent.click(await screen.findByRole("button",{name:"Suspender"}));
   const dlg=within(await screen.findByRole("dialog",{name:/Motivo de la suspensión/}));
@@ -631,6 +652,22 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   const estado=await screen.findByPlaceholderText("Ej. Chihuahua") as HTMLInputElement;
   fireEvent.change(estado,{target:{value:"Sonora"}});
   expect(estado.value).toBe("Sonora");
+  // Auditoría L-05: identidad profesional del médico (cédula) en su perfil, con validación real y aviso honesto si falta
+  expect(screen.getByText("Identidad profesional")).toBeTruthy();
+  expect(screen.getByText(/Sin cédula registrada: no podrás prescribir ni firmar/)).toBeTruthy();
+  const credSave=screen.getByRole("button",{name:"Guardar identidad profesional"}) as HTMLButtonElement;
+  expect(credSave.disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText("Nombre completo del médico"),{target:{value:"Dra. Ana Pérez Ruiz"}});
+  fireEvent.change(screen.getByLabelText("Cédula profesional"),{target:{value:"12AB"}});
+  fireEvent.change(screen.getByLabelText("Institución que expidió el título"),{target:{value:"UNAM"}});
+  expect((screen.getByRole("button",{name:"Guardar identidad profesional"}) as HTMLButtonElement).disabled).toBe(true); // cédula inválida
+  fireEvent.change(screen.getByLabelText("Cédula profesional"),{target:{value:"7654321"}});
+  expect((screen.getByRole("button",{name:"Guardar identidad profesional"}) as HTMLButtonElement).disabled).toBe(false);
+  fireEvent.click(screen.getByRole("button",{name:"Guardar identidad profesional"}));
+  await waitFor(()=>expect(posted.some(p=>p.path==="/api/v1/physician-profile/credentials")).toBe(true));
+  const credSent=posted.filter(p=>p.path==="/api/v1/physician-profile/credentials").at(-1)?.body as {cedulaProfesional?:string;institution?:string}|undefined;
+  expect(credSent?.cedulaProfesional).toBe("7654321");expect(credSent?.institution).toBe("UNAM");
+  expect(screen.queryByPlaceholderText("Ej. 12345678")).toBeNull(); // la cédula ya no es un dato "del consultorio"
   // firma y sello reales (Vercel Blob privado): sección presente con estado honesto (sin firma inventada)
   expect(screen.getByText("Firma y sello")).toBeTruthy();
   expect(screen.getByText("Sin firma cargada")).toBeTruthy();                    // estado real (no la firma falsa "Dr. Luis Godinez")
@@ -661,7 +698,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText(/Conocimiento que mejora vidas/)).toBeTruthy();
   // auditoría: banner honesto (catálogo presentacional) + herramienta real enlazada; controles muertos eliminados
   expect(screen.getByText(/Catálogo de referencia \(presentacional\)/)).toBeTruthy();
-  expect(screen.getByRole("button",{name:/Verificador de interacciones/})).toBeTruthy();
+  expect(screen.getAllByRole("button",{name:/Verificador de interacciones/}).length).toBeGreaterThan(0); // botón + tarjeta de acceso rápido (ahora operable con teclado)
   expect(screen.queryByText(/Subir documento/)).toBeNull();
   expect(screen.queryByText(/Actualizar contenido/)).toBeNull();
   expect(screen.queryByPlaceholderText(/Buscar en la biblioteca/)).toBeNull();

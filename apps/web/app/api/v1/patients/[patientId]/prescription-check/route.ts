@@ -34,13 +34,15 @@ export async function POST(req:Request,ctx:{params:Promise<{patientId:string}>})
   const safety=evaluatePrescriptionSafety({drugCode:code,dose:body.dose,route:body.route,frequency:body.frequency,
    allergies:substances,activeDrugCodes:activeMeds,activeConditionCodes:conditions,egfr,
    weightKg:Number.isFinite(wNum)?wNum:undefined,ageYears:demo?.birthDate?ageInYears(demo.birthDate,new Date().toISOString()):undefined});
-  const checks=safety.barriers.map(b=>({id:b.id,label:b.label,status:UI_STATUS[b.status],detail:b.detail}));
+  // U-19: la UI distingue un bloqueo anulable (con justificación al prescribir) de uno duro (corregir la orden).
+  const checks=safety.barriers.map(b=>({id:b.id,label:b.label,status:UI_STATUS[b.status],detail:b.detail,overridable:b.overridable}));
   const verdict:"OK"|"WARN"|"BLOCK"=safety.verdict==="BLOCK"?"BLOCK":safety.verdict==="REVIEW"?"WARN":"OK";
   const resolved=resolveDrug(code)??null;
   const monitoring=resolved?monitoringFor(code).map(m=>({test:m.test,note:m.note,dueInDays:m.dueInDays})):[];
   return NextResponse.json({patientId,drug:{input:body.drug,resolved},egfr:egfr??null,checks,monitoring,
    indications:instr(body.dose,body.route,body.frequency),verdict,
-   requiresAcknowledgement:safety.requiresAcknowledgement,notEvaluated:safety.notEvaluated,notCovered:safety.notCovered},{status:200});
+   requiresAcknowledgement:safety.requiresAcknowledgement,notEvaluated:safety.notEvaluated,notCovered:safety.notCovered,
+   blockedOverridable:safety.blockedOverridable,blockedHard:safety.blockedHard},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 function instr(dose:string,route:string,frequency:string):string{

@@ -3,6 +3,7 @@
 // el estado, la firma (contentHash/signatureDigest) y la adenda. Mas 404 (inexistente) y 403 (sin scope). vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-z-docdetail-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -25,7 +26,7 @@ async function amend(t:string,id:string,v:number){return amdR.POST(new Request("
 async function get(t:string,id:string){const r=await getR.GET(new Request("http://l/",{method:"GET",headers:H(t)}),{params:Promise.resolve({documentId:id})});return{status:r.status,body:await r.json()};}
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
- const phys=tok();const pid=crypto.randomUUID();await reg(phys,pid);
+ const phys=tok();await registerPhysicianCredentials(phys);const pid=crypto.randomUUID();await reg(phys,pid);
  const c=await create(phys,pid);ok(c.status===201,"CREATE_201");
  ok((await finalize(phys,c.id,1)).status===201,"FINALIZE_201");   // v1 -> FINALIZED (v2)
  ok((await sign(phys,c.id,2)).status===201,"SIGN_201");           // v2 -> SIGNED (v3)
