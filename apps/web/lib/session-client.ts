@@ -41,15 +41,65 @@ export function authHeader(s:MedicalSession|null=getStoredSession()):Record<stri
 }
 // Llamada autenticada a la API clínica con Idempotency-Key + If-Match (concurrencia optimista).
 // La cookie httpOnly se envía sola (same-origin); authHeader queda vacío en el navegador.
+//
+// Auditoría 2026-09-19 (S-05) — EL CLIENTE RESPETA LA IDEMPOTENCIA. El servidor la implementa bien, pero antes cada
+// llamada estrenaba una `Idempotency-Key`: el reintento lo hacía el médico a mano (clic de nuevo = comando distinto =
+// receta u orden duplicada si la primera sí había llegado) y un doble clic eran dos comandos. Ahora:
+//   1) REINTENTO AUTOMÁTICO con la MISMA llave y el MISMO cuerpo ante fallo de red, 502/503/504 o "comando aún en curso".
+//      Eso es exactamente lo que la llave garantiza: si el primer intento llegó, el reintento devuelve su respuesta.
+//   2) GUARDA DE DOBLE ENVÍO: mientras una mutación está en vuelo, otra de la MISMA acción (método + ruta + If-Match +
+//      cuerpo, ignorando lo que el cliente genera en cada clic) NO se envía y devuelve un 409 local explícito. No se
+//      comparte la respuesta de la primera: el segundo manejador creería creado un id que nunca se envió.
 export type ApiResult=Readonly<{status:number;body:Record<string,unknown>}>;
-export async function apiRequest(path:string,init:{method:string;body?:unknown;ifMatch?:number},fetchImpl:typeof fetch=fetch):Promise<ApiResult>{
- const headers:Record<string,string>={...authHeader()};
- if(init.body!==undefined){headers["content-type"]="application/json";headers["idempotency-key"]=globalThis.crypto.randomUUID();}
- if(init.ifMatch!==undefined)headers["if-match"]=String(init.ifMatch);
- const res=await fetchImpl(path,{method:init.method,headers,credentials:"same-origin",...(init.body!==undefined?{body:JSON.stringify(init.body)}:{})});
- let body:Record<string,unknown>={};
- try{body=await res.json() as Record<string,unknown>;}catch{/* sin cuerpo */}
- return{status:res.status,body};
+export type ApiInit=Readonly<{method:string;body?:unknown;ifMatch?:number;idempotencyKey?:string}>;
+export type ApiRetryOptions=Readonly<{retries?:number;backoffMs?:readonly number[];sleep?:(ms:number)=>Promise<void>}>;
+const RETRYABLE_STATUS:ReadonlySet<number>=new Set([502,503,504]);
+const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const inFlight=new Set<string>();
+const defaultSleep=(ms:number)=>new Promise<void>(r=>setTimeout(r,ms));
+function canonical(v:unknown):string{
+ if(v===null||typeof v!=="object")return JSON.stringify(v)??"null";
+ if(Array.isArray(v))return`[${v.map(canonical).join(",")}]`;
+ const o=v as Record<string,unknown>;
+ return`{${Object.keys(o).filter(k=>o[k]!==undefined).sort().map(k=>`${JSON.stringify(k)}:${canonical(o[k])}`).join(",")}}`;
+}
+// Huella de la ACCIÓN del usuario. Se ignoran `occurredAt` y los UUID de primer nivel que el cliente genera en cada clic
+// (resultId, orderId, medicationId…); `patientId` SÍ cuenta: la misma acción para dos pacientes son dos acciones.
+export function actionFingerprint(path:string,init:ApiInit):string{
+ let body:unknown=init.body;
+ if(body!==null&&typeof body==="object"&&!Array.isArray(body))
+  body=Object.fromEntries(Object.entries(body as Record<string,unknown>).filter(([k,v])=>k!=="occurredAt"&&(k==="patientId"||!(typeof v==="string"&&UUID_RE.test(v)))));
+ return`${init.method} ${path} ${init.ifMatch??""} ${canonical(body)}`;
+}
+export async function apiRequest(path:string,init:ApiInit,fetchImpl:typeof fetch=fetch,retry:ApiRetryOptions={}):Promise<ApiResult>{
+ const mutation=init.body!==undefined;
+ const fp=mutation?actionFingerprint(path,init):"";
+ if(mutation){
+  if(inFlight.has(fp))return{status:409,body:{error:{code:"DUPLICATE_IN_FLIGHT",message:"Esta acción ya se está procesando; espere a que termine."}}};
+  inFlight.add(fp);
+ }
+ try{
+  const headers:Record<string,string>={...authHeader()};
+  // La llave se fija UNA vez por acción y se reutiliza en todos los intentos.
+  if(mutation){headers["content-type"]="application/json";headers["idempotency-key"]=init.idempotencyKey??globalThis.crypto.randomUUID();}
+  if(init.ifMatch!==undefined)headers["if-match"]=String(init.ifMatch);
+  const payload=mutation?JSON.stringify(init.body):undefined; // se serializa UNA vez: todos los intentos envían lo mismo
+  const backoff=retry.backoffMs??[300,900];const maxRetries=Math.min(retry.retries??backoff.length,backoff.length);const sleep=retry.sleep??defaultSleep;
+  for(let attempt=0;;attempt++){
+   let res:Response|undefined;let networkError:unknown;
+   try{res=await fetchImpl(path,{method:init.method,headers,credentials:"same-origin",...(payload!==undefined?{body:payload}:{})});}
+   catch(e){networkError=e;}
+   let body:Record<string,unknown>={};
+   if(res){try{body=await res.json() as Record<string,unknown>;}catch{/* respuesta sin cuerpo JSON */}}
+   const inProgress=res?.status===409&&(body["error"] as {message?:unknown}|undefined)?.message==="IDEMPOTENCY_IN_PROGRESS";
+   const retryable=res===undefined||RETRYABLE_STATUS.has(res.status)||inProgress;
+   if(!retryable||attempt>=maxRetries){
+    if(res===undefined)throw networkError instanceof Error?networkError:new Error(String(networkError));
+    return{status:res.status,body};
+   }
+   await sleep(backoff[attempt]??0);
+  }
+ }finally{if(mutation)inFlight.delete(fp);}
 }
 // Subida multipart autenticada (adjuntos binarios). NO fijamos content-type: el navegador pone el boundary.
 // Idempotency-Key para que el reintento sea idempotente; cookie httpOnly same-origin para la auth.

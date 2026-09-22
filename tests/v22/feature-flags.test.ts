@@ -53,8 +53,8 @@ describe("middleware — con el flag apagado las verticales responden 404 antes 
  });
 });
 describe("coherencia — el matcher del middleware, la lista y el árbol de rutas dicen lo mismo",()=>{
- it("un matcher por vertical, y ninguno más",()=>{
-  expect([...config.matcher].sort()).toEqual(HOSPITAL_VERTICALS.map(v=>`/api/v1/${v}/:path*`).sort());
+ it("el middleware cubre toda la API v1 (el corte por flag decide por segmento; el límite de tasa aplica a todas las escrituras)",()=>{
+  expect(config.matcher).toEqual(["/api/v1/:path*"]);
  });
  it("cada vertical existe como carpeta de rutas (si se renombra una, este test obliga a actualizar el flag)",()=>{
   for(const v of HOSPITAL_VERTICALS)expect(fs.existsSync(path.resolve("apps/web/app/api/v1",v)),v).toBe(true);

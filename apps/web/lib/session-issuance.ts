@@ -8,6 +8,7 @@ import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{sessionSecret}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{SESSION_COOKIE}from"./http-command";
+import{loginLimiter,clientIp,rateLimitedResponse}from"./rate-limit";
 // EPIC E — Emisión de sesión (login) en el borde HTTP. Selecciona un verificador de identidad
 // según el entorno; sin verificador, deny-closed (503). El verificador de desarrollo se
 // deshabilita DURO en producción: jamás acuña sesiones a partir de aserciones de prueba en prod.
@@ -57,6 +58,9 @@ export function devIdentityAllowed():boolean{
 
 export async function handleLogin(req:Request):Promise<Response>{
  try{
+  // Auditoría S-03: límite por IP ANTES de leer el cuerpo o verificar la credencial (la verificación OIDC/JWKS es lo caro).
+  const limit=loginLimiter.allow(clientIp(req.headers));
+  if(!limit.allowed){safeLog("session.rate_limited",{retryAfterSeconds:limit.retryAfterSeconds});return rateLimitedResponse(limit);}
   const now=Math.floor(Date.now()/1000);
   const verifier=selectVerifier(now);
   if(!verifier)throw new ClinicalError("DEPENDENCY_UNAVAILABLE","No identity verifier configured");
