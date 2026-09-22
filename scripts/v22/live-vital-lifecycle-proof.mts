@@ -25,8 +25,13 @@ try{
  r=await er.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({reason:"Paciente equivocado",occurredAt:ISO})}),PP(two.id));
  ok(r.status===201&&(await r.json()).state==="ENTERED_IN_ERROR","ERROR_MARK_201");
  // SM: enmendar tras marcar error (terminal) -> 409
- r=await am.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({value:"x",unit:"mmHg",reason:"y",occurredAt:ISO})}),PP(two.id));
+ r=await am.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({value:"125/80",unit:"mmHg",reason:"y",occurredAt:ISO})}),PP(two.id));
  ok(r.status===409,"AMEND_AFTER_ERROR_409");
+ // Auditoría C-13: un valor físicamente imposible se RECHAZA al capturar (400), no se guarda como "desconocido"
+ r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:crypto.randomUUID(),vitalType:"WEIGHT",value:"700",unit:"kg",occurredAt:ISO})}));
+ ok(r.status===400&&(await r.json()).error.code==="VALIDATION_ERROR","IMPLAUSIBLE_WEIGHT_REJECTED_400");
+ r=await vt.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:crypto.randomUUID(),vitalType:"BP",value:"80/120",unit:"mmHg",occurredAt:ISO})}));
+ ok(r.status===400,"IMPLAUSIBLE_BP_REJECTED_400");
  // idempotencia: repetir la MISMA enmienda (misma idempotency-key) -> replay 200
  const three=await mk(nurse);const k=idem();
  r=await am.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":k,"if-match":"1"}),body:JSON.stringify({value:"140/90",unit:"mmHg",reason:"z",occurredAt:ISO})}),PP(three.id));

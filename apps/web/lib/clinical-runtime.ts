@@ -125,6 +125,20 @@ export async function listPatients(ctx:HttpTenantContext,query:PatientListQuery=
 }
 // EPIC R — Gate de seguridad de medicación: sustancias con alergia ACTIVA del paciente (RLS-scoped).
 // Una alergia está activa si su último evento es RECORDED o REACTIVATED (no REFUTED/INACTIVATED).
+// Auditoría C-06: la barrera necesita GRAVEDAD y REACCIÓN, no solo la sustancia (una intolerancia leve no es una anafilaxia).
+export type ActiveAllergy=Readonly<{substance:string;severity:"MILD"|"MODERATE"|"SEVERE"|null;reaction:string|null}>;
+export async function activeAllergies(ctx:HttpTenantContext,patientId:string):Promise<ActiveAllergy[]>{
+ const sql=getSql();
+ return sql.begin(async tx=>{
+  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const rows=await tx`
+   select r.payload->>'substance' as substance, r.payload->>'severity' as severity, r.payload->>'reaction' as reaction
+   from clinical_events r
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Allergy' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=${patientId}
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) in ('RECORDED','REACTIVATED')`;
+  return rows.map(x=>{const sev=String(x.severity??"");return{substance:String(x.substance??""),severity:sev==="MILD"||sev==="MODERATE"||sev==="SEVERE"?sev:null,reaction:x.reaction==null?null:String(x.reaction)};}).filter(a=>a.substance);
+ }) as Promise<ActiveAllergy[]>;
+}
 export async function activeAllergySubstances(ctx:HttpTenantContext,patientId:string):Promise<string[]>{
  const sql=getSql();
  return sql.begin(async tx=>{
@@ -211,18 +225,22 @@ export async function patientEgfr(ctx:HttpTenantContext,patientId:string):Promis
  return computeEGFR(n.canonicalValue,age,sex as Sex)?.egfr;
 }
 // EPIC BK — Códigos de vacunas ADMINISTRADAS del paciente (último kind ADMINISTERED). RLS-scoped.
-export async function administeredVaccineCodes(ctx:HttpTenantContext,patientId:string):Promise<string[]>{
+// Auditoría C-10: las dosis periódicas (influenza anual, Td decenal) se deciden por la FECHA de la última aplicación.
+export type AdministeredVaccine=Readonly<{code:string;occurredAt:string|null}>;
+export async function administeredVaccines(ctx:HttpTenantContext,patientId:string):Promise<AdministeredVaccine[]>{
  const sql=getSql();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
   const rows=await tx`
-   select r.payload->>'vaccineCode' as code
+   select r.payload->>'vaccineCode' as code,
+     (select occurred_at from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and c.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as administered_at
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Immunization' and r.payload->>'kind'='DUE' and r.payload->>'patientId'=${patientId}
      and (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1)='ADMINISTERED'`;
-  return rows.map(x=>String(x.code??"")).filter(Boolean);
- }) as Promise<string[]>;
+  return rows.map(x=>({code:String(x.code??""),occurredAt:x.administered_at?new Date(String(x.administered_at)).toISOString():null})).filter(v=>v.code);
+ }) as Promise<AdministeredVaccine[]>;
 }
+export async function administeredVaccineCodes(ctx:HttpTenantContext,patientId:string):Promise<string[]>{return(await administeredVaccines(ctx,patientId)).map(v=>v.code);}
 // EPIC BC — Último valor registrado por tipo de signo vital del paciente (para computar NEWS2). RLS-scoped.
 // Toma el evento RECORDED más reciente por vitalType. Devuelve un mapa {vitalType -> value textual}.
 export async function latestVitalsByType(ctx:HttpTenantContext,patientId:string):Promise<Record<string,string>>{

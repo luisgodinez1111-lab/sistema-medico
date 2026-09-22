@@ -21,3 +21,16 @@ describe("parseBp",()=>{
  });
  it("formato inválido -> undefined",()=>{expect(parseBp("alto")).toBeUndefined();expect(parseBp("120")).toBeUndefined();});
 });
+// Auditoría 2026-09-19 (C-07): la hipotensión NO es "presión normal".
+describe("hipotensión (C-07)",()=>{
+ it("65/40 -> HYPOTENSION_SEVERE con acción inmediata (antes: 'Presión normal — Reevaluar anualmente')",()=>{
+  const r=stageBloodPressure(65,40)!;expect(r.stage).toBe("HYPOTENSION_SEVERE");expect(r.actionNote).toMatch(/inmediata/i);
+ });
+ it("85/55 -> HYPOTENSION; 95/58 -> HYPOTENSION por diastólica; 100/65 -> NORMAL",()=>{
+  expect(stageBloodPressure(85,55)!.stage).toBe("HYPOTENSION");expect(stageBloodPressure(95,58)!.stage).toBe("HYPOTENSION");expect(stageBloodPressure(100,65)!.stage).toBe("NORMAL");
+ });
+ it("coherente con classifyVital: los mismos cortes (<90/<60 anormal, <70 crítico)",async()=>{
+  const{classifyVital}=await import("../../packages/lab-reference/src");
+  expect(classifyVital("BP","65/40").status).toBe("CRITICAL");expect(classifyVital("BP","85/55").status).toBe("ABNORMAL");expect(classifyVital("BP","100/65").status).toBe("NORMAL");
+ });
+});

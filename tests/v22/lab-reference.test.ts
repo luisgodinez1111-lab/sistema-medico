@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{classifyLab,deltaCheck,computeNEWS2,normalizeLabValue,acceptedUnitsOf,canonicalUnitOf,labReferenceRanges,analyteLabel,ANALYTE_UNITS}from"../../packages/lab-reference/src";
+import{classifyLab,deltaCheck,computeNEWS2,normalizeLabValue,acceptedUnitsOf,canonicalUnitOf,labReferenceRanges,analyteLabel,ANALYTE_UNITS,classifyVital,vitalPlausible}from"../../packages/lab-reference/src";
 // EPIC AQ + AU — valores de pánico de laboratorio. El flag `critical` se DERIVA del valor.
 describe("classifyLab (rangos de referencia / valores de pánico)",()=>{
  it("potasio: normal / anormal / crítico (alto y bajo)",()=>{
@@ -61,35 +61,50 @@ describe("deltaCheck (variación crítica entre resultados — EPIC BB)",()=>{
 });
 describe("computeNEWS2 (early warning score agregado — EPIC BC)",()=>{
  it("paciente estable -> score 0, banda LOW, sin escalamiento",()=>{
-  const r=computeNEWS2({resp:16,spo2:98,temp:36.8,sbp:120,hr:72,consciousness:"A"});
-  expect(r).toMatchObject({score:0,band:"LOW",redFlag:false,escalation:false});
+  const r=computeNEWS2({resp:16,spo2:98,temp:36.8,sbp:120,hr:72,consciousness:"A",supplementalO2:false});
+  expect(r).toMatchObject({score:0,band:"LOW",redFlag:false,escalation:false,complete:true});
  });
  it("suma correcta de parámetros anormales",()=>{
   // resp 22->2, spo2 93->2, temp 38.5->1, sbp 100->2, hr 112->2, A->0 = 9
-  const r=computeNEWS2({resp:22,spo2:93,temp:38.5,sbp:100,hr:112,consciousness:"A"});
+  const r=computeNEWS2({resp:22,spo2:93,temp:38.5,sbp:100,hr:112,consciousness:"A",supplementalO2:false});
   expect(r.score).toBe(9);expect(r.band).toBe("HIGH");expect(r.escalation).toBe(true);
  });
  it("un solo parámetro en 3 (red flag) escala a MEDIUM aunque el score sea bajo",()=>{
   // spo2 90 -> 3 (único), resto normal -> score 3, redFlag true, banda MEDIUM
-  const r=computeNEWS2({resp:16,spo2:90,temp:36.8,sbp:120,hr:72,consciousness:"A"});
+  const r=computeNEWS2({resp:16,spo2:90,temp:36.8,sbp:120,hr:72,consciousness:"A",supplementalO2:false});
   expect(r.score).toBe(3);expect(r.redFlag).toBe(true);expect(r.band).toBe("MEDIUM");
  });
  it("consciencia alterada (V/P/U) puntúa 3",()=>{
   expect(computeNEWS2({consciousness:"V"}).params["consciousness"]).toBe(3);
   expect(computeNEWS2({consciousness:"ALERT"}).params["consciousness"]).toBe(0);
  });
- it("O2 suplementario suma 2; aire ambiente 0 por defecto",()=>{
+ it("O2 suplementario suma 2; aire ambiente declarado 0; NO declarado = FALTANTE (auditoría C-09: ya no se asume aire ambiente)",()=>{
   expect(computeNEWS2({supplementalO2:true}).params["supplementalO2"]).toBe(2);
-  expect(computeNEWS2({}).params["supplementalO2"]).toBe(0);
+  expect(computeNEWS2({supplementalO2:false}).params["supplementalO2"]).toBe(0);
+  expect(computeNEWS2({}).missing).toContain("supplementalO2");
  });
- it("parámetros faltantes se reportan (score = cota inferior)",()=>{
+ it("parámetros faltantes: score = cota inferior y la banda es INCOMPLETE, nunca LOW",()=>{
   const r=computeNEWS2({hr:72});
-  expect(r.missing).toEqual(expect.arrayContaining(["resp","spo2","temp","sbp","consciousness"]));
-  expect(r.score).toBe(0);
+  expect(r.missing).toEqual(expect.arrayContaining(["resp","spo2","temp","sbp","consciousness","supplementalO2"]));
+  expect(r.score).toBe(0);expect(r.band).toBe("INCOMPLETE");expect(r.complete).toBe(false);expect(r.scoreIsLowerBound).toBe(true);expect(r.escalation).toBe(true);
+ });
+ it("con faltantes se puede afirmar HIGH o MEDIUM (lo que ya es cierto), pero no LOW",()=>{
+  expect(computeNEWS2({resp:30,hr:140,sbp:80}).band).toBe("HIGH");          // 3+3+3 = 9 con datos parciales
+  expect(computeNEWS2({spo2:90}).band).toBe("MEDIUM");                        // bandera roja aislada
+  expect(computeNEWS2({resp:16,spo2:98,temp:36.8,sbp:120,hr:72}).band).toBe("INCOMPLETE"); // todo normal pero faltan conciencia y O₂
+ });
+ it("escala 2 de SpO₂ (hipercapnia): 88–92 = 0; por encima solo puntúa con O₂; sin saber si hay O₂ la SpO₂ queda faltante",()=>{
+  const base={resp:16,temp:36.8,sbp:120,hr:72,consciousness:"A"};
+  expect(computeNEWS2({...base,spo2:90,spo2Scale:2,supplementalO2:false}).params["spo2"]).toBe(0);
+  expect(computeNEWS2({...base,spo2:97,spo2Scale:2,supplementalO2:true}).params["spo2"]).toBe(3);  // hiperoxia con O₂
+  expect(computeNEWS2({...base,spo2:97,spo2Scale:2,supplementalO2:false}).params["spo2"]).toBe(0); // aire ambiente
+  expect(computeNEWS2({...base,spo2:84,spo2Scale:2,supplementalO2:false}).params["spo2"]).toBe(2);
+  expect(computeNEWS2({...base,spo2:90,spo2Scale:2}).missing).toContain("spo2");
+  expect(computeNEWS2({...base,spo2:90,spo2Scale:1,supplementalO2:false}).params["spo2"]).toBe(3); // la misma SpO₂ en escala 1 es bandera roja
  });
  it("score 5-6 -> MEDIUM",()=>{
   // resp 21->2, hr 111->2, temp 39.5->2 = 6
-  expect(computeNEWS2({resp:21,hr:111,temp:39.5,spo2:98,sbp:120,consciousness:"A"}).band).toBe("MEDIUM");
+  expect(computeNEWS2({resp:21,hr:111,temp:39.5,spo2:98,sbp:120,consciousness:"A",supplementalO2:false}).band).toBe("MEDIUM");
  });
 });
 // Auditoría 2026-09-19 (C-01, C-02, U-07) — un número de laboratorio SIN unidad no es un dato clínico.
@@ -167,5 +182,32 @@ describe("catálogo de unidades — invariantes",()=>{
   for(const r of labReferenceRanges()){const[lo,hi]=ANALYTE_UNITS[r.analyte]!.plausible;
    if(r.criticalLow>0)expect(lo,`${r.analyte} (bajo)`).toBeLessThan(r.criticalLow);
    if(r.criticalHigh!==99&&r.criticalHigh!==999)expect(hi,`${r.analyte} (alto)`).toBeGreaterThan(r.criticalHigh);}
+ });
+});
+// Auditoría 2026-09-19 (C-13): signos vitales por EDAD y con cotas de plausibilidad.
+describe("classifyVital por edad y plausibilidad (C-13)",()=>{
+ it("FR 45 y FC 140 son NORMALES en un lactante y críticas/anormales en un adulto",()=>{
+  expect(classifyVital("RESP","45",{ageYears:0.2}).status).toBe("NORMAL");expect(classifyVital("HR","140",{ageYears:0.2}).status).toBe("NORMAL");
+  expect(classifyVital("RESP","45",{ageYears:40}).status).toBe("CRITICAL");expect(classifyVital("HR","140",{ageYears:40}).status).toBe("CRITICAL");
+ });
+ it("bandas intermedias: 3 años FC 170 anormal, FC 185 crítica; 8 años FR 32 anormal",()=>{
+  expect(classifyVital("HR","170",{ageYears:3}).status).toBe("ABNORMAL");expect(classifyVital("HR","185",{ageYears:3}).status).toBe("CRITICAL");
+  expect(classifyVital("RESP","32",{ageYears:8}).status).toBe("ABNORMAL");
+ });
+ it("sin edad conocida se usan los umbrales de adulto (compatibilidad) y se declara la banda",()=>{
+  expect(classifyVital("HR","95").status).toBe("NORMAL");expect(classifyVital("HR","95").ageBand).toBe("adolescente/adulto");
+ });
+ it("presión pediátrica: hipotensión por 70 + 2·edad; la hipertensión pediátrica NO se estadifica (percentiles)",()=>{
+  expect(classifyVital("BP","78/50",{ageYears:8}).status).toBe("ABNORMAL");        // < 86
+  expect(classifyVital("BP","60/40",{ageYears:2}).status).toBe("ABNORMAL");        // < 74
+  expect(classifyVital("BP","50/30",{ageYears:2}).status).toBe("CRITICAL");        // < 74-15
+  expect(classifyVital("BP","95/60",{ageYears:8}).status).toBe("NORMAL");
+  expect(classifyVital("BP","142/92",{ageYears:8}).interpretation).toMatch(/percentiles/);
+ });
+ it("valores físicamente imposibles se marcan implausibles (y el ciclo de vida los rechaza): peso 700, talla 17, peso -5, PA 80/120",()=>{
+  for(const[t,v]of[["WEIGHT","700"],["HEIGHT","17"],["WEIGHT","-5"],["BP","80/120"],["HR","400"],["TEMP","50"],["SPO2","120"]] as const){
+   expect(vitalPlausible(t,v).ok,`${t} ${v}`).toBe(false);expect(classifyVital(t,v).plausible,`${t} ${v}`).toBe(false);expect(classifyVital(t,v).status).toBe("UNKNOWN");
+  }
+  expect(vitalPlausible("WEIGHT","72").ok).toBe(true);expect(vitalPlausible("BP","120/80").ok).toBe(true);
  });
 });

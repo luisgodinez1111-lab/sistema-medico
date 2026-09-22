@@ -19,6 +19,16 @@ const DRUGS:Record<string,DrugEntry>={
  "naproxeno":{ingredient:"naproxeno",classes:["NSAID"]},
  "ketorolaco":{ingredient:"ketorolaco",classes:["NSAID"]},
  "aspirina":{ingredient:"aspirina",classes:["NSAID","SALICYLATE"]},
+ // Auditoría C-06: AINE de uso corriente en México que faltaban (la alergia a "AINE" no podía resolverse contra ellos).
+ "diclofenaco":{ingredient:"diclofenaco",classes:["NSAID"]},
+ "diclofenac":{ingredient:"diclofenaco",classes:["NSAID"]},
+ "meloxicam":{ingredient:"meloxicam",classes:["NSAID"]},
+ "piroxicam":{ingredient:"piroxicam",classes:["NSAID"]},
+ "indometacina":{ingredient:"indometacina",classes:["NSAID"]},
+ "celecoxib":{ingredient:"celecoxib",classes:["NSAID","COX2_SELECTIVE"]},
+ "etoricoxib":{ingredient:"etoricoxib",classes:["NSAID","COX2_SELECTIVE"]},
+ "metamizol":{ingredient:"metamizol",classes:["NSAID","PYRAZOLONE"]}, // dipirona: hipersensibilidad cruzada con AINE
+ "dipirona":{ingredient:"metamizol",classes:["NSAID","PYRAZOLONE"]},
  "sulfametoxazol":{ingredient:"sulfametoxazol",classes:["SULFONAMIDE"]},
  "trimetoprima-sulfametoxazol":{ingredient:"sulfametoxazol",classes:["SULFONAMIDE"]},
  "azitromicina":{ingredient:"azitromicina",classes:["MACROLIDE"]},
@@ -38,34 +48,33 @@ const DRUGS:Record<string,DrugEntry>={
  "tramadol":{ingredient:"tramadol",classes:["OPIOID","SEROTONERGIC"]},
 };
 
-// EPIC AX — Interacciones farmacológicas por clase (pares peligrosos conocidos). Severidad MAJOR = bloquea.
+// EPIC AX — Interacciones farmacológicas por clase. Auditoría 2026-09-19 (C-17): existían DOS tablas que divergían (la
+// pestaña informativa detectaba sertralina + tramadol y la barrera que bloquea no). Ahora hay UNA sola fuente,
+// RICH_INTERACTIONS (más abajo, con mecanismo y recomendación); la barrera deriva de ella: CONTRAINDICATED y MAJOR
+// bloquean, MODERATE es precaución, MINOR no interviene en la barrera (sí en la pestaña informativa).
 export type DrugInteraction=Readonly<{classA:string;classB:string;severity:"MAJOR"|"MODERATE";note:string}>;
-const INTERACTIONS:readonly DrugInteraction[]=[
- {classA:"ANTICOAGULANT",classB:"NSAID",severity:"MAJOR",note:"Riesgo de hemorragia mayor"},
- {classA:"ANTICOAGULANT",classB:"SALICYLATE",severity:"MAJOR",note:"Riesgo de hemorragia mayor"},
- {classA:"ACE_INHIBITOR",classB:"POTASSIUM_SPARING",severity:"MAJOR",note:"Hiperkalemia"},
- {classA:"ARB",classB:"POTASSIUM_SPARING",severity:"MAJOR",note:"Hiperkalemia"},
- {classA:"ACE_INHIBITOR",classB:"ARB",severity:"MODERATE",note:"Doble bloqueo del SRAA: hiperkalemia/lesión renal"},
- {classA:"ACE_INHIBITOR",classB:"NSAID",severity:"MODERATE",note:"Deterioro de función renal (triple whammy con diurético)"},
-];
+function barrierSeverity(s:InteractionSeverity):"MAJOR"|"MODERATE"|undefined{return s==="CONTRAINDICATED"||s==="MAJOR"?"MAJOR":s==="MODERATE"?"MODERATE":undefined;}
 function interactionFor(a:readonly string[],b:readonly string[]):DrugInteraction|undefined{
- const sa=new Set(a),sb=new Set(b);
- return INTERACTIONS.find(i=>(sa.has(i.classA)&&sb.has(i.classB))||(sa.has(i.classB)&&sb.has(i.classA)));
+ const rich=richPairFor(a,b);if(!rich)return undefined;
+ const severity=barrierSeverity(rich.severity);if(!severity)return undefined;
+ return{classA:rich.classA,classB:rich.classB,severity,note:`${rich.mechanism} ${rich.recommendation}`};
 }
 // `evaluated=false` => el fármaco a prescribir NO está en el catálogo: NO se verificó nada (nunca leer como "sin
 // interacciones"). `unresolvedActive` = fármacos activos del paciente fuera de catálogo (cobertura parcial).
-export type InteractionHit=Readonly<{found:boolean;evaluated:boolean;unresolvedActive:readonly string[];severity?:"MAJOR"|"MODERATE";note?:string;conflictDrug?:string}>;
-// ¿El fármaco a prescribir interactúa con alguno ya activo? Devuelve la interacción de mayor severidad.
-export function checkInteractions(newDrugCode:string,activeDrugCodes:readonly string[]):InteractionHit{
+export type InteractionHit=Readonly<{found:boolean;evaluated:boolean;unresolvedActive:readonly string[];severity?:"MAJOR"|"MODERATE";note?:string;conflictDrug?:string;factorHits?:readonly Readonly<{factor:PatientFactor;severity:InteractionSeverity;note:string}>[]}>;
+// ¿El fármaco a prescribir interactúa con alguno ya activo? Devuelve la interacción de mayor severidad. `patientFactors`
+// (auditoría C-17: p. ej. ELDERLY) añade las reglas fármaco–paciente que aplican a la clase del fármaco nuevo.
+export function checkInteractions(newDrugCode:string,activeDrugCodes:readonly string[],patientFactors:readonly PatientFactor[]=[]):InteractionHit{
  const nd=resolveDrug(newDrugCode);if(!nd)return{found:false,evaluated:false,unresolvedActive:[]};
  const unresolvedActive=activeDrugCodes.filter(a=>norm(a)!==norm(newDrugCode)&&!resolveDrug(a));
- let best:InteractionHit={found:false,evaluated:true,unresolvedActive};
+ const factorHits=FACTOR_RULES.filter(r=>patientFactors.includes(r.factor)&&nd.classes.includes(r.drugClass)).map(r=>({factor:r.factor,severity:r.severity,note:`${FACTOR_LABEL[r.factor]}: ${r.mechanism} ${r.recommendation}`}));
+ let best:InteractionHit={found:false,evaluated:true,unresolvedActive,...(factorHits.length?{factorHits}:{})};
  for(const active of activeDrugCodes){
   if(norm(active)===norm(newDrugCode))continue;
   const ad=resolveDrug(active);if(!ad)continue;
   const hit=interactionFor(nd.classes,ad.classes);
-  if(hit){if(hit.severity==="MAJOR")return{found:true,evaluated:true,unresolvedActive,severity:"MAJOR",note:hit.note,conflictDrug:active};
-   if(!best.found)best={found:true,evaluated:true,unresolvedActive,severity:hit.severity,note:hit.note,conflictDrug:active};}
+  if(hit){if(hit.severity==="MAJOR")return{...best,found:true,severity:"MAJOR",note:hit.note,conflictDrug:active};
+   if(!best.found)best={...best,found:true,severity:hit.severity,note:hit.note,conflictDrug:active};}
  }
  return best;
 }
@@ -167,22 +176,57 @@ function allergyClasses(substance:string):string[]{
  for(const[k,v]of Object.entries(ALLERGY_SYNONYMS))if(s.includes(k))for(const cl of v)out.add(cl);
  return[...out];
 }
-// `classEvaluated=false` => fármaco fuera de catálogo: solo se comparó por nombre; la reactividad cruzada por
-// CLASE (p. ej. penicilina ↔ cefalosporina, AINE ↔ AINE) NO se pudo evaluar.
-export type AllergyConflict=Readonly<{blocked:boolean;classEvaluated:boolean;allergen?:string;via?:"class"|"ingredient"}>;
-// ¿Prescribir `drugCode` entra en conflicto con alguna sustancia de alergia activa?
-export function checkDrugAllergy(drugCode:string,substances:readonly string[]):AllergyConflict{
+// Auditoría 2026-09-19 (C-06) — la alergia tiene GRAVEDAD y TIPO DE REACCIÓN, y la respuesta lo refleja.
+// Antes cualquier antecedente con "penicilina" (incluida una intolerancia digestiva leve) bloqueaba todas las
+// cefalosporinas, y "AINE" no bloqueaba diclofenaco (no estaba en el catálogo). Ahora:
+//   · coincidencia por PRINCIPIO ACTIVO (el mismo fármaco), por CLASE (otro AINE, otra penicilina) o CRUZADA (clase
+//     emparentada: penicilina ↔ cefalosporina vía BETA_LACTAM; AINE ↔ salicilatos/pirazolonas);
+//   · gravedad SEVERE (o una reacción que describe anafilaxia/angioedema/broncoespasmo/SJS, diga lo que diga la
+//     gravedad) => BLOQUEA en los tres casos; MODERATE => bloquea ingrediente y clase, precaución en cruzada;
+//     MILD (intolerancia) => precaución con confirmación expresa del médico en los tres casos;
+//   · sin gravedad conocida (registros antiguos, solo la sustancia) => se trata como SEVERE (fail-closed).
+// `classEvaluated=false` => fármaco fuera de catálogo: solo se comparó por nombre; la reactividad por clase NO se pudo evaluar.
+export type AllergySeverity="MILD"|"MODERATE"|"SEVERE";
+export type AllergyRecord=Readonly<{substance:string;severity?:AllergySeverity|null;reaction?:string|null}>;
+export type AllergyMatch="ingredient"|"class"|"cross";
+export type AllergyConflict=Readonly<{blocked:boolean;caution:boolean;classEvaluated:boolean;allergen?:string;via?:AllergyMatch;severity?:AllergySeverity;detail?:string}>;
+const SEVERE_REACTION=/anafila|angioedema|broncoespasmo|stevens|johnson|lyell|necr[oó]lisis|dress|choque|shock|edema (de )?glotis|dificultad respiratoria/i;
+// Clases "de la misma familia" (misma reactividad esperada) vs clases EMPARENTADAS (reactividad cruzada parcial).
+const CROSS_FAMILY:Readonly<Record<string,readonly string[]>>={PENICILLIN:["BETA_LACTAM"],CEPHALOSPORIN:["BETA_LACTAM"],NSAID:["NSAID"],SALICYLATE:["NSAID"],PYRAZOLONE:["NSAID"],SULFONAMIDE:["SULFONAMIDE"],MACROLIDE:["MACROLIDE"],BETA_LACTAM:["BETA_LACTAM"]};
+export function effectiveAllergySeverity(a:AllergyRecord):AllergySeverity{
+ if(a.reaction&&SEVERE_REACTION.test(a.reaction))return "SEVERE";
+ return a.severity==="MILD"||a.severity==="MODERATE"||a.severity==="SEVERE"?a.severity:"SEVERE";
+}
+function matchKind(drug:DrugEntry,allergenClasses:readonly string[],normalizedSubstance:string):AllergyMatch|undefined{
+ if(normalizedSubstance.includes(drug.ingredient)||drug.ingredient.includes(normalizedSubstance)&&normalizedSubstance.length>=4)return "ingredient";
+ const drugClasses=new Set(drug.classes);
+ // misma clase: el alérgeno nombra una clase que el fármaco TIENE (AINE -> ibuprofeno; penicilina -> amoxicilina)
+ if(allergenClasses.some(c=>drugClasses.has(c)&&c!=="BETA_LACTAM"))return "class";
+ // cruzada: comparten familia (penicilina -> ceftriaxona vía BETA_LACTAM)
+ const families=new Set(allergenClasses.flatMap(c=>CROSS_FAMILY[c]??[]));
+ if([...drugClasses].some(c=>families.has(c)||(CROSS_FAMILY[c]??[]).some(f=>families.has(f))))return "cross";
+ return undefined;
+}
+export function checkDrugAllergy(drugCode:string,allergies:readonly(string|AllergyRecord)[]):AllergyConflict{
  const c=norm(drugCode);const drug=resolveDrug(drugCode);
- const drugClasses=drug?new Set(drug.classes):new Set<string>();
- for(const raw of substances){
-  const s=norm(raw);if(!s)continue;
-  // 1) match por clase de alérgeno (incluye reactividad cruzada beta-lactámicos)
-  if(drug){const acs=allergyClasses(raw);if(acs.some(x=>drugClasses.has(x)))return{blocked:true,classEvaluated:true,allergen:raw,via:"class"};
-   if(s.includes(drug.ingredient))return{blocked:true,classEvaluated:true,allergen:raw,via:"ingredient"};}
-  // 2) fallback por subcadena del principio activo en el código (compatibilidad)
-  if(c.includes(s))return{blocked:true,classEvaluated:!!drug,allergen:raw,via:"ingredient"};
+ let worst:AllergyConflict|undefined;
+ const rank=(x:AllergyConflict)=>x.blocked?2:x.caution?1:0;
+ for(const raw of allergies){
+  const rec:AllergyRecord=typeof raw==="string"?{substance:raw}:raw;
+  const s=norm(rec.substance);if(!s)continue;
+  const sev=effectiveAllergySeverity(rec);
+  let via:AllergyMatch|undefined;
+  // Las clases del alérgeno salen de los sinónimos ("AINE", "sulfa"…) Y del catálogo si nombra un fármaco ("naproxeno").
+  if(drug)via=matchKind(drug,[...allergyClasses(rec.substance),...(resolveDrug(rec.substance)?.classes??[])],s);
+  else if(c.includes(s))via="ingredient"; // fuera de catálogo: solo por nombre (compatibilidad)
+  if(!via)continue;
+  const blocked=sev==="SEVERE"||(sev==="MODERATE"&&via!=="cross");
+  const label=via==="ingredient"?"principio activo":via==="class"?"misma clase":"reactividad cruzada";
+  const detail=`Alergia ${sev==="SEVERE"?"GRAVE":sev==="MODERATE"?"moderada":"leve"} a ${rec.substance}${rec.reaction?` (${rec.reaction})`:""} — coincidencia por ${label}`;
+  const hit:AllergyConflict={blocked,caution:!blocked,classEvaluated:!!drug,allergen:rec.substance,via,severity:sev,detail};
+  if(!worst||rank(hit)>rank(worst))worst=hit;
  }
- return{blocked:false,classEvaluated:!!drug};
+ return worst??{blocked:false,caution:false,classEvaluated:!!drug};
 }
 
 // EPIC AW — Duplicación terapéutica: ¿el fármaco a prescribir comparte CLASE con alguno ya activo?
@@ -239,6 +283,10 @@ const RICH_INTERACTIONS:readonly RichInteraction[]=[
  {classA:"ARB",classB:"POTASSIUM_SPARING",severity:"MAJOR",mechanism:"Retención aditiva de potasio: hiperkalemia grave.",recommendation:"Vigilar potasio sérico al inicio y tras cada ajuste; evitar suplementos de potasio."},
  {classA:"ACE_INHIBITOR",classB:"ARB",severity:"MODERATE",mechanism:"Doble bloqueo del SRAA: hiperkalemia y deterioro de la función renal.",recommendation:"Evitar la combinación de rutina; si se usa, monitorizar potasio y creatinina."},
  {classA:"ACE_INHIBITOR",classB:"NSAID",severity:"MODERATE",mechanism:"El AINE reduce la perfusión renal y antagoniza el efecto antihipertensivo del IECA.",recommendation:"Limitar el AINE a cursos cortos; vigilar presión arterial y función renal (triple whammy con diurético)."},
+ // Auditoría C-17 — pares clásicos que faltaban.
+ {classA:"ANTICOAGULANT",classB:"ANTICOAGULANT",severity:"CONTRAINDICATED",mechanism:"Doble anticoagulación: hemorragia mayor sin beneficio adicional (salvo puente transitorio programado).",recommendation:"No combinar; si es un puente heparina–warfarina, protocolo explícito con INR y suspensión programada."},
+ {classA:"ANTICOAGULANT",classB:"SULFONAMIDE",severity:"MAJOR",mechanism:"Trimetoprima-sulfametoxazol inhibe el CYP2C9 y desplaza a la warfarina de la albúmina: elevación brusca del INR.",recommendation:"Evitar; si es imprescindible, INR a las 48–72 h y reducir la dosis de warfarina."},
+ {classA:"ANTICOAGULANT",classB:"MACROLIDE",severity:"MAJOR",mechanism:"Los macrólidos (claritromicina, eritromicina, en menor grado azitromicina) inhiben el CYP3A4 y reducen la flora productora de vitamina K: potenciación de la anticoagulación.",recommendation:"Preferir otro antibiótico; si no, INR a los 3–5 días."},
  {classA:"OPIOID",classB:"NSAID",severity:"MINOR",mechanism:"Combinación analgésica frecuente; sin interacción farmacocinética relevante.",recommendation:"Combinación aceptable para dolor moderado; vigilar tolerancia gastrointestinal del AINE."},
 ];
 function richPairFor(a:readonly string[],b:readonly string[]):RichInteraction|undefined{
@@ -273,6 +321,11 @@ const FACTOR_RULES:readonly FactorRule[]=[
  {factor:"PREGNANCY",drugClass:"NSAID",severity:"MAJOR",mechanism:"AINE en el 3.º trimestre: cierre precoz del conducto arterioso y oligohidramnios.",recommendation:"Evitar AINE en el embarazo, en especial el 3.º trimestre; preferir paracetamol."},
  {factor:"PREGNANCY",drugClass:"ACE_INHIBITOR",severity:"CONTRAINDICATED",mechanism:"Fetotoxicidad (oligohidramnios, daño renal fetal, malformaciones).",recommendation:"Contraindicado en el embarazo; suspender y cambiar a antihipertensivo seguro (p. ej. metildopa)."},
  {factor:"PREGNANCY",drugClass:"ARB",severity:"CONTRAINDICATED",mechanism:"Fetotoxicidad análoga a los IECA.",recommendation:"Contraindicado en el embarazo; suspender y cambiar a antihipertensivo seguro."},
+ // Auditoría C-17 — faltaban: warfarina en embarazo; y el factor "adulto mayor" se reconocía pero no tenía ninguna regla.
+ {factor:"PREGNANCY",drugClass:"ANTICOAGULANT",severity:"CONTRAINDICATED",mechanism:"Warfarina: embriopatía (6.ª–12.ª semana) y hemorragia fetal; los anticoagulantes orales directos no están estudiados en el embarazo.",recommendation:"Cambiar a heparina de bajo peso molecular durante el embarazo."},
+ {factor:"ELDERLY",drugClass:"NSAID",severity:"MODERATE",mechanism:"Criterios de Beers: en mayores de 65 años el AINE crónico aumenta el sangrado digestivo, la lesión renal aguda y la descompensación de insuficiencia cardíaca.",recommendation:"Evitar el uso crónico; si se usa, dosis mínima, ciclo corto y gastroprotección; vigilar creatinina."},
+ {factor:"ELDERLY",drugClass:"OPIOID",severity:"MODERATE",mechanism:"Mayor sensibilidad a la sedación y depresión respiratoria; caídas y delirium.",recommendation:"Iniciar con dosis bajas, titular despacio, evitar combinar con otros depresores."},
+ {factor:"ELDERLY",drugClass:"SSRI",severity:"MINOR",mechanism:"Hiponatremia por SIADH y riesgo de caídas al inicio del tratamiento.",recommendation:"Sodio sérico a las 2–4 semanas del inicio; vigilar mareo/caídas."},
 ];
 // Normaliza una etiqueta libre de factor a su código canónico (o undefined si no se reconoce).
 export function resolveFactor(raw:string):PatientFactor|undefined{
@@ -345,4 +398,6 @@ export function drugCatalog():DrugCatalogItem[]{
  return out.sort((a,b)=>a.ingredient.localeCompare(b.ingredient,"es"));
 }
 // Matriz de interacciones por clase (para paneles de conocimiento/alertas de la UI). Copia inmutable.
-export function interactionRules():readonly DrugInteraction[]{return INTERACTIONS;}
+// Reglas de la barrera (derivadas de la tabla única; sin las MINOR).
+export function interactionRules():readonly DrugInteraction[]{return RICH_INTERACTIONS.flatMap(r=>{const s=barrierSeverity(r.severity);return s?[{classA:r.classA,classB:r.classB,severity:s,note:r.mechanism}]:[];});}
+export function richInteractionRules():readonly RichInteraction[]{return RICH_INTERACTIONS;}

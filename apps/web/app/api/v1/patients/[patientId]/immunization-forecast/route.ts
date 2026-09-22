@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
 import{forecastImmunizations,forecastSummary,ageInMonths}from"../../../../../../../../packages/immunization-schedule/src";
-import{patientBirthDate,administeredVaccineCodes}from"../../../../../../lib/clinical-runtime";
+import{patientBirthDate,administeredVaccines}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
 // EPIC BK — GET /api/v1/patients/:id/immunization-forecast (cartilla: DUE/OVERDUE/UPCOMING por edad)
@@ -15,7 +15,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
   const birthDate=await patientBirthDate(tctx,patientId);
   if(!birthDate)throw new ClinicalError("NOT_FOUND","Patient not registered (birthDate unavailable)");
-  const administered=await administeredVaccineCodes(tctx,patientId);
+  const administered=await administeredVaccines(tctx,patientId);
   const asOf=new Date().toISOString();
   const forecast=forecastImmunizations(birthDate,administered,asOf);
   return NextResponse.json({patientId,ageMonths:ageInMonths(birthDate,asOf),summary:forecastSummary(forecast),forecast},{status:200});

@@ -1,5 +1,5 @@
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
-import{patientDemographics,latestVitalsByType,latestResultValueForAnalyte,activeProblemCodes,activeAllergySubstances,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccineCodes,activeMedicationDrugCodes}from"./clinical-runtime";
+import{patientDemographics,latestVitalsByType,latestResultValueForAnalyte,activeProblemCodes,activeAllergySubstances,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccines,activeMedicationDrugCodes}from"./clinical-runtime";
 import{verifiedValues,MAX_AGE_DAYS,COHERENCE_HOURS}from"./analyte-inputs";
 import{stageBloodPressure,parseBp}from"../../../packages/bp-staging/src";
 import{interpretINR}from"../../../packages/anticoagulation/src";
@@ -32,7 +32,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
   activeProblemCodes(ctx,patientId),
   countOpenCriticalResults(ctx,patientId),
   countOpenCriticalVitals(ctx,patientId),
-  administeredVaccineCodes(ctx,patientId),
+  administeredVaccines(ctx,patientId),
   verifiedValues(ctx,patientId,["CREATININE"],MAX_AGE_DAYS.RENAL_FUNCTION),
   verifiedValues(ctx,patientId,["HBA1C"],MAX_AGE_DAYS.GLYCEMIC_CONTROL),
   verifiedValues(ctx,patientId,["AST","ALT","PLATELETS"],MAX_AGE_DAYS.LIVER_PANEL,COHERENCE_HOURS.LIVER_PANEL),
@@ -42,8 +42,10 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  const inp:{-readonly[K in keyof SummaryInputs]:SummaryInputs[K]}={openCriticalResults:openRes,openCriticalVitals:openVit};
  // NEWS2
  let sbp:number|undefined;const bp=vitals["BP"];if(bp){const m=/^(\d{2,3})/.exec(bp.trim());if(m)sbp=Number(m[1]);}
- const n2=computeNEWS2({resp:num(vitals["RESP"]),spo2:num(vitals["SPO2"]),temp:num(vitals["TEMP"]),hr:num(vitals["HR"]),sbp});
- if(n2.missing.length<6)inp.news2={score:n2.score,band:n2.band};
+ // Auditoría C-09: NEWS2 solo en adultos; el O₂ suplementario y la conciencia no se registran como signos vitales -> el
+ // resultado queda INCOMPLETE salvo que ya sea HIGH/MEDIUM con lo disponible (nunca "bajo" por datos ausentes).
+ if(age>=16){const n2=computeNEWS2({resp:num(vitals["RESP"]),spo2:num(vitals["SPO2"]),temp:num(vitals["TEMP"]),hr:num(vitals["HR"]),sbp});
+  if(n2.missing.length<7)inp.news2={score:n2.score,band:n2.band,missing:n2.missing};}
  // eGFR
  const creat=renal?.["CREATININE"];
  if(age>=18&&(sex==="FEMALE"||sex==="MALE")&&creat!==undefined){const e=computeEGFR(creat,age,sex as Sex);if(e)inp.egfr={egfr:e.egfr,stage:e.stage};}
@@ -59,7 +61,8 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  const w=num(vitals["WEIGHT"]);const h=heightToMeters(num(vitals["HEIGHT"])??NaN);
  if(w!==undefined&&h!==undefined){const b=computeBMI(w,h);if(b)inp.bmi={category:b.category};}
  // Vacunas vencidas (solo pediatría tiene esquema aquí)
- if(age<6){const fc=forecastImmunizations(demo.birthDate,vaccines,asOf);inp.overdueVaccines=forecastSummary(fc).overdue;}
+ // Auditoría C-10: el pronóstico ya distingue ventanas de edad (NOT_APPLICABLE no cuenta): vale para todas las edades.
+ {const fc=forecastImmunizations(demo.birthDate,vaccines,asOf);inp.overdueVaccines=forecastSummary(fc).overdue;}
  // Presión arterial (estadificación ACC/AHA)
  const bpv=vitals["BP"];if(bpv){const pb=parseBp(bpv);if(pb){const bs=stageBloodPressure(pb.systolic,pb.diastolic);if(bs)inp.bp={stage:bs.stage};}}
  // INR (contexto del anticoagulante activo)

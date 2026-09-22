@@ -44,7 +44,7 @@ try{
  g=await get(phys,pbp);ok(g.body.findings.some((x:{domain:string;severity:string})=>x.domain==="presión"&&x.severity==="CRITICAL"),"BP_CRISIS_FINDING");
  // paciente sano joven sin datos -> sin hallazgos
  const p2=crypto.randomUUID();await reg(phys,p2,30,"MALE");
- g=await get(phys,p2);ok(g.status===200&&g.body.findings.length===0,"HEALTHY_NO_FINDINGS");
+ g=await get(phys,p2);ok(g.status===200&&g.body.findings.length===0,"HEALTHY_NO_FINDINGS"); // C-10: sin registros de vacunas NO se afirman "vencidas" en un adulto
  // no registrado -> 404
  g=await get(phys,crypto.randomUUID());ok(g.status===404,"UNREGISTERED_404");
  // sin scope -> 403

@@ -190,70 +190,124 @@ export function deltaCheck(analyte: string, priorValue: string, newValue: string
 // ---------- NEWS2 — National Early Warning Score 2 (EPIC BC) ----------
 // CDS agregado multiparamétrico: suma 7 parámetros de signos vitales en un score de acuidad con banda de
 // riesgo y recomendación de escalamiento. A diferencia del CDS por umbral (classifyLab/classifyVital) o
-// temporal (deltaCheck), integra el estado fisiológico GLOBAL. Puro, sin PHI. Escala SpO2 1 (sin EPOC).
-// Referencia: Royal College of Physicians, NEWS2. Parámetros faltantes se reportan (score = cota inferior).
-export type News2Band = "LOW" | "MEDIUM" | "HIGH";
-export type News2Params = Readonly<{ resp?: number | undefined; spo2?: number | undefined; temp?: number | undefined; sbp?: number | undefined; hr?: number | undefined; consciousness?: string | undefined; supplementalO2?: boolean | undefined }>;
-export type News2Result = Readonly<{ score: number; band: News2Band; redFlag: boolean; escalation: boolean; params: Readonly<Record<string, number>>; missing: readonly string[] }>;
+// temporal (deltaCheck), integra el estado fisiológico GLOBAL. Puro, sin PHI. Referencia: Royal College of Physicians, NEWS2 (2017).
+// Auditoría 2026-09-19 (C-09): antes solo existía la escala 1 de SpO₂, el O₂ suplementario se ASUMÍA "aire ambiente" y la
+// banda se calculaba sobre un score parcial cuando faltaban parámetros (datos ausentes bajaban el riesgo). Ahora:
+//   · `spo2Scale` 1 (por defecto) o 2 (insuficiencia respiratoria hipercápnica con objetivo 88–92 %, decisión del médico);
+//   · `supplementalO2` es un dato: si no se sabe, FALTA (no se asume aire ambiente);
+//   · con parámetros faltantes el score es COTA INFERIOR: puede afirmar HIGH (≥7) o MEDIUM (bandera roja) con certeza,
+//     pero nunca LOW; en ese caso la banda es INCOMPLETE y `escalation` se deja en true (fail-closed clínico).
+//   NEWS2 está validado en adultos (≥16 años); la ruta rechaza pediatría.
+export type News2Params = Readonly<{ resp?: number | undefined; spo2?: number | undefined; temp?: number | undefined; sbp?: number | undefined; hr?: number | undefined; consciousness?: string | undefined; supplementalO2?: boolean | undefined; spo2Scale?: 1 | 2 | undefined }>;
+export type News2Band = "LOW" | "MEDIUM" | "HIGH" | "INCOMPLETE";
+export type News2Result = Readonly<{ score: number; band: News2Band; redFlag: boolean; escalation: boolean; complete: boolean; scoreIsLowerBound: boolean; spo2Scale: 1 | 2; params: Readonly<Record<string, number>>; missing: readonly string[] }>;
 function scoreResp(v: number): number { if (v <= 8) return 3; if (v <= 11) return 1; if (v <= 20) return 0; if (v <= 24) return 2; return 3; }
-function scoreSpo2(v: number): number { if (v >= 96) return 0; if (v >= 94) return 1; if (v >= 92) return 2; return 3; }
+function scoreSpo2Scale1(v: number): number { if (v >= 96) return 0; if (v >= 94) return 1; if (v >= 92) return 2; return 3; }
+// Escala 2 (RCP NEWS2, 2017): 88–92 % = 0; por debajo puntúa por hipoxemia; por ENCIMA solo puntúa si recibe O₂ (hiperoxia
+// peligrosa en hipercapnia); en aire ambiente ≥93 % = 0.
+function scoreSpo2Scale2(v: number, onO2: boolean): number { if (v <= 83) return 3; if (v <= 85) return 2; if (v <= 87) return 1; if (v <= 92) return 0; if (!onO2) return 0; if (v <= 94) return 1; if (v <= 96) return 2; return 3; }
 function scoreTemp(v: number): number { if (v <= 35.0) return 3; if (v <= 36.0) return 1; if (v <= 38.0) return 0; if (v <= 39.0) return 1; return 2; }
 function scoreSbp(v: number): number { if (v <= 90) return 3; if (v <= 100) return 2; if (v <= 110) return 1; if (v <= 219) return 0; return 3; }
 function scoreHr(v: number): number { if (v <= 40) return 3; if (v <= 50) return 1; if (v <= 90) return 0; if (v <= 110) return 1; if (v <= 130) return 2; return 3; }
 function scoreConsciousness(v: string): number { const s = v.trim().toUpperCase(); return (s === "A" || s === "ALERT") ? 0 : 3; }
 export function computeNEWS2(p: News2Params): News2Result {
   const params: Record<string, number> = {}; const missing: string[] = [];
+  const spo2Scale: 1 | 2 = p.spo2Scale === 2 ? 2 : 1;
   const put = (key: string, val: number | undefined, fn: (n: number) => number) => {
     if (val === undefined || Number.isNaN(val)) { missing.push(key); return; }
     params[key] = fn(val);
   };
   put("resp", p.resp, scoreResp);
-  put("spo2", p.spo2, scoreSpo2);
+  // La escala 2 necesita saber si hay O₂: sin ese dato la SpO₂ no puede puntuarse (queda faltante).
+  if (spo2Scale === 2 && p.supplementalO2 === undefined) missing.push("spo2");
+  else put("spo2", p.spo2, spo2Scale === 2 ? (v) => scoreSpo2Scale2(v, p.supplementalO2 === true) : scoreSpo2Scale1);
   put("temp", p.temp, scoreTemp);
   put("sbp", p.sbp, scoreSbp);
   put("hr", p.hr, scoreHr);
   if (p.consciousness !== undefined) params["consciousness"] = scoreConsciousness(p.consciousness); else missing.push("consciousness");
-  params["supplementalO2"] = p.supplementalO2 ? 2 : 0; // aire ambiente por defecto
+  if (p.supplementalO2 === undefined) missing.push("supplementalO2"); else params["supplementalO2"] = p.supplementalO2 ? 2 : 0;
   const score = Object.values(params).reduce((a, b) => a + b, 0);
   const redFlag = Object.values(params).some((s) => s === 3);
-  const band: News2Band = score >= 7 ? "HIGH" : (score >= 5 || redFlag) ? "MEDIUM" : "LOW";
-  return { score, band, redFlag, escalation: band !== "LOW", params, missing };
+  const complete = missing.length === 0;
+  // Con datos faltantes el score solo puede SUBIR: se afirma lo que ya es cierto y nunca "bajo".
+  const band: News2Band = score >= 7 ? "HIGH" : (score >= 5 || redFlag) ? "MEDIUM" : complete ? "LOW" : "INCOMPLETE";
+  return { score, band, redFlag, escalation: band !== "LOW", complete, scoreIsLowerBound: !complete, spo2Scale, params, missing };
 }
 
 // ---------- Signos vitales ----------
+// Auditoría 2026-09-19 (C-13): los umbrales de adulto se aplicaban a lactantes (FR 45 o FC 140 en un recién nacido sano =>
+// "Taquipnea severa" crítica) y no había cotas de plausibilidad (peso 700 kg o talla 17 cm se aceptaban como UNKNOWN).
+// Ahora: (1) cotas FÍSICAS por tipo: fuera de ellas el valor es IMPLAUSIBLE y la captura se rechaza; (2) FC y FR con bandas por
+// edad (referencia orientativa PALS / APLS; PENDIENTE de validación clínica); (3) presión arterial pediátrica: hipotensión por
+// la regla 70 + 2·edad (1–10 años) y sin estadificar la hipertensión (requiere percentiles por talla y sexo: NO evaluada).
 export type VitalStatus = "NORMAL" | "ABNORMAL" | "CRITICAL" | "UNKNOWN";
-export type VitalAssessment = Readonly<{ status: VitalStatus; critical: boolean; interpretation: string }>;
+export type VitalAssessment = Readonly<{ status: VitalStatus; critical: boolean; interpretation: string; plausible: boolean; ageBand?: string }>;
 function worst(a: VitalStatus, b: VitalStatus): VitalStatus { const rank = { CRITICAL: 0, ABNORMAL: 1, NORMAL: 2, UNKNOWN: 3 } as const; return rank[a] <= rank[b] ? a : b; }
-export function classifyVital(vitalType: string, value: string): VitalAssessment {
+// Cotas físicas (fuera de ellas no es un ser humano vivo o es un error de captura).
+export const VITAL_PLAUSIBLE: Readonly<Record<string, readonly [number, number]>> = { HR: [20, 300], RESP: [2, 120], TEMP: [25, 45], SPO2: [40, 100], WEIGHT: [0.3, 500], HEIGHT: [20, 260], BP_SYS: [30, 300], BP_DIA: [10, 200] };
+export function vitalPlausible(vitalType: string, value: string): { ok: true } | { ok: false; message: string } {
   const t = vitalType.trim().toUpperCase();
-  const crit = (status: VitalStatus, interpretation: string): VitalAssessment => ({ status, critical: status === "CRITICAL", interpretation });
+  if (t === "BP") {
+    const m = /^(\d{2,3})\s*\/\s*(\d{2,3})$/.exec(String(value).trim()); if (!m) return { ok: false, message: "Formato de presión no reconocido (esperado S/D)" };
+    const s = Number(m[1]), d = Number(m[2]); const [sl, sh] = VITAL_PLAUSIBLE["BP_SYS"]!, [dl, dh] = VITAL_PLAUSIBLE["BP_DIA"]!;
+    if (s < sl || s > sh || d < dl || d > dh || d >= s) return { ok: false, message: `Presión ${s}/${d} no es plausible (sistólica ${sl}–${sh}, diastólica ${dl}–${dh}, diastólica < sistólica)` };
+    return { ok: true };
+  }
+  const b = VITAL_PLAUSIBLE[t]; const v = num(value);
+  if (!b) return { ok: true };
+  if (Number.isNaN(v)) return { ok: false, message: "Valor no numérico" };
+  if (v < b[0] || v > b[1]) return { ok: false, message: `${t} = ${v} no es plausible (${b[0]}–${b[1]}). Verifique el valor y la unidad.` };
+  return { ok: true };
+}
+// Bandas por edad para FC y FR (latidos / respiraciones por minuto): [críticoBajo, anormalBajo, anormalAlto, críticoAlto].
+type Band = Readonly<{ label: string; hr: readonly [number, number, number, number]; resp: readonly [number, number, number, number] }>;
+const AGE_BANDS: readonly (Band & { maxAge: number })[] = [
+  { maxAge: 1, label: "lactante (<1 año)", hr: [80, 100, 160, 200], resp: [20, 30, 60, 70] },
+  { maxAge: 4, label: "1–3 años", hr: [70, 90, 150, 180], resp: [15, 24, 40, 50] },
+  { maxAge: 6, label: "4–5 años", hr: [60, 80, 140, 160], resp: [12, 22, 34, 40] },
+  { maxAge: 13, label: "6–12 años", hr: [50, 70, 120, 150], resp: [10, 18, 30, 35] },
+  { maxAge: Infinity, label: "adolescente/adulto", hr: [40, 60, 100, 130], resp: [8, 12, 20, 30] },
+];
+function bandFor(ageYears: number | undefined): Band & { maxAge: number } { const a = ageYears === undefined || !Number.isFinite(ageYears) ? Infinity : ageYears; return AGE_BANDS.find((b) => a < b.maxAge) ?? AGE_BANDS[AGE_BANDS.length - 1]!; }
+function grade(v: number, [cl, al, ah, ch]: readonly [number, number, number, number], low: [string, string], high: [string, string], normal: string): [VitalStatus, string] {
+  if (v <= cl) return ["CRITICAL", low[1]]; if (v >= ch) return ["CRITICAL", high[1]];
+  if (v < al) return ["ABNORMAL", low[0]]; if (v > ah) return ["ABNORMAL", high[0]];
+  return ["NORMAL", normal];
+}
+export type VitalContext = Readonly<{ ageYears?: number | undefined }>;
+export function classifyVital(vitalType: string, value: string, ctx: VitalContext = {}): VitalAssessment {
+  const t = vitalType.trim().toUpperCase();
+  const pl = vitalPlausible(t, value);
+  const crit = (status: VitalStatus, interpretation: string, extra: Partial<VitalAssessment> = {}): VitalAssessment => ({ status, critical: status === "CRITICAL", interpretation, plausible: pl.ok, ...extra });
+  if (!pl.ok) return crit("UNKNOWN", `Valor implausible: ${pl.message}`);
+  const band = bandFor(ctx.ageYears); const pediatric = ctx.ageYears !== undefined && Number.isFinite(ctx.ageYears) && ctx.ageYears < 13;
   switch (t) {
     case "BP": {
-      const m = /^(\d{2,3})\s*\/\s*(\d{2,3})$/.exec(String(value).trim());
-      if (!m) return crit("UNKNOWN", "Formato de presión no reconocido (esperado S/D)");
+      const m = /^(\d{2,3})\s*\/\s*(\d{2,3})$/.exec(String(value).trim())!;
       const s = Number(m[1]), d = Number(m[2]);
+      if (pediatric) {
+        const a = ctx.ageYears!; const hypo = a < 1 ? 70 : Math.min(90, 70 + 2 * Math.floor(a)); // PALS: <1 a 70; 1–10 a 70+2·edad; ≥10 a 90
+        if (s < hypo) return crit(s < hypo - 15 ? "CRITICAL" : "ABNORMAL", s < hypo - 15 ? `Hipotensión severa para la edad (sistólica < ${hypo})` : `Hipotensión para la edad (sistólica < ${hypo})`, { ageBand: band.label });
+        if (s >= 140 || d >= 90) return crit("ABNORMAL", "Presión elevada para cualquier edad; la hipertensión pediátrica se estadifica por percentiles (talla y sexo): no evaluada aquí", { ageBand: band.label });
+        return crit("NORMAL", "Presión sin hipotensión para la edad (hipertensión pediátrica no evaluada: requiere percentiles)", { ageBand: band.label });
+      }
       let ss: VitalStatus = "NORMAL"; if (s >= 180 || s < 70) ss = "CRITICAL"; else if (s >= 140 || s < 90) ss = "ABNORMAL";
       let ds: VitalStatus = "NORMAL"; if (d >= 120) ds = "CRITICAL"; else if (d >= 90 || d < 60) ds = "ABNORMAL";
       const st = worst(ss, ds);
       const label = st === "CRITICAL" ? (s >= 180 || d >= 120 ? "Crisis hipertensiva" : "Hipotensión severa") : st === "ABNORMAL" ? (s >= 140 || d >= 90 ? "Hipertensión" : "Hipotensión") : "Presión normal";
-      return crit(st, label);
+      return crit(st, label, { ageBand: band.label });
     }
-    case "HR": { const v = num(value); if (Number.isNaN(v)) return crit("UNKNOWN", "Valor no numérico");
-      if (v < 40 || v > 130) return crit("CRITICAL", v > 130 ? "Taquicardia severa" : "Bradicardia severa");
-      if (v < 60 || v > 100) return crit("ABNORMAL", v > 100 ? "Taquicardia" : "Bradicardia");
-      return crit("NORMAL", "Frecuencia cardíaca normal"); }
-    case "SPO2": { const v = num(value); if (Number.isNaN(v)) return crit("UNKNOWN", "Valor no numérico");
+    case "HR": { const v = num(value); const [st, label] = grade(v, band.hr, ["Bradicardia", "Bradicardia severa"], ["Taquicardia", "Taquicardia severa"], "Frecuencia cardíaca normal"); return crit(st, pediatric ? `${label} para la edad (${band.label})` : label, { ageBand: band.label }); }
+    case "RESP": { const v = num(value); const [st, label] = grade(v, band.resp, ["Bradipnea", "Bradipnea severa"], ["Taquipnea", "Taquipnea severa"], "Frecuencia respiratoria normal"); return crit(st, pediatric ? `${label} para la edad (${band.label})` : label, { ageBand: band.label }); }
+    case "SPO2": { const v = num(value);
       if (v < 90) return crit("CRITICAL", "Hipoxemia severa");
       if (v < 94) return crit("ABNORMAL", "Hipoxemia");
       return crit("NORMAL", "Saturación normal"); }
-    case "TEMP": { const v = num(value); if (Number.isNaN(v)) return crit("UNKNOWN", "Valor no numérico");
+    case "TEMP": { const v = num(value);
       if (v >= 40 || v <= 35) return crit("CRITICAL", v >= 40 ? "Hipertermia" : "Hipotermia");
       if (v >= 38 || v < 36) return crit("ABNORMAL", v >= 38 ? "Fiebre" : "Temperatura baja");
       return crit("NORMAL", "Temperatura normal"); }
-    case "RESP": { const v = num(value); if (Number.isNaN(v)) return crit("UNKNOWN", "Valor no numérico");
-      if (v < 8 || v > 30) return crit("CRITICAL", v > 30 ? "Taquipnea severa" : "Bradipnea severa");
-      if (v < 12 || v > 20) return crit("ABNORMAL", v > 20 ? "Taquipnea" : "Bradipnea");
-      return crit("NORMAL", "Frecuencia respiratoria normal"); }
+    case "WEIGHT": case "HEIGHT": return crit("UNKNOWN", "Antropometría: se interpreta por IMC / percentiles, no por umbral");
     default: return crit("UNKNOWN", "Sin rango de referencia para este tipo");
   }
 }

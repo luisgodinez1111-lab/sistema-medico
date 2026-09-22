@@ -1,4 +1,4 @@
-import{resolveDrug,checkDrugAllergy,checkInteractions,checkDuplicateTherapy,checkContraindications,checkRenalDosing,renalRuleForDrug}from"../../drug-catalog/src";
+import{resolveDrug,checkDrugAllergy,checkInteractions,checkDuplicateTherapy,checkContraindications,checkRenalDosing,renalRuleForDrug,type AllergyRecord}from"../../drug-catalog/src";
 import{checkDoseCeiling,checkPediatricDose,validateMedicationOrder,PEDIATRIC_MAX_KG}from"../../medication-validation/src";
 // Evaluador ÚNICO de las barreras de seguridad de una prescripción (auditoría 2026-09-19: C-03, C-04, C-14, C-16).
 //
@@ -21,7 +21,7 @@ export type BarrierReason=
 export type BarrierResult=Readonly<{id:BarrierId;label:string;status:BarrierStatus;detail:string;reason?:BarrierReason}>;
 export type PrescriptionSafetyInput=Readonly<{
  drugCode:string;dose:string;route:string;frequency:string;
- allergySubstances:readonly string[];activeDrugCodes:readonly string[];activeConditionCodes:readonly string[];
+ allergies:readonly AllergyRecord[];activeDrugCodes:readonly string[];activeConditionCodes:readonly string[];
  egfr?:number|undefined;weightKg?:number|undefined;ageYears?:number|undefined;
 }>;
 // BLOCK: no se puede prescribir. REVIEW: hay advertencias o barreras sin evaluar. CLEAR: todo lo evaluable pasó.
@@ -61,16 +61,23 @@ export function evaluatePrescriptionSafety(i:PrescriptionSafetyInput):Prescripti
  else push("catalog","PASSED",`Principio activo reconocido: ${drug.ingredient}`);
 
  // 2) Alergia: el cruce por NOMBRE funciona sin catálogo; la reactividad cruzada por CLASE, no.
- const al=checkDrugAllergy(i.drugCode,i.allergySubstances);
- if(al.blocked)push("allergy","BLOCKED",`Alergia activa a ${al.allergen} (por ${al.via==="class"?"reactividad cruzada de clase":"principio activo"})`);
+ // Auditoría C-06: gravedad y tipo de coincidencia deciden. GRAVE (o reacción anafiláctica) bloquea; una intolerancia leve o
+ // una reactividad cruzada moderada exigen la confirmación expresa del médico (CAUTION con acknowledgement), no bloquean.
+ const al=checkDrugAllergy(i.drugCode,i.allergies);
+ if(al.blocked)push("allergy","BLOCKED",al.detail??`Alergia activa a ${al.allergen}`);
+ else if(al.caution)push("allergy","CAUTION",`${al.detail??`Antecedente con ${al.allergen}`}. Prescribir exige confirmación expresa.`);
  else if(!al.classEvaluated)push("allergy","NOT_EVALUATED","Sin coincidencia por nombre; la reactividad cruzada por clase NO se pudo evaluar (fármaco fuera de catálogo).","DRUG_NOT_IN_CATALOG");
  else push("allergy","PASSED","Sin alergias en conflicto");
 
  // 3) Interacción farmacológica
- const ix=checkInteractions(i.drugCode,i.activeDrugCodes);
+ // Auditoría C-17: tabla única; el factor "adulto mayor" (≥65) entra en la barrera como precaución (criterios de Beers).
+ const factors:("ELDERLY")[]=i.ageYears!==undefined&&i.ageYears>=65?["ELDERLY"]:[];
+ const ix=checkInteractions(i.drugCode,i.activeDrugCodes,factors);
+ const factorNote=ix.factorHits?.filter(f=>f.severity!=="MINOR").map(f=>f.note).join(" · ");
  if(!ix.evaluated)push("interaction","NOT_EVALUATED","Interacciones NO evaluadas (fármaco fuera de catálogo).","DRUG_NOT_IN_CATALOG");
- else if(ix.found)push("interaction",ix.severity==="MAJOR"?"BLOCKED":"CAUTION",`${ix.note} (con ${ix.conflictDrug})`);
+ else if(ix.found)push("interaction",ix.severity==="MAJOR"?"BLOCKED":"CAUTION",`${ix.note} (con ${ix.conflictDrug})${factorNote?` · ${factorNote}`:""}`);
  else if(ix.unresolvedActive.length>0)push("interaction","NOT_EVALUATED",`Sin interacción con los fármacos reconocidos; ${ix.unresolvedActive.length} fármaco(s) activo(s) fuera de catálogo NO se evaluaron.`,"ACTIVE_DRUGS_NOT_IN_CATALOG");
+ else if(factorNote)push("interaction","CAUTION",factorNote);
  else push("interaction","PASSED","Sin interacciones detectadas");
 
  // 4) Duplicidad terapéutica (misma regla que bloquea en la escritura: ya no divergen dry-run y PRESCRIBE)
@@ -113,7 +120,9 @@ export function evaluatePrescriptionSafety(i:PrescriptionSafetyInput):Prescripti
  const ids=(s:BarrierStatus)=>out.filter(b=>b.status===s).map(b=>b.id);
  const notEvaluated=ids("NOT_EVALUATED"),notCovered=ids("NOT_COVERED");
  const verdict:SafetyVerdict=out.some(b=>b.status==="BLOCKED")?"BLOCK":(out.some(b=>b.status==="CAUTION")||notEvaluated.length>0)?"REVIEW":"CLEAR";
- return{verdict,catalogResolved:!!drug,ingredient:drug?.ingredient??null,requiresAcknowledgement:notEvaluated.length>0,
+ // Confirmación expresa: barreras NO evaluadas, o una alergia documentada (leve / cruzada) que no bloquea pero no se ignora.
+ const allergyCaution=out.some(b=>b.id==="allergy"&&b.status==="CAUTION");
+ return{verdict,catalogResolved:!!drug,ingredient:drug?.ingredient??null,requiresAcknowledgement:notEvaluated.length>0||allergyCaution,
   notEvaluated,notCovered,unresolvedActiveDrugs:ix.unresolvedActive,barriers:out};
 }
 // Resumen compacto y SIN PHI para persistir en el evento MEDICATION_PRESCRIBED: deja constancia inmutable de

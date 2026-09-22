@@ -3,7 +3,7 @@ import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{z}from"zod";
 import{resolveDrug,monitoringFor}from"../../../../../../../../packages/drug-catalog/src";
 import{evaluatePrescriptionSafety,ageInYears,type BarrierStatus}from"../../../../../../../../packages/prescription-safety/src";
-import{activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,patientEgfr,patientDemographics,latestVitalsByType}from"../../../../../../lib/clinical-runtime";
+import{activeAllergies,activeMedicationDrugCodes,activeProblemCodes,patientEgfr,patientDemographics,latestVitalsByType}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom,parseJson}from"../../../../../../lib/http-command";
 // EPIC CG — POST /api/v1/patients/:id/prescription-check  (panel 3: "Prescripción segura y verificación")
@@ -26,13 +26,13 @@ export async function POST(req:Request,ctx:{params:Promise<{patientId:string}>})
   const body=await parseJson(req,Body);
   const code=norm(body.drug);
   const[substances,activeMeds,conditions,egfrRaw,vitals,demo]=await Promise.all([
-   activeAllergySubstances(tctx,patientId),activeMedicationDrugCodes(tctx,patientId),activeProblemCodes(tctx,patientId),
+   activeAllergies(tctx,patientId),activeMedicationDrugCodes(tctx,patientId),activeProblemCodes(tctx,patientId),
    patientEgfr(tctx,patientId),latestVitalsByType(tctx,patientId),patientDemographics(tctx,patientId)]);
   const egfr=typeof egfrRaw==="number"&&Number.isFinite(egfrRaw)?egfrRaw:undefined;
   const wRaw=vitals["WEIGHT"];const wNum=wRaw===undefined?NaN:Number(String(wRaw).trim());
   // El MISMO evaluador que usa la ruta de escritura (PRESCRIBE): la verificación previa y el bloqueo real no divergen.
   const safety=evaluatePrescriptionSafety({drugCode:code,dose:body.dose,route:body.route,frequency:body.frequency,
-   allergySubstances:substances,activeDrugCodes:activeMeds,activeConditionCodes:conditions,egfr,
+   allergies:substances,activeDrugCodes:activeMeds,activeConditionCodes:conditions,egfr,
    weightKg:Number.isFinite(wNum)?wNum:undefined,ageYears:demo?.birthDate?ageInYears(demo.birthDate,new Date().toISOString()):undefined});
   const checks=safety.barriers.map(b=>({id:b.id,label:b.label,status:UI_STATUS[b.status],detail:b.detail}));
   const verdict:"OK"|"WARN"|"BLOCK"=safety.verdict==="BLOCK"?"BLOCK":safety.verdict==="REVIEW"?"WARN":"OK";

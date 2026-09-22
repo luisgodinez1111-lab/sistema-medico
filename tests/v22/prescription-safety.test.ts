@@ -3,7 +3,7 @@ import{evaluatePrescriptionSafety,summarizeForEvent,ageInYears,type Prescription
 // Auditoría 2026-09-19 (C-03, C-04, C-05, C-14, C-16): "no pude evaluar" NUNCA se presenta como "seguro".
 // Estos casos fijan el comportamiento correcto del evaluador ÚNICO que comparten el dry-run y PRESCRIBE.
 const base:PrescriptionSafetyInput={drugCode:"ibuprofeno-400",dose:"400mg",route:"Oral",frequency:"c/8h",
- allergySubstances:[],activeDrugCodes:[],activeConditionCodes:[],egfr:90,weightKg:70,ageYears:40};
+ allergies:[],activeDrugCodes:[],activeConditionCodes:[],egfr:90,weightKg:70,ageYears:40};
 const st=(e:ReturnType<typeof evaluatePrescriptionSafety>,id:BarrierId)=>e.barriers.find(b=>b.id===id)?.status;
 
 describe("evaluador único de seguridad de prescripción",()=>{
@@ -65,5 +65,29 @@ describe("ageInYears",()=>{
   expect(ageInYears("2000-09-19","2026-09-19T12:00:00Z")).toBe(26);
   expect(ageInYears("no-fecha","2026-09-19T12:00:00Z")).toBeUndefined();
   expect(ageInYears("2030-01-01","2026-09-19T12:00:00Z")).toBeUndefined();
+ });
+});
+describe("alergias con gravedad en el evaluador (auditoría C-06)",()=>{
+ it("intolerancia leve a penicilina + ceftriaxona -> CAUTION que EXIGE confirmación (no bloquea, no se ignora)",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"ceftriaxona-1g",dose:"1g",route:"IV",frequency:"c/24h",allergies:[{substance:"penicilina",severity:"MILD",reaction:"náusea"}]});
+  expect(st(e,"allergy")).toBe("CAUTION");expect(e.verdict).toBe("REVIEW");expect(e.requiresAcknowledgement).toBe(true);
+ });
+ it("anafilaxia a penicilina + ceftriaxona -> BLOCK sin posibilidad de confirmación",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"ceftriaxona-1g",dose:"1g",route:"IV",frequency:"c/24h",allergies:[{substance:"penicilina",severity:"SEVERE",reaction:"anafilaxia"}]});
+  expect(st(e,"allergy")).toBe("BLOCKED");expect(e.verdict).toBe("BLOCK");
+ });
+ it("alergia a AINE + diclofenaco -> BLOCK (antes: 'sin conflicto' porque diclofenaco no estaba en el catálogo)",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"diclofenaco-50",dose:"50mg",frequency:"c/8h",allergies:[{substance:"AINE",severity:"SEVERE",reaction:"broncoespasmo"}]});
+  expect(st(e,"allergy")).toBe("BLOCKED");
+ });
+});
+describe("interacciones y factores del paciente en el evaluador (auditoría C-17)",()=>{
+ it("sertralina activa + tramadol -> BLOCK en la barrera (la misma tabla que la pestaña informativa)",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"tramadol-50",dose:"50mg",frequency:"c/8h",activeDrugCodes:["sertralina-50"]});
+  expect(st(e,"interaction")).toBe("BLOCKED");
+ });
+ it("paciente de 78 años + AINE -> CAUTION por adulto mayor (Beers), no 'sin interacciones'",()=>{
+  const e=evaluatePrescriptionSafety({...base,ageYears:78});
+  expect(st(e,"interaction")).toBe("CAUTION");expect(e.barriers.find(b=>b.id==="interaction")?.detail).toMatch(/Adulto mayor/);
  });
 });

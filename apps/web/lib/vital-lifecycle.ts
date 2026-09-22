@@ -3,10 +3,11 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldVital,assertVitalTransition,type FoldedVital,type VitalState}from"../../../packages/vital-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,patientDemographics}from"./clinical-runtime";
+import{ageInYears}from"../../../packages/prescription-safety/src";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
-import{classifyVital,type VitalStatus}from"../../../packages/lab-reference/src";
+import{classifyVital,vitalPlausible,type VitalStatus}from"../../../packages/lab-reference/src";
 // EPIC W — Ciclo de vida de una observación de signo vital: RECORDED -> {AMENDED, ENTERED_IN_ERROR}.
 // EPIC AN (profundidad): cada valor se interpreta contra rangos de referencia (NORMAL/ABNORMAL/CRITICAL).
 // El valor vigente es append-only: cada corrección genera un evento nuevo (scope vital:write).
@@ -23,8 +24,14 @@ export async function handleVitalRecord(req:Request):Promise<Response>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,RecordBody);
-  const a=classifyVital(b.vitalType,b.value);
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.vitalId,expectedVersion:0,eventType:"VITAL_RECORDED",payload:{kind:"RECORDED",patientId:b.patientId,vitalType:b.vitalType,value:b.value,unit:b.unit,status:a.status,critical:a.critical,interpretation:a.interpretation},occurredAt:b.occurredAt,topic:"vital.recorded"});
+  // Auditoría C-13: (1) un valor físicamente imposible se RECHAZA (no se guarda como "UNKNOWN"); (2) la interpretación
+  // depende de la EDAD del paciente (FR 45 es normal en un lactante y crítica en un adulto). La edad usada queda en el evento.
+  const pl=vitalPlausible(b.vitalType,b.value);
+  if(!pl.ok)throw new ClinicalError("VALIDATION_ERROR",pl.message,{vitalType:b.vitalType});
+  const demo=await patientDemographics(ctx,b.patientId);
+  const ageYears=demo?.birthDate?ageInYears(demo.birthDate,b.occurredAt):undefined;
+  const a=classifyVital(b.vitalType,b.value,{ageYears});
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.vitalId,expectedVersion:0,eventType:"VITAL_RECORDED",payload:{kind:"RECORDED",patientId:b.patientId,vitalType:b.vitalType,value:b.value,unit:b.unit,status:a.status,critical:a.critical,interpretation:a.interpretation,...(ageYears!==undefined?{ageYearsAtRecording:ageYears}:{}),...(a.ageBand?{ageBand:a.ageBand}:{})},occurredAt:b.occurredAt,topic:"vital.recorded"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({vitalId:b.vitalId,state:"RECORDED",status:a.status,critical:a.critical,interpretation:a.interpretation,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
@@ -49,8 +56,12 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
 const AmendBody=z.object({value:z.string().min(1),unit:z.string().min(1),reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleVitalAmendment(req:Request,vitalId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,vitalId);const b=await parseJson(req,AmendBody);
-  const a=classifyVital(folded.vitalType,b.value);
-  return await commit(ctx,idempotencyKey,expectedVersion,vitalId,folded,"AMENDED","VITAL_AMENDED",{kind:"AMENDED",value:b.value,unit:b.unit,reason:b.reason,status:a.status,critical:a.critical,interpretation:a.interpretation},b.occurredAt,"vital.amended",{status:a.status,critical:a.critical,interpretation:a.interpretation});
+  const pl=vitalPlausible(folded.vitalType,b.value);
+  if(!pl.ok)throw new ClinicalError("VALIDATION_ERROR",pl.message,{vitalType:folded.vitalType});
+  const demo=await patientDemographics(ctx,folded.patientId);
+  const ageYears=demo?.birthDate?ageInYears(demo.birthDate,b.occurredAt):undefined;
+  const a=classifyVital(folded.vitalType,b.value,{ageYears});
+  return await commit(ctx,idempotencyKey,expectedVersion,vitalId,folded,"AMENDED","VITAL_AMENDED",{kind:"AMENDED",value:b.value,unit:b.unit,reason:b.reason,status:a.status,critical:a.critical,interpretation:a.interpretation,...(ageYears!==undefined?{ageYearsAtRecording:ageYears}:{})},b.occurredAt,"vital.amended",{status:a.status,critical:a.critical,interpretation:a.interpretation});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 const ErrorBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});

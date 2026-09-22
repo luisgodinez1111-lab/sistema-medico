@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{checkDrugAllergy,resolveDrug,checkContraindications,drugCatalog,interactionRules}from"../../packages/drug-catalog/src";
+import{checkDrugAllergy,resolveDrug,checkContraindications,drugCatalog,interactionRules,checkInteractionSet,richInteractionRules}from"../../packages/drug-catalog/src";
 describe("catálogo de fármacos + gate de alergia (EPIC AP)",()=>{
  it("resuelve el principio activo dentro del código",()=>{
   expect(resolveDrug("amoxicilina-500mg")?.ingredient).toBe("amoxicilina");
@@ -12,9 +12,33 @@ describe("catálogo de fármacos + gate de alergia (EPIC AP)",()=>{
   const r=checkDrugAllergy("amoxicilina-500",["penicilina"]);
   expect(r.blocked).toBe(true);expect(r.via).toBe("class");
  });
- it("bloquea por REACTIVIDAD CRUZADA beta-lactámicos: alergia a penicilina -> cefalexina",()=>{
+ it("bloquea por REACTIVIDAD CRUZADA beta-lactámicos: alergia a penicilina (sin gravedad => grave) -> cefalexina",()=>{
   const r=checkDrugAllergy("cefalexina-500",["penicilina"]);
-  expect(r.blocked).toBe(true);expect(r.via).toBe("class");
+  expect(r.blocked).toBe(true);expect(r.via).toBe("cross");expect(r.severity).toBe("SEVERE");
+ });
+ // Auditoría 2026-09-19 (C-06): gravedad y tipo de reacción deciden; "AINE" resuelve contra los AINE comunes.
+ it("alergia a AINE bloquea diclofenaco, meloxicam y metamizol (antes: diclofenaco no estaba en el catálogo -> 'sin conflicto')",()=>{
+  for(const d of["diclofenaco-50","meloxicam-15","metamizol-500","celecoxib-200"])expect(checkDrugAllergy(d,[{substance:"AINE",severity:"SEVERE",reaction:"broncoespasmo"}]).blocked,d).toBe(true);
+  expect(checkDrugAllergy("paracetamol-500",[{substance:"AINE",severity:"SEVERE"}]).blocked).toBe(false); // el paracetamol no es AINE
+ });
+ it("una INTOLERANCIA leve a penicilina NO bloquea las cefalosporinas: precaución con confirmación (antes bloqueaba)",()=>{
+  const r=checkDrugAllergy("ceftriaxona-1g",[{substance:"penicilina",severity:"MILD",reaction:"náusea y vómito"}]);
+  expect(r).toMatchObject({blocked:false,caution:true,via:"cross",severity:"MILD"});
+ });
+ it("una reacción anafiláctica es GRAVE aunque se haya registrado como leve (la reacción manda)",()=>{
+  expect(checkDrugAllergy("ceftriaxona-1g",[{substance:"penicilina",severity:"MILD",reaction:"anafilaxia"}])).toMatchObject({blocked:true,severity:"SEVERE",via:"cross"});
+ });
+ it("MODERATE: bloquea misma clase y el mismo principio activo; precaución en cruzada",()=>{
+  expect(checkDrugAllergy("amoxicilina-500",[{substance:"penicilina",severity:"MODERATE",reaction:"urticaria"}]).blocked).toBe(true);
+  expect(checkDrugAllergy("ceftriaxona-1g",[{substance:"penicilina",severity:"MODERATE",reaction:"urticaria"}])).toMatchObject({blocked:false,caution:true});
+ });
+ it("el alérgeno puede ser un fármaco del catálogo: leve a naproxeno -> ibuprofeno con precaución; grave a amoxicilina -> cefalexina bloqueada",()=>{
+  expect(checkDrugAllergy("ibuprofeno-400",[{substance:"naproxeno",severity:"MILD",reaction:"dispepsia"}])).toMatchObject({caution:true,via:"class"});
+  expect(checkDrugAllergy("cefalexina-500",[{substance:"amoxicilina",severity:"SEVERE",reaction:"anafilaxia"}])).toMatchObject({blocked:true,via:"cross"});
+ });
+ it("con varias alergias gana la peor coincidencia",()=>{
+  const r=checkDrugAllergy("ibuprofeno-400",[{substance:"naproxeno",severity:"MILD"},{substance:"AINE",severity:"SEVERE",reaction:"anafilaxia"}]);
+  expect(r).toMatchObject({blocked:true,allergen:"AINE"});
  });
  it("bloquea AINEs por clase: alergia a AINE -> ibuprofeno",()=>{
   expect(checkDrugAllergy("ibuprofeno-400",["AINE"]).blocked).toBe(true);
@@ -156,5 +180,32 @@ describe("catálogo determinista para la UI (drugCatalog)",()=>{
   const r=interactionRules();
   expect(r.length).toBeGreaterThan(0);
   expect(r.some(x=>x.severity==="MAJOR")).toBe(true);
+ });
+});
+// Auditoría 2026-09-19 (C-17): UNA sola tabla de interacciones; la barrera y la pestaña informativa no pueden divergir.
+describe("interacciones: tabla única (C-17)",()=>{
+ it("sertralina + tramadol: la BARRERA bloquea (antes solo lo detectaba la pestaña informativa)",()=>{
+  const r=checkInteractions("tramadol-50",["sertralina-50"]);
+  expect(r).toMatchObject({found:true,evaluated:true,severity:"MAJOR"});expect(r.note).toMatch(/serotonin/i);
+ });
+ it("pares clásicos que faltaban: warfarina + TMP-SMX, warfarina + macrólido, doble anticoagulante",()=>{
+  expect(checkInteractions("trimetoprima-sulfametoxazol-800",["warfarina-5"])).toMatchObject({found:true,severity:"MAJOR"});
+  expect(checkInteractions("azitromicina-500",["warfarina-5"])).toMatchObject({found:true,severity:"MAJOR"});
+  expect(checkInteractions("rivaroxaban-20",["warfarina-5"])).toMatchObject({found:true,severity:"MAJOR"}); // CONTRAINDICATED -> bloquea
+ });
+ it("toda regla de la barrera existe en la tabla rica (derivación, no copia) y las MINOR no bloquean",()=>{
+  const rich=richInteractionRules();const barrier=interactionRules();
+  for(const b of barrier)expect(rich.some(r=>r.classA===b.classA&&r.classB===b.classB),`${b.classA}/${b.classB}`).toBe(true);
+  expect(barrier.some(b=>(b as{severity:string}).severity==="MINOR")).toBe(false);
+  expect(checkInteractions("tramadol-50",["ibuprofeno-400"]).found).toBe(false); // OPIOID+NSAID es MINOR: no interviene en la barrera
+  expect(checkInteractionSet(["tramadol-50","ibuprofeno-400"]).findings.some(f=>f.severity==="MINOR")).toBe(true); // …pero sí se informa
+ });
+ it("adulto mayor: el factor ELDERLY ahora tiene reglas (AINE, opioide) y la barrera las devuelve",()=>{
+  const r=checkInteractions("naproxeno-500",[],["ELDERLY"]);
+  expect(r.factorHits?.some(f=>f.factor==="ELDERLY"&&f.severity==="MODERATE")).toBe(true);
+  expect(checkInteractions("naproxeno-500",[]).factorHits).toBeUndefined();
+ });
+ it("embarazo + anticoagulante: contraindicado (faltaba)",()=>{
+  expect(checkInteractionSet(["warfarina-5"],["embarazo"]).findings.some(f=>f.severity==="CONTRAINDICATED")).toBe(true);
  });
 });
