@@ -26,7 +26,7 @@ try{
  const phys=tok();
  // paciente complejo: 76a MALE, FA+HTA+DM, creatinina alta (ERC), HbA1c mala, IMC obeso, NEWS2 alto
  const p1=crypto.randomUUID();await reg(phys,p1,76,"MALE");
- for(const c of["I48.91","I10","E11"])await dx(phys,p1,c);
+ for(const c of["I48.9","I10","E11"])await dx(phys,p1,c);
  await res(phys,p1,"CREATININE","3.0");   // ERC avanzada
  await res(phys,p1,"HBA1C","9.5");         // mal control (diabético)
  for(const[a,v]of[["WEIGHT","100"],["HEIGHT","170"],["RESP","24"],["SPO2","91"],["TEMP","39.2"],["BP","95/60"],["HR","125"]]as const)await vital(phys,p1,a,v);

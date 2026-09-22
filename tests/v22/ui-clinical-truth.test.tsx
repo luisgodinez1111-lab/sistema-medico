@@ -23,6 +23,9 @@ describe("verdad clínica con el backend caído",()=>{
  });
  it("un fallo del backend se anuncia como fallo (role=alert), no como 'sin hallazgos'",async()=>{
   render(<Workspace/>);
+  // U-12: sin paciente no se carga nada. Con el backend caído no hay lista: se entra al expediente y se teclea el ID.
+  fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));fireEvent.click(screen.getByRole("button",{name:/Ver expediente/}));
+  fireEvent.change(await screen.findByLabelText(/ID de paciente/),{target:{value:"11111111-1111-4111-8111-111111111111"}});
   const alert=await screen.findByText(/No se pudo cargar el expediente/,{}, {timeout:4000});
   expect(alert.closest('[role="alert"]')).not.toBeNull();
   expect(screen.getByRole("button",{name:"Reintentar"})).toBeTruthy();

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import{describe,it,expect,vi,beforeAll,afterEach}from"vitest";
-import{render,screen,cleanup,waitFor,fireEvent}from"@testing-library/react";
+import{render,screen,cleanup,waitFor,fireEvent,within}from"@testing-library/react";
 import axe from"axe-core";
 // EPIC CI/CJ/CK — pruebas de RENDER (jsdom) del cockpit del expediente y de los paneles de presentación
 // (Seguimiento automático, Portal del paciente, Seguridad y auditoría). Cierran la deuda de "sin render test":
@@ -20,6 +20,7 @@ vi.mock("../../apps/web/lib/session-client",()=>({
   if(init?.method==="POST")posted.push({path,body:init.body});
   if(path.includes("/api/v1/vitals"))return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
   if(path.includes("/api/v1/care-plans"))return{status:201,body:{version:1}};
+  if(path.includes("/api/v1/medications"))return{status:201,body:{version:1}}; // proponer/prescribir/activar/suspender (U-16)
   if(path.match(/\/api\/v1\/documents\/[^/]+$/))return{status:200,body:{documentId:"dc1",patientId:"p1",title:"Nota de evolución",docType:"PROGRESS_NOTE",typeLabel:"Nota médica",content:"Paciente estable. Continúa tratamiento.",state:"SIGNED",statusLabel:"Firmado",version:3,createdAt:"2026-09-17T00:00:00Z",addenda:[],signature:{authorId:"u1",contentHash:"a".repeat(64),signatureDigest:"b".repeat(64),signedAt:"2026-09-17T01:00:00Z"},attachments:[{attachmentId:"at1",filename:"laboratorio.pdf",mime:"application/pdf",size:23456,pathname:"tenants/t/documents/dc1/at1.pdf",contentHash:"c".repeat(64),authorId:"u1",attachedAt:"2026-09-17T02:00:00Z"}]}};
   if(path.includes("/api/v1/documents"))return{status:201,body:{version:1}};
   if(path.includes("/api/v1/referrals"))return{status:201,body:{version:1}};
@@ -124,7 +125,9 @@ const abrirConsulta=async()=>{fireEvent.click(screen.getByRole("button",{name:"C
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
 // Todos los accesos del sidebar son ahora vistas de nivel-sistema; al expediente crudo (cockpit) se llega
 // con el botón "Ver expediente →" de la barra del paciente de un módulo (aquí: Signos vitales).
-const toExpediente=()=>{fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));fireEvent.click(screen.getByRole("button",{name:/Ver expediente/}));};
+// U-12: ya no hay paciente por defecto (antes un UUID aleatorio disparaba cargas a un paciente inexistente): se elige uno.
+const elegirPaciente=async()=>{const opt=await screen.findByRole("option",{name:"Ana López García"});fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});};
+const toExpediente=async()=>{fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));await elegirPaciente();fireEvent.click(screen.getByRole("button",{name:/Ver expediente/}));};
 
 describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
@@ -347,6 +350,42 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.queryByRole("alertdialog")).toBeNull();expect(screen.queryByText(/Encuentro · Firmada/)).toBeNull();
  });
 
+ // Auditoría U-05/U-17: al cambiar de paciente, el borrador del anterior NO sobrevive (PATIENT_SWITCH+OLD_DRAFT_SUBMITTABLE).
+ it("vista Consulta: cambiar de paciente descarta el borrador del anterior y no muestra sus datos",async()=>{
+  render(<Workspace/>);
+  await abrirConsulta();
+  fireEvent.change(screen.getByPlaceholderText("Motivo de la consulta…"),{target:{value:"Cefalea del paciente A"}});
+  expect((screen.getByPlaceholderText("Motivo de la consulta…") as HTMLTextAreaElement|HTMLInputElement).value).toBe("Cefalea del paciente A");
+  // cambio a Carlos Mendoza (p2): volver al panel de consultas y abrir la suya
+  fireEvent.click(screen.getByTitle("Volver al panel de consultas"));
+  const opt=await screen.findByRole("option",{name:"Carlos Mendoza"});
+  fireEvent.change(opt.closest("select")!,{target:{value:"p2"}});fireEvent.click(screen.getByRole("button",{name:"Abrir consulta"}));
+  expect((screen.getByPlaceholderText("Motivo de la consulta…") as HTMLTextAreaElement|HTMLInputElement).value).toBe("");
+  expect(screen.queryByText(/Cefalea del paciente A/)).toBeNull();
+ });
+ // Auditoría U-16: un motivo clínico lo escribe el médico; nada se envía con un literal del código.
+ it("vista Expediente: suspender un medicamento exige el motivo del médico y lo envía tal cual",async()=>{
+  render(<Workspace/>);
+  await toExpediente();
+  // proponer -> prescribir -> activar (mocks 201) para llegar a un medicamento ACTIVO
+  const form=within((await screen.findByRole("button",{name:"Proponer medicación"})).closest("section")!);
+  fireEvent.change(form.getByPlaceholderText(/Fármaco \(ej\./),{target:{value:"ibuprofeno-400"}});
+  fireEvent.change(form.getByPlaceholderText(/Dosis \(500mg\)/),{target:{value:"400mg"}});
+  fireEvent.change(form.getByPlaceholderText("Vía"),{target:{value:"VO"}});
+  fireEvent.change(form.getByPlaceholderText(/Frecuencia \(c\/8h\)/),{target:{value:"c/8h"}});
+  fireEvent.click(form.getByRole("button",{name:"Proponer medicación"}));
+  fireEvent.click(await screen.findByRole("button",{name:"Prescribir"}));
+  fireEvent.click(await screen.findByRole("button",{name:"Activar"}));
+  fireEvent.click(await screen.findByRole("button",{name:"Suspender"}));
+  const dlg=within(await screen.findByRole("dialog",{name:/Motivo de la suspensión/}));
+  const registrar=dlg.getByRole("button",{name:"Registrar"}) as HTMLButtonElement;
+  expect(registrar.disabled).toBe(true); // sin texto no se puede enviar
+  fireEvent.change(dlg.getByLabelText(/Motivo de la suspensión/),{target:{value:"Gastritis erosiva por AINE"}});
+  fireEvent.click(dlg.getByRole("button",{name:"Registrar"}));
+  await waitFor(()=>expect(screen.queryByRole("dialog",{name:/Motivo de la suspensión/})).toBeNull());
+  const sent=posted.filter(p=>p.path.endsWith("/discontinuation")).at(-1)?.body as {reason?:string}|undefined;
+  expect(sent?.reason).toBe("Gastritis erosiva por AINE");
+ });
  it("vista Consulta: interrogatorio y exploración física son campos REALES que alimentan la nota clínica",async()=>{
   render(<Workspace/>);
   await abrirConsulta();
@@ -426,7 +465,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("vista Plan de cuidado: agregar una meta real al plan del paciente (POST /care-plans)",async()=>{
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Plan de cuidados"}));
+  fireEvent.click(screen.getByRole("button",{name:"Plan de cuidados"}));await elegirPaciente();
   fireEvent.click(screen.getByRole("button",{name:"+ Nueva meta"}));
   fireEvent.change(screen.getByPlaceholderText(/HbA1c < 7%/),{target:{value:"Bajar 5% de peso en 3 meses"}});
   fireEvent.click(screen.getByRole("button",{name:"Agregar meta"}));
@@ -435,7 +474,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("vista Documentos: crear un documento clínico real (POST /documents)",async()=>{
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Documentos"}));
+  fireEvent.click(screen.getByRole("button",{name:"Documentos"}));await elegirPaciente();
   fireEvent.click(screen.getByRole("button",{name:"+ Nuevo documento"}));
   fireEvent.change(screen.getByPlaceholderText(/Nota de evolución 19/),{target:{value:"Nota de evolución"}});
   fireEvent.change(screen.getByPlaceholderText("Contenido del documento…"),{target:{value:"Paciente estable, continúa tratamiento."}});
@@ -501,7 +540,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{
   render(<Workspace/>);
-  toExpediente();
+  await toExpediente();
   expect(await screen.findByText(/Vista principal/,{},{timeout:2500})).toBeTruthy();
   expect(screen.getAllByText("HTA").length).toBeGreaterThan(0);     // chip dx desde CIE-10 (I10)
   expect(screen.getAllByText("ERC G3a").length).toBeGreaterThan(0); // N18.3 -> etiqueta
@@ -510,7 +549,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("panel 5 (Seguimiento automático): tabs + estado en TEXTO, no solo color",async()=>{
   render(<Workspace/>);
-  toExpediente();
+  await toExpediente();
   const h=await screen.findByRole("heading",{name:"Seguimiento automático"},{timeout:2500});
   expect(h).toBeTruthy();
   const sec=h.closest("section")!;
@@ -520,7 +559,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("panel 6 (Portal del paciente): saludo + features no construidas marcadas 'Próximamente' (verdad clínica)",async()=>{
   render(<Workspace/>);
-  toExpediente();
+  await toExpediente();
   const h=await screen.findByRole("heading",{name:"Portal del paciente"},{timeout:2500});
   const sec=h.closest("section")!;
   expect(sec.textContent).toMatch(/Hola,/);
@@ -532,7 +571,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("panel 7 (Seguridad y auditoría): estado del sistema + actividad desde la cadena (estado en texto)",async()=>{
   render(<Workspace/>);
-  toExpediente();
+  await toExpediente();
   await screen.findByText(/Vista principal/,{},{timeout:2500}); // el hero prueba que la auto-carga (timeline incluido) completó
   const sec=screen.getByRole("heading",{name:"Seguridad y auditoría"}).closest("section")!;
   expect(sec.textContent).toMatch(/Estado del sistema/);
@@ -877,7 +916,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("accesibilidad: los paneles de presentación no tienen violaciones axe serias/críticas",async()=>{
   render(<Workspace/>);
-  toExpediente();
+  await toExpediente();
   const seg=(await screen.findByRole("heading",{name:"Seguimiento automático"},{timeout:2500})).closest("section")!;
   const por=screen.getByRole("heading",{name:"Portal del paciente"}).closest("section")!;
   const aud=screen.getByRole("heading",{name:"Seguridad y auditoría"}).closest("section")!;

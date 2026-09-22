@@ -2,8 +2,8 @@
 import{useEffect,useState,useRef,Fragment}from"react";
 import{getStoredSession,apiRequest,apiUpload,apiDelete,apiDownload,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
 import{summarizePatient}from"../../../../packages/patient-summary/src";
-import{primitive,typography}from"../../../../packages/design-system/src";
-import{labReferenceRanges,acceptedUnitsOf,canonicalUnitOf}from"../../../../packages/lab-reference/src";
+import{primitive,typography,assertNoForbidden}from"../../../../packages/design-system/src";
+import{labReferenceRanges,acceptedUnitsOf,canonicalUnitOf,classifyVital}from"../../../../packages/lab-reference/src";
 import{parseBp}from"../../../../packages/bp-staging/src";
 import{drugCatalog,interactionRules,type DrugCatalogItem}from"../../../../packages/drug-catalog/src";
 import{searchIcd10}from"../../../../packages/terminology/src";
@@ -306,19 +306,38 @@ function stateBadge(s:string){const m:Record<string,[string,string]>={SIGNED:["#
 const in7days=()=>new Date(Date.now()+7*864e5).toISOString();
 const uuid=()=>globalThis.crypto.randomUUID();
 const nowIso=()=>new Date().toISOString();
+// Auditoría U-12: al usuario nunca se le muestra una excepción cruda (String(e) con stack o "TypeError: Failed to fetch").
+// UUID DETERMINISTA en el cliente a partir de una clave (U-09): dos hashes FNV-1a de 64 bits con semillas distintas => 128 bits
+// estables; formato v4 para que el servidor lo acepte como uuid. No es criptográfico: solo necesita ser estable y único por clave.
+function derivedClientUuid(key:string):string{
+ const fnv=(seed:bigint)=>{let h=seed;for(let i=0;i<key.length;i++){h^=BigInt(key.charCodeAt(i));h=(h*0x100000001b3n)&0xffffffffffffffffn;}return h;};
+ const hex=(fnv(0xcbf29ce484222325n).toString(16).padStart(16,"0")+fnv(0x84222325cbf29ce4n).toString(16).padStart(16,"0")).slice(0,32);
+ return`${hex.slice(0,8)}-${hex.slice(8,12)}-4${hex.slice(13,16)}-${(8+(parseInt(hex[16]!,16)&3)).toString(16)}${hex.slice(17,20)}-${hex.slice(20,32)}`;
+}
+function userMessage(e:unknown):string{
+ const m=e instanceof Error?e.message:String(e);
+ if(/failed to fetch|networkerror|load failed|network request failed/i.test(m))return "Sin conexión con el servidor. Compruebe la red y vuelva a intentarlo.";
+ if(/WebCrypto/i.test(m))return m; // mensaje ya redactado para el usuario
+ return "No se pudo completar la acción. Vuelva a intentarlo; si persiste, avise a soporte.";
+}
 function errMsg(r:{status:number;body:Record<string,unknown>}):string{const e=r.body["error"] as{code?:string;message?:string}|undefined;return `${r.status} ${e?.code??""} ${e?.message??""}`.trim();}
+// Auditoría 2026-09-19 (U-16) — los "motivos" del registro inmutable NO son literales del código. Cada transición que lleva
+// un motivo/evidencia/desenlace lo marca con ASK(...) y el diálogo se lo pide al médico antes de enviar; sin texto, no se envía.
+type Ask=Readonly<{__ask:string;min:number;placeholder?:string}>;
+const ASK=(label:string,min=5,placeholder?:string):Ask=>({__ask:label,min,...(placeholder?{placeholder}:{})});
+const isAsk=(v:unknown):v is Ask=>!!v&&typeof v==="object"&&typeof(v as{__ask?:unknown}).__ask==="string";
 // Siguiente transición de una medicación (label, ruta, cuerpo, estado destino).
 function medNext(m:Med):{label:string;path:string;body:Record<string,unknown>;to:MedState}|null{
  if(m.state==="PROPOSED")return{label:"Prescribir",path:`/api/v1/medications/${m.id}/prescription`,body:{occurredAt:nowIso()},to:"PRESCRIBED"};
  if(m.state==="PRESCRIBED")return{label:"Activar",path:`/api/v1/medications/${m.id}/activation`,body:{occurredAt:nowIso()},to:"ACTIVE"};
- if(m.state==="ACTIVE")return{label:"Suspender",path:`/api/v1/medications/${m.id}/discontinuation`,body:{reason:"Suspendido por el médico",occurredAt:nowIso()},to:"STOPPED"};
+ if(m.state==="ACTIVE")return{label:"Suspender",path:`/api/v1/medications/${m.id}/discontinuation`,body:{reason:ASK("Motivo de la suspensión del medicamento",5,"p. ej. efecto adverso, fin del tratamiento, cambio de esquema"),occurredAt:nowIso()},to:"STOPPED"};
  return null;
 }
 // Siguiente transición de un resultado diagnóstico (closed-loop de seguimiento).
 function resNext(r:Result):{label:string;path:string;body:Record<string,unknown>;to:ResState}|null{
  if(r.state==="RECEIVED")return{label:"Verificar",path:`/api/v1/results/${r.id}/verification`,body:{occurredAt:nowIso()},to:"VERIFIED"};
  if(r.state==="VERIFIED")return{label:"Requiere acción",path:`/api/v1/results/${r.id}/action`,body:{ownerId:uuid(),dueAt:in7days(),occurredAt:nowIso()},to:"ACTIONED"};
- if(r.state==="ACTIONED")return{label:"Cerrar",path:`/api/v1/results/${r.id}/closure`,body:{evidence:"Paciente contactado y tratado",occurredAt:nowIso()},to:"CLOSED"};
+ if(r.state==="ACTIONED")return{label:"Cerrar",path:`/api/v1/results/${r.id}/closure`,body:{evidence:ASK("Evidencia del cierre del resultado crítico",10,"qué se hizo, cuándo y con qué resultado (p. ej. paciente contactado, potasio de control 4.4)"),occurredAt:nowIso()},to:"CLOSED"};
  return null;
 }
 // Siguiente transición de un documento clínico (borrador -> finalizado -> firmado -> enmendado).
@@ -347,14 +366,14 @@ function apptNext(a:Appt):{label:string;path:string;body:Record<string,unknown>;
 function dzActions(d:{id:string;state:DzSt}):{label:string;path:string;body:Record<string,unknown>;to:DzSt}[]{
  const base=`/api/v1/dialysis-sessions/${d.id}`;
  if(d.state==="SCHEDULED")return[{label:"Iniciar",path:base+"/start",body:{occurredAt:nowIso()},to:"IN_SESSION"},{label:"No-show",path:base+"/no-show",body:{occurredAt:nowIso()},to:"NO_SHOW"}];
- if(d.state==="IN_SESSION")return[{label:"Completar",path:base+"/completion",body:{occurredAt:nowIso()},to:"COMPLETED"},{label:"Interrumpir",path:base+"/interruption",body:{reason:"Complicación",occurredAt:nowIso()},to:"INTERRUPTED"}];
+ if(d.state==="IN_SESSION")return[{label:"Completar",path:base+"/completion",body:{occurredAt:nowIso()},to:"COMPLETED"},{label:"Interrumpir",path:base+"/interruption",body:{reason:ASK("Descripción de la complicación",5),occurredAt:nowIso()},to:"INTERRUPTED"}];
  if(d.state==="INTERRUPTED")return[{label:"Reanudar",path:base+"/resumption",body:{occurredAt:nowIso()},to:"IN_SESSION"},{label:"Completar",path:base+"/completion",body:{occurredAt:nowIso()},to:"COMPLETED"}];
  return[];
 }
 function sgNext(s:Sg):{label:string;path:string;body:Record<string,unknown>;to:SgSt}|null{
  if(s.state==="SCHEDULED")return{label:"Time-out OMS",path:`/api/v1/surgeries/${s.id}/timeout`,body:{occurredAt:nowIso()},to:"TIMED_OUT"};
  if(s.state==="TIMED_OUT")return{label:"Iniciar",path:`/api/v1/surgeries/${s.id}/start`,body:{occurredAt:nowIso()},to:"IN_PROGRESS"};
- if(s.state==="IN_PROGRESS")return{label:"Completar",path:`/api/v1/surgeries/${s.id}/completion`,body:{outcome:"Sin complicaciones",occurredAt:nowIso()},to:"COMPLETED"};
+ if(s.state==="IN_PROGRESS")return{label:"Completar",path:`/api/v1/surgeries/${s.id}/completion`,body:{outcome:ASK("Desenlace del procedimiento",5),occurredAt:nowIso()},to:"COMPLETED"};
  return null;
 }
 function tfNext(t:Tf):{label:string;path:string;body:Record<string,unknown>;to:TfSt}|null{
@@ -365,20 +384,20 @@ function tfNext(t:Tf):{label:string;path:string;body:Record<string,unknown>;to:T
 }
 function wnActions(w:{id:string;state:WnSt}):{label:string;path:string;body:Record<string,unknown>;to:WnSt}[]{
  const base=`/api/v1/wounds/${w.id}`;
- if(w.state==="OPEN")return[{label:"Re-valorar (peor)",path:base+"/reassessment",body:{stage:"STAGE_3",occurredAt:nowIso()},to:"OPEN"},{label:"Cicatrizada",path:base+"/healing",body:{occurredAt:nowIso()},to:"HEALED"},{label:"Escalar",path:base+"/escalation",body:{reason:"Deterioro",occurredAt:nowIso()},to:"ESCALATED"}];
+ if(w.state==="OPEN")return[{label:"Re-valorar (peor)",path:base+"/reassessment",body:{stage:"STAGE_3",occurredAt:nowIso()},to:"OPEN"},{label:"Cicatrizada",path:base+"/healing",body:{occurredAt:nowIso()},to:"HEALED"},{label:"Escalar",path:base+"/escalation",body:{reason:ASK("Descripción del deterioro",5),occurredAt:nowIso()},to:"ESCALATED"}];
  return[];
 }
 function trActions(t:{id:string;state:TrSt}):{label:string;path:string;body:Record<string,unknown>;to:TrSt}[]{
  const base=`/api/v1/triage/${t.id}`;
- if(t.state==="WAITING")return[{label:"Iniciar triage",path:base+"/start",body:{occurredAt:nowIso()},to:"IN_TRIAGE"},{label:"LWBS",path:base+"/lwbs",body:{reason:"Se retiró sin ser visto",occurredAt:nowIso()},to:"LWBS"}];
- if(t.state==="IN_TRIAGE")return[{label:"Clasificar ESI-2",path:base+"/assessment",body:{acuity:2,occurredAt:nowIso()},to:"TRIAGED"},{label:"LWBS",path:base+"/lwbs",body:{reason:"Se retiró sin ser visto",occurredAt:nowIso()},to:"LWBS"}];
+ if(t.state==="WAITING")return[{label:"Iniciar triage",path:base+"/start",body:{occurredAt:nowIso()},to:"IN_TRIAGE"},{label:"LWBS",path:base+"/lwbs",body:{reason:ASK("Circunstancias de la salida sin atención",5),occurredAt:nowIso()},to:"LWBS"}];
+ if(t.state==="IN_TRIAGE")return[{label:"Clasificar ESI-2",path:base+"/assessment",body:{acuity:2,occurredAt:nowIso()},to:"TRIAGED"},{label:"LWBS",path:base+"/lwbs",body:{reason:ASK("Circunstancias de la salida sin atención",5),occurredAt:nowIso()},to:"LWBS"}];
  if(t.state==="TRIAGED")return[{label:"Re-clasificar ESI-1",path:base+"/assessment",body:{acuity:1,occurredAt:nowIso()},to:"TRIAGED"},{label:"Cerrar",path:base+"/closure",body:{occurredAt:nowIso()},to:"CLOSED"}];
  return[];
 }
 function incActions(i:{id:string;state:IncSt}):{label:string;path:string;body:Record<string,unknown>;to:IncSt}[]{
  const base=`/api/v1/incidents/${i.id}`;const resolve={label:"Resolver",path:base+"/resolution",body:{resolution:"CAPA implementada",occurredAt:nowIso()},to:"RESOLVED" as IncSt};
  if(i.state==="REPORTED")return[{label:"Revisar",path:base+"/review",body:{occurredAt:nowIso()},to:"UNDER_REVIEW"},resolve];
- if(i.state==="UNDER_REVIEW")return[{label:"Escalar",path:base+"/escalation",body:{reason:"Riesgo alto",occurredAt:nowIso()},to:"ESCALATED"},resolve];
+ if(i.state==="UNDER_REVIEW")return[{label:"Escalar",path:base+"/escalation",body:{reason:ASK("Motivo de la escalada",5),occurredAt:nowIso()},to:"ESCALATED"},resolve];
  if(i.state==="ESCALATED")return[resolve];
  return[];
 }
@@ -390,45 +409,45 @@ function spNext(s:Sp):{label:string;path:string;body:Record<string,unknown>;to:S
 }
 function admActions(a:{id:string;state:AdmSt}):{label:string;path:string;body:Record<string,unknown>;to:AdmSt}[]{
  const base=`/api/v1/admissions/${a.id}`;
- if(a.state==="ADMITTED"||a.state==="TRANSFERRED")return[{label:"Trasladar a UCI",path:base+"/transfer",body:{unit:"ICU",occurredAt:nowIso()},to:"TRANSFERRED"},{label:"Dar de alta",path:base+"/discharge",body:{disposition:"Alta a domicilio",occurredAt:nowIso()},to:"DISCHARGED"},{label:"Cancelar",path:base+"/cancellation",body:{reason:"Admisión por error",occurredAt:nowIso()},to:"CANCELLED"}];
+ if(a.state==="ADMITTED"||a.state==="TRANSFERRED")return[{label:"Trasladar a UCI",path:base+"/transfer",body:{unit:"ICU",occurredAt:nowIso()},to:"TRANSFERRED"},{label:"Dar de alta",path:base+"/discharge",body:{disposition:"Alta a domicilio",occurredAt:nowIso()},to:"DISCHARGED"},{label:"Cancelar",path:base+"/cancellation",body:{reason:ASK("Motivo de la cancelación de la admisión",5),occurredAt:nowIso()},to:"CANCELLED"}];
  return[];
 }
 function csActions(c:{id:string;state:CsSt}):{label:string;path:string;body:Record<string,unknown>;to:CsSt}[]{
  const base=`/api/v1/consents/${c.id}`;const w={occurredAt:nowIso()};
  if(c.state==="DRAFTED")return[{label:"Presentar",path:base+"/presentation",body:w,to:"PRESENTED"}];
- if(c.state==="PRESENTED")return[{label:"Otorgar",path:base+"/grant",body:{signerName:"Paciente/Tutor",occurredAt:nowIso()},to:"GRANTED"},{label:"Rechazar",path:base+"/decline",body:{reason:"Paciente no acepta",occurredAt:nowIso()},to:"DECLINED"}];
- if(c.state==="GRANTED")return[{label:"Revocar",path:base+"/revocation",body:{reason:"Paciente revoca",occurredAt:nowIso()},to:"REVOKED"}];
+ if(c.state==="PRESENTED")return[{label:"Otorgar",path:base+"/grant",body:{signerName:"Paciente/Tutor",occurredAt:nowIso()},to:"GRANTED"},{label:"Rechazar",path:base+"/decline",body:{reason:ASK("Motivo del rechazo",5),occurredAt:nowIso()},to:"DECLINED"}];
+ if(c.state==="GRANTED")return[{label:"Revocar",path:base+"/revocation",body:{reason:ASK("Motivo de la revocación",5),occurredAt:nowIso()},to:"REVOKED"}];
  return[];
 }
 function clmActions(c:{id:string;state:ClmSt}):{label:string;path:string;body:Record<string,unknown>;to:ClmSt}[]{
- const base=`/api/v1/claims/${c.id}`;const w={occurredAt:nowIso()};const voidAct={label:"Anular",path:base+"/void",body:{reason:"Anulada",occurredAt:nowIso()},to:"VOIDED" as ClmSt};
+ const base=`/api/v1/claims/${c.id}`;const w={occurredAt:nowIso()};const voidAct={label:"Anular",path:base+"/void",body:{reason:ASK("Motivo de la anulación",5),occurredAt:nowIso()},to:"VOIDED" as ClmSt};
  if(c.state==="DRAFT")return[{label:"Codificar",path:base+"/coding",body:{codes:["99213"],occurredAt:nowIso()},to:"CODED"},voidAct];
  if(c.state==="CODED")return[{label:"Enviar",path:base+"/submission",body:w,to:"SUBMITTED"},voidAct];
- if(c.state==="SUBMITTED")return[{label:"Pagada",path:base+"/payment",body:{reference:"EOB-"+Date.now(),occurredAt:nowIso()},to:"PAID"},{label:"Rechazada",path:base+"/rejection",body:{reason:"Rechazo del pagador",occurredAt:nowIso()},to:"REJECTED"}];
+ if(c.state==="SUBMITTED")return[{label:"Pagada",path:base+"/payment",body:{reference:"EOB-"+Date.now(),occurredAt:nowIso()},to:"PAID"},{label:"Rechazada",path:base+"/rejection",body:{reason:ASK("Motivo del rechazo del pagador",5),occurredAt:nowIso()},to:"REJECTED"}];
  if(c.state==="REJECTED")return[{label:"Reenviar",path:base+"/submission",body:w,to:"SUBMITTED"},voidAct];
  return[];
 }
 function cpActions(c:{id:string;state:CpSt}):{label:string;path:string;body:Record<string,unknown>;to:CpSt}[]{
  const base=`/api/v1/care-plans/${c.id}`;const w={occurredAt:nowIso()};
- if(c.state==="PROPOSED")return[{label:"Activar",path:base+"/activation",body:w,to:"ACTIVE"},{label:"Cancelar",path:base+"/cancellation",body:{reason:"No procede",occurredAt:nowIso()},to:"CANCELLED"}];
- if(c.state==="ACTIVE")return[{label:"Lograda",path:base+"/achievement",body:w,to:"ACHIEVED"},{label:"Pausar",path:base+"/hold",body:w,to:"ON_HOLD"},{label:"Cancelar",path:base+"/cancellation",body:{reason:"No procede",occurredAt:nowIso()},to:"CANCELLED"}];
- if(c.state==="ON_HOLD")return[{label:"Reanudar",path:base+"/resumption",body:w,to:"ACTIVE"},{label:"Cancelar",path:base+"/cancellation",body:{reason:"No procede",occurredAt:nowIso()},to:"CANCELLED"}];
+ if(c.state==="PROPOSED")return[{label:"Activar",path:base+"/activation",body:w,to:"ACTIVE"},{label:"Cancelar",path:base+"/cancellation",body:{reason:ASK("Motivo",5),occurredAt:nowIso()},to:"CANCELLED"}];
+ if(c.state==="ACTIVE")return[{label:"Lograda",path:base+"/achievement",body:w,to:"ACHIEVED"},{label:"Pausar",path:base+"/hold",body:w,to:"ON_HOLD"},{label:"Cancelar",path:base+"/cancellation",body:{reason:ASK("Motivo",5),occurredAt:nowIso()},to:"CANCELLED"}];
+ if(c.state==="ON_HOLD")return[{label:"Reanudar",path:base+"/resumption",body:w,to:"ACTIVE"},{label:"Cancelar",path:base+"/cancellation",body:{reason:ASK("Motivo",5),occurredAt:nowIso()},to:"CANCELLED"}];
  return[];
 }
 function vitActions(v:{id:string;state:VitSt;value:string;unit:string}):{label:string;path:string;body:Record<string,unknown>;to:VitSt}[]{
  const base=`/api/v1/vitals/${v.id}`;
- if(v.state==="RECORDED"||v.state==="AMENDED")return[{label:"Enmendar",path:base+"/amendment",body:{value:v.value,unit:v.unit,reason:"Corrección clínica",occurredAt:nowIso()},to:"AMENDED"},{label:"Marcar error",path:base+"/error-mark",body:{reason:"Captura errónea",occurredAt:nowIso()},to:"ENTERED_IN_ERROR"}];
+ if(v.state==="RECORDED"||v.state==="AMENDED")return[{label:"Enmendar",path:base+"/amendment",body:{value:v.value,unit:v.unit,reason:ASK("Motivo de la corrección",5),occurredAt:nowIso()},to:"AMENDED"},{label:"Marcar error",path:base+"/error-mark",body:{reason:ASK("Motivo de marcar el registro como error",5),occurredAt:nowIso()},to:"ENTERED_IN_ERROR"}];
  return[];
 }
 function immActions(i:{id:string;state:ImmSt}):{label:string;path:string;body:Record<string,unknown>;to:ImmSt}[]{
  const base=`/api/v1/immunizations/${i.id}`;
- if(i.state==="DUE")return[{label:"Aplicar",path:base+"/administration",body:{lot:"L-2026-A",site:"deltoides izq",occurredAt:nowIso()},to:"ADMINISTERED"},{label:"Rechazar",path:base+"/refusal",body:{reason:"Rechazo del paciente/tutor",occurredAt:nowIso()},to:"REFUSED"}];
- if(i.state==="ADMINISTERED")return[{label:"Evento adverso",path:base+"/adverse-event",body:{reaction:"Reacción reportada",occurredAt:nowIso()},to:"ADVERSE_EVENT"}];
+ if(i.state==="DUE")return[{label:"Aplicar",path:base+"/administration",body:{lot:"L-2026-A",site:"deltoides izq",occurredAt:nowIso()},to:"ADMINISTERED"},{label:"Rechazar",path:base+"/refusal",body:{reason:ASK("Motivo del rechazo (paciente/tutor)",5),occurredAt:nowIso()},to:"REFUSED"}];
+ if(i.state==="ADMINISTERED")return[{label:"Evento adverso",path:base+"/adverse-event",body:{reaction:ASK("Descripción de la reacción transfusional",10),occurredAt:nowIso()},to:"ADVERSE_EVENT"}];
  return[];
 }
 function obNext(o:Ob):{label:string;path:string;body:Record<string,unknown>;to:ObSt}|null{
  if(o.state==="OPEN")return{label:"En progreso",path:`/api/v1/obligations/${o.id}/progress`,body:{occurredAt:nowIso()},to:"IN_PROGRESS"};
- if(o.state==="IN_PROGRESS")return{label:"Completar",path:`/api/v1/obligations/${o.id}/completion`,body:{evidence:"Seguimiento realizado y documentado",occurredAt:nowIso()},to:"COMPLETED"};
+ if(o.state==="IN_PROGRESS")return{label:"Completar",path:`/api/v1/obligations/${o.id}/completion`,body:{evidence:ASK("Evidencia del seguimiento realizado",10,"qué se hizo, cuándo y con qué resultado"),occurredAt:nowIso()},to:"COMPLETED"};
  return null;
 }
 
@@ -486,6 +505,15 @@ export default function Workspace(){
  const[signBusy,setSignBusy]=useState(false);const[signErr,setSignErr]=useState("");
  // Enmienda de un documento firmado: el texto lo escribe el médico (antes se enviaba el literal "Addendum clínico").
  const[amendAsk,setAmendAsk]=useState<Doc|null>(null);const[amendText,setAmendText]=useState("");
+ // U-16: diálogo genérico de motivo/evidencia. `resolveAsks` recorre el cuerpo, pide cada marcador ASK y devuelve el cuerpo
+ // con el texto del médico, o null si canceló (entonces NO se envía nada).
+ const[reasonAsk,setReasonAsk]=useState<{spec:Ask;resolve:(v:string|null)=>void}|null>(null);const[reasonText,setReasonText]=useState("");
+ const askReason=(spec:Ask)=>new Promise<string|null>(resolve=>{setReasonText("");setReasonAsk({spec,resolve});});
+ const resolveAsks=async(body:Record<string,unknown>):Promise<Record<string,unknown>|null>=>{
+  const out:Record<string,unknown>={...body};
+  for(const[k,v]of Object.entries(body)){if(isAsk(v)){const text=await askReason(v);if(text===null)return null;out[k]=text;}}
+  return out;
+ };
  // Auditoría L-10/L-11: las verticales hospitalarias solo se pintan si el SERVIDOR las declara encendidas
  // (GET /api/v1/features). Por defecto, y ante cualquier fallo, APAGADAS.
  const[hospitalOn,setHospitalOn]=useState(false);
@@ -525,7 +553,7 @@ export default function Workspace(){
  const[pfName,setPfName]=useState("");const[pfCode,setPfCode]=useState("");
  const[pfType,setPfType]=useState<"Agudo"|"Crónico"|"Recurrente">("Agudo");
  const[pfEstado,setPfEstado]=useState("Activo");const[pfDesc,setPfDesc]=useState("");
- const[pfSev,setPfSev]=useState("Leve");const[pfNotes,setPfNotes]=useState("");
+ const[pfSev,setPfSev]=useState("Leve");const[pfNotes,setPfNotes]=useState("");const[pfOnset,setPfOnset]=useState(()=>new Date().toISOString().slice(0,10));
  const[pfResults,setPfResults]=useState<IcdEntry[]>([]);const[pfBusy,setPfBusy]=useState(false);const[pfMsg,setPfMsg]=useState("");
  // Vista Vacunas (S-VACUNAS) — registro clínica-wide cableado a GET /api/v1/immunizations
  const[immReg,setImmReg]=useState<ImmRegistry|null>(null);const[immSel,setImmSel]=useState(0);
@@ -689,6 +717,9 @@ export default function Workspace(){
  const[cPreview,setCPreview]=useState(false); // vista previa de la nota compuesta (Consulta)
  const[cMsg,setCMsg]=useState<string|null>(null); // aviso del flujo de encuentro (Consulta)
  const[cVit,setCVit]=useState({ta:"",fc:"",fr:"",temp:"",spo2:""}); // signos vitales de la Consulta
+ const cVitSubmission=useRef<string|null>(null); // U-09: id de la captura en curso (estable entre reintentos)
+ const draftOwner=useRef<string>(""); // U-17: paciente al que pertenece el borrador de consulta
+ const dataOwner=useRef<string>("");  // U-17: paciente al que pertenecen tl/gaps/snap/trends cargados
  const[cVitMsg,setCVitMsg]=useState<string|null>(null);const[cVitBusy,setCVitBusy]=useState(false);
  const[cOrdCat,setCOrdCat]=useState<"LAB"|"IMAGING"|"PROCEDURE"|"REFERRAL">("LAB"); // categoría de órdenes de la Consulta
  const[cOrdSel,setCOrdSel]=useState<string[]>([]);const[cOrdMsg,setCOrdMsg]=useState<string|null>(null);const[cOrdBusy,setCOrdBusy]=useState(false);
@@ -708,6 +739,9 @@ export default function Workspace(){
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version?:number}[]|null>(null);
  // Auditoría S-08: el listado de pacientes viene PAGINADO del servidor (200 por página) y se busca en el servidor (?q=).
  const[patientQuery,setPatientQuery]=useState("");const[patientTotal,setPatientTotal]=useState<number|null>(null);const[patientMore,setPatientMore]=useState(false);
+ // U-12: selector de paciente REUTILIZABLE en toda barra de paciente (antes solo existía en Signos vitales; en Plan, Documentos,
+ // Seguimiento e Interconsulta no había forma de elegir paciente y el flujo dependía de un UUID aleatorio inicial).
+ const patientSelector=<select aria-label="Paciente en contexto" value={(patientList??[]).some(p=>p.patientId===patientId)?patientId:""} onChange={e=>{const pp=(patientList??[]).find(x=>x.patientId===e.target.value);if(pp)selectPatientRaw(pp.patientId,pp.name);}} style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"7px 10px",fontSize:15,fontWeight:700,fontFamily:UI,color:P.ink,background:P.white,maxWidth:320}}><option value="">Selecciona un paciente…</option>{(patientList??[]).map(p=><option key={p.patientId} value={p.patientId}>{p.name}</option>)}</select>;
  const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
  const[patStatus,setPatStatus]=useState("");const[patSex,setPatSex]=useState(""); // filtros de la vista Pacientes ("":todos)
  const[patNew,setPatNew]=useState(false);const[patMsg,setPatMsg]=useState<string|null>(null); // creador inline + aviso
@@ -722,8 +756,27 @@ export default function Workspace(){
  useEffect(()=>{
   const s=getStoredSession();
   if(!s){window.location.replace("/login");return;} // guard duro: el espacio clínico exige sesión
-  setSession(s);setPatientId(uuid());setReady(true);
+  setSession(s);setReady(true); // U-12: sin paciente hasta que el médico elija uno (antes: UUID aleatorio => 4 peticiones a un paciente inexistente)
  },[]);
+ // Auditoría U-17 — el contrato de estados PROHIBIDOS del design system (packages/design-system) se aplica en el workspace
+ // REAL, no solo en el prototipo gux-001. Se calcula el conjunto de estados activos a partir del estado de la UI y, si una
+ // combinación prohibida llegara a darse, se corrige (borrando lo que sobra) y se registra en consola: nunca se pinta.
+ const uiForbidden=useRef<string|null>(null);
+ useEffect(()=>{
+  const active:string[]=[];
+  if(patientId){active.push("PATIENT_A_CONTEXT");if(dataOwner.current&&dataOwner.current!==patientId&&(tl||gaps||snap||trends))active.push("PATIENT_B_DATA");}
+  const draftDirty=Object.values(cForm).some(v=>v.trim())||cAntec.length>0;
+  if(draftOwner.current&&draftOwner.current!==patientId){active.push("PATIENT_SWITCH");if(draftDirty)active.push("OLD_DRAFT_SUBMITTABLE");}
+  const criticalOpen=(gaps??[]).some(g=>g.priority==="HIGH"&&(g.code==="CRITICAL_RESULT_OPEN"||g.code==="VITAL_CRITICAL"||g.code==="FOLLOWUP_OPEN"));
+  if(criticalOpen)active.push("CRITICAL_OPEN");
+  if(enc?.state==="READY_TO_SIGN"&&!criticalOpen)active.push("SIGN_READY"); // con críticos abiertos la firma se presenta BLOQUEADA, no "lista"
+  try{assertNoForbidden(active);uiForbidden.current=null;}
+  catch(e){
+   const rule=e instanceof Error?e.message:String(e);uiForbidden.current=rule;console.error("[workspace] estado prohibido corregido:",rule);
+   if(rule.includes("PATIENT_B_DATA")){setTl(null);setGaps(null);setSnap(null);setTrends(null);}
+   if(rule.includes("OLD_DRAFT_SUBMITTABLE")){setCForm({motivo:"",historia:"",antec:"",interrog:"",explor:"",plan:""});setCAntec([]);draftOwner.current=patientId;}
+  }
+ },[patientId,tl,gaps,snap,trends,cForm,cAntec,enc]);
  // Capacidades del servidor (auditoría L-10/L-11). Si la consulta falla, las verticales hospitalarias quedan APAGADAS.
  useEffect(()=>{
   if(!ready||!session)return;let cancelled=false;
@@ -758,7 +811,7 @@ export default function Workspace(){
     const tr=await apiRequest(`/api/v1/patients/${patientId}/trends`,{method:"GET"});
     if(cancelled)return;
     setTrends(known(tr.status)?(tr.body as unknown as Trends):null);
-    setChartState(failed?"error":"ready");
+    dataOwner.current=patientId;setChartState(failed?"error":"ready");
    }catch{if(!cancelled)setChartState("error");}
   },450);
   return()=>{cancelled=true;clearTimeout(t);};
@@ -784,7 +837,8 @@ export default function Workspace(){
  },[view,ready,session,agendaDate]);
  // Inicio, Pacientes, Órdenes y Agenda: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
-  if((view!=="inicio"&&view!=="pacientes"&&view!=="ordenes"&&view!=="agenda"&&view!=="alergias"&&view!=="vacunas"&&view!=="facturacion"&&view!=="interconsulta"&&view!=="resultados"&&view!=="signos"&&view!=="consulta")||!ready||!session)return;
+  // U-12: la lista de pacientes se necesita en TODA vista con barra de paciente (el selector reutilizable la usa).
+  if(!ready||!session)return;
   let cancelled=false;
   (async()=>{
    try{
@@ -1030,7 +1084,7 @@ export default function Workspace(){
   return()=>io.disconnect();
  },[ready]);
 
- async function call(tag:string,fn:()=>Promise<void>){setBusy(tag);setError("");try{await fn();}catch(e){setError(String(e));}finally{setBusy("");}}
+ async function call(tag:string,fn:()=>Promise<void>){setBusy(tag);setError("");try{await fn();}catch(e){setError(userMessage(e));}finally{setBusy("");}}
  const openEncounter=()=>call("open",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/encounters",{method:"POST",body:{encounterId:id,patientId,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}setEnc({id,state:"OPEN",version:Number(r.body["version"]??1)});
@@ -1071,7 +1125,7 @@ export default function Workspace(){
     setDocs(ds=>ds.map(x=>x.id===d.id?{...x,state:"SIGNED",version:Number(r.body["version"]??d.version+1)}:x));
    }
    setSignAsk(null);
-  }catch(e){setSignErr(String(e));}finally{setSignBusy(false);}
+  }catch(e){setSignErr(userMessage(e));}finally{setSignBusy(false);}
  };
  // Compone la nota clínica del encuentro (valoración) a partir del formulario estructurado de la Consulta.
  function composeNote():string{
@@ -1126,16 +1180,24 @@ export default function Workspace(){
   if(cVit.spo2.trim())toSave.push(["SPO2",cVit.spo2.trim(),"%"]);
   if(!toSave.length){setCVitMsg("Captura al menos un signo vital.");return;}
   setCVitBusy(true);setCVitMsg(null);
+  // Auditoría U-09: una captura = una "sesión de envío" con id fijo. Cada vital deriva su vitalId y su Idempotency-Key de ese id
+  // y de su tipo, así que si falla a la mitad y el médico reintenta, los ya guardados se REPITEN idempotentemente (200) y solo
+  // se crean los que faltaban: sin duplicados y sin pérdidas silenciosas. El id se conserva hasta que TODO se guarda.
+  const submission=cVitSubmission.current??(cVitSubmission.current=uuid());
   try{
-   const marks:string[]=[];
+   const marks:string[]=[];const saved:string[]=[];const failed:string[]=[];
    for(const[vt,val,u]of toSave){
-    const r=await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId:uuid(),patientId,vitalType:vt,value:val,unit:u,occurredAt:at}});
-    if(r.status>=400){setCVitMsg(errMsg(r));setCVitBusy(false);return;}
+    const key=`${submission}:${vt}`;const vitalId=derivedClientUuid(key);
+    const r=await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId,patientId,vitalType:vt,value:val,unit:u,occurredAt:at},idempotencyKey:derivedClientUuid(key+":idem")});
+    if(r.status>=400){failed.push(`${vt}: ${errMsg(r)}`);continue;}
+    saved.push(vt);
     if(String(r.body["status"]??"")==="CRITICAL")marks.push(`${vt} ${val}: ${String(r.body["interpretation"]??"crítico")}`);
    }
+   if(failed.length){setCVitMsg(`Guardados: ${saved.length?saved.join(", "):"ninguno"}. NO guardados: ${failed.join(" · ")}. Corrija y vuelva a guardar: los ya guardados no se duplicarán.`);return;}
+   cVitSubmission.current=null;
    setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});
-   setCVitMsg(marks.length?`Guardados. ⚠ ${marks.length} signo(s) crítico(s) — ${marks.join("; ")}. Un vital crítico sin firmar bloquea la firma.`:"Signos vitales guardados en el expediente ✓");
-  }catch(e){setCVitMsg(String(e));}finally{setCVitBusy(false);}
+   setCVitMsg(marks.length?`Guardados. ⚠ ${marks.length} signo(s) crítico(s) — ${marks.join("; ")}. Un vital crítico sin atender bloquea la firma.`:"Signos vitales guardados en el expediente ✓");
+  }catch(e){setCVitMsg(userMessage(e));}finally{setCVitBusy(false);}
  };
  // Crea órdenes clínicas reales desde la Consulta (POST /orders) por cada estudio seleccionado, con el tipo de la categoría.
  const createConsultaOrders=async()=>{
@@ -1148,7 +1210,7 @@ export default function Workspace(){
     if(r.status>=400){setCOrdMsg(errMsg(r));setCOrdBusy(false);return;}
    }
    const n=cOrdSel.length;setCOrdSel([]);setCOrdMsg(`${n} orden(es) creada(s) y registrada(s) en el expediente ✓`);
-  }catch(e){setCOrdMsg(String(e));}finally{setCOrdBusy(false);}
+  }catch(e){setCOrdMsg(userMessage(e));}finally{setCOrdBusy(false);}
  };
  // ===== Resultados: registrar un resultado real (POST /results; critical se DERIVA del valor por CDS) + recarga =====
  const reloadResults=async()=>{const r=await apiRequest("/api/v1/results",{method:"GET"});if(r.status===200)setResReg(r.body as unknown as ResultsRegistry);};
@@ -1167,7 +1229,7 @@ export default function Workspace(){
     :st==="NORMAL"?`Resultado registrado ✓ (dentro de rango)${noUnit}.`
     :st==="ABNORMAL"?`Resultado registrado — FUERA de rango (no crítico)${interp?`: ${interp}`:""}${noUnit}.`
     :`Resultado registrado — sin rango de referencia para interpretarlo${noUnit}.`);
-  }catch(e){setResMsg2(String(e));}finally{setResBusy2(false);}
+  }catch(e){setResMsg2(userMessage(e));}finally{setResBusy2(false);}
  };
  // ===== Obligaciones regulatorias del consultorio: alta inline real (POST /regulatory-obligations) + recarga =====
  const reloadRegObligations=async()=>{const r=await apiRequest("/api/v1/regulatory-obligations",{method:"GET"});if(r.status===200)setRegObSnap(r.body as unknown as RegObSnap);};
@@ -1178,7 +1240,7 @@ export default function Workspace(){
    const r=await apiRequest("/api/v1/regulatory-obligations",{method:"POST",body:{obligationId:uuid(),name:oblForm.name.trim(),category:oblForm.category,periodicity:oblForm.periodicity.trim()||"Única",...(oblForm.dueDate?{dueDate:`${oblForm.dueDate}T00:00:00.000Z`}:{}),occurredAt:nowIso()}});
    if(r.status>=400){setOblMsg(errMsg(r));return;}
    await reloadRegObligations();setOblNew(false);setOblForm({name:"",category:oblForm.category,periodicity:oblForm.periodicity,dueDate:""});setOblMsg("Obligación agregada; su estado se computa de la fecha límite ✓");
-  }catch(e){setOblMsg(String(e));}finally{setOblBusy(false);}
+  }catch(e){setOblMsg(userMessage(e));}finally{setOblBusy(false);}
  };
  // ===== Documentos: crear un documento clínico real (POST /documents; contenido de texto) + recarga por paciente =====
  const createDocument=async()=>{
@@ -1190,7 +1252,7 @@ export default function Workspace(){
    if(r.status>=400){setDocMsg(errMsg(r));return;}
    const g=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET"});if(g.status===200)setDocsSnap(g.body as unknown as DocsSnap);
    setDocNew(false);setDocForm({docType:docForm.docType,title:"",content:""});setDocMsg("Documento creado ✓");
-  }catch(e){setDocMsg(String(e));}finally{setDocBusy(false);}
+  }catch(e){setDocMsg(userMessage(e));}finally{setDocBusy(false);}
  };
  // ===== Plan de cuidado: agregar meta real al plan del paciente en contexto (POST /care-plans) + recarga =====
  const reloadCarePlan=async()=>{if(!patientId)return;const r=await apiRequest(`/api/v1/patients/${patientId}/care-plan`,{method:"GET"});if(r.status===200)setCpSnap(r.body as unknown as CarePlanSnap);};
@@ -1202,7 +1264,7 @@ export default function Workspace(){
    const r=await apiRequest("/api/v1/care-plans",{method:"POST",body:{carePlanId:uuid(),patientId,category:cpForm.category,goal:cpForm.goal.trim(),occurredAt:nowIso()}});
    if(r.status>=400){setCpMsg(errMsg(r));return;}
    await reloadCarePlan();setCpNew(false);setCpForm({category:cpForm.category,goal:""});setCpMsg("Meta agregada al plan de cuidado ✓");
-  }catch(e){setCpMsg(String(e));}finally{setCpBusy(false);}
+  }catch(e){setCpMsg(userMessage(e));}finally{setCpBusy(false);}
  };
  // ===== Vacunas: registro inline real (POST /immunizations; si hay lote+sitio, administra) + recarga =====
  const reloadImmunizations=async()=>{const r=await apiRequest("/api/v1/immunizations",{method:"GET"});if(r.status===200)setImmReg(r.body as unknown as ImmRegistry);};
@@ -1221,7 +1283,7 @@ export default function Workspace(){
    }
    await reloadImmunizations();setVacNew(false);setVacForm({patientId:"",vaccineCode:"",dose:"1/1",lot:"",site:"Brazo izquierdo"});
    setVacMsg(applied?"Vacuna registrada y aplicada ✓":"Vacuna registrada como pendiente ✓ (captura lote y sitio para marcarla aplicada).");
-  }catch(e){setVacMsg(String(e));}finally{setVacBusy(false);}
+  }catch(e){setVacMsg(userMessage(e));}finally{setVacBusy(false);}
  };
  // ===== Alergias: creación inline real (POST /allergies) + recarga del registro clínica-wide =====
  const reloadAllergies=async()=>{const r=await apiRequest("/api/v1/allergies",{method:"GET"});if(r.status===200)setAlergReg(r.body as unknown as AllergyRegistry);};
@@ -1232,7 +1294,7 @@ export default function Workspace(){
    const r=await apiRequest("/api/v1/allergies",{method:"POST",body:{allergyId:uuid(),patientId:algForm.patientId,substance:algForm.substance.trim(),severity:algForm.severity,reaction:algForm.reaction.trim()||"No especificada",occurredAt:nowIso()}});
    if(r.status>=400){setAlgMsg(errMsg(r));return;}
    await reloadAllergies();setAlgNew(false);setAlgForm({patientId:"",substance:"",severity:"MODERATE",reaction:""});setAlgMsg("Alergia registrada. Ya bloquea la prescripción del fármaco relacionado.");
-  }catch(e){setAlgMsg(String(e));}finally{setAlgBusy(false);}
+  }catch(e){setAlgMsg(userMessage(e));}finally{setAlgBusy(false);}
  };
  // Agrega un problema (CIE-10 del catálogo real) a la lista del paciente (POST /problems) y refresca el snapshot.
  const addConsultaProblem=async(code:string)=>{
@@ -1243,7 +1305,7 @@ export default function Workspace(){
    if(r.status>=400){setCDxMsg(errMsg(r));return;}
    setCDxQuery("");setCDxMsg(`Problema ${code} agregado a la lista ✓`);
    try{const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET"});if(sp.status<400&&sp.body["registered"])setSnap(sp.body as unknown as Snap);}catch{/* refresco best-effort del snapshot */}
-  }catch(e){setCDxMsg(String(e));}finally{setCDxBusy(false);}
+  }catch(e){setCDxMsg(userMessage(e));}finally{setCDxBusy(false);}
  };
  const proposeMed=()=>call("med-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/medications",{method:"POST",body:{medicationId:id,patientId,drugCode:drug,dose,route,frequency:freq,occurredAt:nowIso()}});
@@ -1253,7 +1315,8 @@ export default function Workspace(){
  });
  const advanceMed=(m:Med)=>call("med-"+m.id,async()=>{
   const n=medNext(m);if(!n)return;
-  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:m.version});
+  const body=await resolveAsks(n.body);if(!body)return;
+  const r=await apiRequest(n.path,{method:"POST",body,ifMatch:m.version});
   const code=(r.body["error"] as{code?:string}|undefined)?.code;
   if(r.status===428&&code==="SAFETY_ACK_REQUIRED"){setAckWhy("");setAckMed({med:m,message:String((r.body["error"] as{message?:string}|undefined)?.message??"")});return;}
   if(r.status>=400){setError(errMsg(r));return;}
@@ -1262,7 +1325,8 @@ export default function Workspace(){
  // Reenvía PRESCRIBE con la confirmación expresa y la justificación del médico; ambas quedan en el evento inmutable.
  const confirmAckMed=()=>{const a=ackMed;if(!a)return;return call("med-"+a.med.id,async()=>{
   const n=medNext(a.med);if(!n)return;
-  const r=await apiRequest(n.path,{method:"POST",body:{...n.body,acknowledgeUnverified:true,unverifiedJustification:ackWhy.trim()},ifMatch:a.med.version});
+  const body=await resolveAsks(n.body);if(!body)return;
+  const r=await apiRequest(n.path,{method:"POST",body:{...body,acknowledgeUnverified:true,unverifiedJustification:ackWhy.trim()},ifMatch:a.med.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setMeds(ms=>ms.map(x=>x.id===a.med.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
   setAckMed(null);setAckWhy("");
@@ -1290,7 +1354,8 @@ export default function Workspace(){
  });
  const advanceResult=(res:Result)=>call("res-"+res.id,async()=>{
   const n=resNext(res);if(!n)return;
-  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:res.version});
+  const body=await resolveAsks(n.body);if(!body)return;
+  const r=await apiRequest(n.path,{method:"POST",body,ifMatch:res.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setResults(rs=>rs.map(x=>x.id===res.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
@@ -1323,7 +1388,8 @@ export default function Workspace(){
  });
  const advanceOrder=(o:Order)=>call("ord-"+o.id,async()=>{
   const n=orderNext(o);if(!n)return;
-  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:o.version});
+  const body=await resolveAsks(n.body);if(!body)return;
+  const r=await apiRequest(n.path,{method:"POST",body,ifMatch:o.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setOrders(os=>os.map(x=>x.id===o.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
@@ -1334,14 +1400,16 @@ export default function Workspace(){
  });
  const advanceReferral=(rr:Ref)=>call("ref-"+rr.id,async()=>{
   const n=referralNext(rr);if(!n)return;
-  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:rr.version});
+  const body=await resolveAsks(n.body);if(!body)return;
+  const r=await apiRequest(n.path,{method:"POST",body,ifMatch:rr.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setReferrals(rs=>rs.map(x=>x.id===rr.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const cancelReferral=(rr:Ref)=>call("ref-"+rr.id,async()=>{
   const path=rr.state==="REQUESTED"?`/api/v1/referrals/${rr.id}/decline`:`/api/v1/referrals/${rr.id}/cancellation`;
   const to:RefSt=rr.state==="REQUESTED"?"DECLINED":"CANCELLED";
-  const r=await apiRequest(path,{method:"POST",body:{reason:"Cerrada desde el chart",occurredAt:nowIso()},ifMatch:rr.version});
+  const body=await resolveAsks({reason:ASK("Motivo del cierre de la interconsulta",5),occurredAt:nowIso()});if(!body)return;
+  const r=await apiRequest(path,{method:"POST",body,ifMatch:rr.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setReferrals(rs=>rs.map(x=>x.id===rr.id?{...x,state:to,version:Number(r.body["version"]??x.version+1)}:x));
  });
@@ -1353,14 +1421,15 @@ export default function Workspace(){
  });
  const advanceAppt=(a:Appt)=>call("apt-"+a.id,async()=>{
   const n=apptNext(a);if(!n)return;
-  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:a.version});
+  const body=await resolveAsks(n.body);if(!body)return;
+  const r=await apiRequest(n.path,{method:"POST",body,ifMatch:a.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setAppts(as=>as.map(x=>x.id===a.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const closeAppt=(a:Appt,mode:"cancel"|"noshow")=>call("apt-"+a.id,async()=>{
   const path=mode==="noshow"?`/api/v1/appointments/${a.id}/no-show`:`/api/v1/appointments/${a.id}/cancellation`;
   const to:ApptSt=mode==="noshow"?"NO_SHOW":"CANCELLED";
-  const body=mode==="noshow"?{occurredAt:nowIso()}:{reason:"Cerrada desde la agenda",occurredAt:nowIso()};
+  const body=mode==="noshow"?{occurredAt:nowIso()}:await resolveAsks({reason:ASK("Motivo de la cancelación de la cita",5),occurredAt:nowIso()});if(!body)return;
   const r=await apiRequest(path,{method:"POST",body,ifMatch:a.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setAppts(as=>as.map(x=>x.id===a.id?{...x,state:to,version:Number(r.body["version"]??x.version+1)}:x));
@@ -1382,12 +1451,14 @@ export default function Workspace(){
  });
  const advanceSurgery=(s:Sg)=>call("sg-"+s.id,async()=>{
   const n=sgNext(s);if(!n)return;
-  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:s.version});
+  const body=await resolveAsks(n.body);if(!body)return;
+  const r=await apiRequest(n.path,{method:"POST",body,ifMatch:s.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setSurgs(ss=>ss.map(x=>x.id===s.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const cancelSurgery=(s:Sg)=>call("sg-"+s.id,async()=>{
-  const r=await apiRequest(`/api/v1/surgeries/${s.id}/cancellation`,{method:"POST",body:{reason:"Cancelada",occurredAt:nowIso()},ifMatch:s.version});
+  const body=await resolveAsks({reason:ASK("Motivo de la cancelación de la cirugía",5),occurredAt:nowIso()});if(!body)return;
+  const r=await apiRequest(`/api/v1/surgeries/${s.id}/cancellation`,{method:"POST",body,ifMatch:s.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setSurgs(ss=>ss.map(x=>x.id===s.id?{...x,state:"CANCELLED",version:Number(r.body["version"]??x.version+1)}:x));
  });
@@ -1398,12 +1469,14 @@ export default function Workspace(){
  });
  const advanceTransfusion=(t:Tf)=>call("tf-"+t.id,async()=>{
   const n=tfNext(t);if(!n)return;
-  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:t.version});
+  const body=await resolveAsks(n.body);if(!body)return;
+  const r=await apiRequest(n.path,{method:"POST",body,ifMatch:t.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setTransfs(ts=>ts.map(x=>x.id===t.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const transfusionReaction=(t:Tf)=>call("tf-"+t.id,async()=>{
-  const r=await apiRequest(`/api/v1/transfusions/${t.id}/reaction`,{method:"POST",body:{reaction:"Reacción reportada",occurredAt:nowIso()},ifMatch:t.version});
+  const body=await resolveAsks({reaction:ASK("Descripción de la reacción transfusional",10),occurredAt:nowIso()});if(!body)return;
+  const r=await apiRequest(`/api/v1/transfusions/${t.id}/reaction`,{method:"POST",body,ifMatch:t.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setTransfs(ts=>ts.map(x=>x.id===t.id?{...x,state:"REACTION",version:Number(r.body["version"]??x.version+1)}:x));
  });
@@ -1444,12 +1517,14 @@ export default function Workspace(){
  });
  const advanceSpecimen=(s:Sp)=>call("sp-"+s.id,async()=>{
   const n=spNext(s);if(!n)return;
-  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:s.version});
+  const body=await resolveAsks(n.body);if(!body)return;
+  const r=await apiRequest(n.path,{method:"POST",body,ifMatch:s.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setSpecs(ss=>ss.map(x=>x.id===s.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const rejectSpecimen=(s:Sp)=>call("sp-"+s.id,async()=>{
-  const r=await apiRequest(`/api/v1/specimens/${s.id}/rejection`,{method:"POST",body:{reason:"Muestra no apta",occurredAt:nowIso()},ifMatch:s.version});
+  const body=await resolveAsks({reason:ASK("Motivo del rechazo de la muestra",5),occurredAt:nowIso()});if(!body)return;
+  const r=await apiRequest(`/api/v1/specimens/${s.id}/rejection`,{method:"POST",body,ifMatch:s.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setSpecs(ss=>ss.map(x=>x.id===s.id?{...x,state:"REJECTED",version:Number(r.body["version"]??x.version+1)}:x));
  });
@@ -1541,11 +1616,15 @@ export default function Workspace(){
  });
  const advanceObligation=(o:Ob)=>call("ob-"+o.id,async()=>{
   const n=obNext(o);if(!n)return;
-  const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:o.version});
+  const body=await resolveAsks(n.body);if(!body)return;
+  const r=await apiRequest(n.path,{method:"POST",body,ifMatch:o.version});
   if(r.status>=400){setError(errMsg(r));return;}
   setObligations(os=>os.map(x=>x.id===o.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
- function selectPatientRaw(id:string,name:string){setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
+ // Auditoría U-05/U-17: cambiar de paciente borra TODO lo del anterior —también el borrador de la consulta, los vitales sin
+ // guardar y las pestañas cargadas— y anota a quién pertenece el borrador nuevo (draftOwner) para que el guardia de estados
+ // prohibidos pueda comprobarlo. Las respuestas tardías del paciente anterior se descartan por el flag `cancelled` de cada efecto.
+ function selectPatientRaw(id:string,name:string){cVitSubmission.current=null;draftOwner.current=id;setCForm({motivo:"",historia:"",antec:"",interrog:"",explor:"",plan:""});setCAntec([]);setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});setCPreview(false);setCMsg(null);setCVitMsg(null);setSnap(null);setTrends(null);setConsTabs(null);setFuSnap(null);setRxCheck(null);setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
  const loadPatients=(q=patientQuery)=>call("pt-list",async()=>{
   const r=await apiRequest(`/api/v1/patients?limit=200${q.trim()?`&q=${encodeURIComponent(q.trim())}`:""}`,{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
@@ -1562,27 +1641,27 @@ export default function Workspace(){
    const r=await apiRequest("/api/v1/orders",{method:"POST",body:{orderId:id,patientId:ordForm.patientId,orderType:ordForm.orderType,detail:ordForm.detail.trim(),occurredAt:nowIso()}});
    if(r.status>=400){setOrdMsg(errMsg(r));return;}
    await reloadOrders();setOrdSel(id);setOrdNew(false);setOrdForm({patientId:"",orderType:"LAB",detail:""});setOrdMsg("Orden creada y registrada.");
-  }catch(e){setOrdMsg(String(e));}finally{setOrdBusy(false);}
+  }catch(e){setOrdMsg(userMessage(e));}finally{setOrdBusy(false);}
  };
  const orderTransition=async(orderId:string,version:number,path:"placement"|"fulfillment"|"cancellation",okMsg:string)=>{
   setOrdBusy(true);setOrdMsg(null);
   try{
-   const body=path==="cancellation"?{reason:"Cancelada por el médico",occurredAt:nowIso()}:{occurredAt:nowIso()};
+   const body=path==="cancellation"?await resolveAsks({reason:ASK("Motivo de la cancelación",5),occurredAt:nowIso()}):{occurredAt:nowIso()};if(!body)return;
    const r=await apiRequest(`/api/v1/orders/${orderId}/${path}`,{method:"POST",body,ifMatch:version});
    if(r.status>=400){setOrdMsg(errMsg(r));return;}
    await reloadOrders();setOrdMsg(okMsg);
-  }catch(e){setOrdMsg(String(e));}finally{setOrdBusy(false);}
+  }catch(e){setOrdMsg(userMessage(e));}finally{setOrdBusy(false);}
  };
  // ===== Acciones REALES de la vista Agenda (crear cita + ciclo de vida) =====
  const reloadAgenda=async()=>{const r=await apiRequest(`/api/v1/appointments?date=${agendaDate}`,{method:"GET"});if(r.status<400)setAgenda({appointments:(r.body["appointments"] as AgendaAppt[])??[],counts:(r.body["counts"] as{programadas:number;atendidas:number;enEspera:number;canceladas:number})??{programadas:0,atendidas:0,enEspera:0,canceladas:0}});};
  const apptTransition=async(id:string,version:number,path:"check-in"|"completion"|"cancellation"|"no-show",okMsg:string)=>{
   setApptBusy(true);setApptMsg(null);
   try{
-   const body=path==="cancellation"?{reason:"Cancelada desde la agenda",occurredAt:nowIso()}:{occurredAt:nowIso()};
+   const body=path==="cancellation"?await resolveAsks({reason:ASK("Motivo de la cancelación de la cita",5),occurredAt:nowIso()}):{occurredAt:nowIso()};if(!body)return;
    const r=await apiRequest(`/api/v1/appointments/${id}/${path}`,{method:"POST",body,ifMatch:version});
    if(r.status>=400){setApptMsg(errMsg(r));return;}
    await reloadAgenda();setApptMsg(okMsg);
-  }catch(e){setApptMsg(String(e));}finally{setApptBusy(false);}
+  }catch(e){setApptMsg(userMessage(e));}finally{setApptBusy(false);}
  };
  const createAppt=async()=>{
   if(!apptForm.patientId||!apptForm.reason.trim()){setApptMsg("Selecciona un paciente e indica el motivo.");return;}
@@ -1592,7 +1671,7 @@ export default function Workspace(){
    const r=await apiRequest("/api/v1/appointments",{method:"POST",body:{appointmentId:id,patientId:apptForm.patientId,startAt,endAt,reason:apptForm.reason.trim(),consultorio:apptForm.consultorio,apptType:apptForm.apptType,occurredAt:nowIso()}});
    if(r.status>=400){setApptMsg(errMsg(r));return;}
    await reloadAgenda();setApptSel(id);setApptNew(false);setApptForm({patientId:"",time:"09:00",reason:"",consultorio:"Consultorio 1",apptType:"CONSULTA_GENERAL"});setApptMsg("Cita agendada.");
-  }catch(e){setApptMsg(String(e));}finally{setApptBusy(false);}
+  }catch(e){setApptMsg(userMessage(e));}finally{setApptBusy(false);}
  };
  const loadPanel=()=>call("panel",async()=>{
   const r=await apiRequest("/api/v1/worklist",{method:"GET"});
@@ -1640,7 +1719,7 @@ export default function Workspace(){
   const g=await apiRequest(`/api/v1/patients/${patientId}/care-gaps`,{method:"GET"});
   if(g.status<400)setGaps((g.body["gaps"] as Gap[])??[]);
  });
- function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");setPatientId(uuid());}
+ function reset(){setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");setPatientId("");}
 
  if(!ready)return <main style={wrap}><p>Cargando…</p></main>;
  if(!session)return <main style={wrap}>
@@ -1903,7 +1982,7 @@ export default function Workspace(){
    const inp:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink,boxSizing:"border-box"};
    const isReal=(_r:Row)=>true; // todas las filas son pacientes reales del tenant
    const selectRow=(r:Row)=>{if(isReal(r)){setPatSelId(r.patientId);selectPatientRaw(r.patientId,r.name);setPatTab("resumen");setPatEdit(false);}else{setPatSelId(null);}};
-   const exportSelected=async(pid:string,name:string)=>{setPatMsg(`Generando export del expediente de ${name}…`);try{const resp=await apiRequest(`/api/v1/patients/${pid}/export`,{method:"GET"});if(resp.status>=400){setPatMsg(errMsg(resp));return;}const m=resp.body["manifest"] as{aggregateCount:number;eventCount:number};setPatMsg(`Export de ${name}: ${m.aggregateCount} agregados · ${m.eventCount} eventos · hash ${String(resp.body["contentHash"]??"").slice(0,12)}…`);}catch(e){setPatMsg(String(e));}};
+   const exportSelected=async(pid:string,name:string)=>{setPatMsg(`Generando export del expediente de ${name}…`);try{const resp=await apiRequest(`/api/v1/patients/${pid}/export`,{method:"GET"});if(resp.status>=400){setPatMsg(errMsg(resp));return;}const m=resp.body["manifest"] as{aggregateCount:number;eventCount:number};setPatMsg(`Export de ${name}: ${m.aggregateCount} agregados · ${m.eventCount} eventos · hash ${String(resp.body["contentHash"]??"").slice(0,12)}…`);}catch(e){setPatMsg(userMessage(e));}};
    // Paciente en foco (la ficha SÓLO existe si hay selección real):
    const fp=patSelId?(patientList??[]).find(p=>p.patientId===patSelId):undefined;
    const fAge=ageOf(fp?.birthDate);const fresh=patientId===patSelId; // snapshot/timeline/docs corresponden al paciente en foco
@@ -2089,8 +2168,11 @@ export default function Workspace(){
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
      <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{width:34,height:34,borderRadius:9,border:`1px solid ${LINE}`,background:P.white,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}} title="Volver al panel de consultas" onClick={()=>setConsultaPid(null)}>←</span><div><div style={{display:"flex",alignItems:"center",gap:10}}><h1 style={{fontSize:27,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Consulta</h1>{enc&&(()=>{const m=enc.state==="SIGNED"?["#E6F6EE","#16A66A","Firmada"]:enc.state==="READY_TO_SIGN"?["#FBF0DC","#B7791F","Lista para firmar"]:["#EAF1FD","#1769E0","Abierta"];return <span style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:m[0],color:m[1]}}>Encuentro · {m[2]}</span>;})()}</div><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Registro y gestión de la consulta médica</p></div></div>
      {(()=>{
-      const st=enc?.state;const label=!patientId?"Selecciona un paciente":!enc?"Abrir encuentro":st==="OPEN"?"Guardar valoración":st==="READY_TO_SIGN"?"Firmar consulta":"✓ Consulta firmada";
-      const disabled=busy!==""||!patientId||st==="SIGNED";
+      // U-17 (CRITICAL_OPEN+SIGN_READY): con pendientes críticos abiertos la firma se presenta BLOQUEADA, no "lista"; el servidor
+      // la rechazaría igual (Zero Lost Follow-Up), pero la interfaz no debe ofrecer como disponible lo que no lo está.
+      const criticalOpen=(gaps??[]).filter(g=>g.priority==="HIGH"&&(g.code==="CRITICAL_RESULT_OPEN"||g.code==="VITAL_CRITICAL"||g.code==="FOLLOWUP_OPEN")).length;
+      const st=enc?.state;const label=!patientId?"Selecciona un paciente":!enc?"Abrir encuentro":st==="OPEN"?"Guardar valoración":st==="READY_TO_SIGN"?(criticalOpen?`Firma bloqueada: ${criticalOpen} pendiente(s) crítico(s)`:"Firmar consulta"):"✓ Consulta firmada";
+      const disabled=busy!==""||!patientId||st==="SIGNED"||(st==="READY_TO_SIGN"&&criticalOpen>0);
       const primaryBg=st==="READY_TO_SIGN"?"linear-gradient(90deg,#16A66A,#12905c)":"linear-gradient(90deg,#6C5CF6,#5B6BF0)";
       return <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
        <button onClick={()=>setCPreview(v=>!v)} style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:cPreview?"#EEEBFD":P.white,color:cPreview?P.purple:P.ink,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Vista previa</button>
@@ -2375,7 +2457,7 @@ export default function Workspace(){
       }
       if(resTab==="referencia"){
        const ranges=labReferenceRanges();
-       return <div style={{...card2,marginTop:16,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><div style={{fontSize:16,fontWeight:800}}>Valores de referencia ({ranges.length} analitos)</div><span style={{fontSize:12,color:P.muted}}>Rangos del motor CDS · normal y límites de pánico (adulto)</span></div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={th2}>Analito</th><th style={th2}>Rango normal</th><th style={th2}>Crítico bajo</th><th style={th2}>Crítico alto</th></tr></thead><tbody>{ranges.map((r,i)=><tr key={i}><td style={{...td2,fontWeight:700,color:P.purple}}>{r.analyte}</td><td style={td2}>{r.normalLow} – {r.normalHigh}</td><td style={{...td2,color:r.criticalLow>0?P.red:P.muted}}>{r.criticalLow>0?`< ${r.criticalLow}`:"—"}</td><td style={{...td2,color:r.criticalHigh<99?P.red:P.muted}}>{r.criticalHigh<99?`> ${r.criticalHigh}`:"—"}</td></tr>)}</tbody></table></div></div>;
+       return <div style={{...card2,marginTop:16,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><div style={{fontSize:16,fontWeight:800}}>Valores de referencia ({ranges.length} analitos)</div><span style={{fontSize:12,color:P.muted}}>Rangos del motor CDS · normal y límites de pánico (adulto)</span></div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={th2}>Analito</th><th style={th2}>Rango normal</th><th style={th2}>Crítico bajo</th><th style={th2}>Crítico alto</th></tr></thead><tbody>{ranges.map((r,i)=><tr key={i}><td style={{...td2,fontWeight:700,color:P.purple}}>{r.analyte}</td><td style={td2}>{r.normalLow} – {r.normalHigh}</td><td style={{...td2,color:r.criticalLow>0?P.red:P.muted}}>{r.criticalLow>0?`< ${r.criticalLow}`:"—"}</td><td style={{...td2,color:(r.criticalHigh!==99&&r.criticalHigh!==999)?P.red:P.muted}}>{(r.criticalHigh!==99&&r.criticalHigh!==999)?`> ${r.criticalHigh}`:"—"}</td></tr>)}</tbody></table></div></div>;
       }
       return <div/>;
      })()
@@ -2402,7 +2484,7 @@ export default function Workspace(){
        <div style={{border:`1px solid ${LINE}`,borderRadius:10,padding:10}}><div style={{fontSize:14,fontWeight:800}}>{rng?`${rng.normalLow} – ${rng.normalHigh}`:"—"}</div><div style={{fontSize:10.5,color:P.muted}}>Rango normal</div></div>
        <div style={{border:`1px solid ${LINE}`,borderRadius:10,padding:10}}><div style={{fontSize:14,fontWeight:800,color:critical?P.red:P.ink}}>{critical?"Crítico":selItem.estado==="Normal"?"En rango":"Anormal"}</div><div style={{fontSize:10.5,color:P.muted}}>Clasificación CDS</div></div>
       </div>
-      {rng&&(rng.criticalLow>0||rng.criticalHigh<99)&&<div style={{fontSize:11.5,color:P.muted,marginBottom:6}}>Límites de pánico: {rng.criticalLow>0?`< ${rng.criticalLow}`:"—"} / {rng.criticalHigh<99?`> ${rng.criticalHigh}`:"—"}</div>}
+      {rng&&<div style={{fontSize:11.5,color:P.muted,marginBottom:6}}>Límites de pánico (los mismos que marcan CRÍTICO): {rng.criticalLow>0?`< ${rng.criticalLow}`:"sin umbral bajo"} / {rng.criticalHigh!==99&&rng.criticalHigh!==999?`> ${rng.criticalHigh}`:"sin umbral alto"}</div>}
       <div style={{fontSize:14,fontWeight:700,margin:"12px 0 6px"}}>Interpretación</div>
       <div style={{background:critical?"#FDECEE":"#F3F7FF",border:`1px solid ${critical?"#F6CDD3":"#D3E2F7"}`,borderRadius:11,padding:"11px 13px",fontSize:12.5,display:"flex",gap:8,color:critical?"#9c1f34":"#1c3c66"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden style={{flexShrink:0,marginTop:1}}><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg><span>{selItem.interpretation||"Sin interpretación registrada."} <span style={{opacity:.7}}>(Interpretación determinista · sin IA generativa)</span></span></div>
       <div style={{fontSize:14,fontWeight:700,margin:"14px 0 6px"}}>Ciclo de vida</div>
@@ -2824,20 +2906,36 @@ export default function Workspace(){
     const seg=(on:boolean):React.CSSProperties=>({padding:"9px 14px",fontSize:13,fontWeight:on?700:500,color:on?P.purple:P.muted,background:on?"#EEEBFD":P.white,border:`1px solid ${on?P.purple:LINE}`,borderRadius:9,cursor:"pointer",fontFamily:UI});
     const searchCie=async(q:string)=>{setPfName(q);setPfCode("");if(q.trim().length>=2){try{const r=await apiRequest(`/api/v1/terminology/icd10?q=${encodeURIComponent(q)}`,{method:"GET"});if(r.status===200)setPfResults(((r.body["results"] as IcdEntry[])??[]).slice(0,6));}catch{/* búsqueda no disponible */}}else setPfResults([]);};
     const pick=(e:IcdEntry)=>{setPfName(`${e.code} · ${e.description}`);setPfCode(e.code);setPfResults([]);};
-    const savePf=async()=>{
+    // Auditoría U-04: TODO lo capturado viaja (tipo, gravedad, fecha de inicio, notas); "Guardar y añadir otro" se queda en el
+    // formulario; ambos botones se deshabilitan mientras guarda; "Crónico" y "Resuelto" se registran con sus transiciones.
+    const clearPf=()=>{setPfName("");setPfCode("");setPfDesc("");setPfNotes("");setPfType("Agudo");setPfEstado("Activo");setPfSev("Leve");setPfOnset(new Date().toISOString().slice(0,10));};
+    const savePf=async(stay=false)=>{
      if(!pfCode){setPfMsg("Selecciona un diagnóstico CIE-10 válido de la lista.");return;}
      if(!patientId){setPfMsg("Selecciona un paciente en el buscador superior para guardar el problema.");return;}
+     if(!/^\d{4}-\d{2}-\d{2}$/.test(pfOnset)||pfOnset>new Date().toISOString().slice(0,10)){setPfMsg("La fecha de inicio es obligatoria y no puede ser futura.");return;}
+     if(pfEstado==="Resuelto"&&pfNotes.trim().length<5){setPfMsg("Un problema registrado como resuelto necesita una nota que lo documente (mínimo 5 caracteres).");return;}
      setPfBusy(true);setPfMsg("");
-     try{const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:crypto.randomUUID(),patientId,code:pfCode,...(pfDesc?{description:pfDesc}:{}),occurredAt:new Date().toISOString()}});
-      if(r.status===201||r.status===200){setProbReg(null);setProbScreen("lista");setPfName("");setPfCode("");setPfDesc("");setPfNotes("");}
-      else setPfMsg("No se pudo guardar (estado "+r.status+").");
-     }catch{setPfMsg("Error al guardar el problema.");}finally{setPfBusy(false);}
+     try{
+      const problemId=crypto.randomUUID();const now=new Date().toISOString();
+      const TYPE:Record<string,"ACUTE"|"CHRONIC"|"RECURRENT">={Agudo:"ACUTE",Crónico:"CHRONIC",Recurrente:"RECURRENT"};const SEV:Record<string,"MILD"|"MODERATE"|"SEVERE">={Leve:"MILD",Moderada:"MODERATE",Grave:"SEVERE"};
+      const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId,patientId,code:pfCode,...(pfDesc?{description:pfDesc}:{}),problemType:TYPE[pfType],severity:SEV[pfSev],onsetDate:pfOnset,...(pfNotes.trim()?{notes:pfNotes.trim()}:{}),occurredAt:now}});
+      if(r.status>=400){setPfMsg(errMsg(r));return;}
+      let version=Number(r.body["version"]??1);
+      if(pfType==="Crónico"||pfEstado==="Resuelto"){
+       const t=pfEstado==="Resuelto"?await apiRequest(`/api/v1/problems/${problemId}/resolution`,{method:"POST",body:{note:pfNotes.trim(),occurredAt:now},ifMatch:version})
+                                   :await apiRequest(`/api/v1/problems/${problemId}/chronicity`,{method:"POST",body:{occurredAt:now},ifMatch:version});
+       if(t.status>=400){setPfMsg(`El problema se guardó como ACTIVO pero no se pudo marcar como ${pfEstado==="Resuelto"?"resuelto":"crónico"}: ${errMsg(t)}`);return;}
+       version=Number(t.body["version"]??version+1);
+      }
+      setProbReg(null);clearPf();
+      if(stay)setPfMsg("Problema guardado. Puede capturar otro.");else setProbScreen("lista");
+     }catch(e){setPfMsg(userMessage(e));}finally{setPfBusy(false);}
     };
     const COMMON:[string,string][]=[["E11.9","Diabetes mellitus tipo 2"],["I10","Hipertensión esencial (primaria)"],["J06.9","Infección aguda de vías respiratorias superiores"],["J45.9","Asma, no especificada"],["K29.7","Gastritis, no especificada"],["F41.9","Trastorno de ansiedad generalizada"],["M54.5","Lumbalgia no especificada"],["N39.0","Infección de vías urinarias, sitio no especificado"]];
     return <div style={{padding:"18px 24px 40px"}}>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
       <div style={{display:"flex",alignItems:"center",gap:14}}><button onClick={()=>setProbScreen("lista")} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 14px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,display:"flex",alignItems:"center",gap:6}}>← Volver</button><div><h1 style={{fontSize:26,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Nuevo problema</h1><p style={{color:P.muted,fontSize:13,margin:"3px 0 0"}}>Registra un nuevo problema de salud en el expediente del paciente.</p></div></div>
-      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button onClick={savePf} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Guardar y añadir otro</button><button onClick={savePf} disabled={pfBusy} style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>{pfBusy?"Guardando…":"✓ Guardar problema"}</button></div>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button onClick={()=>savePf(true)} disabled={pfBusy} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Guardar y añadir otro</button><button onClick={()=>savePf(false)} disabled={pfBusy} style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>{pfBusy?"Guardando…":"✓ Guardar problema"}</button></div>
      </div>
      <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:16,marginTop:16,alignItems:"start"}} className="mos-prob-new">
       <div style={{...card2,padding:22}}>
@@ -2858,9 +2956,9 @@ export default function Workspace(){
          <div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Tipo de problema <span style={{color:P.red}}>*</span></div>
          <div style={{display:"flex",gap:8}}>{(["Agudo","Crónico","Recurrente"] as const).map(t=><button key={t} onClick={()=>setPfType(t)} style={seg(pfType===t)}>{t}</button>)}</div>
          <div style={{fontSize:12.5,fontWeight:700,margin:"18px 0 6px"}}>Fecha de inicio <span style={{color:P.red}}>*</span></div>
-         <div style={{display:"flex",gap:10,alignItems:"center"}}><input type="date" defaultValue="2026-09-17" style={{...selSty,flex:1}}/><label style={{display:"flex",alignItems:"center",gap:6,fontSize:12.5,color:P.muted,whiteSpace:"nowrap"}}><span style={{width:15,height:15,borderRadius:4,border:"1.6px solid #C7CCE0",display:"inline-block"}}/>Fecha aproximada</label></div>
+         <div style={{display:"flex",gap:10,alignItems:"center"}}><input type="date" aria-label="Fecha de inicio" value={pfOnset} max={new Date().toISOString().slice(0,10)} onChange={e=>setPfOnset(e.target.value)} style={{...selSty,flex:1}}/><label style={{display:"flex",alignItems:"center",gap:6,fontSize:12.5,color:P.muted,whiteSpace:"nowrap"}}><span style={{width:15,height:15,borderRadius:4,border:"1.6px solid #C7CCE0",display:"inline-block"}}/>Fecha aproximada</label></div>
          <div style={{fontSize:12.5,fontWeight:700,margin:"18px 0 6px"}}>Estado actual <span style={{color:P.red}}>*</span></div>
-         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{["Activo","En seguimiento","Resuelto","Inactivo"].map(s=><button key={s} onClick={()=>setPfEstado(s)} style={seg(pfEstado===s)}>{s}</button>)}</div>
+         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{["Activo","Resuelto"].map(s=><button key={s} onClick={()=>setPfEstado(s)} style={seg(pfEstado===s)}>{s}</button>)}</div>
         </div>
        </div>
        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,marginTop:20}}>
@@ -3148,7 +3246,7 @@ export default function Workspace(){
    const clearForm=()=>{setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvTalla("");setSvPab("");setSvPain("0");setSvObs("");setSvMsg("");};
    const svHist=!!vitHist;
    const records:VitalRecord[]=vitHist?.records??[];
-   const sys=(ta:string)=>{const m=/^(\d+)/.exec(ta);return m?Number(m[1]):0;};
+   const sys=(ta:string)=>parseBp(ta)?.systolic??0; // C-21: parser único
    const sBP=vitHist?.series.BP.map(p=>p.value)??[];
    const sHR=vitHist?.series.HR.map(p=>p.value)??[];
    const sWT=vitHist?.series.WEIGHT.map(p=>p.value)??[];
@@ -3159,14 +3257,12 @@ export default function Workspace(){
     const d=vals.map((v,i)=>{const[x,y]=pt(v,i);return `${i===0?"M":"L"}${x.toFixed(1)} ${y.toFixed(1)}`;}).join(" ");
     const[lx,ly]=pt(vals[vals.length-1]!,vals.length-1);
     return <svg width={w} height={h} style={{display:"block"}} aria-hidden><path d={`${d} L${(pad+(vals.length-1)*step).toFixed(1)} ${h} L${pad} ${h} Z`} fill={color} opacity={.09}/><path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/><circle cx={lx} cy={ly} r={3} fill={color}/></svg>;};
-   // Referencias y alertas deterministas (adultos)
+   // Auditoría U-10: las alertas usan la MISMA clasificación que el servidor (classifyVital, por edad), no umbrales propios.
    const alerts:string[]=[];
-   if(latest){const s=sys(latest.ta),fc=Number(latest.fc),fr=Number(latest.fr),tp=Number(latest.temp),sp=Number(latest.spo2);
-    if(s&&(s<90||s>139))alerts.push(`Presión arterial fuera de rango (${latest.ta} mmHg)`);
-    if(fc&&(fc<60||fc>100))alerts.push(`Frecuencia cardíaca fuera de rango (${fc} lpm)`);
-    if(fr&&(fr<12||fr>20))alerts.push(`Frecuencia respiratoria fuera de rango (${fr} rpm)`);
-    if(tp&&(tp<36||tp>37.5))alerts.push(`Temperatura fuera de rango (${tp} °C)`);
-    if(sp&&sp<95)alerts.push(`Saturación de O₂ baja (${sp}%)`);}
+   if(latest){const ageYears=snap?.demographics.age??undefined;
+    for(const[vt,val,unit]of[["BP",latest.ta,"mmHg"],["HR",latest.fc,"lpm"],["RESP",latest.fr,"rpm"],["TEMP",latest.temp,"°C"],["SPO2",latest.spo2,"%"]] as const){
+     if(!val)continue;const a=classifyVital(vt,String(val),{ageYears});
+     if(a.status==="CRITICAL"||a.status==="ABNORMAL")alerts.push(`${a.interpretation} (${val} ${unit})${a.status==="CRITICAL"?" — CRÍTICO":""}`);}}
    const trendCard=(ico:string,c:string,title:string,unit:string,vals:number[],last:string)=><div style={{border:`1px solid ${LINE}`,borderRadius:12,padding:13}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}><span style={{width:26,height:26,borderRadius:7,background:c+"22",color:c,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d={ico}/></svg></span><div style={{fontSize:12,fontWeight:700,lineHeight:1.1}}>{title}<div style={{fontSize:10.5,color:P.muted,fontWeight:500}}>{unit}</div></div></div>{spark(vals,c)}<div style={{fontSize:20,fontWeight:800,marginTop:6}}>{last}</div><div style={{fontSize:11.5,color:P.muted,display:"flex",justifyContent:"space-between"}}>Último registro <span>›</span></div></div>;
    const th:React.CSSProperties={textAlign:"left",fontSize:11,color:"#9AA0BC",fontWeight:600,padding:"9px 8px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
    const tdc:React.CSSProperties={padding:"9px 8px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
@@ -3181,8 +3277,8 @@ export default function Workspace(){
      </div>
     </div>
     <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
-     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0,flexWrap:"wrap"}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"—")}</span><div style={{minWidth:0}}><select value={(patientList??[]).some(p=>p.patientId===patientId)?patientId:""} onChange={e=>{const pp=(patientList??[]).find(x=>x.patientId===e.target.value);if(pp)selectPatientRaw(pp.patientId,pp.name);}} style={{border:`1px solid ${LINE}`,borderRadius:8,padding:"7px 10px",fontSize:15,fontWeight:700,fontFamily:UI,color:P.ink,background:P.white}}><option value="">Selecciona un paciente…</option>{(patientList??[]).map(p=><option key={p.patientId} value={p.patientId}>{p.name}</option>)}</select><div style={{fontSize:12.5,color:P.muted,marginTop:4}}>{patientName?"Registro e historial de signos vitales del paciente":"Elige un paciente para registrar y ver su historial"}</div></div></div>
-     <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}><button onClick={()=>{setView("exp");}} disabled={!patientId} style={{border:`1px solid ${patientId?P.purple:LINE}`,background:P.white,color:patientId?P.purple:"#C7CCE0",borderRadius:10,padding:"10px 15px",fontWeight:700,fontSize:13,cursor:patientId?"pointer":"default",fontFamily:UI}}>Ver expediente →</button></div>
+     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0,flexWrap:"wrap"}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"—")}</span><div style={{minWidth:0}}>{patientSelector}<div style={{fontSize:12.5,color:P.muted,marginTop:4}}>{patientName?"Registro e historial de signos vitales del paciente":"Elige un paciente para registrar y ver su historial"}</div></div></div>
+     <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}><button onClick={()=>{setView("exp");}} style={{border:`1px solid ${patientId?P.purple:LINE}`,background:P.white,color:patientId?P.purple:"#C7CCE0",borderRadius:10,padding:"10px 15px",fontWeight:700,fontSize:13,cursor:patientId?"pointer":"default",fontFamily:UI}}>Ver expediente →</button></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-signos">
      {/* Form */}
@@ -3269,7 +3365,7 @@ export default function Workspace(){
      <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void addCarePlanGoal()} disabled={cpBusy||!patientId||!cpForm.goal.trim()} style={{border:0,background:(cpBusy||!patientId||!cpForm.goal.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(cpBusy||!patientId||!cpForm.goal.trim())?"default":"pointer",fontFamily:UI}}>{cpBusy?"Agregando…":"Agregar meta"}</button><button onClick={()=>setCpNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
     </div>}
     <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
-     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"—")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientName||"Sin paciente seleccionado"}</div><div style={{fontSize:12.5,color:P.muted}}>{patientId?"Plan de cuidado del paciente en contexto":"Selecciona un paciente en el buscador superior para ver y editar su plan"}</div></div></div>
+     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"—")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientSelector}</div><div style={{fontSize:12.5,color:P.muted}}>{patientId?"Plan de cuidado del paciente en contexto":"Selecciona un paciente en el buscador superior para ver y editar su plan"}</div></div></div>
      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
       <div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}>{cico(P.blue,clip)}<div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{counts.problems}</div><div style={{fontSize:11,color:P.muted}}>Problemas activos</div></div></div>
       <div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}>{cico(P.green,"M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z")}<div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{counts.medications}</div><div style={{fontSize:11,color:P.muted}}>Medicamentos</div></div></div>
@@ -3405,7 +3501,7 @@ export default function Workspace(){
      </div>
     </div>
     <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
-     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"—")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientName||"Sin paciente seleccionado"}</div><div style={{fontSize:12.5,color:P.muted}}>{patientId?"Seguimiento clínico del paciente en contexto":"Selecciona un paciente en el buscador superior para ver su seguimiento"}</div></div></div>
+     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"—")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientSelector}</div><div style={{fontSize:12.5,color:P.muted}}>{patientId?"Seguimiento clínico del paciente en contexto":"Selecciona un paciente en el buscador superior para ver su seguimiento"}</div></div></div>
      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>{chipCard(P.blue,clip,counts.problems,"Problemas activos")}{chipCard(P.green,"M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z",counts.medications,"Medicamentos")}{chipCard(P.red,"M10.3 3.9 1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z",counts.allergies,counts.allergies===1?"Alergia":"Alergias")}<button onClick={()=>setView("exp")} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px 15px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver expediente →</button></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:16,marginTop:16,alignItems:"start"}} className="mos-seg">
@@ -3539,7 +3635,7 @@ export default function Workspace(){
      <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void createDocument()} disabled={docBusy||!patientId||!docForm.title.trim()||!docForm.content.trim()} style={{border:0,background:(docBusy||!patientId||!docForm.title.trim()||!docForm.content.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(docBusy||!patientId||!docForm.title.trim()||!docForm.content.trim())?"default":"pointer",fontFamily:UI}}>{docBusy?"Creando…":"Crear documento"}</button><button onClick={()=>setDocNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
     </div>}
     <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
-     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"—")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientName||"Sin paciente seleccionado"}</div><div style={{fontSize:12.5,color:P.muted}}>{patientId?"Documentos del paciente en contexto":"Selecciona un paciente en el buscador superior para ver y crear sus documentos"}</div></div></div>
+     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"—")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientSelector}</div><div style={{fontSize:12.5,color:P.muted}}>{patientId?"Documentos del paciente en contexto":"Selecciona un paciente en el buscador superior para ver y crear sus documentos"}</div></div></div>
      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>{chipC(P.blue,pdfIco,chips.clinical,"Documentos clínicos")}{chipC(P.green,"M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z",chips.consents,"Consentimientos")}{chipC(P.purple,"M4 5h16v14H4zM4 15l4-4 3 3 5-5 4 4",chips.studies,"Estudios de imagen")}<button onClick={()=>setView("exp")} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px 15px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver expediente →</button></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"250px 1fr 380px",gap:16,marginTop:16,alignItems:"start"}} className="mos-doc">
@@ -3591,7 +3687,7 @@ export default function Workspace(){
     <div style={{display:"grid",gridTemplateColumns:"1.1fr 1.2fr 1fr",gap:14,marginTop:16,alignItems:"start"}} className="mos-doc2">
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:12}}>⚡ Acciones rápidas</div>{docMsg&&<div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:docMsg.includes("✓")?"#E6F6EE":"#FDF4E6",fontSize:12,color:docMsg.includes("✓")?"#166534":"#7A5A16"}}>{docMsg}</div>}<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{[["⤒","Nuevo documento",()=>{setDocNew(true);setDocMsg("");}],["◉","Escanear con cámara",()=>setDocMsg("Escaneo con cámara: próximamente (requiere captura/almacenamiento de archivos).")],["▤","Generar desde plantilla",genDoc],["➤","Solicitar al paciente",()=>setDocMsg("Solicitud al portal del paciente: próximamente.")]].map(([ic,l,fn],i)=><button key={i} onClick={fn as ()=>void} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:11,padding:"16px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:8,cursor:"pointer",fontFamily:UI}}><span style={{width:38,height:38,borderRadius:10,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:16}}>{ic as string}</span><span style={{fontSize:12.5,fontWeight:600}}>{l as string}</span></button>)}</div></div>
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,marginBottom:12}}>▤ Tipos de archivo permitidos</div><div style={{display:"flex",gap:10,justifyContent:"space-between",flexWrap:"wrap"}}>{[["PDF",P.red],["JPG",P.amber],["PNG",P.amber],["WEBP",P.blue],["GIF/TIFF",P.green]].map(([l,c],i)=><div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flex:1}}><span style={{width:44,height:44,borderRadius:10,background:(c as string)+"22",color:c as string,display:"grid",placeItems:"center"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M6 2h9l5 5v15H6z"/></svg></span><span style={{fontSize:11.5,fontWeight:600,textAlign:"center"}}>{l as string}</span></div>)}</div><div style={{fontSize:11.5,color:P.muted,marginTop:12}}>Tamaño máximo: 25 MB por archivo · almacenamiento privado y cifrado (Vercel Blob), ligado al documento en el expediente.</div></div>
-     <div style={{...card2,padding:16,background:"#F7F6FE",borderColor:"#E2DEFB"}}><div style={{display:"flex",gap:10}}><span style={{color:P.purple}}>ⓘ</span><div><div style={{fontWeight:700,fontSize:13.5}}>Nota</div><div style={{fontSize:12.5,color:P.muted,marginTop:2,lineHeight:1.5}}>Los documentos se almacenan de forma segura y cifrada, cumpliendo con la NOM-024-SSA3-2012.</div></div></div></div>
+     <div style={{...card2,padding:16,background:"#F7F6FE",borderColor:"#E2DEFB"}}><div style={{display:"flex",gap:10}}><span style={{color:P.purple}}>ⓘ</span><div><div style={{fontWeight:700,fontSize:13.5}}>Nota</div><div style={{fontSize:12.5,color:P.muted,marginTop:2,lineHeight:1.5}}>Los adjuntos se guardan en un almacén privado (nunca en URL pública) y se sirven solo a sesiones autorizadas del mismo consultorio. El sistema no está certificado conforme a la NOM-024-SSA3-2012; el registro normativo del proyecto declara esa certificación como pendiente.</div></div></div></div>
     </div>
    </div>;
   })() : view==="obligaciones" ? (()=>{
@@ -3679,7 +3775,7 @@ export default function Workspace(){
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button onClick={()=>setView("exp")} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px 15px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Ver expediente →</button></div>
     </div>
     <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
-     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"—")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientName||"Sin paciente seleccionado"}</div><div style={{fontSize:12.5,color:P.muted}}>{patientId?"Apoyo clínico determinista del paciente en contexto":"Selecciona un paciente para ver sus alertas deterministas"}</div></div></div>
+     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"—")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientSelector}</div><div style={{fontSize:12.5,color:P.muted}}>{patientId?"Apoyo clínico determinista del paciente en contexto":"Selecciona un paciente para ver sus alertas deterministas"}</div></div></div>
      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>{chipCard(P.blue,clip,nProblems,"Problemas activos")}{chipCard(P.red,"M10.3 3.9 1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z",nAllergies,nAllergies===1?"Alergia":"Alergias")}</div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:16,marginTop:16,alignItems:"start"}} className="mos-ci">
@@ -3891,7 +3987,7 @@ export default function Workspace(){
        </div>
       </div>
       <div style={{...card2,padding:18}}>{sec("M18 3a3 3 0 00-3 3M6 21a3 3 0 003-3M4 7h16v10H4z","Datos y seguridad")}
-       <div style={{fontSize:12,color:P.muted,display:"flex",gap:7,alignItems:"center"}}><span style={{color:"#16A66A"}}>🛡</span>Tus datos están cifrados y protegidos conforme a la NOM-024-SSA3-2012. La exportación, el respaldo y la eliminación de cuenta se habilitarán con el backend de configuración.</div>
+       <div style={{fontSize:12,color:P.muted,display:"flex",gap:7,alignItems:"center"}}><span style={{color:"#16A66A"}}>🛡</span>Los datos viajan cifrados (HTTPS) y se aíslan por consultorio en la base de datos; el cifrado en reposo lo aporta el proveedor de base de datos. No hay certificación NOM-024 ni proceso ARCO implementado todavía. La exportación, el respaldo y la eliminación de cuenta se habilitarán con el backend de configuración.</div>
       </div>
      </div>
      {/* Col 3 */}
@@ -4044,7 +4140,7 @@ export default function Workspace(){
    <div className="mos-rx-grid">
     <div style={{background:"linear-gradient(160deg,#0C2148,#15346B)",borderRadius:14,padding:"16px 18px",color:"#EAF0FA"}}>
      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><span style={{width:22,height:22,borderRadius:"50%",background:"#1A7F43",display:"grid",placeItems:"center",fontSize:13}}>✓</span><b style={{fontSize:14}}>Estado del sistema</b></div>
-     {[["Cifrado de datos","En tránsito y en reposo"],["Control de acceso","Por roles y aislamiento por tenant (RLS)"],["Auditoría","Cadena hash inmutable · todas las acciones"],["Recuperabilidad","Replay determinista + idempotencia"],["Cumplimiento","NOM-004 · NOM-024 · LFPDPPP"]].map(([t,d])=><div key={t} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"7px 0",borderTop:"1px solid #ffffff14"}}>
+     {[["Cifrado de datos","En tránsito (HTTPS); en reposo, por el proveedor de base de datos"],["Control de acceso","Por rol y scope, con aislamiento por consultorio (RLS forzado)"],["Auditoría","Cadena de hash inmutable de cada comando clínico, verificable (pnpm audit:verify)"],["Recuperabilidad","Registro de eventos append-only; el cliente reintenta con la misma clave de idempotencia"],["Normativa","NOM-004 / NOM-024 / LFPDPPP: en proceso; sin certificación (ver registro normativo del proyecto)"]].map(([t,d])=><div key={t} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"7px 0",borderTop:"1px solid #ffffff14"}}>
       <span style={{color:"#5FD08C",marginTop:1,flex:"0 0 auto"}}>●</span><div><div style={{fontSize:13,fontWeight:600,color:"#fff"}}>{t}</div><div style={{fontSize:11.5,color:"#9DB2D4"}}>{d}</div></div>
      </div>)}
     </div>
@@ -4167,7 +4263,7 @@ export default function Workspace(){
    </div>
    <p style={{color:"#8a8b9a",fontSize:12,margin:"4px 0 0"}}>Vista longitudinal de los items clínicos de este paciente (metadatos, sin contenido).</p>
    {exportInfo&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:12,background:"#f4f3fb",border:"1px solid #e0ddf3",fontSize:12}}>
-    <b style={{color:"#3f3aa0"}}>Expediente exportado (NOM-024)</b> · {exportInfo.aggregateCount} agregados · {exportInfo.eventCount} eventos<br/>
+    <b style={{color:"#3f3aa0"}}>Expediente exportado (JSON de eventos; no es el formato de intercambio NOM-024)</b> · {exportInfo.aggregateCount} agregados · {exportInfo.eventCount} eventos<br/>
     <span style={{color:"#6d6e80"}}>hash reproducible del contenido: </span><span style={mono}>{exportInfo.contentHash}</span>
    </div>}
    {tl===null?<p style={{color:"#8a8b9a",fontSize:13,marginTop:12}}>Pulsa “Actualizar” para cargar el historial de este paciente.</p>
@@ -4197,7 +4293,7 @@ export default function Workspace(){
     <h2 style={{fontSize:18,margin:0}}>Encuentro</h2>{enc&&<span style={stateBadge(enc.state)}>{enc.state}</span>}
    </div>
    {!enc?<div style={{marginTop:14}}>
-    <label style={lbl}>ID de paciente</label><input style={input} value={patientId} onChange={e=>setPatientId(e.target.value)} />
+    <label htmlFor="patient-id-input" style={lbl}>ID de paciente</label><input id="patient-id-input" style={input} value={patientId} onChange={e=>setPatientId(e.target.value)} />
     <div style={{marginTop:14}}><button style={btn} disabled={busy!==""||!patientId} onClick={openEncounter}>{busy==="open"?"Abriendo…":"Abrir encuentro"}</button></div>
    </div>:<div>
     <p style={{color:"#6d6e80",fontSize:13}}>Encuentro <span style={mono}>{enc.id.slice(0,8)}</span> · versión {enc.version}</p>
@@ -4787,6 +4883,17 @@ export default function Workspace(){
     <div style={{display:"flex",gap:10,justifyContent:"flex-end",padding:"14px 22px 18px"}}>
      <button style={{...ghost,padding:"10px 18px"}} disabled={signBusy} onClick={()=>{setSignAsk(null);setSignErr("");}}>Cancelar</button>
      <button style={{...btn,background:"#16A66A"}} disabled={signBusy} onClick={confirmSign}>{signBusy?"Firmando…":"Firmar definitivamente"}</button>
+    </div>
+   </div>
+  </div>}
+  {reasonAsk&&<div style={{position:"fixed",inset:0,background:"rgba(20,22,40,.55)",display:"grid",placeItems:"center",zIndex:1001,padding:16}}>
+   <div role="dialog" aria-modal="true" aria-labelledby="reason-title" style={{background:"#fff",borderRadius:16,maxWidth:560,width:"100%",padding:"18px 22px",boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+    <b id="reason-title" style={{fontSize:16,color:"#1C1E33"}}>{reasonAsk.spec.__ask}</b>
+    <p style={{margin:"6px 0 10px",fontSize:12.5,color:"#4b4c5e"}}>Este texto queda en el expediente como el motivo registrado por el médico. Mínimo {reasonAsk.spec.min} caracteres.</p>
+    <textarea id="reason-text" aria-label={reasonAsk.spec.__ask} value={reasonText} onChange={e=>setReasonText(e.target.value)} rows={3} maxLength={1000} placeholder={reasonAsk.spec.placeholder??""} style={{...input,width:"100%",resize:"vertical"}} />
+    <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:12}}>
+     <button style={{...ghost,padding:"10px 18px"}} onClick={()=>{const r=reasonAsk.resolve;setReasonAsk(null);r(null);}}>Cancelar</button>
+     <button style={{...btn,opacity:reasonText.trim().length<reasonAsk.spec.min?.5:1}} disabled={reasonText.trim().length<reasonAsk.spec.min} onClick={()=>{const r=reasonAsk.resolve;const v=reasonText.trim();setReasonAsk(null);r(v);}}>Registrar</button>
     </div>
    </div>
   </div>}

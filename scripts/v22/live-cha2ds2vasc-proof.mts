@@ -18,9 +18,9 @@ async function dx(t:string,p:string,code:string){await prob.POST(new Request("ht
 async function get(t:string,p:string){const r=await ch.GET(new Request("http://l/",{headers:H(t)}),PP(p));return{status:r.status,body:await r.json()};}
 try{
  const phys=tok();
- // 1) hombre 80 (edad 2) con FA(I48.91)+HTA(I10)+DM(E11)+IC(I50.9) = 2+1+1+1 = 5 -> HIGH, aplicable
+ // 1) hombre 80 (edad 2) con FA(I48.9)+HTA(I10)+DM(E11)+IC(I50.9) = 2+1+1+1 = 5 -> HIGH, aplicable
  const p1=crypto.randomUUID();await reg(phys,p1,80,"MALE");
- for(const c of["I48.91","I10","E11","I50.9"])await dx(phys,p1,c);
+ for(const c of["I48.9","I10","E11","I50.9"])await dx(phys,p1,c);
  let g=await get(phys,p1);ok(g.status===200,"COMPUTED_200");
  ok(g.body.score===5&&g.body.risk==="HIGH","SCORE_5_HIGH");
  ok(g.body.applicable===true,"AFIB_APPLICABLE");
