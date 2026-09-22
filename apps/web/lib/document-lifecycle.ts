@@ -44,7 +44,7 @@ const STATUS_ES:Record<string,string>={DRAFT:"Borrador",FINALIZED:"Finalizado",S
 export async function handleDocumentGet(req:Request,documentId:string):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:write",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:read",purpose:"TREATMENT"});
   const d=await documentDetail(ctx,documentId);
   if(!d.exists)throw new ClinicalError("NOT_FOUND","Document not found");
   return NextResponse.json({...d,typeLabel:TYPE_UI[d.docType]??"Otro",statusLabel:STATUS_ES[d.state]??"Borrador"},{status:200});
@@ -169,7 +169,7 @@ export async function handleDocumentAttach(req:Request,documentId:string):Promis
 export async function handleDocumentDownload(req:Request,documentId:string,attachmentId:string):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:write",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:read",purpose:"TREATMENT"});
   const detail=await documentDetail(ctx,documentId);
   if(!detail.exists)throw new ClinicalError("NOT_FOUND","Document not found");
   const att=detail.attachments.find(a=>a.attachmentId===attachmentId);

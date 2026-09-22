@@ -28,6 +28,11 @@ try{
  // MEDIUM (vacuna) antes que LOW (interconsulta)
  ok(gaps[0]!.code==="IMMUNIZATION_DUE"&&gaps[0]!.patientId===patX,"MEDIUM_FIRST");
  ok(gaps[gaps.length-1]!.code==="REFERRAL_UNACCEPTED"&&gaps[gaps.length-1]!.patientId===patY,"LOW_LAST");
+ // Auditoría S-08 — la respuesta se pagina (los totales gapCount/patientCount siguen siendo del tenant completo)
+ r=await wl.GET(new Request("http://l/?limit=1",{headers:H(t)}));const w1=await r.json();
+ ok(r.status===200&&w1.gaps.length===1&&w1.gaps[0].code==="IMMUNIZATION_DUE"&&w1.gapCount===2&&w1.patientCount===2&&typeof w1.nextCursor==="string","WORKLIST_PAGE_1_KEEPS_TOTALS");
+ r=await wl.GET(new Request("http://l/?limit=1&cursor="+encodeURIComponent(w1.nextCursor),{headers:H(t)}));const w2=await r.json();
+ ok(w2.gaps.length===1&&w2.gaps[0].code==="REFERRAL_UNACCEPTED"&&w2.nextCursor===null,"WORKLIST_PAGE_2_LAST");
  // cross-tenant: tenant B ve su propio panel (vacío), no el de A
  const tB=tok(TB);
  r=await wl.GET(new Request("http://l/",{headers:H(tB)}));

@@ -1,1 +1,1 @@
-import{describe,it,expect}from"vitest";import{assertTenantContext}from"../../packages/tenant-context/src";describe("atomic",()=>it("requires context",()=>expect(()=>assertTenantContext({tenantId:"",actorId:"a",purpose:"TREATMENT",requestId:"r"})).toThrow(/tenantId/)));
+import{describe,it,expect}from"vitest";import{assertTenantContext}from"../../packages/tenant-context/src";describe("atomic",()=>it("requires context",()=>expect(()=>assertTenantContext({tenantId:"",actorId:"a",actorType:"HUMAN",purpose:"TREATMENT",requestId:"r"})).toThrow(/tenantId/)));

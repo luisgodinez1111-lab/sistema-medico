@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldPatient,assertPatientTransition,type FoldedPatient,type PatientStatus}from"../../../packages/patient-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,listPatients}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,listPatients,clampLimit}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC S — Registro de pacientes (agregado longitudinal): REGISTERED(ACTIVE) <-> INACTIVE; -> DECEASED.
@@ -33,8 +33,10 @@ export async function handlePatientRegister(req:Request):Promise<Response>{
 export async function handlePatientList(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authzRead(claims);
-  const patients=await listPatients(ctx);
-  return NextResponse.json({patients},{status:200});
+  // Auditoría S-08: ?limit=1..500 (100 por defecto), ?cursor= (del nextCursor anterior), ?q= (prefijo de nombre o CURP).
+  const u=new URL(req.url);
+  const page=await listPatients(ctx,{limit:clampLimit(u.searchParams.get("limit")),cursor:u.searchParams.get("cursor"),q:u.searchParams.get("q")?.slice(0,80)??null});
+  return NextResponse.json({patients:page.items,nextCursor:page.nextCursor,total:page.total},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 async function loadForTransition(req:Request,patientId:string){

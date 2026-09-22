@@ -78,13 +78,30 @@ export async function lookupReplay(ctx:HttpTenantContext,command:ClinicalCommand
  }) as Promise<ClinicalCommandResult|null>;
 }
 
+// Auditoría 2026-09-19 (S-08) — PAGINACIÓN por cursor (keyset). El cursor es opaco (base64url de la clave de orden); un
+// cursor ilegible se ignora y se empieza desde el principio (nunca 500). `limit` lo acota el handler (1..MAX).
+export type Page<T>=Readonly<{items:readonly T[];nextCursor:string|null}>;
+export function encodeCursor(v:readonly unknown[]):string{return Buffer.from(JSON.stringify(v),"utf8").toString("base64url");}
+export function decodeCursor(c:string|null|undefined,arity:number):unknown[]|null{
+ if(!c)return null;
+ try{const v:unknown=JSON.parse(Buffer.from(c,"base64url").toString("utf8"));return Array.isArray(v)&&v.length===arity?v:null;}catch{return null;}
+}
+export const PAGE_LIMIT_DEFAULT=100,PAGE_LIMIT_MAX=500;
+export function clampLimit(raw:string|null|undefined,def=PAGE_LIMIT_DEFAULT,max=PAGE_LIMIT_MAX):number{const n=Number(raw);return Number.isInteger(n)&&n>=1?Math.min(n,max):def;}
 // EPIC S — Registro de pacientes del tenant (RLS-scoped). Devuelve id + nombre (PHI) + estado.
 export type PatientRow=Readonly<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version:number}>;
-export async function listPatients(ctx:HttpTenantContext):Promise<ReadonlyArray<PatientRow>>{
+export type PatientListQuery=Readonly<{limit:number;cursor?:string|null;q?:string|null}>;
+export async function listPatients(ctx:HttpTenantContext,query:PatientListQuery={limit:PAGE_LIMIT_MAX}):Promise<Page<PatientRow>&{total:number}>{
  const sql=getSql();
+ // Orden estable (nombre, id); el cursor es el último (nombre, id) de la página anterior. `q` filtra por prefijo de nombre
+ // (cualquier palabra) o de CURP, sin distinguir mayúsculas/acentos básicos.
+ const after=decodeCursor(query.cursor,2);const afterName=after?String(after[0]):null,afterId=after?String(after[1]):null;
+ const q=(query.q??"").trim().toLowerCase();
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  const total=await tx`select count(*)::int as n from clinical_events where tenant_id=${ctx.tenantId} and aggregate_type='Patient' and payload->>'kind'='REGISTERED'`;
   const rows=await tx`
+   select * from (
    select r.aggregate_id,
      coalesce(a.payload->>'name', r.payload->>'name') as name,
      coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as birth_date,
@@ -95,10 +112,16 @@ export async function listPatients(ctx:HttpTenantContext):Promise<ReadonlyArray<
    from clinical_events r
    left join lateral (select payload from clinical_events am where am.tenant_id=${ctx.tenantId} and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
-   order by coalesce(a.payload->>'name', r.payload->>'name')`;
+   ) p
+   where (${q}='' or lower(p.name) like ${q+'%'} or lower(p.name) like ${'% '+q+'%'} or lower(coalesce(p.curp,'')) like ${q+'%'})
+     and (${afterName}::text is null or (p.name, p.aggregate_id::text) > (${afterName}::text, ${afterId}::text))
+   order by p.name, p.aggregate_id
+   limit ${query.limit+1}`;
   const STATUS:Record<string,string>={REGISTERED:"ACTIVE",REACTIVATED:"ACTIVE",DEACTIVATED:"INACTIVE",DECEASED:"DECEASED"};
-  return rows.map(x=>{const o=x as Record<string,unknown>;return{patientId:String(o.aggregate_id),name:String(o.name??""),status:STATUS[String(o.latest_kind??"REGISTERED")]??"ACTIVE",version:Number(o.version??1),...(o.birth_date?{birthDate:String(o.birth_date)}:{}),...(o.sex_at_birth?{sexAtBirth:String(o.sex_at_birth)}:{}),...(o.curp?{curp:String(o.curp)}:{})};});
- }) as Promise<ReadonlyArray<PatientRow>>;
+  const items=rows.slice(0,query.limit).map(x=>{const o=x as Record<string,unknown>;return{patientId:String(o.aggregate_id),name:String(o.name??""),status:STATUS[String(o.latest_kind??"REGISTERED")]??"ACTIVE",version:Number(o.version??1),...(o.birth_date?{birthDate:String(o.birth_date)}:{}),...(o.sex_at_birth?{sexAtBirth:String(o.sex_at_birth)}:{}),...(o.curp?{curp:String(o.curp)}:{})};});
+  const last=items[items.length-1];
+  return{items,nextCursor:rows.length>query.limit&&last?encodeCursor([last.name,last.patientId]):null,total:Number(total[0]?.n??0)};
+ }) as Promise<Page<PatientRow>&{total:number}>;
 }
 // EPIC R — Gate de seguridad de medicación: sustancias con alergia ACTIVA del paciente (RLS-scoped).
 // Una alergia está activa si su último evento es RECORDED o REACTIVATED (no REFUTED/INACTIVATED).
@@ -668,8 +691,9 @@ export async function activeProblemCodes(ctx:HttpTenantContext,patientId:string)
 // EPIC N — Timeline del paciente: un item por agregado clínico del paciente, con tipo, último kind
 // (estado), versión y fechas. RLS-scoped. SIN PHI: solo metadatos, nunca el contenido clínico.
 export type TimelineItem=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;status:string;version:number;openedAt:string;lastAt:string}>;
-export async function readPatientTimeline(ctx:HttpTenantContext,patientId:string):Promise<ReadonlyArray<TimelineItem>>{
+export async function readPatientTimeline(ctx:HttpTenantContext,patientId:string,page:{limit:number;cursor?:string|null}={limit:PAGE_LIMIT_MAX}):Promise<Page<TimelineItem>>{
  const sql=getSql();
+ const after=decodeCursor(page.cursor,2);const afterAt=after?String(after[0]):null,afterId=after?String(after[1]):null;
  return sql.begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
   const rows=await tx`
@@ -681,9 +705,13 @@ export async function readPatientTimeline(ctx:HttpTenantContext,patientId:string
    where r.tenant_id=${ctx.tenantId} and r.aggregate_id in (
      select aggregate_id from clinical_events where tenant_id=${ctx.tenantId} and sequence=1 and payload->>'patientId'=${patientId})
    group by r.aggregate_id, r.aggregate_type
-   order by min(r.occurred_at) desc`;
-  return rows.map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),latestKind:String(x.latest_kind??""),status:String(x.latest_status??""),version:Number(x.version),openedAt:String(x.opened_at),lastAt:String(x.last_at)}));
- }) as Promise<ReadonlyArray<TimelineItem>>;
+   having (${afterAt}::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < (${afterAt}::timestamptz, ${afterId}::text))
+   order by min(r.occurred_at) desc, r.aggregate_id desc
+   limit ${page.limit+1}`;
+  const items=rows.slice(0,page.limit).map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),latestKind:String(x.latest_kind??""),status:String(x.latest_status??""),version:Number(x.version),openedAt:new Date(String(x.opened_at)).toISOString(),lastAt:new Date(String(x.last_at)).toISOString()}));
+  const last=items[items.length-1];
+  return{items,nextCursor:rows.length>page.limit&&last?encodeCursor([last.openedAt,last.aggregateId]):null};
+ }) as Promise<Page<TimelineItem>>;
 }
 // EPIC AC — Worklist poblacional: un renglón por agregado clínico del tenant (todos los pacientes),
 // con su patientId y su último kind (estado). RLS-scoped al tenant. SIN PHI: solo tipo/estado/ids.

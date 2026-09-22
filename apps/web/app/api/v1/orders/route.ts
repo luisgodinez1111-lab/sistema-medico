@@ -15,7 +15,7 @@ const TYPE_UI:Record<string,string>={LAB:"Laboratorio",IMAGING:"Imagenología",P
 export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"order:write",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"order:read",purpose:"TREATMENT"});
   const rows=await ordersRegistry(ctx);
   const items=rows.map(r=>({orderId:r.orderId,patientId:r.patientId,patientName:r.patientName,orderType:r.orderType,typeLabel:TYPE_UI[r.orderType]??"Otro",detail:r.detail,status:r.status,createdAt:r.createdAt,version:r.version}));
   const total=items.length;

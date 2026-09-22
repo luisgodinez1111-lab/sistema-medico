@@ -24,6 +24,7 @@ const SMOKE:readonly string[]=[
  "live-monitoring-obligation-proof",        // generación automática de seguimiento
  "live-observability-sli-proof",            // ENG-054: SLI del commit, PHI-free
  "live-dr-recovery-proof",                  // ENG-055: recuperabilidad (replay determinista + idempotencia + auditoría)
+ "live-audit-chain-verify-proof",         // auditoría S-07: la cadena de auditoría se verifica con la MISMA fórmula que la escribe
  "live-session-issuance-proof",             // IAM: emisión de sesión + dev verifier deshabilitado en prod
  "live-immunization-forecast-proof",        // profundidad: pronóstico de vacunación por edad
  "live-egfr-proof",                         // profundidad: función renal (CKD-EPI) + estadio ERC

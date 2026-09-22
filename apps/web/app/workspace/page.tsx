@@ -705,6 +705,8 @@ export default function Workspace(){
  const[clock,setClock]=useState<Date>(()=>new Date());
  const[topMenu,setTopMenu]=useState(false);
  const[patientList,setPatientList]=useState<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version?:number}[]|null>(null);
+ // Auditoría S-08: el listado de pacientes viene PAGINADO del servidor (200 por página) y se busca en el servidor (?q=).
+ const[patientQuery,setPatientQuery]=useState("");const[patientTotal,setPatientTotal]=useState<number|null>(null);const[patientMore,setPatientMore]=useState(false);
  const[regName,setRegName]=useState("");const[regDob,setRegDob]=useState("");const[regSex,setRegSex]=useState("UNKNOWN");
  const[patStatus,setPatStatus]=useState("");const[patSex,setPatSex]=useState(""); // filtros de la vista Pacientes ("":todos)
  const[patNew,setPatNew]=useState(false);const[patMsg,setPatMsg]=useState<string|null>(null); // creador inline + aviso
@@ -787,8 +789,8 @@ export default function Workspace(){
     if(!cancelled&&r.status<400)setPanel({gaps:(r.body["gaps"] as PanelGap[])??[],patientCount:Number(r.body["patientCount"]??0)});
    }catch{/* worklist no disponible */}
    try{
-    const r=await apiRequest("/api/v1/patients",{method:"GET"});
-    if(!cancelled&&r.status<400)setPatientList((r.body["patients"] as{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version?:number}[])??[]);
+    const r=await apiRequest("/api/v1/patients?limit=200",{method:"GET"});
+    if(!cancelled&&r.status<400){setPatientList((r.body["patients"] as{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version?:number}[])??[]);setPatientTotal(typeof r.body["total"]==="number"?r.body["total"]:null);setPatientMore(!!r.body["nextCursor"]);}
    }catch{/* lista no disponible */}
   })();
   return()=>{cancelled=true;};
@@ -1541,10 +1543,11 @@ export default function Workspace(){
   setObligations(os=>os.map(x=>x.id===o.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
  function selectPatientRaw(id:string,name:string){setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
- const loadPatients=()=>call("pt-list",async()=>{
-  const r=await apiRequest("/api/v1/patients",{method:"GET"});
+ const loadPatients=(q=patientQuery)=>call("pt-list",async()=>{
+  const r=await apiRequest(`/api/v1/patients?limit=200${q.trim()?`&q=${encodeURIComponent(q.trim())}`:""}`,{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
   setPatientList((r.body["patients"] as {patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version?:number}[])??[]);
+  setPatientTotal(typeof r.body["total"]==="number"?r.body["total"]:null);setPatientMore(!!r.body["nextCursor"]);
  });
  // ===== Acciones REALES de la vista Órdenes (crear + transiciones del ciclo de vida) =====
  const reloadOrders=async()=>{const r=await apiRequest("/api/v1/orders",{method:"GET"});if(r.status===200)setOrdReg(r.body as unknown as typeof ordReg);};
@@ -4136,7 +4139,11 @@ export default function Workspace(){
     <input style={input} value={regExtra.occupation} onChange={e=>setRegExtra(x=>({...x,occupation:e.target.value}))} placeholder="Ocupación" />
     <select style={input} value={regExtra.maritalStatus} onChange={e=>setRegExtra(x=>({...x,maritalStatus:e.target.value}))}><option value="">Estado civil…</option><option>Soltero(a)</option><option>Casado(a)</option><option>Unión libre</option><option>Divorciado(a)</option><option>Viudo(a)</option></select>
    </div>
-   <div style={{marginTop:10}}><button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={loadPatients}>{busy==="pt-list"?"Cargando…":"Cargar / buscar pacientes"}</button></div>
+   <div style={{marginTop:10,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+    <input aria-label="Buscar paciente" style={{...input,maxWidth:280}} value={patientQuery} onChange={e=>setPatientQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void loadPatients();}} placeholder="Buscar por nombre o CURP…" />
+    <button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>loadPatients()}>{busy==="pt-list"?"Cargando…":"Cargar / buscar pacientes"}</button>
+    {patientTotal!==null&&patientList&&<span style={{fontSize:12,color:"#6b6c7e"}}>{patientMore?`Mostrando ${patientList.length} de ${patientTotal} pacientes — escriba para acotar la búsqueda`:`${patientList.length} de ${patientTotal} pacientes`}</span>}
+   </div>
    {patientList&&<div style={{marginTop:12,display:"flex",flexDirection:"column",gap:6,maxHeight:220,overflowY:"auto"}}>
     {patientList.length===0?<p style={{color:"#8a8b9a",fontSize:13}}>No hay pacientes registrados en este tenant.</p>
      :patientList.map(p=><div key={p.patientId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",border:"1px solid #eceafb",borderRadius:10,background:p.patientId===patientId?"#f4f3fb":"white"}}>

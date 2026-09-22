@@ -23,7 +23,7 @@ export async function atomicClinicalWriteV2(sql:Sql,ctx:TenantContext,c:AtomicCo
  where aggregate_versions.version=${c.expectedVersion} returning version`;
  if(version.length!==1||Number(version[0]?.version)!==c.expectedVersion+1)throw new Error("CONCURRENCY_CONFLICT");
  await sql`insert into clinical_events(id,tenant_id,aggregate_id,aggregate_type,sequence,actor_id,actor_type,authority,correlation_id,payload,schema_version,occurred_at)
- values(${c.eventId},${ctx.tenantId},${c.aggregateId},${c.aggregateType},${c.expectedVersion+1},${ctx.actorId},'HUMAN',${sql.json({purpose:ctx.purpose})},${c.correlationId},${sql.json(c.eventPayload as never)},1,${c.occurredAt})`;
+ values(${c.eventId},${ctx.tenantId},${c.aggregateId},${c.aggregateType},${c.expectedVersion+1},${ctx.actorId},${ctx.actorType},${sql.json({purpose:ctx.purpose})},${c.correlationId},${sql.json(c.eventPayload as never)},1,${c.occurredAt})`;
  await sql`insert into outbox(id,tenant_id,topic,aggregate_id,payload,state,available_at)
  values(${c.outboxId},${ctx.tenantId},${c.topic},${c.aggregateId},${sql.json({eventId:c.eventId} as never)},'PENDING',now())`;
  const auditPayload={commandId:c.commandId,eventId:c.eventId,aggregateId:c.aggregateId};

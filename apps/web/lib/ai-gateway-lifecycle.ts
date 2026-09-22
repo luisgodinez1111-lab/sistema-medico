@@ -22,7 +22,7 @@ import{validateAiReceipt}from"../../../packages/ai-evidence/src";
 const AGG="AiGateway";
 
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string},requirePhysician=false){
- const opts:{tenantId:string;role?:string;scope?:string;purpose?:string}={tenantId:claims.tenantId,scope:"ai:write",purpose:"TREATMENT"};
+ const opts:{tenantId:string;role?:string;scope:string;purpose?:string}={tenantId:claims.tenantId,scope:"ai:write",purpose:"TREATMENT"};
  if(requirePhysician)opts.role="PHYSICIAN";
  authorize(principalFrom(claims),opts);
 }
@@ -168,7 +168,8 @@ export async function handleAiGatewayExecute(req:Request):Promise<Response>{
   // -> 22P02/500 al llamar). Se usa un uuid válido. occurredAt = timestamp de EJECUCIÓN (correcto para este
   // evento). (Handler SIN cablear; R6 en pausa — no activa el copiloto IA.)
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:crypto.randomUUID(),expectedVersion:0,eventType:"AI_TASK_EXECUTED",payload:{kind:"EXECUTED",taskId:b.taskId,receipt:aiResult},occurredAt:new Date().toISOString(),topic:"ai.task.executed"});
-  const result=await runClinicalCommand(ctx,cmd);
+  // Auditoría S-06: el evento lo ORIGINA la IA; el humano de la sesión solo la invocó. actor_type='AI' en el registro.
+  const result=await runClinicalCommand({...ctx,actorType:"AI"},cmd);
   const r=result.response as{version:number;auditHash?:string};
 
   return NextResponse.json({taskId:b.taskId,result:aiResult,receipt,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});

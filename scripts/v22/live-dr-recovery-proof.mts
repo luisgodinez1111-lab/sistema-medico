@@ -22,7 +22,7 @@ const RUN=crypto.randomUUID();const TENANT=det("dr-tenant-"+RUN);const AGG=det("
 function seededCommand(i:number){const key=`dr-cmd-${RUN}-${i}`;return{commandId:det(key+":command"),idempotencyKey:key,aggregateId:AGG,aggregateType:"Encounter",expectedVersion:i,eventId:det(key+":event"),eventType:"ENCOUNTER_OPENED",payload:{step:i},outboxId:det(key+":outbox"),topic:"encounter.opened",auditId:det(key+":audit"),correlationId:det(key+":corr"),occurredAt:"2026-01-01T00:00:00.000Z"};}
 const rt=postgres(direct(process.env.DATABASE_URL!),{max:4,prepare:false,onnotice:()=>{},connection:{options:`-c role=${RUNTIME_ROLE}`}});
 try{
- const ctx={tenantId:TENANT,actorId:det("dr-actor"),purpose:"TREATMENT",requestId:det("dr-req")};
+ const ctx={tenantId:TENANT,actorId:det("dr-actor"),actorType:"SYSTEM" as const,purpose:"TREATMENT",requestId:det("dr-req")}; // prueba de DR: comandos del SISTEMA, no de un humano (auditoría S-06)
  // 1) Stream determinista de 2 comandos.
  for(let i=0;i<2;i++)await executeAtomicClinicalCommand(rt,ctx,seededCommand(i) as never);
  const countEvents=async()=>{const r=await rt.begin(async tx=>{await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;return tx`select count(*)::int n from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${AGG}`;});return Number(r[0]!.n);};

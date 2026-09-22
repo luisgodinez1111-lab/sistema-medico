@@ -6,7 +6,10 @@ import{ClinicalError}from"../../runtime-errors/src";
 // Convierte un token de sesión firmado (HMAC) en un Principal + TenantContext.
 // Fail-closed: cualquier ausencia/expiración/manipulación => UNAUTHENTICATED.
 // Autoridad: EXEC-0003 (no frontend authz) — la verificación es 100% server-side.
-export type HttpTenantContext=Readonly<{tenantId:string;actorId:string;purpose:string;requestId:string}>;
+import{type ActorType}from"../../tenant-context/src";
+// `actorType`: HUMAN para toda sesión verificada por el IdP. El gateway de IA (no cableado, R6 en pausa) y los trabajos
+// del sistema deben construir su propio contexto con AI / SYSTEM: nunca heredan el HUMAN de la sesión (auditoría S-06).
+export type HttpTenantContext=Readonly<{tenantId:string;actorId:string;actorType:ActorType;purpose:string;requestId:string}>;
 // El subject del IdP puede NO ser un UUID (Auth0 usa "auth0|<hex>", Google "google-oauth2|...").
 // Las columnas actor_id de la BD son uuid, así que el actorId clínico es un UUID DETERMINISTA
 // derivado del subject (estable por usuario). El subject crudo se conserva en las claims para
@@ -34,6 +37,6 @@ export function resolvePrincipal(read:HeaderReader,secret:string,requestId:strin
  if(!claims.sessionId||!claims.tenantId||!claims.sub)throw new ClinicalError("UNAUTHENTICATED","Session missing identity");
  const actorId=subjectToActorId(claims.sub);
  const principal:Principal={actorId,tenantId:claims.tenantId,roles:claims.roles,scopes:claims.scopes,purpose:claims.purpose};
- const ctx:HttpTenantContext={tenantId:claims.tenantId,actorId,purpose:claims.purpose,requestId};
+ const ctx:HttpTenantContext={tenantId:claims.tenantId,actorId,actorType:"HUMAN",purpose:claims.purpose,requestId};
  return Object.freeze({claims,principal,ctx});
 }

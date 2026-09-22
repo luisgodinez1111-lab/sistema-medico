@@ -40,7 +40,7 @@ function assetOf(profile:PhysicianProfileRead,kind:AssetKind):ProfileAsset|null{
 export async function handleProfileGet(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"settings:write"});
+  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"settings:read"});
   const profile=await foldProfile(ctx,profileId(c));
   return NextResponse.json(profile,{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
@@ -87,7 +87,7 @@ export async function handleProfileAssetDownload(req:Request,kind:string):Promis
  try{
   if(!(ASSET_KINDS as readonly string[]).includes(kind))throw new ClinicalError("NOT_FOUND","Tipo de asset desconocido");
   const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"settings:write"});
+  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"settings:read"});
   const profile=await foldProfile(ctx,profileId(c));
   const asset=assetOf(profile,kind as AssetKind);
   if(!asset)throw new ClinicalError("NOT_FOUND","Asset no encontrado");

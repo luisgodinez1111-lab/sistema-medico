@@ -74,7 +74,7 @@ try{
  const rt=postgres(direct(TARGET),{max:4,prepare:false,onnotice:()=>{},connection:{options:`-c role=${RUNTIME_ROLE}`}});
  let auditValid=false,rlsPass=false,replayHash="",liveHash="";
  try{
-  const ctx={tenantId:REPLAY_TENANT,actorId:det("restore-actor"),purpose:"TREATMENT",requestId:det("restore-req")};
+  const ctx={tenantId:REPLAY_TENANT,actorId:det("restore-actor"),actorType:"SYSTEM" as const,purpose:"TREATMENT",requestId:det("restore-req")}; // simulacro de restauración: SISTEMA (auditoría S-06)
   for(let i=0;i<2;i++)await executeAtomicClinicalCommand(rt,ctx,seededCommand(i));
   // replayHash: canonicaliza el stream persistido (aggregate,sequence,payload).
   const ev=await rt.begin(async tx=>{

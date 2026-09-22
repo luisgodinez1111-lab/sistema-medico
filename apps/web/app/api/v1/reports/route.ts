@@ -19,7 +19,7 @@ export async function GET(req:Request){
   const{claims,ctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"record:export",purpose:"TREATMENT"});
   const[patients,claimRows,problemRows,orderRows,resultRows,immRows,encAnalytics,rxRows,apptRows,apptOut]=await Promise.all([
-   listPatients(ctx),
+   listPatients(ctx,{limit:1}), // solo se necesita el total
    claimsRegistry(ctx),
    problemRegistry(ctx),
    ordersRegistry(ctx),
@@ -73,7 +73,7 @@ export async function GET(req:Request){
    mkQI("glycemic_control","HbA1c en control (<7%)",a1cInControl,a1cRows.length,70,"higher","Resultados de HbA1c por debajo de 7% respecto al total de HbA1c registradas."),
   ];
   return NextResponse.json({
-   patientsAttended:patients.length,
+   patientsAttended:patients.total, // total del tenant (S-08: listPatients pagina; el conteo no depende de la página)
    income,
    diagnosesTotal:problemRows.length,
    topDiagnoses,

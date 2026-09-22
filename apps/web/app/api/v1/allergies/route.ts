@@ -17,7 +17,7 @@ const STATUS_ES:Record<string,string>={ACTIVE:"Activa",REFUTED:"Refutada",INACTI
 export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"allergy:write",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"allergy:read",purpose:"TREATMENT"});
   const rows=await allergyRegistry(ctx);
   const items=rows.map(r=>{const type=classifyAllergen(r.substance);return{
    allergyId:r.allergyId,patientId:r.patientId,patientName:r.patientName,

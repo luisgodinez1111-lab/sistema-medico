@@ -42,5 +42,19 @@ try{
  const noWrite=tok(TA,["patient:read"]);
  r=await pt.POST(new Request("http://l/",{method:"POST",headers:H(noWrite,{"idempotency-key":idem()}),body:JSON.stringify({patientId:crypto.randomUUID(),name:"X",birthDate:"2000-01-01",sexAtBirth:"UNKNOWN",occurredAt:ISO})}));
  ok(r.status===403,"MISSING_WRITE_SCOPE_403");
+ // Auditoría S-08 — PAGINACIÓN por cursor y búsqueda en el servidor (en un tenant limpio, con nombres controlados).
+ const TP=crypto.randomUUID();const physP=tok(TP);
+ const names=["Ana Zapata","Bruno Ortiz","Carla Ruiz","Diego Peña","Elena Soto"];
+ for(const n of names)await pt.POST(new Request("http://l/",{method:"POST",headers:H(physP,{"idempotency-key":idem()}),body:JSON.stringify({patientId:crypto.randomUUID(),name:n,birthDate:"1980-05-05",sexAtBirth:"UNKNOWN",...(n==="Carla Ruiz"?{curp:"RUCA800505MDFZRR09"}:{}),occurredAt:ISO})}));
+ const get=async(qs:string)=>{const rr=await pt.GET(new Request("http://l/?"+qs,{headers:H(physP)}));return{status:rr.status,body:await rr.json() as {patients:{name:string}[];nextCursor:string|null;total:number}};};
+ let g=await get("limit=2");ok(g.status===200&&g.body.patients.map(x=>x.name).join("|")==="Ana Zapata|Bruno Ortiz"&&g.body.total===5&&!!g.body.nextCursor,"PAGE_1_OF_3_SORTED_WITH_TOTAL");
+ g=await get("limit=2&cursor="+encodeURIComponent(g.body.nextCursor!));ok(g.body.patients.map(x=>x.name).join("|")==="Carla Ruiz|Diego Peña"&&!!g.body.nextCursor,"PAGE_2_FOLLOWS_CURSOR");
+ g=await get("limit=2&cursor="+encodeURIComponent(g.body.nextCursor!));ok(g.body.patients.map(x=>x.name).join("|")==="Elena Soto"&&g.body.nextCursor===null,"LAST_PAGE_NO_CURSOR");
+ g=await get("limit=2&cursor=basura");ok(g.status===200&&g.body.patients.length===2,"INVALID_CURSOR_STARTS_OVER_NO_500");
+ g=await get("limit=999999");ok(g.body.patients.length===5,"LIMIT_CLAMPED_TO_MAX");
+ g=await get("q=ru");ok(g.body.patients.map(x=>x.name).join("|")==="Carla Ruiz","SEARCH_BY_NAME_WORD_PREFIX"); // "Ruiz" es la 2.ª palabra; "Bruno" contiene "ru" pero no empieza por él
+ g=await get("q=or");ok(g.body.patients.map(x=>x.name).join("|")==="Bruno Ortiz","SEARCH_SECOND_WORD_PREFIX");
+ g=await get("q=RUCA80");ok(g.body.patients.map(x=>x.name).join("|")==="Carla Ruiz","SEARCH_BY_CURP_PREFIX");
+ g=await get("q=zzz");ok(g.body.patients.length===0&&g.body.total===5,"SEARCH_NO_MATCH_KEEPS_TOTAL");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

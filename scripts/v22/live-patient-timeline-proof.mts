@@ -28,6 +28,13 @@ try{
  ok(types.includes("Encounter")&&types.includes("ClinicalOrder")&&types.includes("Medication"),"TIMELINE_HAS_3_TYPES");
  ok((b.items||[]).length===3,"TIMELINE_EXACTLY_3_ITEMS");
  ok((b.items||[]).every((x:{latestKind:string})=>typeof x.latestKind==="string"&&x.latestKind.length>0),"TIMELINE_HAS_KINDS");
+ // Auditoría S-08 — paginación por cursor: 3 agregados en páginas de 2, orden estable (más reciente primero), sin duplicados ni huecos
+ r=await timeline.GET(new Request("http://l/?limit=2",{headers:H(phys)}),TP(pat));const p1=await r.json();
+ ok(r.status===200&&p1.items.length===2&&typeof p1.nextCursor==="string","TIMELINE_PAGE_1_OF_2");
+ r=await timeline.GET(new Request("http://l/?limit=2&cursor="+encodeURIComponent(p1.nextCursor),{headers:H(phys)}),TP(pat));const p2=await r.json();
+ ok(p2.items.length===1&&p2.nextCursor===null,"TIMELINE_LAST_PAGE");
+ const seen=[...p1.items,...p2.items].map((x:{aggregateId:string})=>x.aggregateId);
+ ok(new Set(seen).size===3&&seen.sort().join()===(b.items as{aggregateId:string}[]).map(x=>x.aggregateId).sort().join(),"TIMELINE_PAGES_COVER_ALL_WITHOUT_DUPLICATES");
  // Cross-tenant: tenant B no ve nada de ese paciente
  const physB=tok(TB);
  r=await timeline.GET(new Request("http://l/",{headers:H(physB)}),TP(pat));
