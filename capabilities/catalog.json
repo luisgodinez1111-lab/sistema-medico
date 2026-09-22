@@ -147,16 +147,34 @@
       "ENG-257",
       "ENG-306"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0007",
+      "HAZ-CORE-0008",
+      "HAZ-CORE-0009",
+      "HAZ-CORE-0010"
+    ],
+    "controls": [
+      "CTL-0009",
+      "CTL-0010",
+      "CTL-0011",
+      "CTL-0012",
+      "CTL-0003"
+    ],
+    "invariants": [
+      "INV-CORE-0009",
+      "INV-CORE-0010",
+      "INV-CORE-0011",
+      "INV-CORE-0012",
+      "INV-CORE-0003"
+    ],
     "machines": [
       "SM-FORMAL-MED-001"
     ],
     "tests": [
-      "state-machines.test.ts"
+      "state-machines.test.ts",
+      "medication-safety.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": []
   },
   {
@@ -393,14 +411,23 @@
       "ENG-257",
       "ENG-306"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0010"
+    ],
+    "controls": [
+      "CTL-0003",
+      "CTL-0012"
+    ],
+    "invariants": [
+      "INV-CORE-0003",
+      "INV-CORE-0012"
+    ],
     "machines": [],
     "tests": [
-      "medication-domain.test.ts"
+      "medication-domain.test.ts",
+      "medication-safety.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001"
     ]
@@ -1641,7 +1668,7 @@
   },
   {
     "id": "CAP-RESULT-OBLIGATION-002",
-    "name": "Actionable Result \u2192 Owned Obligation",
+    "name": "Actionable Result → Owned Obligation",
     "risk": "C5",
     "authority": [
       "ENG-307",

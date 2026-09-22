@@ -112,5 +112,83 @@
     "controls": [
       "CTL-0008"
     ]
+  },
+  {
+    "id": "HAZ-CORE-0007",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "A prescription is written or activated while a safety barrier (interaction, duplication, contraindication, dose ceiling, renal adjustment, pediatric dose) could not be evaluated, and that absence is presented or persisted as 'safe'.",
+    "foreseeableSequence": [
+      "drug outside catalog or missing weight/eGFR",
+      "barrier silently skipped",
+      "clinician sees green",
+      "harmful prescription activated"
+    ],
+    "potentialHarm": "Adverse drug event from an unverified interaction, contraindication or dose.",
+    "controls": [
+      "CTL-0009"
+    ]
+  },
+  {
+    "id": "HAZ-CORE-0008",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "A drug with a documented severe allergy, major interaction, therapeutic duplication, diagnosis contraindication or renal contraindication is prescribed, resumed or modified without an accountable, justified override.",
+    "foreseeableSequence": [
+      "barrier BLOCKED",
+      "block bypassed by UI path or silently accepted",
+      "no justification or author recorded"
+    ],
+    "potentialHarm": "Anaphylaxis, bleeding, toxicity or organ injury without traceable clinical decision.",
+    "controls": [
+      "CTL-0010"
+    ]
+  },
+  {
+    "id": "HAZ-CORE-0009",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "A daily dose above the absolute ceiling or above the pediatric mg/kg maximum is accepted.",
+    "foreseeableSequence": [
+      "dose or frequency mistyped or misjudged",
+      "no computation of mg/day or mg/kg/day",
+      "overdose administered"
+    ],
+    "potentialHarm": "Overdose (hepatotoxicity, nephrotoxicity, death), especially in children.",
+    "controls": [
+      "CTL-0011"
+    ]
+  },
+  {
+    "id": "HAZ-CORE-0010",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "A prescription or clinical signature is executed by an actor without physician authority or without a registered legal professional identity (cédula profesional).",
+    "foreseeableSequence": [
+      "role string trusted from client, or AI/system actor",
+      "no professional identity bound to the act",
+      "legally void or unattributable prescription"
+    ],
+    "potentialHarm": "Unlawful prescription; no accountable prescriber; patient harm without recourse.",
+    "controls": [
+      "CTL-0003",
+      "CTL-0012"
+    ]
   }
 ]

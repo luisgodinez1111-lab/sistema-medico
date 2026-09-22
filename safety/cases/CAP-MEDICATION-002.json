@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "2.0",
+  "capability": "CAP-MEDICATION-002",
+  "name": "Medication Domain Authority",
+  "risk": "C5",
+  "authority": [
+    "ENG-220",
+    "ENG-257",
+    "ENG-306"
+  ],
+  "hazardCase": [
+    {
+      "id": "HAZ-CORE-0010",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "A prescription or clinical signature is executed by an actor without physician authority or without a registered legal professional identity (cédula profesional).",
+      "foreseeableSequence": [
+        "role string trusted from client, or AI/system actor",
+        "no professional identity bound to the act",
+        "legally void or unattributable prescription"
+      ],
+      "potentialHarm": "Unlawful prescription; no accountable prescriber; patient harm without recourse.",
+      "controls": [
+        "CTL-0003",
+        "CTL-0012"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0003",
+      "authority": [
+        "ENG-303",
+        "ENG-304",
+        "ENG-324"
+      ],
+      "type": "PREVENTIVE",
+      "name": "Epistemic promotion guard",
+      "invariant": "INV-CORE-0003",
+      "verification": [
+        "unit:test-epistemic-truth"
+      ],
+      "failure": "BLOCK"
+    },
+    {
+      "id": "CTL-0012",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "type": "PREVENTIVE",
+      "name": "PRESCRIBE and signature require PHYSICIAN role and registered professional credentials (cédula); identity snapshot persisted in the event",
+      "invariant": "INV-CORE-0012",
+      "verification": [
+        "unit:tests/traceability/medication-safety.test.ts",
+        "live:scripts/v22/live-prescription-print-proof.mts"
+      ],
+      "failure": "BLOCK"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-CORE-0003",
+      "authority": [
+        "ENG-303",
+        "ENG-304",
+        "ENG-324"
+      ],
+      "risk": "C5",
+      "statement": "AI/system cannot promote recommendation to DECIDED/SIGNED clinical authority.",
+      "predicate": "invPhysicianAuthority",
+      "tests": [
+        "invariants.test.ts",
+        "epistemic-truth.test.ts"
+      ]
+    },
+    {
+      "id": "INV-CORE-0012",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "risk": "C5",
+      "statement": "PRESCRIBE and clinical signature require PHYSICIAN authority and registered professional credentials; the legal identity is persisted with the act.",
+      "predicate": "assertPhysicianCredentials",
+      "tests": [
+        "medication-safety.test.ts"
+      ]
+    }
+  ],
+  "stateMachines": [],
+  "tests": [
+    "medication-domain.test.ts",
+    "medication-safety.test.ts"
+  ],
+  "releasePolicy": "FAIL_CLOSED",
+  "safetyArgument": [
+    "Authority establishes intended behavior and boundaries.",
+    "Hazards identify foreseeable unsafe conditions.",
+    "Controls prevent, detect, correct, or recover from those conditions.",
+    "Invariants define conditions that must remain true.",
+    "Tests provide executable oracles; execution evidence is separately required.",
+    "Capability remains blocked when any required safety-case element is absent."
+  ],
+  "dossierSha256": "c1b063ff0f844cd185e84b970a68ce4b95133ed193f461830185a407651691d2"
+}

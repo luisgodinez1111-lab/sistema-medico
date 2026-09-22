@@ -115,5 +115,61 @@
     "tests": [
       "applicability.test.ts"
     ]
+  },
+  {
+    "id": "INV-CORE-0009",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "risk": "C5",
+    "statement": "A prescription barrier that could not be evaluated is never presented or persisted as PASSED, and a verdict with NOT_EVALUATED barriers is never CLEAR; prescribing then requires explicit acknowledgement with justification.",
+    "predicate": "evaluatePrescriptionSafety",
+    "tests": [
+      "medication-safety.test.ts"
+    ]
+  },
+  {
+    "id": "INV-CORE-0010",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "risk": "C5",
+    "statement": "A BLOCKED overridable barrier is lifted only by naming that barrier with a clinical justification recorded with the prescriber; naming a non-blocking barrier is rejected; hard barriers are never lifted.",
+    "predicate": "decideOverride",
+    "tests": [
+      "medication-safety.test.ts"
+    ]
+  },
+  {
+    "id": "INV-CORE-0011",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "risk": "C5",
+    "statement": "A computed daily dose above the absolute ceiling, or above the pediatric mg/kg/day maximum, is BLOCKED and cannot be overridden.",
+    "predicate": "checkDoseCeiling",
+    "tests": [
+      "medication-safety.test.ts"
+    ]
+  },
+  {
+    "id": "INV-CORE-0012",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "risk": "C5",
+    "statement": "PRESCRIBE and clinical signature require PHYSICIAN authority and registered professional credentials; the legal identity is persisted with the act.",
+    "predicate": "assertPhysicianCredentials",
+    "tests": [
+      "medication-safety.test.ts"
+    ]
   }
 ]

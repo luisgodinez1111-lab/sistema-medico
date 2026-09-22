@@ -8,16 +8,253 @@
     "ENG-257",
     "ENG-306"
   ],
-  "hazardCase": [],
-  "controls": [],
-  "invariants": [],
+  "hazardCase": [
+    {
+      "id": "HAZ-CORE-0007",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "A prescription is written or activated while a safety barrier (interaction, duplication, contraindication, dose ceiling, renal adjustment, pediatric dose) could not be evaluated, and that absence is presented or persisted as 'safe'.",
+      "foreseeableSequence": [
+        "drug outside catalog or missing weight/eGFR",
+        "barrier silently skipped",
+        "clinician sees green",
+        "harmful prescription activated"
+      ],
+      "potentialHarm": "Adverse drug event from an unverified interaction, contraindication or dose.",
+      "controls": [
+        "CTL-0009"
+      ]
+    },
+    {
+      "id": "HAZ-CORE-0008",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "A drug with a documented severe allergy, major interaction, therapeutic duplication, diagnosis contraindication or renal contraindication is prescribed, resumed or modified without an accountable, justified override.",
+      "foreseeableSequence": [
+        "barrier BLOCKED",
+        "block bypassed by UI path or silently accepted",
+        "no justification or author recorded"
+      ],
+      "potentialHarm": "Anaphylaxis, bleeding, toxicity or organ injury without traceable clinical decision.",
+      "controls": [
+        "CTL-0010"
+      ]
+    },
+    {
+      "id": "HAZ-CORE-0009",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "A daily dose above the absolute ceiling or above the pediatric mg/kg maximum is accepted.",
+      "foreseeableSequence": [
+        "dose or frequency mistyped or misjudged",
+        "no computation of mg/day or mg/kg/day",
+        "overdose administered"
+      ],
+      "potentialHarm": "Overdose (hepatotoxicity, nephrotoxicity, death), especially in children.",
+      "controls": [
+        "CTL-0011"
+      ]
+    },
+    {
+      "id": "HAZ-CORE-0010",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "A prescription or clinical signature is executed by an actor without physician authority or without a registered legal professional identity (cédula profesional).",
+      "foreseeableSequence": [
+        "role string trusted from client, or AI/system actor",
+        "no professional identity bound to the act",
+        "legally void or unattributable prescription"
+      ],
+      "potentialHarm": "Unlawful prescription; no accountable prescriber; patient harm without recourse.",
+      "controls": [
+        "CTL-0003",
+        "CTL-0012"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0009",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "type": "PREVENTIVE",
+      "name": "Single six-state prescription safety evaluator; NOT_EVALUATED never CLEAR; explicit acknowledgement with justification (428 SAFETY_ACK_REQUIRED)",
+      "invariant": "INV-CORE-0009",
+      "verification": [
+        "unit:tests/traceability/medication-safety.test.ts",
+        "unit:tests/v22/prescription-safety.test.ts",
+        "live:scripts/v22/live-prescription-check-proof.mts",
+        "live:scripts/v22/live-medication-lifecycle-proof.mts"
+      ],
+      "failure": "BLOCK"
+    },
+    {
+      "id": "CTL-0010",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "type": "PREVENTIVE",
+      "name": "Server-side barrier enforcement on PRESCRIBE/RESUME/MODIFY with named, justified, audited override (decideOverride)",
+      "invariant": "INV-CORE-0010",
+      "verification": [
+        "unit:tests/traceability/medication-safety.test.ts",
+        "live:scripts/v22/live-safety-override-proof.mts",
+        "live:scripts/v22/live-cross-reactivity-gate-proof.mts",
+        "live:scripts/v22/live-drug-interaction-gate-proof.mts"
+      ],
+      "failure": "BLOCK"
+    },
+    {
+      "id": "CTL-0011",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "type": "PREVENTIVE",
+      "name": "Hard, non-overridable daily dose ceiling and pediatric mg/kg maximum (proposal and prescription)",
+      "invariant": "INV-CORE-0011",
+      "verification": [
+        "unit:tests/traceability/medication-safety.test.ts",
+        "live:scripts/v22/live-dose-ceiling-gate-proof.mts",
+        "live:scripts/v22/live-pediatric-dose-gate-proof.mts"
+      ],
+      "failure": "BLOCK"
+    },
+    {
+      "id": "CTL-0012",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "type": "PREVENTIVE",
+      "name": "PRESCRIBE and signature require PHYSICIAN role and registered professional credentials (cédula); identity snapshot persisted in the event",
+      "invariant": "INV-CORE-0012",
+      "verification": [
+        "unit:tests/traceability/medication-safety.test.ts",
+        "live:scripts/v22/live-prescription-print-proof.mts"
+      ],
+      "failure": "BLOCK"
+    },
+    {
+      "id": "CTL-0003",
+      "authority": [
+        "ENG-303",
+        "ENG-304",
+        "ENG-324"
+      ],
+      "type": "PREVENTIVE",
+      "name": "Epistemic promotion guard",
+      "invariant": "INV-CORE-0003",
+      "verification": [
+        "unit:test-epistemic-truth"
+      ],
+      "failure": "BLOCK"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-CORE-0009",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "risk": "C5",
+      "statement": "A prescription barrier that could not be evaluated is never presented or persisted as PASSED, and a verdict with NOT_EVALUATED barriers is never CLEAR; prescribing then requires explicit acknowledgement with justification.",
+      "predicate": "evaluatePrescriptionSafety",
+      "tests": [
+        "medication-safety.test.ts"
+      ]
+    },
+    {
+      "id": "INV-CORE-0010",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "risk": "C5",
+      "statement": "A BLOCKED overridable barrier is lifted only by naming that barrier with a clinical justification recorded with the prescriber; naming a non-blocking barrier is rejected; hard barriers are never lifted.",
+      "predicate": "decideOverride",
+      "tests": [
+        "medication-safety.test.ts"
+      ]
+    },
+    {
+      "id": "INV-CORE-0011",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "risk": "C5",
+      "statement": "A computed daily dose above the absolute ceiling, or above the pediatric mg/kg/day maximum, is BLOCKED and cannot be overridden.",
+      "predicate": "checkDoseCeiling",
+      "tests": [
+        "medication-safety.test.ts"
+      ]
+    },
+    {
+      "id": "INV-CORE-0012",
+      "authority": [
+        "ENG-220",
+        "ENG-257",
+        "ENG-306"
+      ],
+      "risk": "C5",
+      "statement": "PRESCRIBE and clinical signature require PHYSICIAN authority and registered professional credentials; the legal identity is persisted with the act.",
+      "predicate": "assertPhysicianCredentials",
+      "tests": [
+        "medication-safety.test.ts"
+      ]
+    },
+    {
+      "id": "INV-CORE-0003",
+      "authority": [
+        "ENG-303",
+        "ENG-304",
+        "ENG-324"
+      ],
+      "risk": "C5",
+      "statement": "AI/system cannot promote recommendation to DECIDED/SIGNED clinical authority.",
+      "predicate": "invPhysicianAuthority",
+      "tests": [
+        "invariants.test.ts",
+        "epistemic-truth.test.ts"
+      ]
+    }
+  ],
   "stateMachines": [
     "SM-FORMAL-MED-001"
   ],
   "tests": [
-    "state-machines.test.ts"
+    "state-machines.test.ts",
+    "medication-safety.test.ts"
   ],
-  "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+  "releasePolicy": "FAIL_CLOSED",
   "safetyArgument": [
     "Authority establishes intended behavior and boundaries.",
     "Hazards identify foreseeable unsafe conditions.",
@@ -26,5 +263,5 @@
     "Tests provide executable oracles; execution evidence is separately required.",
     "Capability remains blocked when any required safety-case element is absent."
   ],
-  "dossierSha256": "675698b820398d3d8ad99cf0176edbf240f71fb368b4ee9afd250acd3e5eb593"
+  "dossierSha256": "65708d3e0a07c2b3fbf832217baf68264b748c518e11b168fe66a8293a6b7636"
 }

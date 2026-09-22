@@ -123,5 +123,74 @@
       "future:pediatric-dose-receipt"
     ],
     "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0009",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Single six-state prescription safety evaluator; NOT_EVALUATED never CLEAR; explicit acknowledgement with justification (428 SAFETY_ACK_REQUIRED)",
+    "invariant": "INV-CORE-0009",
+    "verification": [
+      "unit:tests/traceability/medication-safety.test.ts",
+      "unit:tests/v22/prescription-safety.test.ts",
+      "live:scripts/v22/live-prescription-check-proof.mts",
+      "live:scripts/v22/live-medication-lifecycle-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0010",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Server-side barrier enforcement on PRESCRIBE/RESUME/MODIFY with named, justified, audited override (decideOverride)",
+    "invariant": "INV-CORE-0010",
+    "verification": [
+      "unit:tests/traceability/medication-safety.test.ts",
+      "live:scripts/v22/live-safety-override-proof.mts",
+      "live:scripts/v22/live-cross-reactivity-gate-proof.mts",
+      "live:scripts/v22/live-drug-interaction-gate-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0011",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Hard, non-overridable daily dose ceiling and pediatric mg/kg maximum (proposal and prescription)",
+    "invariant": "INV-CORE-0011",
+    "verification": [
+      "unit:tests/traceability/medication-safety.test.ts",
+      "live:scripts/v22/live-dose-ceiling-gate-proof.mts",
+      "live:scripts/v22/live-pediatric-dose-gate-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0012",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "type": "PREVENTIVE",
+    "name": "PRESCRIBE and signature require PHYSICIAN role and registered professional credentials (cédula); identity snapshot persisted in the event",
+    "invariant": "INV-CORE-0012",
+    "verification": [
+      "unit:tests/traceability/medication-safety.test.ts",
+      "live:scripts/v22/live-prescription-print-proof.mts"
+    ],
+    "failure": "BLOCK"
   }
 ]
