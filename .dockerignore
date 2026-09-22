@@ -1,0 +1,10 @@
+node_modules
+apps/web/.next
+.git
+.env*
+!.env.example
+docs
+release
+tests
+scripts/v22
+*.log

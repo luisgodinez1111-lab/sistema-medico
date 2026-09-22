@@ -1,7 +1,0 @@
-{
-  "command": "npm install --ignore-scripts --no-audit --no-fund",
-  "status": "TIMEOUT",
-  "timeout_seconds": 45,
-  "node_modules_created": false,
-  "consequence": "Full TypeScript/Vitest/Next build evidence remains NOT_RUN."
-}

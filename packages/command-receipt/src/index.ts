@@ -1,1 +1,0 @@
-import crypto from"node:crypto";export function commandReceipt(x:{commandId:string;aggregateId:string;version:number;eventIds:readonly string[];outboxIds:readonly string[];auditId:string;committedAt:string}){const hash=crypto.createHash("sha256").update(JSON.stringify(x)).digest("hex");return Object.freeze({...x,hash});}

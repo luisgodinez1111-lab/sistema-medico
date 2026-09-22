@@ -1,1 +1,0 @@
-export type Consent=Readonly<{patientId:string;purpose:string;status:'GRANTED'|'DENIED'|'WITHDRAWN';effectiveFrom:number;effectiveTo?:number}>;export function consentAllows(c:Consent|undefined,purpose:string,at:number){return !!c&&c.purpose===purpose&&c.status==='GRANTED'&&c.effectiveFrom<=at&&(c.effectiveTo===undefined||c.effectiveTo>at);}

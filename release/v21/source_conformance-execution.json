@@ -1,8 +1,0 @@
-{
-  "status": "PASS",
-  "exit_code": 0,
-  "stdout": "{\n  \"status\": \"PASS\",\n  \"checks\": 9,\n  \"results\": [\n    \"runtime role NOBYPASSRLS\",\n    \"worker role NOBYPASSRLS\",\n    \"readonly role NOBYPASSRLS\",\n    \"clinical events FORCE RLS\",\n    \"outbox FORCE RLS\",\n    \"idempotency FORCE RLS\",\n    \"live postgres harness exists\",\n    \"live rls harness exists\",\n    \"runtime proof evidence wrapper exists\"\n  ]\n}\n",
-  "stderr": "",
-  "stdout_hash": "40183759e0bbbfdfc0200619c974d2520cad8e3e5df0fe228e9a803914eee08c",
-  "stderr_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-}

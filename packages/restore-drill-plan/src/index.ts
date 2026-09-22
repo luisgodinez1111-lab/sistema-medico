@@ -1,2 +1,0 @@
-export const restoreDrillSteps=["CREATE_BACKUP","DESTROY_EPHEMERAL_DATABASE","RESTORE","VERIFY_SCHEMA_HASH","VERIFY_AUDIT_CHAIN","VERIFY_RLS","REBUILD_PROJECTIONS","COMPARE_FINGERPRINTS","VERIFY_OPEN_OBLIGATIONS","RELEASE_OR_QUARANTINE"] as const;
-export function drillComplete(done:readonly string[]){const missing=restoreDrillSteps.filter(x=>!done.includes(x));return{complete:missing.length===0,missing}}

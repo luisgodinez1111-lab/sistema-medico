@@ -1,1 +1,0 @@
-export type CodeRef=Readonly<{system:string;code:string;display?:string;version?:string}>;export function validateCodeRef(x:CodeRef){if(!x.system||!x.code)throw new Error("TERMINOLOGY_CODE_REQUIRED");return{...x,trust:"UNVERIFIED" as const};}

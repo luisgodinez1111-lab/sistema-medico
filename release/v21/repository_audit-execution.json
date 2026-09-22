@@ -1,8 +1,0 @@
-{
-  "status": "PASS",
-  "exit_code": 0,
-  "stdout": "{\n  \"status\": \"PASS\",\n  \"filesScanned\": 689,\n  \"findings\": [],\n  \"s1\": 0,\n  \"s2\": 0\n}\n",
-  "stderr": "",
-  "stdout_hash": "8bdfb141d5e29b17f13bbe6bbd768540d2a4f2abe454bda81ef2c4756d5ccac4",
-  "stderr_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-}

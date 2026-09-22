@@ -1,2 +1,0 @@
-export type MutationHeaders=Readonly<{contentType?:string;idempotencyKey?:string;ifMatch?:string;requestId?:string}>;
-export function mutationHeaderErrors(h:MutationHeaders){const e:string[]=[];if(!h.contentType?.toLowerCase().startsWith("application/json"))e.push("CONTENT_TYPE");if(!h.idempotencyKey||h.idempotencyKey.length>256)e.push("IDEMPOTENCY_KEY");if(!h.ifMatch||!/^(W\/)?"[^"]+"$/.test(h.ifMatch))e.push("IF_MATCH");if(!h.requestId||h.requestId.length>128)e.push("REQUEST_ID");return e}

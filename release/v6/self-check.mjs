@@ -1,5 +1,0 @@
-
-import fs from"node:fs";import crypto from"node:crypto";const load=p=>JSON.parse(fs.readFileSync(p)),errors=[];const m=load("release/test-evidence-manifest.json"),c=load("capabilities/catalog.json");
-for(const x of m){if(!fs.existsSync(x.test)){errors.push(`MISSING:${x.test}`);continue;}if(crypto.createHash("sha256").update(fs.readFileSync(x.test)).digest("hex")!==x.sha256)errors.push(`HASH:${x.test}`);}
-const req=["packages/postgres-adapter/src/index.ts","packages/encounter-service/src/index.ts","packages/result-service/src/index.ts","packages/obligation-service/src/index.ts","packages/medication-service/src/index.ts","packages/patient-state/src/index.ts","packages/clinical-api/src/command-pipeline.ts","db/migrations/0003_vertical_slice.sql","apps/worker/src/reconciliation.ts"];
-for(const p of req)if(!fs.existsSync(p))errors.push(`CORE:${p}`);console.log(JSON.stringify({status:errors.length?"FAIL":"PASS",counts:{capabilities:c.length,testSources:m.length,verticalArtifacts:req.length},errors},null,2));if(errors.length)process.exit(1);

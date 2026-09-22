@@ -1,5 +1,0 @@
-{
-  "status": "PASS",
-  "stdout": "{\n  \"status\": \"PASS\",\n  \"cases\": 100000,\n  \"violationsDetected\": 219994,\n  \"byClass\": {\n    \"partial\": 43504,\n    \"tenant\": 87593,\n    \"version\": 79906,\n    \"temporal\": 8991\n  }\n}\n",
-  "stderr": ""
-}

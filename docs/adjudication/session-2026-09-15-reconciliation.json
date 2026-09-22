@@ -958,12 +958,12 @@
     "No altera la máquina de estados del vital (append-only intacto)"
    ],
    "implementation": [
-    "packages/vitals-reference",
+    "packages/lab-reference (classifyVital: bandas por edad y cotas de plausibilidad; auditoría C-13, lote 8a — sustituye a packages/vitals-reference, retirado en el lote 10)",
     "apps/web/lib/vital-lifecycle.ts (clasificación en record/amendment)",
     "UI /workspace badge de interpretación del signo vital"
    ],
    "tests": [
-    "tests/v22/vitals-reference.test.ts"
+    "tests/v22/lab-reference.test.ts"
    ],
    "runtime_evidence": "scripts/v22/live-vitals-reference-proof.mts — PASS 6/6 (BP_NORMAL, BP_CRITICAL, SPO2_CRITICAL, TEMP_ABNORMAL, BP_START_CRITICAL, AMEND_RECLASSIFIES_NORMAL)",
    "epic": "AN",
@@ -1057,7 +1057,7 @@
     "apps/web/lib/encounter-lifecycle.ts (gate de firma que suma vitales críticos)"
    ],
    "tests": [
-    "tests/v22/vitals-reference.test.ts"
+    "tests/v22/lab-reference.test.ts"
    ],
    "runtime_evidence": "scripts/v22/live-critical-vital-signing-loop-proof.mts — PASS 6/6 (VITAL_CRITICAL_RECORDED, ENCOUNTER_READY, SIGN_BLOCKED_BY_CRITICAL_VITAL_403, FOLLOWUP_OBLIGATION_CREATED, SIGN_UNBLOCKED_AFTER_FOLLOWUP_201, OTHER_PATIENT_STILL_BLOCKED_403)",
    "epic": "AS",

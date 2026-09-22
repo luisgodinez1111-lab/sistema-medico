@@ -1,1 +1,0 @@
-export type SagaStep=Readonly<{id:string;status:"PENDING"|"DONE"|"COMPENSATED";compensatable:boolean}>;export function nextSagaStep(xs:readonly SagaStep[]){return xs.find(x=>x.status==="PENDING")??null}export function compensate(xs:readonly SagaStep[]){return [...xs].reverse().filter(x=>x.status==="DONE"&&x.compensatable).map(x=>({...x,status:"COMPENSATED" as const}));}

@@ -1,1 +1,0 @@
-export type WorkerHealth=Readonly<{workerId:string;heartbeatAt:number;leased:number;deadLetters:number}>;export function supervise(xs:readonly WorkerHealth[],now:number,timeoutMs:number){return xs.map(x=>({...x,status:now-x.heartbeatAt>timeoutMs?"STALE":x.deadLetters>0?"DEGRADED":"HEALTHY"} as const));}

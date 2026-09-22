@@ -1,2 +1,0 @@
-export type ClinicalCommand<T=unknown>=Readonly<{id:string;type:string;tenantId:string;actorId:string;aggregateId:string;expectedVersion:number;idempotencyKey:string;payload:T}>;
-export function admitCommand(c:ClinicalCommand){if(!c.id||!c.type||!c.tenantId||!c.actorId||!c.aggregateId||!c.idempotencyKey)throw new Error('COMMAND_INCOMPLETE');if(c.expectedVersion<0)throw new Error('EXPECTED_VERSION_REQUIRED');return c;}

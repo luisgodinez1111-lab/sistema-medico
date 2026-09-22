@@ -1,8 +1,0 @@
-{
-  "version": "0.7-SAFETY-KERNEL",
-  "status": "FORMAL_KERNEL_IMPLEMENTED_EXECUTION_AND_HUMAN_REVIEW_PENDING",
-  "new_kernels": 6,
-  "new_test_files": 5,
-  "release_state": "BLOCKED",
-  "source_registry_sha256": "b8b89aa972eae3a14c9fb1ed107136f89c2597ff821cfc8cf68d43ec8aab633c"
-}

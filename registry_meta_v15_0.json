@@ -1,1 +1,0 @@
-{"version":"15.0-REPRODUCIBLE-CLINICAL-RUNTIME","capabilities":140,"self_check":"PASS","conformance":"PASS","conformance_checks":20,"sql_static":"PASS","full_vitest":"NOT_RUN","live_postgres":"NOT_RUN","release_state":"BLOCKED","major_jump":"truth+authority+atomicity+async+recovery+AI+policy+evidence+reproducibility"}

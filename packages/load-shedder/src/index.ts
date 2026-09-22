@@ -1,1 +1,0 @@
-export function admission(x:{queueDepth:number;critical:boolean;maxDepth:number}){if(x.critical)return{admit:true,reason:"CLINICAL_CRITICAL"};if(x.queueDepth>=x.maxDepth)return{admit:false,reason:"LOAD_SHED"};return{admit:true,reason:"CAPACITY"};}

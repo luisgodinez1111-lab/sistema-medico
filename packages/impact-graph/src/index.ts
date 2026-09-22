@@ -1,2 +1,0 @@
-export type ImpactNode=Readonly<{id:string;type:"POLICY"|"EXECUTION"|"PATIENT"|"ARTIFACT"|"ACTION"}>;export type ImpactEdge=Readonly<{from:string;to:string}>;
-export function descendants(nodes:readonly ImpactNode[],edges:readonly ImpactEdge[],root:string){const seen=new Set([root]),q=[root];while(q.length){const x=q.shift()!;for(const e of edges)if(e.from===x&&!seen.has(e.to)){seen.add(e.to);q.push(e.to)}}return nodes.filter(n=>seen.has(n.id)&&n.id!==root);}

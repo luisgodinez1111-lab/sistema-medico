@@ -1,1 +1,0 @@
-import crypto from'node:crypto';export function checkpoint(aggregateId:string,sequence:number,state:unknown){if(sequence<0)throw new Error('INVALID_SEQUENCE');return{aggregateId,sequence,stateHash:crypto.createHash('sha256').update(JSON.stringify(state)).digest('hex')};}

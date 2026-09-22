@@ -1,5 +1,0 @@
-{
-  "status": "PASS",
-  "stdout": "{\n  \"status\": \"PASS\",\n  \"filesScanned\": 660,\n  \"findings\": [],\n  \"s1\": 0,\n  \"s2\": 0\n}\n",
-  "stderr": ""
-}

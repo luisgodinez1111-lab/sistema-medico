@@ -1,1 +1,0 @@
-export type PublishResult="DELIVERED"|"RETRY"|"DEAD_LETTER";export function classifyPublish(attempt:number,max:number,err?:unknown):PublishResult{if(!err)return"DELIVERED";return attempt>=max?"DEAD_LETTER":"RETRY";}export function consumerReceiptKey(tenant:string,consumer:string,message:string){return`${tenant}:${consumer}:${message}`;}

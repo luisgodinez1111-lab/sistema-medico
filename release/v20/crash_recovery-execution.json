@@ -1,5 +1,0 @@
-{
-  "status": "PASS",
-  "stdout": "{\n  \"status\": \"PASS\",\n  \"cases\": 250000,\n  \"counts\": {\n    \"NO_REDELIVERY_AUTHORITY\": 41537,\n    \"OUTBOX_RECOVERABLE\": 41682,\n    \"CONSUMER_RECEIPT_OR_IDEMPOTENT_RETRY\": 41927,\n    \"LEASE_EXPIRES_AND_RECLAIMS\": 41491,\n    \"NO_AUTHORITATIVE_PARTIAL_WRITE\": 83363\n  },\n  \"fail\": 0\n}\n",
-  "stderr": ""
-}

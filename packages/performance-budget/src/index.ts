@@ -1,1 +1,0 @@
-export type Budget=Readonly<{name:string;p95Ms:number;maxErrorRate:number}>;export function evaluateBudget(b:Budget,x:{p95Ms:number;errorRate:number}){return{pass:x.p95Ms<=b.p95Ms&&x.errorRate<=b.maxErrorRate,latencyPass:x.p95Ms<=b.p95Ms,errorPass:x.errorRate<=b.maxErrorRate};}

@@ -1,5 +1,0 @@
-{
-  "status": "PASS",
-  "stdout": "{\n  \"status\": \"PASS\",\n  \"counts\": {\n    \"capabilities\": 65,\n    \"testSources\": 66,\n    \"required\": 10\n  },\n  \"aiReconciliation\": \"HUMAN_REVIEW_PENDING\",\n  \"errors\": []\n}\n",
-  "stderr": ""
-}

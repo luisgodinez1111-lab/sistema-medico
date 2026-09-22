@@ -1,1 +1,0 @@
-const keys=/name|dob|birth|phone|email|address|token|secret|diagnosis|medication/i;export function redactPhi(x:unknown):unknown{if(Array.isArray(x))return x.map(redactPhi);if(x&&typeof x==="object")return Object.fromEntries(Object.entries(x as any).map(([k,v])=>[k,keys.test(k)?"[REDACTED]":redactPhi(v)]));return x;}

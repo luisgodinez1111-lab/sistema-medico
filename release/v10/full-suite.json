@@ -1,4 +1,0 @@
-{
-  "status": "NOT_RUN",
-  "reason": "No local pnpm/node_modules; network dependency installation intentionally not used as release evidence."
-}

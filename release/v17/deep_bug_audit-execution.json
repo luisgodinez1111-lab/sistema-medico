@@ -1,5 +1,0 @@
-{
-  "status": "PASS",
-  "stdout": "{\n  \"status\": \"PASS\",\n  \"findings\": [\n    [\n      \"S1-RETIRED\",\n      \"V2_NOT_ATOMIC\",\n      \"v2 remains historical and must not be imported\"\n    ]\n  ],\n  \"critical\": 0\n}\n",
-  "stderr": ""
-}

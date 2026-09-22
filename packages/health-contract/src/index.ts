@@ -1,1 +1,0 @@
-export type Health=Readonly<{database:boolean;outbox:boolean;identity:boolean;audit:boolean}>;export function readiness(x:Health){const failed=Object.entries(x).filter(([,v])=>!v).map(([k])=>k);return{ready:failed.length===0,failed};}

@@ -1,5 +1,0 @@
-{
-  "status": "PASS",
-  "stdout": "{\n  \"status\": \"PASS\",\n  \"findings\": [\n    [\n      \"S2\",\n      \"HISTORICAL_TRIGGER_DEFECT\",\n      \"v0008 contains OLD.status; repaired by v0012\"\n    ],\n    [\n      \"S2\",\n      \"HISTORICAL_SCHEMA_DRIFT\",\n      \"projection_checkpoints was re-declared incompatibly; v0012 introduces projection_aggregate_checkpoints\"\n    ]\n  ],\n  \"unresolvedCritical\": 0\n}\n",
-  "stderr": ""
-}

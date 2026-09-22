@@ -1,2 +1,0 @@
-import crypto from"node:crypto";export type EvidenceState="MISSING"|"GENERATED"|"EXECUTED_PASS"|"EXECUTED_FAIL"|"HUMAN_REVIEW_PENDING"|"HUMAN_APPROVED";
-export function evidenceArtifact(x:{kind:string;state:EvidenceState;artifact:string;runner:string;commit?:string;toolchain:Record<string,string>;output:string}){const sha256=crypto.createHash("sha256").update(JSON.stringify(x)).digest("hex");return Object.freeze({...x,sha256});}

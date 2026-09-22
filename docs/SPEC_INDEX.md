@@ -25,6 +25,15 @@ Los `.docx` son la **fuente autoritativa**; los `.extracted.txt` son un render d
 > entregará (integrarlo antes de arrancar). Por ahora **solo queda el informe**
 > (`docs/reviews/2026-09-15-V2-spec-review.md`); **no se inicia L00** hasta nueva indicación.
 
+> **Actualización 22-sep-2026 (auditoría G-08 — estado real):** la decisión anterior **no se ejecutó**: `medical-os`
+> nunca se creó y desde el 15-sep este repositorio recibió más de 250 commits, incluida la remediación de la auditoría
+> del 19-sep. **Este repo es la base de código activa**, desplegada en Vercel desde `main`. Las specs V2 siguen siendo la
+> autoridad de producto e ingeniería (visión y jerarquía de conflicto), pero no son una especificación construible
+> línea a línea (véase la auditoría del repo del 19-sep y su remediación): donde el código
+> tomó una decisión que V2 no fija, la decisión se documenta en `docs/adr/` (ADR-0230 en adelante) y el estado de cada
+> hallazgo en `docs/reviews/2026-09-20-remediacion-auditoria.md`. Lo que sigue pendiente de decisión del dueño: uso
+> previsto y clasificación regulatoria por función (G-04) y la aprobación humana de las capacidades C5 (G-03).
+
 ## Jerarquía de fuentes (EXEC-0001) — regla de conflicto
 
 ```

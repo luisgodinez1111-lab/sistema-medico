@@ -1,9 +1,0 @@
-{
-  "version": "0.8-RELEASE-ADMISSION",
-  "status": "EXECUTABLE_RELEASE_GOVERNANCE_CREATED",
-  "ai_task_bindings": 0,
-  "foundational_invariants_as_code": 4,
-  "release_gates_executable": 6,
-  "execution": "NOT_RUN",
-  "source_registry_sha256": "5b6c5b6eccc9739be78d6edf572c7af42508b7dc070aa19aa393b824721f0485"
-}

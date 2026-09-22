@@ -1,1 +1,0 @@
-export function errorBudget(target:number,total:number,failed:number){if(total<=0)return{remaining:0,burn:Infinity};const allowed=total*(1-target),remaining=Math.max(0,allowed-failed);return{remaining,burn:allowed?failed/allowed:Infinity};}

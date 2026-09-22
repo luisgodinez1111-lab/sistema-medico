@@ -1,1 +1,0 @@
-export type ErrorCode="VALIDATION_ERROR"|"AUTH_REQUIRED"|"FORBIDDEN"|"CONCURRENCY_CONFLICT"|"IDEMPOTENCY_CONFLICT"|"DEPENDENCY_UNAVAILABLE"|"SAFETY_BLOCKED"|"INTERNAL_ERROR";export function errorEnvelope(code:ErrorCode,requestId:string,message:string){return Object.freeze({error:{code,message,requestId}})}

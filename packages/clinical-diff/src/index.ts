@@ -1,1 +1,0 @@
-export function clinicalDiff(before:Record<string,unknown>,after:Record<string,unknown>){const keys=new Set([...Object.keys(before),...Object.keys(after)]);return[...keys].filter(k=>JSON.stringify(before[k])!==JSON.stringify(after[k])).map(k=>({field:k,before:before[k],after:after[k]}));}

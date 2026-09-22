@@ -1,5 +1,0 @@
-{
-  "status": "PASS",
-  "stdout": "{\n  \"status\": \"PASS\",\n  \"checks\": {\n    \"safeTenantHelper\": true,\n    \"forceRls\": true,\n    \"idempotencyActorKey\": true,\n    \"outboxLease\": true,\n    \"consumerReceipt\": true,\n    \"signedImmutable\": true,\n    \"correctionSelfCycle\": true\n  }\n}\n",
-  "stderr": ""
-}

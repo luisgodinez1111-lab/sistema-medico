@@ -1,3 +1,0 @@
-export type Schema=Map<string,Set<string>>;
-export function findCreateTableCollisions(sqls:readonly string[]){const seen=new Map<string,string>(),collisions:string[]=[];for(const sql of sqls)for(const m of sql.matchAll(/CREATE TABLE IF NOT EXISTS\s+([a-z_][a-z0-9_]*)\s*\(([\s\S]*?)\);/gi)){const name=m[1]!,shape=m[2]!.replace(/\s+/g," ").trim();const prior=seen.get(name);if(prior&&prior!==shape)collisions.push(name);else seen.set(name,shape)}return[...new Set(collisions)]}
-export function unsafeUuidContextCasts(sql:string){return[...sql.matchAll(/current_setting\([^)]*true\)[^;\n]*::uuid/gi)].map(x=>x[0])}

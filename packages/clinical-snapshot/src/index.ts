@@ -1,1 +1,0 @@
-import crypto from"node:crypto";export function snapshot<T>(aggregateId:string,version:number,state:T){const body=JSON.stringify({aggregateId,version,state});return{aggregateId,version,state,hash:crypto.createHash("sha256").update(body).digest("hex")};}

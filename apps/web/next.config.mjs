@@ -1,3 +1,4 @@
+import{fileURLToPath}from"node:url";
 /** @type {import('next').NextConfig} */
 // EPIC B — `postgres` (postgres.js) es una dependencia nativa de servidor: se externaliza
 // para que Next no intente empaquetarla en el bundle de la Function.
@@ -55,6 +56,10 @@ export const API_NO_STORE=[{key:"Cache-Control",value:"no-store"},{key:"Pragma",
 const nextConfig={
  serverExternalPackages:["postgres"],
  poweredByHeader:false, // no anunciar el framework
+ // Auditoría P-15: salida `standalone` para la imagen Docker self-hosted (server.js + node_modules mínimos). Vercel la
+ // ignora sin efecto. El repo es un monorepo: la raíz de trazado es la raíz del repositorio (los paquetes se importan por ruta).
+ output:"standalone",
+ outputFileTracingRoot:fileURLToPath(new URL("../..",import.meta.url)),
  async headers(){
   return[
    {source:"/:path*",headers:securityHeaders()},

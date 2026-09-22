@@ -1,9 +1,0 @@
-{
-  "version": "0.6-FORMAL-EXECUTION",
-  "status": "CORE_SAFETY_KERNEL_FORMALIZATION_IN_PROGRESS",
-  "formal_state_machines": 4,
-  "safety_envelopes": 3,
-  "implemented_tests": 2,
-  "release_state": "BLOCKED",
-  "source_registry_sha256": "b7423dd67efd71fe513dfff4c4497272ec691395fa797d937387d24aa56d41cf"
-}
