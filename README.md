@@ -87,6 +87,8 @@ Solo se leen las siguientes (el resto de nombres son deriva y se pueden borrar).
 - Migraciones: `pnpm db:migrate -- status|up|baseline` (tabla `schema_migrations`, sha256 por migración, `--yes` fuera de
   local). Runbook: [`docs/runbooks/db-migrate.md`](docs/runbooks/db-migrate.md).
 - Cadena de auditoría: `pnpm audit:verify` recalcula cada huella en la base y detecta alteraciones.
+- Retención de PHI: `pnpm phi:retention -- --tenant <uuid>` informa (solo lectura) qué expedientes superaron la retención
+  (ADR-0280; la purga exige decisiones del dueño).
 - Outbox: no hay consumidor desplegado; retención con `pnpm outbox:purge -- --older-than-days N --yes` (ADR-0031, addendum).
 - API: `docs/api/openapi.json` (OpenAPI 3.1) se genera desde el inventario real de rutas con `pnpm openapi:generate`;
   CI falla si está desfasada. Los cuerpos se validan con zod en cada handler (esquemas JSON por exportar).
