@@ -34,5 +34,5 @@ directamente: no lleva la política de scopes del sistema ni el `purpose`, y su 
 
 - Rotar `SESSION_SIGNING_SECRET` invalida todas las sesiones (15 min de impacto máximo).
 - El límite de tasa de login y de escrituras usa un almacén compartido en Postgres (0021); el del middleware es por instancia.
-- La CSP lleva `'unsafe-inline'` hasta que la UI se parta y adopte nonces (S-04); aun así impide scripts de terceros y
-  exfiltración a otros orígenes.
+- La CSP de las páginas lleva nonce por petición para scripts (`'strict-dynamic'`); `style-src` conserva `'unsafe-inline'`
+  hasta que los estilos pasen a clases (S-04).

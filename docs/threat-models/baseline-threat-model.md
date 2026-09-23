@@ -59,7 +59,7 @@
 - **Límite de tasa**: login por IP y escrituras por actor usan el almacén compartido (`rate_limit_buckets`, 0021); el
   límite del middleware sigue siendo por instancia (primera línea). Si la base no responde, el límite se degrada al de
   la instancia: acotado, no abierto.
-- **CSP con `'unsafe-inline'`** en script/style hasta partir `page.tsx` y adoptar nonces (S-04).
+- **CSP**: `script-src` con nonce por petición y `'strict-dynamic'` (sin `'unsafe-inline'`); `style-src` conserva `'unsafe-inline'` por los atributos `style` del SSR hasta la partición de `page.tsx` (S-04).
 - **Sin auditoría de lecturas**: quién consultó qué expediente (y quién imprimió qué receta) no se registra todavía (D-09).
 - **Sin *break-glass***: no existe acceso de emergencia auditado a pacientes fuera de la relación asistencial; hoy el
   alcance dentro del tenant es el tenant completo (ADR-0230). Decisión de producto pendiente.

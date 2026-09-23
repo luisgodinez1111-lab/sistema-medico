@@ -8,8 +8,9 @@ describe("cabeceras de seguridad (S-04)",()=>{
  it("la configuración de Next las aplica a TODAS las rutas y `no-store` a toda la API",async()=>{
   const rules=await nextConfig.headers!();
   const all=rules.find(r=>r.source==="/:path*");const api=rules.find(r=>r.source==="/api/:path*");
-  expect(all?.headers.map(h=>h.key)).toEqual(expect.arrayContaining(["Content-Security-Policy","Strict-Transport-Security","X-Frame-Options","X-Content-Type-Options","Referrer-Policy","Permissions-Policy"]));
-  expect(api?.headers).toEqual([{key:"Cache-Control",value:"no-store"},{key:"Pragma",value:"no-cache"}]);
+  expect(all?.headers.map(h=>h.key)).toEqual(expect.arrayContaining(["Strict-Transport-Security","X-Frame-Options","X-Content-Type-Options","Referrer-Policy","Permissions-Policy"]));
+  // S-04: la CSP de las páginas la fija el middleware (nonce por petición); la API lleva la estática + no-store
+  expect(api?.headers).toEqual([{key:"Cache-Control",value:"no-store"},{key:"Pragma",value:"no-cache"},{key:"Content-Security-Policy",value:contentSecurityPolicy()}]);
   expect(API_NO_STORE[0]).toEqual({key:"Cache-Control",value:"no-store"});
   expect(nextConfig.poweredByHeader).toBe(false);
  });
@@ -18,6 +19,22 @@ describe("cabeceras de seguridad (S-04)",()=>{
   expect(h["X-Frame-Options"]).toBe("DENY");expect(h["X-Content-Type-Options"]).toBe("nosniff");expect(h["Referrer-Policy"]).toBe("no-referrer");
   expect(h["Strict-Transport-Security"]).toMatch(/max-age=63072000; includeSubDomains/);
   expect(h["Permissions-Policy"]).toMatch(/camera=\(\)/);expect(h["Cross-Origin-Opener-Policy"]).toBe("same-origin");
+ });
+});
+// Auditoría S-04: las páginas HTML reciben una CSP con nonce por petición desde el middleware; ningún script en línea sin
+// nonce se ejecuta ('strict-dynamic'); la política estática queda para la API y los estáticos, que no son HTML.
+describe("Content-Security-Policy con nonce (páginas, S-04)",()=>{
+ it("con nonce, script-src no lleva 'unsafe-inline' y exige el nonce con 'strict-dynamic'",()=>{
+  const c=contentSecurityPolicy(PROD,"abc123");
+  expect(directive(c,"script-src")).toBe("script-src 'self' 'nonce-abc123' 'strict-dynamic'");
+  expect(directive(contentSecurityPolicy({NODE_ENV:"development"},"n"),"script-src")).toBe("script-src 'self' 'nonce-n' 'strict-dynamic' 'unsafe-eval'");
+  expect(directive(c,"style-src")).toBe("style-src 'self' 'unsafe-inline'"); // atributos style del SSR: declarado, no resuelto por nonce
+ });
+ it("el config estático no fija CSP para las páginas (la pone el middleware) pero sí para la API y los estáticos",async()=>{
+  const hs=await (nextConfig.headers as ()=>Promise<{source:string;headers:{key:string;value:string}[]}[]>)();
+  const pages=hs.find(h=>h.source==="/:path*")!;expect(pages.headers.some(h=>h.key==="Content-Security-Policy")).toBe(false);
+  expect(pages.headers.some(h=>h.key==="Strict-Transport-Security")).toBe(true);
+  for(const src of["/api/:path*","/_next/:path*"])expect(hs.find(h=>h.source===src)!.headers.some(h=>h.key==="Content-Security-Policy")).toBe(true);
  });
 });
 describe("Content-Security-Policy",()=>{
@@ -31,7 +48,7 @@ describe("Content-Security-Policy",()=>{
  it("el ÚNICO origen externo es el IdP, y solo para conectar y para su iframe de renovación",()=>{
   expect(directive(csp,"connect-src")).toBe("connect-src 'self' https://clinica.us.auth0.com");
   expect(directive(csp,"frame-src")).toBe("frame-src https://clinica.us.auth0.com");
-  expect(directive(csp,"script-src")).toBe("script-src 'self' 'unsafe-inline'"); // sin orígenes de terceros y sin eval en producción
+  expect(directive(csp,"script-src")).toBe("script-src 'self' 'unsafe-inline'"); // política estática (API/estáticos): sin terceros ni eval en producción
   expect(csp.match(/https?:\/\/[^\s;]+/g)).toEqual(["https://clinica.us.auth0.com","https://clinica.us.auth0.com"]);
  });
  it("sin IdP configurado no se abre ningún origen externo",()=>{

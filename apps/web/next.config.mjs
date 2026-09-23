@@ -8,38 +8,11 @@ import{fileURLToPath}from"node:url";
 // rutas de la API enviaban `Cache-Control` (incluida la exportación del expediente completo). Se fijan aquí, de forma
 // declarativa, para TODA respuesta: no dependen de que cada handler se acuerde.
 
-// Origen del IdP (Auth0): el SDK del navegador llama a su endpoint de token (connect-src) y renueva la sesión con un
-// iframe oculto (frame-src). Es el ÚNICO origen externo permitido. Sin la variable, no se abre ninguno.
-export function auth0Origin(env=process.env){
- const d=(env.NEXT_PUBLIC_AUTH0_DOMAIN??"").trim().replace(/^https?:\/\//,"").replace(/\/+$/,"");
- return /^[a-z0-9.-]+$/i.test(d)?`https://${d}`:"";
-}
-// Política de contenido. `'unsafe-inline'` en script/style es el mínimo que Next exige sin infraestructura de nonces (su
-// arranque usa scripts en línea y la UI usa atributos `style`); aun así la política impide cargar scripts de terceros,
-// exfiltrar datos a otros orígenes (connect-src), incrustar la app en otra página (frame-ancestors), secuestrar
-// formularios (form-action) o la URL base (base-uri), y cargar plugins (object-src). En desarrollo React Refresh necesita eval.
-export function contentSecurityPolicy(env=process.env){
- const idp=auth0Origin(env);const dev=env.NODE_ENV!=="production";
+import{auth0Origin,contentSecurityPolicy}from"./lib/csp.mjs";
+export{auth0Origin,contentSecurityPolicy};
+export function securityHeaders(env=process.env,nonce=""){
  return[
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${dev?" 'unsafe-eval'":""}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",          // firma/sello del médico y vistas previas se sirven como blob: tras descarga autorizada
-  "font-src 'self' data:",
-  `connect-src 'self'${idp?` ${idp}`:""}${dev?" ws: wss:":""}`,
-  `frame-src ${idp||"'none'"}`,
-  "worker-src 'self' blob:",             // el SDK de Auth0 usa un Web Worker creado desde blob:
-  "manifest-src 'self'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  ...(dev?[]:["upgrade-insecure-requests"]),
- ].join("; ");
-}
-export function securityHeaders(env=process.env){
- return[
-  {key:"Content-Security-Policy",value:contentSecurityPolicy(env)},
+  {key:"Content-Security-Policy",value:contentSecurityPolicy(env,nonce)},
   {key:"Strict-Transport-Security",value:"max-age=63072000; includeSubDomains"},
   {key:"X-Frame-Options",value:"DENY"},                       // respaldo de frame-ancestors para navegadores antiguos
   {key:"X-Content-Type-Options",value:"nosniff"},
@@ -61,9 +34,12 @@ const nextConfig={
  output:"standalone",
  outputFileTracingRoot:fileURLToPath(new URL("../..",import.meta.url)),
  async headers(){
+  // Las páginas HTML reciben su CSP con nonce desde el middleware (S-04); aquí queda la política estática para la API y
+  // los estáticos, y el resto de cabeceras para todo.
   return[
-   {source:"/:path*",headers:securityHeaders()},
-   {source:"/api/:path*",headers:API_NO_STORE},
+   {source:"/:path*",headers:securityHeaders().filter(h=>h.key!=="Content-Security-Policy")},
+   {source:"/api/:path*",headers:[...API_NO_STORE,{key:"Content-Security-Policy",value:contentSecurityPolicy()}]},
+   {source:"/_next/:path*",headers:[{key:"Content-Security-Policy",value:contentSecurityPolicy()}]},
   ];
  },
 };
