@@ -20,6 +20,7 @@ const EXPOSED_DETAILS:Partial<Record<ClinicalErrorCode,readonly string[]>>={
  VALIDATION_ERROR:["unmatched","missing","curpIssue"], // U-19 barreras no bloqueantes nombradas; U-20 campos legales que faltan en la receta
  CONCURRENCY_CONFLICT:["expected","actual"],
  PRECONDITION_REQUIRED:["reason"], // L-05: PHYSICIAN_CREDENTIALS_REQUIRED lleva a la UI al perfil profesional
+ RATE_LIMITED:["retryAfterSeconds"], // S-03: el cliente sabe cuánto esperar aunque el 429 venga del handler y no del middleware
  CONFLICT:["conflictWith","conflictReason","duplicateOf","duplicateBy"], // L-12 cita en traslape; L-06 paciente duplicado (identificadores, no PHI)
  // VALIDATION_ERROR también expone `curpIssue` (L-06): código estable del defecto de la CURP.
 };

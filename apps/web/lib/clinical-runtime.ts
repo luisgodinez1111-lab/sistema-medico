@@ -8,6 +8,7 @@ import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{sliSpan,flowForTopic}from"../../../packages/observability/src";
 import{computeEGFR,type Sex}from"../../../packages/renal-function/src";
 import{signatureBlockReason,type SignatureBlockReason}from"../../../packages/obligation-fold/src";
+import{sharedAllow,rateLimitedError}from"./rate-limit-shared";
 // EPIC B — Runtime clínico de la capa app: conexión a Postgres y ejecución del kernel
 // atómico ya probado, SIEMPRE bajo el rol NOBYPASSRLS `medical_os_runtime`.
 // Lección de runtime (sesión 15-sep): el owner de Neon tiene BYPASSRLS -> si el pool
@@ -22,7 +23,7 @@ function directEndpoint(raw:string):string{
  return raw.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,"");
 }
 let _sql:Sql|undefined;
-function getSql():Sql{
+export function getSql():Sql{
  if(_sql)return _sql;
  const raw=process.env.DATABASE_URL;
  if(!raw)throw new ClinicalError("DEPENDENCY_UNAVAILABLE","DATABASE_URL not configured");
@@ -45,6 +46,10 @@ export type ClinicalCommandResult=Readonly<{replayed:boolean;response:unknown}>;
 // en el startup, así que la transacción del kernel corre como `medical_os_runtime`.
 // ENG-054: emite un SLI del commit (flujo, outcome, latencia, correlación) — SIN PHI.
 export async function runClinicalCommand(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult>{
+ // Auditoría S-03: límite de ESCRITURAS por actor con almacén compartido entre instancias (el middleware conserva el límite
+ // en memoria por sesión como primera línea). Se decide antes de abrir la transacción; 429 RATE_LIMITED con retryAfterSeconds.
+ const limit=await sharedAllow("write",`${ctx.tenantId}:${ctx.actorId}`);
+ if(!limit.allowed)throw rateLimitedError(limit);
  const span=sliSpan(flowForTopic(command.topic),"commit",command.correlationId);
  try{
   const r=await executeAtomicClinicalCommand(getSql(),ctx,command) as ClinicalCommandResult;

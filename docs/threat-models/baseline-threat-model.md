@@ -37,7 +37,7 @@
 | **I**nformation disclosure | Fuga cross-tenant | RLS `ENABLE`+`FORCE` con política de tenant en TODAS las tablas con `tenant_id` (migraciones 0012 y 0020); `pnpm db:check` falla si alguna carece de RLS o de política | `scripts/v21/live-rls-proof.mjs`, `tests/v21/postgres-role-proof.test.ts`, `tests/v22/migrations-integrity.test.ts`, `pnpm db:check` (`scripts/db/check.mts`); cross-tenant 404 en las pruebas de ciclo de vida |
 | **I**nformation disclosure | PHI en cachés, `Referer`, terceros, errores | `Cache-Control: no-store` en toda la API; `Referrer-Policy: no-referrer`; CSP sin orígenes externos salvo el IdP; errores con lista cerrada de claves no-PHI (`EXPOSED_DETAILS`) | `tests/v22/security-headers.test.ts`; `EXPOSED_DETAILS` en `apps/web/lib/http-errors.ts` ejercitado por `live-safety-override-proof.mts` y `live-patient-identity-proof.mts` |
 | **I**nformation disclosure | PHI en telemetría | SLI sin PHI (allowlist) y sin exportador | `tests/platform/observability.test.ts` |
-| **D**enial of service | Fuerza bruta de login, ráfagas de escritura | Límite de tasa en `middleware.ts`: login por IP, escrituras por sesión, con `Retry-After` (`packages/rate-limit-v2`) | `tests/v22/rate-limit.test.ts`, `tests/security/rate-limit.test.ts`, `tests/v22/feature-flags.test.ts` (matcher del middleware) |
+| **D**enial of service | Fuerza bruta de login, ráfagas de escritura | Límite de tasa: middleware (memoria, por sesión) + almacén compartido `rate_limit_take()` para login por IP y escrituras por actor (429 `RATE_LIMITED`) | `tests/v22/rate-limit.test.ts`, `tests/security/rate-limit.test.ts`, `scripts/v22/live-rate-limit-shared-proof.mts` |
 | **D**enial of service | Base indisponible | Fail-closed 503: nunca un "guardado" falso | `tests/v22/downtime-no-false-save.test.ts` |
 | **E**levation of privilege | Escalar rol/tenant/scope desde el cliente | Scope obligatorio en `authorize()`, escritura ⇒ lectura y nunca al revés; rol → scopes decididos en el servidor (ADR-0230); RLS no confía en el front | `tests/v22/runtime-auth-scopes.test.ts`, `live-*` con `noScope`/`nurse` |
 | **E**levation of privilege | Verticales hospitalarias sin sus datos de seguridad | Flag `ENABLE_HOSPITAL_VERTICALS` OFF por defecto: 404 en sus rutas | `tests/v22/feature-flags.test.ts` |
@@ -56,8 +56,9 @@
 
 ## Brechas conocidas (honestas, con dueño)
 
-- **Límite de tasa por instancia**: con N instancias el tope efectivo es ~N veces el declarado (S-03). Siguiente paso:
-  almacén compartido tras la misma interfaz.
+- **Límite de tasa**: login por IP y escrituras por actor usan el almacén compartido (`rate_limit_buckets`, 0021); el
+  límite del middleware sigue siendo por instancia (primera línea). Si la base no responde, el límite se degrada al de
+  la instancia: acotado, no abierto.
 - **CSP con `'unsafe-inline'`** en script/style hasta partir `page.tsx` y adoptar nonces (S-04).
 - **Sin auditoría de lecturas**: quién consultó qué expediente (y quién imprimió qué receta) no se registra todavía (D-09).
 - **Sin *break-glass***: no existe acceso de emergencia auditado a pacientes fuera de la relación asistencial; hoy el

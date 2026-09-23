@@ -80,6 +80,10 @@
   {
    "file": "0020_rls_completion_and_legacy_tables.sql",
    "sha256": "44a4d906c6c21a5ffa8574211fe76265adaf048005f6be0f63ccbacc936def16"
+  },
+  {
+   "file": "0021_rate_limit_buckets.sql",
+   "sha256": "c956d090d1a59f6cc30d563bd4683c2a1742b0938082d22ff0602468a858260d"
   }
  ]
 }
