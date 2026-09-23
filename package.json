@@ -21,7 +21,8 @@
     "openapi:generate": "tsx scripts/ops/openapi.mts",
     "openapi:check": "tsx scripts/ops/api-body-registry.mts --check && tsx scripts/ops/openapi.mts --check",
     "phi:retention": "tsx scripts/ops/phi-retention.mts",
-    "openapi:registry": "tsx scripts/ops/api-body-registry.mts"
+    "openapi:registry": "tsx scripts/ops/api-body-registry.mts",
+    "capability:check": "tsx packages/clinical-safety/src/capability-admission.ts"
   },
   "devDependencies": {
     "@testing-library/dom": "^10",

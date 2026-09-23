@@ -31,7 +31,7 @@ jobs:
       - name: Suite de tests
         run: pnpm test
       - name: Gates de autoridad (trazabilidad + admisión de release)
-        run: pnpm traceability:check && pnpm release:check && pnpm openapi:check
+        run: pnpm traceability:check && pnpm release:check && pnpm openapi:check && pnpm capability:check
   live-smoke:
     name: regresión en vivo contra Postgres desechable
     runs-on: ubuntu-latest

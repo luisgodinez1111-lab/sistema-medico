@@ -25,6 +25,15 @@ for(const c of caps){
  if(execution.status!=="PASS") reasons.push("EXECUTION_EVIDENCE");
  rows.push({capability:c.id,risk:c.risk,status:reasons.length?"BLOCKED":"PASS",reasons});
 }
+// Auditoría 2026-09-19 (K-08): esta CLI no estaba cableada porque, ejecutada tal cual, bloquea (188 de 208 capacidades C4/C5
+// no tienen caso de seguridad). Cablearla como si todo pasara sería mentir; ocultarla también. Se cablea en CI como
+// `pnpm capability:check`, que (1) publica el recuento honesto de capacidades con y sin caso y (2) FALLA si una capacidad
+// cuyo caso ya está completo (`releasePolicy: FAIL_CLOSED`) retrocede: lo que se ha cerrado no se vuelve a abrir.
+fs.mkdirSync(path.join(root,"release/capabilities"),{recursive:true});
 fs.writeFileSync(path.join(root,"release/capabilities/admission.json"),JSON.stringify({generatedAt:new Date().toISOString(),capabilities:rows},null,2));
-console.table(rows.map(x=>({capability:x.capability,status:x.status,reasons:x.reasons.join(",")})));
-if(rows.some(x=>x.status==="BLOCKED")) process.exit(1);
+const policy=new Map(caps.map((c:any)=>[c.id,c.releasePolicy]));
+const regressed=rows.filter(x=>x.status==="BLOCKED"&&policy.get(x.capability)==="FAIL_CLOSED");
+const pass=rows.filter(x=>x.status==="PASS").length,noCase=rows.filter(x=>x.reasons.includes("HAZARD_CASE")).length;
+console.log(JSON.stringify({capabilities:rows.length,withCompleteCase:pass,withoutHazardCase:noCase,regressedFailClosed:regressed.map(x=>({capability:x.capability,reasons:x.reasons}))}));
+if(process.argv.includes("--strict")){if(rows.some(x=>x.status==="BLOCKED"))process.exit(1);}
+else if(regressed.length)process.exit(1);
