@@ -3694,7 +3694,7 @@ export default function Workspace(){
        <div style={{display:"flex",justifyContent:"space-between",color:P.muted}}><span>IVA (0%)</span><span style={{fontWeight:600,color:P.ink}}>{money(0)}</span></div>
        <div style={{display:"flex",justifyContent:"space-between",fontSize:16,fontWeight:800}}><span>Total</span><span>{money(nfTotal)}</span></div>
       </div>
-      <div style={{fontSize:11.5,color:P.muted,margin:"14px 0 10px"}}>Se registra el cargo (monto y paciente) en el expediente. La facturación fiscal CFDI (uso, régimen, método de pago) se conectará con el PAC autorizado.</div>
+      <div style={{fontSize:11.5,color:P.muted,margin:"14px 0 10px"}}>Se registra el cargo (monto y paciente) en el expediente. Este módulo NO emite CFDI: la facturación fiscal (PAC, uso, régimen, método de pago) no está implementada.</div>
       {nfMsg&&<div style={{marginBottom:10,padding:"9px 12px",borderRadius:9,background:nfMsg.includes("✓")?"#E6F6EE":"#FDF4E6",border:`1px solid ${nfMsg.includes("✓")?"#BFE6CF":"#F2E1C0"}`,fontSize:12.5,color:nfMsg.includes("✓")?"#166534":"#7A5A16"}}>{nfMsg}</div>}
       <button onClick={emit} disabled={nfBusy||!billTo||nfTotal<=0} style={{width:"100%",border:0,background:(nfBusy||!billTo||nfTotal<=0)?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"12px",fontWeight:700,fontSize:14,cursor:(nfBusy||!billTo||nfTotal<=0)?"default":"pointer",fontFamily:UI}}>{nfBusy?"Registrando…":"Registrar cargo"}</button>
      </div>

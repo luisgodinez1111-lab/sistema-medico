@@ -6,7 +6,8 @@ import{foldResult,assertResultTransition,type FoldedResult}from"../../../package
 import{type ResultState}from"../../../packages/order-result-domain/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents,latestResultValueForAnalyte,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload}from"./http-command";
+import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload,derivedUuid}from"./http-command";
+import{foldObligation}from"../../../packages/obligation-fold/src";
 import{classifyLab,normalizeLabValue,deltaCheck}from"../../../packages/lab-reference/src";
 // EPIC G — Ciclo de vida del resultado diagnóstico (closed-loop de seguimiento) sobre el kernel.
 // EPIC AQ (profundidad): si se envía analito+valor, el flag `critical` se DERIVA del valor (valores de pánico).
@@ -54,6 +55,10 @@ export async function handleResultReceived(req:Request):Promise<Response>{
   const stable=await replayStablePayload(ctx,idempotencyKey,b.resultId,b,()=>payload);
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.resultId,expectedVersion:0,eventType:"RESULT_RECEIVED",payload:stable,occurredAt:b.occurredAt,topic:"result.received"});
   const result=await runClinicalCommand(ctx,cmd);
+  // Auditoría C-20: un resultado CRÍTICO crea además una obligación con RESPONSABLE (quien lo recibió: es quien debe
+  // localizar al paciente o derivarlo) y FECHA (24 h, URGENTE). Identificadores derivados del resultId: el reintento no
+  // duplica y el cierre del resultado la completa (ver handleResultClosure).
+  if(stable["critical"]===true&&!result.replayed)await createCriticalResultObligation(ctx,b.resultId,b.patientId,ctx.actorId,String(stable["analyte"]??b.analyte??""),b.occurredAt);
   const r=result.response as{version:number;auditHash?:string};
   // La respuesta dice la VERDAD de la interpretación: NORMAL / ABNORMAL / CRITICAL / UNKNOWN (antes solo `critical`, y la UI
   // anunciaba "dentro de rango" para todo lo no crítico, incluidos valores anormales y analitos sin rango tabulado).
@@ -102,15 +107,34 @@ export async function handleResultAction(req:Request,resultId:string):Promise<Re
 
 // CLOSURE = cierre con evidencia (resuelve la obligación -> desbloquea la firma).
 const CloseBody=z.object({evidence:z.string().min(1),occurredAt:z.string().datetime()});
+export const CRITICAL_RESULT_DUE_HOURS=24;
+export const criticalObligationId=(resultId:string)=>derivedUuid(resultId,"critical-result-obligation");
+async function createCriticalResultObligation(ctx:Parameters<typeof runClinicalCommand>[0],resultId:string,patientId:string,ownerId:string,analyte:string,occurredAt:string):Promise<void>{
+ const obligationId=criticalObligationId(resultId);
+ const dueAt=new Date(Date.parse(occurredAt)+CRITICAL_RESULT_DUE_HOURS*3600000).toISOString();
+ const cmd=buildCommand({idempotencyKey:derivedUuid(resultId,"critical-result-obligation-idem"),aggregateType:"ClinicalObligation",aggregateId:obligationId,expectedVersion:0,eventType:"OBLIGATION_CREATED",
+  payload:{kind:"CREATED",patientId,ownerId,dueAt,obligationKind:"CRITICAL_RESULT_REVIEW",priority:"URGENT",sourceResultId:resultId,test:analyte,note:`Resultado crítico de ${analyte}: contactar al paciente, actuar y cerrar el resultado con evidencia`},occurredAt,topic:"obligation.created"});
+ let r=await lookupReplay(ctx,cmd);if(!r)r=await runClinicalCommand(ctx,cmd);
+}
+// Al CERRAR un resultado crítico con evidencia, la obligación derivada se completa con esa misma evidencia (si sigue abierta).
+async function completeCriticalResultObligation(ctx:Parameters<typeof runClinicalCommand>[0],resultId:string,evidence:string,occurredAt:string):Promise<void>{
+ const obligationId=criticalObligationId(resultId);
+ const folded=foldObligation(await readAggregateEvents(ctx,obligationId));
+ if(!folded.exists||(folded.state!=="OPEN"&&folded.state!=="IN_PROGRESS"))return;
+ const cmd=buildCommand({idempotencyKey:derivedUuid(resultId,"critical-result-obligation-closed"),aggregateType:"ClinicalObligation",aggregateId:obligationId,expectedVersion:folded.version,eventType:"OBLIGATION_COMPLETED",payload:{kind:"COMPLETED",evidence:`Resultado crítico cerrado: ${evidence}`,sourceResultId:resultId},occurredAt,topic:"obligation.completed"});
+ let r=await lookupReplay(ctx,cmd);if(!r)r=await runClinicalCommand(ctx,cmd);
+}
 export async function handleResultClosure(req:Request,resultId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,resultId);
   const b=await parseJson(req,CloseBody);
+  const res=await commitTransition(ctx,idempotencyKey,expectedVersion,resultId,folded,"CLOSED","RESULT_CLOSED",{kind:"CLOSED",evidence:b.evidence},b.occurredAt,"result.closed");
+  if(res.status===201)await completeCriticalResultObligation(ctx,resultId,b.evidence,b.occurredAt); // C-20: el cierre completa la obligación derivada
+  return res;
   // Zero Lost Follow-Up: cerrar un resultado CRÍTICO desde ACTIONED (con evidencia de que el paciente
   // fue contactado y tratado) ES la resolución del loop — debe permitirse. La transición válida
   // ACTIONED->CLOSED la garantiza la máquina de estados (assertResultTransition en commitTransition).
   // El cierre exige evidencia no vacía (CloseBody); mientras el resultado siga en ACTIONED, el gate de
   // firma del encuentro lo cuenta como crítico abierto y bloquea la firma (Zero Lost Follow-Up).
-  return await commitTransition(ctx,idempotencyKey,expectedVersion,resultId,folded,"CLOSED","RESULT_CLOSED",{kind:"CLOSED",evidence:b.evidence},b.occurredAt,"result.closed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

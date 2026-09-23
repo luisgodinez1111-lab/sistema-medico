@@ -8,6 +8,10 @@ process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-g-s
 const SECRET=process.env.SESSION_SIGNING_SECRET;
 
 const{signSession}=await import("../../packages/session/src");
+const{resolveVerified}=await import("../../apps/web/lib/http-command");
+const{readAggregateEvents}=await import("../../apps/web/lib/clinical-runtime");
+const{criticalObligationId}=await import("../../apps/web/lib/result-lifecycle");
+const{foldObligation}=await import("../../packages/obligation-fold/src");
 const open=await import("../../apps/web/app/api/v1/encounters/route");
 const assess=await import("../../apps/web/app/api/v1/encounters/[encounterId]/assessment/route");
 const sign=await import("../../apps/web/app/api/v1/encounters/[encounterId]/signature/route");
@@ -65,9 +69,15 @@ try{
  // 3) firmar el encuentro -> BLOQUEADO 403 (Zero Lost Follow-Up)
  r=await sign.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO,contentHash:HASH_AP})}),EP(enc));
  ok(r.status===403,"SIGN_BLOCKED_BY_OPEN_CRITICAL_RESULT_403");
+ // Auditoría C-20: el resultado crítico creó una obligación URGENTE con responsable (quien lo recibió) y fecha (24 h)
+ const octx=resolveVerified(new Request("http://l/",{headers:H(physA)})).ctx;
+ let ob=foldObligation(await readAggregateEvents(octx,criticalObligationId(cres)));
+ const obEv=(await readAggregateEvents(octx,criticalObligationId(cres)))[0]?.payload as{ownerId?:string;priority?:string;dueAt?:string;obligationKind?:string;sourceResultId?:string}|undefined;
+ ok(ob.exists&&ob.state==="OPEN"&&obEv?.priority==="URGENT"&&obEv.obligationKind==="CRITICAL_RESULT_REVIEW"&&obEv.sourceResultId===cres&&obEv.ownerId===octx.actorId&&obEv.dueAt===new Date(Date.parse(ISO)+24*3600000).toISOString(),"CRITICAL_RESULT_CREATES_URGENT_OBLIGATION");
  // 4) cerrar el resultado con evidencia (resuelve la obligación)
  r=await rClose.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"3"}),body:JSON.stringify({evidence:"paciente contactado y tratado",occurredAt:ISO})}),RP(cres));
  ok(r.status===201&&(await r.json()).state==="CLOSED","RESULT_CLOSED_201_v4");
+ ob=foldObligation(await readAggregateEvents(octx,criticalObligationId(cres)));ok(ob.state==="COMPLETED","CLOSURE_COMPLETES_DERIVED_OBLIGATION");
  // 5) firmar de nuevo -> AHORA SÍ 201 SIGNED (loop resuelto)
  r=await sign.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO,contentHash:HASH_AP})}),EP(enc));
  const s=await r.json();
