@@ -6,16 +6,19 @@
 -- tocar sus datos: RLS forzada + política de tenant + revocación al rol de la app + comentario de estado. Su retirada
 -- (DROP con respaldo) es una decisión del dueño (ADR-0240 §4, D-09). En bases nuevas (CI, pruebas en vivo) no hace nada.
 BEGIN;
+-- Nota: en estas tablas `tenant_id` es `text` (en las del repo es `uuid`): la política compara con el tipo real de la columna.
 DO $$
-DECLARE t text; n int := 0;
+DECLARE t text; n int := 0; coltype text; predicate text;
 BEGIN
  FOREACH t IN ARRAY ARRAY['allergy','appointment','arco_request','audit_event','clinical_document','condition','consent','diagnostic_report','encounter','encounter_addendum','encounter_diagnosis','encounter_exam_finding','facility','history_entry','invoice','invoice_item','medication_request','membership','membership_role','observation','organization','patient','practitioner','procedure','provenance','related_person','relationship','role','role_permission','service_request','task','tenant_specialty'] LOOP
   IF to_regclass('public.'||t) IS NOT NULL
      AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name=t AND column_name='tenant_id') THEN
    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
    EXECUTE format('ALTER TABLE public.%I FORCE ROW LEVEL SECURITY', t);
+   SELECT data_type INTO coltype FROM information_schema.columns WHERE table_schema='public' AND table_name=t AND column_name='tenant_id';
+   predicate := CASE WHEN coltype='uuid' THEN 'tenant_id=app.current_tenant()' ELSE 'tenant_id=app.current_tenant()::text' END;
    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_v22 ON public.%I', t);
-   EXECUTE format('CREATE POLICY tenant_isolation_v22 ON public.%I USING (tenant_id=app.current_tenant()) WITH CHECK (tenant_id=app.current_tenant())', t);
+   EXECUTE format('CREATE POLICY tenant_isolation_v22 ON public.%I USING (%s) WITH CHECK (%s)', t, predicate, predicate);
    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='medical_os_runtime') THEN
     EXECUTE format('REVOKE ALL ON public.%I FROM medical_os_runtime', t);
    END IF;
