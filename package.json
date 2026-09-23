@@ -17,7 +17,9 @@
     "db:manifest": "tsx scripts/db/manifest.mts",
     "build:web": "next build apps/web",
     "runtime:bootstrap": "bash scripts/bootstrap.sh",
-    "typecheck:web": "tsc --noEmit --incremental false -p apps/web/tsconfig.json"
+    "typecheck:web": "tsc --noEmit --incremental false -p apps/web/tsconfig.json",
+    "openapi:generate": "tsx scripts/ops/openapi.mts",
+    "openapi:check": "tsx scripts/ops/openapi.mts --check"
   },
   "devDependencies": {
     "@testing-library/dom": "^10",

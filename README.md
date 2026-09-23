@@ -53,6 +53,7 @@ el primer paciente se registra desde la UI o con `POST /api/v1/patients`.
 pnpm typecheck && pnpm typecheck:web     # TypeScript estricto (raíz y apps/web)
 pnpm test                                # vitest (unitarias + render jsdom + contratos de trazabilidad)
 pnpm traceability:check && pnpm release:check
+pnpm openapi:check                       # docs/api/openapi.json generada desde las rutas reales (pnpm openapi:generate)
 pnpm build:web
 # Regresión de integración REAL (93 pruebas en vivo) — SOLO contra una base desechable:
 export TEST_DATABASE_URL='postgres://...base_desechable...' SESSION_SIGNING_SECRET=cualquiera NODE_ENV=test
@@ -87,6 +88,8 @@ Solo se leen las siguientes (el resto de nombres son deriva y se pueden borrar).
   local). Runbook: [`docs/runbooks/db-migrate.md`](docs/runbooks/db-migrate.md).
 - Cadena de auditoría: `pnpm audit:verify` recalcula cada huella en la base y detecta alteraciones.
 - Outbox: no hay consumidor desplegado; retención con `pnpm outbox:purge -- --older-than-days N --yes` (ADR-0031, addendum).
+- API: `docs/api/openapi.json` (OpenAPI 3.1) se genera desde el inventario real de rutas con `pnpm openapi:generate`;
+  CI falla si está desfasada. Los cuerpos se validan con zod en cada handler (esquemas JSON por exportar).
 - Despliegue: `main` → Vercel (build `next build apps/web`). Imagen propia con el `Dockerfile` (ver abajo).
 
 ## Docker (self-hosted)
