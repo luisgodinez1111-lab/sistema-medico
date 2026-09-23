@@ -13,7 +13,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"admission:write",purpose:"TREATMENT"});
 }
 
-const AdmitBody=z.object({admissionId:z.string().uuid(),patientId:z.string().uuid(),unit:z.enum(["ER","WARD","ICU","OR","MATERNITY","PEDIATRICS"]),reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const AdmitBody=z.object({admissionId:z.string().uuid(),patientId:z.string().uuid(),unit:z.enum(["ER","WARD","ICU","OR","MATERNITY","PEDIATRICS"]),reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleAdmissionAdmit(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -43,19 +43,19 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({admissionId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const TransferBody=z.object({unit:z.enum(["ER","WARD","ICU","OR","MATERNITY","PEDIATRICS"]),occurredAt:z.string().datetime()});
+export const TransferBody=z.object({unit:z.enum(["ER","WARD","ICU","OR","MATERNITY","PEDIATRICS"]),occurredAt:z.string().datetime()});
 export async function handleAdmissionTransfer(req:Request,admissionId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,admissionId);const b=await parseJson(req,TransferBody);
   return await commit(ctx,idempotencyKey,expectedVersion,admissionId,folded,"TRANSFERRED","ADMISSION_TRANSFERRED",{kind:"TRANSFERRED",unit:b.unit},b.occurredAt,"admission.transferred");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const DischargeBody=z.object({disposition:z.string().min(1),occurredAt:z.string().datetime()});
+export const DischargeBody=z.object({disposition:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleAdmissionDischarge(req:Request,admissionId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,admissionId);const b=await parseJson(req,DischargeBody);
   return await commit(ctx,idempotencyKey,expectedVersion,admissionId,folded,"DISCHARGED","ADMISSION_DISCHARGED",{kind:"DISCHARGED",disposition:b.disposition},b.occurredAt,"admission.discharged");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const CancelBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const CancelBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleAdmissionCancellation(req:Request,admissionId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,admissionId);const b=await parseJson(req,CancelBody);
   return await commit(ctx,idempotencyKey,expectedVersion,admissionId,folded,"CANCELLED","ADMISSION_CANCELLED",{kind:"CANCELLED",reason:b.reason},b.occurredAt,"admission.cancelled");

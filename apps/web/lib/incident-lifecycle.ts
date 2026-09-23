@@ -13,7 +13,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"incident:write",purpose:"TREATMENT"});
 }
 
-const ReportBody=z.object({incidentId:z.string().uuid(),patientId:z.string().uuid(),category:z.enum(["MEDICATION_ERROR","FALL","EQUIPMENT","ADVERSE_DRUG_REACTION","INFECTION","OTHER"]),severity:z.enum(["LOW","MODERATE","SEVERE"]),description:z.string().min(1),occurredAt:z.string().datetime()});
+export const ReportBody=z.object({incidentId:z.string().uuid(),patientId:z.string().uuid(),category:z.enum(["MEDICATION_ERROR","FALL","EQUIPMENT","ADVERSE_DRUG_REACTION","INFECTION","OTHER"]),severity:z.enum(["LOW","MODERATE","SEVERE"]),description:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleIncidentReport(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -43,19 +43,19 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({incidentId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleIncidentReview(req:Request,incidentId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,incidentId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,incidentId,folded,"UNDER_REVIEW","INCIDENT_REVIEW_STARTED",{kind:"REVIEW_STARTED"},b.occurredAt,"incident.review_started");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleIncidentEscalation(req:Request,incidentId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,incidentId);const b=await parseJson(req,ReasonBody);
   return await commit(ctx,idempotencyKey,expectedVersion,incidentId,folded,"ESCALATED","INCIDENT_ESCALATED",{kind:"ESCALATED",reason:b.reason},b.occurredAt,"incident.escalated");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ResolveBody=z.object({resolution:z.string().min(1),occurredAt:z.string().datetime()});
+export const ResolveBody=z.object({resolution:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleIncidentResolution(req:Request,incidentId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,incidentId);const b=await parseJson(req,ResolveBody);
   return await commit(ctx,idempotencyKey,expectedVersion,incidentId,folded,"RESOLVED","INCIDENT_RESOLVED",{kind:"RESOLVED",resolution:b.resolution},b.occurredAt,"incident.resolved");

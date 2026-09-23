@@ -15,7 +15,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
 
 // EPIC CM — agenda enriquecida: fin, consultorio y tipo de cita (opcionales, retrocompatibles).
 const APPT_TYPES=["CONSULTA_GENERAL","CONTROL","PRIMERA_VEZ","PROCEDIMIENTO","VACUNACION","RESULTADOS","URGENCIA"] as const;
-const ScheduleBody=z.object({appointmentId:z.string().uuid(),patientId:z.string().uuid(),startAt:z.string().datetime(),reason:z.string().min(1),occurredAt:z.string().datetime(),
+export const ScheduleBody=z.object({appointmentId:z.string().uuid(),patientId:z.string().uuid(),startAt:z.string().datetime(),reason:z.string().min(1),occurredAt:z.string().datetime(),
  endAt:z.string().datetime().optional(),consultorio:z.string().trim().max(60).optional(),apptType:z.enum(APPT_TYPES).optional()});
 // Auditoría 2026-09-19 (L-12): control de traslape y doble reserva. Reglas:
 //  · toda cita ocupa un intervalo [startAt, endAt); sin `endAt` se asume DEFAULT_SLOT_MINUTES; `endAt` debe ser posterior y
@@ -81,7 +81,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({appointmentId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleAppointmentCheckIn(req:Request,appointmentId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,appointmentId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,appointmentId,folded,"CHECKED_IN","APPOINTMENT_CHECKED_IN",{kind:"CHECKED_IN"},b.occurredAt,"appointment.checked_in");
@@ -97,7 +97,7 @@ export async function handleAppointmentNoShow(req:Request,appointmentId:string):
   return await commit(ctx,idempotencyKey,expectedVersion,appointmentId,folded,"NO_SHOW","APPOINTMENT_NO_SHOW",{kind:"NO_SHOW"},b.occurredAt,"appointment.no_show");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const CancelBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const CancelBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleAppointmentCancellation(req:Request,appointmentId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,appointmentId);const b=await parseJson(req,CancelBody);
   return await commit(ctx,idempotencyKey,expectedVersion,appointmentId,folded,"CANCELLED","APPOINTMENT_CANCELLED",{kind:"CANCELLED",reason:b.reason},b.occurredAt,"appointment.cancelled");

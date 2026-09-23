@@ -20,7 +20,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
 
 // `unit` (unidad en que se reporta el valor) y `specimenId` (muestra de la que sale) son opcionales por compatibilidad,
 // pero son la base de toda calculadora: sin unidad, el valor se asume en la canónica y queda marcado `unitAssumed`.
-const ReceiveBody=z.object({resultId:z.string().uuid(),patientId:z.string().uuid(),orderId:z.string().uuid(),analyte:z.string().min(1).max(60),value:z.string().min(1).max(60),unit:z.string().max(24).optional(),specimenId:z.string().uuid().optional(),occurredAt:z.string().datetime()});
+export const ReceiveBody=z.object({resultId:z.string().uuid(),patientId:z.string().uuid(),orderId:z.string().uuid(),analyte:z.string().min(1).max(60),value:z.string().min(1).max(60),unit:z.string().max(24).optional(),specimenId:z.string().uuid().optional(),occurredAt:z.string().datetime()});
 // RECEIVE = creación del agregado (expectedVersion 0). Idempotencia la maneja el kernel.
 // EPIC AQ: si se envía analyte+value, el flag `critical` se DERIVA del valor real
 // (valores de pánico), no se confía en el booleano del cliente.
@@ -82,7 +82,7 @@ async function commitReceived(ctx:Parameters<typeof runClinicalCommand>[0],idemp
 // original: se recibe un resultado NUEVO (`supersedes: original`, con la misma interpretación completa: unidad, crítico, Δ)
 // y el original queda anotado CORRECTED (`supersededBy`). Calculadoras, series y el gate de firma leen solo el vigente;
 // la obligación urgente derivada del original (C-20) se completa con la razón de la corrección. Exige razón.
-const CorrectionBody=z.object({correctedResultId:z.string().uuid(),value:z.string().min(1).max(60),unit:z.string().max(24).optional(),reason:z.string().min(5).max(500),occurredAt:z.string().datetime()});
+export const CorrectionBody=z.object({correctedResultId:z.string().uuid(),value:z.string().min(1).max(60),unit:z.string().max(24).optional(),reason:z.string().min(5).max(500),occurredAt:z.string().datetime()});
 export async function handleResultCorrection(req:Request,resultId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,resultId);
@@ -126,7 +126,7 @@ async function commitTransition(ctx:Parameters<typeof runClinicalCommand>[0],ide
  return NextResponse.json({resultId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const VerifyBody=z.object({occurredAt:z.string().datetime()});
+export const VerifyBody=z.object({occurredAt:z.string().datetime()});
 export async function handleResultVerification(req:Request,resultId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,resultId);
@@ -136,7 +136,7 @@ export async function handleResultVerification(req:Request,resultId:string):Prom
 }
 
 // ACTION = requerir acción (crea la obligación). Un resultado crítico exige owner + due date.
-const ActionBody=z.object({ownerId:z.string().uuid(),dueAt:z.string().datetime(),occurredAt:z.string().datetime()});
+export const ActionBody=z.object({ownerId:z.string().uuid(),dueAt:z.string().datetime(),occurredAt:z.string().datetime()});
 export async function handleResultAction(req:Request,resultId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,resultId);
@@ -147,7 +147,7 @@ export async function handleResultAction(req:Request,resultId:string):Promise<Re
 }
 
 // CLOSURE = cierre con evidencia (resuelve la obligación -> desbloquea la firma).
-const CloseBody=z.object({evidence:z.string().min(1),occurredAt:z.string().datetime()});
+export const CloseBody=z.object({evidence:z.string().min(1),occurredAt:z.string().datetime()});
 export const CRITICAL_RESULT_DUE_HOURS=24;
 export const criticalObligationId=(resultId:string)=>derivedUuid(resultId,"critical-result-obligation");
 async function createCriticalResultObligation(ctx:Parameters<typeof runClinicalCommand>[0],resultId:string,patientId:string,ownerId:string,analyte:string,occurredAt:string):Promise<void>{

@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,resolveVerified,parseJson}from"./http-command"
 // El estado (Al día / Próxima / Vencida / Vigente) NO se almacena: se COMPUTA de la fecha límite (determinista).
 const AGG="RegulatoryObligation";
 const CATEGORIES=["Fiscal (SAT)","Salud (COFEPRIS)","Laboral","Protección civil","Administrativa","Otros"] as const;
-const CreateBody=z.object({obligationId:z.string().uuid(),name:z.string().min(1),category:z.enum(CATEGORIES),periodicity:z.string().min(1),dueDate:z.string().optional(),occurredAt:z.string().datetime()});
+export const CreateBody=z.object({obligationId:z.string().uuid(),name:z.string().min(1),category:z.enum(CATEGORIES),periodicity:z.string().min(1),dueDate:z.string().optional(),occurredAt:z.string().datetime()});
 export async function handleRegulatoryObligationCreate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);

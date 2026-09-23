@@ -58,7 +58,7 @@ const SettingsSchema=z.object({
  regCountry:z.string().max(60).optional(),regState:z.string().max(60).optional(),regCity:z.string().max(60).optional(),regPostalCode:z.string().max(12).optional(),
  regDateFormat:z.string().max(20).optional(),regTimeFormat:z.string().max(20).optional(),regCurrency:z.string().max(10).optional(),regTaxRate:z.string().max(6).optional(),
 }).strict();
-const UpdateBody=z.object({settings:SettingsSchema,occurredAt:z.string().datetime()});
+export const UpdateBody=z.object({settings:SettingsSchema,occurredAt:z.string().datetime()});
 
 // GET — devuelve los ajustes efectivos (defaults + lo persistido) y la version para el If-Match del siguiente PUT.
 export async function handleOfficeSettingsGet(req:Request):Promise<Response>{

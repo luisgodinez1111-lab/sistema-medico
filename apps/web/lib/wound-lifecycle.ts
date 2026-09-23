@@ -14,7 +14,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"wound:write",purpose:"TREATMENT"});
 }
 
-const DocumentBody=z.object({woundId:z.string().uuid(),patientId:z.string().uuid(),location:z.enum(["SACRUM","HEEL","ISCHIUM","TROCHANTER","OCCIPUT","ELBOW","OTHER"]),stage:z.enum(STAGES),occurredAt:z.string().datetime()});
+export const DocumentBody=z.object({woundId:z.string().uuid(),patientId:z.string().uuid(),location:z.enum(["SACRUM","HEEL","ISCHIUM","TROCHANTER","OCCIPUT","ELBOW","OTHER"]),stage:z.enum(STAGES),occurredAt:z.string().datetime()});
 export async function handleWoundDocument(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -44,19 +44,19 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({woundId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const ReassessBody=z.object({stage:z.enum(STAGES),occurredAt:z.string().datetime()});
+export const ReassessBody=z.object({stage:z.enum(STAGES),occurredAt:z.string().datetime()});
 export async function handleWoundReassessment(req:Request,woundId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,woundId);const b=await parseJson(req,ReassessBody);
   return await commit(ctx,idempotencyKey,expectedVersion,woundId,folded,"OPEN","WOUND_REASSESSED",{kind:"REASSESSED",stage:b.stage},b.occurredAt,"wound.reassessed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleWoundHealing(req:Request,woundId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,woundId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,woundId,folded,"HEALED","WOUND_HEALED",{kind:"HEALED"},b.occurredAt,"wound.healed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleWoundEscalation(req:Request,woundId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,woundId);const b=await parseJson(req,ReasonBody);
   return await commit(ctx,idempotencyKey,expectedVersion,woundId,folded,"ESCALATED","WOUND_ESCALATED",{kind:"ESCALATED",reason:b.reason},b.occurredAt,"wound.escalated");

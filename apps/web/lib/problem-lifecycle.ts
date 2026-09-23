@@ -18,7 +18,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
 // Auditoría U-04: el formulario capturaba tipo, gravedad, fecha de inicio y notas y los descartaba en silencio. Ahora viajan
 // y se persisten en el evento ADDED. El estado clínico inicial lo fija la máquina de estados (ADDED => ACTIVE); "crónico" y
 // "resuelto" se registran con sus transiciones propias desde la UI.
-const CreateBody=z.object({problemId:z.string().uuid(),patientId:z.string().uuid(),code:z.string().min(1),description:z.string().optional(),
+export const CreateBody=z.object({problemId:z.string().uuid(),patientId:z.string().uuid(),code:z.string().min(1),description:z.string().optional(),
  problemType:z.enum(["ACUTE","CHRONIC","RECURRENT"]).optional(),severity:z.enum(["MILD","MODERATE","SEVERE"]).optional(),
  onsetDate:z.string().regex(/^\d{4}-\d{2}-\d{2}$/,"onsetDate must be YYYY-MM-DD").optional(),notes:z.string().max(2000).optional(),epistemic:z.enum(["POSSIBLE","PROBABLE","CONFIRMED","REFUTED","HISTORICAL","RESOLVED"]).default("POSSIBLE"),evidenceFor:z.array(z.string()).default([]),evidenceAgainst:z.array(z.string()).default([]),confidence:z.number().min(0).max(100).default(50),source:z.enum(["CLINICIAN_VERIFIED","PATIENT_REPORTED","IMPORTED","AI_EXTRACTED"]).default("CLINICIAN_VERIFIED"),occurredAt:z.string().datetime()});
 export async function handleProblemCreate(req:Request):Promise<Response>{
@@ -63,10 +63,10 @@ async function commitAnnotation(ctx:Parameters<typeof runClinicalCommand>[0],ide
  return NextResponse.json({problemId,state:folded.state,annotation:kind,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
-const ResolveBody=z.object({note:z.string().min(1),occurredAt:z.string().datetime()});
-const EpistemicBody=z.object({epistemic:z.enum(["POSSIBLE","PROBABLE","CONFIRMED","REFUTED","HISTORICAL","RESOLVED"]),occurredAt:z.string().datetime()});
-const EvidenceBody=z.object({evidenceFor:z.array(z.string()).optional(),evidenceAgainst:z.array(z.string()).optional(),confidence:z.number().min(0).max(100).optional(),occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const ResolveBody=z.object({note:z.string().min(1),occurredAt:z.string().datetime()});
+export const EpistemicBody=z.object({epistemic:z.enum(["POSSIBLE","PROBABLE","CONFIRMED","REFUTED","HISTORICAL","RESOLVED"]),occurredAt:z.string().datetime()});
+export const EvidenceBody=z.object({evidenceFor:z.array(z.string()).optional(),evidenceAgainst:z.array(z.string()).optional(),confidence:z.number().min(0).max(100).optional(),occurredAt:z.string().datetime()});
 
 export async function handleProblemEpistemicUpdate(req:Request,problemId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,problemId);const b=await parseJson(req,EpistemicBody);

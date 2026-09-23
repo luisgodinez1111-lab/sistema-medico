@@ -14,7 +14,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"order:write",purpose:"TREATMENT"});
 }
 
-const CreateBody=z.object({orderId:z.string().uuid(),patientId:z.string().uuid(),orderType:z.enum(["LAB","IMAGING","PATHOLOGY","PROCEDURE","REFERRAL"]),detail:z.string().min(1),occurredAt:z.string().datetime()});
+export const CreateBody=z.object({orderId:z.string().uuid(),patientId:z.string().uuid(),orderType:z.enum(["LAB","IMAGING","PATHOLOGY","PROCEDURE","REFERRAL"]),detail:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleOrderCreate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -44,7 +44,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({orderId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleOrderPlacement(req:Request,orderId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,orderId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,orderId,folded,"ORDERED","ORDER_PLACED",{kind:"PLACED"},b.occurredAt,"order.placed");
@@ -55,7 +55,7 @@ export async function handleOrderFulfillment(req:Request,orderId:string):Promise
   return await commit(ctx,idempotencyKey,expectedVersion,orderId,folded,"FULFILLED","ORDER_FULFILLED",{kind:"FULFILLED"},b.occurredAt,"order.fulfilled");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const CancelBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const CancelBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleOrderCancellation(req:Request,orderId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,orderId);const b=await parseJson(req,CancelBody);
   return await commit(ctx,idempotencyKey,expectedVersion,orderId,folded,"CANCELLED","ORDER_CANCELLED",{kind:"CANCELLED",reason:b.reason},b.occurredAt,"order.cancelled");

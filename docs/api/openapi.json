@@ -3,7 +3,8 @@
  "info": {
   "title": "Medical OS — API clínica",
   "version": "0.0.0",
-  "description": "Generada desde el inventario real de rutas (pnpm openapi:generate). Sesión: cookie httpOnly medos_session o Authorization: Bearer. Toda respuesta de la API lleva Cache-Control: no-store."
+  "description": "Generada desde el inventario real de rutas (pnpm openapi:generate). Sesión: cookie httpOnly medos_session o Authorization: Bearer. Toda respuesta de la API lleva Cache-Control: no-store.",
+  "x-bodies-with-schema": 116
  },
  "servers": [
   {
@@ -317,15 +318,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/admissions/[admissionId]/cancellation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -473,15 +487,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/admissions/[admissionId]/discharge/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "disposition": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "disposition",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -629,15 +656,35 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/admissions/[admissionId]/transfer/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "unit": {
+          "type": "string",
+          "enum": [
+           "ER",
+           "WARD",
+           "ICU",
+           "OR",
+           "MATERNITY",
+           "PEDIATRICS"
+          ]
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "unit",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -767,15 +814,52 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/admissions/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "admissionId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "unit": {
+          "type": "string",
+          "enum": [
+           "ER",
+           "WARD",
+           "ICU",
+           "OR",
+           "MATERNITY",
+           "PEDIATRICS"
+          ]
+         },
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "admissionId",
+         "patientId",
+         "unit",
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -905,15 +989,43 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/ai/assist/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "action": {
+          "type": "string",
+          "enum": [
+           "SUMMARIZE",
+           "EXTRACT",
+           "SUGGEST",
+           "ORDER",
+           "PRESCRIBE",
+           "SIGN",
+           "CLOSE_CRITICAL"
+          ]
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "hasEvidence": {
+          "default": false,
+          "type": "boolean"
+         },
+         "humanApproved": {
+          "default": false,
+          "type": "boolean"
+         }
+        },
+        "required": [
+         "action"
+        ]
        }
       }
      }
@@ -1056,15 +1168,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/allergies/[allergyId]/inactivation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -1207,15 +1327,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/allergies/[allergyId]/reactivation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -1358,15 +1486,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/allergies/[allergyId]/refutation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -1599,15 +1735,54 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/allergies/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "allergyId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "substance": {
+          "type": "string",
+          "minLength": 1
+         },
+         "severity": {
+          "type": "string",
+          "enum": [
+           "MILD",
+           "MODERATE",
+           "SEVERE"
+          ]
+         },
+         "reaction": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "allergyId",
+         "patientId",
+         "substance",
+         "severity",
+         "reaction",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -1750,15 +1925,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/appointments/[appointmentId]/cancellation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -1901,15 +2089,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/appointments/[appointmentId]/check-in/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -2052,15 +2248,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/appointments/[appointmentId]/completion/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -2203,15 +2407,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/appointments/[appointmentId]/no-show/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -2444,15 +2656,67 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/appointments/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "appointmentId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "startAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         },
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         },
+         "endAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         },
+         "consultorio": {
+          "type": "string",
+          "maxLength": 60
+         },
+         "apptType": {
+          "type": "string",
+          "enum": [
+           "CONSULTA_GENERAL",
+           "CONTROL",
+           "PRIMERA_VEZ",
+           "PROCEDIMIENTO",
+           "VACUNACION",
+           "RESULTADOS",
+           "URGENCIA"
+          ]
+         }
+        },
+        "required": [
+         "appointmentId",
+         "patientId",
+         "startAt",
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -2595,15 +2859,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/care-plans/[carePlanId]/achievement/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -2746,15 +3018,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/care-plans/[carePlanId]/activation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -2897,15 +3177,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/care-plans/[carePlanId]/cancellation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -3048,15 +3341,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/care-plans/[carePlanId]/hold/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -3199,15 +3500,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/care-plans/[carePlanId]/resumption/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -3332,15 +3641,53 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/care-plans/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "carePlanId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "category": {
+          "type": "string",
+          "enum": [
+           "DIABETES",
+           "HYPERTENSION",
+           "OBESITY",
+           "CARDIOVASCULAR",
+           "MENTAL_HEALTH",
+           "PRENATAL",
+           "OTHER"
+          ]
+         },
+         "goal": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "carePlanId",
+         "patientId",
+         "category",
+         "goal",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -3483,15 +3830,32 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/claims/[claimId]/coding/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "codes": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+           "type": "string",
+           "minLength": 1
+          }
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "codes",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -3634,15 +3998,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/claims/[claimId]/payment/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reference": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reference",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -3785,15 +4162,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/claims/[claimId]/rejection/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -3936,15 +4326,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/claims/[claimId]/submission/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -4087,15 +4485,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/claims/[claimId]/void/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -4328,15 +4739,48 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/claims/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "claimId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "amount": {
+          "type": "string",
+          "minLength": 1
+         },
+         "currency": {
+          "type": "string",
+          "enum": [
+           "MXN",
+           "USD"
+          ]
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "claimId",
+         "patientId",
+         "amount",
+         "currency",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -4479,15 +4923,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/consents/[consentId]/decline/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -4630,15 +5087,36 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/consents/[consentId]/grant/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "signerName": {
+          "type": "string",
+          "minLength": 1
+         },
+         "signerRole": {
+          "default": "PATIENT",
+          "type": "string",
+          "enum": [
+           "PATIENT",
+           "GUARDIAN"
+          ]
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "signerName",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -4781,15 +5259,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/consents/[consentId]/presentation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -4932,15 +5418,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/consents/[consentId]/revocation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -5065,15 +5564,51 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/consents/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "consentId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "scopeType": {
+          "type": "string",
+          "enum": [
+           "TREATMENT",
+           "PROCEDURE",
+           "DATA_SHARING",
+           "RESEARCH",
+           "ANESTHESIA"
+          ]
+         },
+         "documentRef": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "consentId",
+         "patientId",
+         "scopeType",
+         "documentRef",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -5216,15 +5751,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/dialysis-sessions/[dialysisId]/cancellation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -5372,15 +5920,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/dialysis-sessions/[dialysisId]/completion/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -5528,15 +6084,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/dialysis-sessions/[dialysisId]/interruption/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -5684,15 +6253,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/dialysis-sessions/[dialysisId]/no-show/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -5840,15 +6417,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/dialysis-sessions/[dialysisId]/resumption/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -5996,15 +6581,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/dialysis-sessions/[dialysisId]/start/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -6134,15 +6727,54 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/dialysis-sessions/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "dialysisId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "modality": {
+          "type": "string",
+          "enum": [
+           "HEMODIALYSIS",
+           "PERITONEAL",
+           "HEMOFILTRATION"
+          ]
+         },
+         "accessType": {
+          "type": "string",
+          "enum": [
+           "FISTULA",
+           "GRAFT",
+           "CATHETER",
+           "PERITONEAL_CATHETER"
+          ]
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "dialysisId",
+         "patientId",
+         "modality",
+         "accessType",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -6290,15 +6922,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/documents/[documentId]/amendment/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "addendum": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "addendum",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -6568,7 +7213,7 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/documents/[documentId]/attachments/[attachmentId]/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
     "requestBody": {
      "required": true,
      "content": {
@@ -6576,7 +7221,7 @@
        "schema": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
        }
       }
      }
@@ -6719,7 +7364,7 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/documents/[documentId]/attachments/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
     "requestBody": {
      "required": true,
      "content": {
@@ -6727,7 +7372,7 @@
        "schema": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
        }
       }
      }
@@ -6870,15 +7515,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/documents/[documentId]/finalization/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -7141,15 +7794,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/documents/[documentId]/signature/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         },
+         "contentHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+         }
+        },
+        "required": [
+         "occurredAt",
+         "contentHash"
+        ]
        }
       }
      }
@@ -7274,15 +7940,61 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/documents/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "documentId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "encounterId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "docType": {
+          "type": "string",
+          "enum": [
+           "PROGRESS_NOTE",
+           "DISCHARGE_SUMMARY",
+           "REFERRAL",
+           "PROCEDURE_NOTE",
+           "OTHER"
+          ]
+         },
+         "title": {
+          "type": "string",
+          "minLength": 1
+         },
+         "content": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "documentId",
+         "patientId",
+         "docType",
+         "title",
+         "content",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -7425,7 +8137,7 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/encounters/[encounterId]/assessment/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
     "requestBody": {
      "required": true,
      "content": {
@@ -7433,7 +8145,7 @@
        "schema": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
        }
       }
      }
@@ -7576,7 +8288,7 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/encounters/[encounterId]/signature/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
     "requestBody": {
      "required": true,
      "content": {
@@ -7584,7 +8296,7 @@
        "schema": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
        }
       }
      }
@@ -7817,7 +8529,7 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/encounters/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
     "requestBody": {
      "required": true,
      "content": {
@@ -7825,7 +8537,7 @@
        "schema": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
        }
       }
      }
@@ -8078,15 +8790,33 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/immunizations/[immunizationId]/administration/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "lot": {
+          "type": "string",
+          "minLength": 1
+         },
+         "site": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "lot",
+         "site",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -8229,15 +8959,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/immunizations/[immunizationId]/adverse-event/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reaction": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reaction",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -8380,15 +9123,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/immunizations/[immunizationId]/refusal/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -8621,15 +9377,45 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/immunizations/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "immunizationId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "vaccineCode": {
+          "type": "string",
+          "minLength": 1
+         },
+         "dose": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "immunizationId",
+         "patientId",
+         "vaccineCode",
+         "dose",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -8772,15 +9558,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/incidents/[incidentId]/escalation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -8923,15 +9722,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/incidents/[incidentId]/resolution/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "resolution": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "resolution",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -9074,15 +9886,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/incidents/[incidentId]/review/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -9207,15 +10027,61 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/incidents/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "incidentId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "category": {
+          "type": "string",
+          "enum": [
+           "MEDICATION_ERROR",
+           "FALL",
+           "EQUIPMENT",
+           "ADVERSE_DRUG_REACTION",
+           "INFECTION",
+           "OTHER"
+          ]
+         },
+         "severity": {
+          "type": "string",
+          "enum": [
+           "LOW",
+           "MODERATE",
+           "SEVERE"
+          ]
+         },
+         "description": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "incidentId",
+         "patientId",
+         "category",
+         "severity",
+         "description",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -9340,7 +10206,7 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/interactions/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
     "requestBody": {
      "required": true,
      "content": {
@@ -9348,7 +10214,7 @@
        "schema": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
        }
       }
      }
@@ -9491,15 +10357,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/medications/[medicationId]/activation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -9642,15 +10516,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/medications/[medicationId]/discontinuation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -9793,15 +10680,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/medications/[medicationId]/hold/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -9944,15 +10844,70 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/medications/[medicationId]/modification/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "dose": {
+          "type": "string",
+          "minLength": 1
+         },
+         "route": {
+          "type": "string",
+          "minLength": 1
+         },
+         "frequency": {
+          "type": "string",
+          "minLength": 1
+         },
+         "calculatedDose": {
+          "type": "string"
+         },
+         "reason": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 500
+         },
+         "acknowledgeUnverified": {
+          "type": "boolean"
+         },
+         "unverifiedJustification": {
+          "type": "string",
+          "maxLength": 500
+         },
+         "overrideBarriers": {
+          "minItems": 1,
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+           "type": "string",
+           "enum": [
+            "allergy",
+            "interaction",
+            "duplicate",
+            "contraindication",
+            "renal"
+           ]
+          }
+         },
+         "overrideJustification": {
+          "type": "string",
+          "maxLength": 1000
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -10095,15 +11050,49 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/medications/[medicationId]/prescription/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         },
+         "acknowledgeUnverified": {
+          "type": "boolean"
+         },
+         "unverifiedJustification": {
+          "type": "string",
+          "maxLength": 500
+         },
+         "overrideBarriers": {
+          "minItems": 1,
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+           "type": "string",
+           "enum": [
+            "allergy",
+            "interaction",
+            "duplicate",
+            "contraindication",
+            "renal"
+           ]
+          }
+         },
+         "overrideJustification": {
+          "type": "string",
+          "maxLength": 1000
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -10246,15 +11235,49 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/medications/[medicationId]/resumption/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         },
+         "acknowledgeUnverified": {
+          "type": "boolean"
+         },
+         "unverifiedJustification": {
+          "type": "string",
+          "maxLength": 500
+         },
+         "overrideBarriers": {
+          "minItems": 1,
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+           "type": "string",
+           "enum": [
+            "allergy",
+            "interaction",
+            "duplicate",
+            "contraindication",
+            "renal"
+           ]
+          }
+         },
+         "overrideJustification": {
+          "type": "string",
+          "maxLength": 1000
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -10379,15 +11402,64 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/medications/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "medicationId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "drugCode": {
+          "type": "string",
+          "minLength": 1
+         },
+         "indication": {
+          "type": "string"
+         },
+         "dose": {
+          "type": "string",
+          "minLength": 1
+         },
+         "route": {
+          "type": "string",
+          "minLength": 1
+         },
+         "frequency": {
+          "type": "string",
+          "minLength": 1
+         },
+         "duration": {
+          "type": "string"
+         },
+         "calculatedDose": {
+          "type": "string"
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "medicationId",
+         "patientId",
+         "drugCode",
+         "dose",
+         "route",
+         "frequency",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -10530,15 +11602,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/obligations/[obligationId]/cancellation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -10681,15 +11766,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/obligations/[obligationId]/completion/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "evidence": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "evidence",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -10832,15 +11930,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/obligations/[obligationId]/progress/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -10965,15 +12071,72 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/obligations/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "obligationId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "ownerId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "dueAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         },
+         "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+         },
+         "priority": {
+          "default": "ROUTINE",
+          "type": "string",
+          "enum": [
+           "URGENT",
+           "HIGH",
+           "ROUTINE"
+          ]
+         },
+         "sourceVitalId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "sourceResultId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "obligationId",
+         "patientId",
+         "ownerId",
+         "dueAt",
+         "kind",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -11206,15 +12369,185 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/office-settings/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "settings": {
+          "type": "object",
+          "properties": {
+           "officeName": {
+            "type": "string",
+            "maxLength": 200
+           },
+           "specialty": {
+            "type": "string",
+            "maxLength": 120
+           },
+           "rfc": {
+            "type": "string",
+            "maxLength": 20
+           },
+           "cedula": {
+            "type": "string",
+            "maxLength": 30
+           },
+           "address": {
+            "type": "string",
+            "maxLength": 300
+           },
+           "phone": {
+            "type": "string",
+            "maxLength": 40
+           },
+           "email": {
+            "type": "string",
+            "maxLength": 120
+           },
+           "timezone": {
+            "type": "string",
+            "maxLength": 80
+           },
+           "language": {
+            "type": "string",
+            "maxLength": 40
+           },
+           "color": {
+            "type": "string",
+            "maxLength": 9
+           },
+           "theme": {
+            "type": "string",
+            "maxLength": 20
+           },
+           "fontSize": {
+            "type": "string",
+            "maxLength": 20
+           },
+           "realtimeAlerts": {
+            "type": "boolean"
+           },
+           "followupReminders": {
+            "type": "boolean"
+           },
+           "showInteractions": {
+            "type": "boolean"
+           },
+           "darkMode": {
+            "type": "boolean"
+           },
+           "schedule": {
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+             "type": "object",
+             "properties": {
+              "day": {
+               "type": "string",
+               "enum": [
+                "Lunes",
+                "Martes",
+                "Miércoles",
+                "Jueves",
+                "Viernes",
+                "Sábado",
+                "Domingo"
+               ]
+              },
+              "open": {
+               "type": "boolean"
+              },
+              "from": {
+               "type": "string"
+              },
+              "to": {
+               "type": "string"
+              }
+             },
+             "required": [
+              "day",
+              "open",
+              "from",
+              "to"
+             ],
+             "additionalProperties": false
+            }
+           },
+           "modules": {
+            "type": "object",
+            "propertyNames": {
+             "type": "string",
+             "maxLength": 40
+            },
+            "additionalProperties": {
+             "type": "boolean"
+            }
+           },
+           "prefRecordView": {
+            "type": "string",
+            "maxLength": 60
+           },
+           "prefNoteTemplate": {
+            "type": "string",
+            "maxLength": 80
+           },
+           "prefUnits": {
+            "type": "string",
+            "maxLength": 40
+           },
+           "prefDoseCalc": {
+            "type": "string",
+            "maxLength": 60
+           },
+           "regCountry": {
+            "type": "string",
+            "maxLength": 60
+           },
+           "regState": {
+            "type": "string",
+            "maxLength": 60
+           },
+           "regCity": {
+            "type": "string",
+            "maxLength": 60
+           },
+           "regPostalCode": {
+            "type": "string",
+            "maxLength": 12
+           },
+           "regDateFormat": {
+            "type": "string",
+            "maxLength": 20
+           },
+           "regTimeFormat": {
+            "type": "string",
+            "maxLength": 20
+           },
+           "regCurrency": {
+            "type": "string",
+            "maxLength": 10
+           },
+           "regTaxRate": {
+            "type": "string",
+            "maxLength": 6
+           }
+          },
+          "additionalProperties": false
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "settings",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -11357,15 +12690,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/orders/[orderId]/cancellation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -11508,15 +12854,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/orders/[orderId]/fulfillment/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -11659,15 +13013,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/orders/[orderId]/placement/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -11900,15 +13262,51 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/orders/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "orderId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "orderType": {
+          "type": "string",
+          "enum": [
+           "LAB",
+           "IMAGING",
+           "PATHOLOGY",
+           "PROCEDURE",
+           "REFERRAL"
+          ]
+         },
+         "detail": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "orderId",
+         "patientId",
+         "orderType",
+         "detail",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -12291,15 +13689,88 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/patients/[patientId]/amendment/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "name": {
+          "type": "string",
+          "minLength": 1
+         },
+         "birthDate": {
+          "type": "string",
+          "minLength": 1
+         },
+         "sexAtBirth": {
+          "type": "string",
+          "enum": [
+           "FEMALE",
+           "MALE",
+           "INTERSEX",
+           "UNKNOWN"
+          ]
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         },
+         "curp": {
+          "type": "string",
+          "maxLength": 18
+         },
+         "phone": {
+          "type": "string",
+          "maxLength": 30
+         },
+         "email": {
+          "type": "string",
+          "maxLength": 120
+         },
+         "address": {
+          "type": "string",
+          "maxLength": 200
+         },
+         "occupation": {
+          "type": "string",
+          "maxLength": 120
+         },
+         "maritalStatus": {
+          "type": "string",
+          "maxLength": 40
+         },
+         "guardian": {
+          "type": "object",
+          "properties": {
+           "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 160
+           },
+           "relationship": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60
+           },
+           "phone": {
+            "type": "string",
+            "maxLength": 30
+           }
+          },
+          "required": [
+           "name",
+           "relationship"
+          ],
+          "additionalProperties": false
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -13762,15 +15233,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/patients/[patientId]/deactivation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -15113,7 +16592,7 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/patients/[patientId]/prescription-check/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
     "requestBody": {
      "required": true,
      "content": {
@@ -15121,7 +16600,7 @@
        "schema": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
        }
       }
      }
@@ -15384,15 +16863,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/patients/[patientId]/reactivation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -16105,15 +17592,101 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/patients/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+         },
+         "birthDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+         },
+         "sexAtBirth": {
+          "type": "string",
+          "enum": [
+           "FEMALE",
+           "MALE",
+           "INTERSEX",
+           "UNKNOWN"
+          ]
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         },
+         "curp": {
+          "type": "string",
+          "maxLength": 18
+         },
+         "phone": {
+          "type": "string",
+          "maxLength": 30
+         },
+         "email": {
+          "type": "string",
+          "maxLength": 120
+         },
+         "address": {
+          "type": "string",
+          "maxLength": 200
+         },
+         "occupation": {
+          "type": "string",
+          "maxLength": 120
+         },
+         "maritalStatus": {
+          "type": "string",
+          "maxLength": 40
+         },
+         "guardian": {
+          "type": "object",
+          "properties": {
+           "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 160
+           },
+           "relationship": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60
+           },
+           "phone": {
+            "type": "string",
+            "maxLength": 30
+           }
+          },
+          "required": [
+           "name",
+           "relationship"
+          ],
+          "additionalProperties": false
+         },
+         "confirmNotDuplicate": {
+          "type": "boolean"
+         }
+        },
+        "required": [
+         "patientId",
+         "name",
+         "birthDate",
+         "sexAtBirth",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -16365,7 +17938,7 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/physician-profile/assets/[kind]/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
     "requestBody": {
      "required": true,
      "content": {
@@ -16373,7 +17946,7 @@
        "schema": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
        }
       }
      }
@@ -16505,7 +18078,7 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/physician-profile/assets/[kind]/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
     "requestBody": {
      "required": true,
      "content": {
@@ -16513,7 +18086,7 @@
        "schema": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
        }
       }
      }
@@ -16638,15 +18211,41 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/physician-profile/credentials/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "fullName": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160
+         },
+         "cedulaProfesional": {
+          "type": "string"
+         },
+         "institution": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 200
+         },
+         "specialty": {
+          "type": "string",
+          "maxLength": 120
+         },
+         "cedulaEspecialidad": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "fullName",
+         "cedulaProfesional",
+         "institution"
+        ],
+        "additionalProperties": false
        }
       }
      }
@@ -16899,15 +18498,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/problems/[problemId]/chronicity/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -17050,15 +18657,35 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/problems/[problemId]/epistemic-status/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "epistemic": {
+          "type": "string",
+          "enum": [
+           "POSSIBLE",
+           "PROBABLE",
+           "CONFIRMED",
+           "REFUTED",
+           "HISTORICAL",
+           "RESOLVED"
+          ]
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "epistemic",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -17201,15 +18828,40 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/problems/[problemId]/evidence/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "evidenceFor": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "evidenceAgainst": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -17352,15 +19004,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/problems/[problemId]/reactivation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -17503,15 +19163,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/problems/[problemId]/resolution/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "note": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "note",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -17744,15 +19417,109 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/problems/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "problemId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "code": {
+          "type": "string",
+          "minLength": 1
+         },
+         "description": {
+          "type": "string"
+         },
+         "problemType": {
+          "type": "string",
+          "enum": [
+           "ACUTE",
+           "CHRONIC",
+           "RECURRENT"
+          ]
+         },
+         "severity": {
+          "type": "string",
+          "enum": [
+           "MILD",
+           "MODERATE",
+           "SEVERE"
+          ]
+         },
+         "onsetDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+         },
+         "notes": {
+          "type": "string",
+          "maxLength": 2000
+         },
+         "epistemic": {
+          "default": "POSSIBLE",
+          "type": "string",
+          "enum": [
+           "POSSIBLE",
+           "PROBABLE",
+           "CONFIRMED",
+           "REFUTED",
+           "HISTORICAL",
+           "RESOLVED"
+          ]
+         },
+         "evidenceFor": {
+          "default": [],
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "evidenceAgainst": {
+          "default": [],
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "confidence": {
+          "default": 50,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+         },
+         "source": {
+          "default": "CLINICIAN_VERIFIED",
+          "type": "string",
+          "enum": [
+           "CLINICIAN_VERIFIED",
+           "PATIENT_REPORTED",
+           "IMPORTED",
+           "AI_EXTRACTED"
+          ]
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "problemId",
+         "patientId",
+         "code",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -17895,15 +19662,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/referrals/[referralId]/acceptance/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -18046,15 +19821,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/referrals/[referralId]/cancellation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -18197,15 +19985,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/referrals/[referralId]/completion/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -18348,15 +20144,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/referrals/[referralId]/decline/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -18481,15 +20290,45 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/referrals/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "referralId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "specialty": {
+          "type": "string",
+          "minLength": 1
+         },
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "referralId",
+         "patientId",
+         "specialty",
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -18722,15 +20561,54 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/regulatory-obligations/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "obligationId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "name": {
+          "type": "string",
+          "minLength": 1
+         },
+         "category": {
+          "type": "string",
+          "enum": [
+           "Fiscal (SAT)",
+           "Salud (COFEPRIS)",
+           "Laboral",
+           "Protección civil",
+           "Administrativa",
+           "Otros"
+          ]
+         },
+         "periodicity": {
+          "type": "string",
+          "minLength": 1
+         },
+         "dueDate": {
+          "type": "string"
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "obligationId",
+         "name",
+         "category",
+         "periodicity",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -18983,15 +20861,35 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/results/[resultId]/action/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "ownerId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "dueAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "ownerId",
+         "dueAt",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -19134,15 +21032,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/results/[resultId]/closure/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "evidence": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "evidence",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -19285,15 +21196,45 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/results/[resultId]/correction/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "correctedResultId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+         },
+         "unit": {
+          "type": "string",
+          "maxLength": 24
+         },
+         "reason": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 500
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "correctedResultId",
+         "value",
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -19436,15 +21377,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/results/[resultId]/verification/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -19677,15 +21626,62 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/results/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "resultId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "orderId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "analyte": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+         },
+         "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+         },
+         "unit": {
+          "type": "string",
+          "maxLength": 24
+         },
+         "specimenId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "resultId",
+         "patientId",
+         "orderId",
+         "analyte",
+         "value",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -19810,7 +21806,7 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/sessions/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
     "requestBody": {
      "required": true,
      "content": {
@@ -19818,7 +21814,7 @@
        "schema": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
        }
       }
      }
@@ -19941,7 +21937,7 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/sessions/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
     "requestBody": {
      "required": true,
      "content": {
@@ -19949,7 +21945,7 @@
        "schema": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
        }
       }
      }
@@ -20092,15 +22088,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/specimens/[specimenId]/receipt/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -20248,15 +22252,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/specimens/[specimenId]/rejection/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -20404,15 +22421,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/specimens/[specimenId]/result/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -20560,15 +22585,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/specimens/[specimenId]/transit/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -20698,15 +22731,52 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/specimens/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "specimenId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "specimenType": {
+          "type": "string",
+          "enum": [
+           "BLOOD",
+           "URINE",
+           "TISSUE",
+           "SWAB",
+           "CSF",
+           "STOOL"
+          ]
+         },
+         "orderId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "specimenId",
+         "patientId",
+         "specimenType",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -20854,15 +22924,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/surgeries/[surgeryId]/cancellation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -21010,15 +23093,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/surgeries/[surgeryId]/completion/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "outcome": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "outcome",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -21166,15 +23262,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/surgeries/[surgeryId]/start/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -21322,15 +23426,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/surgeries/[surgeryId]/timeout/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -21460,15 +23572,55 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/surgeries/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "surgeryId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "procedure": {
+          "type": "string",
+          "minLength": 1
+         },
+         "laterality": {
+          "type": "string",
+          "enum": [
+           "LEFT",
+           "RIGHT",
+           "BILATERAL",
+           "NA"
+          ]
+         },
+         "surgeon": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "surgeryId",
+         "patientId",
+         "procedure",
+         "laterality",
+         "surgeon",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -21816,7 +23968,7 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/timeline/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
     "requestBody": {
      "required": true,
      "content": {
@@ -21824,7 +23976,7 @@
        "schema": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
        }
       }
      }
@@ -21967,15 +24119,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/transfusions/[transfusionId]/cancellation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -22123,15 +24288,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/transfusions/[transfusionId]/completion/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -22279,15 +24452,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/transfusions/[transfusionId]/crossmatch/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -22435,15 +24616,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/transfusions/[transfusionId]/reaction/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reaction": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reaction",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -22591,15 +24785,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/transfusions/[transfusionId]/start/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -22729,15 +24931,51 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/transfusions/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "transfusionId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "bloodProduct": {
+          "type": "string",
+          "enum": [
+           "PRBC",
+           "PLATELETS",
+           "FFP",
+           "CRYO",
+           "WHOLE_BLOOD"
+          ]
+         },
+         "units": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "transfusionId",
+         "patientId",
+         "bloodProduct",
+         "units",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -22885,15 +25123,29 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/triage/[triageId]/assessment/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "acuity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "acuity",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -23041,15 +25293,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/triage/[triageId]/closure/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -23197,15 +25457,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/triage/[triageId]/lwbs/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -23353,15 +25626,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/triage/[triageId]/start/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -23491,15 +25772,40 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/triage/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "triageId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "chiefComplaint": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "triageId",
+         "patientId",
+         "chiefComplaint",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -23647,15 +25953,38 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/vitals/[vitalId]/amendment/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "value": {
+          "type": "string",
+          "minLength": 1
+         },
+         "unit": {
+          "type": "string",
+          "minLength": 1
+         },
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "value",
+         "unit",
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -23798,15 +26127,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/vitals/[vitalId]/error-mark/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -23931,15 +26273,58 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/vitals/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "vitalId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "vitalType": {
+          "type": "string",
+          "enum": [
+           "BP",
+           "HR",
+           "TEMP",
+           "SPO2",
+           "WEIGHT",
+           "HEIGHT",
+           "RESP"
+          ]
+         },
+         "value": {
+          "type": "string",
+          "minLength": 1
+         },
+         "unit": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "vitalId",
+         "patientId",
+         "vitalType",
+         "value",
+         "unit",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -24192,15 +26577,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/wounds/[woundId]/escalation/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 1
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "reason",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -24348,15 +26746,23 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/wounds/[woundId]/healing/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "occurredAt"
+        ]
        }
       }
      }
@@ -24504,15 +26910,35 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/wounds/[woundId]/reassessment/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "stage": {
+          "type": "string",
+          "enum": [
+           "STAGE_1",
+           "STAGE_2",
+           "STAGE_3",
+           "STAGE_4",
+           "UNSTAGEABLE",
+           "DTI"
+          ]
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "stage",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -24642,15 +27068,60 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/wounds/route.ts",
-    "x-body-validation": "zod en el handler (apps/web/lib/*-lifecycle.ts): esquema JSON pendiente de exportar",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado con zod en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "woundId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "location": {
+          "type": "string",
+          "enum": [
+           "SACRUM",
+           "HEEL",
+           "ISCHIUM",
+           "TROCHANTER",
+           "OCCIPUT",
+           "ELBOW",
+           "OTHER"
+          ]
+         },
+         "stage": {
+          "type": "string",
+          "enum": [
+           "STAGE_1",
+           "STAGE_2",
+           "STAGE_3",
+           "STAGE_4",
+           "UNSTAGEABLE",
+           "DTI"
+          ]
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "woundId",
+         "patientId",
+         "location",
+         "stage",
+         "occurredAt"
+        ]
        }
       }
      }

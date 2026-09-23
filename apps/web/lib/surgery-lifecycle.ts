@@ -13,7 +13,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"surgery:write",purpose:"TREATMENT"});
 }
 
-const ScheduleBody=z.object({surgeryId:z.string().uuid(),patientId:z.string().uuid(),procedure:z.string().min(1),laterality:z.enum(["LEFT","RIGHT","BILATERAL","NA"]),surgeon:z.string().min(1),occurredAt:z.string().datetime()});
+export const ScheduleBody=z.object({surgeryId:z.string().uuid(),patientId:z.string().uuid(),procedure:z.string().min(1),laterality:z.enum(["LEFT","RIGHT","BILATERAL","NA"]),surgeon:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleSurgerySchedule(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -43,7 +43,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({surgeryId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleSurgeryTimeout(req:Request,surgeryId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,surgeryId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,surgeryId,folded,"TIMED_OUT","SURGERY_TIMEOUT_COMPLETED",{kind:"TIMEOUT_COMPLETED"},b.occurredAt,"surgery.timeout_completed");
@@ -54,13 +54,13 @@ export async function handleSurgeryStart(req:Request,surgeryId:string):Promise<R
   return await commit(ctx,idempotencyKey,expectedVersion,surgeryId,folded,"IN_PROGRESS","SURGERY_STARTED",{kind:"STARTED"},b.occurredAt,"surgery.started");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const CompleteBody=z.object({outcome:z.string().min(1),occurredAt:z.string().datetime()});
+export const CompleteBody=z.object({outcome:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleSurgeryCompletion(req:Request,surgeryId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,surgeryId);const b=await parseJson(req,CompleteBody);
   return await commit(ctx,idempotencyKey,expectedVersion,surgeryId,folded,"COMPLETED","SURGERY_COMPLETED",{kind:"COMPLETED",outcome:b.outcome},b.occurredAt,"surgery.completed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleSurgeryCancellation(req:Request,surgeryId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,surgeryId);const b=await parseJson(req,ReasonBody);
   return await commit(ctx,idempotencyKey,expectedVersion,surgeryId,folded,"CANCELLED","SURGERY_CANCELLED",{kind:"CANCELLED",reason:b.reason},b.occurredAt,"surgery.cancelled");

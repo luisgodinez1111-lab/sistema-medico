@@ -18,7 +18,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
 // (se cierra el lazo Zero Lost Follow-Up de vitales críticos y se desbloquea la firma del encuentro).
 // Auditoría L-01: `priority` viaja en el evento (por defecto ROUTINE). URGENT sin resolver bloquea la firma; también cualquier
 // obligación VENCIDA. `sourceResultId` liga la obligación al resultado crítico que la originó (trazabilidad del lazo).
-const CreateBody=z.object({obligationId:z.string().uuid(),patientId:z.string().uuid(),ownerId:z.string().uuid(),dueAt:z.string().datetime(),kind:z.string().min(1).max(200),
+export const CreateBody=z.object({obligationId:z.string().uuid(),patientId:z.string().uuid(),ownerId:z.string().uuid(),dueAt:z.string().datetime(),kind:z.string().min(1).max(200),
  priority:z.enum(["URGENT","HIGH","ROUTINE"]).default("ROUTINE"),sourceVitalId:z.string().uuid().optional(),sourceResultId:z.string().uuid().optional(),occurredAt:z.string().datetime()});
 export async function handleObligationCreate(req:Request):Promise<Response>{
  try{
@@ -51,20 +51,20 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({obligationId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleObligationProgress(req:Request,obligationId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,obligationId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,obligationId,folded,"IN_PROGRESS","OBLIGATION_STARTED",{kind:"STARTED"},b.occurredAt,"obligation.started");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 // Completar EXIGE evidencia (constancia del seguimiento realizado).
-const CompleteBody=z.object({evidence:z.string().min(1),occurredAt:z.string().datetime()});
+export const CompleteBody=z.object({evidence:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleObligationCompletion(req:Request,obligationId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,obligationId);const b=await parseJson(req,CompleteBody);
   return await commit(ctx,idempotencyKey,expectedVersion,obligationId,folded,"COMPLETED","OBLIGATION_COMPLETED",{kind:"COMPLETED",evidence:b.evidence},b.occurredAt,"obligation.completed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const CancelBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const CancelBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleObligationCancellation(req:Request,obligationId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,obligationId);const b=await parseJson(req,CancelBody);
   return await commit(ctx,idempotencyKey,expectedVersion,obligationId,folded,"CANCELLED","OBLIGATION_CANCELLED",{kind:"CANCELLED",reason:b.reason},b.occurredAt,"obligation.cancelled");

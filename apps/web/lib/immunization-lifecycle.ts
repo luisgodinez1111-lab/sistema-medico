@@ -13,7 +13,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"immunization:write",purpose:"TREATMENT"});
 }
 
-const DueBody=z.object({immunizationId:z.string().uuid(),patientId:z.string().uuid(),vaccineCode:z.string().min(1),dose:z.string().min(1),occurredAt:z.string().datetime()});
+export const DueBody=z.object({immunizationId:z.string().uuid(),patientId:z.string().uuid(),vaccineCode:z.string().min(1),dose:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleImmunizationDue(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -43,19 +43,19 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({immunizationId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const AdminBody=z.object({lot:z.string().min(1),site:z.string().min(1),occurredAt:z.string().datetime()});
+export const AdminBody=z.object({lot:z.string().min(1),site:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleImmunizationAdministration(req:Request,immunizationId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,immunizationId);const b=await parseJson(req,AdminBody);
   return await commit(ctx,idempotencyKey,expectedVersion,immunizationId,folded,"ADMINISTERED","IMMUNIZATION_ADMINISTERED",{kind:"ADMINISTERED",lot:b.lot,site:b.site},b.occurredAt,"immunization.administered");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleImmunizationRefusal(req:Request,immunizationId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,immunizationId);const b=await parseJson(req,ReasonBody);
   return await commit(ctx,idempotencyKey,expectedVersion,immunizationId,folded,"REFUSED","IMMUNIZATION_REFUSED",{kind:"REFUSED",reason:b.reason},b.occurredAt,"immunization.refused");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const AdverseBody=z.object({reaction:z.string().min(1),occurredAt:z.string().datetime()});
+export const AdverseBody=z.object({reaction:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleImmunizationAdverseEvent(req:Request,immunizationId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,immunizationId);const b=await parseJson(req,AdverseBody);
   return await commit(ctx,idempotencyKey,expectedVersion,immunizationId,folded,"ADVERSE_EVENT","IMMUNIZATION_ADVERSE_EVENT",{kind:"ADVERSE_EVENT",reaction:b.reaction},b.occurredAt,"immunization.adverse_event");

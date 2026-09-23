@@ -13,7 +13,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"specimen:write",purpose:"TREATMENT"});
 }
 
-const CollectBody=z.object({specimenId:z.string().uuid(),patientId:z.string().uuid(),specimenType:z.enum(["BLOOD","URINE","TISSUE","SWAB","CSF","STOOL"]),orderId:z.string().uuid().optional(),occurredAt:z.string().datetime()});
+export const CollectBody=z.object({specimenId:z.string().uuid(),patientId:z.string().uuid(),specimenType:z.enum(["BLOOD","URINE","TISSUE","SWAB","CSF","STOOL"]),orderId:z.string().uuid().optional(),occurredAt:z.string().datetime()});
 export async function handleSpecimenCollect(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -43,7 +43,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({specimenId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleSpecimenTransit(req:Request,specimenId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,specimenId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,specimenId,folded,"IN_TRANSIT","SPECIMEN_IN_TRANSIT",{kind:"IN_TRANSIT"},b.occurredAt,"specimen.in_transit");
@@ -59,7 +59,7 @@ export async function handleSpecimenResult(req:Request,specimenId:string):Promis
   return await commit(ctx,idempotencyKey,expectedVersion,specimenId,folded,"RESULTED","SPECIMEN_RESULTED",{kind:"RESULTED"},b.occurredAt,"specimen.resulted");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const RejectBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const RejectBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleSpecimenRejection(req:Request,specimenId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,specimenId);const b=await parseJson(req,RejectBody);
   return await commit(ctx,idempotencyKey,expectedVersion,specimenId,folded,"REJECTED","SPECIMEN_REJECTED",{kind:"REJECTED",reason:b.reason},b.occurredAt,"specimen.rejected");

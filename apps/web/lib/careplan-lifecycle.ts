@@ -13,7 +13,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"careplan:write",purpose:"TREATMENT"});
 }
 
-const ProposeBody=z.object({carePlanId:z.string().uuid(),patientId:z.string().uuid(),category:z.enum(["DIABETES","HYPERTENSION","OBESITY","CARDIOVASCULAR","MENTAL_HEALTH","PRENATAL","OTHER"]),goal:z.string().min(1),occurredAt:z.string().datetime()});
+export const ProposeBody=z.object({carePlanId:z.string().uuid(),patientId:z.string().uuid(),category:z.enum(["DIABETES","HYPERTENSION","OBESITY","CARDIOVASCULAR","MENTAL_HEALTH","PRENATAL","OTHER"]),goal:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleCarePlanPropose(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -43,7 +43,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({carePlanId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleCarePlanActivation(req:Request,carePlanId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,carePlanId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,carePlanId,folded,"ACTIVE","CAREPLAN_ACTIVATED",{kind:"ACTIVATED"},b.occurredAt,"careplan.activated");
@@ -64,7 +64,7 @@ export async function handleCarePlanAchievement(req:Request,carePlanId:string):P
   return await commit(ctx,idempotencyKey,expectedVersion,carePlanId,folded,"ACHIEVED","CAREPLAN_ACHIEVED",{kind:"ACHIEVED"},b.occurredAt,"careplan.achieved");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const CancelBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const CancelBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleCarePlanCancellation(req:Request,carePlanId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,carePlanId);const b=await parseJson(req,CancelBody);
   return await commit(ctx,idempotencyKey,expectedVersion,carePlanId,folded,"CANCELLED","CAREPLAN_CANCELLED",{kind:"CANCELLED",reason:b.reason},b.occurredAt,"careplan.cancelled");

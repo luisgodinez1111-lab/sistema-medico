@@ -18,7 +18,7 @@ import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-
 const AGG="ClinicalDocument";
 type Claims={sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string};
 
-const CreateBody=z.object({documentId:z.string().uuid(),patientId:z.string().uuid(),encounterId:z.string().uuid().optional(),docType:z.enum(["PROGRESS_NOTE","DISCHARGE_SUMMARY","REFERRAL","PROCEDURE_NOTE","OTHER"]),title:z.string().min(1),content:z.string().min(1),occurredAt:z.string().datetime()});
+export const CreateBody=z.object({documentId:z.string().uuid(),patientId:z.string().uuid(),encounterId:z.string().uuid().optional(),docType:z.enum(["PROGRESS_NOTE","DISCHARGE_SUMMARY","REFERRAL","PROCEDURE_NOTE","OTHER"]),title:z.string().min(1),content:z.string().min(1),occurredAt:z.string().datetime()});
 // CREATE = borrador (draft). Cualquier clínico con scope document:write.
 // NO es el registro firmado. Draft save != signature (EXEC-0009).
 export async function handleDocumentCreate(req:Request):Promise<Response>{
@@ -72,8 +72,8 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({documentId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed,...extra},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
-const SignBody=z.object({occurredAt:z.string().datetime(),contentHash:z.string().regex(/^[0-9a-f]{64}$/,"contentHash must be a sha256 hex digest")});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const SignBody=z.object({occurredAt:z.string().datetime(),contentHash:z.string().regex(/^[0-9a-f]{64}$/,"contentHash must be a sha256 hex digest")});
 export function documentContentHash(content:string):string{return crypto.createHash("sha256").update(content).digest("hex");}
 // FINALIZE = DRAFT -> FINALIZED (contenido listo para firmar, distinct from draft save).
 export async function handleDocumentFinalization(req:Request,documentId:string):Promise<Response>{
@@ -105,7 +105,7 @@ export async function handleDocumentSignature(req:Request,documentId:string):Pro
 }
 // AMEND = {SIGNED,AMENDED} -> AMENDED. Addendum APPEND-ONLY; nunca modifica el snapshot firmado.
 // PROD-022-R018: NUNCA borrar historial de firma/amendments. Cada corrección suma.
-const AmendBody=z.object({addendum:z.string().min(1),occurredAt:z.string().datetime()});
+export const AmendBody=z.object({addendum:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleDocumentAmendment(req:Request,documentId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded,claims}=await loadForTransition(req,documentId,true);

@@ -25,7 +25,7 @@ async function patientWeightKg(ctx:Parameters<typeof runClinicalCommand>[0],pati
  if(raw===undefined)return undefined;const n=Number(String(raw).trim());return Number.isFinite(n)?n:undefined;
 }
 
-const ProposeBody=z.object({medicationId:z.string().uuid(),patientId:z.string().uuid(),drugCode:z.string().min(1),indication:z.string().optional(),dose:z.string().min(1),route:z.string().min(1),frequency:z.string().min(1),duration:z.string().optional(),calculatedDose:z.string().optional(),occurredAt:z.string().datetime()});
+export const ProposeBody=z.object({medicationId:z.string().uuid(),patientId:z.string().uuid(),drugCode:z.string().min(1),indication:z.string().optional(),dose:z.string().min(1),route:z.string().min(1),frequency:z.string().min(1),duration:z.string().optional(),calculatedDose:z.string().optional(),occurredAt:z.string().datetime()});
 // PROPOSE = creación. Cualquier clínico/IA con scope medication:propose (no exige médico).
 export async function handleMedicationProposal(req:Request):Promise<Response>{
  try{
@@ -84,7 +84,7 @@ async function commitAnnotation(ctx:Parameters<typeof runClinicalCommand>[0],ide
  return NextResponse.json({medicationId,state:folded.state,annotation:kind,version:r.version,auditHash:r.auditHash,replayed:result.replayed,...extra},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 // PRESCRIBE admite la confirmación explícita del médico cuando alguna barrera no pudo evaluarse (queda en el evento).
 // Auditoría U-19: anulación justificada de un bloqueo. El médico NOMBRA cada barrera que anula (`overrideBarriers`) y da la
 // justificación (`overrideJustification`, ≥ OVERRIDE_MIN_JUSTIFICATION). Solo las barreras anulables se admiten en el esquema;
@@ -100,7 +100,7 @@ const overrideRequestOf=(b:{overrideBarriers?:readonly(typeof OVERRIDABLE_BARRIE
  }
  return{barriers:b.overrideBarriers,justification:b.overrideJustification??""};
 };
-const PrescribeBody=z.object({occurredAt:z.string().datetime(),acknowledgeUnverified:z.boolean().optional(),unverifiedJustification:z.string().max(500).optional(),...OverrideFields});
+export const PrescribeBody=z.object({occurredAt:z.string().datetime(),acknowledgeUnverified:z.boolean().optional(),unverifiedJustification:z.string().max(500).optional(),...OverrideFields});
 const DAY_MS=86_400_000;
 // EPIC BA — Crea automáticamente las obligaciones de monitoreo del fármaco al prescribir (Zero-Lost-Follow-Up).
 // Idempotente: ids/keys derivados de la key de la prescripción + slot; un reintento reconstruye lo mismo.
@@ -192,7 +192,7 @@ export async function handleMedicationActivation(req:Request,medicationId:string
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 // HOLD = ACTIVE -> HELD. Suspensión temporal con razón.
-const HoldBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const HoldBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleMedicationHold(req:Request,medicationId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,medicationId,true);
@@ -203,7 +203,7 @@ export async function handleMedicationHold(req:Request,medicationId:string):Prom
 // RESUME = HELD -> ACTIVE. Reanudación tras suspensión. Durante la suspensión el paciente pudo iniciar otro fármaco, sumar
 // un diagnóstico o deteriorar su función renal: reanudar vuelve a poner el fármaco EN CURSO, así que pasa por el MISMO
 // evaluador que PRESCRIBE (bloqueo -> 403; no verificable -> 428 con confirmación y justificación).
-const ResumeBody=z.object({occurredAt:z.string().datetime(),acknowledgeUnverified:z.boolean().optional(),unverifiedJustification:z.string().max(500).optional(),...OverrideFields});
+export const ResumeBody=z.object({occurredAt:z.string().datetime(),acknowledgeUnverified:z.boolean().optional(),unverifiedJustification:z.string().max(500).optional(),...OverrideFields});
 export async function handleMedicationResume(req:Request,medicationId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded,claims}=await loadForTransition(req,medicationId,true);
@@ -228,7 +228,7 @@ export async function handleMedicationResume(req:Request,medicationId:string):Pr
 // Auditoría L-04: antes pedía la transición X->X y respondía 409 siempre. Además, al hacerla funcionar, NO puede ser un atajo
 // para saltarse las barreras: la orden resultante pasa por la MISMA validación de orden y el MISMO evaluador que PRESCRIBE
 // (un `overrideWarning` afirmado por el cliente no es una verificación). Exige razón clínica del cambio.
-const ModifyBody=z.object({dose:z.string().min(1).optional(),route:z.string().min(1).optional(),frequency:z.string().min(1).optional(),calculatedDose:z.string().optional(),reason:z.string().min(3).max(500),
+export const ModifyBody=z.object({dose:z.string().min(1).optional(),route:z.string().min(1).optional(),frequency:z.string().min(1).optional(),calculatedDose:z.string().optional(),reason:z.string().min(3).max(500),
  acknowledgeUnverified:z.boolean().optional(),unverifiedJustification:z.string().max(500).optional(),...OverrideFields,occurredAt:z.string().datetime()});
 export async function handleMedicationModification(req:Request,medicationId:string):Promise<Response>{
  try{
@@ -249,7 +249,7 @@ export async function handleMedicationModification(req:Request,medicationId:stri
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 // DISCONTINUE = {ACTIVE,HELD} -> STOPPED. Exige razón (trazabilidad clínica).
-const StopBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const StopBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleMedicationDiscontinuation(req:Request,medicationId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,medicationId,true);

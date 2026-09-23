@@ -13,7 +13,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"triage:write",purpose:"TREATMENT"});
 }
 
-const ArriveBody=z.object({triageId:z.string().uuid(),patientId:z.string().uuid(),chiefComplaint:z.string().min(1),occurredAt:z.string().datetime()});
+export const ArriveBody=z.object({triageId:z.string().uuid(),patientId:z.string().uuid(),chiefComplaint:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleTriageArrive(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -43,13 +43,13 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({triageId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleTriageStart(req:Request,triageId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,triageId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,triageId,folded,"IN_TRIAGE","TRIAGE_STARTED",{kind:"TRIAGE_STARTED"},b.occurredAt,"triage.started");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const AssessBody=z.object({acuity:z.number().int().min(1).max(5),occurredAt:z.string().datetime()});
+export const AssessBody=z.object({acuity:z.number().int().min(1).max(5),occurredAt:z.string().datetime()});
 export async function handleTriageAssessment(req:Request,triageId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,triageId);const b=await parseJson(req,AssessBody);
   return await commit(ctx,idempotencyKey,expectedVersion,triageId,folded,"TRIAGED","TRIAGE_TRIAGED",{kind:"TRIAGED",acuity:b.acuity},b.occurredAt,"triage.triaged");
@@ -60,7 +60,7 @@ export async function handleTriageClosure(req:Request,triageId:string):Promise<R
   return await commit(ctx,idempotencyKey,expectedVersion,triageId,folded,"CLOSED","TRIAGE_CLOSED",{kind:"CLOSED"},b.occurredAt,"triage.closed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleTriageLwbs(req:Request,triageId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,triageId);const b=await parseJson(req,ReasonBody);
   return await commit(ctx,idempotencyKey,expectedVersion,triageId,folded,"LWBS","TRIAGE_LWBS",{kind:"LWBS",reason:b.reason},b.occurredAt,"triage.lwbs");

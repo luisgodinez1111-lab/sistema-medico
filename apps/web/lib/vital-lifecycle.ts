@@ -17,7 +17,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"vital:write",purpose:"TREATMENT"});
 }
 
-const RecordBody=z.object({vitalId:z.string().uuid(),patientId:z.string().uuid(),vitalType:z.enum(["BP","HR","TEMP","SPO2","WEIGHT","HEIGHT","RESP"]),value:z.string().min(1),unit:z.string().min(1),occurredAt:z.string().datetime()});
+export const RecordBody=z.object({vitalId:z.string().uuid(),patientId:z.string().uuid(),vitalType:z.enum(["BP","HR","TEMP","SPO2","WEIGHT","HEIGHT","RESP"]),value:z.string().min(1),unit:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleVitalRecord(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -54,7 +54,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({vitalId,state:to,...extra,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const AmendBody=z.object({value:z.string().min(1),unit:z.string().min(1),reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const AmendBody=z.object({value:z.string().min(1),unit:z.string().min(1),reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleVitalAmendment(req:Request,vitalId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,vitalId);const b=await parseJson(req,AmendBody);
   const pl=vitalPlausible(folded.vitalType,b.value);
@@ -65,7 +65,7 @@ export async function handleVitalAmendment(req:Request,vitalId:string):Promise<R
   return await commit(ctx,idempotencyKey,expectedVersion,vitalId,folded,"AMENDED","VITAL_AMENDED",{kind:"AMENDED",value:b.value,unit:b.unit,reason:b.reason,status:a.status,critical:a.critical,interpretation:a.interpretation,...(ageYears!==undefined?{ageYearsAtRecording:ageYears}:{})},b.occurredAt,"vital.amended",{status:a.status,critical:a.critical,interpretation:a.interpretation});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ErrorBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const ErrorBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleVitalErrorMark(req:Request,vitalId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,vitalId);const b=await parseJson(req,ErrorBody);
   return await commit(ctx,idempotencyKey,expectedVersion,vitalId,folded,"ENTERED_IN_ERROR","VITAL_ENTERED_IN_ERROR",{kind:"ENTERED_IN_ERROR",reason:b.reason},b.occurredAt,"vital.entered_in_error");

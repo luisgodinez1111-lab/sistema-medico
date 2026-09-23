@@ -34,7 +34,7 @@ export function evaluateAiRequest(action:AIAction,c:{copilotEnabled:boolean;budg
  return{status:"ALLOWED",reason:"BOUNDED_AI_ACTION",risk};
 }
 
-const AssistBody=z.object({action:z.enum(["SUMMARIZE","EXTRACT","SUGGEST","ORDER","PRESCRIBE","SIGN","CLOSE_CRITICAL"]),patientId:z.string().uuid().optional(),hasEvidence:z.boolean().default(false),humanApproved:z.boolean().default(false)});
+export const AssistBody=z.object({action:z.enum(["SUMMARIZE","EXTRACT","SUGGEST","ORDER","PRESCRIBE","SIGN","CLOSE_CRITICAL"]),patientId:z.string().uuid().optional(),hasEvidence:z.boolean().default(false),humanApproved:z.boolean().default(false)});
 export async function handleAiAssist(req:Request):Promise<Response>{
  const span=sliSpan("workflow","ai_assist",crypto.randomUUID());let statusCode="DISABLED";let tenantId="";
  try{

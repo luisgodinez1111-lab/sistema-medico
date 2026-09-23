@@ -16,7 +16,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"billing:write",purpose:"TREATMENT"});
 }
 
-const DraftBody=z.object({claimId:z.string().uuid(),patientId:z.string().uuid(),amount:z.string().min(1),currency:z.enum(["MXN","USD"]),occurredAt:z.string().datetime()});
+export const DraftBody=z.object({claimId:z.string().uuid(),patientId:z.string().uuid(),amount:z.string().min(1),currency:z.enum(["MXN","USD"]),occurredAt:z.string().datetime()});
 export async function handleClaimDraft(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -46,7 +46,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({claimId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const CodeBody=z.object({codes:z.array(z.string().min(1)).min(1),occurredAt:z.string().datetime()});
+export const CodeBody=z.object({codes:z.array(z.string().min(1)).min(1),occurredAt:z.string().datetime()});
 export async function handleClaimCoding(req:Request,claimId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,claimId);const b=await parseJson(req,CodeBody);
   // Profundidad clínica: cada código debe existir en CIE-10; se codifica con su descripción canónica.
@@ -54,19 +54,19 @@ export async function handleClaimCoding(req:Request,claimId:string):Promise<Resp
   return await commit(ctx,idempotencyKey,expectedVersion,claimId,folded,"CODED","CLAIM_CODED",{kind:"CODED",codes:coded.map(x=>x.code),codeSystem:"ICD-10",coded},b.occurredAt,"claim.coded");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleClaimSubmission(req:Request,claimId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,claimId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,claimId,folded,"SUBMITTED","CLAIM_SUBMITTED",{kind:"SUBMITTED"},b.occurredAt,"claim.submitted");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const RefBody=z.object({reference:z.string().min(1),occurredAt:z.string().datetime()});
+export const RefBody=z.object({reference:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleClaimPayment(req:Request,claimId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,claimId);const b=await parseJson(req,RefBody);
   return await commit(ctx,idempotencyKey,expectedVersion,claimId,folded,"PAID","CLAIM_PAID",{kind:"PAID",reference:b.reference},b.occurredAt,"claim.paid");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleClaimRejection(req:Request,claimId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,claimId);const b=await parseJson(req,ReasonBody);
   return await commit(ctx,idempotencyKey,expectedVersion,claimId,folded,"REJECTED","CLAIM_REJECTED",{kind:"REJECTED",reason:b.reason},b.occurredAt,"claim.rejected");

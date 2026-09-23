@@ -13,7 +13,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"dialysis:write",purpose:"TREATMENT"});
 }
 
-const ScheduleBody=z.object({dialysisId:z.string().uuid(),patientId:z.string().uuid(),modality:z.enum(["HEMODIALYSIS","PERITONEAL","HEMOFILTRATION"]),accessType:z.enum(["FISTULA","GRAFT","CATHETER","PERITONEAL_CATHETER"]),occurredAt:z.string().datetime()});
+export const ScheduleBody=z.object({dialysisId:z.string().uuid(),patientId:z.string().uuid(),modality:z.enum(["HEMODIALYSIS","PERITONEAL","HEMOFILTRATION"]),accessType:z.enum(["FISTULA","GRAFT","CATHETER","PERITONEAL_CATHETER"]),occurredAt:z.string().datetime()});
 export async function handleDialysisSchedule(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -43,7 +43,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({dialysisId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleDialysisStart(req:Request,dialysisId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,dialysisId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,dialysisId,folded,"IN_SESSION","DIALYSIS_STARTED",{kind:"STARTED"},b.occurredAt,"dialysis.started");
@@ -59,7 +59,7 @@ export async function handleDialysisCompletion(req:Request,dialysisId:string):Pr
   return await commit(ctx,idempotencyKey,expectedVersion,dialysisId,folded,"COMPLETED","DIALYSIS_COMPLETED",{kind:"COMPLETED"},b.occurredAt,"dialysis.completed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleDialysisInterruption(req:Request,dialysisId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,dialysisId);const b=await parseJson(req,ReasonBody);
   return await commit(ctx,idempotencyKey,expectedVersion,dialysisId,folded,"INTERRUPTED","DIALYSIS_INTERRUPTED",{kind:"INTERRUPTED",reason:b.reason},b.occurredAt,"dialysis.interrupted");

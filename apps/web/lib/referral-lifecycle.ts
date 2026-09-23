@@ -13,7 +13,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"referral:write",purpose:"TREATMENT"});
 }
 
-const CreateBody=z.object({referralId:z.string().uuid(),patientId:z.string().uuid(),specialty:z.string().min(1),reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const CreateBody=z.object({referralId:z.string().uuid(),patientId:z.string().uuid(),specialty:z.string().min(1),reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleReferralRequest(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -43,7 +43,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({referralId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleReferralAcceptance(req:Request,referralId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,referralId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,referralId,folded,"ACCEPTED","REFERRAL_ACCEPTED",{kind:"ACCEPTED"},b.occurredAt,"referral.accepted");
@@ -54,7 +54,7 @@ export async function handleReferralCompletion(req:Request,referralId:string):Pr
   return await commit(ctx,idempotencyKey,expectedVersion,referralId,folded,"COMPLETED","REFERRAL_COMPLETED",{kind:"COMPLETED"},b.occurredAt,"referral.completed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleReferralDecline(req:Request,referralId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,referralId);const b=await parseJson(req,ReasonBody);
   return await commit(ctx,idempotencyKey,expectedVersion,referralId,folded,"DECLINED","REFERRAL_DECLINED",{kind:"DECLINED",reason:b.reason},b.occurredAt,"referral.declined");

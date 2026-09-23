@@ -14,7 +14,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"consent:write",purpose:"TREATMENT"});
 }
 
-const DraftBody=z.object({consentId:z.string().uuid(),patientId:z.string().uuid(),scopeType:z.enum(["TREATMENT","PROCEDURE","DATA_SHARING","RESEARCH","ANESTHESIA"]),documentRef:z.string().min(1),occurredAt:z.string().datetime()});
+export const DraftBody=z.object({consentId:z.string().uuid(),patientId:z.string().uuid(),scopeType:z.enum(["TREATMENT","PROCEDURE","DATA_SHARING","RESEARCH","ANESTHESIA"]),documentRef:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleConsentDraft(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -44,7 +44,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({consentId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleConsentPresentation(req:Request,consentId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,consentId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,consentId,folded,"PRESENTED","CONSENT_PRESENTED",{kind:"PRESENTED"},b.occurredAt,"consent.presented");
@@ -54,7 +54,7 @@ export async function handleConsentPresentation(req:Request,consentId:string):Pr
 // art. 81; NOM-004 numeral 10.1.1): firma el tutor o representante legal REGISTRADO en el expediente (`signerRole:
 // "GUARDIAN"`, con el nombre del tutor). Sin tutor registrado -> 428 GUARDIAN_REQUIRED. Con edad desconocida (paciente sin
 // alta demográfica) no se afirma la mayoría de edad: se registra con `ageUnverified:true` en el evento.
-const GrantBody=z.object({signerName:z.string().min(1),signerRole:z.enum(["PATIENT","GUARDIAN"]).default("PATIENT"),occurredAt:z.string().datetime()});
+export const GrantBody=z.object({signerName:z.string().min(1),signerRole:z.enum(["PATIENT","GUARDIAN"]).default("PATIENT"),occurredAt:z.string().datetime()});
 export async function handleConsentGrant(req:Request,consentId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,consentId);const b=await parseJson(req,GrantBody);
   const demo=folded.patientId?await patientDemographics(ctx,folded.patientId):undefined;
@@ -68,7 +68,7 @@ export async function handleConsentGrant(req:Request,consentId:string):Promise<R
   return await commit(ctx,idempotencyKey,expectedVersion,consentId,folded,"GRANTED","CONSENT_GRANTED",payload,b.occurredAt,"consent.granted");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleConsentDecline(req:Request,consentId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,consentId);const b=await parseJson(req,ReasonBody);
   return await commit(ctx,idempotencyKey,expectedVersion,consentId,folded,"DECLINED","CONSENT_DECLINED",{kind:"DECLINED",reason:b.reason},b.occurredAt,"consent.declined");

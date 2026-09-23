@@ -58,7 +58,7 @@ export async function requirePhysicianCredentials(ctx:Parameters<typeof readAggr
  return assertPhysicianCredentials(await physicianCredentials(ctx,claims));
 }
 const CEDULA_MSG="cédula profesional de 7 u 8 dígitos";
-const CredentialsBody=z.object({
+export const CredentialsBody=z.object({
  fullName:z.string().trim().min(3).max(160),
  cedulaProfesional:z.string().trim().refine(isValidCedula,CEDULA_MSG),
  institution:z.string().trim().min(2).max(200),

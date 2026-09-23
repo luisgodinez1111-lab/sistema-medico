@@ -11,7 +11,7 @@ const AGG="Allergy";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"allergy:write",purpose:"TREATMENT"});
 }
-const CreateBody=z.object({allergyId:z.string().uuid(),patientId:z.string().uuid(),substance:z.string().min(1),severity:z.enum(["MILD","MODERATE","SEVERE"]),reaction:z.string().min(1),occurredAt:z.string().datetime()});
+export const CreateBody=z.object({allergyId:z.string().uuid(),patientId:z.string().uuid(),substance:z.string().min(1),severity:z.enum(["MILD","MODERATE","SEVERE"]),reaction:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleAllergyCreate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -37,7 +37,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({allergyId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleAllergyRefutation(req:Request,allergyId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,allergyId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,allergyId,folded,"REFUTED","ALLERGY_REFUTED",{kind:"REFUTED"},b.occurredAt,"allergy.refuted");

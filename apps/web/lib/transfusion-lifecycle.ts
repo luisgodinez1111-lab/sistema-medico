@@ -13,7 +13,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"transfusion:write",purpose:"TREATMENT"});
 }
 
-const OrderBody=z.object({transfusionId:z.string().uuid(),patientId:z.string().uuid(),bloodProduct:z.enum(["PRBC","PLATELETS","FFP","CRYO","WHOLE_BLOOD"]),units:z.string().min(1),occurredAt:z.string().datetime()});
+export const OrderBody=z.object({transfusionId:z.string().uuid(),patientId:z.string().uuid(),bloodProduct:z.enum(["PRBC","PLATELETS","FFP","CRYO","WHOLE_BLOOD"]),units:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleTransfusionOrder(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -43,7 +43,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  return NextResponse.json({transfusionId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
 
-const WhenBody=z.object({occurredAt:z.string().datetime()});
+export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleTransfusionCrossmatch(req:Request,transfusionId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,transfusionId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,transfusionId,folded,"CROSSMATCHED","TRANSFUSION_CROSSMATCHED",{kind:"CROSSMATCHED"},b.occurredAt,"transfusion.crossmatched");
@@ -59,13 +59,13 @@ export async function handleTransfusionCompletion(req:Request,transfusionId:stri
   return await commit(ctx,idempotencyKey,expectedVersion,transfusionId,folded,"COMPLETED","TRANSFUSION_COMPLETED",{kind:"COMPLETED"},b.occurredAt,"transfusion.completed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ReactionBody=z.object({reaction:z.string().min(1),occurredAt:z.string().datetime()});
+export const ReactionBody=z.object({reaction:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleTransfusionReaction(req:Request,transfusionId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,transfusionId);const b=await parseJson(req,ReactionBody);
   return await commit(ctx,idempotencyKey,expectedVersion,transfusionId,folded,"REACTION","TRANSFUSION_REACTION",{kind:"REACTION",reaction:b.reaction},b.occurredAt,"transfusion.reaction");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
+export const ReasonBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleTransfusionCancellation(req:Request,transfusionId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,transfusionId);const b=await parseJson(req,ReasonBody);
   return await commit(ctx,idempotencyKey,expectedVersion,transfusionId,folded,"CANCELLED","TRANSFUSION_CANCELLED",{kind:"CANCELLED",reason:b.reason},b.occurredAt,"transfusion.cancelled");
