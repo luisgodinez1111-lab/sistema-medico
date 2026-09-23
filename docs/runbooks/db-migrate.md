@@ -29,7 +29,7 @@ pnpm db:migrate baseline --through NNNN --yes # registra como aplicadas, SIN eje
 2. `pnpm db:migrate status` → mostrará 20 pendientes (no hay tabla de control todavía).
 3. `pnpm db:migrate baseline --through 0018 --yes` → registra 0001–0018 sin ejecutarlas. El migrador **rechaza** el
    baseline si falta alguna de las tablas que esas migraciones crean (la afirmación sería falsa).
-4. `pnpm db:migrate up --yes` → aplica `0019` (índices de lectura) y `0020/0021` (políticas RLS faltantes, tablas heredadas).
+4. `pnpm db:migrate up --yes` → aplica `0019` (índices de lectura), `0020/0021` (políticas RLS faltantes, límite de tasa) y `0022` (aísla las 32 tablas ajenas al repo halladas en producción).
 5. `pnpm db:migrate status` → `pending: []`, `drift: []`.
 
 ## CI y pruebas en vivo

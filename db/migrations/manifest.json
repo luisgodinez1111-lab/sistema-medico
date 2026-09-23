@@ -84,6 +84,10 @@
   {
    "file": "0021_rate_limit_buckets.sql",
    "sha256": "c956d090d1a59f6cc30d563bd4683c2a1742b0938082d22ff0602468a858260d"
+  },
+  {
+   "file": "0022_legacy_foreign_tables_isolation.sql",
+   "sha256": "4b673f73cbde4b136bdda4f17aa5678c8b05396a36b981ed4ed1681755bfc26d"
   }
  ]
 }
