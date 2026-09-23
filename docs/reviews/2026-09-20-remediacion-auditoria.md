@@ -97,11 +97,39 @@ no levanta un bloqueo) y las de calculadoras pasaron a reloj relativo (tenían f
 - **"1 tab" como dosis:** el techo diario no es verificable sin la concentración de la presentación; hoy exige
   confirmación del médico. Derivar los mg del `drugCode` entra con C-15.
 
+## Qué falta para cerrar los 115 (lista exacta, 2026-09-23)
+
+| ID | Qué falta | Quién |
+|---|---|---|
+| G-10 | `safety/controls/catalog.json` aún declara la evidencia del control de aplicabilidad pediátrica como `future:pediatric-dose-receipt`; hay que apuntarla al test y a la prueba en vivo reales del gate pediátrico. | Ingeniería |
+| G-12 | Existen README, `docs/runbooks/db-migrate.md`, `backup-dr.md` y la OpenAPI; faltan runbooks de incidente y de rotación de secretos, instrucciones de uso, glosario, *changelog*, aviso de privacidad (borrador para validación legal) y registro de encargados (Vercel, Neon, Auth0) con transferencias. | Ingeniería (aviso de privacidad: validación legal del dueño) |
+| P-08 | El prólogo de las pruebas en vivo es único; `ok()`, `tok()` y `H()` siguen copiados en cada prueba. Unificarlos en `scripts/v22/_live-env.mts`. | Ingeniería |
+| K-01, K-07 | Retirar `encounter-service`, `clinical-api`, `medication-ordering`, `medication-runtime`, `event-kernel`, `apps/worker` y las variantes `-vN` que no llegan a producción, re-apuntando el manifiesto de evidencia a los tests que sí corren. | Ingeniería |
+| G-11 | El registro heredado PROD→ENG (115 mapeos `REVIEW_REQUIRED`, adjudicación vacía) está declarado como superado por el registro ejecutable (`docs/engineering/v2.1/traceability-registry/README.md`). Cerrarlo exige decidir: archivarlo formalmente o adjudicar los 115 mapeos con la autoridad de la especificación. | Decisión del dueño → ingeniería |
+| D-03 | Outbox contenido (sin consumidor, retención y ADR honesto). Cierre: retirar el outbox y las tablas relacionales muertas (migración destructiva en producción) o construir el consumidor real. | Decisión del dueño → ingeniería |
+| K-06 | Los eventos SLI no tienen destino. Cierre: elegir el destino de observabilidad (proveedor) y conectar el exportador, o retirar el cálculo. | Decisión del dueño → ingeniería |
+| D-02 | Tabla `tenants` y claves foráneas (ADR-0290 PROPUESTO): exige decidir el aprovisionamiento de tenants (quién los crea, mapeo con la organización del IdP) y migrar datos existentes que podrían violar las FK. | Decisión del dueño → ingeniería |
+| D-09 | Retención, criptoborrado/purga y procedimiento ARCO (ADR-0280 PROPUESTO); auditoría de lecturas. Hoy solo hay informe de solo lectura. | Decisión del dueño → ingeniería |
+| L-10, L-11 | Verticales hospitalarias contenidas por flag. Cierre: grupo ABO/Rh y compatibilidad con doble verificación (transfusión), lista de verificación OMS (time-out) y revisión clínica; o retirar las verticales. | Decisión del dueño → ingeniería + médico |
+| L-16 | CFDI/PAC, OCR e ingesta de binarios: alcance de producto declarado, no defecto. Cierre: hoja de ruta de producto. | Dueño (producto) |
+| P-09 | La parte de ingeniería está (registro de aceptación humana C5, `c5-acceptance.json`); falta que una persona con autoridad clínica y regulatoria firme cada capacidad. | Dueño (con médico y responsable regulatorio) |
+| G-03 | Igual que P-09: aceptación humana de las capacidades C5. | Dueño |
+| G-04 | Uso previsto y clasificación por función (NOM-241 / ScDM) con asesoría regulatoria. | Dueño |
+| P-01 | Facturación / límite de gasto de GitHub Actions; la workflow está lista. | Dueño |
+| P-13 | Protección de rama y revisión por una segunda persona: GitHub exige plan Pro o repositorio público para proteger `main`; el proceso de revisión es una decisión del dueño. | Dueño |
+| D-10 (nuevo) | `DROP` con respaldo de las 32 tablas ajenas ya aisladas. | Dueño |
+| Transversal | Validación por un médico de todo el contenido clínico (interacciones, techos, escalas, rangos por edad, criterio del gate de firma, vigencias). | Dueño (médico) |
+
+Deuda residual de hallazgos ya cerrados (no cuenta como abierto, pero queda anotada): vigencia de signos vitales en NEWS2/CURB-65/IMC
+(C-09, C-13), techos de dosis para «1 tab» sin concentración (C-15), LDL/UACR sin unidad ni rango, conciliación de medicación sin
+ruta, edición de borradores de documento, y los tenants sintéticos que corridas antiguas dejaron en la base de la aplicación (P-07).
+
 ## Pendiente (en orden)
 
-Estado al cierre del lote 10j (2026-09-22) sobre los 112 hallazgos consolidados: **97 cerrados (87 %)**, **12 parciales
-o contenidos (11 %)** y 3 que solo puede resolver el dueño (P-01, G-03, G-04). Cerrados desde entonces: S-10, S-03, S-04, K-08, C-02,
-P-06 (por el dueño, lote 10p) y K-09 (lote 10q).
+Estado al cierre del lote 10q (2026-09-23), recontado ID por ID sobre la tabla de la auditoría — que tiene **115** hallazgos, no
+los 112 que este documento decía hasta ahora (error de conteo propio): **97 cerrados (84 %)**, **14 parciales o contenidos (12 %)**
+y **4 que solo puede resolver el dueño** (P-01, P-13, G-03, G-04). G-06 quedó cerrado con el addendum de ADR-0031 (lote 7b, D-03)
+aunque la tabla no lo etiquetaba. La lista exacta de lo que falta está en la sección siguiente.
 
 1. **Parciales con trabajo de ingeniería definido:** retirar `encounter-service`, `clinical-api`, `medication-ordering`,
    `medication-runtime`, `event-kernel`, `apps/worker` y las variantes `-vN` restantes (K-01, K-07)
