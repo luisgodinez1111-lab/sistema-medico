@@ -171,5 +171,45 @@
     "tests": [
       "medication-safety.test.ts"
     ]
+  },
+  {
+    "id": "INV-CORE-0013",
+    "authority": [
+      "ENG-333"
+    ],
+    "risk": "C5",
+    "statement": "Every request executes only with a verified session whose tenant matches, a mandatory scope and the declared purpose; every database access runs under the tenant's RLS context (NOBYPASSRLS role); cross-tenant access fails closed.",
+    "predicate": "authorize",
+    "tests": [
+      "authz.test.ts",
+      "runtime-auth-scopes.test.ts"
+    ]
+  },
+  {
+    "id": "INV-CORE-0014",
+    "authority": [
+      "ENG-306",
+      "ENG-311",
+      "ENG-312"
+    ],
+    "risk": "C5",
+    "statement": "A clinical command is either fully committed (event, idempotency record, audit entry, outbox message) or not at all; an unavailable store yields DEPENDENCY_UNAVAILABLE, never a reported success.",
+    "predicate": "executeAtomicClinicalCommand",
+    "tests": [
+      "downtime-no-false-save.test.ts"
+    ]
+  },
+  {
+    "id": "INV-CORE-0016",
+    "authority": [
+      "ENG-313",
+      "ENG-337"
+    ],
+    "risk": "C5",
+    "statement": "Audit chain entries are append-only and each stored hash is recomputable from the persisted entry and its predecessor; any alteration is detectable.",
+    "predicate": "verifyChain",
+    "tests": [
+      "audit-verifier.test.ts"
+    ]
   }
 ]

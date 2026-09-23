@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "2.0",
+  "capability": "CAP-IDENTITY-001",
+  "name": "Identity, Tenant & Clinical Access Boundary",
+  "risk": "C5",
+  "authority": [
+    "ENG-333"
+  ],
+  "hazardCase": [
+    {
+      "id": "HAZ-CORE-0011",
+      "authority": [
+        "ENG-333"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "A session, query or command reads or writes clinical data of another tenant, or acts without a verified session, scope and purpose.",
+      "foreseeableSequence": [
+        "token forged or reused across tenants",
+        "query without tenant context or pool running as BYPASSRLS owner",
+        "PHI of another clinic returned or modified"
+      ],
+      "potentialHarm": "Unauthorized disclosure or alteration of PHI across organizations.",
+      "controls": [
+        "CTL-0013"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0013",
+      "authority": [
+        "ENG-333"
+      ],
+      "type": "PREVENTIVE",
+      "name": "Verified session + mandatory scope/purpose authorization (runtime-auth) and forced RLS under the NOBYPASSRLS runtime role",
+      "invariant": "INV-CORE-0013",
+      "verification": [
+        "unit:tests/security/authz.test.ts",
+        "unit:tests/v22/runtime-auth-scopes.test.ts",
+        "live:scripts/v21/live-rls-proof.mjs",
+        "live:scripts/v22/live-patient-reference-proof.mts"
+      ],
+      "failure": "BLOCK"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-CORE-0013",
+      "authority": [
+        "ENG-333"
+      ],
+      "risk": "C5",
+      "statement": "Every request executes only with a verified session whose tenant matches, a mandatory scope and the declared purpose; every database access runs under the tenant's RLS context (NOBYPASSRLS role); cross-tenant access fails closed.",
+      "predicate": "authorize",
+      "tests": [
+        "authz.test.ts",
+        "runtime-auth-scopes.test.ts"
+      ]
+    }
+  ],
+  "stateMachines": [],
+  "tests": [
+    "tenant-security.test.ts"
+  ],
+  "releasePolicy": "FAIL_CLOSED",
+  "safetyArgument": [
+    "Authority establishes intended behavior and boundaries.",
+    "Hazards identify foreseeable unsafe conditions.",
+    "Controls prevent, detect, correct, or recover from those conditions.",
+    "Invariants define conditions that must remain true.",
+    "Tests provide executable oracles; execution evidence is separately required.",
+    "Capability remains blocked when any required safety-case element is absent."
+  ],
+  "dossierSha256": "43a50cfc28b0add7f4719a91d763eb0497ea0618a3426cec57468b991b6e588f"
+}

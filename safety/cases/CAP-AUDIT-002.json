@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "2.0",
+  "capability": "CAP-AUDIT-002",
+  "name": "Audit Chain Verification",
+  "risk": "C5",
+  "authority": [
+    "ENG-309"
+  ],
+  "hazardCase": [
+    {
+      "id": "HAZ-CORE-0013",
+      "authority": [
+        "ENG-313",
+        "ENG-337"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "An audit entry is altered or deleted without detection, or a recorded hash cannot be recomputed from the persisted entry.",
+      "foreseeableSequence": [
+        "privileged or erroneous UPDATE/DELETE on the chain",
+        "verifier using a different formula",
+        "tampering invisible"
+      ],
+      "potentialHarm": "Loss of non-repudiation and legal traceability of clinical acts.",
+      "controls": [
+        "CTL-0015"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0015",
+      "authority": [
+        "ENG-313",
+        "ENG-337"
+      ],
+      "type": "DETECTIVE",
+      "name": "Append-only audit chain (no UPDATE/DELETE grants) with an in-database verifier that recomputes every hash (pnpm audit:verify)",
+      "invariant": "INV-CORE-0016",
+      "verification": [
+        "unit:tests/v22/audit-verifier.test.ts",
+        "live:scripts/v22/live-audit-chain-verify-proof.mts"
+      ],
+      "failure": "ESCALATE"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-CORE-0016",
+      "authority": [
+        "ENG-313",
+        "ENG-337"
+      ],
+      "risk": "C5",
+      "statement": "Audit chain entries are append-only and each stored hash is recomputable from the persisted entry and its predecessor; any alteration is detectable.",
+      "predicate": "verifyChain",
+      "tests": [
+        "audit-verifier.test.ts"
+      ]
+    }
+  ],
+  "stateMachines": [],
+  "tests": [],
+  "releasePolicy": "FAIL_CLOSED",
+  "safetyArgument": [
+    "Authority establishes intended behavior and boundaries.",
+    "Hazards identify foreseeable unsafe conditions.",
+    "Controls prevent, detect, correct, or recover from those conditions.",
+    "Invariants define conditions that must remain true.",
+    "Tests provide executable oracles; execution evidence is separately required.",
+    "Capability remains blocked when any required safety-case element is absent."
+  ],
+  "dossierSha256": "1d518a47bc7e6cc89d86137db6b91ac431da58ef896235341af40899408abbe2"
+}

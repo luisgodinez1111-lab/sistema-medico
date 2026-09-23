@@ -1,0 +1,6 @@
+{
+  "purpose": "Registro MACHINE-CHECKABLE de la aceptación HUMANA de las capacidades C5 (auditoría 2026-09-19, P-09/G-03). `proposed_review_decision: APPROVED_WITH_EVIDENCE` en session-2026-09-15-reconciliation.json es una PROPUESTA producida por el propio proceso de construcción; NO es una aprobación. Una capacidad C5 solo cuenta como aceptada cuando figura aquí con nombre, cargo, fecha y alcance revisado.",
+  "policy": "Nadie que haya generado la evidencia firma su aceptación. La revisión clínica la hace un médico; la regulatoria, el responsable designado por el dueño (G-04). Mientras `accepted` esté vacío, ninguna capacidad C5 puede presentarse como aprobada en un pitch, contrato o documento de cumplimiento.",
+  "updated": "2026-09-22",
+  "accepted": []
+}

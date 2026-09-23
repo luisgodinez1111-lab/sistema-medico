@@ -1,7 +1,7 @@
 {
   "title": "Golden Slice — Propuesta de Adjudicación de Trazabilidad",
   "generatedAt": "2026-09-15T20:24:37.826Z",
-  "authority_note": "PROPUESTA generada por agente. No es autoridad. Los TRL del registro exigen aceptación humana (registry acceptance). Cambia REVIEW_REQUIRED->APPROVED solo tras revisión C5.",
+  "authority_note": "PROPUESTA generada por agente. No es autoridad. Los TRL del registro exigen aceptación humana (registry acceptance). Cambia REVIEW_REQUIRED->APPROVED solo tras revisión C5. | 2026-09-22 (auditoría P-12): los 13 ítems C4/C5 que declaraban invariants:[] llevan ahora los invariantes/peligros/controles REALES del registro ejecutable (safety/); la aceptación humana C5 sigue pendiente (G-03).",
   "scope": "Capacidades del golden slice con evidencia estática + de runtime EN VIVO producida el 2026-09-15.",
   "counts": {
     "capabilities": 16,
@@ -16,9 +16,15 @@
       "eng_authority": [
         "ENG-333"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0013"
+      ],
+      "hazards": [
+        "HAZ-CORE-0011"
+      ],
+      "controls": [
+        "CTL-0013"
+      ],
       "machines": [],
       "tests": [
         "tenant-security.test.ts"
@@ -46,9 +52,18 @@
       "eng_authority": [
         "ENG-333"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0013",
+        "INV-CORE-0014"
+      ],
+      "hazards": [
+        "HAZ-CORE-0011",
+        "HAZ-CORE-0012"
+      ],
+      "controls": [
+        "CTL-0013",
+        "CTL-0014"
+      ],
       "machines": [],
       "tests": [
         "repository.test.ts"
@@ -76,9 +91,18 @@
       "eng_authority": [
         "ENG-333"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0013",
+        "INV-CORE-0014"
+      ],
+      "hazards": [
+        "HAZ-CORE-0011",
+        "HAZ-CORE-0012"
+      ],
+      "controls": [
+        "CTL-0013",
+        "CTL-0014"
+      ],
       "machines": [],
       "tests": [],
       "runtime_evidence": [
@@ -104,9 +128,15 @@
       "eng_authority": [
         "ENG-333"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0013"
+      ],
+      "hazards": [
+        "HAZ-CORE-0011"
+      ],
+      "controls": [
+        "CTL-0013"
+      ],
       "machines": [],
       "tests": [
         "authz.test.ts"
@@ -131,9 +161,15 @@
         "ENG-306",
         "ENG-333"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0014"
+      ],
+      "hazards": [
+        "HAZ-CORE-0012"
+      ],
+      "controls": [
+        "CTL-0014"
+      ],
       "machines": [],
       "tests": [
         "event-kernel.test.ts"
@@ -162,9 +198,15 @@
         "ENG-306",
         "ENG-333"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0014"
+      ],
+      "hazards": [
+        "HAZ-CORE-0012"
+      ],
+      "controls": [
+        "CTL-0014"
+      ],
       "machines": [],
       "tests": [
         "aggregate-store.test.ts"
@@ -193,9 +235,15 @@
         "ENG-311",
         "ENG-333"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0014"
+      ],
+      "hazards": [
+        "HAZ-CORE-0012"
+      ],
+      "controls": [
+        "CTL-0014"
+      ],
       "machines": [],
       "tests": [
         "clinical-transaction.test.ts"
@@ -228,9 +276,15 @@
         "ENG-311",
         "ENG-337"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0014"
+      ],
+      "hazards": [
+        "HAZ-CORE-0012"
+      ],
+      "controls": [
+        "CTL-0014"
+      ],
       "machines": [],
       "tests": [
         "idempotency-persistent.test.ts"
@@ -296,9 +350,15 @@
         "ENG-309",
         "ENG-333"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0016"
+      ],
+      "hazards": [
+        "HAZ-CORE-0013"
+      ],
+      "controls": [
+        "CTL-0015"
+      ],
       "machines": [],
       "tests": [
         "audit-ledger.test.ts"
@@ -326,9 +386,15 @@
       "eng_authority": [
         "ENG-309"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0016"
+      ],
+      "hazards": [
+        "HAZ-CORE-0013"
+      ],
+      "controls": [
+        "CTL-0015"
+      ],
       "machines": [],
       "tests": [],
       "runtime_evidence": [
@@ -351,9 +417,15 @@
         "ENG-311",
         "ENG-337"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0014"
+      ],
+      "hazards": [
+        "HAZ-CORE-0012"
+      ],
+      "controls": [
+        "CTL-0014"
+      ],
       "machines": [],
       "tests": [
         "resilience.test.ts"
@@ -379,9 +451,15 @@
         "ENG-311",
         "ENG-337"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0002"
+      ],
+      "hazards": [
+        "HAZ-CORE-0004"
+      ],
+      "controls": [
+        "CTL-0002"
+      ],
       "machines": [],
       "tests": [
         "obligation-domain.test.ts"
@@ -502,9 +580,15 @@
         "ENG-311",
         "ENG-337"
       ],
-      "invariants": [],
-      "hazards": [],
-      "controls": [],
+      "invariants": [
+        "INV-CORE-0006"
+      ],
+      "hazards": [
+        "HAZ-CORE-0004"
+      ],
+      "controls": [
+        "CTL-0006"
+      ],
       "machines": [],
       "tests": [
         "reconciliation-engine.test.ts"

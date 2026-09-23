@@ -190,5 +190,59 @@
       "CTL-0003",
       "CTL-0012"
     ]
+  },
+  {
+    "id": "HAZ-CORE-0011",
+    "authority": [
+      "ENG-333"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "A session, query or command reads or writes clinical data of another tenant, or acts without a verified session, scope and purpose.",
+    "foreseeableSequence": [
+      "token forged or reused across tenants",
+      "query without tenant context or pool running as BYPASSRLS owner",
+      "PHI of another clinic returned or modified"
+    ],
+    "potentialHarm": "Unauthorized disclosure or alteration of PHI across organizations.",
+    "controls": [
+      "CTL-0013"
+    ]
+  },
+  {
+    "id": "HAZ-CORE-0012",
+    "authority": [
+      "ENG-306",
+      "ENG-311",
+      "ENG-312"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "A clinical command is reported as saved while the event, its audit entry, its idempotency record or its outbox message was not durably committed (partial write, unavailable store).",
+    "foreseeableSequence": [
+      "store unavailable or transaction fails midway",
+      "client shown success",
+      "clinical action believed recorded but absent"
+    ],
+    "potentialHarm": "Lost clinical record or duplicated command on retry; decisions taken on data that does not exist.",
+    "controls": [
+      "CTL-0014"
+    ]
+  },
+  {
+    "id": "HAZ-CORE-0013",
+    "authority": [
+      "ENG-313",
+      "ENG-337"
+    ],
+    "severity": "S1",
+    "hazardousCondition": "An audit entry is altered or deleted without detection, or a recorded hash cannot be recomputed from the persisted entry.",
+    "foreseeableSequence": [
+      "privileged or erroneous UPDATE/DELETE on the chain",
+      "verifier using a different formula",
+      "tampering invisible"
+    ],
+    "potentialHarm": "Loss of non-repudiation and legal traceability of clinical acts.",
+    "controls": [
+      "CTL-0015"
+    ]
   }
 ]

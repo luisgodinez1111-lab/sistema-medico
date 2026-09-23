@@ -184,14 +184,20 @@
     "authority": [
       "ENG-333"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0011"
+    ],
+    "controls": [
+      "CTL-0013"
+    ],
+    "invariants": [
+      "INV-CORE-0013"
+    ],
     "machines": [],
     "tests": [
       "tenant-security.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": []
   },
   {
@@ -202,14 +208,20 @@
       "ENG-309",
       "ENG-333"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0013"
+    ],
+    "controls": [
+      "CTL-0015"
+    ],
+    "invariants": [
+      "INV-CORE-0016"
+    ],
     "machines": [],
     "tests": [
       "audit-ledger.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001"
     ]
@@ -222,14 +234,20 @@
       "ENG-306",
       "ENG-333"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0012"
+    ],
+    "controls": [
+      "CTL-0014"
+    ],
+    "invariants": [
+      "INV-CORE-0014"
+    ],
     "machines": [],
     "tests": [
       "event-kernel.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001",
       "CAP-AUDIT-001"
@@ -441,14 +459,20 @@
       "ENG-311",
       "ENG-337"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0004"
+    ],
+    "controls": [
+      "CTL-0002"
+    ],
+    "invariants": [
+      "INV-CORE-0002"
+    ],
     "machines": [],
     "tests": [
       "obligation-domain.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001"
     ]
@@ -558,14 +582,23 @@
     "authority": [
       "ENG-333"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0011",
+      "HAZ-CORE-0012"
+    ],
+    "controls": [
+      "CTL-0013",
+      "CTL-0014"
+    ],
+    "invariants": [
+      "INV-CORE-0013",
+      "INV-CORE-0014"
+    ],
     "machines": [],
     "tests": [
       "repository.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001"
     ]
@@ -577,14 +610,20 @@
     "authority": [
       "ENG-333"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0011"
+    ],
+    "controls": [
+      "CTL-0013"
+    ],
+    "invariants": [
+      "INV-CORE-0013"
+    ],
     "machines": [],
     "tests": [
       "authz.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001"
     ]
@@ -597,14 +636,20 @@
       "ENG-311",
       "ENG-337"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0012"
+    ],
+    "controls": [
+      "CTL-0014"
+    ],
+    "invariants": [
+      "INV-CORE-0014"
+    ],
     "machines": [],
     "tests": [
       "resilience.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001"
     ]
@@ -758,12 +803,21 @@
     "authority": [
       "ENG-333"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0011",
+      "HAZ-CORE-0012"
+    ],
+    "controls": [
+      "CTL-0013",
+      "CTL-0014"
+    ],
+    "invariants": [
+      "INV-CORE-0013",
+      "INV-CORE-0014"
+    ],
     "machines": [],
     "tests": [],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001"
     ]
@@ -795,14 +849,20 @@
       "ENG-311",
       "ENG-337"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0004"
+    ],
+    "controls": [
+      "CTL-0006"
+    ],
+    "invariants": [
+      "INV-CORE-0006"
+    ],
     "machines": [],
     "tests": [
       "reconciliation-engine.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001"
     ]
@@ -1008,14 +1068,20 @@
       "ENG-311",
       "ENG-337"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0012"
+    ],
+    "controls": [
+      "CTL-0014"
+    ],
+    "invariants": [
+      "INV-CORE-0014"
+    ],
     "machines": [],
     "tests": [
       "idempotency-persistent.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001"
     ]
@@ -1108,12 +1174,18 @@
     "authority": [
       "ENG-309"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0013"
+    ],
+    "controls": [
+      "CTL-0015"
+    ],
+    "invariants": [
+      "INV-CORE-0016"
+    ],
     "machines": [],
     "tests": [],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001"
     ]
@@ -1143,14 +1215,20 @@
       "ENG-311",
       "ENG-333"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0012"
+    ],
+    "controls": [
+      "CTL-0014"
+    ],
+    "invariants": [
+      "INV-CORE-0014"
+    ],
     "machines": [],
     "tests": [
       "clinical-transaction.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001"
     ]
@@ -1163,14 +1241,20 @@
       "ENG-306",
       "ENG-333"
     ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
+    "hazards": [
+      "HAZ-CORE-0012"
+    ],
+    "controls": [
+      "CTL-0014"
+    ],
+    "invariants": [
+      "INV-CORE-0014"
+    ],
     "machines": [],
     "tests": [
       "aggregate-store.test.ts"
     ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
+    "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001"
     ]

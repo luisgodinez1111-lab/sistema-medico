@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "2.0",
+  "capability": "CAP-OBLIGATION-002",
+  "name": "Clinical Obligation Domain",
+  "risk": "C5",
+  "authority": [
+    "ENG-308",
+    "ENG-311",
+    "ENG-337"
+  ],
+  "hazardCase": [
+    {
+      "id": "HAZ-CORE-0004",
+      "authority": [
+        "ENG-311",
+        "ENG-337"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "Critical asynchronous workflow loses ownership or recovery path.",
+      "foreseeableSequence": [
+        "event/write succeeds partially",
+        "workflow orphaned",
+        "no accountable recovery"
+      ],
+      "potentialHarm": "Lost follow-up or unprocessed clinically significant event.",
+      "controls": [
+        "CTL-0002",
+        "CTL-0006"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0002",
+      "authority": [
+        "ENG-308",
+        "ENG-311",
+        "ENG-337"
+      ],
+      "type": "DETECTIVE",
+      "name": "Zero Lost Follow-Up orphan/overdue detection",
+      "invariant": "INV-CORE-0002",
+      "verification": [
+        "unit:test-obligation",
+        "reconciliation:due-date-scan"
+      ],
+      "failure": "ESCALATE"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-CORE-0002",
+      "authority": [
+        "ENG-308",
+        "ENG-311",
+        "ENG-337"
+      ],
+      "risk": "C5",
+      "statement": "Overdue/escalated obligation is never equivalent to completed follow-up.",
+      "predicate": "invObligationTerminalIsExplicit",
+      "tests": [
+        "invariants.test.ts",
+        "obligation.test.ts"
+      ]
+    }
+  ],
+  "stateMachines": [],
+  "tests": [
+    "obligation-domain.test.ts"
+  ],
+  "releasePolicy": "FAIL_CLOSED",
+  "safetyArgument": [
+    "Authority establishes intended behavior and boundaries.",
+    "Hazards identify foreseeable unsafe conditions.",
+    "Controls prevent, detect, correct, or recover from those conditions.",
+    "Invariants define conditions that must remain true.",
+    "Tests provide executable oracles; execution evidence is separately required.",
+    "Capability remains blocked when any required safety-case element is absent."
+  ],
+  "dossierSha256": "d9cc9e034ea73e3ef70c4fcb7b68247678dff1b07bb675f7ea24f53c397175f3"
+}

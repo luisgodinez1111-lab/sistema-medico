@@ -192,5 +192,53 @@
       "live:scripts/v22/live-prescription-print-proof.mts"
     ],
     "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0013",
+    "authority": [
+      "ENG-333"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Verified session + mandatory scope/purpose authorization (runtime-auth) and forced RLS under the NOBYPASSRLS runtime role",
+    "invariant": "INV-CORE-0013",
+    "verification": [
+      "unit:tests/security/authz.test.ts",
+      "unit:tests/v22/runtime-auth-scopes.test.ts",
+      "live:scripts/v21/live-rls-proof.mjs",
+      "live:scripts/v22/live-patient-reference-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0014",
+    "authority": [
+      "ENG-306",
+      "ENG-311",
+      "ENG-312"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Atomic clinical command: event + idempotency + audit + outbox in one transaction; store failure -> 503, never a false save",
+    "invariant": "INV-CORE-0014",
+    "verification": [
+      "unit:tests/v22/downtime-no-false-save.test.ts",
+      "live:scripts/v22/live-medication-lifecycle-proof.mts",
+      "live:scripts/v22/live-safety-override-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0015",
+    "authority": [
+      "ENG-313",
+      "ENG-337"
+    ],
+    "type": "DETECTIVE",
+    "name": "Append-only audit chain (no UPDATE/DELETE grants) with an in-database verifier that recomputes every hash (pnpm audit:verify)",
+    "invariant": "INV-CORE-0016",
+    "verification": [
+      "unit:tests/v22/audit-verifier.test.ts",
+      "live:scripts/v22/live-audit-chain-verify-proof.mts"
+    ],
+    "failure": "ESCALATE"
   }
 ]

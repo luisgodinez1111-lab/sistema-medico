@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "2.0",
+  "capability": "CAP-IDEMPOTENCY-002",
+  "name": "Persistent Idempotency Semantics",
+  "risk": "C5",
+  "authority": [
+    "ENG-311",
+    "ENG-337"
+  ],
+  "hazardCase": [
+    {
+      "id": "HAZ-CORE-0012",
+      "authority": [
+        "ENG-306",
+        "ENG-311",
+        "ENG-312"
+      ],
+      "severity": "S1",
+      "hazardousCondition": "A clinical command is reported as saved while the event, its audit entry, its idempotency record or its outbox message was not durably committed (partial write, unavailable store).",
+      "foreseeableSequence": [
+        "store unavailable or transaction fails midway",
+        "client shown success",
+        "clinical action believed recorded but absent"
+      ],
+      "potentialHarm": "Lost clinical record or duplicated command on retry; decisions taken on data that does not exist.",
+      "controls": [
+        "CTL-0014"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0014",
+      "authority": [
+        "ENG-306",
+        "ENG-311",
+        "ENG-312"
+      ],
+      "type": "PREVENTIVE",
+      "name": "Atomic clinical command: event + idempotency + audit + outbox in one transaction; store failure -> 503, never a false save",
+      "invariant": "INV-CORE-0014",
+      "verification": [
+        "unit:tests/v22/downtime-no-false-save.test.ts",
+        "live:scripts/v22/live-medication-lifecycle-proof.mts",
+        "live:scripts/v22/live-safety-override-proof.mts"
+      ],
+      "failure": "BLOCK"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-CORE-0014",
+      "authority": [
+        "ENG-306",
+        "ENG-311",
+        "ENG-312"
+      ],
+      "risk": "C5",
+      "statement": "A clinical command is either fully committed (event, idempotency record, audit entry, outbox message) or not at all; an unavailable store yields DEPENDENCY_UNAVAILABLE, never a reported success.",
+      "predicate": "executeAtomicClinicalCommand",
+      "tests": [
+        "downtime-no-false-save.test.ts"
+      ]
+    }
+  ],
+  "stateMachines": [],
+  "tests": [
+    "idempotency-persistent.test.ts"
+  ],
+  "releasePolicy": "FAIL_CLOSED",
+  "safetyArgument": [
+    "Authority establishes intended behavior and boundaries.",
+    "Hazards identify foreseeable unsafe conditions.",
+    "Controls prevent, detect, correct, or recover from those conditions.",
+    "Invariants define conditions that must remain true.",
+    "Tests provide executable oracles; execution evidence is separately required.",
+    "Capability remains blocked when any required safety-case element is absent."
+  ],
+  "dossierSha256": "ad126f346c933c4b4eb5fc94416a06b4e3ab288e5dd5dc2c92dd2e673cacd4d4"
+}
