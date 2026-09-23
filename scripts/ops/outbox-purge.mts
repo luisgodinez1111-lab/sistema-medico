@@ -1,11 +1,12 @@
 // Retención del outbox (auditoría D-03 / D-09): borra mensajes PENDING más antiguos que N días. Seguro porque los
 // consumidores de este sistema reconstruyen desde clinical_events (fuente de verdad), no desde el outbox (ver ADR-0031,
 // addendum 2026-09-22). Requiere el rol propietario (el de la aplicación no tiene DELETE sobre outbox).
-//   pnpm outbox:purge -- --older-than-days 30 --yes
+//   pnpm outbox:purge --older-than-days 30 --yes
 import fs from"node:fs";import path from"node:path";
 try{const e=fs.readFileSync(path.resolve(".env.local"),"utf8");for(const l of e.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(l.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}}catch{/* sin .env.local */}
-const args=process.argv.slice(2);const i=args.indexOf("--older-than-days");const days=i>=0?Number(args[i+1]):NaN;
-if(!Number.isInteger(days)||days<1){console.error("Uso: pnpm outbox:purge -- --older-than-days N --yes  (N >= 1)");process.exit(2);}
+const args=process.argv.slice(2).filter(a=>a!=="--"); // pnpm 10 reenvía el "--" literal
+const i=args.indexOf("--older-than-days");const days=i>=0?Number(args[i+1]):NaN;
+if(!Number.isInteger(days)||days<1){console.error("Uso: pnpm outbox:purge --older-than-days N --yes  (N >= 1)");process.exit(2);}
 if(!args.includes("--yes")){console.error("Añada --yes para confirmar el borrado");process.exit(2);}
 if(!process.env.DATABASE_URL){console.error("DATABASE_URL no definida");process.exit(2);}
 const direct=(u:string)=>u.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,"");

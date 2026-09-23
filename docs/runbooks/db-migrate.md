@@ -16,9 +16,9 @@ había forma de saber si coincidía con el repo.
 ## Comandos
 
 ```
-pnpm db:migrate -- status                        # aplicadas / pendientes / deriva; no modifica nada
-pnpm db:migrate -- up [--yes]                    # aplica las pendientes (--yes obligatorio si el host no es local)
-pnpm db:migrate -- baseline --through NNNN --yes # registra como aplicadas, SIN ejecutar, las que la base ya lleva
+pnpm db:migrate status                        # aplicadas / pendientes / deriva; no modifica nada
+pnpm db:migrate up [--yes]                    # aplica las pendientes (--yes obligatorio si el host no es local)
+pnpm db:migrate baseline --through NNNN --yes # registra como aplicadas, SIN ejecutar, las que la base ya lleva
 ```
 
 `DATABASE_URL` debe ser el **rol propietario** del esquema y el host **directo** (el migrador quita `-pooler`).
@@ -26,11 +26,11 @@ pnpm db:migrate -- baseline --through NNNN --yes # registra como aplicadas, SIN 
 ## Primera vez en producción (base migrada a mano hasta 0018)
 
 1. Copia de seguridad / punto de restauración de la rama de Neon.
-2. `pnpm db:migrate -- status` → mostrará 20 pendientes (no hay tabla de control todavía).
-3. `pnpm db:migrate -- baseline --through 0018 --yes` → registra 0001–0018 sin ejecutarlas. El migrador **rechaza** el
+2. `pnpm db:migrate status` → mostrará 20 pendientes (no hay tabla de control todavía).
+3. `pnpm db:migrate baseline --through 0018 --yes` → registra 0001–0018 sin ejecutarlas. El migrador **rechaza** el
    baseline si falta alguna de las tablas que esas migraciones crean (la afirmación sería falsa).
-4. `pnpm db:migrate -- up --yes` → aplica `0019` (índices de lectura) y `0020/0021` (políticas RLS faltantes, tablas heredadas).
-5. `pnpm db:migrate -- status` → `pending: []`, `drift: []`.
+4. `pnpm db:migrate up --yes` → aplica `0019` (índices de lectura) y `0020/0021` (políticas RLS faltantes, tablas heredadas).
+5. `pnpm db:migrate status` → `pending: []`, `drift: []`.
 
 ## CI y pruebas en vivo
 

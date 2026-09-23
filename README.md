@@ -84,12 +84,12 @@ Solo se leen las siguientes (el resto de nombres son deriva y se pueden borrar).
 
 ## Operación
 
-- Migraciones: `pnpm db:migrate -- status|up|baseline` (tabla `schema_migrations`, sha256 por migración, `--yes` fuera de
+- Migraciones: `pnpm db:migrate status|up|baseline` (tabla `schema_migrations`, sha256 por migración, `--yes` fuera de
   local). Runbook: [`docs/runbooks/db-migrate.md`](docs/runbooks/db-migrate.md).
 - Cadena de auditoría: `pnpm audit:verify` recalcula cada huella en la base y detecta alteraciones.
-- Retención de PHI: `pnpm phi:retention -- --tenant <uuid>` informa (solo lectura) qué expedientes superaron la retención
+- Retención de PHI: `pnpm phi:retention --tenant <uuid>` informa (solo lectura) qué expedientes superaron la retención
   (ADR-0280; la purga exige decisiones del dueño).
-- Outbox: no hay consumidor desplegado; retención con `pnpm outbox:purge -- --older-than-days N --yes` (ADR-0031, addendum).
+- Outbox: no hay consumidor desplegado; retención con `pnpm outbox:purge --older-than-days N --yes` (ADR-0031, addendum).
 - API: `docs/api/openapi.json` (OpenAPI 3.1) se genera desde el inventario real de rutas y de los esquemas zod que
   valida cada handler (`pnpm openapi:registry && pnpm openapi:generate`); CI falla si cualquiera de los dos está desfasado.
 - Despliegue: `main` → Vercel (build `next build apps/web`). Imagen propia con el `Dockerfile` (ver abajo).
@@ -102,7 +102,7 @@ docker run --rm -p 3000:3000 --env-file .env.production medical-os-web
 ```
 
 La imagen compila `apps/web` en modo `standalone` y arranca `node apps/web/server.js` como usuario sin privilegios.
-Las migraciones se aplican aparte (`pnpm db:migrate -- up --yes` con la `DATABASE_URL` del propietario del esquema).
+Las migraciones se aplican aparte (`pnpm db:migrate up --yes` con la `DATABASE_URL` del propietario del esquema).
 
 ## Estructura
 

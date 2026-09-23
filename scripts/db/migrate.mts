@@ -9,14 +9,15 @@
 //   · `baseline` registra como aplicadas, SIN ejecutarlas, las migraciones que una base existente ya lleva (primer uso en
 //     producción, que se migró a mano hasta 0018).
 //
-// Uso:  pnpm db:migrate -- status                      estado (aplicadas / pendientes / deriva); no modifica nada
-//       pnpm db:migrate -- up [--yes]                  aplica las pendientes en orden
-//       pnpm db:migrate -- baseline --through 0018 --yes
+// Uso:  pnpm db:migrate status                      estado (aplicadas / pendientes / deriva); no modifica nada
+//       pnpm db:migrate up [--yes]                  aplica las pendientes en orden
+//       pnpm db:migrate baseline --through 0018 --yes
 // Conexión: DATABASE_URL (rol propietario del esquema; se usa el host directo, no el pooler). Contra un host que no sea
 // local exige --yes y muestra el host antes de tocar nada. Salida: 0 ok · 1 deriva o error · 2 uso incorrecto.
 import fs from"node:fs";import path from"node:path";import os from"node:os";
 try{const e=fs.readFileSync(path.resolve(".env.local"),"utf8");for(const l of e.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(l.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}}catch{/* sin .env.local: se usa el entorno */}
-const args=process.argv.slice(2);const cmd=args[0]??"status";const flag=(n:string)=>args.includes(n);const opt=(n:string)=>{const i=args.indexOf(n);return i>=0?args[i+1]:undefined;};
+const args=process.argv.slice(2).filter(a=>a!=="--"); // pnpm 10 reenvía el "--" literal
+const cmd=args[0]??"status";const flag=(n:string)=>args.includes(n);const opt=(n:string)=>{const i=args.indexOf(n);return i>=0?args[i+1]:undefined;};
 const direct=(u:string)=>u.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,"");
 function fail(msg:string,code=1):never{console.error(JSON.stringify({status:"ERROR",message:msg}));process.exit(code);}
 if(!["status","up","baseline"].includes(cmd))fail("Uso: db:migrate -- status | up [--yes] | baseline --through NNNN --yes",2);

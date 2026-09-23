@@ -16,7 +16,7 @@ comando deja un mensaje entregable, y el día que exista un consumidor real (not
 proyección externa) no habrá que tocar el kernel. Mientras tanto:
 
 - No se despliega ningún "worker" de mentira; `compose.yaml` ya no lo declara.
-- La cola tiene **retención**: `pnpm outbox:purge -- --older-than-days N --yes` (rol propietario) borra mensajes
+- La cola tiene **retención**: `pnpm outbox:purge --older-than-days N --yes` (rol propietario) borra mensajes
   `PENDING` más antiguos que N días. Es seguro porque en este sistema los consumidores reconstruyen desde
   `clinical_events` (la fuente de verdad), no desde el outbox.
 - Un consumidor futuro deberá: reclamar bajo el contexto de su tenant (RLS), ser idempotente por `eventId`, y registrar
