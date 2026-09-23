@@ -311,6 +311,7 @@ export async function latestResultValueForAnalyte(ctx:HttpTenantContext,patientI
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
      and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
      and r.aggregate_id::text<>${excludeResultId??""}
+     and not exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at desc, r.sequence desc limit 1`;
   const v=rows[0]?.value;if(v==null)return undefined;
   // Auditoría C-01: un valor físicamente IMPLAUSIBLE en la unidad canónica (evento antiguo capturado sin unidad en otra
@@ -334,6 +335,7 @@ export async function latestAnalyteReading(ctx:HttpTenantContext,patientId:strin
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
      and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
+     and not exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at desc, r.sequence desc limit 1`;
   const o=rows[0] as Record<string,unknown>|undefined;if(!o)return undefined;
   const raw=String(o["raw"]??"");const canonical=o["canonical"]==null?Number(raw.trim().replace(",",".")):Number(o["canonical"]);
@@ -355,6 +357,7 @@ export async function analyteSeries(ctx:HttpTenantContext,patientId:string,analy
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
      and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
+     and not exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at asc, r.sequence asc`;
   // Los puntos implausibles se EXCLUYEN de la serie: un solo valor en otra escala deforma la tendencia y su pendiente.
   return rows.map(r=>{const o=r as Record<string,unknown>;return{value:Number(o.value),at:String(o.at)};}).filter(p=>Number.isFinite(p.value)&&normalizeLabValue(analyte,p.value).ok);
@@ -904,7 +907,7 @@ export async function countOpenCriticalResults(ctx:HttpTenantContext,patientId:s
      and r.payload->>'kind'='RECEIVED' and r.payload->>'patientId'=${patientId} and r.payload->>'critical'='true'
      and not exists(
       select 1 from clinical_events c
-      where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and c.payload->>'kind'='CLOSED')`;
+      where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and c.payload->>'kind' in ('CLOSED','CORRECTED'))`; // C-02: un crítico corregido deja de bloquear; si la corrección sigue siendo crítica, bloquea el nuevo
   return Number(rows[0]?.n??0);
  }) as Promise<number>;
 }

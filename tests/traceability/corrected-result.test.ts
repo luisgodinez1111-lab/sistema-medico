@@ -13,3 +13,15 @@ describe("Corrected Result DAG",()=>{
   expect(()=>d.add({id:"r2",version:2,supersedes:"r1",hash:"h2",receivedAt:"2026-01-02"})).toThrow(/NON_MONOTONIC/);
  });
 });
+import {foldResult,assertResultCorrectable} from "../../packages/result-fold/src";
+// Auditoría C-02 (lote 10j): la corrección YA tiene ciclo de vida real: anotación CORRECTED (supersededBy) en el original y
+// resultado nuevo con `supersedes`; el fold real enlaza ambos y una segunda corrección se rechaza.
+describe("Corrected result — fold real (C-02)",()=>{
+ it("el original queda supersedido sin cambiar de estado; el nuevo apunta al original; no se corrige dos veces",()=>{
+  const orig=foldResult([{sequence:1,payload:{kind:"RECEIVED",patientId:"p",critical:true}},{sequence:2,payload:{kind:"CORRECTED",supersededBy:"r2",reason:"muestra hemolizada"}}]);
+  expect(orig.state).toBe("RECEIVED");expect(orig.supersededBy).toBe("r2");
+  expect(()=>assertResultCorrectable(orig)).toThrow(/already superseded/);
+  const nuevo=foldResult([{sequence:1,payload:{kind:"RECEIVED",patientId:"p",critical:false,supersedes:"r1"}}]);
+  expect(nuevo.supersedes).toBe("r1");expect(()=>assertResultCorrectable(nuevo)).not.toThrow();
+ });
+});

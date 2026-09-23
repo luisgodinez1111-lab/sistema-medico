@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
-import{foldResult,assertResultTransition,type FoldedResult}from"../../../packages/result-fold/src";
+import{foldResult,assertResultTransition,assertResultCorrectable,type FoldedResult}from"../../../packages/result-fold/src";
 import{type ResultState}from"../../../packages/order-result-domain/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents,latestResultValueForAnalyte,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
@@ -32,6 +32,16 @@ export async function handleResultReceived(req:Request):Promise<Response>{
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,ReceiveBody);
   await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
+  const payload=await interpretForReceive(ctx,b);
+  // El Δ vs previo depende de los demás resultados del paciente: estable ante reintentos (ver replayStablePayload).
+  const stable=await replayStablePayload(ctx,idempotencyKey,b.resultId,b,()=>payload);
+  return await commitReceived(ctx,idempotencyKey,b,stable);
+ }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
+type ReceiveInput=Readonly<{resultId:string;patientId:string;orderId:string;analyte:string;value:string;unit?:string|undefined;specimenId?:string|undefined;occurredAt:string}>;
+// Interpretación de un resultado recibido (unidad, plausibilidad, crítico, Δ vs previo). Compartida por RECEIVE y CORRECTION.
+// `priorExclude`: resultado que NO cuenta como "valor previo" del Δ (el propio; en una corrección, el original que se reemplaza).
+async function interpretForReceive(ctx:Parameters<typeof runClinicalCommand>[0],b:ReceiveInput,extra:Record<string,unknown>={},priorExclude:string=b.resultId):Promise<Record<string,unknown>>{
   // Auditoría C-01/C-12/U-07: unidad + plausibilidad ANTES de persistir. Un valor en unidad no reconocida o físicamente
   // implausible (p. ej. plaquetas 250000 sin unidad, glucosa 7 "mg/dL") se RECHAZA con un mensaje accionable, en vez de
   // guardarse y producir después un falso crítico o un score absurdo. Los resultados cualitativos (no numéricos) pasan.
@@ -42,7 +52,7 @@ export async function handleResultReceived(req:Request):Promise<Response>{
   // EPIC BB (profundidad): delta check longitudinal — comparar con el valor previo del mismo analito.
   // Una variación crítica (p. ej. creatinina que se duplica, Hb -2 g/dL) ELEVA el resultado a `critical`
   // aunque el valor absoluto no sea de pánico -> participa del gate de firma (Zero Lost Follow-Up).
-  const prior=await latestResultValueForAnalyte(ctx,b.patientId,b.analyte,b.resultId);
+  const prior=await latestResultValueForAnalyte(ctx,b.patientId,b.analyte,priorExclude);
   const current=norm.ok?String(norm.canonicalValue):b.value;
   const delta=prior!==undefined?deltaCheck(b.analyte,prior,current):{flagged:false,severity:"NONE" as const,changeAbs:0,changePct:0,note:""};
   const critical=assessment.critical||delta.flagged;
@@ -51,8 +61,9 @@ export async function handleResultReceived(req:Request):Promise<Response>{
   if(norm.ok){payload["unit"]=b.unit?.trim()||null;payload["canonicalValue"]=norm.canonicalValue;payload["canonicalUnit"]=norm.canonicalUnit;payload["unitAssumed"]=norm.unitAssumed;}
   if(b.specimenId)payload["specimenId"]=b.specimenId;
   if(delta.flagged){payload["deltaFlagged"]=true;payload["deltaSeverity"]=delta.severity;payload["deltaChangeAbs"]=delta.changeAbs;payload["deltaChangePct"]=delta.changePct;payload["priorValue"]=prior;}
-  // El Δ vs previo depende de los demás resultados del paciente: estable ante reintentos (ver replayStablePayload).
-  const stable=await replayStablePayload(ctx,idempotencyKey,b.resultId,b,()=>payload);
+  return{...payload,...extra};
+}
+async function commitReceived(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,b:ReceiveInput,stable:Record<string,unknown>):Promise<Response>{
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.resultId,expectedVersion:0,eventType:"RESULT_RECEIVED",payload:stable,occurredAt:b.occurredAt,topic:"result.received"});
   const result=await runClinicalCommand(ctx,cmd);
   // Auditoría C-20: un resultado CRÍTICO crea además una obligación con RESPONSABLE (quien lo recibió: es quien debe
@@ -66,6 +77,36 @@ export async function handleResultReceived(req:Request):Promise<Response>{
   return NextResponse.json({resultId:b.resultId,state:"RECEIVED",critical:stable["critical"]===true,status:stable["status"],interpretation:stable["interpretation"],deltaFlagged:stable["deltaFlagged"]===true,
    ...(stable["canonicalValue"]!==undefined?{canonicalValue:stable["canonicalValue"],canonicalUnit:stable["canonicalUnit"],unitAssumed:stable["unitAssumed"]}:{}),
    version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+}
+// Auditoría 2026-09-19 (C-02) — CORRECCIÓN de un resultado: el laboratorio emite un valor corregido. Nunca se edita el
+// original: se recibe un resultado NUEVO (`supersedes: original`, con la misma interpretación completa: unidad, crítico, Δ)
+// y el original queda anotado CORRECTED (`supersededBy`). Calculadoras, series y el gate de firma leen solo el vigente;
+// la obligación urgente derivada del original (C-20) se completa con la razón de la corrección. Exige razón.
+const CorrectionBody=z.object({correctedResultId:z.string().uuid(),value:z.string().min(1).max(60),unit:z.string().max(24).optional(),reason:z.string().min(5).max(500),occurredAt:z.string().datetime()});
+export async function handleResultCorrection(req:Request,resultId:string):Promise<Response>{
+ try{
+  const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,resultId);
+  const b=await parseJson(req,CorrectionBody);
+  // Reintento idempotente: la anotación ya persistida responde igual (antes de cualquier precondición, como en el resto de handlers).
+  const annotation=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:resultId,expectedVersion,eventType:"RESULT_CORRECTED",payload:{kind:"CORRECTED",supersededBy:b.correctedResultId,reason:b.reason},occurredAt:b.occurredAt,topic:"result.corrected"});
+  const replayed=await lookupReplay(ctx,annotation);
+  if(replayed){const r=replayed.response as{version:number;auditHash?:string};return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,version:r.version,auditHash:r.auditHash,replayed:true},{status:200});}
+  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Result changed since last read",{expected:expectedVersion,actual:folded.version});
+  assertResultCorrectable(folded);
+  const original=(await readAggregateEvents(ctx,resultId)).find(e=>e.payload["kind"]==="RECEIVED")?.payload??{};
+  const analyte=String(original["analyte"]??"");if(!analyte)throw new ClinicalError("CONFLICT","El resultado original no tiene analito: no se puede corregir");
+  const input:ReceiveInput={resultId:b.correctedResultId,patientId:folded.patientId,orderId:String(original["orderId"]??resultId),analyte,value:b.value,...(b.unit!==undefined?{unit:b.unit}:{}),...(typeof original["specimenId"]==="string"?{specimenId:String(original["specimenId"])}:{}),occurredAt:b.occurredAt};
+  // 1) el resultado corregido, con `supersedes`: es lo que leen las calculadoras aunque la anotación (2) fallara.
+  const payload=await interpretForReceive(ctx,input,{supersedes:resultId,correctionReason:b.reason},resultId); // el Δ no se mide contra el valor que se corrige
+  const stable=await replayStablePayload(ctx,derivedUuid(idempotencyKey,"corrected-result"),b.correctedResultId,b,()=>payload);
+  const created=await commitReceived(ctx,derivedUuid(idempotencyKey,"corrected-result"),input,stable);
+  if(created.status>=400)return created;
+  // 2) anotación en el original + cierre de su obligación derivada (si la había).
+  const result=await runClinicalCommand(ctx,annotation);
+  await completeCriticalResultObligation(ctx,resultId,`resultado corregido (${b.reason})`,b.occurredAt);
+  const r=result.response as{version:number;auditHash?:string};
+  const c=await created.json() as Record<string,unknown>;
+  return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,corrected:{resultId:b.correctedResultId,critical:c["critical"],status:c["status"],interpretation:c["interpretation"]},version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 

@@ -1,0 +1,53 @@
+// Auditoría 2026-09-19 (C-02) — PRUEBA EN VIVO contra PostgreSQL real: corrección de un resultado de laboratorio.
+//   · un potasio 7.0 (crítico) se corrige a 4.2 con razón: el original queda CORRECTED (supersededBy), el corregido es
+//     un resultado NUEVO con `supersedes` e interpretación propia (NORMAL, no crítico);
+//   · las calculadoras y la serie leen solo el vigente (4.2); el gate de firma deja de contar el crítico corregido y la
+//     obligación urgente derivada (C-20) se completa con la razón; el reintento idempotente no duplica;
+//   · un resultado ya corregido no se corrige otra vez (409); sin razón -> 400.
+import crypto from"node:crypto";
+import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const{ensurePatientIn}=await import("./_patient.mts");
+process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"c02-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
+const{signSession}=await import("../../packages/session/src");
+const{resolveVerified}=await import("../../apps/web/lib/http-command");
+const{readAggregateEvents,latestAnalyteReading,analyteSeries,countOpenCriticalResults}=await import("../../apps/web/lib/clinical-runtime");
+const{criticalObligationId}=await import("../../apps/web/lib/result-lifecycle");
+const{foldResult}=await import("../../packages/result-fold/src");
+const{foldObligation}=await import("../../packages/obligation-fold/src");
+const results=await import("../../apps/web/app/api/v1/results/route");
+const correction=await import("../../apps/web/app/api/v1/results/[resultId]/correction/route");
+const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
+const phys=signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes:["result:write","result:read","patient:read"],purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);
+const H=(x:Record<string,string>={})=>({"content-type":"application/json",authorization:"Bearer "+phys,...x});
+const idem=()=>crypto.randomUUID();const RP=(id:string)=>({params:Promise.resolve({resultId:id})});
+let ts=Date.now()-3_600_000;const at=()=>new Date(ts+=60000).toISOString();
+const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+try{
+ const pat=crypto.randomUUID();await ensurePatientIn(TA,pat);const ctx=resolveVerified(new Request("http://l/",{headers:H()})).ctx;
+ const r1=crypto.randomUUID();
+ let r=await results.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":idem()}),body:JSON.stringify({resultId:r1,patientId:pat,orderId:crypto.randomUUID(),analyte:"POTASSIUM",value:"7.0",unit:"mEq/L",occurredAt:at()})}));
+ ok(r.status===201&&(await r.json()).critical===true,"CRITICAL_RECEIVED");
+ ok(await countOpenCriticalResults(ctx,pat)===1,"CRITICAL_COUNTS_BEFORE_CORRECTION");
+ // sin razón -> 400
+ const r2=crypto.randomUUID();
+ r=await correction.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({correctedResultId:r2,value:"4.2",unit:"mEq/L",occurredAt:at()})}),RP(r1));ok(r.status===400,"CORRECTION_WITHOUT_REASON_400");
+ // corrección válida (mismo Idempotency-Key dos veces)
+ const key=idem();const when=at();
+ const body=JSON.stringify({correctedResultId:r2,value:"4.2",unit:"mEq/L",reason:"Muestra hemolizada; nueva extracción",occurredAt:when});
+ r=await correction.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":key,"if-match":"1"}),body}),RP(r1));
+ const j=await r.json() as{supersededBy:string;corrected:{resultId:string;critical:boolean;status:string}};
+ ok(r.status===201&&j.supersededBy===r2&&j.corrected.critical===false&&j.corrected.status==="NORMAL","CORRECTED_201_NEW_RESULT_NORMAL");
+ const orig=foldResult(await readAggregateEvents(ctx,r1));const nuevo=foldResult(await readAggregateEvents(ctx,r2));
+ ok(orig.supersededBy===r2&&orig.state==="RECEIVED"&&nuevo.supersedes===r1&&nuevo.critical===false,"FOLDS_LINKED_BOTH_WAYS");
+ ok((await latestAnalyteReading(ctx,pat,"POTASSIUM"))?.value===4.2,"CALCULATORS_READ_CORRECTED_VALUE");
+ ok((await analyteSeries(ctx,pat,"POTASSIUM")).map(p=>p.value).join()==="4.2","SERIES_EXCLUDES_SUPERSEDED");
+ ok(await countOpenCriticalResults(ctx,pat)===0,"SIGN_GATE_NO_LONGER_COUNTS_CORRECTED_CRITICAL");
+ ok(foldObligation(await readAggregateEvents(ctx,criticalObligationId(r1))).state==="COMPLETED","DERIVED_OBLIGATION_COMPLETED_WITH_REASON");
+ // reintento idempotente -> 200 replayed, sin eventos nuevos
+ r=await correction.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":key,"if-match":"1"}),body}),RP(r1));
+ ok(r.status===200&&(await r.json()).replayed===true&&(await readAggregateEvents(ctx,r1)).length===2&&(await readAggregateEvents(ctx,r2)).length===1,"IDEMPOTENT_RETRY_NO_DUPLICATES");
+ // segunda corrección del mismo original -> 409
+ r=await correction.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({correctedResultId:crypto.randomUUID(),value:"4.0",reason:"Otra corrección",occurredAt:at()})}),RP(r1));
+ ok(r.status===409,"ALREADY_SUPERSEDED_409");
+}catch(e){result.status="FAIL";result.error=String(e);}
+console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
