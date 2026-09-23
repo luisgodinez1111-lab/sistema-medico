@@ -1,6 +1,5 @@
-
 import {describe,it,expect} from "vitest";
-import {replay,patientImpact} from "../../packages/clinical-kernel/src/replay-impact";
+import {replay,patientImpact} from "../../packages/result-correction/src";
 const events=[
  {id:"e1",patientId:"p1",occurredAt:"2026-01-01",authority:"ENG-312",artifactVersion:"v1",payload:{}},
  {id:"e2",patientId:"p2",occurredAt:"2026-01-03",authority:"ENG-313",artifactVersion:"v2",payload:{}}

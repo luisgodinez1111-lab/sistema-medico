@@ -813,13 +813,22 @@ export default function Workspace(){
   const criticalOpen=(gaps??[]).some(g=>g.priority==="HIGH"&&(g.code==="CRITICAL_RESULT_OPEN"||g.code==="VITAL_CRITICAL"||g.code==="FOLLOWUP_OPEN"));
   if(criticalOpen)active.push("CRITICAL_OPEN");
   if(enc?.state==="READY_TO_SIGN"&&!criticalOpen)active.push("SIGN_READY"); // con críticos abiertos la firma se presenta BLOQUEADA, no "lista"
+  // G-09: los pares que la UI puede conocer. Sesión caducada con PHI en pantalla; nota firmada que siguiera editable (los campos
+  // se deshabilitan fuera de OPEN); dependencia degradada presentada como "sin pendientes"; sin sesión con mutaciones habilitadas.
+  const sessionExpired=!!session&&session.expiresAt*1000<Date.now();
+  if(sessionExpired||!session)active.push("TENANT_INVALID");if(patientId&&(snap||tl||gaps))active.push("PHI_INTERACTIVE");
+  if(enc?.state==="SIGNED")active.push("SIGNED");if(!enc||enc.state==="OPEN")active.push("EDITABLE_AUTHORITATIVE");
+  if(chartState==="error")active.push("DEGRADED_DEPENDENCY");if(chartState==="ready"&&gaps!==null&&gaps.length===0)active.push("EMPTY_SUCCESS");
+  if(!session)active.push("UNAUTHORIZED");if(busy===""&&ready)active.push("MUTATION_ENABLED");
   try{assertNoForbidden(active);uiForbidden.current=null;}
   catch(e){
    const rule=e instanceof Error?e.message:String(e);uiForbidden.current=rule;console.error("[workspace] estado prohibido corregido:",rule);
    if(rule.includes("PATIENT_B_DATA")){setTl(null);setGaps(null);setSnap(null);setTrends(null);}
    if(rule.includes("OLD_DRAFT_SUBMITTABLE")){setCForm({motivo:"",historia:"",antec:"",interrog:"",explor:"",plan:""});setCAntec([]);draftOwner.current=patientId;}
+   if(rule.includes("TENANT_INVALID")||rule.includes("UNAUTHORIZED")){window.location.replace("/login");} // sesión inválida: fuera del espacio clínico
+   if(rule.includes("DEGRADED_DEPENDENCY")){setGaps(null);} // un fallo de carga nunca se presenta como "sin pendientes"
   }
- },[patientId,tl,gaps,snap,trends,cForm,cAntec,enc]);
+ },[patientId,tl,gaps,snap,trends,cForm,cAntec,enc,session,chartState,busy,ready]);
  // Capacidades del servidor (auditoría L-10/L-11). Si la consulta falla, las verticales hospitalarias quedan APAGADAS.
  useEffect(()=>{
   if(!ready||!session)return;let cancelled=false;

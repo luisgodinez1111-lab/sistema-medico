@@ -1,6 +1,6 @@
-
 import {describe,it,expect} from "vitest";
-import {CorrectedResultDag} from "../../packages/clinical-kernel/src/corrected-result-dag";
+import {CorrectedResultDag} from "../../packages/result-correction/src";
+// INV-CORE-0007 — contrato del linaje de corrección (diseño ejecutable; el evento RESULT_CORRECTED aún no existe: C-02).
 describe("Corrected Result DAG",()=>{
  it("preserves immutable supersession lineage",()=>{
   const d=new CorrectedResultDag();

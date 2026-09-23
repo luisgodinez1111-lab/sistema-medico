@@ -1,6 +1,6 @@
 import crypto from"node:crypto";
 import{verifySession,type SessionClaims}from"../../session/src";
-import{type Principal}from"../../authz/src";
+import{type Principal}from"../../runtime-auth/src";
 import{ClinicalError}from"../../runtime-errors/src";
 // EPIC B — Adaptador de sesión/principal verificado para la capa HTTP.
 // Convierte un token de sesión firmado (HMAC) en un Principal + TenantContext.
@@ -36,7 +36,7 @@ export function resolvePrincipal(read:HeaderReader,secret:string,requestId:strin
  catch(e){throw new ClinicalError("UNAUTHENTICATED","Session verification failed",{reason:e instanceof Error?e.message:"UNKNOWN"});}
  if(!claims.sessionId||!claims.tenantId||!claims.sub)throw new ClinicalError("UNAUTHENTICATED","Session missing identity");
  const actorId=subjectToActorId(claims.sub);
- const principal:Principal={actorId,tenantId:claims.tenantId,roles:claims.roles,scopes:claims.scopes,purpose:claims.purpose};
+ const principal:Principal={actorId,tenantId:claims.tenantId,roles:claims.roles,scopes:claims.scopes,purpose:claims.purpose,sessionId:claims.sessionId};
  const ctx:HttpTenantContext={tenantId:claims.tenantId,actorId,actorType:"HUMAN",purpose:claims.purpose,requestId};
  return Object.freeze({claims,principal,ctx});
 }
