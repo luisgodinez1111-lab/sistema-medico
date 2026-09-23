@@ -15,7 +15,7 @@ real de cada capacidad, sus deudas y lo que solo puede decidir el dueño están 
 | Kernel clínico | `packages/atomic-clinical-transaction-v3`, `db/migrations` | Un comando = una transacción: evento en `clinical_events` (`payload` jsonb), idempotencia (`command_idempotency`), cadena de auditoría (`audit_chain_v3`, append-only) y outbox. RLS forzada por tenant (`app.current_tenant()`). |
 | Folds / dominio | `packages/*-fold`, `packages/prescription-safety`, `packages/lab-reference`, `packages/drug-catalog`… | Puros y deterministas: estado a partir del stream de eventos; barreras de seguridad de prescripción; calculadoras clínicas. Sin E/S ni PHI en mensajes. |
 | Handlers HTTP | `apps/web/lib/*-lifecycle.ts`, `apps/web/app/api/v1/**` | Autenticación (OIDC + sesión HMAC en cookie `medos_session`), autorización por rol y scope, `Idempotency-Key` + `If-Match`, errores fail-closed (`apps/web/lib/http-errors.ts`). |
-| Interfaz | `apps/web/app/workspace/page.tsx` | Cockpit clínico (consulta, expediente, medicación con barreras, resultados, seguimiento, configuración). |
+| Interfaz | `apps/web/app/workspace/` (`page.tsx` orquestador, `model.tsx` estado y handlers, `shared.tsx`, `views/*`), `packages/design-system` | Cockpit clínico (consulta, expediente, medicación con barreras, resultados, seguimiento, configuración); las vistas no esenciales se cargan al navegar. Design system con tokens AA y componentes (`Button`, `Card`, `Badge`, `Alert`, `AllergyBanner`, `PatientHeader`). |
 | Gobierno de seguridad | `packages/clinical-safety`, `safety/`, `capabilities/`, `release/` | Registro de invariantes y peligros, admisión de release (`pnpm release:check`), trazabilidad de tests (`pnpm traceability:check`). |
 | Operación | `scripts/db`, `scripts/ops`, `docs/runbooks` | Migrador con tabla de control y detección de deriva, verificación de la cadena de auditoría, retención del outbox. |
 
@@ -107,7 +107,7 @@ Las migraciones se aplican aparte (`pnpm db:migrate up --yes` con la `DATABASE_U
 ## Estructura
 
 ```
-apps/web            Next.js: app/ (rutas y cockpit), lib/ (handlers), middleware.ts (flags, límite de tasa)
+apps/web            Next.js: app/ (rutas y cockpit: workspace/{page,model,shared,views}), lib/ (handlers), middleware.ts
 packages/*          dominio puro, folds, calculadoras, catálogos, kernel transaccional, gobierno de seguridad
 db/migrations       0001..N + manifest.json (sha256); db/roles_v16.sql
 scripts/            ci/ (bootstrap y smoke), db/ (migrador), ops/ (auditoría, outbox), v22/ (pruebas en vivo)

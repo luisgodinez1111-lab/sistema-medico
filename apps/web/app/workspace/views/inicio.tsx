@@ -1,0 +1,143 @@
+"use client";
+// GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "inicio" del workspace, extraída de page.tsx sin cambios
+// en su JSX ni en su lógica. Toma del contexto solo lo que usa.
+
+import{card,P,UI,scrollToSection,LINE,act,NavIcon}from"../shared";
+import{useWorkspace}from"../context";
+export default function InicioView(){
+ const{clock,patientList,panel,notifCount,setView,openConsulta,agenda,docDisplay,setMedTab,setConsultaPid,setOrdNew,setApptNew}=useWorkspace();
+
+   // ===== DASHBOARD INICIO (consultorio) — S2.png =====
+   const fecha=clock.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).replace(/^\w/,c=>c.toUpperCase());
+   const hora=clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase();
+   const nameOf=(pid:string)=>patientList?.find(p=>p.patientId===pid)?.name||`Paciente ${pid.slice(0,8)}`;
+   const prTag=(pr:string):[string,string,string]=>pr==="HIGH"?["Crítico","#FDE7EA","#D23651"]:pr==="MEDIUM"?["Seguimiento","#EEEBFD","#6C5CF6"]:["Administrativo","#EEF0F5","#6B7391"];
+   // Tareas: worklist real (tenant-wide) si hay; si no, ejemplo pulido.
+   const realTasks=(panel?.gaps??[]).slice(0,6).map(g=>({title:g.label,who:nameOf(g.patientId),pr:g.priority as string,pid:g.patientId}));
+   // Verdad clínica (U-02): SOLO tareas reales. Antes, sin datos se pintaban tareas inventadas ("Potasio 6.2 mmol/L").
+   const tasks=realTasks;
+   // Pacientes recientes: lista real si hay; si no, ejemplo.
+   const stEs=(s:string):[string,string,string]=>s==="ACTIVE"?["Activo","#E6F6EE","#16A66A"]:s==="INACTIVE"?["Inactivo","#EEF0F5","#6B7391"]:["Pendiente","#FBF0DC","#B7791F"];
+   const realPts=(patientList??[]).slice(0,5).map(p=>({name:p.name,status:p.status,patientId:p.patientId}));
+   // (U-02) Sin pacientes de ejemplo: si no hay registros, la tabla lo dice.
+   const usingRealPts=realPts.length>0;
+   const initials=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+   const critCount=notifCount;
+   const kico=(bg:string,ic:React.ReactNode)=>(<span style={{width:44,height:44,borderRadius:12,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}>{ic}</span>);
+   const svg=(d:string,st:string,w="1.8")=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={st} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d}/></svg>;
+   const kpiCard:React.CSSProperties={...card,marginTop:0,padding:18,display:"flex",gap:14,alignItems:"flex-start"};
+   const h2row:React.CSSProperties={display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 18px 10px"};
+   const h2s:React.CSSProperties={fontSize:16.5,fontWeight:700,margin:0,display:"flex",alignItems:"center",gap:9};
+   const link:React.CSSProperties={color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"};
+   const cardP:React.CSSProperties={...card,marginTop:0};
+   const qbtn:React.CSSProperties={display:"flex",alignItems:"center",gap:11,width:"100%",textAlign:"left",border:0,background:"transparent",padding:"11px 12px",borderRadius:10,fontSize:13.5,fontWeight:500,color:P.ink,cursor:"pointer",fontFamily:UI};
+   const qa=(label:string,d:string,onClick:()=>void)=>(<button style={qbtn} onClick={onClick}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={P.purple} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d}/></svg>{label}</button>);
+   const go=(h2:string)=>{setView("exp");scrollToSection(h2);};
+   // Interconexión con contexto: abre al paciente concreto en su Consulta (desde tareas/agenda/lista).
+   const openPatientCtx=(pid:string,name:string)=>{if(pid){openConsulta(pid,name);}else{go("Panel del clínico");}};
+   const citasHoy=agenda?.appointments.length??0;const atendidasHoy=agenda?.counts.atendidas??0;
+   return <div style={{padding:"22px 26px 40px",maxWidth:1400,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+     <div><h1 style={{fontSize:30,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Inicio</h1><p style={{color:P.muted,fontSize:14.5,margin:"6px 0 0"}}>Bienvenido, <b style={{color:P.ink}}>{docDisplay}</b>. Aquí tienes el resumen de hoy.</p></div>
+     <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+      <span style={{display:"inline-flex",alignItems:"center",gap:8,background:P.white,border:`1px solid ${LINE}`,borderRadius:11,padding:"9px 14px",fontSize:13.5,fontWeight:600}}>{svg("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",P.purple,"1.8")}{fecha}</span>
+      <span style={{display:"inline-flex",alignItems:"center",gap:8,background:P.white,border:`1px solid ${LINE}`,borderRadius:11,padding:"9px 14px",fontSize:13.5,fontWeight:600}}>{svg("M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0",P.purple,"1.8")}{hora}</span>
+     </div>
+    </div>
+    {/* KPIs */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:16,marginTop:20}} className="mos-kpis">
+     <div style={kpiCard}>{kico("#EEEBFD",svg("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",P.purple))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Citas de hoy</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{citasHoy}</div><div style={{height:6,borderRadius:99,background:"#EDEFF6",overflow:"hidden"}}><i style={{display:"block",height:"100%",width:`${citasHoy?Math.round(atendidasHoy/citasHoy*100):0}%`,background:P.purple,borderRadius:99}}/></div><div style={{fontSize:11.5,marginTop:5}}><span style={link} {...act(()=>setView("agenda"))}>Ver agenda →</span></div></div></div>
+     <div style={kpiCard}>{kico("#E6F6EE",svg("M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",P.green))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Consultas atendidas</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{atendidasHoy}</div><div style={{fontSize:11.5,color:P.muted,marginTop:5}}>de {citasHoy} citas de hoy</div></div></div>
+     <div style={kpiCard}>{kico("#FDE7EA",svg("M7 3h7l4 4v14H7zM14 3v4h4M10 13h5M10 16h3",P.red))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Pendientes críticos</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{critCount}</div><div style={{fontSize:11.5,marginTop:5}}><span style={link} {...act(()=>setView("resultados"))}>Ver resultados →</span></div></div></div>
+     <div style={kpiCard}>{kico("#E7EEFB",svg("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",P.blue))}<div style={{flex:1,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div>{(()=>{const nx=agenda?.appointments.find(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN");return <><div style={{fontSize:13,color:P.muted}}>Próxima cita</div><div style={{fontSize:22,fontWeight:800,margin:"2px 0"}}>{nx?new Date(nx.startAt).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase():"—"}</div><div style={{fontSize:11.5,color:P.muted}}>{nx?nx.patientName:"Sin citas próximas"}</div></>;})()}</div><span style={{width:30,height:30,borderRadius:"50%",background:"#E7EEFB",color:P.blue,display:"grid",placeItems:"center",cursor:"pointer"}} {...act(()=>setView("agenda"))}>→</span></div></div>
+    </div>
+    {/* Banners */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16}} className="mos-banners">
+     <div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderRadius:14,background:"#FDECEE",border:"1px solid #F6CDD3"}}>{svg("M12 4l9 15.5H3zM12 10v4M12 17h.01",P.red)}<div style={{flex:1}}><div style={{fontWeight:700,fontSize:14}}>{critCount||2} resultados críticos sin resolver</div><div style={{fontSize:12.5,color:P.muted}}>Requieren acción para poder firmar consultas.</div></div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}} onClick={()=>setView("resultados")}>Ver resultados</button></div>
+     <div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderRadius:14,background:"#FDF4E6",border:"1px solid #F2E1C0"}}>{svg("M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7zM7 8l6 6",P.amber)}<div style={{flex:1}}><div style={{fontWeight:700,fontSize:14}}>Verificador de interacciones</div><div style={{fontSize:12.5,color:P.muted}}>Revisa el conjunto de fármacos del paciente (motor determinista).</div></div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("medicamentos");setMedTab("interacciones");}}>Revisar</button></div>
+    </div>
+    {/* Mid: tareas | agenda | (CI + acciones) */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-mid">
+     <div style={cardP}><div style={h2row}><h2 style={h2s}>Tareas clínicas prioritarias <span style={{background:P.purple,color:"#fff",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>{tasks.length}</span></h2><span style={link} {...act(()=>go("Panel del clínico"))}>Ver todas →</span></div>
+      {tasks.length===0&&<div style={{padding:"18px",fontSize:13,color:P.muted,borderTop:`1px solid ${LINE}`}}>{panel?"Sin tareas clínicas prioritarias.":"Cargando tareas…"}</div>}
+      {tasks.map((t,i)=>{const[tag,tbg,tfg]=prTag(t.pr);return <div key={i} title={t.pid?"Abrir consulta del paciente":undefined} style={{display:"flex",gap:12,padding:"12px 18px",borderTop:`1px solid #F1F3F9`,cursor:"pointer"}} {...act(()=>openPatientCtx(t.pid,t.who))}>
+       <span style={{width:34,height:34,borderRadius:9,background:tbg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><span style={{width:8,height:8,borderRadius:"50%",background:tfg}}/></span>
+       <div style={{flex:1,minWidth:0}}><div style={{fontSize:13.5,fontWeight:600}}>{t.title}</div><div style={{fontSize:12,color:P.muted}}>{t.who}</div></div>
+       <span style={{fontSize:10.5,fontWeight:700,borderRadius:6,padding:"3px 8px",background:tbg,color:tfg,whiteSpace:"nowrap",alignSelf:"flex-start"}}>{tag}</span>
+      </div>;})}
+     </div>
+     <div style={cardP}><div style={h2row}><h2 style={h2s}>Agenda de hoy</h2><span style={link} {...act(()=>setView("agenda"))}>Ver agenda →</span></div>
+      <div style={{padding:"4px 18px 14px",position:"relative"}}>
+       <div style={{position:"absolute",left:73,top:8,bottom:14,width:2,background:"#EDEFF6"}}/>
+       {!(agenda?.appointments.length)&&<div style={{padding:"10px 0 10px 84px",fontSize:13,color:P.muted}}>{agenda?"Sin citas registradas para hoy.":"Cargando agenda…"}</div>}
+       {(agenda?.appointments.length?agenda.appointments.slice(0,8).map(a=>({tm:new Date(a.startAt).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase(),txt:`${a.patientName} · ${a.reason}`,on:a.status==="CHECKED_IN",pid:a.patientId,name:a.patientName})):([] as {tm:string;txt:string;on:boolean;pid:string;name:string}[])).map((it,i)=>(
+        <div key={i} {...act(()=>openPatientCtx(it.pid,it.name))} title={it.pid?"Abrir consulta del paciente":undefined} style={{display:"flex",gap:14,padding:it.on?"9px 12px":"9px 0",position:"relative",cursor:it.pid?"pointer":"default",...(it.on?{background:"#F1EFFE",border:"1px solid #D9D3FA",borderRadius:12,margin:"2px -12px"}:{})}}>
+         <span style={{fontSize:12,color:P.muted,width:62,flex:"0 0 auto",textAlign:"right",paddingTop:1}}>{it.tm}</span>
+         <span style={{width:11,height:11,borderRadius:"50%",background:it.on?P.purple:"#fff",border:`2px solid ${it.on?P.purple:"#C9CEE6"}`,flex:"0 0 auto",marginTop:3,zIndex:1}}/>
+         <div><div style={{fontSize:13,fontWeight:600,color:it.on?P.purple:P.ink}}>Consulta</div><div style={{fontSize:12,color:P.muted}}>{it.txt}</div></div>
+        </div>))}
+      </div>
+     </div>
+     <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={cardP}><div style={h2row}><h2 style={{...h2s,color:P.purple}}><NavIcon k="brain"/>Clinical Intelligence (IA)</h2></div>
+       <div style={{padding:"0 18px",fontSize:12,color:P.muted,marginBottom:6}}>Ejemplos de hallazgos poblacionales (representativos; el tablero por cohorte se conecta al motor determinista).</div>
+       <div style={{padding:"4px 18px 16px"}}>
+        {[["#EEEBFD",P.purple,"flask","3 pacientes","con tamizaje de depresión pendiente"],["#FDE7EA",P.red,"activity","2 pacientes","con HbA1c > 8% (sin ajuste en 3 meses)"],["#E7EEFB",P.blue,"syringe","1 paciente","con vacunas atrasadas"],["#FBF0DC",P.amber,"pill","1 posible duplicidad","terapéutica en antihipertensivos"]].map(([bg,fg,ic,b,rest],i)=>(
+         <div key={i} style={{display:"flex",gap:11,alignItems:"flex-start",padding:"9px 0",borderTop:i?`1px solid #F1F3F9`:"0"}}><span style={{width:30,height:30,borderRadius:8,background:bg as string,display:"grid",placeItems:"center",flex:"0 0 auto",color:fg as string}}><NavIcon k={ic as string}/></span><div style={{fontSize:13,lineHeight:1.35}}><b>{b}</b> {rest}</div></div>))}
+        <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI,width:"100%",marginTop:10}} onClick={()=>setView("clinicalIntel")}>Ver Clinical Intelligence →</button>
+       </div>
+      </div>
+      <div style={cardP}><div style={h2row}><h2 style={h2s}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={P.purple} strokeWidth="1.9" aria-hidden><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones rápidas</h2></div>
+       <div style={{padding:8}}>
+        {qa("Nueva consulta","M12 5v14M5 12h14",()=>{setConsultaPid(null);setView("consulta");})}
+        {qa("Registrar resultado","M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3",()=>setView("resultados"))}
+        {qa("Crear orden clínica","M8 4h8v3H8zM6 5H5v16h14V5h-1M8 12h8M8 16h5",()=>{setView("ordenes");setOrdNew(true);})}
+        {qa("Prescribir medicamento","M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7zM7 8l6 6",()=>setView("medicamentos"))}
+        {qa("Agendar cita","M4 6h16v14H4zM8 3v4M16 3v4",()=>{setView("agenda");setApptNew(true);})}
+        {qa("Subir documento","M12 16V4m0 0l-4 4m4-4l4 4M4 20h16",()=>setView("documentos"))}
+        {qa("Solicitar interconsulta","M8 11a3 3 0 100-6 3 3 0 000 6zM2 20a6 6 0 0112 0M16 4.5a3 3 0 010 6M22 20a6 6 0 00-5-5.9",()=>setView("interconsulta"))}
+       </div>
+      </div>
+     </div>
+    </div>
+    {/* Pacientes recientes | recursos */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-low">
+     <div style={cardP}><div style={h2row}><h2 style={h2s}>Pacientes recientes</h2><span style={link} {...act(()=>setView("pacientes"))}>Ver todas →</span></div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+       <thead><tr>{["Nombre","Edad","Última consulta","Motivo","Estado"].map(h=><th key={h} style={{textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"8px 18px",borderBottom:`1px solid ${LINE}`}}>{h}</th>)}</tr></thead>
+       <tbody>{!usingRealPts&&<tr><td colSpan={6} style={{padding:"22px 14px",textAlign:"center",color:P.muted,fontSize:13}}>{patientList?"Aún no hay pacientes registrados.":"Cargando pacientes…"}</td></tr>}{realPts.map((p,i)=>{const[stl,sbg,sfg]=stEs(p.status);const d=p as{name:string;status:string;age?:string;last?:string;motivo?:string;patientId?:string};return <tr key={i}>
+        <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13}}><span style={{display:"flex",alignItems:"center",gap:10,fontWeight:600,cursor:"pointer"}} {...act(()=>d.patientId?openPatientCtx(d.patientId,p.name):setView("pacientes"))}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700}}>{initials(p.name)}</span>{p.name}</span></td>
+        <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13,color:P.muted}}>{d.age??"—"}</td>
+        <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13,color:P.muted}}>{d.last??"—"}</td>
+        <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13}}>{d.motivo??"—"}</td>
+        <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`}}><span style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:sbg,color:sfg,whiteSpace:"nowrap"}}>{stl}</span></td>
+       </tr>;})}</tbody>
+      </table></div>
+     </div>
+     <div style={cardP}><div style={h2row}><h2 style={h2s}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={P.purple} strokeWidth="1.8" aria-hidden><path d="M4 5a2 2 0 012-2h9v18H6a2 2 0 01-2-2zM15 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3"/></svg>Recursos clínicos</h2></div>
+      <div style={{padding:"6px 8px"}}>{([["Calculadoras médicas",()=>setView("biblioteca")],["Interacciones medicamentosas",()=>{setView("medicamentos");setMedTab("interacciones");}],["CIE-10 / CUPS",()=>setView("biblioteca")],["Protocolos del consultorio",()=>setView("biblioteca")],["Guías de práctica clínica",()=>setView("biblioteca")]] as const).map(([r,fn])=><div key={r} {...act(fn)} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,color:P.blue,fontSize:13.5,fontWeight:500,cursor:"pointer"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><path d="M8 6h9M8 12h9M8 18h6M4 6h.01M4 12h.01M4 18h.01"/></svg>{r}</div>)}</div>
+     </div>
+    </div>
+    {/* Indicadores | donut | mensajes */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 340px",gap:16,marginTop:16,alignItems:"start"}} className="mos-low2">
+     <div style={cardP}><div style={h2row}><h2 style={{...h2s,fontSize:15}}>Indicadores del consultorio</h2><span style={{fontSize:11,color:P.muted,background:"#F3F5FA",borderRadius:6,padding:"2px 8px"}}>representativo</span></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",padding:"0 6px 12px"}}>
+       {[["48","Consultas totales","↑ 12%",true,"#DDD8FA"],["92%","Asistencia a citas","↑ 5%",true,"#DDD8FA"],["2.3 días","Tiempo de seguimiento","↓ 18%",false,"#DDD8FA"],["4.8/5","Satisfacción pacientes","↑ 0.4",true,"#B7E7CC"]].map(([v,l,tr,up,bar],i)=>(
+        <div key={i} style={{padding:"14px 16px"}}><div style={{fontSize:23,fontWeight:800}}>{v as string}</div><div style={{fontSize:11.5,color:P.muted}}>{l as string}</div>
+         <div style={{display:"flex",alignItems:"flex-end",gap:3,height:32,margin:"8px 0"}}>{[40,62,48,75,88,70].map((h,j)=><span key={j} style={{flex:1,height:`${h}%`,background:bar as string,borderRadius:2}}/>)}</div>
+         <div style={{fontSize:12,fontWeight:700,color:up?P.green:"#D23651"}}>{tr as string}</div></div>))}
+      </div>
+     </div>
+     <div style={{...cardP,padding:"16px 18px"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><h2 style={{...h2s,fontSize:15}}>Distribución de motivos de consulta</h2><span style={{fontSize:11,color:P.muted,background:"#F3F5FA",borderRadius:6,padding:"2px 8px"}}>representativo</span></div>
+      <div style={{display:"flex",gap:20,alignItems:"center"}}>
+       <div style={{width:150,height:150,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:"conic-gradient(#6C5CF6 0 29%,#8B7DF8 29% 56%,#20B7D9 56% 71%,#5B8DEF 71% 83%,#C9CEE6 83% 100%)"}}><div style={{width:96,height:96,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:22,fontWeight:800}}>48</div><div style={{fontSize:10,color:P.muted}}>consultas</div></div></div></div>
+       <div style={{flex:1}}>{[["#6C5CF6","Infecciones respiratorias","29%"],["#8B7DF8","Control crónicos","27%"],["#20B7D9","Gastrointestinal","15%"],["#5B8DEF","Salud preventiva","12%"],["#C9CEE6","Otros","17%"]].map(([c,l,p],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:12.5,padding:"4px 0"}}><span style={{width:9,height:9,borderRadius:"50%",background:c as string,flex:"0 0 auto"}}/>{l as string}<b style={{marginLeft:"auto"}}>{p as string}</b></div>)}</div>
+      </div>
+     </div>
+     <div style={cardP}><div style={h2row}><h2 style={{...h2s,fontSize:15}}>Mensajes y notificaciones <span style={{background:P.red,color:"#fff",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>3</span></h2><span style={link}>Ver todos →</span></div>
+      {[["#5B8DEF","Nuevo resultado de laboratorio","Hoy 12:45 p.m."],["#16A66A","Interconsulta aceptada","Hoy 10:20 a.m."],["#E5983B","Documento pendiente por firmar","Ayer 6:15 p.m."]].map(([c,t,tm],i)=><div key={i} style={{display:"flex",gap:11,padding:"10px 18px",borderTop:`1px solid #F1F3F9`,alignItems:"flex-start"}}><span style={{width:8,height:8,borderRadius:"50%",background:c as string,marginTop:5,flex:"0 0 auto"}}/><div style={{flex:1,fontSize:13,fontWeight:600}}>{t as string}</div><span style={{fontSize:11.5,color:P.muted,whiteSpace:"nowrap"}}>{tm as string}</span></div>)}
+     </div>
+    </div>
+   </div>;
+  
+}

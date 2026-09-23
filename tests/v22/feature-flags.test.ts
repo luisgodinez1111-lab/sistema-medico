@@ -61,11 +61,12 @@ describe("coherencia — el matcher del middleware, la lista y el árbol de ruta
   for(const v of HOSPITAL_VERTICALS)expect(fs.existsSync(path.resolve("apps/web/app/api/v1",v)),v).toBe(true);
  });
  it("la UI no pinta los paneles hospitalarios sin que el servidor los declare encendidos",()=>{
-  const src=fs.readFileSync(path.resolve("apps/web/app/workspace/page.tsx"),"utf8");
+  // K-09: los paneles hospitalarios viven en la vista del expediente (views/exp.tsx); el estado, en el modelo (model.tsx).
+  const src=fs.readFileSync(path.resolve("apps/web/app/workspace/views/exp.tsx"),"utf8");
   for(const marker of["INTERNAMIENTO / HOSPITALIZACIÓN","MUESTRAS / CADENA DE CUSTODIA","TRIAGE / CLASIFICACIÓN DE ACUIDAD","HERIDAS / LESIONES POR PRESIÓN","TRANSFUSIONES","CIRUGÍA / QUIRÓFANO","DIÁLISIS"]){
    const i=src.indexOf(`{/* ${marker} */}`);expect(i,marker).toBeGreaterThan(-1);
    expect(src.slice(i,i+120).replace(/\s+/g,""),marker).toContain("*/}{hospitalOn&&<section");
   }
-  expect(src).toContain("useState(false);"); // estado inicial apagado
+  expect(fs.readFileSync(path.resolve("apps/web/app/workspace/model.tsx"),"utf8")).toMatch(/hospitalOn,setHospitalOn\]=useState(?:<boolean>)?\(false\)/); // estado inicial apagado
  });
 });

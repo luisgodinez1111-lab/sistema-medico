@@ -1,0 +1,52 @@
+"use client";
+// GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "clinicalIntel" del workspace, extraída de page.tsx sin cambios
+// en su JSX ni en su lógica. Toma del contexto solo lo que usa.
+
+import{card,P,UI,LINE}from"../shared";
+import{useWorkspace}from"../context";
+export default function ClinicalIntelView(){
+ const{ciSnap,setView,patientName,patientSelector,patientId}=useWorkspace();
+
+   // ===== MÓDULO CLINICAL INTELLIGENCE (S-CLINICALINTEL) =====
+   // Alertas clínicas y calculadoras DETERMINISTAS (motor CDS real). El asistente de IA generativa y el
+   // diagnóstico diferencial probabilístico se muestran a fidelidad pero son REPRESENTATIVOS: R6 (IA generativa)
+   // está en pausa intencional por la regla del proyecto (r6-paused). No hay LLM en producción.
+   const card2:React.CSSProperties={...card,marginTop:0};
+   const initials=(n:string)=>n.split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+   const clip="M9 3h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h1V4a1 1 0 011-1z";
+   // Alertas: findings deterministas del snapshot (reales) o representativas de la imagen.
+   const SEVC:Record<string,string>={CRITICAL:P.red,WARNING:P.red,INFO:P.amber};
+   type Alert={title:string;detail:string;color:string};
+   const realFindings=ciSnap?.findings??[];
+   const alerts:Alert[]=realFindings.map(f=>({title:f.summary,detail:f.domain,color:SEVC[f.severity]??P.amber}));
+   const chipCard=(c:string,d:string,n:number|string,l:string)=><div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}><span style={{width:32,height:32,borderRadius:9,background:c+"22",color:c,display:"grid",placeItems:"center"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={d}/></svg></span><div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{n}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div></div>;
+   const nProblems=ciSnap?.problems?.length??0,nAllergies=ciSnap?.allergies?.length??0;
+   const calcs:[string,string][]=[["IMC","M8 3h8M12 3v6M6 9h12l-1 12H7z"],["FG (CKD-EPI)","M12 3a9 9 0 100 18 9 9 0 000-18zM12 8v4l3 2"],["Dosis pediátricas","M12 2v20M2 12h20"],["CHA₂DS₂-VASc","M12 21C12 21 4 13.5 4 8.5A4 4 0 0112 6a4 4 0 018 2.5C20 13.5 12 21 12 21z"],["Score NEWS2","M3 12h4l3 8 4-16 3 8h4"]];
+   return <div style={{padding:"18px 24px 40px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><path d="M9 3a3 3 0 00-3 3 3 3 0 00-2 5 3 3 0 001 5 3 3 0 004 2 3 3 0 006 0 3 3 0 004-2 3 3 0 001-5 3 3 0 00-2-5 3 3 0 00-3-3 3 3 0 00-6 0zM12 6v13"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Clinical Intelligence</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Apoyo clínico con IA, guías de práctica clínica y alertas inteligentes para una mejor toma de decisiones.</p></div></div>
+     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button onClick={()=>setView("exp")} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px 15px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Ver expediente →</button></div>
+    </div>
+    <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+     <div style={{display:"flex",alignItems:"center",gap:13,minWidth:0}}><span style={{width:48,height:48,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:15,fontWeight:700,flex:"0 0 auto"}}>{initials(patientName||"—")}</span><div style={{minWidth:0}}><div style={{fontWeight:700,fontSize:16}}>{patientSelector}</div><div style={{fontSize:12.5,color:P.muted}}>{patientId?"Apoyo clínico determinista del paciente en contexto":"Selecciona un paciente para ver sus alertas deterministas"}</div></div></div>
+     <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>{chipCard(P.blue,clip,nProblems,"Problemas activos")}{chipCard(P.red,"M10.3 3.9 1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z",nAllergies,nAllergies===1?"Alergia":"Alergias")}</div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:16,marginTop:16,alignItems:"start"}} className="mos-ci">
+     {/* Asistente clínico (representativo — R6 en pausa) */}
+     <div style={{...card2,padding:18}}>
+      <div style={{display:"flex",gap:12,alignItems:"flex-start"}}><span style={{width:40,height:40,borderRadius:11,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span><div><div style={{fontSize:18,fontWeight:800}}>Apoyo clínico determinista</div><div style={{fontSize:12.5,color:P.muted}}>Hallazgos y alertas del motor CDS (por reglas), a partir del expediente real del paciente.</div></div></div>
+      <div style={{marginTop:16,fontSize:14,fontWeight:800,marginBottom:8}}>Hallazgos deterministas ({realFindings.length})</div>
+      {realFindings.length===0?<div style={{fontSize:13,color:P.muted,padding:"10px 0"}}>{patientId?"Sin hallazgos deterministas para los datos actuales del paciente. Se recalculan al documentar signos, diagnósticos, medicación y resultados.":"Selecciona un paciente para evaluar hallazgos deterministas."}</div>:realFindings.map((f,i)=><div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"11px 13px",borderRadius:11,border:`1px solid ${LINE}`,marginBottom:8}}><span style={{color:SEVC[f.severity]??P.amber,flex:"0 0 auto",marginTop:1}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700}}>{f.summary}</div><div style={{fontSize:11.5,color:P.muted}}>{f.domain}</div></div></div>)}
+      <div style={{marginTop:14,fontSize:11.5,color:"#7A5A16",background:"#FDF4E6",border:"1px solid #F2E1C0",borderRadius:9,padding:"10px 12px",lineHeight:1.5}}><b>Nota de gobernanza (R6 en pausa).</b> El asistente clínico generativo y el diagnóstico diferencial probabilístico <b>no están disponibles</b>: la IA generativa está en pausa intencional en este sistema. Solo operan componentes <b>deterministas y reales</b> (motor CDS): alertas por reglas y calculadoras. No hay ningún modelo de lenguaje en producción.</div>
+     </div>
+     {/* Columna derecha: alertas (reales) + diferencial + guías + calculadoras */}
+     <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{...card2,padding:16}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><span style={{color:P.red}}>⚠</span><div style={{fontSize:15,fontWeight:800}}>Alertas clínicas</div><span style={{background:alerts.length?P.red:"#C7CCE0",color:"#fff",borderRadius:"50%",width:18,height:18,display:"grid",placeItems:"center",fontSize:11,fontWeight:700}}>{alerts.length}</span></div>{alerts.length===0?<div style={{fontSize:12.5,color:P.muted}}>{patientId?"Sin alertas deterministas para este paciente.":"Selecciona un paciente."}</div>:alerts.map((a,i)=><div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"11px 12px",borderRadius:11,background:"#FDECEE",marginBottom:i<alerts.length-1?8:0}}><span style={{color:a.color,flex:"0 0 auto"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M6 2h9l5 5v15H6z"/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700}}>{a.title}</div><div style={{fontSize:11.5,color:P.muted}}>{a.detail}</div></div></div>)}</div>
+      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8,marginBottom:8}}>🧠 Diagnóstico diferencial</div><div style={{fontSize:12.5,color:P.muted,lineHeight:1.5}}>No disponible: el diagnóstico diferencial probabilístico requiere IA generativa (R6), en pausa intencional. Usa las alertas deterministas y las guías de práctica clínica.</div></div>
+      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8,marginBottom:10}}>▤ Guías de práctica clínica</div>{["ADA 2024 – Diabetes mellitus tipo 2","AHA 2023 – Hipertensión arterial","GPC IMSS 2023 – Obesidad","GPC CENETEC – Dislipidemia","GPC – Enfermedad renal diabética"].map((g,i)=><div key={i} style={{padding:"9px 11px",border:`1px solid ${LINE}`,borderRadius:9,marginBottom:6,fontSize:12.5,fontWeight:500}}>{g}</div>)}<div style={{fontSize:11,color:P.muted,marginTop:4}}>Referencias de guías vigentes (catálogo estático).</div></div>
+      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8,marginBottom:12}}>▦ Calculadoras clínicas</div><div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>{calcs.map(([l,d],i)=><div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><span style={{width:40,height:40,borderRadius:11,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d={d}/></svg></span><span style={{fontSize:10,fontWeight:600,textAlign:"center",lineHeight:1.1}}>{l}</span></div>)}</div><div style={{fontSize:11,color:P.muted,marginTop:10}}>Fórmulas deterministas del motor CDS (eGFR CKD-EPI, IMC, CHA₂DS₂-VASc, NEWS2). El cálculo interactivo se realiza al capturar los datos en Signos vitales y Resultados.</div></div>
+     </div>
+    </div>
+   </div>;
+  
+}

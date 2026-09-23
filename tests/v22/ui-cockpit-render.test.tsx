@@ -204,7 +204,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Órdenes: cableada a /api/v1/orders — KPIs reales, lista, detalle vivo y creador funcional",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Órdenes"}));
-  expect(screen.getByRole("heading",{name:"Órdenes"})).toBeTruthy();
+  expect(await screen.findByRole("heading",{name:"Órdenes"})).toBeTruthy();
   // KPIs derivados del registro real (2 totales, 1 solicitada, 1 completada)
   expect(await screen.findByText("Órdenes totales")).toBeTruthy();
   expect(screen.getByText("Solicitadas")).toBeTruthy();
@@ -231,7 +231,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Medicamentos: catálogo determinista real (drug-catalog) con detalle y pestaña Alertas",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Medicamentos"}));
-  expect(screen.getByRole("heading",{name:"Medicamentos"})).toBeTruthy();
+  expect(await screen.findByRole("heading",{name:"Medicamentos"})).toBeTruthy();
   expect(screen.getByText("Principios activos")).toBeTruthy();       // KPI real (nº del catálogo)
   expect(screen.getByText("Con monitoreo obligado")).toBeTruthy();   // KPI real
   expect(screen.getByText("Reglas de interacción")).toBeTruthy();    // KPI real
@@ -253,7 +253,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Agenda: citas reales cableadas, navegación de fecha, detalle con ciclo de vida y nueva cita",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Agenda"}));
-  expect(screen.getByRole("heading",{name:"Agenda"})).toBeTruthy();
+  expect(await screen.findByRole("heading",{name:"Agenda"})).toBeTruthy();
   // citas reales del registro (aparecen en la rejilla y en "Próximas citas")
   expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0);
   expect(screen.getAllByText("Carlos Mendoza").length).toBeGreaterThan(0);
@@ -461,7 +461,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Alergias: registrar una alergia real desde el módulo (POST /allergies)",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Alergias"}));
-  fireEvent.click(screen.getByRole("button",{name:"+ Nueva alergia"}));
+  fireEvent.click(await screen.findByRole("button",{name:"+ Nueva alergia"}));
   expect(screen.getByText("Nueva alergia")).toBeTruthy();
   // esperar a que la lista de pacientes cargue (opción del selector) y elegir paciente + sustancia + reacción
   await screen.findByRole("option",{name:"Ana López García"});
@@ -475,7 +475,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Vacunas: registrar una vacuna real desde el módulo (POST /immunizations)",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Vacunas"}));
-  fireEvent.click(screen.getByRole("button",{name:"+ Registrar vacuna"}));
+  fireEvent.click(await screen.findByRole("button",{name:"+ Registrar vacuna"}));
   expect(screen.getByText(/Sin lote se registra/)).toBeTruthy(); // panel abierto
   await screen.findByRole("option",{name:"Ana López García"});
   fireEvent.change(screen.getAllByRole("combobox")[0]!,{target:{value:"p1"}}); // paciente
@@ -506,7 +506,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Obligaciones: agregar una obligación regulatoria real (POST /regulatory-obligations)",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Obligaciones"}));
-  fireEvent.click(screen.getByRole("button",{name:"+ Agregar obligación"}));
+  fireEvent.click(await screen.findByRole("button",{name:"+ Agregar obligación"}));
   fireEvent.change(screen.getByPlaceholderText(/Declaración mensual de IVA/),{target:{value:"Aviso de funcionamiento COFEPRIS"}});
   fireEvent.click(screen.getByRole("button",{name:"Agregar obligación"}));
   expect(await screen.findByText(/Obligación agregada/)).toBeTruthy();
@@ -535,7 +535,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Resultados: registrar un resultado real (POST /results, interpretación derivada)",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Resultados"}));
-  fireEvent.click(screen.getByRole("button",{name:"+ Registrar resultado"}));
+  fireEvent.click(await screen.findByRole("button",{name:"+ Registrar resultado"}));
   const opt=await screen.findByRole("option",{name:"Ana López García"});
   fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});          // paciente
   // Auditoría U-07: la unidad es parte del dato. El selector arranca en la canónica del analito y ofrece las alternativas.
@@ -631,7 +631,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Configuración (S-CONFIG): ajustes del consultorio cableados a /office-settings — cargar, editar y guardar",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:/^Configuración/}));           // acceso en HERRAMIENTAS
-  expect(screen.getByRole("heading",{name:"Configuración"})).toBeTruthy();
+  expect(await screen.findByRole("heading",{name:"Configuración"})).toBeTruthy();
   expect(screen.getAllByText("Información del consultorio").length).toBeGreaterThan(0);
   expect(screen.getByText("Preferencias de consulta")).toBeTruthy();
   expect(screen.getByText("Módulos activos")).toBeTruthy();
@@ -688,7 +688,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Biblioteca Clínica (S-BIBLIOTECA): repositorio de conocimiento + herramientas reales enlazadas",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:/Biblioteca clínica/}));       // acceso en HERRAMIENTAS
-  expect(screen.getByRole("heading",{name:"Biblioteca Clínica"})).toBeTruthy();
+  expect(await screen.findByRole("heading",{name:"Biblioteca Clínica"})).toBeTruthy();
   expect(screen.getByText("Guías y protocolos")).toBeTruthy();                    // KPI
   expect(screen.getByText("Especialidades")).toBeTruthy();
   expect(screen.getByText("Contenido destacado")).toBeTruthy();
@@ -708,7 +708,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Reportes (S-REPORTES): tablero analítico — KPIs y diagnósticos cableados a GET /reports + gráficas",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Reportes"}));
-  expect(screen.getByRole("heading",{name:"Reportes"})).toBeTruthy();
+  expect(await screen.findByRole("heading",{name:"Reportes"})).toBeTruthy();
   expect(screen.getByText("Pacientes atendidos")).toBeTruthy();                  // KPI real
   expect(screen.getByText("Ingresos totales")).toBeTruthy();                     // KPI real
   expect(await screen.findByText("Órdenes y estudios")).toBeTruthy();           // KPI real (ordersTotal)
@@ -733,7 +733,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Clinical Intelligence (S-CLINICALINTEL): apoyo determinista real; IA generativa (R6) marcada como no disponible",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Clinical Intelligence"}));
-  expect(screen.getByRole("heading",{name:"Clinical Intelligence"})).toBeTruthy();
+  expect(await screen.findByRole("heading",{name:"Clinical Intelligence"})).toBeTruthy();
   expect(screen.getByText("Apoyo clínico determinista")).toBeTruthy();          // panel determinista real
   expect(screen.getAllByText(/Alertas clínicas/).length).toBeGreaterThan(0);
   expect(screen.getByText(/Calculadoras clínicas/)).toBeTruthy();
@@ -800,7 +800,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Seguimiento (S-SEGUIMIENTO): tendencia de vitales + indicadores + tareas reales, sin maqueta",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:/^Seguimiento/}));
-  expect(screen.getByRole("heading",{name:"Seguimiento"})).toBeTruthy();
+  expect(await screen.findByRole("heading",{name:"Seguimiento"})).toBeTruthy();
   // secciones reales derivadas del snapshot (GET /follow-up)
   expect(screen.getByText("Tendencia de signos vitales")).toBeTruthy();
   expect(screen.getByText(/Indicadores clave/)).toBeTruthy();
@@ -888,7 +888,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Problemas (S-PROBLEMAS): registro clínica-wide cableado a GET /api/v1/problems + navegación a form y plantillas",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Problemas"}));
-  expect(screen.getByRole("heading",{name:"Problemas"})).toBeTruthy();
+  expect(await screen.findByRole("heading",{name:"Problemas"})).toBeTruthy();
   expect((await screen.findAllByText("Ana López García",{},{timeout:2500})).length).toBeGreaterThan(0); // fila + detalle
   expect(screen.getByText("Detalle del problema")).toBeTruthy();
   expect(screen.getAllByText("En seguimiento").length).toBeGreaterThan(0); // estado en TEXTO
