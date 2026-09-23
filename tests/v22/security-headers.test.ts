@@ -28,7 +28,9 @@ describe("Content-Security-Policy con nonce (páginas, S-04)",()=>{
   const c=contentSecurityPolicy(PROD,"abc123");
   expect(directive(c,"script-src")).toBe("script-src 'self' 'nonce-abc123' 'strict-dynamic'");
   expect(directive(contentSecurityPolicy({NODE_ENV:"development"},"n"),"script-src")).toBe("script-src 'self' 'nonce-n' 'strict-dynamic' 'unsafe-eval'");
-  expect(directive(c,"style-src")).toBe("style-src 'self' 'unsafe-inline'"); // atributos style del SSR: declarado, no resuelto por nonce
+  expect(directive(c,"style-src-elem")).toBe("style-src-elem 'self' 'nonce-abc123'"); // ningún <style> inyectado sin nonce
+  expect(directive(c,"style-src-attr")).toBe("style-src-attr 'unsafe-inline'"); // atributos style del SSR de React
+  expect(directive(c,"style-src")).toBe("style-src 'self' 'unsafe-inline'"); // respaldo para navegadores sin CSP3
  });
  it("el config estático no fija CSP para las páginas (la pone el middleware) pero sí para la API y los estáticos",async()=>{
   const hs=await (nextConfig.headers as ()=>Promise<{source:string;headers:{key:string;value:string}[]}[]>)();

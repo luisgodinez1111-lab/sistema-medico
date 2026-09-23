@@ -7,6 +7,7 @@ import{labReferenceRanges,acceptedUnitsOf,canonicalUnitOf,classifyVital}from"../
 import{parseBp}from"../../../../packages/bp-staging/src";
 import{drugCatalog,interactionRules,type DrugCatalogItem}from"../../../../packages/drug-catalog/src";
 import{searchIcd10}from"../../../../packages/terminology/src";
+import{useNonce}from"../../lib/nonce-context";
 // EPIC K — Espacio de trabajo clínico. Consume los endpoints ya probados con la sesión autenticada.
 // Módulos: encuentro (abrir->valorar->firmar) y medicación (proponer->prescribir->activar->suspender),
 // ambos para el mismo paciente, con concurrencia optimista (If-Match).
@@ -469,6 +470,7 @@ function obNext(o:Ob):{label:string;path:string;body:Record<string,unknown>;to:O
 }
 
 export default function Workspace(){
+ const cspNonce=useNonce(); // S-04: los <style> propios declaran el nonce de la petición
  const[session,setSession]=useState<MedicalSession|null>(null);
  const[ready,setReady]=useState(false);
  const[patientId,setPatientId]=useState("");
@@ -1860,7 +1862,7 @@ export default function Workspace(){
  const alertGlyph=<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 3.5l9 15.5H3l9-15.5z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M12 10v4M12 16.5v.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"/></svg>;
 
  return <div className="mos-app">
-  <style>{RAIL_CSS}</style>
+  <style nonce={cspNonce}>{RAIL_CSS}</style>
   {/* SIDEBAR OSCURO — navegación primaria del expediente (slider a un lado) */}
   <aside className={"mos-side"+(sideCollapsed?" col":"")}>
    <div className="mos-brand">

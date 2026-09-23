@@ -17,10 +17,14 @@ export function auth0Origin(env=process.env){
 export function contentSecurityPolicy(env=process.env,nonce=""){
  const idp=auth0Origin(env);const dev=env.NODE_ENV!=="production";
  const scriptSrc=nonce?`script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev?" 'unsafe-eval'":""}`:`script-src 'self' 'unsafe-inline'${dev?" 'unsafe-eval'":""}`;
+ // Estilos: los ELEMENTOS <style>/<link> exigen nonce u origen propio (style-src-elem); los ATRIBUTOS style="" del SSR de
+ // React se permiten (style-src-attr): un nonce no puede cubrirlos y son el mecanismo de estilo de la UI. `style-src` queda
+ // como respaldo para navegadores sin CSP3 (Chrome < 75, Firefox < 108, Safari < 15.4).
+ const styleSrc=nonce?["style-src 'self' 'unsafe-inline'",`style-src-elem 'self' 'nonce-${nonce}'`,"style-src-attr 'unsafe-inline'"]:["style-src 'self' 'unsafe-inline'"];
  return[
   "default-src 'self'",
   scriptSrc,
-  "style-src 'self' 'unsafe-inline'",
+  ...styleSrc,
   "img-src 'self' data: blob:",          // firma/sello del médico y vistas previas se sirven como blob: tras descarga autorizada
   "font-src 'self' data:",
   `connect-src 'self'${idp?` ${idp}`:""}${dev?" ws: wss:":""}`,

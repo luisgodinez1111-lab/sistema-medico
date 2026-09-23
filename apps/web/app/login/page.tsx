@@ -3,6 +3,7 @@ import{useEffect,useState}from"react";
 import{Auth0Client}from"@auth0/auth0-spa-js";
 import{exchangeForSession,storeSession,getStoredSession,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
 import{primitive,semantic,typography}from"../../../../packages/design-system/src";
+import{useNonce}from"../../lib/nonce-context";
 // EPIC J / eje E — PUERTA ÚNICA de sesión (auth split premium clínico). Una sola ventana:
 // panel de marca con la identidad del producto (Zero-Lost-Follow-Up) + tarjeta de acción.
 // Identidad de la organización vía Auth0 (PKCE) -> access token (audience medical-os) ->
@@ -73,6 +74,7 @@ const MarkGlyph=({stroke}:{stroke:string})=><svg width="22" height="22" viewBox=
 function Transient({label}:{label:string}){return <div className="transient" role="status" aria-live="polite"><span className="spin" aria-hidden/><span>{label}</span></div>;}
 
 export default function LoginPage(){
+ const cspNonce=useNonce(); // S-04
  const[phase,setPhase]=useState<Phase>("loading");
  const[client,setClient]=useState<Auth0Client|null>(null);
  const[detail,setDetail]=useState<string>("");
@@ -131,7 +133,7 @@ export default function LoginPage(){
  async function resetAuth(){try{await sessionLogout();}catch{/* limpiar aunque falle */}location.reload();}
 
  return <main className="mos-auth">
-  <style>{CSS}</style>
+  <style nonce={cspNonce}>{CSS}</style>
   <div className="auth">
    <section className="brand-panel">
     <div className="lockup">
