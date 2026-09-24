@@ -10,7 +10,9 @@ import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{withTenantTx}from"./connection";
 
 // EPIC CM — Agenda del día: citas cuyo startAt cae en [fromIso, toIso), con estado (última transición)
-// y nombre del paciente. RLS-scoped. Comparación por string ISO (orden lexicográfico correcto).
+// y nombre del paciente. RLS-scoped. Auditoría R06-24: la ventana se compara casteando a timestamptz. Antes era una
+// comparación LEXICOGRÁFICA del texto del jsonb, y solo es correcta si todo productor serializa `startAt` con el mismo
+// ancho, la misma zona y los mismos milisegundos — nada lo garantizaba.
 export type AgendaAppt=Readonly<{appointmentId:string;patientId:string;patientName:string;startAt:string;endAt:string|null;reason:string;consultorio:string|null;apptType:string|null;status:string;version:number}>;
 export async function agendaForDate(ctx:HttpTenantContext,fromIso:string,toIso:string):Promise<AgendaAppt[]>{
  return withTenantTx(ctx,async tx=>{
@@ -22,7 +24,7 @@ export async function agendaForDate(ctx:HttpTenantContext,fromIso:string,toIso:s
      (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
-     and a.payload->>'startAt' >= ${fromIso} and a.payload->>'startAt' < ${toIso}
+     and (a.payload->>'startAt')::timestamptz >= ${fromIso}::timestamptz and (a.payload->>'startAt')::timestamptz < ${toIso}::timestamptz
    order by a.payload->>'startAt' asc`;
   return rows.map(r=>{const o=r as Record<string,unknown>;return{
    appointmentId:String(o.aggregate_id),patientId:String(o.pid??""),patientName:String(o.patient_name??"Paciente"),

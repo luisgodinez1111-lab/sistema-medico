@@ -103,7 +103,10 @@ try{
  const proof={schemaHash,expectedSchemaHash,auditValid,rlsPass,replayHash,liveHash,obligationsMatch:replayHash===liveHash};
  const errors=restoreErrors(proof);
  out.proof=proof;out.errors=errors;out.status=errors.length?"FAIL":"PASS";
- out.note=rebuiltFromMigrations?"target vacio: reconstruido desde migraciones 0001..0017":"branch de Neon (copia point-in-time = restore): esquema presente, verificado";
+ // Auditoría 2026-09-19, anexo R06 (R06-16): el rango de migraciones estaba escrito a mano en esta nota y se quedó
+ // desalineado del código real (declaraba hasta la 17.ª cuando ya había más). La evidencia de un drill no puede ser una
+ // cadena que alguien olvidó actualizar: se genera del disco.
+ out.note=rebuiltFromMigrations?`target vacio: reconstruido desde migraciones ${rangoMigraciones()}`:"branch de Neon (copia point-in-time = restore): esquema presente, verificado";
 }catch(e){out.status="FAIL";out.note=String(e);}
 console.log(JSON.stringify(out,null,2));
 process.exit(out.status==="PASS"?0:1);

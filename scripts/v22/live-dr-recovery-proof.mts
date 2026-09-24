@@ -19,7 +19,11 @@ function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.p
 const det=(seed:string):string=>deterministicUuid(seed); // R01-015: única derivación de UUID del repo
 // tenant aleatorio (seguro en DB compartida); aggregate = el tenant, versiones incrementales.
 const RUN=crypto.randomUUID();const TENANT=det("dr-tenant-"+RUN);const AGG=det("dr-agg-"+RUN);
-function seededCommand(i:number){const key=`dr-cmd-${RUN}-${i}`;return{commandId:det(key+":command"),idempotencyKey:key,aggregateId:AGG,aggregateType:"Encounter",expectedVersion:i,eventId:det(key+":event"),eventType:"ENCOUNTER_OPENED",payload:{step:i},outboxId:det(key+":outbox"),topic:"encounter.opened",auditId:det(key+":audit"),correlationId:det(key+":corr"),occurredAt:"2026-01-01T00:00:00.000Z"};}
+// R06-19: desde el lote 12a el kernel exige que el payload sea un objeto con `kind` (el discriminador del que dependen
+// TODOS los folds). Este drill sembraba `{step:i}`: un evento que ningún fold podía interpretar. Ahora siembra un payload
+// que el dominio sí puede leer, sin dejar de probar lo que prueba (persistencia determinista y replay).
+const PAT=det("dr-patient");
+function seededCommand(i:number){const key=`dr-cmd-${RUN}-${i}`;return{commandId:det(key+":command"),idempotencyKey:key,aggregateId:AGG,aggregateType:"Encounter",expectedVersion:i,eventId:det(key+":event"),eventType:"ENCOUNTER_OPENED",payload:{kind:"OPENED",patientId:PAT,step:i},outboxId:det(key+":outbox"),topic:"encounter.opened",auditId:det(key+":audit"),correlationId:det(key+":corr"),occurredAt:"2026-01-01T00:00:00.000Z"};}
 const rt=postgres(direct(process.env.DATABASE_URL!),{max:4,prepare:false,onnotice:()=>{},connection:{options:`-c role=${RUNTIME_ROLE}`}});
 try{
  const ctx={tenantId:TENANT,actorId:det("dr-actor"),actorType:"SYSTEM" as const,purpose:"TREATMENT",requestId:det("dr-req")}; // prueba de DR: comandos del SISTEMA, no de un humano (auditoría S-06)
@@ -30,7 +34,9 @@ try{
  // 2) Replay determinista: hash del stream persistido == hash puro esperado.
  const ev=await rt.begin(async tx=>{await tx`select set_config('app.tenant_id',${ctx.tenantId},true)`;return tx`select aggregate_id,sequence,payload from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${AGG} order by sequence`;});
  const replayHash=crypto.createHash("sha256").update(canonicalize(ev.map(e=>({a:e.aggregate_id,s:Number(e.sequence),p:e.payload})))).digest("hex");
- const liveHash=crypto.createHash("sha256").update(canonicalize([0,1].map(i=>({a:AGG,s:i+1,p:{step:i}})))).digest("hex");
+ // El hash esperado se deriva del MISMO constructor de comandos, no de una copia del payload a mano: si el payload cambia
+ // (como cambió al exigir `kind`), la prueba sigue comparando lo que de verdad se escribió contra lo que se esperaba.
+ const liveHash=crypto.createHash("sha256").update(canonicalize([0,1].map(i=>({a:AGG,s:i+1,p:seededCommand(i).payload})))).digest("hex");
  ok(replayHash===liveHash,"DETERMINISTIC_REPLAY_MATCH");
  // 3) Reconciliación (R005): re-aplicar el MISMO comando NO duplica eventos.
  try{await executeAtomicClinicalCommand(rt,ctx,seededCommand(0) as never);}catch{/* rechazo por duplicado también es válido */}

@@ -3,6 +3,7 @@ import crypto from"node:crypto";
 import{executeAtomicClinicalCommand,type ClinicalCommand}from"../../../../packages/atomic-clinical-transaction-v3/src";
 import{canonicalize}from"../../../../packages/canonical-json/src";
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
+import{assertPayloadSchema}from"../payload-schemas";
 import{sliSpan,flowForTopic,type SliFlow}from"../../../../packages/observability/src";
 import{sharedAllow,rateLimitedError}from"../rate-limit-shared";
 import{assertSessionNotRevoked,revokeSession}from"../session-revocation";
@@ -15,6 +16,9 @@ export type ClinicalCommandResult=Readonly<{replayed:boolean;response:unknown}>;
 export async function runClinicalCommand(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult>{
  // Auditoría S-03: límite de ESCRITURAS por actor con almacén compartido entre instancias (el middleware conserva el límite
  // en memoria por sesión como primera línea). Se decide antes de abrir la transacción; 429 RATE_LIMITED con retryAfterSeconds.
+ // R06-19: el payload se valida contra el esquema de su (aggregateType, kind) ANTES de abrir la transacción. El kernel
+ // exige lo estructural; esto exige la forma del dominio. Un evento mal formado en una tabla append-only no se corrige.
+ assertPayloadSchema(command);
  const limit=await sharedAllow("write",`${ctx.tenantId}:${ctx.actorId}`);
  if(!limit.allowed)throw rateLimitedError(limit);
  const span=sliSpan(flowForTopic(command.topic),"commit",command.correlationId);

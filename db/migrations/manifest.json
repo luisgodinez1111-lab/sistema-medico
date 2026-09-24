@@ -96,6 +96,10 @@
   {
    "file": "0024_phi_access_log.sql",
    "sha256": "5907660ccf50831cd967b60d46a89e0f310f80cd1e11aa197608a6ad84884811"
+  },
+  {
+   "file": "0025_read_path_indexes_and_pending_constraint.sql",
+   "sha256": "9f8292c2646a3945ecfd454d56dad4a3e9fe1b96550f83f1c5160fb4df0bdbed"
   }
  ]
 }

@@ -1,9 +1,35 @@
-import type{Sql,TransactionSql}from"postgres";import crypto from"node:crypto";import{canonicalize}from"../../canonical-json/src";import{assertTenantContext,type TenantContext}from"../../tenant-context/src";
+import type{Sql,TransactionSql}from"postgres";import crypto from"node:crypto";import{canonicalize}from"../../canonical-json/src";import{ClinicalError}from"../../runtime-errors/src";import{assertTenantContext,type TenantContext}from"../../tenant-context/src";
 export type ClinicalCommand=Readonly<{commandId:string;idempotencyKey:string;aggregateId:string;aggregateType:string;expectedVersion:number;eventId:string;eventType:string;payload:unknown;outboxId:string;topic:string;auditId:string;correlationId:string;occurredAt:string}>;
 // `preflight` (opcional) corre DENTRO de la transacción, justo después de fijar el contexto de RLS y antes de tocar
 // ningún agregado: si lanza, nada se escribe. Lo usa la comprobación de sesión revocada (auditoría R01-014) para que la
 // decisión sea atómica con el comando, sin una transacción extra ni ventana entre comprobar y escribir.
-export async function executeAtomicClinicalCommand(sql:Sql,ctx:TenantContext,c:ClinicalCommand,preflight?:(tx:TransactionSql)=>Promise<void>){assertTenantContext(ctx);return sql.begin(async(tx:TransactionSql)=>{
+// ---------- Auditoría 2026-09-19, anexo R06 (R06-19): el payload entraba a jsonb SIN validar ----------
+//
+// `payload` está tipado como `unknown` en la firma pública y se forzaba a `never` con un cast para satisfacer al
+// compilador justo antes del INSERT. Es decir: el registro clínico inmutable aceptaba cualquier forma, y `zod` —que el
+// repositorio ya usa en todos los cuerpos HTTP— no llegaba hasta aquí. Cualquier defecto de construcción de un comando
+// (una clave mal escrita, un `undefined` que desaparece al serializar, un payload que no es un objeto) quedaba escrito
+// para siempre en una tabla append-only, y el fold correspondiente lo descubría al leerlo, mucho después.
+//
+// Esta es la validación ESTRUCTURAL universal, en el kernel: la que vale para todos los agregados sin conocer ninguno.
+// La validación por (aggregateType, kind) con esquema propio vive en la capa de aplicación (apps/web/lib/payload-schemas),
+// que es la que sabe de dominios; el kernel garantiza el mínimo que hace que el evento sea legible.
+export const MAX_PAYLOAD_BYTES=64*1024;
+export function assertClinicalPayload(c:Pick<ClinicalCommand,"aggregateType"|"eventType"|"payload">):void{
+ const p=c.payload;
+ const ctx=`${c.aggregateType}/${c.eventType}`;
+ if(p===null||typeof p!=="object"||Array.isArray(p))throw new ClinicalError("INVARIANT_VIOLATION",`Payload inválido (${ctx}): debe ser un objeto JSON, no ${p===null?"null":Array.isArray(p)?"un arreglo":typeof p}`,{aggregateType:c.aggregateType});
+ const kind=(p as Record<string,unknown>)["kind"];
+ if(typeof kind!=="string"||kind.trim()==="")throw new ClinicalError("INVARIANT_VIOLATION",`Payload inválido (${ctx}): falta el discriminador \`kind\`, con el que los folds deciden el estado del agregado`,{aggregateType:c.aggregateType});
+ let json:string;
+ try{json=JSON.stringify(p);}catch{throw new ClinicalError("INVARIANT_VIOLATION",`Payload inválido (${ctx}): no es serializable a JSON (referencia circular o valor no soportado)`,{aggregateType:c.aggregateType});}
+ if(json===undefined)throw new ClinicalError("INVARIANT_VIOLATION",`Payload inválido (${ctx}): se serializa como undefined`,{aggregateType:c.aggregateType});
+ // Una jsonb de megabytes en la tabla que TODA lectura clínica recorre degrada el camino caliente para siempre: el evento
+ // es inmutable, así que el límite tiene que estar en la escritura.
+ const bytes=Buffer.byteLength(json,"utf8");
+ if(bytes>MAX_PAYLOAD_BYTES)throw new ClinicalError("INVARIANT_VIOLATION",`Payload inválido (${ctx}): ${bytes} bytes excede el máximo de ${MAX_PAYLOAD_BYTES}. El evento es inmutable: un payload enorme degrada para siempre toda lectura de la cadena.`,{aggregateType:c.aggregateType,bytes});
+}
+export async function executeAtomicClinicalCommand(sql:Sql,ctx:TenantContext,c:ClinicalCommand,preflight?:(tx:TransactionSql)=>Promise<void>){assertTenantContext(ctx);assertClinicalPayload(c);return sql.begin(async(tx:TransactionSql)=>{
  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
  if(preflight)await preflight(tx);
  const h=crypto.createHash("sha256").update(canonicalize(c)).digest("hex");
