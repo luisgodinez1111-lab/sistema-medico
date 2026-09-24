@@ -5,7 +5,9 @@ import{runtimeFiles}from"./_runtime-src";
 // exports que mezclaba la conexión a Postgres, la ejecución de comandos y más de sesenta read-models de todos los
 // dominios clínicos. Estas pruebas impiden que vuelva a crecer así y fijan la separación de responsabilidades.
 const FACHADA="apps/web/lib/clinical-runtime.ts";
-const DOMINIOS=["connection","command","pagination","patients","patient-facts","registries","analytics","records"];
+// R03-10: los lectores de laboratorio salieron de `patient-facts` a su propio dominio `lab-facts` cuando el guardián
+// de god-module avisó de que patient-facts pasaba de 300 líneas. El guardián tenía razón: son dos responsabilidades.
+const DOMINIOS=["connection","command","pagination","patients","patient-facts","lab-facts","registries","analytics","records"];
 const leer=(f:string):string=>fs.readFileSync(f,"utf8");
 const lineas=(f:string):number=>leer(f).split("\n").length;
 

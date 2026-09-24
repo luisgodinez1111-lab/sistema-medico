@@ -4,7 +4,7 @@
   "title": "Medical OS — API clínica",
   "version": "0.0.0",
   "description": "Generada desde el inventario real de rutas (pnpm openapi:generate). Sesión: cookie httpOnly medos_session o Authorization: Bearer. Toda respuesta de la API lleva Cache-Control: no-store.",
-  "x-bodies-with-schema": 117
+  "x-bodies-with-schema": 118
  },
  "servers": [
   {
@@ -21470,6 +21470,171 @@
          "correctedResultId",
          "value",
          "unit",
+         "reason",
+         "occurredAt"
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/results/{resultId}/error-mark": {
+   "post": {
+    "summary": "Auditoría 2026-09-19, anexo R03 (R03-10) — POST /api/v1/results/:resultId/error-mark",
+    "tags": [
+     "results"
+    ],
+    "parameters": [
+     {
+      "name": "resultId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     },
+     {
+      "name": "Idempotency-Key",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "Clave única por intento; el reintento con la misma clave y el mismo cuerpo devuelve la misma respuesta (200, replayed:true); otro cuerpo -> 409 IDEMPOTENCY_CONFLICT"
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "Versión del agregado leída (concurrencia optimista); desfasada -> 409 CONCURRENCY_CONFLICT"
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "Comando aplicado (200 con replayed:true si es un reintento idempotente)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "VALIDATION_ERROR (cuerpo o parámetros inválidos)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "UNAUTHENTICATED (sin sesión válida)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "FORBIDDEN / CROSS_TENANT / SAFETY_BLOCKED",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "NOT_FOUND (recurso o paciente inexistente en el tenant)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "CONFLICT / CONCURRENCY_CONFLICT / IDEMPOTENCY_CONFLICT",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "428": {
+      "description": "PRECONDITION_REQUIRED (Idempotency-Key, cédula profesional) o SAFETY_ACK_REQUIRED",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "RATE_LIMITED (Retry-After)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "DEPENDENCY_UNAVAILABLE (base de datos o almacén no disponibles)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     },
+     {
+      "bearer": []
+     }
+    ],
+    "x-handler": "apps/web/app/api/v1/results/[resultId]/error-mark/route.ts",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
          "reason",
          "occurredAt"
         ]

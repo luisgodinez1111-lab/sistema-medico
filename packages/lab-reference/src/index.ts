@@ -40,6 +40,8 @@ const RANGES: Record<string, readonly [number, number, number, number]> = {
   BNP: [0, 0, 100, 400],              // pg/mL (insuficiencia cardíaca)
   DDIMER: [0, 0, 500, 5000],          // ng/mL
   CRP: [0, 0, 10, 100],               // mg/L (proteína C reactiva)
+  LDL: [0, 0, 129, 190],              // mg/dL (ACC/AHA 2018: <100 óptimo, 100–129 casi óptimo, >=190 hipercolesterolemia severa)
+  UACR: [0, 0, 29, 300],              // mg/g (KDIGO 2012: A1 <30, A2 30–300, A3 >300)
 };
 // Rangos de referencia expuestos (para la pestaña "Valores de referencia"): el rango NORMAL es
 // [abnormalLow, abnormalHigh] y los límites de pánico son [criticalLow, criticalHigh]. Deterministas.
@@ -99,6 +101,11 @@ export const ANALYTE_UNITS: Readonly<Record<string, AnalyteUnitSpec>> = {
   BNP: { canonical: "pg/mL", accepted: { "pg/ml": same, "ng/l": same }, plausible: [1, 50000] },
   DDIMER: { canonical: "ng/mL", accepted: { "ng/ml": same, "ug/l": same, "ug/ml": { factor: 1000 }, "mg/l": { factor: 1000 } }, plausible: [10, 100000] },
   CRP: { canonical: "mg/L", accepted: { "mg/l": same, "mg/dl": { factor: 10 } }, plausible: [0, 600] },
+  // Auditoría 2026-09-19, anexo R03 (R03-10): LDL y UACR eran los dos analitos que seguían leyéndose como número
+  // desnudo porque no tenían especificación de unidad; los comentarios del código lo decían («pendiente C-13»,
+  // «unidad asumida: el analito UACR aún no tiene especificación»). Con esto, ningún consumidor queda fuera de la guarda.
+  LDL: { canonical: "mg/dL", accepted: { "mg/dl": same, "mmol/l": { factor: 38.67 } }, plausible: [10, 600] },
+  UACR: { canonical: "mg/g", accepted: { "mg/g": same, "mg/mmol": { factor: 8.8402 }, "ug/mg": same }, plausible: [0, 30000] },
 };
 // Clave de comparación de unidades: minúsculas, sin espacios, µ/μ→u, "×10^3"→"10^3", superíndices comunes.
 function unitKey(u: string): string {
@@ -133,6 +140,7 @@ const ANALYTE_LABEL_ES: Readonly<Record<string, string>> = {
   WBC: "leucocitos", PLATELETS: "plaquetas", CREATININE: "creatinina", BUN: "nitrógeno ureico (BUN)", INR: "INR", LACTATE: "lactato",
   TROPONIN: "troponina", CALCIUM: "calcio", MAGNESIUM: "magnesio", PHOSPHORUS: "fósforo", ALT: "ALT", AST: "AST", BILIRUBIN: "bilirrubina total",
   ALBUMIN: "albúmina", PH: "pH arterial", PCO2: "pCO₂", PO2: "pO₂", HBA1C: "HbA1c", TSH: "TSH", BNP: "BNP", DDIMER: "dímero D", CRP: "proteína C reactiva",
+  LDL: "colesterol LDL", UACR: "cociente albúmina/creatinina urinaria",
 };
 export function analyteLabel(analyte: string): string { const k = analyte.trim().toUpperCase(); return ANALYTE_LABEL_ES[k] ?? k; }
 export function canonicalUnitOf(analyte: string): string | undefined { return ANALYTE_UNITS[analyte.trim().toUpperCase()]?.canonical; }
@@ -203,6 +211,12 @@ const RANGE_STRATA: Readonly<Record<string, readonly RangeRow[]>> = {
     // El corte alto es 5.6 para que 5.7–6.4 (prediabetes) salga ABNORMAL y 6.5 (diabetes) también: antes, 6.5 exacto
     // —el umbral diagnóstico de la ADA— se clasificaba NORMAL, en contradicción directa con `packages/glycemic`.
     { range: [0, 0, 5.6, 10], source: "ADA Standards of Care 2024: normal <5.7 %; 5.7–6.4 prediabetes; ≥6.5 diabetes", stratum: "criterio diagnóstico ADA" },
+  ],
+  LDL: [
+    { range: [0, 0, 129, 190], source: "ACC/AHA 2018 Cholesterol Guideline: <100 mg/dL óptimo; ≥190 hipercolesterolemia severa (indicación de estatina de alta intensidad)", stratum: "criterio ACC/AHA" },
+  ],
+  UACR: [
+    { range: [0, 0, 29, 300], source: "KDIGO 2012 CKD: categorías de albuminuria A1 <30, A2 30–300, A3 >300 mg/g", stratum: "categorías KDIGO" },
   ],
   TSH: [
     { when: { pregnant: true }, range: [0.01, 0.1, 4.0, 100], source: "ATA 2017, guía de tiroides en el embarazo (límite inferior más bajo por hCG)", stratum: "embarazo" },

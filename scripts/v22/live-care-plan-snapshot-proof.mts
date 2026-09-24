@@ -39,7 +39,7 @@ try{
  await activateGoal(phys,g1);
 
  const S=await snap(phys,p);ok(S.status===200,"SNAP_200");
- const b=S.body as{counts:{problems:number;medications:number;allergies:number};problems:{code:string;description:string;statusLabel:string}[];goals:{category:string;goal:string;statusLabel:string}[];metrics:{hba1c:string|null;bp:string|null;weight:string|null;imc:string|null}};
+ const b=S.body as{counts:{problems:number;medications:number;allergies:number};problems:{code:string;description:string;statusLabel:string}[];goals:{category:string;goal:string;statusLabel:string}[];metrics:{hba1c:{value:number;unit:string|null;occurredAt:string;ageDays:number}|null;bp:string|null;weight:string|null;imc:string|null}};
  // problemas asociados con descripción real (CIE-10)
  ok(b.problems.length===3,"THREE_PROBLEMS");
  ok(b.problems.find(x=>x.code==="E11.9")?.description?.toLowerCase().includes("diabetes")??false,"PROBLEM_DESCRIPTION");
@@ -53,7 +53,10 @@ try{
  ok(b.goals.find(x=>x.category==="DIABETES")?.statusLabel==="Activa","GOAL_ACTIVATED");
  ok(b.goals.find(x=>x.category==="HYPERTENSION")?.statusLabel==="Propuesta","GOAL_PROPOSED");
  // métricas reales
- ok(b.metrics.hba1c==="8.1","METRIC_HBA1C");
+ // R03-10: la métrica viaja con UNIDAD y FECHA (antes era un «8.1» sin nada: el plan se construía sobre un número que
+ // podía ser de hace dos años sin que nadie lo notara).
+ ok(b.metrics.hba1c?.value===8.1&&b.metrics.hba1c?.unit==="%","METRIC_HBA1C_WITH_UNIT");
+ ok(typeof b.metrics.hba1c?.occurredAt==="string"&&b.metrics.hba1c!.ageDays>=0,"METRIC_HBA1C_WITH_DATE");
  ok(b.metrics.bp==="138/86","METRIC_BP");
  ok(b.metrics.weight==="78","METRIC_WEIGHT");
  ok(b.metrics.imc==="30.1","METRIC_IMC_DERIVED");

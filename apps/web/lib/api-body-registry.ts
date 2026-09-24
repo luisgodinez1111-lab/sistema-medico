@@ -21,7 +21,7 @@ import{CredentialsBody as physician_profile__CredentialsBody}from"./physician-pr
 import{CreateBody as problem__CreateBody,EpistemicBody as problem__EpistemicBody,EvidenceBody as problem__EvidenceBody,ResolveBody as problem__ResolveBody,WhenBody as problem__WhenBody}from"./problem-lifecycle";
 import{CreateBody as referral__CreateBody,ReasonBody as referral__ReasonBody,WhenBody as referral__WhenBody}from"./referral-lifecycle";
 import{CreateBody as regulatory_obligation__CreateBody}from"./regulatory-obligation-lifecycle";
-import{ActionBody as result__ActionBody,CloseBody as result__CloseBody,CorrectionBody as result__CorrectionBody,ReceiveBody as result__ReceiveBody,VerifyBody as result__VerifyBody}from"./result-lifecycle";
+import{ActionBody as result__ActionBody,CloseBody as result__CloseBody,CorrectionBody as result__CorrectionBody,ErrorMarkBody as result__ErrorMarkBody,ReceiveBody as result__ReceiveBody,VerifyBody as result__VerifyBody}from"./result-lifecycle";
 import{CollectBody as specimen__CollectBody,RejectBody as specimen__RejectBody,WhenBody as specimen__WhenBody}from"./specimen-lifecycle";
 import{CompleteBody as surgery__CompleteBody,ReasonBody as surgery__ReasonBody,ScheduleBody as surgery__ScheduleBody,WhenBody as surgery__WhenBody}from"./surgery-lifecycle";
 import{OrderBody as transfusion__OrderBody,ReactionBody as transfusion__ReactionBody,ReasonBody as transfusion__ReasonBody,WhenBody as transfusion__WhenBody}from"./transfusion-lifecycle";
@@ -116,6 +116,7 @@ export const API_BODY_SCHEMAS:Readonly<Record<string,ZodType>>={
  "POST /api/v1/results/{resultId}/action":result__ActionBody,
  "POST /api/v1/results/{resultId}/closure":result__CloseBody,
  "POST /api/v1/results/{resultId}/correction":result__CorrectionBody,
+ "POST /api/v1/results/{resultId}/error-mark":result__ErrorMarkBody,
  "POST /api/v1/results/{resultId}/verification":result__VerifyBody,
  "POST /api/v1/specimens":specimen__CollectBody,
  "POST /api/v1/specimens/{specimenId}/receipt":specimen__WhenBody,

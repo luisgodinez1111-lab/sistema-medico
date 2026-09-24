@@ -166,7 +166,7 @@ export async function countOpenCriticalResults(ctx:HttpTenantContext,patientId:s
      and r.payload->>'kind'='RECEIVED' and r.payload->>'patientId'=${patientId} and r.payload->>'critical'='true'
      and not exists(
       select 1 from clinical_events c
-      where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and c.payload->>'kind' in ('CLOSED','CORRECTED'))`; // C-02: un crítico corregido deja de bloquear; si la corrección sigue siendo crítica, bloquea el nuevo
+      where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and c.payload->>'kind' in ('CLOSED','CORRECTED','ENTERED_IN_ERROR'))`; // C-02: un crítico corregido deja de bloquear · R03-10: un crítico ANULADO tampoco // C-02: un crítico corregido deja de bloquear; si la corrección sigue siendo crítica, bloquea el nuevo
   return Number(rows[0]?.n??0);
  });
 }

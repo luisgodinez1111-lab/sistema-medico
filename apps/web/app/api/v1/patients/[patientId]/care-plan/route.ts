@@ -1,7 +1,7 @@
 import{bmiFromVitals}from"../../../../../../../../packages/anthropometrics/src";
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
-import{problemRegistry,carePlanGoals,activeMedicationDrugCodes,activeAllergySubstances,latestResultValueForAnalyte,patientVitals,type VitalPoint}from"../../../../../../lib/clinical-runtime";
+import{problemRegistry,carePlanGoals,activeMedicationDrugCodes,activeAllergySubstances,latestAnalyteReading,patientVitals,type VitalPoint}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
 // EPIC X/UI — GET /api/v1/patients/:id/care-plan  (vista Plan de cuidado, snapshot compuesto)
@@ -24,7 +24,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    carePlanGoals(tctx,patientId),
    activeMedicationDrugCodes(tctx,patientId),
    activeAllergySubstances(tctx,patientId),
-   latestResultValueForAnalyte(tctx,patientId,"HBA1C"),
+   latestAnalyteReading(tctx,patientId,"HBA1C"),
    patientVitals(tctx,patientId),
   ]);
   const problems=allProblems.filter(p=>p.patientId===patientId).map(p=>({code:p.code,description:p.description,status:p.status,statusLabel:PROB_ES[p.status]??"Activo"}));
@@ -36,7 +36,9 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    counts:{problems:activeProblems,medications:meds.length,allergies:allergies.length},
    problems,
    goals:goals.map(g=>({category:g.category,goal:g.goal,status:g.status,statusLabel:GOAL_ES[g.status]??"Propuesta"})),
-   metrics:{hba1c:hba1c??null,bp:bp??null,weight:weight??null,imc:imc??null},
+   // R03-10: la métrica de control glucémico del plan de cuidado con unidad y fecha (una HbA1c de hace dos años no
+   // documenta el control actual, y el plan se construye sobre ella).
+   metrics:{hba1c:hba1c?{value:hba1c.value,unit:hba1c.canonicalUnit??hba1c.unit,occurredAt:hba1c.occurredAt,ageDays:Math.floor((Date.now()-Date.parse(hba1c.occurredAt))/86_400_000)}:null,bp:bp??null,weight:weight??null,imc:imc??null},
   },{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

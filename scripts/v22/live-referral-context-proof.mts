@@ -47,12 +47,15 @@ try{
  const va=at();await vital(phys,p,"BP","124/82","mmHg",va);await vital(phys,p,"HR","76","lpm",va);await vital(phys,p,"WEIGHT","78","kg",va);await vital(phys,p,"HEIGHT","161","cm",va);
 
  const C=await context(phys,p);ok(C.status===200,"CTX_200");
- const b=C.body as{allergies:string[];medications:string[];problems:{code:string;description:string}[];labs:{hba1c:string|null};vitals:{bp:string|null;hr:string|null;imc:string|null}};
+ const b=C.body as{allergies:string[];medications:string[];problems:{code:string;description:string}[];labs:{hba1c:{value:number;unit:string|null;occurredAt:string;ageDays:number}|null};vitals:{bp:string|null;hr:string|null;imc:string|null}};
  ok(b.allergies.includes("Amoxicilina"),"ALLERGY_LISTED");
  ok(b.medications.includes("metformina")&&b.medications.includes("losartan"),"MEDS_NAMED");
  ok(b.problems.length===3,"THREE_PROBLEMS");
  ok(b.problems.find(x=>x.code==="E11.9")?.description?.toLowerCase().includes("diabetes")??false,"PROBLEM_DESCRIPTION");
- ok(b.labs.hba1c==="8.1","HBA1C_REAL");
+ // R03-10: la HbA1c de la hoja de referencia viaja con unidad y fecha; un «8.1» desnudo obliga al especialista a
+ // pedirla otra vez o, peor, a tratarla como actual.
+ ok(b.labs.hba1c?.value===8.1&&b.labs.hba1c?.unit==="%","HBA1C_REAL_WITH_UNIT");
+ ok(typeof b.labs.hba1c?.occurredAt==="string","HBA1C_WITH_DATE");
  ok(b.vitals.bp==="124/82"&&b.vitals.hr==="76","VITALS_REAL");
  ok(b.vitals.imc==="30.1","IMC_DERIVED");
 

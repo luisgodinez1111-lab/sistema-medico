@@ -1,5 +1,5 @@
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
-import{patientDemographics,latestVitalsByType,latestResultValueForAnalyte,activeProblemCodes,activeAllergySubstances,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccines,activeMedicationDrugCodes}from"./clinical-runtime";
+import{patientDemographics,latestVitalsByType,activeProblemCodes,activeAllergySubstances,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccines,activeMedicationDrugCodes}from"./clinical-runtime";
 import{verifiedValues,MAX_AGE_DAYS,COHERENCE_HOURS}from"./analyte-inputs";
 import{stageBloodPressure,parseBp}from"../../../packages/bp-staging/src";
 import{interpretINR}from"../../../packages/anticoagulation/src";
@@ -93,12 +93,14 @@ export async function gatherConsultationSnapshot(ctx:HttpTenantContext,patientId
   verifiedValues(ctx,patientId,["HBA1C"],MAX_AGE_DAYS.GLYCEMIC_CONTROL),
   verifiedValues(ctx,patientId,["CREATININE"],MAX_AGE_DAYS.RENAL_FUNCTION),
   verifiedValues(ctx,patientId,["GLUCOSE"],MAX_AGE_DAYS.GLYCEMIC_CONTROL),
-  latestResultValueForAnalyte(ctx,patientId,"LDL"), // LDL aún sin especificación de unidad/plausibilidad (pendiente C-13)
+  // R03-10: el LDL ya tiene unidad canónica, cotas y fuente, así que pasa por la MISMA guarda que el resto (antes era
+  // el último consumidor del lector de número desnudo).
+  verifiedValues(ctx,patientId,["LDL"],MAX_AGE_DAYS.GLYCEMIC_CONTROL),
   gatherClinicalIntelligence(ctx,patientId),
  ]);
  let egfr:number|undefined,egfrStage:string|undefined;
  const creatV=creat?.["CREATININE"];
  if(age>=18&&(sex==="FEMALE"||sex==="MALE")&&creatV!==undefined){const e=computeEGFR(creatV,age,sex as Sex);if(e){egfr=e.egfr;egfrStage=e.stage;}}
  return{registered:true,demographics:{age,sex:sex??"UNKNOWN",birthDate:demo.birthDate,...(demo.name?{name:demo.name}:{}),...(demo.curp?{curp:demo.curp}:{}),...(demo.phone?{phone:demo.phone}:{}),...(demo.email?{email:demo.email}:{}),...(demo.address?{address:demo.address}:{}),...(demo.occupation?{occupation:demo.occupation}:{}),...(demo.maritalStatus?{maritalStatus:demo.maritalStatus}:{})},problems:[...problems],allergies:[...allergies],
-  vitals,labs:{hba1c:hba1c?.["HBA1C"],creatinine:creatV,glucose:glucose?.["GLUCOSE"],ldl:num(ldl),egfr,egfrStage},findings:intel.findings};
+  vitals,labs:{hba1c:hba1c?.["HBA1C"],creatinine:creatV,glucose:glucose?.["GLUCOSE"],ldl:ldl?.["LDL"],egfr,egfrStage},findings:intel.findings};
 }

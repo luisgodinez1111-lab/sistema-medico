@@ -143,6 +143,8 @@ export async function resultsRegistry(ctx:HttpTenantContext):Promise<ResultRow[]
      (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
+     -- R03-10: un resultado ANULADO (paciente equivocado, muestra mal identificada) no aparece en el registro clínico.
+     and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR')
    order by a.occurred_at desc`;
   return rows.map(r=>{const o=r as Record<string,unknown>;return{
    resultId:String(o.aggregate_id),patientId:String(o.pid??""),patientName:String(o.patient_name??"Paciente"),

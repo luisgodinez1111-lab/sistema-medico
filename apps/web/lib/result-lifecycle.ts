@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
-import{foldResult,assertResultTransition,assertResultCorrectable,type FoldedResult}from"../../../packages/result-fold/src";
+import{foldResult,assertResultTransition,assertResultCorrectable,assertResultVoidable,type FoldedResult}from"../../../packages/result-fold/src";
 import{type ResultState}from"../../../packages/order-result-domain/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents,latestResultValueForAnalyte,requireRegisteredPatient,patientDemographics}from"./clinical-runtime";
 import{ageInYears}from"../../../packages/prescription-safety/src";
@@ -127,6 +127,29 @@ export async function handleResultCorrection(req:Request,resultId:string):Promis
   const r=result.response as{version:number;auditHash?:string};
   const c=await created.json() as Record<string,unknown>;
   return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,corrected:{resultId:b.correctedResultId,critical:c["critical"],status:c["status"],interpretation:c["interpretation"]},version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+ }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
+
+// Auditoría 2026-09-19, anexo R03 (R03-10) — ANULACIÓN de un resultado.
+// El único mecanismo existente era la CORRECCIÓN, que exige un valor nuevo. Un resultado capturado en el paciente
+// equivocado, o de una muestra mal identificada, no se podía retirar: había que "corregirlo" con otro número, así que el
+// dato erróneo seguía alimentando cálculos, series y alertas. Anular NO borra (la cadena es append-only): marca el
+// resultado como no válido, cierra la obligación crítica que hubiera generado y lo excluye de TODOS los lectores.
+export const ErrorMarkBody=z.object({reason:z.string().trim().min(10,"El motivo de la anulación debe explicar qué pasó (mín. 10 caracteres)").max(500),occurredAt:z.string().datetime()});
+export async function handleResultErrorMark(req:Request,resultId:string):Promise<Response>{
+ try{
+  const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,resultId);
+  const b=await parseJson(req,ErrorMarkBody);
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:resultId,expectedVersion,eventType:"RESULT_ENTERED_IN_ERROR",payload:{kind:"ENTERED_IN_ERROR",reason:b.reason,patientId:folded.patientId},occurredAt:b.occurredAt,topic:"result.entered_in_error"});
+  const replayed=await lookupReplay(ctx,cmd);
+  if(replayed){const r=replayed.response as{version:number;auditHash?:string};return NextResponse.json({resultId,state:folded.state,enteredInError:true,version:r.version,auditHash:r.auditHash,replayed:true},{status:200});}
+  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Result changed since last read",{expected:expectedVersion,actual:folded.version});
+  assertResultVoidable(folded);
+  const result=await runClinicalCommand(ctx,cmd);
+  // Un resultado anulado no deja pendiente: la obligación que abrió por ser crítico se cierra con el motivo.
+  await completeCriticalResultObligation(ctx,resultId,`resultado anulado (${b.reason})`,b.occurredAt);
+  const r=result.response as{version:number;auditHash?:string};
+  return NextResponse.json({resultId,state:folded.state,enteredInError:true,reason:b.reason,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
