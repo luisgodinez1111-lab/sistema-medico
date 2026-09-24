@@ -170,7 +170,7 @@ export async function claimsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Pro
 // DiagnosticResult toma el evento base RESULT_RECEIVED (analito/valor/critical/status/interpretación derivados)
 // y su ESTADO por la última transición de ciclo de vida (RECEIVED/VERIFIED/ACTIONED/CLOSED). Une el nombre del
 // paciente. El estado-UI (Hallazgos/Normal/En seguimiento/En revisión) se deriva. RLS-scoped.
-export type ResultRow=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;critical:boolean;status:string;interpretation:string;lifecycle:"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";receivedAt:string}>;
+export type ResultRow=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;critical:boolean;status:string;interpretation:string;lifecycle:"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";receivedAt:string;orderType:string|null}>;
 const RES_LIFECYCLE:Record<string,"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED">={RECEIVED:"RECEIVED",VERIFIED:"VERIFIED",ACTIONED:"ACTIONED",CLOSED:"CLOSED"};
 export async function resultsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Promise<Page<ResultRow>&{total:number}>{
  const limit=limiteDe(q),after=decodeCursor(q?.cursor,2);
@@ -179,10 +179,19 @@ export async function resultsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Pr
   const rows=await tx`
    select a.occurred_at as cursor_at, a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
      a.payload->>'critical' as critical, a.payload->>'status' as status, a.payload->>'interpretation' as interpretation, a.occurred_at as received_at,
-     lk.kind as last_kind, pn.name as patient_name
+     lk.kind as last_kind, pn.name as patient_name, ord.order_type as order_type
    from clinical_events a
    ${ultimaTransicion(tx,ctx.tenantId)}
    ${nombreDePaciente(tx,ctx.tenantId)}
+   -- Auditoría R04-F04: el TIPO de estudio (laboratorio, imagenología, patología…) lo declara la ORDEN que lo originó, y
+   -- el resultado lleva su orderId. Antes se adivinaba con una expresión regular sobre el NOMBRE del analito, que
+   -- clasificaba «Radioinmunoensayo de TSH» y «Placas de Petri (cultivo)» como imagenología —los dos son de laboratorio—
+   -- y no distinguía patología, procedimiento ni interconsulta de un análisis. Aquí se lee el hecho, no el nombre.
+   left join lateral (
+     select o.payload->>'orderType' as order_type from clinical_events o
+     where o.tenant_id=${ctx.tenantId} and o.aggregate_type='ClinicalOrder'
+       and o.aggregate_id=(a.payload->>'orderId')::uuid and o.payload->>'kind'='CREATED'
+     limit 1) ord on true
    -- R03-10: un resultado ANULADO (paciente equivocado, muestra mal identificada) no aparece en el registro clínico.
    -- El criterio es «anulado ALGUNA VEZ», no «su última transición es ENTERED_IN_ERROR»: una anotación posterior no
    -- resucita un resultado anulado. Antes era un NOT EXISTS correlacionado por fila; ahora es una anti-unión que se
@@ -200,7 +209,8 @@ export async function resultsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Pr
    analyte:String(o.analyte??""),value:String(o.value??""),critical:String(o.critical)==="true",
    status:String(o.status??"NORMAL"),interpretation:String(o.interpretation??""),
    lifecycle:RES_LIFECYCLE[String(o.last_kind??"RECEIVED")]??"RECEIVED",
-   receivedAt:o.received_at?new Date(String(o.received_at)).toISOString():""};}),total:cuentaDe(cuenta)};
+   receivedAt:o.received_at?new Date(String(o.received_at)).toISOString():"",
+   orderType:o.order_type?String(o.order_type):null};}),total:cuentaDe(cuenta)};
  });
 }
 // EPIC E/UI — Registro de órdenes/solicitudes de estudio de TODA la clínica (Resultados › Solicitudes). Por cada
