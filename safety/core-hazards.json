@@ -16,7 +16,12 @@
     "controls": [
       "CTL-0001",
       "CTL-0002"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   },
   {
     "id": "HAZ-CORE-0002",
@@ -36,7 +41,12 @@
     "controls": [
       "CTL-0003",
       "CTL-0005"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   },
   {
     "id": "HAZ-CORE-0003",
@@ -54,7 +64,12 @@
     "potentialHarm": "Missed diagnosis, inappropriate reassurance, or unsafe treatment decision.",
     "controls": [
       "CTL-0004"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   },
   {
     "id": "HAZ-CORE-0004",
@@ -73,7 +88,12 @@
     "controls": [
       "CTL-0002",
       "CTL-0006"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   },
   {
     "id": "HAZ-CORE-0005",
@@ -92,7 +112,12 @@
     "potentialHarm": "Care continues using superseded clinical information.",
     "controls": [
       "CTL-0007"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   },
   {
     "id": "HAZ-CORE-0006",
@@ -111,7 +136,12 @@
     "potentialHarm": "Dose, interpretation, or recommendation inappropriate for patient context.",
     "controls": [
       "CTL-0008"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   },
   {
     "id": "HAZ-CORE-0007",
@@ -131,7 +161,12 @@
     "potentialHarm": "Adverse drug event from an unverified interaction, contraindication or dose.",
     "controls": [
       "CTL-0009"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   },
   {
     "id": "HAZ-CORE-0008",
@@ -150,7 +185,12 @@
     "potentialHarm": "Anaphylaxis, bleeding, toxicity or organ injury without traceable clinical decision.",
     "controls": [
       "CTL-0010"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   },
   {
     "id": "HAZ-CORE-0009",
@@ -169,7 +209,12 @@
     "potentialHarm": "Overdose (hepatotoxicity, nephrotoxicity, death), especially in children.",
     "controls": [
       "CTL-0011"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   },
   {
     "id": "HAZ-CORE-0010",
@@ -189,7 +234,12 @@
     "controls": [
       "CTL-0003",
       "CTL-0012"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   },
   {
     "id": "HAZ-CORE-0011",
@@ -206,7 +256,12 @@
     "potentialHarm": "Unauthorized disclosure or alteration of PHI across organizations.",
     "controls": [
       "CTL-0013"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   },
   {
     "id": "HAZ-CORE-0012",
@@ -225,7 +280,12 @@
     "potentialHarm": "Lost clinical record or duplicated command on retry; decisions taken on data that does not exist.",
     "controls": [
       "CTL-0014"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   },
   {
     "id": "HAZ-CORE-0013",
@@ -243,6 +303,11 @@
     "potentialHarm": "Loss of non-repudiation and legal traceability of clinical acts.",
     "controls": [
       "CTL-0015"
-    ]
+    ],
+    "severityBasis": "S1 por el DAÑO POTENCIAL descrito, no por omision: todos los peligros de este registro describen dano clinico directo a un paciente. Lo que falta para que exista una evaluacion de riesgo es la PROBABILIDAD.",
+    "probability": "PENDIENTE DE DETERMINACION",
+    "riskClass": "NO EVALUADO: riesgo = severidad x probabilidad, y la probabilidad no esta determinada",
+    "residualRiskAcceptance": "PENDIENTE: la aceptacion de riesgo residual es del dueno con validacion clinica (ADR-0300)",
+    "detection": "Determinable por ingenieria: la deteccion la dan los controles declarados en `controls`, y la verificacion de cada control apunta a un artefacto EJECUTABLE que existe en el arbol (safety/controls/catalog.json)."
   }
 ]

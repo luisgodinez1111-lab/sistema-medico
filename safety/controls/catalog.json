@@ -1,245 +1,244 @@
 [
- {
-  "id": "CTL-0001",
-  "authority": [
-   "ENG-307",
-   "ENG-308"
-  ],
-  "type": "PREVENTIVE",
-  "name": "Result closure requires accountable evidence",
-  "invariant": "INV-CORE-0001",
-  "verification": [
-   "unit:test-result-closure",
-   "state-machine:result-lifecycle"
-  ],
-  "failure": "BLOCK"
- },
- {
-  "id": "CTL-0002",
-  "authority": [
-   "ENG-308",
-   "ENG-311",
-   "ENG-337"
-  ],
-  "type": "DETECTIVE",
-  "name": "Zero Lost Follow-Up orphan/overdue detection",
-  "invariant": "INV-CORE-0002",
-  "verification": [
-   "unit:test-obligation",
-   "reconciliation:due-date-scan"
-  ],
-  "failure": "ESCALATE"
- },
- {
-  "id": "CTL-0003",
-  "authority": [
-   "ENG-303",
-   "ENG-304",
-   "ENG-324"
-  ],
-  "type": "PREVENTIVE",
-  "name": "Epistemic promotion guard",
-  "invariant": "INV-CORE-0003",
-  "verification": [
-   "unit:test-epistemic-truth"
-  ],
-  "failure": "BLOCK"
- },
- {
-  "id": "CTL-0004",
-  "authority": [
-   "ENG-273",
-   "ENG-303"
-  ],
-  "type": "PREVENTIVE",
-  "name": "Non-computed states cannot carry reassuring values",
-  "invariant": "INV-CORE-0004",
-  "verification": [
-   "unit:test-clinical-semantics",
-   "unit:test-invariants"
-  ],
-  "failure": "BLOCK"
- },
- {
-  "id": "CTL-0005",
-  "authority": [
-   "ENG-320",
-   "ENG-321",
-   "ENG-338",
-   "ENG-339"
-  ],
-  "type": "PREVENTIVE",
-  "name": "High-impact AI Safety Envelope enforcement",
-  "invariant": "INV-CORE-0005",
-  "verification": [
-   "unit:test-ai-envelope",
-   "unit:test-ai-task-card"
-  ],
-  "failure": "ABSTAIN"
- },
- {
-  "id": "CTL-0006",
-  "authority": [
-   "ENG-311",
-   "ENG-337"
-  ],
-  "type": "RECOVERY",
-  "name": "Critical asynchronous reconciliation requires owner",
-  "invariant": "INV-CORE-0006",
-  "verification": [
-   "unit:test-reconciliation",
-   "unit:test-reconciliation-critical"
-  ],
-  "failure": "SAFE_MODE"
- },
- {
-  "id": "CTL-0007",
-  "authority": [
-   "ENG-342",
-   "ENG-312",
-   "ENG-313"
-  ],
-  "type": "CORRECTIVE",
-  "name": "Corrected result supersession preserves lineage and impact",
-  "invariant": "INV-CORE-0007",
-  "verification": [
-   "unit:test-corrected-result",
-   "unit:test-replay-impact"
-  ],
-  "failure": "BLOCK"
- },
- {
-  "id": "CTL-0008",
-  "authority": [
-   "ENG-319",
-   "ENG-318",
-   "ENG-341"
-  ],
-  "type": "PREVENTIVE",
-  "name": "Clinical applicability/pediatric context gate",
-  "invariant": "INV-CORE-0008",
-  "verification": [
-   "contract:applicability",
-   "unit:tests/traceability/applicability.test.ts",
-   "live:scripts/v22/live-pediatric-dose-gate-proof.mts"
-  ],
-  "failure": "BLOCK"
- },
- {
-  "id": "CTL-0009",
-  "authority": [
-   "ENG-220",
-   "ENG-257",
-   "ENG-306"
-  ],
-  "type": "PREVENTIVE",
-  "name": "Single six-state prescription safety evaluator; NOT_EVALUATED never CLEAR; explicit acknowledgement with justification (428 SAFETY_ACK_REQUIRED)",
-  "invariant": "INV-CORE-0009",
-  "verification": [
-   "unit:tests/traceability/medication-safety.test.ts",
-   "unit:tests/v22/prescription-safety.test.ts",
-   "live:scripts/v22/live-prescription-check-proof.mts",
-   "live:scripts/v22/live-medication-lifecycle-proof.mts"
-  ],
-  "failure": "BLOCK"
- },
- {
-  "id": "CTL-0010",
-  "authority": [
-   "ENG-220",
-   "ENG-257",
-   "ENG-306"
-  ],
-  "type": "PREVENTIVE",
-  "name": "Server-side barrier enforcement on PRESCRIBE/RESUME/MODIFY with named, justified, audited override (decideOverride)",
-  "invariant": "INV-CORE-0010",
-  "verification": [
-   "unit:tests/traceability/medication-safety.test.ts",
-   "live:scripts/v22/live-safety-override-proof.mts",
-   "live:scripts/v22/live-cross-reactivity-gate-proof.mts",
-   "live:scripts/v22/live-drug-interaction-gate-proof.mts"
-  ],
-  "failure": "BLOCK"
- },
- {
-  "id": "CTL-0011",
-  "authority": [
-   "ENG-220",
-   "ENG-257",
-   "ENG-306"
-  ],
-  "type": "PREVENTIVE",
-  "name": "Hard, non-overridable daily dose ceiling and pediatric mg/kg maximum (proposal and prescription)",
-  "invariant": "INV-CORE-0011",
-  "verification": [
-   "unit:tests/traceability/medication-safety.test.ts",
-   "live:scripts/v22/live-dose-ceiling-gate-proof.mts",
-   "live:scripts/v22/live-pediatric-dose-gate-proof.mts"
-  ],
-  "failure": "BLOCK"
- },
- {
-  "id": "CTL-0012",
-  "authority": [
-   "ENG-220",
-   "ENG-257",
-   "ENG-306"
-  ],
-  "type": "PREVENTIVE",
-  "name": "PRESCRIBE and signature require PHYSICIAN role and registered professional credentials (cédula); identity snapshot persisted in the event",
-  "invariant": "INV-CORE-0012",
-  "verification": [
-   "unit:tests/traceability/medication-safety.test.ts",
-   "live:scripts/v22/live-prescription-print-proof.mts"
-  ],
-  "failure": "BLOCK"
- },
- {
-  "id": "CTL-0013",
-  "authority": [
-   "ENG-333"
-  ],
-  "type": "PREVENTIVE",
-  "name": "Verified session + mandatory scope/purpose authorization (runtime-auth) and forced RLS under the NOBYPASSRLS runtime role",
-  "invariant": "INV-CORE-0013",
-  "verification": [
-   "unit:tests/security/authz.test.ts",
-   "unit:tests/v22/runtime-auth-scopes.test.ts",
-   "live:scripts/v21/live-rls-proof.mjs",
-   "live:scripts/v22/live-patient-reference-proof.mts"
-  ],
-  "failure": "BLOCK"
- },
- {
-  "id": "CTL-0014",
-  "authority": [
-   "ENG-306",
-   "ENG-311",
-   "ENG-312"
-  ],
-  "type": "PREVENTIVE",
-  "name": "Atomic clinical command: event + idempotency + audit + outbox in one transaction; store failure -> 503, never a false save",
-  "invariant": "INV-CORE-0014",
-  "verification": [
-   "unit:tests/v22/downtime-no-false-save.test.ts",
-   "live:scripts/v22/live-medication-lifecycle-proof.mts",
-   "live:scripts/v22/live-safety-override-proof.mts"
-  ],
-  "failure": "BLOCK"
- },
- {
-  "id": "CTL-0015",
-  "authority": [
-   "ENG-313",
-   "ENG-337"
-  ],
-  "type": "DETECTIVE",
-  "name": "Append-only audit chain (no UPDATE/DELETE grants) with an in-database verifier that recomputes every hash (pnpm audit:verify)",
-  "invariant": "INV-CORE-0016",
-  "verification": [
-   "unit:tests/v22/audit-verifier.test.ts",
-   "live:scripts/v22/live-audit-chain-verify-proof.mts"
-  ],
-  "failure": "ESCALATE"
- }
+  {
+    "id": "CTL-0001",
+    "authority": [
+      "ENG-307",
+      "ENG-308"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Result closure requires accountable evidence",
+    "invariant": "INV-CORE-0001",
+    "verification": [
+      "unit:tests/traceability/state-machines.test.ts",
+      "live:scripts/v22/live-result-closed-loop-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0002",
+    "authority": [
+      "ENG-308",
+      "ENG-311",
+      "ENG-337"
+    ],
+    "type": "DETECTIVE",
+    "name": "Zero Lost Follow-Up orphan/overdue detection",
+    "invariant": "INV-CORE-0002",
+    "verification": [
+      "unit:tests/traceability/obligation.test.ts",
+      "live:scripts/v22/live-care-gaps-proof.mts"
+    ],
+    "failure": "ESCALATE"
+  },
+  {
+    "id": "CTL-0003",
+    "authority": [
+      "ENG-303",
+      "ENG-304",
+      "ENG-324"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Epistemic promotion guard",
+    "invariant": "INV-CORE-0003",
+    "verification": [
+      "unit:tests/traceability/epistemic-truth.test.ts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0004",
+    "authority": [
+      "ENG-273",
+      "ENG-303"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Non-computed states cannot carry reassuring values",
+    "invariant": "INV-CORE-0004",
+    "verification": [
+      "unit:tests/traceability/clinical-semantics.test.ts",
+      "unit:tests/traceability/invariants.test.ts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0005",
+    "authority": [
+      "ENG-320",
+      "ENG-321",
+      "ENG-338",
+      "ENG-339"
+    ],
+    "type": "PREVENTIVE",
+    "name": "High-impact AI Safety Envelope enforcement",
+    "invariant": "INV-CORE-0005",
+    "verification": [
+      "unit:tests/traceability/ai-envelope.test.ts",
+      "unit:tests/traceability/ai-task-card.test.ts"
+    ],
+    "failure": "ABSTAIN"
+  },
+  {
+    "id": "CTL-0006",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "type": "RECOVERY",
+    "name": "Critical asynchronous reconciliation requires owner",
+    "invariant": "INV-CORE-0006",
+    "verification": [
+      "unit:tests/traceability/reconciliation.test.ts",
+      "unit:tests/traceability/reconciliation-critical.test.ts"
+    ],
+    "failure": "SAFE_MODE"
+  },
+  {
+    "id": "CTL-0007",
+    "authority": [
+      "ENG-342",
+      "ENG-312",
+      "ENG-313"
+    ],
+    "type": "CORRECTIVE",
+    "name": "Corrected result supersession preserves lineage and impact",
+    "invariant": "INV-CORE-0007",
+    "verification": [
+      "unit:tests/traceability/corrected-result.test.ts",
+      "unit:tests/traceability/replay-impact.test.ts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0008",
+    "authority": [
+      "ENG-319",
+      "ENG-318",
+      "ENG-341"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Clinical applicability/pediatric context gate",
+    "invariant": "INV-CORE-0008",
+    "verification": [
+      "unit:tests/traceability/applicability.test.ts",
+      "live:scripts/v22/live-pediatric-dose-gate-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0009",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Single six-state prescription safety evaluator; NOT_EVALUATED never CLEAR; explicit acknowledgement with justification (428 SAFETY_ACK_REQUIRED)",
+    "invariant": "INV-CORE-0009",
+    "verification": [
+      "unit:tests/traceability/medication-safety.test.ts",
+      "unit:tests/v22/prescription-safety.test.ts",
+      "live:scripts/v22/live-prescription-check-proof.mts",
+      "live:scripts/v22/live-medication-lifecycle-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0010",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Server-side barrier enforcement on PRESCRIBE/RESUME/MODIFY with named, justified, audited override (decideOverride)",
+    "invariant": "INV-CORE-0010",
+    "verification": [
+      "unit:tests/traceability/medication-safety.test.ts",
+      "live:scripts/v22/live-safety-override-proof.mts",
+      "live:scripts/v22/live-cross-reactivity-gate-proof.mts",
+      "live:scripts/v22/live-drug-interaction-gate-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0011",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Hard, non-overridable daily dose ceiling and pediatric mg/kg maximum (proposal and prescription)",
+    "invariant": "INV-CORE-0011",
+    "verification": [
+      "unit:tests/traceability/medication-safety.test.ts",
+      "live:scripts/v22/live-dose-ceiling-gate-proof.mts",
+      "live:scripts/v22/live-pediatric-dose-gate-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0012",
+    "authority": [
+      "ENG-220",
+      "ENG-257",
+      "ENG-306"
+    ],
+    "type": "PREVENTIVE",
+    "name": "PRESCRIBE and signature require PHYSICIAN role and registered professional credentials (cédula); identity snapshot persisted in the event",
+    "invariant": "INV-CORE-0012",
+    "verification": [
+      "unit:tests/traceability/medication-safety.test.ts",
+      "live:scripts/v22/live-prescription-print-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0013",
+    "authority": [
+      "ENG-333"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Verified session + mandatory scope/purpose authorization (runtime-auth) and forced RLS under the NOBYPASSRLS runtime role",
+    "invariant": "INV-CORE-0013",
+    "verification": [
+      "unit:tests/security/authz.test.ts",
+      "unit:tests/v22/runtime-auth-scopes.test.ts",
+      "live:scripts/v21/live-rls-proof.mjs",
+      "live:scripts/v22/live-patient-reference-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0014",
+    "authority": [
+      "ENG-306",
+      "ENG-311",
+      "ENG-312"
+    ],
+    "type": "PREVENTIVE",
+    "name": "Atomic clinical command: event + idempotency + audit + outbox in one transaction; store failure -> 503, never a false save",
+    "invariant": "INV-CORE-0014",
+    "verification": [
+      "unit:tests/v22/downtime-no-false-save.test.ts",
+      "live:scripts/v22/live-medication-lifecycle-proof.mts",
+      "live:scripts/v22/live-safety-override-proof.mts"
+    ],
+    "failure": "BLOCK"
+  },
+  {
+    "id": "CTL-0015",
+    "authority": [
+      "ENG-313",
+      "ENG-337"
+    ],
+    "type": "DETECTIVE",
+    "name": "Append-only audit chain (no UPDATE/DELETE grants) with an in-database verifier that recomputes every hash (pnpm audit:verify)",
+    "invariant": "INV-CORE-0016",
+    "verification": [
+      "unit:tests/v22/audit-verifier.test.ts",
+      "live:scripts/v22/live-audit-chain-verify-proof.mts"
+    ],
+    "failure": "ESCALATE"
+  }
 ]
