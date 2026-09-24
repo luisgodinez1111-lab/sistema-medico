@@ -237,7 +237,7 @@ contra el registro de la SEP).
 | WS1-15b | BAJA | ABIERTO | isReal: función vestigial que siempre devuelve true (resto de filas de ejemplo) | Eliminar la función y sus llamadas. |
 | WS1-15c | BAJA | ABIERTO | ixDrugs arranca con fármacos no vacíos ('Sertralina','Ibuprofeno','Metformina') sin aclarar que son de ejemplo | Iniciar vacío o etiquetar explícitamente como conjunto de ejemplo. |
 | R05a-F01 | — | PARCIAL | Inventario: Metas de tendencia (HbA1c/Glucosa/LDL/Creatinina) — Nivel 3 — falta individualización, fuente y vectores golden | Ver WS1-09. |
-| R05a-F02 | — | ABIERTO | Inventario: followState (clasificación de seguimiento) — Nivel 2 — taxonomía UI sin fuente | Documentar el criterio (o derivarlo de las máquinas formales state-machines/formal/*.json) y probarlo. |
+| R05a-F02 | — | CERRADO (13r) | Inventario: followState (clasificación de seguimiento) — Nivel 2 — taxonomía UI sin fuente | Documentar el criterio (o derivarlo de las máquinas formales state-machines/formal/*.json) y probarlo. |
 | R05a-F03 | — | CERRADO (13q) | Inventario: DX_LABEL (CIE-10 → etiqueta corta) — Nivel 2 — cobertura parcial (~19 códigos), fallback = código crudo | Derivar la etiqueta del catálogo CIE-10 real (packages/terminology searchIcd10) en lugar de una tabla manual. |
 | R05a-F04 | — | PARCIAL | Inventario: in7days (vencimiento de seguimiento) — Nivel 2 — sin relación con severidad/tipo | Ver WS1-10. |
 | R05a-F06 | — | ABIERTO | Vacío D: Cancelación real de peticiones (AbortController) ausente en todo el repo | Ver WS1-05. |

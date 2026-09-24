@@ -135,7 +135,47 @@ export const FOLLOW_TYPES=new Set(["ClinicalObligation","Referral","Appointment"
 export const DONE_KINDS=new Set(["COMPLETED","FULFILLED","ADMINISTERED","ACHIEVED","CLOSED"]);
 export const SCHED_KINDS=new Set(["IN_PROGRESS","ACCEPTED","CHECKED_IN","SCHEDULED","ACTIVE","PROGRESSED"]);
 export const CANCEL_KINDS=new Set(["CANCELLED","DECLINED","NO_SHOW","REVOKED","ENTERED_IN_ERROR"]);
-export function followState(kind:string):"pend"|"prog"|"done"|"skip"{if(DONE_KINDS.has(kind))return "done";if(CANCEL_KINDS.has(kind))return "skip";if(SCHED_KINDS.has(kind))return "prog";return "pend";}
+// Auditoría 2026-09-19, anexo R05a (R05a-F02) — CLASIFICACIÓN DEL SEGUIMIENTO: exhaustiva y derivada de los ciclos de vida.
+//
+// EL HALLAZGO era «taxonomía UI sin fuente», y al comprobarla contra los kinds que los ciclos de seguimiento EMITEN de
+// verdad (obligación, referencia, cita, vacuna, plan de cuidado) aparecieron SEIS estados mal clasificados, porque lo que
+// no estaba en ninguno de los tres conjuntos caía en «pendiente» por omisión:
+//
+//   · REFUSED      — vacuna RECHAZADA por el paciente, mostrada como pendiente: el sistema seguía exigiéndola.
+//   · ADVERSE_EVENT— vacuna que causó un EVENTO ADVERSO, mostrada como pendiente: el sistema seguía pidiendo administrar
+//                    una vacuna que ya dañó a ese paciente. Éste es el peligroso.
+//   · STARTED      — obligación iniciada: está en curso, no pendiente.
+//   · ACTIVATED    — plan de cuidado activado: en curso.
+//   · RESUMED      — plan reanudado: en curso.
+//   · HELD         — plan en pausa: no es trabajo pendiente.
+//
+// La corrección no es añadir seis nombres a los conjuntos: es que **el fallback silencioso desaparezca**. La clasificación
+// es ahora EXHAUSTIVA sobre los kinds declarados y `followStateOf` devuelve `undefined` para un kind que no conoce, de modo
+// que `tests/v22/follow-state.test.ts` falla si un ciclo de vida emite un estado nuevo sin clasificarlo. Un estado nuevo
+// que aparezca en la UI como «pendiente» por descuido es, en el mejor caso, trabajo inventado; en el peor, lo de la vacuna.
+//
+// PENDIENTE DE DECISIÓN: `ADVERSE_EVENT` se clasifica como «omitido» para que el sistema DEJE de exigir la vacuna, pero un
+// evento adverso merece un estado de ATENCIÓN propio y visible, no desaparecer de la lista. Es una decisión de producto.
+const FOLLOW_STATE_BY_KIND:Readonly<Record<string,"pend"|"prog"|"done"|"skip">>={
+ // Pendiente: creado/propuesto/solicitado/vencido, nadie ha actuado todavía.
+ CREATED:"pend",PROPOSED:"pend",REQUESTED:"pend",DUE:"pend",
+ // En curso: alguien ya actuó y el ciclo avanza.
+ STARTED:"prog",ACTIVATED:"prog",RESUMED:"prog",ACCEPTED:"prog",CHECKED_IN:"prog",SCHEDULED:"prog",
+ IN_PROGRESS:"prog",ACTIVE:"prog",PROGRESSED:"prog",
+ // Hecho.
+ COMPLETED:"done",ACHIEVED:"done",ADMINISTERED:"done",FULFILLED:"done",CLOSED:"done",
+ // Omitido: no se hizo y NO sigue pendiente. El sistema debe dejar de pedirlo.
+ CANCELLED:"skip",DECLINED:"skip",NO_SHOW:"skip",REFUSED:"skip",ADVERSE_EVENT:"skip",HELD:"skip",
+ REVOKED:"skip",ENTERED_IN_ERROR:"skip",
+};
+/** Clasificación declarada, o `undefined` si el kind no está clasificado (lo caza el test, no la pantalla). */
+export const followStateOf=(kind:string):"pend"|"prog"|"done"|"skip"|undefined=>FOLLOW_STATE_BY_KIND[kind.trim().toUpperCase()];
+export const FOLLOW_STATE_KINDS=Object.freeze(Object.keys(FOLLOW_STATE_BY_KIND));
+export function followState(kind:string):"pend"|"prog"|"done"|"skip"{
+ // La pantalla no puede quedarse sin respuesta, así que un kind desconocido cae en «pendiente» —el estado que más ruido
+ // hace y menos daño: pide revisar—. Pero el test impide que eso llegue a producción sin decidirse.
+ return followStateOf(kind)??"pend";
+}
 export type RxCheck=Readonly<{drug:{input:string;resolved:{ingredient:string;classes:string[]}|null};egfr:number|null;checks:{id:string;label:string;status:"OK"|"WARN"|"BLOCK"|"NOT_EVALUATED"|"NOT_COVERED"|"NA";detail:string;overridable?:boolean}[];monitoring:{test:string;note:string;dueInDays:number}[];indications:string;verdict:"OK"|"WARN"|"BLOCK";requiresAcknowledgement?:boolean;notEvaluated?:string[];notCovered?:string[];blockedOverridable?:string[];blockedHard?:string[]}>;
 // Auditoría U-19: la dosis se captura como cantidad + unidad (nada de texto libre "1 tab" sin unidad); el servidor recibe "500 mg".
 export const DOSE_UNITS=["mg","g","mcg","mL","UI","mEq","tab","cap","gotas","puff","amp"] as const;

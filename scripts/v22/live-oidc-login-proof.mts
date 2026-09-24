@@ -35,7 +35,14 @@ async function mkToken(claims:Record<string,unknown>={},opts:{iss?:string;aud?:s
   .setSubject(String(claims["sub"]??crypto.randomUUID())).setExpirationTime(opts.exp??"15m").sign(opts.signer??kp.privateKey);
 }
 // R01-013: el token de sesión solo viaja en el cuerpo si el cliente de API lo pide con la cabecera (el navegador usa la cookie).
-const loginReq=(token:string)=>new Request("http://l/api/v1/sessions",{method:"POST",headers:{"content-type":"application/json","x-medos-token-delivery":"body"},body:JSON.stringify({token})});
+// Auditoría (hallado el 24-sep-2026 al correr el smoke dos veces seguidas): esta prueba NO era idempotente. El límite de
+// tasa del login se guarda en la BASE (`rate_limit_buckets`, S-03) con la IP del cliente como llave, y `clientIp` cae a
+// «unknown» cuando no hay `x-forwarded-for`. Como la prueba no lo mandaba, TODAS sus corridas compartían el mismo cubo:
+// pasaba la primera vez y devolvía 429 en las siguientes hasta que expiraba la ventana. Pasó inadvertido porque las
+// corridas del gate estaban suficientemente espaciadas. Una IP única por corrida le da su propio cubo y sigue ejercitando
+// el límite igual.
+const RUN_IP=`203.0.113.${1+Math.floor(Math.random()*250)}`; // rango de documentación (RFC 5737): nunca es una IP real
+const loginReq=(token:string)=>new Request("http://l/api/v1/sessions",{method:"POST",headers:{"content-type":"application/json","x-medos-token-delivery":"body","x-forwarded-for":RUN_IP},body:JSON.stringify({token})});
 
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
 function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
