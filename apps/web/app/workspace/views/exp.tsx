@@ -156,7 +156,9 @@ export default function ExpView(){
       <div>
        {row(pIcon("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"),"Mis citas",nextAppt?`Próxima cita agendada`:appts.length?"Citas registradas":"Sin citas próximas")}
        {row(pIcon("M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"),"Mis resultados",resultsN?`${resultsN} estudio(s) · laboratorios e imágenes`:"Sin resultados aún")}
-       {row(pIcon("M10 4l10 10-6 6L4 10z"),"Mis medicamentos",medsN?`${medsN} tratamiento(s) actual(es)`:"Sin medicamentos activos")}
+       {/* R05a-F08: sin timeline cargado NO se afirma que no hay medicamentos. Es el portal del PACIENTE: leer «sin
+       medicamentos» cuando la carga falló puede hacer que deje de tomar un tratamiento. */}
+       {row(pIcon("M10 4l10 10-6 6L4 10z"),"Mis medicamentos",tl===undefined?"No disponible: no se pudo cargar tu expediente":(medsN?`${medsN} tratamiento(s) actual(es)`:"Sin medicamentos activos"))}
        {row(pIcon("M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6"),"Mi seguimiento","Pendientes y recordatorios",followN)}
        {row(pIcon("M4 5h16v11H8l-4 4z"),"Mensajes","Comunicación con tu equipo",undefined,true)}
        {row(pIcon("M4 5h11v14H4zM15 5h5v14h-5"),"Educación para mi salud","Artículos y recomendaciones",undefined,true)}

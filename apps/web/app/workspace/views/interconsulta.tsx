@@ -19,7 +19,11 @@ export default function InterconsultaView(){
    const cAllergies=!refCtx?"No evaluadas: contexto no cargado":refCtx.allergies.length?refCtx.allergies.join(", "):"Sin alergias documentadas";
    const cMeds=!refCtx?"No evaluada: contexto no cargado":refCtx.medications.length?refCtx.medications.map(m=>m.charAt(0).toUpperCase()+m.slice(1)).join(", "):"Sin medicación activa documentada";
    const ctxProblems=hasCtx?refCtx!.problems:[];
-   const cProblems=ctxProblems.length?ctxProblems.map(p=>shortOf(p.code)).join(", "):"Sin problemas activos";
+  // Auditoría 2026-09-19, anexo R05a (R05a-F08): «Sin problemas activos» afirmaba una AUSENCIA sin saber si el contexto
+  // llegó a cargar. En una interconsulta eso es grave: quien la recibe lee «sin problemas» y entiende que el paciente no
+  // los tiene, cuando puede ser que el expediente no se cargó. «No evaluado» y «confirmado vacío» son cosas distintas y la
+  // pantalla tiene que decir cuál es. Once de los catorce indicadores ya lo distinguían; éste era uno de los tres que no.
+   const cProblems=!hasCtx?"No evaluados: contexto del expediente no cargado":(ctxProblems.length?ctxProblems.map(p=>shortOf(p.code)).join(", "):"Sin problemas activos");
    const cHba1c=(hasCtx&&refCtx!.labs.hba1c)?`HbA1c ${refCtx!.labs.hba1c}%`:"Sin laboratorios recientes";
    const cVit=hasCtx&&(refCtx!.vitals.bp||refCtx!.vitals.imc)?`TA ${refCtx!.vitals.bp??"—"}  FC ${refCtx!.vitals.hr??"—"}  IMC ${refCtx!.vitals.imc??"—"}`:"Sin signos vitales recientes";
    const icBillTo=icPatientId||patientId;
@@ -65,7 +69,7 @@ export default function InterconsultaView(){
         <textarea value={icResumen} onChange={e=>setIcResumen(e.target.value.slice(0,1000))} placeholder="Resumen del cuadro clínico, tratamiento actual y evolución..." style={{...selSty,minHeight:110,resize:"vertical",lineHeight:1.5}}/>
         <div style={{textAlign:"right",fontSize:11,color:P.muted}}>{icResumen.length}/1000</div>
        </div>
-       <div style={{marginTop:12}}><div style={flbl}>Diagnósticos del expediente (contexto)</div>{ctxProblems.length===0?<div style={{fontSize:12.5,color:P.muted}}>Sin problemas activos en el expediente del paciente.</div>:<div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:4}}>{ctxProblems.map((p,i)=><span key={i} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#EEEBFD",color:P.purple,borderRadius:8,padding:"6px 10px",fontSize:12.5,fontWeight:600}}><b style={{fontWeight:700}}>{p.code}</b>{p.description}</span>)}</div>}<div style={{fontSize:11.5,color:P.muted,marginTop:6}}>Se toman del expediente; edítalos en el módulo «Problemas».</div></div>
+       <div style={{marginTop:12}}><div style={flbl}>Diagnósticos del expediente (contexto)</div>{!hasCtx?<div style={{fontSize:12.5,color:P.muted}}>No evaluados: el contexto del expediente no cargó.</div>:ctxProblems.length===0?<div style={{fontSize:12.5,color:P.muted}}>Sin problemas activos en el expediente del paciente.</div>:<div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:4}}>{ctxProblems.map((p,i)=><span key={i} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#EEEBFD",color:P.purple,borderRadius:8,padding:"6px 10px",fontSize:12.5,fontWeight:600}}><b style={{fontWeight:700}}>{p.code}</b>{p.description}</span>)}</div>}<div style={{fontSize:11.5,color:P.muted,marginTop:6}}>Se toman del expediente; edítalos en el módulo «Problemas».</div></div>
        {icMsg&&<div style={{marginTop:14,padding:"10px 13px",borderRadius:10,background:icMsg.includes("✓")?"#E6F6EE":"#FDF4E6",border:`1px solid ${icMsg.includes("✓")?"#BFE6CF":"#F2E1C0"}`,fontSize:13,color:icMsg.includes("✓")?"#166534":"#7A5A16"}}>{icMsg}</div>}
       </div>
      </div>
