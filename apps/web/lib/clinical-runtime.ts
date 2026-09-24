@@ -18,7 +18,7 @@ export{lookupReplay,runClinicalCommand}from"./runtime/command";
 export{PAGE_LIMIT_DEFAULT,PAGE_LIMIT_MAX,clampLimit,decodeCursor,encodeCursor}from"./runtime/pagination";
 export{findPatientDuplicate,listPatients,patientBirthDate,patientDemographics,requireRegisteredPatient}from"./runtime/patients";
 export{activeAllergies,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,administeredVaccineCodes,administeredVaccines,carePlanGoals,latestVitalReadings,latestVitalsByType,patientDocuments,patientEgfr,patientObligations,patientVitals}from"./runtime/patient-facts";
-export{analyteSeries,latestAnalyteReading,latestResultValueForAnalyte}from"./runtime/lab-facts";
+export{analyteSeries,latestAnalyteReading}from"./runtime/lab-facts";
 export{agendaForDate,allergyRegistry,claimsRegistry,immunizationRegistry,officeSettings,ordersRegistry,problemRegistry,regulatoryObligations,resultsRegistry,overdueOrders}from"./runtime/registries";
 export{appointmentOutcomes,appointmentsByType,encounterAnalytics,medicationsPrescribed}from"./runtime/analytics";
 export{blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,countUnresolvedCriticalObligations,documentDetail,readAggregateEvents,readEncounter,readEncounterEvents,readEventPayloadById,readPatientRecordRows,readPatientTimeline,readTenantOpenAggregates}from"./runtime/records";

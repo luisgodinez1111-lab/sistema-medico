@@ -46,6 +46,25 @@ export function correctedSodiumForGlucose(sodium:number,glucose:number):Correcte
 // estados hiperosmolares (hiperglucemia, uremia). Puro. ----
 export type OsmoStatus="HIGH"|"NORMAL"|"LOW";
 export type CalculatedOsmolality=Readonly<{value:number;status:OsmoStatus;interpretation:string}>;
+// Auditoría 2026-09-19, anexo R03 (vector F05): la osmolalidad CALCULADA sola no tiene utilidad clínica; la que decide es
+// la BRECHA OSMOLAL (medida − calculada). Una brecha >10 mOsm/kg es el hallazgo que delata un osmol no medido: etanol,
+// metanol, etilenglicol o isopropanol — es decir, la intoxicación que hay que descartar en una acidosis inexplicada.
+// Fuente: Kraut JA, Xing SX. «Approach to the evaluation of a patient with an increased serum osmolal gap».
+// Am J Kidney Dis 2011;58:480-4. El término de etanol (etanol mg/dL ÷ 3.7) se resta cuando se ha medido.
+export const OSMOLAL_GAP_THRESHOLD=10;
+export type OsmolalGap=Readonly<{measured:number;calculated:number;gap:number;elevated:boolean;ethanolAccounted:boolean;interpretation:string}>;
+export function osmolalGap(sodium:number,glucose:number,bun:number,measuredOsmolality:number,ethanolMgDl?:number):OsmolalGap|undefined{
+ const calc=calculatedOsmolality(sodium,glucose,bun);
+ if(!calc||!Number.isFinite(measuredOsmolality)||measuredOsmolality<=0)return undefined;
+ const etanol=ethanolMgDl!==undefined&&Number.isFinite(ethanolMgDl)&&ethanolMgDl>0?ethanolMgDl/3.7:0;
+ const calculada=round1(calc.value+etanol);
+ const gap=round1(measuredOsmolality-calculada);
+ const elevated=gap>OSMOLAL_GAP_THRESHOLD;
+ const interpretation=elevated
+  ?`Brecha osmolal ${gap} mOsm/kg (>${OSMOLAL_GAP_THRESHOLD}): hay un osmol no medido en el plasma. ${etanol>0?"Ya se descontó el etanol medido. ":""}Descartar metanol, etilenglicol, isopropanol o propilenglicol (vehículo de fármacos IV).`
+  :`Brecha osmolal ${gap} mOsm/kg (≤${OSMOLAL_GAP_THRESHOLD}): sin evidencia de osmoles no medidos.${etanol>0?" Se descontó el etanol medido.":""}`;
+ return{measured:round1(measuredOsmolality),calculated:calculada,gap,elevated,ethanolAccounted:etanol>0,interpretation};
+}
 export function calculatedOsmolality(sodium:number,glucose:number,bun:number):CalculatedOsmolality|undefined{
  if(![sodium,glucose,bun].every(Number.isFinite)||sodium<=0)return undefined;
  const value=round1(2*sodium+glucose/18+bun/2.8);
@@ -58,12 +77,23 @@ export function calculatedOsmolality(sodium:number,glucose:number,bun:number):Ca
 
 // ---- Calcio corregido por albúmina = Ca + 0.8·(4.0 − albúmina). Desenmascara hipo/hipercalcemia cuando la
 // albúmina es anormal (el calcio total está ligado a albúmina). Reclasifica con el rango de calcio. ----
-export type CorrectedCalcium=Readonly<{measured:number;corrected:number;albumin:number;status:LabStatus;interpretation:string}>;
-export function correctedCalcium(measuredCa:number,albumin:number):CorrectedCalcium|undefined{
+export type CorrectedCalcium=Readonly<{measured:number;corrected:number;albumin:number;status:LabStatus;interpretation:string;reliable:boolean;caveats?:readonly string[]}>;
+// Auditoría 2026-09-19, anexo R03 (vector F06): la corrección de Payne pierde validez justo donde más se usa —enfermedad
+// renal crónica y paciente crítico— y aceptaba una albúmina de 0.5 g/dL sin objeción. Fuera del rango en el que se
+// derivó, la fórmula sobrecorrige y puede convertir una hipocalcemia real en un «calcio normal».
+// Fuente: Payne RB et al., BMJ 1973;4:643-6; límites de validez en Gauci C et al., J Am Soc Nephrol 2008;19:1592-8.
+export const CALCIUM_CORRECTION_ALBUMIN_RANGE=[2.0,5.0]as const;
+export function correctedCalcium(measuredCa:number,albumin:number,ctx:Readonly<{ckd?:boolean}>={}):CorrectedCalcium|undefined{
  if(![measuredCa,albumin].every(Number.isFinite)||albumin<=0)return undefined;
  const corrected=round1(measuredCa+0.8*(4.0-albumin));
  const a=classifyLab("CALCIUM",String(corrected));
  const shifted=Math.abs(corrected-measuredCa)>=0.3;
+ const[albMin,albMax]=CALCIUM_CORRECTION_ALBUMIN_RANGE;
+ const caveats:string[]=[];
+ if(albumin<albMin||albumin>albMax)caveats.push(`albúmina ${albumin} g/dL fuera del rango en el que se derivó la corrección (${albMin}–${albMax}): el valor corregido es poco fiable`);
+ if(ctx.ckd===true)caveats.push("enfermedad renal crónica: la corrección de Payne no es fiable en la ERC (alteración del equilibrio ácido-base y de la unión a proteínas)");
+ if(caveats.length)caveats.push("mida CALCIO IÓNICO para decidir");
  const interpretation=`Calcio corregido ${corrected} mg/dL (medido ${measuredCa}, albúmina ${albumin}): ${a.interpretation}`+(shifted?" — la corrección cambia la interpretación vs el calcio total":"");
- return{measured:round1(measuredCa),corrected,albumin:round1(albumin),status:a.status,interpretation};
+ const conCaveat=caveats.length?`${interpretation} · ADVERTENCIA: ${caveats.join('; ')}`:interpretation;
+ return{measured:round1(measuredCa),corrected,albumin:round1(albumin),status:caveats.length?"UNKNOWN":a.status,interpretation:conCaveat,reliable:caveats.length===0,...(caveats.length?{caveats}:{})};
 }

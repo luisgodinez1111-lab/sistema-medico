@@ -4,7 +4,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldResult,assertResultTransition,assertResultCorrectable,assertResultVoidable,type FoldedResult}from"../../../packages/result-fold/src";
 import{type ResultState}from"../../../packages/order-result-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,latestResultValueForAnalyte,requireRegisteredPatient,patientDemographics}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,latestAnalyteReading,requireRegisteredPatient,patientDemographics}from"./clinical-runtime";
 import{ageInYears}from"../../../packages/prescription-safety/src";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload,derivedUuid}from"./http-command";
@@ -72,9 +72,15 @@ async function interpretForReceive(ctx:Parameters<typeof runClinicalCommand>[0],
   // EPIC BB (profundidad): delta check longitudinal — comparar con el valor previo del mismo analito.
   // Una variación crítica (p. ej. creatinina que se duplica, Hb -2 g/dL) ELEVA el resultado a `critical`
   // aunque el valor absoluto no sea de pánico -> participa del gate de firma (Zero Lost Follow-Up).
-  const prior=await latestResultValueForAnalyte(ctx,b.patientId,b.analyte,priorExclude);
+  // R03-F09: el delta check necesita la FECHA del previo, no solo su valor: comparar con un resultado de hace tres años y
+  // llamarlo «cambio agudo» es ruido que desplaza al aviso real. `latestAnalyteReading` la trae (y excluye corregidos y
+  // anulados), así que el lector de número desnudo deja de usarse también aquí.
+  const previo=await latestAnalyteReading(ctx,b.patientId,b.analyte,priorExclude);
+  const prior=previo===undefined?undefined:String(previo.value);
   const current=norm.ok?String(norm.canonicalValue):b.value;
-  const delta=prior!==undefined?deltaCheck(b.analyte,prior,current):{flagged:false,severity:"NONE" as const,changeAbs:0,changePct:0,note:""};
+  const delta=prior!==undefined
+   ?deltaCheck(b.analyte,prior,current,{priorAt:previo!.occurredAt,newAt:b.occurredAt})
+   :{flagged:false,severity:"NONE" as const,changeAbs:0,changePct:0,note:""};
   const critical=assessment.critical||delta.flagged;
   const interpretation=delta.flagged?`${assessment.interpretation} · Δ crítico vs previo (${prior}→${b.value}): ${delta.note}`:assessment.interpretation;
   const payload:Record<string,unknown>={kind:"RECEIVED",patientId:b.patientId,orderId:b.orderId,orderLinked:foldOrder(await readAggregateEvents(ctx,b.orderId)).exists,critical,status:delta.flagged?"CRITICAL":assessment.status,interpretation,analyte:b.analyte,value:b.value};

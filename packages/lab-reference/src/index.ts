@@ -272,7 +272,17 @@ export function classifyLab(analyte: string, value: string, unit?: string, ctx: 
 // del rango "bajo pero no pánico"). Un delta CRÍTICO eleva el resultado a `critical` -> participa del
 // gate de firma (Zero Lost Follow-Up). Puro, sin PHI. Umbrales de demostración.
 export type DeltaSeverity = "CRITICAL" | "NONE";
-export type DeltaAssessment = Readonly<{ flagged: boolean; severity: DeltaSeverity; changeAbs: number; changePct: number; note: string }>;
+export type DeltaAssessment = Readonly<{ flagged: boolean; severity: DeltaSeverity; changeAbs: number; changePct: number; note: string; windowDays?: number; gapDays?: number; outOfWindow?: boolean }>;
+// Auditoría 2026-09-19, anexo R03 (vector F09): el delta check no tenía VENTANA TEMPORAL, así que comparaba el resultado
+// de hoy con uno de hace tres años y lo presentaba como «cambio agudo». Un delta solo significa algo dentro del plazo en
+// el que ese analito puede cambiar de forma clínicamente relevante: una creatinina que se duplica en 7 días es una lesión
+// renal aguda; en tres años es la progresión esperable de una enfermedad renal crónica, y el aviso es ruido.
+// Ventanas: criterio de ingeniería basado en la definición de LRA de KDIGO (7 días para creatinina) y en el plazo en el
+// que cada cambio es agudo. PENDIENTE de validación clínica, como el resto del contenido.
+export const DELTA_WINDOW_DAYS: Readonly<Record<string, number>> = {
+  CREATININE: 7, HEMOGLOBIN: 14, SODIUM: 3, POTASSIUM: 3, PLATELETS: 14, CALCIUM: 7, GLUCOSE: 3,
+};
+export type DeltaOptions = Readonly<{ priorAt?: string; newAt?: string; now?: Date }>;
 type DeltaRule = Readonly<{ direction: "up" | "down" | "any"; criticalAbs?: number; criticalRatio?: number; note: string }>;
 // direction = dirección clínicamente peligrosa; criticalRatio se evalúa como new/old.
 const DELTA_RULES: Record<string, DeltaRule> = {
@@ -285,10 +295,21 @@ const DELTA_RULES: Record<string, DeltaRule> = {
   GLUCOSE: { direction: "any", criticalAbs: 200, note: "variación glucémica extrema" },
 };
 function round2(n: number): number { return Math.round(n * 100) / 100; }
-export function deltaCheck(analyte: string, priorValue: string, newValue: string): DeltaAssessment {
+export function deltaCheck(analyte: string, priorValue: string, newValue: string, opts: DeltaOptions = {}): DeltaAssessment {
   const none: DeltaAssessment = { flagged: false, severity: "NONE", changeAbs: 0, changePct: 0, note: "" };
-  const rule = DELTA_RULES[analyte.trim().toUpperCase()];
+  const key = analyte.trim().toUpperCase();
+  const rule = DELTA_RULES[key];
   if (!rule) return none;
+  // F09: si se conocen las fechas y el hueco excede la ventana del analito, NO hay delta que interpretar.
+  const windowDays = DELTA_WINDOW_DAYS[key];
+  if (windowDays !== undefined && opts.priorAt !== undefined && opts.newAt !== undefined) {
+    const a = Date.parse(opts.priorAt), b = Date.parse(opts.newAt);
+    if (Number.isFinite(a) && Number.isFinite(b)) {
+      const gapDays = Math.abs(b - a) / 86_400_000;
+      if (gapDays > windowDays) return { ...none, windowDays, gapDays: Math.round(gapDays * 10) / 10, outOfWindow: true,
+        note: `Resultado previo de hace ${Math.round(gapDays)} días: fuera de la ventana de ${windowDays} días en la que un cambio de ${analyteLabel(key)} es AGUDO. No se evalúa como delta crítico.` };
+    }
+  }
   const oldV = num(priorValue), newV = num(newValue);
   if (Number.isNaN(oldV) || Number.isNaN(newV)) return none;
   const changeAbs = newV - oldV;

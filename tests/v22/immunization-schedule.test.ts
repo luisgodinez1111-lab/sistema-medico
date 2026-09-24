@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{ageInMonths,forecastImmunizations,forecastSummary}from"../../packages/immunization-schedule/src";
+import{ageInMonths,forecastImmunizations,forecastSummary,forecast}from"../../packages/immunization-schedule/src";
 // EPIC BK — Pronóstico de vacunación por edad (cartilla México).
 describe("ageInMonths",()=>{
  it("calcula meses de calendario ajustando por día",()=>{
@@ -78,5 +78,63 @@ describe("pronóstico por edad (C-10)",()=>{
  it("la infancia sigue funcionando igual: recién nacido con BCG/HEPB DUE, y las dosis del adulto son UPCOMING",()=>{
   const f=forecastImmunizations("2026-09-01",[],AS_OF);
   expect(f.find(d=>d.code==="BCG")!.status).toBe("DUE");expect(f.find(d=>d.code==="VPH")!.status).toBe("UPCOMING");expect(f.find(d=>d.code==="NEUMO23")!.status).toBe("UPCOMING");
+ });
+});
+
+// Auditoría 2026-09-19, anexo R03 (R03-30): el conteo era POSICIONAL, así que tres dosis puestas la misma semana se
+// marcaban COMPLETE; y una fecha de nacimiento no interpretable devolvía `[]`, indistinguible de «sin pendientes».
+describe("edad e intervalo mínimos: una dosis prematura no cuenta (R03-30)",()=>{
+ it("tres pentavalentes la misma semana: solo la primera cuenta, las otras dos se invalidan con motivo",()=>{
+  const f=forecast("2026-03-19",[
+   {code:"PENTA",occurredAt:"2026-09-01"},{code:"PENTA",occurredAt:"2026-09-03"},{code:"PENTA",occurredAt:"2026-09-05"},
+  ],"2026-09-19");
+  expect(f.ok).toBe(true);
+  if(!f.ok)return;
+  expect(f.invalidated).toHaveLength(2);
+  for(const i of f.invalidated){
+   expect(i.reasonCode).toBe("BELOW_MIN_INTERVAL");
+   expect(i.detail).toMatch(/intervalo mínimo/);
+   expect(i.detail).toMatch(/debe repetirse/);
+  }
+  const penta=f.doses.filter(d=>d.code==="PENTA");
+  expect(penta[0]!.status).toBe("COMPLETE");
+  expect(penta[1]!.status).not.toBe("COMPLETE"); // hay que repetirla
+ });
+ it("una dosis aplicada ANTES de la edad mínima tampoco cuenta",()=>{
+  // VPH tiene edad mínima de 9 años: una dosis a los 7 no acredita la serie.
+  const f=forecast("2016-01-01",[{code:"VPH",occurredAt:"2023-06-01"}],"2029-01-01");
+  expect(f.ok).toBe(true);
+  if(!f.ok)return;
+  expect(f.invalidated[0]?.reasonCode).toBe("BELOW_MIN_AGE");
+  expect(f.invalidated[0]?.detail).toMatch(/edad mínima/);
+ });
+ it("las dosis SIN fecha cuentan (no se castiga la falta de registro) y no se invalidan",()=>{
+  const f=forecast("2026-03-19",["PENTA","PENTA"],"2026-09-19");
+  expect(f.ok).toBe(true);
+  if(!f.ok)return;
+  expect(f.invalidated).toHaveLength(0);
+  expect(f.doses.filter(d=>d.code==="PENTA"&&d.status==="COMPLETE")).toHaveLength(2);
+ });
+ it("un esquema correcto no invalida nada",()=>{
+  const f=forecast("2026-01-01",[
+   {code:"PENTA",occurredAt:"2026-03-05"},{code:"PENTA",occurredAt:"2026-05-05"},{code:"PENTA",occurredAt:"2026-07-05"},
+  ],"2026-09-19");
+  expect(f.ok).toBe(true);
+  if(!f.ok)return;
+  expect(f.invalidated).toHaveLength(0);
+  expect(f.doses.filter(d=>d.code==="PENTA"&&d.status==="COMPLETE")).toHaveLength(3);
+ });
+ it("una fecha de nacimiento no interpretable es un ERROR, no «sin pendientes»",()=>{
+  const f=forecast("19/03/2026",[],"2026-09-19");
+  expect(f.ok).toBe(false);
+  if(f.ok)return;
+  expect(f.reasonCode).toBe("INVALID_BIRTH_DATE");
+  expect(f.detail).toMatch(/No es «sin pendientes»/);
+ });
+ it("las dosis anuales y el Td no se validan por posición (se deciden por fecha)",()=>{
+  const f=forecast("1960-01-01",[{code:"INFLUENZA",occurredAt:"2026-01-15"},{code:"INFLUENZA",occurredAt:"2026-02-15"}],"2026-09-19");
+  expect(f.ok).toBe(true);
+  if(!f.ok)return;
+  expect(f.invalidated).toHaveLength(0);
  });
 });

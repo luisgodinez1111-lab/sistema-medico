@@ -313,3 +313,86 @@ describe("recibo de cálculo en las rutas calculadoras (R03-37)",()=>{
   }
  });
 });
+
+// Vectores del bloque 3 del anexo cerrados en el lote 11h: F02 (escalones CHEST del INR), F05 (brecha osmolal),
+// F06 (límites de validez del calcio corregido), F07 (el INR no monitoriza ACOD) y F09 (ventana del delta check).
+describe("INR: escalones de conducta y dominio (R03-F02, F07)",()=>{
+ it("F02: un INR de 12 NO recibe el mismo texto que uno de 5",async()=>{
+  const{interpretINR}=await import("../../packages/anticoagulation/src");
+  const cinco=interpretINR(5)!,doce=interpretINR(12)!;
+  expect(cinco.action).toBe("OMITIR_DOSIS_Y_RECONTROLAR");
+  expect(doce.action).toBe("VITAMINA_K_ORAL");
+  expect(cinco.interpretation).not.toBe(doce.interpretation);
+  expect(cinco.interpretation).toMatch(/vitamina K de rutina NO está indicada/);
+  expect(doce.interpretation).toMatch(/vitamina K 2\.5–5 mg ORAL/);
+ });
+ it("F02: con sangrado mayor se revierte a cualquier INR",async()=>{
+  const{interpretINR}=await import("../../packages/anticoagulation/src");
+  const r=interpretINR(3,{majorBleeding:true})!;
+  expect(r.action).toBe("PCC_MAS_VITAMINA_K_IV");
+  expect(r.status).toBe("CRITICAL_HIGH");
+ });
+ it("F07: el INR no monitoriza a un ACOD, y se dice explícitamente",async()=>{
+  const{interpretINR}=await import("../../packages/anticoagulation/src");
+  const r=interpretINR(2.5,{anticoagulant:"DOAC"})!;
+  expect(r.applicable).toBe(false);
+  expect(r.interpretation).toMatch(/NO monitoriza/);
+  expect(interpretINR(2.5,{anticoagulant:"VKA"})!.applicable).toBe(true);
+ });
+ it("F07: el rango objetivo sale de la INDICACIÓN (válvula mecánica 2.5–3.5)",async()=>{
+  const{interpretINR,INR_TARGETS}=await import("../../packages/anticoagulation/src");
+  expect(INR_TARGETS.MECHANICAL_VALVE).toEqual({low:2.5,high:3.5});
+  const valvula=interpretINR(2.2,{indication:"MECHANICAL_VALVE"})!;
+  expect(valvula.status).toBe("SUBTHERAPEUTIC");         // 2.2 es terapéutico en FA y bajo con válvula
+  expect(interpretINR(2.2,{indication:"AF_OR_VTE"})!.status).toBe("THERAPEUTIC");
+ });
+});
+
+describe("brecha osmolal, calcio corregido y ventana del delta (R03-F05, F06, F09)",()=>{
+ it("F05: la brecha osmolal delata el osmol no medido (valor exacto)",async()=>{
+  const{osmolalGap,OSMOLAL_GAP_THRESHOLD}=await import("../../packages/lab-derivations/src");
+  // Calculada = 2·140 + 100/18 + 14/2.8 = 290.6; medida 320 -> brecha 29.4
+  const r=osmolalGap(140,100,14,320)!;
+  expect(r.calculated).toBe(290.6);
+  expect(r.gap).toBe(29.4);
+  expect(r.elevated).toBe(true);
+  expect(r.interpretation).toMatch(/metanol/);
+  expect(OSMOLAL_GAP_THRESHOLD).toBe(10);
+  // Con etanol medido, el osmol conocido se descuenta: 100 mg/dL ÷ 3.7 = 27.03
+  const conEtanol=osmolalGap(140,100,14,320,100)!;
+  expect(conEtanol.ethanolAccounted).toBe(true);
+  expect(conEtanol.gap).toBeLessThan(r.gap);
+  expect(conEtanol.elevated).toBe(false);
+ });
+ it("F06: el calcio corregido declara cuándo NO es fiable",async()=>{
+  const{correctedCalcium,CALCIUM_CORRECTION_ALBUMIN_RANGE}=await import("../../packages/lab-derivations/src");
+  expect(CALCIUM_CORRECTION_ALBUMIN_RANGE).toEqual([2.0,5.0]);
+  const normal=correctedCalcium(7.5,3.0)!;
+  expect(normal.reliable).toBe(true);
+  expect(normal.corrected).toBe(8.3);
+  // El caso del anexo: albúmina 0.5 g/dL se aceptaba sin objeción y «corregía» el calcio a 10.3 («normal»).
+  const extrema=correctedCalcium(7.5,0.5)!;
+  expect(extrema.reliable).toBe(false);
+  expect(extrema.status).toBe("UNKNOWN");
+  expect(extrema.interpretation).toMatch(/CALCIO IÓNICO/);
+  // En ERC la fórmula tampoco es fiable, aunque la albúmina esté en rango.
+  const erc=correctedCalcium(7.5,3.0,{ckd:true})!;
+  expect(erc.reliable).toBe(false);
+  expect(erc.interpretation).toMatch(/enfermedad renal crónica/);
+ });
+ it("F09: un «delta» de tres años no es un cambio agudo",async()=>{
+  const{deltaCheck,DELTA_WINDOW_DAYS}=await import("../../packages/lab-reference/src");
+  expect(DELTA_WINDOW_DAYS["CREATININE"]).toBe(7);
+  // Dentro de la ventana: creatinina que se duplica en 3 días es lesión renal aguda.
+  const agudo=deltaCheck("CREATININE","1.0","2.2",{priorAt:"2026-09-16T00:00:00Z",newAt:"2026-09-19T00:00:00Z"});
+  expect(agudo.flagged).toBe(true);
+  expect(agudo.severity).toBe("CRITICAL");
+  // Fuera de la ventana: el mismo cambio en tres años es la progresión de una ERC, no una alerta.
+  const cronico=deltaCheck("CREATININE","1.0","2.2",{priorAt:"2023-09-19T00:00:00Z",newAt:"2026-09-19T00:00:00Z"});
+  expect(cronico.flagged).toBe(false);
+  expect(cronico.outOfWindow).toBe(true);
+  expect(cronico.note).toMatch(/fuera de la ventana/);
+  // Sin fechas se mantiene el comportamiento anterior (no se puede saber).
+  expect(deltaCheck("CREATININE","1.0","2.2").flagged).toBe(true);
+ });
+});

@@ -47,7 +47,6 @@ describe("anulación de un resultado (R03-10)",()=>{
  });
  it("TODOS los lectores de resultados excluyen los anulados (guardián de las consultas SQL)",()=>{
   const lectores:[string,string][]=[
-   ["apps/web/lib/runtime/lab-facts.ts","latestResultValueForAnalyte"],
    ["apps/web/lib/runtime/lab-facts.ts","latestAnalyteReading"],
    ["apps/web/lib/runtime/lab-facts.ts","analyteSeries"],
    ["apps/web/lib/runtime/registries.ts","resultsRegistry"],
@@ -64,13 +63,19 @@ describe("anulación de un resultado (R03-10)",()=>{
 });
 
 describe("toda lectura de laboratorio pasa por la guarda (R03-10)",()=>{
- it("el lector de número desnudo tiene UN solo consumidor: el delta check",()=>{
-  const consumidores=[...runtimeFiles(),"apps/web/lib/result-lifecycle.ts","apps/web/lib/clinical-intelligence-summary.ts"]
+ it("el lector de número desnudo YA NO EXISTE: no quedaba ningún consumidor",()=>{
+  // En el lote 11e quedaba uno (el delta check); en el 11h pasó a `latestAnalyteReading` porque necesitaba la fecha del
+  // previo (ventana temporal del delta, vector F09). Una función muerta que devuelve números sin unidad es una invitación.
+  const fs2=fs;
+  expect(fs2.readFileSync("apps/web/lib/runtime/lab-facts.ts","utf8")).not.toMatch(/export async function latestResultValueForAnalyte/);
+  expect(fs2.readFileSync("apps/web/lib/clinical-runtime.ts","utf8")).not.toContain("latestResultValueForAnalyte");
+ });
+ it("ninguna ruta ni panel lee laboratorio por otra vía que la guarda",()=>{
+  const ficheros=[...runtimeFiles(),"apps/web/lib/result-lifecycle.ts","apps/web/lib/clinical-intelligence-summary.ts"]
    .concat(fs.readdirSync("apps/web/app/api/v1/patients/[patientId]",{recursive:true,encoding:"utf8"})
-    .filter(f=>f.endsWith("route.ts")).map(f=>`apps/web/app/api/v1/patients/[patientId]/${f}`))
-   .filter(f=>fs.existsSync(f)&&fs.readFileSync(f,"utf8").includes("latestResultValueForAnalyte("));
-  // lab-facts (donde vive) + result-lifecycle (el delta check). Ninguna ruta ni panel más.
-  expect(consumidores.sort()).toEqual(["apps/web/lib/result-lifecycle.ts","apps/web/lib/runtime/lab-facts.ts"]);
+    .filter(f=>f.endsWith("route.ts")).map(f=>`apps/web/app/api/v1/patients/[patientId]/${f}`));
+  const conLectorDesnudo=ficheros.filter(f=>fs.existsSync(f)&&fs.readFileSync(f,"utf8").includes("latestResultValueForAnalyte("));
+  expect(conLectorDesnudo).toEqual([]);
  });
  it("los dos analitos que quedaban sin especificación de unidad ya la tienen",()=>{
   // Los comentarios del código lo declaraban: «LDL aún sin especificación (pendiente C-13)» y «unidad asumida: el
