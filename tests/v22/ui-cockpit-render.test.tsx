@@ -564,7 +564,10 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   await toExpediente();
   expect(await screen.findByText(/Vista principal/,{},{timeout:2500})).toBeTruthy();
   expect(screen.getAllByText("HTA").length).toBeGreaterThan(0);     // chip dx desde CIE-10 (I10)
-  expect(screen.getAllByText("ERC G3a").length).toBeGreaterThan(0); // N18.3 -> etiqueta
+  // CORRECCIÓN CLÍNICA (auditoría, al cablear R05a-F03): esta prueba fijaba «ERC G3a» para N18.3, y el mapa de estadios
+  // estaba DESPLAZADO UN ESTADIO —N18.5 (eGFR < 15) se mostraba como G4—. Además «G3a» afirmaba una subdivisión que exige
+  // N18.31/N18.32: con N18.3 a secas no se sabe. La etiqueta correcta de N18.3 es «ERC G3», y ésta es la regresión.
+  expect(screen.getAllByText("ERC G3").length).toBeGreaterThan(0); // N18.3 -> estadio 3, sin afirmar a/b
   expect(screen.getAllByText("7.1").length).toBeGreaterThan(0);     // HbA1c en tarjeta de vitales
  });
 

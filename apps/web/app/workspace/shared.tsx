@@ -3,6 +3,7 @@
 // `patientBar`, `LINE`) son adaptadores sobre el design system (packages/design-system/src/components.tsx): la paleta y la
 // anatomía viven allí; aquí solo se conservan los nombres que usan las vistas.
 import {primitive,typography,LINE as DS_LINE,buttonStyle,cardStyle,inputStyle,badgeStyle,toneOfState,patientHeaderStyle} from "../../../../packages/design-system/src";
+import{lookupIcd10}from"../../../../packages/terminology/src";
 // Solo el FORMATO del UUID (módulo sin dependencias de Node: el bundle del cliente no puede traer node:crypto).
 import {uuidFromDigest} from "../../../../packages/canonical-json/src/uuid";
 
@@ -98,9 +99,33 @@ export type CiSnap=Readonly<{registered:boolean;problems?:string[];allergies?:st
 export type ReportsSnap=Readonly<{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;description:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;label:string;count:number;pct:number}[];topProcedures:{detail:string;count:number;pct:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[];appointmentsTotal:number;appointmentsByType:{type:string;label:string;count:number;pct:number}[];qualityIndicators:{key:string;label:string;numerator:number;denominator:number;pct:number;target:number;direction:"higher"|"lower";met:boolean;computable:boolean;note:string}[]}>;
 export const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis",Preventive:"Cuidado preventivo"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
+//
+// CORRECCIÓN CLÍNICA (auditoría 2026-09-19, hallada al cablear R05a-F03 con el catálogo real): el mapa de estadios de
+// enfermedad renal crónica estaba DESPLAZADO UN ESTADIO. Decía N18.4 → «ERC G3b» y N18.5 → «ERC G4», cuando en CIE-10
+// N18.4 es estadio 4 y N18.5 es estadio 5. Un paciente codificado N18.5 (eGFR < 15) se mostraba como G4 (eGFR 15–29): un
+// estadio menos de gravedad en el chip de diagnóstico del cockpit. El estadio de ERC gobierna la dosificación de fármacos
+// (muchos están contraindicados por debajo de 30 o de 15), la urgencia de referencia a nefrología y la evitación de
+// contraste. Además N18.6 —enfermedad renal crónica TERMINAL, dependiente de diálisis— se mostraba como «ERC G5», y
+// perdía justo el dato que cambia la conducta. El propio repositorio ya tenía la verdad: `packages/terminology` describe
+// N18.5 como «estadio 5». La UI contradecía al catálogo.
+//
+// Tampoco se afirma ya la subdivisión a/b: distinguir G3a de G3b exige N18.31 o N18.32; con N18.3 a secas no se sabe, y
+// decir «G3a» era precisión inventada. Fuente: categoría N18 de la CIE-10 y estadios G de KDIGO.
+// PENDIENTE DE VALIDACIÓN CLÍNICA (ADR-0300): las abreviaturas de este mapa las tiene que revisar un médico.
 export const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
- const m:[string,string][]=[["N18.3","ERC G3a"],["N18.4","ERC G3b"],["N18.5","ERC G4"],["N18.6","ERC G5"],["N18","ERC"],["I10","HTA"],["E11","DM2"],["E10","DM1"],["E78","Dislipidemia"],["I50","IC"],["I48","FA"],["J44","EPOC"],["J45","Asma"],["I25","Cardiopatía isq."],["E66","Obesidad"],["M15","Osteoartrosis"],["M17","Gonartrosis"],["F32","Depresión"],["K21","ERGE"]];
- for(const[p,l]of m)if(c.startsWith(p))return l;return c;};
+ const m:[string,string][]=[["N18.3","ERC G3"],["N18.4","ERC G4"],["N18.5","ERC G5"],["N18.6","ERC terminal (diálisis)"],["N18","ERC"],["I10","HTA"],["E11","DM2"],["E10","DM1"],["E78","Dislipidemia"],["I50","IC"],["I48","FA"],["J44","EPOC"],["J45","Asma"],["I25","Cardiopatía isq."],["E66","Obesidad"],["M15","Osteoartrosis"],["M17","Gonartrosis"],["F32","Depresión"],["K21","ERGE"]];
+ for(const[p,l]of m)if(c.startsWith(p))return l;
+ // Auditoría 2026-09-19, anexo R05a (R05a-F03): el fallback era devolver el CÓDIGO CRUDO, así que un problema `K21.9` se
+ // pintaba en un chip de diagnóstico como «K21.9». En un chip, un código se lee como si fuera el nombre del diagnóstico, y
+ // no lo es: quien mira la pantalla no sabe si el sistema no conoce el código o si el diagnóstico se llama así.
+ //
+ // Ahora hay dos pasos más antes de rendirse. Primero la DESCRIPCIÓN CANÓNICA del catálogo CIE-10 que el repositorio ya
+ // tiene (`packages/terminology`, 89 códigos, el mismo que valida al codificar un problema y que ata la descripción al
+ // evento): si el código está catalogado, se muestra su descripción. Y si no está, el código se muestra MARCADO como
+ // código —«CIE-10 K21.9»— para que nadie lo confunda con un nombre clínico.
+ const cat=lookupIcd10(c);
+ if(cat)return cat.description;
+ return `CIE-10 ${c}`;};
 export type Snap=Readonly<{demographics:{age:number;sex:string;birthDate:string;name?:string;curp?:string;phone?:string;email?:string;address?:string;occupation?:string;maritalStatus?:string};problems:string[];allergies:string[];vitals:Record<string,string>;labs:{hba1c?:number;creatinine?:number;glucose?:number;ldl?:number;egfr?:number;egfrStage?:string};findings:{domain:string;severity:"CRITICAL"|"WARNING"|"INFO";summary:string}[]}>;
 export const SEX_ES:Record<string,string>={FEMALE:"Femenino",MALE:"Masculino",INTERSEX:"Intersexual",UNKNOWN:"Sin especificar"};
 // Tiempo relativo compacto (panel de auditoría / actividad).

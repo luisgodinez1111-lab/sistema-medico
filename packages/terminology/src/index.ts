@@ -109,6 +109,11 @@ const CATALOG:readonly Icd10Entry[]=[
  {code:"I21.9",description:"Infarto agudo del miocardio, no especificado",category:"Cardiovascular"},
  {code:"N18.4",description:"Enfermedad renal crónica, estadio 4 (grave)",category:"Genitourinario"},
  {code:"N18.5",description:"Enfermedad renal crónica, estadio 5",category:"Genitourinario"},
+ // Auditoría 2026-09-19 (hallado al cablear R05a-F03): la UI etiquetaba N18.6 y M15 y el catálogo no los conocía, así que
+ // el sistema podía MOSTRAR un diagnóstico que no podía CODIFICAR ni validar. N18.6 es además el estadio que más cambia la
+ // conducta —enfermedad renal crónica terminal, dependiente de diálisis— y faltaba precisamente ése.
+ {code:"N18.6",description:"Enfermedad renal crónica terminal (dependiente de diálisis)",category:"Genitourinario"},
+ {code:"M15.9",description:"Poliartrosis, no especificada",category:"Musculoesquelético"},
  {code:"J44.0",description:"Enfermedad pulmonar obstructiva crónica con infección aguda de las vías respiratorias inferiores",category:"Respiratorio"},
  {code:"E11.7",description:"Diabetes mellitus tipo 2 con complicaciones múltiples",category:"Endocrino"},
 ];
