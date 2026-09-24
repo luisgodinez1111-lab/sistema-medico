@@ -2,6 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "planCuidado" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {parseBp} from "../../../../../packages/bp-staging/src";
+import{goalFor,INDIVIDUALIZATION_NOTICE}from"../../../../../packages/care-goals/src";
 import{card,P,UI,LINE}from"../shared";
 import{useWorkspace}from"../context";
 export default function PlanCuidadoView(){
@@ -22,7 +23,11 @@ export default function PlanCuidadoView(){
    const cico=(c:string,d:string)=><span style={{width:34,height:34,borderRadius:9,background:c+"22",color:c,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={d}/></svg></span>;
    const sec:React.CSSProperties={fontSize:15.5,fontWeight:800,display:"flex",alignItems:"center",gap:9,marginBottom:14};
    const secIco=(c:string,d:string)=><span style={{width:28,height:28,borderRadius:8,background:c+"22",color:c,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={d}/></svg></span>;
-   const metric=(name:string,target:string,val:string,unit:string,good:boolean)=><div style={{marginBottom:13}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}><div><div style={{fontSize:13,fontWeight:700}}>{name}</div><div style={{fontSize:11,color:P.muted}}>{target}</div></div><div style={{fontSize:12,color:P.muted}}>Último: <b style={{color:P.ink}}>{val}{unit}</b></div></div><div style={{height:6,borderRadius:6,background:"#EEF1F7",overflow:"hidden",marginTop:5}}><div style={{height:"100%",width:good?"85%":"55%",background:good?"#16A66A":"#E5983B",borderRadius:6}}/></div></div>;
+   const metric=(name:string,target:string,val:string,unit:string,good:boolean)=><div style={{marginBottom:13}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}><div><div style={{fontSize:13,fontWeight:700}}>{name}</div><div style={{fontSize:11,color:P.muted}}>{target}</div><div style={{fontSize:10.5,color:P.muted,opacity:.85}} data-testid="goal-individualization">{INDIVIDUALIZATION_NOTICE}</div></div><div style={{fontSize:12,color:P.muted}}>Último: <b style={{color:P.ink}}>{val}{unit}</b></div></div><div style={{height:6,borderRadius:6,background:"#EEF1F7",overflow:"hidden",marginTop:5}}><div style={{height:"100%",width:good?"85%":"55%",background:good?"#16A66A":"#E5983B",borderRadius:6}}/></div></div>;
+   // Auditoría R05a-F01: la meta y su fuente viven en packages/care-goals, no escritas aquí. La vista muestra la meta POR
+   // OMISIÓN y, junto a ella, que la del paciente la fija su médico: una HbA1c < 7 % no es la meta de un anciano frágil.
+   const metaDe=(m:string)=>`Meta ${goalFor(m)?.defaultTarget??"sin definir"}`;
+   const enMeta=(m:string,v:number)=>{const g=goalFor(m);return g?.meetsDefault?g.meetsDefault(v):false;};
    const clip="M9 3h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h1V4a1 1 0 011-1z";
    return <div style={{padding:"18px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
@@ -55,10 +60,10 @@ export default function PlanCuidadoView(){
      <div style={{...card2,padding:18}}><div style={sec}>{secIco(P.purple,clip)}Diagnósticos / Problemas asociados</div>{problems.length===0?<div style={{fontSize:12.5,color:P.muted}}>{cpLoaded?"Sin problemas en el expediente.":patientId?"Cargando…":"Selecciona un paciente."}</div>:problems.map((p,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:i<problems.length-1?`1px solid #F2F4F9`:"0"}}>{dot(["#F0455E","#E5983B","#1769E0","#6C5CF6"][i%4]!)}<div style={{flex:1,minWidth:0}}><div style={{fontSize:13.5,fontWeight:600}}>{p.description}</div></div><span style={{fontSize:12,color:P.muted,fontWeight:600}}>{p.code}</span><span style={estSty(p.statusLabel)}>{p.statusLabel}</span></div>)}</div>
      <div style={{...card2,padding:18}}><div style={sec}>{secIco(P.green,"M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11")}Objetivos del plan</div>{goals.length===0?<div style={{fontSize:12.5,color:P.muted}}>{cpLoaded?"Sin metas registradas. Usa «+ Nueva meta».":patientId?"Cargando…":"Selecciona un paciente."}</div>:goals.map((g,i)=>{const done=g.statusLabel==="Lograda";return <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0"}}><span style={{width:18,height:18,borderRadius:"50%",border:done?"0":"1.8px solid #C7CCE0",background:done?"#16A66A":"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:11,flex:"0 0 auto"}}>{done?"✓":""}</span><span style={{flex:1,fontSize:13.5,color:done?P.muted:P.ink,textDecoration:done?"line-through":"none"}}>{g.goal}</span><span style={estSty(g.statusLabel)}>{g.statusLabel}</span></div>;})}</div>
      <div style={{...card2,padding:18}}><div style={sec}>{secIco(P.blue,"M4 19V5M4 19h16M8 15l3-4 3 2 4-6")}Metas y métricas</div>{(!hba1c&&!bp&&!weight&&!imc)?<div style={{fontSize:12.5,color:P.muted}}>Sin métricas registradas para este paciente. Se derivan de resultados y signos vitales.</div>:<>
-      {hba1c&&metric("HbA1c","Meta < 7%",hba1c,"%",Number(hba1c)<7)}
-      {bp&&metric("Presión arterial","Meta < 130/80",bp,"",(parseBp(bp)?.systolic??999)<130)}
-      {weight&&metric("Peso","Seguimiento",weight," kg",false)}
-      {imc&&metric("IMC","Meta < 25",imc,"",Number(imc)<25)}
+      {hba1c&&metric("HbA1c",metaDe("HbA1c"),hba1c,"%",enMeta("HbA1c",Number(hba1c)))}
+      {bp&&metric("Presión arterial",metaDe("Presión arterial"),bp,"",enMeta("Presión arterial",parseBp(bp)?.systolic??999))}
+      {weight&&metric("Peso",metaDe("Peso"),weight," kg",false)}
+      {imc&&metric("IMC",metaDe("IMC"),imc,"",enMeta("IMC",Number(imc)))}
      </>}</div>
     </div>
    </div>;
