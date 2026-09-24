@@ -25,7 +25,7 @@ export const CreateBody=z.object({documentId:z.string().uuid(),patientId:z.strin
 export async function handleDocumentCreate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:write",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"document:write",purpose:"TREATMENT"});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);
@@ -47,7 +47,7 @@ const STATUS_ES:Record<string,string>={DRAFT:"Borrador",FINALIZED:"Finalizado",S
 export async function handleDocumentGet(req:Request,documentId:string):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"document:read",purpose:"TREATMENT"});
   const d=await documentDetail(ctx,documentId);
   if(!d.exists)throw new ClinicalError("NOT_FOUND","Document not found");
   return NextResponse.json({...d,typeLabel:TYPE_UI[d.docType]??"Otro",statusLabel:STATUS_ES[d.state]??"Borrador"},{status:200});
@@ -57,7 +57,7 @@ export async function handleDocumentGet(req:Request,documentId:string):Promise<R
 async function loadForTransition(req:Request,documentId:string,requirePhysician:boolean){
  const{claims,ctx}=resolveVerified(req);
  const c=claims as Claims;
- authorize(principalFrom(c),requirePhysician?{tenantId:c.tenantId,role:"PHYSICIAN",scope:"document:write",purpose:"TREATMENT"}:{tenantId:c.tenantId,scope:"document:write",purpose:"TREATMENT"});
+ authorize(principalFrom(c),requirePhysician?{role:"PHYSICIAN",scope:"document:write",purpose:"TREATMENT"}:{scope:"document:write",purpose:"TREATMENT"});
  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
  const folded=foldDocument(await readAggregateEvents(ctx,documentId));
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Document not found");
@@ -133,7 +133,7 @@ export async function handleDocumentAttach(req:Request,documentId:string):Promis
  try{
   const{claims,ctx}=resolveVerified(req);
   const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"document:write",purpose:"TREATMENT"});
+  authorize(principalFrom(c),{scope:"document:write",purpose:"TREATMENT"});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const detail=await documentDetail(ctx,documentId);
@@ -174,7 +174,7 @@ export async function handleDocumentAttach(req:Request,documentId:string):Promis
 export async function handleDocumentDownload(req:Request,documentId:string,attachmentId:string):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"document:read",purpose:"TREATMENT"});
   const detail=await documentDetail(ctx,documentId);
   if(!detail.exists)throw new ClinicalError("NOT_FOUND","Document not found");
   const att=detail.attachments.find(a=>a.attachmentId===attachmentId);
@@ -191,7 +191,7 @@ export async function handleDocumentAttachmentRemove(req:Request,documentId:stri
  try{
   const{claims,ctx}=resolveVerified(req);
   const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"document:write",purpose:"TREATMENT"});
+  authorize(principalFrom(c),{scope:"document:write",purpose:"TREATMENT"});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const detail=await documentDetail(ctx,documentId);

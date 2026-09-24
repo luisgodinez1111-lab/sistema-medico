@@ -14,7 +14,7 @@ import{classifyVital,vitalPlausible,type VitalStatus}from"../../../packages/lab-
 // EPIC AQ: critical flag derivado del valor real alimenta closed-loop de signos vitales críticos.
 const AGG="VitalSign";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"vital:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"vital:write",purpose:"TREATMENT"});
 }
 
 export const RecordBody=z.object({vitalId:z.string().uuid(),patientId:z.string().uuid(),vitalType:z.enum(["BP","HR","TEMP","SPO2","WEIGHT","HEIGHT","RESP"]),value:z.string().min(1),unit:z.string().min(1),occurredAt:z.string().datetime()});

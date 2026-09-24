@@ -9,7 +9,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // EPIC R — Ciclo de vida de la alergia: RECORDED(ACTIVE) -> REFUTED / INACTIVE; INACTIVE -> ACTIVE.
 const AGG="Allergy";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"allergy:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"allergy:write",purpose:"TREATMENT"});
 }
 export const CreateBody=z.object({allergyId:z.string().uuid(),patientId:z.string().uuid(),substance:z.string().min(1),severity:z.enum(["MILD","MODERATE","SEVERE"]),reaction:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleAllergyCreate(req:Request):Promise<Response>{

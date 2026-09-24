@@ -10,7 +10,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Auditoría S-08: paginación por cursor (?limit=1..500, por defecto 100; ?cursor= del nextCursor anterior).
   const u=new URL(req.url);
   const page=await readPatientTimeline(tctx,patientId,{limit:clampLimit(u.searchParams.get("limit")),cursor:u.searchParams.get("cursor")});

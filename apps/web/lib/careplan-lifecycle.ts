@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // ACTIVE <-> ON_HOLD; cancelable desde no-terminal. Gestión de crónicos (scope careplan:write).
 const AGG="CarePlan";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"careplan:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"careplan:write",purpose:"TREATMENT"});
 }
 
 export const ProposeBody=z.object({carePlanId:z.string().uuid(),patientId:z.string().uuid(),category:z.enum(["DIABETES","HYPERTENSION","OBESITY","CARDIOVASCULAR","MENTAL_HEALTH","PRENATAL","OTHER"]),goal:z.string().min(1),occurredAt:z.string().datetime()});

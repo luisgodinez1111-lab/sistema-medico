@@ -11,7 +11,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Una gasometría es un conjunto SIMULTÁNEO: pH, pCO₂ y HCO₃ deben venir de la misma muestra (o ≤1 h) y ser recientes.
   const inp=await readAnalyteInputs(tctx,patientId,[{analyte:"PH",maxAgeDays:MAX_AGE_DAYS.BLOOD_GAS},{analyte:"PCO2",maxAgeDays:MAX_AGE_DAYS.BLOOD_GAS},{analyte:"BICARBONATE",maxAgeDays:MAX_AGE_DAYS.BLOOD_GAS}],{coherenceHours:COHERENCE_HOURS.BLOOD_GAS});
   if(!inp.ok)return NextResponse.json({patientId,computable:false,...notComputable(inp)},{status:200});

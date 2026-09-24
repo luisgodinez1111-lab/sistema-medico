@@ -10,7 +10,7 @@ export const dynamic="force-dynamic";
 export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const rows=await readTenantOpenAggregates(ctx);
   const all=computePanelWorklist(rows);
   const patientCount=new Set(all.map(g=>g.patientId)).size;

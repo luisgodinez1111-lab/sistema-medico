@@ -18,7 +18,7 @@ import type {PatientStateSummary,IntelligenceOutput}from"../../../packages/clini
 const AGG="ClinicalIntelligence";
 
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string},requirePhysician=false){
- const opts:{tenantId:string;role?:string;scope:string;purpose?:string}={tenantId:claims.tenantId,scope:"intelligence:write",purpose:"TREATMENT"};
+ const opts:{role?:string;scope:string;purpose?:string}={scope:"intelligence:write",purpose:"TREATMENT"};
  if(requirePhysician)opts.role="PHYSICIAN";
  authorize(principalFrom(claims),opts);
 }

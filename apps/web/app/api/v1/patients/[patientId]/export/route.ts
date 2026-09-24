@@ -13,7 +13,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"record:export",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"record:export",purpose:"TREATMENT"});
   const rows=await readPatientRecordRows(tctx,patientId);
   // R01-026: exportar un expediente es el acceso de lectura de mayor alcance; queda registrado como EXPORT.
   await recordPhiAccess(tctx,{resourceType:"RECORD_EXPORT",resourceId:patientId,patientId,action:"EXPORT"});

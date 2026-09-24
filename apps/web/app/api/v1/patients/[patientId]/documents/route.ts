@@ -14,7 +14,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"document:read",purpose:"TREATMENT"});
   const rows=await patientDocuments(tctx,patientId);
   const items=rows.map(r=>({
    documentId:r.documentId,title:r.title,

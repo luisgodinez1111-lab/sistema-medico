@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // Reporte de eventos adversos institucionales (farmacovigilancia); reportar/revisar/escalar/resolver exige scope incident:write.
 const AGG="Incident";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"incident:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"incident:write",purpose:"TREATMENT"});
 }
 
 export const ReportBody=z.object({incidentId:z.string().uuid(),patientId:z.string().uuid(),category:z.enum(["MEDICATION_ERROR","FALL","EQUIPMENT","ADVERSE_DRUG_REACTION","INFECTION","OTHER"]),severity:z.enum(["LOW","MODERATE","SEVERE"]),description:z.string().min(1),occurredAt:z.string().datetime()});

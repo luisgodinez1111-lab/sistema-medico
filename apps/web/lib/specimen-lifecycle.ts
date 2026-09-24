@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // Cadena de custodia pre-analítica; recolectar/enviar/recibir/procesar/rechazar exige scope specimen:write.
 const AGG="Specimen";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"specimen:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"specimen:write",purpose:"TREATMENT"});
 }
 
 export const CollectBody=z.object({specimenId:z.string().uuid(),patientId:z.string().uuid(),specimenType:z.enum(["BLOOD","URINE","TISSUE","SWAB","CSF","STOOL"]),orderId:z.string().uuid().optional(),occurredAt:z.string().datetime()});

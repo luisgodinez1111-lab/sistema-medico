@@ -11,7 +11,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 const AGG="Wound";
 const STAGES=["STAGE_1","STAGE_2","STAGE_3","STAGE_4","UNSTAGEABLE","DTI"] as const;
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"wound:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"wound:write",purpose:"TREATMENT"});
 }
 
 export const DocumentBody=z.object({woundId:z.string().uuid(),patientId:z.string().uuid(),location:z.enum(["SACRUM","HEEL","ISCHIUM","TROCHANTER","OCCIPUT","ELBOW","OTHER"]),stage:z.enum(STAGES),occurredAt:z.string().datetime()});

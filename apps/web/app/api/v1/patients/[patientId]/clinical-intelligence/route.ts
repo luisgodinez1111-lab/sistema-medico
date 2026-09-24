@@ -12,7 +12,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const r=await gatherClinicalIntelligence(tctx,patientId);
   if(!r.registered)throw new ClinicalError("NOT_FOUND","Patient not registered");
   return NextResponse.json({patientId,summary:r.summary,findings:r.findings},{status:200});

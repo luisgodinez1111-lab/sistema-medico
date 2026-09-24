@@ -39,7 +39,7 @@ export async function handleAiAssist(req:Request):Promise<Response>{
  const span=sliSpan("workflow","ai_assist",crypto.randomUUID());let statusCode="DISABLED";let tenantId="";
  try{
   const{claims,ctx}=resolveVerified(req);tenantId=claims.tenantId;
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"ai:invoke",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"ai:invoke",purpose:"TREATMENT"});
   const b=await parseJson(req,AssistBody);
   // Master kill-switch: OFF por defecto. Con R6 en pausa NUNCA está ON en prod -> el copilot es inerte.
   const copilotEnabled=process.env.AI_COPILOT_ENABLED==="true";

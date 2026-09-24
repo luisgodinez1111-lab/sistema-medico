@@ -24,7 +24,7 @@ function estadoOf(critical:boolean,status:string,lifecycle:string):"Hallazgos"|"
 export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"result:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"result:read",purpose:"TREATMENT"});
   const rows=await resultsRegistry(ctx);
   const items=rows.map(r=>{const estado=estadoOf(r.critical,r.status,r.lifecycle);return{
    resultId:r.resultId,patientId:r.patientId,patientName:r.patientName,

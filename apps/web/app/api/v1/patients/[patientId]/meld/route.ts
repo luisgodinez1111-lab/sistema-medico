@@ -11,7 +11,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Entradas VERIFICADAS y de un mismo periodo (antes podían mezclarse una bilirrubina de hoy con un INR de hace meses).
   const inp=await readAnalyteInputs(tctx,patientId,[{analyte:"BILIRUBIN",maxAgeDays:MAX_AGE_DAYS.MELD},{analyte:"INR",maxAgeDays:MAX_AGE_DAYS.MELD},{analyte:"CREATININE",maxAgeDays:MAX_AGE_DAYS.MELD}],{coherenceHours:COHERENCE_HOURS.MELD});
   if(!inp.ok)return NextResponse.json({patientId,computable:false,...notComputable(inp)},{status:200});

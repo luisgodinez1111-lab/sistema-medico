@@ -14,7 +14,7 @@ export const CreateBody=z.object({obligationId:z.string().uuid(),name:z.string()
 export async function handleRegulatoryObligationCreate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"obligation:write",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"obligation:write",purpose:"TREATMENT"});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);

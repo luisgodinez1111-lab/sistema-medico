@@ -14,7 +14,7 @@ export async function POST(req:Request){return handleAppointmentSchedule(req);}
 export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"appointment:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"appointment:read",purpose:"TREATMENT"});
   const url=new URL(req.url);
   // Auditoría L-12: el día de agenda es el día CIVIL del consultorio (zona de México), no el día UTC.
   const dateStr=url.searchParams.get("date")||dayOf(new Date().toISOString());

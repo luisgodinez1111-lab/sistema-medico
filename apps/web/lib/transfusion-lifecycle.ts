@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // Medicina transfusional; ordenar/cruzar/iniciar/completar/reacción/cancelar exige scope transfusion:write.
 const AGG="Transfusion";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"transfusion:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"transfusion:write",purpose:"TREATMENT"});
 }
 
 export const OrderBody=z.object({transfusionId:z.string().uuid(),patientId:z.string().uuid(),bloodProduct:z.enum(["PRBC","PLATELETS","FFP","CRYO","WHOLE_BLOOD"]),units:z.string().min(1),occurredAt:z.string().datetime()});

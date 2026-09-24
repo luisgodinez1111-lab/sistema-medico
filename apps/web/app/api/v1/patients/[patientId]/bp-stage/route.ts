@@ -11,7 +11,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const vitals=await latestVitalsByType(tctx,patientId);
   const bp=vitals["BP"];
   if(bp===undefined)return NextResponse.json({patientId,computable:false,reason:"Sin presión arterial registrada"},{status:200});

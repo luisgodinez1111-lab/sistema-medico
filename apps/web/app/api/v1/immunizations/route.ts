@@ -15,7 +15,7 @@ const STATUS_ES:Record<string,string>={COMPLETE:"Completa",PENDING:"Pendiente",R
 export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"immunization:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"immunization:read",purpose:"TREATMENT"});
   const rows=await immunizationRegistry(ctx);
   const items=rows.map(r=>({
    immunizationId:r.immunizationId,patientId:r.patientId,patientName:r.patientName,

@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // Agenda: agendar/registrar llegada/completar/cancelar/marcar inasistencia exige scope appointment:write.
 const AGG="Appointment";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"appointment:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"appointment:write",purpose:"TREATMENT"});
 }
 
 // EPIC CM — agenda enriquecida: fin, consultorio y tipo de cita (opcionales, retrocompatibles).

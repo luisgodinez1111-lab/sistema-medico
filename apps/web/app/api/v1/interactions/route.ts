@@ -15,7 +15,7 @@ const Body=z.object({drugs:z.array(z.string().max(120)).max(60).default([]),fact
 export async function POST(req:Request){
  try{
   const{claims}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"medication:propose",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"medication:propose",purpose:"TREATMENT"});
   // Validación de entrada con esquema (como el resto de rutas): listas acotadas de texto; nada de `any`.
   const body=await parseJson(req,Body);
   const clean=(xs:readonly string[]):string[]=>xs.map(x=>x.trim()).filter(Boolean);

@@ -11,10 +11,10 @@ import{validateCurp,normalizeCurp,normalizeName,isMinor,CURP_ISSUE_ES}from"../..
 // El nombre es PHI: en payload (RLS) y en la respuesta al clínico autorizado; nunca en logs.
 const AGG="Patient";
 function authzWrite(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"patient:write",purpose:"TREATMENT"});
 }
 function authzRead(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
 }
 
 // EPIC CL — datos demográficos ampliados (México): CURP + contacto. Opcionales y retrocompatibles.

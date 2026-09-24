@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // Physician Control: solicitar/aceptar/declinar/completar/cancelar exige médico (scope referral:write).
 const AGG="Referral";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"referral:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"referral:write",purpose:"TREATMENT"});
 }
 
 export const CreateBody=z.object({referralId:z.string().uuid(),patientId:z.string().uuid(),specialty:z.string().min(1),reason:z.string().min(1),occurredAt:z.string().datetime()});

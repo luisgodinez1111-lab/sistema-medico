@@ -18,7 +18,7 @@ const num=(s:string)=>{const n=parseFloat(String(s).replace(/[^0-9.]/g,""));retu
 export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"billing:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"billing:read",purpose:"TREATMENT"});
   const rows=await claimsRegistry(ctx);
   const total=rows.length;
   // Folio secuencial descendente (la más reciente tiene el folio mayor).

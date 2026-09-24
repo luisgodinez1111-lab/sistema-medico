@@ -12,7 +12,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Se lee cada analito UNA vez (valor canónico + unidad + fecha) y cada derivada exige sus entradas plausibles,
   // vigentes y de la MISMA extracción (≤24 h): una brecha aniónica con sodio de hoy y cloro del mes pasado no es válida.
   const NAMES=["SODIUM","CHLORIDE","BICARBONATE","CALCIUM","ALBUMIN","GLUCOSE","BUN"] as const;

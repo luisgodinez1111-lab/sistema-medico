@@ -13,7 +13,7 @@ import{normalizeIcd10,lookupIcd10}from"../../../packages/terminology/src";
 // y evidencia (evidence_for/against, confidence, source).
 const AGG="ClinicalProblem";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"problem:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"problem:write",purpose:"TREATMENT"});
 }
 // Auditoría U-04: el formulario capturaba tipo, gravedad, fecha de inicio y notas y los descartaba en silencio. Ahora viajan
 // y se persisten en el evento ADDED. El estado clínico inicial lo fija la máquina de estados (ADDED => ACTIVE); "crónico" y

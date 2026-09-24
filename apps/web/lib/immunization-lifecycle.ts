@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // Enfermería/médico registran la cartilla (scope immunization:write).
 const AGG="Immunization";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"immunization:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"immunization:write",purpose:"TREATMENT"});
 }
 
 export const DueBody=z.object({immunizationId:z.string().uuid(),patientId:z.string().uuid(),vaccineCode:z.string().min(1),dose:z.string().min(1),occurredAt:z.string().datetime()});

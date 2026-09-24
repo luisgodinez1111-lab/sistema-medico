@@ -17,7 +17,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"obligation:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"obligation:read",purpose:"TREATMENT"});
   const[tasks,points,hba1cS,ldlS,allProblems,meds,allergies]=await Promise.all([
    patientObligations(tctx,patientId),
    patientVitals(tctx,patientId),

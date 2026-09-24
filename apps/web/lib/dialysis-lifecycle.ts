@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // INTERRUPTED -> reanudar/completar. Cuidado renal crónico; agendar/iniciar/... exige scope dialysis:write.
 const AGG="Dialysis";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"dialysis:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"dialysis:write",purpose:"TREATMENT"});
 }
 
 export const ScheduleBody=z.object({dialysisId:z.string().uuid(),patientId:z.string().uuid(),modality:z.enum(["HEMODIALYSIS","PERITONEAL","HEMOFILTRATION"]),accessType:z.enum(["FISTULA","GRAFT","CATHETER","PERITONEAL_CATHETER"]),occurredAt:z.string().datetime()});

@@ -14,7 +14,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Auditoría C-09: NEWS2 está validado en adultos (≥16). El O₂ suplementario, la escala de SpO₂ y el nivel de conciencia
   // no son signos vitales registrados: se declaran en la consulta (?o2=true|false, ?spo2Scale=1|2, ?avpu=A|V|P|U). Lo que
   // no se declara FALTA, y con faltantes el score es una cota inferior (nunca "riesgo bajo").

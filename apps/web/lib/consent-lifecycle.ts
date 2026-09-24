@@ -11,7 +11,7 @@ import{isMinor}from"../../../packages/mx-identity/src";
 // Registro clínico-legal (NOM-004 / aviso de privacidad). Redactar/presentar/registrar respuesta exige scope consent:write.
 const AGG="Consent";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"consent:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"consent:write",purpose:"TREATMENT"});
 }
 
 export const DraftBody=z.object({consentId:z.string().uuid(),patientId:z.string().uuid(),scopeType:z.enum(["TREATMENT","PROCEDURE","DATA_SHARING","RESEARCH","ANESTHESIA"]),documentRef:z.string().min(1),occurredAt:z.string().datetime()});

@@ -30,7 +30,7 @@ export const ProposeBody=z.object({medicationId:z.string().uuid(),patientId:z.st
 export async function handleMedicationProposal(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"medication:propose",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"medication:propose",purpose:"TREATMENT"});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,ProposeBody);
@@ -57,7 +57,7 @@ async function loadForTransition(req:Request,medicationId:string,requirePhysicia
  const{claims,ctx}=resolveVerified(req);
  const c=claims as Claims;
  // Physician Control: prescribir/activar/suspender exige médico; scope medication:write.
- authorize(principalFrom(c),requirePhysician?{tenantId:c.tenantId,role:"PHYSICIAN",scope:"medication:write",purpose:"TREATMENT"}:{tenantId:c.tenantId,scope:"medication:write",purpose:"TREATMENT"});
+ authorize(principalFrom(c),requirePhysician?{role:"PHYSICIAN",scope:"medication:write",purpose:"TREATMENT"}:{scope:"medication:write",purpose:"TREATMENT"});
  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
  const folded=foldMedication(await readAggregateEvents(ctx,medicationId));
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Medication not found");

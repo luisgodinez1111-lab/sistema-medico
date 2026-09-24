@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // Completar exige EVIDENCIA (Zero Lost Follow-Up: nada se cierra sin constancia). Scope obligation:write.
 const AGG="ClinicalObligation";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"obligation:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"obligation:write",purpose:"TREATMENT"});
 }
 
 // EPIC AS (profundidad): `sourceVitalId` opcional liga la obligación a un signo vital CRÍTICO. Al existir

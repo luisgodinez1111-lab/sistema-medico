@@ -17,7 +17,7 @@ const CAT_UI:Record<string,string>={Endocrino:"Endocrinológicos",Cardiovascular
 export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"problem:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"problem:read",purpose:"TREATMENT"});
   const rows=await problemRegistry(ctx);
   const items=rows.map(r=>({
    problemId:r.problemId,patientId:r.patientId,patientName:r.patientName,

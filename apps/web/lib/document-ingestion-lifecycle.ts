@@ -20,7 +20,7 @@ import{computeHash,createQuarantineKey,createStorageKey,generateDocumentId,class
 const AGG="DocumentIngestion";
 
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string},requirePhysician=false){
- const opts:{tenantId:string;role?:string;scope:string;purpose?:string}={tenantId:claims.tenantId,scope:"document:write",purpose:"TREATMENT"};
+ const opts:{role?:string;scope:string;purpose?:string}={scope:"document:write",purpose:"TREATMENT"};
  if(requirePhysician)opts.role="PHYSICIAN";
  authorize(principalFrom(claims),opts);
 }
@@ -136,7 +136,7 @@ const ClassifyBody=z.object({documentId:z.string().uuid(),extractedText:z.string
 export async function handleDocumentClassify(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:write",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"document:write",purpose:"TREATMENT"});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,ClassifyBody);
@@ -155,7 +155,7 @@ const ExtractBody=z.object({documentId:z.string().uuid(),extractedText:z.string(
 export async function handleDocumentExtract(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:write",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"document:write",purpose:"TREATMENT"});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,ExtractBody);
@@ -181,7 +181,7 @@ const ValidateBody=z.object({documentId:z.string().uuid(),approve:z.boolean(),no
 export async function handleDocumentValidate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"document:write",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"document:write",purpose:"TREATMENT"});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,ValidateBody);

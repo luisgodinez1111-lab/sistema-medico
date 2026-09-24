@@ -13,7 +13,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Las brechas se calculan sobre TODOS los agregados del paciente: se recorren las páginas hasta agotar (S-08).
   const items:Awaited<ReturnType<typeof readPatientTimeline>>["items"][number][]=[];let cursor:string|null=null;
   do{const page=await readPatientTimeline(tctx,patientId,{limit:500,cursor});items.push(...page.items);cursor=page.nextCursor;}while(cursor);

@@ -15,7 +15,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 const AGG="AdaptiveHistory";
 
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"history:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"history:write",purpose:"TREATMENT"});
 }
 
 const ChiefComplaintBody=z.object({historyId:z.string().uuid(),patientId:z.string().uuid(),encounterId:z.string().uuid(),chiefComplaint:z.string().min(1),occurredAt:z.string().datetime()});

@@ -22,7 +22,7 @@ import{validateAiReceipt}from"../../../packages/ai-evidence/src";
 const AGG="AiGateway";
 
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string},requirePhysician=false){
- const opts:{tenantId:string;role?:string;scope:string;purpose?:string}={tenantId:claims.tenantId,scope:"ai:write",purpose:"TREATMENT"};
+ const opts:{role?:string;scope:string;purpose?:string}={scope:"ai:write",purpose:"TREATMENT"};
  if(requirePhysician)opts.role="PHYSICIAN";
  authorize(principalFrom(claims),opts);
 }

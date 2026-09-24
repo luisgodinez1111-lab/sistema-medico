@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // Censo de hospitalización; admitir/trasladar/dar de alta/cancelar exige scope admission:write.
 const AGG="Admission";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"admission:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"admission:write",purpose:"TREATMENT"});
 }
 
 export const AdmitBody=z.object({admissionId:z.string().uuid(),patientId:z.string().uuid(),unit:z.enum(["ER","WARD","ICU","OR","MATERNITY","PEDIATRICS"]),reason:z.string().min(1),occurredAt:z.string().datetime()});

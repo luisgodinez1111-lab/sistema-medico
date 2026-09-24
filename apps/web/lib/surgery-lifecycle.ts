@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // Cirugía segura; agendar/time-out/iniciar/completar/cancelar exige scope surgery:write (physician control).
 const AGG="Surgery";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"surgery:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"surgery:write",purpose:"TREATMENT"});
 }
 
 export const ScheduleBody=z.object({surgeryId:z.string().uuid(),patientId:z.string().uuid(),procedure:z.string().min(1),laterality:z.enum(["LEFT","RIGHT","BILATERAL","NA"]),surgeon:z.string().min(1),occurredAt:z.string().datetime()});

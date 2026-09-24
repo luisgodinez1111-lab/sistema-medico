@@ -13,7 +13,7 @@ import{lookupIcd10,normalizeIcd10}from"../../../packages/terminology/src";
 // Ciclo de ingresos: codificar/enviar/conciliar exige scope billing:write.
 const AGG="Claim";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"billing:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"billing:write",purpose:"TREATMENT"});
 }
 
 export const DraftBody=z.object({claimId:z.string().uuid(),patientId:z.string().uuid(),amount:z.string().min(1),currency:z.enum(["MXN","USD"]),occurredAt:z.string().datetime()});

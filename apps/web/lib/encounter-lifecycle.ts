@@ -39,7 +39,7 @@ async function build(req:Request,encounterId:string){
  const requestId=req.headers.get("x-request-id")??crypto.randomUUID();
  const{claims,ctx}=resolvePrincipal(readerFor(req),sessionSecret(),requestId);
  // Physician Control: solo un médico con propósito de tratamiento escribe en el encuentro.
- authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"encounter:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"encounter:write",purpose:"TREATMENT"});
  const{idempotencyKey,expectedVersion}=requireHeaders(req);
  const events=await readEncounterEvents(ctx,encounterId);
  const folded=foldEncounter(events);

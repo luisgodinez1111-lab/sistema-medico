@@ -28,7 +28,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"patient:read",purpose:"TREATMENT"});
   const ids=[...new Set((new URL(req.url).searchParams.get("medications")??"").split(",").map(s=>s.trim()).filter(Boolean))];
   if(ids.length===0||ids.length>MAX_ITEMS||ids.some(id=>!UUID.test(id)))throw new ClinicalError("VALIDATION_ERROR",`medications: entre 1 y ${MAX_ITEMS} identificadores UUID separados por coma`);
   const cred=await requirePhysicianCredentials(tctx,claims);

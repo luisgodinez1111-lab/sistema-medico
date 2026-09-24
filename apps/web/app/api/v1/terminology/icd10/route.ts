@@ -9,7 +9,7 @@ export const dynamic="force-dynamic";
 export async function GET(req:Request){
  try{
   const{claims}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const url=new URL(req.url);const q=url.searchParams.get("q")??"";const code=url.searchParams.get("code");
   if(code){const e=lookupIcd10(code);return NextResponse.json({entry:e??null,valid:!!e},{status:200});}
   return NextResponse.json({results:searchIcd10(q)},{status:200});

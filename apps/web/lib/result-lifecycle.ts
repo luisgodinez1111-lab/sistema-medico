@@ -15,7 +15,7 @@ import{classifyLab,normalizeLabValue,deltaCheck}from"../../../packages/lab-refer
 // cerrar bloquea la firma del encuentro del paciente (Zero Lost Follow-Up, ver encounter-lifecycle).
 const AGG="DiagnosticResult";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"result:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"result:write",purpose:"TREATMENT"});
 }
 
 // `unit` (unidad en que se reporta el valor) y `specimenId` (muestra de la que sale) son opcionales por compatibilidad,

@@ -13,7 +13,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // INR VERIFICADO y reciente: un INR de hace meses no describe la anticoagulación actual.
   const inp=await readAnalyteInputs(tctx,patientId,[{analyte:"INR",maxAgeDays:MAX_AGE_DAYS.ANTICOAGULATION}]);
   // ¿Está el paciente con un antagonista de vitamina K activo? (contexto de aplicación del rango terapéutico)

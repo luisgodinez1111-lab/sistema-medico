@@ -17,7 +17,7 @@ const AGG="ClinicalObligation";
 type Claims={sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string};
 
 function authz(claims:Claims,scope:string,requirePhysician=false){
- const opts:{tenantId:string;role?:string;scope:string;purpose?:string}={tenantId:claims.tenantId,scope,purpose:"TREATMENT"};
+ const opts:{role?:string;scope:string;purpose?:string}={scope,purpose:"TREATMENT"};
  if(requirePhysician)opts.role="PHYSICIAN";
  authorize(principalFrom(claims),opts);
 }

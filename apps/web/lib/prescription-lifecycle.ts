@@ -16,7 +16,7 @@ import{renderPrescription,verifyPrescription,type PrescriptionClinicalData,BASE_
 const AGG="PrescriptionArtifact";
 
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"prescription:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"prescription:write",purpose:"TREATMENT"});
 }
 
 const RenderBody=z.object({medicationId:z.string().uuid(),templateVersion:z.string().default("1.0.0"),occurredAt:z.string().datetime()});

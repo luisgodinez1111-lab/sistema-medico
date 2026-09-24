@@ -17,7 +17,7 @@ const APPT_TYPE_LBL:Record<string,string>={CONSULTA_GENERAL:"Consulta general",C
 export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"record:export",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"record:export",purpose:"TREATMENT"});
   const[patients,claimRows,problemRows,orderRows,resultRows,immRows,encAnalytics,rxRows,apptRows,apptOut]=await Promise.all([
    listPatients(ctx,{limit:1}), // solo se necesita el total
    claimsRegistry(ctx),

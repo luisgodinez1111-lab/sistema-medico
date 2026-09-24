@@ -10,7 +10,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // Front-of-house de urgencias; arribar/iniciar/clasificar/cerrar/LWBS exige scope triage:write.
 const AGG="Triage";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"triage:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{scope:"triage:write",purpose:"TREATMENT"});
 }
 
 export const ArriveBody=z.object({triageId:z.string().uuid(),patientId:z.string().uuid(),chiefComplaint:z.string().min(1),occurredAt:z.string().datetime()});

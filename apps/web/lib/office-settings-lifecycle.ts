@@ -64,7 +64,7 @@ export const UpdateBody=z.object({settings:SettingsSchema,occurredAt:z.string().
 export async function handleOfficeSettingsGet(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"settings:read"});
+  authorize(principalFrom(claims),{scope:"settings:read"});
   const cur=await officeSettings(ctx);
   return NextResponse.json({settings:{...DEFAULT_OFFICE_SETTINGS,...cur.settings},version:cur.version},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
@@ -75,7 +75,7 @@ export async function handleOfficeSettingsGet(req:Request):Promise<Response>{
 export async function handleOfficeSettingsUpdate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"settings:write"});
+  authorize(principalFrom(claims),{scope:"settings:write"});
   const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
   const b=await parseJson(req,UpdateBody);
   const cur=await officeSettings(ctx);

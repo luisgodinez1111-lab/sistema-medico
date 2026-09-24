@@ -71,7 +71,7 @@ export const CredentialsBody=z.object({
 export async function handleCredentialsSet(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,role:"PHYSICIAN",scope:"settings:write"});
+  authorize(principalFrom(c),{role:"PHYSICIAN",scope:"settings:write"});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CredentialsBody);
@@ -92,7 +92,7 @@ function assetOf(profile:PhysicianProfileRead,kind:AssetKind):ProfileAsset|null{
 export async function handleProfileGet(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"settings:read"});
+  authorize(principalFrom(c),{scope:"settings:read"});
   const profile=await foldProfile(ctx,profileId(c));
   return NextResponse.json(profile,{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
@@ -104,7 +104,7 @@ export async function handleProfileAssetUpload(req:Request,kind:string):Promise<
  try{
   if(!(ASSET_KINDS as readonly string[]).includes(kind))throw new ClinicalError("NOT_FOUND","Tipo de asset desconocido");
   const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"settings:write"});
+  authorize(principalFrom(c),{scope:"settings:write"});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const form=await req.formData().catch(()=>{throw new ClinicalError("VALIDATION_ERROR","multipart/form-data con campo 'file' requerido");});
@@ -139,7 +139,7 @@ export async function handleProfileAssetDownload(req:Request,kind:string):Promis
  try{
   if(!(ASSET_KINDS as readonly string[]).includes(kind))throw new ClinicalError("NOT_FOUND","Tipo de asset desconocido");
   const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"settings:read"});
+  authorize(principalFrom(c),{scope:"settings:read"});
   const profile=await foldProfile(ctx,profileId(c));
   const asset=assetOf(profile,kind as AssetKind);
   if(!asset)throw new ClinicalError("NOT_FOUND","Asset no encontrado");
@@ -154,7 +154,7 @@ export async function handleProfileAssetRemove(req:Request,kind:string):Promise<
  try{
   if(!(ASSET_KINDS as readonly string[]).includes(kind))throw new ClinicalError("NOT_FOUND","Tipo de asset desconocido");
   const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"settings:write"});
+  authorize(principalFrom(c),{scope:"settings:write"});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const aggId=profileId(c);

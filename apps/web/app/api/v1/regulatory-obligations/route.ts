@@ -23,7 +23,7 @@ function computeStatus(dueDate:string|null,now:Date):Estado{
 export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"obligation:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"obligation:read",purpose:"TREATMENT"});
   const now=new Date();
   const rows=await regulatoryObligations(ctx);
   const items=rows.map(r=>{const estado=computeStatus(r.dueDate,now);const days=r.dueDate?Math.floor((new Date(r.dueDate).getTime()-now.getTime())/86400000):null;

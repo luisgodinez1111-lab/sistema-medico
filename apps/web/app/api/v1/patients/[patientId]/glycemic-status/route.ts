@@ -12,7 +12,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // HbA1c VERIFICADA: en % (NGSP; se convierte desde mmol/mol IFCC si así se registró), plausible y vigente.
   const inp=await readAnalyteInputs(tctx,patientId,[{analyte:"HBA1C",maxAgeDays:MAX_AGE_DAYS.GLYCEMIC_CONTROL}]);
   if(!inp.ok)return NextResponse.json({patientId,computable:false,...notComputable(inp)},{status:200});

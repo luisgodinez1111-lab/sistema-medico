@@ -11,7 +11,7 @@ import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJs
 // Physician Control: colocar/cumplir/cancelar una orden exige médico (scope order:write).
 const AGG="ClinicalOrder";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"order:write",purpose:"TREATMENT"});
+ authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"order:write",purpose:"TREATMENT"});
 }
 
 export const CreateBody=z.object({orderId:z.string().uuid(),patientId:z.string().uuid(),orderType:z.enum(["LAB","IMAGING","PATHOLOGY","PROCEDURE","REFERRAL"]),detail:z.string().min(1),occurredAt:z.string().datetime()});

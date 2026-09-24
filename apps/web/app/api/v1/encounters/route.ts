@@ -36,7 +36,7 @@ export async function POST(req:Request){
   const requestId=req.headers.get("x-request-id")??crypto.randomUUID();
   const{claims,ctx}=resolvePrincipal(readerFor(req),sessionSecret(),requestId);
   // Authz server-side: solo un médico con propósito de tratamiento abre encuentros.
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"encounter:write",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"encounter:write",purpose:"TREATMENT"});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   let raw:unknown;
@@ -78,7 +78,7 @@ export async function GET(req:Request){
  try{
   const requestId=req.headers.get("x-request-id")??crypto.randomUUID();
   const{claims,ctx}=resolvePrincipal(readerFor(req),sessionSecret(),requestId);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"encounter:read",purpose:"TREATMENT"});
+  authorize(principalFrom(claims),{scope:"encounter:read",purpose:"TREATMENT"});
   const encounterId=new URL(req.url).searchParams.get("encounterId");
   if(!encounterId)throw new ClinicalError("VALIDATION_ERROR","encounterId query parameter required");
   const view=await readEncounter(ctx,encounterId);
