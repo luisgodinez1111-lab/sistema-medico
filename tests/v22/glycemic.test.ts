@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{estimatedAverageGlucose,glycemicAssessment}from"../../packages/glycemic/src";
+import{estimatedAverageGlucose,glycemicAssessment,A1C_PLAUSIBLE}from"../../packages/glycemic/src";
 // EPIC BP — Control glucémico (HbA1c -> eAG + clasificación).
 describe("estimatedAverageGlucose (ADAG)",()=>{
  it("A1c 7% -> ~154 mg/dL",()=>{expect(estimatedAverageGlucose(7)).toBe(154);}); // 28.7*7-46.7=154.2
@@ -25,5 +25,22 @@ describe("glycemicAssessment: marco DIABÉTICO (metas de tratamiento)",()=>{
  });
  it("incluye eAG y el frame",()=>{
   const r=glycemicAssessment(7,true)!;expect(r.eag).toBe(154);expect(r.frame).toBe("DIABETIC");
+ });
+});
+
+// Auditoría 2026-09-19, anexo R03 (vector F01): el eAG se calculaba sobre cualquier número positivo.
+describe("cotas de la HbA1c en el eAG (R03-F01)",()=>{
+ it("una HbA1c de 0.1 % ya no produce una glucosa promedio NEGATIVA «normal»",()=>{
+  expect(estimatedAverageGlucose(0.1)).toBeUndefined(); // antes: −44 mg/dL
+  expect(glycemicAssessment(0.1,false)).toBeUndefined();
+ });
+ it("una HbA1c de 50 (IFCC mmol/mol capturado como %) se rechaza en vez de dar eAG 1388",()=>{
+  expect(estimatedAverageGlucose(50)).toBeUndefined();
+  expect(A1C_PLAUSIBLE).toEqual([3,20]);
+ });
+ it("dentro del intervalo humano sigue calculando igual",()=>{
+  expect(estimatedAverageGlucose(7)).toBe(154); // 28.7*7−46.7 = 154.2
+  expect(estimatedAverageGlucose(A1C_PLAUSIBLE[0])).toBeDefined();
+  expect(estimatedAverageGlucose(A1C_PLAUSIBLE[1])).toBeDefined();
  });
 });

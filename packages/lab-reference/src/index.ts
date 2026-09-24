@@ -8,7 +8,7 @@ import { parseBp } from "../../bp-staging/src"; // C-21: único parser de presi�
 
 // ---------- Laboratorio ----------
 export type LabStatus = "NORMAL" | "ABNORMAL" | "CRITICAL" | "UNKNOWN";
-export type LabAssessment = Readonly<{ status: LabStatus; critical: boolean; interpretation: string }>;
+export type LabAssessment = Readonly<{ status: LabStatus; critical: boolean; interpretation: string; stratum?: string; source?: string; contextMissing?: readonly string[] }>;
 // [criticalLow, abnormalLow, abnormalHigh, criticalHigh]
 const RANGES: Record<string, readonly [number, number, number, number]> = {
   GLUCOSE: [40, 70, 200, 500],        // mg/dL
@@ -43,9 +43,20 @@ const RANGES: Record<string, readonly [number, number, number, number]> = {
 };
 // Rangos de referencia expuestos (para la pestaña "Valores de referencia"): el rango NORMAL es
 // [abnormalLow, abnormalHigh] y los límites de pánico son [criticalLow, criticalHigh]. Deterministas.
-export type LabRefRange = Readonly<{ analyte: string; normalLow: number; normalHigh: number; criticalLow: number; criticalHigh: number }>;
-export function labReferenceRanges(): LabRefRange[] {
-  return Object.entries(RANGES).map(([analyte, [cl, al, ah, ch]]) => ({ analyte, normalLow: al, normalHigh: ah, criticalLow: cl, criticalHigh: ch }));
+export type LabRefRange = Readonly<{ analyte: string; label: string; normalLow: number; normalHigh: number; criticalLow: number; criticalHigh: number; unit?: string; stratum?: string; source?: string }>;
+/**
+ * Rangos expuestos a la interfaz. Auditoría R03-14: se derivan del MISMO selector de estrato que clasifica
+ * (`rangeRowFor`), no de la tabla plana: si no, la pestaña «Valores de referencia» mostraría un rango y el resultado
+ * se juzgaría con otro (p. ej. HbA1c «normal hasta 6.5» en pantalla y ≥5.7 marcada como alta en el expediente).
+ * Sin contexto de paciente devuelve el estrato por defecto —el más sensible— y lo declara en `stratum`.
+ */
+export function labReferenceRanges(ctx: LabContext = {}): LabRefRange[] {
+  return Object.keys(RANGES).map((analyte) => {
+    const r = rangeRowFor(analyte, ctx)!;
+    const [cl, al, ah, ch] = r.range;
+    const unit = canonicalUnitOf(analyte);
+    return { analyte, label: analyteLabel(analyte), normalLow: al, normalHigh: ah, criticalLow: cl, criticalHigh: ch, ...(unit ? { unit } : {}), stratum: r.stratum, source: r.source };
+  });
 }
 // Cadena vacía NO es 0 (Number("") === 0): un campo sin capturar jamás debe leerse como un valor.
 function num(x: string): number { const s = String(x).trim().replace(",", "."); if (s === "") return NaN; const n = Number(s); return Number.isFinite(n) ? n : NaN; }
@@ -134,18 +145,111 @@ export function acceptedUnitsOf(analyte: string): string[] {
   return out;
 }
 
-export function classifyLab(analyte: string, value: string, unit?: string): LabAssessment {
+// ---------- Auditoría 2026-09-19, anexo R03 (R03-14): rangos ESTRATIFICADOS con fuente ----------
+//
+// `RANGES` es una tabla de adulto sin sexo, sin edad, sin embarazo y sin fuente. Defectos verificados en el anexo:
+//   · un VARÓN con hemoglobina 12.5 g/dL (anemia: el piso masculino es 13.5) salía NORMAL con el piso único de 12;
+//   · una HbA1c de EXACTAMENTE 6.5 % salía NORMAL —`v > ah` con ah=6.5— mientras `packages/glycemic` decía «rango
+//     diagnóstico de diabetes» sobre el mismo número: dos módulos con respuestas opuestas en el umbral de la ADA;
+//   · una glucosa en AYUNO de 150 mg/dL salía NORMAL porque el corte alto (200) es el de glucosa aleatoria;
+//   · un neonato con glucosa 45 mg/dL (hipoglucemia neonatal) salía NORMAL con el crítico bajo de adulto (40);
+//   · ningún corte tenía cita: la cabecera invocaba una «autoridad» interna, no una fuente clínica.
+//
+// Ahora cada analito tiene una LISTA de filas; gana la primera cuyo `when` empareja con el contexto, y la última fila
+// (sin `when`) es el adulto por defecto. Cada fila cita su fuente. Cuando falta el dato que decide el estrato (sexo,
+// edad), se aplica el límite MÁS SENSIBLE y se declara en `contextMissing`: es preferible sobre-marcar un ABNORMAL
+// explicando por qué, a resolver en silencio con el estrato equivocado.
+export type LabContext = Readonly<{ sex?: "FEMALE" | "MALE"; ageYears?: number; pregnant?: boolean; fasting?: boolean }>;
+type RangeWhen = Readonly<{ sex?: "FEMALE" | "MALE"; ageMinYears?: number; ageMaxYears?: number; pregnant?: boolean; fasting?: boolean }>;
+type RangeRow = Readonly<{ range: readonly [number, number, number, number]; source: string; when?: RangeWhen; stratum?: string }>;
+const ADULT = "adulto";
+// Estratos por analito. Solo se tabulan los analitos cuyo estrato CAMBIA el veredicto; el resto usa `RANGES`.
+const RANGE_STRATA: Readonly<Record<string, readonly RangeRow[]>> = {
+  HEMOGLOBIN: [
+    { when: { ageMaxYears: 0.08 }, range: [9, 14, 24, 26], source: "Nathan & Oski, Hematology of Infancy and Childhood (recién nacido)", stratum: "recién nacido (<1 mes)" },
+    { when: { ageMaxYears: 12 }, range: [7, 11.5, 15.5, 20], source: "WHO, Haemoglobin concentrations for the diagnosis of anaemia (2011), niños 5–11 a", stratum: "pediátrico" },
+    { when: { pregnant: true }, range: [7, 11, 16, 20], source: "WHO 2011 / CDC: anemia en el embarazo <11 g/dL", stratum: "embarazo" },
+    { when: { sex: "FEMALE" }, range: [7, 12, 16, 20], source: "WHO 2011: anemia en mujer no gestante <12 g/dL", stratum: "mujer adulta" },
+    { when: { sex: "MALE" }, range: [7, 13.5, 17.5, 20], source: "WHO 2011: anemia en varón <13 g/dL; Tietz 13.5–17.5", stratum: "varón adulto" },
+    { range: [7, 13.5, 17.5, 20], source: "WHO 2011 / Tietz — sin sexo declarado se aplica el piso MÁS SENSIBLE (varón)", stratum: "sexo no declarado" },
+  ],
+  CREATININE: [
+    { when: { ageMaxYears: 12 }, range: [0, 0, 0.7, 4], source: "Tietz, intervalos pediátricos (1–12 a: 0.3–0.7 mg/dL)", stratum: "pediátrico" },
+    { when: { pregnant: true }, range: [0, 0, 0.8, 4], source: "Larsson et al., Scand J Clin Lab Invest 2008 (gestación: 0.4–0.8 mg/dL)", stratum: "embarazo" },
+    { when: { sex: "FEMALE" }, range: [0, 0, 1.0, 4], source: "Tietz: mujer 0.5–1.0 mg/dL", stratum: "mujer adulta" },
+    { when: { sex: "MALE" }, range: [0, 0, 1.3, 4], source: "Tietz: varón 0.7–1.3 mg/dL", stratum: "varón adulto" },
+    { range: [0, 0, 1.0, 4], source: "Tietz — sin sexo declarado se aplica el techo MÁS SENSIBLE (mujer)", stratum: "sexo no declarado" },
+  ],
+  ALT: [
+    { when: { sex: "FEMALE" }, range: [0, 0, 33, 1000], source: "EASL CPG 2016 / Prati Ann Intern Med 2002: LSN mujer 33 U/L", stratum: "mujer adulta" },
+    { when: { sex: "MALE" }, range: [0, 0, 40, 1000], source: "EASL CPG 2016 / Prati 2002: LSN varón 40 U/L", stratum: "varón adulto" },
+    { range: [0, 0, 33, 1000], source: "EASL 2016 — sin sexo declarado se aplica el LSN MÁS SENSIBLE", stratum: "sexo no declarado" },
+  ],
+  AST: [
+    { when: { sex: "FEMALE" }, range: [0, 0, 32, 1000], source: "Tietz: mujer hasta 32 U/L", stratum: "mujer adulta" },
+    { when: { sex: "MALE" }, range: [0, 0, 40, 1000], source: "Tietz: varón hasta 40 U/L", stratum: "varón adulto" },
+    { range: [0, 0, 32, 1000], source: "Tietz — sin sexo declarado se aplica el LSN MÁS SENSIBLE", stratum: "sexo no declarado" },
+  ],
+  GLUCOSE: [
+    { when: { ageMaxYears: 0.08 }, range: [40, 47, 150, 500], source: "AAP, Committee on Fetus and Newborn (2011): hipoglucemia neonatal <47 mg/dL", stratum: "recién nacido (<1 mes)" },
+    { when: { fasting: true }, range: [40, 70, 125, 500], source: "ADA Standards of Care 2024: glucosa en ayuno ≥126 mg/dL es rango diagnóstico de diabetes", stratum: "en ayuno" },
+    { range: [40, 70, 200, 500], source: "ADA 2024: glucosa aleatoria ≥200 mg/dL con síntomas es diagnóstica — sin declarar ayuno se usa este corte", stratum: "sin declarar ayuno" },
+  ],
+  POTASSIUM: [
+    { when: { ageMaxYears: 1 }, range: [2.5, 3.5, 6.0, 7.0], source: "Tietz, intervalos de lactante (hasta ~6.0 mEq/L en el primer año)", stratum: "lactante (<1 año)" },
+    { range: [2.5, 3.5, 5.1, 6.5], source: "Tietz / valores de pánico de laboratorio", stratum: ADULT },
+  ],
+  HBA1C: [
+    // El corte alto es 5.6 para que 5.7–6.4 (prediabetes) salga ABNORMAL y 6.5 (diabetes) también: antes, 6.5 exacto
+    // —el umbral diagnóstico de la ADA— se clasificaba NORMAL, en contradicción directa con `packages/glycemic`.
+    { range: [0, 0, 5.6, 10], source: "ADA Standards of Care 2024: normal <5.7 %; 5.7–6.4 prediabetes; ≥6.5 diabetes", stratum: "criterio diagnóstico ADA" },
+  ],
+  TSH: [
+    { when: { pregnant: true }, range: [0.01, 0.1, 4.0, 100], source: "ATA 2017, guía de tiroides en el embarazo (límite inferior más bajo por hCG)", stratum: "embarazo" },
+    { range: [0.01, 0.4, 4.5, 100], source: "Tietz / NACB: 0.4–4.5 µUI/mL", stratum: ADULT },
+  ],
+};
+/** Fuente citada del rango de adulto por defecto de los analitos no estratificados. */
+const DEFAULT_SOURCE = "Tietz Clinical Guide to Laboratory Tests / valores de pánico de laboratorio (intervalos de adulto)";
+function matches(w: RangeWhen | undefined, ctx: LabContext): { ok: boolean; missing: string[] } {
+  if (!w) return { ok: true, missing: [] };
+  const missing: string[] = [];
+  if (w.sex !== undefined) { if (ctx.sex === undefined) { missing.push("sexo"); return { ok: false, missing }; } if (ctx.sex !== w.sex) return { ok: false, missing }; }
+  if (w.pregnant !== undefined) { if (ctx.pregnant !== w.pregnant) return { ok: false, missing }; }
+  if (w.fasting !== undefined) { if (ctx.fasting !== w.fasting) return { ok: false, missing }; }
+  if (w.ageMaxYears !== undefined) { if (ctx.ageYears === undefined) { missing.push("edad"); return { ok: false, missing }; } if (!(ctx.ageYears < w.ageMaxYears)) return { ok: false, missing }; }
+  if (w.ageMinYears !== undefined) { if (ctx.ageYears === undefined) { missing.push("edad"); return { ok: false, missing }; } if (!(ctx.ageYears >= w.ageMinYears)) return { ok: false, missing }; }
+  return { ok: true, missing };
+}
+/** Fila de rango aplicable a un analito en un contexto, con lo que faltó para decidir el estrato. */
+export function rangeRowFor(analyte: string, ctx: LabContext = {}): { range: readonly [number, number, number, number]; source: string; stratum: string; missing: readonly string[] } | undefined {
   const key = analyte.trim().toUpperCase();
-  const rng = RANGES[key];
-  if (!rng) return { status: "UNKNOWN", critical: false, interpretation: "Analito sin rango de referencia" };
+  const rows = RANGE_STRATA[key];
+  if (rows) {
+    const missing = new Set<string>();
+    for (const r of rows) { const m = matches(r.when, ctx); m.missing.forEach((x) => missing.add(x)); if (m.ok) return { range: r.range, source: r.source, stratum: r.stratum ?? ADULT, missing: [...missing] }; }
+  }
+  const base = RANGES[key];
+  return base ? { range: base, source: DEFAULT_SOURCE, stratum: ADULT, missing: [] } : undefined;
+}
+export function classifyLab(analyte: string, value: string, unit?: string, ctx: LabContext = {}): LabAssessment {
+  const key = analyte.trim().toUpperCase();
+  const row = rangeRowFor(key, ctx);
+  if (!row) return { status: "UNKNOWN", critical: false, interpretation: "Analito sin rango de referencia" };
   // Unidad y plausibilidad ANTES de clasificar: un valor en otra unidad o implausible es DESCONOCIDO, nunca "crítico".
   const n = normalizeLabValue(key, value, unit);
   if (!n.ok) return { status: "UNKNOWN", critical: false, interpretation: n.message };
   const v = n.canonicalValue;
-  const [cl, al, ah, ch] = rng;
-  if ((cl > 0 && v < cl) || v > ch) return { status: "CRITICAL", critical: true, interpretation: v > ch ? `${key} críticamente alto` : `${key} críticamente bajo` };
-  if ((al > 0 && v < al) || v > ah) return { status: "ABNORMAL", critical: false, interpretation: v > ah ? `${key} alto` : `${key} bajo` };
-  return { status: "NORMAL", critical: false, interpretation: `${key} normal` };
+  const [cl, al, ah, ch] = row.range;
+  const label = analyteLabel(key);
+  // El ESTRATO viaja en la interpretación (quien lee sabe con qué criterio se juzgó) y el estrato ya dice cuándo se
+  // resolvió sin el dato ("sexo no declarado"). Lo que faltó para elegirlo va en `contextMissing`, que es dato
+  // estructurado: repetirlo en la frase de cada resultado la vuelve ruido y se deja de leer.
+  const suf = row.stratum !== ADULT ? ` [${row.stratum}]` : "";
+  const extra = { stratum: row.stratum, source: row.source, ...(row.missing.length ? { contextMissing: row.missing } : {}) };
+  if ((cl > 0 && v < cl) || v > ch) return { status: "CRITICAL", critical: true, interpretation: `${label} críticamente ${v > ch ? "alto" : "bajo"}${suf}`, ...extra };
+  if ((al > 0 && v < al) || v > ah) return { status: "ABNORMAL", critical: false, interpretation: `${label} ${v > ah ? "alto" : "bajo"}${suf}`, ...extra };
+  return { status: "NORMAL", critical: false, interpretation: `${label} normal${suf}`, ...extra };
 }
 
 // ---------- Delta check (variación crítica entre resultados) — EPIC BB ----------

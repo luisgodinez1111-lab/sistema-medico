@@ -27,14 +27,19 @@ export function anionGap(sodium:number,chloride:number,bicarbonate:number,albumi
 
 // ---- Sodio corregido por glucemia (EPIC BY). La hiperglucemia arrastra agua al intravascular y DILUYE el
 // sodio (pseudohiponatremia). Na corregido = Na + 1.6·((glucosa − 100)/100) (factor de Katz). Puro. ----
-export type CorrectedSodium=Readonly<{measured:number;corrected:number;glucose:number;interpretation:string}>;
+export type CorrectedSodium=Readonly<{measured:number;corrected:number;glucose:number;interpretation:string;applied:boolean}>;
+// Auditoría 2026-09-19, anexo R03 (vector F03): el factor de Katz se derivó para HIPERGLUCEMIA y se aplicaba a cualquier
+// glucemia. Con glucosa 50 mg/dL «corregía» un sodio de 140 a 139.2 e informaba «≈ medido»: una corrección fuera de su
+// dominio, presentada como resultado. Ahora, por debajo de 100 mg/dL NO se corrige (se devuelve el medido) y se declara.
+export const SODIUM_CORRECTION_GLUCOSE_THRESHOLD=100;
 export function correctedSodiumForGlucose(sodium:number,glucose:number):CorrectedSodium|undefined{
  if(![sodium,glucose].every(Number.isFinite)||glucose<=0)return undefined;
- const corrected=round1(sodium+1.6*((glucose-100)/100));
- const interpretation=glucose>100
+ const applied=glucose>SODIUM_CORRECTION_GLUCOSE_THRESHOLD;
+ const corrected=applied?round1(sodium+1.6*((glucose-100)/100)):round1(sodium);
+ const interpretation=applied
   ?`Sodio corregido ${corrected} mEq/L (medido ${sodium}, glucosa ${glucose}): la hiperglucemia diluye el sodio medido`
-  :`Sin hiperglucemia significativa; sodio corregido ≈ medido`;
- return{measured:round1(sodium),corrected,glucose:round1(glucose),interpretation};
+  :`Sin hiperglucemia (glucosa ${round1(glucose)} ≤ ${SODIUM_CORRECTION_GLUCOSE_THRESHOLD} mg/dL): NO se aplica la corrección de Katz, que solo es válida en hiperglucemia. Se informa el sodio medido.`;
+ return{measured:round1(sodium),corrected,glucose:round1(glucose),interpretation,applied};
 }
 
 // ---- Osmolalidad sérica calculada (EPIC BY) = 2·Na + glucosa/18 + BUN/2.8. Normal ~275–295 mOsm/kg. Alta:

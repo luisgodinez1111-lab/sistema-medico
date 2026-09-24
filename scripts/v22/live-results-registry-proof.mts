@@ -15,8 +15,11 @@ function tok(scopes=["patient:write","patient:read","result:write"]){return sign
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const idem=()=>crypto.randomUUID();let ts=Date.parse("2026-09-01T09:00:00.000Z");const at=()=>new Date(ts+=3600000).toISOString();
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
-async function reg(t:string,p:string,name:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name,birthDate:birth(40),sexAtBirth:"FEMALE",occurredAt:at()})}));}
-async function res(t:string,p:string,analyte:string,value:string){const id=crypto.randomUUID();const r=await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:id,patientId:p,orderId:crypto.randomUUID(),analyte,value,unit:canonicalUnitOf(analyte)??"n/a",occurredAt:at()})}));const j=await r.json() as{critical?:boolean};return{id,status:r.status,critical:!!j.critical};}
+async function reg(t:string,p:string,name:string,sexAtBirth="FEMALE",years=40,birthDate?:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name,birthDate:birthDate??birth(years),sexAtBirth,occurredAt:at()})}));}
+// Fecha de nacimiento relativa al RELOJ DE LA PRUEBA (que va por delante del real): la edad del paciente se calcula
+// contra el `occurredAt` del resultado, así que un lactante debe nacer antes de ese instante, no antes de hoy.
+const bornMonthsBeforeClock=(m:number)=>new Date(ts-m*30*86_400_000).toISOString().slice(0,10);
+async function res(t:string,p:string,analyte:string,value:string){const id=crypto.randomUUID();const r=await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:id,patientId:p,orderId:crypto.randomUUID(),analyte,value,unit:canonicalUnitOf(analyte)??"n/a",occurredAt:at()})}));const j=await r.json() as{critical?:boolean;status?:string;interpretation?:string};return{id,status:r.status,critical:!!j.critical,clinical:String(j.status??""),interpretation:String(j.interpretation??"")};}
 async function verify(t:string,id:string){return resVer.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({resultId:id})});}
 async function action(t:string,id:string){return resAct.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({ownerId:crypto.randomUUID(),dueAt:new Date(Date.now()+7*86400000).toISOString(),occurredAt:at()})}),{params:Promise.resolve({resultId:id})});}
 async function list(t:string){const r=await resR.GET(new Request("http://l/",{method:"GET",headers:H(t)}));return{status:r.status,body:await r.json()};}
@@ -30,6 +33,24 @@ try{
  const rImg=await res(phys,p1,"Radiografía de tórax","Sin alteraciones");
  ok(rNorm.status===201&&rCrit.status===201,"RECEIVE_201");
  ok(rCrit.critical===true,"GLUCOSE_CRITICAL_DERIVED");
+ // R03-14: el rango se elige con el ESTRATO del paciente. La MISMA hemoglobina (12.5 g/dL) es normal en una mujer y
+ // anemia en un varón: antes, con el piso único de 12 g/dL, el varón salía NORMAL. La demografía ya está en el
+ // expediente, así que la clasificación no necesita que nadie la declare.
+ const pM=crypto.randomUUID(),pF=crypto.randomUUID();
+ await reg(phys,pM,"Varón Prueba Hb","MALE",45);await reg(phys,pF,"Mujer Prueba Hb","FEMALE",45);
+ const hbM=await res(phys,pM,"HEMOGLOBIN","12.5");
+ const hbF=await res(phys,pF,"HEMOGLOBIN","12.5");
+ ok(hbM.clinical==="ABNORMAL"&&/varón adulto/.test(hbM.interpretation),"HB_STRATIFIED_MALE_ABNORMAL");
+ ok(hbF.clinical==="NORMAL"&&/mujer adulta/.test(hbF.interpretation),"HB_STRATIFIED_FEMALE_NORMAL");
+ // R03-14: HbA1c 6.5 % (umbral diagnóstico ADA) ya NO se registra como normal
+ const a1c=await res(phys,pF,"HBA1C","6.5");
+ ok(a1c.clinical==="ABNORMAL"&&/criterio diagnóstico ADA/.test(a1c.interpretation),"HBA1C_6_5_NOT_NORMAL");
+ // R03-14: un lactante tolera un potasio que en adulto es anormal (el estrato sale de la fecha de nacimiento)
+ const pB=crypto.randomUUID();await reg(phys,pB,"Lactante Prueba K","MALE",0,bornMonthsBeforeClock(6));
+ const kB=await res(phys,pB,"POTASSIUM","5.8");
+ ok(kB.clinical==="NORMAL"&&/lactante/.test(kB.interpretation),"K_INFANT_STRATUM");
+ const kA=await res(phys,pM,"POTASSIUM","5.8");
+ ok(kA.clinical==="ABNORMAL","K_ADULT_ABNORMAL");
 
  // llevar el normal a ACTIONED (verify -> action) para el estado 'En seguimiento'
  const vr=await verify(phys,rNorm.id);ok(vr.status===200||vr.status===201,"VERIFY_OK");
@@ -37,7 +58,7 @@ try{
 
  const L=await list(phys);ok(L.status===200,"LIST_200");
  const b=L.body as{total:number;abnormal:number;enSeguimiento:number;pendientes:number;items:{analyte:string;estado:string;tipo:string;patientName:string;critical:boolean}[]};
- ok(b.total===3,"TOTAL_3");
+ ok(b.total===8,"TOTAL_8_INCLUDING_STRATIFIED");
  const byA=(a:string)=>b.items.find(i=>i.analyte===a);
  // estado-UI derivado
  ok(byA("GLUCOSE")?.estado==="Hallazgos","GLUCOSE_HALLAZGOS");
@@ -45,8 +66,11 @@ try{
  ok(byA("Radiografía de tórax")?.tipo==="Imagenología","RADIO_IMAGENOLOGIA");
  // join del paciente
  ok(byA("GLUCOSE")?.patientName==="Carlos Mendoza","PATIENT_JOIN");
- // KPIs: 1 con hallazgos (glucosa), 1 en seguimiento (creatinina ACTIONED), 2 pendientes de revisión (glucosa+radiografía en RECEIVED)
- ok(b.abnormal===1&&b.enSeguimiento===1&&b.pendientes===2,"KPIS");
+ // KPIs: 4 con hallazgos (glucosa crítica + los tres anormales por ESTRATO: Hb del varón, HbA1c 6.5 y potasio del
+ // adulto), 1 en seguimiento (creatinina ACTIONED) y 7 pendientes de revisión (todo lo RECEIVED menos la creatinina).
+ // Los dos resultados normales por estrato (Hb de la mujer, potasio del lactante) NO engrosan los hallazgos: es
+ // justamente lo que el estrato evita, alarmas sobre valores normales para ese paciente.
+ ok(b.abnormal===4&&b.enSeguimiento===1&&b.pendientes===7,"KPIS");
 
  // sin scope -> 403
  const noScope=await list(tok(["patient:read"]));

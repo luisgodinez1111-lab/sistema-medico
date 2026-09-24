@@ -1,5 +1,6 @@
 import{describe,it,expect}from"vitest";
-import{classifyLab,deltaCheck,computeNEWS2,normalizeLabValue,acceptedUnitsOf,canonicalUnitOf,labReferenceRanges,analyteLabel,ANALYTE_UNITS,classifyVital,vitalPlausible}from"../../packages/lab-reference/src";
+import{classifyLab,deltaCheck,computeNEWS2,normalizeLabValue,acceptedUnitsOf,canonicalUnitOf,labReferenceRanges,analyteLabel,ANALYTE_UNITS,classifyVital,vitalPlausible,rangeRowFor}from"../../packages/lab-reference/src";
+import{glycemicAssessment}from"../../packages/glycemic/src";
 // EPIC AQ + AU — valores de pánico de laboratorio. El flag `critical` se DERIVA del valor.
 describe("classifyLab (rangos de referencia / valores de pánico)",()=>{
  it("potasio: normal / anormal / crítico (alto y bajo)",()=>{
@@ -209,5 +210,82 @@ describe("classifyVital por edad y plausibilidad (C-13)",()=>{
    expect(vitalPlausible(t,v).ok,`${t} ${v}`).toBe(false);expect(classifyVital(t,v).plausible,`${t} ${v}`).toBe(false);expect(classifyVital(t,v).status).toBe("UNKNOWN");
   }
   expect(vitalPlausible("WEIGHT","72").ok).toBe(true);expect(vitalPlausible("BP","120/80").ok).toBe(true);
+ });
+});
+
+// Auditoría 2026-09-19, anexo R03 (R03-14): rangos ESTRATIFICADOS por sexo, edad y embarazo, con fuente citada.
+describe("rangos estratificados de laboratorio (R03-14)",()=>{
+ it("el piso de hemoglobina depende del SEXO (un varón con 12.5 g/dL está anémico)",()=>{
+  // El caso exacto del anexo: con el piso único de 12 g/dL, ese varón salía NORMAL.
+  expect(classifyLab("HEMOGLOBIN","12.5",undefined,{sex:"MALE"}).status).toBe("ABNORMAL");
+  expect(classifyLab("HEMOGLOBIN","12.5",undefined,{sex:"FEMALE"}).status).toBe("NORMAL");
+ });
+ it("sin sexo declarado se aplica el criterio MÁS SENSIBLE y se declara",()=>{
+  const r=classifyLab("HEMOGLOBIN","12.5");
+  expect(r.status).toBe("ABNORMAL");
+  expect(r.stratum).toMatch(/sexo no declarado/);
+  expect(r.contextMissing).toContain("sexo");
+ });
+ it("HbA1c 6.5 % ya NO es normal: coincide con el umbral diagnóstico de glycemic",()=>{
+  // Antes: classifyLab decía NORMAL y packages/glycemic «rango diagnóstico de diabetes» sobre el mismo número.
+  expect(classifyLab("HBA1C","6.5").status).toBe("ABNORMAL");
+  expect(glycemicAssessment(6.5,false)!.category).toBe("DIABETES_RANGE");
+  expect(classifyLab("HBA1C","5.4").status).toBe("NORMAL");
+  expect(classifyLab("HBA1C","5.9").status).toBe("ABNORMAL"); // prediabetes también es un hallazgo
+ });
+ it("la glucosa en AYUNO usa el umbral de ayuno (≥126), no el de aleatoria (200)",()=>{
+  expect(classifyLab("GLUCOSE","150",undefined,{fasting:true}).status).toBe("ABNORMAL");
+  const sinDeclarar=classifyLab("GLUCOSE","150");
+  expect(sinDeclarar.status).toBe("NORMAL");
+  expect(sinDeclarar.stratum).toMatch(/sin declarar ayuno/); // el criterio aplicado queda a la vista
+ });
+ it("el recién nacido tiene su propio umbral de glucosa (47 mg/dL, AAP)",()=>{
+  // Matiz sobre el anexo: decía que «un neonato con glucosa 45 sale NORMAL». No era exacto —con el rango de adulto
+  // 45 < 70 ya salía ABNORMAL—, pero el defecto de fondo sí existía y es el contrario: el neonato se juzgaba con el
+  // piso de adulto (70), así que una glucemia de 60, NORMAL para un recién nacido, se marcaba como hipoglucemia.
+  expect(classifyLab("GLUCOSE","45",undefined,{ageYears:0.02}).status).toBe("ABNORMAL"); // <47: requiere intervención
+  expect(classifyLab("GLUCOSE","38",undefined,{ageYears:0.02}).status).toBe("CRITICAL"); // <40: hipoglucemia severa
+  expect(classifyLab("GLUCOSE","60",undefined,{ageYears:0.02}).status).toBe("NORMAL");   // normal en el recién nacido
+  expect(classifyLab("GLUCOSE","60",undefined,{ageYears:40}).status).toBe("ABNORMAL");   // y baja en el adulto
+ });
+ it("un lactante tolera potasio hasta 6.0 mEq/L (en adulto es crítico)",()=>{
+  expect(classifyLab("POTASSIUM","5.8",undefined,{ageYears:0.5}).status).toBe("NORMAL");
+  expect(classifyLab("POTASSIUM","5.8",undefined,{ageYears:40}).status).toBe("ABNORMAL");
+ });
+ it("ALT y creatinina también dependen del sexo",()=>{
+  expect(classifyLab("ALT","36",undefined,{sex:"FEMALE"}).status).toBe("ABNORMAL"); // LSN 33 en mujer
+  expect(classifyLab("ALT","36",undefined,{sex:"MALE"}).status).toBe("NORMAL");
+  expect(classifyLab("CREATININE","1.1",undefined,{sex:"FEMALE"}).status).toBe("ABNORMAL");
+  expect(classifyLab("CREATININE","1.1",undefined,{sex:"MALE"}).status).toBe("NORMAL");
+ });
+ it("el embarazo tiene su propio estrato (creatinina y hemoglobina)",()=>{
+  expect(classifyLab("CREATININE","0.9",undefined,{sex:"FEMALE",pregnant:true}).status).toBe("ABNORMAL");
+  expect(classifyLab("HEMOGLOBIN","11.5",undefined,{sex:"FEMALE",pregnant:true}).status).toBe("NORMAL");
+  expect(classifyLab("HEMOGLOBIN","10.5",undefined,{sex:"FEMALE",pregnant:true}).status).toBe("ABNORMAL");
+ });
+ it("TODA fila devuelve una FUENTE citada (ningún corte sin procedencia)",()=>{
+  for(const r of labReferenceRanges()){
+   expect(r.source,r.analyte).toBeTruthy();
+   expect(r.source!.length,r.analyte).toBeGreaterThan(20);
+   expect(r.source,`${r.analyte}: la fuente no puede ser una autoridad interna inventada`).not.toMatch(/CAP-[A-Z]+-\d/);
+  }
+ });
+ it("los rangos expuestos a la interfaz salen del MISMO selector que clasifica",()=>{
+  // El defecto que esto evita: la pestaña mostraba «HbA1c normal hasta 6.5» y el motor marcaba 5.9 como alta.
+  const hba1c=labReferenceRanges().find(r=>r.analyte==="HBA1C")!;
+  expect(hba1c.normalHigh).toBe(5.6);
+  expect(classifyLab("HBA1C",String(hba1c.normalHigh)).status).toBe("NORMAL");
+  expect(classifyLab("HBA1C",String(hba1c.normalHigh+0.1)).status).toBe("ABNORMAL");
+  expect(hba1c.unit).toBe("%");
+ });
+ it("un valor negativo nunca sale NORMAL (la cota de plausibilidad lo atrapa)",()=>{
+  for(const a of["ALT","AST","BILIRUBIN","INR","LACTATE","BUN","CRP","DDIMER","BNP","TROPONIN","HBA1C"])
+   expect(classifyLab(a,"-5").status,a).toBe("UNKNOWN");
+ });
+ it("rangeRowFor expone el estrato elegido y lo que faltó para elegirlo",()=>{
+  const r=rangeRowFor("HEMOGLOBIN",{sex:"FEMALE",ageYears:30})!;
+  expect(r.stratum).toBe("mujer adulta");
+  expect(r.missing).toEqual([]);
+  expect(rangeRowFor("NO_EXISTE")).toBeUndefined();
  });
 });

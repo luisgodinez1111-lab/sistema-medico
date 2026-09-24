@@ -624,6 +624,10 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   fireEvent.click(screen.getByRole("button",{name:/Valores de referencia/}));
   expect(screen.getAllByText(/Valores de referencia/).length).toBeGreaterThan(0);
   expect(screen.getByText("GLUCOSE")).toBeTruthy();                              // rango real del motor CDS
+  // R03-14: la tabla muestra el mismo criterio con el que se clasifica, con unidad y FUENTE citada por fila.
+  expect(screen.getByText("glucosa")).toBeTruthy();
+  expect(screen.getAllByText(/ADA Standards of Care 2024/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText("mg/dL").length).toBeGreaterThan(0);
   fireEvent.click(screen.getByRole("button",{name:/^Alertas/}));
   expect(screen.getByText(/Alertas de resultados/)).toBeTruthy();
  });

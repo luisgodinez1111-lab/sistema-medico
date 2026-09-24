@@ -40,8 +40,20 @@ describe("correctedSodiumForGlucose (EPIC BY)",()=>{
   const r=correctedSodiumForGlucose(130,600)!;
   expect(r.corrected).toBe(138);expect(r.measured).toBe(130);
  });
- it("glucosa normal (<=100): corregido ≈ medido",()=>{
-  expect(correctedSodiumForGlucose(140,90)!.corrected).toBeCloseTo(139.8,1); // 140+1.6*(-0.1)
+ it("R03-F03: con glucosa ≤100 NO se aplica la corrección de Katz (está fuera de su dominio)",()=>{
+  // Antes se «corregía» un sodio de 140 a 139.8 con glucosa 90 —y a 139.2 con glucosa 50, el vector del anexo—:
+  // una fórmula derivada para hiperglucemia aplicada donde no significa nada, presentada como resultado.
+  const r=correctedSodiumForGlucose(140,90)!;
+  expect(r.applied).toBe(false);
+  expect(r.corrected).toBe(140);          // el medido, sin tocar
+  expect(r.interpretation).toMatch(/NO se aplica la corrección de Katz/);
+  const bajo=correctedSodiumForGlucose(140,50)!;
+  expect(bajo.corrected).toBe(140);
+ });
+ it("R03-F03: con hiperglucemia sí se aplica y se declara",()=>{
+  const r=correctedSodiumForGlucose(130,400)!;
+  expect(r.applied).toBe(true);
+  expect(r.corrected).toBeCloseTo(134.8,1); // 130 + 1.6*3
  });
  it("valores inválidos -> undefined",()=>{expect(correctedSodiumForGlucose(140,0)).toBeUndefined();});
 });

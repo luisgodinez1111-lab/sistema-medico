@@ -2,8 +2,14 @@
 // (manejo de crónicos). El MARCO de interpretación cambia si el paciente es diabético conocido (meta <7%) vs
 // tamizaje (rangos diagnósticos ADA). Puro, sin PHI. Umbrales ADA/estándar.
 // Glucosa promedio estimada (mg/dL) desde HbA1c (%). Fórmula ADAG: eAG = 28.7·A1c − 46.7.
+// Auditoría 2026-09-19, anexo R03 (vector F01): la fórmula se aplicaba a cualquier número positivo. Con HbA1c 0.1
+// devolvía una glucosa promedio de −44 mg/dL clasificada como «Normal», y con 50 devolvía 1 388. La HbA1c humana no sale
+// del intervalo 3–20 % (el mismo que ya declara `ANALYTE_UNITS` en lab-reference): fuera de él el dato es un error de
+// captura o de unidad (IFCC en mmol/mol), no un control glucémico.
+export const A1C_PLAUSIBLE=[3,20]as const;
 export function estimatedAverageGlucose(a1c:number):number|undefined{
- if(!Number.isFinite(a1c)||a1c<=0)return undefined;
+ if(!Number.isFinite(a1c))return undefined;
+ if(a1c<A1C_PLAUSIBLE[0]||a1c>A1C_PLAUSIBLE[1])return undefined;
  return Math.round(28.7*a1c-46.7+1e-9); // épsilon: evita que 125.4999… (flotante) redondee a 125 en vez de 126
 }
 export type GlycemicFrame="DIABETIC"|"SCREENING";

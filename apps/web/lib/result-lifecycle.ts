@@ -4,7 +4,8 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldResult,assertResultTransition,assertResultCorrectable,type FoldedResult}from"../../../packages/result-fold/src";
 import{type ResultState}from"../../../packages/order-result-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,latestResultValueForAnalyte,requireRegisteredPatient}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,latestResultValueForAnalyte,requireRegisteredPatient,patientDemographics}from"./clinical-runtime";
+import{ageInYears}from"../../../packages/prescription-safety/src";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload,derivedUuid}from"./http-command";
 import{foldObligation}from"../../../packages/obligation-fold/src";
@@ -60,8 +61,14 @@ async function interpretForReceive(ctx:Parameters<typeof runClinicalCommand>[0],
   // guardarse y producir después un falso crítico o un score absurdo. Los resultados cualitativos (no numéricos) pasan.
   const norm=normalizeLabValue(b.analyte,b.value,b.unit);
   if(!norm.ok&&norm.reason!=="NOT_NUMERIC")throw new ClinicalError("VALIDATION_ERROR",norm.message,{analyte:b.analyte,reason:norm.reason});
-  // Derivar critical del valor real (ya en unidad canónica) usando catálogo de rangos de laboratorio
-  const assessment=classifyLab(b.analyte,b.value,b.unit);
+  // Derivar critical del valor real (ya en unidad canónica) usando catálogo de rangos de laboratorio.
+  // Auditoría R03-14: el rango se elige con el ESTRATO del paciente (sexo y edad), no con una tabla plana de adulto:
+  // un varón con hemoglobina 12.5 g/dL está anémico y salía NORMAL con el piso único de 12. El embarazo NO se deriva
+  // (el expediente no lo modela todavía: R03-29) y el ayuno no se captura con el resultado, así que ninguno se asume.
+  const demoLab=await patientDemographics(ctx,b.patientId);
+  const sexLab=demoLab?.sexAtBirth==="FEMALE"||demoLab?.sexAtBirth==="MALE"?demoLab.sexAtBirth:undefined;
+  const ageLab=demoLab?.birthDate?ageInYears(demoLab.birthDate,b.occurredAt):undefined;
+  const assessment=classifyLab(b.analyte,b.value,b.unit,{...(sexLab?{sex:sexLab}:{}),...(ageLab!==undefined?{ageYears:ageLab}:{})});
   // EPIC BB (profundidad): delta check longitudinal — comparar con el valor previo del mismo analito.
   // Una variación crítica (p. ej. creatinina que se duplica, Hb -2 g/dL) ELEVA el resultado a `critical`
   // aunque el valor absoluto no sea de pánico -> participa del gate de firma (Zero Lost Follow-Up).
