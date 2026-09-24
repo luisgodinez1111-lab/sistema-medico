@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{checkDrugAllergy,resolveDrug,checkContraindications,drugCatalog,interactionRules,checkInteractionSet,richInteractionRules}from"../../packages/drug-catalog/src";
+import{checkDrugAllergy,resolveDrug,checkContraindications,drugCatalog,interactionRules,checkInteractionSet,richInteractionRules,catalogCoverage}from"../../packages/drug-catalog/src";
 describe("catálogo de fármacos + gate de alergia (EPIC AP)",()=>{
  it("resuelve el principio activo dentro del código",()=>{
   expect(resolveDrug("amoxicilina-500mg")?.ingredient).toBe("amoxicilina");
@@ -23,14 +23,18 @@ describe("catálogo de fármacos + gate de alergia (EPIC AP)",()=>{
  });
  it("una INTOLERANCIA leve a penicilina NO bloquea las cefalosporinas: precaución con confirmación (antes bloqueaba)",()=>{
   const r=checkDrugAllergy("ceftriaxona-1g",[{substance:"penicilina",severity:"MILD",reaction:"náusea y vómito"}]);
-  expect(r).toMatchObject({blocked:false,caution:true,via:"cross",severity:"MILD"});
+  expect(r).toMatchObject({blocked:false,caution:true,via:"cross-r1-differs",severity:"MILD"});
+  // Y una intolerancia leve tampoco bloquea donde el R1 SÍ coincide: solo eleva a precaución.
+  expect(checkDrugAllergy("cefalexina-500",[{substance:"penicilina",severity:"MILD",reaction:"náusea"}])).toMatchObject({blocked:false,caution:true,via:"cross"});
  });
  it("una reacción anafiláctica es GRAVE aunque se haya registrado como leve (la reacción manda)",()=>{
-  expect(checkDrugAllergy("ceftriaxona-1g",[{substance:"penicilina",severity:"MILD",reaction:"anafilaxia"}])).toMatchObject({blocked:true,severity:"SEVERE",via:"cross"});
+  // El objetivo del test es la ESCALADA por la reacción descrita, así que se comprueba sobre un fármaco que sí comparte
+  // cadena lateral R1 (cefalexina). Con ceftriaxona, desde R03-24, ni una anafilaxia bloquea: ver el bloque de R1.
+  expect(checkDrugAllergy("cefalexina-500",[{substance:"penicilina",severity:"MILD",reaction:"anafilaxia"}])).toMatchObject({blocked:true,severity:"SEVERE",via:"cross"});
  });
  it("MODERATE: bloquea misma clase y el mismo principio activo; precaución en cruzada",()=>{
   expect(checkDrugAllergy("amoxicilina-500",[{substance:"penicilina",severity:"MODERATE",reaction:"urticaria"}]).blocked).toBe(true);
-  expect(checkDrugAllergy("ceftriaxona-1g",[{substance:"penicilina",severity:"MODERATE",reaction:"urticaria"}])).toMatchObject({blocked:false,caution:true});
+  expect(checkDrugAllergy("ceftriaxona-1g",[{substance:"penicilina",severity:"MODERATE",reaction:"urticaria"}])).toMatchObject({blocked:false,caution:true,via:"cross-r1-differs"});
  });
  it("el alérgeno puede ser un fármaco del catálogo: leve a naproxeno -> ibuprofeno con precaución; grave a amoxicilina -> cefalexina bloqueada",()=>{
   expect(checkDrugAllergy("ibuprofeno-400",[{substance:"naproxeno",severity:"MILD",reaction:"dispepsia"}])).toMatchObject({caution:true,via:"class"});
@@ -143,8 +147,10 @@ describe("ajuste/contraindicación renal por eGFR (EPIC BM)",()=>{
  it("fármaco FUERA de catálogo -> NOT_EVALUATED (no es 'OK')",()=>{
   const r=checkRenalDosing("desconocido-xyz",10);
   expect(r.action).toBe("NOT_EVALUATED");expect(r.reason).toBe("DRUG_NOT_IN_CATALOG");
-  // apixabán con TFG 15 era el caso real de la auditoría: devolvía {action:"OK"}.
-  expect(checkRenalDosing("apixaban",15).action).toBe("NOT_EVALUATED");
+  // apixabán con TFG 15 era el caso real de la auditoría: devolvía {action:"OK"}. Entró al catálogo en el lote 11f con
+  // su propia regla, así que ahora la respuesta es la clínicamente correcta (reducir dosis), no un "no evaluado".
+  expect(checkRenalDosing("apixaban",15).action).toBe("CAUTION");
+  expect(checkRenalDosing("apixaban",10).action).toBe("BLOCK");
  });
  it("las demás barreras declaran si pudieron evaluar",()=>{
   expect(checkInteractions("desconocido-xyz",["warfarina"])).toMatchObject({found:false,evaluated:false});
@@ -228,5 +234,111 @@ describe("ajuste renal ampliado (C-15)",()=>{
   const{drugCatalog}=await import("../../packages/drug-catalog/src");
   const uncovered=drugCatalog().map(d=>d.code).filter(c=>checkRenalDosing(c,10).action==="NOT_COVERED");
   expect(uncovered).toEqual([]);
+ });
+});
+
+// Auditoría 2026-09-19, anexo R03 — R03-23 (cobertura declarada), R03-24 (cadena lateral R1 y sulfonamidas),
+// R03-25 (pares que faltaban, con fuente) y F13 (clase QT, que no existía en el repositorio).
+describe("reactividad cruzada betalactámica por cadena lateral R1 (R03-24)",()=>{
+ it("comparten R1: amoxicilina/ampicilina ↔ cefalexina, cefadroxilo, cefaclor -> cruzada real",()=>{
+  for(const c of["cefalexina-500","cefadroxilo-500","cefaclor-500"])
+   expect(checkDrugAllergy(c,[{substance:"amoxicilina",severity:"SEVERE"}]),c).toMatchObject({blocked:true,via:"cross"});
+ });
+ it("NO comparten R1: ceftriaxona, cefotaxima, cefepima y cefuroxima -> precaución con la evidencia citada",()=>{
+  for(const c of["ceftriaxona-1g","cefotaxima-1g","cefepima-1g","cefuroxima-500"]){
+   const r=checkDrugAllergy(c,[{substance:"penicilina",severity:"SEVERE",reaction:"anafilaxia"}]);
+   expect(r.blocked,c).toBe(false);
+   expect(r.caution,c).toBe(true);
+   expect(r.via,c).toBe("cross-r1-differs");
+   expect(r.detail,c).toMatch(/Shenoy, JAMA 2019/);
+  }
+ });
+ it("dentro de las cefalosporinas, el R1 compartido sí cruza (ceftriaxona ↔ cefotaxima ↔ cefepima)",()=>{
+  expect(checkDrugAllergy("cefotaxima-1g",[{substance:"ceftriaxona",severity:"SEVERE"}]).blocked).toBe(true);
+ });
+ it("la misma CLASE sigue bloqueando (penicilina -> amoxicilina no es cruzada, es la misma clase)",()=>{
+  expect(checkDrugAllergy("amoxicilina-500",["penicilina"])).toMatchObject({blocked:true,via:"class"});
+ });
+});
+
+describe("sulfonamidas: antibiótica vs no antibiótica (R03-24)",()=>{
+ it("una alergia a «sulfas» NO bloquea furosemida, hidroclorotiazida ni glibenclamida",()=>{
+  // Antes esto era correcto POR ACCIDENTE: esos fármacos no estaban en el catálogo. Ahora están y la regla es explícita.
+  for(const d of["furosemida-40","hidroclorotiazida-25","glibenclamida-5","acetazolamida-250","celecoxib-200"])
+   expect(checkDrugAllergy(d,[{substance:"sulfa",severity:"SEVERE",reaction:"exantema"}]).blocked,d).toBe(false);
+ });
+ it("y sí bloquea el antibiótico (trimetoprima-sulfametoxazol)",()=>{
+  expect(checkDrugAllergy("sulfametoxazol-800",[{substance:"sulfa",severity:"SEVERE"}]).blocked).toBe(true);
+  expect(checkDrugAllergy("trimetoprima-sulfametoxazol",[{substance:"sulfa",severity:"SEVERE"}]).blocked).toBe(true);
+ });
+});
+
+describe("interacciones que el anexo probó vacías (R03-25) y la clase QT (F13)",()=>{
+ const pares:readonly[string,string,"MAJOR"|"MODERATE"][]=[
+  ["warfarina","sulfametoxazol","MAJOR"],      // CYP2C9: alza masiva del INR
+  ["warfarina","azitromicina","MAJOR"],
+  ["warfarina","rivaroxaban","MAJOR"],         // doble anticoagulación
+  ["espironolactona","sulfametoxazol","MAJOR"],// hiperkalemia (BMJ 2011)
+  ["enalapril","sulfametoxazol","MAJOR"],
+  ["losartan","sulfametoxazol","MAJOR"],
+  ["aspirina","ibuprofeno","MODERATE"],        // antagonismo de la cardioprotección
+  ["citalopram","azitromicina","MAJOR"],       // QT aditivo
+  ["warfarina","paracetamol","MODERATE"],
+  ["claritromicina","atorvastatina","MAJOR"],  // rabdomiólisis
+  ["clonazepam","tramadol","MAJOR"],           // depresión respiratoria (boxed warning FDA)
+  ["digoxina","claritromicina","MODERATE"],
+ ];
+ it("los doce pares producen hallazgo en la BARRERA (no solo en la pestaña informativa)",()=>{
+  for(const[a,b,sev]of pares){
+   const h=checkInteractions(a,[b]);
+   expect(h.found,`${a} + ${b}`).toBe(true);
+   expect(h.severity,`${a} + ${b}`).toBe(sev);
+  }
+ });
+ it("y son simétricos (da igual cuál se prescribe)",()=>{
+  for(const[a,b]of pares)expect(checkInteractions(b,[a]).found,`${b} + ${a}`).toBe(true);
+ });
+ it("la clase QT existe y es aditiva entre sí (antes `grep QT` no encontraba nada)",()=>{
+  const qt=["citalopram","escitalopram","azitromicina","claritromicina","amiodarona","ondansetron","haloperidol","levofloxacino","ciprofloxacino"];
+  for(const d of qt)expect(resolveDrug(d)?.classes,d).toContain("QT_PROLONGING");
+  const h=checkInteractions("ondansetron",["amiodarona"]);
+  expect(h.found).toBe(true);expect(h.severity).toBe("MAJOR");
+  expect(h.note).toMatch(/torsades/i);
+ });
+ it("TODA fila de interacción declara fuente y fecha de revisión",()=>{
+  for(const r of richInteractionRules()){
+   expect(r.source,`${r.classA}+${r.classB}`).toBeTruthy();
+   expect(r.source.length,`${r.classA}+${r.classB}`).toBeGreaterThan(20);
+   expect(r.reviewedAt,`${r.classA}+${r.classB}`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  }
+ });
+});
+
+describe("cobertura del catálogo declarada (R03-23)",()=>{
+ it("la cobertura se CALCULA de las tablas (no puede quedar obsoleta) y dice qué NO es",()=>{
+  const c=catalogCoverage();
+  expect(c.ingredients).toBe(drugCatalog().length);
+  expect(c.ingredients).toBeGreaterThanOrEqual(60);   // eran 27 en la auditoría
+  expect(c.interactionPairs).toBe(richInteractionRules().length);
+  expect(c.renalRulesByIngredient).toBeGreaterThanOrEqual(50);
+  expect(c.sourceNote).toMatch(/NO es un vademécum oficial/);
+  expect(c.sourceNote).toMatch(/NOT_EVALUATED/);
+  expect(c.version).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+ });
+ it("los diez fármacos que el anexo probó fuera del catálogo ya están dentro (o siguen declarados como fuera)",()=>{
+  // Los AINE entraron en C-06; el resto en 11f. Lo que NO puede pasar es que un fármaco ausente devuelva un veredicto
+  // de seguridad: eso lo fija `INV-CORE-0009` con un fármaco realmente ausente.
+  for(const d of["diclofenaco","meloxicam","apixaban","clonazepam","digoxina","levotiroxina","furosemida","atorvastatina","insulina glargina","amiodarona"])
+   expect(resolveDrug(d),d).toBeDefined();
+ });
+ it("ningún fármaco del catálogo queda sin revisión renal (invariante del lote C-15, mantenido tras ampliarlo)",()=>{
+  const sinRegla=drugCatalog().map(d=>d.ingredient).filter(i=>checkRenalDosing(i,10).action==="NOT_COVERED");
+  expect(sinRegla).toEqual([]);
+ });
+ it("una regla de ingrediente con umbrales no RELAJA la de su clase (solo `noAdjustment` es exención explícita)",()=>{
+  // cefalexina declara TFG<30 y su clase CEPHALOSPORIN declara TFG<50: manda la más severa.
+  expect(checkRenalDosing("cefalexina-500",40).action).toBe("CAUTION");
+  // ceftriaxona sí está exenta explícitamente aunque sea cefalosporina.
+  expect(checkRenalDosing("ceftriaxona-1g",20).action).toBe("OK");
  });
 });

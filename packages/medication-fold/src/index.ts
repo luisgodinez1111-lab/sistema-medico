@@ -5,7 +5,9 @@ import{ClinicalError}from"../../runtime-errors/src";
 // puede venir de cualquier clínico (o IA), pero PRESCRIBED (la decisión firmada) exige médico.
 export type MedEventKind="PROPOSED"|"PRESCRIBED"|"ACTIVATED"|"HELD"|"RESUMED"|"STOPPED"|"MODIFIED"|"RECONCILED";
 export type StoredMedEvent=Readonly<{sequence:number;payload:Record<string,unknown>}>;
-export type FoldedMedication=Readonly<{exists:boolean;state:MedicationState;version:number;patientId:string;drugCode:string;dose:string;route:string;frequency:string}>;
+// R03-26: la DURACIÓN se guardaba en el payload de la propuesta y el fold la descartaba, así que la barrera de duración
+// no podía verla en PRESCRIBE, que es donde bloquea. Ahora forma parte del estado plegado de la orden.
+export type FoldedMedication=Readonly<{exists:boolean;state:MedicationState;version:number;patientId:string;drugCode:string;dose:string;route:string;frequency:string;duration:string}>;
 
 function kindOf(e:StoredMedEvent):MedEventKind{
  const k=e.payload["kind"];
@@ -21,22 +23,22 @@ export type MedAnnotationKind=typeof MED_ANNOTATION_KINDS[number];
 const isAnnotation=(k:MedEventKind):k is MedAnnotationKind=>k==="MODIFIED"||k==="RECONCILED";
 const KIND_TO_STATE:Record<Exclude<MedEventKind,MedAnnotationKind>,MedicationState>={PROPOSED:"PROPOSED",PRESCRIBED:"PRESCRIBED",ACTIVATED:"ACTIVE",HELD:"HELD",RESUMED:"ACTIVE",STOPPED:"STOPPED"};
 export function foldMedication(events:readonly StoredMedEvent[]):FoldedMedication{
- if(events.length===0)return{exists:false,state:"PROPOSED",version:0,patientId:"",drugCode:"",dose:"",route:"",frequency:""};
+ if(events.length===0)return{exists:false,state:"PROPOSED",version:0,patientId:"",drugCode:"",dose:"",route:"",frequency:"",duration:""};
  const ordered=[...events].sort((a,b)=>a.sequence-b.sequence);
- let state:MedicationState="PROPOSED",patientId="",drugCode="",dose="",route="",frequency="";
+ let state:MedicationState="PROPOSED",patientId="",drugCode="",dose="",route="",frequency="",duration="";
  for(const e of ordered){
   const k=kindOf(e);
   if(isAnnotation(k)){
    // MODIFIED sobreescribe SOLO los campos provistos: la orden vigente es la que evalúan las barreras y la que ve el médico.
    if(k==="MODIFIED"){const str=(x:unknown)=>typeof x==="string"&&x.trim()!==""?x:undefined;
-    dose=str(e.payload["dose"])??dose;route=str(e.payload["route"])??route;frequency=str(e.payload["frequency"])??frequency;}
+    dose=str(e.payload["dose"])??dose;route=str(e.payload["route"])??route;frequency=str(e.payload["frequency"])??frequency;duration=str(e.payload["duration"])??duration;}
    continue;
   }
   state=KIND_TO_STATE[k];
   if(k==="PROPOSED"){patientId=String(e.payload["patientId"]??"");drugCode=String(e.payload["drugCode"]??"");
-   dose=String(e.payload["dose"]??"");route=String(e.payload["route"]??"");frequency=String(e.payload["frequency"]??"");}
+   dose=String(e.payload["dose"]??"");route=String(e.payload["route"]??"");frequency=String(e.payload["frequency"]??"");duration=String(e.payload["duration"]??"");}
  }
- return{exists:true,state,version:ordered[ordered.length-1]!.sequence,patientId,drugCode,dose,route,frequency};
+ return{exists:true,state,version:ordered[ordered.length-1]!.sequence,patientId,drugCode,dose,route,frequency,duration};
 }
 // SM del ciclo de vida de medicación (subconjunto determinista, alineado con medication-domain).
 const ALLOWED:Partial<Record<MedicationState,readonly MedicationState[]>>={

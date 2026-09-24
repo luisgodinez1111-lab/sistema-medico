@@ -1,5 +1,5 @@
-import{resolveDrug,checkDrugAllergy,checkInteractions,checkDuplicateTherapy,checkContraindications,checkRenalDosing,renalRuleForDrug,type AllergyRecord}from"../../drug-catalog/src";
-import{checkDoseCeiling,checkPediatricDose,validateMedicationOrder,PEDIATRIC_MAX_KG}from"../../medication-validation/src";
+import{resolveDrug,checkDrugAllergy,checkInteractions,checkDuplicateTherapy,checkContraindications,checkRenalDosing,renalRuleForDrug,type AllergyRecord,type PatientFactor}from"../../drug-catalog/src";
+import{checkDoseCeiling,checkPediatricDose,checkDurationLimit,validateMedicationOrder,PEDIATRIC_MAX_KG}from"../../medication-validation/src";
 // Evaluador ÚNICO de las barreras de seguridad de una prescripción (auditoría 2026-09-19: C-03, C-04, C-14, C-16).
 //
 // Regla de diseño: **"no pude evaluar" nunca se presenta como "seguro"**. Antes, un fármaco fuera del catálogo
@@ -8,7 +8,7 @@ import{checkDoseCeiling,checkPediatricDose,validateMedicationOrder,PEDIATRIC_MAX
 // la ruta de escritura (PRESCRIBE), de modo que no pueden divergir.
 //
 // Puro y determinista: recibe los datos del paciente ya leídos; sin E/S, sin PHI en mensajes (solo códigos).
-export type BarrierId="order"|"catalog"|"allergy"|"interaction"|"duplicate"|"contraindication"|"doseCeiling"|"pediatricDose"|"renal";
+export type BarrierId="order"|"catalog"|"allergy"|"interaction"|"duplicate"|"contraindication"|"doseCeiling"|"duration"|"pediatricDose"|"renal";
 export type BarrierStatus=
  |"PASSED"          // se evaluó y no hay conflicto
  |"CAUTION"         // se evaluó: requiere atención del médico, no bloquea
@@ -17,7 +17,7 @@ export type BarrierStatus=
  |"NOT_COVERED"     // el catálogo NO tiene regla para este fármaco: NO evaluado (informativo, no es "seguro")
  |"NOT_EVALUATED";  // debía evaluarse y no se pudo (fármaco fuera de catálogo, falta peso/eGFR, dosis no interpretable)
 export type BarrierReason=
- "DRUG_NOT_IN_CATALOG"|"ACTIVE_DRUGS_NOT_IN_CATALOG"|"NO_RULE_IN_CATALOG"|"NO_EGFR"|"NO_WEIGHT"|"DOSE_NOT_PARSEABLE"|"ADULT_PATIENT";
+ "DRUG_NOT_IN_CATALOG"|"ACTIVE_DRUGS_NOT_IN_CATALOG"|"NO_RULE_IN_CATALOG"|"NO_EGFR"|"NO_WEIGHT"|"WEIGHT_REQUIRED"|"NO_DURATION"|"DOSE_NOT_PARSEABLE"|"ADULT_PATIENT";
 export type BarrierResult=Readonly<{id:BarrierId;label:string;status:BarrierStatus;detail:string;reason?:BarrierReason;overridable:boolean}>;
 // Auditoría 2026-09-19 (U-19): un BLOQUEO no es siempre una negación absoluta. Hay bloqueos que la práctica clínica anula
 // bajo criterio y responsabilidad del médico (alergia documentada sin alternativa, interacción mayor con monitorización,
@@ -26,13 +26,21 @@ export type BarrierResult=Readonly<{id:BarrierId;label:string;status:BarrierStat
 // absoluto o del máximo pediátrico por peso (ahí lo que procede es corregir la dosis). La anulación exige nombrar CADA
 // barrera anulada y una justificación clínica, y queda inmutable en el evento (ver `summarizeForEvent`).
 export const OVERRIDABLE_BARRIERS=["allergy","interaction","duplicate","contraindication","renal"] as const satisfies readonly BarrierId[];
-export const HARD_BARRIERS=["order","catalog","doseCeiling","pediatricDose"] as const satisfies readonly BarrierId[];
+// R03-26/R03-27: exceder la duración máxima y prescribir por kg sin peso son bloqueos DUROS (se corrige la orden o
+// se registra el peso), no avisos que se confirman.
+export const HARD_BARRIERS=["order","catalog","doseCeiling","duration","pediatricDose"] as const satisfies readonly BarrierId[];
 export const isOverridable=(id:BarrierId):boolean=>(OVERRIDABLE_BARRIERS as readonly BarrierId[]).includes(id);
 export const OVERRIDE_MIN_JUSTIFICATION=20;
 export type PrescriptionSafetyInput=Readonly<{
  drugCode:string;dose:string;route:string;frequency:string;
  allergies:readonly AllergyRecord[];activeDrugCodes:readonly string[];activeConditionCodes:readonly string[];
  egfr?:number|undefined;weightKg?:number|undefined;ageYears?:number|undefined;
+ // R03-26: duración prescrita en días (ketorolaco máximo 5, metamizol 7). Sin ella, la barrera de duración queda sin evaluar.
+ durationDays?:number|undefined;
+ // R03-29: factores del paciente (EMBARAZO, LACTANCIA, alcohol, insuficiencia renal/hepática) que activan las reglas
+ // fármaco–factor del catálogo. Se DERIVAN del expediente (lista de problemas activos) en la capa HTTP: hasta ahora
+ // `checkInteractions` los aceptaba y nadie se los pasaba, así que las reglas del embarazo no se activaban nunca.
+ patientFactors?:readonly PatientFactor[]|undefined;
 }>;
 // BLOCK: no se puede prescribir. REVIEW: hay advertencias o barreras sin evaluar. CLEAR: todo lo evaluable pasó.
 export type SafetyVerdict="BLOCK"|"REVIEW"|"CLEAR";
@@ -47,7 +55,7 @@ export type PrescriptionSafetyEvaluation=Readonly<{
 const LABEL:Record<BarrierId,string>={
  order:"Orden válida (dosis · vía · frecuencia)",catalog:"Fármaco en catálogo",allergy:"Sin conflicto de alergia",
  interaction:"Sin interacciones críticas",duplicate:"Sin duplicados terapéuticos",contraindication:"Sin contraindicaciones por diagnóstico",
- doseCeiling:"Dosis dentro del máximo",pediatricDose:"Dosis pediátrica por peso",renal:"Ajuste renal verificado (eGFR)",
+ doseCeiling:"Dosis dentro del máximo",duration:"Duración dentro del máximo",pediatricDose:"Dosis pediátrica por peso",renal:"Ajuste renal verificado (eGFR)",
 };
 const finite=(n:number|undefined):n is number=>typeof n==="number"&&Number.isFinite(n);
 // Edad cumplida (años) en `asOf`, en UTC. undefined si alguna fecha no es válida o la edad resulta negativa.
@@ -83,10 +91,18 @@ export function evaluatePrescriptionSafety(i:PrescriptionSafetyInput):Prescripti
 
  // 3) Interacción farmacológica
  // Auditoría C-17: tabla única; el factor "adulto mayor" (≥65) entra en la barrera como precaución (criterios de Beers).
- const factors:("ELDERLY")[]=i.ageYears!==undefined&&i.ageYears>=65?["ELDERLY"]:[];
+ // R03-29: ELDERLY se deriva de la edad y el resto (EMBARAZO, LACTANCIA…) viene del expediente. Sin duplicar: si quien
+ // llama ya declaró ELDERLY, no se añade dos veces.
+ const declarados=i.patientFactors??[];
+ const factors:PatientFactor[]=[...declarados,...(i.ageYears!==undefined&&i.ageYears>=65&&!declarados.includes("ELDERLY")?["ELDERLY" as PatientFactor]:[])];
  const ix=checkInteractions(i.drugCode,i.activeDrugCodes,factors);
- const factorNote=ix.factorHits?.filter(f=>f.severity!=="MINOR").map(f=>f.note).join(" · ");
+ const factorHits=ix.factorHits??[];
+ const factorNote=factorHits.filter(f=>f.severity!=="MINOR").map(f=>f.note).join(" · ");
+ // Un fármaco CONTRAINDICADO por un factor del paciente (IECA o estatina en el embarazo, tramadol en lactancia) bloquea
+ // la prescripción por sí solo, sin depender de que además haya una interacción con otro fármaco activo.
+ const factorBloqueante=factorHits.find(f=>f.severity==="CONTRAINDICATED")??factorHits.find(f=>f.severity==="MAJOR");
  if(!ix.evaluated)push("interaction","NOT_EVALUATED","Interacciones NO evaluadas (fármaco fuera de catálogo).","DRUG_NOT_IN_CATALOG");
+ else if(factorBloqueante!==undefined&&!(ix.found&&ix.severity==="MAJOR"))push("interaction","BLOCKED",`${factorBloqueante.note}${ix.found?` · ${ix.note} (con ${ix.conflictDrug})`:""}`);
  else if(ix.found)push("interaction",ix.severity==="MAJOR"?"BLOCKED":"CAUTION",`${ix.note} (con ${ix.conflictDrug})${factorNote?` · ${factorNote}`:""}`);
  else if(ix.unresolvedActive.length>0)push("interaction","NOT_EVALUATED",`Sin interacción con los fármacos reconocidos; ${ix.unresolvedActive.length} fármaco(s) activo(s) fuera de catálogo NO se evaluaron.`,"ACTIVE_DRUGS_NOT_IN_CATALOG");
  else if(factorNote)push("interaction","CAUTION",factorNote);
@@ -106,22 +122,38 @@ export function evaluatePrescriptionSafety(i:PrescriptionSafetyInput):Prescripti
 
  // 6) Dosis-techo absoluta (mg/día)
  if(!drug)push("doseCeiling","NOT_EVALUATED","Dosis máxima NO evaluada (fármaco fuera de catálogo).","DRUG_NOT_IN_CATALOG");
- else{const dc=checkDoseCeiling(drug.ingredient,i.dose,i.frequency,i.drugCode); // C-15: "2 tab" se acota con la concentración del código
-  if(dc.checked)push("doseCeiling",dc.exceeded?"BLOCKED":"PASSED",`${dc.exceeded?`${dc.computedMgPerDay} mg/día excede el máximo ${dc.maxMgPerDay} mg/día`:`${dc.computedMgPerDay} mg/día · dentro del máximo ${dc.maxMgPerDay} mg/día`}${dc.derivedFromUnits?" (mg calculados a partir de la concentración del código)":""}`);
+ else{const dc=checkDoseCeiling(drug.ingredient,i.dose,i.frequency,i.drugCode,{...(i.route?{route:i.route}:{}),...(finite(i.ageYears)?{ageYears:i.ageYears}:{})}); // C-15: "2 tab" se acota con la concentración del código · R03-26: el techo depende de la VÍA y de la EDAD
+  if(dc.checked)push("doseCeiling",dc.exceeded?"BLOCKED":"PASSED",`${dc.exceeded?`${dc.computedMgPerDay} mg/día excede el máximo ${dc.maxMgPerDay} mg/día`:`${dc.computedMgPerDay} mg/día · dentro del máximo ${dc.maxMgPerDay} mg/día`}${dc.derivedFromUnits?" (mg calculados a partir de la concentración del código)":""}${dc.ceilingNote?` · ${dc.ceilingNote}`:""}`);
   else if(dc.noCeiling)push("doseCeiling","NOT_APPLICABLE","Sin tope diario fijo: se dosifica por objetivo terapéutico o vía hospitalaria (revisado)");
   else if(dc.maxMgPerDay===undefined)push("doseCeiling","NOT_COVERED","El catálogo no tiene dosis máxima para este fármaco: NO evaluada.","NO_RULE_IN_CATALOG");
   else push("doseCeiling","NOT_EVALUATED",`Dosis o frecuencia no interpretables (p. ej. "tab", "PRN"): máximo ${dc.maxMgPerDay} mg/día NO verificado.`,"DOSE_NOT_PARSEABLE");}
 
+ // 6b) DURACIÓN del tratamiento (R03-26): un techo diario correcto no dice nada sobre un ketorolaco indefinido.
+ if(!drug)push("duration","NOT_EVALUATED","Duración máxima NO evaluada (fármaco fuera de catálogo).","DRUG_NOT_IN_CATALOG");
+ else{const dur=checkDurationLimit(drug.ingredient,i.durationDays);
+  if(dur.evaluable)push("duration",dur.exceeded?"BLOCKED":"PASSED",dur.exceeded?`${dur.days} días excede el máximo de ${dur.maxDays}: ${dur.reason}`:`${dur.days} días · dentro del máximo de ${dur.maxDays}`);
+  else if(dur.maxDays!==undefined)push("duration","NOT_EVALUATED",`Este fármaco tiene duración máxima (${dur.maxDays} días: ${dur.reason}) y la orden NO declara duración.`,"NO_DURATION");
+  else push("duration","NOT_APPLICABLE","El catálogo no limita la duración de este fármaco");}
+
  // 7) Dosis pediátrica por peso (mg/kg/día). El techo absoluto NO protege a un niño.
+ // R03-27: «pediátrico» lo define la EDAD (<18), no el peso. Antes, un adolescente de 45 kg quedaba fuera de toda
+ // verificación por peso solo por pasar de 40 kg, y el techo absoluto del adulto no protege a un niño de 12.
  const adult=finite(i.ageYears)&&i.ageYears>=18;const w=finite(i.weightKg)&&i.weightKg>0?i.weightKg:undefined;
- if(w!==undefined&&w>PEDIATRIC_MAX_KG)push("pediatricDose","NOT_APPLICABLE",`Peso ${w} kg > ${PEDIATRIC_MAX_KG} kg: gobierna la dosis máxima absoluta`,"ADULT_PATIENT");
- else if(w===undefined&&adult)push("pediatricDose","NOT_APPLICABLE","Paciente adulto","ADULT_PATIENT");
+ const menor=finite(i.ageYears)&&i.ageYears<18;
+ // Un adulto con peso normal no pasa por aquí; uno de 30 kg SÍ (el techo absoluto no protege a quien pesa 30 kg).
+ if(adult&&w!==undefined&&w>PEDIATRIC_MAX_KG)push("pediatricDose","NOT_APPLICABLE",`Paciente adulto de ${w} kg: gobierna la dosis máxima absoluta`,"ADULT_PATIENT");
+ else if(adult&&w===undefined)push("pediatricDose","NOT_APPLICABLE","Paciente adulto: gobierna la dosis máxima absoluta","ADULT_PATIENT");
+ else if(!menor&&!adult&&w!==undefined&&w>PEDIATRIC_MAX_KG)push("pediatricDose","NOT_APPLICABLE",`Sin edad registrada y peso ${w} kg > ${PEDIATRIC_MAX_KG} kg: gobierna la dosis máxima absoluta`,"ADULT_PATIENT");
  else if(!drug)push("pediatricDose","NOT_EVALUATED","Dosis por peso NO evaluada (fármaco fuera de catálogo).","DRUG_NOT_IN_CATALOG");
- else if(w===undefined)push("pediatricDose","NOT_EVALUATED","Paciente menor de edad (o edad desconocida) SIN peso registrado: dosis por kg NO verificada. Registre el peso.","NO_WEIGHT");
- else{const pd=checkPediatricDose(drug.ingredient,i.dose,i.frequency,w);
-  if(pd.checked)push("pediatricDose",pd.exceeded?"BLOCKED":"PASSED",pd.exceeded?`${pd.computedMgPerKgPerDay} mg/kg/día excede el máximo ${pd.maxMgPerKgPerDay} mg/kg/día (peso ${w} kg)`:`${pd.computedMgPerKgPerDay} mg/kg/día · dentro del máximo ${pd.maxMgPerKgPerDay} (peso ${w} kg)`);
+ else if(!menor&&w===undefined)push("pediatricDose","NOT_EVALUATED","Sin edad ni peso registrados: la dosificación por kg NO se pudo verificar.","NO_WEIGHT");
+ else{const pd=checkPediatricDose(drug.ingredient,i.dose,i.frequency,w,finite(i.ageYears)?i.ageYears:undefined);
+  // R03-27: menor + fármaco con máximo por kg + SIN peso = BLOQUEO DURO. Es el patrón clásico de la sobredosis
+  // pediátrica letal, y antes salía como «no evaluado»: un aviso que se confirma y se sigue.
+  if(pd.weightRequired){push("pediatricDose","BLOCKED",`Paciente pediátrico (${finite(i.ageYears)?`${i.ageYears} años`:"menor de edad"}) SIN peso registrado: la dosis de ${drug.ingredient} se calcula por kg y no puede verificarse. Registre el peso para prescribir.`,"WEIGHT_REQUIRED");}
+  else{
+  if(pd.checked)push("pediatricDose",pd.exceeded?"BLOCKED":"PASSED",pd.exceeded?(pd.boundedBy==="absolute"?`${pd.computedMgPerDay} mg/día excede el máximo absoluto ${pd.absoluteMaxMgPerDay} mg/día (peso ${w} kg)`:`${pd.computedMgPerKgPerDay} mg/kg/día excede el máximo ${pd.maxMgPerKgPerDay} mg/kg/día (peso ${w} kg)`):`${pd.computedMgPerKgPerDay} mg/kg/día · dentro del máximo ${pd.maxMgPerKgPerDay} (peso ${w} kg)`);
   else if(pd.maxMgPerKgPerDay===undefined)push("pediatricDose","NOT_COVERED","El catálogo no tiene máximo pediátrico (mg/kg/día) para este fármaco: NO evaluado.","NO_RULE_IN_CATALOG");
-  else push("pediatricDose","NOT_EVALUATED","Dosis o frecuencia no interpretables: máximo pediátrico NO verificado.","DOSE_NOT_PARSEABLE");}
+  else push("pediatricDose","NOT_EVALUATED","Dosis o frecuencia no interpretables: máximo pediátrico NO verificado.","DOSE_NOT_PARSEABLE");}}
 
  // 8) Ajuste renal por eGFR medido
  if(!drug)push("renal","NOT_EVALUATED","Ajuste renal NO evaluado (fármaco fuera de catálogo).","DRUG_NOT_IN_CATALOG");

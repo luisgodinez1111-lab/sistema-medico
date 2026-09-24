@@ -38,9 +38,14 @@ describe("value sets de CIE-10 para las escalas clínicas (R03-17)",()=>{
   expect(icd10Matches("I49","I48")).toBe(false);
   expect(icd10Matches("I4","I48")).toBe(false);
  });
- it("un patrón de menos de 3 caracteres no empareja nada (no es una categoría CIE-10)",()=>{
+ it("un patrón de DOS caracteres no empareja nada (no es ningún nivel de la CIE-10)",()=>{
   expect(icd10Matches("I48.0","I4")).toBe(false);
-  expect(icd10Matches("I48.0","I")).toBe(false);
+ });
+ it("un patrón de UNA letra es un capítulo entero, y se admite explícitamente (R03-29: el capítulo O)",()=>{
+  // El criterio «embarazo» se define por capítulo: O00–O99 es «embarazo, parto y puerperio».
+  expect(icd10Matches("O24.4","O")).toBe(true);
+  expect(icd10Matches("I48.0","O")).toBe(false);
+  expect(icd10Matches("I48.0","4")).toBe(false); // un dígito no es un capítulo
  });
  it("los criterios incluyen los códigos que faltaban y que SÍ cuentan",()=>{
   expect(inValueSet(["Z86.7"],ICD10_VALUE_SETS.strokeOrTia)).toBe(true);   // antecedente de ECV = criterio S₂

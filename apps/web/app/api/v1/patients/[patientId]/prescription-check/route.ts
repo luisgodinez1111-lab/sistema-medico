@@ -1,7 +1,9 @@
 import{NextResponse}from"next/server";
+import{derivePatientFactors}from"../../../../../../lib/patient-factors";
+import{durationToDays}from"../../../../../../../../packages/medication-validation/src";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{z}from"zod";
-import{resolveDrug,monitoringFor}from"../../../../../../../../packages/drug-catalog/src";
+import{resolveDrug,monitoringFor,catalogCoverage}from"../../../../../../../../packages/drug-catalog/src";
 import{evaluatePrescriptionSafety,ageInYears,type BarrierStatus}from"../../../../../../../../packages/prescription-safety/src";
 import{activeAllergies,activeMedicationDrugCodes,activeProblemCodes,patientEgfr,patientDemographics,latestVitalsByType}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
@@ -16,7 +18,8 @@ type Status="OK"|"WARN"|"BLOCK"|"NOT_EVALUATED"|"NOT_COVERED"|"NA";
 const UI_STATUS:Record<BarrierStatus,Status>={PASSED:"OK",CAUTION:"WARN",BLOCKED:"BLOCK",NOT_EVALUATED:"NOT_EVALUATED",NOT_COVERED:"NOT_COVERED",NOT_APPLICABLE:"NA"};
 // Normaliza a la clave del catálogo: NFD descompone acentos; se elimina todo lo que no sea [a-z0-9 -].
 const norm=(s:string)=>s.normalize("NFD").replace(/[^a-z0-9 -]/gi,"").toLowerCase().trim();
-const Body=z.object({drug:z.string().trim().min(1).max(160),dose:z.string().trim().max(80).default(""),route:z.string().trim().max(40).default(""),frequency:z.string().trim().max(80).default("")});
+// R03-26: la DURACIÓN entra en la verificación (ketorolaco máximo 5 días, metamizol 7). Texto libre, como en la orden.
+const Body=z.object({drug:z.string().trim().min(1).max(160),dose:z.string().trim().max(80).default(""),route:z.string().trim().max(40).default(""),frequency:z.string().trim().max(80).default(""),duration:z.string().trim().max(40).optional()});
 
 export async function POST(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
@@ -33,7 +36,8 @@ export async function POST(req:Request,ctx:{params:Promise<{patientId:string}>})
   // El MISMO evaluador que usa la ruta de escritura (PRESCRIBE): la verificación previa y el bloqueo real no divergen.
   const safety=evaluatePrescriptionSafety({drugCode:code,dose:body.dose,route:body.route,frequency:body.frequency,
    allergies:substances,activeDrugCodes:activeMeds,activeConditionCodes:conditions,egfr,
-   weightKg:Number.isFinite(wNum)?wNum:undefined,ageYears:demo?.birthDate?ageInYears(demo.birthDate,new Date().toISOString()):undefined});
+   weightKg:Number.isFinite(wNum)?wNum:undefined,ageYears:demo?.birthDate?ageInYears(demo.birthDate,new Date().toISOString()):undefined,
+   durationDays:durationToDays(body.duration),patientFactors:derivePatientFactors(conditions,demo?.birthDate)});
   // U-19: la UI distingue un bloqueo anulable (con justificación al prescribir) de uno duro (corregir la orden).
   const checks=safety.barriers.map(b=>({id:b.id,label:b.label,status:UI_STATUS[b.status],detail:b.detail,overridable:b.overridable}));
   const verdict:"OK"|"WARN"|"BLOCK"=safety.verdict==="BLOCK"?"BLOCK":safety.verdict==="REVIEW"?"WARN":"OK";
@@ -42,7 +46,10 @@ export async function POST(req:Request,ctx:{params:Promise<{patientId:string}>})
   return NextResponse.json({patientId,drug:{input:body.drug,resolved},egfr:egfr??null,checks,monitoring,
    indications:instr(body.dose,body.route,body.frequency),verdict,
    requiresAcknowledgement:safety.requiresAcknowledgement,notEvaluated:safety.notEvaluated,notCovered:safety.notCovered,
-   blockedOverridable:safety.blockedOverridable,blockedHard:safety.blockedHard},{status:200});
+   blockedOverridable:safety.blockedOverridable,blockedHard:safety.blockedHard,
+   // Auditoría R03-23: la COBERTURA del catálogo viaja con el veredicto. Antes, la respuesta afirmaba «sin hallazgos»
+   // sin decir sobre cuántos fármacos y cuántas reglas se había construido esa afirmación.
+   catalog:catalogCoverage()},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 function instr(dose:string,route:string,frequency:string):string{

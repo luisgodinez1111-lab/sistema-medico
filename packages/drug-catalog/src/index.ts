@@ -3,16 +3,25 @@
 // reactividad cruzada beta-lactámicos (una alergia a penicilina bloquea también cefalosporinas). Puro, sin PHI.
 // Subconjunto de demostración; el catálogo oficial (p. ej. RxNorm/COFEPRIS) se cargaría de la fuente autorizada.
 // Autoridad: PROD (seguridad de la prescripción / alertas de alergia), CAP-DRUG-ALLERGY-001.
-export type DrugEntry=Readonly<{ingredient:string;classes:readonly string[]}>;
+export type DrugEntry=Readonly<{ingredient:string;classes:readonly string[];r1?:string}>;
 // clave = principio activo normalizado (lowercase, sin acentos). classes = grupos de alérgenos.
 const DRUGS:Record<string,DrugEntry>={
- "amoxicilina":{ingredient:"amoxicilina",classes:["PENICILLIN","BETA_LACTAM"]},
- "ampicilina":{ingredient:"ampicilina",classes:["PENICILLIN","BETA_LACTAM"]},
- "penicilina":{ingredient:"penicilina",classes:["PENICILLIN","BETA_LACTAM"]},
- "dicloxacilina":{ingredient:"dicloxacilina",classes:["PENICILLIN","BETA_LACTAM"]},
- "cefalexina":{ingredient:"cefalexina",classes:["CEPHALOSPORIN","BETA_LACTAM"]},
- "ceftriaxona":{ingredient:"ceftriaxona",classes:["CEPHALOSPORIN","BETA_LACTAM"]},
- "cefuroxima":{ingredient:"cefuroxima",classes:["CEPHALOSPORIN","BETA_LACTAM"]},
+ "amoxicilina":{ingredient:"amoxicilina",classes:["PENICILLIN","BETA_LACTAM"],r1:"AMINOBENZYL"},
+ "ampicilina":{ingredient:"ampicilina",classes:["PENICILLIN","BETA_LACTAM"],r1:"AMINOBENZYL"},
+ // «Penicilina» a secas es lo que el paciente refiere y NO dice de qué penicilina se trata: se marca como no
+ // especificada, y el emparejado por R1 la trata como si pudiera ser una aminopenicilina (amoxicilina/ampicilina son
+ // las de uso masivo). Bencilpenicilina y fenoximetilpenicilina, cuando se nombran con precisión, sí tienen su R1.
+ "penicilina":{ingredient:"penicilina",classes:["PENICILLIN","BETA_LACTAM"],r1:"PENICILLIN_UNSPECIFIED"},
+ "bencilpenicilina":{ingredient:"bencilpenicilina",classes:["PENICILLIN","BETA_LACTAM"],r1:"BENZYL"},
+ "penicilina g":{ingredient:"bencilpenicilina",classes:["PENICILLIN","BETA_LACTAM"],r1:"BENZYL"},
+ "dicloxacilina":{ingredient:"dicloxacilina",classes:["PENICILLIN","BETA_LACTAM"],r1:"ISOXAZOLYL"},
+ "cefalexina":{ingredient:"cefalexina",classes:["CEPHALOSPORIN","BETA_LACTAM"],r1:"AMINOBENZYL"},
+ "cefadroxilo":{ingredient:"cefadroxilo",classes:["CEPHALOSPORIN","BETA_LACTAM"],r1:"AMINOBENZYL"},
+ "cefaclor":{ingredient:"cefaclor",classes:["CEPHALOSPORIN","BETA_LACTAM"],r1:"AMINOBENZYL"},
+ "ceftriaxona":{ingredient:"ceftriaxona",classes:["CEPHALOSPORIN","BETA_LACTAM"],r1:"AMINOTHIAZOLYL_METHOXYIMINO"},
+ "cefotaxima":{ingredient:"cefotaxima",classes:["CEPHALOSPORIN","BETA_LACTAM"],r1:"AMINOTHIAZOLYL_METHOXYIMINO"},
+ "cefepima":{ingredient:"cefepima",classes:["CEPHALOSPORIN","BETA_LACTAM"],r1:"AMINOTHIAZOLYL_METHOXYIMINO"},
+ "cefuroxima":{ingredient:"cefuroxima",classes:["CEPHALOSPORIN","BETA_LACTAM"],r1:"FURANYL_METHOXYIMINO"},
  "paracetamol":{ingredient:"paracetamol",classes:["ANALGESIC_ANTIPYRETIC"]},
  "acetaminofen":{ingredient:"paracetamol",classes:["ANALGESIC_ANTIPYRETIC"]},
  "ibuprofeno":{ingredient:"ibuprofeno",classes:["NSAID"]},
@@ -29,9 +38,20 @@ const DRUGS:Record<string,DrugEntry>={
  "etoricoxib":{ingredient:"etoricoxib",classes:["NSAID","COX2_SELECTIVE"]},
  "metamizol":{ingredient:"metamizol",classes:["NSAID","PYRAZOLONE"]}, // dipirona: hipersensibilidad cruzada con AINE
  "dipirona":{ingredient:"metamizol",classes:["NSAID","PYRAZOLONE"]},
- "sulfametoxazol":{ingredient:"sulfametoxazol",classes:["SULFONAMIDE"]},
- "trimetoprima-sulfametoxazol":{ingredient:"sulfametoxazol",classes:["SULFONAMIDE"]},
- "azitromicina":{ingredient:"azitromicina",classes:["MACROLIDE"]},
+ "sulfametoxazol":{ingredient:"sulfametoxazol",classes:["SULFONAMIDE","SULFONAMIDE_ANTIBIOTIC"]},
+ "trimetoprima-sulfametoxazol":{ingredient:"sulfametoxazol",classes:["SULFONAMIDE","SULFONAMIDE_ANTIBIOTIC"]},
+ "sulfadiazina":{ingredient:"sulfadiazina",classes:["SULFONAMIDE","SULFONAMIDE_ANTIBIOTIC"]},
+ // Auditoría R03-24: las sulfonamidas NO antibióticas (diuréticos, sulfonilureas, celecoxib, acetazolamida) no
+ // comparten el grupo arilamina responsable de la hipersensibilidad, y la evidencia no sostiene la reactividad cruzada
+ // (Strom BL et al., N Engl J Med 2003;349:1628-35). Que furosemida no se bloqueara con una alergia a «sulfa» era
+ // correcto POR ACCIDENTE —no estaba en el catálogo—; ahora está y la regla es explícita.
+ "furosemida":{ingredient:"furosemida",classes:["LOOP_DIURETIC","SULFONAMIDE_NON_ANTIBIOTIC"]},
+ "hidroclorotiazida":{ingredient:"hidroclorotiazida",classes:["THIAZIDE","SULFONAMIDE_NON_ANTIBIOTIC"]},
+ "clortalidona":{ingredient:"clortalidona",classes:["THIAZIDE","SULFONAMIDE_NON_ANTIBIOTIC"]},
+ "glibenclamida":{ingredient:"glibenclamida",classes:["SULFONYLUREA","SULFONAMIDE_NON_ANTIBIOTIC"]},
+ "glimepirida":{ingredient:"glimepirida",classes:["SULFONYLUREA","SULFONAMIDE_NON_ANTIBIOTIC"]},
+ "acetazolamida":{ingredient:"acetazolamida",classes:["CARBONIC_ANHYDRASE_INHIBITOR","SULFONAMIDE_NON_ANTIBIOTIC"]},
+ "azitromicina":{ingredient:"azitromicina",classes:["MACROLIDE","QT_PROLONGING"]},
  "clindamicina":{ingredient:"clindamicina",classes:["LINCOSAMIDE"]},
  // — Fármacos con interacciones relevantes (EPIC AX) —
  "warfarina":{ingredient:"warfarina",classes:["ANTICOAGULANT"]},
@@ -44,8 +64,40 @@ const DRUGS:Record<string,DrugEntry>={
  "metformina":{ingredient:"metformina",classes:["BIGUANIDE"]},
  "sertralina":{ingredient:"sertralina",classes:["SSRI","SEROTONERGIC"]},
  "fluoxetina":{ingredient:"fluoxetina",classes:["SSRI","SEROTONERGIC"]},
- "citalopram":{ingredient:"citalopram",classes:["SSRI","SEROTONERGIC"]},
+ "citalopram":{ingredient:"citalopram",classes:["SSRI","SEROTONERGIC","QT_PROLONGING"]},
+ "escitalopram":{ingredient:"escitalopram",classes:["SSRI","SEROTONERGIC","QT_PROLONGING"]},
  "tramadol":{ingredient:"tramadol",classes:["OPIOID","SEROTONERGIC"]},
+ // ---- Auditoría 2026-09-19, anexo R03 (R03-23, R03-28, F13) ----
+ // El anexo ejecutó las seis barreras con diez fármacos de uso cotidiano AUSENTES del catálogo (diclofenaco, meloxicam,
+ // apixabán, clonazepam, digoxina, levotiroxina, furosemida, atorvastatina, insulina glargina, amiodarona). Los AINE se
+ // añadieron en el lote C-06; aquí entran los demás. Que un fármaco esté en el catálogo es lo que permite que las
+ // barreras lo EVALÚEN: fuera de él la respuesta es NOT_EVALUATED, que es honesto pero no protege.
+ "apixaban":{ingredient:"apixaban",classes:["ANTICOAGULANT","DOAC"]},
+ "dabigatran":{ingredient:"dabigatran",classes:["ANTICOAGULANT","DOAC"]},
+ "clopidogrel":{ingredient:"clopidogrel",classes:["ANTIPLATELET"]},
+ "digoxina":{ingredient:"digoxina",classes:["DIGITALIS"]},
+ "levotiroxina":{ingredient:"levotiroxina",classes:["THYROID_HORMONE"]},
+ "atorvastatina":{ingredient:"atorvastatina",classes:["STATIN"]},
+ "simvastatina":{ingredient:"simvastatina",classes:["STATIN"]},
+ "rosuvastatina":{ingredient:"rosuvastatina",classes:["STATIN"]},
+ "clonazepam":{ingredient:"clonazepam",classes:["BENZODIAZEPINE","CNS_DEPRESSANT"]},
+ "alprazolam":{ingredient:"alprazolam",classes:["BENZODIAZEPINE","CNS_DEPRESSANT"]},
+ "insulina glargina":{ingredient:"insulina glargina",classes:["INSULIN"]},
+ "insulina":{ingredient:"insulina",classes:["INSULIN"]},
+ "amiodarona":{ingredient:"amiodarona",classes:["ANTIARRHYTHMIC","QT_PROLONGING"]},
+ "ondansetron":{ingredient:"ondansetron",classes:["ANTIEMETIC_5HT3","QT_PROLONGING"]},
+ "haloperidol":{ingredient:"haloperidol",classes:["ANTIPSYCHOTIC","QT_PROLONGING"]},
+ "levofloxacino":{ingredient:"levofloxacino",classes:["FLUOROQUINOLONE","QT_PROLONGING"]},
+ "ciprofloxacino":{ingredient:"ciprofloxacino",classes:["FLUOROQUINOLONE","QT_PROLONGING"]},
+ "claritromicina":{ingredient:"claritromicina",classes:["MACROLIDE","QT_PROLONGING"]},
+ "omeprazol":{ingredient:"omeprazol",classes:["PPI"]},
+ "pantoprazol":{ingredient:"pantoprazol",classes:["PPI"]},
+ "amlodipino":{ingredient:"amlodipino",classes:["CALCIUM_CHANNEL_BLOCKER"]},
+ "metoprolol":{ingredient:"metoprolol",classes:["BETA_BLOCKER"]},
+ "prednisona":{ingredient:"prednisona",classes:["CORTICOSTEROID"]},
+ "salbutamol":{ingredient:"salbutamol",classes:["SABA"]},
+ "gabapentina":{ingredient:"gabapentina",classes:["GABAPENTINOID","CNS_DEPRESSANT"]},
+ "pregabalina":{ingredient:"pregabalina",classes:["GABAPENTINOID","CNS_DEPRESSANT"]},
 };
 
 // EPIC AX — Interacciones farmacológicas por clase. Auditoría 2026-09-19 (C-17): existían DOS tablas que divergían (la
@@ -102,10 +154,73 @@ const RENAL_RULES_BY_CLASS:Record<string,RenalRule>={
  SSRI:{noAdjustment:true,note:"ISRS: sin ajuste renal relevante"},
  OPIOID:{cautionBelow:30,note:"Tramadol con TFG<30: intervalo ≥12 h, máximo 200 mg/día; evitar liberación prolongada"},
 };
+// Auditoría 2026-09-19, anexo R03 (R03-28). En el momento de la auditoría la regla renal era por CLASE y solo existían
+// dos (biguanidas y AINE), así que 22 de los 27 principios activos devolvían `action:"OK"` —una afirmación POSITIVA de
+// seguridad— para cualquier TFG: espironolactona con TFG 20 → OK (hiperkalemia grave), enalapril con TFG 15 → OK,
+// cefalexina con TFG 10 → OK. El lote C-15 amplió las clases y esta tabla; aquí se completa POR PRINCIPIO ACTIVO para
+// los fármacos cuyo umbral concreto cambia la conducta (los ACOD no se ajustan igual entre sí, la digoxina se ajusta
+// desde TFG 60, la gabapentina se elimina íntegra por riñón). Umbrales de las fichas técnicas y de las guías citadas en
+// cada nota; cargar un vademécum oficial versionado sigue siendo trabajo del dueño del producto.
 const RENAL_RULES_BY_INGREDIENT:Record<string,RenalRule>={
  rivaroxaban:{blockBelow:15,cautionBelow:50,note:"Rivaroxabán: evitar si TFG<15; entre 15–49 reducir a 15 mg/día (fibrilación auricular)"},
- ceftriaxona:{noAdjustment:true,note:"Ceftriaxona: sin ajuste renal (vigilar si hay insuficiencia hepática concomitante)"},
+ apixaban:{blockBelow:15,cautionBelow:30,note:"Apixabán: evitar si TFG<15 (no estudiado en diálisis fuera de indicación); reducir a 2.5 mg/12 h si TFG 15–29 con otro criterio de reducción"},
+ dabigatran:{blockBelow:30,cautionBelow:50,note:"Dabigatrán: CONTRAINDICADO con TFG<30 (eliminación 80 % renal); 110 mg/12 h si TFG 30–49 con riesgo hemorrágico"},
+ espironolactona:{blockBelow:30,cautionBelow:45,note:"Espironolactona: evitar con TFG<30 por hiperkalemia grave; con TFG 30–44 dosis máxima 25 mg/día y potasio a los 7 días"},
+ enalapril:{cautionBelow:30,note:"Enalapril con TFG<30: iniciar 2.5 mg/día, vigilar potasio y creatinina a los 7–14 días (una caída de TFG >30 % obliga a reevaluar)"},
  lisinopril:{cautionBelow:30,note:"Lisinopril con TFG<30: iniciar 2.5–5 mg/día; vigilar potasio y creatinina"},
+ losartan:{cautionBelow:30,note:"Losartán con TFG<30: vigilar potasio y creatinina; no requiere ajuste de dosis de inicio"},
+ ceftriaxona:{noAdjustment:true,note:"Ceftriaxona: sin ajuste renal (vigilar si hay insuficiencia hepática concomitante)"},
+ cefalexina:{cautionBelow:30,note:"Cefalexina con TFG<30: espaciar el intervalo (500 mg cada 8–12 h) y no exceder 500 mg cada 12 h con TFG<15"},
+ cefuroxima:{cautionBelow:30,note:"Cefuroxima con TFG<30: 250–500 mg cada 12 h; con TFG<10, cada 24 h"},
+ amoxicilina:{cautionBelow:30,note:"Amoxicilina con TFG<30: alargar el intervalo a cada 12 h; con TFG<10, cada 24 h y máximo 500 mg"},
+ sulfametoxazol:{blockBelow:15,cautionBelow:30,note:"Trimetoprima-sulfametoxazol: evitar con TFG<15; con TFG 15–29 reducir la dosis a la mitad y vigilar potasio y creatinina (riesgo de hiperkalemia y de falsa elevación de creatinina)"},
+ levofloxacino:{cautionBelow:50,note:"Levofloxacino con TFG<50: mantener la dosis de carga y espaciar (500 mg/48 h si TFG 20–49)"},
+ ciprofloxacino:{cautionBelow:30,note:"Ciprofloxacino con TFG<30: reducir a la mitad la dosis diaria"},
+ digoxina:{cautionBelow:60,note:"Digoxina con TFG<60: reducir la dosis (eliminación renal) y medir digoxinemia; el riesgo de intoxicación sube con la hipokalemia"},
+ metformina:{blockBelow:30,cautionBelow:45,note:"Metformina: CONTRAINDICADA con TFG<30; con TFG 30–44 no iniciar y, si ya la toma, máximo 1 000 mg/día (etiqueta FDA 2016)"},
+ gabapentina:{cautionBelow:60,note:"Gabapentina con TFG<60: ajustar dosis e intervalo (eliminación renal íntegra); somnolencia y mioclonías si no se ajusta"},
+ tramadol:{cautionBelow:30,note:"Tramadol con TFG<30: máximo 200 mg/día y espaciar a cada 12 h (acumulación del metabolito M1)"},
+ acetazolamida:{blockBelow:30,note:"Acetazolamida: evitar con TFG<30 (acidosis metabólica y riesgo de nefrolitiasis)"},
+ hidroclorotiazida:{cautionBelow:30,note:"Hidroclorotiazida: pierde eficacia antihipertensiva con TFG<30; preferir un diurético de asa"},
+ clortalidona:{cautionBelow:30,note:"Clortalidona: eficacia reducida con TFG<30; preferir un diurético de asa"},
+ // Un invariante del lote C-15 (con su test) exige que NINGÚN fármaco del catálogo quede sin revisar renalmente: si no,
+ // ampliar el catálogo debilitaría la barrera en silencio, que es el patrón que la auditoría persigue. Los siguientes
+ // están revisados y NO requieren ajuste por TFG (o lo requieren por otra razón, declarada en la nota).
+ furosemida:{noAdjustment:true,note:"Furosemida: sin ajuste por TFG (en insuficiencia avanzada suele hacer falta MÁS dosis, no menos); vigilar volemia y electrolitos"},
+ glibenclamida:{blockBelow:30,cautionBelow:60,note:"Glibenclamida: evitar con TFG<30 (metabolitos activos: hipoglucemia grave y prolongada); con TFG 30–59 preferir otra sulfonilurea o reducir dosis"},
+ glimepirida:{cautionBelow:45,note:"Glimepirida con TFG<45: iniciar 1 mg/día y vigilar hipoglucemias"},
+ insulina:{cautionBelow:45,note:"Insulina con TFG<45: la eliminación renal de insulina cae; reducir dosis ~25 % (TFG 10–50) y vigilar hipoglucemias"},
+ "insulina glargina":{cautionBelow:45,note:"Insulina glargina con TFG<45: reducir dosis y vigilar hipoglucemias (menor aclaramiento renal de insulina)"},
+ pregabalina:{cautionBelow:60,note:"Pregabalina con TFG<60: ajustar dosis e intervalo (eliminación renal íntegra)"},
+ clonazepam:{noAdjustment:true,note:"Clonazepam: sin ajuste por TFG (metabolismo hepático); vigilar sedación acumulada en ancianos"},
+ alprazolam:{noAdjustment:true,note:"Alprazolam: sin ajuste por TFG; vigilar sedación en ancianos"},
+ amiodarona:{noAdjustment:true,note:"Amiodarona: sin ajuste por TFG (eliminación hepática); vigilar tiroides, hígado y QT"},
+ ondansetron:{noAdjustment:true,note:"Ondansetrón: sin ajuste por TFG; el límite es hepático (máximo 8 mg/día en Child-Pugh C)"},
+ haloperidol:{noAdjustment:true,note:"Haloperidol: sin ajuste por TFG; vigilar QT y efectos extrapiramidales"},
+ levotiroxina:{noAdjustment:true,note:"Levotiroxina: sin ajuste por TFG (dosis guiada por TSH)"},
+ atorvastatina:{noAdjustment:true,note:"Atorvastatina: sin ajuste por TFG (eliminación biliar); es la estatina de elección en enfermedad renal"},
+ simvastatina:{cautionBelow:30,note:"Simvastatina con TFG<30: no exceder 10 mg/día (riesgo de miopatía)"},
+ rosuvastatina:{cautionBelow:30,note:"Rosuvastatina con TFG<30: máximo 10 mg/día; no iniciar 40 mg"},
+ clopidogrel:{noAdjustment:true,note:"Clopidogrel: sin ajuste por TFG; el riesgo hemorrágico sí aumenta en la enfermedad renal avanzada"},
+ amlodipino:{noAdjustment:true,note:"Amlodipino: sin ajuste por TFG (metabolismo hepático)"},
+ metoprolol:{noAdjustment:true,note:"Metoprolol: sin ajuste por TFG (metabolismo hepático); atenolol sí lo requiere"},
+ omeprazol:{noAdjustment:true,note:"Omeprazol: sin ajuste por TFG"},
+ pantoprazol:{noAdjustment:true,note:"Pantoprazol: sin ajuste por TFG"},
+ prednisona:{noAdjustment:true,note:"Prednisona: sin ajuste por TFG; vigilar glucemia, presión y potasio"},
+ salbutamol:{noAdjustment:true,note:"Salbutamol: sin ajuste por TFG; dosis altas repetidas bajan el potasio"},
+ escitalopram:{cautionBelow:20,note:"Escitalopram con TFG<20: usar con precaución (sin datos suficientes); vigilar QT"},
+ cefadroxilo:{cautionBelow:50,note:"Cefadroxilo con TFG<50: alargar el intervalo (500 mg cada 12–24 h)"},
+ cefaclor:{cautionBelow:50,note:"Cefaclor con TFG<50: alargar el intervalo"},
+ cefotaxima:{cautionBelow:20,note:"Cefotaxima con TFG<20: reducir la dosis a la mitad"},
+ cefepima:{cautionBelow:60,note:"Cefepima con TFG<60: ajustar dosis e intervalo (neurotoxicidad si no se ajusta)"},
+ sulfadiazina:{blockBelow:15,cautionBelow:30,note:"Sulfadiazina: evitar con TFG<15 (cristaluria); con TFG 15–29 reducir dosis y asegurar hidratación"},
+ bencilpenicilina:{cautionBelow:30,note:"Bencilpenicilina con TFG<30: alargar el intervalo; dosis altas IV pueden ser neurotóxicas"},
+ dicloxacilina:{noAdjustment:true,note:"Dicloxacilina: sin ajuste por TFG (eliminación biliar)"},
+ acenocumarol:{noAdjustment:true,note:"Acenocumarol: sin ajuste renal (guiar por INR)"},
+ metamizol:{cautionBelow:30,note:"Metamizol con TFG<30: evitar el uso prolongado"},
+ clindamicina:{noAdjustment:true,note:"Clindamicina: sin ajuste por TFG (eliminación hepática)"},
+ azitromicina:{noAdjustment:true,note:"Azitromicina: sin ajuste por TFG"},
+ claritromicina:{cautionBelow:30,note:"Claritromicina con TFG<30: reducir la dosis a la mitad"},
 };
 // "OK" SOLO si existe una regla renal para el fármaco y el eGFR la supera. Sin regla en el catálogo => "NOT_COVERED";
 // fármaco fuera de catálogo => "NOT_EVALUATED". Ninguno de los dos significa "seguro" (auditoría 2026-09-19, C-03).
@@ -117,9 +232,16 @@ export function renalRuleForDrug(drugCode:string):(RenalRule&{drugClass:string})
 // ¿La función renal (eGFR) contraindica o exige precaución para este fármaco? Devuelve la acción más severa.
 export function checkRenalDosing(drugCode:string,egfr:number):RenalDosing{
  const d=resolveDrug(drugCode);if(!d)return{action:"NOT_EVALUATED",reason:"DRUG_NOT_IN_CATALOG",note:"Fármaco fuera del catálogo: ajuste renal NO evaluado"};
- // La regla del INGREDIENTE manda sobre la de su clase (rivaroxabán ≠ warfarina aunque ambos sean ANTICOAGULANT).
+ // La regla del INGREDIENTE manda sobre la de su clase (rivaroxabán ≠ warfarina aunque ambos sean ANTICOAGULANT), con
+ // una precisión que la auditoría R03-28 obligó a hacer explícita: una regla de ingrediente con umbrales NUMÉRICOS se
+ // SUMA a la de su clase y gana la más severa (poner `cefalexina: TFG<30` no debe relajar el `CEPHALOSPORIN: TFG<50`
+ // que ya existía); solo `noAdjustment:true` a nivel de ingrediente es una EXENCIÓN explícita que descarta la de clase
+ // (ceftriaxona no necesita ajuste aunque sea cefalosporina). Sin esto, añadir detalle habría debilitado la barrera.
  const ri=RENAL_RULES_BY_INGREDIENT[d.ingredient];
- const rules:(RenalRule&{drugClass:string})[]=ri?[{...ri,drugClass:d.ingredient}]:d.classes.flatMap(cl=>{const r=RENAL_RULES_BY_CLASS[cl];return r?[{...r,drugClass:cl}]:[];});
+ const porClase=d.classes.flatMap(cl=>{const r=RENAL_RULES_BY_CLASS[cl];return r?[{...r,drugClass:cl}]:[];});
+ const rules:(RenalRule&{drugClass:string})[]=ri===undefined?porClase
+  :ri.noAdjustment?[{...ri,drugClass:d.ingredient}]
+  :[{...ri,drugClass:d.ingredient},...porClase];
  if(rules.length===0)return{action:"NOT_COVERED",reason:"NO_RENAL_RULE",note:"El catálogo no tiene regla renal para este fármaco: ajuste renal NO evaluado"};
  let best:RenalDosing=rules.every(r=>r.noAdjustment)?{action:"OK",note:rules[0]!.note,drugClass:rules[0]!.drugClass}:{action:"OK",drugClass:rules[0]!.drugClass};
  for(const r of rules){
@@ -180,7 +302,10 @@ const ALLERGY_SYNONYMS:Record<string,readonly string[]>={
  "penicilina":["PENICILLIN","BETA_LACTAM"],"penicillin":["PENICILLIN","BETA_LACTAM"],"pcn":["PENICILLIN","BETA_LACTAM"],
  "betalactamico":["BETA_LACTAM"],"beta-lactamico":["BETA_LACTAM"],"beta-lactam":["BETA_LACTAM"],
  "cefalosporina":["CEPHALOSPORIN","BETA_LACTAM"],"cephalosporin":["CEPHALOSPORIN","BETA_LACTAM"],
- "sulfa":["SULFONAMIDE"],"sulfamida":["SULFONAMIDE"],"sulfonamida":["SULFONAMIDE"],"sulfonamide":["SULFONAMIDE"],
+ // R03-24: quien dice «alergia a sulfas» se refiere al antibiótico (TMP-SMX). No se propaga a las sulfonamidas no
+ // antibióticas: bloquear furosemida o hidroclorotiazida por ese antecedente es un daño sin base en la evidencia.
+ "sulfa":["SULFONAMIDE_ANTIBIOTIC"],"sulfamida":["SULFONAMIDE_ANTIBIOTIC"],"sulfonamida":["SULFONAMIDE_ANTIBIOTIC"],"sulfonamide":["SULFONAMIDE_ANTIBIOTIC"],
+ "trimetoprima":["SULFONAMIDE_ANTIBIOTIC"],"bactrim":["SULFONAMIDE_ANTIBIOTIC"],
  "aine":["NSAID"],"nsaid":["NSAID"],"antiinflamatorio":["NSAID"],
  "aspirina":["SALICYLATE","NSAID"],"salicilato":["SALICYLATE","NSAID"],
  "macrolido":["MACROLIDE"],
@@ -211,21 +336,51 @@ function allergyClasses(substance:string):string[]{
 // `classEvaluated=false` => fármaco fuera de catálogo: solo se comparó por nombre; la reactividad por clase NO se pudo evaluar.
 export type AllergySeverity="MILD"|"MODERATE"|"SEVERE";
 export type AllergyRecord=Readonly<{substance:string;severity?:AllergySeverity|null;reaction?:string|null}>;
-export type AllergyMatch="ingredient"|"class"|"cross";
+// Auditoría 2026-09-19, anexo R03 (R03-24) — REACTIVIDAD CRUZADA BETALACTÁMICA POR CADENA LATERAL R1.
+//
+// El bloqueo anterior era por el anillo betalactámico: una alergia a penicilina bloqueaba TODAS las cefalosporinas.
+// Esa es la enseñanza superada del «10 % de reactividad cruzada», y su daño está documentado: empuja a vancomicina y
+// quinolonas, aumenta C. difficile y empeora desenlaces (Shenoy ES et al., JAMA 2019;321:188-199; parámetros
+// AAAAI/ACAAI). La reactividad real la determina la similitud de la CADENA LATERAL R1, no el anillo:
+//   · amoxicilina/ampicilina ↔ cefalexina, cefadroxilo, cefaclor comparten R1 (aminobencilo) -> cruzada REAL;
+//   · ceftriaxona, cefotaxima y cefepima comparten R1 entre sí, y NINGUNO con las penicilinas -> ~1 % o menos;
+//   · penicilina G (bencilo) y dicloxacilina (isoxazolilo) no comparten R1 con ninguna cefalosporina del catálogo.
+// Por eso hay dos veredictos distintos: `cross` (R1 compartido: se comporta como antes) y `cross-r1-differs`
+// (betalactámicos con R1 distinto: NUNCA bloquea; deja constancia para que el médico decida, con el dato a la vista).
+export type AllergyMatch="ingredient"|"class"|"cross"|"cross-r1-differs";
 export type AllergyConflict=Readonly<{blocked:boolean;caution:boolean;classEvaluated:boolean;allergen?:string;via?:AllergyMatch;severity?:AllergySeverity;detail?:string}>;
 const SEVERE_REACTION=/anafila|angioedema|broncoespasmo|stevens|johnson|lyell|necr[oó]lisis|dress|choque|shock|edema (de )?glotis|dificultad respiratoria/i;
 // Clases "de la misma familia" (misma reactividad esperada) vs clases EMPARENTADAS (reactividad cruzada parcial).
-const CROSS_FAMILY:Readonly<Record<string,readonly string[]>>={PENICILLIN:["BETA_LACTAM"],CEPHALOSPORIN:["BETA_LACTAM"],NSAID:["NSAID"],SALICYLATE:["NSAID"],PYRAZOLONE:["NSAID"],SULFONAMIDE:["SULFONAMIDE"],MACROLIDE:["MACROLIDE"],BETA_LACTAM:["BETA_LACTAM"]};
+const CROSS_FAMILY:Readonly<Record<string,readonly string[]>>={PENICILLIN:["BETA_LACTAM"],CEPHALOSPORIN:["BETA_LACTAM"],NSAID:["NSAID"],SALICYLATE:["NSAID"],PYRAZOLONE:["NSAID"],SULFONAMIDE_ANTIBIOTIC:["SULFONAMIDE_ANTIBIOTIC"],SULFONAMIDE:["SULFONAMIDE"],MACROLIDE:["MACROLIDE"],BETA_LACTAM:["BETA_LACTAM"]};
+// Grupos de cadena lateral R1 que SÍ cruzan entre sí. `PENICILLIN_UNSPECIFIED` («alergia a penicilina», sin decir cuál)
+// se trata como aminopenicilina: amoxicilina y ampicilina son las de uso masivo y comparten R1 con las cefalosporinas de
+// 1.ª generación (cefalexina, cefadroxilo, cefaclor). Con las de 3.ª–4.ª (ceftriaxona, cefotaxima, cefepima) y con
+// cefuroxima no hay R1 común, y ahí la evidencia sitúa la reactividad en ~1 % o menos.
+const R1_CROSS:Readonly<Record<string,readonly string[]>>={
+ AMINOBENZYL:["AMINOBENZYL","PENICILLIN_UNSPECIFIED"],
+ PENICILLIN_UNSPECIFIED:["AMINOBENZYL","BENZYL","ISOXAZOLYL","PENICILLIN_UNSPECIFIED"],
+ BENZYL:["BENZYL","PENICILLIN_UNSPECIFIED"],
+ ISOXAZOLYL:["ISOXAZOLYL","PENICILLIN_UNSPECIFIED"],
+ AMINOTHIAZOLYL_METHOXYIMINO:["AMINOTHIAZOLYL_METHOXYIMINO"],
+ FURANYL_METHOXYIMINO:["FURANYL_METHOXYIMINO"],
+};
+function r1CrossReacts(a:string,b:string):boolean{return a===b||(R1_CROSS[a]??[]).includes(b);}
 export function effectiveAllergySeverity(a:AllergyRecord):AllergySeverity{
  if(a.reaction&&SEVERE_REACTION.test(a.reaction))return "SEVERE";
  return a.severity==="MILD"||a.severity==="MODERATE"||a.severity==="SEVERE"?a.severity:"SEVERE";
 }
-function matchKind(drug:DrugEntry,allergenClasses:readonly string[],normalizedSubstance:string):AllergyMatch|undefined{
+function matchKind(drug:DrugEntry,allergenClasses:readonly string[],normalizedSubstance:string,allergenDrug?:DrugEntry):AllergyMatch|undefined{
  if(normalizedSubstance.includes(drug.ingredient)||drug.ingredient.includes(normalizedSubstance)&&normalizedSubstance.length>=4)return "ingredient";
  const drugClasses=new Set(drug.classes);
  // misma clase: el alérgeno nombra una clase que el fármaco TIENE (AINE -> ibuprofeno; penicilina -> amoxicilina)
  if(allergenClasses.some(c=>drugClasses.has(c)&&c!=="BETA_LACTAM"))return "class";
- // cruzada: comparten familia (penicilina -> ceftriaxona vía BETA_LACTAM)
+ // R03-24: entre betalactámicos, la cruzada depende de la cadena lateral R1, no del anillo.
+ const ambosBetaLactam=drugClasses.has("BETA_LACTAM")&&allergenClasses.includes("BETA_LACTAM");
+ if(ambosBetaLactam){
+  const r1Alergeno=allergenDrug?.r1;
+  return r1Alergeno!==undefined&&drug.r1!==undefined&&r1CrossReacts(r1Alergeno,drug.r1)?"cross":"cross-r1-differs";
+ }
+ // cruzada por familia en el resto (AINE ↔ salicilatos/pirazolonas)
  const families=new Set(allergenClasses.flatMap(c=>CROSS_FAMILY[c]??[]));
  if([...drugClasses].some(c=>families.has(c)||(CROSS_FAMILY[c]??[]).some(f=>families.has(f))))return "cross";
  return undefined;
@@ -240,12 +395,16 @@ export function checkDrugAllergy(drugCode:string,allergies:readonly(string|Aller
   const sev=effectiveAllergySeverity(rec);
   let via:AllergyMatch|undefined;
   // Las clases del alérgeno salen de los sinónimos ("AINE", "sulfa"…) Y del catálogo si nombra un fármaco ("naproxeno").
-  if(drug)via=matchKind(drug,[...allergyClasses(rec.substance),...(resolveDrug(rec.substance)?.classes??[])],s);
+  const alergeno=resolveDrug(rec.substance);
+  if(drug)via=matchKind(drug,[...allergyClasses(rec.substance),...(alergeno?.classes??[])],s,alergeno);
   else if(c.includes(s))via="ingredient"; // fuera de catálogo: solo por nombre (compatibilidad)
   if(!via)continue;
-  const blocked=sev==="SEVERE"||(sev==="MODERATE"&&via!=="cross");
-  const label=via==="ingredient"?"principio activo":via==="class"?"misma clase":"reactividad cruzada";
-  const detail=`Alergia ${sev==="SEVERE"?"GRAVE":sev==="MODERATE"?"moderada":"leve"} a ${rec.substance}${rec.reaction?` (${rec.reaction})`:""} — coincidencia por ${label}`;
+  // R03-24: un betalactámico con R1 DISTINTO no bloquea ni siquiera con antecedente grave: la evidencia sitúa la
+  // reactividad en ~1 % (o menos con 3.ª–4.ª generación) y el bloqueo en bloque hace más daño que el riesgo que evita.
+  const blocked=via!=="cross-r1-differs"&&(sev==="SEVERE"||(sev==="MODERATE"&&via!=="cross"));
+  const label=via==="ingredient"?"principio activo":via==="class"?"misma clase":via==="cross"?"reactividad cruzada (misma cadena lateral R1)":"mismo anillo betalactámico pero cadena lateral R1 DISTINTA";
+  const extra=via==="cross-r1-differs"?" — reactividad cruzada esperada ~1 % (Shenoy, JAMA 2019): valore el antecedente; no se bloquea automáticamente":"";
+  const detail=`Alergia ${sev==="SEVERE"?"GRAVE":sev==="MODERATE"?"moderada":"leve"} a ${rec.substance}${rec.reaction?` (${rec.reaction})`:""} — coincidencia por ${label}${extra}`;
   const hit:AllergyConflict={blocked,caution:!blocked,classEvaluated:!!drug,allergen:rec.substance,via,severity:sev,detail};
   if(!worst||rank(hit)>rank(worst))worst=hit;
  }
@@ -295,22 +454,37 @@ const SEVERITY_RANK:Record<InteractionSeverity,number>={CONTRAINDICATED:4,MAJOR:
 export const SEVERITY_LABEL:Record<InteractionSeverity,string>={CONTRAINDICATED:"Contraindicada",MAJOR:"Mayor",MODERATE:"Moderada",MINOR:"Menor"};
 
 // Interacciones fármaco–fármaco por CLASE, con mecanismo y recomendación (conjunto simétrico).
-export type RichInteraction=Readonly<{classA:string;classB:string;severity:InteractionSeverity;mechanism:string;recommendation:string}>;
+// Auditoría R03-25: cada fila declara su FUENTE y la fecha de revisión. Una tabla de interacciones sin procedencia no se
+// puede auditar ni mantener: no hay forma de saber si falta un par porque nadie lo revisó o porque se decidió omitirlo.
+export type RichInteraction=Readonly<{classA:string;classB:string;severity:InteractionSeverity;mechanism:string;recommendation:string;source:string;reviewedAt:string}>;
+/** Fecha de la última revisión del conjunto de interacciones (todas las filas se revisaron en este corte). */
+export const INTERACTIONS_REVIEWED_AT="2026-09-24";
 const RICH_INTERACTIONS:readonly RichInteraction[]=[
- {classA:"SEROTONERGIC",classB:"SEROTONERGIC",severity:"MAJOR",mechanism:"Efecto serotoninérgico aditivo: riesgo de síndrome serotoninérgico (hipertermia, rigidez, clonus, agitación).",recommendation:"Evitar la combinación o usar la mínima dosis con vigilancia estrecha; suspender ante los primeros signos."},
- {classA:"SSRI",classB:"NSAID",severity:"MAJOR",mechanism:"Inhibición serotoninérgica de la agregación plaquetaria sumada al efecto gastroerosivo del AINE: sangrado digestivo.",recommendation:"Preferir paracetamol; si el AINE es necesario, añadir gastroprotección con IBP y vigilar sangrado."},
- {classA:"SSRI",classB:"ANTICOAGULANT",severity:"MAJOR",mechanism:"Efecto antiagregante del SSRI sumado a la anticoagulación: riesgo hemorrágico aumentado.",recommendation:"Vigilar signos de sangrado; considerar antidepresivo con menor efecto plaquetario (p. ej. no serotoninérgico)."},
- {classA:"ANTICOAGULANT",classB:"NSAID",severity:"MAJOR",mechanism:"AINE inhibe plaquetas y erosiona mucosa gástrica sobre un paciente anticoagulado: hemorragia mayor.",recommendation:"Evitar el AINE; usar paracetamol. Si es imprescindible, gastroprotección e INR/vigilancia estrecha."},
- {classA:"ANTICOAGULANT",classB:"SALICYLATE",severity:"MAJOR",mechanism:"Doble efecto antiagregante/anticoagulante: hemorragia mayor.",recommendation:"Evitar salicilatos salvo indicación cardiológica explícita con balance riesgo-beneficio documentado."},
- {classA:"ACE_INHIBITOR",classB:"POTASSIUM_SPARING",severity:"MAJOR",mechanism:"Retención aditiva de potasio: hiperkalemia grave.",recommendation:"Vigilar potasio sérico al inicio y tras cada ajuste; evitar suplementos de potasio."},
- {classA:"ARB",classB:"POTASSIUM_SPARING",severity:"MAJOR",mechanism:"Retención aditiva de potasio: hiperkalemia grave.",recommendation:"Vigilar potasio sérico al inicio y tras cada ajuste; evitar suplementos de potasio."},
- {classA:"ACE_INHIBITOR",classB:"ARB",severity:"MODERATE",mechanism:"Doble bloqueo del SRAA: hiperkalemia y deterioro de la función renal.",recommendation:"Evitar la combinación de rutina; si se usa, monitorizar potasio y creatinina."},
- {classA:"ACE_INHIBITOR",classB:"NSAID",severity:"MODERATE",mechanism:"El AINE reduce la perfusión renal y antagoniza el efecto antihipertensivo del IECA.",recommendation:"Limitar el AINE a cursos cortos; vigilar presión arterial y función renal (triple whammy con diurético)."},
+ {classA:"SEROTONERGIC",classB:"SEROTONERGIC",severity:"MAJOR",mechanism:"Efecto serotoninérgico aditivo: riesgo de síndrome serotoninérgico (hipertermia, rigidez, clonus, agitación).",recommendation:"Evitar la combinación o usar la mínima dosis con vigilancia estrecha; suspender ante los primeros signos.",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"SSRI",classB:"NSAID",severity:"MAJOR",mechanism:"Inhibición serotoninérgica de la agregación plaquetaria sumada al efecto gastroerosivo del AINE: sangrado digestivo.",recommendation:"Preferir paracetamol; si el AINE es necesario, añadir gastroprotección con IBP y vigilar sangrado.",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"SSRI",classB:"ANTICOAGULANT",severity:"MAJOR",mechanism:"Efecto antiagregante del SSRI sumado a la anticoagulación: riesgo hemorrágico aumentado.",recommendation:"Vigilar signos de sangrado; considerar antidepresivo con menor efecto plaquetario (p. ej. no serotoninérgico).",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"ANTICOAGULANT",classB:"NSAID",severity:"MAJOR",mechanism:"AINE inhibe plaquetas y erosiona mucosa gástrica sobre un paciente anticoagulado: hemorragia mayor.",recommendation:"Evitar el AINE; usar paracetamol. Si es imprescindible, gastroprotección e INR/vigilancia estrecha.",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"ANTICOAGULANT",classB:"SALICYLATE",severity:"MAJOR",mechanism:"Doble efecto antiagregante/anticoagulante: hemorragia mayor.",recommendation:"Evitar salicilatos salvo indicación cardiológica explícita con balance riesgo-beneficio documentado.",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"ACE_INHIBITOR",classB:"POTASSIUM_SPARING",severity:"MAJOR",mechanism:"Retención aditiva de potasio: hiperkalemia grave.",recommendation:"Vigilar potasio sérico al inicio y tras cada ajuste; evitar suplementos de potasio.",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"ARB",classB:"POTASSIUM_SPARING",severity:"MAJOR",mechanism:"Retención aditiva de potasio: hiperkalemia grave.",recommendation:"Vigilar potasio sérico al inicio y tras cada ajuste; evitar suplementos de potasio.",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"ACE_INHIBITOR",classB:"ARB",severity:"MODERATE",mechanism:"Doble bloqueo del SRAA: hiperkalemia y deterioro de la función renal.",recommendation:"Evitar la combinación de rutina; si se usa, monitorizar potasio y creatinina.",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"ACE_INHIBITOR",classB:"NSAID",severity:"MODERATE",mechanism:"El AINE reduce la perfusión renal y antagoniza el efecto antihipertensivo del IECA.",recommendation:"Limitar el AINE a cursos cortos; vigilar presión arterial y función renal (triple whammy con diurético).",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
  // Auditoría C-17 — pares clásicos que faltaban.
- {classA:"ANTICOAGULANT",classB:"ANTICOAGULANT",severity:"CONTRAINDICATED",mechanism:"Doble anticoagulación: hemorragia mayor sin beneficio adicional (salvo puente transitorio programado).",recommendation:"No combinar; si es un puente heparina–warfarina, protocolo explícito con INR y suspensión programada."},
- {classA:"ANTICOAGULANT",classB:"SULFONAMIDE",severity:"MAJOR",mechanism:"Trimetoprima-sulfametoxazol inhibe el CYP2C9 y desplaza a la warfarina de la albúmina: elevación brusca del INR.",recommendation:"Evitar; si es imprescindible, INR a las 48–72 h y reducir la dosis de warfarina."},
- {classA:"ANTICOAGULANT",classB:"MACROLIDE",severity:"MAJOR",mechanism:"Los macrólidos (claritromicina, eritromicina, en menor grado azitromicina) inhiben el CYP3A4 y reducen la flora productora de vitamina K: potenciación de la anticoagulación.",recommendation:"Preferir otro antibiótico; si no, INR a los 3–5 días."},
- {classA:"OPIOID",classB:"NSAID",severity:"MINOR",mechanism:"Combinación analgésica frecuente; sin interacción farmacocinética relevante.",recommendation:"Combinación aceptable para dolor moderado; vigilar tolerancia gastrointestinal del AINE."},
+ {classA:"ANTICOAGULANT",classB:"ANTICOAGULANT",severity:"CONTRAINDICATED",mechanism:"Doble anticoagulación: hemorragia mayor sin beneficio adicional (salvo puente transitorio programado).",recommendation:"No combinar; si es un puente heparina–warfarina, protocolo explícito con INR y suspensión programada.",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"ANTICOAGULANT",classB:"SULFONAMIDE",severity:"MAJOR",mechanism:"Trimetoprima-sulfametoxazol inhibe el CYP2C9 y desplaza a la warfarina de la albúmina: elevación brusca del INR.",recommendation:"Evitar; si es imprescindible, INR a las 48–72 h y reducir la dosis de warfarina.",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"ANTICOAGULANT",classB:"MACROLIDE",severity:"MAJOR",mechanism:"Los macrólidos (claritromicina, eritromicina, en menor grado azitromicina) inhiben el CYP3A4 y reducen la flora productora de vitamina K: potenciación de la anticoagulación.",recommendation:"Preferir otro antibiótico; si no, INR a los 3–5 días.",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ // ---- Auditoría 2026-09-19, anexo R03 (R03-25 y F13): pares que el anexo probó con AMBOS fármacos en el catálogo y
+ // devolvían `findings:[]`. No eran huecos de cobertura del catálogo: eran huecos de la tabla. ----
+ {classA:"POTASSIUM_SPARING",classB:"SULFONAMIDE_ANTIBIOTIC",severity:"MAJOR",mechanism:"La trimetoprima bloquea el canal de sodio del túbulo distal como un diurético ahorrador de potasio: hiperkalemia grave aditiva.",recommendation:"Evitar la combinación en mayores de 65 años; si es imprescindible, potasio sérico a las 72 h y suspender ante K+ >5.5 mEq/L.",source:"Antoniou T et al., BMJ 2011;343:d5228 (muerte súbita por hiperkalemia en ancianos con espironolactona + TMP-SMX)",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"ACE_INHIBITOR",classB:"SULFONAMIDE_ANTIBIOTIC",severity:"MAJOR",mechanism:"Efecto aditivo sobre la excreción de potasio (IECA reduce la aldosterona; la trimetoprima bloquea su canal): hiperkalemia.",recommendation:"Preferir otro antibiótico; si no es posible, controlar potasio y creatinina a las 72 h.",source:"Fralick M et al., BMJ 2014;349:g6196",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"ARB",classB:"SULFONAMIDE_ANTIBIOTIC",severity:"MAJOR",mechanism:"Mismo mecanismo aditivo de retención de potasio que con los IECA.",recommendation:"Preferir otro antibiótico; si no es posible, controlar potasio y creatinina a las 72 h.",source:"Fralick M et al., BMJ 2014;349:g6196",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"QT_PROLONGING",classB:"QT_PROLONGING",severity:"MAJOR",mechanism:"Prolongación ADITIVA del intervalo QT: riesgo de torsades de pointes (citalopram, azitromicina, ondansetrón, amiodarona, fluoroquinolonas, haloperidol).",recommendation:"Evitar la combinación; si es imprescindible, ECG con QTc antes y durante, corregir potasio y magnesio, y revisar la dosis (citalopram máximo 40 mg/día, 20 mg si >60 años).",source:"FDA Drug Safety Communication citalopram (2012); CredibleMeds / AHA-ACC-HRS statement on QT drugs 2010",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"SALICYLATE",classB:"NSAID",severity:"MODERATE",mechanism:"El AINE compite por la COX-1 plaquetaria y antagoniza la inhibición irreversible del ácido acetilsalicílico: pérdida de la cardioprotección.",recommendation:"Si el AINE es imprescindible en un paciente con AAS cardioprotector, administrar el AAS 2 h antes del ibuprofeno (o preferir paracetamol/naproxeno pautado).",source:"FDA Drug Safety Communication 2006 (ibuprofeno y aspirina); EMA PRAC",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"ANTICOAGULANT",classB:"ANALGESIC_ANTIPYRETIC",severity:"MODERATE",mechanism:"El paracetamol en dosis sostenida (≥2 g/día por varios días) eleva el INR de los antagonistas de la vitamina K.",recommendation:"Aceptable como analgésico de elección, pero controlar el INR si se usa ≥2 g/día más de 3 días.",source:"Mahé I et al., Haematologica 2006;91:1621-7",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"STATIN",classB:"MACROLIDE",severity:"MAJOR",mechanism:"La claritromicina inhibe el CYP3A4 y multiplica la exposición a simvastatina/atorvastatina: rabdomiólisis.",recommendation:"Suspender la estatina durante el macrólido (o preferir azitromicina, que casi no inhibe CYP3A4).",source:"Patel AM et al., Ann Intern Med 2013;158:869-76",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"DIGITALIS",classB:"MACROLIDE",severity:"MODERATE",mechanism:"Los macrólidos reducen la flora que inactiva la digoxina y aumentan su concentración: intoxicación digitálica.",recommendation:"Vigilar náusea, alteraciones visuales y bradicardia; considerar digoxinemia.",source:"Ficha técnica de digoxina; Gomes T et al., Arch Intern Med 2009",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"BENZODIAZEPINE",classB:"OPIOID",severity:"MAJOR",mechanism:"Depresión respiratoria y sedación aditivas: la combinación multiplica el riesgo de sobredosis fatal.",recommendation:"Evitar la coprescripción; si es inevitable, la dosis mínima eficaz, duración mínima y advertir al paciente/cuidador.",source:"FDA Boxed Warning 2016 (opioides + benzodiacepinas)",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"OPIOID",classB:"NSAID",severity:"MINOR",mechanism:"Combinación analgésica frecuente; sin interacción farmacocinética relevante.",recommendation:"Combinación aceptable para dolor moderado; vigilar tolerancia gastrointestinal del AINE.",source:"Interacción de consenso (fichas técnicas y vademécum clínico); pendiente de contraste con fuente oficial versionada",reviewedAt:INTERACTIONS_REVIEWED_AT},
 ];
 function richPairFor(a:readonly string[],b:readonly string[]):RichInteraction|undefined{
  const sa=new Set(a),sb=new Set(b);let best:RichInteraction|undefined;
@@ -322,15 +496,18 @@ function richPairFor(a:readonly string[],b:readonly string[]):RichInteraction|un
 }
 
 // Factores del paciente (no farmacológicos) que modulan la seguridad de una clase. Código canónico + sinónimos.
-export type PatientFactor="ALCOHOL"|"RENAL_IMPAIRMENT"|"HEPATIC_IMPAIRMENT"|"PREGNANCY"|"ELDERLY";
+// Auditoría 2026-09-19, anexo R03 (R03-29): la LACTANCIA no existía como factor, y es una decisión de prescripción
+// distinta del embarazo (lo que pasa al recién nacido por la leche no es lo que atraviesa la placenta).
+export type PatientFactor="ALCOHOL"|"RENAL_IMPAIRMENT"|"HEPATIC_IMPAIRMENT"|"PREGNANCY"|"LACTATION"|"ELDERLY";
 const FACTOR_SYNONYMS:Record<PatientFactor,readonly string[]>={
  ALCOHOL:["alcohol","consumo de alcohol","etilismo","alcoholismo","alcohol activo"],
  RENAL_IMPAIRMENT:["insuficiencia renal","enfermedad renal","erc","falla renal","renal","tfg baja"],
  HEPATIC_IMPAIRMENT:["insuficiencia hepatica","hepatopatia","enfermedad hepatica","cirrosis","hepatico"],
  PREGNANCY:["embarazo","gestacion","embarazada","gestante"],
+ LACTATION:["lactancia","lactando","amamantando","seno materno","puerperio con lactancia"],
  ELDERLY:["adulto mayor","edad avanzada","anciano","geriatrico","mayor de 65"],
 };
-export const FACTOR_LABEL:Record<PatientFactor,string>={ALCOHOL:"Consumo de alcohol",RENAL_IMPAIRMENT:"Insuficiencia renal",HEPATIC_IMPAIRMENT:"Insuficiencia hepática",PREGNANCY:"Embarazo",ELDERLY:"Adulto mayor"};
+export const FACTOR_LABEL:Record<PatientFactor,string>={ALCOHOL:"Consumo de alcohol",RENAL_IMPAIRMENT:"Insuficiencia renal",HEPATIC_IMPAIRMENT:"Insuficiencia hepática",PREGNANCY:"Embarazo",LACTATION:"Lactancia",ELDERLY:"Adulto mayor"};
 export type FactorRule=Readonly<{factor:PatientFactor;drugClass:string;severity:InteractionSeverity;mechanism:string;recommendation:string}>;
 const FACTOR_RULES:readonly FactorRule[]=[
  {factor:"ALCOHOL",drugClass:"SSRI",severity:"MODERATE",mechanism:"Potenciación de la depresión del sistema nervioso central y aumento del riesgo de sangrado digestivo.",recommendation:"Aconsejar evitar el alcohol durante el tratamiento con el SSRI."},
@@ -348,6 +525,18 @@ const FACTOR_RULES:readonly FactorRule[]=[
  {factor:"PREGNANCY",drugClass:"ANTICOAGULANT",severity:"CONTRAINDICATED",mechanism:"Warfarina: embriopatía (6.ª–12.ª semana) y hemorragia fetal; los anticoagulantes orales directos no están estudiados en el embarazo.",recommendation:"Cambiar a heparina de bajo peso molecular durante el embarazo."},
  {factor:"ELDERLY",drugClass:"NSAID",severity:"MODERATE",mechanism:"Criterios de Beers: en mayores de 65 años el AINE crónico aumenta el sangrado digestivo, la lesión renal aguda y la descompensación de insuficiencia cardíaca.",recommendation:"Evitar el uso crónico; si se usa, dosis mínima, ciclo corto y gastroprotección; vigilar creatinina."},
  {factor:"ELDERLY",drugClass:"OPIOID",severity:"MODERATE",mechanism:"Mayor sensibilidad a la sedación y depresión respiratoria; caídas y delirium.",recommendation:"Iniciar con dosis bajas, titular despacio, evitar combinar con otros depresores."},
+ // Auditoría R03-29 — embarazo: faltaban las clases que el anexo nombró (sulfonamidas) y las de riesgo conocido.
+ {factor:"PREGNANCY",drugClass:"SULFONAMIDE_ANTIBIOTIC",severity:"MAJOR",mechanism:"Trimetoprima: antagonista del folato (riesgo de defectos del tubo neural en el 1.º trimestre). Sulfametoxazol cerca del término: desplaza la bilirrubina y puede provocar kernícterus en el recién nacido.",recommendation:"Evitar en el 1.º trimestre y en las últimas semanas; preferir otro antibiótico. Si es imprescindible, suplementar folato."},
+ {factor:"PREGNANCY",drugClass:"STATIN",severity:"CONTRAINDICATED",mechanism:"El colesterol es esencial para el desarrollo fetal; la exposición no tiene beneficio materno que compense en el embarazo.",recommendation:"Suspender la estatina durante el embarazo y la lactancia; retomar después."},
+ {factor:"PREGNANCY",drugClass:"FLUOROQUINOLONE",severity:"MAJOR",mechanism:"Toxicidad sobre el cartílago en modelos animales; alternativas más seguras disponibles.",recommendation:"Preferir betalactámico o nitrofurantoína según el foco; reservar para cuando no haya alternativa."},
+ {factor:"PREGNANCY",drugClass:"BENZODIAZEPINE",severity:"MAJOR",mechanism:"Uso sostenido cerca del término: síndrome de abstinencia neonatal y síndrome del lactante hipotónico.",recommendation:"Evitar el uso crónico; si es imprescindible, la dosis mínima y avisar a neonatología."},
+ {factor:"PREGNANCY",drugClass:"THIAZIDE",severity:"MODERATE",mechanism:"Reducción del volumen plasmático materno y alteraciones electrolíticas neonatales.",recommendation:"Preferir alfametildopa, labetalol o nifedipino como antihipertensivos en el embarazo."},
+ // Auditoría R03-29 — LACTANCIA: lo que pasa a la leche no es lo que atraviesa la placenta, así que son reglas propias.
+ {factor:"LACTATION",drugClass:"OPIOID",severity:"CONTRAINDICATED",mechanism:"Codeína y tramadol: metabolizadores rápidos de CYP2D6 concentran morfina/O-desmetiltramadol en la leche; hay muertes neonatales descritas.",recommendation:"Contraindicados durante la lactancia (FDA 2017). Usar paracetamol o ibuprofeno."},
+ {factor:"LACTATION",drugClass:"ANTIARRHYTHMIC",severity:"MAJOR",mechanism:"Amiodarona: vida media de semanas y alto contenido de yodo; se acumula en la leche y bloquea la tiroides del lactante.",recommendation:"Evitar durante la lactancia; si es imprescindible, suspender la lactancia y vigilar la tiroides del lactante."},
+ {factor:"LACTATION",drugClass:"SULFONAMIDE_ANTIBIOTIC",severity:"MODERATE",mechanism:"Riesgo de kernícterus en el lactante ictérico, prematuro o con déficit de G6PD.",recommendation:"Evitar en el primer mes y en lactantes prematuros o con ictericia; preferir otro antibiótico."},
+ {factor:"LACTATION",drugClass:"BENZODIAZEPINE",severity:"MODERATE",mechanism:"Sedación y dificultad para alimentarse en el lactante, sobre todo con dosis repetidas.",recommendation:"Dosis única y la mínima eficaz; vigilar somnolencia y la succión del lactante."},
+ {factor:"LACTATION",drugClass:"STATIN",severity:"MAJOR",mechanism:"Sin datos de seguridad y el colesterol es necesario para el desarrollo del lactante.",recommendation:"Suspender durante la lactancia."},
  {factor:"ELDERLY",drugClass:"SSRI",severity:"MINOR",mechanism:"Hiponatremia por SIADH y riesgo de caídas al inicio del tratamiento.",recommendation:"Sodio sérico a las 2–4 semanas del inicio; vigilar mareo/caídas."},
 ];
 // Normaliza una etiqueta libre de factor a su código canónico (o undefined si no se reconoce).
@@ -424,5 +613,22 @@ export function drugCatalog():DrugCatalogItem[]{
 }
 // Matriz de interacciones por clase (para paneles de conocimiento/alertas de la UI). Copia inmutable.
 // Reglas de la barrera (derivadas de la tabla única; sin las MINOR).
+// ---------- Auditoría 2026-09-19, anexo R03 (R03-23): la COBERTURA REAL, medida y declarada ----------
+//
+// El catálogo es un subconjunto curado, no un vademécum oficial. Eso no es un defecto en sí; el defecto era que nadie
+// podía saberlo desde la respuesta: las barreras devolvían un veredicto sin decir sobre cuántos fármacos y cuántas
+// reglas se había construido. Ahora la cobertura se CALCULA de las tablas (no se escribe a mano, así que no puede
+// quedar obsoleta) y viaja en la respuesta de la verificación de prescripción.
+export const DRUG_CATALOG_VERSION="2026-09-24";
+export type CatalogCoverage=Readonly<{version:string;ingredients:number;interactionPairs:number;interactionsReviewedAt:string;
+ renalRulesByIngredient:number;renalRulesByClass:number;monitoringRules:number;factorRules:number;conditionRules:number;
+ sourceNote:string}>;
+export function catalogCoverage():CatalogCoverage{
+ const ingredients=new Set(Object.values(DRUGS).map(d=>d.ingredient)).size;
+ return{version:DRUG_CATALOG_VERSION,ingredients,interactionPairs:RICH_INTERACTIONS.length,interactionsReviewedAt:INTERACTIONS_REVIEWED_AT,
+  renalRulesByIngredient:Object.keys(RENAL_RULES_BY_INGREDIENT).length,renalRulesByClass:Object.keys(RENAL_RULES_BY_CLASS).length,
+  monitoringRules:Object.keys(MONITORING_BY_CLASS).length,factorRules:FACTOR_RULES.length,conditionRules:CONTRAINDICATIONS.length,
+  sourceNote:`Subconjunto curado de ${ingredients} principios activos de uso frecuente en atención primaria en México, con las fuentes citadas fila por fila. NO es un vademécum oficial: un fármaco fuera de este catálogo devuelve NOT_EVALUATED en todas las barreras (nunca «sin hallazgos»). Cargar RxNorm/COFEPRIS versionado es decisión del dueño del producto.`};
+}
 export function interactionRules():readonly DrugInteraction[]{return RICH_INTERACTIONS.flatMap(r=>{const s=barrierSeverity(r.severity);return s?[{classA:r.classA,classB:r.classB,severity:s,note:r.mechanism}]:[];});}
 export function richInteractionRules():readonly RichInteraction[]{return RICH_INTERACTIONS;}

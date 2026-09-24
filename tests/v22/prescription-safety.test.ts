@@ -1,4 +1,5 @@
 import{describe,it,expect}from"vitest";
+import{checkDoseCeiling,checkPediatricDose}from"../../packages/medication-validation/src";
 import{evaluatePrescriptionSafety,summarizeForEvent,ageInYears,decideOverride,OVERRIDABLE_BARRIERS,HARD_BARRIERS,OVERRIDE_MIN_JUSTIFICATION,type PrescriptionSafetyInput,type BarrierId}from"../../packages/prescription-safety/src";
 // Auditoría 2026-09-19 (C-03, C-04, C-05, C-14, C-16): "no pude evaluar" NUNCA se presenta como "seguro".
 // Estos casos fijan el comportamiento correcto del evaluador ÚNICO que comparten el dry-run y PRESCRIBE.
@@ -12,8 +13,10 @@ describe("evaluador único de seguridad de prescripción",()=>{
   expect(e.verdict).toBe("CLEAR");expect(e.requiresAcknowledgement).toBe(false);
   expect(st(e,"doseCeiling")).toBe("PASSED");expect(st(e,"renal")).toBe("PASSED");expect(st(e,"pediatricDose")).toBe("NOT_APPLICABLE");
  });
- it("fármaco FUERA de catálogo -> nada se da por seguro y exige confirmación expresa (caso apixabán de la auditoría)",()=>{
-  const e=evaluatePrescriptionSafety({...base,drugCode:"apixaban",dose:"5mg",frequency:"c/12h",egfr:15});
+ it("fármaco FUERA de catálogo -> nada se da por seguro y exige confirmación expresa",()=>{
+  // El caso original era apixabán; entró al catálogo en el lote 11f (R03-23), así que la prueba usa otro fármaco
+  // realmente ausente. Lo que se verifica es la REGLA —fuera del catálogo nada se da por verificado—, no el nombre.
+  const e=evaluatePrescriptionSafety({...base,drugCode:"vancomicina",dose:"1g",frequency:"c/12h",egfr:15});
   expect(e.catalogResolved).toBe(false);expect(e.verdict).toBe("REVIEW");expect(e.requiresAcknowledgement).toBe(true);
   for(const id of["catalog","interaction","duplicate","contraindication","doseCeiling","renal"] as const)expect(st(e,id)).toBe("NOT_EVALUATED");
   expect(e.barriers.some(b=>b.status==="PASSED"&&b.id!=="order")).toBe(false); // ninguna barrera clínica "pasó"
@@ -30,9 +33,10 @@ describe("evaluador único de seguridad de prescripción",()=>{
   const e=evaluatePrescriptionSafety({...base,drugCode:"metformina-850",dose:"850mg",frequency:"c/12h",egfr:20});
   expect(st(e,"renal")).toBe("BLOCKED");expect(e.verdict).toBe("BLOCK");
  });
- it("menor de edad SIN peso -> la dosis por kg NO se verificó (el patrón clásico de sobredosis pediátrica)",()=>{
+ it("menor de edad SIN peso -> BLOQUEO (R03-27: antes era un aviso que se confirmaba y se seguía)",()=>{
   const e=evaluatePrescriptionSafety({...base,drugCode:"paracetamol",dose:"500mg",frequency:"c/6h",weightKg:undefined,ageYears:2});
-  expect(st(e,"pediatricDose")).toBe("NOT_EVALUATED");expect(e.requiresAcknowledgement).toBe(true);
+  expect(st(e,"pediatricDose")).toBe("BLOCKED");expect(e.verdict).toBe("BLOCK");
+  expect(e.barriers.find(b=>b.id==="pediatricDose")?.reason).toBe("WEIGHT_REQUIRED");
  });
  it("niño de 10 kg con paracetamol 500 mg c/6h (200 mg/kg/día) -> BLOCK por dosis pediátrica",()=>{
   const e=evaluatePrescriptionSafety({...base,drugCode:"paracetamol",dose:"500mg",frequency:"c/6h",weightKg:10,ageYears:2});
@@ -52,7 +56,7 @@ describe("evaluador único de seguridad de prescripción",()=>{
   expect(st(e,"duplicate")).toBe("BLOCKED");
  });
  it("el resumen persistible no contiene PHI ni valores clínicos: solo id/estado/razón y la confirmación",()=>{
-  const e=evaluatePrescriptionSafety({...base,drugCode:"apixaban"});
+  const e=evaluatePrescriptionSafety({...base,drugCode:"vancomicina"});
   const s=summarizeForEvent(e,{acknowledged:true,justification:"Indicación de cardiología, sin alternativa en catálogo"});
   expect(s.acknowledgedUnverified).toBe(true);expect(s.catalogResolved).toBe(false);
   expect(Object.keys(s.barriers[0]!).sort()).toEqual(expect.arrayContaining(["id","status"]));
@@ -64,9 +68,9 @@ describe("evaluador único de seguridad de prescripción",()=>{
 describe("anulación justificada de un bloqueo (U-19)",()=>{
  const J="Paciente en diálisis trisemanal; dosis acordada con nefrología";
  it("las listas de barreras anulables y duras son complementarias y cubren todas las barreras",()=>{
-  const all:BarrierId[]=["order","catalog","allergy","interaction","duplicate","contraindication","doseCeiling","pediatricDose","renal"];
+  const all:BarrierId[]=["order","catalog","allergy","interaction","duplicate","contraindication","doseCeiling","duration","pediatricDose","renal"];
   expect([...OVERRIDABLE_BARRIERS,...HARD_BARRIERS].sort()).toEqual([...all].sort());
-  expect(OVERRIDABLE_BARRIERS).not.toContain("doseCeiling");expect(OVERRIDABLE_BARRIERS).not.toContain("pediatricDose");
+  for(const dura of["doseCeiling","duration","pediatricDose"])expect(OVERRIDABLE_BARRIERS,dura).not.toContain(dura);
  });
  it("sin bloqueo: ok y sin anulación que registrar; nombrar una barrera que no bloquea se rechaza",()=>{
   const e=evaluatePrescriptionSafety(base);
@@ -118,8 +122,16 @@ describe("alergias con gravedad en el evaluador (auditoría C-06)",()=>{
   const e=evaluatePrescriptionSafety({...base,drugCode:"ceftriaxona-1g",dose:"1g",route:"IV",frequency:"c/24h",allergies:[{substance:"penicilina",severity:"MILD",reaction:"náusea"}]});
   expect(st(e,"allergy")).toBe("CAUTION");expect(e.verdict).toBe("REVIEW");expect(e.requiresAcknowledgement).toBe(true);
  });
- it("anafilaxia a penicilina + ceftriaxona -> BLOCK sin posibilidad de confirmación",()=>{
-  const e=evaluatePrescriptionSafety({...base,drugCode:"ceftriaxona-1g",dose:"1g",route:"IV",frequency:"c/24h",allergies:[{substance:"penicilina",severity:"SEVERE",reaction:"anafilaxia"}]});
+ it("R03-24: anafilaxia a penicilina + ceftriaxona -> PRECAUCIÓN, no bloqueo (cadena lateral R1 distinta)",()=>{
+  // Antes bloqueaba en bloque por el anillo betalactámico. La evidencia (Shenoy, JAMA 2019) sitúa la reactividad con
+  // ceftriaxona en ~1 %, y el bloqueo empujaba a vancomicina/quinolonas: más C. difficile y peores desenlaces. El dato
+  // se le muestra al médico (precaución con la explicación) en vez de decidir por él.
+  const cef=evaluatePrescriptionSafety({...base,drugCode:"ceftriaxona-1g",dose:"1g",route:"IV",frequency:"c/24h",allergies:[{substance:"penicilina",severity:"SEVERE",reaction:"anafilaxia"}]});
+  expect(st(cef,"allergy")).toBe("CAUTION");expect(cef.verdict).not.toBe("BLOCK");
+  expect(JSON.stringify(cef)).toMatch(/R1 DISTINTA/);
+ });
+ it("anafilaxia a penicilina + cefalexina (MISMA cadena lateral R1) -> BLOCK sin posibilidad de confirmación",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"cefalexina-500",dose:"500mg",route:"oral",frequency:"c/8h",allergies:[{substance:"penicilina",severity:"SEVERE",reaction:"anafilaxia"}]});
   expect(st(e,"allergy")).toBe("BLOCKED");expect(e.verdict).toBe("BLOCK");
  });
  it("alergia a AINE + diclofenaco -> BLOCK (antes: 'sin conflicto' porque diclofenaco no estaba en el catálogo)",()=>{
@@ -150,5 +162,86 @@ describe("techos de dosis (auditoría C-15)",()=>{
  it("'PRN' sigue sin poder acotarse: NOT_EVALUATED (exige confirmación), nunca OK",()=>{
   const e=evaluatePrescriptionSafety({...base,frequency:"PRN"});
   expect(["NOT_EVALUATED","BLOCKED"]).toContain(st(e,"doseCeiling"));expect(st(e,"doseCeiling")).not.toBe("PASSED");
+ });
+});
+
+// Auditoría 2026-09-19, anexo R03 — R03-26 (techo por vía, duración y edad) y R03-27 (pediatría por edad, peso obligatorio).
+describe("techo de dosis por vía, duración y edad (R03-26)",()=>{
+ const st2=(e:ReturnType<typeof evaluatePrescriptionSafety>,id:string)=>e.barriers.find(b=>b.id===id)!;
+ it("ketorolaco 30 mg c/6h: correcto por vía IV, TRIPLE del máximo por vía ORAL",()=>{
+  // El caso exacto del anexo: 120 mg/día pasaba como correcto sin mirar la vía (máximo oral 40 mg/día).
+  const iv=evaluatePrescriptionSafety({...base,drugCode:"ketorolaco-30",dose:"30mg",route:"IV",frequency:"c/6h",ageYears:40,durationDays:3});
+  expect(st2(iv,"doseCeiling").status).toBe("PASSED");
+  const oral=evaluatePrescriptionSafety({...base,drugCode:"ketorolaco-30",dose:"30mg",route:"ORAL",frequency:"c/6h",ageYears:40,durationDays:3});
+  expect(st2(oral,"doseCeiling").status).toBe("BLOCKED");
+  expect(st2(oral,"doseCeiling").detail).toMatch(/40 mg\/día/);
+ });
+ it("citalopram 60 mg/día: excede siempre, y a partir de los 60 años el techo baja a 20 (FDA)",()=>{
+  const joven=evaluatePrescriptionSafety({...base,drugCode:"citalopram-20",dose:"60mg",route:"ORAL",frequency:"QD",ageYears:40});
+  expect(st2(joven,"doseCeiling").status).toBe("BLOCKED"); // 60 > 40
+  const mayor=evaluatePrescriptionSafety({...base,drugCode:"citalopram-20",dose:"30mg",route:"ORAL",frequency:"QD",ageYears:70});
+  expect(st2(mayor,"doseCeiling").status).toBe("BLOCKED"); // 30 > 20 por edad
+  expect(st2(mayor,"doseCeiling").detail).toMatch(/QT/);
+  const mayorOk=evaluatePrescriptionSafety({...base,drugCode:"citalopram-20",dose:"20mg",route:"ORAL",frequency:"QD",ageYears:70});
+  expect(st2(mayorOk,"doseCeiling").status).toBe("PASSED");
+ });
+ it("la duración es una barrera propia: ketorolaco 7 días se bloquea; sin duración declarada, NO se da por buena",()=>{
+  const largo=evaluatePrescriptionSafety({...base,drugCode:"ketorolaco-10",dose:"10mg",route:"ORAL",frequency:"c/8h",ageYears:40,durationDays:7});
+  expect(st2(largo,"duration").status).toBe("BLOCKED");
+  expect(st2(largo,"duration").detail).toMatch(/5/);
+  const sinDuracion=evaluatePrescriptionSafety({...base,drugCode:"ketorolaco-10",dose:"10mg",route:"ORAL",frequency:"c/8h",ageYears:40});
+  expect(st2(sinDuracion,"duration").status).toBe("NOT_EVALUATED");
+  expect(sinDuracion.verdict).not.toBe("CLEAR");
+  const corto=evaluatePrescriptionSafety({...base,drugCode:"ketorolaco-10",dose:"10mg",route:"ORAL",frequency:"c/8h",ageYears:40,durationDays:3});
+  expect(st2(corto,"duration").status).toBe("PASSED");
+ });
+ it("un fármaco sin límite de duración no arrastra una advertencia inútil",()=>{
+  const e=evaluatePrescriptionSafety({...base,ageYears:40});
+  expect(st2(e,"duration").status).toBe("NOT_APPLICABLE");
+ });
+ it("`evaluable` y `exceeded` son campos distintos: no verificado ≠ correcto",()=>{
+  const prn=checkDoseCeiling("paracetamol","1g","PRN");
+  expect(prn.evaluable).toBe(false);expect(prn.exceeded).toBe(false);expect(prn.checked).toBe(prn.evaluable);
+  const ok=checkDoseCeiling("paracetamol","500mg","c/8h");
+  expect(ok.evaluable).toBe(true);expect(ok.exceeded).toBe(false);
+ });
+});
+
+describe("dosis pediátrica: criterio por EDAD y peso obligatorio (R03-27)",()=>{
+ const st2=(e:ReturnType<typeof evaluatePrescriptionSafety>,id:string)=>e.barriers.find(b=>b.id===id)!;
+ it("un menor SIN peso registrado BLOQUEA la prescripción (antes: aviso que se confirmaba)",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"paracetamol-500",dose:"500mg",route:"ORAL",frequency:"c/6h",ageYears:4,weightKg:undefined});
+  const b=st2(e,"pediatricDose");
+  expect(b.status).toBe("BLOCKED");
+  expect(b.reason).toBe("WEIGHT_REQUIRED");
+  expect(b.overridable).toBe(false);          // no se anula con una justificación: se registra el peso
+  expect(e.verdict).toBe("BLOCK");
+ });
+ it("un ADOLESCENTE de 45 kg sigue verificándose por peso (antes quedaba fuera por pesar >40 kg)",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"ibuprofeno-400",dose:"800mg",route:"ORAL",frequency:"c/6h",ageYears:15,weightKg:45});
+  // 3 200 mg/día / 45 kg = 71 mg/kg/día, muy por encima de 40.
+  expect(st2(e,"pediatricDose").status).toBe("BLOCKED");
+ });
+ it("el límite es el MÍNIMO entre el ponderal y el techo absoluto",()=>{
+  // 60 kg, paracetamol 1.5 g c/6h = 6 000 mg/día = 100 mg/kg/día: excede ambos.
+  const ambos=evaluatePrescriptionSafety({...base,drugCode:"paracetamol-500",dose:"1500mg",route:"ORAL",frequency:"c/6h",ageYears:16,weightKg:60});
+  expect(st2(ambos,"pediatricDose").status).toBe("BLOCKED");
+  // 70 kg, 1 g c/6h = 4 000 mg/día = 57 mg/kg/día: el ponderal pasa (<75) y el absoluto justo también (=4 000).
+  const limite=evaluatePrescriptionSafety({...base,drugCode:"paracetamol-500",dose:"1000mg",route:"ORAL",frequency:"c/6h",ageYears:17,weightKg:70});
+  expect(st2(limite,"pediatricDose").status).toBe("PASSED");
+  // 70 kg, 1.25 g c/6h = 5 000 mg/día = 71 mg/kg/día: el PONDERAL pasa y el ABSOLUTO no. Antes, cada límite vivía en
+  // una función distinta y esta orden no la detenía ninguna de las dos.
+  const soloAbsoluto=checkPediatricDose("paracetamol","1250mg","c/6h",70,17);
+  expect(soloAbsoluto.exceeded).toBe(true);
+  expect(soloAbsoluto.boundedBy).toBe("absolute");
+  expect(soloAbsoluto.computedMgPerKgPerDay).toBeLessThan(soloAbsoluto.maxMgPerKgPerDay!);
+ });
+ it("un adulto no pasa por la barrera pediátrica",()=>{
+  const e=evaluatePrescriptionSafety({...base,ageYears:40,weightKg:70});
+  expect(st2(e,"pediatricDose").status).toBe("NOT_APPLICABLE");
+ });
+ it("la tabla mg/kg cubre ya los fármacos pediátricos de uso corriente",()=>{
+  for(const d of["paracetamol","ibuprofeno","amoxicilina","azitromicina","cefalexina","clindamicina","prednisona","ondansetron"])
+   expect(checkPediatricDose(d,"100mg","c/8h",15,5).evaluable,d).toBe(true);
  });
 });

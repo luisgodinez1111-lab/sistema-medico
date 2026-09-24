@@ -6,9 +6,10 @@ import{foldMedication,assertMedicationTransition,assertMedicationAnnotation,type
 import{type MedicationState}from"../../../packages/medication-domain/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergies,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
+import{derivePatientFactors}from"./patient-factors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid,replayStablePayload}from"./http-command";
 import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindications,resolveDrug,monitoringFor,checkRenalDosing}from"../../../packages/drug-catalog/src";
-import{validateMedicationOrder,normalizeRoute,checkDoseCeiling,checkPediatricDose}from"../../../packages/medication-validation/src";
+import{validateMedicationOrder,normalizeRoute,checkDoseCeiling,checkPediatricDose,checkDurationLimit,durationToDays}from"../../../packages/medication-validation/src";
 import{physicianCredentials,requirePhysicianCredentials}from"./physician-profile-lifecycle";
 import{evaluatePrescriptionSafety,summarizeForEvent,ageInYears,decideOverride,OVERRIDABLE_BARRIERS,OVERRIDE_MIN_JUSTIFICATION,type OverrideRequest,type SafetyOverride}from"../../../packages/prescription-safety/src";
 // EPIC H — Ciclo de vida de medicación sobre el kernel. Physician Control:
@@ -44,12 +45,22 @@ export async function handleMedicationProposal(req:Request):Promise<Response>{
   // defecto: ahora la propuesta deja constancia EN EL EVENTO de qué no se pudo verificar y lo devuelve como aviso, de
   // modo que ni el expediente ni la UI pueden presentar «sin hallazgos» como si se hubiera comprobado algo.
   const ing=resolveDrug(b.drugCode)?.ingredient;
+  const demoMed=await patientDemographics(ctx,b.patientId);
+  const edadPaciente=demoMed?.birthDate?ageInYears(demoMed.birthDate,b.occurredAt):undefined;
   const noVerificado:string[]=ing?[]:["doseCeiling","pediatricDose"];
-  if(ing){const dc=checkDoseCeiling(ing,b.dose,b.frequency,b.drugCode); // C-15: "2 tab" se acota con la concentración del código
+  // R03-26: el techo depende de la VÍA y de la EDAD, y la DURACIÓN es una barrera propia.
+  const dur=ing?checkDurationLimit(ing,durationToDays(b.duration)):undefined;
+  if(dur?.evaluable&&dur.exceeded)throw new ClinicalError("SAFETY_BLOCKED",`Duración de ${dur.days} días excede el máximo de ${dur.maxDays} para ${ing}: ${dur.reason}`,{ingredient:ing,maxDays:dur.maxDays});
+  if(ing){const dc=checkDoseCeiling(ing,b.dose,b.frequency,b.drugCode,{route:b.route,...(edadPaciente!==undefined?{ageYears:edadPaciente}:{})}); // C-15: "2 tab" se acota con la concentración del código
    if(dc.checked&&dc.exceeded)throw new ClinicalError("SAFETY_BLOCKED",`Dosis diaria excede el máximo de ${ing}: ${dc.computedMgPerDay}mg/día > ${dc.maxMgPerDay}mg/día. Reduzca la dosis o la frecuencia (o modifique con justificación clínica).`,{computedMgPerDay:dc.computedMgPerDay,maxMgPerDay:dc.maxMgPerDay});
    // EPIC BD (profundidad/seguridad pediátrica): en peso pediátrico, valida mg/kg/día (el ceiling absoluto no protege a un niño).
    const w=await patientWeightKg(ctx,b.patientId);
-   const pd=checkPediatricDose(ing,b.dose,b.frequency,w);
+   const pd=checkPediatricDose(ing,b.dose,b.frequency,w,edadPaciente);
+   // R03-27: un paciente pediátrico sin peso vigente no puede RECIBIR un fármaco que se dosifica por kg. El bloqueo duro
+   // vive en PRESCRIBE (que es donde la orden sale al paciente); aquí, en la propuesta, se deja CONSTANCIA en el evento
+   // de que la dosis por kg no se verificó —el defecto R02a-MED-01 era precisamente el silencio—, para no bloquear el
+   // borrador de una consulta en la que el peso se toma un minuto después.
+   if(pd.weightRequired)noVerificado.push("pediatricDose:WEIGHT_REQUIRED");
    if(pd.checked&&pd.exceeded)throw new ClinicalError("SAFETY_BLOCKED",`Dosis pediátrica excede el máximo de ${ing}: ${pd.computedMgPerKgPerDay}mg/kg/día > ${pd.maxMgPerKgPerDay}mg/kg/día (peso ${pd.weightKg}kg). Recalcule por peso.`,{computedMgPerKgPerDay:pd.computedMgPerKgPerDay,maxMgPerKgPerDay:pd.maxMgPerKgPerDay,weightKg:pd.weightKg});}
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.medicationId,expectedVersion:0,eventType:"MEDICATION_PROPOSED",payload:{kind:"PROPOSED",patientId:b.patientId,drugCode:b.drugCode,indication:b.indication,dose:b.dose,route:normalizeRoute(b.route),frequency:b.frequency,duration:b.duration,calculatedDose:b.calculatedDose,
    // R02a-MED-01: constancia explícita de lo que NO se verificó en la propuesta (fármaco fuera del catálogo).
@@ -148,14 +159,19 @@ async function createMonitoringObligations(ctx:Parameters<typeof runClinicalComm
 }
 // Evaluación de barreras COMPARTIDA por PRESCRIBE y MODIFY: mismos datos del paciente, mismo evaluador puro. La propia
 // medicación se EXCLUYE de la lista de activos (al modificarla está ACTIVE y se marcaría duplicada consigo misma).
-type OrderFields=Readonly<{dose:string;route:string;frequency:string}>;
+// R03-26: la DURACIÓN forma parte de la orden a efectos de seguridad (ketorolaco máximo 5 días).
+type OrderFields=Readonly<{dose:string;route:string;frequency:string;duration?:string|undefined}>;
 async function evaluateSafetyFor(ctx:Parameters<typeof runClinicalCommand>[0],medicationId:string,folded:FoldedMedication,order:OrderFields,asOf:string){
  const[substances,activeDrugs,conditions,egfr,weightKg,demo]=await Promise.all([
   activeAllergies(ctx,folded.patientId),activeMedicationDrugCodes(ctx,folded.patientId,medicationId),activeProblemCodes(ctx,folded.patientId),
   patientEgfr(ctx,folded.patientId),patientWeightKg(ctx,folded.patientId),patientDemographics(ctx,folded.patientId)]);
  return evaluatePrescriptionSafety({drugCode:folded.drugCode,dose:order.dose,route:order.route,frequency:order.frequency,
   allergies:substances,activeDrugCodes:activeDrugs,activeConditionCodes:conditions,egfr,weightKg,
-  ageYears:demo?.birthDate?ageInYears(demo.birthDate,asOf):undefined});
+  ageYears:demo?.birthDate?ageInYears(demo.birthDate,asOf):undefined,
+  // R03-26/R03-29: la duración de la orden y los factores del paciente (embarazo, lactancia, insuficiencia renal o
+  // hepática, alcohol) DERIVADOS del expediente. Antes las reglas del embarazo no se activaban nunca en esta barrera.
+  durationDays:durationToDays(order.duration),
+  patientFactors:derivePatientFactors(conditions,demo?.birthDate)});
 }
 // Anulación (U-19) que irá al evento: null si no había bloqueo anulable; undefined si la petición NO es válida (enforceSafety
 // la rechazará antes de escribir, así que nunca llega a persistirse una anulación inválida).
@@ -198,7 +214,7 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
   // Auditoría 2026-09-19 (C-03/C-04): evaluador ÚNICO de barreras (el mismo del dry-run /prescription-check).
   // Antes, un fármaco fuera del catálogo omitía TODAS las barreras en silencio. Ahora cada barrera queda en un
   // estado explícito y, si alguna NO pudo evaluarse, el médico debe confirmarlo expresamente (queda en el evento).
-  const safety=await evaluateSafetyFor(ctx,medicationId,folded,{dose:folded.dose,route:folded.route,frequency:folded.frequency},b.occurredAt);
+  const safety=await evaluateSafetyFor(ctx,medicationId,folded,{dose:folded.dose,route:folded.route,frequency:folded.frequency,duration:folded.duration},b.occurredAt);
   const acknowledged=b.acknowledgeUnverified===true;const override=overrideRequestOf(b);
   // Auditoría L-05: la identidad legal del prescriptor (nombre y cédula) queda en el evento tal como estaba al prescribir.
   const cred=await physicianCredentials(ctx,claims);
@@ -248,7 +264,7 @@ export async function handleMedicationResume(req:Request,medicationId:string):Pr
  try{
   const{ctx,idempotencyKey,expectedVersion,folded,claims}=await loadForTransition(req,medicationId,true);
   const b=await parseJson(req,ResumeBody);
-  const safety=await evaluateSafetyFor(ctx,medicationId,folded,{dose:folded.dose,route:folded.route,frequency:folded.frequency},b.occurredAt);
+  const safety=await evaluateSafetyFor(ctx,medicationId,folded,{dose:folded.dose,route:folded.route,frequency:folded.frequency,duration:folded.duration},b.occurredAt);
   const acknowledged=b.acknowledgeUnverified===true;const override=overrideRequestOf(b);
   const payload=await replayStablePayload(ctx,idempotencyKey,medicationId,b,()=>({kind:"RESUMED",safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification},overrideForEvent(safety,override,claims.sub))}));
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType:"MEDICATION_RESUMED",payload,occurredAt:b.occurredAt,topic:"medication.resumed"});
@@ -283,7 +299,7 @@ export async function handleMedicationModification(req:Request,medicationId:stri
   // `previous` y `safety` dependen del estado del agregado/paciente: estables ante reintentos (ver replayStablePayload).
   const payload=await replayStablePayload(ctx,idempotencyKey,medicationId,b,()=>({kind:"MODIFIED",reason:b.reason,
    dose:b.dose!==undefined?next.dose:undefined,route:b.route!==undefined?next.route:undefined,frequency:b.frequency!==undefined?next.frequency:undefined,calculatedDose:b.calculatedDose,
-   previous:{dose:folded.dose,route:folded.route,frequency:folded.frequency},safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification},overrideForEvent(safety,override,claims.sub))}));
+   previous:{dose:folded.dose,route:folded.route,frequency:folded.frequency,duration:folded.duration},safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification},overrideForEvent(safety,override,claims.sub))}));
   return await commitAnnotation(ctx,idempotencyKey,expectedVersion,medicationId,folded,"MODIFIED","MEDICATION_MODIFIED",payload,b.occurredAt,"medication.modified",
    ()=>enforceSafety(safety,"modify",acknowledged,b.unverifiedJustification,override),{order:next});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}

@@ -68,6 +68,14 @@ const CATALOG:readonly Icd10Entry[]=[
  {code:"J15.9",description:"Neumonía bacteriana, no especificada",category:"Respiratorio"},
  {code:"J12.9",description:"Neumonía viral, no especificada",category:"Respiratorio"},
  {code:"J18.0",description:"Bronconeumonía, no especificada",category:"Respiratorio"},
+ // R03-29: el estado gestacional y la lactancia tienen que ser REGISTRABLES para que las reglas de prescripción del
+ // embarazo (que ya existían en el catálogo de fármacos) puedan activarse alguna vez.
+ {code:"Z34.9",description:"Supervisión de embarazo normal, no especificado",category:"Obstétrico"},
+ {code:"Z33",description:"Estado de embarazo, incidental",category:"Obstétrico"},
+ {code:"Z39.1",description:"Cuidado y examen de la madre lactante",category:"Obstétrico"},
+ {code:"O24.4",description:"Diabetes mellitus que se origina con el embarazo",category:"Obstétrico"},
+ {code:"O14.9",description:"Preeclampsia, no especificada",category:"Obstétrico"},
+ {code:"O21.0",description:"Hiperemesis gravídica leve",category:"Obstétrico"},
 ];
 const BY_CODE=new Map(CATALOG.map(e=>[e.code.toUpperCase(),e]));
 export function normalizeIcd10(code:string):string{return code.trim().toUpperCase();}

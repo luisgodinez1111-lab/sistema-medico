@@ -8,13 +8,21 @@ import{ClinicalError}from"../../packages/runtime-errors/src";
 const base:PrescriptionSafetyInput={drugCode:"ibuprofeno-400",dose:"400mg",route:"Oral",frequency:"c/8h",allergies:[],activeDrugCodes:[],activeConditionCodes:[],egfr:90,weightKg:70,ageYears:40};
 describe("INV-CORE-0009 — lo no evaluado nunca es seguro",()=>{
  it("fármaco fuera de catálogo: ninguna barrera dependiente queda PASSED, el veredicto no es CLEAR y se exige confirmación",()=>{
-  const e=evaluatePrescriptionSafety({...base,drugCode:"apixaban"});
+  // Fármaco realmente ausente del catálogo (apixabán entró en el lote 11f): lo que se verifica es la regla, no el nombre.
+  const e=evaluatePrescriptionSafety({...base,drugCode:"vancomicina"});
   expect(e.verdict).not.toBe("CLEAR");expect(e.requiresAcknowledgement).toBe(true);
   for(const id of["interaction","duplicate","contraindication","doseCeiling","renal"])expect(e.barriers.find(b=>b.id===id)?.status).toBe("NOT_EVALUATED");
  });
- it("sin eGFR con un fármaco que exige ajuste renal, o menor sin peso: NOT_EVALUATED, nunca PASSED",()=>{
+ it("sin eGFR con un fármaco que exige ajuste renal: NOT_EVALUATED, nunca PASSED",()=>{
   expect(evaluatePrescriptionSafety({...base,drugCode:"metformina-850",dose:"850mg",frequency:"c/12h",egfr:undefined}).barriers.find(b=>b.id==="renal")?.status).toBe("NOT_EVALUATED");
-  expect(evaluatePrescriptionSafety({...base,drugCode:"paracetamol-500",dose:"500mg",frequency:"c/6h",weightKg:undefined,ageYears:6}).barriers.find(b=>b.id==="pediatricDose")?.status).toBe("NOT_EVALUATED");
+ });
+ it("un menor SIN peso pasó de NOT_EVALUATED a BLOCKED (R03-27): lo no evaluado tampoco se prescribe",()=>{
+  // El invariante sigue siendo el mismo —lo no verificado nunca es «seguro»— y se endureció donde la auditoría lo pedía:
+  // con un fármaco que se dosifica por kg y un paciente pediátrico sin peso, no hay nada que confirmar, hay que pesar.
+  const b=evaluatePrescriptionSafety({...base,drugCode:"paracetamol-500",dose:"500mg",frequency:"c/6h",weightKg:undefined,ageYears:6}).barriers.find(x=>x.id==="pediatricDose");
+  expect(b?.status).toBe("BLOCKED");
+  expect(b?.status).not.toBe("PASSED");
+  expect(b?.overridable).toBe(false);
  });
 });
 describe("INV-CORE-0010 — un bloqueo solo se levanta nombrándolo con justificación; los duros nunca",()=>{

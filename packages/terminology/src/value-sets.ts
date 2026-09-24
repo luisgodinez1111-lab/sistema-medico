@@ -36,13 +36,21 @@ export function icd10Key(code:string):string{
  */
 export function icd10Matches(code:string,pattern:string):boolean{
  const c=icd10Key(code),p=icd10Key(pattern);
+ // Un patrón de UNA letra es un CAPÍTULO entero de la CIE-10 (p. ej. «O» = embarazo, parto y puerperio). Se admite
+ // explícitamente porque hay criterios que se definen por capítulo; lo que no se admite es un patrón de 2 caracteres
+ // («I4»), que no corresponde a ningún nivel de la clasificación y emparejaría categorías sin relación clínica.
+ if(p.length===1)return /^[A-Z]$/.test(p)&&c.startsWith(p);
  if(p.length<3)return false; // una categoría CIE-10 tiene 3 caracteres: una letra y dos dígitos
  return c.startsWith(p);
 }
-export type Icd10ValueSet=Readonly<{id:string;criterion:string;codes:readonly string[];note?:string}>;
-/** ¿Alguno de los códigos del paciente pertenece al conjunto? */
+export type Icd10ValueSet=Readonly<{id:string;criterion:string;codes:readonly string[];excludes?:readonly string[];note?:string}>;
+/**
+ * ¿Alguno de los códigos del paciente pertenece al conjunto? `excludes` gana sobre `codes`: hace falta para los
+ * criterios que se definen por capítulo y tienen que recortar un tramo (el embarazo incluye el capítulo O pero NO el
+ * parto ni el puerperio: una mujer con mastitis puerperal ya no está embarazada).
+ */
 export function inValueSet(codes:readonly string[],set:Icd10ValueSet):boolean{
- return codes.some(c=>set.codes.some(p=>icd10Matches(c,p)));
+ return codes.some(c=>set.codes.some(p=>icd10Matches(c,p))&&!(set.excludes??[]).some(p=>icd10Matches(c,p)));
 }
 
 // Conjuntos por criterio. Los códigos son categorías CIE-10 de la OMS (3 caracteres) salvo cuando el criterio exige la
@@ -64,6 +72,17 @@ export const ICD10_VALUE_SETS={
   note:"I70 (aterosclerosis) y los Z95 de revascularización son enfermedad vascular establecida."},
  atrialFibrillation:{id:"VS-AF",criterion:"Contexto de aplicación de CHA₂DS₂-VASc: fibrilación o flutter auricular",
   codes:["I48"]},
+ // Auditoría 2026-09-19, anexo R03 (R03-29): el embarazo y la lactancia NO se derivaban del expediente, así que las
+ // reglas de prescripción del embarazo —que sí existían en el catálogo— no se activaban NUNCA. El expediente no tiene un
+ // campo «embarazada», pero sí la lista de problemas, y la CIE-10 codifica el estado: el capítulo O completo y los
+ // códigos Z33–Z36 (estado gestacional, supervisión del embarazo). Es la fuente honesta disponible hoy.
+ pregnancy:{id:"VS-PREG",criterion:"Factor de prescripción PREGNANCY: embarazo en curso",
+  codes:["O","Z33","Z34","Z35","Z36"],
+  excludes:["O80","O81","O82","O83","O84","O85","O86","O87","O88","O89","O90","O91","O92"],
+  note:"El capítulo O es «embarazo, parto y puerperio»: se toma el tramo gestacional (O00–O48, O60–O75) más Z33–Z36 (estado gestacional y supervisión) y se EXCLUYEN el parto (O80–O84) y el puerperio (O85–O92), donde la paciente ya no está embarazada. Tampoco Z37 (resultado del parto) ni Z39 (puerperio)."},
+ lactation:{id:"VS-LACT",criterion:"Factor de prescripción LACTATION: lactancia materna en curso",
+  codes:["Z39.1","O91","O92"],
+  note:"Z39.1 es «cuidado y examen de la madre lactante»; O91/O92 son trastornos de la mama y de la lactación asociados al puerperio."},
  pneumonia:{id:"VS-PNA",criterion:"Contexto de aplicación de CURB-65: neumonía adquirida en la comunidad",
   codes:["J12","J13","J14","J15","J16","J17","J18"],
   note:"El consumidor debe pasar solo problemas ACTIVOS: una neumonía resuelta no hace aplicable el CURB-65."},
