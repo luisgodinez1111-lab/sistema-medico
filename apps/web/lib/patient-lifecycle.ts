@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldPatient,assertPatientTransition,type FoldedPatient,type PatientStatus}from"../../../packages/patient-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,listPatients,clampLimit,findPatientDuplicate,patientDemographics}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateEvents,listPatients,clampLimit,findPatientDuplicate,patientDemographics,patientBirthDate}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{validateCurp,normalizeCurp,normalizeName,isMinor,CURP_ISSUE_ES}from"../../../packages/mx-identity/src";
@@ -86,6 +86,38 @@ export async function handlePatientDeactivation(req:Request,patientId:string):Pr
 export async function handlePatientReactivation(req:Request,patientId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,patientId);const b=await parseJson(req,WhenBody);
   return await commit(ctx,idempotencyKey,expectedVersion,patientId,folded,"ACTIVE","PATIENT_REACTIVATED",{kind:"REACTIVATED"},b.occurredAt,"patient.reactivated");
+ }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
+
+// Auditoría 2026-09-19, anexo R02a (PAT-03) — DEFUNCIÓN. `DECEASED` era un estado FANTASMA: el fold lo declaraba,
+// `requireRegisteredPatient` lo consumía (409: no se admiten registros clínicos nuevos sobre un paciente fallecido)…
+// y ningún camino de código podía producirlo. Es decir, la protección existía pero era inalcanzable: en la práctica el
+// expediente de una persona fallecida seguía admitiendo notas, recetas y resultados como si estuviera viva.
+//
+// Requisitos que se aplican aquí (y por qué):
+//  · `deceasedAt` es obligatoria y NO puede ser futura: una defunción se registra cuando ya ocurrió (NOM-004-SSA3-2012
+//    numeral 5.10 exige fecha y hora en la documentación clínica).
+//  · No puede ser anterior al nacimiento del paciente, si consta.
+//  · La causa es TEXTO LIBRE OPCIONAL y se guarda tal cual la escribe el médico: el certificado de defunción es un
+//    documento aparte con su propio formato oficial, y este registro no lo sustituye ni pretende codificar la causa.
+//  · `DECEASED` es TERMINAL (la máquina no permite salir). Un registro erróneo se corrige con una ENMIENDA del
+//    expediente, no reviviendo al paciente: eso lo garantiza el fold, no este handler.
+export const DeceasedBody=z.object({
+ deceasedAt:z.string().datetime(),
+ cause:z.string().trim().max(500).optional(),
+ occurredAt:z.string().datetime(),
+});
+export async function handlePatientDeceased(req:Request,patientId:string):Promise<Response>{
+ try{
+  const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,patientId);
+  const b=await parseJson(req,DeceasedBody);
+  const muerte=Date.parse(b.deceasedAt);
+  if(muerte>Date.now()+60_000)throw new ClinicalError("VALIDATION_ERROR","La fecha de defunción no puede estar en el futuro");
+  const nacimiento=await patientBirthDate(ctx,patientId);
+  if(nacimiento&&muerte<Date.parse(nacimiento))
+   throw new ClinicalError("VALIDATION_ERROR","La fecha de defunción no puede ser anterior a la fecha de nacimiento",{conflictReason:"DECEASED_BEFORE_BIRTH"});
+  return await commit(ctx,idempotencyKey,expectedVersion,patientId,folded,"DECEASED","PATIENT_DECEASED",
+   {kind:"DECEASED",deceasedAt:b.deceasedAt,...(b.cause?{cause:b.cause}:{})},b.occurredAt,"patient.deceased");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 

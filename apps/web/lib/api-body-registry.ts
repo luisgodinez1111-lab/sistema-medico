@@ -15,8 +15,8 @@ import{ReasonBody as incident__ReasonBody,ReportBody as incident__ReportBody,Res
 import{HoldBody as medication__HoldBody,ModifyBody as medication__ModifyBody,PrescribeBody as medication__PrescribeBody,ProposeBody as medication__ProposeBody,ResumeBody as medication__ResumeBody,StopBody as medication__StopBody,WhenBody as medication__WhenBody}from"./medication-lifecycle";
 import{CancelBody as obligation__CancelBody,CompleteBody as obligation__CompleteBody,CreateBody as obligation__CreateBody,WhenBody as obligation__WhenBody}from"./obligation-lifecycle";
 import{UpdateBody as office_settings__UpdateBody}from"./office-settings-lifecycle";
-import{CancelBody as order__CancelBody,CreateBody as order__CreateBody,WhenBody as order__WhenBody}from"./order-lifecycle";
-import{AmendBody as patient__AmendBody,RegisterBody as patient__RegisterBody,WhenBody as patient__WhenBody}from"./patient-lifecycle";
+import{CancelBody as order__CancelBody,CreateBody as order__CreateBody,PlaceBody as order__PlaceBody,WhenBody as order__WhenBody}from"./order-lifecycle";
+import{AmendBody as patient__AmendBody,DeceasedBody as patient__DeceasedBody,RegisterBody as patient__RegisterBody,WhenBody as patient__WhenBody}from"./patient-lifecycle";
 import{CredentialsBody as physician_profile__CredentialsBody}from"./physician-profile-lifecycle";
 import{CreateBody as problem__CreateBody,EpistemicBody as problem__EpistemicBody,EvidenceBody as problem__EvidenceBody,ResolveBody as problem__ResolveBody,WhenBody as problem__WhenBody}from"./problem-lifecycle";
 import{CreateBody as referral__CreateBody,ReasonBody as referral__ReasonBody,WhenBody as referral__WhenBody}from"./referral-lifecycle";
@@ -93,10 +93,11 @@ export const API_BODY_SCHEMAS:Readonly<Record<string,ZodType>>={
  "POST /api/v1/orders":order__CreateBody,
  "POST /api/v1/orders/{orderId}/cancellation":order__CancelBody,
  "POST /api/v1/orders/{orderId}/fulfillment":order__WhenBody,
- "POST /api/v1/orders/{orderId}/placement":order__WhenBody,
+ "POST /api/v1/orders/{orderId}/placement":order__PlaceBody,
  "POST /api/v1/patients":patient__RegisterBody,
  "POST /api/v1/patients/{patientId}/amendment":patient__AmendBody,
  "POST /api/v1/patients/{patientId}/deactivation":patient__WhenBody,
+ "POST /api/v1/patients/{patientId}/deceased":patient__DeceasedBody,
  "POST /api/v1/patients/{patientId}/reactivation":patient__WhenBody,
  "POST /api/v1/physician-profile/credentials":physician_profile__CredentialsBody,
  "POST /api/v1/problems":problem__CreateBody,

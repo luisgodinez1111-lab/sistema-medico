@@ -5,7 +5,9 @@ import{ClinicalError}from"../../runtime-errors/src";
 // con CANCELLED desde DRAFT u ORDERED. Autoridad: CAP-ORDER-RESULT-001, PROD-026 (órdenes de servicio).
 export type OrderEventKind="CREATED"|"PLACED"|"FULFILLED"|"CANCELLED";
 export type StoredOrderEvent=Readonly<{sequence:number;payload:Record<string,unknown>}>;
-export type FoldedOrder=Readonly<{exists:boolean;state:OrderState;version:number;patientId:string;orderType:string}>;
+// R02a-ORD-01: la orden lleva URGENCIA y VENCIMIENTO. Sin ellos, una orden colocada sin resultado se quedaba en ORDERED
+// para siempre y nadie podía preguntar «¿qué estudios están retrasados?».
+export type FoldedOrder=Readonly<{exists:boolean;state:OrderState;version:number;patientId:string;orderType:string;priority?:string;dueAt?:string}>;
 
 function kindOf(e:StoredOrderEvent):OrderEventKind{
  const k=e.payload["kind"];
@@ -17,12 +19,16 @@ const KIND_TO_STATE:Record<OrderEventKind,OrderState>={CREATED:"DRAFT",PLACED:"O
 export function foldOrder(events:readonly StoredOrderEvent[]):FoldedOrder{
  if(events.length===0)return{exists:false,state:"DRAFT",version:0,patientId:"",orderType:""};
  const ordered=[...events].sort((a,b)=>a.sequence-b.sequence);
- let state:OrderState="DRAFT",patientId="",orderType="";
+ let state:OrderState="DRAFT",patientId="",orderType="",priority:string|undefined,dueAt:string|undefined;
  for(const e of ordered){
   state=KIND_TO_STATE[kindOf(e)];
   if(kindOf(e)==="CREATED"){patientId=String(e.payload["patientId"]??"");orderType=String(e.payload["orderType"]??"");}
+  // Urgencia y vencimiento pueden declararse al crear y CONFIRMARSE/ajustarse al colocar (el último gana).
+  if(typeof e.payload["priority"]==="string")priority=e.payload["priority"];
+  if(typeof e.payload["dueAt"]==="string")dueAt=e.payload["dueAt"];
  }
- return{exists:true,state,version:ordered[ordered.length-1]!.sequence,patientId,orderType};
+ return{exists:true,state,version:ordered[ordered.length-1]!.sequence,patientId,orderType,
+  ...(priority!==undefined?{priority}:{}),...(dueAt!==undefined?{dueAt}:{})};
 }
 const ALLOWED:Partial<Record<OrderState,readonly OrderState[]>>={
  DRAFT:["ORDERED","CANCELLED"],ORDERED:["FULFILLED","CANCELLED"],

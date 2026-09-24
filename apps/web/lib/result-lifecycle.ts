@@ -9,6 +9,7 @@ import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload,derivedUuid}from"./http-command";
 import{foldObligation}from"../../../packages/obligation-fold/src";
 import{classifyLab,normalizeLabValue,deltaCheck}from"../../../packages/lab-reference/src";
+import{foldOrder}from"../../../packages/order-fold/src";
 // EPIC G — Ciclo de vida del resultado diagnóstico (closed-loop de seguimiento) sobre el kernel.
 // EPIC AQ (profundidad): si se envía analito+valor, el flag `critical` se DERIVA del valor (valores de pánico).
 // RECEIVED -> VERIFIED -> ACTIONED (obligación) -> CLOSED. Un resultado CRÍTICO en ACTIONED sin
@@ -36,6 +37,14 @@ export async function handleResultReceived(req:Request):Promise<Response>{
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,ReceiveBody);
   await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
+  // Auditoría R02a-ORD-01: `orderId` se persistía sin comprobar nada. Un resultado podía declararse contra una orden
+  // INEXISTENTE o, peor, contra la orden de OTRO paciente, y el expediente quedaba con una trazabilidad falsa
+  // («este resultado responde a esta orden») que nadie podía detectar después. Se valida el vínculo: si la orden existe
+  // en el tenant, tiene que ser del mismo paciente. Se admite un `orderId` sin orden registrada porque hay resultados
+  // legítimos sin orden previa en el sistema (traía el paciente un laboratorio externo), pero entonces queda marcado.
+  const ordenVinculada=foldOrder(await readAggregateEvents(ctx,b.orderId));
+  if(ordenVinculada.exists&&ordenVinculada.patientId!==b.patientId)
+   throw new ClinicalError("CONFLICT","La orden declarada es de otro paciente",{conflictReason:"ORDER_PATIENT_MISMATCH"});
   const payload=await interpretForReceive(ctx,b);
   // El Δ vs previo depende de los demás resultados del paciente: estable ante reintentos (ver replayStablePayload).
   const stable=await replayStablePayload(ctx,idempotencyKey,b.resultId,b,()=>payload);
@@ -61,7 +70,7 @@ async function interpretForReceive(ctx:Parameters<typeof runClinicalCommand>[0],
   const delta=prior!==undefined?deltaCheck(b.analyte,prior,current):{flagged:false,severity:"NONE" as const,changeAbs:0,changePct:0,note:""};
   const critical=assessment.critical||delta.flagged;
   const interpretation=delta.flagged?`${assessment.interpretation} · Δ crítico vs previo (${prior}→${b.value}): ${delta.note}`:assessment.interpretation;
-  const payload:Record<string,unknown>={kind:"RECEIVED",patientId:b.patientId,orderId:b.orderId,critical,status:delta.flagged?"CRITICAL":assessment.status,interpretation,analyte:b.analyte,value:b.value};
+  const payload:Record<string,unknown>={kind:"RECEIVED",patientId:b.patientId,orderId:b.orderId,orderLinked:foldOrder(await readAggregateEvents(ctx,b.orderId)).exists,critical,status:delta.flagged?"CRITICAL":assessment.status,interpretation,analyte:b.analyte,value:b.value};
   if(norm.ok){payload["unit"]=b.unit?.trim()||null;payload["canonicalValue"]=norm.canonicalValue;payload["canonicalUnit"]=norm.canonicalUnit;payload["unitAssumed"]=norm.unitAssumed;}
   if(b.specimenId)payload["specimenId"]=b.specimenId;
   if(delta.flagged){payload["deltaFlagged"]=true;payload["deltaSeverity"]=delta.severity;payload["deltaChangeAbs"]=delta.changeAbs;payload["deltaChangePct"]=delta.changePct;payload["priorValue"]=prior;}

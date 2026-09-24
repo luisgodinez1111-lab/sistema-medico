@@ -88,3 +88,33 @@ export function forecastImmunizations(birthDate:string,administered:readonly(str
 export function forecastSummary(doses:readonly ForecastDose[]){
  return{overdue:doses.filter(d=>d.status==="OVERDUE").length,due:doses.filter(d=>d.status==="DUE").length,upcoming:doses.filter(d=>d.status==="UPCOMING").length,complete:doses.filter(d=>d.status==="COMPLETE").length,notApplicable:doses.filter(d=>d.status==="NOT_APPLICABLE").length};
 }
+
+// Auditoría 2026-09-19, anexo R02a (IMM-01) — CATÁLOGO de vacunas y sus COMPONENTES con relevancia alérgica.
+//
+// Dos defectos que cubre: (1) `vaccineCode` era texto libre —"BCG", "bcg", "Bacilo Calmette" y "XYZ" entraban igual, con
+// lo que el esquema de vacunación no podía cruzar nada—; y (2) no existía ningún cruce con las alergias registradas
+// antes de administrar, que es el control más básico de una vacuna.
+//
+// Los componentes son los que la literatura reconoce como causa de reacción de hipersensibilidad y que un expediente
+// puede tener registrados como alergia: huevo (cultivo en embrión de pollo), gelatina (estabilizante), neomicina y otros
+// antibióticos de proceso, levadura (Hepatitis B recombinante), látex (tapón del vial) y proteínas de la propia vacuna.
+// Esta lista es criterio conservador de ingeniería y NO sustituye la ficha técnica del lote que se aplica: por eso el
+// sistema AVISA (no bloquea) y exige que el médico lo confirme, salvo que la alergia registrada sea GRAVE.
+export const VACCINE_CODES:readonly string[]=[...new Set(SCHEDULE.map(e=>e.code))];
+export const isVaccineCode=(code:string):boolean=>VACCINE_CODES.includes(code.trim().toUpperCase());
+/** Componentes con relevancia alérgica por código de vacuna (para cruzar con las alergias registradas del paciente). */
+export const VACCINE_COMPONENTS:Readonly<Record<string,readonly string[]>>={
+ BCG:["neomicina"],
+ HEPB:["levadura","latex"],
+ PENTA:["neomicina","polimixina","latex"],
+ ROTA:["latex"],
+ NEUMO:["latex"],
+ SRP:["huevo","gelatina","neomicina"],       // sarampión-rubéola-parotiditis: cultivo en fibroblasto de embrión de pollo
+ DPT:["neomicina","latex"],
+ TD:["latex"],
+ VPH:["levadura","latex"],
+ INFLUENZA:["huevo","gelatina","latex"],      // cultivo en huevo embrionado
+ NEUMO23:["latex"],
+};
+// Un código del esquema sin componentes declarados no es «sin riesgo»: es «no declarado». Un test lo exige explícito.
+export const vaccineComponents=(code:string):readonly string[]=>VACCINE_COMPONENTS[code.trim().toUpperCase()]??[];

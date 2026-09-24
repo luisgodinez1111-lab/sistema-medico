@@ -208,3 +208,32 @@ export async function officeSettings(ctx:HttpTenantContext):Promise<OfficeSettin
   return{settings:(row.settings as Record<string,unknown>)??{},version:Number(row.version??0)};
  });
 }
+
+// Auditoría R02a-ORD-01 — ÓRDENES VENCIDAS: órdenes colocadas (ORDERED) cuyo vencimiento ya pasó y que no tienen
+// resultado ni cancelación. Es la consulta que faltaba: sin ella, un estudio pedido y nunca resultado no aparecía en
+// ninguna parte. Devuelve el retraso en horas para poder priorizar, y nunca PHI más allá del nombre del paciente (que la
+// clínica ya ve en sus tableros).
+export type OverdueOrderRow=Readonly<{orderId:string;patientId:string;patientName:string;orderType:string;detail:string;priority:string;dueAt:string;hoursOverdue:number}>;
+export async function overdueOrders(ctx:HttpTenantContext,asOfIso:string=new Date().toISOString()):Promise<OverdueOrderRow[]>{
+ return withTenantTx(ctx,async tx=>{
+  const rows=await tx`
+   select a.aggregate_id,
+     a.payload->>'patientId' as pid,
+     a.payload->>'orderType' as order_type,
+     a.payload->>'detail' as detail,
+     (select p.payload->>'priority' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_id=a.aggregate_id and p.payload->>'priority' is not null order by p.sequence desc limit 1) as priority,
+     (select p.payload->>'dueAt' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_id=a.aggregate_id and p.payload->>'dueAt' is not null order by p.sequence desc limit 1) as due_at,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select pt.payload->>'name' from clinical_events pt where pt.tenant_id=${ctx.tenantId} and pt.aggregate_type='Patient' and pt.payload->>'kind'='REGISTERED' and pt.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED'`;
+  const asOf=Date.parse(asOfIso);
+  return rows
+   .filter(r=>String(r["last_kind"]??"")==="PLACED"&&r["due_at"]!=null&&Date.parse(String(r["due_at"]))<asOf)
+   .map(r=>({orderId:String(r["aggregate_id"]),patientId:String(r["pid"]??""),patientName:String(r["patient_name"]??""),
+    orderType:String(r["order_type"]??""),detail:String(r["detail"]??""),priority:String(r["priority"]??"ROUTINE"),
+    dueAt:new Date(String(r["due_at"])).toISOString(),
+    hoursOverdue:Math.floor((asOf-Date.parse(String(r["due_at"])))/3_600_000)}))
+   .sort((a,b)=>b.hoursOverdue-a.hoursOverdue);
+ });
+}

@@ -25,10 +25,14 @@ try{
  await reg(phys,p2,"Carlos Mendoza",56,"MALE");
  await reg(phys,p3,"María Torres",28,"FEMALE");
  // p1: Influenza (se aplica), p2: Influenza (se aplica) + SRP (pendiente), p3: Neumococo (pendiente)
- const f1=await due(phys,p1,"Influenza","1/1");
- const f2=await due(phys,p2,"Influenza","1/1");
+ const f1=await due(phys,p1,"INFLUENZA","1/1");
+ const f2=await due(phys,p2,"INFLUENZA","1/1");
  await due(phys,p2,"SRP","1/2");
- await due(phys,p3,"Neumococo 13V","1/1");
+ await due(phys,p3,"NEUMO","1/1");
+ // R02a-IMM-01: el código de vacuna ya no es texto libre — «Neumococo 13V» no pertenece al esquema y se rechaza.
+ const libre=await imR.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),
+  body:JSON.stringify({immunizationId:crypto.randomUUID(),patientId:p3,vaccineCode:"Neumococo 13V",dose:"1/1",occurredAt:at()})}));
+ ok(libre.status===400,"CODIGO_DE_VACUNA_FUERA_DEL_ESQUEMA_400");
  ok(f1.status===201&&f2.status===201,"DUE_201");
 
  // administrar Influenza de p1 y p2 -> COMPLETE
@@ -41,8 +45,8 @@ try{
  ok(b.appliedCount===2&&b.pendingCount===2,"APPLIED_PENDING_COUNTS");
  ok(b.vaccinatedPatients===2,"VACCINATED_PATIENTS_2");
  ok(b.incompleteSchemes===2,"INCOMPLETE_SCHEMES_2");
- ok(b.byVaccine["Influenza"]===2,"COVERAGE_INFLUENZA_2");
- const inf=b.items.find(i=>i.vaccine==="Influenza"&&i.status==="COMPLETE");
+ ok(b.byVaccine["INFLUENZA"]===2,"COVERAGE_INFLUENZA_2"); // R02a-IMM-01: los códigos se normalizan al vocabulario del esquema
+ const inf=b.items.find(i=>i.vaccine==="INFLUENZA"&&i.status==="COMPLETE");
  ok(!!inf&&inf.statusLabel==="Completa","STATUS_COMPLETA");
  ok(inf?.lot==="A3F2K"||inf?.lot==="L9K4D","LOT_JOINED");
  ok(!!inf?.appliedAt,"APPLIED_DATE_PRESENT");
