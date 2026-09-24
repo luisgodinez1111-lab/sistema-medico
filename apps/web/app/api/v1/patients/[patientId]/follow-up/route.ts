@@ -18,12 +18,12 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"obligation:read",purpose:"TREATMENT"});
-  const[tasks,points,hba1cS,ldlS,allProblems,meds,allergies]=await Promise.all([
+  const[tasks,points,hba1cS,ldlS,problems0,meds,allergies]=await Promise.all([
    patientObligations(tctx,patientId),
    patientVitals(tctx,patientId),
    analyteSeries(tctx,patientId,"HBA1C"),
    analyteSeries(tctx,patientId,"LDL"),
-   problemRegistry(tctx),
+   problemRegistry(tctx,{patientId}), // R06-20: el filtro por paciente viaja en el SQL (antes se leía toda la clínica)
    activeMedicationDrugCodes(tctx,patientId),
    activeAllergySubstances(tctx,patientId),
   ]);
@@ -62,7 +62,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    weight:wFirst!==null&&wLast!==null?{first:wFirst,last:wLast}:null,
    imc:imcS.length?{first:imcS[0]!,last:imcS[imcS.length-1]!}:null,
   };
-  const activeProblems=allProblems.filter(p=>p.patientId===patientId&&(p.status==="ACTIVE"||p.status==="CHRONIC")).length;
+  const activeProblems=problems0.filter(p=>p.status==="ACTIVE"||p.status==="CHRONIC").length;
   return NextResponse.json({
    // Auditoría L-01: cada tarea declara si BLOQUEA la firma del encuentro y por qué (URGENT / OVERDUE / INVALID_DUE_DATE).
    tasks:tasks.map(t=>({obligationId:t.obligationId,task:t.task,dueAt:t.dueAt,status:t.status,statusLabel:OBL_ES[t.status]??"Pendiente",done:t.status==="COMPLETED",priority:t.priority,blocksSignature:t.blocksSignature})),

@@ -8,6 +8,11 @@
 // listados por tenant. Auditoría R01-001: extraído del god-module `clinical-runtime.ts`.
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{withTenantTx}from"./connection";
+// Auditoría R06-20: las piezas de SQL compartidas (filtro por paciente y los LATERAL de transición, nombre y versión)
+// viven en su propio módulo, con la medición que decidió el diseño. Salieron de aquí cuando el guardián de god-module
+// avisó de que este fichero pasaba de 300 líneas: tenía razón, son dos responsabilidades.
+import{type RegistryQuery,porPaciente,nombreDePaciente,ultimaTransicion,versionDelAgregado}from"./read-model-joins";
+export type{RegistryQuery};
 
 // EPIC CM — Agenda del día: citas cuyo startAt cae en [fromIso, toIso), con estado (última transición)
 // y nombre del paciente. RLS-scoped. Auditoría R06-24: la ventana se compara casteando a timestamptz. Antes era una
@@ -19,10 +24,11 @@ export async function agendaForDate(ctx:HttpTenantContext,fromIso:string,toIso:s
   const rows=await tx`
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'startAt' as start_at, a.payload->>'endAt' as end_at,
      a.payload->>'reason' as reason, a.payload->>'consultorio' as consultorio, a.payload->>'apptType' as appt_type,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as status,
-     (select count(*)::int from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id) as version,
-     (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+     lk.kind as status, vr.version as version, pn.name as patient_name
    from clinical_events a
+   ${ultimaTransicion(tx,ctx.tenantId)}
+   ${versionDelAgregado(tx,ctx.tenantId)}
+   ${nombreDePaciente(tx,ctx.tenantId)}
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
      and (a.payload->>'startAt')::timestamptz >= ${fromIso}::timestamptz and (a.payload->>'startAt')::timestamptz < ${toIso}::timestamptz
    order by a.payload->>'startAt' asc`;
@@ -38,15 +44,17 @@ export async function agendaForDate(ctx:HttpTenantContext,fromIso:string,toIso:s
 // paciente. RLS-scoped. El tipo del alérgeno y las gráficas se derivan en la capa de API/UI (classifyAllergen).
 export type AllergyRow=Readonly<{allergyId:string;patientId:string;patientName:string;substance:string;reaction:string;severity:"MILD"|"MODERATE"|"SEVERE";status:"ACTIVE"|"REFUTED"|"INACTIVE";recordedAt:string;registeredBy:string}>;
 const ALLERGY_STATUS:Record<string,"ACTIVE"|"REFUTED"|"INACTIVE">={RECORDED:"ACTIVE",REACTIVATED:"ACTIVE",REFUTED:"REFUTED",INACTIVATED:"INACTIVE"};
-export async function allergyRegistry(ctx:HttpTenantContext):Promise<AllergyRow[]>{
+export async function allergyRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Promise<AllergyRow[]>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'substance' as substance,
      a.payload->>'reaction' as reaction, a.payload->>'severity' as severity, a.recorded_at as recorded_at, a.actor_id as actor_id,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
-     (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+     lk.kind as last_kind, pn.name as patient_name
    from clinical_events a
+   ${ultimaTransicion(tx,ctx.tenantId)}
+   ${nombreDePaciente(tx,ctx.tenantId)}
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Allergy' and a.payload->>'kind'='RECORDED'
+     ${porPaciente(tx,q)}
    order by a.occurred_at desc`;
   return rows.map(r=>{const o=r as Record<string,unknown>;const sev=String(o.severity??"MILD");
    return{
@@ -63,15 +71,17 @@ export async function allergyRegistry(ctx:HttpTenantContext):Promise<AllergyRow[
 // ENTERED_IN_ERROR->INACTIVE; ignora EPISTEMIC/EVIDENCE que no cambian el estado). Une el nombre del paciente.
 export type ProblemRow=Readonly<{problemId:string;patientId:string;patientName:string;code:string;description:string;category:string;status:"ACTIVE"|"CHRONIC"|"RESOLVED"|"INACTIVE";recordedAt:string;registeredBy:string}>;
 const PROBLEM_STATUS:Record<string,"ACTIVE"|"CHRONIC"|"RESOLVED"|"INACTIVE">={ADDED:"ACTIVE",REACTIVATED:"ACTIVE",MARKED_CHRONIC:"CHRONIC",RESOLVED:"RESOLVED",ENTERED_IN_ERROR:"INACTIVE"};
-export async function problemRegistry(ctx:HttpTenantContext):Promise<ProblemRow[]>{
+export async function problemRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Promise<ProblemRow[]>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'code' as code,
      a.payload->>'description' as description, a.payload->>'category' as category, a.recorded_at as recorded_at, a.actor_id as actor_id,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id and c.payload->>'kind' in ('ADDED','REACTIVATED','MARKED_CHRONIC','RESOLVED','ENTERED_IN_ERROR') order by sequence desc limit 1) as last_kind,
-     (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+     lk.kind as last_kind, pn.name as patient_name
    from clinical_events a
+   ${ultimaTransicion(tx,ctx.tenantId,Object.keys(PROBLEM_STATUS))}
+   ${nombreDePaciente(tx,ctx.tenantId)}
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalProblem' and a.payload->>'kind'='ADDED'
+     ${porPaciente(tx,q)}
    order by a.occurred_at desc`;
   return rows.map(r=>{const o=r as Record<string,unknown>;return{
    problemId:String(o.aggregate_id),patientId:String(o.pid??""),patientName:String(o.patient_name??"Paciente"),
@@ -86,19 +96,26 @@ export async function problemRegistry(ctx:HttpTenantContext):Promise<ProblemRow[
 // y el nombre del paciente. RLS-scoped.
 export type ImmunizationRow=Readonly<{immunizationId:string;patientId:string;patientName:string;vaccine:string;dose:string;lot:string;site:string;status:"COMPLETE"|"PENDING"|"REFUSED"|"ADVERSE";appliedAt:string;registeredBy:string}>;
 const IMM_STATUS:Record<string,"COMPLETE"|"PENDING"|"REFUSED"|"ADVERSE">={ADMINISTERED:"COMPLETE",DUE:"PENDING",REFUSED:"REFUSED",ADVERSE_EVENT:"ADVERSE"};
-export async function immunizationRegistry(ctx:HttpTenantContext):Promise<ImmunizationRow[]>{
+export async function immunizationRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Promise<ImmunizationRow[]>{
  return withTenantTx(ctx,async tx=>{
+  // R06-20: aquí estaba el caso extremo. El MISMO evento ADMINISTERED se buscaba CUATRO veces por fila —lote, sitio,
+  // fecha y otra vez la fecha dentro del ORDER BY—, más la última transición y el nombre del paciente: seis subconsultas
+  // correlacionadas por fila. Ahora el evento ADMINISTERED se resuelve una vez en su propia tabla derivada.
   const rows=await tx`
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'vaccineCode' as vaccine,
      a.payload->>'dose' as dose, a.occurred_at as due_at, a.actor_id as actor_id,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
-     (select payload->>'lot' from clinical_events ad where ad.tenant_id=${ctx.tenantId} and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as lot,
-     (select payload->>'site' from clinical_events ad where ad.tenant_id=${ctx.tenantId} and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as site,
-     (select occurred_at from clinical_events ad where ad.tenant_id=${ctx.tenantId} and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as applied_at,
-     (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+     lk.kind as last_kind, ad.lot as lot, ad.site as site, ad.applied_at as applied_at, pn.name as patient_name
    from clinical_events a
+   ${ultimaTransicion(tx,ctx.tenantId)}
+   left join lateral (
+     select e.payload->>'lot' as lot, e.payload->>'site' as site, e.occurred_at as applied_at
+     from clinical_events e
+     where e.tenant_id=${ctx.tenantId} and e.aggregate_id=a.aggregate_id and e.payload->>'kind'='ADMINISTERED'
+     order by e.sequence desc limit 1) ad on true
+   ${nombreDePaciente(tx,ctx.tenantId)}
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Immunization' and a.payload->>'kind'='DUE'
-   order by coalesce((select occurred_at from clinical_events ad where ad.tenant_id=${ctx.tenantId} and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1), a.occurred_at) desc`;
+     ${porPaciente(tx,q)}
+   order by coalesce(ad.applied_at, a.occurred_at) desc`;
   return rows.map(r=>{const o=r as Record<string,unknown>;const applied=o.applied_at??o.due_at;return{
    immunizationId:String(o.aggregate_id),patientId:String(o.pid??""),patientName:String(o.patient_name??"Paciente"),
    vaccine:String(o.vaccine??""),dose:String(o.dose??""),lot:String(o.lot??""),site:String(o.site??""),
@@ -112,15 +129,20 @@ export async function immunizationRegistry(ctx:HttpTenantContext):Promise<Immuni
 // Auditoría L-09: `paidAt` (fecha del evento PAID) permite calcular los ingresos DEL PERIODO; antes se sumaba toda la historia.
 export type ClaimRow=Readonly<{claimId:string;patientId:string;patientName:string;amount:string;currency:string;status:"PENDING"|"PAID"|"REJECTED"|"VOID";recordedAt:string;paidAt:string|null}>;
 const CLAIM_STATUS:Record<string,"PENDING"|"PAID"|"REJECTED"|"VOID">={DRAFTED:"PENDING",CODED:"PENDING",SUBMITTED:"PENDING",PAID:"PAID",REJECTED:"REJECTED",VOIDED:"VOID"};
-export async function claimsRegistry(ctx:HttpTenantContext):Promise<ClaimRow[]>{
+export async function claimsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Promise<ClaimRow[]>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'amount' as amount, a.payload->>'currency' as currency, a.recorded_at as recorded_at,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
-     (select c.occurred_at from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id and c.payload->>'kind'='PAID' order by sequence desc limit 1) as paid_at,
-     (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+     lk.kind as last_kind, pg.paid_at as paid_at, pn.name as patient_name
    from clinical_events a
+   ${ultimaTransicion(tx,ctx.tenantId)}
+   left join lateral (
+     select e.occurred_at as paid_at from clinical_events e
+     where e.tenant_id=${ctx.tenantId} and e.aggregate_id=a.aggregate_id and e.payload->>'kind'='PAID'
+     order by e.sequence desc limit 1) pg on true
+   ${nombreDePaciente(tx,ctx.tenantId)}
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Claim' and a.payload->>'kind'='DRAFTED'
+     ${porPaciente(tx,q)}
    order by a.occurred_at desc`;
   return rows.map(r=>{const o=r as Record<string,unknown>;return{
    claimId:String(o.aggregate_id),patientId:String(o.pid??""),patientName:String(o.patient_name??"Paciente"),
@@ -136,17 +158,25 @@ export async function claimsRegistry(ctx:HttpTenantContext):Promise<ClaimRow[]>{
 // paciente. El estado-UI (Hallazgos/Normal/En seguimiento/En revisión) se deriva. RLS-scoped.
 export type ResultRow=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;critical:boolean;status:string;interpretation:string;lifecycle:"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";receivedAt:string}>;
 const RES_LIFECYCLE:Record<string,"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED">={RECEIVED:"RECEIVED",VERIFIED:"VERIFIED",ACTIONED:"ACTIONED",CLOSED:"CLOSED"};
-export async function resultsRegistry(ctx:HttpTenantContext):Promise<ResultRow[]>{
+export async function resultsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Promise<ResultRow[]>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
      a.payload->>'critical' as critical, a.payload->>'status' as status, a.payload->>'interpretation' as interpretation, a.occurred_at as received_at,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
-     (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+     lk.kind as last_kind, pn.name as patient_name
    from clinical_events a
+   ${ultimaTransicion(tx,ctx.tenantId)}
+   ${nombreDePaciente(tx,ctx.tenantId)}
+   -- R03-10: un resultado ANULADO (paciente equivocado, muestra mal identificada) no aparece en el registro clínico.
+   -- El criterio es «anulado ALGUNA VEZ», no «su última transición es ENTERED_IN_ERROR»: una anotación posterior no
+   -- resucita un resultado anulado. Antes era un NOT EXISTS correlacionado por fila; ahora es una anti-unión que se
+   -- resuelve una vez, con la misma semántica.
+   left join lateral (select 1 as anulado from clinical_events v
+              where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR'
+              limit 1) anul on true
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
-     -- R03-10: un resultado ANULADO (paciente equivocado, muestra mal identificada) no aparece en el registro clínico.
-     and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR')
+     ${porPaciente(tx,q)}
+     and anul.anulado is null
    order by a.occurred_at desc`;
   return rows.map(r=>{const o=r as Record<string,unknown>;return{
    resultId:String(o.aggregate_id),patientId:String(o.pid??""),patientName:String(o.patient_name??"Paciente"),
@@ -161,15 +191,17 @@ export async function resultsRegistry(ctx:HttpTenantContext):Promise<ResultRow[]
 // transición (CREATED->Solicitada, PLACED->Enviada, FULFILLED->Completada, CANCELLED->Cancelada). Une paciente. RLS-scoped.
 export type OrderRow=Readonly<{orderId:string;patientId:string;patientName:string;orderType:string;detail:string;status:"Solicitada"|"Enviada"|"Completada"|"Cancelada";createdAt:string;version:number}>;
 const ORDER_STATUS:Record<string,"Solicitada"|"Enviada"|"Completada"|"Cancelada">={CREATED:"Solicitada",PLACED:"Enviada",FULFILLED:"Completada",CANCELLED:"Cancelada"};
-export async function ordersRegistry(ctx:HttpTenantContext):Promise<OrderRow[]>{
+export async function ordersRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Promise<OrderRow[]>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'orderType' as order_type, a.payload->>'detail' as detail, a.occurred_at as created_at,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
-     (select count(*)::int from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id) as version,
-     (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+     lk.kind as last_kind, vr.version as version, pn.name as patient_name
    from clinical_events a
+   ${ultimaTransicion(tx,ctx.tenantId)}
+   ${versionDelAgregado(tx,ctx.tenantId)}
+   ${nombreDePaciente(tx,ctx.tenantId)}
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED'
+     ${porPaciente(tx,q)}
    order by a.occurred_at desc`;
   return rows.map(r=>{const o=r as Record<string,unknown>;return{
    orderId:String(o.aggregate_id),patientId:String(o.pid??""),patientName:String(o.patient_name??"Paciente"),
@@ -220,20 +252,31 @@ export async function officeSettings(ctx:HttpTenantContext):Promise<OfficeSettin
 export type OverdueOrderRow=Readonly<{orderId:string;patientId:string;patientName:string;orderType:string;detail:string;priority:string;dueAt:string;hoursOverdue:number}>;
 export async function overdueOrders(ctx:HttpTenantContext,asOfIso:string=new Date().toISOString()):Promise<OverdueOrderRow[]>{
  return withTenantTx(ctx,async tx=>{
+  // R06-20: esta consulta leía TODAS las órdenes creadas de la clínica —con cuatro subconsultas correlacionadas por
+  // fila— y después filtraba en memoria las vencidas. El filtro (colocada y con vencimiento pasado) es exactamente
+  // expresable en SQL, así que la base devuelve solo las vencidas. `priority` y `dueAt` se resuelven en UNA pasada por
+  // agregado con `array_agg ... filter`, que conserva la semántica anterior: el último evento que TRAE ese campo (no el
+  // último evento, que puede no traerlo). El casteo a timestamptz es seguro porque el escritor valida
+  // `z.string().datetime()` y el valor derivado sale de `toISOString()` (misma garantía que usa R06-24).
   const rows=await tx`
    select a.aggregate_id,
      a.payload->>'patientId' as pid,
      a.payload->>'orderType' as order_type,
      a.payload->>'detail' as detail,
-     (select p.payload->>'priority' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_id=a.aggregate_id and p.payload->>'priority' is not null order by p.sequence desc limit 1) as priority,
-     (select p.payload->>'dueAt' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_id=a.aggregate_id and p.payload->>'dueAt' is not null order by p.sequence desc limit 1) as due_at,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
-     (select pt.payload->>'name' from clinical_events pt where pt.tenant_id=${ctx.tenantId} and pt.aggregate_type='Patient' and pt.payload->>'kind'='REGISTERED' and pt.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+     attr.priority as priority, attr.due_at as due_at, pn.name as patient_name
    from clinical_events a
-   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED'`;
+   ${ultimaTransicion(tx,ctx.tenantId)}
+   left join lateral (
+     select (array_agg(e.payload->>'priority' order by e.sequence desc) filter (where e.payload->>'priority' is not null))[1] as priority,
+            (array_agg(e.payload->>'dueAt'    order by e.sequence desc) filter (where e.payload->>'dueAt'    is not null))[1] as due_at
+     from clinical_events e
+     where e.tenant_id=${ctx.tenantId} and e.aggregate_id=a.aggregate_id) attr on true
+   ${nombreDePaciente(tx,ctx.tenantId)}
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED'
+     and lk.kind='PLACED'
+     and attr.due_at is not null and (attr.due_at)::timestamptz < ${asOfIso}::timestamptz`;
   const asOf=Date.parse(asOfIso);
   return rows
-   .filter(r=>String(r["last_kind"]??"")==="PLACED"&&r["due_at"]!=null&&Date.parse(String(r["due_at"]))<asOf)
    .map(r=>({orderId:String(r["aggregate_id"]),patientId:String(r["pid"]??""),patientName:String(r["patient_name"]??""),
     orderType:String(r["order_type"]??""),detail:String(r["detail"]??""),priority:String(r["priority"]??"ROUTINE"),
     dueAt:new Date(String(r["due_at"])).toISOString(),

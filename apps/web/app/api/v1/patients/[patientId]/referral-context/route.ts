@@ -18,14 +18,14 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"referral:read",purpose:"TREATMENT"});
-  const[allProblems,medCodes,allergies,hba1c,vitals]=await Promise.all([
-   problemRegistry(tctx),
+  const[problems0,medCodes,allergies,hba1c,vitals]=await Promise.all([
+   problemRegistry(tctx,{patientId}), // R06-20: el filtro por paciente viaja en el SQL (antes se leía toda la clínica)
    activeMedicationDrugCodes(tctx,patientId),
    activeAllergySubstances(tctx,patientId),
    latestAnalyteReading(tctx,patientId,"HBA1C"),
    patientVitals(tctx,patientId),
   ]);
-  const problems=allProblems.filter(p=>p.patientId===patientId&&(p.status==="ACTIVE"||p.status==="CHRONIC")).map(p=>({code:p.code,description:p.description}));
+  const problems=problems0.filter(p=>p.status==="ACTIVE"||p.status==="CHRONIC").map(p=>({code:p.code,description:p.description}));
   const medications=[...new Set(medCodes.map(c=>{const d=resolveDrug(c);return d?d.ingredient:c;}))];
   const points=vitals as VitalPoint[];
   const bp=latestOf(points,"BP"),hr=latestOf(points,"HR"),weight=latestOf(points,"WEIGHT"),height=latestOf(points,"HEIGHT"),heightUnit=latestUnitOf(points,"HEIGHT");

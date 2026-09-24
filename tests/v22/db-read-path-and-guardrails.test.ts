@@ -229,6 +229,44 @@ describe("el restore drill verifica lo que promete (R06-17)",()=>{
   expect(restoreErrors({schemaHash:"a",expectedSchemaHash:"a",auditValid:true,rlsPass:true,replayHash:"x",liveHash:"x",obligationsMatch:true,nonRepoTablesLost:["patient"]}))
    .toContain("NON_REPO_TABLES_LOST:patient");
  });
+ it("los read-models de clínica no vuelven a resolver atributos con una subconsulta por fila (R06-20)",()=>{
+  // Medido en una base desechable (900 pacientes, 9 000 problemas): 72 389 buffers para 9 000 filas, con dos escaneos de
+  // índice POR FILA. Con LATERAL sobre un conjunto acotado, 106 para las diez filas de un paciente. La invariante que se
+  // fija aquí es estructural: en `registries.ts` no puede volver a aparecer una subconsulta correlacionada en el SELECT.
+  const reg=fs.readFileSync("apps/web/lib/runtime/registries.ts","utf8");
+  const correlacionadas=[...reg.matchAll(/\(select [^)]*from clinical_events \w+ where[^)]*aggregate_id=a\.aggregate_id/gi)].map(m=>m[0].slice(0,70));
+  expect(correlacionadas,"subconsulta correlacionada por fila: use un LATERAL de read-model-joins").toEqual([]);
+  expect(reg,"los LATERAL compartidos viven en su propio módulo").toContain("./read-model-joins");
+ });
+ it("y el filtro por paciente compara TEXTO, que es lo que indexa 0019 (R06-20)",()=>{
+  // No es estilo: el índice de 0019 es (tenant_id, (payload->>'patientId'), aggregate_type), una expresión de TEXTO.
+  // Escrito con `::uuid`, la expresión deja de coincidir con la indexada y el plan vuelve a escanear el tenant entero:
+  // 386 buffers para devolver diez filas, medido. El resto del runtime ya comparaba texto; esto lo fija.
+  const joins=fs.readFileSync("apps/web/lib/runtime/read-model-joins.ts","utf8");
+  const filtro=/export const porPaciente=[\s\S]*?;\n/.exec(joins)?.[0]??"";
+  expect(filtro,"no se encontró el filtro por paciente").not.toBe("");
+  expect(filtro).toContain("a.payload->>'patientId'=$");
+  expect(/patientId'\)::uuid/.test(filtro),"el casteo a uuid inutiliza el índice de 0019").toBe(false);
+ });
+ it("y las rutas de UN paciente piden el registro acotado, no toda la clínica (R06-20)",()=>{
+  // Cuatro rutas leían el registro completo y filtraban en memoria: para el plan de cuidado de un paciente se leían los
+  // problemas de todos. El guardarraíl exige el filtro en la llamada y prohíbe el filtro en JS que lo sustituía.
+  for(const r of["care-plan","referral-context","follow-up","consultation-tabs"]){
+   const src=fs.readFileSync(`apps/web/app/api/v1/patients/[patientId]/${r}/route.ts`,"utf8");
+   expect(src,`${r}: el registro debe pedirse acotado al paciente`).toMatch(/Registry\(tctx,\{patientId\}\)/);
+   expect(/\.filter\(\w+=>\w+\.patientId===patientId/.test(src),`${r}: filtro por paciente en JS sobre el registro completo`).toBe(false);
+  }
+ });
+ it("y existe la prueba en vivo que descarta la fuga entre pacientes del mismo tenant (R06-20)",()=>{
+  // Mover un filtro de JS al SQL puede dejar de filtrar sin que nada lo note, y eso no es lentitud: es un expediente
+  // ajeno en la pantalla. Por eso la invariante se ejercita con dos pacientes reales en el mismo tenant.
+  const p="scripts/v22/live-registry-scope-proof.mts";
+  expect(fs.existsSync(p)).toBe(true);
+  const src=fs.readFileSync(p,"utf8");
+  expect(src).toMatch(/NINGUNA fila de otro paciente/);
+  for(const reg of["allergyRegistry","problemRegistry","resultsRegistry","ordersRegistry","immunizationRegistry","claimsRegistry"])
+   expect(src,`la prueba debe cubrir ${reg}`).toContain(reg);
+ });
  it("el gate del drill se EJECUTA: hay una prueba en vivo que lo corre contra dos bases desechables",()=>{
   // El hallazgo de fondo de R06-F12: el runbook declaraba restoreErrors() como criterio de aceptación y nada lo invocaba.
   // El smoke descubre `live-*-proof.mts` por disco, así que con este fichero el drill entra en el gate por sí solo.

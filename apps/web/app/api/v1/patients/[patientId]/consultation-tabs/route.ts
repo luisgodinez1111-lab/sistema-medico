@@ -19,17 +19,17 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
-  const[allResults,allOrders,medCodes,goals,docs,obls]=await Promise.all([
-   resultsRegistry(tctx),
-   ordersRegistry(tctx),
+  const[results0,orders0,medCodes,goals,docs,obls]=await Promise.all([
+   resultsRegistry(tctx,{patientId}), // R06-20: el filtro por paciente viaja en el SQL (antes se leían los de toda la clínica)
+   ordersRegistry(tctx,{patientId}),
    activeMedicationDrugCodes(tctx,patientId),
    carePlanGoals(tctx,patientId),
    patientDocuments(tctx,patientId),
    patientObligations(tctx,patientId),
   ]);
-  const results=allResults.filter(r=>r.patientId===patientId).map(r=>{const estado=r.critical||ABNORMAL.has(r.status.toUpperCase())?"Hallazgos":r.lifecycle==="ACTIONED"?"En seguimiento":r.lifecycle==="RECEIVED"?"En revisión":"Normal";
+  const results=results0.map(r=>{const estado=r.critical||ABNORMAL.has(r.status.toUpperCase())?"Hallazgos":r.lifecycle==="ACTIONED"?"En seguimiento":r.lifecycle==="RECEIVED"?"En revisión":"Normal";
    return{analyte:r.analyte,value:r.value,estado,critical:r.critical,receivedAt:r.receivedAt};});
-  const orders=allOrders.filter(o=>o.patientId===patientId).map(o=>({typeLabel:OTYPE[o.orderType]??"Otro",detail:o.detail,status:o.status,createdAt:o.createdAt}));
+  const orders=orders0.map(o=>({typeLabel:OTYPE[o.orderType]??"Otro",detail:o.detail,status:o.status,createdAt:o.createdAt}));
   const medications=[...new Set(medCodes.map(c=>{const dd=resolveDrug(c);return dd?dd.ingredient:c;}))];
   return NextResponse.json({
    results,orders,medications,

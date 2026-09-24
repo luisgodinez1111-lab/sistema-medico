@@ -60,7 +60,11 @@ describe("SLA de la orden clínica (R02a-ORD-01)",()=>{
   const src=fs.readFileSync("apps/web/lib/runtime/registries.ts","utf8");
   expect(src).toContain("export async function overdueOrders");
   expect(src).toMatch(/hoursOverdue/);
-  expect(src).toMatch(/last_kind[^\n]*==="PLACED"/); // solo las colocadas, no las cumplidas ni canceladas
+  // Auditoría R06-20: el filtro estaba en JS —`last_kind==="PLACED"` sobre TODAS las órdenes creadas de la clínica, cada
+  // una con cuatro subconsultas correlacionadas—. Ahora la base devuelve solo las vencidas. La invariante es la misma
+  // (solo las colocadas, no las cumplidas ni las canceladas), exigida donde ahora vive: en la consulta.
+  expect(src,"solo las colocadas: el filtro tiene que estar en el SQL").toMatch(/and lk\.kind='PLACED'/);
+  expect(src,"y el vencimiento comparado como fecha, no como texto").toMatch(/\(attr\.due_at\)::timestamptz\s*</);
  });
  it("el resultado valida la orden que declara y marca si estaba vinculada",()=>{
   const src=fs.readFileSync("apps/web/lib/result-lifecycle.ts","utf8");
