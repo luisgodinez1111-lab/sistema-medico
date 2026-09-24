@@ -10,6 +10,8 @@ import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload}from"./http-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
 import{deterministicUuid}from"../../../packages/canonical-json/src";
+import{signedPayload}from"./clinical-signature";
+import{foldEncounter}from"../../../packages/encounter-fold/src";
 // EPIC I — Ciclo de vida del documento clínico sobre el kernel. Autoridad PROD-014-R022 /
 // PROD-022-R018: la firma produce un snapshot reproducible (contentHash) y las correcciones son
 // addendum/amendment APPEND-ONLY; nunca se borra el historial. Physician Control: solo un médico
@@ -19,7 +21,10 @@ import{deterministicUuid}from"../../../packages/canonical-json/src";
 const AGG="ClinicalDocument";
 type Claims={sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string};
 
-export const CreateBody=z.object({documentId:z.string().uuid(),patientId:z.string().uuid(),encounterId:z.string().uuid().optional(),docType:z.enum(["PROGRESS_NOTE","DISCHARGE_SUMMARY","REFERRAL","PROCEDURE_NOTE","OTHER"]),title:z.string().min(1),content:z.string().min(1),occurredAt:z.string().datetime()});
+export const CreateBody=z.object({documentId:z.string().uuid(),patientId:z.string().uuid(),encounterId:z.string().uuid().optional(),docType:z.enum(["PROGRESS_NOTE","DISCHARGE_SUMMARY","REFERRAL","PROCEDURE_NOTE","OTHER"]),title:z.string().trim().min(1,"El título no puede estar vacío").max(300),
+ // R02a-ENC-04 (mismo defecto que en el encuentro): " " pasaba como contenido de un documento clínico firmable.
+ content:z.string().trim().min(1,"El contenido no puede estar vacío").max(200_000),
+ occurredAt:z.string().datetime()});
 // CREATE = borrador (draft). Cualquier clínico con scope document:write.
 // NO es el registro firmado. Draft save != signature (EXEC-0009).
 export async function handleDocumentCreate(req:Request):Promise<Response>{
@@ -30,6 +35,15 @@ export async function handleDocumentCreate(req:Request):Promise<Response>{
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);
   await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
+  // R02a-DOC-03: `encounterId` era un uuid opcional que NADIE validaba: un documento podía declarar pertenecer a un
+  // encuentro inexistente o —peor— al encuentro de OTRO paciente, y el expediente quedaba con un vínculo falso. Si se
+  // declara, tiene que existir y ser del mismo paciente. Sigue siendo opcional porque hay documentos legítimos sin
+  // encuentro (un consentimiento, una referencia externa), pero un vínculo declarado ya no puede ser mentira.
+  if(b.encounterId!==undefined){
+   const enc=foldEncounter(await readAggregateEvents(ctx,b.encounterId));
+   if(!enc.exists)throw new ClinicalError("NOT_FOUND","El encuentro declarado no existe en este tenant",{resourceType:"Encounter"});
+   if(enc.patientId!==b.patientId)throw new ClinicalError("CONFLICT","El encuentro declarado es de otro paciente",{conflictReason:"ENCOUNTER_PATIENT_MISMATCH"});
+  }
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.documentId,expectedVersion:0,eventType:"DOCUMENT_CREATED",payload:{kind:"CREATED",patientId:b.patientId,encounterId:b.encounterId,docType:b.docType,title:b.title,content:b.content},occurredAt:b.occurredAt,topic:"document.created"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
@@ -94,10 +108,11 @@ export async function handleDocumentSignature(req:Request,documentId:string):Pro
   const cred=await physicianCredentials(ctx,claims); // L-05: identidad legal del firmante
   // Auditoría L-02: la hora de firma es la del SERVIDOR (la del cliente queda solo como dato forense). Auditoría L-03: el
   // cliente declara la huella del contenido que MUESTRA; si no coincide con lo persistido, no se firma.
-  const payload=await replayStablePayload(ctx,idempotencyKey,documentId,b,()=>{
-   const signedAt=new Date().toISOString();
-   return{kind:"SIGNED",authorId:claims.sub,signer:cred?{fullName:cred.fullName,cedulaProfesional:cred.cedulaProfesional}:undefined,contentHash,signedAt,signedAtSource:"SERVER",clientOccurredAt:b.occurredAt,signedVersion:expectedVersion,
-    signatureDigest:crypto.createHash("sha256").update(`${documentId}:${expectedVersion}:${contentHash}:${claims.sub}:${signedAt}`).digest("hex")};});
+  // R02a-DOC-02: mismo sello que el encuentro, construido en `clinical-signature` (antes eran dos copias divergentes) e
+  // incluyendo la identidad legal del firmante dentro del hash.
+  const payload=await replayStablePayload(ctx,idempotencyKey,documentId,b,()=>signedPayload({
+   aggregateId:documentId,signedVersion:expectedVersion,contentHash,subject:claims.sub,
+   signedAt:new Date().toISOString(),...(cred?{signer:cred}:{}),clientOccurredAt:b.occurredAt}));
   const signedAt=String(payload["signedAt"]);const signatureDigest=String(payload["signatureDigest"]);
   return await commit(ctx,idempotencyKey,expectedVersion,documentId,folded,"SIGNED","DOCUMENT_SIGNED",payload,signedAt,"document.signed",{signatureDigest,contentHash,signedAt},
    ()=>{if(b.contentHash!==contentHash)throw new ClinicalError("CONFLICT","El contenido en pantalla no coincide con el documento guardado (SIGNED_CONTENT_MISMATCH). Recargue el documento y revíselo antes de firmar.");

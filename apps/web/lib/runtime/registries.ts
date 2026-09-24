@@ -1,4 +1,10 @@
-// Read-models de TODA la clínica (tableros por estado). No identifican un episodio concreto: son recuentos y
+// Read-models de TODA la clínica (tableros por estado).
+//
+// Auditoría R02a-ENC-01: estas consultas seleccionaban la columna del hecho con el ALIAS de la columna de registro, es
+// decir presentaban como «fecha de registro» la hora que declaró el CLIENTE. Son dos cosas distintas y el expediente
+// necesita ambas: `occurred_at` es
+// cuándo ocurrió el hecho clínico (lo dice quien lo captura) y `recorded_at` es cuándo lo registró el sistema (reloj del
+// servidor, `DEFAULT now()` en 0001_core.sql). Un reloj de cliente desajustado podía fechar un registro en el pasado. No identifican un episodio concreto: son recuentos y
 // listados por tenant. Auditoría R01-001: extraído del god-module `clinical-runtime.ts`.
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{withTenantTx}from"./connection";
@@ -34,7 +40,7 @@ export async function allergyRegistry(ctx:HttpTenantContext):Promise<AllergyRow[
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'substance' as substance,
-     a.payload->>'reaction' as reaction, a.payload->>'severity' as severity, a.occurred_at as recorded_at, a.actor_id as actor_id,
+     a.payload->>'reaction' as reaction, a.payload->>'severity' as severity, a.recorded_at as recorded_at, a.actor_id as actor_id,
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
      (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
    from clinical_events a
@@ -59,7 +65,7 @@ export async function problemRegistry(ctx:HttpTenantContext):Promise<ProblemRow[
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'code' as code,
-     a.payload->>'description' as description, a.payload->>'category' as category, a.occurred_at as recorded_at, a.actor_id as actor_id,
+     a.payload->>'description' as description, a.payload->>'category' as category, a.recorded_at as recorded_at, a.actor_id as actor_id,
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id and c.payload->>'kind' in ('ADDED','REACTIVATED','MARKED_CHRONIC','RESOLVED','ENTERED_IN_ERROR') order by sequence desc limit 1) as last_kind,
      (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
    from clinical_events a
@@ -107,7 +113,7 @@ const CLAIM_STATUS:Record<string,"PENDING"|"PAID"|"REJECTED"|"VOID">={DRAFTED:"P
 export async function claimsRegistry(ctx:HttpTenantContext):Promise<ClaimRow[]>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
-   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'amount' as amount, a.payload->>'currency' as currency, a.occurred_at as recorded_at,
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'amount' as amount, a.payload->>'currency' as currency, a.recorded_at as recorded_at,
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
      (select c.occurred_at from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id and c.payload->>'kind'='PAID' order by sequence desc limit 1) as paid_at,
      (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name

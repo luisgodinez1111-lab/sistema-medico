@@ -10,6 +10,7 @@ import{runClinicalCommand,lookupReplay,readEncounterEvents,blockingObligations,c
 import{toHttpError}from"./http-errors";
 import{readerFor,replayStablePayload,derivedUuid}from"./http-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
+import{signedPayload}from"./clinical-signature";
 // EPIC D — Ciclo de vida del encuentro sobre el kernel probado: assess (OPEN->READY_TO_SIGN)
 // y sign (READY_TO_SIGN->SIGNED). Concurrencia optimista real (If-Match=version) e invariantes
 // V2: Physician Control (solo un médico humano firma) y Zero Lost Follow-Up (no firmar con
@@ -29,7 +30,18 @@ function requireHeaders(req:Request){
  return{idempotencyKey,expectedVersion};
 }
 
-const AssessBody=z.object({assessment:z.string().min(1),plan:z.string().min(1),occurredAt:z.string().datetime()});
+// R02a-ENC-04: `z.string().min(1)` aceptaba " " (un espacio) como valoración y plan de una nota que luego se FIRMA, y no
+// tenía cota superior (un pegado accidental de megabytes entraba al evento). `trim()` antes de medir, mínimo real y
+// máximo generoso pero finito. Los límites son de ingeniería —caben notas largas de verdad— y la validación devuelve 400.
+const CLINICAL_TEXT_MAX=20_000; // ~6 páginas por campo: por encima de eso es un pegado accidental, no una nota
+// El mínimo es «no vacío tras recortar», no una longitud clínica: cuánto texto constituye una valoración suficiente es
+// criterio del médico (y la UI puede exigir más), no algo que deba decidir el validador del borde HTTP. Lo que sí es un
+// defecto y aquí se corta: que " " pasara como valoración de una nota que después se firma.
+const AssessBody=z.object({
+ assessment:z.string().trim().min(1,"La valoración no puede estar vacía").max(CLINICAL_TEXT_MAX),
+ plan:z.string().trim().min(1,"El plan no puede estar vacío").max(CLINICAL_TEXT_MAX),
+ occurredAt:z.string().datetime(),
+});
 // Auditoría L-03 — `contentHash`: huella (sha256 hex de `${assessment}\n${plan}`) del texto QUE EL MÉDICO TIENE EN PANTALLA al
 // firmar. El servidor la compara con la del contenido persistido: si difieren, lo que se firmaría no es lo que el médico ve.
 const SignBody=z.object({occurredAt:z.string().datetime(),contentHash:z.string().regex(/^[0-9a-f]{64}$/,"contentHash must be a sha256 hex digest")});
@@ -88,10 +100,11 @@ export async function handleSignature(req:Request,encounterId:string):Promise<Re
   // cliente manipulado) fechaba una nota médico-legal en el pasado o en el futuro, y esa hora entraba en el sello. La hora
   // del cliente se conserva solo como dato forense. Estable ante reintentos (ver replayStablePayload).
   // Physician Control: la firma la produce el médico humano autenticado (claims.sub), nunca IA.
-  const payload=await replayStablePayload(ctx,idempotencyKey,encounterId,parsed.data,()=>{
-   const signedAt=new Date().toISOString();
-   return{kind:"SIGNED",authorId:claims.sub,signer:cred?{fullName:cred.fullName,cedulaProfesional:cred.cedulaProfesional}:undefined,contentHash,signedAt,signedAtSource:"SERVER",clientOccurredAt:parsed.data.occurredAt,signedVersion:expectedVersion,
-    signatureDigest:crypto.createHash("sha256").update(`${encounterId}:${expectedVersion}:${contentHash}:${claims.sub}:${signedAt}`).digest("hex")};});
+  // R02a-ENC-02: el sello lo construye `clinical-signature` (un solo sitio) e INCLUYE la identidad legal del firmante
+  // —nombre y cédula—, que antes viajaba en el payload pero fuera del hash.
+  const payload=await replayStablePayload(ctx,idempotencyKey,encounterId,parsed.data,()=>signedPayload({
+   aggregateId:encounterId,signedVersion:expectedVersion,contentHash,subject:claims.sub,
+   signedAt:new Date().toISOString(),...(cred?{signer:cred}:{}),clientOccurredAt:parsed.data.occurredAt}));
   const signedAt=String(payload["signedAt"]);const signatureDigest=String(payload["signatureDigest"]);
   const cmd=baseCommand(idempotencyKey,encounterId,expectedVersion,"ENCOUNTER_SIGNED",payload,signedAt,"encounter.signed");
   let result=await lookupReplay(ctx,cmd);

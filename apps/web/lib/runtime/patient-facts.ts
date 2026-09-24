@@ -189,7 +189,7 @@ const CAREPLAN_STATUS:Record<string,"PROPOSED"|"ACTIVE"|"ON_HOLD"|"ACHIEVED"|"CA
 export async function carePlanGoals(ctx:HttpTenantContext,patientId:string):Promise<CarePlanGoal[]>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
-   select a.aggregate_id, a.payload->>'category' as category, a.payload->>'goal' as goal, a.occurred_at as recorded_at,
+   select a.aggregate_id, a.payload->>'category' as category, a.payload->>'goal' as goal, a.recorded_at as recorded_at,
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='CarePlan' and a.payload->>'kind'='PROPOSED' and a.payload->>'patientId'=${patientId}

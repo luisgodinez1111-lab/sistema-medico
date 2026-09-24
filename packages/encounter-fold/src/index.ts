@@ -1,4 +1,4 @@
-import{type EncounterState,transitionEncounter}from"../../encounter-domain/src";
+import{type EncounterState,transitionEncounter,ENCOUNTER_INITIAL}from"../../encounter-domain/src";
 import{ClinicalError}from"../../runtime-errors/src";
 // EPIC D — Fold puro del stream de eventos de un encuentro -> estado actual.
 // El kernel NO persiste el tipo de evento como columna (solo aggregate_type + payload), así que
@@ -14,9 +14,11 @@ function kindOf(e:StoredEncounterEvent):EncounterEventKind{
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown encounter event at sequence ${e.sequence}`);
 }
 export function foldEncounter(events:readonly StoredEncounterEvent[]):FoldedEncounter{
- if(events.length===0)return{exists:false,status:"PLANNED",version:0,patientId:""};
+ // R02a-ENC-03: sin eventos el agregado NO EXISTE (`exists:false`); el estado que se devuelve es el inicial, y quien lo
+ // recibe debe mirar `exists`, no el estado. Antes se devolvía "PLANNED", un estado que ningún evento podía producir.
+ if(events.length===0)return{exists:false,status:ENCOUNTER_INITIAL,version:0,patientId:""};
  const ordered=[...events].sort((a,b)=>a.sequence-b.sequence);
- let status:EncounterState="PLANNED";
+ let status:EncounterState=ENCOUNTER_INITIAL;
  let patientId="",assessment:string|undefined,plan:string|undefined;
  for(const e of ordered){
   switch(kindOf(e)){
