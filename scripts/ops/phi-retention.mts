@@ -4,13 +4,14 @@
 // las decisiones de ADR-0280 y quedará detrás de `--purge --yes` + PHI_PURGE_ALLOW=1 cuando se implemente.
 // Uso: DATABASE_URL=<propietario> pnpm phi:retention --tenant <uuid> [--years 5] [--json]
 import{parseArgs}from"node:util";
+import{directEndpoint}from"../../packages/pg-endpoint/src";
 const{values:a}=parseArgs({args:process.argv.slice(2).filter(a=>a!=="--"),options:{tenant:{type:"string"},years:{type:"string",default:"5"},json:{type:"boolean",default:false},purge:{type:"boolean",default:false}}});
 if(a.purge){console.error("La purga física no está implementada: requiere las decisiones de docs/adr/ADR-0280-retencion-y-borrado-de-phi.md (criptoborrado vs. purga, plazos, ARCO).");process.exit(2);}
 if(!a.tenant||!/^[0-9a-f-]{36}$/i.test(a.tenant)){console.error("Uso: pnpm phi:retention --tenant <uuid> [--years 5] [--json]");process.exit(2);}
 const url=process.env.DATABASE_URL;if(!url){console.error("DATABASE_URL requerida (rol propietario, solo lectura en este informe)");process.exit(2);}
 const years=Number(a.years);if(!Number.isFinite(years)||years<5){console.error("--years no puede ser menor que 5 (NOM-004-SSA3-2012, 5.4)");process.exit(2);}
 const{default:postgres}=await import("postgres");
-const sql=postgres(url.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,""),{max:1,prepare:false,onnotice:()=>{}});
+const sql=postgres(directEndpoint(url),{max:1,prepare:false,onnotice:()=>{}});
 try{
  const rows=await sql`
   with pacientes as (

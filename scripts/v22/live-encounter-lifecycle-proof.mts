@@ -1,6 +1,7 @@
 // EPIC D — Evidencia física del ciclo de vida del encuentro (open -> assess -> sign) contra Neon.
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-encounter-lifecycle-proof.mts
 import crypto from"node:crypto";
+import{directEndpoint}from"../../packages/pg-endpoint/src";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
@@ -29,7 +30,7 @@ const OP=(id:string)=>({params:Promise.resolve({obligationId:id})});
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
 function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 
-const raw=process.env.DATABASE_URL.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,"");
+const raw=directEndpoint(process.env.DATABASE_URL??"");
 const sql=postgres(raw,{max:2,prepare:false,onnotice:()=>{}});
 try{
  const physA=tok(TENANT_A,["PHYSICIAN"]);await registerPhysicianCredentials(physA);

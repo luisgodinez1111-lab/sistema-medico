@@ -7,6 +7,7 @@ import{ClinicalError}from"../../runtime-errors/src";
 // Fail-closed: cualquier ausencia/expiración/manipulación => UNAUTHENTICATED.
 // Autoridad: EXEC-0003 (no frontend authz) — la verificación es 100% server-side.
 import{type ActorType}from"../../tenant-context/src";
+import{uuidFromDigest}from"../../canonical-json/src";
 // `actorType`: HUMAN para toda sesión verificada por el IdP. El gateway de IA (no cableado, R6 en pausa) y los trabajos
 // del sistema deben construir su propio contexto con AI / SYSTEM: nunca heredan el HUMAN de la sesión (auditoría S-06).
 export type HttpTenantContext=Readonly<{tenantId:string;actorId:string;actorType:ActorType;purpose:string;requestId:string}>;
@@ -14,9 +15,10 @@ export type HttpTenantContext=Readonly<{tenantId:string;actorId:string;actorType
 // Las columnas actor_id de la BD son uuid, así que el actorId clínico es un UUID DETERMINISTA
 // derivado del subject (estable por usuario). El subject crudo se conserva en las claims para
 // trazabilidad legible.
+// R01-015: el actorId es un UUID DERIVADO del sujeto OIDC (mismo sujeto ⇒ mismo actor, sin guardar el sujeto en claro),
+// emitido como UUID válido (versión 8, variante RFC 9562) y no como un corte crudo del sha256.
 export function subjectToActorId(subject:string):string{
- const h=crypto.createHash("sha256").update("medical-os:actor:"+subject).digest("hex");
- return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;
+ return uuidFromDigest(crypto.createHash("sha256").update("medical-os:actor:"+subject).digest("hex"));
 }
 export type ResolvedPrincipal=Readonly<{claims:SessionClaims;principal:Principal;ctx:HttpTenantContext}>;
 export type HeaderReader=(name:string)=>string|null|undefined;

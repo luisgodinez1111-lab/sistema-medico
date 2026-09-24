@@ -4,8 +4,8 @@
 // fórmula y jamás habría verificado una cadena real. Además comprueba, con el rol de la aplicación, que la cadena es
 // append-only (no se puede alterar ni borrar una entrada) y que la verificación respeta el aislamiento por tenant.
 import crypto from"node:crypto";
+import{directEndpoint as direct}from"../../packages/pg-endpoint/src";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const direct=(u:string)=>u.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,"");
 const RUNTIME_ROLE="medical_os_runtime";
 const{default:postgres}=await import("postgres");
 const{executeAtomicClinicalCommand}=await import("../../packages/atomic-clinical-transaction-v3/src");

@@ -3,16 +3,17 @@ import{type z}from"zod";
 import{resolvePrincipal}from"../../../packages/http-principal/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
-import{canonicalize}from"../../../packages/canonical-json/src";
+import{canonicalize,uuidFromDigest}from"../../../packages/canonical-json/src";
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
 import{sessionSecret,readEventPayloadById}from"./clinical-runtime";
 // EPIC D/G — Helpers compartidos por los verticales que escriben comandos clínicos vía HTTP.
 // Envelope determinista (idempotencia estilo Stripe) + concurrencia optimista vía If-Match.
 
 // UUID determinista derivado del Idempotency-Key: un reintento reconstruye el mismo envelope.
+// R01-015: el identificador se emite como UUID válido (versión 8 = derivado, variante RFC 9562), no como un corte crudo
+// del hash; así cualquier validador (`z.string().uuid()`, la columna `uuid` de Postgres, un cliente externo) lo acepta.
 export function derivedUuid(idempotencyKey:string,slot:string):string{
- const h=crypto.createHash("sha256").update(`${idempotencyKey}:${slot}`).digest("hex");
- return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;
+ return uuidFromDigest(crypto.createHash("sha256").update(`${idempotencyKey}:${slot}`).digest("hex"));
 }
 export function principalFrom(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
  return{tenantId:claims.tenantId,actorId:claims.sub,roles:claims.roles,scopes:claims.scopes,purpose:claims.purpose,sessionId:claims.sessionId};

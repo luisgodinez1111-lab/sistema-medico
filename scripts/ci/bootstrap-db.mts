@@ -6,10 +6,10 @@
 // SEGURIDAD: aplica DDL y crea roles. Está pensado SOLO para un Postgres desechable (contenedor de CI o
 // branch de Neon). REHÚSA correr si CI_DB_BOOTSTRAP_ALLOW no está en "1" (evita ejecutarlo contra una BD real).
 import fs from"node:fs";
+import{directEndpoint as direct}from"../../packages/pg-endpoint/src";
 const URL_=process.env.DATABASE_URL;
 if(!URL_){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
 if(process.env.CI_DB_BOOTSTRAP_ALLOW!=="1"){console.log(JSON.stringify({status:"REFUSED",reason:"CI_DB_BOOTSTRAP_ALLOW!=1",hint:"solo contra un Postgres desechable"}));process.exit(2);}
-const direct=(u:string)=>u.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,"");
 const RUNTIME_ROLE="medical_os_runtime";
 const{default:postgres}=await import("postgres");
 const out:{status:string;steps:string[];note?:string}={status:"PASS",steps:[]};

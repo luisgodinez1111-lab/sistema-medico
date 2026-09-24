@@ -4,6 +4,7 @@
 //  2) con DATABASE_URL: ninguna tabla con RLS carece de política (denegación total), ninguna tabla con tenant_id carece de
 //     RLS+FORCE, y la tabla de control no registra deriva ni migraciones pendientes.
 import fs from"node:fs";import path from"node:path";
+import{directEndpoint as direct}from"../../packages/pg-endpoint/src";
 try{const e=fs.readFileSync(path.resolve(".env.local"),"utf8");for(const l of e.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(l.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}}catch{/* sin .env.local */}
 const{readMigrationFiles,manifestDrift}=await import("../../packages/db-migrations/src");
 const out:{status:"PASS"|"FAIL";checks:Record<string,unknown>}={status:"PASS",checks:{}};
@@ -12,7 +13,6 @@ const files=readMigrationFiles();
 const drift=manifestDrift(JSON.parse(fs.readFileSync("db/migrations/manifest.json","utf8")),files);
 if(drift.missing.length||drift.changed.length||drift.extra.length)fail("manifest",drift);else out.checks["manifest"]=`ok (${files.length} migraciones)`;
 if(process.env.DATABASE_URL){
- const direct=(u:string)=>u.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,"");
  const{default:postgres}=await import("postgres");
  const sql=postgres(direct(process.env.DATABASE_URL),{max:1,prepare:false,onnotice:()=>{}});
  try{

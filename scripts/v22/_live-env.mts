@@ -13,8 +13,9 @@
 // Se importa con `import "./_live-env.mts"` como PRIMERA sentencia de cada prueba: los módulos de la app se cargan después
 // con `await import(...)`, ya con el entorno redirigido.
 import fs from"node:fs";import path from"node:path";
+import{directEndpoint}from"../../packages/pg-endpoint/src";
 try{const e=fs.readFileSync(path.resolve(".env.local"),"utf8");for(const l of e.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(l.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}}catch{/* sin .env.local: se usa el entorno */}
-const host=(u:string|undefined)=>{try{return u?new URL(u.replace("-pooler","")).hostname.toLowerCase():"";}catch{return"";}};
+const host=(u:string|undefined)=>{try{return u?new URL(directEndpoint(u)).hostname.toLowerCase():"";}catch{return"";}};
 const isLocal=(h:string)=>h==="localhost"||h==="127.0.0.1"||h==="::1"||h.endsWith(".localhost");
 const test=process.env.TEST_DATABASE_URL;
 if(!test){console.log(JSON.stringify({status:"NOT_RUN",reason:"TEST_DATABASE_URL_MISSING",hint:"las pruebas en vivo solo corren contra una base DESECHABLE declarada en TEST_DATABASE_URL"}));process.exit(3);}

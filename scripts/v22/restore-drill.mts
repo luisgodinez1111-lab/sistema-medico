@@ -8,6 +8,7 @@
 // Ejecuta (con un branch de Neon): RESTORE_DATABASE_URL=postgres://... \
 //   pnpm exec tsx ./scripts/v22/restore-drill.mts
 import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";
+import{directEndpoint as direct}from"../../packages/pg-endpoint/src";
 try{
  const envRaw=fs.readFileSync(path.resolve(".env.local"),"utf8");
  for(const line of envRaw.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(line.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}
@@ -17,7 +18,6 @@ const SOURCE=process.env.DATABASE_URL;
 const TARGET=process.env.RESTORE_DATABASE_URL;
 if(!SOURCE){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
 if(!TARGET){console.log(JSON.stringify({status:"NOT_RUN",reason:"RESTORE_DATABASE_URL_MISSING",hint:"Provee un branch de Neon desechable en RESTORE_DATABASE_URL"}));process.exit(3);}
-const direct=(u:string)=>u.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,"");
 const hostDb=(u:string)=>{try{const x=new URL(direct(u).replace(/^postgres(ql)?:/,"http:"));return x.host+x.pathname;}catch{return u;}};
 if(hostDb(SOURCE)===hostDb(TARGET)){console.log(JSON.stringify({status:"REFUSED",reason:"RESTORE_TARGET_EQUALS_SOURCE",detail:"el drill es destructivo; usa un branch/DB desechable distinto"}));process.exit(2);}
 
