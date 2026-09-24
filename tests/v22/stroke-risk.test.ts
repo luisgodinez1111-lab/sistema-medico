@@ -24,9 +24,17 @@ describe("cha2ds2vasc",()=>{
  it("hombre score>=2 -> HIGH (anticoagular)",()=>{
   expect(cha2ds2vasc({...base,hypertension:true,diabetes:true})!.risk).toBe("HIGH");
  });
- it("incluye riesgo anual y componentes",()=>{
+ it("no publica un riesgo anual inventado (R03-03: la tabla no era monótona) y sí los componentes",()=>{
   const r=cha2ds2vasc({...base,hypertension:true,diabetes:true})!;
-  expect(r.annualStrokeRiskPct).toBeGreaterThan(0);
   expect(Object.keys(r.components)).toContain("vascular");
+  expect((r as Record<string,unknown>)["annualStrokeRiskPct"],
+   "un porcentaje de riesgo anual exige una cohorte citada; la tabla previa daba 9.6% con score 7 y 6.7% con score 8").toBeUndefined();
+ });
+ it("R03-03: el riesgo hemorrágico se declara NO evaluado y la recomendación lo advierte",()=>{
+  const r=cha2ds2vasc({...base,hypertension:true,diabetes:true})!;
+  expect(r.bleedingRiskAssessed).toBe(false);
+  expect(r.recommendation).toMatch(/hemorrágico/i);
+  // En riesgo BAJO no hay indicación que contrapesar, así que no se añade la advertencia.
+  expect(cha2ds2vasc(base)!.recommendation).not.toMatch(/HAS-BLED/);
  });
 });

@@ -244,7 +244,7 @@ export function computeNEWS2(p: News2Params): News2Result {
 export type VitalStatus = "NORMAL" | "ABNORMAL" | "CRITICAL" | "UNKNOWN";
 export type VitalAssessment = Readonly<{ status: VitalStatus; critical: boolean; interpretation: string; plausible: boolean; ageBand?: string }>;
 function worst(a: VitalStatus, b: VitalStatus): VitalStatus { const rank = { CRITICAL: 0, ABNORMAL: 1, NORMAL: 2, UNKNOWN: 3 } as const; return rank[a] <= rank[b] ? a : b; }
-// Cotas físicas (fuera de ellas no es un ser humano vivo o es un error de captura).
+// Cotas físicas (fuera de ellas no es un ser humano vivo o es un error de captura). SIEMPRE en la unidad CANÓNICA.
 export const VITAL_PLAUSIBLE: Readonly<Record<string, readonly [number, number]>> = { HR: [20, 300], RESP: [2, 120], TEMP: [25, 45], SPO2: [40, 100], WEIGHT: [0.3, 500], HEIGHT: [20, 260], BP_SYS: [30, 300], BP_DIA: [10, 200] };
 export function vitalPlausible(vitalType: string, value: string): { ok: true } | { ok: false; message: string } {
   const t = vitalType.trim().toUpperCase();
@@ -260,6 +260,72 @@ export function vitalPlausible(vitalType: string, value: string): { ok: true } |
   if (v < b[0] || v > b[1]) return { ok: false, message: `${t} = ${v} no es plausible (${b[0]}–${b[1]}). Verifique el valor y la unidad.` };
   return { ok: true };
 }
+// ---------- Auditoría 2026-09-19, anexo R03 (R03-09, R03-11) — UNIDAD CANÓNICA de cada signo vital ----------
+//
+// El contrato de captura exigía `unit: string.min(1)` y NADIE la miraba: la unidad se guardaba como texto decorativo y
+// todos los cálculos trataban el número como si ya estuviera en la unidad canónica. Consecuencias medidas:
+//   · un peso de 150 lb (68 kg) entra como «150 kg» -> está dentro de la cota 0.3–500 -> IMC 46.3 («obesidad clase III»)
+//     en un paciente de 1.80 m cuyo IMC real es 21.0. La cota de plausibilidad NO atrapa una libra: atrapa un absurdo;
+//   · una talla de 70 in (1.78 m) entra como «70 cm» -> el IMC sale ×6.4;
+//   · una temperatura de 98.6 °F sí caía fuera de 25–45, así que se rechazaba como implausible en vez de convertirse.
+// Por eso la unidad se declara, se reconoce y se CONVIERTE, y una unidad que no se reconoce se rechaza en la escritura.
+// Mismo patrón que ya existía para los resultados de laboratorio (`normalizeLabValue`): una sola función, y el valor
+// canónico se guarda en el evento para que ningún lector tenga que volver a convertir.
+type VitalUnitSpec = Readonly<{ canonical: string; accepted: Readonly<Record<string, number>>; note?: string }>;
+// `accepted`: unidad (minúsculas, sin espacios extremos) -> factor multiplicativo hacia la canónica. La temperatura no
+// es multiplicativa (lleva offset), así que °F se trata aparte.
+export const VITAL_UNITS: Readonly<Record<string, VitalUnitSpec>> = {
+  BP: { canonical: "mmHg", accepted: { mmhg: 1, "mm hg": 1, torr: 1, kpa: 7.50062 } },
+  HR: { canonical: "lpm", accepted: { lpm: 1, bpm: 1, "/min": 1, min: 1, "latidos/min": 1 } },
+  RESP: { canonical: "rpm", accepted: { rpm: 1, bpm: 1, "/min": 1, min: 1, "resp/min": 1 } },
+  SPO2: { canonical: "%", accepted: { "%": 1, pct: 1, porcentaje: 1 } },
+  WEIGHT: { canonical: "kg", accepted: { kg: 1, kgs: 1, kilogramos: 1, g: 0.001, gr: 0.001, gramos: 0.001, lb: 0.45359237, lbs: 0.45359237, libras: 0.45359237, oz: 0.028349523 } },
+  HEIGHT: { canonical: "cm", accepted: { cm: 1, centimetros: 1, "centímetros": 1, m: 100, metros: 100, mm: 0.1, in: 2.54, inch: 2.54, inches: 2.54, pulgadas: 2.54 } },
+  TEMP: { canonical: "°C", accepted: { c: 1, "°c": 1, celsius: 1, centigrados: 1, "centígrados": 1, f: 1, "°f": 1, fahrenheit: 1 }, note: "°F se convierte con offset (no con factor): ver FAHRENHEIT" },
+};
+const FAHRENHEIT = new Set(["f", "°f", "fahrenheit"]);
+export type VitalMeasure =
+  | Readonly<{ ok: true; canonicalValue: string; canonicalUnit: string; converted: boolean }>
+  | Readonly<{ ok: false; reason: "UNKNOWN_TYPE" | "UNKNOWN_UNIT" | "NON_NUMERIC" | "IMPLAUSIBLE"; message: string }>;
+/** Unidad canónica de un tipo de signo vital, o `undefined` si el tipo no está declarado. */
+export function canonicalVitalUnit(vitalType: string): string | undefined { return VITAL_UNITS[vitalType.trim().toUpperCase()]?.canonical; }
+/** ¿La unidad es reconocida para ese tipo? (para validar en la escritura antes de construir el comando) */
+export function vitalUnitAccepted(vitalType: string, unit: string | null | undefined): boolean {
+  const spec = VITAL_UNITS[vitalType.trim().toUpperCase()]; if (!spec) return false;
+  return (unit ?? "").trim().toLowerCase() in spec.accepted;
+}
+/**
+ * Convierte un signo vital a su unidad canónica y verifica su plausibilidad EN esa unidad.
+ * La presión arterial conserva el formato «S/D» (se convierten los dos componentes).
+ */
+export function normalizeVitalMeasure(vitalType: string, value: string, unit: string | null | undefined): VitalMeasure {
+  const t = vitalType.trim().toUpperCase();
+  const spec = VITAL_UNITS[t];
+  if (!spec) return { ok: false, reason: "UNKNOWN_TYPE", message: `Tipo de signo vital no declarado: ${vitalType}` };
+  const u = (unit ?? "").trim().toLowerCase();
+  if (u === "") return { ok: false, reason: "UNKNOWN_UNIT", message: `${t} requiere unidad (canónica: ${spec.canonical})` };
+  const factor = spec.accepted[u];
+  if (factor === undefined) return { ok: false, reason: "UNKNOWN_UNIT", message: `Unidad no reconocida para ${t}: «${unit}». Admitidas: ${Object.keys(spec.accepted).join(", ")}` };
+  const isF = t === "TEMP" && FAHRENHEIT.has(u);
+  const conv = (n: number): number => (isF ? ((n - 32) * 5) / 9 : n * factor);
+  const round = (n: number): number => Math.round(n * 1000) / 1000;
+  if (t === "BP") {
+    const pb = parseBp(value);
+    if (!pb) return { ok: false, reason: "NON_NUMERIC", message: "Formato de presión no reconocido (esperado S/D)" };
+    const canonicalValue = `${Math.round(conv(pb.systolic))}/${Math.round(conv(pb.diastolic))}`;
+    const pl = vitalPlausible("BP", canonicalValue);
+    if (!pl.ok) return { ok: false, reason: "IMPLAUSIBLE", message: pl.message };
+    return { ok: true, canonicalValue, canonicalUnit: spec.canonical, converted: canonicalValue !== `${pb.systolic}/${pb.diastolic}` };
+  }
+  const n = num(value);
+  if (Number.isNaN(n)) return { ok: false, reason: "NON_NUMERIC", message: `Valor no numérico para ${t}: «${value}»` };
+  const c = round(conv(n));
+  const canonicalValue = String(c);
+  const pl = vitalPlausible(t, canonicalValue);
+  if (!pl.ok) return { ok: false, reason: "IMPLAUSIBLE", message: pl.message };
+  return { ok: true, canonicalValue, canonicalUnit: spec.canonical, converted: c !== n };
+}
+
 // Bandas por edad para FC y FR (latidos / respiraciones por minuto): [críticoBajo, anormalBajo, anormalAlto, críticoAlto].
 type Band = Readonly<{ label: string; hr: readonly [number, number, number, number]; resp: readonly [number, number, number, number] }>;
 const AGE_BANDS: readonly (Band & { maxAge: number })[] = [

@@ -4,9 +4,17 @@
 // V: enfermedad vascular (1), A: edad 65–74 (1), Sc: sexo femenino (1). Umbrales de guía estándar.
 export type Cha2ds2VascInput=Readonly<{ageYears:number;female:boolean;chf:boolean;hypertension:boolean;diabetes:boolean;strokeHistory:boolean;vascularDisease:boolean}>;
 export type StrokeRisk="LOW"|"INTERMEDIATE"|"HIGH";
-export type Cha2ds2VascResult=Readonly<{score:number;risk:StrokeRisk;annualStrokeRiskPct:number;recommendation:string;components:Readonly<Record<string,number>>}>;
-// Riesgo anual de ictus (%) por puntaje (tabla publicada, aproximada).
-const ANNUAL_RISK:Record<number,number>={0:0,1:1.3,2:2.2,3:3.2,4:4.0,5:6.7,6:9.8,7:9.6,8:6.7,9:15.2};
+export type Cha2ds2VascResult=Readonly<{score:number;risk:StrokeRisk;recommendation:string;components:Readonly<Record<string,number>>;bleedingRiskAssessed:false}>;
+// Auditoría 2026-09-19, anexo R03 (R03-03) — SE RETIRA el «riesgo anual de ictus (%)».
+//
+// La tabla que había era: {0:0, 1:1.3, 2:2.2, 3:3.2, 4:4.0, 5:6.7, 6:9.8, 7:9.6, 8:6.7, 9:15.2}. Nótese 7→9.6, 8→6.7:
+// NO es monótona. Un paciente con más factores de riesgo aparecía con MENOS riesgo anual que otro con menos factores, lo
+// que es un artefacto de las cohortes pequeñas del trabajo original en los puntajes altos, no un hecho clínico. Mostrar
+// «6.7 % anual» para un CHA₂DS₂-VASc de 8 es una cifra falsa con apariencia de precisión.
+//
+// No se sustituye por otra tabla «de memoria»: publicar tasas por puntaje exige una cohorte citada y validada por un
+// médico (queda como deuda declarada). Lo que guía la conducta —el puntaje y el umbral de anticoagulación— se conserva
+// intacto; lo que se va es el número inventado.
 export function cha2ds2vasc(i:Cha2ds2VascInput):Cha2ds2VascResult|undefined{
  if(!Number.isFinite(i.ageYears)||i.ageYears<0)return undefined;
  const components:Record<string,number>={
@@ -30,5 +38,10 @@ export function cha2ds2vasc(i:Cha2ds2VascInput):Cha2ds2VascResult|undefined{
   else if(score===1){risk="INTERMEDIATE";recommendation="Considerar anticoagulación oral";}
   else{risk="HIGH";recommendation="Anticoagulación oral recomendada";}
  }
- return{score,risk,annualStrokeRiskPct:ANNUAL_RISK[Math.min(score,9)]??0,recommendation,components};
+ // R03-03: la indicación de anticoagular NO puede presentarse sin su contrapeso. No se inventa un HAS-BLED (exige datos
+ // que el expediente todavía no captura); se declara explícitamente que el riesgo hemorrágico NO se ha evaluado, y la
+ // recomendación lo dice cuando propone anticoagular.
+ const conContrapeso=risk==="LOW"?recommendation
+  :`${recommendation}. Riesgo HEMORRÁGICO no evaluado por el sistema: valórelo (p. ej. HAS-BLED) antes de indicar`;
+ return{score,risk,recommendation:conContrapeso,components,bleedingRiskAssessed:false};
 }

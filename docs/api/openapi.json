@@ -12571,6 +12571,10 @@
            "regTaxRate": {
             "type": "string",
             "maxLength": 6
+           },
+           "altitudeMeters": {
+            "type": "string",
+            "maxLength": 6
            }
           },
           "additionalProperties": false

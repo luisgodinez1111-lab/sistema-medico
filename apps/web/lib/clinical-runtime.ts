@@ -17,14 +17,14 @@ export{getSql,readPatientAccessLog,recordPhiAccess,revokeCurrentSession,sessionS
 export{lookupReplay,runClinicalCommand}from"./runtime/command";
 export{PAGE_LIMIT_DEFAULT,PAGE_LIMIT_MAX,clampLimit,decodeCursor,encodeCursor}from"./runtime/pagination";
 export{findPatientDuplicate,listPatients,patientBirthDate,patientDemographics,requireRegisteredPatient}from"./runtime/patients";
-export{activeAllergies,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,administeredVaccineCodes,administeredVaccines,analyteSeries,carePlanGoals,latestAnalyteReading,latestResultValueForAnalyte,latestVitalsByType,patientDocuments,patientEgfr,patientObligations,patientVitals}from"./runtime/patient-facts";
+export{activeAllergies,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,administeredVaccineCodes,administeredVaccines,analyteSeries,carePlanGoals,latestAnalyteReading,latestResultValueForAnalyte,latestVitalReadings,latestVitalsByType,patientDocuments,patientEgfr,patientObligations,patientVitals}from"./runtime/patient-facts";
 export{agendaForDate,allergyRegistry,claimsRegistry,immunizationRegistry,officeSettings,ordersRegistry,problemRegistry,regulatoryObligations,resultsRegistry,overdueOrders}from"./runtime/registries";
 export{appointmentOutcomes,appointmentsByType,encounterAnalytics,medicationsPrescribed}from"./runtime/analytics";
 export{blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,countUnresolvedCriticalObligations,documentDetail,readAggregateEvents,readEncounter,readEncounterEvents,readEventPayloadById,readPatientRecordRows,readPatientTimeline,readTenantOpenAggregates}from"./runtime/records";
 export type{ClinicalCommandResult}from"./runtime/command";
 export type{Page}from"./runtime/pagination";
 export type{PatientDemographics,PatientDuplicate,PatientGuardian,PatientListQuery,PatientRow}from"./runtime/patients";
-export type{ActiveAllergy,AdministeredVaccine,AnalyteReading,CarePlanGoal,DocRow,FollowUpTask,VitalPoint}from"./runtime/patient-facts";
+export type{ActiveAllergy,AdministeredVaccine,AnalyteReading,CarePlanGoal,DocRow,FollowUpTask,VitalPoint,VitalReading}from"./runtime/patient-facts";
 export type{AgendaAppt,AllergyRow,ClaimRow,ImmunizationRow,OfficeSettingsRead,OrderRow,ProblemRow,RegulatoryObligationRow,ResultRow,OverdueOrderRow}from"./runtime/registries";
 export type{AppointmentOutcomes,AppointmentTypeRow,EncounterAnalytics,PrescribedDrugRow}from"./runtime/analytics";
 export type{BlockingObligation,DocAddendum,DocAttachment,DocSignature,DocumentDetail,EncounterView,PanelRowData,RecordRow,TimelineItem}from"./runtime/records";

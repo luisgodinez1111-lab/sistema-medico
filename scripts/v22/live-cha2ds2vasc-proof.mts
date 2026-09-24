@@ -25,18 +25,33 @@ try{
  ok(g.body.score===5&&g.body.risk==="HIGH","SCORE_5_HIGH");
  ok(g.body.applicable===true,"AFIB_APPLICABLE");
  ok(/recomendada/i.test(g.body.recommendation),"ANTICOAG_RECOMMENDED");
- ok(g.body.annualStrokeRiskPct>0,"HAS_ANNUAL_RISK");
+ // R03-03: ya NO se publica un porcentaje de riesgo anual (la tabla anterior no era monótona: 9.6% con 7 puntos y 6.7%
+ // con 8). Y toda recomendación de anticoagular advierte que el riesgo HEMORRÁGICO no fue evaluado.
+ ok(g.body.annualStrokeRiskPct===undefined,"NO_INVENTED_ANNUAL_RISK");
+ ok(g.body.bleedingRiskAssessed===false&&/hemorr/i.test(g.body.recommendation),"BLEEDING_RISK_CAVEAT");
  // 2) hombre 50 sin factores -> score 0, LOW
  const p2=crypto.randomUUID();await reg(phys,p2,50,"MALE");
- g=await get(phys,p2);ok(g.body.score===0&&g.body.risk==="LOW","SCORE_0_LOW");
- // 3) sin FA registrada -> nota de aplicabilidad
- ok(g.body.applicable===false&&/fibrilaci/i.test(g.body.note),"NO_AFIB_NOTE");
+ g=await get(phys,p2);ok(g.body.score===0&&g.body.applicable===false,"SCORE_0_NOT_APPLICABLE");
+ // 3) R03-04: sin FA registrada NO se emite recomendación terapéutica (antes venía "Anticoagulación oral recomendada"
+ //    junto a applicable:false; una recomendación al lado de un booleano se lee como recomendación).
+ ok(g.body.applicable===false&&/fibrilaci/i.test(g.body.reason),"NO_AFIB_REASON");
+ ok(g.body.recommendation===undefined&&g.body.risk===undefined,"NO_AFIB_NO_RECOMMENDATION");
  // 4) mujer 70 con HTA -> edad(1)+HTA(1)+sexo(1)=3 -> HIGH
- const p3=crypto.randomUUID();await reg(phys,p3,70,"FEMALE");await dx(phys,p3,"I10");
+ const p3=crypto.randomUUID();await reg(phys,p3,70,"FEMALE");await dx(phys,p3,"I48.9");await dx(phys,p3,"I10");
  g=await get(phys,p3);ok(g.body.score===3&&g.body.risk==="HIGH","FEMALE_SCORE_3_HIGH");
- // 5) paciente no registrado -> 404
+ // 5) R03-17: el criterio S₂ (ictus previo, 2 puntos) por fin es ALCANZABLE: antes ningún código de ictus existía en el
+ //    catálogo, así que el criterio de más peso de la escala no podía cumplirse nunca. Z86.7 (antecedente) también cuenta.
+ const p4=crypto.randomUUID();await reg(phys,p4,50,"MALE");await dx(phys,p4,"I48.9");await dx(phys,p4,"I63.9");
+ g=await get(phys,p4);ok(g.body.components.stroke===2&&g.body.score===2,"STROKE_CRITERION_REACHABLE");
+ const p5=crypto.randomUUID();await reg(phys,p5,50,"MALE");await dx(phys,p5,"I48.9");await dx(phys,p5,"Z86.7");
+ g=await get(phys,p5);ok(g.body.components.stroke===2,"HISTORY_Z86_7_COUNTS");
+ // 6) R03-17: cardiopatía hipertensiva (I11.0) cuenta como HTA y como insuficiencia cardiaca
+ const p6=crypto.randomUUID();await reg(phys,p6,50,"MALE");await dx(phys,p6,"I48.9");await dx(phys,p6,"I11.0");
+ g=await get(phys,p6);ok(g.body.components.hypertension===1&&g.body.components.chf===1,"HYPERTENSIVE_HEART_DISEASE_COUNTS");
+ ok(g.body.valueSetVersion.length>0,"VERSIONED_VALUE_SET");
+ // 7) paciente no registrado -> 404
  g=await get(phys,crypto.randomUUID());ok(g.status===404,"UNREGISTERED_404");
- // 6) sin scope patient:read -> 403
+ // 8) sin scope patient:read -> 403
  const noScope=tok(["problem:write"]);g=await get(noScope,p1);ok(g.status===403,"MISSING_SCOPE_403");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

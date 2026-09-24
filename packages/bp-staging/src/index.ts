@@ -8,6 +8,10 @@ export type BpStage="HYPOTENSION_SEVERE"|"HYPOTENSION"|"NORMAL"|"ELEVATED"|"STAG
 export type BpStaging=Readonly<{systolic:number;diastolic:number;stage:BpStage;label:string;actionNote:string}>;
 export function stageBloodPressure(systolic:number,diastolic:number):BpStaging|undefined{
  if(![systolic,diastolic].every(Number.isFinite)||systolic<=0||diastolic<=0)return undefined;
+ // Auditoría 2026-09-19, anexo R03 (R03-16): «80/120» (dedazo con los componentes invertidos) se estadificaba como
+ // «Hipertensión estadio 2» porque la diastólica 120 disparaba el corte ≥90. Una toma con sistólica ≤ diastólica no es
+ // fisiológicamente posible: no se estadifica, se rechaza (quien llama devuelve el motivo al médico).
+ if(systolic<=diastolic)return undefined;
  let stage:BpStage,label:string,actionNote:string;
  if(systolic<70){stage="HYPOTENSION_SEVERE";label="Hipotensión severa";actionNote="Evaluación inmediata: perfusión, estado de conciencia, sangrado/sepsis/deshidratación; no es un hallazgo ambulatorio";}
  else if(systolic>180||diastolic>120){stage="CRISIS";label="Crisis hipertensiva";actionNote="Evaluación urgente; descartar daño a órgano blanco";}
@@ -19,6 +23,9 @@ export function stageBloodPressure(systolic:number,diastolic:number):BpStaging|u
  return{systolic,diastolic,stage,label,actionNote};
 }
 // Parsea "S/D" a números. undefined si no reconoce el formato.
+// Es un PARSER, no un validador clínico: devuelve lo que está escrito (incluido «80/120»). La coherencia
+// sistólica > diastólica la exigen `stageBloodPressure`, `vitalPlausible` (lab-reference) y `curb65Check`, cada uno con
+// su propio mensaje; ponerla aquí convertiría cualquier inversión en un genérico «formato no reconocido».
 export function parseBp(value:string):{systolic:number;diastolic:number}|undefined{
  const m=/^\s*(\d{2,3})\s*\/\s*(\d{2,3})\s*$/.exec(value);
  if(!m)return undefined;

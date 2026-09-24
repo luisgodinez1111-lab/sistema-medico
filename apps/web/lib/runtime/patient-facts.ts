@@ -90,19 +90,57 @@ export async function administeredVaccines(ctx:HttpTenantContext,patientId:strin
  });
 }
 export async function administeredVaccineCodes(ctx:HttpTenantContext,patientId:string):Promise<string[]>{return(await administeredVaccines(ctx,patientId)).map(v=>v.code);}
-// EPIC BC — Último valor registrado por tipo de signo vital del paciente (para computar NEWS2). RLS-scoped.
-// Toma el evento RECORDED más reciente por vitalType. Devuelve un mapa {vitalType -> value textual}.
-export async function latestVitalsByType(ctx:HttpTenantContext,patientId:string):Promise<Record<string,string>>{
+// EPIC BC — Último signo vital VIGENTE por tipo (para NEWS2, CURB-65, IMC, estadificación de PA). RLS-scoped.
+//
+// Auditoría 2026-09-19, anexo R03 (R03-11). La versión anterior leía `payload->>'value'` de los eventos RECORDED y nada
+// más. Tres defectos, todos con consecuencia clínica:
+//  1. IGNORABA LAS ENMIENDAS. Una FR corregida de 45 a 15 (VITAL_AMENDED) seguía puntuando 45: el NEWS2 y el CURB-65
+//     usaban el valor que el médico ya había rectificado.
+//  2. CONTABA LO RETRACTADO. Una toma marcada ENTERED_IN_ERROR (valor de otro paciente, dedazo) seguía siendo «la
+//     última»: el puntaje se calculaba sobre un dato explícitamente anulado.
+//  3. NO DEVOLVÍA UNIDAD NI FECHA, así que ningún cálculo podía comprobar ni la escala ni la vigencia (una PA de hace
+//     tres semanas decidía un ingreso hospitalario hoy).
+// Ahora se pliega cada agregado a su ÚLTIMO evento, se descarta lo anulado, se toma el valor canónico cuando existe y se
+// devuelven unidad y momento de la toma. `occurredAt` es el de la toma (el RECORDED): una enmienda corrige el VALOR, no
+// el instante en que se midió al paciente — y para la vigencia, la fecha más antigua es la conservadora.
+export type VitalReading=Readonly<{vitalType:string;value:string;unit:string|null;canonicalUnit:string|null;unitAssumed:boolean;occurredAt:string;amended:boolean;vitalId:string}>;
+export async function latestVitalReadings(ctx:HttpTenantContext,patientId:string):Promise<Record<string,VitalReading>>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
-   select distinct on (r.payload->>'vitalType') r.payload->>'vitalType' as vital_type, r.payload->>'value' as value
+   select distinct on (r.payload->>'vitalType')
+     r.payload->>'vitalType' as vital_type, r.aggregate_id as vital_id, r.occurred_at as at,
+     coalesce(l.payload->>'canonicalValue',l.payload->>'value',r.payload->>'canonicalValue',r.payload->>'value') as value,
+     coalesce(l.payload->>'unit',r.payload->>'unit') as unit,
+     coalesce(l.payload->>'canonicalUnit',r.payload->>'canonicalUnit') as canonical_unit,
+     l.payload->>'kind' as last_kind
    from clinical_events r
+   join lateral (select payload from clinical_events c
+                 where c.tenant_id=r.tenant_id and c.aggregate_id=r.aggregate_id
+                 order by c.sequence desc limit 1) l on true
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
      and r.payload->>'patientId'=${patientId}
+     and l.payload->>'kind'<>'ENTERED_IN_ERROR' -- una toma anulada NO es "la última"
    order by r.payload->>'vitalType', r.occurred_at desc, r.sequence desc`;
-  const out:Record<string,string>={};for(const x of rows){const k=String(x.vital_type??"");if(k)out[k]=String(x.value??"");}
+  const out:Record<string,VitalReading>={};
+  for(const x of rows){
+   const o=x as Record<string,unknown>;const k=String(o["vital_type"]??"");if(!k)continue;
+   out[k]={vitalType:k,value:String(o["value"]??""),unit:o["unit"]==null?null:String(o["unit"]),
+    canonicalUnit:o["canonical_unit"]==null?null:String(o["canonical_unit"]),
+    // Eventos anteriores a R03-09 no traen unidad canónica: la escala se ASUMIÓ y quien calcula debe declararlo.
+    unitAssumed:o["canonical_unit"]==null,
+    occurredAt:new Date(String(o["at"])).toISOString(),amended:String(o["last_kind"])==="AMENDED",vitalId:String(o["vital_id"])};
+  }
   return out;
  });
+}
+/**
+ * Vista {vitalType -> valor canónico} para quien solo necesita el número (paneles, resúmenes). Deriva de
+ * `latestVitalReadings`, así que hereda el plegado de enmiendas y la exclusión de tomas anuladas.
+ * Los CÁLCULOS deben usar `readVitalInputs` (lib/vital-inputs), que además exige unidad conocida y vigencia.
+ */
+export async function latestVitalsByType(ctx:HttpTenantContext,patientId:string):Promise<Record<string,string>>{
+ const r=await latestVitalReadings(ctx,patientId);
+ return Object.fromEntries(Object.entries(r).map(([k,v])=>[k,v.value]));
 }
 // EPIC BB — Valor PREVIO del mismo analito del paciente (resultado más reciente ya recibido). RLS-scoped.
 // Para el delta check de laboratorio en la recepción de un resultado nuevo. Devuelve el value textual o undefined.

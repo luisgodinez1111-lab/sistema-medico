@@ -41,6 +41,33 @@ const CATALOG:readonly Icd10Entry[]=[
  {code:"O80",description:"Parto único espontáneo",category:"Obstétrico"},
  {code:"Z00.0",description:"Examen médico general",category:"Factores de salud"},
  {code:"Z23",description:"Necesidad de inmunización contra una sola enfermedad",category:"Factores de salud"},
+ // ---- Auditoría 2026-09-19, anexo R03 (R03-17): criterios INALCANZABLES ----
+ // Los scores clínicos leen la lista de problemas, y la lista de problemas solo admite códigos de ESTE catálogo. Con los
+ // 34 códigos originales, el criterio «S₂» del CHA₂DS₂-VASc (ictus/AIT previo: 2 puntos, el de más peso de la escala) NO
+ // TENÍA NINGÚN CÓDIGO REGISTRABLE: era imposible que se cumpliera en producción, y lo mismo pasaba con la enfermedad
+ // vascular periférica, las cardiopatías hipertensivas y casi toda la neumonía. Un criterio que no puede activarse no es
+ // un criterio «negativo»: es una comprobación ciega que baja el puntaje. Estos códigos son CIE-10 de la OMS.
+ {code:"I63.9",description:"Infarto cerebral, no especificado",category:"Cardiovascular"},
+ {code:"I64",description:"Accidente vascular encefálico agudo, no especificado como hemorrágico ni isquémico",category:"Cardiovascular"},
+ {code:"I61.9",description:"Hemorragia intraencefálica, no especificada",category:"Cardiovascular"},
+ {code:"I60.9",description:"Hemorragia subaracnoidea, no especificada",category:"Cardiovascular"},
+ {code:"G45.9",description:"Isquemia cerebral transitoria, no especificada",category:"Neurológico"},
+ {code:"Z86.7",description:"Antecedentes personales de enfermedades del aparato circulatorio",category:"Factores de salud"},
+ {code:"I21.9",description:"Infarto agudo del miocardio, sin otra especificación",category:"Cardiovascular"},
+ {code:"I70.2",description:"Aterosclerosis de las arterias de las extremidades",category:"Cardiovascular"},
+ {code:"I73.9",description:"Enfermedad vascular periférica, no especificada",category:"Cardiovascular"},
+ {code:"I71.4",description:"Aneurisma de la aorta abdominal, sin mención de ruptura",category:"Cardiovascular"},
+ {code:"I11.0",description:"Enfermedad cardíaca hipertensiva con insuficiencia cardíaca (congestiva)",category:"Cardiovascular"},
+ {code:"I11.9",description:"Enfermedad cardíaca hipertensiva sin insuficiencia cardíaca (congestiva)",category:"Cardiovascular"},
+ {code:"I12.9",description:"Enfermedad renal hipertensiva sin insuficiencia renal",category:"Cardiovascular"},
+ {code:"I50.0",description:"Insuficiencia cardíaca congestiva",category:"Cardiovascular"},
+ {code:"I48.0",description:"Fibrilación auricular paroxística",category:"Cardiovascular"},
+ {code:"I48.2",description:"Fibrilación auricular crónica",category:"Cardiovascular"},
+ {code:"E14.9",description:"Diabetes mellitus, no especificada, sin mención de complicación",category:"Endocrino"},
+ {code:"J13",description:"Neumonía debida a Streptococcus pneumoniae",category:"Respiratorio"},
+ {code:"J15.9",description:"Neumonía bacteriana, no especificada",category:"Respiratorio"},
+ {code:"J12.9",description:"Neumonía viral, no especificada",category:"Respiratorio"},
+ {code:"J18.0",description:"Bronconeumonía, no especificada",category:"Respiratorio"},
 ];
 const BY_CODE=new Map(CATALOG.map(e=>[e.code.toUpperCase(),e]));
 export function normalizeIcd10(code:string):string{return code.trim().toUpperCase();}
@@ -54,3 +81,4 @@ export function searchIcd10(query:string,limit=20):Icd10Entry[]{
   .sort((a,b)=>a.code.localeCompare(b.code)).slice(0,limit);
 }
 export function catalogSize():number{return CATALOG.length;}
+export*from"./value-sets";

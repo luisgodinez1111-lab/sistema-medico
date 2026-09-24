@@ -57,6 +57,9 @@ const SettingsSchema=z.object({
  // Configuraciones regionales
  regCountry:z.string().max(60).optional(),regState:z.string().max(60).optional(),regCity:z.string().max(60).optional(),regPostalCode:z.string().max(12).optional(),
  regDateFormat:z.string().max(20).optional(),regTimeFormat:z.string().max(20).optional(),regCurrency:z.string().max(10).optional(),regTaxRate:z.string().max(6).optional(),
+ // R03-08: altitud de la sede en metros, como texto (el resto de campos regionales también lo son). Cadena vacía = no
+ // declarada. Se valida el rango porque de aquí sale la presión atmosférica del gradiente A-a.
+ altitudeMeters:z.string().max(6).refine(v=>v===""||(Number.isFinite(Number(v))&&Number(v)>=-500&&Number(v)<=6000),"Altitud en metros entre -500 y 6000").optional(),
 }).strict();
 export const UpdateBody=z.object({settings:SettingsSchema,occurredAt:z.string().datetime()});
 
