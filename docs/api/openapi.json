@@ -21218,6 +21218,7 @@
          },
          "unit": {
           "type": "string",
+          "minLength": 1,
           "maxLength": 24
          },
          "reason": {
@@ -21234,6 +21235,7 @@
         "required": [
          "correctedResultId",
          "value",
+         "unit",
          "reason",
          "occurredAt"
         ]
@@ -21663,6 +21665,7 @@
          },
          "unit": {
           "type": "string",
+          "minLength": 1,
           "maxLength": 24
          },
          "specimenId": {
@@ -21682,6 +21685,7 @@
          "orderId",
          "analyte",
          "value",
+         "unit",
          "occurredAt"
         ]
        }

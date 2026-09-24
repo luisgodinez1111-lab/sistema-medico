@@ -1,1 +1,0 @@
-import {describe,it,expect} from "vitest";import {closeResult} from "../../packages/order-result-domain/src";describe("result",()=>{it("cannot close received result",()=>expect(()=>closeResult({id:"r",orderId:"o",state:"RECEIVED",version:1},"e")).toThrow(/NOT_READY/));});

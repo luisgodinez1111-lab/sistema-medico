@@ -3,6 +3,7 @@ import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bl-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
+const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
 const pat=await import("../../apps/web/app/api/v1/patients/route");
 const res=await import("../../apps/web/app/api/v1/results/route");
 const eg=await import("../../apps/web/app/api/v1/patients/[patientId]/egfr/route");
@@ -15,9 +16,9 @@ let ts=Date.parse(ISO);const nextAt=()=>new Date(ts+=60000).toISOString(); // ti
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 function birth(yearsAgo:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-yearsAgo);return d.toISOString().slice(0,10);}
 async function register(t:string,p:string,sex:string,yearsAgo:number){await pat.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:`Prueba ${p.slice(0,8)}`,birthDate:birth(yearsAgo),sexAtBirth:sex,occurredAt:ISO})}));}
-async function creat(t:string,p:string,value:string){await res.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:"CREATININE",value,occurredAt:nextAt()})}));}
+async function creat(t:string,p:string,value:string){await res.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:"CREATININE",value,unit:"mg/dL",occurredAt:nextAt()})}));}
 // Variante con control total de la captura (hora, unidad) para probar unidades, plausibilidad y vigencia de punta a punta.
-async function resAt(t:string,p:string,a:string,v:string,occurredAt:string,extra:Record<string,unknown>={}){const r=await res.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,occurredAt,...extra})}));return{status:r.status,body:await r.json()};}
+async function resAt(t:string,p:string,a:string,v:string,occurredAt:string,extra:Record<string,unknown>={}){const r=await res.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,unit:canonicalUnitOf(a)??"mg/dL",occurredAt,...extra})}));return{status:r.status,body:await r.json()};}
 const daysAgo=(d:number)=>new Date(Date.now()-d*86_400_000).toISOString();
 async function egfr(t:string,p:string){const r=await eg.GET(new Request("http://l/",{headers:H(t)}),PP(p));return{status:r.status,body:await r.json()};}
 try{

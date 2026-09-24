@@ -6,6 +6,7 @@ import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y re
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-k-tabs-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
+const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const resR=await import("../../apps/web/app/api/v1/results/route");
 const ordR=await import("../../apps/web/app/api/v1/orders/route");
@@ -22,7 +23,7 @@ function H(t:string,x:Record<string,string>={}){return{"content-type":"applicati
 const idem=()=>crypto.randomUUID();let ts=Date.parse("2026-09-01T09:00:00.000Z");const at=()=>new Date(ts+=3600000).toISOString();
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
 async function reg(t:string,p:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:`Ana López García ${p.slice(0,8)}`,birthDate:birth(34),sexAtBirth:"FEMALE",occurredAt:at()})}));}
-async function res(t:string,p:string,a:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,occurredAt:at()})}));}
+async function res(t:string,p:string,a:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,unit:canonicalUnitOf(a)??"mg/dL",occurredAt:at()})}));}
 async function order(t:string,p:string,ot:string,detail:string){await ordR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({orderId:crypto.randomUUID(),patientId:p,orderType:ot,detail,occurredAt:at()})}));}
 async function medActive(t:string,p:string,drugCode:string){const id=crypto.randomUUID();await medR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:p,drugCode,dose:"1 tab",route:"Oral",frequency:"c/12h",occurredAt:at()})}));await medRxR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:at(),...ACK})}),{params:Promise.resolve({medicationId:id})});await medActR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({medicationId:id})});}
 async function goal(t:string,p:string,cat:string,g:string){await cpR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({carePlanId:crypto.randomUUID(),patientId:p,category:cat,goal:g,occurredAt:at()})}));}

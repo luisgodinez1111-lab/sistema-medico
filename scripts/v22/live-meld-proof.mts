@@ -4,6 +4,7 @@ import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y re
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bw-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
+const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
 const resR=await import("../../apps/web/app/api/v1/results/route");
 const md=await import("../../apps/web/app/api/v1/patients/[patientId]/meld/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
@@ -12,7 +13,7 @@ function H(t:string,x:Record<string,string>={}){return{"content-type":"applicati
 const PP=(id:string)=>({params:Promise.resolve({patientId:id})});
 let ts=Date.now()-3_600_000/* reloj RELATIVO: las calculadoras rechazan datos obsoletos; una fecha fija haría caducar la prueba */;const at=()=>new Date(ts+=60000).toISOString();const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
-async function res(t:string,p:string,a:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,occurredAt:at()})}));}
+async function res(t:string,p:string,a:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,unit:canonicalUnitOf(a)??"mg/dL",occurredAt:at()})}));}
 async function get(t:string,p:string){const r=await md.GET(new Request("http://l/",{headers:H(t)}),PP(p));return{status:r.status,body:await r.json()};}
 try{
  const phys=tok();

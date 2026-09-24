@@ -5,6 +5,7 @@ import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-x-snap-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
+const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const prR=await import("../../apps/web/app/api/v1/problems/route");
 const alR=await import("../../apps/web/app/api/v1/allergies/route");
@@ -21,7 +22,7 @@ function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-
 async function reg(t:string,p:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:`Ana López García ${p.slice(0,8)}`,birthDate:birth(34),sexAtBirth:"FEMALE",occurredAt:at()})}));}
 async function prob(t:string,p:string,code:string){await prR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({problemId:crypto.randomUUID(),patientId:p,code,occurredAt:at()})}));}
 async function allergy(t:string,p:string,s:string){await alR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({allergyId:crypto.randomUUID(),patientId:p,substance:s,severity:"MODERATE",reaction:"exantema",occurredAt:at()})}));}
-async function res(t:string,p:string,a:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,occurredAt:at()})}));}
+async function res(t:string,p:string,a:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,unit:canonicalUnitOf(a)??"mg/dL",occurredAt:at()})}));}
 async function vital(t:string,p:string,vt:string,v:string,u:string,a:string){await vitR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:p,vitalType:vt,value:v,unit:u,occurredAt:a})}));}
 async function goal(t:string,p:string,category:string,g:string){const id=crypto.randomUUID();await cpR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({carePlanId:id,patientId:p,category,goal:g,occurredAt:at()})}));return id;}
 async function activateGoal(t:string,id:string){return cpActR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({carePlanId:id})});}

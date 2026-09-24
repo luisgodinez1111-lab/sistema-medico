@@ -22,7 +22,7 @@ const ACK={acknowledgeUnverified:true,unverifiedJustification:"Prueba en vivo: p
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 const B=(t:string,v:number)=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:at(),...ACK})});
 async function activateWarfarin(t:string,pat:string){const id=crypto.randomUUID();await meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:pat,drugCode:"warfarina-5",dose:"5mg",route:"VO",frequency:"c/24h",occurredAt:at()})}));await rx.POST(new Request("http://l/",B(t,1)),MP(id));await act.POST(new Request("http://l/",B(t,2)),MP(id));}
-async function inr(t:string,pat:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:pat,orderId:crypto.randomUUID(),analyte:"INR",value:v,occurredAt:at()})}));}
+async function inr(t:string,pat:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:pat,orderId:crypto.randomUUID(),analyte:"INR",value:v,unit:"INR",occurredAt:at()})}));}
 async function get(t:string,pat:string){const r=await ac.GET(new Request("http://l/",{headers:H(t)}),PP(pat));return{status:r.status,body:await r.json()};}
 try{
  const phys=tok();await registerPhysicianCredentials(phys);

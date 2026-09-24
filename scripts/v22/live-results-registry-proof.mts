@@ -5,6 +5,7 @@ import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-aq-res-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
+const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const resR=await import("../../apps/web/app/api/v1/results/route");
 const resVer=await import("../../apps/web/app/api/v1/results/[resultId]/verification/route");
@@ -15,7 +16,7 @@ function H(t:string,x:Record<string,string>={}){return{"content-type":"applicati
 const idem=()=>crypto.randomUUID();let ts=Date.parse("2026-09-01T09:00:00.000Z");const at=()=>new Date(ts+=3600000).toISOString();
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
 async function reg(t:string,p:string,name:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name,birthDate:birth(40),sexAtBirth:"FEMALE",occurredAt:at()})}));}
-async function res(t:string,p:string,analyte:string,value:string){const id=crypto.randomUUID();const r=await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:id,patientId:p,orderId:crypto.randomUUID(),analyte,value,occurredAt:at()})}));const j=await r.json() as{critical?:boolean};return{id,status:r.status,critical:!!j.critical};}
+async function res(t:string,p:string,analyte:string,value:string){const id=crypto.randomUUID();const r=await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:id,patientId:p,orderId:crypto.randomUUID(),analyte,value,unit:canonicalUnitOf(analyte)??"n/a",occurredAt:at()})}));const j=await r.json() as{critical?:boolean};return{id,status:r.status,critical:!!j.critical};}
 async function verify(t:string,id:string){return resVer.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({resultId:id})});}
 async function action(t:string,id:string){return resAct.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({ownerId:crypto.randomUUID(),dueAt:new Date(Date.now()+7*86400000).toISOString(),occurredAt:at()})}),{params:Promise.resolve({resultId:id})});}
 async function list(t:string){const r=await resR.GET(new Request("http://l/",{method:"GET",headers:H(t)}));return{status:r.status,body:await r.json()};}

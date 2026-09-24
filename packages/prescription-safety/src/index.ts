@@ -132,11 +132,16 @@ export function evaluatePrescriptionSafety(i:PrescriptionSafetyInput):Prescripti
 
  const ids=(s:BarrierStatus)=>out.filter(b=>b.status===s).map(b=>b.id);
  const notEvaluated=ids("NOT_EVALUATED"),notCovered=ids("NOT_COVERED");
- const verdict:SafetyVerdict=out.some(b=>b.status==="BLOCKED")?"BLOCK":(out.some(b=>b.status==="CAUTION")||notEvaluated.length>0)?"REVIEW":"CLEAR";
- // Confirmación expresa: barreras NO evaluadas, o una alergia documentada (leve / cruzada) que no bloquea pero no se ignora.
+ // Auditoría R02a-MED-03: `NOT_COVERED` (el catálogo no tiene regla para este fármaco) entra en el veredicto REVIEW
+ // igual que `NOT_EVALUATED`. Antes solo era informativo: la barrera aparecía en la lista pero el veredicto podía ser
+ // CLEAR, y «no hay regla» se leía como «está bien». No evaluado nunca es seguro.
+ const verdict:SafetyVerdict=out.some(b=>b.status==="BLOCKED")?"BLOCK":(out.some(b=>b.status==="CAUTION")||notEvaluated.length>0||notCovered.length>0)?"REVIEW":"CLEAR";
+ // Confirmación expresa: barreras NO evaluadas o SIN REGLA en el catálogo, o una alergia documentada (leve / cruzada)
+ // que no bloquea pero no se ignora. R02a-MED-03: sin esto, prescribir un fármaco sin techo de dosis conocido no pedía
+ // ninguna confirmación al médico, que es precisamente el caso en que su criterio es el único control que queda.
  const allergyCaution=out.some(b=>b.id==="allergy"&&b.status==="CAUTION");
  const blocked=ids("BLOCKED");
- return{verdict,catalogResolved:!!drug,ingredient:drug?.ingredient??null,requiresAcknowledgement:notEvaluated.length>0||allergyCaution,
+ return{verdict,catalogResolved:!!drug,ingredient:drug?.ingredient??null,requiresAcknowledgement:notEvaluated.length>0||notCovered.length>0||allergyCaution,
   notEvaluated,notCovered,unresolvedActiveDrugs:ix.unresolvedActive,
   blockedOverridable:blocked.filter(isOverridable),blockedHard:blocked.filter(id=>!isOverridable(id)),barriers:out};
 }

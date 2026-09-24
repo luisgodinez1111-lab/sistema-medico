@@ -99,17 +99,6 @@
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },
   {
-    "test": "tests/domain/order-result-domain.test.ts",
-    "authority": [
-      "ENG-307",
-      "ENG-308",
-      "ENG-342"
-    ],
-    "sha256": "b74d2db9cd9b89acb6ced8033a9cd2306f084447759321f1f665b8f6d38b26ae",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
     "test": "tests/domain/patient-domain.test.ts",
     "authority": [
       "ENG-303",
@@ -604,15 +593,6 @@
       "ENG-312"
     ],
     "sha256": "98abcf77470b404d00f0587fd3d922163145f7be2c75d8af219040857d1a6e10",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
-    "test": "tests/v12/result-correction-runtime.test.ts",
-    "authority": [
-      "ENG-342"
-    ],
-    "sha256": "1c4764c31cb503978c781dc3251326d795231e1066ced90102a60776bc024024",
     "execution_status": "PENDING_EXECUTION",
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },
@@ -1172,6 +1152,14 @@
     "invariant": "INV-CORE-0014"
   },
   {
+    "test": "tests/v22/result-fold.test.ts",
+    "authority": [
+      "ENG-307",
+      "ENG-308"
+    ],
+    "sha256": "b29dd4267a774b108c736d8a4cd57385f949950da4aceeb69b838f2d9dd3177a"
+  },
+  {
     "test": "tests/v22/runtime-auth-scopes.test.ts",
     "authority": [
       "ENG-333"
@@ -1196,18 +1184,6 @@
       "ENG-313"
     ],
     "sha256": "e4fa8a3228cc4fe215459cf198eeea956dfe69d2d48f9ea2b8a317207ef6752f",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
-    "test": "tests/v6/result-service.test.ts",
-    "authority": [
-      "ENG-307",
-      "ENG-308",
-      "ENG-311",
-      "ENG-337"
-    ],
-    "sha256": "a274be7ae3056ce9da33703445358979a86134158829dcfd40096c76cbf9f551",
     "execution_status": "PENDING_EXECUTION",
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },

@@ -5,6 +5,7 @@ import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y re
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bb-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
+const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
 const results=await import("../../apps/web/app/api/v1/results/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes:["result:write"],purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
@@ -13,7 +14,7 @@ const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 // t: minutos crecientes para que occurred_at ordene los resultados cronológicamente.
 let seq=0;const at=()=>new Date(Date.parse("2026-09-14T08:00:00.000Z")+(seq++)*60000).toISOString();
-async function receive(t:string,pat:string,analyte:string,value:string){const id=crypto.randomUUID();const r=await results.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:id,patientId:pat,orderId:crypto.randomUUID(),analyte,value,occurredAt:at()})}));return r;}
+async function receive(t:string,pat:string,analyte:string,value:string){const id=crypto.randomUUID();const r=await results.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:id,patientId:pat,orderId:crypto.randomUUID(),analyte,value,unit:canonicalUnitOf(analyte)??"n/a",occurredAt:at()})}));return r;}
 try{
  const phys=tok();
  // 1) creatinina previa normal 0.9; nueva 1.9 (dentro de "alto" pero no pánico absoluto <4) -> delta crítico eleva a critical
@@ -47,6 +48,11 @@ try{
  // 8) la respuesta dice el estado REAL de la interpretación (no solo `critical`): anormal no crítico ≠ "dentro de rango"
  const p8=crypto.randomUUID();await ensurePatientIn(TA,p8); /* L-07 */
  r=await receive(phys,p8,"POTASSIUM","5.8");j=await r.json();ok(j.critical===false&&j.status==="ABNORMAL"&&typeof j.interpretation==="string","ABNORMAL_STATUS_RETURNED");
- r=await receive(phys,await freshPatient(TA),"POTASSIUM","4.2");j=await r.json();ok(j.status==="NORMAL"&&j.canonicalUnit==="mEq/L"&&j.unitAssumed===true,"NORMAL_STATUS_AND_ASSUMED_UNIT_DECLARED");
+ // R02a-RES-01: la unidad ya NO se asume. Con unidad explícita el resultado se interpreta y `unitAssumed` no es true…
+ r=await receive(phys,await freshPatient(TA),"POTASSIUM","4.2");j=await r.json();ok(j.status==="NORMAL"&&j.canonicalUnit==="mEq/L"&&j.unitAssumed!==true,"NORMAL_STATUS_CON_UNIDAD_EXPLICITA");
+ // …y un resultado SIN unidad se rechaza en la API (antes se asumía la canónica en silencio: «7» podía ser normal o crítico).
+ const sinUnidad=await results.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),
+  body:JSON.stringify({resultId:crypto.randomUUID(),patientId:await freshPatient(TA),orderId:crypto.randomUUID(),analyte:"POTASSIUM",value:"4.2",occurredAt:at()})}));
+ ok(sinUnidad.status===400,"RESULTADO_SIN_UNIDAD_RECHAZADO_400");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

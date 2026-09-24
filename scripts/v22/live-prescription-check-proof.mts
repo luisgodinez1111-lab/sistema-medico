@@ -4,6 +4,7 @@ import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-cg-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
+const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const resR=await import("../../apps/web/app/api/v1/results/route");
 const alR=await import("../../apps/web/app/api/v1/allergies/route");
@@ -16,7 +17,7 @@ let ts=Date.now()-3_600_000/* reloj RELATIVO: las calculadoras rechazan datos ob
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
 async function reg(t:string,p:string,y:number,sex:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:`Prueba ${p.slice(0,8)}`,birthDate:birth(y),sexAtBirth:sex,occurredAt:at()})}));}
-async function res(t:string,p:string,a:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,occurredAt:at()})}));}
+async function res(t:string,p:string,a:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,unit:canonicalUnitOf(a)??"mg/dL",occurredAt:at()})}));}
 async function allergy(t:string,p:string,s:string){await alR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({allergyId:crypto.randomUUID(),patientId:p,substance:s,severity:"SEVERE",reaction:"anafilaxia",occurredAt:at()})}));}
 async function check(t:string,p:string,drug:string,dose:string,route:string,freq:string){const r=await pcR.POST(new Request("http://l/",{method:"POST",headers:H(t),body:JSON.stringify({drug,dose,route,frequency:freq})}),PP(p));return{status:r.status,body:await r.json()};}
 const find=(b:{checks:{id:string;status:string}[]},id:string)=>b.checks.find(c=>c.id===id);

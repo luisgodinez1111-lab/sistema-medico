@@ -39,17 +39,28 @@ export async function handleMedicationProposal(req:Request):Promise<Response>{
   const v=validateMedicationOrder({dose:b.dose,route:b.route,frequency:b.frequency});
   if(!v.ok)throw new ClinicalError("VALIDATION_ERROR",`Orden de medicación no válida: ${v.errors.join("; ")}`,{errors:v.errors});
   // EPIC AZ (profundidad/seguridad): tope de dosis máxima diaria — atrapa sobredosis (dose ceiling).
+  // R02a-MED-01: `if(ing)` hacía que un fármaco fuera del catálogo se saltara el techo de dosis y el máximo pediátrico
+  // EN SILENCIO. PROPOSE es una propuesta (la barrera completa con 428 vive en PRESCRIBE), pero el silencio era el
+  // defecto: ahora la propuesta deja constancia EN EL EVENTO de qué no se pudo verificar y lo devuelve como aviso, de
+  // modo que ni el expediente ni la UI pueden presentar «sin hallazgos» como si se hubiera comprobado algo.
   const ing=resolveDrug(b.drugCode)?.ingredient;
+  const noVerificado:string[]=ing?[]:["doseCeiling","pediatricDose"];
   if(ing){const dc=checkDoseCeiling(ing,b.dose,b.frequency,b.drugCode); // C-15: "2 tab" se acota con la concentración del código
    if(dc.checked&&dc.exceeded)throw new ClinicalError("SAFETY_BLOCKED",`Dosis diaria excede el máximo de ${ing}: ${dc.computedMgPerDay}mg/día > ${dc.maxMgPerDay}mg/día. Reduzca la dosis o la frecuencia (o modifique con justificación clínica).`,{computedMgPerDay:dc.computedMgPerDay,maxMgPerDay:dc.maxMgPerDay});
    // EPIC BD (profundidad/seguridad pediátrica): en peso pediátrico, valida mg/kg/día (el ceiling absoluto no protege a un niño).
    const w=await patientWeightKg(ctx,b.patientId);
    const pd=checkPediatricDose(ing,b.dose,b.frequency,w);
    if(pd.checked&&pd.exceeded)throw new ClinicalError("SAFETY_BLOCKED",`Dosis pediátrica excede el máximo de ${ing}: ${pd.computedMgPerKgPerDay}mg/kg/día > ${pd.maxMgPerKgPerDay}mg/kg/día (peso ${pd.weightKg}kg). Recalcule por peso.`,{computedMgPerKgPerDay:pd.computedMgPerKgPerDay,maxMgPerKgPerDay:pd.maxMgPerKgPerDay,weightKg:pd.weightKg});}
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.medicationId,expectedVersion:0,eventType:"MEDICATION_PROPOSED",payload:{kind:"PROPOSED",patientId:b.patientId,drugCode:b.drugCode,indication:b.indication,dose:b.dose,route:normalizeRoute(b.route),frequency:b.frequency,duration:b.duration,calculatedDose:b.calculatedDose},occurredAt:b.occurredAt,topic:"medication.proposed"});
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.medicationId,expectedVersion:0,eventType:"MEDICATION_PROPOSED",payload:{kind:"PROPOSED",patientId:b.patientId,drugCode:b.drugCode,indication:b.indication,dose:b.dose,route:normalizeRoute(b.route),frequency:b.frequency,duration:b.duration,calculatedDose:b.calculatedDose,
+   // R02a-MED-01: constancia explícita de lo que NO se verificó en la propuesta (fármaco fuera del catálogo).
+   ...(noVerificado.length?{safety:{catalogResolved:false,notEvaluated:noVerificado}}:{})},occurredAt:b.occurredAt,topic:"medication.proposed"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
-  return NextResponse.json({medicationId:b.medicationId,state:"PROPOSED",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+  return NextResponse.json({medicationId:b.medicationId,state:"PROPOSED",version:r.version,auditHash:r.auditHash,replayed:result.replayed,
+   // El aviso viaja en la respuesta para que la UI no pueda presentar la propuesta como verificada (R02a-MED-01).
+   ...(noVerificado.length?{warnings:[{code:"DRUG_NOT_IN_CATALOG",notEvaluated:noVerificado,
+    message:"Fármaco fuera del catálogo: el techo de dosis y el máximo pediátrico NO se verificaron en la propuesta. Al prescribir se exigirá su confirmación expresa."}]}:{})},
+   {status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
@@ -106,7 +117,25 @@ const DAY_MS=86_400_000;
 // Idempotente: ids/keys derivados de la key de la prescripción + slot; un reintento reconstruye lo mismo.
 // Cada obligación es su propia transacción (no atómica con la prescripción); un reintento la reconcilia.
 async function createMonitoringObligations(ctx:Parameters<typeof runClinicalCommand>[0],baseIdemKey:string,patientId:string,ownerId:string,drugCode:string,occurredAt:string):Promise<void>{
+ // Auditoría R02a-MED-01: `monitoringFor` devuelve [] para un fármaco FUERA del catálogo, así que prescribirlo creaba
+ // CERO obligaciones de monitoreo… en silencio. Para el médico, «ninguna obligación» se lee como «este fármaco no
+ // necesita seguimiento», que es lo contrario de la verdad: no se sabe. Zero-Lost-Follow-Up exige lo opuesto: cuando el
+ // sistema no puede decidir el monitoreo, la obligación es DEFINIRLO, y recae en quien prescribió.
  const rules=monitoringFor(drugCode);
+ if(rules.length===0&&!resolveDrug(drugCode)){
+  const idem=derivedUuid(baseIdemKey,"monitor-idem-undefined");
+  const obligationId=derivedUuid(baseIdemKey,"monitor-agg-undefined");
+  const cmd=buildCommand({idempotencyKey:idem,aggregateType:"ClinicalObligation",aggregateId:obligationId,expectedVersion:0,
+   eventType:"OBLIGATION_CREATED",payload:{kind:"CREATED",patientId,ownerId,
+    dueAt:new Date(new Date(occurredAt).getTime()+7*DAY_MS).toISOString(),
+    obligationKind:"MONITORING_UNDEFINED",test:`Definir el monitoreo de ${drugCode}`,priority:"HIGH",
+    note:`El fármaco «${drugCode}» no está en el catálogo: el sistema no pudo derivar ninguna obligación de monitoreo. Defina qué vigilar y con qué periodicidad.`,
+    sourceDrugCode:drugCode},
+   occurredAt,topic:"obligation.created"});
+  let r=await lookupReplay(ctx,cmd);
+  if(!r)r=await runClinicalCommand(ctx,cmd);
+  return;
+ }
  for(let i=0;i<rules.length;i++){
   const rule=rules[i]!;
   const idem=derivedUuid(baseIdemKey,`monitor-idem-${i}`);
@@ -145,9 +174,20 @@ function enforceSafety(safety:ReturnType<typeof evaluatePrescriptionSafety>,verb
   if(d.code==="OVERRIDE_NOT_BLOCKED")throw new ClinicalError("VALIDATION_ERROR",`overrideBarriers nombra barreras que no bloquean (${d.unmatched.join(", ")}): una anulación solo se registra sobre un bloqueo real`,{...info,unmatched:d.unmatched});
   throw new ClinicalError("VALIDATION_ERROR",`overrideJustification (≥${OVERRIDE_MIN_JUSTIFICATION} caracteres) es obligatoria para anular un bloqueo`,info);
  }
- if(safety.requiresAcknowledgement&&!acknowledged)throw new ClinicalError("SAFETY_ACK_REQUIRED",
-  `Verificación automática incompleta (${safety.notEvaluated.join(", ")}): ${safety.catalogResolved?"faltan datos del paciente para evaluar":"el fármaco no está en el catálogo"}. Confirme expresamente que procede bajo su criterio clínico (acknowledgeUnverified) e indique la justificación.`,
-  {notEvaluated:safety.notEvaluated});
+ if(safety.requiresAcknowledgement&&!acknowledged){
+  // R02a-MED-03: el mensaje distingue «no se pudo evaluar» de «el catálogo no tiene regla». Son dos cosas distintas para
+  // el médico: la primera puede resolverse completando datos (peso, TFG); la segunda significa que no existe valor de
+  // referencia para ese fármaco y su criterio es el único control que queda.
+  const sinEvaluar=[...safety.notEvaluated];
+  const sinRegla=[...safety.notCovered];
+  const motivo=[
+   sinEvaluar.length?`NO evaluadas (${sinEvaluar.join(", ")}): ${safety.catalogResolved?"faltan datos del paciente":"el fármaco no está en el catálogo"}`:"",
+   sinRegla.length?`SIN regla en el catálogo (${sinRegla.join(", ")}): no existe valor de referencia para verificar`:"",
+  ].filter(Boolean).join(" · ");
+  throw new ClinicalError("SAFETY_ACK_REQUIRED",
+   `Verificación automática incompleta — ${motivo}. Confirme expresamente que procede bajo su criterio clínico (acknowledgeUnverified) e indique la justificación.`,
+   {notEvaluated:sinEvaluar,notCovered:sinRegla});
+ }
  if(safety.requiresAcknowledgement&&(justification??"").trim().length<10)throw new ClinicalError("VALIDATION_ERROR","unverifiedJustification (≥10 caracteres) es obligatoria cuando la verificación automática es incompleta");
 }
 // PRESCRIBE = PROPOSED -> PRESCRIBED. EXIGE médico (Physician Control): la IA nunca prescribe.

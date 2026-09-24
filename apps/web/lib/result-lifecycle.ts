@@ -18,9 +18,13 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"result:write",purpose:"TREATMENT"});
 }
 
-// `unit` (unidad en que se reporta el valor) y `specimenId` (muestra de la que sale) son opcionales por compatibilidad,
-// pero son la base de toda calculadora: sin unidad, el valor se asume en la canónica y queda marcado `unitAssumed`.
-export const ReceiveBody=z.object({resultId:z.string().uuid(),patientId:z.string().uuid(),orderId:z.string().uuid(),analyte:z.string().min(1).max(60),value:z.string().min(1).max(60),unit:z.string().max(24).optional(),specimenId:z.string().uuid().optional(),occurredAt:z.string().datetime()});
+// Auditoría R02a-RES-01: `unit` era OPCIONAL en la API. Sin unidad, el valor se asumía en la unidad canónica y quedaba
+// marcado `unitAssumed:true` — es decir, la decisión más peligrosa del laboratorio (¿7 mmol/L o 7 mg/dL de glucosa?) se
+// tomaba por omisión. La UI ya la exigía; la API no, y la API es la que reciben las integraciones de laboratorio. Ahora es
+// OBLIGATORIA al RECIBIR y al CORREGIR: sin unidad se responde 400 y el valor no entra al expediente. `specimenId` sigue
+// opcional (no todo resultado nace de una muestra registrada) y `unitAssumed` se conserva en el fold para los resultados
+// históricos que se registraron sin ella.
+export const ReceiveBody=z.object({resultId:z.string().uuid(),patientId:z.string().uuid(),orderId:z.string().uuid(),analyte:z.string().min(1).max(60),value:z.string().min(1).max(60),unit:z.string().trim().min(1,"La unidad es obligatoria: sin ella el valor no se puede interpretar").max(24),specimenId:z.string().uuid().optional(),occurredAt:z.string().datetime()});
 // RECEIVE = creación del agregado (expectedVersion 0). Idempotencia la maneja el kernel.
 // EPIC AQ: si se envía analyte+value, el flag `critical` se DERIVA del valor real
 // (valores de pánico), no se confía en el booleano del cliente.
@@ -82,7 +86,7 @@ async function commitReceived(ctx:Parameters<typeof runClinicalCommand>[0],idemp
 // original: se recibe un resultado NUEVO (`supersedes: original`, con la misma interpretación completa: unidad, crítico, Δ)
 // y el original queda anotado CORRECTED (`supersededBy`). Calculadoras, series y el gate de firma leen solo el vigente;
 // la obligación urgente derivada del original (C-20) se completa con la razón de la corrección. Exige razón.
-export const CorrectionBody=z.object({correctedResultId:z.string().uuid(),value:z.string().min(1).max(60),unit:z.string().max(24).optional(),reason:z.string().min(5).max(500),occurredAt:z.string().datetime()});
+export const CorrectionBody=z.object({correctedResultId:z.string().uuid(),value:z.string().min(1).max(60),unit:z.string().trim().min(1,"La unidad es obligatoria: sin ella el valor no se puede interpretar").max(24),reason:z.string().min(5).max(500),occurredAt:z.string().datetime()});
 export async function handleResultCorrection(req:Request,resultId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,resultId);

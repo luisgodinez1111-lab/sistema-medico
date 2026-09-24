@@ -415,12 +415,13 @@
     "invariants": [],
     "machines": [],
     "tests": [
-      "order-result-domain.test.ts"
+      "result-fold.test.ts"
     ],
     "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
     "dependsOn": [
       "CAP-IDENTITY-001"
-    ]
+    ],
+    "evidenceNote": "R02a-RES-02: la evidencia probaba dos funciones de packages/order-result-domain que nadie llamaba (closeResult/correctResult), retiradas. Ese paquete queda solo como VOCABULARIO de estados; el comportamiento vive en packages/result-fold y la ruta real."
   },
   {
     "id": "CAP-MEDICATION-002",
@@ -751,12 +752,14 @@
     "invariants": [],
     "machines": [],
     "tests": [
-      "result-service.test.ts"
+      "result-fold.test.ts",
+      "corrected-result.test.ts"
     ],
     "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
     "dependsOn": [
       "CAP-IDENTITY-001"
-    ]
+    ],
+    "evidenceNote": "R02a-RES-02: la evidencia apuntaba a packages/result-service, una implementación PARALELA del ciclo de resultados que ningún camino de producción llamaba. El ciclo vivo es apps/web/lib/result-lifecycle.ts sobre packages/result-fold (RECEIVED→VERIFIED→ACTIONED→CLOSED con obligación en ACTIONED) y su evidencia en vivo es scripts/v22/live-result-closed-loop-proof.mts."
   },
   {
     "id": "CAP-PATIENT-STATE-001",
@@ -2058,12 +2061,14 @@
     "invariants": [],
     "machines": [],
     "tests": [
-      "result-correction-runtime.test.ts"
+      "corrected-result.test.ts",
+      "replay-impact.test.ts"
     ],
     "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
     "dependsOn": [
       "CAP-IDENTITY-001"
-    ]
+    ],
+    "evidenceNote": "R02a-RES-02: la evidencia apuntaba a packages/result-correction-runtime, retirado. El DAG de corrección (INV-CORE-0007) lo ejercitan los contratos de trazabilidad y, en vivo, scripts/v22/live-result-correction-proof.mts sobre POST /results/:id/correction (lote 10j)."
   },
   {
     "id": "CAP-IMPACT-RUNTIME-003",

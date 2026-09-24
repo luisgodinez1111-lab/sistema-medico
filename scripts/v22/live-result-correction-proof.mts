@@ -47,7 +47,7 @@ try{
  r=await correction.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":key,"if-match":"1"}),body}),RP(r1));
  ok(r.status===200&&(await r.json()).replayed===true&&(await readAggregateEvents(ctx,r1)).length===2&&(await readAggregateEvents(ctx,r2)).length===1,"IDEMPOTENT_RETRY_NO_DUPLICATES");
  // segunda corrección del mismo original -> 409
- r=await correction.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({correctedResultId:crypto.randomUUID(),value:"4.0",reason:"Otra corrección",occurredAt:at()})}),RP(r1));
+ r=await correction.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({correctedResultId:crypto.randomUUID(),value:"4.0",unit:"mEq/L",reason:"Otra corrección",occurredAt:at()})}),RP(r1));
  ok(r.status===409,"ALREADY_SUPERSEDED_409");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

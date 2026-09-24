@@ -16,7 +16,7 @@ const KERNEL:Record<string,ClinicalErrorCode>={
 // (no se puede inferir del texto). Lista cerrada por código y por clave: lo que no está aquí no sale.
 const EXPOSED_DETAILS:Partial<Record<ClinicalErrorCode,readonly string[]>>={
  SAFETY_BLOCKED:["barriers","hard","overridable","missing"],
- SAFETY_ACK_REQUIRED:["notEvaluated"],
+ SAFETY_ACK_REQUIRED:["notEvaluated","notCovered"], // R02a-MED-03: «sin regla en el catálogo» es distinto de «no se pudo evaluar»
  VALIDATION_ERROR:["unmatched","missing","curpIssue"], // U-19 barreras no bloqueantes nombradas; U-20 campos legales que faltan en la receta
  CONCURRENCY_CONFLICT:["expected","actual"],
  PRECONDITION_REQUIRED:["reason"], // L-05: PHYSICIAN_CREDENTIALS_REQUIRED lleva a la UI al perfil profesional
