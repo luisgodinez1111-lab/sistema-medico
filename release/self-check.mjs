@@ -1,5 +1,7 @@
 import fs from "node:fs"; import crypto from "node:crypto";
-const must=["safety/invariants.json","safety/hazards.json","state-machines/formal/SM-FORMAL-RESULT-001.json","state-machines/formal/SM-FORMAL-OBLIGATION-001.json","state-machines/formal/SM-FORMAL-MED-001.json","state-machines/formal/SM-FORMAL-TRUTH-001.json","ai-tasks/catalog.json","ai-tasks/bindings.json","ai-tasks/evals.json","safety-envelopes/catalog.json"];
+// Auditoría R09-027 (23-sep-2026): antes exigía `safety/invariants.json` y `safety/hazards.json`, dos ficheros que
+// existían pero estaban VACÍOS (y cuyos lectores pasaban vacíamente). Ahora exige el registro ejecutable real.
+const must=["safety/core-invariants.json","safety/core-hazards.json","safety/controls/catalog.json","state-machines/formal/SM-FORMAL-RESULT-001.json","state-machines/formal/SM-FORMAL-OBLIGATION-001.json","state-machines/formal/SM-FORMAL-MED-001.json","state-machines/formal/SM-FORMAL-TRUTH-001.json","ai-tasks/catalog.json","ai-tasks/bindings.json","ai-tasks/evals.json","safety-envelopes/catalog.json"];
 const errors=[]; for(const p of must){if(!fs.existsSync(p))errors.push(`MISSING:${p}`);}
 const tasks=JSON.parse(fs.readFileSync("ai-tasks/catalog.json")); const binds=JSON.parse(fs.readFileSync("ai-tasks/bindings.json")); const env=JSON.parse(fs.readFileSync("safety-envelopes/catalog.json")); const evals=JSON.parse(fs.readFileSync("ai-tasks/evals.json"));
 const bm=new Map(binds.map(x=>[x.ai_task,x.safety_envelope])), ei=new Set(env.map(x=>x.id)), vi=new Set(evals.map(x=>x.id));
