@@ -144,3 +144,68 @@ describe("validación del payload antes de persistir (R06-19)",()=>{
   expect(kernel).toMatch(/assertTenantContext\(ctx\);assertClinicalPayload\(c\)/); // antes de abrir la transacción
  });
 });
+
+// Auditoría 2026-09-19, anexo R06 — R06-12 (cuatro índices de claim en el outbox), R06-10 (roles sin ningún privilegio),
+// R06-15 (roles creados en dos sitios con atributos distintos) y R06-17 (el drill prometía verificar RLS y no lo hacía).
+describe("consolidación del outbox y privilegios de los roles (R06-12, R06-10)",()=>{
+ const mig26=()=>fs.readFileSync("db/migrations/0026_outbox_index_consolidation_and_role_grants.sql","utf8");
+ it("se retiran los tres índices obsoletos y queda el que cubre la EXPRESIÓN del claim",()=>{
+  for(const i of["outbox_claim_idx","outbox_delivery_idx","outbox_claim_v16_idx"])
+   expect(mig26(),`${i} debía retirarse`).toContain(`DROP INDEX IF EXISTS ${i}`);
+  expect(mig26()).toContain("(COALESCE(available_at,next_attempt_at,created_at))");
+  // La consulta real (CLAIM_SQL) ordena por esa expresión: es lo que el índice tiene que cubrir.
+  const claim=fs.readFileSync("packages/outbox-claim-v2/src/index.ts","utf8");
+  expect(claim).toContain("COALESCE(available_at,next_attempt_at,created_at)");
+ });
+ it("readonly recibe SELECT sobre las tablas con RLS y worker lo mínimo para drenar",()=>{
+  expect(mig26()).toContain("GRANT SELECT ON %I TO medical_os_readonly");
+  expect(mig26()).toContain("c.relrowsecurity");           // solo las tablas con RLS
+  expect(mig26()).toContain("GRANT SELECT, UPDATE ON outbox TO medical_os_worker");
+  expect(mig26()).toContain("GRANT SELECT, INSERT ON outbox_consumer_receipts TO medical_os_worker");
+  expect(mig26()).not.toMatch(/GRANT ALL/);                // mínimo privilegio, no «todo»
+ });
+ it("el retiro de las tablas heredadas NO se hace a la ligera en una migración",()=>{
+  // Borrar tablas de un esquema productivo es decisión del dueño: la migración lo dice y no las toca.
+  expect(mig26()).not.toMatch(/DROP TABLE/);
+  expect(mig26()).toMatch(/decisión del dueño/);
+ });
+});
+
+describe("una sola fuente de verdad para los roles (R06-15)",()=>{
+ const roles=()=>fs.readFileSync("db/roles_v16.sql","utf8");
+ it("el fichero declara los TRES roles con los mismos atributos",()=>{
+  for(const r of["medical_os_runtime","medical_os_worker","medical_os_readonly"]){
+   const linea=roles().split("\n").find(l=>l.includes(`CREATE ROLE ${r} `))??"";
+   expect(linea,`${r} no se declara`).not.toBe("");
+   for(const attr of["NOBYPASSRLS","NOSUPERUSER","NOCREATEDB","NOCREATEROLE","NOINHERIT"])
+    expect(linea,`${r} sin ${attr}`).toContain(attr);
+  }
+ });
+ it("y alinea los que 0016 pudo crear sin calificadores (NOINHERIT no es el valor por omisión)",()=>{
+  for(const r of["medical_os_runtime","medical_os_worker","medical_os_readonly"])
+   expect(roles()).toContain(`ALTER ROLE ${r}`);
+  expect(roles()).toMatch(/NOINHERIT — el rol no usa automáticamente/);
+ });
+ it("los roles del fichero y los de la migración 0016 son el MISMO conjunto",()=>{
+  const m16=fs.readFileSync("db/migrations/0016_runtime_execution_hardening.sql","utf8");
+  const extraer=(s:string)=>[...s.matchAll(/CREATE ROLE (medical_os_\w+)/g)].map(m=>m[1]!).sort();
+  expect(extraer(roles())).toEqual(extraer(m16));
+ });
+});
+
+describe("el restore drill verifica lo que promete (R06-17)",()=>{
+ const drill=()=>fs.readFileSync("scripts/v22/restore-drill.mts","utf8");
+ it("la huella del esquema incluye RLS, políticas y privilegios",()=>{
+  const fn=/async function schemaFingerprint[\s\S]*?\n}/.exec(drill())?.[0]??"";
+  expect(fn).not.toBe("");
+  expect(fn,"sin RLS: un restore que dejara las tablas sin FORCE pasaría").toContain("relforcerowsecurity");
+  expect(fn,"sin políticas: un restore que las perdiera pasaría").toContain("pg_policies");
+  expect(fn,"sin grants: un GRANT de más no cambiaría la huella").toContain("role_table_grants");
+ });
+ it("y comprueba que ninguna tabla con RLS se quede sin política",()=>{
+  expect(drill()).toContain("rlsWithoutPolicy");
+  expect(drill()).toContain("policiesComplete");
+  const proof=fs.readFileSync("packages/restore-proof/src/index.ts","utf8");
+  expect(proof).toContain("RLS_WITHOUT_POLICY");   // el gate falla, no solo informa
+ });
+});

@@ -28,12 +28,39 @@ const{canonicalize}=await import("../../packages/canonical-json/src");
 const{restoreErrors}=await import("../../packages/restore-proof/src");
 
 const RUNTIME_ROLE="medical_os_runtime";
+// Auditoría 2026-09-19, anexo R06 (R06-17): la huella del esquema solo miraba `information_schema.columns`, así que un
+// cambio en ENABLE/FORCE ROW LEVEL SECURITY, en una política o en un GRANT **no la cambiaba** — y el comentario de cabecera
+// de este drill promete verificar «esquema idéntico al vivo, RLS forzado». Un restore que recuperara las tablas y las
+// dejara sin política pasaba el drill: exactamente el desastre que el drill dice descartar. Ahora la huella incluye las
+// tres cosas, y el drill comprueba además que ninguna tabla con RLS se quede sin política.
 async function schemaFingerprint(url:string){
  const sql=postgres(direct(url),{max:1,prepare:false,onnotice:()=>{}});
  try{
-  const rows=await sql`select table_schema,table_name,column_name,data_type from information_schema.columns where table_schema in ('public','app') order by table_schema,table_name,ordinal_position`;
-  const norm=rows.map(r=>`${r.table_schema}.${r.table_name}.${r.column_name}:${r.data_type}`).join("|");
+  const cols=await sql`select table_schema,table_name,column_name,data_type from information_schema.columns where table_schema in ('public','app') order by table_schema,table_name,ordinal_position`;
+  // RLS por tabla: habilitado Y forzado (que el dueño de la tabla también quede sujeto a la política).
+  const rls=await sql`select c.relname,c.relrowsecurity,c.relforcerowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' order by c.relname`;
+  // Políticas: nombre, comando y expresiones. Una política que cambia de USING cambia quién ve qué.
+  const pol=await sql`select tablename,policyname,cmd,coalesce(qual,'')as qual,coalesce(with_check,'')as wc from pg_policies where schemaname='public' order by tablename,policyname`;
+  // Privilegios por rol: un GRANT de más es una fuga; uno de menos, una caída.
+  const grants=await sql`select table_name,grantee,privilege_type from information_schema.role_table_grants where table_schema='public' and grantee like 'medical_os%' order by table_name,grantee,privilege_type`;
+  const norm=[
+   cols.map(r=>`C ${r.table_schema}.${r.table_name}.${r.column_name}:${r.data_type}`).join("|"),
+   rls.map(r=>`R ${r.relname}:${r.relrowsecurity}:${r.relforcerowsecurity}`).join("|"),
+   pol.map(r=>`P ${r.tablename}.${r.policyname}:${r.cmd}:${r.qual}:${r.wc}`).join("|"),
+   grants.map(r=>`G ${r.table_name}:${r.grantee}:${r.privilege_type}`).join("|"),
+  ].join("||");
   return crypto.createHash("sha256").update(norm).digest("hex");
+ }finally{await sql.end();}
+}
+/** R06-17: toda tabla con RLS tiene que tener al menos una política; con RLS y sin política la tabla queda inservible. */
+async function rlsWithoutPolicy(url:string):Promise<string[]>{
+ const sql=postgres(direct(url),{max:1,prepare:false,onnotice:()=>{}});
+ try{
+  const rows=await sql`select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace
+   where n.nspname='public' and c.relkind='r' and c.relrowsecurity
+     and not exists(select 1 from pg_policies p where p.schemaname='public' and p.tablename=c.relname)
+   order by c.relname`;
+  return rows.map(r=>String(r.relname));
  }finally{await sql.end();}
 }
 
@@ -42,7 +69,7 @@ const REPLAY_TENANT=crypto.createHash("sha256").update("restore-drill-tenant").d
 const det=(seed:string):string=>deterministicUuid(seed); // R01-015: única derivación de UUID del repo
 function seededCommand(i:number){
  const key=`restore-drill-cmd-${i}`;
- return{commandId:det(key+":command"),idempotencyKey:key,aggregateId:REPLAY_TENANT,aggregateType:"Encounter",expectedVersion:i,eventId:det(key+":event"),eventType:"ENCOUNTER_OPENED",payload:{step:i},outboxId:det(key+":outbox"),topic:"encounter.opened",auditId:det(key+":audit"),correlationId:det(key+":corr"),occurredAt:"2026-01-01T00:00:00.000Z"};
+ return{commandId:det(key+":command"),idempotencyKey:key,aggregateId:REPLAY_TENANT,aggregateType:"Encounter",expectedVersion:i,eventId:det(key+":event"),eventType:"ENCOUNTER_OPENED",payload:{kind:"OPENED",step:i},outboxId:det(key+":outbox"),topic:"encounter.opened",auditId:det(key+":audit"),correlationId:det(key+":corr"),occurredAt:"2026-01-01T00:00:00.000Z"};
 }
 
 const out:{status:string;proof?:unknown;errors?:string[];note?:string}={status:"PASS"};
@@ -100,7 +127,10 @@ try{
   rlsPass=Number(leak[0]!.n)===0;
  }finally{await rt.end();}
 
- const proof={schemaHash,expectedSchemaHash,auditValid,rlsPass,replayHash,liveHash,obligationsMatch:replayHash===liveHash};
+ // R06-17: además del aislamiento por tenant (rlsPass), ninguna tabla con RLS puede quedarse sin política tras el restore.
+ const sinPolitica=await rlsWithoutPolicy(TARGET);
+ const proof={schemaHash,expectedSchemaHash,auditValid,rlsPass,rlsTablesWithoutPolicy:sinPolitica,policiesComplete:sinPolitica.length===0,
+  replayHash,liveHash,obligationsMatch:replayHash===liveHash};
  const errors=restoreErrors(proof);
  out.proof=proof;out.errors=errors;out.status=errors.length?"FAIL":"PASS";
  // Auditoría 2026-09-19, anexo R06 (R06-16): el rango de migraciones estaba escrito a mano en esta nota y se quedó
