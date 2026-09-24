@@ -1,4 +1,5 @@
 import{NextResponse}from"next/server";
+import{calcReceipt}from"../../../../../../lib/calc-receipt";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{stageBloodPressure,parseBp}from"../../../../../../../../packages/bp-staging/src";
 import{patientDemographics}from"../../../../../../lib/clinical-runtime";
@@ -42,6 +43,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    reason:`Presión ${parsed.systolic}/${parsed.diastolic}: la sistólica debe ser mayor que la diastólica. Verifique la captura.`,
    algorithm:ALG},{status:200});
   return NextResponse.json({patientId,computable:true,applicable:true,systolic:r.systolic,diastolic:r.diastolic,stage:r.stage,label:r.label,actionNote:r.actionNote,
-   algorithm:ALG,inputs:vitalProvenance(vit.inputs),warnings:vit.warnings},{status:200});
+   algorithm:ALG,inputs:vitalProvenance(vit.inputs),warnings:vit.warnings,
+   receipt:calcReceipt(ALG,{systolic:r.systolic,diastolic:r.diastolic,ageYears:age,inputs:vitalProvenance(vit.inputs)},"COMPUTED",r.stage)},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

@@ -1,2 +1,0 @@
-export type Numeric=Readonly<{value:number;unit:string;min?:number;max?:number}>;
-export function validateNumeric(x:Numeric){if(!Number.isFinite(x.value))throw new Error("NON_FINITE_CLINICAL_VALUE");if(x.min!==undefined&&x.value<x.min)throw new Error("BELOW_SUPPORTED_RANGE");if(x.max!==undefined&&x.value>x.max)throw new Error("ABOVE_SUPPORTED_RANGE");if(!x.unit)throw new Error("UNIT_REQUIRED");return x}

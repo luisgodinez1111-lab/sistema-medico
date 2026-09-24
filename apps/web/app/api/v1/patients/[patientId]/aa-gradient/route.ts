@@ -1,4 +1,5 @@
 import{NextResponse}from"next/server";
+import{calcReceipt}from"../../../../../../lib/calc-receipt";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
 import{aaGradient,atmPressureFromAltitude}from"../../../../../../../../packages/oxygenation/src";
@@ -44,6 +45,8 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    expectedValid:r.expectedValid,fio2:r.fio2,atmPressure:r.atmPressure,pfRatio:r.pfRatio,
    atmPressureSource:atmDeclared?"DECLARED":"SITE_ALTITUDE",
    warnings:[...inp.warnings,...(atmDeclared?[]:[`Presión atmosférica derivada de la altitud de la sede (${altitud} m → ${atmPressure} mmHg, atmósfera estándar ISO 2533). El clima la mueve ±10 mmHg: declare ?atm= si dispone de la barométrica local.`])],
-   algorithm:{id:"AA-GRADIENT",version:"3"},inputs:provenance(inp.inputs)},{status:200});
+   algorithm:{id:"AA-GRADIENT",version:"3",authority:"Ecuación del gas alveolar; esperado por edad Mellemgaard 1966; presión ISO 2533"},
+   receipt:calcReceipt({id:"AA-GRADIENT",version:"3",authority:"Mellemgaard 1966; ISO 2533"},{fio2,atmPressure,ageYears:ageYears(demo.birthDate),inputs:provenance(inp.inputs)},"COMPUTED",r.gradient),
+   inputs:provenance(inp.inputs)},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

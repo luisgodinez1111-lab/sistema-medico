@@ -12,7 +12,9 @@ type Rule=(it:TimelineLike)=>Omit<CareGap,"aggregateType"|"aggregateId">|null;
 const RULES:Record<string,Rule>={
  // Auditoría C-20: un resultado CRÍTICO sin cerrar es pendiente en CUALQUIER estado no terminal, incluido el recién recibido que nadie
  // ha visto (antes solo contaba ACTIONED). `status` lo aporta el evento (CRITICAL). Un resultado no crítico no genera pendiente.
- DiagnosticResult:it=>it.latestKind!=="CLOSED"&&(it.status==="CRITICAL"||it.latestKind==="ACTIONED")?{code:"CRITICAL_RESULT_OPEN",label:it.latestKind==="RECEIVED"?"Resultado crítico recibido y aún no revisado":it.latestKind==="VERIFIED"?"Resultado crítico verificado sin acción registrada":"Resultado crítico requiere cierre de seguimiento",priority:"HIGH"}:null,
+ // R03-10 (lote 11e): un resultado ANULADO (ENTERED_IN_ERROR) tampoco genera pendiente. Sin esto, anular el resultado
+ // del paciente equivocado dejaba su tarea abierta para siempre: el dato se retiraba del expediente y el pendiente no.
+ DiagnosticResult:it=>it.latestKind!=="CLOSED"&&it.latestKind!=="ENTERED_IN_ERROR"&&(it.status==="CRITICAL"||it.latestKind==="ACTIONED")?{code:"CRITICAL_RESULT_OPEN",label:it.latestKind==="RECEIVED"?"Resultado crítico recibido y aún no revisado":it.latestKind==="VERIFIED"?"Resultado crítico verificado sin acción registrada":"Resultado crítico requiere cierre de seguimiento",priority:"HIGH"}:null,
  ClinicalObligation:it=>(it.latestKind!=="COMPLETED"&&it.latestKind!=="CANCELLED")?{code:"FOLLOWUP_OPEN",label:"Obligación de seguimiento abierta (Zero Lost Follow-Up)",priority:"HIGH"}:null,
  Consent:it=>it.latestKind==="PRESENTED"?{code:"CONSENT_PENDING_SIGNATURE",label:"Consentimiento presentado, pendiente de firma",priority:"MEDIUM"}:null,
  Immunization:it=>it.latestKind==="DUE"?{code:"IMMUNIZATION_DUE",label:"Vacuna indicada, pendiente de aplicar",priority:"MEDIUM"}:null,

@@ -76,6 +76,41 @@ const CATALOG:readonly Icd10Entry[]=[
  {code:"O24.4",description:"Diabetes mellitus que se origina con el embarazo",category:"Obstétrico"},
  {code:"O14.9",description:"Preeclampsia, no especificada",category:"Obstétrico"},
  {code:"O21.0",description:"Hiperemesis gravídica leve",category:"Obstétrico"},
+ // ---- Auditoría 2026-09-19, anexo R03 (R03-22): las categorías INALCANZABLES del índice de Charlson ----
+ // El índice está implementado con sus 17 categorías y el mapeo de Quan 2005 (lote C-08), pero la lista de problemas solo
+ // admite códigos de este catálogo: 9 de las 17 categorías —incluidas LAS DOS DE PESO 6 (tumor metastásico y SIDA) y la
+ // de peso 3— no tenían ningún código registrable. El ejemplo del anexo: un paciente de 55 años con tumor metastásico y
+ // SIDA (Charlson real 13, supervivencia a 10 años ≈0 %) puntuaba 1 y se informaba con 95.9 % de supervivencia. Con
+ // estos códigos las 17 categorías son alcanzables y un test lo vigila. (Cargar la CIE-10 completa —14 000 códigos— desde
+ // la fuente oficial sigue siendo decisión del dueño del producto: aquí se cubre lo que los algoritmos ya usan.)
+ {code:"C34.9",description:"Tumor maligno del bronquio o del pulmón, parte no especificada",category:"Neoplasias"},
+ {code:"C50.9",description:"Tumor maligno de la mama, parte no especificada",category:"Neoplasias"},
+ {code:"C18.9",description:"Tumor maligno del colon, parte no especificada",category:"Neoplasias"},
+ {code:"C61",description:"Tumor maligno de la próstata",category:"Neoplasias"},
+ {code:"C53.9",description:"Tumor maligno del cuello del útero, parte no especificada",category:"Neoplasias"},
+ {code:"C91.0",description:"Leucemia linfoblástica aguda",category:"Neoplasias"},
+ {code:"C83.9",description:"Linfoma no folicular, no especificado",category:"Neoplasias"},
+ {code:"C78.0",description:"Tumor maligno secundario del pulmón",category:"Neoplasias"},
+ {code:"C79.5",description:"Tumor maligno secundario del hueso y de la médula ósea",category:"Neoplasias"},
+ {code:"C80.9",description:"Tumor maligno de sitio no especificado",category:"Neoplasias"},
+ {code:"B20.9",description:"Enfermedad por VIH resultante en enfermedad infecciosa o parasitaria no especificada",category:"Infeccioso"},
+ {code:"B24",description:"Enfermedad por VIH, sin otra especificación",category:"Infeccioso"},
+ {code:"F03",description:"Demencia, no especificada",category:"Salud mental"},
+ {code:"G30.9",description:"Enfermedad de Alzheimer, no especificada",category:"Neurológico"},
+ {code:"G81.9",description:"Hemiplejía, no especificada",category:"Neurológico"},
+ {code:"G82.2",description:"Paraplejía, no especificada",category:"Neurológico"},
+ {code:"M05.9",description:"Artritis reumatoide seropositiva, no especificada",category:"Musculoesquelético"},
+ {code:"M32.9",description:"Lupus eritematoso sistémico, no especificado",category:"Musculoesquelético"},
+ {code:"K27.9",description:"Úlcera péptica de sitio no especificado, no especificada como aguda ni crónica, sin hemorragia ni perforación",category:"Digestivo"},
+ {code:"K74.6",description:"Cirrosis hepática, otras y no especificadas",category:"Digestivo"},
+ {code:"B18.2",description:"Hepatitis viral tipo C crónica",category:"Digestivo"},
+ {code:"K72.9",description:"Insuficiencia hepática, no especificada",category:"Digestivo"},
+ {code:"I85.0",description:"Várices esofágicas con hemorragia",category:"Digestivo"},
+ {code:"I21.9",description:"Infarto agudo del miocardio, no especificado",category:"Cardiovascular"},
+ {code:"N18.4",description:"Enfermedad renal crónica, estadio 4 (grave)",category:"Genitourinario"},
+ {code:"N18.5",description:"Enfermedad renal crónica, estadio 5",category:"Genitourinario"},
+ {code:"J44.0",description:"Enfermedad pulmonar obstructiva crónica con infección aguda de las vías respiratorias inferiores",category:"Respiratorio"},
+ {code:"E11.7",description:"Diabetes mellitus tipo 2 con complicaciones múltiples",category:"Endocrino"},
 ];
 const BY_CODE=new Map(CATALOG.map(e=>[e.code.toUpperCase(),e]));
 export function normalizeIcd10(code:string):string{return code.trim().toUpperCase();}

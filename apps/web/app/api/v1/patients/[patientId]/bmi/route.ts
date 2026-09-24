@@ -1,4 +1,5 @@
 import{NextResponse}from"next/server";
+import{calcReceipt}from"../../../../../../lib/calc-receipt";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{bmiFromVitals,BMI_PLAUSIBLE,BMI_MIN_ADULT_AGE_YEARS}from"../../../../../../../../packages/anthropometrics/src";
 import{patientDemographics}from"../../../../../../lib/clinical-runtime";
@@ -47,6 +48,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   if(age===undefined)
    return NextResponse.json({...base,computable:false,reasonCode:"AGE_REQUIRED",bmi:r.bmi,
     reason:"Sin fecha de nacimiento no puede decidirse si aplican las categorías de adulto o el percentil pediátrico."},{status:200});
-  return NextResponse.json({...base,computable:true,bmi:r.bmi,category:r.category,label:r.label},{status:200});
+  return NextResponse.json({...base,computable:true,bmi:r.bmi,category:r.category,label:r.label,
+   receipt:calcReceipt(ALG,{weightKg:r.weightKg,heightM:r.heightM,ageYears:age,inputs:base.inputs},"COMPUTED",r.bmi)},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

@@ -1,1 +1,0 @@
-import {describe,it,expect} from "vitest";import {executeAlgorithm} from "../../packages/calculation-engine/src";describe("calculation",()=>{it("fails invalid input explicitly",()=>expect(executeAlgorithm({id:"x",version:"1",authority:["ENG-273"],validate:()=>["missing"],compute:()=>1},{}, "h").status).toBe("INVALID_INPUT"));});

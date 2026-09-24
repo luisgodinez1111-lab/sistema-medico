@@ -1,4 +1,5 @@
 import{NextResponse}from"next/server";
+import{calcReceipt}from"../../../../../../lib/calc-receipt";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{meldScore}from"../../../../../../../../packages/meld/src";
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,COHERENCE_HOURS,notComputable}from"../../../../../../lib/analyte-inputs";
@@ -20,7 +21,8 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const q=new URL(req.url).searchParams.get("dialysis");const dialysis=q==="true"?true:q==="false"?false:undefined;
   const r=meldScore(bili!,inr!,creat!,{dialysis:dialysis===true});
   if(!r)return NextResponse.json({patientId,computable:false,reason:"Valores inválidos"},{status:200});
-  return NextResponse.json({patientId,computable:true,meld:r.score,risk:r.risk,mortality90d:r.mortality90d,dialysis:dialysis??null,
+  return NextResponse.json({patientId,computable:true,meld:r.score,risk:r.risk,mortality90d:r.mortality90d,mortality90dPct:r.mortality90dPct,meldVersion:r.version,allocationNote:r.allocationNote,dialysis:dialysis??null,
+   receipt:calcReceipt({id:"MELD",version:r.version,authority:"Kamath PS et al., Hepatology 2001; bandas de Wiesner 2003"},{dialysis:dialysis??false,inputs:provenance(inp.inputs)},"COMPUTED",r.score),
    // MELD clásico (UNOS 2002): pronóstico de gravedad. NO es el MELD-Na ni el MELD 3.0 que hoy asignan la prioridad de trasplante.
    caveat:dialysis===undefined?"MELD clásico (pronóstico; NO es el MELD-Na/MELD 3.0 de asignación de trasplante). Diálisis NO declarada: si el paciente recibe ≥2 sesiones/semana el puntaje real es mayor (declare ?dialysis=true).":"MELD clásico (pronóstico; NO es el MELD-Na/MELD 3.0 de asignación de trasplante).",
    algorithm:{id:"MELD-UNOS-2002",version:"1"},inputs:provenance(inp.inputs),warnings:inp.warnings},{status:200});

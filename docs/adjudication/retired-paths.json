@@ -115,6 +115,16 @@
       "path": "tests/v12/result-correction-runtime.test.ts",
       "lote": "10y",
       "reason": "Ejercitaba la segunda implementación del DAG de corrección."
+    },
+    {
+      "path": "packages/calculation-engine",
+      "lote": "11g",
+      "reason": "Paquete-fachada de 3 líneas que definía CalcResult con los cuatro estados de fallo y algorithm/version/inputsHash, y que NINGUNA calculadora importaba (anexo R03-37: «el diseño correcto existe escrito y el código real devuelve undefined»). Lo que prometía ya lo entregan los paquetes reales: los estados de fallo viven en los `*Check` de cada calculadora (curb65Check, acidBaseCheck, egfrCheck, schwartzCheck) y el algoritmo, la versión, la autoridad clínica y el hash de entradas viajan en el `receipt` de las 11 rutas calculadoras (lib/calc-receipt.ts sobre packages/calculation-receipt). Migrar 19 calculadoras a executeAlgorithm habría sido churn para volver a decir lo mismo."
+    },
+    {
+      "path": "packages/clinical-numeric",
+      "lote": "11g",
+      "reason": "Paquete-fachada de 2 líneas (validateNumeric con UNIT_REQUIRED / BELOW_SUPPORTED_RANGE / ABOVE_SUPPORTED_RANGE) que ninguna calculadora importaba (anexo R03-37). Su promesa —validar unidad y plausibilidad— la cumplen `normalizeLabValue` (lab-reference, con tabla de unidades, factores de conversión y cotas por analito) y `normalizeVitalMeasure` (lote 11b, con las unidades canónicas de los signos vitales): dos funciones con tablas de verdad detrás, no un lanzador de excepciones con tres cadenas."
     }
   ]
 }

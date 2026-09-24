@@ -17,7 +17,7 @@ describe("rutas retiradas: no reaparecen (iCloud restaura lo borrado)",()=>{
   expect(registro.retired.length).toBeGreaterThanOrEqual(20);
   for(const r of registro.retired){
    expect(r.path,"toda entrada necesita ruta").toBeTruthy();
-   expect(r.lote,`${r.path}: falta el lote`).toMatch(/^10[a-z]$/);
+   expect(r.lote,`${r.path}: falta el lote`).toMatch(/^1[01][a-z]$/);
    expect(r.reason.length,`${r.path}: el motivo debe explicar por qué se retiró`).toBeGreaterThan(40);
   }
  });

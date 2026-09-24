@@ -1,5 +1,6 @@
 import{parseBp}from"../../../../../../../../packages/bp-staging/src";
 import{NextResponse}from"next/server";
+import{calcReceipt}from"../../../../../../lib/calc-receipt";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{computeNEWS2,type News2Params}from"../../../../../../../../packages/lab-reference/src";
 import{patientDemographics}from"../../../../../../lib/clinical-runtime";
@@ -41,7 +42,8 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const params:News2Params={resp:val("RESP"),spo2:val("SPO2"),temp:val("TEMP"),hr:val("HR"),sbp,supplementalO2,spo2Scale,consciousness};
   const news2=computeNEWS2(params);
   const excluidos=vit.ok?[]:[...vit.stale,...vit.implausible];
-  return NextResponse.json({patientId,computable:true,ageYears:age,news2,algorithm:{id:"NEWS2-RCP-2017",version:"2",spo2Scale},
+  return NextResponse.json({patientId,computable:true,ageYears:age,news2,algorithm:{id:"NEWS2-RCP-2017",version:"2",spo2Scale,authority:"Royal College of Physicians, NEWS2 (2017)"},
+   receipt:calcReceipt({id:"NEWS2-RCP-2017",version:"2",authority:"Royal College of Physicians 2017"},{params,spo2Scale,inputs:vitalProvenance(used)},news2.complete?"COMPUTED":"INSUFFICIENT_DATA",news2.score),
    inputs:vitalProvenance(used),warnings:vit.ok?vit.warnings:[],
    ...(excluidos.length?{excludedInputs:excluidos}:{}),
    note:news2.complete?undefined:`Score parcial (cota inferior): faltan ${news2.missing.join(", ")}${excluidos.length?` · no utilizables: ${excluidos.join("; ")}`:""}. Con esos datos el riesgo solo puede subir.`},{status:200});

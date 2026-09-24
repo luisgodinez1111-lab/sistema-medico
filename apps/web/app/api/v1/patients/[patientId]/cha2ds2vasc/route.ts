@@ -1,4 +1,5 @@
 import{NextResponse}from"next/server";
+import{calcReceipt}from"../../../../../../lib/calc-receipt";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
 import{cha2ds2vasc}from"../../../../../../../../packages/stroke-risk/src";
@@ -44,6 +45,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    valueSetVersion:ICD10_VALUE_SET_VERSION,algorithm:{id:"CHA2DS2-VASC",version:"3"}},{status:200});
   return NextResponse.json({patientId,applicable:true,score:r.score,risk:r.risk,recommendation:r.recommendation,
    components:r.components,bleedingRiskAssessed:r.bleedingRiskAssessed,
-   valueSetVersion:ICD10_VALUE_SET_VERSION,algorithm:{id:"CHA2DS2-VASC",version:"3"}},{status:200});
+   valueSetVersion:ICD10_VALUE_SET_VERSION,algorithm:{id:"CHA2DS2-VASC",version:"3",authority:"Lip GYH et al., Chest 2010"},
+   receipt:calcReceipt({id:"CHA2DS2-VASC",version:"3",authority:"Lip GYH et al., Chest 2010"},{ageYears:ageYears(demo.birthDate),sexAtBirth:demo.sexAtBirth,codes,valueSetVersion:ICD10_VALUE_SET_VERSION},"COMPUTED",r.score)},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

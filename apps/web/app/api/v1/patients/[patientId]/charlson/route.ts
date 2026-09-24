@@ -1,4 +1,5 @@
 import{NextResponse}from"next/server";
+import{calcReceipt}from"../../../../../../lib/calc-receipt";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
 import{charlsonFromIcd10,CHARLSON_LABELS_ES}from"../../../../../../../../packages/comorbidity/src";
@@ -23,6 +24,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   return NextResponse.json({patientId,score:r.score,ageScore:r.ageScore,comorbidityScore:r.comorbidityScore,risk:r.risk,estimated10yrSurvivalPct:r.estimated10yrSurvivalPct,components:r.components,
    present:r.present.map(k=>({key:k,label:CHARLSON_LABELS_ES[k]})),
    algorithm:{id:"CHARLSON-1987/QUAN-2005",note:"17 categorías con pesos originales; depende de que la lista de problemas esté codificada en CIE-10"},
-   coverageNote:"El índice solo ve lo que está en la lista de problemas del paciente con código CIE-10; una comorbilidad no registrada no puntúa."},{status:200});
+   coverageNote:"El índice solo ve lo que está en la lista de problemas del paciente con código CIE-10; una comorbilidad no registrada no puntúa.",
+   receipt:calcReceipt({id:"CHARLSON",version:"2",authority:"Charlson ME et al., J Chronic Dis 1987; mapeo CIE-10 de Quan H et al., Med Care 2005"},{ageYears:ageYears(demo.birthDate),codes},"COMPUTED",r.score)},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

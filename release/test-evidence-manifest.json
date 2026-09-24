@@ -38,16 +38,6 @@
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },
   {
-    "test": "tests/domain/calculation-engine.test.ts",
-    "authority": [
-      "ENG-273",
-      "ENG-309"
-    ],
-    "sha256": "be5435ac80317e2acb36b57db07a91ddc776b4058c966afbf4ce4a7efcb3a129",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
     "test": "tests/domain/consent.test.ts",
     "authority": [
       "ENG-333"
@@ -877,16 +867,6 @@
       "ENG-330"
     ],
     "sha256": "ad38a4fc5acbbe3d6094e4156c8ca7a0018189b4b4b1a7466f4cfd198d05c798",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
-    "test": "tests/v18/clinical-numeric.test.ts",
-    "authority": [
-      "ENG-319",
-      "ENG-341"
-    ],
-    "sha256": "6523a24ec567232fd8d69a1ff31f4c53ded51a1912743dc092b8017b44abee2e",
     "execution_status": "PENDING_EXECUTION",
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },

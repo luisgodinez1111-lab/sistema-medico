@@ -1,3 +1,0 @@
-export type CalcResult<T>={status:"COMPUTED";value:T;algorithm:string;version:string;inputsHash:string}|{status:"NOT_COMPUTABLE"|"INSUFFICIENT_DATA"|"INVALID_INPUT"|"UNSUPPORTED_UNIT";reason:string};
-export type Algorithm<I,O>=Readonly<{id:string;version:string;authority:readonly string[];validate:(i:I)=>string[];compute:(i:I)=>O}>;
-export function executeAlgorithm<I,O>(a:Algorithm<I,O>,i:I,inputsHash:string):CalcResult<O>{const e=a.validate(i);if(e.length)return {status:"INVALID_INPUT",reason:e.join(";")};return {status:"COMPUTED",value:a.compute(i),algorithm:a.id,version:a.version,inputsHash};}
