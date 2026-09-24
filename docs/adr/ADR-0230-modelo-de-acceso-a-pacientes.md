@@ -40,8 +40,14 @@ puede acceder a **todos** los pacientes del tenant. Razones:
   constante, que es un mecanismo para excepciones, no para el día a día.
 - El aislamiento **entre** tenants sí es absoluto: RLS en base de datos con `app.tenant_id` de los *claims*,
   nunca del cuerpo (ver ADR-0170).
-- Cada acceso queda en la cadena de auditoría inmutable con actor, propósito y recurso (ADR-0170), lo que
-  permite detección *a posteriori* de accesos indebidos, que es el control principal en clínicas pequeñas.
+- Cada **escritura** queda en la cadena de auditoría inmutable con actor, propósito y recurso (ADR-0170), y desde la
+  remediación del hallazgo R01-026 cada **lectura de PHI identificable** (expediente, ficha, signos vitales, documento,
+  exportación y receta impresa) deja constancia en `phi_access_log` (migración 0024) con actor, sesión, propósito,
+  paciente y momento —nunca el contenido leído—. Eso es lo que permite la detección *a posteriori* de accesos indebidos,
+  que es el control principal en clínicas pequeñas.
+  Corrección honesta: hasta 2026-09-23 esta línea afirmaba que «cada acceso» quedaba en la cadena de auditoría, lo que
+  solo era cierto para las escrituras. Lo que sigue SIN registrarse son las lecturas agregadas de la clínica (tableros y
+  contadores, que no identifican a un paciente) y las consultas internas del servidor para decidir una barrera.
 
 Lo que este ADR **no** resuelve y queda registrado como deuda explícita:
 

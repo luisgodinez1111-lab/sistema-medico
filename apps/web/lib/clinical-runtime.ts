@@ -12,6 +12,7 @@ import{computeEGFR,type Sex}from"../../../packages/renal-function/src";
 import{signatureBlockReason,type SignatureBlockReason}from"../../../packages/obligation-fold/src";
 import{sharedAllow,rateLimitedError}from"./rate-limit-shared";
 import{assertSessionNotRevoked,revokeSession}from"./session-revocation";
+import{logPhiAccess,patientAccessLog,type PhiAccessEntry,type PhiAccessAction,type PhiResourceType}from"./phi-access-log";
 // EPIC B — Runtime clínico de la capa app: conexión a Postgres y ejecución del kernel
 // atómico ya probado, SIEMPRE bajo el rol NOBYPASSRLS `medical_os_runtime`.
 // Lección de runtime (sesión 15-sep): el owner de Neon tiene BYPASSRLS -> si el pool
@@ -237,6 +238,8 @@ export async function patientDemographics(ctx:HttpTenantContext,patientId:string
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=${patientId} limit 1`;
   const row=rows[0] as Record<string,unknown>|undefined;
   if(!row)return undefined;
+  // R01-026: constancia de acceso de lectura a PHI (en la misma transacción que la consulta).
+  await logPhiAccess(tx,ctx,{resourceType:"PATIENT_DEMOGRAPHICS",resourceId:patientId,patientId});
   const d:{-readonly[K in keyof PatientDemographics]:PatientDemographics[K]}={};
   const set=(k:Exclude<keyof PatientDemographics,"guardian">,v:unknown)=>{if(v!=null)d[k]=String(v);};
   set("birthDate",row.bd);set("sexAtBirth",row.sx);set("name",row.nm);set("curp",row.curp);set("phone",row.phone);set("email",row.email);set("address",row.address);set("occupation",row.occupation);set("maritalStatus",row.marital);
@@ -499,6 +502,8 @@ export async function patientVitals(ctx:HttpTenantContext,patientId:string,limit
    where v.tenant_id=${ctx.tenantId} and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=${patientId}
    order by v.occurred_at desc
    limit ${limit}`;
+  // R01-026: constancia de acceso de lectura a PHI (en la misma transacción que la consulta).
+  await logPhiAccess(tx,ctx,{resourceType:"PATIENT_VITALS",resourceId:patientId,patientId});
   return rows.map(r=>{const o=r as Record<string,unknown>;return{
    at:o.at?new Date(String(o.at)).toISOString():"",vitalType:String(o.vital_type??""),value:String(o.value??""),unit:String(o.unit??"")};});
  });
@@ -763,6 +768,8 @@ export async function readPatientTimeline(ctx:HttpTenantContext,patientId:string
    limit ${page.limit+1}`;
   const items=rows.slice(0,page.limit).map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),latestKind:String(x.latest_kind??""),status:String(x.latest_status??""),version:Number(x.version),openedAt:new Date(String(x.opened_at)).toISOString(),lastAt:new Date(String(x.last_at)).toISOString()}));
   const last=items[items.length-1];
+  // R01-026: constancia de acceso de lectura a PHI (misma transacción que la consulta).
+  await logPhiAccess(tx,ctx,{resourceType:"PATIENT_TIMELINE",resourceId:patientId,patientId});
   return{items,nextCursor:rows.length>page.limit&&last?encodeCursor([last.openedAt,last.aggregateId]):null};
  });
 }
@@ -791,6 +798,8 @@ export async function readPatientRecordRows(ctx:HttpTenantContext,patientId:stri
    where r.tenant_id=${ctx.tenantId} and r.aggregate_id in (
      select aggregate_id from clinical_events where tenant_id=${ctx.tenantId} and sequence=1 and payload->>'patientId'=${patientId})
    order by r.aggregate_id, r.sequence`;
+  // R01-026: constancia de acceso de lectura a PHI (misma transacción que la consulta).
+  await logPhiAccess(tx,ctx,{resourceType:"PATIENT_RECORD",resourceId:patientId,patientId});
   return rows.map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),sequence:Number(x.sequence),kind:String(x.kind??""),occurredAt:String(x.occurred_at)}));
  });
 }
@@ -842,6 +851,8 @@ export async function documentDetail(ctx:HttpTenantContext,documentId:string):Pr
     case"ATTACHMENT_REMOVED":{const rid=String(p.attachmentId??"");const idx=attachments.findIndex(a=>a.attachmentId===rid);if(idx>=0)attachments.splice(idx,1);break;}
    }
   }
+  // R01-026: el detalle de un documento clínico ES el contenido; su lectura queda registrada con el paciente al que pertenece.
+  await logPhiAccess(tx,ctx,{resourceType:"CLINICAL_DOCUMENT",resourceId:documentId,patientId:patientId||undefined});
   return{exists:true,documentId,patientId,title,docType,content,state,version:rows.length,createdAt,addenda,signature,attachments};
  });
 }
@@ -930,4 +941,14 @@ export async function revokeCurrentSession(ctx:HttpTenantContext,expiresAt:Date,
  // Se abre con el contexto de RLS del propio tenant, pero SIN la comprobación de revocación (se está revocando justo
  // esta sesión: exigir que no lo esté impediría el segundo logout).
  return withTenantTxRaw(ctx,tx=>revokeSession(tx,{sessionId,tenantId:ctx.tenantId,actorId:ctx.actorId,reason,expiresAt}));
+}
+
+// R01-026: constancia explícita de un acceso con SEMÁNTICA propia (exportar el expediente, imprimir una receta), que no
+// coincide con la de la consulta que lo alimenta. Abre su propia transacción con el contexto de RLS del tenant.
+export async function recordPhiAccess(ctx:HttpTenantContext,a:Readonly<{resourceType:PhiResourceType;resourceId:string;patientId?:string|undefined;action?:PhiAccessAction}>):Promise<void>{
+ await withTenantTx(ctx,tx=>logPhiAccess(tx,ctx,a));
+}
+// R01-026: «¿quién ha visto el expediente de este paciente?» — para el panel de auditoría y para responder a un ARCO.
+export async function readPatientAccessLog(ctx:HttpTenantContext,patientId:string,limit=100):Promise<PhiAccessEntry[]>{
+ return withTenantTx(ctx,tx=>patientAccessLog(tx,ctx,patientId,limit));
 }

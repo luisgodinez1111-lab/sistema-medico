@@ -6,7 +6,7 @@ import{resolveDrug}from"../../../../../../../../packages/drug-catalog/src";
 import{foldMedication}from"../../../../../../../../packages/medication-fold/src";
 import{ageInYears}from"../../../../../../../../packages/prescription-safety/src";
 import{checkPrescriptionLegal,describeMissing,renderPrescriptionHtml,type PrescriptionData,type PrescriptionItem}from"../../../../../../../../packages/prescription-print/src";
-import{patientDemographics,officeSettings,readAggregateEvents}from"../../../../../../lib/clinical-runtime";
+import{patientDemographics,officeSettings,readAggregateEvents,recordPhiAccess}from"../../../../../../lib/clinical-runtime";
 import{requirePhysicianCredentials}from"../../../../../../lib/physician-profile-lifecycle";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
@@ -63,6 +63,9 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    items};
   const legal=checkPrescriptionLegal(data);
   if(!legal.ok)throw new ClinicalError("VALIDATION_ERROR",`La receta no cumple los requisitos legales; falta: ${describeMissing(legal.missing).join("; ")}`,{missing:legal.missing});
+  // R01-026: emitir la receta es un acceso a PHI con destino fuera del sistema (papel/PDF); queda registrado como PRINT
+  // con el identificador de cada medicación impresa. Cierra la deuda declarada «receta sin evento» del tracker.
+  for(const it of items)await recordPhiAccess(tctx,{resourceType:"PRESCRIPTION",resourceId:it.medicationId,patientId,action:"PRINT"});
   return NextResponse.json({patientId,folio,issuedAt,items:items.map(i=>({medicationId:i.medicationId,genericName:i.genericName})),html:renderPrescriptionHtml(data)},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

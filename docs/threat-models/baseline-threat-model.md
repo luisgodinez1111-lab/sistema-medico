@@ -34,6 +34,8 @@
 | **T**ampering (contenido firmado) | Firmar algo distinto de lo mostrado; hora de firma manipulada | Firma con `contentHash` del cliente comparado con lo persistido (409 `SIGNED_CONTENT_MISMATCH`); hora de firma del SERVIDOR | `scripts/v22/live-encounter-lifecycle-proof.mts`, `live-document-lifecycle-proof.mts` |
 | **T**ampering (reintentos) | Reusar un `Idempotency-Key` con otro cuerpo | `command_idempotency` + `requestDigest` (409 `IDEMPOTENCY_CONFLICT`) | `tests/v22/session-client.test.ts`; `IDEMPOTENCY_CONFLICT` en `scripts/v22/live-safety-override-proof.mts` y `live-medication-annotations-proof.mts` |
 | **R**epudiation | Negar una acción | Cada evento lleva actor, tipo de actor, propósito y correlación; auditoría encadenada; identidad legal (cédula) en PRESCRIBED/SIGNED; anulación de barrera con justificación y autor | `live-safety-override-proof.mts`, `live-audit-chain-verify-proof.mts` |
+| **R**epudiation (lecturas) | Negar haber consultado un expediente | `phi_access_log` (0024): actor, sesión, propósito, paciente y momento de cada lectura de PHI identificable, exportación e impresión de receta; append-only para la app (sin UPDATE/DELETE) y RLS forzada | `scripts/v22/live-phi-access-log-proof.mts`, `tests/v22/phi-access-log.test.ts` |
+| **S**poofing (sesión revocada) | Reutilizar un token exfiltrado tras el cierre de sesión | Lista de denegación `session_revocations` (0023) consultada dentro de la transacción de cada lectura y en el *preflight* de cada comando; 401 `SESSION_REVOKED` | `scripts/v22/live-session-revocation-proof.mts`, `tests/v22/session-revocation.test.ts` |
 | **I**nformation disclosure | Fuga cross-tenant | RLS `ENABLE`+`FORCE` con política de tenant en TODAS las tablas con `tenant_id` (migraciones 0012 y 0020); `pnpm db:check` falla si alguna carece de RLS o de política | `scripts/v21/live-rls-proof.mjs`, `tests/v21/postgres-role-proof.test.ts`, `tests/v22/migrations-integrity.test.ts`, `pnpm db:check` (`scripts/db/check.mts`); cross-tenant 404 en las pruebas de ciclo de vida |
 | **I**nformation disclosure | PHI en cachés, `Referer`, terceros, errores | `Cache-Control: no-store` en toda la API; `Referrer-Policy: no-referrer`; CSP sin orígenes externos salvo el IdP; errores con lista cerrada de claves no-PHI (`EXPOSED_DETAILS`) | `tests/v22/security-headers.test.ts`; `EXPOSED_DETAILS` en `apps/web/lib/http-errors.ts` ejercitado por `live-safety-override-proof.mts` y `live-patient-identity-proof.mts` |
 | **I**nformation disclosure | PHI en telemetría | SLI sin PHI (allowlist) y sin exportador | `tests/platform/observability.test.ts` |
@@ -60,7 +62,11 @@
   límite del middleware sigue siendo por instancia (primera línea). Si la base no responde, el límite se degrada al de
   la instancia: acotado, no abierto.
 - **CSP**: scripts y elementos de estilo con nonce por petición (`'strict-dynamic'`, `style-src-elem`); los atributos `style` del SSR se permiten con `style-src-attr` (es el mecanismo de estilo de React; no es un vector de ejecución).
-- **Sin auditoría de lecturas**: quién consultó qué expediente (y quién imprimió qué receta) no se registra todavía (D-09).
+- **Auditoría de lecturas: parcial.** Desde la remediación de R01-026 se registra en `phi_access_log` (migración 0024,
+  append-only para la app, RLS forzada) quién leyó el expediente, la ficha, los signos vitales o un documento, y quién
+  exportó o imprimió una receta, con actor, sesión, propósito y paciente —nunca el contenido—. **No** se registran las
+  lecturas agregadas de la clínica (tableros, contadores) ni las consultas internas del servidor; y no existe todavía
+  detección automática de patrones de acceso indebido: hoy es evidencia consultable, no una alerta (D-09).
 - **Sin *break-glass***: no existe acceso de emergencia auditado a pacientes fuera de la relación asistencial; hoy el
   alcance dentro del tenant es el tenant completo (ADR-0230). Decisión de producto pendiente.
 - **Sin borrado ni retención de PHI** más allá del outbox (D-09); sin simulacro de restauración reciente

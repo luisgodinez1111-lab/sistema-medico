@@ -92,6 +92,10 @@
   {
    "file": "0023_session_revocations.sql",
    "sha256": "3cff42c298db6bc0cee8b67c43a95a5ec61bb1dd5aa9ebf91ef6652429f441a2"
+  },
+  {
+   "file": "0024_phi_access_log.sql",
+   "sha256": "5907660ccf50831cd967b60d46a89e0f310f80cd1e11aa197608a6ad84884811"
   }
  ]
 }
