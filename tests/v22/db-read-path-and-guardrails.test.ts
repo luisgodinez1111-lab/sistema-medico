@@ -267,6 +267,35 @@ describe("el restore drill verifica lo que promete (R06-17)",()=>{
   for(const reg of["allergyRegistry","problemRegistry","resultsRegistry","ordersRegistry","immunizationRegistry","claimsRegistry"])
    expect(src,`la prueba debe cubrir ${reg}`).toContain(reg);
  });
+ it("los seis tableros de clínica devuelven una PÁGINA acotada, no el tenant entero (R06-20)",()=>{
+  // La segunda mitad de R06-20. Cada tablero devolvía todas las filas del tenant; ahora devuelve `items` + `nextCursor`
+  // y un `total` contado en la base. El guardarraíl exige las tres cosas en el registro y el cursor en la ruta.
+  const reg=fs.readFileSync("apps/web/lib/runtime/registries.ts","utf8");
+  for(const fn of["allergyRegistry","problemRegistry","immunizationRegistry","claimsRegistry","resultsRegistry","ordersRegistry"]){
+   const firma=new RegExp(`export async function ${fn}\\(ctx:HttpTenantContext,q\\?:RegistryQuery\\):Promise<Page<\\w+>&\\{total:number\\}>`);
+   expect(firma.test(reg),`${fn}: debe devolver una página con total, no un arreglo sin cota`).toBe(true);
+  }
+  expect(reg,"la página se arma con el cursor y el límite").toContain("paginaOrdenada(tx,limit)");
+  expect(reg,"y el cursor acota por (fecha, id)").toContain("despuesDelCursor(tx,after)");
+ });
+ it("y sus indicadores se cuentan EN LA BASE, no sobre la página (R06-20)",()=>{
+  // Éste es el punto delicado: acotar la lista sin mover los recuentos habría dejado KPI que solo cuentan la página.
+  // Ninguna de las seis rutas puede volver a derivar un indicador de `items`.
+  const rutas={allergies:"registrySummary",problems:"registrySummary",immunizations:"registrySummary",
+   claims:"claimsIncome",results:"resultsSummary",orders:"registrySummary"} as const;
+  for(const[ruta,fuente]of Object.entries(rutas)){
+   const src=fs.readFileSync(`apps/web/app/api/v1/${ruta}/route.ts`,"utf8");
+   expect(src,`${ruta}: los indicadores deben venir de ${fuente}`).toContain(fuente);
+   expect(/const total=items\.length/.test(src),`${ruta}: el total no puede salir de la página`).toBe(false);
+   expect(/items\.filter\([^)]*\)\.length/.test(src),`${ruta}: un indicador contado sobre la página`).toBe(false);
+   expect(/new Set\(items\.map/.test(src),`${ruta}: pacientes distintos contados sobre la página`).toBe(false);
+  }
+  // Y el tablero de reportes deja de traerse cinco registros completos para reducirlos en memoria.
+  const rep=fs.readFileSync("apps/web/app/api/v1/reports/route.ts","utf8");
+  for(const registro of["claimsRegistry","problemRegistry","ordersRegistry","resultsRegistry","immunizationRegistry"])
+   expect(rep.includes(registro),`reports: ${registro} completo otra vez en memoria`).toBe(false);
+  expect(rep).toContain("reportAggregates");
+ });
  it("el gate del drill se EJECUTA: hay una prueba en vivo que lo corre contra dos bases desechables",()=>{
   // El hallazgo de fondo de R06-F12: el runbook declaraba restoreErrors() como criterio de aceptación y nada lo invocaba.
   // El smoke descubre `live-*-proof.mts` por disco, así que con este fichero el drill entra en el gate por sí solo.

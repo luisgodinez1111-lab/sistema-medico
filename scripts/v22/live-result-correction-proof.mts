@@ -72,7 +72,8 @@ try{
  ok((await latestAnalyteReading(ctx,pat2,"POTASSIUM"))===undefined,"VOIDED_NOT_READ_BY_CALCULATORS");
  ok((await analyteSeries(ctx,pat2,"POTASSIUM")).length===0,"VOIDED_NOT_IN_SERIES");
  ok(await countOpenCriticalResults(ctx,pat2)===0,"VOIDED_CRITICAL_NO_LONGER_BLOCKS");
- ok(!(await resultsRegistry(ctx)).some(x=>x.resultId===r3),"VOIDED_NOT_IN_REGISTRY");
+ // R06-20: el registro devuelve una página (items + cursor + total) en lugar de todas las filas del tenant.
+ ok(!(await resultsRegistry(ctx)).items.some(x=>x.resultId===r3),"VOIDED_NOT_IN_REGISTRY");
  ok((await readAggregateEvents(ctx,r3)).length===2,"VOID_EVENT_PERSISTS_IN_CHAIN");
  ok(foldObligation(await readAggregateEvents(ctx,criticalObligationId(r3))).state==="COMPLETED","VOID_COMPLETES_DERIVED_OBLIGATION");
  // reintento idempotente y segunda anulación

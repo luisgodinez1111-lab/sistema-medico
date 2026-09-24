@@ -19,6 +19,15 @@
 //
 // Un LATERAL puede además devolver VARIAS columnas del mismo evento en una sola búsqueda: ahí está la mejora real de las
 // vacunas (seis búsquedas por fila -> dos) y de facturación y órdenes.
+// LA OTRA MITAD DE R06-20: «sin paginación». Los seis tableros de clínica completa devolvían el tenant entero y cada ruta
+// calculaba sus KPI en Node sobre ese conjunto (`items.length`, `items.filter(...)`). Acotar la página sin más habría
+// falseado todos los indicadores —contarían solo la página—, así que las dos cosas van juntas y por eso este módulo tiene
+// dos familias de piezas, con una regla que sale de la medición:
+//
+//   · PÁGINA (conjunto acotado): los atributos por fila se resuelven con LATERAL, cuyo coste es proporcional a las filas
+//     devueltas. Ver `ultimaTransicion`, `nombreDePaciente`, `versionDelAgregado`.
+//   · RESUMEN (todo el conjunto, salida de tamaño fijo): se resuelve con una TABLA DERIVADA por ventana, que se calcula una
+//     vez. Aquí sí gana: 1 116 buffers frente a 72 389 en el tenant de la medición. Ver `transicionesPorAgregado`.
 import type postgres from"postgres";
 type Tx=postgres.TransactionSql;
 
@@ -61,3 +70,25 @@ export const versionDelAgregado=(tx:Tx,tenantId:string)=>tx`left join lateral (
 // atributos de la orden) se escriben explícitos en su registro. Se consideró un helper genérico con la lista de columnas
 // como texto, y se descartó: habría exigido interpolar SQL crudo con `unsafe`, y en este repositorio no se abre esa puerta
 // por ahorrar tres líneas.
+
+// ---------------------------------------------------------------------------------------------------------------------
+// PAGINACIÓN por cursor (keyset), con la misma caja de herramientas que ya usaban pacientes y timeline: `pagination.ts`.
+// El orden es (occurred_at desc, aggregate_id desc) —estable y total, para que el cursor no repita ni se salte filas
+// cuando dos eventos comparten fecha— y se piden `limit+1` filas para saber si hay página siguiente sin contar de nuevo.
+// ---------------------------------------------------------------------------------------------------------------------
+/** Condición del cursor: «estrictamente después» del último (fecha, id) entregado, en el orden descendente del listado. */
+export const despuesDelCursor=(tx:Tx,after:readonly unknown[]|null)=>
+ after?tx`and (a.occurred_at, a.aggregate_id) < (${String(after[0])}::timestamptz, ${String(after[1])}::uuid)`:tx``;
+/** Orden estable del listado + una fila extra para detectar si hay siguiente página. */
+export const paginaOrdenada=(tx:Tx,limit:number)=>tx`order by a.occurred_at desc, a.aggregate_id desc limit ${limit+1}`;
+
+/**
+ * Última transición POR AGREGADO de un tipo, como tabla derivada: para los RESÚMENES, que recorren todo el conjunto.
+ * Se une por `aggregate_id` con `rn=1`. (En un listado acotado se usa `ultimaTransicion`, que es un LATERAL.)
+ */
+export const transicionesPorAgregado=(tx:Tx,tenantId:string,aggregateType:string,kinds?:readonly string[])=>tx`(
+  select aggregate_id, payload->>'kind' as kind,
+         row_number() over (partition by aggregate_id order by sequence desc) as rn
+  from clinical_events
+  where tenant_id=${tenantId} and aggregate_type=${aggregateType}
+    ${kinds?tx`and payload->>'kind' = any(${kinds})`:tx``})`;

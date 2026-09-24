@@ -1,7 +1,7 @@
 import{NextResponse}from"next/server";
 import{handleResultReceived}from"../../../../lib/result-lifecycle";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
-import{resultsRegistry}from"../../../../lib/clinical-runtime";
+import{resultsRegistry,resultsSummary,clampLimit,PAGE_LIMIT_MAX}from"../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../lib/http-command";
 // EPIC G — POST /api/v1/results  (recibir un resultado diagnóstico -> RECEIVED)
@@ -25,15 +25,14 @@ export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"result:read",purpose:"TREATMENT"});
-  const rows=await resultsRegistry(ctx);
-  const items=rows.map(r=>{const estado=estadoOf(r.critical,r.status,r.lifecycle);return{
+  // R06-20: lista acotada por página; los indicadores, contados en la base con la misma regla que la lista.
+  const url=new URL(req.url);
+  const page=await resultsRegistry(ctx,{limit:clampLimit(url.searchParams.get("limit"),PAGE_LIMIT_MAX,PAGE_LIMIT_MAX),cursor:url.searchParams.get("cursor")});
+  const items=page.items.map(r=>{const estado=estadoOf(r.critical,r.status,r.lifecycle);return{
    resultId:r.resultId,patientId:r.patientId,patientName:r.patientName,
    analyte:r.analyte,value:r.value,critical:r.critical,status:r.status,interpretation:r.interpretation,
    tipo:tipoOf(r.analyte),estado,lifecycle:r.lifecycle,receivedAt:r.receivedAt};});
-  const total=items.length;
-  const abnormal=items.filter(i=>i.estado==="Hallazgos").length;
-  const enSeguimiento=items.filter(i=>i.lifecycle==="ACTIONED").length;
-  const pendientes=items.filter(i=>i.lifecycle==="RECEIVED").length;
-  return NextResponse.json({items,total,abnormal,enSeguimiento,pendientes},{status:200});
+  const{total,abnormal,enSeguimiento,pendientes}=await resultsSummary(ctx);
+  return NextResponse.json({items,nextCursor:page.nextCursor,total,abnormal,enSeguimiento,pendientes},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

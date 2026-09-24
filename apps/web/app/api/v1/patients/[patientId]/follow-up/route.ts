@@ -62,7 +62,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    weight:wFirst!==null&&wLast!==null?{first:wFirst,last:wLast}:null,
    imc:imcS.length?{first:imcS[0]!,last:imcS[imcS.length-1]!}:null,
   };
-  const activeProblems=problems0.filter(p=>p.status==="ACTIVE"||p.status==="CHRONIC").length;
+  const activeProblems=problems0.items.filter(p=>p.status==="ACTIVE"||p.status==="CHRONIC").length;
   return NextResponse.json({
    // Auditoría L-01: cada tarea declara si BLOQUEA la firma del encuentro y por qué (URGENT / OVERDUE / INVALID_DUE_DATE).
    tasks:tasks.map(t=>({obligationId:t.obligationId,task:t.task,dueAt:t.dueAt,status:t.status,statusLabel:OBL_ES[t.status]??"Pendiente",done:t.status==="COMPLETED",priority:t.priority,blocksSignature:t.blocksSignature})),

@@ -45,19 +45,19 @@ try{
  ok(true,"sembrados dos pacientes del mismo tenant con datos en los seis registros");
 
  // 1) Sin filtro: el registro es de toda la clínica y ve a los dos.
- const todosProblemas=await problemRegistry(ctx);
+ const todosProblemas=(await problemRegistry(ctx)).items;
  ok(todosProblemas.length>=2,`sin filtro, el registro es de toda la clínica (${todosProblemas.length} problemas)`);
  ok(new Set(todosProblemas.map(p=>p.patientId)).size>=2,"y contiene a los dos pacientes");
 
  // 2) Con filtro: SOLO el paciente pedido. Es la invariante que protege el expediente, no una optimización.
  // Cada entrada sabe leer su registro con filtro y SIN filtro, para poder comparar las dos formas entre sí.
  const registros=[
-  ["allergyRegistry",async(pid?:string)=>(await allergyRegistry(ctx,pid?{patientId:pid}:undefined)).map(r=>r.patientId)],
-  ["problemRegistry",async(pid?:string)=>(await problemRegistry(ctx,pid?{patientId:pid}:undefined)).map(r=>r.patientId)],
-  ["resultsRegistry",async(pid?:string)=>(await resultsRegistry(ctx,pid?{patientId:pid}:undefined)).map(r=>r.patientId)],
-  ["ordersRegistry",async(pid?:string)=>(await ordersRegistry(ctx,pid?{patientId:pid}:undefined)).map(r=>r.patientId)],
-  ["immunizationRegistry",async(pid?:string)=>(await immunizationRegistry(ctx,pid?{patientId:pid}:undefined)).map(r=>r.patientId)],
-  ["claimsRegistry",async(pid?:string)=>(await claimsRegistry(ctx,pid?{patientId:pid}:undefined)).map(r=>r.patientId)],
+  ["allergyRegistry",async(pid?:string)=>(await allergyRegistry(ctx,pid?{patientId:pid}:undefined)).items.map(r=>r.patientId)],
+  ["problemRegistry",async(pid?:string)=>(await problemRegistry(ctx,pid?{patientId:pid}:undefined)).items.map(r=>r.patientId)],
+  ["resultsRegistry",async(pid?:string)=>(await resultsRegistry(ctx,pid?{patientId:pid}:undefined)).items.map(r=>r.patientId)],
+  ["ordersRegistry",async(pid?:string)=>(await ordersRegistry(ctx,pid?{patientId:pid}:undefined)).items.map(r=>r.patientId)],
+  ["immunizationRegistry",async(pid?:string)=>(await immunizationRegistry(ctx,pid?{patientId:pid}:undefined)).items.map(r=>r.patientId)],
+  ["claimsRegistry",async(pid?:string)=>(await claimsRegistry(ctx,pid?{patientId:pid}:undefined)).items.map(r=>r.patientId)],
  ] as const;
  for(const[nombre,leer]of registros){
   const deA=await leer(A),deB=await leer(B),todos=await leer();
@@ -73,7 +73,7 @@ try{
 
  // 3) Un paciente inexistente no devuelve nada (el filtro no se ignora en silencio cuando no hay coincidencias).
  const fantasma=await problemRegistry(ctx,{patientId:det("scope-pac-inexistente-"+RUN)});
- ok(fantasma.length===0,`un paciente sin datos devuelve vacío, no el registro completo (devolvió ${fantasma.length})`);
+ ok(fantasma.items.length===0,`un paciente sin datos devuelve vacío, no el registro completo (devolvió ${fantasma.items.length})`);
 
  console.log(JSON.stringify(result,null,2));
 }catch(e){

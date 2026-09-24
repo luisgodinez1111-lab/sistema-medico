@@ -1,10 +1,10 @@
 import{NextResponse}from"next/server";
 import{handleClaimDraft}from"../../../../lib/claim-lifecycle";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
-import{claimsRegistry}from"../../../../lib/clinical-runtime";
+import{claimsRegistry,claimsIncome,PAGE_LIMIT_MAX}from"../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../lib/http-command";
-import{monthOf,periodOf}from"../../../../lib/clinic-time";
+import{CLINIC_TZ,periodOf}from"../../../../lib/clinic-time";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function POST(req:Request){return handleClaimDraft(req);}
@@ -19,8 +19,16 @@ export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"billing:read",purpose:"TREATMENT"});
-  const rows=await claimsRegistry(ctx);
-  const total=rows.length;
+  // R06-20: los indicadores se suman EN LA BASE (antes se traían todas las facturas del tenant y se sumaban en Node).
+  //
+  // El FOLIO queda sin paginar a propósito, y es una cuestión de fondo, no técnica: hoy se deriva de la POSICIÓN en la
+  // lista (`total - i`), así que emitir una factura nueva RENUMERA las anteriores. Para un comprobante fiscal eso no es
+  // aceptable, y el folio real tendría que asignarse al emitir y viajar en el evento. Mientras esa decisión sea del dueño,
+  // esta ruta devuelve la PRIMERA página (las más recientes, que es lo que muestra el tablero) y no acepta cursor: la
+  // numeración sigue siendo exactamente la de antes para las filas que entrega, en vez de quedar mal en la página 2.
+  const page=await claimsRegistry(ctx,{limit:PAGE_LIMIT_MAX});
+  const rows=page.items;
+  const total=page.total;
   // Folio secuencial descendente (la más reciente tiene el folio mayor).
   const items=rows.map((r,i)=>({
    claimId:r.claimId,folio:`F-${String(total-i).padStart(6,"0")}`,
@@ -28,21 +36,18 @@ export async function GET(req:Request){
    amount:num(r.amount),currency:r.currency,
    status:r.status,statusLabel:STATUS_ES[r.status]??"Pendiente",
    recordedAt:r.recordedAt,paidAt:r.paidAt}));
-  const paid=items.filter(i=>i.status==="PAID");
-  const pending=items.filter(i=>i.status==="PENDING");
-  const voided=items.filter(i=>i.status==="VOID");
   // Auditoría L-09: "ingresos del mes" sumaba TODAS las facturas pagadas de la historia. Ahora: pagadas cuya fecha de
-  // pago cae en el mes en curso (zona horaria de México; `?month=YYYY-MM` permite pedir otro mes). Se declara el periodo.
+  // pago cae en el mes en curso (zona horaria de la clínica; `?month=YYYY-MM` permite pedir otro mes). Se declara el periodo.
   const month=periodOf(new URL(req.url).searchParams.get("month"));
-  const paidInPeriod=paid.filter(i=>i.paidAt!==null&&monthOf(i.paidAt)===month);
+  const kpi=await claimsIncome(ctx,month,CLINIC_TZ);
   return NextResponse.json({
    items,total,
    incomePeriod:month,
-   incomeThisMonth:Math.round(paidInPeriod.reduce((s,i)=>s+i.amount,0)*100)/100,
-   incomeAllTime:Math.round(paid.reduce((s,i)=>s+i.amount,0)*100)/100,
-   issuedCount:total,
-   pendingCount:pending.length,pendingAmount:Math.round(pending.reduce((s,i)=>s+i.amount,0)*100)/100,
-   cancellations:voided.length,
+   incomeThisMonth:kpi.incomeThisMonth,
+   incomeAllTime:kpi.incomeAllTime,
+   issuedCount:kpi.issued,
+   pendingCount:kpi.pendingCount,pendingAmount:kpi.pendingAmount,
+   cancellations:kpi.cancellations,
   },{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

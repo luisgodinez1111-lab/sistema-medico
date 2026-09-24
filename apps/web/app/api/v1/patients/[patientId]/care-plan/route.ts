@@ -27,7 +27,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    latestAnalyteReading(tctx,patientId,"HBA1C"),
    patientVitals(tctx,patientId),
   ]);
-  const problems=problems0.map(p=>({code:p.code,description:p.description,status:p.status,statusLabel:PROB_ES[p.status]??"Activo"}));
+  const problems=problems0.items.map(p=>({code:p.code,description:p.description,status:p.status,statusLabel:PROB_ES[p.status]??"Activo"}));
   const activeProblems=problems.filter(p=>p.status==="ACTIVE"||p.status==="CHRONIC").length;
   const points=vitals as VitalPoint[];
   const bp=latestOf(points,"BP"),weight=latestOf(points,"WEIGHT"),height=latestOf(points,"HEIGHT"),heightUnit=latestUnitOf(points,"HEIGHT");

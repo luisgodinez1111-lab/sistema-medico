@@ -25,7 +25,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    latestAnalyteReading(tctx,patientId,"HBA1C"),
    patientVitals(tctx,patientId),
   ]);
-  const problems=problems0.filter(p=>p.status==="ACTIVE"||p.status==="CHRONIC").map(p=>({code:p.code,description:p.description}));
+  const problems=problems0.items.filter(p=>p.status==="ACTIVE"||p.status==="CHRONIC").map(p=>({code:p.code,description:p.description}));
   const medications=[...new Set(medCodes.map(c=>{const d=resolveDrug(c);return d?d.ingredient:c;}))];
   const points=vitals as VitalPoint[];
   const bp=latestOf(points,"BP"),hr=latestOf(points,"HR"),weight=latestOf(points,"WEIGHT"),height=latestOf(points,"HEIGHT"),heightUnit=latestUnitOf(points,"HEIGHT");

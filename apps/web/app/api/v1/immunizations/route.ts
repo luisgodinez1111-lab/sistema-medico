@@ -1,7 +1,7 @@
 import{NextResponse}from"next/server";
 import{handleImmunizationDue}from"../../../../lib/immunization-lifecycle";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
-import{immunizationRegistry}from"../../../../lib/clinical-runtime";
+import{immunizationRegistry,registrySummary,clampLimit,PAGE_LIMIT_MAX}from"../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../lib/http-command";
 export const runtime="nodejs";
@@ -16,24 +16,27 @@ export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"immunization:read",purpose:"TREATMENT"});
-  const rows=await immunizationRegistry(ctx);
-  const items=rows.map(r=>({
+  // R06-20: la lista va ACOTADA (página con cursor) y los indicadores se calculan EN LA BASE. Antes se traía el tenant
+  // entero y se contaba en Node, así que acotar la página sin mover los recuentos habría falseado todos los KPI.
+  const url=new URL(req.url);
+  const page=await immunizationRegistry(ctx,{limit:clampLimit(url.searchParams.get("limit"),PAGE_LIMIT_MAX,PAGE_LIMIT_MAX),cursor:url.searchParams.get("cursor")});
+  const items=page.items.map(r=>({
    immunizationId:r.immunizationId,patientId:r.patientId,patientName:r.patientName,
    vaccine:r.vaccine,dose:r.dose,lot:r.lot,site:r.site,
    status:r.status,statusLabel:STATUS_ES[r.status]??"Pendiente",
    appliedAt:r.appliedAt,registeredBy:r.registeredBy}));
-  const total=items.length;
-  const applied=items.filter(i=>i.status==="COMPLETE");
-  const pending=items.filter(i=>i.status==="PENDING");
-  const vaccinatedPatients=new Set(applied.map(i=>i.patientId)).size;
-  // pacientes con al menos una dosis pendiente = esquemas potencialmente incompletos
-  const patientsWithPending=new Set(pending.map(i=>i.patientId)).size;
+  const resumen=await registrySummary(ctx,{aggregateType:"Immunization",baseKind:"DUE",groupField:"vaccineCode"});
+  const total=resumen.total;
+  const appliedCount=resumen.byStatus["ADMINISTERED"]??0,pendingCount=resumen.byStatus["DUE"]??0;
+  // `byVaccine` cuenta solo las APLICADAS: el cruce estado × vacuna viene del mismo agregado, no de la página.
   const byVaccine:Record<string,number>={};
-  for(const it of applied){const key=it.vaccine||"Otras";byVaccine[key]=(byVaccine[key]??0)+1;}
+  for(const[vac,n]of Object.entries(resumen.byGroupByStatus["ADMINISTERED"]??{}))byVaccine[vac||"Otras"]=Number(n);
   return NextResponse.json({
-   items,total,
-   appliedCount:applied.length,pendingCount:pending.length,
-   vaccinatedPatients,incompleteSchemes:patientsWithPending,
+   items,nextCursor:page.nextCursor,total,
+   appliedCount,pendingCount,
+   // Pacientes DISTINTOS por estado, contados con count(distinct) en la base (uno puede tener varias dosis).
+   vaccinatedPatients:resumen.patientsByStatus["ADMINISTERED"]??0,
+   incompleteSchemes:resumen.patientsByStatus["DUE"]??0,
    byVaccine,
   },{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
