@@ -39,7 +39,7 @@ function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-
 async function reg(t:string,p:string,name:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name,birthDate:birth(40),sexAtBirth:"FEMALE",occurredAt:at()})}));}
 async function prob(t:string,p:string,code:string){await prR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({problemId:crypto.randomUUID(),patientId:p,code,occurredAt:at()})}));}
 async function paidClaim(t:string,p:string,amount:string){const id=crypto.randomUUID();await clR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({claimId:id,patientId:p,amount,currency:"MXN",occurredAt:at()})}));await clCode.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({codes:["E11.9"],occurredAt:at()})}),{params:Promise.resolve({claimId:id})});await clSub.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({claimId:id})});await clPay.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"3"}),body:JSON.stringify({reference:"PAY",occurredAt:at()})}),{params:Promise.resolve({claimId:id})});}
-async function reports(t:string){const r=await repR.GET(new Request("http://l/",{method:"GET",headers:H(t)}));return{status:r.status,body:await r.json()};}
+async function reports(t:string,qs=""){const r=await repR.GET(new Request("http://l/"+qs,{method:"GET",headers:H(t)}));return{status:r.status,body:await r.json()};}
 // Contrato de la remediación (auditoría C-03/C-05, lote 1): con barreras NO verificables (paciente sintético sin edad, peso o
 // eGFR) PRESCRIBE responde 428 hasta que el médico confirma y justifica. Las barreras BLOQUEADAS siguen devolviendo 403.
 const ACK={acknowledgeUnverified:true,unverifiedJustification:"Prueba en vivo: paciente sintético sin datos para verificar"};
@@ -72,6 +72,21 @@ try{
  await a1c(phys,p1,"6.5");await a1c(phys,p2,"6.0");await a1c(phys,p3,"5.8");await a1c(phys,p1,"8.0");
 
  const R=await reports(phys);ok(R.status===200,"REPORTS_200");
+ // Auditoría R04-010: RANGO DE FECHAS. El tablero devolvía siempre la historia completa, así que no se podía responder
+ // «¿cuántas consultas hubo en marzo?». La ventana va sobre occurred_at (la fecha del HECHO), no sobre recorded_at.
+ const sinRango=R.body as{reportWindow:{from:string|null;to:string|null};diagnosesTotal:number;resultsTotal:number};
+ ok(sinRango.reportWindow.from===null&&sinRango.reportWindow.to===null,"SIN_RANGO_ES_TODA_LA_HISTORIA");
+ // Una ventana anterior a cualquier dato sembrado por esta prueba tiene que dejar los totales en cero: si algo devolviera
+ // el total completo, la ventana no se estaría aplicando a esa consulta.
+ const vacio=await reports(phys,"?from=1990-01-01&to=1990-01-31");
+ ok(vacio.status===200,"RANGO_200");
+ const v=vacio.body as{reportWindow:{from:string;to:string};diagnosesTotal:number;resultsTotal:number;ordersTotal:number};
+ ok(v.reportWindow.from==="1990-01-01"&&v.reportWindow.to==="1990-01-31","RANGO_DECLARADO_EN_LA_RESPUESTA");
+ ok(v.diagnosesTotal===0&&v.resultsTotal===0&&v.ordersTotal===0,`RANGO_ACOTA_DE_VERDAD:${JSON.stringify(v).slice(0,120)}`);
+ // Un rango mal formado o invertido NO se ignora en silencio: se rechaza con 400, porque un tablero que devuelve otra cosa
+ // de lo que se le pidió es peor que uno que falla.
+ ok((await reports(phys,"?from=marzo")).status===400,"RANGO_MAL_FORMADO_400");
+ ok((await reports(phys,"?from=2026-03-31&to=2026-03-01")).status===400,"RANGO_INVERTIDO_400");
  const b=R.body as{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;count:number;pct:number}[];topProcedures:{detail:string;count:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[];appointmentsTotal:number;appointmentsByType:{type:string;label:string;count:number;pct:number}[];qualityIndicators:{key:string;label:string;numerator:number;denominator:number;pct:number;target:number;direction:string;met:boolean;computable:boolean}[]};
  ok(b.patientsAttended===3,"PATIENTS_3");
  ok(b.income===1700,"INCOME_1700");

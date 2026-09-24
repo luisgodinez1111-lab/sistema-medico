@@ -1,7 +1,10 @@
 // Analítica agregada del tenant (reportes). Auditoría R01-001: extraído del god-module `clinical-runtime.ts`.
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{withTenantTx}from"./connection";
-import{transicionesPorAgregado}from"./read-model-joins";
+import{transicionesPorAgregado,type ReportWindow,enVentana}from"./read-model-joins";
+export type{ReportWindow};
+
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Auditoría 2026-09-19, anexo R06 (R06-20), segunda mitad: «sin paginación».
@@ -17,98 +20,6 @@ import{transicionesPorAgregado}from"./read-model-joins";
 // conjunto (medido: 1 116 buffers frente a 72 389 con una subconsulta por fila). El campo de agrupación viaja como
 // PARÁMETRO (`payload->>$n`), no interpolado: un resumen genérico no justifica abrir la puerta al SQL crudo.
 // ---------------------------------------------------------------------------------------------------------------------
-export type RegistrySummarySpec=Readonly<{
- aggregateType:string;              // p. ej. "Allergy"
- baseKind:string;                   // evento base que define una fila del registro: "RECORDED", "ADDED", "DUE"…
- lifecycleKinds?:readonly string[]; // transiciones que cambian el estado (sin esto, la última de todas)
- groupField?:string;                // campo del payload por el que agrupar: "category", "vaccineCode"…
- sumField?:string;                  // campo numérico a sumar por estado: "amount" (ingresos de facturación)
-}>;
-export type RegistrySummary=Readonly<{
- total:number;
- patients:number;
- byStatus:Readonly<Record<string,number>>;
- patientsByStatus:Readonly<Record<string,number>>;
- byGroup:Readonly<Record<string,number>>;
- /** Cruce estado × grupo. Sale GRATIS del mismo `group by`, y es lo que necesitan los tableros que agrupan solo un
-  *  estado (vacunas aplicadas por vacuna, por ejemplo): contar el grupo entero daría otro número. */
- byGroupByStatus:Readonly<Record<string,Readonly<Record<string,number>>>>;
- sumByStatus:Readonly<Record<string,number>>;
-}>;
-/** Recuentos de un registro de clínica calculados EN LA BASE: total, por estado, por grupo y pacientes distintos. */
-export async function registrySummary(ctx:HttpTenantContext,spec:RegistrySummarySpec):Promise<RegistrySummary>{
- return withTenantTx(ctx,async tx=>{
-  const rows=await tx`
-   select coalesce(lk.kind,${spec.baseKind}) as estado,
-          coalesce(a.payload->>${spec.groupField??"kind"},'') as grupo,
-          count(*)::int as n,
-          count(distinct a.payload->>'patientId')::int as pacientes,
-          coalesce(sum((a.payload->>${spec.sumField??"__sin_suma"})::numeric),0) as suma
-   from clinical_events a
-   left join ${transicionesPorAgregado(tx,ctx.tenantId,spec.aggregateType,spec.lifecycleKinds)} lk
-     on lk.aggregate_id=a.aggregate_id and lk.rn=1
-   where a.tenant_id=${ctx.tenantId} and a.aggregate_type=${spec.aggregateType} and a.payload->>'kind'=${spec.baseKind}
-   group by 1,2`;
-  // Los pacientes distintos NO se pueden sumar entre grupos ni entre estados (uno puede aparecer en varios), así que se
-  // cuentan con su propio `count(distinct)`: en total y por estado. Aproximarlos habría sido publicar un número inventado.
-  const distintos=await tx`
-   select count(distinct a.payload->>'patientId')::int as n
-   from clinical_events a
-   where a.tenant_id=${ctx.tenantId} and a.aggregate_type=${spec.aggregateType} and a.payload->>'kind'=${spec.baseKind}`;
-  const porEstado=await tx`
-   select coalesce(lk.kind,${spec.baseKind}) as estado, count(distinct a.payload->>'patientId')::int as pacientes
-   from clinical_events a
-   left join ${transicionesPorAgregado(tx,ctx.tenantId,spec.aggregateType,spec.lifecycleKinds)} lk
-     on lk.aggregate_id=a.aggregate_id and lk.rn=1
-   where a.tenant_id=${ctx.tenantId} and a.aggregate_type=${spec.aggregateType} and a.payload->>'kind'=${spec.baseKind}
-   group by 1`;
-  const byStatus:Record<string,number>={},byGroup:Record<string,number>={},sumByStatus:Record<string,number>={};
-  const byGroupByStatus:Record<string,Record<string,number>>={};
-  const pacientesPorEstado=new Map<string,number>();
-  let total=0;
-  for(const r of rows){
-   const o=r as Record<string,unknown>;
-   const estado=String(o.estado??""),grupo=String(o.grupo??""),n=Number(o.n??0);
-   total+=n;
-   byStatus[estado]=(byStatus[estado]??0)+n;
-   if(grupo){byGroup[grupo]=(byGroup[grupo]??0)+n;const porEstadoGrupo=byGroupByStatus[estado]??{};porEstadoGrupo[grupo]=(porEstadoGrupo[grupo]??0)+n;byGroupByStatus[estado]=porEstadoGrupo;}
-   sumByStatus[estado]=Math.round(((sumByStatus[estado]??0)+Number(o.suma??0))*100)/100;
-  }
-  for(const r of porEstado){
-   const o=r as Record<string,unknown>;
-   pacientesPorEstado.set(String(o.estado??""),Number(o.pacientes??0));
-  }
-  return{total,patients:Number((distintos[0] as {n?:unknown}|undefined)?.n??0),byStatus,
-   patientsByStatus:Object.fromEntries(pacientesPorEstado),byGroup,byGroupByStatus,sumByStatus};
- });
-}
-/**
- * Pacientes con más filas en un registro, con su nombre: el «top 5» de los tableros. En SQL, porque calcularlo en Node
- * exigía traerse el registro completo —era uno de los recuentos de R06-20— y el resultado son cinco filas.
- */
-export type TopPatientRow=Readonly<{patientId:string;name:string;count:number}>;
-export async function topPatientsOfRegistry(ctx:HttpTenantContext,spec:Pick<RegistrySummarySpec,"aggregateType"|"baseKind">,n=5):Promise<ReadonlyArray<TopPatientRow>>{
- return withTenantTx(ctx,async tx=>{
-  // El nombre se resuelve FUERA de la agregación: dentro de un `group by` no se puede correlacionar por `a.payload`
-  // («subquery uses ungrouped column»). Se agrupa primero, se corta a las n filas y solo entonces se busca el nombre.
-  const rows=await tx`
-   select g.pid as pid, g.n as n, pn.name as name
-   from (
-     select a.payload->>'patientId' as pid, count(*)::int as n
-     from clinical_events a
-     where a.tenant_id=${ctx.tenantId} and a.aggregate_type=${spec.aggregateType} and a.payload->>'kind'=${spec.baseKind}
-       and a.payload->>'patientId' is not null
-     group by 1 order by 2 desc, 1 asc limit ${n}
-   ) g
-   left join lateral (
-     select pt.payload->>'name' as name from clinical_events pt
-     where pt.tenant_id=${ctx.tenantId} and pt.aggregate_id=g.pid::uuid and pt.payload->>'kind'='REGISTERED'
-     limit 1) pn on true
-   order by g.n desc, g.pid asc`;
-  return rows.map(r=>{const o=r as Record<string,unknown>;
-   return{patientId:String(o.pid??""),name:String(o.name??"Paciente"),count:Number(o.n??0)};});
- });
-}
 
 /**
  * Recuentos del tablero de RESULTADOS. Va aparte del resumen genérico porque su indicador «Hallazgos» no es un estado del
@@ -117,7 +28,7 @@ export async function topPatientsOfRegistry(ctx:HttpTenantContext,spec:Pick<Regi
  */
 export type ResultsSummary=Readonly<{total:number;abnormal:number;enSeguimiento:number;pendientes:number}>;
 export const RESULT_ABNORMAL_STATUSES=["HIGH","LOW","CRITICAL","ABNORMAL","PANIC"] as const;
-export async function resultsSummary(ctx:HttpTenantContext):Promise<ResultsSummary>{
+export async function resultsSummary(ctx:HttpTenantContext,w?:ReportWindow):Promise<ResultsSummary>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select count(*)::int as total,
@@ -128,7 +39,7 @@ export async function resultsSummary(ctx:HttpTenantContext):Promise<ResultsSumma
    from clinical_events a
    left join ${transicionesPorAgregado(tx,ctx.tenantId,"DiagnosticResult")} lk
      on lk.aggregate_id=a.aggregate_id and lk.rn=1
-   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED' ${enVentana(tx,w)}
      -- Mismo criterio que el registro: un resultado anulado no cuenta (R03-10).
      and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR')`;
   const o=(rows[0]??{}) as Record<string,unknown>;
@@ -142,7 +53,7 @@ export async function resultsSummary(ctx:HttpTenantContext):Promise<ResultsSumma
  */
 export type ClaimsIncome=Readonly<{issued:number;incomeThisMonth:number;incomeAllTime:number;pendingCount:number;pendingAmount:number;cancellations:number}>;
 const CLAIM_PENDING=["DRAFTED","CODED","SUBMITTED"] as const;
-export async function claimsIncome(ctx:HttpTenantContext,month:string,timeZone:string):Promise<ClaimsIncome>{
+export async function claimsIncome(ctx:HttpTenantContext,month:string,timeZone:string,w?:ReportWindow):Promise<ClaimsIncome>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select count(*)::int as issued,
@@ -158,7 +69,7 @@ export async function claimsIncome(ctx:HttpTenantContext,month:string,timeZone:s
    left join (select aggregate_id, max(occurred_at) as paid_at from clinical_events
               where tenant_id=${ctx.tenantId} and aggregate_type='Claim' and payload->>'kind'='PAID'
               group by aggregate_id) pg on pg.aggregate_id=a.aggregate_id
-   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Claim' and a.payload->>'kind'='DRAFTED'`;
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Claim' and a.payload->>'kind'='DRAFTED' ${enVentana(tx,w)}`;
   const o=(rows[0]??{}) as Record<string,unknown>;
   const dos=(v:unknown)=>Math.round(Number(v??0)*100)/100;
   return{issued:Number(o.issued??0),incomeThisMonth:dos(o.income_month),incomeAllTime:dos(o.income_all),
@@ -183,7 +94,7 @@ export type ReportAggregates=Readonly<{
 }>;
 /** Umbral de control glucémico del indicador de calidad: HbA1c por debajo de 7 %. */
 export const HBA1C_CONTROL_THRESHOLD=7;
-export async function reportAggregates(ctx:HttpTenantContext):Promise<ReportAggregates>{
+export async function reportAggregates(ctx:HttpTenantContext,w?:ReportWindow):Promise<ReportAggregates>{
  return withTenantTx(ctx,async tx=>{
   // Top de diagnósticos: el código manda y la descripción se toma de la fila más reciente de ese código.
   const dx=await tx`
@@ -191,14 +102,14 @@ export async function reportAggregates(ctx:HttpTenantContext):Promise<ReportAggr
           (array_agg(a.payload->>'description' order by a.occurred_at desc))[1] as description,
           count(*)::int as n
    from clinical_events a
-   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalProblem' and a.payload->>'kind'='ADDED'
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalProblem' and a.payload->>'kind'='ADDED' ${enVentana(tx,w)}
      and coalesce(a.payload->>'code','')<>''
    group by 1 order by 3 desc, 1 asc limit 5`;
   const proc=await tx`
    select a.payload->>'detail' as detail, count(*)::int as n,
           sum(count(*)) over ()::int as total
    from clinical_events a
-   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED'
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED' ${enVentana(tx,w)}
      and a.payload->>'orderType'='PROCEDURE' and coalesce(a.payload->>'detail','')<>''
    group by 1 order by 2 desc, 1 asc`;
   // HbA1c: total y cuántas por debajo del umbral. El valor es texto en el payload; se limpia igual que en la lista.
@@ -207,7 +118,7 @@ export async function reportAggregates(ctx:HttpTenantContext):Promise<ReportAggr
      count(*) filter (where nullif(regexp_replace(a.payload->>'value','[^0-9.]','','g'),'')::numeric < ${HBA1C_CONTROL_THRESHOLD})::int as en_control
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
-     and upper(a.payload->>'analyte')='HBA1C'
+     and upper(a.payload->>'analyte')='HBA1C' ${enVentana(tx,w)}
      and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR')`;
   const oa1c=(a1c[0]??{}) as Record<string,unknown>;
   const filasProc=proc.map(r=>r as Record<string,unknown>);
@@ -225,21 +136,30 @@ export async function reportAggregates(ctx:HttpTenantContext):Promise<ReportAggr
 // EPIC S-REPORTES — Tendencia de consultas por día del tablero. Cuenta encuentros por el evento base
 // ENCOUNTER_OPENED (kind OPENED) agrupados por la FECHA (día) en que ocurrieron, y el total de consultas
 // firmadas (ENCOUNTER_SIGNED) para el indicador de expedientes cerrados. Determinista, RLS-scoped, sin PHI.
-export type EncounterAnalytics=Readonly<{total:number;signed:number;byDay:ReadonlyArray<{date:string;count:number}>}>;
-export async function encounterAnalytics(ctx:HttpTenantContext):Promise<EncounterAnalytics>{
+// Auditoría R04-010: `patientsAttended` del tablero venía del TOTAL de pacientes del tenant, así que ignoraba el rango de
+// fechas y, peor, estaba mal etiquetado: «pacientes atendidos» no es «pacientes registrados». Un consultorio con 800
+// pacientes en el padrón y 40 consultas en marzo veía 800. Ahora se cuentan los pacientes DISTINTOS con un encuentro
+// abierto en la ventana, que es lo que la etiqueta dice.
+export type EncounterAnalytics=Readonly<{total:number;signed:number;patientsAttended:number;byDay:ReadonlyArray<{date:string;count:number}>}>;
+export async function encounterAnalytics(ctx:HttpTenantContext,w?:ReportWindow):Promise<EncounterAnalytics>{
  return withTenantTx(ctx,async tx=>{
   const dayRows=await tx`
    select to_char(a.occurred_at,'YYYY-MM-DD') as day, count(*)::int as n
    from clinical_events a
-   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Encounter' and a.payload->>'kind'='OPENED'
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Encounter' and a.payload->>'kind'='OPENED' ${enVentana(tx,w)}
    group by day order by day asc`;
+  const attended=await tx`
+   select count(distinct a.payload->>'patientId')::int as n from clinical_events a
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Encounter' and a.payload->>'kind'='OPENED'
+     and a.payload->>'patientId' is not null ${enVentana(tx,w)}`;
   const signedRows=await tx`
    select count(*)::int as n from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Encounter' and a.payload->>'kind'='SIGNED'`;
   const byDay=dayRows.map(r=>{const o=r as Record<string,unknown>;return{date:String(o.day??""),count:Number(o.n??0)};});
   const total=byDay.reduce((s,d)=>s+d.count,0);
   const signed=Number((signedRows[0] as Record<string,unknown>|undefined)?.n??0);
-  return{total,signed,byDay};
+  const patientsAttended=Number((attended[0] as {n?:unknown}|undefined)?.n??0);
+  return{total,signed,patientsAttended,byDay};
  });
 }
 // EPIC S-REPORTES — Medicamentos más prescritos del tablero. Toma cada agregado Medication cuyo ciclo llegó a

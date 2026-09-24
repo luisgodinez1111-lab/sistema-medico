@@ -92,3 +92,18 @@ export const transicionesPorAgregado=(tx:Tx,tenantId:string,aggregateType:string
   from clinical_events
   where tenant_id=${tenantId} and aggregate_type=${aggregateType}
     ${kinds?tx`and payload->>'kind' = any(${kinds})`:tx``})`;
+
+// Auditoría 2026-09-19, anexo R04 (R04-010): «reports no soporta rango de fechas». El tablero devolvía SIEMPRE la
+// historia completa (salvo los ingresos, que ya acotaban al mes por L-09), así que no se podía responder «¿cuántas
+// consultas hubo en marzo?» sin exportar todo y contar a mano.
+//
+// La ventana se aplica sobre `occurred_at`, la fecha del HECHO clínico, nunca sobre `recorded_at`: un resultado de ayer
+// capturado hoy pertenece a ayer para cualquier indicador clínico, y mezclar las dos fechas produce números que no
+// cuadran con el expediente. Sin ventana, el comportamiento es el de antes: toda la historia.
+export type ReportWindow=Readonly<{fromIso?:string;toIso?:string}>;
+export const enVentana=(tx:postgres.TransactionSql,w:ReportWindow|undefined)=>{
+ if(!w?.fromIso&&!w?.toIso)return tx``;
+ if(w.fromIso&&w.toIso)return tx`and a.occurred_at >= ${w.fromIso}::timestamptz and a.occurred_at < ${w.toIso}::timestamptz`;
+ if(w.fromIso)return tx`and a.occurred_at >= ${w.fromIso}::timestamptz`;
+ return tx`and a.occurred_at < ${w.toIso!}::timestamptz`;
+};

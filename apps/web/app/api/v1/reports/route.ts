@@ -1,7 +1,9 @@
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{listPatients,registrySummary,reportAggregates,claimsIncome,resultsSummary,encounterAnalytics,medicationsPrescribed,appointmentsByType,appointmentOutcomes,HBA1C_CONTROL_THRESHOLD}from"../../../../lib/clinical-runtime";
-import{CLINIC_TZ,periodOf}from"../../../../lib/clinic-time";
+import type{ReportWindow}from"../../../../lib/runtime/analytics";
+import{CLINIC_TZ,periodOf,dayWindow}from"../../../../lib/clinic-time";
+import{ClinicalError}from"../../../../../../packages/runtime-errors/src";
 import{toHttpError}from"../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../lib/http-command";
 // EPIC AD/UI — GET /api/v1/reports -> tablero analítico del consultorio (vista Reportes).
@@ -19,17 +21,32 @@ export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"record:export",purpose:"TREATMENT"});
+  // Auditoría R04-010: RANGO DE FECHAS. `?from=YYYY-MM-DD&to=YYYY-MM-DD` acota el tablero; sin parámetros, toda la
+  // historia (comportamiento anterior). La ventana se aplica sobre `occurred_at`, la fecha del HECHO clínico, nunca sobre
+  // `recorded_at`: un resultado de ayer capturado hoy pertenece a ayer para cualquier indicador, y mezclar las dos fechas
+  // produce números que no cuadran con el expediente. `to` es EXCLUSIVO y se toma el día completo, para que «to=2026-03-31»
+  // incluya el 31 y no lo corte a medianoche.
+  const sp=new URL(req.url).searchParams;
+  const dia=(v:string|null):string|undefined=>v&&/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v)?v:undefined;
+  const desde=dia(sp.get("from")),hasta=dia(sp.get("to"));
+  if(sp.get("from")&&!desde)throw new ClinicalError("VALIDATION_ERROR","El parámetro «from» debe ser una fecha YYYY-MM-DD.",{param:"from"});
+  if(sp.get("to")&&!hasta)throw new ClinicalError("VALIDATION_ERROR","El parámetro «to» debe ser una fecha YYYY-MM-DD.",{param:"to"});
+  if(desde&&hasta&&hasta<desde)throw new ClinicalError("VALIDATION_ERROR","El rango pedido termina antes de empezar.",{from:desde,to:hasta});
+  const ventana:ReportWindow={
+   ...(desde?{fromIso:dayWindow(desde).fromIso}:{}),
+   ...(hasta?{toIso:dayWindow(hasta).toIso}:{}),
+  };
   // Auditoría R06-20: este tablero traía CINCO registros completos del tenant y reducía en Node los ingresos, los
   // porcentajes y los tops. Ahora cada cifra se calcula en la base y cada consulta devuelve una salida de tamaño fijo.
   const[patients,facturacion,problemas,ordenes,resultados,vacunas,agregados,encAnalytics,rxRows,apptRows,apptOut]=await Promise.all([
    listPatients(ctx,{limit:1}), // solo se necesita el total
-   claimsIncome(ctx,periodOf(null),CLINIC_TZ),
-   registrySummary(ctx,{aggregateType:"ClinicalProblem",baseKind:"ADDED"}),
-   registrySummary(ctx,{aggregateType:"ClinicalOrder",baseKind:"CREATED",groupField:"orderType"}),
-   resultsSummary(ctx),
-   registrySummary(ctx,{aggregateType:"Immunization",baseKind:"DUE"}),
-   reportAggregates(ctx),
-   encounterAnalytics(ctx),
+   claimsIncome(ctx,periodOf(null),CLINIC_TZ,ventana),
+   registrySummary(ctx,{aggregateType:"ClinicalProblem",baseKind:"ADDED"},ventana),
+   registrySummary(ctx,{aggregateType:"ClinicalOrder",baseKind:"CREATED",groupField:"orderType"},ventana),
+   resultsSummary(ctx,ventana),
+   registrySummary(ctx,{aggregateType:"Immunization",baseKind:"DUE"},ventana),
+   reportAggregates(ctx,ventana),
+   encounterAnalytics(ctx,ventana),
    medicationsPrescribed(ctx),
    appointmentsByType(ctx),
    appointmentOutcomes(ctx),
@@ -71,7 +88,11 @@ export async function GET(req:Request){
    mkQI("glycemic_control",`HbA1c en control (<${HBA1C_CONTROL_THRESHOLD}%)`,a1cInControl,a1cTotal,70,"higher","Resultados de HbA1c por debajo de 7% respecto al total de HbA1c registradas."),
   ];
   return NextResponse.json({
-   patientsAttended:patients.total, // total del tenant (S-08: listPatients pagina; el conteo no depende de la página)
+   reportWindow:{from:desde??null,to:hasta??null},
+   // R04-010: «atendidos» son los pacientes DISTINTOS con un encuentro en la ventana, no el padrón del tenant. El total
+   // registrado se sigue publicando aparte, con su nombre correcto, para no perder el dato.
+   patientsAttended:encAnalytics.patientsAttended,
+   patientsRegistered:patients.total, // total del tenant (S-08: listPatients pagina; el conteo no depende de la página)
    income,
    diagnosesTotal:problemas.total,
    topDiagnoses,

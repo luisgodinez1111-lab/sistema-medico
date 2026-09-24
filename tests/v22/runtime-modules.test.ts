@@ -9,7 +9,7 @@ const FACHADA="apps/web/lib/clinical-runtime.ts";
 // de god-module avisó de que patient-facts pasaba de 300 líneas. El guardián tenía razón: son dos responsabilidades.
 // R06-20: las piezas de SQL compartidas por los read-models salieron a  cuando el guardián avisó de
 // que  pasaba de 300 líneas. Otra vez tenía razón: los joins son una responsabilidad propia, con su medición.
-const DOMINIOS=["connection","command","pagination","patients","patient-facts","lab-facts","registries","read-model-joins","office","analytics","records"];
+const DOMINIOS=["connection","command","pagination","patients","patient-facts","lab-facts","registries","read-model-joins","office","analytics","registry-summaries","records"];
 const leer=(f:string):string=>fs.readFileSync(f,"utf8");
 const lineas=(f:string):number=>leer(f).split("\n").length;
 

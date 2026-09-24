@@ -21,8 +21,10 @@ export{activeAllergies,activeAllergySubstances,activeMedicationDrugCodes,activeP
 export{analyteSeries,latestAnalyteReading}from"./runtime/lab-facts";
 export{agendaForDate,allergyRegistry,claimsRegistry,immunizationRegistry,ordersRegistry,problemRegistry,resultsRegistry,overdueOrders}from"./runtime/registries";
 export{officeSettings,regulatoryObligations}from"./runtime/office";
-export{appointmentOutcomes,appointmentsByType,encounterAnalytics,medicationsPrescribed,registrySummary,topPatientsOfRegistry,resultsSummary,claimsIncome,reportAggregates,HBA1C_CONTROL_THRESHOLD}from"./runtime/analytics";
-export type{RegistrySummary,RegistrySummarySpec,TopPatientRow,ResultsSummary,ClaimsIncome,ReportAggregates}from"./runtime/analytics";
+export{appointmentOutcomes,appointmentsByType,encounterAnalytics,medicationsPrescribed,resultsSummary,claimsIncome,reportAggregates,HBA1C_CONTROL_THRESHOLD}from"./runtime/analytics";
+export{registrySummary,topPatientsOfRegistry}from"./runtime/registry-summaries";
+export type{ResultsSummary,ClaimsIncome,ReportAggregates,ReportWindow}from"./runtime/analytics";
+export type{RegistrySummary,RegistrySummarySpec,TopPatientRow}from"./runtime/registry-summaries";
 export type{RegistryQuery}from"./runtime/read-model-joins";
 export{blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,countUnresolvedCriticalObligations,documentDetail,readAggregateEvents,readEncounter,readEncounterEvents,readEventPayloadById,readPatientRecordRows,readPatientTimeline,readTenantOpenAggregates}from"./runtime/records";
 export type{ClinicalCommandResult}from"./runtime/command";
