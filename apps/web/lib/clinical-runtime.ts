@@ -11,6 +11,7 @@ import{sliSpan,flowForTopic,type SliFlow}from"../../../packages/observability/sr
 import{computeEGFR,type Sex}from"../../../packages/renal-function/src";
 import{signatureBlockReason,type SignatureBlockReason}from"../../../packages/obligation-fold/src";
 import{sharedAllow,rateLimitedError}from"./rate-limit-shared";
+import{assertSessionNotRevoked,revokeSession}from"./session-revocation";
 // EPIC B — Runtime clínico de la capa app: conexión a Postgres y ejecución del kernel
 // atómico ya probado, SIEMPRE bajo el rol NOBYPASSRLS `medical_os_runtime`.
 // Lección de runtime (sesión 15-sep): el owner de Neon tiene BYPASSRLS -> si el pool
@@ -70,6 +71,14 @@ async function withConnectionRetry<T>(flow:SliFlow,correlationId:string,run:()=>
 // fija el contexto de RLS (tenant, actor, propósito, correlación) y ejecuta el cuerpo; si alguien añade un read-model
 // nuevo, no puede olvidarse de fijar el tenant porque el helper es la única forma de abrir transacción de lectura.
 export async function withTenantTx<T>(ctx:HttpTenantContext,run:(tx:TransactionSql)=>Promise<T>):Promise<T>{
+ return withTenantTxRaw(ctx,async tx=>{
+  // R01-014: una sesión revocada no lee PHI ni escribe, aunque su token siga dentro del TTL.
+  await assertSessionNotRevoked(tx,ctx.sessionId);
+  return run(tx);
+ });
+}
+// Variante sin comprobación de revocación: SOLO para la propia operación de revocar (logout).
+async function withTenantTxRaw<T>(ctx:HttpTenantContext,run:(tx:TransactionSql)=>Promise<T>):Promise<T>{
  return withConnectionRetry("workflow",ctx.requestId,()=>getSql().begin(async tx=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
   return run(tx);
@@ -87,7 +96,9 @@ export async function runClinicalCommand(ctx:HttpTenantContext,command:ClinicalC
  if(!limit.allowed)throw rateLimitedError(limit);
  const span=sliSpan(flowForTopic(command.topic),"commit",command.correlationId);
  try{
-  const r=await executeAtomicClinicalCommand(getSql(),ctx,command) as ClinicalCommandResult;
+  // R01-014: la sesión revocada se rechaza DENTRO de la transacción del comando (preflight del kernel): ni ventana entre
+  // comprobar y escribir, ni transacción extra.
+  const r=await executeAtomicClinicalCommand(getSql(),ctx,command,tx=>assertSessionNotRevoked(tx,ctx.sessionId)) as ClinicalCommandResult;
   span.end("success",{tenantId:ctx.tenantId});
   return r;
  }catch(e){
@@ -910,4 +921,13 @@ export async function readEncounter(ctx:HttpTenantContext,encounterId:string):Pr
    events:events.map(e=>({sequence:Number(e.sequence),type:String(e.aggregate_type),occurredAt:String(e.occurred_at)})),
   };
  });
+}
+
+// R01-014: revoca la sesión en curso (logout) dentro de una transacción con el contexto de RLS del propio tenant.
+export async function revokeCurrentSession(ctx:HttpTenantContext,expiresAt:Date,reason="LOGOUT"):Promise<boolean>{
+ if(!ctx.sessionId)return false;
+ const sessionId=ctx.sessionId;
+ // Se abre con el contexto de RLS del propio tenant, pero SIN la comprobación de revocación (se está revocando justo
+ // esta sesión: exigir que no lo esté impediría el segundo logout).
+ return withTenantTxRaw(ctx,tx=>revokeSession(tx,{sessionId,tenantId:ctx.tenantId,actorId:ctx.actorId,reason,expiresAt}));
 }

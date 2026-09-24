@@ -9,6 +9,7 @@ import{runClinicalCommand,lookupReplay,readAggregateEvents,documentDetail,requir
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload}from"./http-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
+import{deterministicUuid}from"../../../packages/canonical-json/src";
 // EPIC I — Ciclo de vida del documento clínico sobre el kernel. Autoridad PROD-014-R022 /
 // PROD-022-R018: la firma produce un snapshot reproducible (contentHash) y las correcciones son
 // addendum/amendment APPEND-ONLY; nunca se borra el historial. Physician Control: solo un médico
@@ -122,7 +123,7 @@ const MAX_ATTACHMENT_BYTES=25*1024*1024; // 25 MB
 const ALLOWED_MIME=new Set(["application/pdf","image/png","image/jpeg","image/webp","image/gif","image/tiff"]);
 const EXT_BY_MIME:Record<string,string>={"application/pdf":"pdf","image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif","image/tiff":"tif"};
 // uuid determinista a partir de un texto (para que el reintento con el mismo Idempotency-Key sea idempotente).
-function derivedUuid(seed:string):string{const h=crypto.createHash("sha256").update(seed).digest("hex");return `${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-8${h.slice(17,20)}-${h.slice(20,32)}`;}
+const derivedUuid=(seed:string):string=>deterministicUuid(seed); // R01-015: una sola derivación en todo el repo
 function safeName(name:string):string{return (name||"archivo").normalize("NFKD").replace(/[^\w.\-]+/g,"_").slice(0,80)||"archivo";}
 function blobToken():string{const t=process.env.BLOB_READ_WRITE_TOKEN;if(!t)throw new ClinicalError("DEPENDENCY_UNAVAILABLE","Blob store no configurado (BLOB_READ_WRITE_TOKEN ausente)");return t;}
 

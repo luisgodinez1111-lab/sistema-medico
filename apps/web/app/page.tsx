@@ -2,7 +2,9 @@
 import{useEffect}from"react";
 import{getStoredSession}from"../lib/session-client";
 // Puerta única: la raíz NO es un landing con bypass. Decide según sesión y redirige.
-// Con sesión clínica activa -> espacio clínico; sin sesión -> inicio de sesión. Nada más es accesible sin auth.
+// Con metadatos de sesión en el navegador -> espacio clínico; sin ellos -> inicio de sesión.
+// R01-031: esto es enrutado, no autorización. Quien pida /workspace sin cookie de sesión lo bloquea el middleware, y cada
+// petición a la API verifica firma, scope y revocación en el servidor: el navegador no decide nada.
 export default function Home(){
  useEffect(()=>{
   const s=getStoredSession();

@@ -10,7 +10,10 @@ import{type ActorType}from"../../tenant-context/src";
 import{uuidFromDigest}from"../../canonical-json/src";
 // `actorType`: HUMAN para toda sesión verificada por el IdP. El gateway de IA (no cableado, R6 en pausa) y los trabajos
 // del sistema deben construir su propio contexto con AI / SYSTEM: nunca heredan el HUMAN de la sesión (auditoría S-06).
-export type HttpTenantContext=Readonly<{tenantId:string;actorId:string;actorType:ActorType;purpose:string;requestId:string}>;
+// `sessionId`: identificador opaco de la sesión que originó la petición. Viaja en el contexto para que toda operación
+// que abra transacción pueda comprobar la lista de denegación de sesiones (auditoría R01-014). Es opcional porque los
+// contextos internos (scripts de operación, recuperación ante desastre, gateway de IA) no nacen de una sesión de usuario.
+export type HttpTenantContext=Readonly<{tenantId:string;actorId:string;actorType:ActorType;purpose:string;requestId:string;sessionId?:string}>;
 // El subject del IdP puede NO ser un UUID (Auth0 usa "auth0|<hex>", Google "google-oauth2|...").
 // Las columnas actor_id de la BD son uuid, así que el actorId clínico es un UUID DETERMINISTA
 // derivado del subject (estable por usuario). El subject crudo se conserva en las claims para
@@ -39,6 +42,6 @@ export function resolvePrincipal(read:HeaderReader,secret:string,requestId:strin
  if(!claims.sessionId||!claims.tenantId||!claims.sub)throw new ClinicalError("UNAUTHENTICATED","Session missing identity");
  const actorId=subjectToActorId(claims.sub);
  const principal:Principal={actorId,tenantId:claims.tenantId,roles:claims.roles,scopes:claims.scopes,purpose:claims.purpose,sessionId:claims.sessionId};
- const ctx:HttpTenantContext={tenantId:claims.tenantId,actorId,actorType:"HUMAN",purpose:claims.purpose,requestId};
+ const ctx:HttpTenantContext={tenantId:claims.tenantId,actorId,actorType:"HUMAN",purpose:claims.purpose,requestId,sessionId:claims.sessionId};
  return Object.freeze({claims,principal,ctx});
 }

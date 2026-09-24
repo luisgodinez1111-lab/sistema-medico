@@ -8,6 +8,7 @@ import{toHttpError}from"./http-errors";
 import{z}from"zod";
 import{buildCommand,principalFrom,resolveVerified,parseJson}from"./http-command";
 import{isValidCedula,type PrescriberIdentity}from"../../../packages/prescription-print/src";
+import{deterministicUuid}from"../../../packages/canonical-json/src";
 // EPIC S-CONFIG/FIRMA — Perfil del MÉDICO (firma y sello) sobre el kernel event-sourced. La firma/sello son
 // del médico (no del consultorio): el agregado es por-usuario (aggregateId derivado del sub del médico; RLS por
 // tenant). Las imágenes (PHI de identidad profesional) viven SOLO en Vercel Blob PRIVADO; en el event stream va
@@ -19,7 +20,7 @@ type AssetKind=(typeof ASSET_KINDS)[number];
 const MAX_ASSET_BYTES=5*1024*1024; // 5 MB (imágenes de firma/sello)
 const ALLOWED_MIME=new Set(["image/png","image/jpeg","image/webp"]);
 const EXT_BY_MIME:Record<string,string>={"image/png":"png","image/jpeg":"jpg","image/webp":"webp"};
-function derivedUuid(seed:string):string{const h=crypto.createHash("sha256").update(seed).digest("hex");return `${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-8${h.slice(17,20)}-${h.slice(20,32)}`;}
+const derivedUuid=(seed:string):string=>deterministicUuid(seed); // R01-015: una sola derivación en todo el repo
 function blobToken():string{const t=process.env.BLOB_READ_WRITE_TOKEN;if(!t)throw new ClinicalError("DEPENDENCY_UNAVAILABLE","Blob store no configurado (BLOB_READ_WRITE_TOKEN ausente)");return t;}
 // El agregado del perfil es por-médico dentro del tenant (RLS separa tenants).
 function profileId(c:Claims):string{return derivedUuid(`physician-profile:${c.tenantId}:${c.sub}`);}

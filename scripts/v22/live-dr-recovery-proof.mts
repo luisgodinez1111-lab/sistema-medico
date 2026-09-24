@@ -8,6 +8,7 @@
 import crypto from"node:crypto";
 import{directEndpoint as direct}from"../../packages/pg-endpoint/src";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{deterministicUuid}from"../../packages/canonical-json/src";
 const RUNTIME_ROLE="medical_os_runtime";
 const{default:postgres}=await import("postgres");
 const{executeAtomicClinicalCommand}=await import("../../packages/atomic-clinical-transaction-v3/src");
@@ -15,7 +16,7 @@ const{canonicalize}=await import("../../packages/canonical-json/src");
 const{restoreErrors}=await import("../../packages/restore-proof/src");
 const result:{status:string;checks:string[];proof?:unknown;error?:string}={status:"PASS",checks:[]};
 function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
-function det(seed:string){const h=crypto.createHash("sha256").update(seed).digest("hex");return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;}
+const det=(seed:string):string=>deterministicUuid(seed); // R01-015: única derivación de UUID del repo
 // tenant aleatorio (seguro en DB compartida); aggregate = el tenant, versiones incrementales.
 const RUN=crypto.randomUUID();const TENANT=det("dr-tenant-"+RUN);const AGG=det("dr-agg-"+RUN);
 function seededCommand(i:number){const key=`dr-cmd-${RUN}-${i}`;return{commandId:det(key+":command"),idempotencyKey:key,aggregateId:AGG,aggregateType:"Encounter",expectedVersion:i,eventId:det(key+":event"),eventType:"ENCOUNTER_OPENED",payload:{step:i},outboxId:det(key+":outbox"),topic:"encounter.opened",auditId:det(key+":audit"),correlationId:det(key+":corr"),occurredAt:"2026-01-01T00:00:00.000Z"};}

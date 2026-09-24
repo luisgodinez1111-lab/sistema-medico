@@ -17,7 +17,8 @@ const open=await import("../../apps/web/app/api/v1/encounters/route");
 const now=Math.floor(Date.now()/1000);
 const TENANT=crypto.randomUUID(),SUB=crypto.randomUUID();
 function idpAssertion(secret=IDP_SECRET,over={}){return signSession({sub:SUB,tenantId:TENANT,roles:["PHYSICIAN"],scopes:["encounter:write","encounter:read"],purpose:"TREATMENT",iat:now-5,exp:now+600,sessionId:crypto.randomUUID(),...over},secret);}
-function loginReq(body:unknown){return new Request("http://l/api/v1/sessions",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});}
+// R01-013: el token solo viaja en el cuerpo si el cliente de API lo pide con la cabecera; el navegador usa la cookie.
+function loginReq(body:unknown,deliverToken=true){const headers:Record<string,string>={"content-type":"application/json"};if(deliverToken)headers["x-medos-token-delivery"]="body";return new Request("http://l/api/v1/sessions",{method:"POST",headers,body:JSON.stringify(body)});}
 
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
 function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
@@ -28,10 +29,16 @@ try{
  ok(r.status===503,"NO_VERIFIER_503");
  process.env.DEV_IDENTITY_SECRET=IDP_SECRET;
 
- // 2) Aserción válida del IdP de dev -> 201 con token.
+ // 2) Aserción válida del IdP de dev -> 201 con token (el cliente de API lo pide explícitamente).
  r=await sessions.POST(loginReq({assertion:idpAssertion()}));
  const b=await r.json();
  ok(r.status===201&&typeof b.token==="string"&&b.tokenType==="Bearer"&&b.expiresAt>now,"LOGIN_201_TOKEN");
+
+ // 2b) R01-013: el flujo de NAVEGADOR (sin la cabecera) recibe la cookie y NUNCA el token en el cuerpo.
+ const rb=await sessions.POST(loginReq({assertion:idpAssertion()},false));
+ const bb=await rb.json();
+ ok(rb.status===201&&bb.token===undefined&&bb.tokenType==="Cookie"&&typeof bb.sessionId==="string","LOGIN_BROWSER_NO_TOKEN_IN_BODY");
+ ok((rb.headers.get("set-cookie")??"").includes("medos_session=")&&(rb.headers.get("set-cookie")??"").toLowerCase().includes("httponly"),"LOGIN_BROWSER_HTTPONLY_COOKIE");
 
  // 3) ROUND-TRIP: el token emitido abre un encuentro real -> 201.
  const enc=crypto.randomUUID();

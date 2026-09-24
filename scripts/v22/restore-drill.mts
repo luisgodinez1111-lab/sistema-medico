@@ -9,6 +9,7 @@
 //   pnpm exec tsx ./scripts/v22/restore-drill.mts
 import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";
 import{directEndpoint as direct}from"../../packages/pg-endpoint/src";
+import{deterministicUuid}from"../../packages/canonical-json/src";
 try{
  const envRaw=fs.readFileSync(path.resolve(".env.local"),"utf8");
  for(const line of envRaw.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(line.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}
@@ -38,7 +39,7 @@ async function schemaFingerprint(url:string){
 
 // Comandos deterministas para el replay (semilla fija => stream de eventos reproducible).
 const REPLAY_TENANT=crypto.createHash("sha256").update("restore-drill-tenant").digest("hex").slice(0,8)+"-0000-4000-8000-000000000000";
-function det(seed:string){const h=crypto.createHash("sha256").update(seed).digest("hex");return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;}
+const det=(seed:string):string=>deterministicUuid(seed); // R01-015: única derivación de UUID del repo
 function seededCommand(i:number){
  const key=`restore-drill-cmd-${i}`;
  return{commandId:det(key+":command"),idempotencyKey:key,aggregateId:REPLAY_TENANT,aggregateType:"Encounter",expectedVersion:i,eventId:det(key+":event"),eventType:"ENCOUNTER_OPENED",payload:{step:i},outboxId:det(key+":outbox"),topic:"encounter.opened",auditId:det(key+":audit"),correlationId:det(key+":corr"),occurredAt:"2026-01-01T00:00:00.000Z"};

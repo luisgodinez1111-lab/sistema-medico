@@ -338,7 +338,9 @@ export function useWorkspaceModel(){
 
  useEffect(()=>{
   const s=getStoredSession();
-  if(!s){window.location.replace("/login");return;} // guard duro: el espacio clínico exige sesión
+  if(!s){window.location.replace("/login");return;} // Atajo de UX (no es un control de seguridad): si no hay metadatos de sesión en el navegador se envía al login sin
+ // esperar una respuesta 401. El control real es doble: el middleware exige la cookie para servir la página y la API
+ // verifica la firma HMAC, el scope y la revocación en cada petición (R01-031/R01-032).
   setSession(s);setReady(true); // U-12: sin paciente hasta que el médico elija uno (antes: UUID aleatorio => 4 peticiones a un paciente inexistente)
  },[]);
  // Auditoría U-17 — el contrato de estados PROHIBIDOS del design system (packages/design-system) se aplica en el workspace

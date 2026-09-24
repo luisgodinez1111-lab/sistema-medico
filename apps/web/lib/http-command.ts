@@ -3,7 +3,7 @@ import{type z}from"zod";
 import{resolvePrincipal}from"../../../packages/http-principal/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
-import{canonicalize,uuidFromDigest}from"../../../packages/canonical-json/src";
+import{canonicalize,deterministicUuid}from"../../../packages/canonical-json/src";
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
 import{sessionSecret,readEventPayloadById}from"./clinical-runtime";
 // EPIC D/G — Helpers compartidos por los verticales que escriben comandos clínicos vía HTTP.
@@ -13,7 +13,7 @@ import{sessionSecret,readEventPayloadById}from"./clinical-runtime";
 // R01-015: el identificador se emite como UUID válido (versión 8 = derivado, variante RFC 9562), no como un corte crudo
 // del hash; así cualquier validador (`z.string().uuid()`, la columna `uuid` de Postgres, un cliente externo) lo acepta.
 export function derivedUuid(idempotencyKey:string,slot:string):string{
- return uuidFromDigest(crypto.createHash("sha256").update(`${idempotencyKey}:${slot}`).digest("hex"));
+ return deterministicUuid(`${idempotencyKey}:${slot}`);
 }
 export function principalFrom(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
  return{tenantId:claims.tenantId,actorId:claims.sub,roles:claims.roles,scopes:claims.scopes,purpose:claims.purpose,sessionId:claims.sessionId};

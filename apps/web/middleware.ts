@@ -10,10 +10,21 @@ import{contentSecurityPolicy}from"./lib/csp.mjs";
 //     El login tiene su propio límite por IP dentro de su handler (apps/web/lib/session-issuance.ts).
 // Auditoría S-04: nonce por petición para las páginas HTML. El middleware lo genera, lo pone en la cabecera de la PETICIÓN
 // (Next lo lee de `content-security-policy` y marca sus scripts en línea con él) y fija la CSP definitiva en la respuesta.
+// Páginas que exigen cookie de sesión. `/` y `/login` son públicas; los estáticos no pasan por aquí (ver el matcher).
+const PROTECTED_PAGE=/^\/(workspace)(\/|$)/;
 function nonceFor():string{const b=new Uint8Array(16);crypto.getRandomValues(b);return btoa(String.fromCharCode(...b));}
 export function middleware(req:NextRequest){
  const path=req.nextUrl.pathname;
  if(!path.startsWith("/api/")){
+  // Auditoría R01-031/R01-032: la protección de /workspace era un `useEffect` en el cliente que leía sessionStorage; el
+  // HTML se servía igual y el «guard duro» del comentario no existía. Ahora el borde exige la presencia de la cookie de
+  // sesión para las páginas clínicas y redirige a /login. Es un control de PRESENCIA, no de validez: la autoridad sigue
+  // decidiéndose en el servidor (la API verifica la firma HMAC y la revocación en cada petición). Sirve para no entregar
+  // el cockpit a quien no trae sesión y para que la redirección no dependa de que el JavaScript del cliente llegue a correr.
+  if(PROTECTED_PAGE.test(path)&&!req.cookies.get(SESSION_COOKIE)?.value){
+   const to=req.nextUrl.clone();to.pathname="/login";to.search=`?next=${encodeURIComponent(path)}`;
+   return NextResponse.redirect(to);
+  }
   const nonce=nonceFor();const csp=contentSecurityPolicy(process.env,nonce);
   const headers=new Headers(req.headers);headers.set("x-nonce",nonce);headers.set("content-security-policy",csp);
   const res=NextResponse.next({request:{headers}});res.headers.set("Content-Security-Policy",csp);

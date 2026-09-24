@@ -1,7 +1,11 @@
 import type{Sql,TransactionSql}from"postgres";import crypto from"node:crypto";import{canonicalize}from"../../canonical-json/src";import{assertTenantContext,type TenantContext}from"../../tenant-context/src";
 export type ClinicalCommand=Readonly<{commandId:string;idempotencyKey:string;aggregateId:string;aggregateType:string;expectedVersion:number;eventId:string;eventType:string;payload:unknown;outboxId:string;topic:string;auditId:string;correlationId:string;occurredAt:string}>;
-export async function executeAtomicClinicalCommand(sql:Sql,ctx:TenantContext,c:ClinicalCommand){assertTenantContext(ctx);return sql.begin(async(tx:TransactionSql)=>{
+// `preflight` (opcional) corre DENTRO de la transacción, justo después de fijar el contexto de RLS y antes de tocar
+// ningún agregado: si lanza, nada se escribe. Lo usa la comprobación de sesión revocada (auditoría R01-014) para que la
+// decisión sea atómica con el comando, sin una transacción extra ni ventana entre comprobar y escribir.
+export async function executeAtomicClinicalCommand(sql:Sql,ctx:TenantContext,c:ClinicalCommand,preflight?:(tx:TransactionSql)=>Promise<void>){assertTenantContext(ctx);return sql.begin(async(tx:TransactionSql)=>{
  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+ if(preflight)await preflight(tx);
  const h=crypto.createHash("sha256").update(canonicalize(c)).digest("hex");
  const claim=await tx`insert into command_idempotency(tenant_id,actor_id,key,request_hash,status,expires_at) values(${ctx.tenantId},${ctx.actorId},${c.idempotencyKey},${h},'IN_PROGRESS',now()+interval '24 hours') on conflict do nothing returning key`;
  if(!claim.length){const p=await tx`select request_hash,status,response_json from command_idempotency where tenant_id=${ctx.tenantId} and actor_id=${ctx.actorId} and key=${c.idempotencyKey} for update`;if(p[0]?.request_hash!==h)throw Error('IDEMPOTENCY_CONFLICT');if(p[0]?.status==='COMPLETED')return{replayed:true,response:p[0].response_json};throw Error('IDEMPOTENCY_IN_PROGRESS');}

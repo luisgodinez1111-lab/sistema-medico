@@ -72,6 +72,21 @@ describe("identificadores derivados conformes a RFC 9562 (R01-015)",()=>{
   const c=uuidFromDigest(crypto.createHash("sha256").update("y").digest("hex"));
   expect(a).toBe(b);expect(a).not.toBe(c);
  });
+ it("hay UNA sola implementación del formato de UUID en el repo (había siete)",()=>{
+  // El defecto real de R01-015 no era el formato: eran SIETE copias del mismo corte de sha256, tres con nibbles
+  // distintos, de modo que el `eventId` que escribía el kernel no coincidía con el que buscaba el replay estable.
+  const sospechosos:string[]=[];
+  const walk=(d:string):void=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){
+   if(e.name==="node_modules"||e.name===".next"||e.name===".git"||e.name.includes(" 2."))continue;
+   const p=`${d}/${e.name}`;
+   if(e.isDirectory())walk(p);
+   else if(/\.(ts|tsx|mts)$/.test(e.name)&&!p.includes("packages/canonical-json")&&!p.endsWith("connection-and-identifiers.test.ts")){
+    const src=fs.readFileSync(p,"utf8");
+    if(/slice\(0,8\)\}-\$\{/.test(src))sospechosos.push(p);
+   }}};
+  for(const raiz of ["apps","packages","scripts","tests"])walk(raiz);
+  expect(sospechosos).toEqual([]);
+ });
  it("subjectToActorId emite un UUID conforme y estable por sujeto OIDC",()=>{
   const id=subjectToActorId("auth0|1234567890");
   expect(id).toMatch(UUID);

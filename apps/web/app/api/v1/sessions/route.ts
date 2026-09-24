@@ -4,4 +4,4 @@ import{handleLogin,handleLogout}from"../../../../lib/session-issuance";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function POST(req:Request){return handleLogin(req);}
-export async function DELETE(){return handleLogout();}
+export async function DELETE(req:Request){return handleLogout(req);}

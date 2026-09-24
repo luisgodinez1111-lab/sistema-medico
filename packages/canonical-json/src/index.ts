@@ -1,3 +1,4 @@
+import{createHash}from"node:crypto";
 export function canonicalize(value:unknown):string{
  if(value===null||typeof value!=="object") return JSON.stringify(value);
  if(Array.isArray(value)) return `[${value.map(canonicalize).join(",")}]`;
@@ -15,4 +16,12 @@ export function uuidFromDigest(hex:string):string{
  b[16]="89ab"[parseInt(b[16]!,16)&3]!;                  // variante RFC 4122/9562 (10xx)
  const h=b.join("");
  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;
+}
+
+// Derivación canónica de un UUID a partir de una SEMILLA de texto. Es la ÚNICA implementación del repo: la auditoría
+// (R01-015) encontró SIETE copias del mismo corte de sha256, tres de ellas con nibbles distintos, lo que hacía que el
+// identificador escrito por un camino no coincidiera con el leído por otro (p. ej. el `eventId` del kernel frente al que
+// buscaba el replay estable). Un test guardián impide que vuelva a haber más de una.
+export function deterministicUuid(seed:string):string{
+ return uuidFromDigest(createHash("sha256").update(seed).digest("hex"));
 }

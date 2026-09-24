@@ -8,17 +8,14 @@ import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v
 import{foldEncounter,assertTransition}from"../../../packages/encounter-fold/src";
 import{runClinicalCommand,lookupReplay,readEncounterEvents,blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,sessionSecret}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{readerFor,replayStablePayload}from"./http-command";
+import{readerFor,replayStablePayload,derivedUuid}from"./http-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
 // EPIC D — Ciclo de vida del encuentro sobre el kernel probado: assess (OPEN->READY_TO_SIGN)
 // y sign (READY_TO_SIGN->SIGNED). Concurrencia optimista real (If-Match=version) e invariantes
 // V2: Physician Control (solo un médico humano firma) y Zero Lost Follow-Up (no firmar con
 // obligaciones críticas abiertas). Envelope determinista (idempotencia estilo Stripe).
 
-function derivedUuid(idempotencyKey:string,slot:string):string{
- const h=crypto.createHash("sha256").update(`${idempotencyKey}:${slot}`).digest("hex");
- return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;
-}
+
 function principalFrom(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
  return{tenantId:claims.tenantId,actorId:claims.sub,roles:claims.roles,scopes:claims.scopes,purpose:claims.purpose,sessionId:claims.sessionId};
 }

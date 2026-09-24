@@ -34,7 +34,8 @@ async function mkToken(claims:Record<string,unknown>={},opts:{iss?:string;aud?:s
   .setProtectedHeader({alg:"RS256",kid}).setIssuedAt().setIssuer(opts.iss??ISS).setAudience(opts.aud??AUD)
   .setSubject(String(claims["sub"]??crypto.randomUUID())).setExpirationTime(opts.exp??"15m").sign(opts.signer??kp.privateKey);
 }
-const loginReq=(token:string)=>new Request("http://l/api/v1/sessions",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token})});
+// R01-013: el token de sesión solo viaja en el cuerpo si el cliente de API lo pide con la cabecera (el navegador usa la cookie).
+const loginReq=(token:string)=>new Request("http://l/api/v1/sessions",{method:"POST",headers:{"content-type":"application/json","x-medos-token-delivery":"body"},body:JSON.stringify({token})});
 
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
 function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}

@@ -5,10 +5,11 @@ import{issueSession,devIdentityVerifier,type IdentityVerifier}from"../../../pack
 import{oidcVerifier,type OidcClaimMap}from"../../../packages/oidc-verifier/src";
 import{safeLog}from"../../../packages/secure-logger/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
-import{sessionSecret}from"./clinical-runtime";
+import{sessionSecret,revokeCurrentSession}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{SESSION_COOKIE}from"./http-command";
+import{SESSION_COOKIE,resolveVerified}from"./http-command";
 import{clientIp,rateLimitedResponse}from"./rate-limit";
+import{describeEndpoint}from"../../../packages/pg-endpoint/src";
 import{sharedAllow}from"./rate-limit-shared";
 // EPIC E — Emisión de sesión (login) en el borde HTTP. Selecciona un verificador de identidad
 // según el entorno; sin verificador, deny-closed (503). El verificador de desarrollo se
@@ -54,7 +55,24 @@ export function devIdentityAllowed():boolean{
   if(flagsPresent)safeLog("security.dev_identity_refused_in_prod",{reason:"DEV_IDENTITY_FLAGS_IN_PRODUCTION"});
   return false;
  }
+ // Auditoría R01-010: `NODE_ENV`/`VERCEL_ENV` eran la ÚNICA señal que apagaba el verificador de desarrollo. Basta un
+ // entrypoint que no las fije (imagen propia, `node server.js` a mano, un runner ajeno) para que una aserción de prueba
+ // acuñe sesiones. Segunda señal INDEPENDIENTE, del plano de datos: el verificador de desarrollo solo se permite si la
+ // base de datos es LOCAL. Contra una base remota —producción o cualquier entorno compartido— se rehúsa y se registra.
+ if(!databaseIsLocal()){
+  if(flagsPresent)safeLog("security.dev_identity_refused_remote_db",{reason:"DEV_IDENTITY_WITH_REMOTE_DATABASE"});
+  return false;
+ }
  return process.env.ALLOW_DEV_IDENTITY==="true"&&process.env.AUTH_MODE==="development"&&!!process.env.DEV_IDENTITY_SECRET;
+}
+// ¿La base configurada es local? (localhost, loopback o el host de Docker). Sin DATABASE_URL no hay nada que proteger:
+// el login fallará después por dependencia no disponible.
+const LOCAL_HOSTS=new Set(["localhost","127.0.0.1","::1","[::1]","host.docker.internal","postgres","db"]);
+export function databaseIsLocal():boolean{
+ const raw=process.env.DATABASE_URL;
+ if(!raw)return true;
+ const{host}=describeEndpoint(raw);
+ return LOCAL_HOSTS.has(host.toLowerCase());
 }
 
 export async function handleLogin(req:Request):Promise<Response>{
@@ -72,16 +90,36 @@ export async function handleLogin(req:Request):Promise<Response>{
   const session=issueSession(verified,sessionSecret(),{now,ttlSeconds:SESSION_TTL_SECONDS,sessionId:crypto.randomUUID()});
   // Auditoría de login sin PHI (redactada); nunca se loguea el token ni la credencial.
   safeLog("session.issued",{sessionId:session.sessionId,tenantId:verified.tenantId,subject:verified.subject,issuer:verified.issuer});
-  // El navegador usa la cookie httpOnly (no persiste el token en JS). El body sigue devolviendo
-  // el token para clientes/API que usen Bearer. tokenType informa cómo autenticar.
-  const res=NextResponse.json({token:session.token,sessionId:session.sessionId,expiresAt:session.expiresAt,tokenType:"Bearer"},{status:201});
+  // Auditoría R01-013: el token de sesión ya NO viaja en el cuerpo por defecto. El navegador autentica con la cookie
+  // httpOnly y nunca necesita el token en JS; devolverlo igualmente lo exponía a cualquier XSS, a un log de proxy o al
+  // historial de una herramienta de red. Un cliente de API (script, integración) que vaya a usar `Authorization: Bearer`
+  // lo pide explícitamente con la cabecera `X-Medos-Token-Delivery: body`; así el caso peligroso es el que hay que pedir.
+  const wantsBearer=(req.headers.get("x-medos-token-delivery")??"").toLowerCase()==="body";
+  const body=wantsBearer
+   ?{token:session.token,sessionId:session.sessionId,expiresAt:session.expiresAt,tokenType:"Bearer"}
+   :{sessionId:session.sessionId,expiresAt:session.expiresAt,tokenType:"Cookie"};
+  if(wantsBearer)safeLog("session.token_delivered_in_body",{sessionId:session.sessionId,tenantId:verified.tenantId});
+  const res=NextResponse.json(body,{status:201});
   res.cookies.set(SESSION_COOKIE,session.token,{httpOnly:true,secure:true,sameSite:"lax",path:"/",maxAge:SESSION_TTL_SECONDS});
   return res;
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-// Logout: borra la cookie de sesión (la sesión firmada expira sola por TTL).
-export function handleLogout():Response{
- const res=NextResponse.json({ok:true},{status:200});
- res.cookies.set(SESSION_COOKIE,"",{httpOnly:true,secure:true,sameSite:"lax",path:"/",maxAge:0});
- return res;
+// Logout: REVOCA la sesión en la lista de denegación y borra la cookie. Auditoría R01-014: antes solo borraba la cookie,
+// así que un token exfiltrado seguía siendo válido hasta cumplir su TTL y no había forma de cortar una sesión en curso.
+// La revocación es best-effort en cuanto a la respuesta (el usuario siempre queda «fuera» en su navegador), pero si la
+// base rechaza la escritura se responde 503: decir «sesión cerrada» sin haberla podido revocar sería una falsa garantía.
+export async function handleLogout(req:Request):Promise<Response>{
+ const clearCookie=(res:Response):Response=>{(res as NextResponse).cookies.set(SESSION_COOKIE,"",{httpOnly:true,secure:true,sameSite:"lax",path:"/",maxAge:0});return res;};
+ try{
+  const resolved=await resolveVerified(req);           // sin sesión válida no hay nada que revocar
+  const expiresAt=new Date(resolved.claims.exp*1000);
+  const already=await revokeCurrentSession(resolved.ctx,expiresAt,"LOGOUT");
+  safeLog("session.revoked",{sessionId:resolved.claims.sessionId,tenantId:resolved.claims.tenantId,reason:"LOGOUT",result:already?"ALREADY_REVOKED":"REVOKED"});
+  return clearCookie(NextResponse.json({ok:true,revoked:true},{status:200}));
+ }catch(e){
+  const h=toHttpError(e);
+  // Token ausente, caducado o ya inválido: no hay sesión que revocar, pero la cookie se limpia igual (200).
+  if(h.status===401)return clearCookie(NextResponse.json({ok:true,revoked:false},{status:200}));
+  return clearCookie(NextResponse.json(h.body,{status:h.status}));
+ }
 }

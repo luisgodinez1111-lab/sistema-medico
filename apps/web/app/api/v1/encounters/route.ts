@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import crypto from"node:crypto";
 import{z}from"zod";
 import{resolvePrincipal}from"../../../../../../packages/http-principal/src";
-import{readerFor}from"../../../../lib/http-command";
+import{readerFor,derivedUuid}from"../../../../lib/http-command";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../../../../packages/atomic-clinical-transaction-v3/src";
@@ -25,10 +25,7 @@ const OpenEncounter=z.object({
 });
 // UUID determinista derivado del Idempotency-Key: garantiza que un reintento reconstruya el
 // mismo envelope de comando (mismo commandId/eventId/outboxId/auditId) => hash idéntico.
-function derivedUuid(idempotencyKey:string,slot:string):string{
- const h=crypto.createHash("sha256").update(`${idempotencyKey}:${slot}`).digest("hex");
- return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;
-}
+
 
 function principalFrom(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
  return{tenantId:claims.tenantId,actorId:claims.sub,roles:claims.roles,scopes:claims.scopes,purpose:claims.purpose,sessionId:claims.sessionId};

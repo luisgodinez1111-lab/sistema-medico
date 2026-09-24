@@ -6,6 +6,7 @@
 import crypto from"node:crypto";
 import{directEndpoint as direct}from"../../packages/pg-endpoint/src";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{deterministicUuid}from"../../packages/canonical-json/src";
 const RUNTIME_ROLE="medical_os_runtime";
 const{default:postgres}=await import("postgres");
 const{executeAtomicClinicalCommand}=await import("../../packages/atomic-clinical-transaction-v3/src");
@@ -14,7 +15,7 @@ const result:{status:string;checks:string[];error?:string}={status:"PASS",checks
 const rt=postgres(direct(process.env.DATABASE_URL!),{max:2,prepare:false,onnotice:()=>{},connection:{options:`-c role=${RUNTIME_ROLE}`}});
 const TENANT=crypto.randomUUID(),OTHER=crypto.randomUUID();
 const ctx={tenantId:TENANT,actorId:crypto.randomUUID(),actorType:"SYSTEM" as const,purpose:"TREATMENT",requestId:crypto.randomUUID()};
-const cmd=(i:number)=>{const key=`audit-verify-${TENANT}-${i}`;const d=(s:string)=>{const h=crypto.createHash("sha256").update(`${key}:${s}`).digest("hex");return`${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-8${h.slice(17,20)}-${h.slice(20,32)}`;};
+const cmd=(i:number)=>{const key=`audit-verify-${TENANT}-${i}`;const d=(s:string)=>deterministicUuid(`${key}:${s}`); // R01-015: única derivación de UUID del repo
  return{commandId:d("c"),idempotencyKey:key,aggregateId:d("agg"),aggregateType:"Patient",expectedVersion:0,eventId:d("e"),eventType:"PATIENT_REGISTERED",payload:{kind:"REGISTERED",name:`Prueba ${i}`,birthDate:"1980-01-01"},outboxId:d("o"),topic:"patient.registered",auditId:d("a"),correlationId:d("x"),occurredAt:new Date().toISOString()};};
 try{
  // 1) cadena vacía del tenant nuevo: válida, en génesis

@@ -9,10 +9,10 @@ const src=fs.readFileSync(RUNTIME,"utf8");
 describe("contexto de RLS centralizado en withTenantTx (R01-002)",()=>{
  it("solo el helper fija el contexto de tenant: ninguna consulta suelta repite set_config",()=>{
   const ocurrencias=src.split("set_config('app.tenant_id'").length-1;
-  expect(ocurrencias,"set_config debe aparecer una sola vez, dentro de withTenantTx").toBe(1);
+  expect(ocurrencias,"set_config solo dentro de withTenantTxRaw (única apertura de transacción de lectura)").toBe(1);
  });
  it("el helper fija las CUATRO variables de sesión que RLS y la auditoría necesitan",()=>{
-  const helper=/export async function withTenantTx[\s\S]*?\n}/.exec(src)?.[0]??"";
+  const helper=/async function withTenantTxRaw[\s\S]*?\n}/.exec(src)?.[0]??"";
   for(const v of ["app.tenant_id","app.actor_id","app.purpose","app.request_id"])expect(helper,v).toContain(v);
   expect(helper).toContain("true"); // local a la transacción (set_config(...,true)), nunca a la conexión del pool
  });

@@ -3,6 +3,7 @@
 // `patientBar`, `LINE`) son adaptadores sobre el design system (packages/design-system/src/components.tsx): la paleta y la
 // anatomía viven allí; aquí solo se conservan los nombres que usan las vistas.
 import {primitive,typography,LINE as DS_LINE,buttonStyle,cardStyle,inputStyle,badgeStyle,toneOfState,patientHeaderStyle} from "../../../../packages/design-system/src";
+import {uuidFromDigest} from "../../../../packages/canonical-json/src";
 
 // EPIC K — Espacio de trabajo clínico. Consume los endpoints ya probados con la sesión autenticada.
 // Módulos: encuentro (abrir->valorar->firmar) y medicación (proponer->prescribir->activar->suspender),
@@ -314,9 +315,12 @@ export const nowIso=()=>new Date().toISOString();
 // UUID DETERMINISTA en el cliente a partir de una clave (U-09): dos hashes FNV-1a de 64 bits con semillas distintas => 128 bits
 // estables; formato v4 para que el servidor lo acepte como uuid. No es criptográfico: solo necesita ser estable y único por clave.
 export function derivedClientUuid(key:string):string{
+ // En el navegador no hay `node:crypto`, así que la huella se calcula con FNV-1a de 128 bits (dos pasadas con semillas
+ // distintas). El FORMATO —nibbles de versión y variante— lo fija el mismo helper que usa el servidor (R01-015), así que
+ // no hay dos maneras de dar forma a un UUID en el repo.
  const fnv=(seed:bigint)=>{let h=seed;for(let i=0;i<key.length;i++){h^=BigInt(key.charCodeAt(i));h=(h*0x100000001b3n)&0xffffffffffffffffn;}return h;};
  const hex=(fnv(0xcbf29ce484222325n).toString(16).padStart(16,"0")+fnv(0x84222325cbf29ce4n).toString(16).padStart(16,"0")).slice(0,32);
- return`${hex.slice(0,8)}-${hex.slice(8,12)}-4${hex.slice(13,16)}-${(8+(parseInt(hex[16]!,16)&3)).toString(16)}${hex.slice(17,20)}-${hex.slice(20,32)}`;
+ return uuidFromDigest(hex);
 }
 export function userMessage(e:unknown):string{
  const m=e instanceof Error?e.message:String(e);
