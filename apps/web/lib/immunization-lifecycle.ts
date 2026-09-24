@@ -7,6 +7,7 @@ import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPati
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{isVaccineCode,VACCINE_CODES,vaccineComponents}from"../../../packages/immunization-schedule/src";
+import{aggregateLifecycle}from"./lifecycle-factory";
 // EPIC V — Ciclo de vida de una vacuna: DUE -> {ADMINISTERED, REFUSED}; ADMINISTERED -> ADVERSE_EVENT.
 // Enfermería/médico registran la cartilla (scope immunization:write).
 const AGG="Immunization";
@@ -35,20 +36,11 @@ export async function handleImmunizationDue(req:Request):Promise<Response>{
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
-async function loadForTransition(req:Request,immunizationId:string){
- const{claims,ctx}=resolveVerified(req);authz(claims);
- const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldImmunization(await readAggregateEvents(ctx,immunizationId));
- if(!folded.exists)throw new ClinicalError("NOT_FOUND","Immunization not found");
- return{ctx,idempotencyKey,expectedVersion,folded};
-}
-async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,immunizationId:string,folded:FoldedImmunization,to:ImmunizationState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
- const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:immunizationId,expectedVersion,eventType,payload,occurredAt,topic});
- let result=await lookupReplay(ctx,cmd);
- if(!result){assertImmunizationTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
- const r=result.response as{version:number;auditHash?:string};
- return NextResponse.json({immunizationId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
-}
+// R02a-TPL-01: la tríada authz→load→commit vive UNA vez en lifecycle-factory.ts; aquí solo el vocabulario del dominio.
+const LIFECYCLE=aggregateLifecycle<FoldedImmunization,ImmunizationState>({aggregateType:AGG,idKey:"immunizationId",notFound:"Immunization not found",fold:foldImmunization,assertTransition:assertImmunizationTransition,authz});
+const loadForTransition=(req:Request,immunizationId:string)=>LIFECYCLE.loadForTransition(req,immunizationId);
+const commit=(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,immunizationId:string,folded:FoldedImmunization,to:ImmunizationState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string)=>
+ LIFECYCLE.commit(ctx,idempotencyKey,expectedVersion,immunizationId,folded,to,eventType,payload,occurredAt,topic);
 
 // R02a-IMM-01: antes de ADMINISTRAR se cruzan las alergias ACTIVAS del paciente con los componentes de la vacuna.
 // Criterio (conservador y explícito, porque es una decisión clínica y no puede quedar implícita en el código):

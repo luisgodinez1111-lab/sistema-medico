@@ -16,6 +16,8 @@ const amend=await import("../../apps/web/app/api/v1/patients/[patientId]/amendme
 const co=await import("../../apps/web/app/api/v1/consents/route");
 const pre=await import("../../apps/web/app/api/v1/consents/[consentId]/presentation/route");
 const gr=await import("../../apps/web/app/api/v1/consents/[consentId]/grant/route");
+// R02a-CON-01: otorgar un consentimiento exige la huella del documento presentado, la modalidad y su artefacto.
+const HASH_CONSENT=crypto.createHash("sha256").update("Consentimiento informado de prueba").digest("hex");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes:["patient:write","patient:read","consent:write"],purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
@@ -50,12 +52,12 @@ try{
  const c1=crypto.randomUUID();
  r=await co.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({consentId:c1,patientId:child,scopeType:"PROCEDURE",documentRef:"CI-PROC-01",occurredAt:ISO})}));ok(r.status===201,"CONSENT_DRAFTED");
  r=await pre.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),CP(c1));ok(r.status===201,"CONSENT_PRESENTED");
- r=await gr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({signerName:"Emilia Prueba Niña",occurredAt:ISO})}),CP(c1));
+ r=await gr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({documentHash:HASH_CONSENT,method:"ELECTRONIC_SIGNATURE",signatureArtifactRef:"blob://consents/firma.png",signerName:"Emilia Prueba Niña",occurredAt:ISO})}),CP(c1));
  e=await r.json() as Err;ok(r.status===428&&e.error.details?.reason==="GUARDIAN_REQUIRED","MINOR_CONSENT_WITHOUT_GUARDIAN_428");
  // 5) enmienda registra al tutor; el menor no firma como PATIENT; el tutor sí, y consta en el evento
  r=await amend.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({guardian:{name:"Laura Prueba Madre",relationship:"madre",phone:"55 0000 0000"},occurredAt:ISO})}),PP(child));ok(r.status===200||r.status===201,"GUARDIAN_AMENDED");
- r=await gr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({signerName:"Emilia Prueba Niña",signerRole:"PATIENT",occurredAt:ISO})}),CP(c1));ok(r.status===400,"MINOR_CANNOT_SIGN_AS_PATIENT_400");
- r=await gr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({signerName:"Laura Prueba Madre",signerRole:"GUARDIAN",occurredAt:ISO})}),CP(c1));ok(r.status===201,"GUARDIAN_CONSENT_201");
+ r=await gr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({documentHash:HASH_CONSENT,method:"ELECTRONIC_SIGNATURE",signatureArtifactRef:"blob://consents/firma.png",signerName:"Emilia Prueba Niña",signerRole:"PATIENT",occurredAt:ISO})}),CP(c1));ok(r.status===400,"MINOR_CANNOT_SIGN_AS_PATIENT_400");
+ r=await gr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({documentHash:HASH_CONSENT,method:"ELECTRONIC_SIGNATURE",signatureArtifactRef:"blob://consents/firma.png",signerName:"Laura Prueba Madre",signerRole:"GUARDIAN",occurredAt:ISO})}),CP(c1));ok(r.status===201,"GUARDIAN_CONSENT_201");
  const granted=(await readAggregateEvents(ctx,c1)).find(x=>x.payload["kind"]==="GRANTED")?.payload as{guardian?:{name:string;relationship:string};signerRole?:string}|undefined;
  ok(granted?.signerRole==="GUARDIAN"&&granted.guardian?.name==="Laura Prueba Madre"&&granted.guardian.relationship==="madre","CONSENT_EVENT_CARRIES_GUARDIAN");
  // 6) una enmienda no reasigna la CURP de otro paciente

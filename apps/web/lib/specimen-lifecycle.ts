@@ -6,6 +6,7 @@ import{foldSpecimen,assertSpecimenTransition,type FoldedSpecimen,type SpecimenSt
 import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{aggregateLifecycle}from"./lifecycle-factory";
 // EPIC AF — Ciclo de vida de una muestra: COLLECTED -> IN_TRANSIT -> RECEIVED -> {RESULTED, REJECTED}.
 // Cadena de custodia pre-analítica; recolectar/enviar/recibir/procesar/rechazar exige scope specimen:write.
 const AGG="Specimen";
@@ -28,20 +29,11 @@ export async function handleSpecimenCollect(req:Request):Promise<Response>{
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
-async function loadForTransition(req:Request,specimenId:string){
- const{claims,ctx}=resolveVerified(req);authz(claims);
- const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldSpecimen(await readAggregateEvents(ctx,specimenId));
- if(!folded.exists)throw new ClinicalError("NOT_FOUND","Specimen not found");
- return{ctx,idempotencyKey,expectedVersion,folded};
-}
-async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,specimenId:string,folded:FoldedSpecimen,to:SpecimenState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
- const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:specimenId,expectedVersion,eventType,payload,occurredAt,topic});
- let result=await lookupReplay(ctx,cmd);
- if(!result){assertSpecimenTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
- const r=result.response as{version:number;auditHash?:string};
- return NextResponse.json({specimenId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
-}
+// R02a-TPL-01: la tríada authz→load→commit vive UNA vez en lifecycle-factory.ts; aquí solo el vocabulario del dominio.
+const LIFECYCLE=aggregateLifecycle<FoldedSpecimen,SpecimenState>({aggregateType:AGG,idKey:"specimenId",notFound:"Specimen not found",fold:foldSpecimen,assertTransition:assertSpecimenTransition,authz});
+const loadForTransition=(req:Request,specimenId:string)=>LIFECYCLE.loadForTransition(req,specimenId);
+const commit=(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,specimenId:string,folded:FoldedSpecimen,to:SpecimenState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string)=>
+ LIFECYCLE.commit(ctx,idempotencyKey,expectedVersion,specimenId,folded,to,eventType,payload,occurredAt,topic);
 
 export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleSpecimenTransit(req:Request,specimenId:string):Promise<Response>{

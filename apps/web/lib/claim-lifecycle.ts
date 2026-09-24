@@ -7,6 +7,7 @@ import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPati
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{lookupIcd10,normalizeIcd10}from"../../../packages/terminology/src";
+import{aggregateLifecycle}from"./lifecycle-factory";
 // EPIC AR (profundidad): los códigos de la reclamación se validan contra CIE-10 y se codifican con descripción canónica.
 // EPIC Y — Ciclo de vida de una reclamación de facturación: DRAFT -> CODED -> SUBMITTED -> {PAID, REJECTED};
 // REJECTED -> SUBMITTED (reenvío); anulable desde no-terminal. Seguimiento de estado, NO mueve dinero.
@@ -31,20 +32,11 @@ export async function handleClaimDraft(req:Request):Promise<Response>{
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
-async function loadForTransition(req:Request,claimId:string){
- const{claims,ctx}=resolveVerified(req);authz(claims);
- const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldClaim(await readAggregateEvents(ctx,claimId));
- if(!folded.exists)throw new ClinicalError("NOT_FOUND","Claim not found");
- return{ctx,idempotencyKey,expectedVersion,folded};
-}
-async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,claimId:string,folded:FoldedClaim,to:ClaimState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
- const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:claimId,expectedVersion,eventType,payload,occurredAt,topic});
- let result=await lookupReplay(ctx,cmd);
- if(!result){assertClaimTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
- const r=result.response as{version:number;auditHash?:string};
- return NextResponse.json({claimId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
-}
+// R02a-TPL-01: la tríada authz→load→commit vive UNA vez en lifecycle-factory.ts; aquí solo el vocabulario del dominio.
+const LIFECYCLE=aggregateLifecycle<FoldedClaim,ClaimState>({aggregateType:AGG,idKey:"claimId",notFound:"Claim not found",fold:foldClaim,assertTransition:assertClaimTransition,authz});
+const loadForTransition=(req:Request,claimId:string)=>LIFECYCLE.loadForTransition(req,claimId);
+const commit=(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,claimId:string,folded:FoldedClaim,to:ClaimState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string)=>
+ LIFECYCLE.commit(ctx,idempotencyKey,expectedVersion,claimId,folded,to,eventType,payload,occurredAt,topic);
 
 export const CodeBody=z.object({codes:z.array(z.string().min(1)).min(1),occurredAt:z.string().datetime()});
 export async function handleClaimCoding(req:Request,claimId:string):Promise<Response>{

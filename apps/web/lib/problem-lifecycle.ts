@@ -7,6 +7,7 @@ import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPati
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{normalizeIcd10,lookupIcd10}from"../../../packages/terminology/src";
+import{aggregateLifecycle}from"./lifecycle-factory";
 // EPIC Q — Lista de problemas: ADDED(ACTIVE) -> RESOLVED / CHRONIC / ENTERED_IN_ERROR; RESOLVED -> ACTIVE.
 // EPIC AM (profundidad): el código del problema se valida contra CIE-10 y se codifica con su descripción canónica.
 // EXEC-0011: Problemas con estado epistémico explícito (possible/probable/confirmed/refuted/historical/resolved)
@@ -36,20 +37,12 @@ export async function handleProblemCreate(req:Request):Promise<Response>{
   return NextResponse.json({problemId:b.problemId,state:"ACTIVE",code:normalizeIcd10(b.code),description:entry.description,codeSystem:"ICD-10",epistemic:b.epistemic,evidenceFor:b.evidenceFor,evidenceAgainst:b.evidenceAgainst,confidence:b.confidence,source:b.source,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-async function loadForTransition(req:Request,problemId:string){
- const{claims,ctx}=resolveVerified(req);authz(claims);
- const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldProblem(await readAggregateEvents(ctx,problemId));
- if(!folded.exists)throw new ClinicalError("NOT_FOUND","Problem not found");
- return{ctx,idempotencyKey,expectedVersion,folded};
-}
-async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,problemId:string,folded:FoldedProblem,to:ProblemState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
- const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:problemId,expectedVersion,eventType,payload,occurredAt,topic});
- let result=await lookupReplay(ctx,cmd);
- if(!result){assertProblemTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
- const r=result.response as{version:number;auditHash?:string};
- return NextResponse.json({problemId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
-}
+// R02a-TPL-01: la tríada authz→load→commit vive UNA vez en lifecycle-factory.ts; aquí solo el vocabulario del dominio.
+const LIFECYCLE=aggregateLifecycle<FoldedProblem,ProblemState>({aggregateType:AGG,idKey:"problemId",notFound:"Problem not found",fold:foldProblem,assertTransition:assertProblemTransition,authz});
+const loadForTransition=(req:Request,problemId:string)=>LIFECYCLE.loadForTransition(req,problemId);
+const commit=(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,problemId:string,folded:FoldedProblem,to:ProblemState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string)=>
+ LIFECYCLE.commit(ctx,idempotencyKey,expectedVersion,problemId,folded,to,eventType,payload,occurredAt,topic);
+
 // Auditoría L-04 — ANOTACIÓN (estado epistémico / evidencia): no cambia el estado del problema. Antes se pedía la
 // "transición" X->X, que ningún fold admite, y estas dos rutas respondían 409 siempre.
 async function commitAnnotation(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,problemId:string,folded:FoldedProblem,kind:ProblemAnnotationKind,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){

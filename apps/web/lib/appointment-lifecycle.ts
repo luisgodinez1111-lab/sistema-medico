@@ -6,6 +6,7 @@ import{foldAppointment,assertAppointmentTransition,type FoldedAppointment,type A
 import{runClinicalCommand,lookupReplay,readAggregateEvents,agendaForDate,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{aggregateLifecycle}from"./lifecycle-factory";
 // EPIC U — Ciclo de vida de la cita: SCHEDULED -> CHECKED_IN -> COMPLETED (o CANCELLED/NO_SHOW).
 // Agenda: agendar/registrar llegada/completar/cancelar/marcar inasistencia exige scope appointment:write.
 const AGG="Appointment";
@@ -66,20 +67,11 @@ export async function handleAppointmentSchedule(req:Request):Promise<Response>{
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
-async function loadForTransition(req:Request,appointmentId:string){
- const{claims,ctx}=resolveVerified(req);authz(claims);
- const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldAppointment(await readAggregateEvents(ctx,appointmentId));
- if(!folded.exists)throw new ClinicalError("NOT_FOUND","Appointment not found");
- return{ctx,idempotencyKey,expectedVersion,folded};
-}
-async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,appointmentId:string,folded:FoldedAppointment,to:AppointmentState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
- const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:appointmentId,expectedVersion,eventType,payload,occurredAt,topic});
- let result=await lookupReplay(ctx,cmd);
- if(!result){assertAppointmentTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
- const r=result.response as{version:number;auditHash?:string};
- return NextResponse.json({appointmentId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
-}
+// R02a-TPL-01: la tríada authz→load→commit vive UNA vez en lifecycle-factory.ts; aquí solo el vocabulario del dominio.
+const LIFECYCLE=aggregateLifecycle<FoldedAppointment,AppointmentState>({aggregateType:AGG,idKey:"appointmentId",notFound:"Appointment not found",fold:foldAppointment,assertTransition:assertAppointmentTransition,authz});
+const loadForTransition=(req:Request,appointmentId:string)=>LIFECYCLE.loadForTransition(req,appointmentId);
+const commit=(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,appointmentId:string,folded:FoldedAppointment,to:AppointmentState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string)=>
+ LIFECYCLE.commit(ctx,idempotencyKey,expectedVersion,appointmentId,folded,to,eventType,payload,occurredAt,topic);
 
 export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleAppointmentCheckIn(req:Request,appointmentId:string):Promise<Response>{

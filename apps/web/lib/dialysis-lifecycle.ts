@@ -6,6 +6,7 @@ import{foldDialysis,assertDialysisTransition,type FoldedDialysis,type DialysisSt
 import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{aggregateLifecycle}from"./lifecycle-factory";
 // EPIC AL — Ciclo de vida de una sesión de diálisis: SCHEDULED -> IN_SESSION -> {COMPLETED, INTERRUPTED};
 // INTERRUPTED -> reanudar/completar. Cuidado renal crónico; agendar/iniciar/... exige scope dialysis:write.
 const AGG="Dialysis";
@@ -28,20 +29,11 @@ export async function handleDialysisSchedule(req:Request):Promise<Response>{
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
-async function loadForTransition(req:Request,dialysisId:string){
- const{claims,ctx}=resolveVerified(req);authz(claims);
- const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldDialysis(await readAggregateEvents(ctx,dialysisId));
- if(!folded.exists)throw new ClinicalError("NOT_FOUND","Dialysis session not found");
- return{ctx,idempotencyKey,expectedVersion,folded};
-}
-async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,dialysisId:string,folded:FoldedDialysis,to:DialysisState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
- const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:dialysisId,expectedVersion,eventType,payload,occurredAt,topic});
- let result=await lookupReplay(ctx,cmd);
- if(!result){assertDialysisTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
- const r=result.response as{version:number;auditHash?:string};
- return NextResponse.json({dialysisId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
-}
+// R02a-TPL-01: la tríada authz→load→commit vive UNA vez en lifecycle-factory.ts; aquí solo el vocabulario del dominio.
+const LIFECYCLE=aggregateLifecycle<FoldedDialysis,DialysisState>({aggregateType:AGG,idKey:"dialysisId",notFound:"Dialysis session not found",fold:foldDialysis,assertTransition:assertDialysisTransition,authz});
+const loadForTransition=(req:Request,dialysisId:string)=>LIFECYCLE.loadForTransition(req,dialysisId);
+const commit=(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,dialysisId:string,folded:FoldedDialysis,to:DialysisState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string)=>
+ LIFECYCLE.commit(ctx,idempotencyKey,expectedVersion,dialysisId,folded,to,eventType,payload,occurredAt,topic);
 
 export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleDialysisStart(req:Request,dialysisId:string):Promise<Response>{

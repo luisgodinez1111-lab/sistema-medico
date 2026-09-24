@@ -6,6 +6,7 @@ import{foldWound,assertWoundTransition,type FoldedWound,type WoundState}from"../
 import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{aggregateLifecycle}from"./lifecycle-factory";
 // EPIC AI — Ciclo de vida de una herida/UPP: OPEN -> {OPEN (re-valoración), HEALED, ESCALATED}.
 // Cuidado de heridas; documentar/re-valorar/cerrar/escalar exige scope wound:write.
 const AGG="Wound";
@@ -29,20 +30,11 @@ export async function handleWoundDocument(req:Request):Promise<Response>{
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
-async function loadForTransition(req:Request,woundId:string){
- const{claims,ctx}=resolveVerified(req);authz(claims);
- const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldWound(await readAggregateEvents(ctx,woundId));
- if(!folded.exists)throw new ClinicalError("NOT_FOUND","Wound not found");
- return{ctx,idempotencyKey,expectedVersion,folded};
-}
-async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,woundId:string,folded:FoldedWound,to:WoundState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
- const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:woundId,expectedVersion,eventType,payload,occurredAt,topic});
- let result=await lookupReplay(ctx,cmd);
- if(!result){assertWoundTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
- const r=result.response as{version:number;auditHash?:string};
- return NextResponse.json({woundId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
-}
+// R02a-TPL-01: la tríada authz→load→commit vive UNA vez en lifecycle-factory.ts; aquí solo el vocabulario del dominio.
+const LIFECYCLE=aggregateLifecycle<FoldedWound,WoundState>({aggregateType:AGG,idKey:"woundId",notFound:"Wound not found",fold:foldWound,assertTransition:assertWoundTransition,authz});
+const loadForTransition=(req:Request,woundId:string)=>LIFECYCLE.loadForTransition(req,woundId);
+const commit=(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,woundId:string,folded:FoldedWound,to:WoundState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string)=>
+ LIFECYCLE.commit(ctx,idempotencyKey,expectedVersion,woundId,folded,to,eventType,payload,occurredAt,topic);
 
 export const ReassessBody=z.object({stage:z.enum(STAGES),occurredAt:z.string().datetime()});
 export async function handleWoundReassessment(req:Request,woundId:string):Promise<Response>{

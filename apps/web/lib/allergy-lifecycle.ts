@@ -6,6 +6,7 @@ import{foldAllergy,assertAllergyTransition,type FoldedAllergy,type AllergyState}
 import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{aggregateLifecycle}from"./lifecycle-factory";
 // EPIC R — Ciclo de vida de la alergia: RECORDED(ACTIVE) -> REFUTED / INACTIVE; INACTIVE -> ACTIVE.
 const AGG="Allergy";
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
@@ -23,20 +24,12 @@ export async function handleAllergyCreate(req:Request):Promise<Response>{
   return NextResponse.json({allergyId:b.allergyId,state:"ACTIVE",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-async function loadForTransition(req:Request,allergyId:string){
- const{claims,ctx}=resolveVerified(req);authz(claims);
- const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldAllergy(await readAggregateEvents(ctx,allergyId));
- if(!folded.exists)throw new ClinicalError("NOT_FOUND","Allergy not found");
- return{ctx,idempotencyKey,expectedVersion,folded};
-}
-async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,allergyId:string,folded:FoldedAllergy,to:AllergyState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
- const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:allergyId,expectedVersion,eventType,payload,occurredAt,topic});
- let result=await lookupReplay(ctx,cmd);
- if(!result){assertAllergyTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
- const r=result.response as{version:number;auditHash?:string};
- return NextResponse.json({allergyId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
-}
+// R02a-TPL-01: la tríada authz→load→commit vive UNA vez en lifecycle-factory.ts; aquí solo el vocabulario del dominio.
+const LIFECYCLE=aggregateLifecycle<FoldedAllergy,AllergyState>({aggregateType:AGG,idKey:"allergyId",notFound:"Allergy not found",fold:foldAllergy,assertTransition:assertAllergyTransition,authz});
+const loadForTransition=(req:Request,allergyId:string)=>LIFECYCLE.loadForTransition(req,allergyId);
+const commit=(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,allergyId:string,folded:FoldedAllergy,to:AllergyState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string)=>
+ LIFECYCLE.commit(ctx,idempotencyKey,expectedVersion,allergyId,folded,to,eventType,payload,occurredAt,topic);
+
 export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleAllergyRefutation(req:Request,allergyId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,allergyId);const b=await parseJson(req,WhenBody);

@@ -6,6 +6,7 @@ import{foldTransfusion,assertTransfusionTransition,type FoldedTransfusion,type T
 import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{aggregateLifecycle}from"./lifecycle-factory";
 // EPIC AJ — Ciclo de vida de una transfusión: ORDERED -> CROSSMATCHED -> TRANSFUSING -> {COMPLETED, REACTION}.
 // Medicina transfusional; ordenar/cruzar/iniciar/completar/reacción/cancelar exige scope transfusion:write.
 const AGG="Transfusion";
@@ -28,20 +29,11 @@ export async function handleTransfusionOrder(req:Request):Promise<Response>{
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
-async function loadForTransition(req:Request,transfusionId:string){
- const{claims,ctx}=resolveVerified(req);authz(claims);
- const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldTransfusion(await readAggregateEvents(ctx,transfusionId));
- if(!folded.exists)throw new ClinicalError("NOT_FOUND","Transfusion not found");
- return{ctx,idempotencyKey,expectedVersion,folded};
-}
-async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,transfusionId:string,folded:FoldedTransfusion,to:TransfusionState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
- const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:transfusionId,expectedVersion,eventType,payload,occurredAt,topic});
- let result=await lookupReplay(ctx,cmd);
- if(!result){assertTransfusionTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
- const r=result.response as{version:number;auditHash?:string};
- return NextResponse.json({transfusionId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
-}
+// R02a-TPL-01: la tríada authz→load→commit vive UNA vez en lifecycle-factory.ts; aquí solo el vocabulario del dominio.
+const LIFECYCLE=aggregateLifecycle<FoldedTransfusion,TransfusionState>({aggregateType:AGG,idKey:"transfusionId",notFound:"Transfusion not found",fold:foldTransfusion,assertTransition:assertTransfusionTransition,authz});
+const loadForTransition=(req:Request,transfusionId:string)=>LIFECYCLE.loadForTransition(req,transfusionId);
+const commit=(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,transfusionId:string,folded:FoldedTransfusion,to:TransfusionState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string)=>
+ LIFECYCLE.commit(ctx,idempotencyKey,expectedVersion,transfusionId,folded,to,eventType,payload,occurredAt,topic);
 
 export const WhenBody=z.object({occurredAt:z.string().datetime()});
 export async function handleTransfusionCrossmatch(req:Request,transfusionId:string):Promise<Response>{
