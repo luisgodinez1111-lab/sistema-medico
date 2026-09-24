@@ -1,6 +1,7 @@
 import{describe,it,expect}from"vitest";
 import fs from "node:fs";
 import{logPhiAccess,patientAccessLog}from"../../apps/web/lib/phi-access-log";
+import{runtimeBlock}from"./_runtime-src";
 // Auditoría 2026-09-19, anexo R01 (R01-026) y deuda D-09 — auditoría de LECTURAS de PHI.
 // La evidencia contra Postgres real está en scripts/v22/live-phi-access-log-proof.mts; aquí se fijan el contrato del
 // registro (qué campos lleva, qué NO lleva) y los sitios del código que están obligados a registrar.
@@ -49,13 +50,7 @@ describe("contrato del registro de accesos (R01-026)",()=>{
 });
 
 describe("los sitios obligados a registrar lo hacen (R01-026)",()=>{
- const runtime=fs.readFileSync("apps/web/lib/clinical-runtime.ts","utf8");
- const bloque=(nombre:string):string=>{
-  const i=runtime.indexOf(`export async function ${nombre}(`);
-  if(i<0)throw new Error(`no existe ${nombre}`);
-  const j=runtime.indexOf("\n}",i);
-  return runtime.slice(i,j);
- };
+ const bloque=runtimeBlock;
  it.each([
   ["patientDemographics","PATIENT_DEMOGRAPHICS"],
   ["patientVitals","PATIENT_VITALS"],

@@ -2,6 +2,7 @@ import{describe,it,expect}from"vitest";
 import fs from "node:fs";
 import path from "node:path";
 import{authorize,assertResourceInTenant,patientAccessPolicy,type Principal}from"../../packages/runtime-auth/src";
+import{runtimeSource}from"./_runtime-src";
 // Auditoría 2026-09-19, anexo R01 (R01-003, R01-019) — el chequeo cross-tenant de `authorize()` era TAUTOLÓGICO: las 97
 // llamadas pasaban `tenantId: claims.tenantId`, o sea comparaban el tenant del principal consigo mismo. Ningún test lo
 // cubría (nadie podía: no podía fallar). Estas pruebas fijan el modelo nuevo y la política de acceso vigente.
@@ -59,8 +60,7 @@ describe("política de acceso a pacientes: decisión declarada, no accidente (R0
  });
  it("el control compensatorio de esa decisión existe: toda lectura de PHI deja constancia",()=>{
   // ADR-0230 acepta el acceso amplio dentro del tenant PORQUE la lectura queda auditada (R01-026).
-  const runtime=fs.readFileSync("apps/web/lib/clinical-runtime.ts","utf8");
-  expect(runtime).toContain("logPhiAccess");
+  expect(runtimeSource()).toContain("logPhiAccess");
   expect(fs.existsSync("db/migrations/0024_phi_access_log.sql")).toBe(true);
  });
  it("el ADR declara la deuda con su nombre y su condición de salida",()=>{

@@ -2,6 +2,7 @@ import{describe,it,expect}from"vitest";
 import fs from "node:fs";
 import{assertSessionNotRevoked,revokeSession,SESSION_REVOKED}from"../../apps/web/lib/session-revocation";
 import{databaseIsLocal}from"../../apps/web/lib/session-issuance";
+import{runtimeSource}from"./_runtime-src";
 // Auditoría 2026-09-19, anexo R01 — R01-013 (token de sesión en el cuerpo de la respuesta de login), R01-014 (el logout no
 // revocaba: un token exfiltrado seguía válido hasta el TTL) y R01-010 (una sola señal apagaba el verificador de identidad
 // de desarrollo). La prueba de integración con Postgres real está en scripts/v22/live-session-revocation-proof.mts.
@@ -45,7 +46,7 @@ describe("revocación de sesión (R01-014)",()=>{
 });
 
 describe("la comprobación está cableada en las dos puertas (R01-014)",()=>{
- const runtime=fs.readFileSync("apps/web/lib/clinical-runtime.ts","utf8");
+ const runtime=runtimeSource();
  it("toda lectura con contexto de sesión la comprueba (withTenantTx)",()=>{
   expect(/async function withTenantTx<T>[\s\S]*?assertSessionNotRevoked\(tx,ctx\.sessionId\)/.test(runtime)).toBe(true);
  });

@@ -1,10 +1,10 @@
 import{describe,it,expect}from"vitest";
 import fs from "node:fs";
 import{redact,safeLog}from"../../packages/secure-logger/src";
+import{runtimeSource}from"./_runtime-src";
 // Auditoría 2026-09-19, anexo R01 — hallazgos R01-002 (la línea de `set_config` copiada en los 41 read-models) y
 // R01-020 (el logger redactaba con lista negra, dejando pasar campos que en este dominio SÍ son PHI).
-const RUNTIME="apps/web/lib/clinical-runtime.ts";
-const src=fs.readFileSync(RUNTIME,"utf8");
+const src=runtimeSource();
 
 describe("contexto de RLS centralizado en withTenantTx (R01-002)",()=>{
  it("solo el helper fija el contexto de tenant: ninguna consulta suelta repite set_config",()=>{
