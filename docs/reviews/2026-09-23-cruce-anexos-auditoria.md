@@ -241,7 +241,7 @@ contra el registro de la SEP).
 | R05a-F03 | — | ABIERTO | Inventario: DX_LABEL (CIE-10 → etiqueta corta) — Nivel 2 — cobertura parcial (~19 códigos), fallback = código crudo | Derivar la etiqueta del catálogo CIE-10 real (packages/terminology searchIcd10) en lugar de una tabla manual. |
 | R05a-F04 | — | PARCIAL | Inventario: in7days (vencimiento de seguimiento) — Nivel 2 — sin relación con severidad/tipo | Ver WS1-10. |
 | R05a-F06 | — | ABIERTO | Vacío D: Cancelación real de peticiones (AbortController) ausente en todo el repo | Ver WS1-05. |
-| R05a-F07 | — | PARCIAL | Vacío D: Confirmación de acciones irreversibles (firmar, anular factura, revocar consentimiento) ausente | Siguen a un solo clic otras transiciones terminales: inasistencia de cita (agenda.tsx:116 → model.tsx:1284 solo pide motivo en 'cancellation'), alta/traslado de admisión (shared.tsx:426 sin ASK), cicatrización de herida (shared.tsx:401 'healing' sin ASK), com… |
+| R05a-F07 | — | CERRADO (13p) | Vacío D: Confirmación de acciones irreversibles (firmar, anular factura, revocar consentimiento) ausente | Siguen a un solo clic otras transiciones terminales: inasistencia de cita (agenda.tsx:116 → model.tsx:1284 solo pide motivo en 'cancellation'), alta/traslado de admisión (shared.tsx:426 sin ASK), cicatrización de herida (shared.tsx:401 'healing' sin ASK), com… |
 | R05a-F08 | — | CERRADO (13o) | Vacío D: Distinción 'error/desconocido' vs 'confirmado vacío' en todos los indicadores de seguridad del paciente | Extender el patrón chartState (o un estado por recurso) a los demás snapshots por paciente y a los conteos del sidebar. |
 
 ### `R06` — Base de datos, RLS, migraciones, outbox (34 pendientes)
