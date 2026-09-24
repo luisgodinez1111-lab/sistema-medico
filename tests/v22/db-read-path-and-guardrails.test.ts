@@ -2,6 +2,7 @@ import{describe,it,expect}from"vitest";
 import fs from"node:fs";
 import{assertTenantContext,isUuid}from"../../packages/tenant-context/src";
 import{assertProductionImport,deprecatedRuntimePackages}from"../../packages/architecture-boundary/src";
+import{restoreErrors}from"../../packages/restore-proof/src";
 // Auditoría 2026-09-19, anexo R06 — R06-13 (constraint NOT VALID nunca validada), R06-20/21/22 (caminos calientes sin
 // índice, incluido el GATE DE FIRMA), R06-24 (fechas comparadas como texto), R06-26 (guardarraíl sin cablear) y
 // R06-29 (el contexto de tenant no validaba el formato del UUID).
@@ -207,6 +208,36 @@ describe("el restore drill verifica lo que promete (R06-17)",()=>{
   expect(drill()).toContain("policiesComplete");
   const proof=fs.readFileSync("packages/restore-proof/src/index.ts","utf8");
   expect(proof).toContain("RLS_WITHOUT_POLICY");   // el gate falla, no solo informa
+ });
+ // Lote 12e (R06-F12): la expectativa del replay estaba ESCRITA A MANO y se quedó atrás cuando el payload sembrado cambió
+ // de forma. El drill llevaba un lote entero fallando REPLAY/OBLIGATIONS y ningún gate lo ejecutaba. La invariante no es
+ // «el hash vale X» —eso es justo lo que se rompió—, es que la expectativa se DERIVE del constructor que persiste.
+ it("la expectativa del replay se deriva del constructor del comando, no de un literal",()=>{
+  const linea=/liveHash=crypto[^\n]*/.exec(drill())?.[0]??"";
+  expect(linea,"no se encontró el cálculo de liveHash").not.toBe("");
+  expect(linea,"la expectativa volvió a escribirse a mano: derívela de seededCommand").toContain("seededCommand");
+  expect(/p:\s*\{\s*(step|kind)/.test(linea),"payload literal en la expectativa del replay").toBe(false);
+ });
+ it("y verifica QUÉ esquema restauró: el registro de migraciones, por sha256 (R06-F20 / R06-16)",()=>{
+  expect(drill(),"el drill debe leer schema_migrations de la base restaurada").toContain("schema_migrations");
+  expect(drill(),"y compararlo con el origen y con el repo").toContain("ledgerDivergence");
+  expect(drill(),"reconstruir con el migrador versionado, no leyendo los .sql a mano").toMatch(/scripts\/db\/migrate\.mts/);
+  expect(fs.readFileSync("packages/restore-proof/src/index.ts","utf8")).toContain("MIGRATION_LEDGER");
+  expect(restoreErrors({schemaHash:"a",expectedSchemaHash:"a",auditValid:true,rlsPass:true,replayHash:"x",liveHash:"x",obligationsMatch:true,ledgerMatch:false,ledgerDivergence:["0026:FALTA_EN_LA_RESTAURADA"]}))
+   .toContain("MIGRATION_LEDGER:0026:FALTA_EN_LA_RESTAURADA");
+  // Una copia point-in-time que pierde una tabla —aunque sea legado ajeno al repo— no es una restauración fiel.
+  expect(restoreErrors({schemaHash:"a",expectedSchemaHash:"a",auditValid:true,rlsPass:true,replayHash:"x",liveHash:"x",obligationsMatch:true,nonRepoTablesLost:["patient"]}))
+   .toContain("NON_REPO_TABLES_LOST:patient");
+ });
+ it("el gate del drill se EJECUTA: hay una prueba en vivo que lo corre contra dos bases desechables",()=>{
+  // El hallazgo de fondo de R06-F12: el runbook declaraba restoreErrors() como criterio de aceptación y nada lo invocaba.
+  // El smoke descubre `live-*-proof.mts` por disco, así que con este fichero el drill entra en el gate por sí solo.
+  const p="scripts/v22/live-restore-drill-proof.mts";
+  expect(fs.existsSync(p),"sin esta prueba el drill vuelve a ser un procedimiento escrito que nadie corre").toBe(true);
+  const src=fs.readFileSync(p,"utf8");
+  expect(src,"debe ejecutar el drill real, no reimplementar sus comprobaciones").toContain("scripts/v22/restore-drill.mts");
+  expect(src,"y exigir que db:check sea válido sobre la base restaurada (R06-16)").toContain("scripts/db/check.mts");
+  expect(src).toMatch(/CREATE DATABASE/);
  });
 });
 

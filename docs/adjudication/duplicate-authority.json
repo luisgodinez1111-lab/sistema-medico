@@ -1,0 +1,78 @@
+{
+  "purpose": "Auditoría 2026-09-19, anexo R06 (R06-F11): «no hay documentación que declare cuál de las versiones duplicadas de cada paquete/tabla es la vigente». Este registro cubre los PAQUETES que sobreviven con un hermano versionado; para las tablas la declaración vive donde la lee quien abre la base: COMMENT ON TABLE en las migraciones 0020, 0022, 0026 y 0027. No confundir con retired-paths.json, que registra lo ya RETIRADO: aquí está lo que sigue en disco y necesita decir quién manda. tests/v22/retired-paths.test.ts lo verifica contra el disco y contra los importadores reales, así que una afirmación que deje de ser cierta rompe el build en vez de envejecer en silencio.",
+  "verdicts": {
+    "VIGENTE": "tiene al menos un importador de producción (apps/**, packages/** o scripts/**).",
+    "INVARIANTE": "ningún importador de producción, pero una invariante del registro formal lo declara: lo importa una prueba de tests/traceability. Es el predicado de la invariante, no una implementación paralela.",
+    "SIN_LLAMADOR": "ni producción ni invariante. Candidato a retiro por los ejes K-01/K-07; mientras siga en disco, ningún código nuevo puede importarlo. Si alguien lo cablea, el test falla y obliga a decidir."
+  },
+  "groups": [
+    {
+      "base": "clinical-inbox",
+      "liveImplementation": "apps/web/lib/obligation-lifecycle.ts",
+      "note": "La bandeja clínica real no es ninguno de los dos paquetes: la prioridad (URGENT/HIGH/ROUTINE) viaja en el evento de la obligación y el orden se resuelve en la lectura del expediente. apps/web/lib/clinical-inbox-lifecycle.ts, que duplicaba ese ciclo, se retiró en el lote 10w.",
+      "members": [
+        {
+          "path": "packages/clinical-inbox",
+          "verdict": "SIN_LLAMADOR",
+          "reason": "rankInbox ordena por prioridad, vencimiento y creación sobre un InboxItem con fechas ISO. Solo lo importa tests/v11/clinical-inbox.test.ts: ninguna ruta ni módulo de la aplicación lo usa."
+        },
+        {
+          "path": "packages/clinical-inbox-v2",
+          "verdict": "SIN_LLAMADOR",
+          "reason": "sortInbox con el MISMO orden pero fechas en epoch numérico. Cero importadores: ni producción ni una sola prueba. Es la versión duplicada de la que hablaba R06-F11 sin nada que la respalde."
+        }
+      ]
+    },
+    {
+      "base": "release-evidence",
+      "liveImplementation": "packages/clinical-safety/src/release-admission.ts",
+      "note": "La admisión de release que de verdad corre es `pnpm release:check` sobre packages/clinical-safety, que escribe release/admission-result.json. Ninguno de los dos paquetes de evidencia participa en ese gate.",
+      "members": [
+        {
+          "path": "packages/release-evidence",
+          "verdict": "SIN_LLAMADOR",
+          "reason": "admitEvidence(estado, riesgo) decide si una evidencia admite el release; exige HUMAN_APPROVED en C5. La regla vive hoy en clinical-safety, y este paquete solo lo importa tests/v8/release-evidence.test.ts."
+        },
+        {
+          "path": "packages/release-evidence-v4",
+          "verdict": "SIN_LLAMADOR",
+          "reason": "buildEvidence construye un registro de evidencia con hash canónico, toolchain y commit, y exige comando + exitCode 0 + stdoutHash para declarar EXECUTED_PASS. Es la forma más completa de las dos, pero nadie la invoca: el manifiesto de evidencia real (release/test-evidence-manifest.json) se genera por otro camino."
+        }
+      ]
+    },
+    {
+      "base": "replay-engine",
+      "liveImplementation": "packages/atomic-clinical-transaction-v3/src + los folds de packages/*-fold",
+      "note": "El replay real del sistema es el fold puro del stream de clinical_events (ADR-0240 §1), y su evidencia ejecutada son scripts/v22/live-dr-recovery-proof.mts y el drill de restauración. Ninguno de los dos paquetes participa.",
+      "members": [
+        {
+          "path": "packages/replay-engine",
+          "verdict": "SIN_LLAMADOR",
+          "reason": "impactedByVersion filtra ejecuciones por versión de política y replayOrder las ordena por fecha: es el andamio del recálculo por cambio de política, que no existe como ruta. Solo lo importa tests/v8/replay-engine.test.ts."
+        },
+        {
+          "path": "packages/replay-engine-v2",
+          "verdict": "SIN_LLAMADOR",
+          "reason": "replay(seed, events, reduce) es un reductor genérico con detección de hueco de secuencia. El kernel no lo usa: cada agregado plega con su propio fold, que además conoce sus anotaciones. Solo lo importa tests/v17/replay-engine-v2.test.ts."
+        }
+      ]
+    },
+    {
+      "base": "result-correction",
+      "liveImplementation": "apps/web/lib/result-lifecycle.ts",
+      "note": "El ciclo de corrección sí está expuesto por ruta (POST /api/v1/results/:id/correction) desde el lote 10j, con evidencia en vivo en scripts/v22/live-result-correction-proof.mts. Las dos implementaciones PARALELAS de ese ciclo (packages/result-service y packages/result-correction-runtime) se retiraron en el lote 10y.",
+      "members": [
+        {
+          "path": "packages/result-correction",
+          "verdict": "INVARIANTE",
+          "reason": "Es el PREDICADO de INV-CORE-0007: aciclicidad del linaje de sustitución (assertAcyclic, validateCorrectionGraph, CorrectedResultDag) e impacto por paciente. Lo declaran tests/traceability/corrected-result.test.ts y tests/traceability/replay-impact.test.ts, que forman parte del registro formal de seguridad (pnpm test:safety)."
+        },
+        {
+          "path": "packages/result-correction-v2",
+          "verdict": "SIN_LLAMADOR",
+          "reason": "validateNewCorrection(existentes, nueva) comprueba autocorrección y ciclo sobre aristas con paciente: un subconjunto de lo que ya garantiza el predicado de la invariante, con otra forma de arista. Solo lo importa tests/v17/result-correction-v2.test.ts."
+        }
+      ]
+    }
+  ]
+}

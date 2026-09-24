@@ -20,4 +20,13 @@ export function manifestDrift(manifest:Manifest,files:readonly MigrationFile[]):
  return{missing:files.filter(f=>!m.has(f.filename)).map(f=>f.filename),changed:files.filter(f=>m.has(f.filename)&&m.get(f.filename)!==f.sha256).map(f=>f.filename),extra:[...m.keys()].filter(k=>!files.some(f=>f.filename===k))};
 }
 // Nombres de tabla creados por cada migración (para vigilar colisiones: D-05).
-export function createdTables(body:string):string[]{return[...body.matchAll(/CREATE TABLE(?: IF NOT EXISTS)?\s+([a-z_0-9]+)/gi)].map(m=>m[1]!.toLowerCase());}
+// Auditoría 2026-09-19, anexo R06 (lote 12e): se escaneaba el cuerpo CRUDO y el `IF NOT EXISTS` tenía que llevar
+// exactamente un espacio. Un COMENTARIO que mencionara «CREATE TABLE IF NOT EXISTS» producía el nombre fantasma `if`
+// —lo hace la 0020 al explicar el hallazgo D-05—. No es cosmético: `db:migrate baseline` EXIGE que exista toda tabla de
+// esta lista antes de registrar nada, así que el fantasma rompía el baseline, que es el procedimiento documentado para la
+// base de producción (migrada a mano hasta 0018); y el guardarraíl de colisiones de nombre comparaba contra un inventado.
+// Se retiran los comentarios antes de escanear y el espaciado pasa a ser libre.
+export function createdTables(body:string):string[]{
+ const sql=body.replace(/--[^\n]*/g,"").replace(/\/\*[\s\S]*?\*\//g,"");
+ return[...sql.matchAll(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?([a-z_0-9]+)/gi)].map(m=>m[1]!.toLowerCase());
+}

@@ -30,14 +30,30 @@ encadenada** (`audit_chain_v3`) en Postgres (Neon en producción). El respaldo s
 
 ## 3. Invariantes de recuperabilidad (verificados)
 
-Una restauración es **aceptable** solo si `restoreErrors()` (`packages/restore-proof`) devuelve vacío:
+Una restauración es **aceptable** solo si `restoreErrors()` (`packages/restore-proof`) devuelve vacío. Las dimensiones son
+exactamente estas —ni una más— y todas se **calculan** contra la base restaurada:
 
-- **SCHEMA** — el esquema restaurado es idéntico al vivo (hash de columnas).
+- **SCHEMA** — el esquema restaurado es idéntico al vivo: columnas, `ENABLE`/`FORCE ROW LEVEL SECURITY`, políticas
+  (`pg_policies`, con sus expresiones) y privilegios por rol (`role_table_grants`). Alcance: las tablas que el repo
+  **define**; las ajenas que aísla la migración 0022 se reportan aparte (`nonRepoTables*`), porque una base reconstruida
+  desde migraciones no puede tenerlas.
+- **RLS_WITHOUT_POLICY** — ninguna tabla con RLS se queda sin política: con RLS y sin política una tabla no es «segura»,
+  es inservible.
+- **MIGRATION_LEDGER** — *qué* esquema se restauró, verificado por hash: el registro `schema_migrations` de la base
+  restaurada coincide, migración por migración y por `sha256`, con el del origen y con los ficheros del repo.
+- **NON_REPO_TABLES_LOST** — una copia point-in-time no pierde ninguna tabla del origen, ni siquiera el legado que
+  ninguna migración crea.
 - **AUDIT** — la cadena de auditoría queda encadenada (`previous_hash[n] == entry_hash[n-1]`).
 - **RLS** — el aislamiento por tenant se mantiene tras restaurar.
-- **REPLAY / OBLIGATIONS** — el replay determinista del stream reproduce el mismo estado (hash puro == persistido).
+- **REPLAY / OBLIGATIONS** — el replay determinista del stream reproduce el mismo estado (hash puro == persistido). La
+  expectativa se **deriva** del constructor del comando: no queda ningún hash escrito a mano en el drill.
 - **Reconciliación de recuperación (R005)** — re-aplicar un comando ya aplicado **no duplica** eventos
   (idempotencia por `idempotencyKey`), y un evento faltante se detecta por hueco de secuencia.
+
+> Auditoría R06-F12 (cerrado en el lote 12e): este apartado describía una verificación más fuerte que la que el drill
+> ejecutaba —el hash del esquema solo cubría columnas y nada comprobaba qué migraciones llevaba la base restaurada— y, lo
+> más grave, **ningún gate ejecutaba el drill**, así que su expectativa del replay llevaba un lote entero desalineada sin
+> que nadie pudiera saberlo. Hoy la lista es la del código y el código corre en el gate (§6).
 
 ## 4. Procedimiento de restore drill (ENG-055-R002)
 
@@ -49,8 +65,11 @@ Una restauración es **aceptable** solo si `restoreErrors()` (`packages/restore-
    RESTORE_DATABASE_URL=postgres://…<branch desechable> \
      pnpm exec tsx scripts/v22/restore-drill.mts
    ```
-   El drill **rehúsa** correr si el target == source (es destructivo).
+   El drill **rehúsa** correr si el target == source (es destructivo). Si el target está vacío, reconstruye el esquema con
+   el **migrador versionado** (`pnpm db:migrate up`), no leyendo los `.sql` por su cuenta: así la base restaurada queda con
+   su tabla de control `schema_migrations` y `pnpm db:check` es válido sobre ella.
 3. **Gate:** `restoreErrors()` debe ser vacío (status `PASS`). Registrar fecha, ventana PITR y RTO medido.
+4. El mismo drill corre **en cada gate** contra dos bases desechables locales, sin Neon: ver §6.
 
 ## 5. Downtime mode y "nunca guardado en falso" (ENG-055-R003 / R004)
 
@@ -67,5 +86,11 @@ Una restauración es **aceptable** solo si `restoreErrors()` (`packages/restore-
 
 - **En CI (contra postgres:17 desechable):** `scripts/v22/live-dr-recovery-proof.mts` — replay determinista,
   idempotencia anti-duplicado, cadena de auditoría, RLS. Corre en el smoke `live-regression`.
-- **Restore drill completo (vs branch de Neon):** `scripts/v22/restore-drill.mts` (schema + audit + RLS + replay).
+- **El drill completo, EN EL GATE:** `scripts/v22/live-restore-drill-proof.mts` crea una base objetivo desechable en el
+  mismo clúster (nombre único por corrida: el drill es destructivo sobre su target) y ejecuta
+  `scripts/v22/restore-drill.mts` de verdad contra ella, sin copiar su lógica. Comprueba las ocho dimensiones de §3 una por
+  una, que el objetivo se reconstruyó con el migrador, que registra las 27 migraciones y que **`pnpm db:check` pasa sobre la
+  base restaurada**. El smoke lo descubre por disco, así que no hay lista que actualizar.
+- **Restore drill contra un branch de Neon:** el mismo `scripts/v22/restore-drill.mts` del §4, que además verifica en ese
+  camino que la copia no perdió ninguna tabla (`NON_REPO_TABLES_LOST`).
 - **No-false-save:** `tests/v22/downtime-no-false-save.test.ts` (503 en downtime; ningún error → 2xx).

@@ -125,6 +125,26 @@
       "path": "packages/clinical-numeric",
       "lote": "11g",
       "reason": "Paquete-fachada de 2 líneas (validateNumeric con UNIT_REQUIRED / BELOW_SUPPORTED_RANGE / ABOVE_SUPPORTED_RANGE) que ninguna calculadora importaba (anexo R03-37). Su promesa —validar unidad y plausibilidad— la cumplen `normalizeLabValue` (lab-reference, con tabla de unidades, factores de conversión y cotas por analito) y `normalizeVitalMeasure` (lote 11b, con las unidades canónicas de los signos vitales): dos funciones con tablas de verdad detrás, no un lanzador de excepciones con tres cadenas."
+    },
+    {
+      "path": "packages/backup-restore",
+      "lote": "12e",
+      "reason": "Anexo R06-F20: TERCERA puerta de admisión de restauración, sin un solo llamador fuera de su test. `admitRestore` sobre cuatro booleanos que nadie calculaba nunca. La vigente es packages/restore-proof (`restoreErrors`), que es la que el runbook declara como criterio de aceptación y la que ejecuta scripts/v22/restore-drill.mts contra una base restaurada de verdad. Su única dimensión propia, `backupHashVerified`, modelaba un respaldo por FICHERO con digest propio; aquí el restore es un branch PITR o una reconstrucción desde migraciones, así que esa dimensión se implementó donde sí aplica: `ledgerMatch`, el registro `schema_migrations` de la base restaurada verificado por sha256 contra el origen y contra el repo. CAP-RESTORE-001 daba cobertura a esta fachada, no al gate: se retira del catálogo con ella."
+    },
+    {
+      "path": "tests/v9/backup-restore.test.ts",
+      "lote": "12e",
+      "reason": "Único importador de packages/backup-restore: ejercitaba la puerta de admisión que ningún camino invocaba. Ninguna invariante del registro formal lo declaraba como evidencia."
+    },
+    {
+      "path": "packages/restore-verifier-v2",
+      "lote": "12e",
+      "reason": "Anexo R06-F20: segunda copia de la misma puerta de admisión, con el MISMO nombre de función (`admitRestore`) y cinco booleanos en vez de cuatro; sin importadores fuera de su test. Sus dos dimensiones propias —projectionReplayMatch y openObligationsMatch— ya las verifica restore-proof como replayHash/liveHash y obligationsMatch, y esas sí se calculan contra una base real. Tres paquetes para admitir un restore y solo uno con entradas y salidas reales: CAP-RESTORE-V2-001 se retira del catálogo con ella."
+    },
+    {
+      "path": "tests/v18/restore-verifier-v2.test.ts",
+      "lote": "12e",
+      "reason": "Único importador de packages/restore-verifier-v2: probaba la variante de cinco booleanos de la misma puerta de admisión muerta. Ninguna invariante del registro formal lo declaraba como evidencia."
     }
   ]
 }

@@ -931,16 +931,6 @@
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },
   {
-    "test": "tests/v18/restore-verifier-v2.test.ts",
-    "authority": [
-      "ENG-311",
-      "ENG-346"
-    ],
-    "sha256": "213150563a7791dd4f15ce79152a859bac988e72f97107079376f6f92bf16ce3",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
     "test": "tests/v18/state-machine-model.test.ts",
     "authority": [
       "ENG-306",
@@ -1334,16 +1324,6 @@
       "ENG-339"
     ],
     "sha256": "65b92cc6a7223852db747aa1ccb451f7c0116eea62ad6495a3e6ee5e12dab2fe",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
-    "test": "tests/v9/backup-restore.test.ts",
-    "authority": [
-      "ENG-311",
-      "ENG-346"
-    ],
-    "sha256": "498e81c335ef04df6baa2b30d4df788538a4dd8c962cdd19c5e74e1e9db0c902",
     "execution_status": "PENDING_EXECUTION",
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },

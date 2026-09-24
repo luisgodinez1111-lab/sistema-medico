@@ -30,6 +30,14 @@ riesgo: dos modelos sin decidir cuál manda.
 5. **Reintentos idempotentes con payload derivado del servidor** (barreras de seguridad, hora de firma) reutilizan el
    payload persistido si el `requestDigest` coincide (`replayStablePayload`); un mismo `Idempotency-Key` con otro cuerpo
    es `IDEMPOTENCY_CONFLICT`.
+6. **Todo duplicado declara quién manda** (auditoría R06-F11, lote 12e). Para las **tablas**, la declaración vive en el
+   catálogo de la base, donde la lee quien la abre: `COMMENT ON TABLE` en las migraciones 0020 (`audit_ledger`,
+   `idempotency_keys`, `release_evidence`, `projection_checkpoints`), 0022 (las ajenas al repo), 0026 (`outbox`) y 0027
+   (los dos «break glass», los dos recibos de consumidor y `patient_state_projection`). Para los **paquetes** con hermano
+   versionado, en `docs/adjudication/duplicate-authority.json`, con un veredicto por miembro —VIGENTE, INVARIANTE o
+   SIN_LLAMADOR— que `tests/v22/retired-paths.test.ts` comprueba contra los importadores reales: si alguien cablea un
+   paquete declarado sin llamador, o un vigente se queda sin importadores, el build falla. Lo ya retirado se registra en
+   `docs/adjudication/retired-paths.json`.
 
 ## Consecuencias
 

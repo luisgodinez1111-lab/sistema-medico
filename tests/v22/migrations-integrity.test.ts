@@ -25,6 +25,16 @@ describe("db/migrations — integridad",()=>{
    expect((stripped.match(/DO \$\$/g)??[]).length,f.filename).toBe((f.body.match(/DO \$\$/g)??[]).length); // bloques intactos
   }
  });
+ // Lote 12e: `createdTables` escaneaba el cuerpo CRUDO, así que un comentario que mencionara «CREATE TABLE IF NOT EXISTS»
+ // —lo hace la 0020 al explicar el hallazgo D-05— devolvía la tabla fantasma `if`. `db:migrate baseline` EXIGE que exista
+ // toda tabla de esa lista antes de registrar nada, de modo que el fantasma rompía el baseline: el procedimiento
+ // documentado para la base de producción, migrada a mano hasta 0018. Nadie lo había ejecutado desde que la 0020 existe.
+ it("createdTables ignora los comentarios y tolera el espaciado (ningún nombre fantasma)",()=>{
+  for(const f of files)for(const t of createdTables(f.body))
+   expect(/^[a-z][a-z0-9_]*$/.test(t)&&!["if","not","exists","table"].includes(t),`${f.filename}: nombre de tabla inverosímil «${t}»`).toBe(true);
+  expect(createdTables("-- ejemplo: CREATE TABLE IF NOT EXISTS fantasma\nCREATE TABLE  IF NOT EXISTS real_x(id int);")).toEqual(["real_x"]);
+  expect(createdTables("/* CREATE TABLE comentada(x int) */\nCREATE TABLE\n  otra(y int);")).toEqual(["otra"]);
+ });
  it("no hay NUEVAS colisiones de nombre de tabla entre migraciones (D-05); las dos heredadas están documentadas en 0020",()=>{
   const owners=new Map<string,string[]>();
   for(const f of files)for(const t of new Set(createdTables(f.body)))owners.set(t,[...(owners.get(t)??[]),f.version]);

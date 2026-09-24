@@ -1343,26 +1343,6 @@
     ]
   },
   {
-    "id": "CAP-RESTORE-001",
-    "name": "Clinical Backup/Restore Admission",
-    "risk": "C5",
-    "authority": [
-      "ENG-311",
-      "ENG-346"
-    ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
-    "machines": [],
-    "tests": [
-      "backup-restore.test.ts"
-    ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
-    "dependsOn": [
-      "CAP-IDENTITY-001"
-    ]
-  },
-  {
     "id": "CAP-SAFETYCASE-001",
     "name": "Executable Capability Safety Case Gate",
     "risk": "C5",
@@ -3401,26 +3381,6 @@
     "machines": [],
     "tests": [
       "performance-gate.test.ts"
-    ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
-    "dependsOn": [
-      "CAP-IDENTITY-001"
-    ]
-  },
-  {
-    "id": "CAP-RESTORE-V2-001",
-    "name": "Restore Admission Verifier V2",
-    "risk": "C5",
-    "authority": [
-      "ENG-311",
-      "ENG-346"
-    ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
-    "machines": [],
-    "tests": [
-      "restore-verifier-v2.test.ts"
     ],
     "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
     "dependsOn": [

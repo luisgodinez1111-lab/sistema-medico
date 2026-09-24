@@ -1,1 +1,0 @@
-import{describe,it,expect}from"vitest";import{admitRestore}from"../../packages/restore-verifier-v2/src";describe("restore",()=>it("audit mismatch blocks",()=>expect(admitRestore({schemaHashMatch:true,auditChainValid:false,tenantIsolationPass:true,projectionReplayMatch:true,openObligationsMatch:true}).admitted).toBe(false)));

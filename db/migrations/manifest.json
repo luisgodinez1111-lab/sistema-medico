@@ -104,6 +104,10 @@
   {
    "file": "0026_outbox_index_consolidation_and_role_grants.sql",
    "sha256": "f212d834b3589c42d3a29a7e3453b1bd67860c5969bddc510bc7a734b0a338d4"
+  },
+  {
+   "file": "0027_duplicate_authority_comments.sql",
+   "sha256": "487d1d92abe3c4e56d38da47e47a6131edf7bcf659894c431e2057d784382adb"
   }
  ]
 }
