@@ -22,3 +22,17 @@ export function calcReceipt(alg:CalcAlgorithm,input:unknown,status:CalcStatus,va
  const r=receipt(alg.id,alg.version,input,status,value);
  return alg.authority===undefined?r:{...r,authority:alg.authority};
 }
+
+// ---------- Auditoría 2026-09-19, anexo R03 (R03-35) — ADVERTENCIA DE USO ----------
+//
+// El registro de aplicabilidad NOM se autoexcluía del alcance de dispositivo médico calificando el producto como
+// «software de gestión clínica», y el propio repositorio lo contradecía: 21 endpoints interpretan datos del paciente y
+// proponen conducta («Anticoagulación oral recomendada», «ingreso hospitalario; considerar UCI», «referir a
+// hepatología», «Iniciar/ajustar 2 fármacos») y la prescripción se bloquea con SAFETY_BLOCKED. La determinación
+// regulatoria es del dueño del producto (G-04); lo que sí es responsabilidad del código es no presentar un cálculo como
+// si fuera un veredicto: cada respuesta declara qué es, de dónde sale y quién decide.
+export const CLINICAL_USE_WARNING="Apoyo a la decisión clínica: el resultado se calcula con los datos registrados en el expediente y NO sustituye el juicio del médico tratante, que es quien decide. Verifique las entradas (valores, unidades y fechas) antes de actuar.";
+/** Bloque que acompaña a todo cálculo clínico: algoritmo, versión, autoridad, recibo y advertencia de uso. */
+export function calcMeta(alg:CalcAlgorithm,input:unknown,status:CalcStatus,value?:unknown){
+ return{algorithm:alg,receipt:calcReceipt(alg,input,status,value),usageWarning:CLINICAL_USE_WARNING};
+}

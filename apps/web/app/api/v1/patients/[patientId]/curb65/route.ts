@@ -1,5 +1,5 @@
 import{NextResponse}from"next/server";
-import{calcReceipt}from"../../../../../../lib/calc-receipt";
+import{calcReceipt,CLINICAL_USE_WARNING}from"../../../../../../lib/calc-receipt";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
 import{curb65,curb65Check,CURB65_MIN_AGE_YEARS}from"../../../../../../../../packages/pneumonia-severity/src";
@@ -64,7 +64,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    const r=curb65({confusion:confParam==="true",...args})!;
    return NextResponse.json({...common,confusionAssessed:true,confusion:confParam==="true",score:r.score,criteria:r.criteria,
     risk:r.risk,recommendation:r.recommendation,mortality:r.mortality,mortalityPct:r.mortalityPct,
-    receipt:calcReceipt(ALG,{...args,confusion:confParam==="true",inputs:common.inputs},"COMPUTED",r.score)},{status:200});
+    receipt:calcReceipt(ALG,{...args,confusion:confParam==="true",inputs:common.inputs},"COMPUTED",r.score),usageWarning:CLINICAL_USE_WARNING},{status:200});
   }
   const lo=curb65({confusion:false,...args})!,hi=curb65({confusion:true,...args})!;
   return NextResponse.json({...common,confusionAssessed:false,reasonCode:"CONFUSION_NOT_ASSESSED",
@@ -74,7 +74,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    ifConfused:{score:hi.score,risk:hi.risk,recommendation:hi.recommendation,mortality:hi.mortality},
    action:"ASSESS_CONFUSION",
    reason:"Confusión NO valorada: sin ese criterio el CURB-65 no tiene un valor único. Valore el estado mental (p. ej. AMT ≤8 o desorientación nueva) y repita la consulta con ?confusion=true|false.",
-   receipt:calcReceipt(ALG,{...args,confusion:null,inputs:common.inputs},"INSUFFICIENT_DATA"),
+   receipt:calcReceipt(ALG,{...args,confusion:null,inputs:common.inputs},"INSUFFICIENT_DATA"),usageWarning:CLINICAL_USE_WARNING,
   },{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

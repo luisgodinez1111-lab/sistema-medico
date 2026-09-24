@@ -342,3 +342,31 @@ describe("cobertura del catálogo declarada (R03-23)",()=>{
   expect(checkRenalDosing("ceftriaxona-1g",20).action).toBe("OK");
  });
 });
+
+// Auditoría 2026-09-19, anexo R03 (vector F10): el monitoreo cubría 5 clases y el INR se pedía a pacientes con ACOD.
+describe("monitoreo por clase ampliado (R03-F10)",()=>{
+ it("cada fármaco con vigilancia estándar la declara, con prueba y plazo",()=>{
+  const esperado:readonly[string,RegExp][]=[
+   ["warfarina",/INR/],["apixaban",/Creatinina/],["atorvastatina",/ALT/],["sertralina",/Sodio/],
+   ["amiodarona",/TSH/],["digoxina",/Digoxinemia/],["levotiroxina",/TSH/],["metamizol",/Hemograma/],
+   ["prednisona",/Glucosa/],["furosemida",/potasio/],["glibenclamida",/Glucosa/],["levofloxacino",/QT/],
+  ];
+  for(const[d,re]of esperado){
+   const m=monitoringFor(d);
+   expect(m.length,`${d} sin monitoreo`).toBeGreaterThan(0);
+   expect(m.map(x=>x.test).join(" | "),d).toMatch(re);
+   for(const r of m)expect(r.dueInDays,`${d}: plazo no declarado`).toBeGreaterThan(0);
+  }
+ });
+ it("el INR NO se pide para un ACOD (contradecía lo que dice la propia interpretación del INR)",()=>{
+  for(const d of["apixaban","rivaroxaban","dabigatran"]){
+   const pruebas=monitoringFor(d).map(m=>m.test).join(" ");
+   expect(pruebas,`${d} pide INR`).not.toMatch(/INR/);
+   expect(pruebas,`${d} sin vigilancia renal`).toMatch(/Creatinina/);
+  }
+  expect(monitoringFor("warfarina").map(m=>m.test).join(" ")).toMatch(/INR/);
+ });
+ it("un fármaco sin vigilancia conocida devuelve lista vacía (no se inventa una)",()=>{
+  expect(monitoringFor("paracetamol")).toEqual([]);
+ });
+});

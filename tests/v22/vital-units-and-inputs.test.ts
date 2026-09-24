@@ -158,3 +158,34 @@ describe("IMC: la unidad declarada no se adivina (R03-09)",()=>{
   expect(bmiFromVitals({value:"70",unit:"kg"},{value:"1.70",unit:"m"})!.heightUnitAssumed).toBe(false);
  });
 });
+
+// Auditoría 2026-09-19, anexo R03 (R03-33): tres endpoints daban tres IMC distintos para el mismo paciente, y el de
+// seguimiento arrastraba la ÚLTIMA talla de la serie a TODAS las tomas anteriores.
+describe("una sola implementación del IMC y de la presión (R03-33)",()=>{
+ it("la talla se arrastra solo HACIA ADELANTE y el punto lo declara",()=>{
+  const src=fs.readFileSync("apps/web/app/api/v1/patients/[patientId]/follow-up/route.ts","utf8");
+  // El defecto era este bucle previo al mapa: recorría TODA la serie y dejaba la última talla en la variable.
+  expect(src).not.toMatch(/let lastHeight[\s\S]{0,120}for\(const p of points/);
+  expect(src).toContain("heightCarriedForward");
+  expect(src).toMatch(/talla se arrastra solo HACIA ADELANTE/);
+ });
+ it("ninguna ruta reimplementa el IMC ni parsea la presión a mano",()=>{
+  const base="apps/web/app/api/v1/patients/[patientId]";
+  const rutas=fs.readdirSync(base).filter(d=>fs.existsSync(`${base}/${d}/route.ts`));
+  for(const r of rutas){
+   const src=fs.readFileSync(`${base}/${r}/route.ts`,"utf8");
+   // IMC a mano: peso / (talla/100)^2 en cualquiera de sus formas.
+   expect(src,`${r} reimplementa el IMC`).not.toMatch(/Math\.pow\(\s*\w+\s*\/\s*100\s*,\s*2\s*\)/);
+   expect(src,`${r} reimplementa el IMC`).not.toMatch(/\/\s*\(\s*\w+\s*\*\s*\w+\s*\)/);
+   // Parser de presión a mano: una expresión regular con el patrón S/D.
+   expect(src,`${r} parsea la presión a mano`).not.toMatch(/\\d\{2,3\}\)\s*\\s\*\\\//);
+  }
+ });
+ it("el historial de signos vitales muestra el valor CANÓNICO, el mismo con el que se calcula",()=>{
+  const src=fs.readFileSync("apps/web/lib/runtime/patient-facts.ts","utf8");
+  const fn=/export async function patientVitals[\s\S]*?\n}/.exec(src)?.[0]??"";
+  expect(fn).not.toBe("");
+  expect(fn).toContain("coalesce(v.payload->>'canonicalValue'");
+  expect(fn).toContain("coalesce(v.payload->>'canonicalUnit'");
+ });
+});

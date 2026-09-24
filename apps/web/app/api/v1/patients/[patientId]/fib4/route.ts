@@ -1,5 +1,5 @@
 import{NextResponse}from"next/server";
-import{calcReceipt}from"../../../../../../lib/calc-receipt";
+import{calcReceipt,CLINICAL_USE_WARNING}from"../../../../../../lib/calc-receipt";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
 import{fib4}from"../../../../../../../../packages/liver-fibrosis/src";
@@ -35,6 +35,6 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    algorithm:{id:"FIB-4",version:"2",authority:"Sterling RK et al., Hepatology 2006; corte por edad McPherson 2017"}},{status:200});
   return NextResponse.json({patientId,computable:true,ageYears:age,fib4:r.value,risk:r.risk,interpretation:r.interpretation,lowCutoff:r.lowCutoff,ageAdjusted:r.ageAdjusted,
    algorithm:{id:"FIB-4",version:"2",authority:"Sterling RK et al., Hepatology 2006; corte por edad McPherson 2017"},inputs:provenance(inp.inputs),warnings:inp.warnings,
-   receipt:calcReceipt({id:"FIB-4",version:"2",authority:"Sterling RK et al., Hepatology 2006"},{ageYears:age,ast,alt,platelets:plt,inputs:provenance(inp.inputs)},"COMPUTED",r.value)},{status:200});
+   receipt:calcReceipt({id:"FIB-4",version:"2",authority:"Sterling RK et al., Hepatology 2006"},{ageYears:age,ast,alt,platelets:plt,inputs:provenance(inp.inputs),usageWarning:CLINICAL_USE_WARNING},"COMPUTED",r.value)},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

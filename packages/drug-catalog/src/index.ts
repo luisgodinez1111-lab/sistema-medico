@@ -54,9 +54,9 @@ const DRUGS:Record<string,DrugEntry>={
  "azitromicina":{ingredient:"azitromicina",classes:["MACROLIDE","QT_PROLONGING"]},
  "clindamicina":{ingredient:"clindamicina",classes:["LINCOSAMIDE"]},
  // — Fármacos con interacciones relevantes (EPIC AX) —
- "warfarina":{ingredient:"warfarina",classes:["ANTICOAGULANT"]},
- "acenocumarol":{ingredient:"acenocumarol",classes:["ANTICOAGULANT"]},
- "rivaroxaban":{ingredient:"rivaroxaban",classes:["ANTICOAGULANT"]},
+ "warfarina":{ingredient:"warfarina",classes:["ANTICOAGULANT","VKA"]},
+ "acenocumarol":{ingredient:"acenocumarol",classes:["ANTICOAGULANT","VKA"]},
+ "rivaroxaban":{ingredient:"rivaroxaban",classes:["ANTICOAGULANT","DOAC"]},
  "enalapril":{ingredient:"enalapril",classes:["ACE_INHIBITOR"]},
  "lisinopril":{ingredient:"lisinopril",classes:["ACE_INHIBITOR"]},
  "losartan":{ingredient:"losartan",classes:["ARB"]},
@@ -141,7 +141,7 @@ export type RenalRule=Readonly<{blockBelow?:number;cautionBelow?:number;noAdjust
 const RENAL_RULES_BY_CLASS:Record<string,RenalRule>={
  BIGUANIDE:{blockBelow:30,cautionBelow:45,note:"Metformina: contraindicada si TFG<30 (acidosis láctica); ajustar/vigilar entre 30–45"},
  NSAID:{blockBelow:30,cautionBelow:60,note:"AINE: evitar si TFG<30 (nefrotoxicidad); entre 30–60 ciclo corto, dosis mínima y vigilar creatinina"},
- ANTICOAGULANT:{noAdjustment:true,note:"Antagonistas de vitamina K: sin ajuste renal (guiar por INR)"},
+ VKA:{noAdjustment:true,note:"Antagonistas de vitamina K: sin ajuste renal (guiar por INR)"},
  ACE_INHIBITOR:{cautionBelow:30,note:"IECA con TFG<30: iniciar con dosis baja, vigilar potasio y creatinina a la semana"},
  ARB:{cautionBelow:30,note:"ARA-II con TFG<30: iniciar con dosis baja, vigilar potasio y creatinina"},
  POTASSIUM_SPARING:{blockBelow:30,cautionBelow:50,note:"Espironolactona: evitar si TFG<30 (hiperkalemia grave); entre 30–50 dosis reducida y potasio a la semana"},
@@ -283,12 +283,30 @@ export function checkContraindications(newDrugCode:string,activeConditionCodes:r
 // vigilancia de laboratorio; el sistema crea automáticamente una obligación de seguimiento (Zero-Lost-Follow-Up).
 // Puro, sin PHI. Subconjunto de demostración; los protocolos oficiales se cargarían de la fuente autorizada.
 export type MonitoringRule=Readonly<{kind:string;test:string;dueInDays:number;note:string}>;
+// Auditoría 2026-09-19, anexo R03 (vector F10): el monitoreo cubría 5 clases. Faltaban vigilancias que son estándar y que
+// el propio catálogo ya podía resolver: la hepática y muscular de las estatinas, el sodio de los ISRS en el adulto mayor
+// (SIADH, criterios de Beers), la tiroidea y hepática de la amiodarona, la digoxinemia, la función renal de los ACOD, el
+// hemograma del metamizol (agranulocitosis) y la glucemia del corticoide. Cada regla dice qué prueba y en cuántos días.
 const MONITORING_BY_CLASS:Record<string,MonitoringRule>={
- ANTICOAGULANT:{kind:"MONITOR_INR",test:"INR/TP",dueInDays:3,note:"Ajuste de anticoagulación oral"},
+ // F07/F10: el INR monitoriza a los ANTAGONISTAS DE VITAMINA K, no a los ACOD. Antes la regla vivía en la clase
+ // ANTICOAGULANT, así que un paciente con apixabán recibía «control de INR en 3 días»: una prueba que no mide su efecto.
+ VKA:{kind:"MONITOR_INR",test:"INR/TP",dueInDays:3,note:"Ajuste de anticoagulación con antagonistas de vitamina K (el INR NO monitoriza a los ACOD)"},
+ DOAC:{kind:"MONITOR_RENAL_DOAC",test:"Creatinina/TFG y hemograma",dueInDays:180,note:"Los ACOD se dosifican por función renal: revalorar al menos cada 6 meses (y antes si hay deterioro)"},
  BIGUANIDE:{kind:"MONITOR_RENAL",test:"Creatinina/TFG",dueInDays:90,note:"Riesgo de acidosis láctica: vigilar función renal"},
  ACE_INHIBITOR:{kind:"MONITOR_K_CREAT",test:"Potasio y creatinina",dueInDays:14,note:"Vigilar hiperkalemia y función renal"},
  ARB:{kind:"MONITOR_K_CREAT",test:"Potasio y creatinina",dueInDays:14,note:"Vigilar hiperkalemia y función renal"},
  POTASSIUM_SPARING:{kind:"MONITOR_K",test:"Potasio",dueInDays:14,note:"Vigilar hiperkalemia"},
+ STATIN:{kind:"MONITOR_HEPATIC_CK",test:"ALT/AST (y CK si hay mialgias)",dueInDays:90,note:"Transaminasas antes de iniciar y ante síntomas; CK solo si hay dolor muscular"},
+ SSRI:{kind:"MONITOR_SODIUM",test:"Sodio sérico",dueInDays:21,note:"Hiponatremia por SIADH en las primeras semanas, sobre todo en el adulto mayor (criterios de Beers)"},
+ ANTIARRHYTHMIC:{kind:"MONITOR_THYROID_HEPATIC",test:"TSH, ALT/AST y ECG (QT)",dueInDays:180,note:"Amiodarona: toxicidad tiroidea, hepática y pulmonar; vigilancia semestral"},
+ DIGITALIS:{kind:"MONITOR_DIGOXIN",test:"Digoxinemia, potasio y creatinina",dueInDays:30,note:"Ventana terapéutica estrecha: la hipokalemia y el deterioro renal precipitan la intoxicación"},
+ THYROID_HORMONE:{kind:"MONITOR_TSH",test:"TSH",dueInDays:42,note:"Ajuste de dosis por TSH a las 6 semanas de cada cambio"},
+ PYRAZOLONE:{kind:"MONITOR_CBC",test:"Hemograma",dueInDays:14,note:"Metamizol: riesgo de agranulocitosis; hemograma si el uso pasa de unos días o aparece fiebre/odinofagia"},
+ CORTICOSTEROID:{kind:"MONITOR_GLUCOSE_BP",test:"Glucosa y presión arterial",dueInDays:30,note:"Hiperglucemia, hipertensión e hipokalemia con uso sostenido"},
+ SULFONYLUREA:{kind:"MONITOR_GLUCOSE",test:"Glucosa capilar / HbA1c",dueInDays:90,note:"Riesgo de hipoglucemia, mayor en el adulto mayor y con deterioro renal"},
+ LOOP_DIURETIC:{kind:"MONITOR_ELECTROLYTES",test:"Sodio, potasio y creatinina",dueInDays:21,note:"Hipokalemia, hiponatremia y depleción de volumen"},
+ THIAZIDE:{kind:"MONITOR_ELECTROLYTES",test:"Sodio, potasio y creatinina",dueInDays:21,note:"Hiponatremia e hipokalemia, sobre todo al inicio y en el adulto mayor"},
+ FLUOROQUINOLONE:{kind:"MONITOR_QT_TENDON",test:"ECG (QT) si hay otros fármacos que lo prolongan",dueInDays:7,note:"Prolongación del QT; advertir sobre tendinopatía y neuropatía"},
 };
 // Reglas de monitoreo aplicables al fármaco (deduplicadas por kind). Vacío si no requiere vigilancia conocida.
 export function monitoringFor(drugCode:string):MonitoringRule[]{
@@ -620,6 +638,69 @@ export function drugCatalog():DrugCatalogItem[]{
 // reglas se había construido. Ahora la cobertura se CALCULA de las tablas (no se escribe a mano, así que no puede
 // quedar obsoleta) y viaja en la respuesta de la verificación de prescripción.
 export const DRUG_CATALOG_VERSION="2026-09-24";
+
+// ---------- Auditoría 2026-09-19, anexo R03 (vector F11): PRESENTACIONES del catálogo ----------
+// El techo de dosis resolvía «2 tab» con el SUFIJO DEL CÓDIGO (`ibuprofeno-400` → 400 mg). Funciona cuando el código
+// trae la concentración, pero el código es texto que teclea alguien: `ibuprofeno-4000` (un cero de más) se aceptaba como
+// una presentación de 4 g y «2 tab» pasaba el techo sin objeción. Ahora las presentaciones REALES están en el catálogo:
+// una concentración que no existe se rechaza, y un fármaco con presentación única se resuelve sin depender del sufijo.
+export type DoseForm="TABLET"|"CAPSULE"|"SUSPENSION"|"AMPOULE"|"DROPS";
+export type Presentation=Readonly<{strengthMg:number;form:DoseForm;perMl?:number}>;
+const PRESENTATIONS:Readonly<Record<string,readonly Presentation[]>>={
+ paracetamol:[{strengthMg:500,form:"TABLET"},{strengthMg:750,form:"TABLET"},{strengthMg:1000,form:"TABLET"},{strengthMg:100,form:"DROPS",perMl:1},{strengthMg:120,form:"SUSPENSION",perMl:5}],
+ ibuprofeno:[{strengthMg:200,form:"TABLET"},{strengthMg:400,form:"TABLET"},{strengthMg:600,form:"TABLET"},{strengthMg:800,form:"TABLET"},{strengthMg:100,form:"SUSPENSION",perMl:5}],
+ naproxeno:[{strengthMg:250,form:"TABLET"},{strengthMg:500,form:"TABLET"},{strengthMg:550,form:"TABLET"}],
+ diclofenaco:[{strengthMg:50,form:"TABLET"},{strengthMg:75,form:"AMPOULE"},{strengthMg:100,form:"TABLET"}],
+ ketorolaco:[{strengthMg:10,form:"TABLET"},{strengthMg:30,form:"AMPOULE"}],
+ metamizol:[{strengthMg:500,form:"TABLET"},{strengthMg:1000,form:"AMPOULE"}],
+ amoxicilina:[{strengthMg:500,form:"CAPSULE"},{strengthMg:875,form:"TABLET"},{strengthMg:250,form:"SUSPENSION",perMl:5}],
+ dicloxacilina:[{strengthMg:500,form:"CAPSULE"},{strengthMg:250,form:"SUSPENSION",perMl:5}],
+ cefalexina:[{strengthMg:500,form:"CAPSULE"},{strengthMg:250,form:"SUSPENSION",perMl:5}],
+ azitromicina:[{strengthMg:500,form:"TABLET"},{strengthMg:200,form:"SUSPENSION",perMl:5}],
+ clindamicina:[{strengthMg:300,form:"CAPSULE"},{strengthMg:600,form:"AMPOULE"}],
+ sulfametoxazol:[{strengthMg:800,form:"TABLET"},{strengthMg:400,form:"TABLET"},{strengthMg:200,form:"SUSPENSION",perMl:5}],
+ metformina:[{strengthMg:500,form:"TABLET"},{strengthMg:850,form:"TABLET"},{strengthMg:1000,form:"TABLET"}],
+ enalapril:[{strengthMg:5,form:"TABLET"},{strengthMg:10,form:"TABLET"},{strengthMg:20,form:"TABLET"}],
+ losartan:[{strengthMg:50,form:"TABLET"},{strengthMg:100,form:"TABLET"}],
+ espironolactona:[{strengthMg:25,form:"TABLET"},{strengthMg:100,form:"TABLET"}],
+ citalopram:[{strengthMg:20,form:"TABLET"}],
+ sertralina:[{strengthMg:50,form:"TABLET"},{strengthMg:100,form:"TABLET"}],
+ fluoxetina:[{strengthMg:20,form:"CAPSULE"}],
+ tramadol:[{strengthMg:50,form:"CAPSULE"},{strengthMg:100,form:"AMPOULE"}],
+ warfarina:[{strengthMg:5,form:"TABLET"}],
+ rivaroxaban:[{strengthMg:15,form:"TABLET"},{strengthMg:20,form:"TABLET"}],
+ atorvastatina:[{strengthMg:20,form:"TABLET"},{strengthMg:40,form:"TABLET"},{strengthMg:80,form:"TABLET"}],
+ amlodipino:[{strengthMg:5,form:"TABLET"},{strengthMg:10,form:"TABLET"}],
+ metoprolol:[{strengthMg:50,form:"TABLET"},{strengthMg:100,form:"TABLET"}],
+ prednisona:[{strengthMg:5,form:"TABLET"},{strengthMg:50,form:"TABLET"}],
+ omeprazol:[{strengthMg:20,form:"CAPSULE"},{strengthMg:40,form:"CAPSULE"}],
+ levotiroxina:[{strengthMg:0.05,form:"TABLET"},{strengthMg:0.075,form:"TABLET"},{strengthMg:0.1,form:"TABLET"}],
+};
+/** Presentaciones conocidas del principio activo. `[]` si el catálogo no las tiene declaradas. */
+export function presentationsFor(drugCode:string):readonly Presentation[]{
+ const d=resolveDrug(drugCode);return d?PRESENTATIONS[d.ingredient]??[]:[];
+}
+export type UnitStrength=Readonly<{strengthMg:number;source:"CODE_MATCHES_CATALOG"|"CATALOG_SINGLE_PRESENTATION"|"CODE_ONLY"}>
+ |Readonly<{strengthMg:null;reason:"NOT_IN_CATALOG_PRESENTATIONS"|"AMBIGUOUS"|"UNKNOWN"}>;
+/**
+ * Concentración por unidad de forma farmacéutica («1 tab» = ¿cuántos mg?), resuelta contra el CATÁLOGO.
+ *  · el código declara una concentración que el catálogo confirma -> se usa;
+ *  · el código declara una que NO existe -> se rechaza (`NOT_IN_CATALOG_PRESENTATIONS`): «2 tab» no se acota con un dato inventado;
+ *  · el código no la declara y el fármaco tiene UNA sola presentación sólida -> se usa la del catálogo;
+ *  · varias presentaciones y ninguna declarada -> `AMBIGUOUS` (no se adivina).
+ */
+export function unitStrengthFromCatalog(drugCode:string,codeStrengthMg?:number):UnitStrength{
+ const pres=presentationsFor(drugCode);
+ const solidas=pres.filter(p=>p.form==="TABLET"||p.form==="CAPSULE");
+ if(codeStrengthMg!==undefined&&Number.isFinite(codeStrengthMg)&&codeStrengthMg>0){
+  if(pres.length===0)return{strengthMg:codeStrengthMg,source:"CODE_ONLY"};      // sin presentaciones declaradas: lo que dice el código
+  return pres.some(p=>Math.abs(p.strengthMg-codeStrengthMg)<1e-9)
+   ?{strengthMg:codeStrengthMg,source:"CODE_MATCHES_CATALOG"}
+   :{strengthMg:null,reason:"NOT_IN_CATALOG_PRESENTATIONS"};
+ }
+ if(solidas.length===1)return{strengthMg:solidas[0]!.strengthMg,source:"CATALOG_SINGLE_PRESENTATION"};
+ return{strengthMg:null,reason:solidas.length>1?"AMBIGUOUS":"UNKNOWN"};
+}
 export type CatalogCoverage=Readonly<{version:string;ingredients:number;interactionPairs:number;interactionsReviewedAt:string;
  renalRulesByIngredient:number;renalRulesByClass:number;monitoringRules:number;factorRules:number;conditionRules:number;
  sourceNote:string}>;

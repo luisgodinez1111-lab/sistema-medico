@@ -137,7 +137,9 @@ export function doseUnits(dose:string):number|undefined{
 // pasar es que un consumidor ramifique sobre `exceeded` sin mirar si hubo verificación: `exceeded:false` con
 // `evaluable:false` significa «no se sabe», no «correcto».
 export type DoseCeilingCheck=Readonly<{checked:boolean;evaluable:boolean;exceeded:boolean;computedMgPerDay?:number;maxMgPerDay?:number;ingredient?:string;noCeiling?:boolean;derivedFromUnits?:boolean;ceilingSource?:"base"|"route"|"age";ceilingNote?:string}>;
-export type DoseCeilingOptions=Readonly<{route?:string;ageYears?:number}>;
+// R03-F11: `unitStrengthMg` lo resuelve quien llama CONTRA EL CATÁLOGO (packages/drug-catalog: `unitStrengthFromCatalog`),
+// no el sufijo del código: «ibuprofeno-4000» (un cero de más) ya no vale como presentación de 4 g para acotar «2 tab».
+export type DoseCeilingOptions=Readonly<{route?:string;ageYears?:number;unitStrengthMg?:number|null}>;
 // ¿La dosis diaria total excede el tope del fármaco? checked=false cuando no es acotable (unidad no-masa sin concentración
 // conocida, frecuencia PRN/continua, o principio activo sin tope): el evaluador lo trata como NO EVALUADO, nunca como OK.
 // `drugCode` permite acotar "2 tab" usando la concentración del código ("ibuprofeno-400" => 800 mg por toma).
@@ -149,7 +151,12 @@ export function checkDoseCeiling(ingredient:string,dose:string,frequency:string,
  const max=eff.maxMgPerDay;
  const meta={maxMgPerDay:max,ingredient:ing,ceilingSource:eff.source,...(eff.note?{ceilingNote:eff.note}:{})} as const;
  let mg=doseToMg(dose);let derivedFromUnits=false;
- if(mg===undefined&&drugCode){const units=doseUnits(dose);const strength=unitStrengthMg(drugCode);if(units!==undefined&&strength!==undefined){mg=units*strength;derivedFromUnits=true;}}
+ if(mg===undefined){
+  const units=doseUnits(dose);
+  // La concentración viene del catálogo cuando quien llama la resolvió; si no, del sufijo del código (compatibilidad).
+  const strength=opts.unitStrengthMg!==undefined?opts.unitStrengthMg??undefined:(drugCode!==undefined?unitStrengthMg(drugCode):undefined);
+  if(units!==undefined&&strength!==undefined){mg=units*strength;derivedFromUnits=true;}
+ }
  const perDay=dosesPerDay(frequency);
  if(mg===undefined||perDay===undefined)return{checked:false,evaluable:false,exceeded:false,...meta};
  const computed=mg*perDay;

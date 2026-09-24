@@ -1,5 +1,5 @@
 import{NextResponse}from"next/server";
-import{calcReceipt}from"../../../../../../lib/calc-receipt";
+import{calcReceipt,CLINICAL_USE_WARNING}from"../../../../../../lib/calc-receipt";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
 import{computeEGFR,egfrCheck,schwartzBedside,schwartzCheck,SCHWARTZ_AGE_RANGE,type Sex}from"../../../../../../../../packages/renal-function/src";
@@ -51,7 +51,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
     gCategory:null,gLabel:null,stage:null,ckdStaged:false,note:sw.note,
     caveat:`eGFR pediátrico (Schwartz de cabecera, ${SCHWARTZ_AGE_RANGE[0]}–${SCHWARTZ_AGE_RANGE[1]} años). NO se estadifica como ERC y la barrera renal de prescripción NO lo usa todavía: cambiar el umbral de un bloqueo de dosis exige validación clínica.`,
     algorithm:{id:"SCHWARTZ-BEDSIDE-2009",version:"1",authority:"Schwartz GJ et al., J Am Soc Nephrol 2009;20:629-637"},
-    receipt:calcReceipt({id:"SCHWARTZ-BEDSIDE-2009",version:"1",authority:"Schwartz GJ et al., JASN 2009"},{ageYears:age,heightCm:sw.heightCm,creatinineMgDl:scr},"COMPUTED",sw.egfr),
+    receipt:calcReceipt({id:"SCHWARTZ-BEDSIDE-2009",version:"1",authority:"Schwartz GJ et al., JASN 2009"},{ageYears:age,heightCm:sw.heightCm,creatinineMgDl:scr},"COMPUTED",sw.egfr),usageWarning:CLINICAL_USE_WARNING,
     inputs:[...provenance(inp.inputs),...vitalProvenance(vit.ok?vit.inputs:[])],warnings:vit.ok?vit.warnings:[]},{status:200});
   }
   // R03-01: el dominio de CKD-EPI se comprueba en el paquete; aquí se traduce el motivo para quien consulta.
@@ -83,7 +83,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    chronicity,albuminuria,
    caveat:chronicity.status==="CONFIRMED"?"Categoría G con cronicidad documentada; la categoría A depende de la albuminuria.":"Categoría G PUNTUAL: no confirma ERC ni descarta lesión renal aguda.",
    algorithm:{id:"CKD-EPI-2021",version:"2",authority:"Inker LA et al., N Engl J Med 2021;385:1737-49",staging:"KDIGO-2012 (G por TFG; cronicidad ≥ 90 días; A por UACR)"},
-   receipt:calcReceipt({id:"CKD-EPI-2021",version:"2",authority:"Inker LA et al., NEJM 2021"},{ageYears:age,sex,creatinineMgDl:scr,inputs:provenance(inp.inputs)},"COMPUTED",r.egfr),
+   receipt:calcReceipt({id:"CKD-EPI-2021",version:"2",authority:"Inker LA et al., NEJM 2021"},{ageYears:age,sex,creatinineMgDl:scr,inputs:provenance(inp.inputs),usageWarning:CLINICAL_USE_WARNING},"COMPUTED",r.egfr),
    inputs:provenance(inp.inputs),warnings:inp.warnings},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

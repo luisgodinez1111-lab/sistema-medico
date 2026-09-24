@@ -31,11 +31,19 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const byAt=new Map<string,Record<string,string>>();
   for(const p of points as VitalPoint[]){const g=byAt.get(p.at)??{};g[p.vitalType]=p.value;if(p.vitalType==="HEIGHT")g["HEIGHT_UNIT"]=p.unit;byAt.set(p.at,g);}
   const ats=[...byAt.keys()].sort();
-  // La talla cambia poco: si en una toma no se midió, se usa la última conocida (con su unidad). IMC por la implementación única (C-21).
-  let lastHeight:{value:string;unit:string|undefined}|undefined;for(const p of points as VitalPoint[]){if(p.vitalType==="HEIGHT")lastHeight={value:p.value,unit:p.unit};}
-  const recs=ats.map(at=>{const g=byAt.get(at)!;const h=g.HEIGHT!==undefined?{value:g.HEIGHT,unit:g.HEIGHT_UNIT}:lastHeight;
+  // Auditoría 2026-09-19, anexo R03 (R03-33): aquí se arrastraba la ÚLTIMA talla de toda la serie a TODAS las tomas,
+  // incluidas las anteriores. En un niño que creció de 110 a 140 cm, el histórico de IMC se recalculaba con 140 y
+  // **fabricaba una tendencia descendente que nunca ocurrió** —y la misma serie salía distinta en /vitals—. Ahora la
+  // talla se arrastra solo HACIA ADELANTE (la última conocida hasta esa toma) y, cuando no se midió en la toma, el punto
+  // lo declara con `heightCarriedForward`. IMC por la implementación única (C-21).
+  let heightHasta:{value:string;unit:string|undefined}|undefined;
+  const recs=ats.map(at=>{const g=byAt.get(at)!;
+   if(g.HEIGHT!==undefined)heightHasta={value:g.HEIGHT,unit:g.HEIGHT_UNIT};
+   const propia=g.HEIGHT!==undefined;
+   const h=propia?{value:g.HEIGHT,unit:g.HEIGHT_UNIT}:heightHasta;
    const imc=bmiFromVitals({value:g.WEIGHT},h)?.bmi??null;
-   return{bp:g.BP?sys(g.BP):null,ta:g.BP??null,hr:g.HR?Number(g.HR):null,weight:g.WEIGHT?Number(g.WEIGHT):null,imc};});
+   return{bp:g.BP?sys(g.BP):null,ta:g.BP??null,hr:g.HR?Number(g.HR):null,weight:g.WEIGHT?Number(g.WEIGHT):null,imc,
+    at,heightCm:h?.value??null,heightCarriedForward:imc!==null&&!propia};});
   const bpS=recs.map(r=>r.bp).filter((x):x is number=>x!==null);
   const hrS=recs.map(r=>r.hr).filter((x):x is number=>x!==null);
   const wS=recs.map(r=>r.weight).filter((x):x is number=>x!==null);
@@ -44,6 +52,8 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const vitalsTrend={
    series:{BP:bpS,HR:hrS,WEIGHT:wS,IMC:imcS},
    avg:{ta:lastTa,bp:avg(bpS),hr:avg(hrS),weight:wS.length?wS[wS.length-1]:null,imc:imcS.length?imcS[imcS.length-1]:null},
+   // R03-33: qué puntos de IMC se calcularon con una talla arrastrada de una toma anterior (no medida en esa consulta).
+   imcPoints:recs.filter(r=>r.imc!==null).map(r=>({at:r.at,imc:r.imc,heightCm:r.heightCm,heightCarriedForward:r.heightCarriedForward})),
   };
   const ind=(s:{value:number}[])=>s.length?{first:s[0]!.value,last:s[s.length-1]!.value}:null;
   const wFirst=wS.length?wS[0]!:null,wLast=wS.length?wS[wS.length-1]!:null;

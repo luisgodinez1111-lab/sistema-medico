@@ -245,3 +245,41 @@ describe("dosis pediátrica: criterio por EDAD y peso obligatorio (R03-27)",()=>
    expect(checkPediatricDose(d,"100mg","c/8h",15,5).evaluable,d).toBe(true);
  });
 });
+
+// Auditoría 2026-09-19, anexo R03 (vector F11): «2 tab» se acotaba con el SUFIJO DEL CÓDIGO, que es texto que teclea
+// alguien: `ibuprofeno-4000` (un cero de más) valía como presentación de 4 g.
+describe("la concentración de «1 tab» sale del CATÁLOGO, no del código (R03-F11)",()=>{
+ const st=(e:ReturnType<typeof evaluatePrescriptionSafety>,id:string)=>e.barriers.find(b=>b.id===id)!;
+ const base2={dose:"2 tab",route:"ORAL",frequency:"c/6h",allergies:[],activeDrugCodes:[],activeConditionCodes:[],ageYears:40,weightKg:70};
+ it("una concentración que el catálogo confirma se usa",()=>{
+  const e=evaluatePrescriptionSafety({...base2,drugCode:"ibuprofeno-400"});
+  expect(st(e,"doseCeiling").status).toBe("PASSED");   // 2×400×4 = 3 200 mg/día, justo el máximo
+  expect(st(e,"doseCeiling").detail).toMatch(/3200 mg\/día/);
+ });
+ it("una concentración que NO existe se rechaza: no se acota con un dato inventado",()=>{
+  const e=evaluatePrescriptionSafety({...base2,drugCode:"ibuprofeno-4000"});
+  expect(st(e,"doseCeiling").status).toBe("NOT_EVALUATED");
+  expect(e.verdict).not.toBe("CLEAR");
+ });
+ it("sin sufijo, un fármaco de presentación ÚNICA se resuelve con la del catálogo",()=>{
+  // citalopram existe solo en 20 mg: «2 tab c/6h» son 160 mg/día, cuatro veces el máximo.
+  const e=evaluatePrescriptionSafety({...base2,drugCode:"citalopram"});
+  expect(st(e,"doseCeiling").status).toBe("BLOCKED");
+  expect(st(e,"doseCeiling").detail).toMatch(/160 mg\/día/);
+ });
+ it("con varias presentaciones y ninguna declarada NO se adivina",()=>{
+  const e=evaluatePrescriptionSafety({...base2,drugCode:"sertralina"});
+  expect(st(e,"doseCeiling").status).toBe("NOT_EVALUATED");
+ });
+ it("el catálogo declara las presentaciones y distingue la forma farmacéutica",async()=>{
+  const{presentationsFor,unitStrengthFromCatalog}=await import("../../packages/drug-catalog/src");
+  const ibu=presentationsFor("ibuprofeno-400");
+  expect(ibu.map(p=>p.strengthMg)).toContain(400);
+  expect(ibu.some(p=>p.form==="SUSPENSION"&&p.perMl===5)).toBe(true); // la suspensión no es «una tableta»
+  const r=unitStrengthFromCatalog("ibuprofeno-400",400);
+  expect(r.strengthMg).toBe(400);
+  const malo=unitStrengthFromCatalog("ibuprofeno-4000",4000);
+  expect(malo.strengthMg).toBeNull();
+  if(malo.strengthMg===null)expect(malo.reason).toBe("NOT_IN_CATALOG_PRESENTATIONS");
+ });
+});

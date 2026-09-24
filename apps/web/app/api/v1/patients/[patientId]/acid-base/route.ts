@@ -1,5 +1,5 @@
 import{NextResponse}from"next/server";
-import{calcReceipt}from"../../../../../../lib/calc-receipt";
+import{calcReceipt,CLINICAL_USE_WARNING}from"../../../../../../lib/calc-receipt";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{interpretAcidBase,acidBaseCheck,type Specimen,type Chronicity}from"../../../../../../../../packages/acid-base/src";
 import{anionGap}from"../../../../../../../../packages/lab-derivations/src";
@@ -57,6 +57,6 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    ...(gap?{}:{anionGapNote:"Sin sodio y cloro coherentes (≤24 h): la acidosis metabólica no se bifurca en brecha aumentada vs hiperclorémica ni se calcula el delta-delta."}),
    algorithm:ALG,inputs:provenance([...inp.inputs,...(ag.ok?ag.inputs.filter(x=>x.analyte!=="BICARBONATE"):[]),...(alb.ok?alb.inputs:[])]),
    warnings:[...inp.warnings,...(ag.ok?ag.warnings:[]),...(alb.ok?alb.warnings:[])],
-   receipt:calcReceipt(ALG,{ph,pco2,hco3,specimen,chronicity:chronicity??null,anionGap:gap?.value??null,inputs:provenance(inp.inputs)},"COMPUTED",r.primary)},{status:200});
+   receipt:calcReceipt(ALG,{ph,pco2,hco3,specimen,chronicity:chronicity??null,anionGap:gap?.value??null,inputs:provenance(inp.inputs),usageWarning:CLINICAL_USE_WARNING},"COMPUTED",r.primary)},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

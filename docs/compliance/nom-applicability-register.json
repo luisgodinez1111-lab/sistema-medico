@@ -3,8 +3,17 @@
   "authority": "ENG-044-R001",
   "disclaimer": "Ley no negociable (SPEC_INDEX): 'No claim de certificación sin evidencia'. Ninguna entrada declara certificación; la certificación formal requiere auditoría externa y evidencia legal fuera del código.",
   "updated": "2026-09-17",
-  "applicabilityLevels": ["APPLICABLE", "EVALUATE_WHEN", "MONITORED"],
-  "statusLevels": ["BASELINE_ADDRESSED", "PARTIAL", "EVALUATE", "NOT_STARTED"],
+  "applicabilityLevels": [
+    "APPLICABLE",
+    "EVALUATE_WHEN",
+    "MONITORED"
+  ],
+  "statusLevels": [
+    "BASELINE_ADDRESSED",
+    "PARTIAL",
+    "EVALUATE",
+    "NOT_STARTED"
+  ],
   "instruments": [
     {
       "id": "NOM-004-SSA3-2012",
@@ -73,11 +82,15 @@
       "name": "Buenas prácticas de fabricación de dispositivos médicos (según intended-use)",
       "scope": "Aplica solo si el producto entra en el alcance de dispositivo médico regulado.",
       "applicability": "EVALUATE_WHEN",
-      "status": "NOT_STARTED",
+      "status": "EVALUATE",
       "certificationClaimed": false,
-      "evidence": [],
-      "addressedBy": "Fuera del alcance actual (software de gestión clínica). Se re-evalúa si un módulo cae en la definición de dispositivo médico.",
-      "gaps": "Determinación de alcance/intended-use por Regulatory; no iniciado por diseño."
+      "evidence": [
+        "docs/compliance/intended-use-by-endpoint.md",
+        "tests/v22/intended-use.test.ts"
+      ],
+      "addressedBy": "PENDIENTE DE DETERMINACIÓN. La afirmación anterior («fuera del alcance actual: software de gestión clínica») la CONTRADICE el propio código: la auditoría del 19-sep-2026 (anexo R03, hallazgo R03-35) verificó que el repositorio expone endpoints que interpretan datos del paciente y proponen conducta terapéutica —«Anticoagulación oral recomendada», «Alto riesgo: ingreso hospitalario; considerar UCI», «referir a hepatología», «Iniciar/ajustar 2 fármacos»— y que BLOQUEA prescripciones con SAFETY_BLOCKED. Eso es apoyo a la decisión clínica, no gestión clínica. La autoexclusión se retira: la determinación de alcance e intended-use es de Regulatory (decisión del dueño del producto, ver G-04). Mientras no exista, cada respuesta de cálculo declara su algoritmo, su versión, la autoridad clínica de la que sale y la advertencia de uso, y la tabla de uso previsto por endpoint vive en docs/compliance/intended-use-by-endpoint.md.",
+      "gaps": "Determinación formal de alcance/intended-use y clasificación de riesgo por módulo (Regulatory). La tabla de uso previsto por endpoint y la advertencia en cada respuesta ya existen; lo que falta es la decisión regulatoria y, si procede, el sistema de gestión de calidad que la norma exige.",
+      "auditFinding": "R03-35 (anexo R03 de la auditoría 2026-09-19): autoexclusión contradicha por el código del propio repositorio."
     }
   ]
 }

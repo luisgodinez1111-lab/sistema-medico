@@ -150,7 +150,11 @@ export type VitalPoint=Readonly<{at:string;vitalType:string;value:string;unit:st
 export async function patientVitals(ctx:HttpTenantContext,patientId:string,limit=400):Promise<VitalPoint[]>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
-   select v.occurred_at as at, v.payload->>'vitalType' as vital_type, v.payload->>'value' as value, v.payload->>'unit' as unit
+   -- R03-09/R03-33: el historial muestra el valor CANÓNICO (el mismo con el que se calcula). Antes devolvía el crudo, así
+   -- que una toma capturada en libras se mostraba como «154» junto a un IMC calculado con 69.9 kg: dos cifras del mismo dato.
+   select v.occurred_at as at, v.payload->>'vitalType' as vital_type,
+     coalesce(v.payload->>'canonicalValue',v.payload->>'value') as value,
+     coalesce(v.payload->>'canonicalUnit',v.payload->>'unit') as unit
    from clinical_events v
    where v.tenant_id=${ctx.tenantId} and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=${patientId}
    order by v.occurred_at desc

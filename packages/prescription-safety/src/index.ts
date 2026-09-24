@@ -1,5 +1,5 @@
-import{resolveDrug,checkDrugAllergy,checkInteractions,checkDuplicateTherapy,checkContraindications,checkRenalDosing,renalRuleForDrug,type AllergyRecord,type PatientFactor}from"../../drug-catalog/src";
-import{checkDoseCeiling,checkPediatricDose,checkDurationLimit,validateMedicationOrder,PEDIATRIC_MAX_KG}from"../../medication-validation/src";
+import{resolveDrug,checkDrugAllergy,checkInteractions,checkDuplicateTherapy,checkContraindications,checkRenalDosing,renalRuleForDrug,unitStrengthFromCatalog,type AllergyRecord,type PatientFactor}from"../../drug-catalog/src";
+import{checkDoseCeiling,checkPediatricDose,checkDurationLimit,validateMedicationOrder,unitStrengthMg,PEDIATRIC_MAX_KG}from"../../medication-validation/src";
 // Evaluador ÚNICO de las barreras de seguridad de una prescripción (auditoría 2026-09-19: C-03, C-04, C-14, C-16).
 //
 // Regla de diseño: **"no pude evaluar" nunca se presenta como "seguro"**. Antes, un fármaco fuera del catálogo
@@ -122,7 +122,10 @@ export function evaluatePrescriptionSafety(i:PrescriptionSafetyInput):Prescripti
 
  // 6) Dosis-techo absoluta (mg/día)
  if(!drug)push("doseCeiling","NOT_EVALUATED","Dosis máxima NO evaluada (fármaco fuera de catálogo).","DRUG_NOT_IN_CATALOG");
- else{const dc=checkDoseCeiling(drug.ingredient,i.dose,i.frequency,i.drugCode,{...(i.route?{route:i.route}:{}),...(finite(i.ageYears)?{ageYears:i.ageYears}:{})}); // C-15: "2 tab" se acota con la concentración del código · R03-26: el techo depende de la VÍA y de la EDAD
+ else{
+  // R03-F11: la concentración de «1 tab» se resuelve contra las PRESENTACIONES del catálogo, no contra el sufijo del código.
+  const st=unitStrengthFromCatalog(i.drugCode,unitStrengthMg(i.drugCode));
+  const dc=checkDoseCeiling(drug.ingredient,i.dose,i.frequency,i.drugCode,{...(i.route?{route:i.route}:{}),...(finite(i.ageYears)?{ageYears:i.ageYears}:{}),unitStrengthMg:st.strengthMg}); // C-15: "2 tab" se acota con la concentración del código · R03-26: el techo depende de la VÍA y de la EDAD
   if(dc.checked)push("doseCeiling",dc.exceeded?"BLOCKED":"PASSED",`${dc.exceeded?`${dc.computedMgPerDay} mg/día excede el máximo ${dc.maxMgPerDay} mg/día`:`${dc.computedMgPerDay} mg/día · dentro del máximo ${dc.maxMgPerDay} mg/día`}${dc.derivedFromUnits?" (mg calculados a partir de la concentración del código)":""}${dc.ceilingNote?` · ${dc.ceilingNote}`:""}`);
   else if(dc.noCeiling)push("doseCeiling","NOT_APPLICABLE","Sin tope diario fijo: se dosifica por objetivo terapéutico o vía hospitalaria (revisado)");
   else if(dc.maxMgPerDay===undefined)push("doseCeiling","NOT_COVERED","El catálogo no tiene dosis máxima para este fármaco: NO evaluada.","NO_RULE_IN_CATALOG");
