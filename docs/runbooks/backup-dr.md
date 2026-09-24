@@ -89,8 +89,26 @@ exactamente estas —ni una más— y todas se **calculan** contra la base resta
 - **El drill completo, EN EL GATE:** `scripts/v22/live-restore-drill-proof.mts` crea una base objetivo desechable en el
   mismo clúster (nombre único por corrida: el drill es destructivo sobre su target) y ejecuta
   `scripts/v22/restore-drill.mts` de verdad contra ella, sin copiar su lógica. Comprueba las ocho dimensiones de §3 una por
-  una, que el objetivo se reconstruyó con el migrador, que registra las 27 migraciones y que **`pnpm db:check` pasa sobre la
+  una, que el objetivo se reconstruyó con el migrador, que registra TODAS las migraciones del repositorio (hoy 28; la prueba deriva la cifra del disco, no la fija a mano) y que **`pnpm db:check` pasa sobre la
   base restaurada**. El smoke lo descubre por disco, así que no hay lista que actualizar.
 - **Restore drill contra un branch de Neon:** el mismo `scripts/v22/restore-drill.mts` del §4, que además verifica en ese
   camino que la copia no perdió ninguna tabla (`NON_REPO_TABLES_LOST`).
 - **No-false-save:** `tests/v22/downtime-no-false-save.test.ts` (503 en downtime; ningún error → 2xx).
+
+## 7. Lo que este runbook NO cubre
+
+Lo detectó el guardarraíl de R09-033 el día que se escribió: este runbook describía bien lo que hace y no decía nada de sus
+límites, y un lector asume cobertura donde solo hay silencio.
+
+- **Los RPO/RTO de §2 son objetivos de diseño, no un compromiso contractual.** Nadie los ha firmado con el proveedor de
+  infraestructura y no hay medición histórica de RTO real. Decisión del dueño antes de producción clínica (ADR-0300).
+- **La cadencia del drill no está automatizada.** Corre en cada gate contra dos bases desechables locales (§6), lo que
+  prueba que el mecanismo funciona; lo que NO hay es una ejecución programada contra un branch PITR de Neon con su registro
+  de fecha y RTO medido. Si nadie la lanza a mano, no se lanza.
+- **La retención legal no está implementada.** NOM-004 exige conservar el expediente cinco años como mínimo y en la base no
+  existe ningún mecanismo de conservación ni de borrado (R06-30, ADR-0280 §Decisiones pendientes). El respaldo protege
+  contra la pérdida; no es una política de retención.
+- **El borrado por derechos ARCO no existe.** Un respaldo que conserva todo es incompatible con un borrado que debe ser
+  efectivo: cómo se reconcilian las dos cosas (criptoborrado, purga, plazos) es una decisión del dueño.
+- **No hay verificación de un tercero.** Toda la evidencia de recuperabilidad la produce y la lee el mismo sistema
+  (R09-F13); la exposición del informe a un tercero es decisión del dueño.

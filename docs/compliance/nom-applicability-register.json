@@ -31,7 +31,8 @@
         "scripts/v22/live-restore-drill-proof.mts"
       ],
       "addressedBy": "Event store append-only + cadena de auditoría encadenada (inalterabilidad y trazabilidad); enmienda append-only de vitales; consentimiento informado clínico-legal; recuperabilidad verificada.",
-      "gaps": "Firma electrónica avanzada certificada (NOM-151), retención legal formal por tiempo mínimo, y validación por un especialista en información en salud."
+      "gaps": "Firma electronica avanzada certificada (NOM-151); IMPLEMENTACION de la retencion legal de cinco anos (el plazo ya esta citado en `legalRetention`; lo que falta es el mecanismo de conservacion y borrado, que hoy no existe en la base: R06-30 y ADR-0280 §Decisiones pendientes); y validacion por un especialista en informacion en salud.",
+      "legalRetention": "NOM-004-SSA3-2012 numeral 5.6: el expediente clinico se conserva por un MINIMO de CINCO ANOS contados a partir de la fecha del ultimo acto medico. El registro citaba «retencion legal formal por tiempo minimo» sin el numero, que es lo que el anexo R09-009 senalo: un plazo sin cifra no se puede implementar ni auditar. ADVERTENCIA: el plazo base esta citado de la norma, pero la determinacion definitiva —si aplican plazos mayores por tipo de documento, menores de edad o personas fallecidas, y como interactua con los derechos ARCO de la LFPDPPP— es una decision del dueno con asesoria legal, no de la ingenieria. Ver ADR-0280."
     },
     {
       "id": "NOM-024-SSA3-2012",
@@ -44,10 +45,14 @@
         "CAP-EXPORT-001",
         "scripts/v22/live-record-export-proof.mts",
         "scripts/v22/live-terminology-proof.mts",
-        "scripts/v22/live-claim-lifecycle-proof.mts"
+        "scripts/v22/live-claim-lifecycle-proof.mts",
+        "packages/mx-identity/src/index.ts",
+        "tests/v22/mx-identity.test.ts",
+        "scripts/v22/live-patient-demographics-proof.mts"
       ],
       "addressedBy": "Export/manifiesto del expediente con hash reproducible (interoperabilidad); datos codificados CIE-10 (no texto libre) en problemas y facturación.",
-      "gaps": "Conformidad de formato de intercambio SIRES oficial, certificado de conformidad, y evidencia de seguridad del canal de intercambio."
+      "gaps": "Conformidad de formato de intercambio SIRES oficial, certificado de conformidad, y evidencia de seguridad del canal de intercambio. La CURP se captura y se valida (ver `nationalIdentifier`), pero NO se ha verificado su conformidad con el catalogo oficial de RENAPO ni el formato de intercambio: eso exige la determinacion del dueno.",
+      "nationalIdentifier": "CURP. El codigo la captura como identificador del paciente y la VALIDA, no solo la guarda: `packages/mx-identity` comprueba la estructura y la CONSISTENCIA con la fecha de nacimiento y el sexo declarados, devuelve un codigo estable del defecto (`curpIssue`) y normaliza el valor; `findPatientDuplicate` la usa para detectar registros duplicados del mismo paciente. El registro no la mencionaba pese a ser el identificador nacional que la norma usa para el intercambio (anexo R09-010)."
     },
     {
       "id": "LFPDPPP",

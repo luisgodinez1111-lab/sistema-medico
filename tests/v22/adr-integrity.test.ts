@@ -66,3 +66,30 @@ describe("integridad del corpus de ADR (R09-001/003/005)",()=>{
    expect(b,`la enmienda debe decir dónde se cumple «${donde}»`).toContain(donde);
  });
 });
+
+// Auditoría 2026-09-19, anexo R09 (R09-033): «un solo runbook (backup-dr.md) en todo el repo; sin runbook de incidente, sin
+// rotación de secretos». Un sistema clínico sin procedimiento de incidente no es un sistema operable: es uno al que nadie
+// le ha preguntado qué hacer cuando falla. Y un runbook que promete lo que no existe es peor que ninguno, así que la
+// invariante incluye que cada uno DECLARE lo que no cubre.
+describe("runbooks operativos (R09-033)",()=>{
+ const DIR="docs/runbooks";
+ const esperados=["backup-dr.md","db-migrate.md","incidente-clinico-y-de-seguridad.md","rotacion-de-secretos.md"];
+ it("existen los runbooks de respaldo, migración, incidente y rotación de secretos",()=>{
+  for(const f of esperados)expect(fs.existsSync(path.join(DIR,f)),`falta docs/runbooks/${f}`).toBe(true);
+ });
+ it("cada runbook dice explícitamente lo que NO cubre",()=>{
+  // Sin esto, el lector asume cobertura donde solo hay silencio: es la «falla abierta presentada como seguridad».
+  for(const f of esperados){
+   const b=fs.readFileSync(path.join(DIR,f),"utf8");
+   expect(b.length,`${f} es un esbozo`).toBeGreaterThan(1200);
+   expect(/NO cubre|no existe|PENDIENTE DE DECISI[OÓ]N|decisi[oó]n del due[nñ]o/i.test(b),
+    `${f}: un runbook tiene que declarar sus límites`).toBe(true);
+  }
+ });
+ it("el de rotación de secretos no contiene un secreto, solo nombres de variables",()=>{
+  // El runbook habla de `SESSION_SIGNING_SECRET` y `DATABASE_URL` por NOMBRE. Si alguien pega un valor, esto lo caza.
+  const b=fs.readFileSync(path.join(DIR,"rotacion-de-secretos.md"),"utf8");
+  expect(/postgres(ql)?:\/\/[^\s`]*:[^\s`]*@/.test(b),"hay una cadena de conexión con credenciales").toBe(false);
+  expect(/(SESSION_SIGNING_SECRET|DATABASE_URL)\s*=\s*\S+/.test(b),"hay una variable con valor asignado").toBe(false);
+ });
+});

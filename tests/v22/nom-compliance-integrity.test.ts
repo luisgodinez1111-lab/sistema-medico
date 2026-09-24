@@ -97,6 +97,26 @@ describe("compliance-as-code: registro de aplicabilidad NOM (ENG-044, R09-007)",
   expect(reg.evidenceRule,"el registro debe declarar su regla de evidencia (R09-007)").toBeTruthy();
   expect(reg.evidenceRule!).toMatch(/catalogo vivo|catálogo vivo/i);
  });
+ it("NOM-004 cita el plazo legal de conservación con su numeral, no «tiempo mínimo» (R09-009)",()=>{
+  // El anexo: «el registro admite el hueco pero nunca cita el plazo legal». Un plazo sin cifra no se puede implementar ni
+  // auditar, y el hueco se vuelve imposible de cerrar porque nadie sabe contra qué. La cifra va citada de la norma, con la
+  // advertencia de que la determinación definitiva (menores, fallecidos, tipos de documento) es del dueño con asesoría legal.
+  const m=reg.instruments.find(x=>x.id==="NOM-004-SSA3-2012") as unknown as{legalRetention?:string;gaps:string};
+  expect(m.legalRetention,"NOM-004 debe citar el plazo de conservación").toBeTruthy();
+  expect(m.legalRetention!,"con el numeral de la norma").toMatch(/numeral\s*5\.\d/);
+  expect(m.legalRetention!,"y con la cifra, no «tiempo mínimo»").toMatch(/CINCO|cinco|5\s*a[nñ]os/);
+  expect(m.legalRetention!,"y diciendo qué parte es decisión del dueño").toMatch(/decision del dueno|decisión del dueño/i);
+ });
+ it("NOM-024 declara el identificador nacional que el código captura (R09-010)",()=>{
+  // El anexo: «NOM-024 no menciona CURP pese a que el código lo captura como identificador de paciente». Peor: no solo lo
+  // captura, lo VALIDA contra fecha de nacimiento y sexo. Un registro de interoperabilidad que no nombra el identificador
+  // nacional que el sistema usa está describiendo otro sistema.
+  const m=reg.instruments.find(x=>x.id==="NOM-024-SSA3-2012") as unknown as{nationalIdentifier?:string;evidence:string[]};
+  expect(m.nationalIdentifier,"NOM-024 debe declarar el identificador nacional").toBeTruthy();
+  expect(m.nationalIdentifier!).toMatch(/CURP/);
+  // Y la afirmación tiene que descansar en el código que la sostiene, no en la prosa.
+  expect(m.evidence.some(e=>e.includes("mx-identity")),"la CURP se declara sin citar el paquete que la valida").toBe(true);
+ });
  it("las carpetas de gobernanza de la jerarquía existen (compliance + threat-models)",()=>{
   expect(fs.existsSync("docs/compliance")).toBe(true);
   expect(fs.existsSync("docs/threat-models/baseline-threat-model.md")).toBe(true);

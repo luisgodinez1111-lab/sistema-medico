@@ -42,3 +42,18 @@ contra la base de la aplicación (`scripts/v22/_live-env.mts`).
 
 - Nunca editar una migración aplicada (D-07). Nunca `CREATE INDEX CONCURRENTLY` (no cabe en la transacción).
 - Cada migración lleva su porqué en comentarios y, si corrige un hallazgo de auditoría, su ID.
+
+## Lo que este runbook NO cubre
+
+Lo detectó el guardarraíl de R09-033: describía el procedimiento y no sus límites.
+
+- **No hay rollback de datos.** Las migraciones aplicadas no se revierten: una migración equivocada se corrige con otra
+  migración hacia adelante (D-07: las aplicadas son inmutables). Si una migración destruye datos, lo que los recupera es el
+  respaldo, no el migrador. Por eso el retiro de tablas de la 0028 se hizo RENOMBRANDO, no borrando.
+- **No hay ventana de mantenimiento ni bloqueo de escrituras.** El migrador corre en una transacción por migración, así que
+  una migración larga puede tomar locks mientras la aplicación escribe. Hoy nadie coordina eso: decisión del dueño antes de
+  operar con carga clínica real.
+- **`baseline` afirma, no verifica del todo.** Comprueba que exista toda tabla que las migraciones marcadas crean, pero no
+  que su FORMA coincida. Si una base se migró a mano con una columna distinta, el baseline la aceptaría.
+- **No hay alerta de deriva.** `pnpm db:check` la detecta cuando alguien lo ejecuta; no hay nada programado que avise si la
+  base de producción se separa del repositorio.
