@@ -12,6 +12,7 @@
     "test:all": "vitest run tests",
     "db:check": "tsx scripts/db/check.mts",
     "outbox:purge": "tsx scripts/ops/outbox-purge.mts",
+    "idempotency:purge": "tsx scripts/ops/idempotency-purge.mts",
     "audit:verify": "tsx scripts/ops/verify-audit-chain.mts",
     "db:migrate": "tsx scripts/db/migrate.mts",
     "db:manifest": "tsx scripts/db/manifest.mts",

@@ -209,3 +209,32 @@ describe("el restore drill verifica lo que promete (R06-17)",()=>{
   expect(proof).toContain("RLS_WITHOUT_POLICY");   // el gate falla, no solo informa
  });
 });
+
+// Auditoría 2026-09-19, anexo R06 (vacíos F10 y F15): nada purgaba las filas de idempotencia caducadas. La tabla recibe una
+// fila POR COMANDO y está en el camino de escritura de todos: en la base de integración había 83 633 filas, 22 568 caducadas.
+describe("purga de las filas de idempotencia caducadas (R06-F10, F15)",()=>{
+ const src=()=>fs.readFileSync("scripts/ops/idempotency-purge.mts","utf8");
+ it("el script existe y está registrado como comando",()=>{
+  expect(fs.existsSync("scripts/ops/idempotency-purge.mts")).toBe(true);
+  const pkg=JSON.parse(fs.readFileSync("package.json","utf8")) as {scripts:Record<string,string>};
+  expect(pkg.scripts["idempotency:purge"]).toBe("tsx scripts/ops/idempotency-purge.mts");
+ });
+ it("NINGUNA condición de purga puede alcanzar una fila viva",()=>{
+  // La invariante que importa: toda condición exige que la fila ya esté caducada (o en dead letter), más un margen.
+  const condiciones=[...src().matchAll(/condicion:"([^"]+)"/g)].map(m=>m[1]!);
+  expect(condiciones.length).toBeGreaterThanOrEqual(3);
+  for(const c of condiciones){
+   expect(c,`condición sin comprobar caducidad: ${c}`).toMatch(/expires_at <|dead_letter_at </);
+   expect(c,`condición sin margen de seguridad: ${c}`).toContain("make_interval(days=>$1)");
+  }
+ });
+ it("no borra nada sin confirmación explícita y borra en lotes",()=>{
+  expect(src()).toContain('const aplicar=args.includes("--yes")');
+  expect(src()).toMatch(/mode:aplicar\?"PURGE":"DRY_RUN"/);   // sin --yes, simula
+  expect(src()).toContain("limit 5000");                      // lotes: no un lock largo sobre el camino de escritura
+  expect(src()).toMatch(/rol PROPIETARIO/);                   // el de la aplicación no tiene DELETE (R06-10)
+ });
+ it("tolera que una tabla ya se haya retirado",()=>{
+  expect(src()).toContain("if(!existe.length)continue");
+ });
+});
