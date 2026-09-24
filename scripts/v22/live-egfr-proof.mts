@@ -7,8 +7,9 @@ const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
 const pat=await import("../../apps/web/app/api/v1/patients/route");
 const res=await import("../../apps/web/app/api/v1/results/route");
 const eg=await import("../../apps/web/app/api/v1/patients/[patientId]/egfr/route");
+const vitR=await import("../../apps/web/app/api/v1/vitals/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
-function tok(scopes=["patient:write","patient:read","result:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
+function tok(scopes=["patient:write","patient:read","result:write","vital:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const PP=(id:string)=>({params:Promise.resolve({patientId:id})});
 const ISO=new Date(Date.now()-3_600_000).toISOString()/* reloj RELATIVO: la creatinina obsoleta ya no se usa para el eGFR */;const idem=()=>crypto.randomUUID();
@@ -20,6 +21,7 @@ async function creat(t:string,p:string,value:string){await res.POST(new Request(
 // Variante con control total de la captura (hora, unidad) para probar unidades, plausibilidad y vigencia de punta a punta.
 async function resAt(t:string,p:string,a:string,v:string,occurredAt:string,extra:Record<string,unknown>={}){const r=await res.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,unit:canonicalUnitOf(a)??"mg/dL",occurredAt,...extra})}));return{status:r.status,body:await r.json()};}
 const daysAgo=(d:number)=>new Date(Date.now()-d*86_400_000).toISOString();
+async function vital(t:string,p:string,vitalType:string,value:string,unit:string){await vitR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:p,vitalType,value,unit,occurredAt:new Date().toISOString()})}));}
 async function egfr(t:string,p:string){const r=await eg.GET(new Request("http://l/",{headers:H(t)}),PP(p));return{status:r.status,body:await r.json()};}
 try{
  const phys=tok();
@@ -43,9 +45,20 @@ try{
  const p2c=crypto.randomUUID();await register(phys,p2c,"MALE",70);
  await resAt(phys,p2c,"CREATININE","1.0",daysAgo(120),{unit:"mg/dL"});await resAt(phys,p2c,"CREATININE","2.6",daysAgo(1),{unit:"mg/dL"});
  g=await egfr(phys,p2c);ok(g.body.chronicity.status==="NOT_CONFIRMED"&&g.body.stage===null&&/reciente|lesión renal aguda/i.test(g.body.chronicity.note),"RECENT_DROP_NOT_STAGED");
- // 4) pediátrico (~5a) -> no computable (Schwartz, no CKD-EPI)
+ // 4) R03-01: pediátrico (~5a). Antes la respuesta era «usar Schwartz» y la función renal pediátrica NO SE PODÍA
+ //    estimar (la ecuación no existía en el repositorio). Ahora se calcula con Schwartz de cabecera, que exige la TALLA.
  const p3=crypto.randomUUID();await register(phys,p3,"FEMALE",5);await creat(phys,p3,"0.4");
- g=await egfr(phys,p3);ok(g.body.computable===false&&/pedi/i.test(g.body.reason),"PEDIATRIC_NOT_COMPUTABLE");
+ g=await egfr(phys,p3);
+ ok(g.body.computable===false&&g.body.reasonCode==="HEIGHT_REQUIRED"&&/TALLA/.test(g.body.reason),"PEDIATRIC_NEEDS_HEIGHT");
+ await vital(phys,p3,"HEIGHT","110","cm");
+ g=await egfr(phys,p3);
+ ok(g.body.computable===true&&g.body.pediatric===true&&g.body.egfr===113.6,"SCHWARTZ_BEDSIDE_COMPUTED");
+ ok(g.body.algorithm.id==="SCHWARTZ-BEDSIDE-2009"&&g.body.heightCm===110,"SCHWARTZ_ALGORITHM_DECLARED");
+ ok(g.body.stage===null&&g.body.gCategory===null&&g.body.ckdStaged===false,"PEDIATRIC_NOT_CKD_STAGED");
+ ok(/barrera renal de prescripción NO lo usa/.test(g.body.caveat),"PEDIATRIC_EGFR_NOT_WIRED_TO_BARRIER");
+ // 4b) R03-01: un lactante (<1 año) queda fuera del dominio de Schwartz: se declara, no se calcula
+ const p3b=crypto.randomUUID();await register(phys,p3b,"FEMALE",0);await creat(phys,p3b,"0.3");await vital(phys,p3b,"HEIGHT","55","cm");
+ g=await egfr(phys,p3b);ok(g.body.computable===false&&g.body.reasonCode==="OUT_OF_AGE_RANGE","INFANT_OUT_OF_SCHWARTZ_RANGE");
  // 5) adulto sin creatinina -> no computable
  const p4=crypto.randomUUID();await register(phys,p4,"MALE",40);
  g=await egfr(phys,p4);ok(g.body.computable===false&&/creatinina/i.test(g.body.reason),"NO_CREATININE_NOT_COMPUTABLE");

@@ -13502,7 +13502,7 @@
   },
   "/api/v1/patients/{patientId}/acid-base": {
    "get": {
-    "summary": "EPIC BX — GET /api/v1/patients/:id/acid-base (interpretación de gasometría: trastorno primario + Winters)",
+    "summary": "EPIC BX — GET /api/v1/patients/:id/acid-base (interpretación de gasometría: trastorno primario + compensación)",
     "tags": [
      "patients"
     ],

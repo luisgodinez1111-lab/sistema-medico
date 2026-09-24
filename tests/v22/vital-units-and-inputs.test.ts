@@ -59,7 +59,7 @@ describe("unidad canónica de los signos vitales (R03-09)",()=>{
 });
 
 describe("guarda de entradas de signos vitales (R03-11)",()=>{
- const spec=(t:string,h=MAX_VITAL_AGE_HOURS.ACUTE_ADMISSION)=>({vitalType:t,maxAgeHours:h});
+ const spec=(t:string,h:number=MAX_VITAL_AGE_HOURS.ACUTE_ADMISSION)=>({vitalType:t,maxAgeHours:h});
  it("acepta tomas vigentes y devuelve el valor canónico con unidad y antigüedad",()=>{
   const r=verifyVitalReadings([spec("RESP")],{RESP:lectura({vitalType:"RESP",value:"18",canonicalUnit:"rpm",occurredAt:hace(2)})},{now:NOW});
   expect(r.ok).toBe(true);

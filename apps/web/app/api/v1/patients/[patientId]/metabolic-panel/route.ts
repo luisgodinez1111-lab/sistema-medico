@@ -32,6 +32,10 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   if(!gOsm.ok)missing.push(`osmolality: ${gOsm.reason}`);
   const used=[gAg,gCa,gNa,gOsm].flatMap(g=>g.ok?g.inputs:[]);const inputs=provenance(used.filter((x,i)=>used.findIndex(y=>y.analyte===x.analyte)===i));
   return NextResponse.json({patientId,anionGap:ag??null,correctedCalcium:cca??null,correctedSodium:cna??null,osmolality:osm??null,missing,
-   caveat:"Brecha aniónica SIN corrección por albúmina y sin delta-delta.",algorithm:{id:"METABOLIC-DERIVATIONS",version:"1"},inputs},{status:200});
+   // Auditoría R03-05: este caveat afirmaba «SIN corrección por albúmina y sin delta-delta» cuando la corrección ya
+   // existía (C-22) y el delta-delta se calcula ahora en /acid-base, que es donde tiene sentido (necesita el HCO₃ y el
+   // trastorno primario). Un caveat obsoleto es desinformación con apariencia de prudencia.
+   caveat:ag?(ag.albuminCorrected?"Brecha aniónica corregida por albúmina (Figge). El delta-delta y la bifurcación brecha aumentada vs hiperclorémica se obtienen en /acid-base, que además interpreta la compensación.":"Brecha aniónica SIN corregir por albúmina (no hay albúmina coherente con la misma extracción): una hipoalbuminemia la subestima. El delta-delta se obtiene en /acid-base."):"Sin brecha aniónica: faltan entradas coherentes.",
+   algorithm:{id:"METABOLIC-DERIVATIONS",version:"2"},inputs},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

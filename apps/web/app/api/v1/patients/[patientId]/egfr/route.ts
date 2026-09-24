@@ -1,9 +1,10 @@
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
-import{computeEGFR,type Sex}from"../../../../../../../../packages/renal-function/src";
+import{computeEGFR,egfrCheck,schwartzBedside,schwartzCheck,SCHWARTZ_AGE_RANGE,type Sex}from"../../../../../../../../packages/renal-function/src";
 import{patientDemographics,analyteSeries,latestAnalyteReading}from"../../../../../../lib/clinical-runtime";
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,notComputable as notComputableBody}from"../../../../../../lib/analyte-inputs";
+import{readVitalInputs,vitalProvenance,MAX_VITAL_AGE_HOURS}from"../../../../../../lib/vital-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
 // EPIC BL — GET /api/v1/patients/:id/egfr (función renal CKD-EPI 2021 + estadio ERC; metadatos sin PHI cruda)
@@ -30,9 +31,32 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const inp=await readAnalyteInputs(tctx,patientId,[{analyte:"CREATININE",maxAgeDays:MAX_AGE_DAYS.RENAL_FUNCTION}]);
   const notComputable=(reason:string)=>NextResponse.json({patientId,computable:false,reason,ageYears:age},{status:200});
   if(sex!=="FEMALE"&&sex!=="MALE")return notComputable("Sexo no binario/desconocido: CKD-EPI requiere sexo (FEMALE/MALE)");
-  if(!(age>=18))return notComputable("Paciente pediátrico (<18): usar ecuación de Schwartz, no CKD-EPI");
   if(!inp.ok)return NextResponse.json({patientId,computable:false,...notComputableBody(inp),ageYears:age},{status:200});
   const scr=inp.values["CREATININE"]!;
+  // Auditoría R03-01: en pediatría ya NO se devuelve solo «usar Schwartz»: se CALCULA con Schwartz de cabecera
+  // (0.413 × talla / creatinina), que es lo que la población pediátrica necesitaba y no existía en el repositorio.
+  // Requiere la talla vigente; sin ella el resultado sigue siendo no computable, con el dato que falta nombrado.
+  if(age<18){
+   const vit=await readVitalInputs(tctx,patientId,[{vitalType:"HEIGHT",maxAgeHours:MAX_VITAL_AGE_HOURS.ANTHROPOMETRY}]);
+   const talla=vit.ok?Number(vit.values["HEIGHT"]):NaN;
+   const rej=schwartzCheck(talla,scr,age);
+   if(rej)return NextResponse.json({patientId,computable:false,ageYears:age,creatinineMgDl:scr,
+    reasonCode:rej.reasonCode==="NON_NUMERIC"?"HEIGHT_REQUIRED":rej.reasonCode,
+    reason:vit.ok?rej.detail:`Schwartz de cabecera requiere la TALLA vigente del paciente: ${vit.reason}`,
+    algorithm:{id:"SCHWARTZ-BEDSIDE-2009",version:"1"},inputs:provenance(inp.inputs)},{status:200});
+   const sw=schwartzBedside(talla,scr,age)!;
+   return NextResponse.json({patientId,computable:true,pediatric:true,ageYears:age,creatinineMgDl:scr,
+    egfr:sw.egfr,heightCm:sw.heightCm,
+    gCategory:null,gLabel:null,stage:null,ckdStaged:false,note:sw.note,
+    caveat:`eGFR pediátrico (Schwartz de cabecera, ${SCHWARTZ_AGE_RANGE[0]}–${SCHWARTZ_AGE_RANGE[1]} años). NO se estadifica como ERC y la barrera renal de prescripción NO lo usa todavía: cambiar el umbral de un bloqueo de dosis exige validación clínica.`,
+    algorithm:{id:"SCHWARTZ-BEDSIDE-2009",version:"1",authority:"Schwartz GJ et al., J Am Soc Nephrol 2009;20:629-637"},
+    inputs:[...provenance(inp.inputs),...vitalProvenance(vit.ok?vit.inputs:[])],warnings:vit.ok?vit.warnings:[]},{status:200});
+  }
+  // R03-01: el dominio de CKD-EPI se comprueba en el paquete; aquí se traduce el motivo para quien consulta.
+  const rejAdulto=egfrCheck(scr,age);
+  if(rejAdulto)return NextResponse.json({patientId,computable:false,ageYears:age,creatinineMgDl:scr,
+   reasonCode:rejAdulto.reasonCode,reason:rejAdulto.detail,algorithm:{id:"CKD-EPI-2021",version:"2"},
+   inputs:provenance(inp.inputs)},{status:200});
   const r=computeEGFR(scr,age,sex as Sex);
   if(!r)return notComputable("Valores inválidos para el cálculo");
   // Auditoría C-22: el estadio G de KDIGO exige CRONICIDAD (TFG < 60 persistente ≥ 90 días). Con la serie histórica de creatinina
@@ -56,6 +80,6 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    stage:chronicity.status==="CONFIRMED"?r.stage:null,
    chronicity,albuminuria,
    caveat:chronicity.status==="CONFIRMED"?"Categoría G con cronicidad documentada; la categoría A depende de la albuminuria.":"Categoría G PUNTUAL: no confirma ERC ni descarta lesión renal aguda.",
-   algorithm:{id:"CKD-EPI-2021",version:"1",staging:"KDIGO-2012 (G por TFG; cronicidad ≥ 90 días; A por UACR)"},inputs:provenance(inp.inputs),warnings:inp.warnings},{status:200});
+   algorithm:{id:"CKD-EPI-2021",version:"2",authority:"Inker LA et al., N Engl J Med 2021;385:1737-49",staging:"KDIGO-2012 (G por TFG; cronicidad ≥ 90 días; A por UACR)"},inputs:provenance(inp.inputs),warnings:inp.warnings},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

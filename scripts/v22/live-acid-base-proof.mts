@@ -17,7 +17,7 @@ async function res(t:string,p:string,a:string,v:string){await resR.POST(new Requ
 // Variante con control total de la captura (hora, unidad, muestra) para probar la guarda de entradas verificadas.
 async function resAt(t:string,p:string,a:string,v:string,occurredAt:string,extra:Record<string,unknown>={}){const r=await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,unit:canonicalUnitOf(a)??"mg/dL",occurredAt,...extra})}));return r.status;}
 const hoursAgo=(h:number)=>new Date(Date.now()-h*3_600_000).toISOString();
-async function get(t:string,p:string){const r=await ab.GET(new Request("http://l/",{headers:H(t)}),PP(p));return{status:r.status,body:await r.json()};}
+async function get(t:string,p:string,q="?specimen=ARTERIAL"){const r=await ab.GET(new Request("http://l/acid-base"+q,{headers:H(t)}),PP(p));return{status:r.status,body:await r.json()};}
 try{
  const phys=tok();
  // 1) acidosis metabólica con compensación adecuada: pH 7.30, HCO3 12, pCO2 26 (esperado 26)
@@ -26,12 +26,29 @@ try{
  let g=await get(phys,p1);ok(g.status===200&&g.body.computable===true,"COMPUTABLE_200");
  ok(g.body.primary==="METABOLIC_ACIDOSIS"&&g.body.expectedPco2===26,"METABOLIC_ACIDOSIS_WINTERS");
  ok(/adecuada/i.test(g.body.compensation),"COMPENSATION_ADEQUATE");
- // 2) usa el pCO2 MÁS RECIENTE: sube a 40 -> acidosis respiratoria concurrente
- await res(phys,p1,"PCO2","40");g=await get(phys,p1);ok(/respiratoria concurrente/i.test(g.body.compensation),"MIXED_ON_LATEST_PCO2");
+ // 2) usa la gasometría MÁS RECIENTE: nueva toma con pCO₂ 40 (y el pH que le corresponde, 7.10: subir el pCO₂ sin mover
+ //    el pH es físicamente imposible y desde R03-07 el panel se rechazaría) -> acidosis respiratoria concurrente.
+ await res(phys,p1,"PCO2","40");await res(phys,p1,"PH","7.10");
+ g=await get(phys,p1);ok(/respiratoria concurrente/i.test(g.body.compensation),"MIXED_ON_LATEST_PCO2");
  // 3) acidosis respiratoria: pH 7.28, pCO2 60, HCO3 24
  const p2=crypto.randomUUID();await ensurePatientIn(TA,p2); /* L-07 */
- for(const[a,v]of[["PH","7.28"],["PCO2","60"],["BICARBONATE","24"]]as const)await res(phys,p2,a,v);
+ for(const[a,v]of[["PH","7.33"],["PCO2","62"],["BICARBONATE","32"]]as const)await res(phys,p2,a,v);
  g=await get(phys,p2);ok(g.body.primary==="RESPIRATORY_ACIDOSIS","RESPIRATORY_ACIDOSIS");
+ // 3b) R03-06: el caso del anexo. EPOC retenedor (pH 7.33 / pCO₂ 62 / HCO₃ 32). Antes NO había `compensation` para los
+ //     trastornos respiratorios, así que el sistema no distinguía la descompensación aguda del estado crónico compensado.
+ ok(Array.isArray(g.body.scenarios)&&g.body.scenarios.length===2,"BOTH_CHRONICITY_SCENARIOS");
+ ok(g.body.scenarios.find((x:{chronicity:string})=>x.chronicity==="ACUTE").expectedHco3===26.2,"ACUTE_EXPECTED_HCO3");
+ ok(g.body.scenarios.find((x:{chronicity:string})=>x.chronicity==="CHRONIC").matches===true,"MEASURED_MATCHES_CHRONIC");
+ ok(/CRÓNICA/.test(g.body.compensation),"CHRONIC_PATTERN_NAMED");
+ let gd=await get(phys,p2,"?specimen=ARTERIAL&chronicity=ACUTE");
+ ok(gd.body.expectedHco3===26.2&&/Alcalosis metabólica concurrente/.test(gd.body.compensation),"DECLARED_ACUTE_SINGLE_VERDICT");
+ // 3c) R03-07: de una muestra VENOSA no se juzga la compensación respiratoria
+ gd=await get(phys,p2,"?specimen=VENOUS");
+ ok(gd.body.computable===true&&gd.body.compensationAssessed===false&&gd.body.expectedHco3===null,"VENOUS_NO_COMPENSATION");
+ ok(/VENOSA/.test(gd.body.interpretation),"VENOUS_DECLARED");
+ // 3d) R03-07: sin declarar la muestra no se interpreta nada
+ gd=await get(phys,p2,"");
+ ok(gd.body.computable===false&&gd.body.reasonCode==="SPECIMEN_REQUIRED","SPECIMEN_REQUIRED");
  // 4) falta un analito -> no computable
  const p3=crypto.randomUUID();await ensurePatientIn(TA,p3); /* L-07 */await res(phys,p3,"PH","7.4");await res(phys,p3,"PCO2","40");
  g=await get(phys,p3);ok(g.body.computable===false&&g.body.missing.includes("BICARBONATE")&&/bicarbonato/i.test(g.body.reason),"MISSING_ANALYTE");
@@ -49,6 +66,25 @@ try{
  const p7=crypto.randomUUID();await ensurePatientIn(TA,p7); /* L-07 */await resAt(phys,p7,"PH","7.30",hoursAgo(1));await resAt(phys,p7,"BICARBONATE","12",hoursAgo(1),{unit:"mmol/L"});await resAt(phys,p7,"PCO2","3.47",hoursAgo(1),{unit:"kPa"});
  g=await get(phys,p7);ok(g.body.computable===true&&g.body.expectedPco2===26,"KPA_CONVERTED_TO_MMHG");
  ok(await resAt(phys,p7,"PH","74",hoursAgo(1))===400,"IMPLAUSIBLE_PH_REJECTED_400");
+ // 4f) R03-07: un panel internamente INCOHERENTE se rechaza. (7.40, 40, 5) es físicamente imposible —Henderson-
+ //      Hasselbalch da 6.72— y antes se clasificaba sin objeción. Cada valor pasa la plausibilidad por separado.
+ const p8=crypto.randomUUID();await ensurePatientIn(TA,p8);
+ await resAt(phys,p8,"PH","7.40",hoursAgo(1));await resAt(phys,p8,"PCO2","40",hoursAgo(1));await resAt(phys,p8,"BICARBONATE","5",hoursAgo(1));
+ g=await get(phys,p8);ok(g.body.computable===false&&g.body.reasonCode==="GAS_PANEL_INCONSISTENT","INCOHERENT_PANEL_REJECTED");
+ ok(/transposición/.test(g.body.reason),"INCOHERENCE_EXPLAINS_TRANSPOSITION");
+ // 4g) R03-05: con sodio y cloro coherentes, la acidosis metabólica se BIFURCA y se calcula el delta-delta
+ const p9=crypto.randomUUID();await ensurePatientIn(TA,p9);
+ for(const[a,v]of[["PH","7.20"],["PCO2","25"],["BICARBONATE","10"],["SODIUM","140"],["CHLORIDE","106"]]as const)await resAt(phys,p9,a,v,hoursAgo(1));
+ g=await get(phys,p9);
+ ok(g.body.anionGap!==null&&g.body.anionGap.value===24,"ANION_GAP_IN_ANALYSIS");
+ ok(g.body.anionGapBranch==="HIGH_AG"&&/cetoacidosis/.test(g.body.interpretation),"HIGH_AG_BRANCH");
+ ok(g.body.deltaRatio===0.86&&/pura/.test(g.body.deltaInterpretation),"DELTA_DELTA_COMPUTED");
+ // 4h) R03-05: con albúmina baja, la brecha se corrige (Figge) y una acidosis enmascarada aparece
+ const p10=crypto.randomUUID();await ensurePatientIn(TA,p10);
+ for(const[a,v]of[["PH","7.20"],["PCO2","25"],["BICARBONATE","10"],["SODIUM","140"],["CHLORIDE","118"],["ALBUMIN","2.0"]]as const)await resAt(phys,p10,a,v,hoursAgo(1));
+ g=await get(phys,p10);
+ ok(g.body.anionGap.raw===12&&g.body.anionGap.albuminCorrected===true&&g.body.anionGap.value===17,"ALBUMIN_CORRECTED_GAP");
+ ok(g.body.anionGapBranch==="HIGH_AG"&&/corregida por albúmina/.test(g.body.interpretation),"MASKED_HIGH_AG_REVEALED");
  // 5) sin scope patient:read -> 403
  const noScope=tok(["result:write"]);g=await get(noScope,p1);ok(g.status===403,"MISSING_SCOPE_403");
 }catch(e){result.status="FAIL";result.error=String(e);}
