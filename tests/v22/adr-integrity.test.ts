@@ -93,3 +93,34 @@ describe("runbooks operativos (R09-033)",()=>{
   expect(/(SESSION_SIGNING_SECRET|DATABASE_URL)\s*=\s*\S+/.test(b),"hay una variable con valor asignado").toBe(false);
  });
 });
+
+// Auditoría 2026-09-19, anexo R09 (R09-032): «sin CONTRIBUTING, sin CHANGELOG, sin glosario, sin referencia de API
+// (OpenAPI) pese a ~150 rutas». La última parte del hallazgo ya estaba resuelta —`docs/api/openapi.json` describe las 162
+// rutas y `pnpm openapi:check` falla si se desalinea—; las otras tres faltaban. Lo que este guardarraíl impide no es que
+// falten los ficheros, sino que sean de adorno: un CONTRIBUTING que no nombre los gates reales, un CHANGELOG que invente
+// un historial de versiones que no existe, o un glosario que defina términos sin decir dónde viven en el código.
+describe("documentos de gobierno del repositorio (R09-032)",()=>{
+ it("existen CONTRIBUTING, CHANGELOG, glosario y la referencia de API",()=>{
+  for(const f of ["CONTRIBUTING.md","CHANGELOG.md","docs/glosario.md","docs/api/openapi.json"])
+   expect(fs.existsSync(f),`falta ${f}`).toBe(true);
+ });
+ it("CONTRIBUTING nombra los gates que de verdad se ejecutan",()=>{
+  const b=fs.readFileSync("CONTRIBUTING.md","utf8");
+  for(const g of ["typecheck","traceability:check","release:check","capability:check","openapi:check","build:web","live-smoke"])
+   expect(b,`CONTRIBUTING no menciona el gate ${g}`).toContain(g);
+  // Y declara sus límites, como los runbooks: sin revisión por pares, sin protección de rama, sin guardia.
+  expect(b,"un CONTRIBUTING que no dice lo que falta da una falsa sensación de proceso").toMatch(/NO cubre/);
+ });
+ it("CHANGELOG no inventa un historial de versiones y apunta al registro real",()=>{
+  const b=fs.readFileSync("CHANGELOG.md","utf8");
+  expect(b,"no hay etiquetas de git ni versión: decirlo es la única opción honesta").toMatch(/sin versiones publicadas/i);
+  expect(b,"debe remitir al registro de cambios que sí existe").toContain("2026-09-20-remediacion-auditoria.md");
+ });
+ it("el glosario ancla cada término en el código",()=>{
+  const b=fs.readFileSync("docs/glosario.md","utf8");
+  // Un glosario que define sin señalar dónde vive el término es un diccionario, no documentación de un sistema.
+  for(const ancla of ["clinical_events","aggregate_versions","phi_access_log","runtime-auth","calc-receipt","core-hazards"])
+   expect(b,`el glosario no ancla «${ancla}» en el código`).toContain(ancla);
+  expect(b,"y debe distinguir cierre de ingeniería de validación clínica").toMatch(/Cierre de ingenier[ií]a/);
+ });
+});
