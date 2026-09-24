@@ -9,7 +9,7 @@ import{checkPrescriptionLegal,describeMissing,renderPrescriptionHtml,type Prescr
 import{patientDemographics,officeSettings,readAggregateEvents,recordPhiAccess}from"../../../../../../lib/clinical-runtime";
 import{requirePhysicianCredentials}from"../../../../../../lib/physician-profile-lifecycle";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // Auditoría 2026-09-19 (U-20, L-05) — GET /api/v1/patients/:id/prescription-print?medications=<id>[,<id>…]
 // Receta imprimible con los requisitos legales mexicanos (RIS arts. 28–31; LGS arts. 83, 226, 241; NOM-004-SSA3-2012).
 // Es una LECTURA: no crea eventos; reimprimir no altera el expediente. Reglas:
@@ -26,7 +26,7 @@ const MAX_ITEMS=12;
 const str=(x:unknown):string|undefined=>typeof x==="string"&&x.trim()!==""?x.trim():undefined;
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"patient:read",purpose:"TREATMENT"});
   const ids=[...new Set((new URL(req.url).searchParams.get("medications")??"").split(",").map(s=>s.trim()).filter(Boolean))];

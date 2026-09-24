@@ -4,13 +4,13 @@ import{anionGap,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}
 import{latestAnalyteReading}from"../../../../../../lib/clinical-runtime";
 import{verifyAnalyteReadings,provenance,MAX_AGE_DAYS,COHERENCE_HOURS}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BN — GET /api/v1/patients/:id/metabolic-panel (derivaciones multi-analito: anion gap, calcio corregido)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Se lee cada analito UNA vez (valor canónico + unidad + fecha) y cada derivada exige sus entradas plausibles,

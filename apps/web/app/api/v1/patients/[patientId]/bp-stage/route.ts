@@ -5,7 +5,7 @@ import{stageBloodPressure,parseBp}from"../../../../../../../../packages/bp-stagi
 import{patientDemographics}from"../../../../../../lib/clinical-runtime";
 import{readVitalInputs,vitalProvenance,vitalNotComputable,MAX_VITAL_AGE_HOURS}from"../../../../../../lib/vital-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BT — GET /api/v1/patients/:id/bp-stage (estadificación ACC/AHA 2017 de la última presión arterial)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -19,7 +19,7 @@ function ageYears(birthDate:string|undefined):number|undefined{
 }
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Auditoría R03-11: la toma se verifica (unidad mmHg, plausibilidad, vigencia) antes de estadificar; `latestVitalReadings`

@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{analyteSeries,latestAnalyteReading,patientEgfr}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC CH — GET /api/v1/patients/:id/trends  (panel 4: "Resultados y evolución longitudinal")
 // Series temporales de analitos clave + últimos valores para el grid de "otros resultados". Determinista.
 export const runtime="nodejs";
@@ -14,7 +14,7 @@ const detail=(r:Reading|undefined)=>r?{value:r.value,unit:r.canonicalUnit??r.uni
 
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const[hba1c,glucose,ldl,creatinine,latLdl,latCreat,latUacr,egfr]=await Promise.all([

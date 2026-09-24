@@ -4,7 +4,7 @@ import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{patientVitals,type VitalPoint}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC W/UI — GET /api/v1/patients/:id/vitals  (vista Signos vitales: Últimos registros + Tendencias)
 // Agrupa los puntos VITAL_RECORDED por toma (mismo occurredAt) en filas TA/FC/FR/Temp/SpO2/Peso/Talla/IMC,
 // deriva IMC (peso/talla²) y las series de tendencia (TA sistólica, FC, Peso, IMC). Determinista, RLS-scoped.
@@ -16,7 +16,7 @@ const imcOf=(peso:string|undefined,talla:string|undefined,tallaUnit:string|undef
 const sys=(ta:string):number|null=>parseBp(ta)?.systolic??null;
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const points=await patientVitals(tctx,patientId);

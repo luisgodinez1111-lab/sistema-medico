@@ -6,14 +6,14 @@ import{aaGradient,atmPressureFromAltitude}from"../../../../../../../../packages/
 import{patientDemographics,officeSettings}from"../../../../../../lib/clinical-runtime";
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,COHERENCE_HOURS,notComputable}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC CA — GET /api/v1/patients/:id/aa-gradient (gradiente alveolo-arterial de O2; opcional ?atm=<mmHg> por altitud)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 function ageYears(bd:string):number{const b=new Date(bd),a=new Date();let y=a.getUTCFullYear()-b.getUTCFullYear();if(a.getUTCMonth()<b.getUTCMonth()||(a.getUTCMonth()===b.getUTCMonth()&&a.getUTCDate()<b.getUTCDate()))y-=1;return y;}
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const demo=await patientDemographics(tctx,patientId);

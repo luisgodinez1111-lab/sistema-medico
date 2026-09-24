@@ -5,13 +5,13 @@ import{forecastImmunizations,forecastSummary}from"../../../../../../../../packag
 import{ageInYears}from"../../../../../../../../packages/prescription-safety/src";
 import{readPatientTimeline,patientDemographics,activeProblemCodes,patientVitals,administeredVaccines,latestAnalyteReading}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC AA — GET /api/v1/patients/:id/care-gaps  (worklist clínico basado en reglas, metadatos sin PHI)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Las brechas se calculan sobre TODOS los agregados del paciente: se recorren las páginas hasta agotar (S-08).

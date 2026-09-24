@@ -5,7 +5,7 @@ import{bmiFromVitals,BMI_PLAUSIBLE,BMI_MIN_ADULT_AGE_YEARS}from"../../../../../.
 import{patientDemographics}from"../../../../../../lib/clinical-runtime";
 import{readVitalInputs,vitalProvenance,vitalNotComputable,MAX_VITAL_AGE_HOURS}from"../../../../../../lib/vital-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BO — GET /api/v1/patients/:id/bmi (IMC + clasificación nutricional WHO; pediatría -> percentil)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -16,7 +16,7 @@ function ageYears(birthDate:string|undefined):number|undefined{
 const ALG={id:"BMI",version:"2",authority:"WHO 1995/2000 (categorías de adulto)"}as const;
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Auditoría R03-09/R03-33: la ruta ya no infiere la unidad por la magnitud del número ni reimplementa el IMC. Pide las

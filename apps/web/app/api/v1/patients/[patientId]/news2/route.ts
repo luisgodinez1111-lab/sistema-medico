@@ -6,7 +6,7 @@ import{computeNEWS2,type News2Params}from"../../../../../../../../packages/lab-r
 import{patientDemographics}from"../../../../../../lib/clinical-runtime";
 import{readVitalInputs,vitalProvenance,MAX_VITAL_AGE_HOURS}from"../../../../../../lib/vital-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BC — GET /api/v1/patients/:id/news2  (NEWS2 desde los últimos signos vitales; metadatos sin PHI)
 import{ageInYears}from"../../../../../../../../packages/prescription-safety/src";
 export const runtime="nodejs";
@@ -14,7 +14,7 @@ export const dynamic="force-dynamic";
 function num(s:string|undefined):number|undefined{if(s===undefined)return undefined;const n=Number(String(s).trim());return Number.isFinite(n)?n:undefined;}
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Auditoría C-09: NEWS2 está validado en adultos (≥16). El O₂ suplementario, la escala de SpO₂ y el nivel de conciencia

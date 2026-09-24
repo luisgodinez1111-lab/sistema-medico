@@ -4,7 +4,7 @@ import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{patientObligations,patientVitals,analyteSeries,problemRegistry,activeMedicationDrugCodes,activeAllergySubstances,type VitalPoint}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BA/UI — GET /api/v1/patients/:id/follow-up  (vista Seguimiento, snapshot compuesto)
 // Compone: Tareas de seguimiento (obligaciones), Tendencia de signos vitales (series+promedios) e
 // Indicadores clave (HbA1c/LDL de labs, Peso/IMC de vitales, primero->último). Determinista, RLS-scoped.
@@ -15,7 +15,7 @@ const sys=(ta:string):number|null=>parseBp(ta)?.systolic??null; // C-21: parser 
 function avg(ns:number[]):number|null{return ns.length?Math.round(ns.reduce((a,b)=>a+b,0)/ns.length):null;}
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"obligation:read",purpose:"TREATMENT"});
   const[tasks,points,hba1cS,ldlS,problems0,meds,allergies]=await Promise.all([

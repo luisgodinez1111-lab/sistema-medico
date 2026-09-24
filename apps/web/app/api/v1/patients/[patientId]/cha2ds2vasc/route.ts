@@ -5,7 +5,7 @@ import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
 import{cha2ds2vasc}from"../../../../../../../../packages/stroke-risk/src";
 import{patientDemographics,activeProblemCodes}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 import{inValueSet,ICD10_VALUE_SETS,ICD10_VALUE_SET_VERSION,type Icd10ValueSet}from"../../../../../../../../packages/terminology/src";
 // EPIC BQ — GET /api/v1/patients/:id/cha2ds2vasc (riesgo de ictus en FA -> indicación de anticoagulación)
 export const runtime="nodejs";
@@ -19,7 +19,7 @@ function ageYears(birthDate:string):number{
 const en=(codes:string[],set:Icd10ValueSet)=>inValueSet(codes,set);
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const demo=await patientDemographics(tctx,patientId);

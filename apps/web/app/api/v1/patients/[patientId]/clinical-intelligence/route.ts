@@ -3,14 +3,14 @@ import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
 import{gatherClinicalIntelligence}from"../../../../../../lib/clinical-intelligence-summary";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BS — GET /api/v1/patients/:id/clinical-intelligence
 // Resumen de inteligencia clínica DETERMINISTA: hallazgos priorizados por severidad (sin PHI cruda).
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const r=await gatherClinicalIntelligence(tctx,patientId);

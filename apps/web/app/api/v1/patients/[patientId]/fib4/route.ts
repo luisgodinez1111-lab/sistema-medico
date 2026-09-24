@@ -6,7 +6,7 @@ import{fib4}from"../../../../../../../../packages/liver-fibrosis/src";
 import{patientDemographics}from"../../../../../../lib/clinical-runtime";
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,COHERENCE_HOURS,notComputable}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BR — GET /api/v1/patients/:id/fib4 (índice de fibrosis hepática FIB-4)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -17,7 +17,7 @@ function ageYears(birthDate:string):number{
 async function num(fn:Promise<string|undefined>):Promise<number|undefined>{const s=await fn;if(s===undefined)return undefined;const n=Number(s);return Number.isFinite(n)?n:undefined;}
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const demo=await patientDemographics(tctx,patientId);

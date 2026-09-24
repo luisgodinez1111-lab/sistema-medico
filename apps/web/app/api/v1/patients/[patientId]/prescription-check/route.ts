@@ -7,7 +7,7 @@ import{resolveDrug,monitoringFor,catalogCoverage}from"../../../../../../../../pa
 import{evaluatePrescriptionSafety,ageInYears,type BarrierStatus}from"../../../../../../../../packages/prescription-safety/src";
 import{activeAllergies,activeMedicationDrugCodes,activeProblemCodes,patientEgfr,patientDemographics,latestVitalsByType}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom,parseJson}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,parseJson,pathIds}from"../../../../../../lib/http-command";
 // EPIC CG — POST /api/v1/patients/:id/prescription-check  (panel 3: "Prescripción segura y verificación")
 // DRY-RUN de las barreras de seguridad SIN escribir: alergia, interacción, duplicado terapéutico,
 // contraindicación por dx, dosis-techo, y ajuste renal por eGFR + monitorización. Núcleo determinista.
@@ -23,7 +23,7 @@ const Body=z.object({drug:z.string().trim().min(1).max(160),dose:z.string().trim
 
 export async function POST(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const body=await parseJson(req,Body);

@@ -4,13 +4,13 @@ import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
 import{forecast,forecastSummary}from"../../../../../../../../packages/immunization-schedule/src";
 import{patientBirthDate,administeredVaccines}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BK — GET /api/v1/patients/:id/immunization-forecast (cartilla: DUE/OVERDUE/UPCOMING por edad)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const birthDate=await patientBirthDate(tctx,patientId);

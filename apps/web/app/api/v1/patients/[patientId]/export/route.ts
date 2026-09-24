@@ -4,14 +4,14 @@ import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{buildRecordManifest,canonicalManifest}from"../../../../../../../../packages/record-export/src";
 import{readPatientRecordRows,recordPhiAccess}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC AB — GET /api/v1/patients/:id/export  (manifiesto del expediente + hash reproducible, NOM-024).
 // contentHash = sha256 del manifiesto canónico (SIN generatedAt) -> exportaciones idénticas => mismo hash.
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"record:export",purpose:"TREATMENT"});
   const rows=await readPatientRecordRows(tctx,patientId);

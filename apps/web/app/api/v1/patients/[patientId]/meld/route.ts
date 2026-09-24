@@ -4,13 +4,13 @@ import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{meldScore}from"../../../../../../../../packages/meld/src";
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,COHERENCE_HOURS,notComputable}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BW — GET /api/v1/patients/:id/meld (pronóstico de hepatopatía avanzada: bilirrubina + INR + creatinina)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Entradas VERIFICADAS y de un mismo periodo (antes podían mezclarse una bilirrubina de hoy con un INR de hace meses).

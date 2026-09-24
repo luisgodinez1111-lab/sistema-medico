@@ -3,7 +3,7 @@ import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{problemRegistry,carePlanGoals,activeMedicationDrugCodes,activeAllergySubstances,latestAnalyteReading,patientVitals,type VitalPoint}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC X/UI — GET /api/v1/patients/:id/care-plan  (vista Plan de cuidado, snapshot compuesto)
 // Compone el contexto REAL del paciente: problemas asociados (con descripción y estado), conteos
 // (problemas/medicamentos/alergias), metas del plan (CarePlan) y métricas clave (HbA1c, TA, Peso, IMC).
@@ -16,7 +16,7 @@ function latestOf(points:VitalPoint[],type:string):string|null{const p=points.fi
 function latestUnitOf(points:VitalPoint[],type:string):string|undefined{return points.find(x=>x.vitalType===type)?.unit;}
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"careplan:read",purpose:"TREATMENT"});
   const[problems0,goals,meds,allergies,hba1c,vitals]=await Promise.all([

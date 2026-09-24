@@ -3,7 +3,7 @@ import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{resolveDrug}from"../../../../../../../../packages/drug-catalog/src";
 import{resultsRegistry,ordersRegistry,activeMedicationDrugCodes,carePlanGoals,patientDocuments,patientObligations,type VitalPoint}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC K/UI — GET /api/v1/patients/:id/consultation-tabs  (vista Consulta, pestañas por paciente)
 // Compone en un solo snapshot los datos por paciente de las pestañas Resultados/Órdenes/Medicamentos/Plan de
 // cuidados/Documentos/Seguimiento, reutilizando los readers ya probados. Determinista, sin escritura, RLS-scoped.
@@ -16,7 +16,7 @@ const GOAL_ES:Record<string,string>={PROPOSED:"Propuesta",ACTIVE:"Activa",ON_HOL
 const OBL_ES:Record<string,string>={OPEN:"Pendiente",IN_PROGRESS:"En progreso",COMPLETED:"Completada",CANCELLED:"Cancelada"};
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const[results0,orders0,medCodes,goals,docs,obls]=await Promise.all([

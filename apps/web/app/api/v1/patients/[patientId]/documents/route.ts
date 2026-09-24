@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{patientDocuments}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC Z/UI — GET /api/v1/patients/:id/documents  (vista Documentos: lista + carpetas por tipo)
 // Cada documento con título, tipo-UI, estado, fecha; MÁS conteos por carpeta (tipo) para el panel de carpetas
 // y los chips del paciente. Determinista, RLS-scoped.
@@ -12,7 +12,7 @@ const TYPE_UI:Record<string,string>={PROGRESS_NOTE:"Nota médica",DISCHARGE_SUMM
 const STATUS_ES:Record<string,string>={DRAFT:"Borrador",FINALIZED:"Finalizado",SIGNED:"Firmado",AMENDED:"Enmendado"};
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"document:read",purpose:"TREATMENT"});
   const rows=await patientDocuments(tctx,patientId);

@@ -1,4 +1,5 @@
 import crypto from"node:crypto";
+import{isUuid}from"../../../packages/tenant-context/src";
 import{type z}from"zod";
 import{resolvePrincipal}from"../../../packages/http-principal/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
@@ -47,6 +48,26 @@ export function readerFor(req:Request):(name:string)=>string|null|undefined{
 export function resolveVerified(req:Request){
  const requestId=req.headers.get("x-request-id")??crypto.randomUUID();
  return resolvePrincipal(readerFor(req),sessionSecret(),requestId);
+}
+// Auditoría 2026-09-19, anexo R04 (R04-007) — VALIDACIÓN DEL FORMATO DE LOS IDS DE RUTA.
+//
+// El anexo: «IDs de ruta ([xxxId]) sin validar formato UUID antes de tocar el kernel: input mal formado produce un error
+// del motor, no un 400». Medido: **0 de 126 rutas con parámetro lo validaban**. Un `patientId` con la forma
+// `../../etc` o `1 OR 1=1` no es una fuga —el SQL va parametrizado y la RLS sigue puesta— pero llega al kernel y provoca
+// un error de casteo de Postgres que sale como 500. Un 500 en un sistema clínico es una pantalla en blanco a media
+// consulta, y además esconde el problema real: el cliente no sabe que mandó basura.
+//
+// Se valida en el BORDE, donde el dato entra, y con el mismo `isUuid` que usa el esquema de payload: una sola definición
+// de qué es un UUID en todo el repositorio.
+export async function pathIds<T extends Record<string,string>>(params:Promise<T>):Promise<T>{
+ const p=await params;
+ for(const[clave,valor]of Object.entries(p)){
+  // Solo los parámetros que son identificadores de agregado. Un parámetro como `date` o `slug` no es un UUID.
+  if(!/Id$/.test(clave))continue;
+  if(typeof valor!=="string"||!isUuid(valor))
+   throw new ClinicalError("VALIDATION_ERROR",`El identificador «${clave}» de la ruta no es un UUID válido.`,{pathParam:clave});
+ }
+ return p;
 }
 // Construye un ClinicalCommand determinista para un agregado dado.
 export function buildCommand(a:{idempotencyKey:string;aggregateType:string;aggregateId:string;expectedVersion:number;eventType:string;payload:unknown;occurredAt:string;topic:string}):ClinicalCommand{

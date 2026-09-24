@@ -9,7 +9,7 @@ import{patientDemographics,activeProblemCodes}from"../../../../../../lib/clinica
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,notComputable}from"../../../../../../lib/analyte-inputs";
 import{readVitalInputs,vitalProvenance,vitalNotComputable,MAX_VITAL_AGE_HOURS}from"../../../../../../lib/vital-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BZ — GET /api/v1/patients/:id/curb65 (gravedad de neumonía -> decisión de ingreso)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -17,7 +17,7 @@ function ageYears(bd:string):number{const b=new Date(bd),a=new Date();let y=a.ge
 const ALG={id:"CURB-65",version:"3",authority:"Lim WS et al., Thorax 2003;58:377-382"}as const;
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const demo=await patientDemographics(tctx,patientId);

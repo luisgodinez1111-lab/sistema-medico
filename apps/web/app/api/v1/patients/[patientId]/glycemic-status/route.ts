@@ -4,13 +4,13 @@ import{glycemicAssessment}from"../../../../../../../../packages/glycemic/src";
 import{activeProblemCodes}from"../../../../../../lib/clinical-runtime";
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,notComputable}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BP — GET /api/v1/patients/:id/glycemic-status (HbA1c -> eAG + control; marco diabético vs tamizaje)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // HbA1c VERIFICADA: en % (NGSP; se convierte desde mmol/mol IFCC si así se registró), plausible y vigente.

@@ -4,7 +4,7 @@ import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{resolveDrug}from"../../../../../../../../packages/drug-catalog/src";
 import{problemRegistry,activeMedicationDrugCodes,activeAllergySubstances,latestAnalyteReading,patientVitals,type VitalPoint}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC Y/UI — GET /api/v1/patients/:id/referral-context  (vista Nueva interconsulta, panel derecho)
 // Compone la "Información relevante del paciente": alergias, medicamentos actuales (nombre del principio activo),
 // problemas activos (código + descripción), últimos laboratorios (HbA1c) y signos vitales (TA/FC/IMC).
@@ -15,7 +15,7 @@ function latestOf(points:VitalPoint[],type:string):string|null{const p=points.fi
 function latestUnitOf(points:VitalPoint[],type:string):string|undefined{return points.find(x=>x.vitalType===type)?.unit;}
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"referral:read",purpose:"TREATMENT"});
   const[problems0,medCodes,allergies,hba1c,vitals]=await Promise.all([

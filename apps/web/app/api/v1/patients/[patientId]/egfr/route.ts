@@ -7,7 +7,7 @@ import{patientDemographics,analyteSeries,latestAnalyteReading}from"../../../../.
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,notComputable as notComputableBody}from"../../../../../../lib/analyte-inputs";
 import{readVitalInputs,vitalProvenance,MAX_VITAL_AGE_HOURS}from"../../../../../../lib/vital-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BL — GET /api/v1/patients/:id/egfr (función renal CKD-EPI 2021 + estadio ERC; metadatos sin PHI cruda)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -20,7 +20,7 @@ function ageYears(birthDate:string,asOf:string):number{
 }
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   const demo=await patientDemographics(tctx,patientId);

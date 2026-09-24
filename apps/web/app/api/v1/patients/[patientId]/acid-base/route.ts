@@ -5,7 +5,7 @@ import{interpretAcidBase,acidBaseCheck,type Specimen,type Chronicity}from"../../
 import{anionGap}from"../../../../../../../../packages/lab-derivations/src";
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,COHERENCE_HOURS,notComputable}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC BX — GET /api/v1/patients/:id/acid-base (interpretación de gasometría: trastorno primario + compensación)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -13,7 +13,7 @@ const ALG={id:"ACID-BASE",version:"2",authority:"Winters 1967; Berend NEJM 2014;
 const SPECIMENS=["ARTERIAL","VENOUS","CAPILLARY"]as const;
 export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
  try{
-  const{patientId}=await ctx.params;
+  const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
   // Auditoría R03-07: el tipo de MUESTRA es obligatorio y no se asume arterial. El sistema no lo registra con el
