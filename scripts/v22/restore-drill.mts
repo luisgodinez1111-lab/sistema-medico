@@ -11,7 +11,7 @@
 import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";import{spawnSync}from"node:child_process";
 import{directEndpoint as direct}from"../../packages/pg-endpoint/src";
 import{deterministicUuid}from"../../packages/canonical-json/src";
-import{readMigrationFiles,createdTables}from"../../packages/db-migrations/src";
+import{readMigrationFiles,createdTables,renamedTables}from"../../packages/db-migrations/src";
 try{
  const envRaw=fs.readFileSync(path.resolve(".env.local"),"utf8");
  for(const line of envRaw.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(line.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}
@@ -43,7 +43,13 @@ const RUNTIME_ROLE="medical_os_runtime";
 // verificaba: solo hacía que el gate fallara sin decir por qué. Se excluyen del hash y se REPORTAN aparte
 // (`nonRepoTables`), que es el dato que el dueño necesita: el esquema vivo no es reproducible desde el repo mientras existan.
 const REPO_TABLES=new Set(readMigrationFiles().flatMap(f=>createdTables(f.body)).concat("schema_migrations"));
-const fueraDelRepo=(t:unknown)=>!REPO_TABLES.has(String(t));
+// La 0028 retiró las tablas heredadas RENOMBRÁNDOLAS, con el sufijo derivado en el propio SQL: se declara como patrón para
+// que el drill no las confunda con las tres tablas legado ajenas al repo (0022), que son otra cosa.
+const SUFIJOS_DEL_REPO=readMigrationFiles().flatMap(f=>renamedTables(f.body)).filter(n=>n.startsWith("*")).map(n=>n.slice(1));
+const fueraDelRepo=(t:unknown)=>{
+ const n=String(t);
+ return !REPO_TABLES.has(n)&&!SUFIJOS_DEL_REPO.some(s=>n.endsWith(s)&&REPO_TABLES.has(n.slice(0,-s.length)));
+};
 async function schemaFingerprint(url:string){
  const sql=postgres(direct(url),{max:1,prepare:false,onnotice:()=>{}});
  try{

@@ -30,3 +30,12 @@ export function createdTables(body:string):string[]{
  const sql=body.replace(/--[^\n]*/g,"").replace(/\/\*[\s\S]*?\*\//g,"");
  return[...sql.matchAll(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?([a-z_0-9]+)/gi)].map(m=>m[1]!.toLowerCase());
 }
+// Tablas RENOMBRADAS por una migración (0028 retiró las heredadas renombrándolas). Sin esto, el drill de restauración las
+// daría por «ajenas al repo» —como las tres de 0022— cuando en realidad las crea y las renombra el propio repositorio.
+export function renamedTables(body:string):string[]{
+ const sql=body.replace(/--[^\n]*/g,"").replace(/\/\*[\s\S]*?\*\//g,"");
+ const nombres=[...sql.matchAll(/ALTER TABLE\s+(?:public\.)?([a-z_0-9]+)\s+RENAME TO\s+([a-z_0-9]+)/gi)].map(m=>m[2]!.toLowerCase());
+ // La 0028 renombra con `format(... %I, t, destino)`: el nombre destino se deriva de un sufijo declarado en el propio SQL.
+ for(const m of sql.matchAll(/([a-z_0-9]+)\|\|'(_retirada_\d{4})'/gi))nombres.push("*"+m[2]!.toLowerCase());
+ return nombres;
+}

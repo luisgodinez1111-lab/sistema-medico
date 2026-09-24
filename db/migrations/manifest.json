@@ -108,6 +108,10 @@
   {
    "file": "0027_duplicate_authority_comments.sql",
    "sha256": "487d1d92abe3c4e56d38da47e47a6131edf7bcf659894c431e2057d784382adb"
+  },
+  {
+   "file": "0028_retiro_tablas_heredadas.sql",
+   "sha256": "6540cc802efeca5bc0e05b53fddf922fb164cabc38e8dc3992b40a1bad291987"
   }
  ]
 }

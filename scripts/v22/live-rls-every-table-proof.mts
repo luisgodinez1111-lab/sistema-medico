@@ -43,8 +43,23 @@ try{
    (select count(*) from pg_policies p where p.schemaname='public' and p.tablename=c.relname) as pols,
    (select count(*) from information_schema.columns k where k.table_schema='public' and k.table_name=c.relname and k.column_name='tenant_id') as has_tenant
   from pg_class c join pg_namespace n on n.oid=c.relnamespace
-  where n.nspname='public' and c.relkind='r' and c.relrowsecurity order by c.relname`;
- ok(conRls.length>=40,`RLS_TABLES_INVENTORY:${conRls.length}`);
+  where n.nspname='public' and c.relkind='r' and c.relrowsecurity
+    -- Auditoría R06-03/04/18/23 (migración 0028): las tablas RETIRADAS conservan su RLS y su política, pero se quedaron
+    -- SIN privilegios para ningún rol, a propósito. No forman parte de la superficie de aislamiento por tenant: no hay
+    -- ruta, rol ni consulta que pueda llegar a ellas. Ejercitarlas aquí solo probaría que un REVOKE funciona.
+    and c.relname not like '%\_retirada\_%'
+  order by c.relname`;
+ // El suelo existe para que la prueba no pueda «pasar» ejercitando nada. Bajó de 40 a 35 cuando la migración 0028 retiró
+ // seis tablas heredadas del esquema vigente: el número es una consecuencia declarada, no un ajuste para que pase.
+ ok(conRls.length>=35,`RLS_TABLES_INVENTORY:${conRls.length}`);
+ // Y se comprueba lo que de ellas SÍ importa: que ningún rol DE LA APLICACIÓN conserve privilegios sobre una tabla
+ // retirada. El propietario del esquema (la cuenta del DBA) siempre los conserva —Postgres los lista y puede volver a
+ // otorgarlos—, así que exigir «cero privilegios para nadie» sería exigir algo que no existe; lo que no puede haber es un
+ // camino desde la aplicación.
+ const retiradasConPrivilegio=await owner`select table_name||':'||grantee||':'||privilege_type as g
+   from information_schema.role_table_grants
+   where table_schema='public' and table_name like '%\_retirada\_%' and grantee like 'medical_os%'`;
+ ok(retiradasConPrivilegio.length===0,`RETIRED_TABLES_HAVE_NO_GRANTS${retiradasConPrivilegio.length?":"+retiradasConPrivilegio.map(r=>String(r.g)).join(","):""}`);
  const sinPolitica=conRls.filter(r=>Number(r.pols)===0).map(r=>String(r.t));
  ok(sinPolitica.length===0,`NO_RLS_TABLE_WITHOUT_POLICY${sinPolitica.length?":"+sinPolitica.join(","):""}`);
  const sinForce=conRls.filter(r=>r.forced!==true).map(r=>String(r.t));
@@ -92,7 +107,10 @@ try{
  }
  ok(fugas.length===0,`NO_CROSS_TENANT_READ${fugas.length?":"+fugas.join(","):""}`);
  ok(ciegas.length===0,`POLICY_SCOPES_NOT_DENIES_ALL${ciegas.length?":"+ciegas.join(","):""}`);
- ok(probadas.length>=25,`ISOLATION_EXERCISED_ON_${probadas.length}_TABLES`);
+ // Mismo criterio que el suelo del inventario: el umbral existe para que la prueba no pase sin ejercitar nada, y bajó de
+ // 25 a 22 porque la migración 0028 retiró del esquema vigente tres tablas que ANTES se ejercitaban aquí
+ // (patient_state_projection y las dos de break-glass; las otras tres no tenían forma trivial de insertar).
+ ok(probadas.length>=22,`ISOLATION_EXERCISED_ON_${probadas.length}_TABLES`);
  result.detail={tablasConRls:conRls.length,aislamientoEjercitado:probadas.length,noInsertables:noProbadas};
 
  // 3) Sin contexto de tenant, el rol no ve NADA (la política evalúa app.current_tenant(), que sin `set_config` es NULL).

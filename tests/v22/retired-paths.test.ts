@@ -131,7 +131,14 @@ describe("paquetes duplicados: la autoridad está declarada y es cierta",()=>{
   // La mitad de tablas de R06-F11 no va en un JSON: va donde la lee quien abre la base. 0020 declaró cuatro, 0026 el
   // outbox y 0027 las cinco que faltaban (los dos «break glass», los dos recibos de consumidor y la proyección muerta).
   const sql=fs.readdirSync("db/migrations").filter(f=>/^\d{4}_.*\.sql$/.test(f)).map(f=>fs.readFileSync(path.join("db/migrations",f),"utf8")).join("\n");
-  for(const t of["audit_ledger","idempotency_keys","release_evidence","projection_checkpoints","outbox","break_glass_events","break_glass_reviews","consumer_receipts","outbox_consumer_receipts","patient_state_projection"])
+  // Las seis que la 0028 retiró (renombradas a *_retirada_0028) ya no necesitan declarar autoridad: no están en el
+  // esquema vigente. Su comentario de retiro lo pone la propia 0028.
+  for(const t of["audit_ledger","idempotency_keys","outbox","consumer_receipts","outbox_consumer_receipts"])
    expect(new RegExp(`COMMENT ON TABLE\\s+${t}\\s+IS`,"i").test(sql),`${t}: tabla duplicada o legada sin declaración de autoridad en el catálogo`).toBe(true);
+  // Y de las retiradas se exige lo contrario: que la migración de retiro diga por qué y quién lo autorizó.
+  const m28=fs.readFileSync("db/migrations/0028_retiro_tablas_heredadas.sql","utf8");
+  for(const t of["release_evidence","projection_checkpoints","projection_aggregate_checkpoints","patient_state_projection","break_glass_events","break_glass_reviews"])
+   expect(m28,`${t}: retirada sin quedar nombrada y justificada en 0028`).toContain(t);
+  expect(m28,"el retiro tiene que declarar la autorización del dueño").toMatch(/autoriz/i);
  });
 });

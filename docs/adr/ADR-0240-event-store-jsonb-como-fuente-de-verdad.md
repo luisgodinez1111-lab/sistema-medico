@@ -22,11 +22,16 @@ riesgo: dos modelos sin decidir cuál manda.
    solo si son anotaciones declaradas; un `kind` desconocido es `INVARIANT_VIOLATION` (fail-closed).
 3. **Lecturas por consulta SQL sobre jsonb**, no por proyecciones materializadas. Los índices necesarios viven en
    migraciones (`0019_event_store_read_indexes.sql`: `payload->>'patientId'`, tipo de agregado, `occurred_at`). Una
-   proyección materializada solo se introducirá con un evento de reconstrucción y su propio checkpoint (hoy no existe;
-   `projection_checkpoints` está reservada).
+   proyección materializada solo se introducirá con un evento de reconstrucción y su propio checkpoint, que traerá **su
+   propia migración**. La reserva de `projection_checkpoints` queda RETIRADA (auditoría R06-04, migración 0028): eran dos
+   tablas de checkpoint vacías y sin código, reservadas para algo que este mismo apartado descarta hasta medir — es decir,
+   el artefacto especulativo que la auditoría persigue, no un cimiento.
 4. **Las tablas relacionales de dominio no se usan.** Se conservan hasta la limpieza de esquema porque tienen RLS forzada
    (migración 0020) y borrarlas exige una migración destructiva con respaldo verificado; ese trabajo entra en D-02/D-09
    con la decisión del dueño. Ningún código nuevo puede leerlas ni escribirlas.
+   Las SEIS tablas heredadas sin lector ni escritor —`release_evidence`, los dos checkpoints de proyección,
+   `patient_state_projection` y las dos de break-glass— sí se retiraron, con autorización del dueño, en la migración 0028:
+   están renombradas a `*_retirada_0028`, sin privilegios para ningún rol, y su borrado físico queda en manos del dueño.
 5. **Reintentos idempotentes con payload derivado del servidor** (barreras de seguridad, hora de firma) reutilizan el
    payload persistido si el `requestDigest` coincide (`replayStablePayload`); un mismo `Idempotency-Key` con otro cuerpo
    es `IDEMPOTENCY_CONFLICT`.
