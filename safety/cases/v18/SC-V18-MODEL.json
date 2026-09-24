@@ -1,7 +1,0 @@
-{
-  "id": "SC-V18-MODEL",
-  "risk": "C5",
-  "focus": "Invalid clinical state transition",
-  "human_review": "PENDING",
-  "release_admitted": false
-}

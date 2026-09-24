@@ -1,150 +1,170 @@
 {
-  "purpose": "Rutas RETIRADAS del repositorio durante la remediación de la auditoría del 19-sep-2026. Cada entrada dice qué se retiró, en qué lote y por qué. `pnpm test` (tests/v22/retired-paths.test.ts) FALLA si alguna reaparece en disco: el repositorio vive en una carpeta sincronizada por iCloud Drive, que restaura lo borrado y ya devolvió ocho paquetes tras su retiro (lote 10z). Un fichero muerto que vuelve no es inocuo: el typecheck lo compila y, si además lleva tests, vuelve a dar cobertura aparente sobre código que nadie ejecuta.",
-  "retired": [
-    {
-      "path": "packages/event-kernel",
-      "lote": "10w",
-      "reason": "Kernel de eventos PARALELO sin importadores en producción; el real es packages/atomic-clinical-transaction-v3 (ADR-0240). CAP-EVENTS-001 probaba este, no el que corre."
-    },
-    {
-      "path": "packages/break-glass",
-      "lote": "10w",
-      "reason": "Acceso de emergencia sin ningún importador ni ruta: la capacidad CAP-BREAKGLASS-001 declaraba algo que no existe y se retiró del catálogo."
-    },
-    {
-      "path": "packages/rate-limit",
-      "lote": "10w",
-      "reason": "Límite de tasa v1 sin importadores; el que aplica es rate-limit-v2 vía apps/web/lib/rate-limit.ts y el almacén compartido (migración 0021)."
-    },
-    {
-      "path": "packages/idempotent-command",
-      "lote": "10w",
-      "reason": "Huella de idempotencia que aplanaba objetos anidados (dos cuerpos distintos, la misma huella). canonicalHash vive ahora en packages/canonical-json."
-    },
-    {
-      "path": "packages/prescription-studio",
-      "lote": "10w",
-      "reason": "«Render» de receta que solo serializaba JSON y «verify» que no recalculaba nada. La receta legal real es packages/prescription-print."
-    },
-    {
-      "path": "packages/result-service",
-      "lote": "10y",
-      "reason": "Ciclo de resultados PARALELO sin llamador; el vivo es apps/web/lib/result-lifecycle.ts sobre packages/result-fold."
-    },
-    {
-      "path": "packages/result-correction-runtime",
-      "lote": "10y",
-      "reason": "Segunda implementación del DAG de corrección; el predicado del invariante vive en packages/result-correction y la ruta en /results/:id/correction."
-    },
-    {
-      "path": "apps/worker",
-      "lote": "10w",
-      "reason": "Dos líneas sin bucle ni acceso a la base: no había consumidor del outbox desplegado y el servicio de compose que lo arrancaba se retiró."
-    },
-    {
-      "path": "apps/web/lib/clinical-inbox-lifecycle.ts",
-      "lote": "10w",
-      "reason": "Duplicaba obligation-lifecycle (cableado) escribiendo siempre con expectedVersion:0 y sin máquina de estados."
-    },
-    {
-      "path": "apps/web/lib/lab-order-lifecycle.ts",
-      "lote": "10w",
-      "reason": "Duplicaba order-lifecycle con kinds incompatibles (REPORTED/COLLECTED) y un fold hardcodeado."
-    },
-    {
-      "path": "apps/web/lib/prescription-lifecycle.ts",
-      "lote": "10w",
-      "reason": "Su artefacto de receta no tenía ningún campo legal mexicano; se solapaba con la receta real."
-    },
-    {
-      "path": "apps/web/app/api/v1/timeline/route.ts",
-      "lote": "10r",
-      "reason": "Stub que devolvía 503 SIN autenticación y que la OpenAPI publicaba como GET 200. La vista real es /patients/{patientId}/timeline."
-    },
-    {
-      "path": "safety/invariants.json",
-      "lote": "10r",
-      "reason": "Arreglo VACÍO con lectores: RG-002/RG-003 contaban 0 incumplimientos sobre 0 filas y pasaban sin evaluar nada. El registro real es safety/core-invariants.json."
-    },
-    {
-      "path": "safety/hazards.json",
-      "lote": "10r",
-      "reason": "Arreglo VACÍO exigido por release/self-check.mjs; el registro real es safety/core-hazards.json."
-    },
-    {
-      "path": "tests/traceability/contracts.json",
-      "lote": "10r",
-      "reason": "Arreglo VACÍO contra el que se medía la cobertura de invariantes C4/C5."
-    },
-    {
-      "path": "tests/platform/event-kernel.test.ts",
-      "lote": "10w",
-      "reason": "Daba cobertura verde a packages/event-kernel, código que no corre."
-    },
-    {
-      "path": "tests/v9/break-glass.test.ts",
-      "lote": "10w",
-      "reason": "Única evidencia de CAP-BREAKGLASS-001, una capacidad de acceso de emergencia que no existe en el producto (sin importadores ni ruta)."
-    },
-    {
-      "path": "tests/v12/idempotent-command-v12.test.ts",
-      "lote": "10w",
-      "reason": "Probaba decideIdempotency, sin llamador; la idempotencia real la decide el kernel."
-    },
-    {
-      "path": "tests/v6/reconciliation-v6.test.ts",
-      "lote": "10w",
-      "reason": "Ejercitaba la reconciliación del outbox de apps/worker, retirado: daba cobertura verde a un módulo que ningún proceso ejecutaba."
-    },
-    {
-      "path": "tests/application/worker.test.ts",
-      "lote": "10w",
-      "reason": "Ejercitaba processOutbox de apps/worker, retirado: no existía consumidor del outbox desplegado ni servicio que lo arrancara."
-    },
-    {
-      "path": "tests/v6/result-service.test.ts",
-      "lote": "10y",
-      "reason": "Ejercitaba el ciclo de resultados paralelo."
-    },
-    {
-      "path": "tests/domain/order-result-domain.test.ts",
-      "lote": "10y",
-      "reason": "Probaba closeResult, función sin llamador retirada del vocabulario."
-    },
-    {
-      "path": "tests/v12/result-correction-runtime.test.ts",
-      "lote": "10y",
-      "reason": "Ejercitaba la segunda implementación del DAG de corrección."
-    },
-    {
-      "path": "packages/calculation-engine",
-      "lote": "11g",
-      "reason": "Paquete-fachada de 3 líneas que definía CalcResult con los cuatro estados de fallo y algorithm/version/inputsHash, y que NINGUNA calculadora importaba (anexo R03-37: «el diseño correcto existe escrito y el código real devuelve undefined»). Lo que prometía ya lo entregan los paquetes reales: los estados de fallo viven en los `*Check` de cada calculadora (curb65Check, acidBaseCheck, egfrCheck, schwartzCheck) y el algoritmo, la versión, la autoridad clínica y el hash de entradas viajan en el `receipt` de las 11 rutas calculadoras (lib/calc-receipt.ts sobre packages/calculation-receipt). Migrar 19 calculadoras a executeAlgorithm habría sido churn para volver a decir lo mismo."
-    },
-    {
-      "path": "packages/clinical-numeric",
-      "lote": "11g",
-      "reason": "Paquete-fachada de 2 líneas (validateNumeric con UNIT_REQUIRED / BELOW_SUPPORTED_RANGE / ABOVE_SUPPORTED_RANGE) que ninguna calculadora importaba (anexo R03-37). Su promesa —validar unidad y plausibilidad— la cumplen `normalizeLabValue` (lab-reference, con tabla de unidades, factores de conversión y cotas por analito) y `normalizeVitalMeasure` (lote 11b, con las unidades canónicas de los signos vitales): dos funciones con tablas de verdad detrás, no un lanzador de excepciones con tres cadenas."
-    },
-    {
-      "path": "packages/backup-restore",
-      "lote": "12e",
-      "reason": "Anexo R06-F20: TERCERA puerta de admisión de restauración, sin un solo llamador fuera de su test. `admitRestore` sobre cuatro booleanos que nadie calculaba nunca. La vigente es packages/restore-proof (`restoreErrors`), que es la que el runbook declara como criterio de aceptación y la que ejecuta scripts/v22/restore-drill.mts contra una base restaurada de verdad. Su única dimensión propia, `backupHashVerified`, modelaba un respaldo por FICHERO con digest propio; aquí el restore es un branch PITR o una reconstrucción desde migraciones, así que esa dimensión se implementó donde sí aplica: `ledgerMatch`, el registro `schema_migrations` de la base restaurada verificado por sha256 contra el origen y contra el repo. CAP-RESTORE-001 daba cobertura a esta fachada, no al gate: se retira del catálogo con ella."
-    },
-    {
-      "path": "tests/v9/backup-restore.test.ts",
-      "lote": "12e",
-      "reason": "Único importador de packages/backup-restore: ejercitaba la puerta de admisión que ningún camino invocaba. Ninguna invariante del registro formal lo declaraba como evidencia."
-    },
-    {
-      "path": "packages/restore-verifier-v2",
-      "lote": "12e",
-      "reason": "Anexo R06-F20: segunda copia de la misma puerta de admisión, con el MISMO nombre de función (`admitRestore`) y cinco booleanos en vez de cuatro; sin importadores fuera de su test. Sus dos dimensiones propias —projectionReplayMatch y openObligationsMatch— ya las verifica restore-proof como replayHash/liveHash y obligationsMatch, y esas sí se calculan contra una base real. Tres paquetes para admitir un restore y solo uno con entradas y salidas reales: CAP-RESTORE-V2-001 se retira del catálogo con ella."
-    },
-    {
-      "path": "tests/v18/restore-verifier-v2.test.ts",
-      "lote": "12e",
-      "reason": "Único importador de packages/restore-verifier-v2: probaba la variante de cinco booleanos de la misma puerta de admisión muerta. Ninguna invariante del registro formal lo declaraba como evidencia."
-    }
-  ]
+ "purpose": "Rutas RETIRADAS del repositorio durante la remediación de la auditoría del 19-sep-2026. Cada entrada dice qué se retiró, en qué lote y por qué. `pnpm test` (tests/v22/retired-paths.test.ts) FALLA si alguna reaparece en disco: el repositorio vive en una carpeta sincronizada por iCloud Drive, que restaura lo borrado y ya devolvió ocho paquetes tras su retiro (lote 10z). Un fichero muerto que vuelve no es inocuo: el typecheck lo compila y, si además lleva tests, vuelve a dar cobertura aparente sobre código que nadie ejecuta.",
+ "retired": [
+  {
+   "path": "packages/event-kernel",
+   "lote": "10w",
+   "reason": "Kernel de eventos PARALELO sin importadores en producción; el real es packages/atomic-clinical-transaction-v3 (ADR-0240). CAP-EVENTS-001 probaba este, no el que corre."
+  },
+  {
+   "path": "packages/break-glass",
+   "lote": "10w",
+   "reason": "Acceso de emergencia sin ningún importador ni ruta: la capacidad CAP-BREAKGLASS-001 declaraba algo que no existe y se retiró del catálogo."
+  },
+  {
+   "path": "packages/rate-limit",
+   "lote": "10w",
+   "reason": "Límite de tasa v1 sin importadores; el que aplica es rate-limit-v2 vía apps/web/lib/rate-limit.ts y el almacén compartido (migración 0021)."
+  },
+  {
+   "path": "packages/idempotent-command",
+   "lote": "10w",
+   "reason": "Huella de idempotencia que aplanaba objetos anidados (dos cuerpos distintos, la misma huella). canonicalHash vive ahora en packages/canonical-json."
+  },
+  {
+   "path": "packages/prescription-studio",
+   "lote": "10w",
+   "reason": "«Render» de receta que solo serializaba JSON y «verify» que no recalculaba nada. La receta legal real es packages/prescription-print."
+  },
+  {
+   "path": "packages/result-service",
+   "lote": "10y",
+   "reason": "Ciclo de resultados PARALELO sin llamador; el vivo es apps/web/lib/result-lifecycle.ts sobre packages/result-fold."
+  },
+  {
+   "path": "packages/result-correction-runtime",
+   "lote": "10y",
+   "reason": "Segunda implementación del DAG de corrección; el predicado del invariante vive en packages/result-correction y la ruta en /results/:id/correction."
+  },
+  {
+   "path": "apps/worker",
+   "lote": "10w",
+   "reason": "Dos líneas sin bucle ni acceso a la base: no había consumidor del outbox desplegado y el servicio de compose que lo arrancaba se retiró."
+  },
+  {
+   "path": "apps/web/lib/clinical-inbox-lifecycle.ts",
+   "lote": "10w",
+   "reason": "Duplicaba obligation-lifecycle (cableado) escribiendo siempre con expectedVersion:0 y sin máquina de estados."
+  },
+  {
+   "path": "apps/web/lib/lab-order-lifecycle.ts",
+   "lote": "10w",
+   "reason": "Duplicaba order-lifecycle con kinds incompatibles (REPORTED/COLLECTED) y un fold hardcodeado."
+  },
+  {
+   "path": "apps/web/lib/prescription-lifecycle.ts",
+   "lote": "10w",
+   "reason": "Su artefacto de receta no tenía ningún campo legal mexicano; se solapaba con la receta real."
+  },
+  {
+   "path": "apps/web/app/api/v1/timeline/route.ts",
+   "lote": "10r",
+   "reason": "Stub que devolvía 503 SIN autenticación y que la OpenAPI publicaba como GET 200. La vista real es /patients/{patientId}/timeline."
+  },
+  {
+   "path": "safety/invariants.json",
+   "lote": "10r",
+   "reason": "Arreglo VACÍO con lectores: RG-002/RG-003 contaban 0 incumplimientos sobre 0 filas y pasaban sin evaluar nada. El registro real es safety/core-invariants.json."
+  },
+  {
+   "path": "safety/hazards.json",
+   "lote": "10r",
+   "reason": "Arreglo VACÍO exigido por release/self-check.mjs; el registro real es safety/core-hazards.json."
+  },
+  {
+   "path": "tests/traceability/contracts.json",
+   "lote": "10r",
+   "reason": "Arreglo VACÍO contra el que se medía la cobertura de invariantes C4/C5."
+  },
+  {
+   "path": "tests/platform/event-kernel.test.ts",
+   "lote": "10w",
+   "reason": "Daba cobertura verde a packages/event-kernel, código que no corre."
+  },
+  {
+   "path": "tests/v9/break-glass.test.ts",
+   "lote": "10w",
+   "reason": "Única evidencia de CAP-BREAKGLASS-001, una capacidad de acceso de emergencia que no existe en el producto (sin importadores ni ruta)."
+  },
+  {
+   "path": "tests/v12/idempotent-command-v12.test.ts",
+   "lote": "10w",
+   "reason": "Probaba decideIdempotency, sin llamador; la idempotencia real la decide el kernel."
+  },
+  {
+   "path": "tests/v6/reconciliation-v6.test.ts",
+   "lote": "10w",
+   "reason": "Ejercitaba la reconciliación del outbox de apps/worker, retirado: daba cobertura verde a un módulo que ningún proceso ejecutaba."
+  },
+  {
+   "path": "tests/application/worker.test.ts",
+   "lote": "10w",
+   "reason": "Ejercitaba processOutbox de apps/worker, retirado: no existía consumidor del outbox desplegado ni servicio que lo arrancara."
+  },
+  {
+   "path": "tests/v6/result-service.test.ts",
+   "lote": "10y",
+   "reason": "Ejercitaba el ciclo de resultados paralelo."
+  },
+  {
+   "path": "tests/domain/order-result-domain.test.ts",
+   "lote": "10y",
+   "reason": "Probaba closeResult, función sin llamador retirada del vocabulario."
+  },
+  {
+   "path": "tests/v12/result-correction-runtime.test.ts",
+   "lote": "10y",
+   "reason": "Ejercitaba la segunda implementación del DAG de corrección."
+  },
+  {
+   "path": "packages/calculation-engine",
+   "lote": "11g",
+   "reason": "Paquete-fachada de 3 líneas que definía CalcResult con los cuatro estados de fallo y algorithm/version/inputsHash, y que NINGUNA calculadora importaba (anexo R03-37: «el diseño correcto existe escrito y el código real devuelve undefined»). Lo que prometía ya lo entregan los paquetes reales: los estados de fallo viven en los `*Check` de cada calculadora (curb65Check, acidBaseCheck, egfrCheck, schwartzCheck) y el algoritmo, la versión, la autoridad clínica y el hash de entradas viajan en el `receipt` de las 11 rutas calculadoras (lib/calc-receipt.ts sobre packages/calculation-receipt). Migrar 19 calculadoras a executeAlgorithm habría sido churn para volver a decir lo mismo."
+  },
+  {
+   "path": "packages/clinical-numeric",
+   "lote": "11g",
+   "reason": "Paquete-fachada de 2 líneas (validateNumeric con UNIT_REQUIRED / BELOW_SUPPORTED_RANGE / ABOVE_SUPPORTED_RANGE) que ninguna calculadora importaba (anexo R03-37). Su promesa —validar unidad y plausibilidad— la cumplen `normalizeLabValue` (lab-reference, con tabla de unidades, factores de conversión y cotas por analito) y `normalizeVitalMeasure` (lote 11b, con las unidades canónicas de los signos vitales): dos funciones con tablas de verdad detrás, no un lanzador de excepciones con tres cadenas."
+  },
+  {
+   "path": "packages/backup-restore",
+   "lote": "12e",
+   "reason": "Anexo R06-F20: TERCERA puerta de admisión de restauración, sin un solo llamador fuera de su test. `admitRestore` sobre cuatro booleanos que nadie calculaba nunca. La vigente es packages/restore-proof (`restoreErrors`), que es la que el runbook declara como criterio de aceptación y la que ejecuta scripts/v22/restore-drill.mts contra una base restaurada de verdad. Su única dimensión propia, `backupHashVerified`, modelaba un respaldo por FICHERO con digest propio; aquí el restore es un branch PITR o una reconstrucción desde migraciones, así que esa dimensión se implementó donde sí aplica: `ledgerMatch`, el registro `schema_migrations` de la base restaurada verificado por sha256 contra el origen y contra el repo. CAP-RESTORE-001 daba cobertura a esta fachada, no al gate: se retira del catálogo con ella."
+  },
+  {
+   "path": "tests/v9/backup-restore.test.ts",
+   "lote": "12e",
+   "reason": "Único importador de packages/backup-restore: ejercitaba la puerta de admisión que ningún camino invocaba. Ninguna invariante del registro formal lo declaraba como evidencia."
+  },
+  {
+   "path": "packages/restore-verifier-v2",
+   "lote": "12e",
+   "reason": "Anexo R06-F20: segunda copia de la misma puerta de admisión, con el MISMO nombre de función (`admitRestore`) y cinco booleanos en vez de cuatro; sin importadores fuera de su test. Sus dos dimensiones propias —projectionReplayMatch y openObligationsMatch— ya las verifica restore-proof como replayHash/liveHash y obligationsMatch, y esas sí se calculan contra una base real. Tres paquetes para admitir un restore y solo uno con entradas y salidas reales: CAP-RESTORE-V2-001 se retira del catálogo con ella."
+  },
+  {
+   "path": "tests/v18/restore-verifier-v2.test.ts",
+   "lote": "12e",
+   "reason": "Único importador de packages/restore-verifier-v2: probaba la variante de cinco booleanos de la misma puerta de admisión muerta. Ninguna invariante del registro formal lo declaraba como evidencia."
+  },
+  {
+   "path": "safety/cases/v15",
+   "lote": "13a",
+   "reason": "Anexo R09-028: casos de seguridad de la iteración v15 del andamio, sin una sola referencia en código ni en los gates (el registro formal lee safety/core-hazards.json, safety/core-invariants.json, safety/controls/catalog.json y safety-envelopes/catalog.json; safety/cases/ no lo lee nadie). Los casos VIGENTES son los 19 CAP-*.json del nivel superior, y los 19 corresponden a capacidades que siguen en el catálogo."
+  },
+  {
+   "path": "safety/cases/v16",
+   "lote": "13a",
+   "reason": "Anexo R09-028: igual que v15. Cinco casos de una iteración retirada del andamio, superados por los CAP-*.json del nivel superior."
+  },
+  {
+   "path": "safety/cases/v17",
+   "lote": "13a",
+   "reason": "Anexo R09-028: igual que v15. Cinco casos de una iteración retirada del andamio, superados por los CAP-*.json del nivel superior."
+  },
+  {
+   "path": "safety/cases/v18",
+   "lote": "13a",
+   "reason": "Anexo R09-028: igual que v15. Seis casos de una iteración retirada del andamio, superados por los CAP-*.json del nivel superior."
+  }
+ ]
 }

@@ -2,7 +2,7 @@
   "purpose": "Registro de APLICABILIDAD regulatoria (ENG-044 Compliance-as-Code baseline). NO declara cumplimiento total ni certificación: mapea cada instrumento aplicable a la evidencia técnica que lo aborda y a las brechas conocidas. Enforzado por tests/v22/nom-compliance-integrity.test.ts.",
   "authority": "ENG-044-R001",
   "disclaimer": "Ley no negociable (SPEC_INDEX): 'No claim de certificación sin evidencia'. Ninguna entrada declara certificación; la certificación formal requiere auditoría externa y evidencia legal fuera del código.",
-  "updated": "2026-09-17",
+  "updated": "2026-09-24",
   "applicabilityLevels": [
     "APPLICABLE",
     "EVALUATE_WHEN",
@@ -25,8 +25,10 @@
       "evidence": [
         "db/migrations/0013_transactional_authority_and_audit.sql",
         "CAP-CONSENT-001",
-        "CAP-VITAL-001",
-        "CAP-BACKUP-DR-001"
+        "scripts/v22/live-vital-lifecycle-proof.mts",
+        "scripts/v22/live-vitals-history-proof.mts",
+        "CAP-RESTORE-PROOF-004",
+        "scripts/v22/live-restore-drill-proof.mts"
       ],
       "addressedBy": "Event store append-only + cadena de auditoría encadenada (inalterabilidad y trazabilidad); enmienda append-only de vitales; consentimiento informado clínico-legal; recuperabilidad verificada.",
       "gaps": "Firma electrónica avanzada certificada (NOM-151), retención legal formal por tiempo mínimo, y validación por un especialista en información en salud."
@@ -39,10 +41,10 @@
       "status": "PARTIAL",
       "certificationClaimed": false,
       "evidence": [
-        "CAP-RECORD-EXPORT-001",
-        "CAP-TERMINOLOGY-001",
-        "CAP-BILLING-ICD10-001",
-        "scripts/v22/live-record-export-proof.mts"
+        "CAP-EXPORT-001",
+        "scripts/v22/live-record-export-proof.mts",
+        "scripts/v22/live-terminology-proof.mts",
+        "scripts/v22/live-claim-lifecycle-proof.mts"
       ],
       "addressedBy": "Export/manifiesto del expediente con hash reproducible (interoperabilidad); datos codificados CIE-10 (no texto libre) en problemas y facturación.",
       "gaps": "Conformidad de formato de intercambio SIRES oficial, certificado de conformidad, y evidencia de seguridad del canal de intercambio."
@@ -57,7 +59,8 @@
       "evidence": [
         "CAP-IDENTITY-001",
         "CAP-AUTHZ-001",
-        "CAP-OBSERVABILITY-SLI-001",
+        "CAP-OBSERVABILITY-001",
+        "scripts/v22/live-observability-sli-proof.mts",
         "db/migrations/0012_schema_integrity_and_runtime_hardening.sql",
         "db/migrations/0020_rls_completion_and_legacy_tables.sql"
       ],
@@ -92,5 +95,6 @@
       "gaps": "Determinación formal de alcance/intended-use y clasificación de riesgo por módulo (Regulatory). La tabla de uso previsto por endpoint y la advertencia en cada respuesta ya existen; lo que falta es la decisión regulatoria y, si procede, el sistema de gestión de calidad que la norma exige.",
       "auditFinding": "R03-35 (anexo R03 de la auditoría 2026-09-19): autoexclusión contradicha por el código del propio repositorio."
     }
-  ]
+  ],
+  "evidenceRule": "Auditoria R09-007: la evidencia se valida contra el catalogo VIVO de capacidades y contra el disco, no contra la instantanea de reconciliacion del 15-sep-2026. Seis identificadores citados como evidencia regulatoria de NOM-004, NOM-024 y LFPDPPP (CAP-VITAL-001, CAP-BACKUP-DR-001, CAP-RECORD-EXPORT-001, CAP-TERMINOLOGY-001, CAP-BILLING-ICD10-001, CAP-OBSERVABILITY-SLI-001) no existian en el catalogo: solo en esa instantanea, que era justo el fichero contra el que el test comprobaba. Tres eran renombrados, uno tenia sustituto y dos no nombraban nada. Reglas vigentes, impuestas por tests/v22/nom-compliance-integrity.test.ts: (1) una capacidad citada tiene que estar en el catalogo vivo Y tener al menos una prueba declarada —una capacidad sin pruebas no sustenta nada—; (2) un artefacto citado tiene que existir, no estar retirado y no ser un esbozo; (3) todo instrumento APPLICABLE necesita al menos una evidencia EJECUTABLE (una prueba o una prueba en vivo), porque la prosa no sustenta un cumplimiento; (4) ningun instrumento declara certificacion."
 }

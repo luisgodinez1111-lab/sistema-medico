@@ -1,7 +1,0 @@
-{
-  "id": "SC-V18-CONCURRENCY",
-  "risk": "C5",
-  "focus": "Race produces duplicate authority or stale worker write",
-  "human_review": "PENDING",
-  "release_admitted": false
-}

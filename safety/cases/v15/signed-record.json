@@ -1,1 +1,0 @@
-{"id":"SC-V15-SIGNED","risk":"C5","hazards":["silent signed chart mutation"],"controls":["append-only version store","audit chain","amendment path"],"invariants":["signed content never updated/deleted"],"recovery":"append amendment","humanReview":"PENDING"}

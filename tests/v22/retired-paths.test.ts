@@ -127,6 +127,21 @@ describe("paquetes duplicados: la autoridad está declarada y es cierta",()=>{
   }
   expect(desviaciones).toEqual([]);
  });
+ // Auditoría R09-028: safety/cases/ tenía cuatro subcarpetas (v15…v18) con casos de seguridad de iteraciones retiradas del
+ // andamio. NINGÚN gate lee safety/cases/ —el registro formal lee core-hazards, core-invariants, controls/catalog y
+ // safety-envelopes/catalog—, así que eran documentos que nadie abría describiendo versiones que ya no existen. Los
+ // VIGENTES son los CAP-*.json del nivel superior, que sí son artefactos para un lector humano (un auditor), y por eso la
+ // invariante que se fija es la que importa en ese caso: que cada uno describa una capacidad que siga existiendo.
+ it("cada caso de seguridad describe una capacidad VIVA, y no reaparecen las carpetas de versión (R09-028)",()=>{
+  const catalogo=new Set((JSON.parse(fs.readFileSync("capabilities/catalog.json","utf8")) as {id:string}[]).map(c=>c.id));
+  const entradas=fs.readdirSync("safety/cases",{withFileTypes:true});
+  const carpetas=entradas.filter(e=>e.isDirectory()).map(e=>e.name);
+  expect(carpetas,"safety/cases no lleva subcarpetas por versión: eran reliquias del andamio").toEqual([]);
+  const huerfanos=entradas.filter(e=>e.isFile()&&e.name.endsWith(".json"))
+   .map(e=>e.name.replace(/\.json$/,"")).filter(id=>!catalogo.has(id));
+  expect(huerfanos,"caso de seguridad de una capacidad que ya no está en el catálogo").toEqual([]);
+  expect(entradas.filter(e=>e.isFile()).length,"safety/cases quedó vacío").toBeGreaterThanOrEqual(15);
+ });
  it("las tablas duplicadas declaran su autoridad en el catálogo de la base (COMMENT ON TABLE)",()=>{
   // La mitad de tablas de R06-F11 no va en un JSON: va donde la lee quien abre la base. 0020 declaró cuatro, 0026 el
   // outbox y 0027 las cinco que faltaban (los dos «break glass», los dos recibos de consumidor y la proyección muerta).
