@@ -23,7 +23,8 @@
     "openapi:check": "tsx scripts/ops/api-body-registry.mts --check && tsx scripts/ops/openapi.mts --check",
     "phi:retention": "tsx scripts/ops/phi-retention.mts",
     "openapi:registry": "tsx scripts/ops/api-body-registry.mts",
-    "capability:check": "tsx packages/clinical-safety/src/capability-admission.ts"
+    "capability:check": "tsx packages/clinical-safety/src/capability-admission.ts",
+    "algorithms:inventory": "tsx scripts/docs/algorithm-inventory.mts"
   },
   "devDependencies": {
     "@testing-library/dom": "^10",
