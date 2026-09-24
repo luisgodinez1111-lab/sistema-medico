@@ -165,6 +165,26 @@
    "path": "safety/cases/v18",
    "lote": "13a",
    "reason": "Anexo R09-028: igual que v15. Seis casos de una iteración retirada del andamio, superados por los CAP-*.json del nivel superior."
+  },
+  {
+   "path": "packages/clinical-kernel",
+   "lote": "10e",
+   "reason": "Anexo K-02: máquinas de estado PARALELAS que solo los tests ejecutaban. Los seis contratos de trazabilidad que lo usaban ejercitan ahora los folds REALES. Retirado en el lote 10e y registrado aquí en el 13c: la reconciliación del cruce descubrió que cuatro paquetes retirados en los lotes 10a y 10e nunca entraron en este registro, así que el guardarraíl anti-iCloud no los protegía."
+  },
+  {
+   "path": "packages/contracts",
+   "lote": "10e",
+   "reason": "Anexo K-03: contrato «no computable» que nadie usaba. El contrato real es `verifyAnalyteReadings`, probado por clinical-semantics.test.ts. Retirado en el lote 10e y registrado aquí en el 13c."
+  },
+  {
+   "path": "packages/authz",
+   "lote": "10e",
+   "reason": "Anexo S-09: autorización DUPLICADA que lanzaba `Error` plano sin código. La vigente es packages/runtime-auth (scope obligatorio, ClinicalError con código), usada por http-principal, encounter-service y clinical-api. Retirado en el lote 10e y registrado aquí en el 13c."
+  },
+  {
+   "path": "packages/vitals-reference",
+   "lote": "10a",
+   "reason": "Rangos de referencia de signos vitales sustituidos por packages/lab-reference desde C-13; la adjudicación que lo citaba apunta ya al sustituto. Retirado en el lote 10a y registrado aquí en el 13c."
   }
  ]
 }

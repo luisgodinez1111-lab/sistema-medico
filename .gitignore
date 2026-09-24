@@ -18,3 +18,6 @@ coverage/
 
 # Informe generado por pnpm capability:check (K-08)
 release/capabilities/admission.json
+# Build de Storybook: 7,6 MB de artefacto versionado que el lote 10a retiró del repo (no es código retirado,
+# es salida de build: si alguien lo regenera en local no debe volver a confirmarse).
+**/storybook-static/
