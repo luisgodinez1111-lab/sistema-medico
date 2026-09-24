@@ -1,1 +1,0 @@
-import{describe,it,expect}from"vitest";import{decideIdempotency}from"../../packages/idempotent-command/src";describe("idem",()=>{it("replays completed identical command",()=>expect(decideIdempotency({requestHash:"5041bf1f713df204784353e82f6a4a535931cb64f1f4b4a5aeaffcb720918b22",status:"COMPLETED",response:{ok:true},expiresAt:10},{x:1},1).action).toBeDefined());});

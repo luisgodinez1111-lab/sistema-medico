@@ -39,8 +39,18 @@ describe("no-orphan guard: registro NOT_WIRED honesto (EPIC BF)",()=>{
    expect(m.classification.length).toBeGreaterThan(0);
   }
  });
- it("los 8 huérfanos conocidos de la auditoría están declarados",()=>{
-  const known=["adaptive-history-lifecycle","ai-gateway-lifecycle","clinical-inbox-lifecycle","clinical-intelligence-lifecycle","document-ingestion-lifecycle","imaging-lifecycle","lab-order-lifecycle","prescription-lifecycle"];
-  for(const k of known)expect(declared.has(k),`falta declarar ${k}`).toBe(true);
+ it("los huérfanos que siguen en el repo están declarados, y los retirados constan con su razón",()=>{
+  // Auditoría R01-023 (23-sep-2026): de los 8 huérfanos que halló la auditoría, TRES se retiraron del repo por duplicar
+  // un handler ya cableado (clinical-inbox, lab-order) o por solaparse con la receta legal real (prescription). No basta
+  // con que desaparezcan del registro: deben constar en `retiredModules` con el motivo, para que el historial no mienta.
+  const vivos=["adaptive-history-lifecycle","ai-gateway-lifecycle","clinical-intelligence-lifecycle","document-ingestion-lifecycle","imaging-lifecycle"];
+  for(const k of vivos)expect(declared.has(k),`falta declarar ${k}`).toBe(true);
+  const retirados=(registry as unknown as{retiredModules?:{module:string;reason:string}[]}).retiredModules??[];
+  for(const k of ["clinical-inbox-lifecycle","lab-order-lifecycle","prescription-lifecycle"]){
+   const fila=retirados.find(r=>r.module===k);
+   expect(fila,`falta la constancia de retiro de ${k}`).toBeTruthy();
+   expect(fila!.reason.length,`el retiro de ${k} debe explicar por qué`).toBeGreaterThan(40);
+   expect(fs.existsSync(`${LIB}/${k}.ts`),`${k} debe estar borrado del repo`).toBe(false);
+  }
  });
 });

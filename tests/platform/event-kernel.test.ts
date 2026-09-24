@@ -1,3 +1,0 @@
-import {describe,it,expect} from "vitest";import {appendEvent} from "../../packages/event-kernel/src";
-const e=(id:string,seq:number)=>({id,aggregateId:"a",aggregateType:"patient",tenantId:"t",sequence:seq,occurredAt:"x",recordedAt:"x",actorId:"u",actorType:"PHYSICIAN" as const,authority:["ENG-306"],correlationId:"c",schemaVersion:1,payload:{}});
-describe("event kernel",()=>{it("rejects lost update",()=>expect(()=>appendEvent([e("1",1)],e("2",2),0)).toThrow(/EXPECTED_0_ACTUAL_1/));it("appends monotonic event",()=>expect(appendEvent([e("1",1)],e("2",2),1)).toHaveLength(2));});

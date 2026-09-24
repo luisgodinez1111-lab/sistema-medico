@@ -245,13 +245,15 @@
     ],
     "machines": [],
     "tests": [
-      "event-kernel.test.ts"
+      "downtime-no-false-save.test.ts",
+      "runtime-db-contract.test.ts"
     ],
     "releasePolicy": "FAIL_CLOSED",
     "dependsOn": [
       "CAP-IDENTITY-001",
       "CAP-AUDIT-001"
-    ]
+    ],
+    "evidenceNote": "R01-023/R01-025: la evidencia apuntaba a packages/event-kernel, un paquete sin importadores en producción. El kernel real es packages/atomic-clinical-transaction-v3 (ADR-0240) y su contrato ejecutable son estos tests más las pruebas en vivo live-*-lifecycle-proof.mts."
   },
   {
     "id": "CAP-ASYNC-001",
@@ -1298,25 +1300,6 @@
     ]
   },
   {
-    "id": "CAP-BREAKGLASS-001",
-    "name": "Emergency Break-Glass Access",
-    "risk": "C5",
-    "authority": [
-      "ENG-333"
-    ],
-    "hazards": [],
-    "controls": [],
-    "invariants": [],
-    "machines": [],
-    "tests": [
-      "break-glass.test.ts"
-    ],
-    "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
-    "dependsOn": [
-      "CAP-IDENTITY-001"
-    ]
-  },
-  {
     "id": "CAP-POLICY-PROV-001",
     "name": "Effective-Dated Policy Provenance",
     "risk": "C5",
@@ -1974,12 +1957,14 @@
     "invariants": [],
     "machines": [],
     "tests": [
-      "idempotent-command-v12.test.ts"
+      "downtime-no-false-save.test.ts",
+      "connection-and-identifiers.test.ts"
     ],
     "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
     "dependsOn": [
       "CAP-IDENTITY-001"
-    ]
+    ],
+    "evidenceNote": "R01-022/R01-023: la evidencia apuntaba a packages/idempotent-command, cuya huella aplanaba objetos anidados (dos cuerpos distintos, misma huella) y que ningún camino de producción usaba. La idempotencia real la decide el kernel con command_idempotency + requestDigest; canonicalHash vive ahora en packages/canonical-json."
   },
   {
     "id": "CAP-REPOSITORY-003",

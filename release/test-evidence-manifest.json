@@ -38,16 +38,6 @@
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },
   {
-    "test": "tests/application/worker.test.ts",
-    "authority": [
-      "ENG-311",
-      "ENG-337"
-    ],
-    "sha256": "68f95a73356fe10458fc434f80894bf01c92e6a963683703f9e2507c1106304b",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
     "test": "tests/domain/calculation-engine.test.ts",
     "authority": [
       "ENG-273",
@@ -170,16 +160,6 @@
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },
   {
-    "test": "tests/platform/event-kernel.test.ts",
-    "authority": [
-      "ENG-306",
-      "ENG-333"
-    ],
-    "sha256": "175e32caf4b32f18c8dcd93181232cdbd8e182ac0da9f25f2264f4deefb5bb30",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
     "test": "tests/platform/feature-gates.test.ts",
     "authority": [
       "ENG-346",
@@ -244,15 +224,6 @@
       "ENG-346"
     ],
     "sha256": "ab3d6dafaed7c0751bbfa23ed41acce0980a747e97eb81241290183a7ded6ed4",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
-    "test": "tests/security/rate-limit.test.ts",
-    "authority": [
-      "ENG-333"
-    ],
-    "sha256": "a0566aac9e29cec6e2d9566b2fe8c83c1b919f6344fad4b816ce6d32db52f09d",
     "execution_status": "PENDING_EXECUTION",
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },
@@ -585,16 +556,6 @@
     ],
     "sha256": "6eca890ec6be3b1877ea60a782de8b603a7ad3542bb75d9bff3bc6b419ba732e",
     "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
-    "test": "tests/v12/idempotent-command-v12.test.ts",
-    "authority": [
-      "ENG-311",
-      "ENG-337"
-    ],
-    "sha256": "e093f2e3d808a4899114b9d744c165f360d0fcb6707403349bc836d1e71189b0",
-    "execution_status": "EXECUTED_PASS",
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },
   {
@@ -1193,6 +1154,14 @@
     "invariant": "INV-CORE-0016"
   },
   {
+    "test": "tests/v22/connection-and-identifiers.test.ts",
+    "authority": [
+      "ENG-311",
+      "ENG-337"
+    ],
+    "sha256": "e6fd8774c2f129a67bac514a31503c1020061a34b0c5f2c2b3d38122f84c3b4a"
+  },
+  {
     "test": "tests/v22/downtime-no-false-save.test.ts",
     "authority": [
       "ENG-306",
@@ -1228,16 +1197,6 @@
     ],
     "sha256": "e4fa8a3228cc4fe215459cf198eeea956dfe69d2d48f9ea2b8a317207ef6752f",
     "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
-    "test": "tests/v6/reconciliation-v6.test.ts",
-    "authority": [
-      "ENG-311",
-      "ENG-337"
-    ],
-    "sha256": "63dbf02b52e275c193a3a3a8f0cf6870c19ff4a4492c64e63909f03163bab7cc",
-    "execution_status": "EXECUTED_PASS",
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },
   {
@@ -1429,15 +1388,6 @@
       "ENG-346"
     ],
     "sha256": "498e81c335ef04df6baa2b30d4df788538a4dd8c962cdd19c5e74e1e9db0c902",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
-    "test": "tests/v9/break-glass.test.ts",
-    "authority": [
-      "ENG-333"
-    ],
-    "sha256": "09c7895b1ca00e9f64f68ddf63dc42fc55cc843c9c325e3df411b81584437019",
     "execution_status": "PENDING_EXECUTION",
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },

@@ -2,8 +2,7 @@ import{describe,it,expect}from"vitest";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import{directEndpoint,describeEndpoint}from"../../packages/pg-endpoint/src";
-import{uuidFromDigest,canonicalize}from"../../packages/canonical-json/src";
-import{canonicalHash}from"../../packages/idempotent-command/src";
+import{uuidFromDigest,canonicalize,canonicalHash}from"../../packages/canonical-json/src";
 import{subjectToActorId}from"../../packages/http-principal/src";
 // Auditoría 2026-09-19, anexo R01 — hallazgos R01-004 (cadena de conexión con regex), R01-015 (UUID derivados no
 // conformes) y R01-022 (huella de idempotencia que aplanaba objetos anidados). Cada prueba reproduce el defecto original.

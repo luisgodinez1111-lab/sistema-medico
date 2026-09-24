@@ -18,3 +18,11 @@ export{uuidFromDigest}from"./uuid";
 export function deterministicUuid(seed:string):string{
  return uuidFromDigest(createHash("sha256").update(seed).digest("hex"));
 }
+
+// Huella canónica de un cuerpo de comando: la que decide si un reintento es el MISMO comando (idempotencia) o uno
+// distinto (409 IDEMPOTENCY_CONFLICT). Auditoría R01-022/R01-023: vivía en `packages/idempotent-command`, un paquete sin
+// importadores en producción cuya versión aplanaba los objetos anidados —dos cuerpos distintos daban la misma huella—.
+// Aquí queda junto a la canonicalización que usa el kernel, de modo que hay UNA sola definición de «el mismo comando».
+export function canonicalHash(value:unknown):string{
+ return createHash("sha256").update(canonicalize(value)).digest("hex");
+}

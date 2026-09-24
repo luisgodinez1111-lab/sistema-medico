@@ -1,2 +1,0 @@
-
-export class TokenBucket{private tokens:number;private last:number;constructor(private capacity:number,private refillPerSecond:number,now=Date.now()){this.tokens=capacity;this.last=now;}allow(now=Date.now()){const elapsed=Math.max(0,now-this.last)/1000;this.tokens=Math.min(this.capacity,this.tokens+elapsed*this.refillPerSecond);this.last=now;if(this.tokens<1)return false;this.tokens-=1;return true;}}

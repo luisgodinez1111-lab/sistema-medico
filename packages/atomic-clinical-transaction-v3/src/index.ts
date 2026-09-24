@@ -8,6 +8,12 @@ export async function executeAtomicClinicalCommand(sql:Sql,ctx:TenantContext,c:C
  if(preflight)await preflight(tx);
  const h=crypto.createHash("sha256").update(canonicalize(c)).digest("hex");
  const claim=await tx`insert into command_idempotency(tenant_id,actor_id,key,request_hash,status,expires_at) values(${ctx.tenantId},${ctx.actorId},${c.idempotencyKey},${h},'IN_PROGRESS',now()+interval '24 hours') on conflict do nothing returning key`;
+ // Reintento: la clave ya existe. `for update` BLOQUEA hasta que la transacción que la reclamó termine, así que al leerla
+ // o el cuerpo difiere (conflicto real) o el comando ya está COMPLETED (replay). La tercera rama, IDEMPOTENCY_IN_PROGRESS,
+ // es INALCANZABLE en este diseño —auditoría R01-027— porque la reclamación y el UPDATE a COMPLETED ocurren en la MISMA
+ // transacción: nadie fuera de ella puede ver el estado intermedio, y si el proceso muere, Postgres revierte la fila.
+ // Se conserva a propósito como red de seguridad: volvería a ser alcanzable el día que la reclamación se confirmara por
+ // separado (p. ej. un worker que reclamara y ejecutara en dos pasos), y entonces fallar cerrado es lo correcto.
  if(!claim.length){const p=await tx`select request_hash,status,response_json from command_idempotency where tenant_id=${ctx.tenantId} and actor_id=${ctx.actorId} and key=${c.idempotencyKey} for update`;if(p[0]?.request_hash!==h)throw Error('IDEMPOTENCY_CONFLICT');if(p[0]?.status==='COMPLETED')return{replayed:true,response:p[0].response_json};throw Error('IDEMPOTENCY_IN_PROGRESS');}
  const v=await tx`insert into aggregate_versions(tenant_id,aggregate_id,version) values(${ctx.tenantId},${c.aggregateId},1) on conflict(tenant_id,aggregate_id) do update set version=aggregate_versions.version+1,updated_at=now() where aggregate_versions.version=${c.expectedVersion} returning version`;
  if(v.length!==1||Number(v[0]?.version)!==c.expectedVersion+1)throw Error('CONCURRENCY_CONFLICT');

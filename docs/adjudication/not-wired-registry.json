@@ -22,15 +22,6 @@
       "decision": "NOT_WIRED"
     },
     {
-      "module": "clinical-inbox-lifecycle",
-      "path": "apps/web/lib/clinical-inbox-lifecycle.ts",
-      "header": "EPIC N — Clinical Inbox: obligaciones clínicas",
-      "classification": "DUPLICATE_OF_WIRED",
-      "reason": "Duplica el vertical de obligaciones YA cableado (obligation-lifecycle.ts) y clinical-runtime.countOpenCriticalObligations. Legacy; candidato a RETIRO.",
-      "wireCandidate": false,
-      "decision": "NOT_WIRED"
-    },
-    {
       "module": "clinical-intelligence-lifecycle",
       "path": "apps/web/lib/clinical-intelligence-lifecycle.ts",
       "header": "EPIC S — Clinical Intelligence Deterministic Layer (EXEC-0021/0022/0025)",
@@ -56,24 +47,26 @@
       "reason": "Vertical genuino (no-IA) aún sin ruta ni prueba en vivo. Candidato a cablear en un epic futuro.",
       "wireCandidate": true,
       "decision": "NOT_WIRED"
+    }
+  ],
+  "retiredModules": [
+    {
+      "module": "clinical-inbox-lifecycle",
+      "classification": "DUPLICATE_OF_WIRED",
+      "retiredAt": "2026-09-23",
+      "reason": "Duplicaba las obligaciones clínicas que sí sirve obligation-lifecycle (cableado). Retirado en la remediación de R01-023; su fold no tenía máquina de estados y escribía con expectedVersion:0."
     },
     {
       "module": "lab-order-lifecycle",
-      "path": "apps/web/lib/lab-order-lifecycle.ts",
-      "header": "EPIC L — Ciclo de vida de orden de laboratorio (LAB)",
       "classification": "DUPLICATE_OF_WIRED",
-      "reason": "Solapa los verticales YA cableados de órdenes (order-lifecycle.ts) y resultados (result-lifecycle.ts). Legacy; candidato a RETIRO o consolidación.",
-      "wireCandidate": false,
-      "decision": "NOT_WIRED"
+      "retiredAt": "2026-09-23",
+      "reason": "Duplicaba las órdenes que sirve order-lifecycle (cableado) con kinds incompatibles (REPORTED/COLLECTED) y un fold hardcodeado. Retirado en la remediación de R01-023."
     },
     {
       "module": "prescription-lifecycle",
-      "path": "apps/web/lib/prescription-lifecycle.ts",
-      "header": "EPIC J — Prescription Studio: renderer visual de plantillas sobre datos estructurados",
       "classification": "OVERLAPS_WIRED",
-      "reason": "Renderer de recetas que solapa la prescripción YA cableada (medication-lifecycle.ts). Feature de presentación; hoy NO se cablea.",
-      "wireCandidate": false,
-      "decision": "NOT_WIRED"
+      "retiredAt": "2026-09-23",
+      "reason": "Su «artefacto» de receta era un JSON sin ningún campo legal mexicano y su render/verify eran tautológicos (packages/prescription-studio, retirado con él). La receta real es packages/prescription-print + /api/v1/patients/:id/prescription-print. Retirado en la remediación de R01-023."
     }
   ]
 }

@@ -5,12 +5,12 @@ services:
     ports: ['5432:5432']
     healthcheck: {test: ['CMD-SHELL','pg_isready -U medical_os_migrator -d medical_os'], interval: 3s, timeout: 3s, retries: 20}
     volumes: [medical_os_pg:/var/lib/postgresql/data]
-  web:
-    image: node:22-bookworm-slim
-    working_dir: /workspace
-    volumes: ['..:/workspace']
-    command: ['sh','-lc','corepack enable && pnpm install --frozen-lockfile && pnpm build:web']
-    depends_on: {postgres: {condition: service_healthy}}
+  # Auditoría 2026-09-19, anexo R01 (R01-009): aquí había un servicio "web" cuyo comando terminaba en `pnpm build:web`,
+  # es decir COMPILABA y salía: nunca sirvió la aplicación, aunque el nombre y el `depends_on` sugirieran lo contrario.
+  # Este compose es, y solo dice ser, el Postgres de desarrollo. Para servir la aplicación hay dos caminos reales:
+  #   · desarrollo:   pnpm exec next dev apps/web        (ver README, "Arranque local")
+  #   · self-hosted:  docker build -t medical-os-web . && docker run --env-file .env.production -p 3000:3000 medical-os-web
+  #     (el Dockerfile del repo compila en modo standalone y arranca `node apps/web/server.js` como usuario sin privilegios)
   # Auditoría 2026-09-19 (D-03): aquí había un servicio "worker" que ejecutaba `node apps/worker/src/index.ts` — un módulo
   # TypeScript de dos líneas sin bucle ni acceso a la base. No existe un consumidor del outbox desplegado; el outbox es una
   # cola reservada (ver ADR-0031, addendum 2026-09-22) y no se finge lo contrario aquí.
