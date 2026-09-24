@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import crypto from"node:crypto";
 import{z}from"zod";
 import{resolvePrincipal}from"../../../../../../packages/http-principal/src";
-import{readerFor,derivedUuid}from"../../../../lib/http-command";
+import{readerFor,derivedUuid,principalFrom}from"../../../../lib/http-command";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../../../../packages/atomic-clinical-transaction-v3/src";
@@ -27,9 +27,10 @@ const OpenEncounter=z.object({
 // mismo envelope de comando (mismo commandId/eventId/outboxId/auditId) => hash idéntico.
 
 
-function principalFrom(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- return{tenantId:claims.tenantId,actorId:claims.sub,roles:claims.roles,scopes:claims.scopes,purpose:claims.purpose,sessionId:claims.sessionId};
-}
+// Auditoría 2026-09-19, anexo R04 (R04-002): esta ruta traía su PROPIA copia de `principalFrom`, idéntica carácter por
+// carácter a la de `lib/http-command.ts`. Dos familias de ayudantes HTTP es como empiezan a divergir: el día que una añada
+// un campo al principal —un `actorType`, un `deviceId`— la otra seguirá autorizando con el principal viejo y nadie lo
+// notará, porque las dos compilan. Se usa la compartida.
 
 export async function POST(req:Request){
  try{

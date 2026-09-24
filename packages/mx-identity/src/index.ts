@@ -48,3 +48,17 @@ export function ageYearsAt(birthDate:string,asOf:string):number|undefined{
 }
 export const ADULT_AGE=18;
 export const isMinor=(birthDate:string,asOf:string):boolean|undefined=>{const y=ageYearsAt(birthDate,asOf);return y===undefined?undefined:y<ADULT_AGE;};
+
+// Auditoría 2026-09-19, anexo R04 (R04-F02) — RFC: FORMA, no solo longitud.
+//
+// El hallazgo: «rfc/cedula del consultorio solo validan longitud (max 20/30), sin regex de formato». Un RFC es un dato
+// FISCAL que sale en documentos del consultorio; aceptar cualquier cadena de 20 caracteres significa que un error de
+// captura llega al documento y nadie se enteró hasta que lo rechaza el SAT.
+//
+// Se valida la FORMA canónica y nada más: 3 letras (persona moral) o 4 (persona física), 6 dígitos de fecha y 3 de
+// homoclave. NO se valida el dígito verificador: su algoritmo tiene casos límite históricos y rechazar un RFC legítimo
+// bloquearía la configuración del consultorio, que es peor que aceptar uno mal escrito. La forma descarta lo evidente.
+const RFC_RE=/^[A-ZÑ&]{3,4}\d{6}[A-Z\d]{3}$/;
+/** Normaliza a mayúsculas sin espacios, que es como se registra un RFC. */
+export const normalizeRfc=(v:string):string=>v.trim().toUpperCase().replace(/[\s-]/g,"");
+export const isValidRfc=(v:string):boolean=>RFC_RE.test(normalizeRfc(v));

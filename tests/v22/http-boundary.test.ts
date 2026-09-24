@@ -75,3 +75,46 @@ describe("borde HTTP: correlación y versión en la respuesta (R04-F09, R04-F10)
   expect((src.match(/conCorrelacion\(/g)??[]).length,"una salida del borde sin correlación").toBe(3);
  });
 });
+
+// Auditoría 2026-09-19, anexo R04 — higiene del borde: un solo ayudante (R04-002), formato de los identificadores
+// fiscales y profesionales (R04-F02) y umbrales declarados (R04-F05).
+describe("higiene del borde HTTP (R04-002, R04-F02, R04-F05)",()=>{
+ it("ninguna ruta define su propia copia de principalFrom (R04-002)",()=>{
+  // Dos familias de ayudantes es como empiezan a divergir: el día que una añada un campo al principal, la otra seguirá
+  // autorizando con el viejo y nadie lo notará, porque las dos compilan.
+  const copias:string[]=[];
+  const walk=(d:string):void=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){
+   const p=path.join(d,e.name);
+   if(e.isDirectory())walk(p);
+   else if(e.name==="route.ts"&&/function\s+principalFrom\s*\(/.test(fs.readFileSync(p,"utf8")))copias.push(p);
+  }};
+  walk("apps/web/app/api");
+  expect(copias,"ruta con su propia copia de principalFrom: use la de lib/http-command").toEqual([]);
+ });
+ it("el RFC del consultorio valida su FORMA, no solo la longitud (R04-F02)",async()=>{
+  const{isValidRfc,normalizeRfc}=await import("../../packages/mx-identity/src");
+  // Forma canónica: 3 letras (moral) o 4 (física), 6 dígitos de fecha, 3 de homoclave.
+  for(const bueno of ["GODL800101ABC","ABC800101XY1","godl800101abc"])expect(isValidRfc(bueno),bueno).toBe(true);
+  for(const malo of ["","XX","GODL8001","GODL800101ABCD","1234800101ABC","GODL-8001-01"])expect(isValidRfc(malo),malo).toBe(false);
+  expect(normalizeRfc(" godl800101abc "),"se normaliza como se registra").toBe("GODL800101ABC");
+  // Y NO se valida el dígito verificador: rechazar un RFC legítimo bloquearía la configuración del consultorio.
+  const src=fs.readFileSync("packages/mx-identity/src/index.ts","utf8");
+  expect(src).toMatch(/NO se valida el d[ií]gito verificador/);
+ });
+ it("la cédula del consultorio usa la MISMA definición que exige la receta legal (R04-F02)",async()=>{
+  // Si el sistema aceptara aquí una cédula que la receta rechaza, el consultorio quedaría configurado con un dato que no
+  // sirve para prescribir y el médico lo descubriría al firmar.
+  const{isValidCedula}=await import("../../packages/prescription-print/src");
+  const src=fs.readFileSync("apps/web/lib/office-settings-lifecycle.ts","utf8");
+  expect(src,"la validación debe reutilizar isValidCedula, no una segunda regla").toContain("isValidCedula");
+  expect(isValidCedula("1234567")).toBe(true);
+  expect(isValidCedula("12345")).toBe(false);
+ });
+ it("el umbral de «Próxima» está declarado como operativo, no como norma (R04-F05)",()=>{
+  // El hallazgo era un número suelto. La respuesta honesta no es inventarle una NOM: es decir que NINGUNA la fija.
+  const src=fs.readFileSync("apps/web/app/api/v1/regulatory-obligations/route.ts","utf8");
+  expect(src).toMatch(/const PROXIMA_DIAS=\d+;/);
+  expect(src,"debe decir que el umbral NO es normativo").toMatch(/no normativo|ninguna NOM fija/i);
+  expect(src,"y viajar en la respuesta para que quien lea el tablero sepa de dónde sale").toContain("proximaThreshold");
+ });
+});

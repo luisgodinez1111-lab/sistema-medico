@@ -1,4 +1,6 @@
 import{NextResponse}from"next/server";
+import{isValidRfc}from"../../../packages/mx-identity/src";
+import{isValidCedula}from"../../../packages/prescription-print/src";
 import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
@@ -44,8 +46,11 @@ const ScheduleRow=z.object({day:z.enum(SCHEDULE_DAYS),open:z.boolean(),
 
 // Todos los campos son opcionales en la entrada: se hace merge sobre los ajustes actuales (o los defaults).
 const SettingsSchema=z.object({
- officeName:z.string().max(200).optional(),specialty:z.string().max(120).optional(),rfc:z.string().max(20).optional(),
- cedula:z.string().max(30).optional(),address:z.string().max(300).optional(),phone:z.string().max(40).optional(),
+ officeName:z.string().max(200).optional(),specialty:z.string().max(120).optional(),rfc:z.string().trim().max(20).optional().refine(v=>v===undefined||v===""||isValidRfc(v),"El RFC no tiene la forma de un RFC mexicano (3 o 4 letras, 6 dígitos de fecha y 3 de homoclave)."),
+ // R04-F02: la cédula se valida con la MISMA definición que exige la receta legal (packages/prescription-print), no con
+ // una segunda regla: si el sistema acepta aquí una cédula que la receta rechaza, el consultorio queda configurado con un
+ // dato que no sirve para prescribir y el médico lo descubre al firmar.
+ cedula:z.string().trim().max(30).optional().refine(v=>v===undefined||v===""||isValidCedula(v),"La cédula profesional debe tener 7 u 8 dígitos."),address:z.string().max(300).optional(),phone:z.string().max(40).optional(),
  email:z.string().max(120).optional(),timezone:z.string().max(80).optional(),language:z.string().max(40).optional(),
  color:z.string().max(9).optional(),theme:z.string().max(20).optional(),fontSize:z.string().max(20).optional(),
  realtimeAlerts:z.boolean().optional(),followupReminders:z.boolean().optional(),showInteractions:z.boolean().optional(),darkMode:z.boolean().optional(),
