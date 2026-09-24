@@ -74,3 +74,32 @@
 - **Rotación de secretos** (`SESSION_SIGNING_SECRET`, `BLOB_READ_WRITE_TOKEN`) manual; sin pentest formal.
 - **Escaneo de malware de adjuntos**: no hay escáner; los documentos ingeridos quedan `SCAN_PENDING` (L-14).
 - **Modelado por integración externa** (laboratorio, PACS, HL7/FHIR) cuando se conecten: hoy no hay ninguna.
+
+## BOLA (autorización a nivel de objeto) — amenaza CONSIDERADA y decidida, no omitida
+
+Auditoría R09-014: «no se modela la autorización por relación médico–paciente (BOLA)». Es cierto que no se modela, y **no
+es un olvido**: es una decisión explícita de **ADR-0230 §2**, y el modelo de amenazas no la registraba, que es el defecto
+real. Una amenaza decidida sin dejar constancia se lee como una amenaza no vista.
+
+| Aspecto | Qué dice el sistema hoy |
+| --- | --- |
+| **La amenaza** | Un clínico del tenant accede al expediente de un paciente que no está atendiendo (BOLA / IDOR de segundo orden: el identificador es legítimo y el acceso también, pero la relación clínica no existe) |
+| **La decisión** | El **tenant es la unidad de confianza** (ADR-0230 §2): todo clínico con el scope correspondiente accede a todos los pacientes del tenant. Un tenant es un consultorio o clínica pequeña (1–5 clínicos) que comparte pacientes por suplencias, urgencias y enfermería; una relación estricta bloquearía la atención habitual y convertiría el *break-glass* en el día a día, que es lo contrario de un control |
+| **Lo que SÍ previene** | Acceso **entre tenants** (RLS forzada con `app.current_tenant()`, rol de la aplicación sin BYPASSRLS, ejercitado tabla por tabla en `scripts/v22/live-rls-every-table-proof.mts`) y acceso **sin scope** (todo `authorize()` exige scope; un llamador sin scope falla cerrado) |
+| **Lo que NO previene, dicho claro** | Que un clínico del mismo tenant lea un expediente que no le corresponde. Eso **no se previene: se detecta a posteriori**, y esa es la diferencia entre un control preventivo y uno detectivo |
+| **El control detectivo** | `phi_access_log` (migración 0024) registra **cada lectura de PHI** con actor, paciente, momento y **propósito declarado**, sin guardar el contenido leído. Es lo que permite auditar un acceso indebido y lo que usa el runbook de incidente para medir el alcance |
+| **Cuándo cambiaría la decisión** | Si un tenant deja de ser un consultorio pequeño (hospital con servicios, varias sedes, personal rotatorio), la unidad de confianza deja de ser el tenant y hace falta relación clínica explícita más break-glass auditado. Es una decisión del dueño, anotada en ADR-0300 |
+
+## Superficie de autorización: medida, no supuesta
+
+`tests/v22/authorization-surface.test.ts` recorre **los 162 ficheros de ruta** y exige que cada uno autorice con scope o
+delegue en un handler que lo haga. Hoy hay exactamente **dos excepciones, y las dos están declaradas en el test con su
+motivo**:
+
+- `apps/web/app/api/health/route.ts` — sonda de vida. No abre sesión, no consulta la base y devuelve solo
+  `{status, service, at}`. Un health check que exigiera sesión no sirve como health check.
+- `apps/web/app/api/v1/features/route.ts` — capacidades que la UI necesita para decidir qué pinta. **Exige sesión válida**
+  (no revela la configuración a anónimos) pero no un scope clínico, porque no toca datos de pacientes.
+
+Si alguien añade una ruta sin autorización, el test la nombra y el build falla. Eso es lo que convierte «~150 rutas» en una
+superficie con cobertura comprobable en vez de una cifra en un documento.
