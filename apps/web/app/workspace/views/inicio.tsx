@@ -13,6 +13,8 @@ export default function InicioView(){
    const nameOf=(pid:string)=>patientList?.find(p=>p.patientId===pid)?.name||`Paciente ${pid.slice(0,8)}`;
    const prTag=(pr:string):[string,string,string]=>pr==="HIGH"?["Crítico","#FDE7EA","#D23651"]:pr==="MEDIUM"?["Seguimiento","#EEEBFD","#6C5CF6"]:["Administrativo","#EEF0F5","#6B7391"];
    // Tareas: worklist real (tenant-wide) si hay; si no, ejemplo pulido.
+   // WS1-01: los avisos del consultorio son los pendientes REALES del worklist, urgentes primero.
+   const avisos=[...(panel?.gaps??[])].sort((a,b)=>(a.priority==="HIGH"?0:1)-(b.priority==="HIGH"?0:1)).slice(0,4);
    const realTasks=(panel?.gaps??[]).slice(0,6).map(g=>({title:g.label,who:nameOf(g.patientId),pr:g.priority as string,pid:g.patientId}));
    // Verdad clínica (U-02): SOLO tareas reales. Antes, sin datos se pintaban tareas inventadas ("Potasio 6.2 mmol/L").
    const tasks=realTasks;
@@ -134,8 +136,21 @@ export default function InicioView(){
        <div style={{flex:1}}>{[["#6C5CF6","Infecciones respiratorias","29%"],["#8B7DF8","Control crónicos","27%"],["#20B7D9","Gastrointestinal","15%"],["#5B8DEF","Salud preventiva","12%"],["#C9CEE6","Otros","17%"]].map(([c,l,p],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:12.5,padding:"4px 0"}}><span style={{width:9,height:9,borderRadius:"50%",background:c as string,flex:"0 0 auto"}}/>{l as string}<b style={{marginLeft:"auto"}}>{p as string}</b></div>)}</div>
       </div>
      </div>
-     <div style={cardP}><div style={h2row}><h2 style={{...h2s,fontSize:15}}>Mensajes y notificaciones <span style={{background:P.red,color:"#fff",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>3</span></h2><span style={link}>Ver todos →</span></div>
-      {[["#5B8DEF","Nuevo resultado de laboratorio","Hoy 12:45 p.m."],["#16A66A","Interconsulta aceptada","Hoy 10:20 a.m."],["#E5983B","Documento pendiente por firmar","Ayer 6:15 p.m."]].map(([c,t,tm],i)=><div key={i} style={{display:"flex",gap:11,padding:"10px 18px",borderTop:`1px solid #F1F3F9`,alignItems:"flex-start"}}><span style={{width:8,height:8,borderRadius:"50%",background:c as string,marginTop:5,flex:"0 0 auto"}}/><div style={{flex:1,fontSize:13,fontWeight:600}}>{t as string}</div><span style={{fontSize:11.5,color:P.muted,whiteSpace:"nowrap"}}>{tm as string}</span></div>)}
+     {/* Auditoría 2026-09-19, anexo R05a (WS1-01) — AVISOS REALES DEL CONSULTORIO, no tres ejemplos con hora inventada.
+         Este widget mostraba una insignia roja fija con un «3» y tres mensajes escritos a mano («Nuevo resultado de
+         laboratorio · Hoy 12:45 p.m.», «Interconsulta aceptada», «Documento pendiente por firmar») indistinguibles de
+         avisos verdaderos: el médico podía buscar un resultado que nadie había recibido. Ahora sale del worklist —los
+         pendientes REALES del consultorio, que esta misma pantalla ya carga— con su prioridad y el paciente al que
+         pertenecen. No se inventa la hora: el worklist no la trae, y una hora falsa es lo que hacía creíble el widget. */}
+     <div style={cardP}><div style={h2row}><h2 style={{...h2s,fontSize:15}}>Avisos del consultorio {panel===null
+       ?<span title="Sin dato: no se pudo cargar el worklist" style={{background:"#FBF0DC",color:"#B7791F",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>—</span>
+       :avisos.length>0&&<span style={{background:P.red,color:"#fff",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>{avisos.length}</span>}</h2>
+      {avisos.length>0&&<span style={link} {...act(()=>setView("obligaciones"))}>Ver todos →</span>}</div>
+      {panel===null
+       ?<div style={{padding:"14px 18px",fontSize:13,color:"#A15C00",borderTop:`1px solid #F1F3F9`}}>No evaluados: los avisos del consultorio no cargaron. Ábralos en Obligaciones para revisarlos.</div>
+       :avisos.length===0
+        ?<div style={{padding:"14px 18px",fontSize:13,color:P.muted,borderTop:`1px solid #F1F3F9`}}>Sin avisos pendientes en el consultorio.</div>
+        :avisos.map((g,i)=><div key={`${g.aggregateId}-${i}`} style={{display:"flex",gap:11,padding:"10px 18px",borderTop:`1px solid #F1F3F9`,alignItems:"flex-start"}}><span style={{width:8,height:8,borderRadius:"50%",background:g.priority==="HIGH"?P.red:P.purple,marginTop:5,flex:"0 0 auto"}}/><div style={{flex:1,fontSize:13,fontWeight:600}}>{g.label}<div style={{fontSize:11.5,fontWeight:500,color:P.muted}}>{nameOf(g.patientId)}</div></div><span style={{fontSize:10.5,fontWeight:700,color:g.priority==="HIGH"?"#B3261E":P.muted,whiteSpace:"nowrap"}}>{g.priority==="HIGH"?"Urgente":"Pendiente"}</span></div>)}
      </div>
     </div>
    </div>;

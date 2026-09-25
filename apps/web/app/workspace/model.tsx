@@ -317,6 +317,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const[cMsg,setCMsg]=useState<string|null>(null); // aviso del flujo de encuentro (Consulta)
  const[cVit,setCVit]=useState({ta:"",fc:"",fr:"",temp:"",spo2:""}); // signos vitales de la Consulta
  const cVitSubmission=useRef<string|null>(null); // U-09: id de la captura en curso (estable entre reintentos)
+ const cOrdSubmission=useRef<string|null>(null); // R05a/WS1-11: id del lote de órdenes en curso (estable entre reintentos)
  const draftOwner=useRef<string>(""); // U-17: paciente al que pertenece el borrador de consulta
  const dataOwner=useRef<string>("");  // U-17: paciente al que pertenecen tl/gaps/snap/trends cargados
  const[cVitMsg,setCVitMsg]=useState<string|null>(null);const[cVitBusy,setCVitBusy]=useState(false);
@@ -369,7 +370,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const uiForbidden=useRef<string|null>(null);
  useEffect(()=>{
   const active:string[]=[];
-  if(patientId){active.push("PATIENT_A_CONTEXT");if(dataOwner.current&&dataOwner.current!==patientId&&(tl||gaps||snap||trends))active.push("PATIENT_B_DATA");}
+  if(patientId){active.push("PATIENT_A_CONTEXT");if(dataOwner.current&&dataOwner.current!==patientId&&(tl||gaps||snap||trends||cpSnap||vitHist||refCtx||docsSnap||ciSnap||docDetail))active.push("PATIENT_B_DATA");}
   const draftDirty=Object.values(cForm).some(v=>v.trim())||cAntec.length>0;
   if(draftOwner.current&&draftOwner.current!==patientId){active.push("PATIENT_SWITCH");if(draftDirty)active.push("OLD_DRAFT_SUBMITTABLE");}
   const criticalOpen=(gaps??[]).some(g=>g.priority==="HIGH"&&(g.code==="CRITICAL_RESULT_OPEN"||g.code==="VITAL_CRITICAL"||g.code==="FOLLOWUP_OPEN"));
@@ -385,12 +386,14 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   try{assertNoForbidden(active);uiForbidden.current=null;}
   catch(e){
    const rule=e instanceof Error?e.message:String(e);uiForbidden.current=rule;console.error("[workspace] estado prohibido corregido:",rule);
-   if(rule.includes("PATIENT_B_DATA")){setTl(null);setGaps(null);setSnap(null);setTrends(null);}
+   if(rule.includes("PATIENT_B_DATA")){setTl(null);setGaps(null);setSnap(null);setTrends(null);setCpSnap(null);setVitHist(null);setRefCtx(null);setDocsSnap(null);setCiSnap(null);setDocDetail(null);}
    if(rule.includes("OLD_DRAFT_SUBMITTABLE")){setCForm({motivo:"",historia:"",antec:"",interrog:"",explor:"",plan:""});setCAntec([]);draftOwner.current=patientId;}
    if(rule.includes("TENANT_INVALID")||rule.includes("UNAUTHORIZED")){window.location.replace("/login");} // sesión inválida: fuera del espacio clínico
    if(rule.includes("DEGRADED_DEPENDENCY")){setGaps(null);} // un fallo de carga nunca se presenta como "sin pendientes"
   }
- },[patientId,tl,gaps,snap,trends,cForm,cAntec,enc,session,chartState,busy,ready]);
+ // R05a (WS1-04): los cinco snapshots por paciente entran en las dependencias, o el guardián no se volvería a evaluar
+ // cuando el dato que sobrevive al cambio de paciente es uno de ellos —que era justamente el caso que no detectaba—.
+ },[patientId,tl,gaps,snap,trends,cpSnap,vitHist,refCtx,docsSnap,ciSnap,docDetail,cForm,cAntec,enc,session,chartState,busy,ready]);
  // Capacidades del servidor (auditoría L-10/L-11). Si la consulta falla, las verticales hospitalarias quedan APAGADAS.
  useEffect(()=>{
   if(!ready||!session)return;let cancelled=false;const ac=new AbortController();
@@ -510,6 +513,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  useEffect(()=>{
   if(view!=="signos"||!ready||!session||!patientId)return;
   let cancelled=false;const ac=new AbortController();
+  setVitHist(null); // R05a/WS1-04: nunca datos del paciente anterior bajo la cabecera del nuevo
   (async()=>{
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET",signal:ac.signal});
@@ -523,6 +527,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  useEffect(()=>{
   if(view!=="planCuidado"||!ready||!session||!patientId)return;
   let cancelled=false;const ac=new AbortController();
+  setCpSnap(null); // R05a/WS1-04: nunca datos del paciente anterior bajo la cabecera del nuevo
   (async()=>{
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/care-plan`,{method:"GET",signal:ac.signal});
@@ -536,6 +541,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  useEffect(()=>{
   if(view!=="interconsulta"||!ready||!session||!patientId)return;
   let cancelled=false;const ac=new AbortController();
+  setRefCtx(null); // R05a/WS1-04: nunca datos del paciente anterior bajo la cabecera del nuevo
   (async()=>{
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/referral-context`,{method:"GET",signal:ac.signal});
@@ -575,6 +581,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  useEffect(()=>{
   if(view!=="documentos"||!ready||!session||!patientId)return;
   let cancelled=false;const ac=new AbortController();
+  setDocsSnap(null); // R05a/WS1-04: nunca datos del paciente anterior bajo la cabecera del nuevo
   (async()=>{
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET",signal:ac.signal});
@@ -608,6 +615,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  useEffect(()=>{
   if(view!=="clinicalIntel"||!ready||!session||!patientId)return;
   let cancelled=false;const ac=new AbortController();
+  setCiSnap(null); // R05a/WS1-04: nunca datos del paciente anterior bajo la cabecera del nuevo
   (async()=>{
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET",signal:ac.signal});
@@ -832,16 +840,38 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   }catch(e){setCVitMsg(userMessage(e));}finally{setCVitBusy(false);}
  };
  // Crea órdenes clínicas reales desde la Consulta (POST /orders) por cada estudio seleccionado, con el tipo de la categoría.
+ // Auditoría 2026-09-19, anexo R05a (WS1-11) — LAS ÓRDENES DEL LOTE NO SE DUPLICAN Y SE DICE CUÁLES QUEDARON.
+ //
+ // EL DEFECTO: el lote se enviaba con `orderId:uuid()` NUEVO en cada intento y se abortaba en la primera que fallara. Si
+ // fallaba la tercera de cinco, las dos primeras YA estaban en el expediente, el mensaje solo decía el error de la tercera
+ // —el médico no sabía cuáles se habían creado— y volver a pulsar «Crear órdenes» creaba OTRA VEZ las dos primeras, porque
+ // tanto el `orderId` como la Idempotency-Key eran nuevos.
+ //
+ // LA CORRECCIÓN es la misma que ya usan los signos vitales (U-09): un id de CAPTURA estable mientras el lote no termine, y
+ // de él se derivan el `orderId` y la Idempotency-Key de cada estudio. Reintentar es entonces idempotente de verdad: las ya
+ // creadas devuelven su respuesta original y solo se envían las que faltan. Y no se aborta en la primera: se intentan todas
+ // y se informa exactamente cuáles quedaron y cuáles no.
  const createConsultaOrders=async()=>{
   if(!patientId){setCOrdMsg("Selecciona un paciente para crear órdenes.");return;}
   if(!cOrdSel.length){setCOrdMsg("Selecciona al menos un estudio.");return;}
   setCOrdBusy(true);setCOrdMsg(null);
+  const at=nowIso();
+  const submission=cOrdSubmission.current??(cOrdSubmission.current=uuid());
   try{
+   const creadas:string[]=[];const fallidas:string[]=[];
    for(const detail of cOrdSel){
-    const r=await apiRequest("/api/v1/orders",{method:"POST",body:{orderId:uuid(),patientId,orderType:cOrdCat,detail,occurredAt:nowIso()}});
-    if(r.status>=400){setCOrdMsg(errMsg(r));setCOrdBusy(false);return;}
+    const key=`${submission}:${patientId}:${cOrdCat}:${detail}`; // el paciente entra en la llave: un lote no puede replicarse sobre otro paciente
+
+    const r=await apiRequest("/api/v1/orders",{method:"POST",body:{orderId:derivedClientUuid(key),patientId,orderType:cOrdCat,detail,occurredAt:at},idempotencyKey:derivedClientUuid(key+":idem")});
+    if(r.status>=400){fallidas.push(`${detail}: ${errMsg(r)}`);continue;}
+    creadas.push(detail);
    }
-   const n=cOrdSel.length;setCOrdSel([]);setCOrdMsg(`${n} orden(es) creada(s) y registrada(s) en el expediente ✓`);
+   if(fallidas.length){
+    setCOrdMsg(`Creadas: ${creadas.length?creadas.join(", "):"ninguna"}. NO creadas: ${fallidas.join(" · ")}. Corrija y vuelva a pulsar: las ya creadas no se duplicarán.`);
+    return; // la captura NO se cierra: el reintento reutiliza los mismos ids
+   }
+   cOrdSubmission.current=null; // lote completo: el siguiente es una captura nueva
+   const n=creadas.length;setCOrdSel([]);setCOrdMsg(`${n} orden(es) creada(s) y registrada(s) en el expediente ✓`);
   }catch(e){setCOrdMsg(userMessage(e));}finally{setCOrdBusy(false);}
  };
  // ===== Resultados: registrar un resultado real (POST /results; critical se DERIVA del valor por CDS) + recarga =====
@@ -1308,7 +1338,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // Auditoría U-05/U-17: cambiar de paciente borra TODO lo del anterior —también el borrador de la consulta, los vitales sin
  // guardar y las pestañas cargadas— y anota a quién pertenece el borrador nuevo (draftOwner) para que el guardia de estados
  // prohibidos pueda comprobarlo. Las respuestas tardías del paciente anterior se descartan por el flag `cancelled` de cada efecto.
- function selectPatientRaw(id:string,name:string){cVitSubmission.current=null;draftOwner.current=id;setCForm({motivo:"",historia:"",antec:"",interrog:"",explor:"",plan:""});setCAntec([]);setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});setCPreview(false);setCMsg(null);setCVitMsg(null);setSnap(null);setTrends(null);setConsTabs(null);setFuSnap(null);setRxCheck(null);setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
+ function selectPatientRaw(id:string,name:string){cVitSubmission.current=null;cOrdSubmission.current=null;draftOwner.current=id;setCForm({motivo:"",historia:"",antec:"",interrog:"",explor:"",plan:""});setCAntec([]);setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});setCPreview(false);setCMsg(null);setCVitMsg(null);setSnap(null);setTrends(null);setConsTabs(null);setFuSnap(null);setRxCheck(null);setCpSnap(null);setVitHist(null);setRefCtx(null);setDocsSnap(null);setCiSnap(null);setDocDetail(null);setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
  const loadPatients=(q=patientQuery)=>call("pt-list",async()=>{
   const r=await apiRequest(`/api/v1/patients?limit=200${q.trim()?`&q=${encodeURIComponent(q.trim())}`:""}`,{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
@@ -1412,7 +1442,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
    const lr=await apiRequest("/api/v1/patients",{method:"GET"});if(lr.status<400)setPatientList((lr.body["patients"] as {patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version?:number}[])??[]);
    if(patientId===pid){try{const sp=await apiRequest(`/api/v1/patients/${pid}/consultation-snapshot`,{method:"GET"});if(sp.status<400&&sp.body["registered"])setSnap(sp.body as unknown as Snap);}catch{/* refresco best-effort */}}
    setPatientName(e.name.trim());setPatEdit(false);setPatMsg("Ficha del paciente actualizada ✓");
-  }catch(err){setPatMsg(String(err));}finally{setEditBusy(false);}
+  }catch(err){setPatMsg(userMessage(err));}finally{setEditBusy(false);} // R05a/WS1-08: mensaje para el médico, no la excepción cruda
  };
  const exportRecord=()=>call("exp",async()=>{
   const r=await apiRequest(`/api/v1/patients/${patientId}/export`,{method:"GET"});
@@ -1445,11 +1475,15 @@ export function deriveHeader(m:Omit<WorkspaceModel,"session">&{session:MedicalSe
  };
  const anyAlert=!!summary&&(highGaps>0||summary.activeAllergies>0||summary.openResults>0||summary.openObligations>0);
  // Badges del sidebar en tiempo real (conteos del paciente activo, desde datos ya cargados).
- const navCounts:Record<BadgeKey,number>={
-  agenda:(tl??[]).filter(t=>t.aggregateType==="Appointment"&&(t.latestKind==="SCHEDULED"||t.latestKind==="CHECKED_IN")).length,
-  resultados:summary?.openResults??0,
-  seguimiento:gaps?.length??0,
-  obligaciones:summary?.openObligations??0,
+ // Auditoría 2026-09-19, anexo R05a (WS1-02) — UN CONTADOR SIN DATO NO ES UN CERO.
+ // Los cuatro contadores del menú colapsaban a 0 cuando su fuente era desconocida (`tl`/`gaps` en null por carga o por
+ // fallo): la insignia desaparecía y el menú afirmaba «nada pendiente» sin saberlo. `null` significa NO SE SABE y la
+ // insignia lo muestra como «—»: quien lo ve entiende que tiene que abrir el módulo, no que esté al día.
+ const navCounts:Record<BadgeKey,number|null>={
+  agenda:tl===null?null:tl.filter(t=>t.aggregateType==="Appointment"&&(t.latestKind==="SCHEDULED"||t.latestKind==="CHECKED_IN")).length,
+  resultados:summary?summary.openResults:null,
+  seguimiento:gaps===null?null:gaps.length,
+  obligaciones:summary?summary.openObligations:null,
  };
  // Identidad del médico (desde la sesión autenticada; fallback si el IdP no expone nombre/rol).
  const docName=(session.physicianName&&session.physicianName.trim())||"Médico tratante";
@@ -1457,7 +1491,9 @@ export function deriveHeader(m:Omit<WorkspaceModel,"session">&{session:MedicalSe
  const docInitials=docName.replace(/^Dr\.?\s*/i,"").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"MD";
  const docDisplay=/^dr/i.test(docName)?docName:`Dr. ${docName}`;
  // Notificaciones (campana): pendientes críticos reales del consultorio (worklist HIGH) o del paciente.
- const notifCount=(panel?panel.gaps.filter(g=>g.priority==="HIGH").length:0)+(view==="exp"?highGaps+((summary?.openResults)??0):0);
+ // WS1-02: la campana sin dato tampoco es un cero. Si la worklist no cargó y no hay contexto de paciente, es desconocido.
+ const notifCount:number|null=(panel===null&&!(view==="exp"&&summary))?null
+  :(panel?panel.gaps.filter(g=>g.priority==="HIGH").length:0)+(view==="exp"?highGaps+((summary?.openResults)??0):0);
  const alertGlyph=<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 3.5l9 15.5H3l9-15.5z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M12 10v4M12 16.5v.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"/></svg>;
  return{summary,highGaps,safetyChip,anyAlert,navCounts,docName,docRole,docInitials,docDisplay,notifCount,alertGlyph};
 }

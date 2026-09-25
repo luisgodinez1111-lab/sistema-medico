@@ -163,7 +163,10 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText("Citas de hoy")).toBeTruthy();
   expect(screen.getByText("Consultas atendidas")).toBeTruthy();
   // la tarea real del worklist lleva patientId -> al hacer clic abre la Consulta de ese paciente (interconexión)
-  const task=await screen.findByText("Resultado crítico sin cerrar");
+  // WS1-01: ese mismo pendiente aparece ahora también en «Avisos del consultorio» (antes eran tres mensajes inventados),
+  // así que la consulta se acota al widget de tareas en vez de buscar el texto en toda la pantalla.
+  const tareas=(await screen.findByRole("heading",{name:/Tareas clínicas prioritarias/})).closest("div")!.parentElement!;
+  const task=within(tareas).getByText("Resultado crítico sin cerrar");
   fireEvent.click(task);
   expect(screen.getByRole("heading",{name:"Consulta"})).toBeTruthy();
  });
@@ -252,7 +255,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("vista Agenda: citas reales cableadas, navegación de fecha, detalle con ciclo de vida y nueva cita",async()=>{
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Agenda"}));
+  fireEvent.click(screen.getByRole("button",{name:/^Agenda\b/}));
   expect(await screen.findByRole("heading",{name:"Agenda"})).toBeTruthy();
   // citas reales del registro (aparecen en la rejilla y en "Próximas citas")
   expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0);
@@ -505,7 +508,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("vista Obligaciones: agregar una obligación regulatoria real (POST /regulatory-obligations)",async()=>{
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Obligaciones"}));
+  fireEvent.click(screen.getByRole("button",{name:/^Obligaciones\b/}));
   fireEvent.click(await screen.findByRole("button",{name:"+ Agregar obligación"}));
   fireEvent.change(screen.getByPlaceholderText(/Declaración mensual de IVA/),{target:{value:"Aviso de funcionamiento COFEPRIS"}});
   fireEvent.click(screen.getByRole("button",{name:"Agregar obligación"}));
@@ -534,7 +537,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("vista Resultados: registrar un resultado real (POST /results, interpretación derivada)",async()=>{
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Resultados"}));
+  fireEvent.click(screen.getByRole("button",{name:/^Resultados\b/}));
   fireEvent.click(await screen.findByRole("button",{name:"+ Registrar resultado"}));
   const opt=await screen.findByRole("option",{name:"Ana López García"});
   fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});          // paciente
@@ -605,7 +608,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
 
  it("vista Resultados (S7): registro clínica-wide cableado a GET /api/v1/results — KPIs + lista con estado-UI",async()=>{
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Resultados"}));
+  fireEvent.click(screen.getByRole("button",{name:/^Resultados\b/}));
   expect(screen.getByRole("heading",{name:"Resultados"})).toBeTruthy();
   expect(screen.getByText("Resultados totales")).toBeTruthy();                    // KPI
   expect((await screen.findAllByText("GLUCOSE")).length).toBeGreaterThan(0);      // analito real (mock)

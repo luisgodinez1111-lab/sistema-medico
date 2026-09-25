@@ -357,6 +357,8 @@ export const RAIL_CSS=`
 .mos-side::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#7B6BF6,#4E8DF5);box-shadow:0 0 24px 3px #6a5bf580}
 .mos-side.col{flex:0 0 74px;width:74px;padding:18px 10px 14px}
 .mos-brand{display:flex;align-items:center;gap:12px;padding:2px 6px 0}
+/* R05a/WS1-02: texto solo para lector de pantalla. El «—» del conteo sin dato es decorativo; la palabra la dice esto. */
+.mos-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .mos-bname{font-size:20px;font-weight:800;letter-spacing:.01em;line-height:1;color:#fff;white-space:nowrap}
 .mos-bname .os{color:#8E7DF8}
 .mos-bsub{font-size:8.5px;font-weight:600;letter-spacing:.16em;color:#8A8FC6;margin-top:5px;line-height:1.5;white-space:nowrap}
