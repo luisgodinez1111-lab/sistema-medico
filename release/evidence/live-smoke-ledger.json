@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-25T19:16:31.794Z",
+  "generatedAt": "2026-09-25T22:47:30.035Z",
   "target": "local-ephemeral",
-  "total": 110,
+  "total": 114,
   "results": [
     {
       "proof": "scripts/v22/live-aa-gradient-proof.mts",
@@ -70,6 +70,11 @@
     },
     {
       "proof": "scripts/v22/live-care-gaps-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-care-plan-registry-proof.mts",
       "status": "PASS",
       "exitCode": 0
     },
@@ -230,6 +235,11 @@
     },
     {
       "proof": "scripts/v22/live-glycemic-status-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-golden-path-proof.mts",
       "status": "PASS",
       "exitCode": 0
     },
@@ -434,6 +444,11 @@
       "exitCode": 0
     },
     {
+      "proof": "scripts/v22/live-referrals-registry-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
       "proof": "scripts/v22/live-registry-scope-proof.mts",
       "status": "PASS",
       "exitCode": 0
@@ -549,6 +564,11 @@
       "exitCode": 0
     },
     {
+      "proof": "scripts/v22/live-vitals-registry-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
       "proof": "scripts/v22/live-wound-lifecycle-proof.mts",
       "status": "PASS",
       "exitCode": 0
@@ -558,8 +578,8 @@
     {
       "gate": "scripts/ci/live-smoke.mts",
       "status": "PASS",
-      "passed": 110,
-      "total": 110
+      "passed": 114,
+      "total": 114
     }
   ]
 }

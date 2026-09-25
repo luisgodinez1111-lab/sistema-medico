@@ -53,7 +53,7 @@ export default function PacientesView(){
       <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:14}} className="mos-med2">
        <div><div style={flbl}>Nombre completo</div><input value={regName} onChange={e=>setRegName(e.target.value)} placeholder="Ej. María Fernández López" style={inp}/></div>
        <div><div style={flbl}>Fecha de nacimiento</div><input type="date" value={regDob} onChange={e=>setRegDob(e.target.value)} style={inp}/></div>
-       <div><div style={flbl}>Sexo</div><select value={regSex} onChange={e=>setRegSex(e.target.value)} style={inp}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select></div>
+       <div><div style={flbl}>Sexo</div><select aria-label="Sexo del paciente" value={regSex} onChange={e=>setRegSex(e.target.value)} style={inp}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select></div>
       </div>
       <div style={{marginTop:12,maxWidth:360}}><div style={flbl}>CURP (opcional; se valida el dígito verificador)</div><input value={regExtra.curp} onChange={e=>setRegExtra({...regExtra,curp:e.target.value.toUpperCase()})} placeholder="18 caracteres" maxLength={18} style={inp}/></div>
       {guardianFields(inp)}{dupPanel(true)}
@@ -67,8 +67,8 @@ export default function PacientesView(){
      </div>
      <div style={{display:"flex",gap:10,alignItems:"center",marginTop:16,flexWrap:"wrap"}}>
       <div style={{flex:1,minWidth:200,display:"flex",alignItems:"center",gap:9,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 13px"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg><input placeholder="Buscar por nombre o CURP…" value={topSearch} onChange={e=>setTopSearch(e.target.value)} style={{border:0,outline:"none",background:"transparent",fontSize:13.5,fontFamily:UI,flex:1,color:P.ink}}/></div>
-      <select value={patStatus} onChange={e=>setPatStatus(e.target.value)} style={selSty}><option value="">Estado: Todos</option><option value="ACTIVE">Activos</option><option value="INACTIVE">Inactivos</option></select>
-      <select value={patSex} onChange={e=>setPatSex(e.target.value)} style={selSty}><option value="">Sexo: Todos</option><option value="F">Femenino</option><option value="M">Masculino</option></select>
+      <select aria-label="Filtrar por estado" value={patStatus} onChange={e=>setPatStatus(e.target.value)} style={selSty}><option value="">Estado: Todos</option><option value="ACTIVE">Activos</option><option value="INACTIVE">Inactivos</option></select>
+      <select aria-label="Filtrar por sexo" value={patSex} onChange={e=>setPatSex(e.target.value)} style={selSty}><option value="">Sexo: Todos</option><option value="F">Femenino</option><option value="M">Masculino</option></select>
       {anyFilter&&<button onClick={()=>{setTopSearch("");setPatStatus("");setPatSex("");}} style={{...selSty,color:P.blue,fontWeight:600}}>Limpiar filtros</button>}
      </div>
      <div style={{...card,marginTop:14,overflow:"hidden"}}>
@@ -104,7 +104,7 @@ export default function PacientesView(){
         <div style={{fontSize:15,fontWeight:800,marginBottom:14}}>Editar ficha del paciente</div>
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
          <div><div style={flbl}>Nombre completo</div><input value={editForm.name} onChange={e=>setEditForm({...editForm,name:e.target.value})} style={inp}/></div>
-         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><div style={flbl}>Fecha de nacimiento</div><input type="date" value={editForm.birthDate} onChange={e=>setEditForm({...editForm,birthDate:e.target.value})} style={inp}/></div><div><div style={flbl}>Sexo</div><select value={editForm.sexAtBirth} onChange={e=>setEditForm({...editForm,sexAtBirth:e.target.value})} style={inp}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select></div></div>
+         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><div style={flbl}>Fecha de nacimiento</div><input type="date" value={editForm.birthDate} onChange={e=>setEditForm({...editForm,birthDate:e.target.value})} style={inp}/></div><div><div style={flbl}>Sexo</div><select aria-label="Sexo del paciente (edición)" value={editForm.sexAtBirth} onChange={e=>setEditForm({...editForm,sexAtBirth:e.target.value})} style={inp}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select></div></div>
          <div><div style={flbl}>CURP</div><input value={editForm.curp} onChange={e=>setEditForm({...editForm,curp:e.target.value.toUpperCase()})} style={inp}/></div>
          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><div style={flbl}>Teléfono</div><input value={editForm.phone} onChange={e=>setEditForm({...editForm,phone:e.target.value})} style={inp}/></div><div><div style={flbl}>Correo</div><input value={editForm.email} onChange={e=>setEditForm({...editForm,email:e.target.value})} style={inp}/></div></div>
          <div><div style={flbl}>Dirección</div><input value={editForm.address} onChange={e=>setEditForm({...editForm,address:e.target.value})} style={inp}/></div>

@@ -81,7 +81,7 @@ export default function ProblemasView(){
         </div>
        </div>
        <div style={{marginTop:20,maxWidth:260}}>
-        <div style={flbl}>Gravedad</div><select value={pfSev} onChange={e=>setPfSev(e.target.value)} style={selSty}>{["Leve","Moderada","Grave"].map(o=><option key={o}>{o}</option>)}</select>
+        <div style={flbl}>Gravedad</div><select aria-label="Gravedad" value={pfSev} onChange={e=>setPfSev(e.target.value)} style={selSty}>{["Leve","Moderada","Grave"].map(o=><option key={o}>{o}</option>)}</select>
        </div>
        <div style={{marginTop:20}}><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Notas adicionales</div><textarea value={pfNotes} onChange={e=>setPfNotes(e.target.value.slice(0,500))} placeholder="Información adicional, contexto, observaciones..." style={{...selSty,minHeight:90,resize:"vertical"}}/><div style={{textAlign:"right",fontSize:11,color:P.muted}}>{pfNotes.length}/500</div></div>
        {pfMsg&&<div style={{marginTop:14,padding:"11px 14px",borderRadius:10,background:"#FDF4E6",border:"1px solid #F2E1C0",fontSize:13,color:"#7A5A16"}}>{pfMsg}</div>}
@@ -199,7 +199,7 @@ export default function ProblemasView(){
      <div style={{...card2,padding:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:15,fontWeight:700}}>Filtros</div><button onClick={()=>{setProbSearch("");setProbStatusF("Todos");}} style={{border:0,background:"transparent",color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:UI}}>Limpiar</button></div>
       <div style={{position:"relative",marginTop:10}}><input value={probSearch} onChange={e=>{setProbSearch(e.target.value);setProbSel(0);}} placeholder="Buscar problema, diagnóstico o CI..." style={{...selSty,padding:"9px 11px 9px 32px"}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
-      <div style={flbl}>Estado</div><select value={probStatusF} onChange={e=>{setProbStatusF(e.target.value);setProbSel(0);}} style={selSty}>{["Todos","Activo","En seguimiento","Resuelto","Inactivo"].map(o=><option key={o}>{o}</option>)}</select>
+      <div style={flbl}>Estado</div><select aria-label="Filtrar por estado" value={probStatusF} onChange={e=>{setProbStatusF(e.target.value);setProbSel(0);}} style={selSty}>{["Todos","Activo","En seguimiento","Resuelto","Inactivo"].map(o=><option key={o}>{o}</option>)}</select>
       <div style={{marginTop:14,borderTop:`1px solid ${LINE}`,paddingTop:10}}>{chk2(probStatusF==="Activo","Solo activos",()=>{setProbStatusF(probStatusF==="Activo"?"Todos":"Activo");setProbSel(0);})}{chk2(probStatusF==="En seguimiento","Solo en seguimiento",()=>{setProbStatusF(probStatusF==="En seguimiento"?"Todos":"En seguimiento");setProbSel(0);})}</div>
       <div style={{marginTop:14,fontSize:12,color:P.muted}}>{rows.length} de {allRows.length} problema(s)</div>
      </div>

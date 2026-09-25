@@ -1130,6 +1130,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   await noSeriousAxe(aud,"Auditoría");
  });
 
+ it("accesibilidad (Lote L): las vistas principales del sidebar no tienen violaciones axe serias/críticas",async()=>{
+  render(<Workspace/>);
+  const nav=async(name:string)=>{
+   const btn=screen.getAllByRole("button").find(b=>(b.textContent??"").trim().startsWith(name));
+   if(!btn)throw new Error(`No se encontró el acceso «${name}» en el sidebar`);
+   fireEvent.click(btn);
+   await screen.findByRole("heading",{level:1},{timeout:2500}); // espera a que la vista (lazy) monte su h1
+  };
+  for(const v of ["Inicio","Pacientes","Agenda","Alergias","Problemas","Vacunas","Signos vitales","Plan de cuidados","Interconsultas","Seguimiento","Configuración"]){
+   await nav(v);
+   await noSeriousAxe(document.body,v);
+  }
+ });
+
  it("Patient 360 (Lote B): el expediente se navega por sub-vistas; la Medicación vive en Tratamiento, no en Resumen",async()=>{
   render(<Workspace/>);
   await toExpediente();
