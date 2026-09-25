@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-25T04:22:10.737Z",
-  "files": 260,
-  "totalTests": 1606,
+  "generatedAt": "2026-09-25T04:35:23.341Z",
+  "files": 261,
+  "totalTests": 1612,
   "failedTests": 0,
   "results": [
     {
@@ -793,6 +793,11 @@
       "file": "tests/v22/golden-vectors.test.ts",
       "status": "PASS",
       "tests": 48
+    },
+    {
+      "file": "tests/v22/guideline-crosscheck.test.ts",
+      "status": "PASS",
+      "tests": 6
     },
     {
       "file": "tests/v22/hazard-risk-integrity.test.ts",

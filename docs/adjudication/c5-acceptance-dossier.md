@@ -5,7 +5,7 @@ para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La
 
 - Capacidades reconciliadas: **151**
 - Estado de evidencia: **EJECUTADA Y EN VERDE ✅**
-  - Libro de pruebas unitarias: 260 archivos en verde (generado 2026-09-25T04:22:10.737Z)
+  - Libro de pruebas unitarias: 261 archivos en verde (generado 2026-09-25T04:35:23.341Z)
   - Libro de pruebas en vivo: 107 pruebas en verde (generado 2026-09-25T04:24:11.403Z)
 - Cobertura declarada: **151 capacidades reconciliadas**. El registro de capacidades del repositorio tiene más (ver `pnpm capability:check`); las que no aparecen aquí NO están respaldadas por este dossier y no pueden presentarse como aceptadas.
 - Pendiente de aceptación humana C5: **117**
