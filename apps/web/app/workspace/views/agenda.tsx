@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "agenda" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {Fragment} from "react";
-import{card,P,LINE,act,UI,actRow,type AgendaAppt}from"../shared";
+import{card,P,LINE,act,UI,actRow,weekRange,monthRange,type AgendaAppt}from"../shared";
 import{useWorkspace}from"../context";
 export default function AgendaView(){
  const{agendaDate,clock,setAgendaDate,setApptSel,setApptNew,agenda,agendaErr,apptSel,openConsulta,reloadAgenda,setApptMsg,apptNew,agendaView,setAgendaView,apptMsg,apptForm,setApptForm,patientList,createAppt,apptBusy,apptTransition}=useWorkspace();
@@ -20,7 +20,22 @@ export default function AgendaView(){
    const setDay=(iso:string)=>{setAgendaDate(iso);setApptSel(null);setApptNew(false);};
    const shiftDay=(delta:number)=>{const d=new Date(agendaDate+"T12:00:00");d.setDate(d.getDate()+delta);setDay(d.toISOString().slice(0,10));};
    const shiftMonth=(delta:number)=>{const d=new Date(agendaDate+"T12:00:00");d.setMonth(d.getMonth()+delta);setDay(d.toISOString().slice(0,10));};
+   const shiftWeek=(delta:number)=>{const d=new Date(agendaDate+"T12:00:00");d.setDate(d.getDate()+delta*7);setDay(d.toISOString().slice(0,10));};
    const pickDay=(day:number)=>{const d=new Date(yy,mm,day,12);setDay(d.toISOString().slice(0,10));};
+   const pickIso=(iso:string)=>{setAgendaDate(iso);setAgendaView("dia");setApptSel(null);setApptNew(false);};
+   // Lote F — navegación y etiqueta del encabezado según la vista activa.
+   const goPrev=()=>agendaView==="semana"?shiftWeek(-1):agendaView==="mes"?shiftMonth(-1):shiftDay(-1);
+   const goNext=()=>agendaView==="semana"?shiftWeek(1):agendaView==="mes"?shiftMonth(1):shiftDay(1);
+   const cap=(s:string)=>s.replace(/^\w/,c=>c.toUpperCase());
+   const wk=weekRange(agendaDate);const mr=monthRange(agendaDate);
+   const fdd=Number(wk.from.slice(8,10)),tdd=Number(wk.to.slice(8,10));
+   const fmn=meses[Number(wk.from.slice(5,7))-1]!,tmn=meses[Number(wk.to.slice(5,7))-1]!;
+   const weekLabel=fmn===tmn?`${fdd}–${tdd} de ${fmn} ${wk.to.slice(0,4)}`:`${fdd} ${fmn} – ${tdd} ${tmn} ${wk.to.slice(0,4)}`;
+   const headerLabel=agendaView==="semana"?`Semana del ${weekLabel}`:agendaView==="mes"?`${cap(meses[mm]!)} ${yy}`:fechaLarga;
+   // Días de la semana/mes en UTC (consistente con tHM/getUTCHours, que muestra la hora de la cita en UTC).
+   const dayKey=(a:AgendaAppt)=>a.startAt.slice(0,10);
+   const weekDays=Array.from({length:7},(_,i)=>{const d=new Date(wk.from+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+i);return d.toISOString().slice(0,10);});
+   const apptsOn=(iso:string)=>realAppts.filter(a=>dayKey(a)===iso);
    type Ap={h:number;t:string;n:string;m:string;c:"blue"|"green"|"purple"|"amber"|"red";id:string};
    const AC:Record<string,{bg:string;bd:string;fg:string}>={blue:{bg:"#EAF1FD",bd:P.blueOnPale,fg:"#123c73"},green:{bg:"#E7F7EE",bd:P.greenOnPale,fg:"#0d5c3b"},purple:{bg:"#EFEBFD",bd:P.purpleOnPale,fg:"#382a8f"},amber:{bg:"#FBF2DF",bd:P.amberOnPale,fg:P.amberOnPale},red:{bg:"#FDEBEE",bd:P.redOnPale,fg:"#9c1f34"}};
    const ST:Record<string,[string,string,string]>={SCHEDULED:["Programada","#EAF1FD",P.blueOnPale],CHECKED_IN:["En espera","#FBF0DC",P.amberOnPale],COMPLETED:["Atendida","#E6F6EE",P.greenOnPale],CANCELLED:["Cancelada","#F0F1F4","#8A8FA3"],NO_SHOW:["Inasistencia","#FDE7EA",P.redOnPale]};
@@ -47,14 +62,14 @@ export default function AgendaView(){
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
    const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"};
    const dk:React.CSSProperties={color:P.muted,width:110,flex:"0 0 auto"};
-   const VPILLS:[typeof agendaView|"semana"|"mes",string][]=[["dia","Vista diaria"],["semana","Vista semanal"],["mes","Vista mensual"],["lista","Lista de citas"]];
+   const VPILLS:[typeof agendaView,string][]=[["dia","Vista diaria"],["semana","Vista semanal"],["mes","Vista mensual"],["lista","Lista de citas"]];
    return <div style={{padding:"20px 24px 40px",display:"grid",gridTemplateColumns:"1fr 340px",gap:16,alignItems:"start"}} className="mos-ag">
     <div>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
       <div><h1 style={{fontSize:29,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Agenda</h1><p style={{color:P.muted,fontSize:13.5,margin:"5px 0 0"}}>Administra tus citas: navega por fecha, registra llegada, completa o cancela, y agenda nuevas —todo en vivo.</p></div>
       <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{void reloadAgenda();setApptMsg("Agenda actualizada.");}}>↻ Actualizar</button><button style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setApptNew(v=>!v);setApptMsg(null);}}>{apptNew?"Cerrar":"+ Nueva cita"}</button></div>
      </div>
-     <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>{VPILLS.map(([k,l])=>{const on=agendaView===k;const dis=k==="semana"||k==="mes";return <span key={k} {...act(dis?undefined:()=>setAgendaView(k as typeof agendaView))} title={dis?"Próximamente":undefined} style={{border:`1px solid ${on?P.purple:LINE}`,background:on?P.purple:P.white,color:on?"#fff":dis?"#C7CCE0":P.muted,borderRadius:10,padding:"9px 15px",fontSize:13.5,fontWeight:600,cursor:dis?"not-allowed":"pointer"}}>{l}</span>;})}</div>
+     <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>{VPILLS.map(([k,l])=>{const on=agendaView===k;return <span key={k} {...act(()=>setAgendaView(k))} style={{border:`1px solid ${on?P.purple:LINE}`,background:on?P.purple:P.white,color:on?"#fff":P.muted,borderRadius:10,padding:"9px 15px",fontSize:13.5,fontWeight:600,cursor:"pointer"}}>{l}</span>;})}</div>
      {apptMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:"#EEF6FF",border:"1px solid #CFE0F7",borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:P.blue,fontWeight:700}}>ℹ</span><span style={{flex:1}}>{apptMsg}</span><button onClick={()=>setApptMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
      {apptNew&&<div style={{...card2,marginTop:14,padding:18}}>
       <div style={{fontWeight:800,fontSize:16,marginBottom:14}}>Nueva cita · {fechaLarga}</div>
@@ -69,8 +84,8 @@ export default function AgendaView(){
      </div>}
      <div style={{...card2,marginTop:14,overflow:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:`1px solid ${LINE}`,flexWrap:"wrap"}}>
-       <span {...act(()=>shiftDay(-1))} style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>‹</span><span {...act(()=>shiftDay(1))} style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>›</span>
-       <b style={{fontSize:15}}>{fechaLarga}</b><span {...act(()=>setDay(todayStr))} style={{border:`1px solid ${isTodaySel?P.purple:LINE}`,color:isTodaySel?P.purple:P.ink,borderRadius:8,padding:"6px 12px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Hoy</span>
+       <span {...act(goPrev)} style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>‹</span><span {...act(goNext)} style={{width:30,height:30,border:`1px solid ${LINE}`,borderRadius:8,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}}>›</span>
+       <b style={{fontSize:15}}>{headerLabel}</b><span {...act(()=>setDay(todayStr))} style={{border:`1px solid ${isTodaySel?P.purple:LINE}`,color:isTodaySel?P.purple:P.ink,borderRadius:8,padding:"6px 12px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Hoy</span>
        <span style={{marginLeft:"auto",fontSize:12.5,color:P.muted}}>{agLoaded?`${realAppts.length} cita(s)`:"cargando…"}</span>
       </div>
       {agendaView==="lista"?(
@@ -83,6 +98,39 @@ export default function AgendaView(){
          <td style={{padding:"10px 14px",borderBottom:`1px solid #F2F4F9`}}><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:st[1],color:st[2]}}>{st[0]}</span></td>
         </tr>;})}
        </tbody></table></div>
+      ):agendaView==="semana"?(
+       <div style={{overflowX:"auto"}}>
+        {realAppts.length===0&&<div style={{padding:"18px 16px",fontSize:13,color:P.muted}}>{agendaErr?<span>No se pudo cargar la agenda. <button onClick={()=>void reloadAgenda()} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"5px 12px",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI,marginLeft:6}}>Reintentar</button></span>:agLoaded?"Sin citas esta semana. Usa «+ Nueva cita» para agendar.":"Cargando agenda…"}</div>}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,minmax(118px,1fr))",minWidth:826}}>
+         {weekDays.map((iso,i)=>{const dObj=new Date(iso+"T12:00:00Z");const isToday=iso===todayStr;const dApp=apptsOn(iso);return <div key={iso} style={{borderRight:i<6?`1px solid ${LINE}`:"0",borderBottom:`1px solid ${LINE}`}}>
+          <div {...act(()=>pickIso(iso))} title="Ver día" style={{padding:"9px 8px",borderBottom:`1px solid ${LINE}`,textAlign:"center",cursor:"pointer",background:isToday?"#F3F1FE":"transparent"}}>
+           <div style={{fontSize:10.5,color:P.muted,textTransform:"uppercase",letterSpacing:".04em"}}>{["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"][dObj.getUTCDay()]}</div>
+           <div style={{fontSize:18,fontWeight:800,color:isToday?P.purple:P.ink}}>{dObj.getUTCDate()}</div>
+          </div>
+          <div style={{padding:7,display:"flex",flexDirection:"column",gap:6,minHeight:130}}>
+           {dApp.length===0?<div style={{fontSize:11,color:"#C7CCE0",textAlign:"center",paddingTop:16}}>—</div>
+            :dApp.map(a=>{const c=AC[toAp(a).c]!;const on=a.appointmentId===apptSel;return <div key={a.appointmentId} {...act(()=>setApptSel(a.appointmentId))} style={{borderRadius:8,padding:"6px 8px",fontSize:11,borderLeft:`3px solid ${c.bd}`,background:c.bg,color:c.fg,cursor:"pointer",outline:on?`2px solid ${P.purple}`:"none"}}>
+             <div style={{fontSize:10,opacity:.85}}>{tHM(a.startAt)}</div><div style={{fontWeight:700,fontSize:11.5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{a.patientName}</div><div style={{opacity:.8,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{a.reason}</div>
+            </div>;})}
+          </div>
+         </div>;})}
+        </div>
+       </div>
+      ):agendaView==="mes"?(
+       <div style={{padding:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",textAlign:"center",fontSize:11,color:P.muted,fontWeight:600,marginBottom:6}}>
+         {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"].map(d=><div key={d} style={{padding:"6px 0"}}>{d}</div>)}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6}}>
+         {Array.from({length:firstDow}).map((_,i)=><div key={"e"+i}/>)}
+         {Array.from({length:daysInM}).map((_,i)=>{const day=i+1;const key=`${yy}-${String(mm+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;const dApp=apptsOn(key);const isToday=key===todayStr;const isSel=day===dd;return <div key={day} {...act(()=>pickIso(key))} title={`${dApp.length} cita(s)`} style={{border:`1px solid ${isSel?P.purple:LINE}`,borderRadius:10,minHeight:80,padding:6,cursor:"pointer",background:isToday?"#F7F6FE":P.white,display:"flex",flexDirection:"column",gap:3}}>
+          <div style={{fontSize:12,fontWeight:isToday||isSel?800:600,color:isToday?P.purple:P.ink,textAlign:"right"}}>{day}</div>
+          {dApp.slice(0,3).map(a=>{const c=AC[toAp(a).c]!;return <div key={a.appointmentId} style={{fontSize:10,borderRadius:5,padding:"1px 5px",background:c.bg,color:c.fg,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",borderLeft:`2px solid ${c.bd}`}}>{a.patientName.split(/\s+/)[0]}</div>;})}
+          {dApp.length>3&&<div style={{fontSize:10,color:P.muted,fontWeight:600}}>+{dApp.length-3} más</div>}
+         </div>;})}
+        </div>
+        {realAppts.length===0&&<div style={{padding:"14px 4px 2px",fontSize:12.5,color:P.muted}}>{agendaErr?<span>No se pudo cargar la agenda. <button onClick={()=>void reloadAgenda()} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"5px 12px",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI,marginLeft:6}}>Reintentar</button></span>:agLoaded?"Sin citas este mes.":"Cargando agenda…"}</div>}
+       </div>
       ):(<>
       <div style={{display:"grid",gridTemplateColumns:"70px 1fr 1fr 1fr",position:"relative"}}>
        <div style={{padding:"12px 14px",borderBottom:`1px solid ${LINE}`,borderRight:`1px solid ${LINE}`,fontSize:13,fontWeight:700}}>Hora</div>
@@ -116,7 +164,7 @@ export default function AgendaView(){
        {(selAppt.status==="SCHEDULED"||selAppt.status==="CHECKED_IN")&&<div style={{display:"flex",gap:8}}><button onClick={()=>void apptTransition(selAppt.appointmentId,selAppt.version,"cancellation","Cita cancelada.")} disabled={apptBusy} style={{flex:1,border:"1px solid #F3C9C9",background:P.white,color:P.redOnPale,borderRadius:9,padding:9,fontWeight:600,fontSize:12.5,cursor:apptBusy?"default":"pointer",fontFamily:UI}}>Cancelar</button>{selAppt.status==="SCHEDULED"&&<button onClick={()=>void apptTransition(selAppt.appointmentId,selAppt.version,"no-show","Marcada como inasistencia.")} disabled={apptBusy} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,color:P.muted,borderRadius:9,padding:9,fontWeight:600,fontSize:12.5,cursor:apptBusy?"default":"pointer",fontFamily:UI}}>Inasistencia</button>}</div>}
       </div>
      </div>;})()}
-     <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 10px"}}><span style={sect}>Resumen del día</span></div>
+     <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 10px"}}><span style={sect}>{agendaView==="semana"?"Resumen de la semana":agendaView==="mes"?"Resumen del mes":"Resumen del día"}</span></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:"0 16px 16px"}}>
        {([["#EEEBFD",P.purpleOnPale,"M4 5h16v16H4zM8 3v4M16 3v4",agLoaded?agenda!.counts.programadas:0,"Programadas"],["#E6F6EE",P.greenOnPale,"M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",agLoaded?agenda!.counts.atendidas:0,"Atendidas"],["#FBF0DC",P.amberOnPale,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0",agLoaded?agenda!.counts.enEspera:0,"En espera"],["#FDECEE",P.redOnPale,"M9 9l6 6M15 9l-6 6M21 12a9 9 0 11-18 0 9 9 0 0118 0",agLoaded?agenda!.counts.canceladas:0,"Canc./Inasist."]] as const).map(([bg,fg,d,v,l])=><div key={l} style={{display:"flex",gap:11,alignItems:"center",padding:12,border:`1px solid ${LINE}`,borderRadius:12}}>{rkico(bg,fg,d)}<div><div style={{fontSize:20,fontWeight:800}}>{v}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div></div>)}
       </div>

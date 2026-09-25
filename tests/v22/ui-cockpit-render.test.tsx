@@ -279,6 +279,19 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getAllByText("Control DM2").length).toBeGreaterThan(0);
  });
 
+ it("vista Agenda (Lote F): Semana y Mes son vistas reales cableadas a datos, ya no 'Próximamente'",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:/^Agenda\b/}));
+  await screen.findByRole("heading",{name:"Agenda"});
+  // Semana: la pastilla ya no está deshabilitada; muestra la rejilla semanal con la cita real y su resumen.
+  fireEvent.click(screen.getByText("Vista semanal"));
+  expect(await screen.findByText("Resumen de la semana")).toBeTruthy();
+  expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0);
+  // Mes: la pastilla ya no está deshabilitada; muestra la rejilla mensual con su resumen.
+  fireEvent.click(screen.getByText("Vista mensual"));
+  expect(await screen.findByText("Resumen del mes")).toBeTruthy();
+ });
+
  it("vista Pacientes: lista real, búsqueda filtra, y la ficha es contextual (sólo al seleccionar)",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Pacientes"}));

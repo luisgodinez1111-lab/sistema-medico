@@ -8,7 +8,7 @@ import {canonicalUnitOf} from "../../../../packages/lab-reference/src";
 import {getStoredSession,apiRequest,apiUpload,apiDelete,apiDownload,type MedicalSession} from "../../lib/session-client";
 import {assertNoForbidden} from "../../../../packages/design-system/src";
 import {summarizePatient} from "../../../../packages/patient-summary/src";
-import{ESI_FORM_EMPTY,esiBody,type EsiForm,conForma,FORMA,composeDose,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey,type ExpTab,EXP_TAB_KEYS}from"./shared";
+import{ESI_FORM_EMPTY,esiBody,type EsiForm,conForma,FORMA,composeDose,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey,type ExpTab,EXP_TAB_KEYS,agendaWindow}from"./shared";
 export function useWorkspaceModel(){
 
  const cspNonce=useNonce(); // S-04: los <style> propios declaran el nonce de la petición
@@ -337,7 +337,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const[agenda,setAgenda]=useState<{appointments:AgendaAppt[];counts:{programadas:number;atendidas:number;enEspera:number;canceladas:number}}|null>(null);
  const[agendaErr,setAgendaErr]=useState(false); // MEDIC-OS lote-a: la agenda ya no queda en "Cargando…" si falla; muestra error+reintento.
  const[agendaDate,setAgendaDate]=useState<string>(new Date().toISOString().slice(0,10)); // fecha de la agenda (YYYY-MM-DD)
- const[agendaView,setAgendaView]=useState<"dia"|"lista">("dia"); // vista de la agenda (rejilla del día / lista)
+ const[agendaView,setAgendaView]=useState<"dia"|"semana"|"mes"|"lista">("dia"); // vista de la agenda (día / semana / mes / lista)
  const[apptSel,setApptSel]=useState<string|null>(null);          // cita seleccionada (panel de detalle)
  const[apptBusy,setApptBusy]=useState(false);                     // transición de cita en curso
  const[apptMsg,setApptMsg]=useState<string|null>(null);           // aviso tras una acción de la agenda
@@ -456,14 +456,16 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // Agenda del día real (vistas Agenda e Inicio).
  useEffect(()=>{
   if((view!=="agenda"&&view!=="inicio"&&view!=="consulta")||!ready||!session)return;
-  let cancelled=false;const ac=new AbortController();const date=view==="agenda"?agendaDate:new Date().toISOString().slice(0,10);
-  (async()=>{try{const r=await apiRequest(`/api/v1/appointments?date=${date}`,{method:"GET",signal:ac.signal});
+  // Inicio y consulta miran solo el día de hoy; la Agenda respeta la vista (día/lista=1 día, semana/mes=rango).
+  const qs=view==="agenda"?agendaWindow(agendaView,agendaDate):`date=${new Date().toISOString().slice(0,10)}`;
+  let cancelled=false;const ac=new AbortController();
+  (async()=>{try{const r=await apiRequest(`/api/v1/appointments?${qs}`,{method:"GET",signal:ac.signal});
    if(cancelled)return;
    if(r.status<400){setAgenda({appointments:(r.body["appointments"] as AgendaAppt[])??[],counts:(r.body["counts"] as{programadas:number;atendidas:number;enEspera:number;canceladas:number})??{programadas:0,atendidas:0,enEspera:0,canceladas:0}});setAgendaErr(false);}
    else setAgendaErr(true); // no dejar la agenda en "Cargando…" indefinido ante un error del servidor
   }catch{if(!cancelled)setAgendaErr(true);}})();
   return()=>{cancelled=true;ac.abort();};
- },[view,ready,session,agendaDate]);
+ },[view,ready,session,agendaDate,agendaView]);
  // Inicio, Pacientes, Órdenes y Agenda: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
   // U-12: la lista de pacientes se necesita en TODA vista con barra de paciente (el selector reutilizable la usa).
@@ -1397,7 +1399,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   }catch(e){setOrdMsg(userMessage(e));}finally{setOrdBusy(false);}
  };
  // ===== Acciones REALES de la vista Agenda (crear cita + ciclo de vida) =====
- const reloadAgenda=async()=>{try{const r=await apiRequest(`/api/v1/appointments?date=${agendaDate}`,{method:"GET"});if(r.status<400){setAgenda({appointments:(r.body["appointments"] as AgendaAppt[])??[],counts:(r.body["counts"] as{programadas:number;atendidas:number;enEspera:number;canceladas:number})??{programadas:0,atendidas:0,enEspera:0,canceladas:0}});setAgendaErr(false);}else setAgendaErr(true);}catch{setAgendaErr(true);}};
+ const reloadAgenda=async()=>{try{const r=await apiRequest(`/api/v1/appointments?${agendaWindow(agendaView,agendaDate)}`,{method:"GET"});if(r.status<400){setAgenda({appointments:(r.body["appointments"] as AgendaAppt[])??[],counts:(r.body["counts"] as{programadas:number;atendidas:number;enEspera:number;canceladas:number})??{programadas:0,atendidas:0,enEspera:0,canceladas:0}});setAgendaErr(false);}else setAgendaErr(true);}catch{setAgendaErr(true);}};
  const apptTransition=async(id:string,version:number,path:"check-in"|"completion"|"cancellation"|"no-show",okMsg:string)=>{
   setApptBusy(true);setApptMsg(null);
   try{

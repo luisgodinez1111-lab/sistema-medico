@@ -19,6 +19,7 @@ const result:{status:string;checks:string[];error?:string}={status:"PASS",checks
 async function reg(t:string,p:string,name:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name,birthDate:"1990-01-01",sexAtBirth:"FEMALE",occurredAt:at})}));}
 async function sched(t:string,id:string,p:string,startAt:string,reason:string,consultorio:string,apptType:string){return apR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({appointmentId:id,patientId:p,startAt,reason,consultorio,apptType,endAt:new Date(Date.parse(startAt)+30*60000).toISOString(),occurredAt:at})}));}
 async function agenda(t:string,date:string){const r=await apR.GET(new Request(`http://l/api/v1/appointments?date=${date}`,{headers:H(t)}));return{status:r.status,body:await r.json()};}
+async function range(t:string,from:string,to:string){const r=await apR.GET(new Request(`http://l/api/v1/appointments?from=${from}&to=${to}`,{headers:H(t)}));return{status:r.status,body:await r.json()};}
 try{
  const phys=tok();
  const p1=crypto.randomUUID();await reg(phys,p1,"María Fernández López");
@@ -50,6 +51,16 @@ try{
  ok(g.body.counts.programadas===5&&g.body.counts.atendidas===1&&g.body.counts.canceladas===2,"COUNTS");
  // otra fecha -> vacía
  const empty=await agenda(phys,"2026-11-21");ok(empty.body.appointments.length===0,"OTHER_DAY_EMPTY");
+ // Lote F — rango semanal/mensual (from/to inclusivos): la semana que contiene DATE trae las 5 citas.
+ const wk=await range(phys,"2026-11-16","2026-11-22");ok(wk.status===200,"RANGE_200");
+ ok((wk.body.appointments as unknown[]).length===5,"RANGE_FIVE_APPTS");
+ ok(wk.body.from==="2026-11-16"&&wk.body.to==="2026-11-22","RANGE_ECHOES_WINDOW");
+ ok(wk.body.counts.programadas===5&&wk.body.counts.atendidas===1&&wk.body.counts.canceladas===2,"RANGE_COUNTS");
+ const wkEmpty=await range(phys,"2026-12-01","2026-12-31");ok((wkEmpty.body.appointments as unknown[]).length===0,"RANGE_OTHER_MONTH_EMPTY");
+ // validaciones del rango
+ const bad1=await apR.GET(new Request("http://l/api/v1/appointments?from=2026-11-16",{headers:H(phys)}));ok(bad1.status===400,"RANGE_FROM_WITHOUT_TO_400");
+ const bad2=await range(phys,"2026-11-22","2026-11-16");ok(bad2.status===400,"RANGE_INVERTED_400");
+ const bad3=await range(phys,"2026-01-01","2026-12-31");ok(bad3.status===400,"RANGE_TOO_WIDE_400");
  // sin scope -> 403
  const noScope=await agenda(tok(["patient:write"]),DATE);ok(noScope.status===403,"MISSING_SCOPE_403");
 }catch(e){result.status="FAIL";result.error=String(e);}

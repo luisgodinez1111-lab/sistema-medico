@@ -2437,7 +2437,7 @@
   },
   "/api/v1/appointments": {
    "get": {
-    "summary": "EPIC CM — GET /api/v1/appointments?date=YYYY-MM-DD -> agenda del día (citas + estado + paciente).",
+    "summary": "EPIC CM — GET /api/v1/appointments -> agenda (citas + estado + paciente). Determinista, RLS-scoped.",
     "tags": [
      "appointments"
     ],
@@ -2545,7 +2545,7 @@
     "x-handler": "apps/web/app/api/v1/appointments/route.ts"
    },
    "post": {
-    "summary": "EPIC CM — GET /api/v1/appointments?date=YYYY-MM-DD -> agenda del día (citas + estado + paciente).",
+    "summary": "EPIC CM — GET /api/v1/appointments -> agenda (citas + estado + paciente). Determinista, RLS-scoped.",
     "tags": [
      "appointments"
     ],

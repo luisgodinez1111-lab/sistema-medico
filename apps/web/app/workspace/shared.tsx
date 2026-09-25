@@ -531,6 +531,24 @@ export const EXP_TABS:{key:ExpTab,label:string,hint:string,hospital?:boolean}[]=
  {key:"admin",label:"Administración",hint:"Paciente, panel del clínico y facturación"},
 ];
 export const EXP_TAB_KEYS:ExpTab[]=EXP_TABS.map(t=>t.key);
+// Lote F — ventana de consulta de la agenda según la vista. Día/lista consultan un solo día (?date=); semana y mes
+// consultan un rango (?from=&to=). Los límites se calculan con componentes locales (los mismos que usa el calendario
+// del panel lateral, `new Date(y,m,d,12)`), sin `toISOString`, para no correr un día por el desfase de zona.
+const fmtLocal=(d:Date)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+export function weekRange(dateStr:string):{from:string;to:string}{
+ const d=new Date(dateStr+"T12:00:00");const mondayOffset=(d.getDay()+6)%7; // lunes=0 … domingo=6
+ const mon=new Date(d);mon.setDate(d.getDate()-mondayOffset);const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+ return{from:fmtLocal(mon),to:fmtLocal(sun)};
+}
+export function monthRange(dateStr:string):{from:string;to:string}{
+ const d=new Date(dateStr+"T12:00:00");
+ return{from:fmtLocal(new Date(d.getFullYear(),d.getMonth(),1,12)),to:fmtLocal(new Date(d.getFullYear(),d.getMonth()+1,0,12))};
+}
+export function agendaWindow(view:string,dateStr:string):string{
+ if(view==="semana"){const{from,to}=weekRange(dateStr);return `from=${from}&to=${to}`;}
+ if(view==="mes"){const{from,to}=monthRange(dateStr);return `from=${from}&to=${to}`;}
+ return `date=${dateStr}`;
+}
 export const RAIL_CSS=`
 /* App-shell: expediente como cockpit (sidebar oscuro + body + rejilla de ventanas) */
 .mos-app{display:flex;min-height:100vh;background:#F4F7FB}
