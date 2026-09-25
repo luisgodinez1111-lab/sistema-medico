@@ -50,8 +50,24 @@ export function authHeader(s:MedicalSession|null=getStoredSession()):Record<stri
 //   2) GUARDA DE DOBLE ENVÍO: mientras una mutación está en vuelo, otra de la MISMA acción (método + ruta + If-Match +
 //      cuerpo, ignorando lo que el cliente genera en cada clic) NO se envía y devuelve un 409 local explícito. No se
 //      comparte la respuesta de la primera: el segundo manejador creería creado un id que nunca se envió.
+//
+// Auditoría 2026-09-19, anexo R05a (R05a-F06 / WS1-05) — CANCELACIÓN REAL DE LAS LECTURAS EN VUELO.
+// No existía `AbortController` en NINGUNA parte del repositorio: el patrón `let cancelled=false` de los efectos evitaba
+// PINTAR una respuesta tardía, pero la petición seguía viva. Cambiar de paciente cinco veces seguidas —normal en un
+// consultorio y en triage— dejaba cinco cargas completas del expediente compitiendo por la red y por el servidor, y la
+// del paciente equivocado llegaba igual: solo que al llegar se tiraba.
+//
+// LAS MUTACIONES NO SE CANCELAN, y no es una omisión. Abortar un POST corta la ESPERA del cliente, no el comando: si el
+// servidor ya lo recibió, la receta quedó prescrita y la pantalla creería que no pasó nada, que es el peor resultado
+// posible en un expediente. Para eso están la Idempotency-Key y la guarda de doble envío de arriba: el reintento es
+// seguro porque la llave lo hace idempotente. Pasar `signal` en una mutación es un error de programación y se avisa como
+// tal, en vez de dar una falsa sensación de cancelación.
 export type ApiResult=Readonly<{status:number;body:Record<string,unknown>}>;
-export type ApiInit=Readonly<{method:string;body?:unknown;ifMatch?:number;idempotencyKey?:string}>;
+export type ApiInit=Readonly<{method:string;body?:unknown;ifMatch?:number;idempotencyKey?:string;signal?:AbortSignal}>;
+/** Distingue «lo cancelamos nosotros» de «la red falló»: lo primero no es un error que el médico deba ver. */
+export function isAbortError(e:unknown):boolean{
+ return e instanceof Error&&(e.name==="AbortError"||e.name==="TimeoutError");
+}
 export type ApiRetryOptions=Readonly<{retries?:number;backoffMs?:readonly number[];sleep?:(ms:number)=>Promise<void>}>;
 const RETRYABLE_STATUS:ReadonlySet<number>=new Set([502,503,504]);
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -73,6 +89,8 @@ export function actionFingerprint(path:string,init:ApiInit):string{
 }
 export async function apiRequest(path:string,init:ApiInit,fetchImpl:typeof fetch=fetch,retry:ApiRetryOptions={}):Promise<ApiResult>{
  const mutation=init.body!==undefined;
+ // R05a-F06: una mutación no se cancela (ver la nota de arriba). Se avisa en vez de aceptar la señal y no cumplirla.
+ if(mutation&&init.signal)throw new Error("MUTATION_NOT_CANCELLABLE: una mutación no acepta `signal`; abortar el fetch no deshace el comando en el servidor. Use la Idempotency-Key para reintentar.");
  const fp=mutation?actionFingerprint(path,init):"";
  if(mutation){
   if(inFlight.has(fp))return{status:409,body:{error:{code:"DUPLICATE_IN_FLIGHT",message:"Esta acción ya se está procesando; espere a que termine."}}};
@@ -87,8 +105,13 @@ export async function apiRequest(path:string,init:ApiInit,fetchImpl:typeof fetch
   const backoff=retry.backoffMs??[300,900];const maxRetries=Math.min(retry.retries??backoff.length,backoff.length);const sleep=retry.sleep??defaultSleep;
   for(let attempt=0;;attempt++){
    let res:Response|undefined;let networkError:unknown;
-   try{res=await fetchImpl(path,{method:init.method,headers,credentials:"same-origin",...(payload!==undefined?{body:payload}:{})});}
-   catch(e){networkError=e;}
+   try{res=await fetchImpl(path,{method:init.method,headers,credentials:"same-origin",...(init.signal?{signal:init.signal}:{}),...(payload!==undefined?{body:payload}:{})});}
+   catch(e){
+    // R05a-F06: una lectura CANCELADA no se reintenta. Sin esto, cancelar habría disparado MÁS peticiones: el abort llega
+    // como fallo de red y el reintento automático (S-05) lo habría tratado como tal.
+    if(isAbortError(e)||init.signal?.aborted)throw e;
+    networkError=e;
+   }
    let body:Record<string,unknown>={};
    if(res){try{body=await res.json() as Record<string,unknown>;}catch{/* respuesta sin cuerpo JSON */}}
    const inProgress=res?.status===409&&(body["error"] as {message?:unknown}|undefined)?.message==="IDEMPOTENCY_IN_PROGRESS";

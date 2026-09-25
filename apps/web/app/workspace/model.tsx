@@ -386,10 +386,10 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  },[patientId,tl,gaps,snap,trends,cForm,cAntec,enc,session,chartState,busy,ready]);
  // Capacidades del servidor (auditoría L-10/L-11). Si la consulta falla, las verticales hospitalarias quedan APAGADAS.
  useEffect(()=>{
-  if(!ready||!session)return;let cancelled=false;
-  (async()=>{try{const r=await apiRequest("/api/v1/features",{method:"GET"});if(!cancelled)setHospitalOn(r.status===200&&r.body["hospitalVerticals"]===true);}
+  if(!ready||!session)return;let cancelled=false;const ac=new AbortController();
+  (async()=>{try{const r=await apiRequest("/api/v1/features",{method:"GET",signal:ac.signal});if(!cancelled)setHospitalOn(r.status===200&&r.body["hospitalVerticals"]===true);}
    catch{if(!cancelled)setHospitalOn(false);}})(); // sin red: apagado; no es un error que el médico deba ver
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[ready,session]);
 
  // Auto-carga silenciosa del contexto de seguridad (timeline + care-gaps) al cambiar de paciente,
@@ -397,31 +397,31 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // en cada tecla del input de ID; 404 => sin datos (no es error). No usa `call` (no bloquea la UI).
  useEffect(()=>{
   if(!patientId||!ready||!session)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   // Cambio de paciente: se borra DE INMEDIATO lo del paciente anterior (nunca datos de A bajo la identidad de B; U-05).
   setTl(null);setGaps(null);setSnap(null);setTrends(null);setChartState("loading");
   const t=setTimeout(async()=>{
    // 404 = paciente sin datos/sin registrar (legítimo). Cualquier otro >=400 o excepción = NO SE SABE => "error".
    let failed=false;const known=(s:number)=>{if(s>=400&&s!==404)failed=true;return s<400;};
    try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/timeline`,{method:"GET"});
+    const r=await apiRequest(`/api/v1/patients/${patientId}/timeline`,{method:"GET",signal:ac.signal});
     if(cancelled)return;
     setTl(known(r.status)?((r.body["items"] as TL[])??[]):r.status===404?[]:null);
-    const g=await apiRequest(`/api/v1/patients/${patientId}/care-gaps`,{method:"GET"});
+    const g=await apiRequest(`/api/v1/patients/${patientId}/care-gaps`,{method:"GET",signal:ac.signal});
     if(cancelled)return;
     // Auditoría C-20: además de los pendientes de flujo, las brechas de cuidado PREVENTIVO (por condición y edad).
     const preventive=((g.body["preventive"] as{code:string;label:string;priority:Gap["priority"]}[]|undefined)??[]).map(x=>({aggregateType:"Preventive",aggregateId:x.code,code:x.code,label:x.label,priority:x.priority}));
     setGaps(known(g.status)?[...((g.body["gaps"] as Gap[])??[]),...preventive]:g.status===404?[]:null);
-    const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET"});
+    const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET",signal:ac.signal});
     if(cancelled)return;
     setSnap(known(sp.status)&&sp.body["registered"]?(sp.body as unknown as Snap):null);
-    const tr=await apiRequest(`/api/v1/patients/${patientId}/trends`,{method:"GET"});
+    const tr=await apiRequest(`/api/v1/patients/${patientId}/trends`,{method:"GET",signal:ac.signal});
     if(cancelled)return;
     setTrends(known(tr.status)?(tr.body as unknown as Trends):null);
     dataOwner.current=patientId;setChartState(failed?"error":"ready");
    }catch{if(!cancelled)setChartState("error");}
   },450);
-  return()=>{cancelled=true;clearTimeout(t);};
+  return()=>{cancelled=true;ac.abort();clearTimeout(t);};
  },[patientId,ready,session,chartReload]);
 
  // Reloj en vivo del dashboard (hora del consultorio).
@@ -429,152 +429,152 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // Ficha de Pacientes: al seleccionar un paciente, carga sus documentos (para la pestaña Documentos/Notas de la ficha).
  useEffect(()=>{
   if(view!=="pacientes"||!patSelId||!ready||!session)return;
-  let cancelled=false;
-  (async()=>{try{const r=await apiRequest(`/api/v1/patients/${patSelId}/documents`,{method:"GET"});if(!cancelled&&r.status===200)setDocsSnap(r.body as unknown as DocsSnap);}catch{/* documentos no disponibles */}})();
-  return()=>{cancelled=true;};
+  let cancelled=false;const ac=new AbortController();
+  (async()=>{try{const r=await apiRequest(`/api/v1/patients/${patSelId}/documents`,{method:"GET",signal:ac.signal});if(!cancelled&&r.status===200)setDocsSnap(r.body as unknown as DocsSnap);}catch{/* documentos no disponibles */}})();
+  return()=>{cancelled=true;ac.abort();};
  },[view,patSelId,ready,session]);
  // Agenda del día real (vistas Agenda e Inicio).
  useEffect(()=>{
   if((view!=="agenda"&&view!=="inicio"&&view!=="consulta")||!ready||!session)return;
-  let cancelled=false;const date=view==="agenda"?agendaDate:new Date().toISOString().slice(0,10);
-  (async()=>{try{const r=await apiRequest(`/api/v1/appointments?date=${date}`,{method:"GET"});
+  let cancelled=false;const ac=new AbortController();const date=view==="agenda"?agendaDate:new Date().toISOString().slice(0,10);
+  (async()=>{try{const r=await apiRequest(`/api/v1/appointments?date=${date}`,{method:"GET",signal:ac.signal});
    if(!cancelled&&r.status<400)setAgenda({appointments:(r.body["appointments"] as AgendaAppt[])??[],counts:(r.body["counts"] as{programadas:number;atendidas:number;enEspera:number;canceladas:number})??{programadas:0,atendidas:0,enEspera:0,canceladas:0}});
   }catch{/* agenda no disponible */}})();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session,agendaDate]);
  // Inicio, Pacientes, Órdenes y Agenda: cargan worklist (tareas del consultorio) + lista de pacientes reales.
  useEffect(()=>{
   // U-12: la lista de pacientes se necesita en TODA vista con barra de paciente (el selector reutilizable la usa).
   if(!ready||!session)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest("/api/v1/worklist",{method:"GET"});
+    const r=await apiRequest("/api/v1/worklist",{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status<400)setPanel({gaps:(r.body["gaps"] as PanelGap[])??[],patientCount:Number(r.body["patientCount"]??0)});
    }catch{/* worklist no disponible */}
    try{
-    const r=await apiRequest("/api/v1/patients?limit=200",{method:"GET"});
+    const r=await apiRequest("/api/v1/patients?limit=200",{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status<400){setPatientList((r.body["patients"] as{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version?:number}[])??[]);setPatientTotal(typeof r.body["total"]==="number"?r.body["total"]:null);setPatientMore(!!r.body["nextCursor"]);}
    }catch{/* lista no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session]);
 
  // Auto-carga del registro de alergias (vista Alergias) — GET clínica-wide con conteos por gravedad/tipo.
  useEffect(()=>{
   if(view!=="alergias"||!ready||!session)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest("/api/v1/allergies",{method:"GET"});
+    const r=await apiRequest("/api/v1/allergies",{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setAlergReg(r.body as unknown as AllergyRegistry);
    }catch{/* registro no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session]);
 
  // Auto-carga del registro de problemas (vista Problemas › lista) — GET clínica-wide con conteos.
  useEffect(()=>{
   if(view!=="problemas"||probScreen!=="lista"||!ready||!session)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest("/api/v1/problems",{method:"GET"});
+    const r=await apiRequest("/api/v1/problems",{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setProbReg(r.body as unknown as ProblemRegistry);
    }catch{/* registro no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,probScreen,ready,session]);
 
  // Auto-carga del registro de vacunas (vista Vacunas) — GET clínica-wide con conteos y cobertura.
  useEffect(()=>{
   if(view!=="vacunas"||!ready||!session)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest("/api/v1/immunizations",{method:"GET"});
+    const r=await apiRequest("/api/v1/immunizations",{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setImmReg(r.body as unknown as ImmRegistry);
    }catch{/* registro no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session]);
 
  // Auto-carga del historial de signos vitales del paciente en contexto (vista Signos vitales).
  useEffect(()=>{
   if(view!=="signos"||!ready||!session||!patientId)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET"});
+    const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setVitHist(r.body as unknown as VitalHistory);
    }catch{/* historial no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session,patientId]);
 
  // Auto-carga del snapshot del Plan de cuidado del paciente en contexto.
  useEffect(()=>{
   if(view!=="planCuidado"||!ready||!session||!patientId)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/care-plan`,{method:"GET"});
+    const r=await apiRequest(`/api/v1/patients/${patientId}/care-plan`,{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setCpSnap(r.body as unknown as CarePlanSnap);
    }catch{/* snapshot no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session,patientId]);
 
  // Auto-carga del contexto para Nueva interconsulta (panel derecho: alergias/medicamentos/problemas/labs/vitales).
  useEffect(()=>{
   if(view!=="interconsulta"||!ready||!session||!patientId)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/referral-context`,{method:"GET"});
+    const r=await apiRequest(`/api/v1/patients/${patientId}/referral-context`,{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setRefCtx(r.body as unknown as RefContext);
    }catch{/* contexto no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session,patientId]);
 
  // Auto-carga del snapshot de Seguimiento (tareas + tendencia de vitales + indicadores clave).
  useEffect(()=>{
   if(view!=="seguimiento"||!ready||!session||!patientId)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/follow-up`,{method:"GET"});
+    const r=await apiRequest(`/api/v1/patients/${patientId}/follow-up`,{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setFuSnap(r.body as unknown as FollowUpSnap);
    }catch{/* snapshot no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session,patientId]);
 
  // Auto-carga del registro de facturación (vista Facturación) — GET clínica-wide con KPIs.
  useEffect(()=>{
   if(view!=="facturacion"||!ready||!session)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest("/api/v1/claims",{method:"GET"});
+    const r=await apiRequest("/api/v1/claims",{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setClaimsReg(r.body as unknown as ClaimsRegistry);
    }catch{/* registro no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session]);
 
  // Auto-carga de documentos del paciente en contexto (vista Documentos).
  useEffect(()=>{
   if(view!=="documentos"||!ready||!session||!patientId)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET"});
+    const r=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setDocsSnap(r.body as unknown as DocsSnap);
    }catch{/* lista no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session,patientId]);
 
  // Al cargar la lista de documentos, precarga el contenido REAL del primero (repositorio GET /documents/:id).
@@ -587,36 +587,36 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // Auto-carga de las obligaciones regulatorias del consultorio (vista Obligaciones) — nivel tenant, sin paciente.
  useEffect(()=>{
   if(view!=="obligaciones"||!ready||!session)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest("/api/v1/regulatory-obligations",{method:"GET"});
+    const r=await apiRequest("/api/v1/regulatory-obligations",{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setRegObSnap(r.body as unknown as RegObSnap);
    }catch{/* lista no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session]);
 
  // Auto-carga del snapshot para Clinical Intelligence (alertas deterministas + contexto). R6 IA generativa en pausa.
  useEffect(()=>{
   if(view!=="clinicalIntel"||!ready||!session||!patientId)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET"});
+    const r=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setCiSnap(r.body as unknown as CiSnap);
    }catch{/* snapshot no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session,patientId]);
 
  // Auto-carga de los ajustes del consultorio (vista Configuración) — GET singleton por tenant + versión.
  useEffect(()=>{
   if(view!=="configuracion"||!ready||!session)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest("/api/v1/office-settings",{method:"GET"});
+    const r=await apiRequest("/api/v1/office-settings",{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200){const b=r.body as{settings:Partial<OfficeSettings>;version:number};
      // Fusiona con defaults para tolerar ajustes previos sin horario/módulos (retrocompatibilidad).
      const merged:OfficeSettings={...CFG_DEFAULTS,...b.settings,
@@ -626,50 +626,50 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
    }catch{/* ajustes no disponibles */}
    if(!cancelled)void loadProfile(); // firma y sello del médico (Blob privado)
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session]);
 
  // Auto-carga del tablero de Reportes (KPIs de pacientes/ingresos + diagnósticos principales, nivel tenant).
  useEffect(()=>{
   if(view!=="reportes"||!ready||!session)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest("/api/v1/reports",{method:"GET"});
+    const r=await apiRequest("/api/v1/reports",{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setRepSnap(r.body as unknown as ReportsSnap);
    }catch{/* tablero no disponible */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session]);
 
  // Auto-carga del registro de resultados (vista Resultados) — GET clínica-wide con estado-UI derivado + KPIs.
  useEffect(()=>{
   if((view!=="resultados"&&view!=="ordenes")||!ready||!session)return;
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    if(view==="resultados"){try{
-    const r=await apiRequest("/api/v1/results",{method:"GET"});
+    const r=await apiRequest("/api/v1/results",{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setResReg(r.body as unknown as ResultsRegistry);
    }catch{/* registro no disponible */}}
    try{
-    const r=await apiRequest("/api/v1/orders",{method:"GET"});
+    const r=await apiRequest("/api/v1/orders",{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setOrdReg(r.body as unknown as typeof ordReg);
    }catch{/* órdenes no disponibles */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session]);
 
  // Auto-carga de las pestañas por paciente de la vista Consulta (resultados/órdenes/medicamentos/plan/documentos/seguimiento).
  useEffect(()=>{
   if(view!=="consulta"||!ready||!session||!patientId){setConsTabs(null);return;}
-  let cancelled=false;
+  let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/consultation-tabs`,{method:"GET"});
+    const r=await apiRequest(`/api/v1/patients/${patientId}/consultation-tabs`,{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setConsTabs(r.body as unknown as ConsTabs);
    }catch{/* pestañas no disponibles */}
   })();
-  return()=>{cancelled=true;};
+  return()=>{cancelled=true;ac.abort();};
  },[view,ready,session,patientId]);
 
  // Scrollspy: resalta en el nav-rail el módulo actual = la ÚLTIMA sección cuyo top ya cruzó bajo los
