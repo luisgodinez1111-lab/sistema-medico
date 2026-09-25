@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-25T05:37:39.861Z",
-  "files": 261,
-  "totalTests": 1632,
+  "generatedAt": "2026-09-25T05:47:07.968Z",
+  "files": 263,
+  "totalTests": 1500,
   "failedTests": 0,
   "results": [
     {
@@ -757,7 +757,7 @@
     {
       "file": "tests/v22/evidence-ledgers.test.ts",
       "status": "PASS",
-      "tests": 9
+      "tests": 12
     },
     {
       "file": "tests/v22/feature-flags.test.ts",
@@ -992,7 +992,7 @@
     {
       "file": "tests/v22/reconciliation-integrity.test.ts",
       "status": "PASS",
-      "tests": 153
+      "tests": 5
     },
     {
       "file": "tests/v22/record-export.test.ts",
@@ -1040,6 +1040,11 @@
       "tests": 11
     },
     {
+      "file": "tests/v22/route-coverage.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
       "file": "tests/v22/runtime-auth-scopes.test.ts",
       "status": "PASS",
       "tests": 10
@@ -1083,6 +1088,11 @@
       "file": "tests/v22/single-authority-implementations.test.ts",
       "status": "PASS",
       "tests": 8
+    },
+    {
+      "file": "tests/v22/small-wired-packages.test.ts",
+      "status": "PASS",
+      "tests": 10
     },
     {
       "file": "tests/v22/specimen-fold.test.ts",

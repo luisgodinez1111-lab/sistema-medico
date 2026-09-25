@@ -473,3 +473,14 @@ de auditoría es la línea base del proyecto y conviene que su fe de errores viv
 | R08-11 | ALTA | YA CERRADO | El guardián de estados prohibidos lleva los 20 pares del contrato y un test exige que ambas listas coincidan. |
 | R08-12 | ALTA | CERRADO (13z) | 316 sustituciones de hex suelto por token, con el contraste recalculado. |
 | R08-13 | ALTA | DEUDA DECLARADA | 59 imports con hasta 8 niveles de `../` = R04-018: toca las 162 rutas sin beneficio clínico. |
+
+## Anexo R07 — Tests (6 hallazgos) · cruzado el 25-sep-2026
+
+| ID | Severidad | Estado | Medición contra el código |
+| --- | --- | --- | --- |
+| R07-01 | CRÍTICA | CERRADO (14f) | El archivo generaba **un `it()` por capacidad** —151 de los 1.632 tests, casi el 10 %— y cada uno solo comprobaba que unos campos del JSON no estuvieran vacíos. Se agregó en cuatro tests que reportan TODAS las filas ofensoras de una vez: la suite bajó a 1.487 y ahora el conteo describe lo que de verdad cubre. El diagnóstico también mejora: antes fallaba uno y había que repetir para ver el siguiente. Lo que este archivo NO verifica —que la evidencia se haya ejecutado— queda dicho en él y lo hace el gate del dossier. |
+| R07-02 | ALTA | YA CERRADO | El fármaco fuera de catálogo NO es fail-open: crea una obligación `MONITORING_UNDEFINED` con responsable y plazo (R02a-MED-01), y la barrera lo declara `NOT_EVALUATED` en vez de «seguro». |
+| R07-03 | CRÍTICA | YA CERRADO | **108 pruebas en vivo** contra PostgreSQL real con RLS forzado. La guarda nueva exige que todas importen el prólogo que se niega a correr contra la base de la aplicación. |
+| R07-04 | ALTA | YA CERRADO | Queda una sola mención de «POST real» y es la prueba que sí los emite contra el handler real. |
+| R07-05 | ALTA | CERRADO (14f) | Medido: **159 de 162** rutas ya se ejercitaban con su handler real. Se cubrieron las tres que faltaban (`/features`, `/health`, cancelación de diálisis) con una prueba en vivo nueva, y la guarda `route-coverage.test.ts` exige el 100 %: una ruta nueva sin prueba en vivo rompe la compilación. En `/features` la prueba comprueba además que un anónimo recibe 401 —si no, filtraría la configuración del consultorio— y que la respuesta va `no-store`. |
+| R07-06 | MEDIA | CERRADO (14f) | El hallazgo decía 111 de 301 paquetes sin test. Medido: **10 de 192**, y ninguno de los diez está en una ruta clínica que corra (siete son alcanzables solo desde ciclos de vida declarados no cableados; el resto es R6, en pausa). Se cubrieron los tres más pequeños con reglas reales. **Y al probarlos apareció un defecto:** `budgetStatus` recibía cinco indicadores de seguridad y solo evaluaba TRES —`deadLetters` y `reconciliationBacklog` viajaban sin comprobarse, así que 50 cartas muertas devolvían `safe:true`—. Los cinco bloquean ahora, cada uno con su razón escrita. |

@@ -20,16 +20,49 @@ describe("integridad de la reconciliación de adjudicación (EPIC AD)",()=>{
   for(const c of rec.capabilities)if(c.human_accepted===true)expect(signed.has(c.id),`${c.id}: afirma aceptación humana sin firma en c5-acceptance.json`).toBe(true);
   for(const a of acceptance.accepted){expect(a.acceptedBy&&a.role&&a.date,`aceptación incompleta de ${a.capability}`).toBeTruthy();}
  });
- for(const c of rec.capabilities){
-  it(`${c.id}: invariantes, implementación, tests existentes y evidencia de runtime`,()=>{
-   expect(c.invariants&&c.invariants.length>0,`${c.id} sin invariantes`).toBe(true);
-   expect(c.tests&&c.tests.length>0,`${c.id} sin tests`).toBe(true);
-   for(const t of c.tests??[])expect(exists(pathOf(t)),`${c.id}: test inexistente ${t}`).toBe(true);
-   for(const i of c.implementation??[])for(const seg of i.split(",")){const p=pathOf(seg);if(/^(apps|packages|db|scripts|state-machines|safety)\//.test(p))expect(exists(implPrefix(seg)),`${c.id}: implementación inexistente ${seg.trim()}`).toBe(true);}
-   expect(!!c.runtime_evidence&&c.runtime_evidence.trim()!=="",`${c.id} sin runtime_evidence`).toBe(true);
+ // Auditoría 2026-09-19, anexo R07 (R07-01) — UNA FILA DE JSON BIEN FORMADA NO ES UNA PRUEBA.
+ //
+ // EL HALLAZGO: este archivo generaba **un `it()` por capacidad** —151 de los 1.600 tests de la suite, casi el 10 %— y cada
+ // uno solo comprobaba que unos campos del JSON no estuvieran vacíos y que las rutas citadas existieran en disco. El conteo
+ // de la suite contaba eso como si fueran pruebas de comportamiento clínico, que es el defecto: «803 tests passing» decía
+ // el anexo, y una parte importante era esto.
+ //
+ // LA CORRECCIÓN: la comprobación se conserva —es útil: una cita rota es una cita rota— pero se AGREGA. Un solo test por
+ // clase de problema, que reporta TODAS las filas ofensoras de una vez. El conteo de la suite baja y describe mejor lo que
+ // de verdad cubre, y el diagnóstico mejora: antes fallaba un test y había que repetir para ver el siguiente.
+ //
+ // QUÉ NO VERIFICA ESTE ARCHIVO, dicho aquí para que nadie lo suponga: que la evidencia citada se haya EJECUTADO y esté en
+ // verde. Eso lo hace `pnpm evidence:dossier` cruzando los libros de ejecución (R11-22), y no puede vivir aquí porque los
+ // libros se generan corriendo esta misma batería.
+ it("toda capacidad declara invariantes, tests y decisión propuesta",()=>{
+  const sinInv=rec.capabilities.filter(c=>!c.invariants||c.invariants.length===0).map(c=>c.id);
+  const sinTests=rec.capabilities.filter(c=>!c.tests||c.tests.length===0).map(c=>c.id);
+  const sinDecision=rec.capabilities.filter(c=>!c.proposed_review_decision).map(c=>c.id);
+  const sinRuntime=rec.capabilities.filter(c=>!c.runtime_evidence||c.runtime_evidence.trim()==="").map(c=>c.id);
+  expect(sinInv,"capacidades sin invariantes").toEqual([]);
+  expect(sinTests,"capacidades sin tests").toEqual([]);
+  expect(sinDecision,"capacidades sin decisión propuesta").toEqual([]);
+  expect(sinRuntime,"capacidades sin evidencia de runtime").toEqual([]);
+ });
+ it("toda cita a un fichero existe en disco (tests, implementación y evidencia de runtime)",()=>{
+  const roto:string[]=[];
+  for(const c of rec.capabilities){
+   for(const t of c.tests??[])if(!exists(pathOf(t)))roto.push(`${c.id}: test ${t}`);
+   for(const i of c.implementation??[])for(const seg of i.split(",")){
+    const p=pathOf(seg);
+    if(/^(apps|packages|db|scripts|state-machines|safety)\//.test(p)&&!exists(implPrefix(seg)))roto.push(`${c.id}: implementación ${seg}`);
+   }
    const s=pathOf(c.runtime_evidence??"");
-   if(FILE.test(s))expect(exists(s),`${c.id}: evidencia de runtime inexistente ${s}`).toBe(true);
-   expect(!!c.proposed_review_decision,`${c.id} sin decisión propuesta`).toBe(true);
-  });
- }
+   if(FILE.test(s)&&!exists(s))roto.push(`${c.id}: evidencia de runtime ${s}`);
+  }
+  expect(roto,"cita a un fichero que no existe").toEqual([]);
+ });
+ it("la cita de evidencia es una ruta o la marca de ausencia, nunca un veredicto",()=>{
+  // R11-22: 146 de 151 guardaban un veredicto escrito a mano en el campo de la cita («PASS 10/10…»), que envejece y sigue
+  // afirmando. La ruta es comprobable; el relato vive en `runtime_evidence_note`, etiquetado como nota.
+  const malas=rec.capabilities
+   .filter(c=>{const ev=(c.runtime_evidence??"").trim();return ev!=="SIN CITA EJECUTABLE"&&!FILE.test(pathOf(ev));})
+   .map(c=>`${c.id}: ${(c.runtime_evidence??"").slice(0,60)}`);
+  expect(malas,"la cita de evidencia tiene que ser una ruta o la marca de ausencia").toEqual([]);
+ });
 });

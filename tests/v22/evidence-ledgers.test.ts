@@ -79,6 +79,32 @@ describe("libros de ejecución de la evidencia (R11-22)",()=>{
  });
 });
 
+describe("el manifiesto de evidencia no promete ejecución: la cita (R11-22)",()=>{
+ const MANIFIESTO="release/test-evidence-manifest.json";
+ type Entrada={test:string;sha256:string;execution_status?:string;execution_ledger?:string};
+ const manifiesto=()=>JSON.parse(fs.readFileSync(MANIFIESTO,"utf8")) as Entrada[];
+ it("ninguna entrada declara la ejecución como PENDIENTE ahora que los libros existen",()=>{
+  // 129 de 138 entradas decían «PENDING_EXECUTION»: una promesa donde debía haber un dato. Los libros ya dan el dato.
+  const pendientes=manifiesto().filter(x=>x.execution_status==="PENDING_EXECUTION").map(x=>x.test);
+  expect(pendientes,"entrada que sigue prometiendo ejecución en vez de citarla").toEqual([]);
+ });
+ it("cada entrada que afirma haber pasado lo demuestra con SU libro",()=>{
+  const tests=JSON.parse(fs.readFileSync(LIBRO_TESTS,"utf8")) as {results:{file:string;status:string}[]};
+  const proofs=JSON.parse(fs.readFileSync(LIBRO_PROOFS,"utf8")) as {results:{proof:string;status:string}[]};
+  const verde=new Set([...tests.results.filter(r=>r.status==="PASS").map(r=>r.file),...proofs.results.filter(r=>r.status==="PASS").map(r=>r.proof)]);
+  const falsas=manifiesto().filter(x=>x.execution_status==="EXECUTED_PASS"&&!verde.has(x.test)).map(x=>x.test);
+  expect(falsas,"afirma EXECUTED_PASS y no aparece en verde en ningún libro").toEqual([]);
+  // Y cita QUÉ libro lo respalda: sin eso, «ejecutada» es otra afirmación sin fuente.
+  const sinLibro=manifiesto().filter(x=>x.execution_status==="EXECUTED_PASS"&&!x.execution_ledger).map(x=>x.test);
+  expect(sinLibro,"afirma ejecución sin citar el libro que lo respalda").toEqual([]);
+ });
+ it("la huella sigue protegiendo el par: si el test cambia, la afirmación caduca",()=>{
+  // Es lo que hace sólida la combinación: `execution_status` es una foto, y el sha256 impide que la foto sobreviva a una
+  // edición del test. El gate RG-013 comprueba la huella en cada release.
+  for(const x of manifiesto())expect(x.sha256,x.test).toMatch(/^[0-9a-f]{64}$/);
+ });
+});
+
 describe("lo que el dossier no puede fingir (R11-18, R11-19)",()=>{
  it("declara que cubre un subconjunto del registro, en vez de resumirlo en silencio",()=>{
   const src=fs.readFileSync(DOSSIER,"utf8");
