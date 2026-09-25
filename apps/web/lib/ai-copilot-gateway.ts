@@ -62,10 +62,23 @@ export async function handleAiAssist(req:Request):Promise<Response>{
    const r=await gatherClinicalIntelligence(ctx,b.patientId);
    // SHADOW MODE (ADR-0220 fase 2): califica un candidato en paralelo y registra el resultado SIN mostrarlo
    // al médico. Flag independiente del kill-switch. La respuesta al clínico NO cambia (invariante de no-fuga).
+   // Auditoría 2026-09-19, anexo R04 (R04-F01, lote 21) — EL SHADOW MODE CALIFICABA UN CANDIDATO INVENTADO.
+   //
+   // El candidato era el literal `{kind:"CLAIM",text:"resumen",citations:["deterministic-engine"]}`: una cadena fija con una
+   // cita fija. `gradeCandidateSafety` solo puede marcar `UNGROUNDED_CLAIM` cuando hay texto y NO hay citas, así que ese
+   // candidato daba SHADOW_SAFE siempre, por construcción. El indicador medía la constante, no la salida.
+   //
+   // Ahora se califica EL CONTENIDO REAL que está a punto de devolverse: el resumen del motor determinista con sus citas. Es
+   // lo único que hace del shadow mode una medición —si algún día el resumen sale sin citar su fuente, el indicador lo dice—.
    if(process.env.AI_COPILOT_SHADOW==="true"){
-    const candidate:CandidateOutput={kind:"CLAIM",text:"resumen",citations:["deterministic-engine"]};
+    // El contenido que el médico LEE son los hallazgos; `r.summary` es el recuento por severidad, no texto.
+    const texto=r.findings.map(f=>f.summary).join(" · ");
+    const citas=texto.trim().length>0?["deterministic-engine"]:[];
+    const candidate:CandidateOutput={kind:"CLAIM",text:texto,citations:citas};
     const verdict=gradeCandidateSafety(candidate);
-    sliSpan("workflow","ai_shadow",crypto.randomUUID()).end("success",{code:verdict.safe?"SHADOW_SAFE":"SHADOW_UNSAFE",tenantId});
+    // El código del indicador no lleva PHI: solo el veredicto y, si no es seguro, QUÉ regla se violó.
+    sliSpan("workflow","ai_shadow",crypto.randomUUID()).end("success",
+     {code:verdict.safe?"SHADOW_SAFE":`SHADOW_UNSAFE:${verdict.violations.join("|")}`,tenantId});
    }
    span.end("success",{code:"ALLOWED",tenantId});
    return NextResponse.json({...base,status:"ALLOWED",content:{findings:r.findings,summary:r.summary},citations:["deterministic-engine"],note:"Contenido determinista (sin IA generativa); el médico revisa antes de promover"},{status:200});

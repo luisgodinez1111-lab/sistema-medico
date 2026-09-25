@@ -24,8 +24,14 @@ export type RegulatoryObligationRow=Readonly<{obligationId:string;name:string;ca
  *
  * Ahora la fila se arma con el alta MÁS la última renovación y el último cumplimiento. El estado del ciclo viaja con ella
  * porque «al día» y «cumplida» son cosas distintas: la primera la calcula la fecha, la segunda la declaró una persona.
+ *
+ * R04-008 (lote 21): la consulta tampoco tenía cota. Es el único listado CLÍNICA-WIDE que quedaba sin acotar —los otros seis
+ * se paginaron en R06-20— y un consultorio con años de trámites lo notaría. El tope es alto a propósito: estas obligaciones
+ * son decenas, no miles, y partir la lista en páginas complicaría el cálculo de cumplimiento por categoría sin necesidad.
+ * Lo que importa es que exista una cota declarada en vez de ninguna.
  */
-export async function regulatoryObligations(ctx:HttpTenantContext):Promise<RegulatoryObligationRow[]>{
+export const REGULATORY_OBLIGATIONS_MAX=500;
+export async function regulatoryObligations(ctx:HttpTenantContext,limit=REGULATORY_OBLIGATIONS_MAX):Promise<RegulatoryObligationRow[]>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    with ultimo as (
@@ -49,7 +55,8 @@ export async function regulatoryObligations(ctx:HttpTenantContext):Promise<Regul
    left join ultimo c on c.aggregate_id=a.aggregate_id and c.kind='COMPLIED' and c.rn=1
    left join estado e on e.aggregate_id=a.aggregate_id and e.rn=1
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='RegulatoryObligation' and a.payload->>'kind'='CREATED'
-   order by coalesce(r.due_date, a.payload->>'dueDate') asc nulls last`;
+   order by coalesce(r.due_date, a.payload->>'dueDate') asc nulls last
+   limit ${Math.max(1,Math.min(limit,REGULATORY_OBLIGATIONS_MAX))}`;
   return rows.map(r=>{const o=r as Record<string,unknown>;
    const last=String(o.last_kind??"CREATED");
    // El estado del ciclo se deriva del ÚLTIMO evento: renovar devuelve la obligación a abierta, y por eso `RENEWED` es OPEN.

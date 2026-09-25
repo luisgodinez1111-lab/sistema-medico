@@ -37,7 +37,18 @@ export async function latestAnalyteReading(ctx:HttpTenantContext,patientId:strin
 }
 // EPIC CH — Serie temporal de un analito (evolución longitudinal, panel 4). Todos los resultados
 // RECEIVED de ese analito, orden ascendente por fecha. RLS-scoped; valores numéricos.
-export async function analyteSeries(ctx:HttpTenantContext,patientId:string,analyte:string):Promise<{value:number;at:string}[]>{
+/**
+ * Auditoría 2026-09-19, anexo R04 (R04-008, lote 21) — LA SERIE ESTÁ ACOTADA, y el recorte se dice.
+ *
+ * Esta consulta no tenía `LIMIT`: leía TODOS los resultados de ese analito de ese paciente. Para un diabético con veinte años
+ * de glucosas mensuales son cientos de filas que la gráfica no puede mostrar y que viajan igual. La cota va con dos cuidados
+ * que no son evidentes: se toman los MÁS RECIENTES (`order by desc`, y luego se invierte para devolver la serie en orden
+ * ascendente, que es lo que espera la tendencia), porque limitar sobre un orden ascendente devolvería los más ANTIGUOS —una
+ * tendencia de hace quince años presentada como la actual—; y el recorte se REPORTA, en vez de que la gráfica dibuje una
+ * historia incompleta como si fuera toda.
+ */
+export const ANALYTE_SERIES_MAX_POINTS=400;
+export async function analyteSeries(ctx:HttpTenantContext,patientId:string,analyte:string,limit=ANALYTE_SERIES_MAX_POINTS):Promise<{value:number;at:string}[]>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select coalesce(r.payload->>'canonicalValue',r.payload->>'value') as value, r.occurred_at as at
@@ -46,8 +57,11 @@ export async function analyteSeries(ctx:HttpTenantContext,patientId:string,analy
      and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
      and not exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
      and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=r.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR') -- R03-10: anulado -> no existe para ningún lector
-   order by r.occurred_at asc, r.sequence asc`;
+   order by r.occurred_at desc, r.sequence desc
+   limit ${Math.max(1,Math.min(limit,ANALYTE_SERIES_MAX_POINTS))}`;
   // Los puntos implausibles se EXCLUYEN de la serie: un solo valor en otra escala deforma la tendencia y su pendiente.
-  return rows.map(r=>{const o=r as Record<string,unknown>;return{value:Number(o.value),at:String(o.at)};}).filter(p=>Number.isFinite(p.value)&&normalizeLabValue(analyte,p.value).ok);
+  // Se invierte para devolver la serie ASCENDENTE, que es el contrato que esperan los consumidores de tendencia.
+  return rows.map(r=>{const o=r as Record<string,unknown>;return{value:Number(o.value),at:String(o.at)};})
+   .filter(p=>Number.isFinite(p.value)&&normalizeLabValue(analyte,p.value).ok).reverse();
  });
 }
