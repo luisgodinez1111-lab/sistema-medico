@@ -1,2 +1,0 @@
-export type MedicationOrder=Readonly<{id:string;patientId:string;drugCode:string;dose:string;route:string;frequency:string;prescriberId:string;actorRole:string;status:"DRAFT"|"PRESCRIBED"}>;
-export function prescribe(x:MedicationOrder){if(x.actorRole!=="PHYSICIAN")throw new Error("PHYSICIAN_AUTHORITY_REQUIRED");if(!x.drugCode||!x.dose||!x.route||!x.frequency)throw new Error("MEDICATION_ORDER_INCOMPLETE");return Object.freeze({...x,status:"PRESCRIBED" as const});}

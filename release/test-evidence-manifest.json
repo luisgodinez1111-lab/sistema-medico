@@ -1,5 +1,14 @@
 [
   {
+    "test": "scripts/v22/live-medication-lifecycle-proof.mts",
+    "sha256": "903c1839ba9d93dbf05e1324ca2799db35b0afc797e6718d513395f483171030",
+    "authority": [
+      "ENG-320",
+      "ENG-333"
+    ],
+    "evidence_class": "EXECUTABLE_LIVE_PROOF"
+  },
+  {
     "test": "tests/application/health.test.ts",
     "authority": [
       "ENG-309",
@@ -468,16 +477,6 @@
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },
   {
-    "test": "tests/v11/medication-ordering-v11.test.ts",
-    "authority": [
-      "ENG-320",
-      "ENG-333"
-    ],
-    "sha256": "62127a1cdaeef2632c630be9d26059dca2a15b34f03fd3ac3997db4a3b4db3cf",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
     "test": "tests/v11/result-obligation-link.test.ts",
     "authority": [
       "ENG-307",
@@ -534,16 +533,6 @@
       "ENG-309"
     ],
     "sha256": "6eca890ec6be3b1877ea60a782de8b603a7ad3542bb75d9bff3bc6b419ba732e",
-    "execution_status": "PENDING_EXECUTION",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
-  },
-  {
-    "test": "tests/v12/medication-runtime.test.ts",
-    "authority": [
-      "ENG-320",
-      "ENG-333"
-    ],
-    "sha256": "37ddf56e1bf68a924b0c6b326834d210e1ba603d054788c5d808d40316dee6a8",
     "execution_status": "PENDING_EXECUTION",
     "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },
@@ -1122,6 +1111,15 @@
     "invariant": "INV-CORE-0014"
   },
   {
+    "test": "tests/v22/prescription-safety.test.ts",
+    "sha256": "fc8954d382c360899805c80069f6737bbbc4e33d26075a8436ca4f57132ed1d6",
+    "authority": [
+      "ENG-320",
+      "ENG-333"
+    ],
+    "evidence_class": "EXECUTABLE_TEST_SOURCE"
+  },
+  {
     "test": "tests/v22/result-fold.test.ts",
     "authority": [
       "ENG-307",
@@ -1136,16 +1134,6 @@
     ],
     "sha256": "f32ddbe37055b1686325ad7d27f210f3d993270740f9e61f8e951abebe698dcc",
     "invariant": "INV-CORE-0013"
-  },
-  {
-    "test": "tests/v6/encounter-service.test.ts",
-    "authority": [
-      "ENG-306",
-      "ENG-333"
-    ],
-    "sha256": "9ab00af63e15753f321ad3ffe44d9ad80728877bd832fb0e1830b9046f4c8e17",
-    "execution_status": "EXECUTED_PASS",
-    "evidence_class": "EXECUTABLE_TEST_SOURCE"
   },
   {
     "test": "tests/v6/patient-state.test.ts",

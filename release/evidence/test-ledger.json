@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-25T05:25:02.853Z",
-  "files": 263,
-  "totalTests": 1627,
+  "generatedAt": "2026-09-25T05:37:39.861Z",
+  "files": 261,
+  "totalTests": 1632,
   "failedTests": 0,
   "results": [
     {
@@ -240,11 +240,6 @@
       "tests": 1
     },
     {
-      "file": "tests/v11/medication-ordering-v11.test.ts",
-      "status": "PASS",
-      "tests": 1
-    },
-    {
       "file": "tests/v11/result-obligation-link.test.ts",
       "status": "PASS",
       "tests": 1
@@ -271,11 +266,6 @@
     },
     {
       "file": "tests/v12/encounter-runtime.test.ts",
-      "status": "PASS",
-      "tests": 1
-    },
-    {
-      "file": "tests/v12/medication-runtime.test.ts",
       "status": "PASS",
       "tests": 1
     },
@@ -1090,6 +1080,11 @@
       "tests": 13
     },
     {
+      "file": "tests/v22/single-authority-implementations.test.ts",
+      "status": "PASS",
+      "tests": 8
+    },
+    {
       "file": "tests/v22/specimen-fold.test.ts",
       "status": "PASS",
       "tests": 6
@@ -1203,11 +1198,6 @@
       "file": "tests/v22/wound-fold.test.ts",
       "status": "PASS",
       "tests": 6
-    },
-    {
-      "file": "tests/v6/encounter-service.test.ts",
-      "status": "PASS",
-      "tests": 1
     },
     {
       "file": "tests/v6/patient-state.test.ts",

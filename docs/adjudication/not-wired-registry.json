@@ -1,7 +1,7 @@
 {
   "purpose": "Registro machine-checkable de handlers *-lifecycle.ts que NO están cableados a ninguna ruta (código inalcanzable desde la app). Da a cada huérfano un ESTADO TERMINAL documentado (ley no-orphan / EXEC-0003) y evita que inflen la sensación de avance. Enforzado por tests/v22/not-wired-integrity.test.ts. Autoridad: hallazgo #10 de la auditoría 2026-09-17 (scorecard).",
   "policy": "Un módulo listado aquí NO debe ser importado por ninguna ruta bajo apps/web/app. Si se cablea, DEBE removerse de este registro (el guard falla si un módulo listado aparece cableado). Todo *-lifecycle.ts nuevo debe estar cableado o listado aquí (el guard falla ante un huérfano no declarado). R6 (IA del copiloto) está EN PAUSA: los módulos de IA no se activan.",
-  "updated": "2026-09-17",
+  "updated": "2026-09-25",
   "modules": [
     {
       "module": "adaptive-history-lifecycle",
@@ -67,6 +67,24 @@
       "classification": "OVERLAPS_WIRED",
       "retiredAt": "2026-09-23",
       "reason": "Su «artefacto» de receta era un JSON sin ningún campo legal mexicano y su render/verify eran tautológicos (packages/prescription-studio, retirado con él). La receta real es packages/prescription-print + /api/v1/patients/:id/prescription-print. Retirado en la remediación de R01-023."
+    },
+    {
+      "module": "packages/encounter-service",
+      "classification": "DUPLICATE_OF_WIRED",
+      "retiredAt": "2026-09-25",
+      "reason": "Anexo R08 (R08-01): tercera implementación paralela de «solo el médico abre y transiciona un encuentro». La que de verdad corre es apps/web/lib/encounter-lifecycle.ts sobre el kernel, con máquina de estados, idempotencia y RLS. Este paquete no lo importaba ninguna ruta —solo su propia prueba— y NINGUNA capacidad del dossier C5 lo citaba como evidencia, así que retirarlo no exigía re-alinear evidencia (era el bloqueo que declaraba K-01/K-07)."
+    },
+    {
+      "module": "packages/medication-ordering",
+      "classification": "DUPLICATE_OF_WIRED",
+      "retiredAt": "2026-09-25",
+      "reason": "Anexo R08 (R08-01): comprobaba la autoridad del médico con un `throw` de dos líneas, en paralelo a la evaluación real de barreras del servidor (evaluateSafetyFor en medication-lifecycle, que además valora alergia, duplicidad, interacciones, dosis y función renal). Sin importadores en la aplicación y sin citas en el dossier."
+    },
+    {
+      "module": "packages/medication-runtime",
+      "classification": "DUPLICATE_OF_WIRED",
+      "retiredAt": "2026-09-25",
+      "reason": "Anexo R08 (R08-01): cuarta comprobación de autoridad del médico, también inerte. La autoridad real la impone packages/runtime-auth (authorize) en cada handler. Sin importadores en la aplicación y sin citas en el dossier."
     }
   ]
 }

@@ -1,1 +1,0 @@
-import{describe,it,expect}from"vitest";import{prescribe}from"../../packages/medication-ordering/src";describe("med",()=>{it("AI cannot prescribe",()=>expect(()=>prescribe({id:"m",patientId:"p",drugCode:"x",dose:"1",route:"PO",frequency:"QD",prescriberId:"ai",actorRole:"AI",status:"DRAFT"})).toThrow(/PHYSICIAN/));});

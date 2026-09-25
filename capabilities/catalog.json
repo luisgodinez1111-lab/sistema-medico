@@ -1750,7 +1750,9 @@
     "invariants": [],
     "machines": [],
     "tests": [
-      "medication-ordering-v11.test.ts"
+      "runtime-auth-scopes.test.ts",
+      "prescription-safety.test.ts",
+      "live-medication-lifecycle-proof.mts"
     ],
     "releasePolicy": "BLOCK_UNTIL_HAZARD_CASE_COMPLETE",
     "dependsOn": [

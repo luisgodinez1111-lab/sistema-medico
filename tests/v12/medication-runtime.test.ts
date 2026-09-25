@@ -1,1 +1,0 @@
-import{describe,it,expect}from"vitest";import{prescribe}from"../../packages/medication-runtime/src";describe("med",()=>{it("non physician blocked",()=>expect(()=>prescribe({id:"m",patientId:"p",drugCode:"x",dose:"1",route:"PO",frequency:"QD",prescriberId:"u"},["AI"])).toThrow(/Physician/));});

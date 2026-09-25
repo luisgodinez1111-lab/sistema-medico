@@ -455,3 +455,21 @@ de auditoría es la línea base del proyecto y conviene que su fe de errores viv
 | R11-25 | ALTA | ABIERTO | Política de lockfile: producción menos estricta que CI. |
 | R11-27 | BAJA | CERRADO (14b) | El devcontainer dejó de llamarse «Medical OS v15». |
 | R11-29 | MEDIA | ABIERTO | Corpus sintéticos versionados; pendiente de medir el tamaño real que queda. |
+
+## Anexo R08 — Paquetes, grafo y design system (13 hallazgos) · cruzado el 25-sep-2026
+
+| ID | Severidad | Estado | Medición contra el código |
+| --- | --- | --- | --- |
+| R08-01 | ALTA | CERRADO (14e) | Ocho implementaciones de «solo el médico prescribe/firma» y ninguna de las siete inertes era la que corría. Retirados `encounter-service`, `medication-ordering` y `medication-runtime`: ninguna ruta los importaba y **ninguna capacidad del dossier los citaba**, así que el bloqueo por re-alineación de evidencia (K-01/K-07) ya no existía. **Lo que apareció al retirarlos:** la capacidad C5 `CAP-MED-AUTH-003` citaba como ÚNICA evidencia la prueba de dos líneas del paquete inerte; ahora apunta a `runtime-auth-scopes`, `prescription-safety` y la prueba en vivo que comprueba los dos lados de la frontera (enfermera 403, médico 201). |
+| R08-02 | ALTA | YA CERRADO | `packages/clinical-kernel` no existe: la máquina de estados que corre es la de los `*-fold` sobre el kernel de eventos. |
+| R08-03 | ALTA | YA CERRADO | El paquete `contracts` no existe; el contrato de «no computable» vive en `packages/calculation-receipt` (`CalcStatus`) y lo usa `analyte-inputs` en todas las calculadoras. |
+| R08-04 | MEDIA | YA CERRADO | `clinical-safety` no es papeleo: tres de sus CLIs son gates de la tubería (`traceability:check`, `release:check`, `capability:check`) y corren en cada lote. |
+| R08-05 | ALTA | ABIERTO (dueño) | El catálogo CIE-10 real exige licencia. Decisión de compra, anotada en el cotejo de guías y en ADR-0300. |
+| R08-06 | ALTA | YA CERRADO | `patient-summary` cuenta `RESUMED` para medicación (K-05). |
+| R08-07 | MEDIA | YA CERRADO | Los indicadores SLI **sí están cableados**: `runtime/command.ts` abre un span con `sliSpan(flowForTopic(...))` y lo cierra en éxito y en error, con el tenant hasheado y lista dura anti-PHI. La medición del anexo buscó `emitSli` (la primitiva) en vez del punto de integración; ahora hay un test que lo fija en vez de depender de un grep. |
+| R08-08 | BAJA | YA CERRADO | `prescription-studio` no existe. |
+| R08-09 | BAJA | DECLARADO | `imaging-order` solo lo usa `imaging-lifecycle`, que está en el registro de no-cableados con su razón. |
+| R08-10 | BAJA | YA CERRADO | Un solo parser de presión arterial (`parseBp`, usado por diez sitios) y un solo cálculo de IMC (`bmiFromVitals`), ambos con guarda nueva que prohíbe reintroducir una segunda implementación. |
+| R08-11 | ALTA | YA CERRADO | El guardián de estados prohibidos lleva los 20 pares del contrato y un test exige que ambas listas coincidan. |
+| R08-12 | ALTA | CERRADO (13z) | 316 sustituciones de hex suelto por token, con el contraste recalculado. |
+| R08-13 | ALTA | DEUDA DECLARADA | 59 imports con hasta 8 niveles de `../` = R04-018: toca las 162 rutas sin beneficio clínico. |
