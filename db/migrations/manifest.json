@@ -1,117 +1,121 @@
 {
- "algorithm": "sha256",
- "migrations": [
-  {
-   "file": "0001_core.sql",
-   "sha256": "17d3644ba2acabc1229e968205958e9174a46b8138b1e669a8b4a8917d31d457"
-  },
-  {
-   "file": "0002_clinical_domains.sql",
-   "sha256": "83eb1c64e001095b7a3bd6e98669704450f4d759ec2ad4b62165587553cc9e0f"
-  },
-  {
-   "file": "0003_vertical_slice.sql",
-   "sha256": "83b1128907784cf19882a29b40784eb6548d6a946067ec26f97775c5a17e4e86"
-  },
-  {
-   "file": "0004_reliability_security.sql",
-   "sha256": "d58a80d54858679ef42e693be8d7db280e732566ad440c6f29dd52563b9058d6"
-  },
-  {
-   "file": "0005_production_engineering.sql",
-   "sha256": "1564ee53dc09bccb42126bc260cd3ba1de6f299ed03e305cc920d4eaf22c1174"
-  },
-  {
-   "file": "0006_operable_system.sql",
-   "sha256": "2ac5562813f3c959880ea0d117c15347c56283fb45bb9fb8cec9fe1ee6fbe60c"
-  },
-  {
-   "file": "0007_golden_vertical_slice.sql",
-   "sha256": "b9734a046679ac8573466efe38ef17d10959c898a3f6b119014727d012328b12"
-  },
-  {
-   "file": "0008_executable_clinical_core.sql",
-   "sha256": "91ee10202ccc26b2689cedb85096911efc70a9369305c7110c46c6885749852c"
-  },
-  {
-   "file": "0009_runtime_resilience.sql",
-   "sha256": "bdd477f1fbe85a0dc81e90bf0c967a9676c5bca5a6d3c3d48089c94d1ca45c01"
-  },
-  {
-   "file": "0010_atomic_runtime.sql",
-   "sha256": "ff1adf50ecc2a719486a033908ed74fa8de2998eada686f378dc65ea50942713"
-  },
-  {
-   "file": "0011_reproducible_clinical_runtime.sql",
-   "sha256": "878c545594fefba7beac7afaff86bca5c7da3ccf03ed1f04303c4d7015188dff"
-  },
-  {
-   "file": "0012_schema_integrity_and_runtime_hardening.sql",
-   "sha256": "48c79be2c0a5f9fc23549f20ec874809584c4e8b2c5491156f15e5c0c5a1b68b"
-  },
-  {
-   "file": "0013_transactional_authority_and_audit.sql",
-   "sha256": "06743be1e6cee9d088d96169c9a5514290b86c48b902f1deae825b5fe600f79d"
-  },
-  {
-   "file": "0014_adversarial_verification.sql",
-   "sha256": "eba407ef89e767c91fd54122e7208cfebb790f3e58ecf221f6f5740c214dfacb"
-  },
-  {
-   "file": "0015_runtime_proof_and_admission.sql",
-   "sha256": "3908806411f94ec3ab832c2906e9986fabf047cd2266ef544584af6f23cf787a"
-  },
-  {
-   "file": "0016_runtime_execution_hardening.sql",
-   "sha256": "962c59a9c5d259fa9e2192eaff422a79e7c471c38f15f3e3353baacabcfb9fae"
-  },
-  {
-   "file": "0017_runtime_role_grants.sql",
-   "sha256": "2d4ff4dc36d7b555add7ee445234fa4b94a51a91744a6bebab93f1d52d9a8a3d"
-  },
-  {
-   "file": "0018_encounter_lifecycle_grants.sql",
-   "sha256": "22d7f780c3168fb3dd8fd4f930a0e8ce8de5bbf41b61a796a9dae1c2872d4357"
-  },
-  {
-   "file": "0019_event_store_read_indexes.sql",
-   "sha256": "d7891ee53398d0e62d9bfb89c111c455699e54afef797600a14ddae5c98f3ea6"
-  },
-  {
-   "file": "0020_rls_completion_and_legacy_tables.sql",
-   "sha256": "44a4d906c6c21a5ffa8574211fe76265adaf048005f6be0f63ccbacc936def16"
-  },
-  {
-   "file": "0021_rate_limit_buckets.sql",
-   "sha256": "c956d090d1a59f6cc30d563bd4683c2a1742b0938082d22ff0602468a858260d"
-  },
-  {
-   "file": "0022_legacy_foreign_tables_isolation.sql",
-   "sha256": "4b1b2b7be5ff22da24eea0b8ffc2cf35edb2a9a064666c8f5a0654a0de3db64c"
-  },
-  {
-   "file": "0023_session_revocations.sql",
-   "sha256": "3cff42c298db6bc0cee8b67c43a95a5ec61bb1dd5aa9ebf91ef6652429f441a2"
-  },
-  {
-   "file": "0024_phi_access_log.sql",
-   "sha256": "5907660ccf50831cd967b60d46a89e0f310f80cd1e11aa197608a6ad84884811"
-  },
-  {
-   "file": "0025_read_path_indexes_and_pending_constraint.sql",
-   "sha256": "9f8292c2646a3945ecfd454d56dad4a3e9fe1b96550f83f1c5160fb4df0bdbed"
-  },
-  {
-   "file": "0026_outbox_index_consolidation_and_role_grants.sql",
-   "sha256": "f212d834b3589c42d3a29a7e3453b1bd67860c5969bddc510bc7a734b0a338d4"
-  },
-  {
-   "file": "0027_duplicate_authority_comments.sql",
-   "sha256": "487d1d92abe3c4e56d38da47e47a6131edf7bcf659894c431e2057d784382adb"
-  },
-  {
-   "file": "0028_retiro_tablas_heredadas.sql",
-   "sha256": "6540cc802efeca5bc0e05b53fddf922fb164cabc38e8dc3992b40a1bad291987"
-  }
- ]
+  "algorithm": "sha256",
+  "migrations": [
+    {
+      "file": "0001_core.sql",
+      "sha256": "17d3644ba2acabc1229e968205958e9174a46b8138b1e669a8b4a8917d31d457"
+    },
+    {
+      "file": "0002_clinical_domains.sql",
+      "sha256": "83eb1c64e001095b7a3bd6e98669704450f4d759ec2ad4b62165587553cc9e0f"
+    },
+    {
+      "file": "0003_vertical_slice.sql",
+      "sha256": "83b1128907784cf19882a29b40784eb6548d6a946067ec26f97775c5a17e4e86"
+    },
+    {
+      "file": "0004_reliability_security.sql",
+      "sha256": "d58a80d54858679ef42e693be8d7db280e732566ad440c6f29dd52563b9058d6"
+    },
+    {
+      "file": "0005_production_engineering.sql",
+      "sha256": "1564ee53dc09bccb42126bc260cd3ba1de6f299ed03e305cc920d4eaf22c1174"
+    },
+    {
+      "file": "0006_operable_system.sql",
+      "sha256": "2ac5562813f3c959880ea0d117c15347c56283fb45bb9fb8cec9fe1ee6fbe60c"
+    },
+    {
+      "file": "0007_golden_vertical_slice.sql",
+      "sha256": "b9734a046679ac8573466efe38ef17d10959c898a3f6b119014727d012328b12"
+    },
+    {
+      "file": "0008_executable_clinical_core.sql",
+      "sha256": "91ee10202ccc26b2689cedb85096911efc70a9369305c7110c46c6885749852c"
+    },
+    {
+      "file": "0009_runtime_resilience.sql",
+      "sha256": "bdd477f1fbe85a0dc81e90bf0c967a9676c5bca5a6d3c3d48089c94d1ca45c01"
+    },
+    {
+      "file": "0010_atomic_runtime.sql",
+      "sha256": "ff1adf50ecc2a719486a033908ed74fa8de2998eada686f378dc65ea50942713"
+    },
+    {
+      "file": "0011_reproducible_clinical_runtime.sql",
+      "sha256": "878c545594fefba7beac7afaff86bca5c7da3ccf03ed1f04303c4d7015188dff"
+    },
+    {
+      "file": "0012_schema_integrity_and_runtime_hardening.sql",
+      "sha256": "48c79be2c0a5f9fc23549f20ec874809584c4e8b2c5491156f15e5c0c5a1b68b"
+    },
+    {
+      "file": "0013_transactional_authority_and_audit.sql",
+      "sha256": "06743be1e6cee9d088d96169c9a5514290b86c48b902f1deae825b5fe600f79d"
+    },
+    {
+      "file": "0014_adversarial_verification.sql",
+      "sha256": "eba407ef89e767c91fd54122e7208cfebb790f3e58ecf221f6f5740c214dfacb"
+    },
+    {
+      "file": "0015_runtime_proof_and_admission.sql",
+      "sha256": "3908806411f94ec3ab832c2906e9986fabf047cd2266ef544584af6f23cf787a"
+    },
+    {
+      "file": "0016_runtime_execution_hardening.sql",
+      "sha256": "962c59a9c5d259fa9e2192eaff422a79e7c471c38f15f3e3353baacabcfb9fae"
+    },
+    {
+      "file": "0017_runtime_role_grants.sql",
+      "sha256": "2d4ff4dc36d7b555add7ee445234fa4b94a51a91744a6bebab93f1d52d9a8a3d"
+    },
+    {
+      "file": "0018_encounter_lifecycle_grants.sql",
+      "sha256": "22d7f780c3168fb3dd8fd4f930a0e8ce8de5bbf41b61a796a9dae1c2872d4357"
+    },
+    {
+      "file": "0019_event_store_read_indexes.sql",
+      "sha256": "d7891ee53398d0e62d9bfb89c111c455699e54afef797600a14ddae5c98f3ea6"
+    },
+    {
+      "file": "0020_rls_completion_and_legacy_tables.sql",
+      "sha256": "44a4d906c6c21a5ffa8574211fe76265adaf048005f6be0f63ccbacc936def16"
+    },
+    {
+      "file": "0021_rate_limit_buckets.sql",
+      "sha256": "c956d090d1a59f6cc30d563bd4683c2a1742b0938082d22ff0602468a858260d"
+    },
+    {
+      "file": "0022_legacy_foreign_tables_isolation.sql",
+      "sha256": "4b1b2b7be5ff22da24eea0b8ffc2cf35edb2a9a064666c8f5a0654a0de3db64c"
+    },
+    {
+      "file": "0023_session_revocations.sql",
+      "sha256": "3cff42c298db6bc0cee8b67c43a95a5ec61bb1dd5aa9ebf91ef6652429f441a2"
+    },
+    {
+      "file": "0024_phi_access_log.sql",
+      "sha256": "5907660ccf50831cd967b60d46a89e0f310f80cd1e11aa197608a6ad84884811"
+    },
+    {
+      "file": "0025_read_path_indexes_and_pending_constraint.sql",
+      "sha256": "9f8292c2646a3945ecfd454d56dad4a3e9fe1b96550f83f1c5160fb4df0bdbed"
+    },
+    {
+      "file": "0026_outbox_index_consolidation_and_role_grants.sql",
+      "sha256": "f212d834b3589c42d3a29a7e3453b1bd67860c5969bddc510bc7a734b0a338d4"
+    },
+    {
+      "file": "0027_duplicate_authority_comments.sql",
+      "sha256": "487d1d92abe3c4e56d38da47e47a6131edf7bcf659894c431e2057d784382adb"
+    },
+    {
+      "file": "0028_retiro_tablas_heredadas.sql",
+      "sha256": "6540cc802efeca5bc0e05b53fddf922fb164cabc38e8dc3992b40a1bad291987"
+    },
+    {
+      "file": "0029_tenants_registry_and_outbox_worker.sql",
+      "sha256": "02e15038a3972ab12d8de7bf224430a7b7737b453e54698f8788e4d8c4c03d14"
+    }
+  ]
 }

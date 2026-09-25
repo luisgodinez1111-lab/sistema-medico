@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-25T18:30:15.277Z",
+  "generatedAt": "2026-09-25T18:57:09.512Z",
   "target": "local-ephemeral",
-  "total": 108,
+  "total": 109,
   "results": [
     {
       "proof": "scripts/v22/live-aa-gradient-proof.mts",
@@ -324,6 +324,11 @@
       "exitCode": 0
     },
     {
+      "proof": "scripts/v22/live-outbox-drain-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
       "proof": "scripts/v22/live-panel-worklist-proof.mts",
       "status": "PASS",
       "exitCode": 0
@@ -548,8 +553,8 @@
     {
       "gate": "scripts/ci/live-smoke.mts",
       "status": "PASS",
-      "passed": 108,
-      "total": 108
+      "passed": 109,
+      "total": 109
     }
   ]
 }
