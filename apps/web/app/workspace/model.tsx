@@ -8,7 +8,7 @@ import {canonicalUnitOf} from "../../../../packages/lab-reference/src";
 import {getStoredSession,apiRequest,apiUpload,apiDelete,apiDownload,type MedicalSession} from "../../lib/session-client";
 import {assertNoForbidden} from "../../../../packages/design-system/src";
 import {summarizePatient} from "../../../../packages/patient-summary/src";
-import{composeDose,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey}from"./shared";
+import{conForma,FORMA,composeDose,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey}from"./shared";
 export function useWorkspaceModel(){
 
  const cspNonce=useNonce(); // S-04: los <style> propios declaran el nonce de la petición
@@ -426,10 +426,10 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
     setGaps(known(g.status)?[...((g.body["gaps"] as Gap[])??[]),...preventive]:g.status===404?[]:null);
     const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET",signal:ac.signal});
     if(cancelled)return;
-    setSnap(known(sp.status)&&sp.body["registered"]?(sp.body as unknown as Snap):null);
+    setSnap(known(sp.status)&&sp.body["registered"]?conForma<Snap>(sp.body,FORMA.snap):null);
     const tr=await apiRequest(`/api/v1/patients/${patientId}/trends`,{method:"GET",signal:ac.signal});
     if(cancelled)return;
-    setTrends(known(tr.status)?(tr.body as unknown as Trends):null);
+    setTrends(known(tr.status)?conForma<Trends>(tr.body,FORMA.trends):null);
     dataOwner.current=patientId;setChartState(failed?"error":"ready");
    }catch{if(!cancelled)setChartState("error");}
   },450);
@@ -442,7 +442,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  useEffect(()=>{
   if(view!=="pacientes"||!patSelId||!ready||!session)return;
   let cancelled=false;const ac=new AbortController();
-  (async()=>{try{const r=await apiRequest(`/api/v1/patients/${patSelId}/documents`,{method:"GET",signal:ac.signal});if(!cancelled&&r.status===200)setDocsSnap(r.body as unknown as DocsSnap);}catch{/* documentos no disponibles */}})();
+  (async()=>{try{const r=await apiRequest(`/api/v1/patients/${patSelId}/documents`,{method:"GET",signal:ac.signal});if(!cancelled&&r.status===200)setDocsSnap(conForma<DocsSnap>(r.body,FORMA.docsSnap));}catch{/* documentos no disponibles */}})();
   return()=>{cancelled=true;ac.abort();};
  },[view,patSelId,ready,session]);
  // Agenda del día real (vistas Agenda e Inicio).
@@ -519,7 +519,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   (async()=>{
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setVitHist(r.body as unknown as VitalHistory);
+    if(!cancelled&&r.status===200)setVitHist(conForma<VitalHistory>(r.body,FORMA.vitHist));
    }catch{/* historial no disponible */}
   })();
   return()=>{cancelled=true;ac.abort();};
@@ -533,7 +533,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   (async()=>{
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/care-plan`,{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setCpSnap(r.body as unknown as CarePlanSnap);
+    if(!cancelled&&r.status===200)setCpSnap(conForma<CarePlanSnap>(r.body,FORMA.cpSnap));
    }catch{/* snapshot no disponible */}
   })();
   return()=>{cancelled=true;ac.abort();};
@@ -547,7 +547,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   (async()=>{
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/referral-context`,{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setRefCtx(r.body as unknown as RefContext);
+    if(!cancelled&&r.status===200)setRefCtx(conForma<RefContext>(r.body,FORMA.refCtx));
    }catch{/* contexto no disponible */}
   })();
   return()=>{cancelled=true;ac.abort();};
@@ -560,7 +560,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   (async()=>{
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/follow-up`,{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setFuSnap(r.body as unknown as FollowUpSnap);
+    if(!cancelled&&r.status===200)setFuSnap(conForma<FollowUpSnap>(r.body,FORMA.fuSnap));
    }catch{/* snapshot no disponible */}
   })();
   return()=>{cancelled=true;ac.abort();};
@@ -587,7 +587,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   (async()=>{
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setDocsSnap(r.body as unknown as DocsSnap);
+    if(!cancelled&&r.status===200)setDocsSnap(conForma<DocsSnap>(r.body,FORMA.docsSnap));
    }catch{/* lista no disponible */}
   })();
   return()=>{cancelled=true;ac.abort();};
@@ -621,7 +621,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   (async()=>{
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setCiSnap(r.body as unknown as CiSnap);
+    if(!cancelled&&r.status===200)setCiSnap(conForma<CiSnap>(r.body,FORMA.ciSnap));
    }catch{/* snapshot no disponible */}
   })();
   return()=>{cancelled=true;ac.abort();};
@@ -686,7 +686,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   (async()=>{
    try{
     const r=await apiRequest(`/api/v1/patients/${patientId}/consultation-tabs`,{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setConsTabs(r.body as unknown as ConsTabs);
+    if(!cancelled&&r.status===200)setConsTabs(conForma<ConsTabs>(r.body,FORMA.consTabs));
    }catch{/* pestañas no disponibles */}
   })();
   return()=>{cancelled=true;ac.abort();};
@@ -914,12 +914,12 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   try{
    const r=await apiRequest("/api/v1/documents",{method:"POST",body:{documentId:uuid(),patientId,docType:docForm.docType,title:docForm.title.trim(),content:docForm.content.trim(),occurredAt:nowIso()}});
    if(r.status>=400){setDocMsg(errMsg(r));return;}
-   const g=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET"});if(g.status===200)setDocsSnap(g.body as unknown as DocsSnap);
+   const g=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET"});if(g.status===200)setDocsSnap(conForma<DocsSnap>(g.body,FORMA.docsSnap));
    setDocNew(false);setDocForm({docType:docForm.docType,title:"",content:""});setDocMsg("Documento creado ✓");
   }catch(e){setDocMsg(userMessage(e));}finally{setDocBusy(false);}
  };
  // ===== Plan de cuidado: agregar meta real al plan del paciente en contexto (POST /care-plans) + recarga =====
- const reloadCarePlan=async()=>{if(!patientId)return;const r=await apiRequest(`/api/v1/patients/${patientId}/care-plan`,{method:"GET"});if(r.status===200)setCpSnap(r.body as unknown as CarePlanSnap);};
+ const reloadCarePlan=async()=>{if(!patientId)return;const r=await apiRequest(`/api/v1/patients/${patientId}/care-plan`,{method:"GET"});if(r.status===200)setCpSnap(conForma<CarePlanSnap>(r.body,FORMA.cpSnap));};
  const addCarePlanGoal=async()=>{
   if(!patientId){setCpMsg("Selecciona un paciente para agregar una meta al plan.");return;}
   if(!cpForm.goal.trim()){setCpMsg("Escribe el objetivo/meta.");return;}
@@ -968,7 +968,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
    const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:uuid(),patientId,code,occurredAt:nowIso()}});
    if(r.status>=400){setCDxMsg(errMsg(r));return;}
    setCDxQuery("");setCDxMsg(`Problema ${code} agregado a la lista ✓`);
-   try{const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET"});if(sp.status<400&&sp.body["registered"])setSnap(sp.body as unknown as Snap);}catch{/* refresco best-effort del snapshot */}
+   try{const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET"});if(sp.status<400&&sp.body["registered"])setSnap(conForma<Snap>(sp.body,FORMA.snap));}catch{/* refresco best-effort del snapshot */}
   }catch(e){setCDxMsg(userMessage(e));}finally{setCDxBusy(false);}
  };
  const proposeMed=()=>call("med-new",async()=>{
@@ -1446,7 +1446,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
    if(r.status>=400){setPatMsg(errMsg(r));return;}
    // refresca la lista (nombre/CURP/versión) y el snapshot (contacto) del paciente
    const lr=await apiRequest("/api/v1/patients",{method:"GET"});if(lr.status<400)setPatientList((lr.body["patients"] as {patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version?:number}[])??[]);
-   if(patientId===pid){try{const sp=await apiRequest(`/api/v1/patients/${pid}/consultation-snapshot`,{method:"GET"});if(sp.status<400&&sp.body["registered"])setSnap(sp.body as unknown as Snap);}catch{/* refresco best-effort */}}
+   if(patientId===pid){try{const sp=await apiRequest(`/api/v1/patients/${pid}/consultation-snapshot`,{method:"GET"});if(sp.status<400&&sp.body["registered"])setSnap(conForma<Snap>(sp.body,FORMA.snap));}catch{/* refresco best-effort */}}
    setPatientName(e.name.trim());setPatEdit(false);setPatMsg("Ficha del paciente actualizada ✓");
   }catch(err){setPatMsg(userMessage(err));}finally{setEditBusy(false);} // R05a/WS1-08: mensaje para el médico, no la excepción cruda
  };

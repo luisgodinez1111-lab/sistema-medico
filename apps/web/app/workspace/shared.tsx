@@ -345,6 +345,51 @@ export const anchor=(name:string)=>({id:sectionId(name)});
 //   · LAS DEMÁS: dicen lo que son. Cablear las diecinueve exige un GET por paciente con etiqueta y versión por agregado,
 //     que hoy no existe (el timeline es deliberadamente SIN PHI y no trae etiquetas): eso es superficie de servidor nueva y
 //     queda anotada como decisión de producto, no escondida detrás de una ventana en blanco.
+// Auditoría 2026-09-19, anexo R05b (R05b-16) — EN QUÉ RELOJ SE AGENDA, dicho en la pantalla.
+//
+// El campo de fecha y hora de una cita se captura con `datetime-local`, así que el navegador lo interpreta con SU zona y
+// después se guarda en UTC. Nada en la pantalla lo decía: quien agenda desde otra zona —o desde un equipo mal configurado—
+// no tenía forma de saber en qué reloj quedó la cita. No se convierte a la zona del consultorio (haría falta una librería de
+// zonas que este repositorio no tiene, y es decisión de producto): se DECLARA la zona que de verdad se está usando y, si el
+// consultorio tiene otra configurada, se avisa de la discrepancia en vez de resolverla en silencio.
+export function zonaDelNavegador():string{
+ try{return Intl.DateTimeFormat().resolvedOptions().timeZone||"zona desconocida";}catch{return "zona desconocida";}
+}
+export function avisoDeZona(zonaDelConsultorio:string):string{
+ const local=zonaDelNavegador();
+ const z=zonaDelConsultorio.trim();
+ return z&&z!==local
+  ?`Hora de ESTE equipo (${local}); el consultorio está configurado en ${z}. Confirme la hora antes de agendar.`
+  :`Hora local de este equipo (${local}). Se guarda en UTC.`;
+}
+// Auditoría 2026-09-19, anexo R05b (R05b-25) — UNA RESPUESTA DE RED NO ES UN TIPO PORQUE LO DIGA UN `as`.
+//
+// EL HALLAZGO: las respuestas de los snapshots clínicos entraban al estado con `r.body as unknown as X` — «confía en mí»
+// dicho a TypeScript sobre la forma de un JSON que llega por la red, sin ninguna comprobación en ejecución. Si el servidor
+// cambia de forma, devuelve un error con otra forma o un campo llega nulo, la pantalla lo trata como si cumpliera el tipo y
+// revienta al indexar, o —peor— pinta huecos con aspecto de dato clínico.
+//
+// QUÉ SE HACE Y QUÉ NO. No se duplica el esquema del servidor en el cliente: eso crea una segunda fuente que se desvía sola.
+// Se comprueba que la respuesta trae LAS CLAVES QUE LA PANTALLA VA A INDEXAR, y si no, se trata como «no cargó» —la rama
+// que todas estas vistas ya tienen desde R05a-F08—. Es la diferencia entre degradar y mentir. La forma completa la fijan las
+// pruebas en vivo, que ejercitan cada endpoint contra una base real.
+export function conForma<T>(body:unknown,claves:readonly string[]):T|null{
+ if(!body||typeof body!=="object"||Array.isArray(body))return null;
+ const o=body as Record<string,unknown>;
+ return claves.every(k=>o[k]!==undefined&&o[k]!==null)?(body as T):null;
+}
+/** Claves que cada snapshot tiene que traer para que su vista pueda pintarlo sin inventar. */
+export const FORMA={
+ snap:["demographics","problems","allergies","vitals","labs","findings"],
+ trends:["series","latest"],
+ consTabs:["results","orders","medications","planGoals","documents","obligations"],
+ vitHist:["records","series","count"],
+ fuSnap:["tasks","vitalsTrend","indicators","counts"],
+ cpSnap:["counts","goals"],
+ refCtx:["allergies","medications","problems"],
+ ciSnap:["registered"], // su contenido es opcional por diseño; lo que no puede faltar es si el paciente está registrado
+ docsSnap:["items","total"],
+}as const;
 // Auditoría 2026-09-19, anexo R05b (R05b-03 y R05b-21) — LA EDAD DE LA FILA, derivada de verdad.
 //
 // El campo `age` de las filas de Alergias, Problemas y Vacunas se construía SIEMPRE como cadena vacía: código muerto en

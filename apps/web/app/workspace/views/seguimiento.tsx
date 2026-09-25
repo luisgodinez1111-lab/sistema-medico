@@ -14,7 +14,12 @@ export default function SeguimientoView(){
    const fuLoaded=!!fuSnap;
    const counts=fuSnap?fuSnap.counts:{problems:0,medications:0,allergies:0};
    const fmtDue=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?iso:d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
-   const spark=(vals:number[],color:string)=>{if(!vals.length)return null;const w=140,h=40,pad=4;const mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1;const step=vals.length>1?(w-pad*2)/(vals.length-1):0;
+   const spark=(vals:number[],color:string)=>{
+    // Auditoría R05b-22: un valor no finito (NaN de un parseo del servidor) volvía NaN el mínimo y el máximo, y el
+    // trazo salía VACÍO sin decir nada: una serie clínica ausente que parecía una serie plana. Se usan solo los
+    // valores finitos y, si no queda ninguno, no se dibuja nada en vez de dibujar una línea inventada.
+    const finitos=vals.filter(v=>Number.isFinite(v));if(!finitos.length)return null;vals=finitos;
+    const w=140,h=40,pad=4;const mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1;const step=vals.length>1?(w-pad*2)/(vals.length-1):0;
     const pt=(v:number,i:number):[number,number]=>[pad+i*step,h-pad-((v-mn)/rng)*(h-pad*2)];
     const d=vals.map((v,i)=>{const[x,y]=pt(v,i);return `${i===0?"M":"L"}${x.toFixed(1)} ${y.toFixed(1)}`;}).join(" ");
     return <svg width={w} height={h} style={{display:"block"}} aria-hidden><path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>{vals.map((v,i)=>{const[x,y]=pt(v,i);return <circle key={i} cx={x} cy={y} r={2.5} fill="#fff" stroke={color} strokeWidth={1.5}/>;})}</svg>;};
