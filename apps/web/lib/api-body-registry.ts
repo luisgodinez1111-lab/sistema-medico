@@ -20,7 +20,7 @@ import{AmendBody as patient__AmendBody,DeceasedBody as patient__DeceasedBody,Reg
 import{CredentialsBody as physician_profile__CredentialsBody}from"./physician-profile-lifecycle";
 import{CreateBody as problem__CreateBody,EpistemicBody as problem__EpistemicBody,EvidenceBody as problem__EvidenceBody,ResolveBody as problem__ResolveBody,WhenBody as problem__WhenBody}from"./problem-lifecycle";
 import{CreateBody as referral__CreateBody,ReasonBody as referral__ReasonBody,WhenBody as referral__WhenBody}from"./referral-lifecycle";
-import{CreateBody as regulatory_obligation__CreateBody}from"./regulatory-obligation-lifecycle";
+import{ComplyBody as regulatory_obligation__ComplyBody,CreateBody as regulatory_obligation__CreateBody,RenewBody as regulatory_obligation__RenewBody}from"./regulatory-obligation-lifecycle";
 import{ActionBody as result__ActionBody,CloseBody as result__CloseBody,CorrectionBody as result__CorrectionBody,ErrorMarkBody as result__ErrorMarkBody,ReceiveBody as result__ReceiveBody,VerifyBody as result__VerifyBody}from"./result-lifecycle";
 import{CollectBody as specimen__CollectBody,RejectBody as specimen__RejectBody,WhenBody as specimen__WhenBody}from"./specimen-lifecycle";
 import{CompleteBody as surgery__CompleteBody,ReasonBody as surgery__ReasonBody,ScheduleBody as surgery__ScheduleBody,TimeoutBody as surgery__TimeoutBody,WhenBody as surgery__WhenBody}from"./surgery-lifecycle";
@@ -112,6 +112,8 @@ export const API_BODY_SCHEMAS:Readonly<Record<string,ZodType>>={
  "POST /api/v1/referrals/{referralId}/completion":referral__WhenBody,
  "POST /api/v1/referrals/{referralId}/decline":referral__ReasonBody,
  "POST /api/v1/regulatory-obligations":regulatory_obligation__CreateBody,
+ "POST /api/v1/regulatory-obligations/{obligationId}/compliance":regulatory_obligation__ComplyBody,
+ "POST /api/v1/regulatory-obligations/{obligationId}/renewal":regulatory_obligation__RenewBody,
  "POST /api/v1/results":result__ReceiveBody,
  "POST /api/v1/results/{resultId}/action":result__ActionBody,
  "POST /api/v1/results/{resultId}/closure":result__CloseBody,

@@ -176,8 +176,11 @@ export const SEX_ES:Record<string,string>={FEMALE:"Femenino",MALE:"Masculino",IN
 export function relTime(iso:string):string{try{const d=Date.now()-new Date(iso).getTime();const m=Math.floor(d/60000);if(m<1)return "ahora";if(m<60)return `hace ${m} min`;const h=Math.floor(m/60);if(h<24)return `hace ${h} h`;const dd=Math.floor(h/24);return dd<30?`hace ${dd} d`:new Date(iso).toLocaleDateString("es-MX",{day:"2-digit",month:"short"});}catch{return "";}}
 // Panel 5 — clasificación del estado de un follow-up (por latestKind del agregado).
 export const FOLLOW_TYPES=new Set(["ClinicalObligation","Referral","Appointment","Immunization","CarePlan"]);
-export const DONE_KINDS=new Set(["COMPLETED","FULFILLED","ADMINISTERED","ACHIEVED","CLOSED"]);
-export const SCHED_KINDS=new Set(["IN_PROGRESS","ACCEPTED","CHECKED_IN","SCHEDULED","ACTIVE","PROGRESSED"]);
+// R2B-024 (lote 20): `COMPLIED` lo emite la obligación REGULATORIA al declararse cumplida con evidencia, y es trabajo
+// terminado. `RENEWED` la devuelve a abierta con un vencimiento nuevo, así que es trabajo EN CURSO, no terminado: una
+// obligación renovada vuelve a estar pendiente de cumplirse, y clasificarla como hecha la haría desaparecer del tablero.
+export const DONE_KINDS=new Set(["COMPLETED","FULFILLED","ADMINISTERED","ACHIEVED","CLOSED","COMPLIED"]);
+export const SCHED_KINDS=new Set(["IN_PROGRESS","ACCEPTED","CHECKED_IN","SCHEDULED","ACTIVE","PROGRESSED","RENEWED"]);
 export const CANCEL_KINDS=new Set(["CANCELLED","DECLINED","NO_SHOW","REVOKED","ENTERED_IN_ERROR"]);
 // Auditoría 2026-09-19, anexo R05a (R05a-F02) — CLASIFICACIÓN DEL SEGUIMIENTO: exhaustiva y derivada de los ciclos de vida.
 //
@@ -206,6 +209,12 @@ const FOLLOW_STATE_BY_KIND:Readonly<Record<string,"pend"|"prog"|"done"|"skip">>=
  // En curso: alguien ya actuó y el ciclo avanza.
  STARTED:"prog",ACTIVATED:"prog",RESUMED:"prog",ACCEPTED:"prog",CHECKED_IN:"prog",SCHEDULED:"prog",
  IN_PROGRESS:"prog",ACTIVE:"prog",PROGRESSED:"prog",
+ // R2B-024 (lote 20): `RENEWED` devuelve una obligación regulatoria a abierta con un vencimiento nuevo, así que es trabajo
+ // EN CURSO. Clasificarla como hecha la haría desaparecer del tablero justo cuando vuelve a haber algo que hacer.
+ RENEWED:"prog",
+ // Hecho. `COMPLIED` es la obligación regulatoria declarada cumplida CON EVIDENCIA (R2B-024): es trabajo terminado, a
+ // diferencia de `RENEWED`, que vuelve a abrirla.
+ COMPLIED:"done",
  // Hecho.
  COMPLETED:"done",ACHIEVED:"done",ADMINISTERED:"done",FULFILLED:"done",CLOSED:"done",
  // Omitido: no se hizo y NO sigue pendiente. El sistema debe dejar de pedirlo.

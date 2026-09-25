@@ -90,7 +90,15 @@ export async function handleDocumentUploadInit(req:Request):Promise<Response>{
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   // Retornar info para upload directo a object storage (presigned URL en producción)
-  return NextResponse.json({documentId,quarantineKey,storageKey:createStorageKey(documentId),uploadUrl:`/api/upload/${documentId}`,metadata},{status:201});
+  // Auditoría R02b (R2B-012, lote 20): esto devolvía `uploadUrl:"/api/upload/<id>"`, una ruta que NO EXISTE en
+  // `apps/web/app/api`, y dos claves de almacenamiento que solo son cadenas: no hay cliente de object storage en el
+  // repositorio (ni Vercel Blob, ni S3, ni GCS, ni multipart). Prometer una URL de subida a la que el navegador no puede
+  // subir nada es la forma más directa de que el cliente crea que el pipeline existe. Se dice lo que hay: las claves están
+  // reservadas y el almacenamiento está SIN DECIDIR, que es una decisión del dueño (R2B-012, ADR pendiente).
+  return NextResponse.json({documentId,quarantineKey,storageKey:createStorageKey(documentId),
+   upload:{available:false,reason:"OBJECT_STORAGE_NOT_CONFIGURED",
+    note:"No hay almacenamiento de binarios configurado: estas claves están reservadas, pero todavía no existe un destino al que subir el archivo. Decidir el backend (Vercel Blob u objeto S3-compatible con cifrado en reposo) es requisito para activar la ingesta documental."},
+   metadata},{status:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
@@ -137,6 +145,12 @@ export async function handleDocumentClassify(req:Request):Promise<Response>{
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
+// Auditoría R02b (R2B-013, lote 20) — AQUÍ NO HAY OCR, Y EL NOMBRE DEL CAMPO LO DICE.
+//
+// El anexo preguntó si la «extracción» hace OCR: no. Este endpoint recibe el TEXTO YA TRANSCRITO en el cuerpo JSON —alguien
+// convirtió antes la imagen o el PDF— y sobre él corre cuatro expresiones regulares en español. Nunca ve el binario. La
+// respuesta honesta no es renombrar el epic: es que el contrato diga qué espera, para que nadie mande un PDF creyendo que
+// esto lo lee. `extractedText` se mantiene como nombre del campo porque es exactamente lo que es.
 const ExtractBody=z.object({documentId:z.string().uuid(),extractedText:z.string().min(1),documentType:z.enum(["LAB_REPORT","IMAGING_REPORT","DISCHARGE_SUMMARY","REFERRAL","PROGRESS_NOTE","CONSENT","INSURANCE","OTHER"]).default("OTHER")});
 
 export async function handleDocumentExtract(req:Request):Promise<Response>{
