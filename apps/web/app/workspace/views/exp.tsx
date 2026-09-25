@@ -4,7 +4,8 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,type TrendKey}from"../shared";
+import{unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,type TrendKey}from"../shared";
+import{searchIcd10}from"../../../../../packages/terminology/src";
 import{useWorkspace}from"../context";
 export default function ExpView(){
  const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error}=useWorkspace();
@@ -450,10 +451,11 @@ export default function ExpView(){
     <input style={input} list="icd10-list" value={probCode} onChange={e=>setProbCode(e.target.value.toUpperCase())} placeholder="Código CIE-10 (ej. E11, I10, J45.9)" />
     <button style={btn} disabled={busy!==""||!probCode} onClick={createProblem}>{busy==="pb-new"?"Añadiendo…":"Añadir problema"}</button>
    </div>
+   {/* Auditoría R05c-17: las sugerencias salían de diez códigos escritos a mano, mientras el subtítulo prometía validación
+       contra el catálogo. Ahora salen del catálogo CIE-10 real del repositorio —el mismo que valida el servidor al
+       registrar el problema— buscando por lo que el médico escribe. */}
    <datalist id="icd10-list">
-    <option value="E11">Diabetes mellitus tipo 2</option><option value="I10">Hipertensión esencial</option><option value="E66.9">Obesidad</option>
-    <option value="J45.9">Asma</option><option value="J44.9">EPOC</option><option value="N18.3">ERC estadio 3</option>
-    <option value="F41.9">Ansiedad</option><option value="F32.9">Depresión</option><option value="M54.5">Lumbalgia</option><option value="I50.9">Insuficiencia cardíaca</option>
+    {(probCode.trim().length>=2?searchIcd10(probCode.trim(),10):[]).map(e=><option key={e.code} value={e.code}>{e.description}</option>)}
    </datalist>
    {problems.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {problems.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
@@ -562,11 +564,16 @@ export default function ExpView(){
    <h2 {...anchor("Signos vitales")} style={{fontSize:18,margin:0}}>Signos vitales</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Observaciones append-only: el valor histórico nunca se sobrescribe; cada corrección es una enmienda con motivo. Se puede marcar una toma como capturada por error.</p>
    <div style={{display:"grid",gridTemplateColumns:"150px 1fr 120px",gap:10,marginTop:12}}>
-    <select style={input} value={vitType} onChange={e=>setVitType(e.target.value)}>
+    <select id="vit-type" aria-label="Tipo de signo vital" style={input} value={vitType} onChange={e=>{setVitType(e.target.value);setVitUnit(unidadesDe(e.target.value)[0]??"");}}>
      <option value="BP">Presión (BP)</option><option value="HR">Frec. cardíaca</option><option value="TEMP">Temperatura</option><option value="SPO2">SpO₂</option><option value="RESP">Frec. respiratoria</option><option value="WEIGHT">Peso</option><option value="HEIGHT">Talla</option>
     </select>
-    <input style={input} value={vitValue} onChange={e=>setVitValue(e.target.value)} placeholder="Valor (ej. 120/80)" />
-    <input style={input} value={vitUnit} onChange={e=>setVitUnit(e.target.value)} placeholder="Unidad" />
+    <div><input id="vit-value" aria-label={`Valor de ${vitType}`} style={{...input,width:"100%"}} value={vitValue} onChange={e=>setVitValue(e.target.value)} placeholder={vitType==="BP"?"Sistólica/diastólica (ej. 120/80)":"Valor numérico"} />
+     <div style={{fontSize:11,color:P.muted,marginTop:3}}>{vitType==="BP"?"Dos números separados por «/»":"Un número"}</div></div>
+    {/* R05c-19: la unidad NO es texto libre. Sale del catálogo de signos vitales —el mismo que convierte y valida en el
+        servidor— y solo se ofrecen las que ese tipo admite: nada de «Peso: 120/80 mmHg». */}
+    <select id="vit-unit" aria-label={`Unidad de ${vitType}`} style={input} value={vitUnit} onChange={e=>setVitUnit(e.target.value)}>
+     {unidadesDe(vitType).map(u=><option key={u} value={u}>{u}</option>)}
+    </select>
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!vitValue} onClick={createVital}>{busy==="vit-new"?"Registrando…":"Registrar signo vital"}</button></div>
    {vitals.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}

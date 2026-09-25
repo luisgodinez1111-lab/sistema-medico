@@ -1,1 +1,0 @@
-export default async function Patient({params}:{params:Promise<{id:string}>}){const {id}=await params;return <main style={{padding:32}}><div style={{fontSize:12,color:"#6255c7"}}>PATIENT</div><h1>{id}</h1><p>Clinical State projection will be hydrated through the typed query boundary.</p></main>}

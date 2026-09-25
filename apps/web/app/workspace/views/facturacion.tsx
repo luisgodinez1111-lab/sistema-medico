@@ -5,7 +5,7 @@ import {apiRequest} from "../../../lib/session-client";
 import{card,P,LINE,UI,act,type ClaimsRegistry}from"../shared";
 import{useWorkspace}from"../context";
 export default function FacturacionView(){
- const{claimsReg,nfConcepts,setNfConcepts,nfPatientId,patientId,setNfMsg,setNfBusy,setClaimsReg,setNfPatientId,patientList,patientName,nfMsg,nfBusy}=useWorkspace();
+ const{cfgSettings,claimsReg,nfConcepts,setNfConcepts,nfPatientId,patientId,setNfMsg,setNfBusy,setClaimsReg,setNfPatientId,patientList,patientName,nfMsg,nfBusy}=useWorkspace();
 
    // ===== MÓDULO FACTURACIÓN (S-FACTURACION) — registro clínica-wide cableado a GET /claims; emisión -> POST /claims =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -73,7 +73,10 @@ export default function FacturacionView(){
       {nfConcepts.map((c,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 46px 62px 62px 20px",gap:6,alignItems:"center",padding:"4px 0"}}><input value={c.desc} onChange={e=>setConcept(i,{desc:e.target.value})} style={{...selSty,padding:"7px 8px",fontSize:12.5}}/><input value={c.qty} onChange={e=>setConcept(i,{qty:Number(e.target.value)||0})} style={{...selSty,padding:"7px 4px",fontSize:12.5,textAlign:"center"}}/><input value={c.price} onChange={e=>setConcept(i,{price:Number(e.target.value)||0})} style={{...selSty,padding:"7px 6px",fontSize:12.5,textAlign:"right"}}/><span style={{fontSize:12.5,fontWeight:600,textAlign:"right"}}>{money(c.qty*c.price)}</span><span {...act(()=>setNfConcepts(nfConcepts.filter((_,j)=>j!==i)))} style={{color:P.red,cursor:"pointer",textAlign:"center"}}>🗑</span></div>)}
       <div style={{marginTop:12,paddingTop:10,borderTop:`1px solid ${LINE}`,display:"flex",flexDirection:"column",gap:6,fontSize:13}}>
        <div style={{display:"flex",justifyContent:"space-between",color:P.muted}}><span>Subtotal</span><span style={{fontWeight:600,color:P.ink}}>{money(nfTotal)}</span></div>
-       <div style={{display:"flex",justifyContent:"space-between",color:P.muted}}><span>IVA (0%)</span><span style={{fontWeight:600,color:P.ink}}>{money(0)}</span></div>
+       {/* Auditoría R05c-02: Configuración ofrece una tasa de IVA (16 % por omisión) y aquí se afirmaba «IVA (0%)» fijo: dos
+          partes del producto contradiciéndose. El importe que se registra NO se toca —aplicar IVA sin CFDI es una decisión de
+          negocio, anotada en ADR-0300—, pero la pantalla deja de esconder la discrepancia. */}
+      <div style={{display:"flex",justifyContent:"space-between",color:P.muted}}><span>IVA{cfgSettings.regTaxRate.trim()?` (configurado ${cfgSettings.regTaxRate}%, no aplicado)`:" (0%)"}</span><span style={{fontWeight:600,color:P.ink}}>{money(0)}</span></div>
        <div style={{display:"flex",justifyContent:"space-between",fontSize:16,fontWeight:800}}><span>Total</span><span>{money(nfTotal)}</span></div>
       </div>
       <div style={{fontSize:11.5,color:P.muted,margin:"14px 0 10px"}}>Se registra el cargo (monto y paciente) en el expediente. Este módulo NO emite CFDI: la facturación fiscal (PAC, uso, régimen, método de pago) no está implementada.</div>

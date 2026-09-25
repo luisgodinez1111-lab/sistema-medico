@@ -4,6 +4,7 @@ import{Auth0Client}from"@auth0/auth0-spa-js";
 import{exchangeForSession,storeSession,getStoredSession,logout as sessionLogout,type MedicalSession}from"../../lib/session-client";
 import{primitive,semantic,typography}from"../../../../packages/design-system/src";
 import{useNonce}from"../../lib/nonce-context";
+import{mensajeDeError}from"../../lib/idp-errors";
 // EPIC J / eje E — PUERTA ÚNICA de sesión (auth split premium clínico). Una sola ventana:
 // panel de marca con la identidad del producto (Zero-Lost-Follow-Up) + tarjeta de acción.
 // Identidad de la organización vía Auth0 (PKCE) -> access token (audience medical-os) ->
@@ -91,7 +92,7 @@ export default function LoginPage(){
   const c=new Auth0Client({domain,clientId,authorizationParams:{redirect_uri:window.location.origin+"/login",audience},cacheLocation:"memory"});
   setClient(c);
   if(urlErr){
-   setDetail(`${urlErr}: ${params.get("error_description")??""}`);
+   setDetail(mensajeDeError(urlErr));
    window.history.replaceState({},document.title,"/login");
    setPhase("error");return;
   }

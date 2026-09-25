@@ -389,3 +389,41 @@ de auditoría es la línea base del proyecto y conviene que su fe de errores viv
 | R05b-28 | MEDIA | CERRADO (13z) | Helpers de estilo redefinidos en cada vista | Cerrado en su parte con consecuencia: los helpers de casilla repetidos en cinco vistas son ahora uno. El resto (card2, flbl, selSty, th, td recreados por vista) queda como deuda declarada: son objetos de estilo puros y su coste medido es despreciable frente al riesgo de tocar 22 vistas sin necesidad clínica. |
 | R05b-29 | PHI | — | Sin fugas de PHI en el rango | Verificado por el auditor. |
 | R05b-30 | MEDIA | CERRADO (13y) | El «bloqueo» durante el guardado es solo visual | Las filas de sugerencia CIE-10 solo cambiaban el cursor: el `onClick` seguía activo durante el guardado. Ahora el manejador consulta el estado y la fila se anuncia como `aria-disabled`. |
+
+## Anexo R05c — Workspace UI 3 + login y rutas sueltas (33 hallazgos) · cruzado el 24-sep-2026
+
+| ID | Severidad | Estado | Hallazgo | Medición contra el código |
+| --- | --- | --- | --- | --- |
+| R05c-01 | ALTA | YA CERRADO | «Ingresos este mes» era el total histórico | `claimsIncome` deriva `incomeThisMonth` e `incomeAllTime` por separado en el servidor (`runtime/analytics.ts`). |
+| R05c-02 | MEDIA | CERRADO (14a) | No emite CFDI; IVA fijo en 0 % | La pantalla ya declaraba «este módulo NO emite CFDI». Lo que quedaba era la contradicción: Configuración ofrece una tasa (16 % por omisión) y el cobro afirmaba «IVA (0%)». Ahora se muestra la tasa configurada y que NO se aplica; el importe registrado no se toca, porque aplicar IVA sin CFDI es decisión de negocio (ADR-0300). |
+| R05c-03 | ALTA | YA CERRADO | Claim de cifrado y NOM-024 sin implementación | El panel dice «En tránsito (HTTPS); en reposo, por el proveedor de base de datos» y «NOM-004/024/LFPDPPP: en proceso; sin certificación». |
+| R05c-04 | ALTA | YA CERRADO | Idempotency-Key regenerada en cada llamada | S-05: la llave se fija una vez por acción y se reutiliza en los reintentos. |
+| R05c-05 | Fortaleza | — | Clinical Intelligence declara que el diferencial es representativo | Se conserva. |
+| R05c-06 | Fortaleza | — | La limitación de IA se comunica al médico en pantalla | Se conserva. |
+| R05c-07 | MEDIA | YA CERRADO | «Horarios de atención» decorativo | Cableado a `cfgSettings.schedule` con guardado real. |
+| R05c-08 | BAJA | YA CERRADO | «Módulos activos» con toggles fijos en ON | `toggleModule` real y persistido. |
+| R05c-09 | ALTA | YA CERRADO | El panel afirmaba idempotencia que el cliente no cumplía | El claim dice ahora «el cliente reintenta con la misma clave de idempotencia», que es exactamente lo que hace desde S-05. |
+| R05c-10 | CRÍTICA | YA CERRADO | `snap` no se limpiaba al cambiar de paciente | Cerrado con WS1-04 (lote 13w), junto a los otros cinco estados y el detector `PATIENT_B_DATA`. |
+| R05c-11 | CRÍTICA | YA CERRADO | La verificación de receta quedaba obsoleta al editar | `setRxCheck(null)` al cambiar el formulario, al cambiar de paciente y tras enviar. |
+| R05c-12 | CRÍTICA | YA CERRADO | La verificación de seguridad era una ruta opcional | Las barreras se evalúan en el SERVIDOR en PRESCRIBE y en MODIFY (`evaluateSafetyFor`): no hay camino que las evite. |
+| R05c-13 | ALTA | YA CERRADO | Sin override con motivo para un BLOCK; dosis sin unidades | Diálogo `overrideMed` con barrera nombrada y justificación mínima; dosis con unidad y ruta. |
+| R05c-14 | ALTA | YA CERRADO | No existía impresión de receta | `packages/prescription-print` + `GET /patients/:id/prescription-print` con los campos legales (U-20, L-05). |
+| R05c-15 | — | — | (sin entrada en el anexo) | — |
+| R05c-16 | CRÍTICA | YA CERRADO | Los `reason`/`evidence` eran literales del código | U-16: cada transición que lleva motivo lo pide con `ASK(...)` y sin texto no se envía. |
+| R05c-17 | ALTA | CERRADO (14a) | «Validado contra catálogo CIE-10» con datalist de diez códigos a mano | Las sugerencias salen ahora de `searchIcd10` —el catálogo real del repositorio, el mismo que valida el servidor—. |
+| R05c-18 | MEDIA | YA CERRADO | «Una alergia activa bloquea la prescripción» no se cumplía | El bloqueo es del servidor y es anulable solo con barrera nombrada y justificación (U-19). |
+| R05c-19 | BAJA | CERRADO (14a) | Valor y unidad de signos vitales como texto libre | Nada impedía «Peso: 120/80 mmHg», y ese dato alimenta tendencias, IMC y el gate de vital crítico. La unidad sale ahora de `VITAL_UNITS` (el catálogo con el que el servidor convierte y valida), con la canónica primero y salto automático al cambiar de tipo. |
+| R05c-20 | MEDIA | ABIERTO (declarado) | ~15 módulos con patrón mínimo sin captura de dominio | Las verticales hospitalarias siguen APAGADAS por bandera (L-10/L-11) y encenderlas con datos de seguridad completos es decisión de dueño. |
+| R05c-21 | Fortaleza | — | Error contextual del bloqueo de firma | Se conserva. |
+| R05c-22 | Arquitectura | — | Mapa de `view` | Informativo. |
+| R05c-23 | CRÍTICA | YA CERRADO | La guarda A/B solo protegía una parte | Cerrado con WS1-04: el detector vigila ahora los diez estados por paciente. |
+| R05c-24 | ALTA | YA CERRADO | Desajuste entre dos tsconfig (`strict` distinto) | Los dos declaran `strict:true` y hay dos gates (`typecheck` y `typecheck:web`). |
+| R05c-25 | ALTA | YA CERRADO | Contraste WCAG | Cerrado con R05b-27 (lote 13z), con los pares recalculados. |
+| R05c-26 | Fortaleza | — | El token del IdP no persiste | Se conserva. |
+| R05c-27 | MEDIA | CERRADO (14a) | Mensajes del IdP sin sanitizar (suplantación) | El `error_description` de la URL se pintaba con el estilo de la aplicación en la pantalla donde el usuario escribe sus credenciales. Ahora el mensaje se deriva del CÓDIGO (conjunto conocido), el texto libre no se muestra nunca y un código desconocido da un mensaje genérico con el código saneado. |
+| R05c-28 | BAJA | NO DETERMINABLE | Enumeración de usuarios | Depende de la configuración de Auth0, fuera del repositorio. |
+| R05c-29 | POR VERIFICAR | ABIERTO (declarado) | `getTokenSilently()` sin `useRefreshTokens` | Comportamiento del proveedor; decisión de configuración. |
+| R05c-30 | MEDIA | YA CERRADO | `gux-001`: ruta con datos simulados y sin guardia | La ruta no existe en el repositorio. |
+| R05c-31 | BAJA | YA CERRADO | Omisión menor en `page.tsx`/`layout.tsx` | Revisados: `lang="es"`, nonce de CSP y redirección al login. |
+| R05c-32 | BAJA | CERRADO (14a) | Stub `patients/[id]` en inglés y sin guardia | Ruta retirada: hacía eco del id de la URL con un texto en inglés, sin verificación de sesión y sin que nada la referenciara. |
+| R05c-33 | — | — | (sin entrada en el anexo) | — |

@@ -4,6 +4,7 @@
 // anatomía viven allí; aquí solo se conservan los nombres que usan las vistas.
 import {primitive,typography,LINE as DS_LINE,buttonStyle,cardStyle,inputStyle,badgeStyle,toneOfState,patientHeaderStyle} from "../../../../packages/design-system/src";
 import{lookupIcd10}from"../../../../packages/terminology/src";
+import{VITAL_UNITS}from"../../../../packages/lab-reference/src";
 import{ageInYears}from"../../../../packages/prescription-safety/src";
 import{goalFor,INDIVIDUALIZATION_NOTICE}from"../../../../packages/care-goals/src";
 // Solo el FORMATO del UUID (módulo sin dependencias de Node: el bundle del cliente no puede traer node:crypto).
@@ -417,6 +418,19 @@ export function edadDe(lista:readonly PacienteBasico[]|null,patientId:string,asO
 // Aquí hay UNA casilla: un `<input type="checkbox">` real —enfocable, activable con espacio, con su estado anunciado— con la
 // caja visual del diseño encima. El input es transparente pero existe, y el anillo de foco se pinta sobre la caja visual
 // (`.mos-check input:focus-visible+span` en el CSS del shell), que es el patrón accesible estándar para esto.
+// Auditoría 2026-09-19, anexo R05c (R05c-19) — LAS UNIDADES DE UN SIGNO VITAL SALEN DEL CATÁLOGO.
+//
+// El alta de signos vitales del expediente capturaba valor y unidad como TEXTO LIBRE, sin relación con el tipo elegido: nada
+// impedía registrar «Peso: 120/80 mmHg». Y ese dato no se queda quieto: alimenta las tendencias, el IMC y el gate de firma
+// por vital crítico. Las unidades admitidas por tipo ya estaban declaradas en `packages/lab-reference` (VITAL_UNITS, el mismo
+// catálogo con el que el servidor convierte y valida); aquí solo se ofrecen esas, con la canónica primero.
+export function unidadesDe(vitalType:string):string[]{
+ const spec=VITAL_UNITS[vitalType.trim().toUpperCase()];
+ if(!spec)return[];
+ const canon=spec.canonical;
+ const resto=Object.keys(spec.accepted).filter(u=>u.toLowerCase()!==canon.toLowerCase()&&u.length<=12);
+ return[canon,...resto];
+}
 export function Check({checked,label,onChange,disabled,size=16}:{checked:boolean;label:string;onChange:()=>void;disabled?:boolean;size?:number}){
  return <label className="mos-check" style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:disabled?"default":"pointer",opacity:disabled?.6:1}}>
   <input type="checkbox" checked={checked} disabled={disabled} onChange={onChange} style={{width:size,height:size}}/>
