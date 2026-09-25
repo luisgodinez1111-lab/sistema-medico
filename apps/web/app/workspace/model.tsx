@@ -1424,7 +1424,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   if(r.status>=400){setError(errMsg(r));return;}
   setPanel({gaps:(r.body["gaps"] as PanelGap[])??[],patientCount:Number(r.body["patientCount"]??0)});
  });
- const registerPatient=(inline=false,confirmNotDuplicate=false)=>call("pt-reg",async()=>{
+ const registerPatient=(inline=false,confirmNotDuplicate=false,openInConsulta=false)=>call("pt-reg",async()=>{
   const say=(m:string)=>{if(inline)setPatMsg(m);else setError(m);};
   if(!regName.trim()){say("Indica el nombre del paciente.");return;}
   // Auditoría L-06 / U-01: antes, sin fecha de nacimiento se registraba "1990-01-01" (una edad inventada que alimenta dosis
@@ -1441,6 +1441,8 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   selectPatientRaw(id,regName);setPatientList(l=>[{patientId:id,name:regName,status:"ACTIVE",birthDate:regDob,sexAtBirth:regSex,...(e.curp?{curp:e.curp}:{})},...(l??[])]);setRegName("");setRegDob("");setRegExtra({curp:"",phone:"",email:"",address:"",occupation:"",maritalStatus:""});setRegGuardian({name:"",relationship:"",phone:""});
   if(inline){setPatNew(false);setPatMsg(warn?"Paciente registrado. Es menor de edad y no tiene tutor registrado: añádelo desde Editar antes de recabar consentimientos.":"Paciente registrado.");}
   else if(warn)setError("Menor de edad sin tutor registrado: añade al tutor o representante legal antes de recabar consentimientos.");
+  // Lote C: alta desde Nueva consulta → abre de inmediato el expediente de consulta del paciente recién creado.
+  if(openInConsulta){setConsultaPid(id);setCTab("actual");setView("consulta");}
  });
  const guardianFields=(style:React.CSSProperties)=>regIsMinor?<div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:10,marginTop:10}}>
   <input style={style} value={regGuardian.name} onChange={e=>setRegGuardian(g=>({...g,name:e.target.value}))} placeholder="Tutor o representante legal (menor de edad)" aria-label="Nombre del tutor" />

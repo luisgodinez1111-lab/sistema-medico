@@ -1,12 +1,13 @@
 "use client";
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "consulta" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
-import {useEffect,useRef} from "react";
+import {useEffect,useRef,useState} from "react";
 import {searchIcd10} from "../../../../../packages/terminology/src";
 import{Check,card,P,LINE,UI,act,scrollToSection,mono,DX_LABEL,NavIcon}from"../shared";
 import{useWorkspace}from"../context";
 export default function ConsultaView(){
- const{consultaPid,agenda,patientList,consultaNewPid,setApptNew,setAgendaDate,setView,setConsultaNewPid,openConsulta,patientName,snap,setConsultaPid,enc,gaps,patientId,busy,setCPreview,cPreview,consultaAdvance,cMsg,setCMsg,composeNote,cForm,docDisplay,chartState,setChartReload,setCTab,cTab,consTabs,setCForm,setCAntec,cAntec,clock,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdSel,setCOrdCat,setCOrdMsg,cOrdSel,createConsultaOrders,cOrdBusy,cOrdMsg,patientQuery,setPatientQuery,loadPatients,setPatNew}=useWorkspace();
+ const{consultaPid,agenda,patientList,consultaNewPid,setApptNew,setAgendaDate,setView,setConsultaNewPid,openConsulta,patientName,snap,setConsultaPid,enc,gaps,patientId,busy,setCPreview,cPreview,consultaAdvance,cMsg,setCMsg,composeNote,cForm,docDisplay,chartState,setChartReload,setCTab,cTab,consTabs,setCForm,setCAntec,cAntec,clock,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdSel,setCOrdCat,setCOrdMsg,cOrdSel,createConsultaOrders,cOrdBusy,cOrdMsg,patientQuery,setPatientQuery,loadPatients,regName,setRegName,regDob,setRegDob,regSex,setRegSex,regExtra,setRegExtra,registerPatient,guardianFields,dupPanel,patMsg,regIsMinor}=useWorkspace();
+ const[newInline,setNewInline]=useState(false); // Lote C: alta de paciente inline dentro de Nueva consulta
  // Lote C: buscador incremental de paciente en Nueva consulta (server ?q=), con debounce; sustituye el <select> masivo.
  const searchDeb=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
  useEffect(()=>{
@@ -55,7 +56,27 @@ export default function ConsultaView(){
            ?<div style={{fontSize:12,color:P.muted,padding:"8px 2px"}}>Sin coincidencias para «{q}». Registra un paciente nuevo abajo.</div>
            :<div style={{display:"flex",flexDirection:"column",gap:4}}>{matches.map(p=><button key={p.patientId} onClick={()=>openConsulta(p.patientId,p.name)} style={{display:"flex",alignItems:"center",gap:10,textAlign:"left",width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 11px",cursor:"pointer",fontFamily:UI}}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{ini(p.name)}</span><span style={{flex:1,minWidth:0}}><span style={{display:"block",fontSize:13,fontWeight:600}}>{p.name}</span>{p.curp&&<span style={{display:"block",fontSize:11,color:P.muted}}>{p.curp}</span>}</span><span style={{fontSize:12,fontWeight:700,color:P.purple,flex:"0 0 auto"}}>Abrir →</span></button>)}</div>}
        </div>
-       <button onClick={()=>{setPatNew(true);setView("pacientes");window.scrollTo({top:0,behavior:"smooth"});}} style={{marginTop:12,width:"100%",justifyContent:"center",display:"flex",alignItems:"center",gap:8,border:`1px dashed ${P.purple}`,background:"#F7F6FE",color:P.purple,borderRadius:10,padding:"11px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>+ Registrar paciente nuevo</button>
+       {!newInline
+        ?<button onClick={()=>setNewInline(true)} style={{marginTop:12,width:"100%",justifyContent:"center",display:"flex",alignItems:"center",gap:8,border:`1px dashed ${P.purple}`,background:"#F7F6FE",color:P.purple,borderRadius:10,padding:"11px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>+ Registrar paciente nuevo</button>
+        :(()=>{const inSty:React.CSSProperties={width:"100%",boxSizing:"border-box",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};const canReg=busy===""&&!!regName.trim()&&!!regDob;return <div style={{marginTop:12,border:`1px solid ${LINE}`,borderRadius:11,padding:14,background:"#FBFBFE"}}>
+          <div style={{fontSize:13.5,fontWeight:800,marginBottom:10}}>Registrar paciente nuevo</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+           <input style={inSty} value={regName} onChange={e=>setRegName(e.target.value)} placeholder="Nombre completo" aria-label="Nombre del paciente nuevo"/>
+           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <input style={inSty} type="date" value={regDob} onChange={e=>setRegDob(e.target.value)} aria-label="Fecha de nacimiento"/>
+            <select style={inSty} value={regSex} onChange={e=>setRegSex(e.target.value)} aria-label="Sexo al nacer"><option value="UNKNOWN">Sexo (sin especificar)</option><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option></select>
+           </div>
+           <input style={inSty} value={regExtra.curp} onChange={e=>setRegExtra({...regExtra,curp:e.target.value.toUpperCase()})} placeholder="CURP (opcional)" aria-label="CURP"/>
+           {guardianFields(inSty)}
+          </div>
+          {dupPanel(true)}
+          {patMsg&&<div style={{marginTop:10,padding:"8px 11px",borderRadius:8,background:patMsg.includes("registrad")?"#E6F6EE":"#FDF4E6",fontSize:12,color:patMsg.includes("registrad")?"#166534":"#7A5A16"}}>{patMsg}</div>}
+          <div style={{display:"flex",gap:8,marginTop:12}}>
+           <button onClick={()=>void registerPatient(true,false,true)} disabled={!canReg} style={{flex:1,justifyContent:"center",display:"flex",border:0,background:canReg?P.purple:"#C7CCE0",color:"#fff",borderRadius:9,padding:"10px",fontWeight:700,fontSize:13,cursor:canReg?"pointer":"default",fontFamily:UI}}>{busy==="pt-reg"?"Registrando…":"Registrar y abrir consulta"}</button>
+           <button onClick={()=>setNewInline(false)} style={{border:`1px solid ${LINE}`,background:P.white,color:P.muted,borderRadius:9,padding:"10px 14px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Cancelar</button>
+          </div>
+          {regIsMinor&&<div style={{fontSize:11,color:P.muted,marginTop:8}}>Menor de edad: registra al tutor o representante legal.</div>}
+         </div>;})()}
       </div>
       <div style={{...card2,padding:0,overflow:"hidden"}}>
        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 18px 10px"}}><div style={{fontSize:16,fontWeight:800}}>Citas de hoy ({pend.length} por atender)</div><span style={{color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"}} {...act(()=>setView("agenda"))}>Ver agenda →</span></div>

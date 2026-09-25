@@ -374,6 +374,22 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect((screen.getByPlaceholderText("Motivo de la consulta…") as HTMLTextAreaElement|HTMLInputElement).value).toBe("");
   expect(screen.queryByText(/Cefalea del paciente A/)).toBeNull();
  });
+ it("Nueva consulta (Lote C): buscador incremental + alta de paciente inline que abre la consulta",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
+  // buscador incremental (no dropdown): teclear muestra resultados clicables
+  const input=await screen.findByLabelText("Buscar paciente");
+  fireEvent.change(input,{target:{value:"Ana"}});
+  expect(await screen.findByRole("button",{name:/Ana López García/},{timeout:2000})).toBeTruthy();
+  // alta inline: abrir el formulario, capturar nombre + fecha de nacimiento, registrar y abrir la consulta
+  fireEvent.click(screen.getByRole("button",{name:/Registrar paciente nuevo/}));
+  fireEvent.change(screen.getByLabelText("Nombre del paciente nuevo"),{target:{value:"Nuevo Paciente Prueba"}});
+  fireEvent.change(screen.getByLabelText("Fecha de nacimiento"),{target:{value:"1985-05-05"}});
+  fireEvent.click(screen.getByRole("button",{name:/Registrar y abrir consulta/}));
+  // se abre el workspace de consulta del paciente recién creado
+  expect(await screen.findByPlaceholderText("Motivo de la consulta…",{},{timeout:2000})).toBeTruthy();
+ });
+
  // Auditoría U-16: un motivo clínico lo escribe el médico; nada se envía con un literal del código.
  it("vista Expediente: la dosis viaja con unidad, un bloqueo anulable exige nombrar la barrera y justificar (U-19), y suspender exige el motivo del médico tal cual (U-16)",async()=>{
   render(<Workspace/>);
