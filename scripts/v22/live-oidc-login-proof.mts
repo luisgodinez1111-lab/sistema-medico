@@ -23,8 +23,6 @@ const ISS=`http://127.0.0.1:${port}/`;
 // Configurar SOLO el camino OIDC (sin dev verifier).
 process.env.OIDC_ISSUER=ISS;process.env.OIDC_AUDIENCE=AUD;
 delete process.env.DEV_IDENTITY_SECRET;delete process.env.AUTH_MODE;delete process.env.VERCEL_ENV;
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-f-session-secret";
-
 const sessions=await import("../../apps/web/app/api/v1/sessions/route");
 const open=await import("../../apps/web/app/api/v1/encounters/route");
 

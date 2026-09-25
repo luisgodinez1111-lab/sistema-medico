@@ -12,8 +12,6 @@ import crypto from"node:crypto";
 import"./_live-env.mts";
 import{directEndpoint}from"../../packages/pg-endpoint/src";
 const{freshPatient}=await import("./_patient.mts");
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"r02a-gaps-secret";
-
 const postgres=(await import("postgres")).default;
 const{signSession}=await import("../../packages/session/src");
 const{overdueOrders}=await import("../../apps/web/lib/clinical-runtime");

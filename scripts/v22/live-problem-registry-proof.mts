@@ -3,7 +3,7 @@
 // -> categoría-UI + estado + conteos por estado/categoría + top de pacientes + join del nombre. RLS-scoped. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-q-reg-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const prR=await import("../../apps/web/app/api/v1/problems/route");

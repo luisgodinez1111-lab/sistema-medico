@@ -12,7 +12,7 @@
 //   4) redirige DATABASE_URL a TEST_DATABASE_URL para el código de la aplicación (clinical-runtime lee DATABASE_URL).
 // Se importa con `import "./_live-env.mts"` como PRIMERA sentencia de cada prueba: los módulos de la app se cargan después
 // con `await import(...)`, ya con el entorno redirigido.
-import fs from"node:fs";import path from"node:path";
+import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";
 import{directEndpoint}from"../../packages/pg-endpoint/src";
 try{const e=fs.readFileSync(path.resolve(".env.local"),"utf8");for(const l of e.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(l.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}}catch{/* sin .env.local: se usa el entorno */}
 const host=(u:string|undefined)=>{try{return u?new URL(directEndpoint(u)).hostname.toLowerCase():"";}catch{return"";}};
@@ -24,3 +24,16 @@ if(!isLocal(th)&&ah&&th===ah&&process.env.LIVE_PROOF_ALLOW_SHARED_DB!=="1"){
  console.log(JSON.stringify({status:"REFUSED",reason:"TEST_DATABASE_URL_IS_APP_DATABASE",host:th,hint:"apunte TEST_DATABASE_URL a una rama/contenedor desechable; LIVE_PROOF_ALLOW_SHARED_DB=1 solo si sabe lo que hace"}));process.exit(2);
 }
 process.env.DATABASE_URL=test;
+// Auditoría 2026-09-19, anexo R11 (R11-07) — EL SECRETO DE FIRMA NO SE ESCRIBE EN EL CÓDIGO.
+//
+// Las 101 pruebas en vivo llevaban su propio secreto de respaldo escrito a mano —`?? "epic-g-secret"`, `?? "u20-secret"`,
+// uno por epic—: 101 constantes que parecen credenciales, en un repositorio, en scripts que se ejecutan contra una base de
+// datos. Ninguna es la credencial de producción, pero el patrón es exactamente el que hay que erradicar: un secreto con
+// valor por omisión invita a que algún día ese valor sea el de verdad, y el `??` esconde la diferencia entre «configurado»
+// y «no configurado».
+//
+// Aquí se resuelve UNA vez: si el entorno trae `SESSION_SIGNING_SECRET`, se respeta; si no, se genera uno ALEATORIO por
+// corrida. Cada prueba firma y verifica sus propios tokens dentro del mismo proceso, así que un secreto efímero es
+// suficiente —y es mejor: no existe fuera de la corrida, no se puede filtrar y no puede coincidir por accidente con el de
+// ningún entorno real.
+if(!process.env["SESSION_SIGNING_SECRET"])process.env["SESSION_SIGNING_SECRET"]=crypto.randomBytes(32).toString("hex");

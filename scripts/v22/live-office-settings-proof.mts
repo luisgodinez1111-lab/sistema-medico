@@ -5,7 +5,7 @@
 // aislamiento por tenant -> scope faltante (403). vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-sconfig-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const R=await import("../../apps/web/app/api/v1/office-settings/route");
 const now=Math.floor(Date.now()/1000);

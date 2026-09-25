@@ -7,7 +7,7 @@
 //   · una enmienda no puede reasignar la CURP de otro paciente (409).
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"l06-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{resolveVerified}=await import("../../apps/web/lib/http-command");
 const{readAggregateEvents}=await import("../../apps/web/lib/clinical-runtime");

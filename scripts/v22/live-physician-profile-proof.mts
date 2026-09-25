@@ -5,7 +5,7 @@
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 if(!process.env.BLOB_READ_WRITE_TOKEN){console.log(JSON.stringify({status:"NOT_RUN",reason:"BLOB_READ_WRITE_TOKEN_MISSING"}));process.exit(3);}
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-profile-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const profR=await import("../../apps/web/app/api/v1/physician-profile/route");
 const assetR=await import("../../apps/web/app/api/v1/physician-profile/assets/[kind]/route");

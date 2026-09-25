@@ -9,7 +9,6 @@ try{
  for(const line of envRaw.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(line.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}
 }catch{/* env ya cargado */}
 if(!process.env.DATABASE_URL){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-c-perf-secret";
 const SECRET=process.env.SESSION_SIGNING_SECRET;
 
 const{signSession}=await import("../../packages/session/src");

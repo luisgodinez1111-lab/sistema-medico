@@ -3,7 +3,7 @@
 // DEMOGRAFÍA (consultation-snapshot) reflejan los datos corregidos. Estado sin cambios. RLS-scoped. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-cl-amend-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const amendR=await import("../../apps/web/app/api/v1/patients/[patientId]/amendment/route");

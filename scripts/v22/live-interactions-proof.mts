@@ -3,7 +3,7 @@
 // Sin estado / sin PHI, pero se ejecuta con el arnés en vivo (auth real, RLS irrelevante aquí). vs Neon.
 import fs from"node:fs";import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bn-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const ixR=await import("../../apps/web/app/api/v1/interactions/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);

@@ -14,8 +14,6 @@ import"./_live-env.mts";
 import{directEndpoint}from"../../packages/pg-endpoint/src";
 const{freshPatient}=await import("./_patient.mts");
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts");
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"r02a-signature-secret";
-
 const postgres=(await import("postgres")).default;
 const{signSession}=await import("../../packages/session/src");
 const{verifySignature}=await import("../../apps/web/lib/clinical-signature");

@@ -5,7 +5,7 @@ import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatientIn}=await import("./_patient.mts");
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: PRESCRIBE exige cédula
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"r03-29-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const prob=await import("../../apps/web/app/api/v1/problems/route");
 const meds=await import("../../apps/web/app/api/v1/medications/route");

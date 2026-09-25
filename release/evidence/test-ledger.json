@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-25T05:16:53.659Z",
-  "files": 262,
-  "totalTests": 1623,
+  "generatedAt": "2026-09-25T05:25:02.853Z",
+  "files": 263,
+  "totalTests": 1627,
   "failedTests": 0,
   "results": [
     {
@@ -898,6 +898,11 @@
       "file": "tests/v22/mx-identity.test.ts",
       "status": "PASS",
       "tests": 5
+    },
+    {
+      "file": "tests/v22/no-hardcoded-secrets.test.ts",
+      "status": "PASS",
+      "tests": 4
     },
     {
       "file": "tests/v22/nom-compliance-integrity.test.ts",

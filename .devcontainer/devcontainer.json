@@ -1,1 +1,1 @@
-{"name":"Medical OS v15","dockerComposeFile":"../infra/compose.yaml","service":"web","workspaceFolder":"/workspace","features":{},"postCreateCommand":"corepack enable && pnpm install --frozen-lockfile"}
+{"name":"Medical OS","dockerComposeFile":"../infra/compose.yaml","service":"web","workspaceFolder":"/workspace","features":{},"postCreateCommand":"corepack enable && pnpm install --frozen-lockfile"}

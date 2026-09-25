@@ -1,7 +1,7 @@
 // EPIC BK — Evidencia física: pronóstico de vacunación por edad desde el nacimiento + vacunas aplicadas. vs Neon.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-bk-secret";const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const pat=await import("../../apps/web/app/api/v1/patients/route");
 const imm=await import("../../apps/web/app/api/v1/immunizations/route");

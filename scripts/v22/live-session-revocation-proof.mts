@@ -14,7 +14,6 @@ const{freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe ex
 process.env.AUTH_MODE="development";
 process.env.ALLOW_DEV_IDENTITY="true";
 delete process.env.VERCEL_ENV;
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"r01-014-session-secret";
 const IDP_SECRET=process.env.DEV_IDENTITY_SECRET="r01-014-dev-idp-secret";
 
 const{signSession}=await import("../../packages/session/src");

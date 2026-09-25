@@ -7,7 +7,6 @@ const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts")
 process.env.AUTH_MODE="development";
 process.env.ALLOW_DEV_IDENTITY="true";
 delete process.env.VERCEL_ENV;
-process.env.SESSION_SIGNING_SECRET=process.env.SESSION_SIGNING_SECRET??"epic-e-session-secret";
 const IDP_SECRET=process.env.DEV_IDENTITY_SECRET="epic-e-dev-idp-secret";
 
 const{signSession}=await import("../../packages/session/src");
