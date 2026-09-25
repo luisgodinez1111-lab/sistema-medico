@@ -330,6 +330,21 @@ export function NavIcon({k}:{k:string}){return <svg width="20" height="20" viewB
 export const sectionId=(name:string)=>"mos-"+name.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
 /** Ancla de una ventana del expediente. Va en su propio título: `<h2 {...anchor("Medicación")}>Medicación</h2>`. */
 export const anchor=(name:string)=>({id:sectionId(name)});
+// Auditoría 2026-09-19, anexo R05a (WS1-14) — QUÉ LISTAN LAS VENTANAS DEL EXPEDIENTE CRUDO, dicho en la pantalla.
+//
+// Medido el 24-sep-2026: VEINTIDÓS ventanas del expediente crudo se pintan desde un estado que solo llenan las respuestas
+// de los POST de la sesión, y que se vacía al cambiar de paciente. Ninguna decía nada al estar vacía: simplemente no
+// aparecía la lista debajo del formulario. Abrir el expediente de un paciente con órdenes, resultados o vacunas previas
+// mostraba esas ventanas en blanco, y una ventana en blanco se lee como «este paciente no tiene».
+//
+// Dos correcciones distintas, porque el riesgo no es el mismo en todas:
+//   · MEDICACIÓN: se cablea la medicación VIGENTE del paciente (GET de las pestañas de consulta) en la ventana donde se
+//     prescribe. Prescribir sin ver lo que el paciente ya toma es el riesgo real, y era el único dato clínico de seguridad
+//     que el expediente crudo no mostraba en ninguna parte (alergias y problemas sí están en la cabecera).
+//   · LAS DEMÁS: dicen lo que son. Cablear las diecinueve exige un GET por paciente con etiqueta y versión por agregado,
+//     que hoy no existe (el timeline es deliberadamente SIN PHI y no trae etiquetas): eso es superficie de servidor nueva y
+//     queda anotada como decisión de producto, no escondida detrás de una ventana en blanco.
+export const SOLO_ESTA_PANTALLA="Lista lo que se registre aquí. El historial completo del paciente está en su módulo del menú.";
 export function scrollToSection(name:string){
  if(!name){window.scrollTo({top:0,behavior:"smooth"});return;}
  const el=document.getElementById(sectionId(name));

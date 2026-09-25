@@ -4,10 +4,10 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{anchor,P,mono,ghost,DX_LABEL,LINE,card,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,type TrendKey}from"../shared";
+import{SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,type TrendKey}from"../shared";
 import{useWorkspace}from"../context";
 export default function ExpView(){
- const{patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error}=useWorkspace();
+ const{consTabs,patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error}=useWorkspace();
 
  return <>
   {/* PATIENT HEADER — contexto del paciente SIEMPRE visible (design-contract); componente del design system (K-09) */}
@@ -300,6 +300,20 @@ export default function ExpView(){
    </div>
    <div style={{marginTop:12}}><button style={btn} disabled={busy!==""||!drug||!dose||!route||!freq} onClick={proposeMed}>{busy==="med-new"?"Proponiendo…":"Proponer medicación"}</button></div>
 
+   {/* Auditoría R05a (WS1-14) — LA MEDICACIÓN VIGENTE DEL PACIENTE, en la ventana donde se prescribe.
+       Esta ventana solo mostraba lo prescrito en la sesión: abrir el expediente de alguien con cinco fármacos activos y
+       prescribir un sexto se hacía A CIEGAS, aunque sus alergias y problemas sí se vean en la cabecera. Se distingue
+       «no cargó» de «no toma nada», como exige R05a-F08: afirmar que no toma nada sin saberlo autoriza a prescribir. */}
+   <div style={{marginTop:16,border:`1px solid ${LINE}`,borderRadius:12,padding:"12px 14px",background:"#FCFDFF"}}>
+    <div style={{fontSize:12.5,fontWeight:700,color:P.muted,marginBottom:consTabs?.medications?.length?8:0}}>Medicación vigente del paciente</div>
+    {consTabs===null
+     ?<div style={{fontSize:13,color:"#A15C00"}}>No evaluada: la medicación del paciente no cargó. Confírmela con el paciente antes de prescribir.</div>
+     :consTabs.medications.length===0
+      ?<div style={{fontSize:13,color:P.muted}}>Sin medicamentos activos registrados en el expediente.</div>
+      :<div style={{display:"flex",flexWrap:"wrap",gap:8}}>{consTabs.medications.map((m,i)=><span key={i} style={{background:"#E6F6EE",color:"#0F6B45",border:"1px solid #BFE6D2",borderRadius:8,padding:"4px 10px",fontSize:12.5,fontWeight:600}}>{m}</span>)}</div>}
+   </div>
+
+   {meds.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {meds.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {meds.map(m=>{const n=medNext(m);return <div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{m.label}</b><div style={{fontSize:12,color:P.muted}}>v{m.version}</div></div>
@@ -374,6 +388,7 @@ export default function ExpView(){
     <span style={{fontSize:12,color:"#6b6c7e"}}>La criticidad se deriva del valor.</span>
     <button style={btn} disabled={busy!==""} onClick={receiveResult}>{busy==="res-new"?"Registrando…":"Registrar resultado"}</button>
    </div>
+   {results.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {results.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {results.map(res=>{const n=resNext(res);return <div key={res.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{res.label}{res.critical&&<span style={{...stateBadge("ACTIONED"),marginLeft:8,fontSize:11}}>CRÍTICO</span>}</b><div style={{fontSize:12,color:P.muted}}>v{res.version}</div></div>
@@ -418,6 +433,7 @@ export default function ExpView(){
     <input style={input} value={alReac} onChange={e=>setAlReac(e.target.value)} placeholder="Reacción (ej. anafilaxia)" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!alSub} onClick={createAllergy}>{busy==="al-new"?"Registrando…":"Registrar alergia"}</button></div>
+   {allergies.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {allergies.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {allergies.map(a=><div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{a.label}</b><div style={{fontSize:12,color:P.muted}}>v{a.version}</div></div>
@@ -439,6 +455,7 @@ export default function ExpView(){
     <option value="J45.9">Asma</option><option value="J44.9">EPOC</option><option value="N18.3">ERC estadio 3</option>
     <option value="F41.9">Ansiedad</option><option value="F32.9">Depresión</option><option value="M54.5">Lumbalgia</option><option value="I50.9">Insuficiencia cardíaca</option>
    </datalist>
+   {problems.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {problems.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {problems.map(p=><div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{p.label}</b><div style={{fontSize:12,color:P.muted}}>v{p.version}</div></div>
@@ -458,6 +475,7 @@ export default function ExpView(){
     <input style={input} value={orderDetail} onChange={e=>setOrderDetail(e.target.value)} placeholder="Detalle (ej. Hemograma completo)" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!orderDetail} onClick={createOrder}>{busy==="ord-new"?"Creando…":"Crear orden"}</button></div>
+   {orders.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {orders.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {orders.map(o=>{const n=orderNext(o);return <div key={o.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:P.muted}}>v{o.version}</div></div>
@@ -478,6 +496,7 @@ export default function ExpView(){
     <input style={input} value={refReason} onChange={e=>setRefReason(e.target.value)} placeholder="Motivo (ej. Soplo sistólico)" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!refSpecialty||!refReason} onClick={createReferral}>{busy==="ref-new"?"Solicitando…":"Solicitar interconsulta"}</button></div>
+   {referrals.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {referrals.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {referrals.map(rr=>{const n=referralNext(rr);const closable=rr.state==="REQUESTED"||rr.state==="ACCEPTED";return <div key={rr.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{rr.label}</b><div style={{fontSize:12,color:P.muted}}>v{rr.version}</div></div>
@@ -501,6 +520,7 @@ export default function ExpView(){
     <select style={input} value={apptType} onChange={e=>setApptType(e.target.value)}><option value="CONSULTA_GENERAL">Consulta general</option><option value="CONTROL">Control / Seguimiento</option><option value="PRIMERA_VEZ">Primera vez</option><option value="PROCEDIMIENTO">Procedimiento</option><option value="VACUNACION">Vacunación</option><option value="RESULTADOS">Resultados</option><option value="URGENCIA">Urgencia</option></select>
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!apptReason} onClick={createAppointment}>{busy==="apt-new"?"Agendando…":"Agendar cita"}</button></div>
+   {appts.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {appts.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {appts.map(a=>{const n=apptNext(a);const open=a.state==="SCHEDULED"||a.state==="CHECKED_IN";return <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{a.label}</b><div style={{fontSize:12,color:P.muted}}>v{a.version}</div></div>
@@ -523,6 +543,7 @@ export default function ExpView(){
     <input style={input} value={immDose} onChange={e=>setImmDose(e.target.value)} placeholder="Dosis" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!immCode} onClick={createImmunization}>{busy==="imm-new"?"Indicando…":"Indicar vacuna"}</button></div>
+   {imms.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {imms.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {imms.map(i=><div key={i.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{i.label}</b><div style={{fontSize:12,color:P.muted}}>v{i.version}</div></div>
@@ -546,6 +567,7 @@ export default function ExpView(){
     <input style={input} value={vitUnit} onChange={e=>setVitUnit(e.target.value)} placeholder="Unidad" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!vitValue} onClick={createVital}>{busy==="vit-new"?"Registrando…":"Registrar signo vital"}</button></div>
+   {vitals.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {vitals.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {vitals.map(v=><div key={v.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{v.vitalType}: {v.value} {v.unit}</b>{v.vstatus&&v.vstatus!=="UNKNOWN"&&<span style={{...(v.vstatus==="CRITICAL"?{background:"#fdeaea",color:"#b3261e"}:v.vstatus==="ABNORMAL"?{background:"#fff4e5",color:"#a15c00"}:{background:"#e8f7ee",color:"#1a7f43"}),marginLeft:8,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{v.interp}</span>}<div style={{fontSize:12,color:P.muted}}>v{v.version}</div></div>
@@ -568,6 +590,7 @@ export default function ExpView(){
     <input style={input} value={planGoal} onChange={e=>setPlanGoal(e.target.value)} placeholder="Meta (ej. HbA1c < 7% en 6 meses)" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!planGoal} onClick={createPlan}>{busy==="cp-new"?"Proponiendo…":"Proponer meta"}</button></div>
+   {plans.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {plans.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {plans.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>v{c.version}</div></div>
@@ -588,6 +611,7 @@ export default function ExpView(){
     <select style={input} value={clmCurrency} onChange={e=>setClmCurrency(e.target.value)}><option value="MXN">MXN</option><option value="USD">USD</option></select>
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!clmAmount} onClick={createClaim}>{busy==="clm-new"?"Creando…":"Crear reclamación"}</button></div>
+   {claims.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {claims.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {claims.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>v{c.version}</div></div>
@@ -610,6 +634,7 @@ export default function ExpView(){
     <input style={input} value={csRef} onChange={e=>setCsRef(e.target.value)} placeholder="Referencia del documento (ej. CI-2026-001)" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!csRef} onClick={createConsent}>{busy==="cs-new"?"Redactando…":"Redactar consentimiento"}</button></div>
+   {consents.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {consents.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {consents.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>v{c.version}</div></div>
@@ -632,6 +657,7 @@ export default function ExpView(){
     <input style={input} value={admReason} onChange={e=>setAdmReason(e.target.value)} placeholder="Motivo (ej. Dolor torácico)" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!admReason} onClick={createAdmission}>{busy==="adm-new"?"Admitiendo…":"Admitir paciente"}</button></div>
+   {adms.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {adms.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {adms.map(a=><div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>Unidad: {a.unit}</b><div style={{fontSize:12,color:P.muted}}>v{a.version}</div></div>
@@ -653,6 +679,7 @@ export default function ExpView(){
     </select>
     <button style={btn} disabled={busy!==""} onClick={createSpecimen}>{busy==="sp-new"?"Recolectando…":"Recolectar muestra"}</button>
    </div>
+   {specs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {specs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {specs.map(s=>{const n=spNext(s);const open=s.state!=="RESULTED"&&s.state!=="REJECTED";return <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{s.specimenType}</b><div style={{fontSize:12,color:P.muted}}>v{s.version}</div></div>
@@ -677,6 +704,7 @@ export default function ExpView(){
     <input style={input} value={incDesc} onChange={e=>setIncDesc(e.target.value)} placeholder="Descripción del incidente" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!incDesc} onClick={createIncident}>{busy==="inc-new"?"Reportando…":"Reportar incidente"}</button></div>
+   {incs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {incs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {incs.map(i=><div key={i.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div style={{minWidth:0}}><b style={{fontSize:14}}>{i.label}</b><div style={{fontSize:12,color:P.muted}}>v{i.version}</div></div>
@@ -696,6 +724,7 @@ export default function ExpView(){
     <input style={input} value={trComplaint} onChange={e=>setTrComplaint(e.target.value)} placeholder="Motivo de consulta (ej. Dolor torácico)" />
     <button style={btn} disabled={busy!==""||!trComplaint} onClick={createTriage}>{busy==="tr-new"?"Registrando…":"Registrar arribo"}</button>
    </div>
+   {triages.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {triages.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {triages.map(t=><div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div style={{minWidth:0}}><b style={{fontSize:14}}>{t.chiefComplaint}{t.acuity>0&&<span style={{...stateBadge(t.acuity<=2?"ESCALATED":"TRIAGED"),marginLeft:8,fontSize:11}}>ESI-{t.acuity}</span>}</b><div style={{fontSize:12,color:P.muted}}>v{t.version}</div></div>
@@ -720,6 +749,7 @@ export default function ExpView(){
     </select>
     <button style={btn} disabled={busy!==""} onClick={createWound}>{busy==="wn-new"?"Documentando…":"Documentar herida"}</button>
    </div>
+   {wounds.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {wounds.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {wounds.map(w=><div key={w.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div style={{minWidth:0}}><b style={{fontSize:14}}>{w.location} · {w.stage}</b><div style={{fontSize:12,color:P.muted}}>v{w.version}</div></div>
@@ -742,6 +772,7 @@ export default function ExpView(){
     <input style={input} value={tfUnits} onChange={e=>setTfUnits(e.target.value)} placeholder="Unidades" />
     <button style={btn} disabled={busy!==""} onClick={createTransfusion}>{busy==="tf-new"?"Ordenando…":"Ordenar transfusión"}</button>
    </div>
+   {transfs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {transfs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {transfs.map(t=>{const n=tfNext(t);return <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div style={{minWidth:0}}><b style={{fontSize:14}}>{t.product} · {t.units} U</b><div style={{fontSize:12,color:P.muted}}>v{t.version}</div></div>
@@ -763,6 +794,7 @@ export default function ExpView(){
     <select style={input} value={sgLat} onChange={e=>setSgLat(e.target.value)}><option value="NA">Sin lateralidad</option><option value="LEFT">Izquierdo</option><option value="RIGHT">Derecho</option><option value="BILATERAL">Bilateral</option></select>
     <button style={btn} disabled={busy!==""||!sgProc} onClick={createSurgery}>{busy==="sg-new"?"Agendando…":"Agendar cirugía"}</button>
    </div>
+   {surgs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {surgs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {surgs.map(s=>{const n=sgNext(s);const open=s.state==="SCHEDULED"||s.state==="TIMED_OUT";return <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div style={{minWidth:0}}><b style={{fontSize:14}}>{s.procedure}</b><div style={{fontSize:12,color:P.muted}}>v{s.version}</div></div>
@@ -788,6 +820,7 @@ export default function ExpView(){
     </select>
     <button style={btn} disabled={busy!==""} onClick={createDialysis}>{busy==="dz-new"?"Agendando…":"Agendar sesión"}</button>
    </div>
+   {dialz.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {dialz.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {dialz.map(d=><div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div style={{minWidth:0}}><b style={{fontSize:14}}>{d.modality}</b><div style={{fontSize:12,color:P.muted}}>v{d.version}</div></div>
@@ -812,6 +845,7 @@ export default function ExpView(){
    </div>
    <textarea style={{...input,minHeight:64,resize:"vertical",marginTop:10}} value={docContent} onChange={e=>setDocContent(e.target.value)} placeholder="Contenido clínico…" />
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!docContent} onClick={createDoc}>{busy==="doc-new"?"Creando…":"Crear documento"}</button></div>
+   {docs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {docs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {docs.map(d=>{const n=docNext(d);return <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{d.label}</b><div style={{fontSize:12,color:P.muted}}>v{d.version}</div></div>
@@ -831,6 +865,7 @@ export default function ExpView(){
     <input style={{...input,maxWidth:420}} value={obKind} onChange={e=>setObKind(e.target.value)} placeholder="Tipo (ej. Contactar por resultado crítico)" />
     <button style={btn} disabled={busy!==""||!obKind} onClick={createObligation}>{busy==="ob-new"?"Creando…":"Crear obligación"}</button>
    </div>
+   {obligations.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {obligations.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {obligations.map(o=>{const n=obNext(o);return <div key={o.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:P.muted}}>v{o.version}</div></div>

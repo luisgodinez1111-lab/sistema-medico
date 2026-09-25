@@ -3,10 +3,10 @@
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {drugCatalog,interactionRules,type DrugCatalogItem} from "../../../../../packages/drug-catalog/src";
 import {apiRequest} from "../../../lib/session-client";
-import{card,P,LINE,UI,scrollToSection,act,actRow,type IxSev,type IxResult}from"../shared";
+import{errMsg,userMessage,card,P,LINE,UI,scrollToSection,act,actRow,type IxSev,type IxResult}from"../shared";
 import{useWorkspace}from"../context";
 export default function MedicamentosView(){
- const{medQuery,medCat,medOnlyMon,medOnlyRenal,medSel,setRxDrug,setView,setMedTab,medTab,ixInput,ixDrugs,setIxDrugs,setIxInput,setIxRes,setIxFactors,ixFactors,setIxBusy,ixBusy,ixRes,setMedQuery,setMedCat,setMedOnlyMon,setMedOnlyRenal,setMedSel}=useWorkspace();
+ const{ixMsg,setIxMsg,medQuery,medCat,medOnlyMon,medOnlyRenal,medSel,setRxDrug,setView,setMedTab,medTab,ixInput,ixDrugs,setIxDrugs,setIxInput,setIxRes,setIxFactors,ixFactors,setIxBusy,ixBusy,ixRes,setMedQuery,setMedCat,setMedOnlyMon,setMedOnlyRenal,setMedSel}=useWorkspace();
 
    // ===== MÓDULO MEDICAMENTOS — S8 (6 pestañas), pestaña "Catálogo" =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -49,7 +49,15 @@ export default function MedicamentosView(){
      const addDrug=()=>{const v=ixInput.trim();if(!v)return;if(!ixDrugs.some(d=>d.toLowerCase()===v.toLowerCase()))setIxDrugs([...ixDrugs,v]);setIxInput("");setIxRes(null);};
      const rmDrug=(d:string)=>{setIxDrugs(ixDrugs.filter(x=>x!==d));setIxRes(null);};
      const toggleF=(f:string)=>{setIxFactors(ixFactors.includes(f)?ixFactors.filter(x=>x!==f):[...ixFactors,f]);setIxRes(null);};
-     const run=async()=>{setIxBusy(true);try{const r=await apiRequest("/api/v1/interactions",{method:"POST",body:{drugs:ixDrugs,factors:ixFactors}});if(r.status===200)setIxRes(r.body as unknown as IxResult);}finally{setIxBusy(false);}};
+     // Auditoría R05a (WS1-12): el fallo se DICE. Antes no había mensaje ni `catch`: un 400 o un fallo de red dejaban la
+     // pantalla igual que un «sin interacciones», que es la lectura más peligrosa posible en un verificador de interacciones.
+     const run=async()=>{setIxBusy(true);setIxMsg(null);setIxRes(null);
+      try{
+       const r=await apiRequest("/api/v1/interactions",{method:"POST",body:{drugs:ixDrugs,factors:ixFactors}});
+       if(r.status===200){setIxRes(r.body as unknown as IxResult);return;}
+       setIxMsg(`No se pudo verificar: ${errMsg(r)}. No hay veredicto de interacciones para este conjunto.`);
+      }catch(e){setIxMsg(`No se pudo verificar: ${userMessage(e)}. No hay veredicto de interacciones para este conjunto.`);}
+      finally{setIxBusy(false);}};
      const fld:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:".03em"};
      return <div style={{display:"grid",gridTemplateColumns:"320px 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-med2">
       {/* — Columna de entrada — */}
@@ -81,7 +89,10 @@ export default function MedicamentosView(){
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{SEV_ORDER.map(s=><span key={s} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11.5,color:P.muted}}><span style={{width:10,height:10,borderRadius:3,background:sevSty[s].fg}}/>{SEV_L[s]}{ixRes?` · ${ixRes.counts[s]}`:""}</span>)}</div>
        </div>
        <div style={{padding:18}}>
-        {!ixRes&&!ixBusy&&<div style={{padding:"48px 20px",textAlign:"center",color:P.muted}}><div style={{fontSize:32,marginBottom:8}}>🔎</div><div style={{fontSize:14,fontWeight:600,color:P.ink}}>Sin análisis todavía</div><p style={{fontSize:13,maxWidth:360,margin:"6px auto 0"}}>Agrega los medicamentos (y factores del paciente) y pulsa «Verificar interacciones».</p></div>}
+        {/* R05a/WS1-12: el fallo se distingue de «sin análisis todavía». Un verificador de interacciones que calla
+            después de pulsar «Verificar» se lee como «no hay interacciones»: la lectura más peligrosa. */}
+        {ixMsg&&!ixBusy&&<div role="alert" style={{margin:16,padding:"12px 14px",border:"1px solid #F0DBB8",background:"#FFF4E5",color:"#A15C00",borderRadius:10,fontSize:13,fontWeight:600}}>{ixMsg}</div>}
+        {!ixRes&&!ixBusy&&!ixMsg&&<div style={{padding:"48px 20px",textAlign:"center",color:P.muted}}><div style={{fontSize:32,marginBottom:8}}>🔎</div><div style={{fontSize:14,fontWeight:600,color:P.ink}}>Sin análisis todavía</div><p style={{fontSize:13,maxWidth:360,margin:"6px auto 0"}}>Agrega los medicamentos (y factores del paciente) y pulsa «Verificar interacciones».</p></div>}
         {ixBusy&&<div style={{padding:"48px 20px",textAlign:"center",color:P.muted,fontSize:14}}>Analizando el conjunto…</div>}
         {ixRes&&!ixBusy&&<>
          {ixRes.findings.length===0?(
