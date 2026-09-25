@@ -51,19 +51,30 @@ export async function resultsSummary(ctx:HttpTenantContext,w?:ReportWindow):Prom
  * Indicadores de FACTURACIÓN, sumados en la base. Antes se traían todas las facturas del tenant y se sumaban en Node
  * (auditoría R06-20; el periodo de ingresos ya venía de L-09). `month` es 'YYYY-MM' en la zona declarada por el llamador.
  */
-export type ClaimsIncome=Readonly<{issued:number;incomeThisMonth:number;incomeAllTime:number;pendingCount:number;pendingAmount:number;cancellations:number}>;
+export type ClaimsIncome=Readonly<{issued:number;incomeThisMonth:number;incomeAllTime:number;pendingCount:number;
+ pendingAmount:number;cancellations:number;
+ /** R2B-021: facturas cuyo importe no tiene forma de número (eventos anteriores a la validación de la puerta). No entran
+  * en las sumas y se cuentan aquí: un importe ilegible no puede desaparecer en silencio de una suma de dinero. */
+ malformedAmounts:number}>;
 const CLAIM_PENDING=["DRAFTED","CODED","SUBMITTED"] as const;
 export async function claimsIncome(ctx:HttpTenantContext,month:string,timeZone:string,w?:ReportWindow):Promise<ClaimsIncome>{
  return withTenantTx(ctx,async tx=>{
+  // Auditoría R02b (R2B-021, lote 18): el importe era texto libre en el cuerpo de la factura, así que un `amount` no
+  // numérico hacía que este `::numeric` LANZARA y el tablero de facturación entero devolviera 500 —una fila mala tumbaba
+  // seis indicadores—. Desde el lote 18 la puerta valida el formato, pero los eventos ya escritos no se pueden reescribir
+  // (log append-only): el importe se castea solo si TIENE forma de número y, si no, se cuenta aparte en vez de ignorarse.
+  // Un importe ilegible no puede desaparecer en silencio de una suma de dinero.
+  const MONTO_SQL=tx`(a.payload->>'amount' ~ '^-?[0-9]{1,12}(\.[0-9]{1,2})?$')`;
   const rows=await tx`
    select count(*)::int as issued,
-     coalesce(sum(case when lk.kind='PAID' then (a.payload->>'amount')::numeric else 0 end),0) as income_all,
-     coalesce(sum(case when lk.kind='PAID' and to_char(pg.paid_at at time zone ${timeZone},'YYYY-MM')=${month}
+     coalesce(sum(case when lk.kind='PAID' and ${MONTO_SQL} then (a.payload->>'amount')::numeric else 0 end),0) as income_all,
+     coalesce(sum(case when lk.kind='PAID' and ${MONTO_SQL} and to_char(pg.paid_at at time zone ${timeZone},'YYYY-MM')=${month}
                        then (a.payload->>'amount')::numeric else 0 end),0) as income_month,
      count(*) filter (where coalesce(lk.kind,'DRAFTED')=any(${CLAIM_PENDING as unknown as string[]}))::int as pending_count,
-     coalesce(sum(case when coalesce(lk.kind,'DRAFTED')=any(${CLAIM_PENDING as unknown as string[]})
+     coalesce(sum(case when coalesce(lk.kind,'DRAFTED')=any(${CLAIM_PENDING as unknown as string[]}) and ${MONTO_SQL}
                        then (a.payload->>'amount')::numeric else 0 end),0) as pending_amount,
-     count(*) filter (where lk.kind='VOIDED')::int as cancellations
+     count(*) filter (where lk.kind='VOIDED')::int as cancellations,
+     count(*) filter (where not ${MONTO_SQL})::int as malformed_amounts
    from clinical_events a
    left join ${transicionesPorAgregado(tx,ctx.tenantId,"Claim")} lk on lk.aggregate_id=a.aggregate_id and lk.rn=1
    left join (select aggregate_id, max(occurred_at) as paid_at from clinical_events
@@ -73,7 +84,8 @@ export async function claimsIncome(ctx:HttpTenantContext,month:string,timeZone:s
   const o=(rows[0]??{}) as Record<string,unknown>;
   const dos=(v:unknown)=>Math.round(Number(v??0)*100)/100;
   return{issued:Number(o.issued??0),incomeThisMonth:dos(o.income_month),incomeAllTime:dos(o.income_all),
-   pendingCount:Number(o.pending_count??0),pendingAmount:dos(o.pending_amount),cancellations:Number(o.cancellations??0)};
+   pendingCount:Number(o.pending_count??0),pendingAmount:dos(o.pending_amount),cancellations:Number(o.cancellations??0),
+   malformedAmounts:Number(o.malformed_amounts??0)};
  });
 }
 

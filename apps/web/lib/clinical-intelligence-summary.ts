@@ -5,7 +5,7 @@ import{stageBloodPressure,parseBp}from"../../../packages/bp-staging/src";
 import{interpretINR}from"../../../packages/anticoagulation/src";
 import{resolveDrug}from"../../../packages/drug-catalog/src";
 import{computeEGFR,type Sex}from"../../../packages/renal-function/src";
-import{computeNEWS2}from"../../../packages/lab-reference/src";
+import{computeNEWS2,news2ScoredCount,NEWS2_MIN_SCORED_PARAMS}from"../../../packages/lab-reference/src";
 import{glycemicAssessment}from"../../../packages/glycemic/src";
 import{cha2ds2vasc}from"../../../packages/stroke-risk/src";
 import{fib4}from"../../../packages/liver-fibrosis/src";
@@ -44,8 +44,17 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  const sbp=vitals["BP"]?parseBp(vitals["BP"])?.systolic:undefined; // C-21: parser único
  // Auditoría C-09: NEWS2 solo en adultos; el O₂ suplementario y la conciencia no se registran como signos vitales -> el
  // resultado queda INCOMPLETE salvo que ya sea HIGH/MEDIUM con lo disponible (nunca "bajo" por datos ausentes).
+ // R2B-009 (lote 18): el filtro era `missing.length<7`, es decir, bastaba UN parámetro medido para registrar un score. Un
+ // NEWS2 calculado con dos mediciones se presentaba igual que uno completo, y un score bajo por falta de datos se lee igual
+ // que un score bajo real. Ahora se exige el mínimo declarado por el propio motor y se informa CUÁNTOS se puntuaron, para
+ // que el texto que ve el clínico pueda decirlo en vez de insinuarlo con un «+».
  if(age>=16){const n2=computeNEWS2({resp:num(vitals["RESP"]),spo2:num(vitals["SPO2"]),temp:num(vitals["TEMP"]),hr:num(vitals["HR"]),sbp});
-  if(n2.missing.length<7)inp.news2={score:n2.score,band:n2.band,missing:n2.missing};}
+  const medidos=news2ScoredCount(n2);
+  if(medidos>=NEWS2_MIN_SCORED_PARAMS)inp.news2={score:n2.score,band:n2.band,missing:n2.missing,scored:medidos};
+  // Con CERO parámetros medidos no hay nada que decir: a ese paciente no le han tomado signos vitales, y anunciar «NEWS2 no
+  // calculable» en cada expediente sin vitales es ruido que entierra los hallazgos reales. La advertencia importa cuando SÍ
+  // se midió algo —ahí un lector podría leer el score como tranquilizador— y por eso solo entonces se emite.
+  else if(medidos>0)inp.news2={score:n2.score,band:"INSUFFICIENT",missing:n2.missing,scored:medidos};}
  // eGFR
  const creat=renal?.["CREATININE"];
  if(age>=18&&(sex==="FEMALE"||sex==="MALE")&&creat!==undefined){const e=computeEGFR(creat,age,sex as Sex);if(e)inp.egfr={egfr:e.egfr,stage:e.stage};}

@@ -1,5 +1,5 @@
 import{NextResponse}from"next/server";
-import{handleClaimDraft}from"../../../../lib/claim-lifecycle";
+import{handleClaimDraft,parseMoney}from"../../../../lib/claim-lifecycle";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{claimsRegistry,claimsIncome,PAGE_LIMIT_MAX}from"../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../lib/http-errors";
@@ -13,7 +13,10 @@ export async function POST(req:Request){return handleClaimDraft(req);}
 // Cada factura con paciente, monto, estado y folio (secuencial), MÁS KPIs: ingresos pagados del periodo,
 // facturas emitidas, pendientes de pago (conteo + monto) y cancelaciones. RLS-scoped.
 const STATUS_ES:Record<string,string>={PENDING:"Pendiente",PAID:"Pagada",REJECTED:"Rechazada",VOID:"Cancelada"};
-const num=(s:string)=>{const n=parseFloat(String(s).replace(/[^0-9.]/g,""));return Number.isFinite(n)?n:0;};
+// R2B-021: este parseo era `replace(/[^0-9.]/g,"")`, que borra el signo MENOS. Una nota de crédito de «-500.00» se leía
+// como 500 positivos e inflaba los ingresos del tablero. Ahora se usa la MISMA función que valida el importe al emitir
+// (`parseMoney` en claim-lifecycle): dos parseos distintos del mismo dato es cómo nació el defecto.
+const num=parseMoney;
 
 export async function GET(req:Request){
  try{

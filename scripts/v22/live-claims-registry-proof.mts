@@ -12,7 +12,7 @@ const clSub=await import("../../apps/web/app/api/v1/claims/[claimId]/submission/
 const clPay=await import("../../apps/web/app/api/v1/claims/[claimId]/payment/route");
 const clVoid=await import("../../apps/web/app/api/v1/claims/[claimId]/void/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
-function tok(scopes=["patient:write","patient:read","billing:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
+function tok(scopes=["patient:write","patient:read","billing:write"],tenantId=TA){return signSession({sub:crypto.randomUUID(),tenantId,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const idem=()=>crypto.randomUUID();let ts=Date.parse("2026-09-01T09:00:00.000Z");const at=()=>new Date(ts+=3600000).toISOString();
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
@@ -59,6 +59,30 @@ try{
  // join del nombre + etiqueta ES
  ok(b.items.some(i=>i.patientName==="Ana López García"),"PATIENT_JOIN");
  ok(b.items.some(i=>i.statusLabel==="Pagada")&&b.items.some(i=>i.statusLabel==="Cancelada"),"LABELS_ES");
+
+ // Auditoría R02b (R2B-021, lote 18): EL SIGNO Y LA FORMA DEL IMPORTE.
+ //
+ // El parseo del tablero hacía `replace(/[^0-9.]/g,"")`, que borra el menos: una nota de crédito de «-500.00» se leía como
+ // 500 POSITIVOS e inflaba los ingresos. Y `amount` era `z.string().min(1)`, así que «asdf» entraba al registro y luego el
+ // `::numeric` de la consulta de indicadores LANZABA: una sola fila mala tumbaba el tablero de facturación completo.
+ {
+  const tNuevo=crypto.randomUUID();
+  const w=tok(["billing:write","billing:read","patient:write","patient:read"],tNuevo);
+  const p=crypto.randomUUID();
+  await reg(w,p,"Nota de Crédito Prueba");
+  // Un importe sin forma de número se rechaza EN LA PUERTA, no se descubre al sumar.
+  const basura=await draft(w,p,"asdf");
+  ok(basura.status===400,"NON_NUMERIC_AMOUNT_REJECTED:"+basura.status);
+  ok((await draft(w,p,"1.234")).status===400,"THREE_DECIMALS_REJECTED");
+  // Una nota de crédito (importe negativo) SÍ se admite: es un movimiento legítimo.
+  const nota=await draft(w,p,"-500.00");
+  ok(nota.status===201,"CREDIT_NOTE_ACCEPTED:"+nota.status);
+  // Y el tablero la lee con su signo, en vez de como 500 positivos.
+  const registro=await list(w);
+  const bb=registro.body as{items:{claimId:string;amount:number}[]};
+  const fila=bb.items.find(i=>i.claimId===nota.id);
+  ok(fila!==undefined&&fila.amount===-500,"CREDIT_NOTE_KEEPS_SIGN:"+String(fila?.amount));
+ }
 
  // sin scope -> 403
  const noScope=await list(tok(["patient:read"]));

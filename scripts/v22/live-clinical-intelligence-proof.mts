@@ -46,6 +46,28 @@ try{
  // paciente sano joven sin datos -> sin hallazgos
  const p2=crypto.randomUUID();await reg(phys,p2,30,"MALE");
  g=await get(phys,p2);ok(g.status===200&&g.body.findings.length===0,"HEALTHY_NO_FINDINGS"); // C-10: sin registros de vacunas NO se afirman "vencidas" en un adulto
+
+ // Auditoría R02b (R2B-009, lote 18): UN SCORE SOSTENIDO POR DOS MEDICIONES NO ES UN SCORE.
+ //
+ // El filtro del agregador era `missing.length<7`: bastaba UN parámetro medido para publicar un NEWS2, y un score bajo por
+ // falta de datos se leía igual que un score bajo real. Ahora, por debajo del mínimo, el hallazgo dice que NO es calculable
+ // y cuántos parámetros hay; por encima, el texto declara con cuántos se calculó en vez de insinuarlo con un «+».
+ {
+  const pocos=crypto.randomUUID();await reg(phys,pocos,50,"FEMALE");
+  await vital(phys,pocos,"HR","72"); // un solo parámetro medido de los siete
+  g=await get(phys,pocos);
+  const det=(g.body.findings as {domain:string;summary:string}[]).filter(x=>x.domain==="deterioro");
+  ok(det.length===1&&/no calculable/i.test(det[0]!.summary),"NEWS2_ONE_PARAM_IS_NOT_A_SCORE:"+(det[0]?.summary??"(sin hallazgo)"));
+  ok(/1 de 7/.test(det[0]!.summary),"NEWS2_SAYS_HOW_MANY_PARAMS:"+det[0]!.summary);
+
+  // Con cuatro de los cinco medibles SÍ hay score, y el texto declara con cuántos parámetros se calculó.
+  const cuatro=crypto.randomUUID();await reg(phys,cuatro,50,"FEMALE");
+  for(const[k,v]of[["RESP","26"],["SPO2","91"],["HR","125"],["BP","95/60"]]as const)await vital(phys,cuatro,k,v);
+  g=await get(phys,cuatro);
+  const det2=(g.body.findings as {domain:string;summary:string}[]).filter(x=>x.domain==="deterioro");
+  ok(det2.length===1&&/NEWS2 \d+\+/.test(det2[0]!.summary),"NEWS2_PARTIAL_SCORE_MARKED:"+(det2[0]?.summary??""));
+  ok(/\[4 de 7 parámetros\]/.test(det2[0]!.summary),"NEWS2_PARTIAL_SCORE_SAYS_HOW_MANY:"+det2[0]!.summary);
+ }
  // no registrado -> 404
  g=await get(phys,crypto.randomUUID());ok(g.status===404,"UNREGISTERED_404");
  // sin scope -> 403

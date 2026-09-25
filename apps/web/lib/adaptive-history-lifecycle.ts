@@ -42,7 +42,13 @@ async function loadForTransition(req:Request,historyId:string){
 async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,historyId:string,folded:FoldedHistory,to:HistoryEventKind,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:historyId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
- if(!result){assertHistoryTransition(folded.chiefComplaint?to:"CHIEF_COMPLAINT",to);result=await runClinicalCommand(ctx,cmd);}
+ if(!result){
+  // R2B-026: el ORIGEN es el último evento real de la historia, que ahora el fold expone. Antes era
+  // `folded.chiefComplaint?to:"CHIEF_COMPLAINT"`, una condición siempre verdadera que hacía `assertHistoryTransition(to,to)`
+  // y dejaba a `handleHpiComplete` y `handleRosComplete` incapaces de tener éxito en el 100 % de las llamadas reales.
+  assertHistoryTransition(folded.lastEventKind??"CHIEF_COMPLAINT",to);
+  result=await runClinicalCommand(ctx,cmd);
+ }
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({historyId,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }

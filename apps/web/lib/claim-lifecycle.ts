@@ -17,7 +17,30 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{scope:"billing:write",purpose:"TREATMENT"});
 }
 
-export const DraftBody=z.object({claimId:z.string().uuid(),patientId:z.string().uuid(),amount:z.string().min(1),currency:z.enum(["MXN","USD"]),occurredAt:z.string().datetime()});
+// Auditoría 2026-09-19, anexo R02b (R2B-021, lote 18) — EL MONTO DE UNA FACTURA NO ES TEXTO LIBRE, Y EL SIGNO IMPORTA.
+//
+// Dos defectos encadenados. (1) `amount` era `z.string().min(1)`: «asdf» se aceptaba al emitir y más tarde se convertía en 0
+// en silencio, así que una factura entraba al registro con importe cero sin que nadie lo supiera. (2) El parseo del tablero
+// hacía `replace(/[^0-9.]/g,"")`, que elimina el signo MENOS: una nota de crédito o un ajuste de «-500.00» se leía como 500
+// positivos e INFLABA los ingresos. Las dos cosas se arreglan en el mismo sitio, que es la puerta.
+//
+// El importe se guarda como texto normalizado (no como número de punto flotante) a propósito: el dinero se compara y se suma
+// en la base con `numeric`, y un `float` de JavaScript introduce errores de redondeo que en una factura no son aceptables.
+const MONTO=/^-?\d{1,12}(\.\d{1,2})?$/;
+/**
+ * Parsea un importe monetario CONSERVANDO EL SIGNO. Única autoridad: la ruta del tablero la importa en vez de tener su
+ * propio parseo, que es exactamente cómo apareció el defecto del signo.
+ */
+export function parseMoney(raw:string):number{
+ const t=String(raw).trim().replace(/\s|,/g,"");
+ if(!MONTO.test(t))return 0; // eventos anteriores al lote 18 pueden traer texto libre: se leen como 0, no como NaN
+ const n=Number(t);
+ return Number.isFinite(n)?n:0;
+}
+export const DraftBody=z.object({claimId:z.string().uuid(),patientId:z.string().uuid(),
+ amount:z.string().trim().min(1).refine(v=>MONTO.test(v.replace(/\s|,/g,"")),
+  "El importe debe ser un número con hasta dos decimales; se admite negativo para notas de crédito y ajustes"),
+ currency:z.enum(["MXN","USD"]),occurredAt:z.string().datetime()});
 export async function handleClaimDraft(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);

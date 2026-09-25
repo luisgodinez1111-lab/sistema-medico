@@ -369,6 +369,22 @@ function scoreTemp(v: number): number { if (v <= 35.0) return 3; if (v <= 36.0) 
 function scoreSbp(v: number): number { if (v <= 90) return 3; if (v <= 100) return 2; if (v <= 110) return 1; if (v <= 219) return 0; return 3; }
 function scoreHr(v: number): number { if (v <= 40) return 3; if (v <= 50) return 1; if (v <= 90) return 0; if (v <= 110) return 1; if (v <= 130) return 2; return 3; }
 function scoreConsciousness(v: string): number { const s = v.trim().toUpperCase(); return (s === "A" || s === "ALERT") ? 0 : 3; }
+/**
+ * Auditoría 2026-09-19, anexo R02b (R2B-009, lote 18) — UN SCORE CALCULADO CON DOS PARÁMETROS NO ES UN SCORE.
+ *
+ * El hallazgo tenía dos mecanismos de falso negativo. El primero —oxígeno suplementario asumido como aire ambiente en vez de
+ * reportado como faltante— se corrigió en C-09 y hoy `missing` lo incluye. El segundo seguía abierto: el consumidor
+ * registraba el score con CUALQUIER número de parámetros presentes, así que un NEWS2 calculado con dos mediciones se
+ * presentaba igual que uno completo. Un score bajo por falta de datos se ve idéntico a un score bajo real.
+ *
+ * Este es el mínimo de parámetros MEDIDOS por debajo del cual el resultado no se presenta como score. De los siete del NEWS2,
+ * cinco salen de los signos vitales (FR, SpO₂, temperatura, PAS, FC) y dos —conciencia y oxígeno suplementario— este sistema
+ * no los registra todavía, así que el máximo alcanzable hoy es cinco: exigir cuatro de esos cinco es la frontera entre «score
+ * con un hueco» y «no hay score».
+ */
+export const NEWS2_MIN_SCORED_PARAMS = 4;
+/** Cuántos parámetros del NEWS2 se pudieron puntuar de verdad. Es la cifra que decide si hay score o no lo hay. */
+export function news2ScoredCount(r: News2Result): number { return Object.keys(r.params).length; }
 export function computeNEWS2(p: News2Params): News2Result {
   const params: Record<string, number> = {}; const missing: string[] = [];
   const spo2Scale: 1 | 2 = p.spo2Scale === 2 ? 2 : 1;
