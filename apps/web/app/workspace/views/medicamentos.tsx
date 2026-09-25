@@ -3,7 +3,7 @@
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {drugCatalog,interactionRules,type DrugCatalogItem} from "../../../../../packages/drug-catalog/src";
 import {apiRequest} from "../../../lib/session-client";
-import{errMsg,userMessage,card,P,LINE,UI,scrollToSection,act,actRow,type IxSev,type IxResult}from"../shared";
+import{Check,errMsg,userMessage,card,P,LINE,UI,scrollToSection,act,actRow,type IxSev,type IxResult}from"../shared";
 import{useWorkspace}from"../context";
 export default function MedicamentosView(){
  const{ixMsg,setIxMsg,medQuery,medCat,medOnlyMon,medOnlyRenal,medSel,setRxDrug,setView,setMedTab,medTab,ixInput,ixDrugs,setIxDrugs,setIxInput,setIxRes,setIxFactors,ixFactors,setIxBusy,ixBusy,ixRes,setMedQuery,setMedCat,setMedOnlyMon,setMedOnlyRenal,setMedSel}=useWorkspace();
@@ -19,7 +19,7 @@ export default function MedicamentosView(){
    const cat=drugCatalog();
    const categories=[...new Set(cat.map(d=>d.category))].sort((a,b)=>a.localeCompare(b,"es"));
    const ixRules=interactionRules();
-   const catColor=(c:string):[string,string]=>c.startsWith("Antibiótico")?["#E6F6EE","#16A66A"]:c.startsWith("AINE")||c.startsWith("Salicilato")?["#E7EEFB","#1769E0"]:c.startsWith("Analgésico")?["#EEEBFD","#6C5CF6"]:c.startsWith("Antidiabético")?["#FBF0DC","#B7791F"]:c.includes("antihipertensivo")?["#FDECEE","#F0455E"]:c.startsWith("Antidepresivo")||c.startsWith("Serotoninérgico")?["#F3EAFB","#9333EA"]:c.startsWith("Anticoagulante")?["#FCE9E4","#C2410C"]:c.startsWith("Diurético")?["#E0F7FA","#0E7490"]:c.startsWith("Opioide")?["#F1F1F4","#8A8FA3"]:["#EEF0F5","#6B7391"];
+   const catColor=(c:string):[string,string]=>c.startsWith("Antibiótico")?["#E6F6EE",P.greenOnPale]:c.startsWith("AINE")||c.startsWith("Salicilato")?["#E7EEFB",P.blueOnPale]:c.startsWith("Analgésico")?["#EEEBFD",P.purpleOnPale]:c.startsWith("Antidiabético")?["#FBF0DC",P.amberOnPale]:c.includes("antihipertensivo")?["#FDECEE",P.redOnPale]:c.startsWith("Antidepresivo")||c.startsWith("Serotoninérgico")?["#F3EAFB","#9333EA"]:c.startsWith("Anticoagulante")?["#FCE9E4","#C2410C"]:c.startsWith("Diurético")?["#E0F7FA",P.cyan]:c.startsWith("Opioide")?["#F1F1F4","#8A8FA3"]:["#EEF0F5","#6B7391"];
    const mq=medQuery.trim().toLowerCase();
    const catFiltered=cat.filter(d=>(!mq||d.ingredient.includes(mq)||d.category.toLowerCase().includes(mq)||d.classes.some(cl=>cl.toLowerCase().includes(mq)))&&(!medCat||d.category===medCat)&&(!medOnlyMon||d.monitoring.length>0)&&(!medOnlyRenal||!!d.renal));
    const selDrug:DrugCatalogItem|null=cat.find(d=>d.code===medSel)??null;
@@ -44,7 +44,7 @@ export default function MedicamentosView(){
     {medTab==="interacciones"?(()=>{
      // ===== Pestaña "Interacciones" (S8.3) — verificador de conjunto REAL cableado a POST /api/v1/interactions =====
      const IX_FACTORS=["Consumo de alcohol","Insuficiencia renal","Insuficiencia hepática","Embarazo","Adulto mayor"];
-     const sevSty:Record<IxSev,{bg:string;bd:string;fg:string}>={CONTRAINDICATED:{bg:"#FBE3E6",bd:"#E79AA3",fg:"#9B1C2E"},MAJOR:{bg:"#FDECEE",bd:"#F4B5BE",fg:"#D12C41"},MODERATE:{bg:"#FBF0DC",bd:"#EBD2A0",fg:"#B7791F"},MINOR:{bg:"#E7EEFB",bd:"#C5D6F2",fg:"#1769E0"}};
+     const sevSty:Record<IxSev,{bg:string;bd:string;fg:string}>={CONTRAINDICATED:{bg:"#FBE3E6",bd:"#E79AA3",fg:P.redOnPale},MAJOR:{bg:"#FDECEE",bd:"#F4B5BE",fg:P.redOnPale},MODERATE:{bg:"#FBF0DC",bd:"#EBD2A0",fg:P.amberOnPale},MINOR:{bg:"#E7EEFB",bd:"#C5D6F2",fg:P.blueOnPale}};
      const SEV_ORDER:IxSev[]=["CONTRAINDICATED","MAJOR","MODERATE","MINOR"];const SEV_L:Record<IxSev,string>={CONTRAINDICATED:"Contraindicada",MAJOR:"Mayor",MODERATE:"Moderada",MINOR:"Menor"};
      const addDrug=()=>{const v=ixInput.trim();if(!v)return;if(!ixDrugs.some(d=>d.toLowerCase()===v.toLowerCase()))setIxDrugs([...ixDrugs,v]);setIxInput("");setIxRes(null);};
      const rmDrug=(d:string)=>{setIxDrugs(ixDrugs.filter(x=>x!==d));setIxRes(null);};
@@ -91,12 +91,12 @@ export default function MedicamentosView(){
        <div style={{padding:18}}>
         {/* R05a/WS1-12: el fallo se distingue de «sin análisis todavía». Un verificador de interacciones que calla
             después de pulsar «Verificar» se lee como «no hay interacciones»: la lectura más peligrosa. */}
-        {ixMsg&&!ixBusy&&<div role="alert" style={{margin:16,padding:"12px 14px",border:"1px solid #F0DBB8",background:"#FFF4E5",color:"#A15C00",borderRadius:10,fontSize:13,fontWeight:600}}>{ixMsg}</div>}
+        {ixMsg&&!ixBusy&&<div role="alert" style={{margin:16,padding:"12px 14px",border:"1px solid #F0DBB8",background:"#FFF4E5",color:P.amberOnPale,borderRadius:10,fontSize:13,fontWeight:600}}>{ixMsg}</div>}
         {!ixRes&&!ixBusy&&!ixMsg&&<div style={{padding:"48px 20px",textAlign:"center",color:P.muted}}><div style={{fontSize:32,marginBottom:8}}>🔎</div><div style={{fontSize:14,fontWeight:600,color:P.ink}}>Sin análisis todavía</div><p style={{fontSize:13,maxWidth:360,margin:"6px auto 0"}}>Agrega los medicamentos (y factores del paciente) y pulsa «Verificar interacciones».</p></div>}
         {ixBusy&&<div style={{padding:"48px 20px",textAlign:"center",color:P.muted,fontSize:14}}>Analizando el conjunto…</div>}
         {ixRes&&!ixBusy&&<>
          {ixRes.findings.length===0?(
-          <div style={{display:"flex",alignItems:"center",gap:12,padding:"16px 18px",borderRadius:12,background:"#E6F6EE",border:"1px solid #BFE6CF"}}><span style={{width:38,height:38,borderRadius:"50%",background:"#16A66A",color:"#fff",display:"grid",placeItems:"center",flex:"0 0 auto"}}>✓</span><div><div style={{fontWeight:700,fontSize:14}}>Sin interacciones detectadas</div><div style={{fontSize:13,color:P.muted}}>No se encontraron interacciones ni conflictos por factores para este conjunto.</div></div></div>
+          <div style={{display:"flex",alignItems:"center",gap:12,padding:"16px 18px",borderRadius:12,background:"#E6F6EE",border:"1px solid #BFE6CF"}}><span style={{width:38,height:38,borderRadius:"50%",background:P.greenOnPale,color:"#fff",display:"grid",placeItems:"center",flex:"0 0 auto"}}>✓</span><div><div style={{fontWeight:700,fontSize:14}}>Sin interacciones detectadas</div><div style={{fontSize:13,color:P.muted}}>No se encontraron interacciones ni conflictos por factores para este conjunto.</div></div></div>
          ):(
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
            {ixRes.highestSeverity&&<div style={{fontSize:13,color:P.muted}}><b style={{color:P.ink}}>{ixRes.findings.length}</b> hallazgo(s) · severidad máxima <b style={{color:sevSty[ixRes.highestSeverity].fg}}>{ixRes.highestSeverityLabel}</b></div>}
@@ -117,7 +117,7 @@ export default function MedicamentosView(){
      </div>;
     })():medTab==="alertas"?(()=>{
      // ===== Pestaña "Alertas" — motor determinista de seguridad (reglas REALES del catálogo), sin IA =====
-     const sev=(s:string):[string,string]=>s==="MAJOR"?["#FDECEE","#D12C41"]:["#FBF0DC","#B7791F"];
+     const sev=(s:string):[string,string]=>s==="MAJOR"?["#FDECEE",P.redOnPale]:["#FBF0DC",P.amberOnPale];
      const monDrugs=cat.filter(d=>d.monitoring.length>0);
      const renalDrugs=cat.filter(d=>d.renal);
      return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-med2">
@@ -144,11 +144,11 @@ export default function MedicamentosView(){
     <div style={{display:"grid",gridTemplateColumns:"250px 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-med2">
      <div style={{...card2,padding:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}} {...act(()=>{setMedQuery("");setMedCat("");setMedOnlyMon(false);setMedOnlyRenal(false);})}>Limpiar</span></div>
-      <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input value={medQuery} onChange={e=>setMedQuery(e.target.value)} placeholder="Buscar principio activo o clase…" style={{border:0,outline:"none",fontSize:12.5,fontFamily:UI,color:P.ink,width:"100%",background:"transparent"}}/></div>
+      <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input value={medQuery} onChange={e=>setMedQuery(e.target.value)} placeholder="Buscar principio activo o clase…" style={{border:0,outline:"none",fontSize:12.5,fontFamily:UI,color:P.ink,width:"100%",background:"transparent"}}/></div>
       <div style={flbl}>Categoría terapéutica</div><select value={medCat} onChange={e=>setMedCat(e.target.value)} style={selSty}><option value="">Todas</option>{categories.map(c=><option key={c} value={c}>{c}</option>)}</select>
       <div style={{...flbl,marginTop:14}}>Seguridad</div>
-      <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}} onClick={()=>setMedOnlyMon(v=>!v)}><span style={{width:16,height:16,borderRadius:4,border:medOnlyMon?"0":"1.6px solid #C7CCE0",background:medOnlyMon?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{medOnlyMon?"✓":""}</span>Solo con monitoreo obligado</label>
-      <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}} onClick={()=>setMedOnlyRenal(v=>!v)}><span style={{width:16,height:16,borderRadius:4,border:medOnlyRenal?"0":"1.6px solid #C7CCE0",background:medOnlyRenal?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{medOnlyRenal?"✓":""}</span>Solo con alerta renal por TFG</label>
+      <Check checked={medOnlyMon} label="Solo con monitoreo obligado" onChange={()=>setMedOnlyMon(v=>!v)}/>
+      <Check checked={medOnlyRenal} label="Solo con alerta renal por TFG" onChange={()=>setMedOnlyRenal(v=>!v)}/>
       <div style={{marginTop:14,padding:"11px 12px",borderRadius:10,background:"#F7F6FE",fontSize:12,color:P.muted,lineHeight:1.5}}><b style={{color:P.ink}}>Catálogo determinista.</b> Principio activo, clases y reglas de seguridad reales (packages/drug-catalog). Subconjunto de demostración; el vademécum oficial (RxNorm/COFEPRIS) se cargaría de la fuente autorizada.</div>
      </div>
      <div>

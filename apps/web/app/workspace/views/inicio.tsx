@@ -11,7 +11,7 @@ export default function InicioView(){
    const fecha=clock.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).replace(/^\w/,c=>c.toUpperCase());
    const hora=clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase();
    const nameOf=(pid:string)=>patientList?.find(p=>p.patientId===pid)?.name||`Paciente ${pid.slice(0,8)}`;
-   const prTag=(pr:string):[string,string,string]=>pr==="HIGH"?["Crítico","#FDE7EA","#D23651"]:pr==="MEDIUM"?["Seguimiento","#EEEBFD","#6C5CF6"]:["Administrativo","#EEF0F5","#6B7391"];
+   const prTag=(pr:string):[string,string,string]=>pr==="HIGH"?["Crítico","#FDE7EA",P.redOnPale]:pr==="MEDIUM"?["Seguimiento","#EEEBFD",P.purpleOnPale]:["Administrativo","#EEF0F5","#6B7391"];
    // Tareas: worklist real (tenant-wide) si hay; si no, ejemplo pulido.
    // WS1-01: los avisos del consultorio son los pendientes REALES del worklist, urgentes primero.
    const avisos=[...(panel?.gaps??[])].sort((a,b)=>(a.priority==="HIGH"?0:1)-(b.priority==="HIGH"?0:1)).slice(0,4);
@@ -19,7 +19,7 @@ export default function InicioView(){
    // Verdad clínica (U-02): SOLO tareas reales. Antes, sin datos se pintaban tareas inventadas ("Potasio 6.2 mmol/L").
    const tasks=realTasks;
    // Pacientes recientes: lista real si hay; si no, ejemplo.
-   const stEs=(s:string):[string,string,string]=>s==="ACTIVE"?["Activo","#E6F6EE","#16A66A"]:s==="INACTIVE"?["Inactivo","#EEF0F5","#6B7391"]:["Pendiente","#FBF0DC","#B7791F"];
+   const stEs=(s:string):[string,string,string]=>s==="ACTIVE"?["Activo","#E6F6EE",P.greenOnPale]:s==="INACTIVE"?["Inactivo","#EEF0F5","#6B7391"]:["Pendiente","#FBF0DC",P.amberOnPale];
    const realPts=(patientList??[]).slice(0,5).map(p=>({name:p.name,status:p.status,patientId:p.patientId}));
    // (U-02) Sin pacientes de ejemplo: si no hay registros, la tabla lo dice.
    const usingRealPts=realPts.length>0;
@@ -127,13 +127,13 @@ export default function InicioView(){
        {[["48","Consultas totales","↑ 12%",true,"#DDD8FA"],["92%","Asistencia a citas","↑ 5%",true,"#DDD8FA"],["2.3 días","Tiempo de seguimiento","↓ 18%",false,"#DDD8FA"],["4.8/5","Satisfacción pacientes","↑ 0.4",true,"#B7E7CC"]].map(([v,l,tr,up,bar],i)=>(
         <div key={i} style={{padding:"14px 16px"}}><div style={{fontSize:23,fontWeight:800}}>{v as string}</div><div style={{fontSize:11.5,color:P.muted}}>{l as string}</div>
          <div style={{display:"flex",alignItems:"flex-end",gap:3,height:32,margin:"8px 0"}}>{[40,62,48,75,88,70].map((h,j)=><span key={j} style={{flex:1,height:`${h}%`,background:bar as string,borderRadius:2}}/>)}</div>
-         <div style={{fontSize:12,fontWeight:700,color:up?P.green:"#D23651"}}>{tr as string}</div></div>))}
+         <div style={{fontSize:12,fontWeight:700,color:up?P.green:P.redOnPale}}>{tr as string}</div></div>))}
       </div>
      </div>
      <div style={{...cardP,padding:"16px 18px"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><h2 style={{...h2s,fontSize:15}}>Distribución de motivos de consulta</h2><span style={{fontSize:11,color:P.muted,background:"#F3F5FA",borderRadius:6,padding:"2px 8px"}}>representativo</span></div>
       <div style={{display:"flex",gap:20,alignItems:"center"}}>
-       <div style={{width:150,height:150,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:"conic-gradient(#6C5CF6 0 29%,#8B7DF8 29% 56%,#20B7D9 56% 71%,#5B8DEF 71% 83%,#C9CEE6 83% 100%)"}}><div style={{width:96,height:96,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:22,fontWeight:800}}>48</div><div style={{fontSize:10,color:P.muted}}>consultas</div></div></div></div>
-       <div style={{flex:1}}>{[["#6C5CF6","Infecciones respiratorias","29%"],["#8B7DF8","Control crónicos","27%"],["#20B7D9","Gastrointestinal","15%"],["#5B8DEF","Salud preventiva","12%"],["#C9CEE6","Otros","17%"]].map(([c,l,p],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:12.5,padding:"4px 0"}}><span style={{width:9,height:9,borderRadius:"50%",background:c as string,flex:"0 0 auto"}}/>{l as string}<b style={{marginLeft:"auto"}}>{p as string}</b></div>)}</div>
+       <div style={{width:150,height:150,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:`conic-gradient(${P.purpleOnPale} 0 29%,#8B7DF8 29% 56%,#20B7D9 56% 71%,#5B8DEF 71% 83%,#C9CEE6 83% 100%)`}}><div style={{width:96,height:96,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:22,fontWeight:800}}>48</div><div style={{fontSize:10,color:P.muted}}>consultas</div></div></div></div>
+       <div style={{flex:1}}>{[["#6C5CF6","Infecciones respiratorias","29%"],["#8B7DF8","Control crónicos","27%"],[P.cyan,"Gastrointestinal","15%"],[P.blueOnPale,"Salud preventiva","12%"],["#C9CEE6","Otros","17%"]].map(([c,l,p],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:12.5,padding:"4px 0"}}><span style={{width:9,height:9,borderRadius:"50%",background:c as string,flex:"0 0 auto"}}/>{l as string}<b style={{marginLeft:"auto"}}>{p as string}</b></div>)}</div>
       </div>
      </div>
      {/* Auditoría 2026-09-19, anexo R05a (WS1-01) — AVISOS REALES DEL CONSULTORIO, no tres ejemplos con hora inventada.
@@ -143,11 +143,11 @@ export default function InicioView(){
          pendientes REALES del consultorio, que esta misma pantalla ya carga— con su prioridad y el paciente al que
          pertenecen. No se inventa la hora: el worklist no la trae, y una hora falsa es lo que hacía creíble el widget. */}
      <div style={cardP}><div style={h2row}><h2 style={{...h2s,fontSize:15}}>Avisos del consultorio {panel===null
-       ?<span title="Sin dato: no se pudo cargar el worklist" style={{background:"#FBF0DC",color:"#B7791F",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>—</span>
+       ?<span title="Sin dato: no se pudo cargar el worklist" style={{background:"#FBF0DC",color:P.amberOnPale,fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>—</span>
        :avisos.length>0&&<span style={{background:P.red,color:"#fff",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>{avisos.length}</span>}</h2>
       {avisos.length>0&&<span style={link} {...act(()=>setView("obligaciones"))}>Ver todos →</span>}</div>
       {panel===null
-       ?<div style={{padding:"14px 18px",fontSize:13,color:"#A15C00",borderTop:`1px solid #F1F3F9`}}>No evaluados: los avisos del consultorio no cargaron. Ábralos en Obligaciones para revisarlos.</div>
+       ?<div style={{padding:"14px 18px",fontSize:13,color:P.amberOnPale,borderTop:`1px solid #F1F3F9`}}>No evaluados: los avisos del consultorio no cargaron. Ábralos en Obligaciones para revisarlos.</div>
        :avisos.length===0
         ?<div style={{padding:"14px 18px",fontSize:13,color:P.muted,borderTop:`1px solid #F1F3F9`}}>Sin avisos pendientes en el consultorio.</div>
         :avisos.map((g,i)=><div key={`${g.aggregateId}-${i}`} style={{display:"flex",gap:11,padding:"10px 18px",borderTop:`1px solid #F1F3F9`,alignItems:"flex-start"}}><span style={{width:8,height:8,borderRadius:"50%",background:g.priority==="HIGH"?P.red:P.purple,marginTop:5,flex:"0 0 auto"}}/><div style={{flex:1,fontSize:13,fontWeight:600}}>{g.label}<div style={{fontSize:11.5,fontWeight:500,color:P.muted}}>{nameOf(g.patientId)}</div></div><span style={{fontSize:10.5,fontWeight:700,color:g.priority==="HIGH"?"#B3261E":P.muted,whiteSpace:"nowrap"}}>{g.priority==="HIGH"?"Urgente":"Pendiente"}</span></div>)}

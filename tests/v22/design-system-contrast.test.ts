@@ -45,6 +45,34 @@ describe("design system — contraste WCAG AA (K-09)",()=>{
   expect(contrastRatio(semantic.text.muted,semantic.surface.raised)).toBeGreaterThanOrEqual(AA);
   expect(contrastRatio(semantic.text.muted,semantic.surface.canvas)).toBeGreaterThanOrEqual(AA);
  });
+ // Auditoría 2026-09-19, anexo R05b (R05b-27): los chips de estado pintan su texto sobre un fondo PÁLIDO propio, no sobre
+ // blanco ni sobre el lienzo. Ahí los tonos del K-09 volvían a fallar (azul 4.48:1, púrpura 4.37:1, rojo 4.48:1) y los hexes
+ // sueltos del espacio de trabajo fallaban mucho más (verde de chip 2.80:1; gris de encabezado de tabla 2.58:1). Estos son
+ // los cinco pares que de verdad ve el médico en las tablas y las insignias.
+ it("el texto de cada chip de estado cumple AA sobre SU fondo pálido",()=>{
+  const pares=[["greenOnPale","greenPale"],["amberOnPale","amberPale"],["blueOnPale","bluePale"],["purpleOnPale","purplePale"],["redOnPale","redPale"]] as const;
+  const fallos:string[]=[];
+  for(const[fg,bg]of pares){
+   const r=contrastRatio(runtime.color[fg],runtime.color[bg]);
+   if(r<AA)fallos.push(`${fg} ${runtime.color[fg]} sobre ${bg} ${runtime.color[bg]}: ${r.toFixed(2)}:1`);
+   // Y con margen: al filo de 4.5 cualquier retoque del fondo rompe la accesibilidad sin que nadie lo note.
+   expect(r,`${fg} sobre ${bg} necesita margen sobre el mínimo`).toBeGreaterThanOrEqual(4.6);
+  }
+  expect(fallos).toEqual([]);
+ });
+ it("esos tonos también cumplen sobre blanco y sobre el lienzo, porque se usan en los dos sitios",()=>{
+  for(const k of ["greenOnPale","purpleOnPale","blueOnPale","redOnPale","amberOnPale"] as const)
+   for(const bg of [runtime.color.white,runtime.color.canvas])
+    expect(contrastRatio(runtime.color[k],bg),`${k} sobre ${bg}`).toBeGreaterThanOrEqual(AA);
+ });
+ it("no se «apagó» la paleta: cada tono pálido sigue siendo reconociblemente su color",()=>{
+  // El riesgo de corregir contraste a ciegas es acabar con cinco grises. Se exige que el canal dominante del tono siga
+  // dominando: el verde más verde que rojo, el rojo más rojo que verde, el azul y el púrpura más azules que rojos.
+  const rgb=(h:string)=>[1,3,5].map((i)=>parseInt(h.slice(i,i+2),16));
+  const[gr,gg]=rgb(runtime.color.greenOnPale) as [number,number];expect(gg).toBeGreaterThan(gr);
+  const[rr,rg]=rgb(runtime.color.redOnPale) as [number,number];expect(rr).toBeGreaterThan(rg);
+  for(const k of ["blueOnPale","purpleOnPale"] as const){const[r,,b]=rgb(runtime.color[k]) as [number,number,number];expect(b,k).toBeGreaterThan(r);}
+ });
  it("el paquete y el contrato de diseño declaran exactamente los mismos tokens primitivos",()=>{
   expect(runtime).toEqual(contract);
  });

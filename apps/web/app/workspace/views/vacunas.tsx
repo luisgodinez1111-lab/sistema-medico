@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "vacunas" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{edadDe,card,P,LINE,UI,actRow,scrollToSection}from"../shared";
+import{Check,edadDe,card,P,LINE,UI,actRow,scrollToSection}from"../shared";
 import{useWorkspace}from"../context";
 export default function VacunasView(){
  const{immReg,immStatusF,immSearch,immSel,setVacNew,setVacMsg,vacNew,vacMsg,vacForm,setVacForm,patientList,createImmunizationInline,vacBusy,setImmSearch,setImmStatusF,setImmSel,selectPatientRaw,setView}=useWorkspace();
@@ -13,7 +13,7 @@ export default function VacunasView(){
    const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"14px 0 6px"};
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
    const fmtD=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
-   const estSty=(k:string):React.CSSProperties=>{const m:Record<string,[string,string]>={Completa:["#E6F6EE","#16A66A"],Pendiente:["#FBF0DC","#B7791F"],Rechazada:["#FDECEE","#C9364A"],["Evento adverso"]:["#FDECEE","#C9364A"]};const[bg,fg]=m[k]??m.Pendiente!;return{background:bg,color:fg,borderRadius:16,padding:"3px 11px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"};};
+   const estSty=(k:string):React.CSSProperties=>{const m:Record<string,[string,string]>={Completa:["#E6F6EE",P.greenOnPale],Pendiente:["#FBF0DC",P.amberOnPale],Rechazada:["#FDECEE",P.redOnPale],["Evento adverso"]:["#FDECEE",P.redOnPale]};const[bg,fg]=m[k]??m.Pendiente!;return{background:bg,color:fg,borderRadius:16,padding:"3px 11px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"};};
    const immLoaded=!!immReg;
    type VRow={id:string;pid:string;date:string;patient:string;age:string;vaccine:string;dose:string;lot:string;estado:string;site:string};
    const allRows:VRow[]=(immReg?.items??[]).map((it,i)=>({id:it.immunizationId||`v${i}`,pid:it.patientId,date:fmtD(it.appliedAt),patient:it.patientName,age:edadDe(patientList,it.patientId),vaccine:it.vaccine,dose:it.dose,lot:it.lot||"—",estado:it.statusLabel,site:it.site||"—"}));
@@ -24,14 +24,15 @@ export default function VacunasView(){
    const pendientes=allRows.filter(r=>r.estado==="Pendiente");
    const covEntries:[string,number][]=immReg?Object.entries(immReg.byVaccine).sort((a,b)=>b[1]-a[1]).slice(0,7):[];
    const covTotal=covEntries.reduce((s,[,n])=>s+n,0)||1;
-   const COVC=["#F0455E","#6C5CF6","#1769E0","#E5983B","#20B7D9","#16A66A","#6B7191"];
+   const COVC=["#F0455E",P.purpleOnPale,P.blueOnPale,P.amberOnPale,P.cyan,P.greenOnPale,P.muted];
    let cAcc=0;const covStops=covEntries.map(([,n],i)=>{const a=cAcc/covTotal*100;cAcc+=n;const b=cAcc/covTotal*100;return `${COVC[i%COVC.length]} ${a}% ${b}%`;}).join(",");
    const complete=selv?.estado==="Completa";
    const kico=(bg:string,fg:string,d:string)=><span style={{width:44,height:44,borderRadius:12,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
    const kcard:React.CSSProperties={...card2,padding:16,display:"flex",gap:13,alignItems:"center"};
    const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"11px 10px",borderBottom:`1px solid ${LINE}`};
    const tdc:React.CSSProperties={padding:"10px 10px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,verticalAlign:"middle"};
-   const chk2=(on:boolean,l:string,tog:()=>void)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}} onClick={tog}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{on?"✓":""}</span>{l}</label>;
+   // R05b-09: casilla REAL (input type=checkbox accesible), declarada una vez en shared.
+   const chk2=(on:boolean,l:string,tog:()=>void)=><Check key={l} checked={on} label={l} onChange={tog}/>;
    const syringe="M14 4l6 6M17 7l-9 9-4 1 1-4 9-9zM3 21l3-1";
    return <div style={{padding:"18px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
@@ -59,13 +60,13 @@ export default function VacunasView(){
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
      <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z")}<div><div style={{fontSize:24,fontWeight:800}}>{kVac}</div><div style={{fontSize:11.5,color:P.muted}}>Pacientes vacunados (en control)</div></div></div>
      <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{kPend}</div><div style={{fontSize:11.5,color:P.muted}}>Dosis pendientes</div></div></div>
-     <div style={kcard}>{kico("#E6F6EE","#16A66A","M20 6L9 17l-5-5")}<div><div style={{fontSize:24,fontWeight:800}}>{kApl}</div><div style={{fontSize:11.5,color:P.muted}}>Dosis aplicadas (total)</div></div></div>
+     <div style={kcard}>{kico("#E6F6EE",P.greenOnPale,"M20 6L9 17l-5-5")}<div><div style={{fontSize:24,fontWeight:800}}>{kApl}</div><div style={{fontSize:11.5,color:P.muted}}>Dosis aplicadas (total)</div></div></div>
      <div style={kcard}>{kico("#FDECEE",P.red,"M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01")}<div><div style={{fontSize:24,fontWeight:800}}>{kInc}</div><div style={{fontSize:11.5,color:P.muted}}>Esquemas incompletos</div></div></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"240px 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-vac">
      <div style={{...card2,padding:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:15,fontWeight:700}}>Filtros</div><button onClick={()=>{setImmSearch("");setImmStatusF("Todos");}} style={{border:0,background:"transparent",color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:UI}}>Limpiar</button></div>
-      <div style={{position:"relative",marginTop:10}}><input value={immSearch} onChange={e=>{setImmSearch(e.target.value);setImmSel(0);}} placeholder="Buscar paciente, vacuna o lote..." style={{...selSty,padding:"9px 11px 9px 32px"}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
+      <div style={{position:"relative",marginTop:10}}><input value={immSearch} onChange={e=>{setImmSearch(e.target.value);setImmSel(0);}} placeholder="Buscar paciente, vacuna o lote..." style={{...selSty,padding:"9px 11px 9px 32px"}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
       <div style={flbl}>Estado</div><select value={immStatusF} onChange={e=>{setImmStatusF(e.target.value);setImmSel(0);}} style={selSty}>{["Todos","Completa","Pendiente","Rechazada"].map(o=><option key={o}>{o}</option>)}</select>
       <div style={{marginTop:14,borderTop:`1px solid ${LINE}`,paddingTop:10}}>{chk2(immStatusF==="Pendiente","Solo esquemas incompletos",()=>{setImmStatusF(immStatusF==="Pendiente"?"Todos":"Pendiente");setImmSel(0);})}</div>
       <div style={{marginTop:14,fontSize:12,color:P.muted}}>{rows.length} de {allRows.length} registro(s)</div>
@@ -101,7 +102,7 @@ export default function VacunasView(){
     </div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14,marginTop:16,alignItems:"start"}} className="mos-vac2">
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Dosis por vacuna</div><div style={{display:"flex",gap:14,alignItems:"center"}}><div style={{width:100,height:100,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:kApl>0&&covStops?`conic-gradient(${covStops})`:"#EEF0F5"}}><div style={{width:64,height:64,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:16,fontWeight:800}}>{kApl}</div><div style={{fontSize:9,color:P.muted}}>dosis aplicadas</div></div></div></div><div style={{flex:1}}>{covEntries.length===0?<div style={{fontSize:12.5,color:P.muted}}>Sin vacunas registradas.</div>:covEntries.map(([l,n],i)=><div key={l} style={{display:"flex",alignItems:"center",gap:7,fontSize:12,padding:"3px 0"}}><span style={{width:8,height:8,borderRadius:"50%",background:COVC[i%COVC.length]}}/>{l}<b style={{marginLeft:"auto"}}>{Math.round(n/covTotal*100)}%</b></div>)}</div></div></div>
-     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Estado de vacunación</div>{([["Completa",allRows.filter(r=>r.estado==="Completa").length,"#16A66A"],["Pendiente",allRows.filter(r=>r.estado==="Pendiente").length,"#E5983B"],["Rechazada",allRows.filter(r=>r.estado==="Rechazada").length,"#C9364A"]] as [string,number,string][]).map(([l,n,c])=>{const p=allRows.length?Math.round(n/allRows.length*100):0;return <div key={l} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:4}}><span>{l}</span><b>{n} ({p}%)</b></div><div style={{height:8,borderRadius:6,background:"#EEF1F7",overflow:"hidden"}}><div style={{height:"100%",width:`${p}%`,background:c,borderRadius:6}}/></div></div>;})}{allRows.length===0&&<div style={{fontSize:12.5,color:P.muted}}>Sin registros.</div>}</div>
+     <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:12}}>Estado de vacunación</div>{([["Completa",allRows.filter(r=>r.estado==="Completa").length,P.greenOnPale],["Pendiente",allRows.filter(r=>r.estado==="Pendiente").length,P.amberOnPale],["Rechazada",allRows.filter(r=>r.estado==="Rechazada").length,P.redOnPale]] as [string,number,string][]).map(([l,n,c])=>{const p=allRows.length?Math.round(n/allRows.length*100):0;return <div key={l} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:4}}><span>{l}</span><b>{n} ({p}%)</b></div><div style={{height:8,borderRadius:6,background:"#EEF1F7",overflow:"hidden"}}><div style={{height:"100%",width:`${p}%`,background:c,borderRadius:6}}/></div></div>;})}{allRows.length===0&&<div style={{fontSize:12.5,color:P.muted}}>Sin registros.</div>}</div>
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:700,marginBottom:10}}>Dosis pendientes ({pendientes.length})</div>{pendientes.length===0?<div style={{fontSize:12.5,color:P.muted}}>Sin dosis pendientes en el registro.</div>:pendientes.slice(0,6).map(r=><div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:`1px solid #F2F4F9`}}><span style={{width:30,height:30,borderRadius:9,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={syringe}/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:12.5}}>{r.vaccine} · {r.dose}</div><div style={{fontSize:11,color:P.muted}}>{r.patient}</div></div></div>)}</div>
     </div>
    </div>;

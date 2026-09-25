@@ -20,7 +20,7 @@ export default function PacientesView(){
    const q=topSearch.trim().toLowerCase();
    const rows=allRows.filter(r=>(!q||r.name.toLowerCase().includes(q)||r.curp.toLowerCase().includes(q))&&(!patStatus||r.status===patStatus)&&(!patSex||r.sexo===patSex));
    const anyFilter=!!q||!!patStatus||!!patSex;
-   const stTag=(s:string):[string,string,string]=>s==="ACTIVE"?["Activo","#E6F6EE","#16A66A"]:["Inactivo","#EEF0F5","#6B7191"];
+   const stTag=(s:string):[string,string,string]=>s==="ACTIVE"?["Activo","#E6F6EE",P.greenOnPale]:["Inactivo","#EEF0F5",P.muted];
    const kico=(bg:string,d:string,st:string)=>(<span style={{width:42,height:42,borderRadius:11,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={st} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d}/></svg></span>);
    const kcard:React.CSSProperties={...card,marginTop:0,padding:16,display:"flex",gap:13,alignItems:"center"};
    const selSty:React.CSSProperties={display:"inline-flex",alignItems:"center",gap:7,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 12px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:UI,color:P.ink};
@@ -66,7 +66,7 @@ export default function PacientesView(){
       <div style={kcard}>{kico("#FDECEE","M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.5-7 10-7 10z",P.red)}<div><div style={{fontSize:12.5,color:P.muted}}>En seguimiento</div><div style={{fontSize:24,fontWeight:800}}>{(patSelId&&patientId===patSelId)?(gaps?.length??0):"—"}</div></div></div>
      </div>
      <div style={{display:"flex",gap:10,alignItems:"center",marginTop:16,flexWrap:"wrap"}}>
-      <div style={{flex:1,minWidth:200,display:"flex",alignItems:"center",gap:9,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 13px"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg><input placeholder="Buscar por nombre o CURP…" value={topSearch} onChange={e=>setTopSearch(e.target.value)} style={{border:0,outline:"none",background:"transparent",fontSize:13.5,fontFamily:UI,flex:1,color:P.ink}}/></div>
+      <div style={{flex:1,minWidth:200,display:"flex",alignItems:"center",gap:9,background:P.white,border:`1px solid ${LINE}`,borderRadius:10,padding:"9px 13px"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg><input placeholder="Buscar por nombre o CURP…" value={topSearch} onChange={e=>setTopSearch(e.target.value)} style={{border:0,outline:"none",background:"transparent",fontSize:13.5,fontFamily:UI,flex:1,color:P.ink}}/></div>
       <select value={patStatus} onChange={e=>setPatStatus(e.target.value)} style={selSty}><option value="">Estado: Todos</option><option value="ACTIVE">Activos</option><option value="INACTIVE">Inactivos</option></select>
       <select value={patSex} onChange={e=>setPatSex(e.target.value)} style={selSty}><option value="">Sexo: Todos</option><option value="F">Femenino</option><option value="M">Masculino</option></select>
       {anyFilter&&<button onClick={()=>{setTopSearch("");setPatStatus("");setPatSex("");}} style={{...selSty,color:P.blue,fontWeight:600}}>Limpiar filtros</button>}
@@ -119,8 +119,8 @@ export default function PacientesView(){
         {!fresh&&<div style={{fontSize:11.5,color:P.muted,marginTop:8}}>Cargando datos del paciente…</div>}
         <div style={{fontSize:13.5,fontWeight:800,margin:"18px 0 10px"}}>Antecedentes relevantes</div>
         <div style={{display:"flex",flexDirection:"column",gap:9}}>
-         <div style={{display:"flex",gap:10,padding:"9px 11px",borderRadius:10,background:"#FDECEE"}}><span style={{color:"#D23651",fontWeight:800,fontSize:12,minWidth:78}}>Alergias</span><span style={{fontSize:12.5,color:"#7a1f2b"}}>{sd&&snap?.allergies.length?snap.allergies.join(", "):"Sin alergias conocidas"}</span></div>
-         <div style={{display:"flex",gap:10,padding:"9px 11px",borderRadius:10,background:"#EEEBFD"}}><span style={{color:"#6C5CF6",fontWeight:800,fontSize:12,minWidth:78}}>Problemas</span><span style={{fontSize:12.5,color:"#3a2f7a"}}>{sd&&snap?.problems.length?snap.problems.map(DX_LABEL).slice(0,4).join(", "):"Sin problemas activos"}</span></div>
+         <div style={{display:"flex",gap:10,padding:"9px 11px",borderRadius:10,background:"#FDECEE"}}><span style={{color:P.redOnPale,fontWeight:800,fontSize:12,minWidth:78}}>Alergias</span><span style={{fontSize:12.5,color:"#7a1f2b"}}>{sd&&snap?.allergies.length?snap.allergies.join(", "):"Sin alergias conocidas"}</span></div>
+         <div style={{display:"flex",gap:10,padding:"9px 11px",borderRadius:10,background:"#EEEBFD"}}><span style={{color:P.purpleOnPale,fontWeight:800,fontSize:12,minWidth:78}}>Problemas</span><span style={{fontSize:12.5,color:"#3a2f7a"}}>{sd&&snap?.problems.length?snap.problems.map(DX_LABEL).slice(0,4).join(", "):"Sin problemas activos"}</span></div>
          <div style={{display:"flex",gap:8}}>{([["Medicamentos","Medicación"],["Vacunas","Vacunas"]] as const).map(([l,h2])=><button key={l} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection(h2),0);}} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px",fontSize:12.5,fontWeight:600,color:P.ink,cursor:"pointer",fontFamily:UI}}>{l} →</button>)}</div>
         </div>
         <div style={{fontSize:13.5,fontWeight:800,margin:"18px 0 10px"}}>Acciones</div>

@@ -49,7 +49,7 @@ export default function ConfiguracionView(){
       </div>
       <div style={{...card2,padding:18}}>{sec("M12 3l7 4v5c0 4-3 7-7 8-4-1-7-4-7-8V7z","Apariencia del sistema")}
        <div style={{display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap"}}>
-        <div><div style={lbl}>Color principal</div><div style={{display:"flex",gap:8}}>{["#4653C4","#6C5CF6","#1769E0","#20B7D9","#16A66A","#E5983B","#F0455E"].map(c=><span key={c} {...act(()=>setCfg("color",c))} style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",boxShadow:cfgSettings.color===c?`0 0 0 3px ${c}44`:"none",border:cfgSettings.color===c?"2px solid #fff":"none"}}/>)}</div></div>
+        <div><div style={lbl}>Color principal</div><div style={{display:"flex",gap:8}}>{["#4653C4",P.purpleOnPale,P.blueOnPale,P.cyan,P.greenOnPale,P.amberOnPale,P.redOnPale].map(c=><span key={c} {...act(()=>setCfg("color",c))} style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",boxShadow:cfgSettings.color===c?`0 0 0 3px ${c}44`:"none",border:cfgSettings.color===c?"2px solid #fff":"none"}}/>)}</div></div>
         <div><div style={lbl}>Tema</div><select value={cfgSettings.theme} onChange={e=>setCfg("theme",e.target.value)} style={{...selSty,width:120}}><option>Claro</option><option>Oscuro</option></select></div>
         <div><div style={lbl}>Tamaño de fuente</div><select value={cfgSettings.fontSize} onChange={e=>setCfg("fontSize",e.target.value)} style={{...selSty,width:120}}><option>Normal</option><option>Grande</option></select></div>
        </div>
@@ -87,7 +87,7 @@ export default function ConfiguracionView(){
       <div style={{...card2,padding:18}}>{sec("M12 2l7 4v6c0 5-3 8-7 10-4-2-7-5-7-10V6l7-4z","Identidad profesional")}
        <div style={{fontSize:11.5,color:P.muted,marginBottom:10,lineHeight:1.5}}>Nombre, cédula profesional e institución que expidió el título: la ley los exige en la receta (LGS art. 83; RIS art. 29) y el sistema no prescribe ni firma sin ellos. Quedan ligados a tu cuenta de médico, no al consultorio.</div>
        {credMsg&&<div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:credMsg.includes("✓")?"#E6F6EE":"#FDF4E6",fontSize:12,color:credMsg.includes("✓")?"#166534":"#7A5A16"}}>{credMsg}</div>}
-       {!credSaved&&<div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:"#FDEEEE",fontSize:12,color:"#B3261E",fontWeight:600}}>Sin cédula registrada: no podrás prescribir ni firmar hasta completar este bloque.</div>}
+       {!credSaved&&<div style={{marginBottom:10,padding:"8px 11px",borderRadius:8,background:"#FDEEEE",fontSize:12,color:P.redOnPale,fontWeight:600}}>Sin cédula registrada: no podrás prescribir ni firmar hasta completar este bloque.</div>}
        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
         <div><label htmlFor="cred-name" style={lbl}>Nombre completo del médico</label><input id="cred-name" value={credForm.fullName} onChange={e=>setCredForm(f=>({...f,fullName:e.target.value}))} placeholder="Como aparece en la cédula" style={selSty}/></div>
         <div><label htmlFor="cred-cedula" style={lbl}>Cédula profesional</label><input id="cred-cedula" value={credForm.cedulaProfesional} onChange={e=>setCredForm(f=>({...f,cedulaProfesional:e.target.value}))} placeholder="7 u 8 dígitos" inputMode="numeric" style={selSty}/></div>

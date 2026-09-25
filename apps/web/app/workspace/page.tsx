@@ -95,12 +95,12 @@ export default function Workspace(){
     <div className="mos-topsearch" style={{maxWidth:640}}>
      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8a90ae" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg>
      <input placeholder="Buscar paciente por nombre, CURP, teléfono o expediente…" value={topSearch} onChange={e=>setTopSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){setView("exp");loadPatients();scrollToSection("Paciente");}}}/>
-     <span style={{fontSize:11,background:"#E7EAF2",borderRadius:5,padding:"2px 6px",color:"#8A90AE",fontWeight:600,flex:"0 0 auto"}}>⌘ K</span>
+     <span style={{fontSize:11,background:"#E7EAF2",borderRadius:5,padding:"2px 6px",color:P.muted,fontWeight:600,flex:"0 0 auto"}}>⌘ K</span>
     </div>
     <div style={{display:"flex",alignItems:"center",gap:16,flex:"0 0 auto",marginLeft:"auto"}}>
      <button title="Notificaciones" onClick={()=>{setView("exp");scrollToSection("Seguridad y auditoría");}} style={{position:"relative",background:"transparent",border:0,cursor:"pointer",color:P.muted,padding:2,display:"grid",placeItems:"center"}}>
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 004 0"/></svg>
-      {(notifCount===null||notifCount>0)&&<span title={notifCount===null?"Sin dato: no se pudo cargar el conteo de pendientes":undefined} style={{position:"absolute",top:-3,right:-3,minWidth:16,height:16,borderRadius:999,background:"#F0455E",color:"#fff",fontSize:9.5,fontWeight:800,display:"grid",placeItems:"center",padding:"0 3px"}}>{notifCount===null?<><span aria-hidden="true">—</span><span className="mos-sr">sin dato</span></>:notifCount}</span>}
+      {(notifCount===null||notifCount>0)&&<span title={notifCount===null?"Sin dato: no se pudo cargar el conteo de pendientes":undefined} style={{position:"absolute",top:-3,right:-3,minWidth:16,height:16,borderRadius:999,background:P.redOnPale,color:"#fff",fontSize:9.5,fontWeight:800,display:"grid",placeItems:"center",padding:"0 3px"}}>{notifCount===null?<><span aria-hidden="true">—</span><span className="mos-sr">sin dato</span></>:notifCount}</span>}
      </button>
      <button title="Ayuda" style={{background:"transparent",border:0,cursor:"pointer",color:P.muted,padding:2,display:"grid",placeItems:"center"}}>
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 .2c0 1.8-2.5 2-2.5 3.8M12 17h.01" strokeLinecap="round"/></svg>
@@ -113,13 +113,13 @@ export default function Workspace(){
       </button>
       {topMenu&&<div style={{position:"absolute",top:"calc(100% + 8px)",right:0,minWidth:200,background:"#fff",border:`1px solid ${LINE}`,borderRadius:12,boxShadow:"0 12px 32px rgba(16,42,86,.14)",padding:6,zIndex:40}} onClick={e=>e.stopPropagation()}>
        <button onClick={()=>setTopMenu(false)} style={{display:"flex",alignItems:"center",gap:9,width:"100%",textAlign:"left",background:"transparent",border:0,color:P.ink,fontSize:13.5,fontFamily:UI,padding:"9px 11px",borderRadius:9,cursor:"pointer"}}><NavIcon k="gear"/>Configuración</button>
-       <button onClick={async()=>{await sessionLogout();location.href="/login";}} style={{display:"flex",alignItems:"center",gap:9,width:"100%",textAlign:"left",background:"transparent",border:0,color:"#C9364A",fontSize:13.5,fontFamily:UI,padding:"9px 11px",borderRadius:9,cursor:"pointer"}}>Cerrar sesión</button>
+       <button onClick={async()=>{await sessionLogout();location.href="/login";}} style={{display:"flex",alignItems:"center",gap:9,width:"100%",textAlign:"left",background:"transparent",border:0,color:P.redOnPale,fontSize:13.5,fontFamily:UI,padding:"9px 11px",borderRadius:9,cursor:"pointer"}}>Cerrar sesión</button>
       </div>}
      </div>
     </div>
    </header>
    {/* Aviso GLOBAL: si el expediente no se pudo cargar, los contadores/avisos NO son confiables (U-03). */}
-   {chartState==="error"&&<Alert tone="critical" style={{margin:"10px 24px 0"}} action={<Button variant="ghost" onClick={()=>setChartReload(n=>n+1)} style={{border:"1px solid #B3261E",background:"#fff",color:"#B3261E",padding:"6px 12px",fontSize:13}}>Reintentar</Button>}>
+   {chartState==="error"&&<Alert tone="critical" style={{margin:"10px 24px 0"}} action={<Button variant="ghost" onClick={()=>setChartReload(n=>n+1)} style={{border:`1px solid ${P.redOnPale}`,background:"#fff",color:P.redOnPale,padding:"6px 12px",fontSize:13}}>Reintentar</Button>}>
     No se pudo cargar el expediente de este paciente. Alertas, seguimiento y resultados pueden estar incompletos: no asuma que "no hay pendientes".
    </Alert>}
   {<ViewSwitch/>}

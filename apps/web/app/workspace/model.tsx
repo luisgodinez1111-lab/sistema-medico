@@ -279,7 +279,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // Vista Configuración (S-CONFIG) — ajustes/preferencias del consultorio (presentacional)
  const[cfgTab,setCfgTab]=useState("General");
  // Ajustes del consultorio cableados a /api/v1/office-settings (persistidos, concurrencia optimista If-Match).
- const CFG_DEFAULTS:OfficeSettings={officeName:"",specialty:"",rfc:"",cedula:"",address:"",phone:"",email:"",timezone:"",language:"es",color:"#6C5CF6",theme:"Claro",fontSize:"Normal",realtimeAlerts:true,followupReminders:true,showInteractions:true,darkMode:false,schedule:CFG_SCHEDULE,modules:Object.fromEntries(CFG_MODULES.map(k=>[k,true])),prefRecordView:"Resumen clínico",prefNoteTemplate:"Consulta general (SOAP)",prefUnits:"Métrico (kg, cm)",prefDoseCalc:"Pediátrica y adultos",regCountry:"México",regState:"",regCity:"",regPostalCode:"",regDateFormat:"dd/mm/aaaa",regTimeFormat:"24 horas",regCurrency:"MXN",regTaxRate:"16"};
+ const CFG_DEFAULTS:OfficeSettings={officeName:"",specialty:"",rfc:"",cedula:"",address:"",phone:"",email:"",timezone:"",language:"es",color:P.purpleOnPale,theme:"Claro",fontSize:"Normal",realtimeAlerts:true,followupReminders:true,showInteractions:true,darkMode:false,schedule:CFG_SCHEDULE,modules:Object.fromEntries(CFG_MODULES.map(k=>[k,true])),prefRecordView:"Resumen clínico",prefNoteTemplate:"Consulta general (SOAP)",prefUnits:"Métrico (kg, cm)",prefDoseCalc:"Pediátrica y adultos",regCountry:"México",regState:"",regCity:"",regPostalCode:"",regDateFormat:"dd/mm/aaaa",regTimeFormat:"24 horas",regCurrency:"MXN",regTaxRate:"16"};
  const[cfgSettings,setCfgSettings]=useState<OfficeSettings>(CFG_DEFAULTS);
  const[cfgVer,setCfgVer]=useState(0);const[cfgLoaded,setCfgLoaded]=useState(false);const[cfgBusy,setCfgBusy]=useState(false);const[cfgMsg,setCfgMsg]=useState<string|null>(null);
  const setCfg=<K extends keyof OfficeSettings>(k:K,v:OfficeSettings[K])=>{setCfgSettings(s=>({...s,[k]:v}));setCfgMsg(null);};
@@ -1476,7 +1476,7 @@ export function deriveHeader(m:Omit<WorkspaceModel,"session">&{session:MedicalSe
  const summary=tl?summarizePatient(tl):null;
  const highGaps=gaps?gaps.filter(g=>g.priority==="HIGH").length:0;
  const safetyChip=(n:number,label:string,tone:"crit"|"warn",icon?:React.ReactNode)=>{
-  const c=tone==="crit"?{bg:"#FDEAEA",fg:"#B3261E",bd:"#F3C9C9"}:{bg:"#FFF4E5",fg:"#A15C00",bd:"#F0DBB8"};
+  const c=tone==="crit"?{bg:"#FDEAEA",fg:P.redOnPale,bd:"#F3C9C9"}:{bg:"#FFF4E5",fg:P.amberOnPale,bd:"#F0DBB8"};
   return <span style={{display:"inline-flex",alignItems:"center",gap:6,background:c.bg,color:c.fg,border:`1px solid ${c.bd}`,borderRadius:999,padding:"4px 11px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>{icon}<b style={{fontSize:13,fontVariantNumeric:"tabular-nums"}}>{n}</b>{label}</span>;
  };
  const anyAlert=!!summary&&(highGaps>0||summary.activeAllergies>0||summary.openResults>0||summary.openObligations>0);

@@ -8,6 +8,8 @@ import{ageInYears}from"../../../../packages/prescription-safety/src";
 import{goalFor,INDIVIDUALIZATION_NOTICE}from"../../../../packages/care-goals/src";
 // Solo el FORMATO del UUID (módulo sin dependencias de Node: el bundle del cliente no puede traer node:crypto).
 import {uuidFromDigest} from "../../../../packages/canonical-json/src/uuid";
+// R05b-08: la paleta se declara junto a los imports porque las tablas de color de este módulo ya la usan.
+export const P=primitive.color,S=primitive.space,UI=typography.family.ui;
 
 // EPIC K — Espacio de trabajo clínico. Consume los endpoints ya probados con la sesión autenticada.
 // Módulos: encuentro (abrir->valorar->firmar) y medicación (proponer->prescribir->activar->suspender),
@@ -231,11 +233,11 @@ export function trendChart(series:Series,key:TrendKey){
  <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",maxWidth:W}} role="img" aria-label={`Tendencia de ${cfg.label}`}>
   {cfg.target!==undefined&&bandaTop<bandaBot&&<rect x={padL} y={bandaTop} width={W-padL-padR} height={bandaBot-bandaTop} fill="#EAF7EF"/>}
   {yticks.map((t,i)=><g key={i}><line x1={padL} y1={y(t)} x2={W-padR} y2={y(t)} stroke="#EEF1F6"/><text x={padL-6} y={y(t)+3} textAnchor="end" fontSize="10" fill="#8a8b9a">{fmtN(t)}</text></g>)}
-  {cfg.target!==undefined&&<><line x1={padL} y1={y(cfg.target)} x2={W-padR} y2={y(cfg.target)} stroke="#168B5B" strokeDasharray="4 3" strokeWidth="1.2"/><text x={padL+6} y={y(cfg.target)-4} textAnchor="start" fontSize="10" fontWeight="600" fill="#168B5B">{cfg.targetLabel}</text></>}
-  {cfg.targetLow!==undefined&&y(cfg.targetLow)<cb&&<line x1={padL} y1={y(cfg.targetLow)} x2={W-padR} y2={y(cfg.targetLow)} stroke="#168B5B" strokeDasharray="4 3" strokeWidth="1.2"/>}
-  <path d={area} fill="#1769E014"/>
-  <path d={line} fill="none" stroke="#1769E0" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round"/>
-  {series.map((p,i)=>{const last=i===series.length-1;return <g key={i}><circle cx={x(i)} cy={y(p.value)} r={last?4.5:3.2} fill="#fff" stroke="#1769E0" strokeWidth={last?2.4:1.8}/><text x={x(i)} y={y(p.value)-9} textAnchor="middle" fontSize="10" fontWeight={last?700:600} fill={last?"#14213D":"#5F6B7A"}>{fmtN(p.value)}</text></g>;})}
+  {cfg.target!==undefined&&<><line x1={padL} y1={y(cfg.target)} x2={W-padR} y2={y(cfg.target)} stroke={P.greenOnPale} strokeDasharray="4 3" strokeWidth="1.2"/><text x={padL+6} y={y(cfg.target)-4} textAnchor="start" fontSize="10" fontWeight="600" fill={P.greenOnPale}>{cfg.targetLabel}</text></>}
+  {cfg.targetLow!==undefined&&y(cfg.targetLow)<cb&&<line x1={padL} y1={y(cfg.targetLow)} x2={W-padR} y2={y(cfg.targetLow)} stroke={P.greenOnPale} strokeDasharray="4 3" strokeWidth="1.2"/>}
+  <path d={area} fill={`${P.blueOnPale}14`}/>
+  <path d={line} fill="none" stroke={P.blueOnPale} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round"/>
+  {series.map((p,i)=>{const last=i===series.length-1;return <g key={i}><circle cx={x(i)} cy={y(p.value)} r={last?4.5:3.2} fill="#fff" stroke={P.blueOnPale} strokeWidth={last?2.4:1.8}/><text x={x(i)} y={y(p.value)-9} textAnchor="middle" fontSize="10" fontWeight={last?700:600} fill={last?"#14213D":"#5F6B7A"}>{fmtN(p.value)}</text></g>;})}
   {xIdx.map(i=>{const s=series[i];return s?<text key={i} x={x(i)} y={H-14} textAnchor="middle" fontSize="10" fill="#8a8b9a">{fmt(s.at)}</text>:null;})}
  </svg>
  {/* R05a/WS1-09: la meta nunca se presenta sola. Debajo del gráfico van la población en la que aplica y el aviso de que
@@ -247,9 +249,9 @@ export function trendChart(series:Series,key:TrendKey){
 }
 // Severidad de hallazgo -> etiqueta + color del panel "Alertas y sugerencias".
 export const SEV:Record<"CRITICAL"|"WARNING"|"INFO",{label:string;bg:string;fg:string;bd:string}>={
- CRITICAL:{label:"ALTA",bg:"#FDEAEA",fg:"#B3261E",bd:"#F3C9C9"},
- WARNING:{label:"IMPORTANTE",bg:"#FFF4E5",fg:"#A15C00",bd:"#F0DBB8"},
- INFO:{label:"SUGERENCIA",bg:"#EEF3FB",fg:"#2C5AA6",bd:"#D3E0F5"}};
+ CRITICAL:{label:"ALTA",bg:"#FDEAEA",fg:P.redOnPale,bd:"#F3C9C9"},
+ WARNING:{label:"IMPORTANTE",bg:"#FFF4E5",fg:P.amberOnPale,bd:"#F0DBB8"},
+ INFO:{label:"SUGERENCIA",bg:"#EEF3FB",fg:P.blueOnPale,bd:"#D3E0F5"}};
 export function alActions(a:{id:string;state:AlSt}):{label:string;path:string;body:Record<string,unknown>;to:AlSt}[]{
  const now=new Date().toISOString();const base=`/api/v1/allergies/${a.id}`;
  if(a.state==="ACTIVE")return[{label:"Refutar",path:base+"/refutation",body:{occurredAt:now},to:"REFUTED"},{label:"Inactivar",path:base+"/inactivation",body:{occurredAt:now},to:"INACTIVE"}];
@@ -265,7 +267,6 @@ export function probActions(p:{id:string;state:ProbSt}):{label:string;path:strin
 }
 
 // Tokens del design-system (único origen de verdad). El app-shell y las tarjetas se derivan de aquí.
-export const P=primitive.color,S=primitive.space,UI=typography.family.ui;
 export const LINE=DS_LINE;
 export const shell:React.CSSProperties={minHeight:"100vh",background:P.canvas,fontFamily:UI,color:P.ink};
 export const appbar:React.CSSProperties={position:"sticky",top:0,zIndex:30,background:P.white,borderBottom:`1px solid ${LINE}`,padding:"11px 22px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"};
@@ -406,6 +407,23 @@ export function edadDe(lista:readonly PacienteBasico[]|null,patientId:string,asO
  const y=ageInYears(b,asOf);
  return y===undefined?"":`${y} años`;
 }
+// Auditoría 2026-09-19, anexo R05b (R05b-09 y R05b-28) — CASILLAS DE VERDAD, declaradas una vez.
+//
+// EL HALLAZGO: los toggles del espacio de trabajo eran `<label onClick>` con un `<span>✓</span>` dibujado a mano. Un `<label>`
+// sin control asociado NO recibe foco, no se activa con teclado y un lector de pantalla lo anuncia como texto suelto: sin
+// nombre, sin rol y sin estado marcado/desmarcado. Se repetía siete veces en cinco vistas con el cuerpo casi idéntico, que es
+// además el patrón que R05b-28 señala (helpers reconstruidos en cada vista y en cada render).
+//
+// Aquí hay UNA casilla: un `<input type="checkbox">` real —enfocable, activable con espacio, con su estado anunciado— con la
+// caja visual del diseño encima. El input es transparente pero existe, y el anillo de foco se pinta sobre la caja visual
+// (`.mos-check input:focus-visible+span` en el CSS del shell), que es el patrón accesible estándar para esto.
+export function Check({checked,label,onChange,disabled,size=16}:{checked:boolean;label:string;onChange:()=>void;disabled?:boolean;size?:number}){
+ return <label className="mos-check" style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:disabled?"default":"pointer",opacity:disabled?.6:1}}>
+  <input type="checkbox" checked={checked} disabled={disabled} onChange={onChange} style={{width:size,height:size}}/>
+  <span aria-hidden="true" style={{width:size,height:size,borderRadius:4,border:checked?"0":"1.6px solid #C7CCE0",background:checked?P.purple:"transparent",display:"grid",placeItems:"center",color:P.white,fontSize:10,flex:"0 0 auto"}}>{checked?"✓":""}</span>
+  {label}
+ </label>;
+}
 export const SOLO_ESTA_PANTALLA="Lista lo que se registre aquí. El historial completo del paciente está en su módulo del menú.";
 export function scrollToSection(name:string){
  if(!name){window.scrollTo({top:0,behavior:"smooth"});return;}
@@ -420,6 +438,9 @@ export const RAIL_CSS=`
 .mos-side.col{flex:0 0 74px;width:74px;padding:18px 10px 14px}
 .mos-brand{display:flex;align-items:center;gap:12px;padding:2px 6px 0}
 /* R05a/WS1-02: texto solo para lector de pantalla. El «—» del conteo sin dato es decorativo; la palabra la dice esto. */
+.mos-check{position:relative}
+.mos-check input{position:absolute;left:0;top:50%;transform:translateY(-50%);opacity:0;margin:0;cursor:inherit}
+.mos-check input:focus-visible+span{outline:2px solid #1665D7;outline-offset:2px}
 .mos-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .mos-bname{font-size:20px;font-weight:800;letter-spacing:.01em;line-height:1;color:#fff;white-space:nowrap}
 .mos-bname .os{color:#8E7DF8}
@@ -432,7 +453,7 @@ export const RAIL_CSS=`
 .mos-navi.active{background:linear-gradient(100deg,#ffffff20,#ffffff10);color:#fff;font-weight:600;box-shadow:inset 0 0 0 1px #8B7DF85c,0 8px 18px #12103a80}
 .mos-navi .lbl{flex:1;overflow:hidden;text-overflow:ellipsis}
 .mos-badge{flex:0 0 auto;min-width:22px;height:22px;border-radius:999px;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;padding:0 6px;font-variant-numeric:tabular-nums}
-.mos-badge.p{background:#6C5CF6}.mos-badge.r{background:#F0455E}
+.mos-badge.p{background:${P.purpleOnPale}}.mos-badge.r{background:${P.redOnPale}}
 .mos-side.col .lbl,.mos-side.col .mos-bname,.mos-side.col .mos-bsub,.mos-side.col .mos-toolslbl,.mos-side.col .mos-doc .info,.mos-side.col .mos-collapse .lbl{display:none}
 .mos-side.col .mos-navi{justify-content:center;padding:11px 0}
 .mos-side.col .mos-badge{position:absolute;top:3px;right:8px;min-width:16px;height:16px;font-size:9px;padding:0 3px}
