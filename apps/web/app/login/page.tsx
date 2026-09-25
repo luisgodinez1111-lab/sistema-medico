@@ -71,7 +71,8 @@ const CSS=`
  .mos-auth .mmark{width:38px;height:38px;border-radius:10px;background:linear-gradient(160deg,#0C2148,#15346B);display:grid;place-items:center}
 }`;
 
-const MarkGlyph=({stroke}:{stroke:string})=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M4 13h3.2l1.7-5.3 2.9 9 2-6.4 1.4 2.7H20" stroke={stroke} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+// MEDIC OS — marca "M+" monocroma (respeta el color del contexto para contraste en cada badge).
+const MarkGlyph=({stroke}:{stroke:string})=><svg width="22" height="22" viewBox="0 0 48 48" fill="none" aria-hidden><path d="M11 38 V17 Q11 13 14.4 15.2 L24 24 L33.6 15.2 Q37 13 37 17 V38" stroke={stroke} strokeWidth="4.6" strokeLinecap="round" strokeLinejoin="round"/><path d="M40 6 V14 M36 10 H44" stroke={stroke} strokeWidth="3.8" strokeLinecap="round"/></svg>;
 function Transient({label}:{label:string}){return <div className="transient" role="status" aria-live="polite"><span className="spin" aria-hidden/><span>{label}</span></div>;}
 
 export default function LoginPage(){
@@ -139,7 +140,7 @@ export default function LoginPage(){
    <section className="brand-panel">
     <div className="lockup">
      <span className="mark"><MarkGlyph stroke={P.navy}/></span>
-     <div><div className="bname">MEDICAL OS</div><div className="bsub">Sistema clínico · acceso profesional</div></div>
+     <div><div className="bname">MEDIC OS</div><div className="bsub">Salud en un solo sistema · acceso profesional</div></div>
     </div>
     <div className="mid">
      <div>
@@ -152,14 +153,14 @@ export default function LoginPage(){
       <div className="ti"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><rect x="4.5" y="4.5" width="15" height="15" rx="3" stroke={P.cyan} strokeWidth="1.7"/><path d="M8.5 12h7M12 8.5v7" stroke={P.cyan} strokeWidth="1.7" strokeLinecap="round"/></svg><span><b>Barreras de seguridad</b> en prescripción y resultados, sin excepción.</span></div>
      </div>
     </div>
-    <div className="pfoot"><span>Medical OS · V2</span><span className="sep"/><span>México-first</span><span className="sep"/><span>Uso clínico autorizado</span></div>
+    <div className="pfoot"><span>MEDIC OS · V2</span><span className="sep"/><span>México-first</span><span className="sep"/><span>Uso clínico autorizado</span></div>
    </section>
 
    <section className="action">
     <div className="inner">
      <div className="mbrand">
       <span className="mmark"><MarkGlyph stroke={P.white}/></span>
-      <div><div className="bname" style={{color:P.blue}}>MEDICAL OS</div><div className="bsub" style={{color:P.muted}}>Sistema clínico · acceso profesional</div></div>
+      <div><div className="bname" style={{color:P.blue}}>MEDIC OS</div><div className="bsub" style={{color:P.muted}}>Salud en un solo sistema · acceso profesional</div></div>
      </div>
      <div className="card">
       {phase==="loading"&&<Transient label="Preparando el acceso…"/>}
@@ -197,7 +198,7 @@ export default function LoginPage(){
        </div>
       </>}
      </div>
-     <p className="cfoot">Medical OS · sesión protegida de extremo a extremo.</p>
+     <p className="cfoot">MEDIC OS · sesión protegida de extremo a extremo.</p>
     </div>
    </section>
   </div>

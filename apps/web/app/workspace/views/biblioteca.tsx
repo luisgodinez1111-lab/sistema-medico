@@ -18,7 +18,7 @@ export default function BibliotecaView(){
    const FEAT:Feat[]=[
     {badge:"GPC",bc:P.purple,title:"Diabetes mellitus tipo 2",sub:"GPC México 2024",desc:"Diagnóstico, tratamiento y seguimiento del paciente con DM2.",src:"CENETEC | 2024",action:"⤓ Descargar",fav:true},
     {badge:"Protocolo",bc:P.blue,title:"Manejo de la hipertensión arterial",sub:"GPC México 2023",desc:"Abordaje integral y metas de control.",src:"CENETEC | 2023",action:"⤓ Descargar",fav:false},
-    {badge:"Calculadora",bc:P.greenOnPale,title:"Dosis pediátricas",sub:"Calculadora interactiva",desc:"Cálculo de dosis por peso, edad y medicamento.",src:"Medical OS | 2026",action:"▦ Abrir",fav:false},
+    {badge:"Calculadora",bc:P.greenOnPale,title:"Dosis pediátricas",sub:"Calculadora interactiva",desc:"Cálculo de dosis por peso, edad y medicamento.",src:"MEDIC OS | 2026",action:"▦ Abrir",fav:false},
     {badge:"Escala",bc:P.red,title:"Escala de Glasgow",sub:"Valoración neurológica",desc:"Evaluación del estado de conciencia en adultos y pediátricos.",src:"GPC Internacional | 2023",action:"⊟ Ver",fav:false},
    ];
    const badgeSty=(c:string):React.CSSProperties=>({background:c+"22",color:c,borderRadius:8,padding:"3px 10px",fontSize:11.5,fontWeight:700});

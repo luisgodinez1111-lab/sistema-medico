@@ -12,7 +12,7 @@ export default function Home(){
  },[]);
  return <main style={{minHeight:"100vh",display:"grid",placeItems:"center",fontFamily:"Inter,system-ui,sans-serif",background:"#F4F7FB",color:"#14213D"}}>
   <div style={{textAlign:"center"}}>
-   <div style={{fontSize:13,color:"#6255c7",fontWeight:700,letterSpacing:".08em"}}>MEDICAL OS</div>
+   <div style={{fontSize:13,color:"#6255c7",fontWeight:700,letterSpacing:".08em"}}>MEDIC OS</div>
    <p style={{color:"#5f6072",marginTop:8}}>Verificando sesión…</p>
   </div>
  </main>;

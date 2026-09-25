@@ -3,7 +3,7 @@
 // handlers viven en ./model (useWorkspaceModel, mismo orden de hooks), los helpers en ./shared y cada vista en ./views/*.
 // Este fichero conserva los retornos tempranos, el layout (barra, rail, encabezado del paciente) y el conmutador de vistas.
 import {logout as sessionLogout} from "../../lib/session-client";
-import{RAIL_CSS,SIDE_NAV,scrollToSection,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap}from"./shared";
+import{RAIL_CSS,SIDE_NAV,scrollToSection,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap,BrandMark,BrandLockup}from"./shared";
 import{Alert,Button,Card}from"../../../../packages/design-system/src";
 import{useWorkspaceModel,deriveHeader}from"./model";
 import{WorkspaceProvider,useWorkspace}from"./context";
@@ -42,7 +42,7 @@ export default function Workspace(){
 
  if(!ready)return <main style={wrap}><p>Cargando…</p></main>;
  if(!session)return <main style={wrap}>
-  <div style={{fontSize:13,color:"#6255c7",fontWeight:700}}>MEDICAL OS</div><h1 style={{fontSize:32}}>Espacio clínico</h1>
+  <div style={{marginBottom:6}}><BrandLockup size={28}/></div><h1 style={{fontSize:32}}>Espacio clínico</h1>
   <Card><p>No hay una sesión activa.</p><a href="/login" style={{...btn,display:"inline-block",textDecoration:"none"}}>Iniciar sesión</a></Card>
  </main>;
  const d=deriveHeader({...m,session});
@@ -53,13 +53,8 @@ export default function Workspace(){
   {/* SIDEBAR OSCURO — navegación primaria del expediente (slider a un lado) */}
   <aside className={"mos-side"+(sideCollapsed?" col":"")}>
    <div className="mos-brand">
-    <span style={{width:40,height:40,flex:"0 0 auto"}} aria-hidden>
-     <svg width="40" height="40" viewBox="0 0 44 44" fill="none">
-      <defs><linearGradient id="mosg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#8B7DF8"/><stop offset="1" stopColor="#5B6BF0"/></linearGradient></defs>
-      <rect x="18" y="5" width="8" height="34" rx="4" fill="url(#mosg)"/><rect x="5" y="18" width="34" height="8" rx="4" fill="url(#mosg)" opacity=".92"/>
-     </svg>
-    </span>
-    <div><div className="mos-bname">MEDICAL <span className="os">OS</span></div><div className="mos-bsub">CLÍNICA INTELIGENTE<br/>MEJOR MEDICINA</div></div>
+    <span style={{width:40,height:40,flex:"0 0 auto"}}><BrandMark size={40}/></span>
+    <div><div className="mos-bname">MEDIC <span className="os">OS</span></div><div className="mos-bsub">SALUD EN UN<br/>SOLO SISTEMA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
     {SIDE_NAV.map(it=>{const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado",Interconsultas:"interconsulta",Seguimiento:"seguimiento",["Facturación"]:"facturacion",Documentos:"documentos",Obligaciones:"obligaciones",["Clinical Intelligence"]:"clinicalIntel",Reportes:"reportes"};const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;return (

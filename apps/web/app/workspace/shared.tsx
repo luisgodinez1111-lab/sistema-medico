@@ -373,6 +373,30 @@ export const ICONS:Record<string,string>={
  lock:"M6 11h12v9H6zM9 11V8a3 3 0 016 0v3",
 };
 export function NavIcon({k}:{k:string}){return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={ICONS[k]??ICONS.home}/></svg>;}
+// MEDIC OS — marca "M+" recreada en SVG (nítida/escalable/temeable). Reemplaza los logos SVG dispersos.
+let brandSeq=0;
+export function BrandMark({size=40}:{size?:number}){
+ const gid="mmg-"+(++brandSeq);
+ return <svg width={size} height={size} viewBox="0 0 48 48" fill="none" role="img" aria-label="MEDIC OS">
+  <defs><linearGradient id={gid} x1="6" y1="10" x2="42" y2="40" gradientUnits="userSpaceOnUse">
+   <stop offset="0" stopColor="#6C2BD9"/><stop offset="0.55" stopColor="#7C5CF6"/><stop offset="1" stopColor="#5B6BF0"/></linearGradient></defs>
+  <path d="M9 39 V15 Q9 11 12.6 13.4 L24 24 L35.4 13.4 Q39 11 39 15 V39" stroke={`url(#${gid})`} strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"/>
+  <rect x="37" y="6" width="4.4" height="12.4" rx="2.2" fill="#8B7DF8"/><rect x="32.8" y="10.2" width="12.4" height="4.4" rx="2.2" fill="#8B7DF8"/>
+ </svg>;
+}
+// Lockup: marca + wordmark "MEDIC OS" (+ tagline opcional). onDark para fondos oscuros (sidebar).
+export function BrandLockup({size=32,tagline=false,onDark=false}:{size?:number;tagline?:boolean;onDark?:boolean}){
+ return <span style={{display:"inline-flex",alignItems:"center",gap:10}}>
+  <BrandMark size={size}/>
+  <span style={{display:"inline-flex",flexDirection:"column",lineHeight:1.05}}>
+   <span style={{fontFamily:UI,fontWeight:800,fontSize:Math.round(size*0.52),letterSpacing:"0.02em"}}>
+    <span style={{color:onDark?"#fff":P.ink}}>MEDIC</span>{" "}
+    <span style={{background:"linear-gradient(90deg,#7C5CF6,#5B6BF0)",WebkitBackgroundClip:"text",backgroundClip:"text",WebkitTextFillColor:"transparent",color:"transparent"}}>OS</span>
+   </span>
+   {tagline&&<span style={{fontFamily:UI,fontSize:Math.max(8,Math.round(size*0.2)),letterSpacing:"0.14em",color:onDark?"rgba(255,255,255,.62)":P.muted,marginTop:3}}>SALUD EN UN SOLO SISTEMA</span>}
+  </span>
+ </span>;
+}
 // Auditoría 2026-09-19, anexo R05a (WS1-15a) — la navegación entre ventanas del expediente se hace por ANCLA, no buscando
 // un `<h2>` por su texto exacto en todo el documento. Lo anterior fallaba de dos formas: al cambiar el texto de un título
 // el botón dejaba de navegar EN SILENCIO, y si el mismo texto aparecía en otra parte del DOM (sidebar, otra vista) el

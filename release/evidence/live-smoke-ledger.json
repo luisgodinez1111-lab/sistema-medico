@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-25T18:57:09.512Z",
+  "generatedAt": "2026-09-25T19:16:31.794Z",
   "target": "local-ephemeral",
-  "total": 109,
+  "total": 110,
   "results": [
     {
       "proof": "scripts/v22/live-aa-gradient-proof.mts",
@@ -45,6 +45,11 @@
     },
     {
       "proof": "scripts/v22/live-appointment-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-audit-anchor-and-ops-tools-proof.mts",
       "status": "PASS",
       "exitCode": 0
     },
@@ -553,8 +558,8 @@
     {
       "gate": "scripts/ci/live-smoke.mts",
       "status": "PASS",
-      "passed": 109,
-      "total": 109
+      "passed": 110,
+      "total": 110
     }
   ]
 }

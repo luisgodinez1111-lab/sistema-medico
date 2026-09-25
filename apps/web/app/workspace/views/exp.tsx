@@ -151,7 +151,7 @@ export default function ExpView(){
     return <div className="mos-phone">
      <div className="screen">
       <div style={{background:`linear-gradient(150deg,${P.blueOnPale},#20B7D9)`,padding:"16px 16px 18px",color:"#fff"}}>
-       <div style={{fontSize:10,fontWeight:800,letterSpacing:".12em",opacity:.9}}>MEDICAL OS</div>
+       <div style={{fontSize:10,fontWeight:800,letterSpacing:".12em",opacity:.9}}>MEDIC OS</div>
        <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12}}>
         <span style={{width:40,height:40,borderRadius:"50%",background:"#ffffff2e",display:"grid",placeItems:"center",fontWeight:700,fontSize:15}}>{(patientName||"P").trim().slice(0,2).toUpperCase()}</span>
         <div><div style={{fontSize:16,fontWeight:800}}>Hola, {first}</div><div style={{fontSize:11.5,opacity:.9}}>Tu salud en tus manos</div></div>
