@@ -32,7 +32,8 @@ describe("cotejo de guías clínicas (preparación de la validación clínica)",
    const titulo=(s.split("\n")[0]??"").slice(0,60);
    if(!/\*\*Veredicto:/.test(s))flojas.push(`${titulo}: sin veredicto`);
    if(!/Guía[s]? de referencia|Guía de referencia implementada/.test(s))flojas.push(`${titulo}: sin fuente`);
-   if(!/Decisión pendiente|Sin brecha|Ninguna/.test(s))flojas.push(`${titulo}: sin decisión ni declaración de que no hay`);
+   // Una decisión APLICADA cuenta igual que una pendiente: lo que no se admite es una sección que no diga en qué quedó.
+   if(!/Decisión pendiente|DECISIÓN D\d+ APLICADA|NO PROCEDÍA|Sin brecha|Ninguna/.test(s))flojas.push(`${titulo}: sin decisión ni declaración de que no hay`);
   }
   expect(flojas,"sección incompleta del cotejo").toEqual([]);
  });
@@ -53,9 +54,11 @@ describe("cotejo de guías clínicas (preparación de la validación clínica)",
   const decisiones=[...txt.matchAll(/^\| D(\d+) \|/gm)].map(m=>Number(m[1]));
   expect(decisiones.length,"debe haber una tabla de decisiones para firmar").toBeGreaterThanOrEqual(8);
   expect(decisiones,"numeradas sin huecos").toEqual(decisiones.map((_,i)=>i+1));
-  // Las tres de mayor consecuencia clínica encontradas en el cotejo tienen que estar marcadas como altas.
-  const altas=txt.split("\n").filter(l=>/^\| D\d+ \|/.test(l)&&/\*\*Alta\*\*/.test(l));
-  expect(altas.length,"al menos las brechas con consecuencia clínica van como prioridad alta").toBeGreaterThanOrEqual(3);
+  // Cada decisión está APLICADA, descartada con su razón, o priorizada. Lo que no se admite es una decisión sin estado:
+  // así, aplicar las de consecuencia clínica hace bajar el número de «Alta» sin dejar huecos.
+  const filas=txt.split("\n").filter(l=>/^\| D[\d–-]+ \|/.test(l));
+  const sinEstado=filas.filter(l=>!/APLICADA|NO PROCEDÍA|\*\*(Alta|Media|Baja)\*\*|Baja, salvo/.test(l));
+  expect(sinEstado,"decisión sin estado: ni aplicada, ni descartada, ni priorizada").toEqual([]);
  });
  it("el inventario de algoritmos y el cotejo hablan del mismo conjunto",()=>{
   // El inventario se genera del código; si divergen, uno de los dos miente.

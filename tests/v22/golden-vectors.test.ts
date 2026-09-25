@@ -143,18 +143,21 @@ describe("CURB-65 · Lim WS et al., Thorax 2003;58:377-82",()=>{
  });
 });
 
-describe("CHA₂DS₂-VASc · Lip GYH et al., Chest 2010 (pesos y umbral sexo-específico)",()=>{
+describe("CHA₂DS₂-VA · 2024 ESC Guidelines for the management of atrial fibrillation (decisión D1 del cotejo de guías)",()=>{
  const base={ageYears:60,female:false,chf:false,hypertension:false,diabetes:false,strokeHistory:false,vascularDisease:false};
- it("los pesos exactos: ictus 2, edad ≥75 2, el resto 1",()=>{
+ it("los pesos exactos: ictus 2, edad ≥75 2, el resto 1 — y el SEXO no puntúa",()=>{
   expect(cha2ds2vasc({...base,strokeHistory:true})!.score).toBe(2);
   expect(cha2ds2vasc({...base,ageYears:75})!.score).toBe(2);
   expect(cha2ds2vasc({...base,ageYears:65})!.score).toBe(1);
   expect(cha2ds2vasc({...base,ageYears:64})!.score).toBe(0);
-  expect(cha2ds2vasc({...base,ageYears:76,female:true,hypertension:true,diabetes:true,chf:true})!.score).toBe(6);
+  // Con VASc este caso daba 6 (incluía el punto por sexo). Con VA da 5: el vector dorado cambia porque cambió la guía.
+  expect(cha2ds2vasc({...base,ageYears:76,female:true,hypertension:true,diabetes:true,chf:true})!.score).toBe(5);
+  expect(cha2ds2vasc({...base,female:true})!.score,"ser mujer no suma puntos").toBe(0);
  });
- it("el umbral de riesgo es sexo-específico (el punto por sexo no basta en la mujer)",()=>{
+ it("el umbral es el MISMO para ambos sexos (ESC 2024: el sexo es modificador, no componente)",()=>{
   expect(cha2ds2vasc({...base,female:true})!.risk).toBe("LOW");
   expect(cha2ds2vasc({...base,hypertension:true})!.risk).toBe("INTERMEDIATE");
+  expect(cha2ds2vasc({...base,female:true,hypertension:true})!.risk,"misma conducta que el varón con el mismo puntaje").toBe("INTERMEDIATE");
  });
 });
 

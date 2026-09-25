@@ -2,7 +2,7 @@
   "purpose": "Registro de APLICABILIDAD regulatoria (ENG-044 Compliance-as-Code baseline). NO declara cumplimiento total ni certificación: mapea cada instrumento aplicable a la evidencia técnica que lo aborda y a las brechas conocidas. Enforzado por tests/v22/nom-compliance-integrity.test.ts.",
   "authority": "ENG-044-R001",
   "disclaimer": "Ley no negociable (SPEC_INDEX): 'No claim de certificación sin evidencia'. Ninguna entrada declara certificación; la certificación formal requiere auditoría externa y evidencia legal fuera del código.",
-  "updated": "2026-09-24",
+  "updated": "2026-09-25",
   "applicabilityLevels": [
     "APPLICABLE",
     "EVALUATE_WHEN",
@@ -99,6 +99,64 @@
       "addressedBy": "PENDIENTE DE DETERMINACIÓN. La afirmación anterior («fuera del alcance actual: software de gestión clínica») la CONTRADICE el propio código: la auditoría del 19-sep-2026 (anexo R03, hallazgo R03-35) verificó que el repositorio expone endpoints que interpretan datos del paciente y proponen conducta terapéutica —«Anticoagulación oral recomendada», «Alto riesgo: ingreso hospitalario; considerar UCI», «referir a hepatología», «Iniciar/ajustar 2 fármacos»— y que BLOQUEA prescripciones con SAFETY_BLOCKED. Eso es apoyo a la decisión clínica, no gestión clínica. La autoexclusión se retira: la determinación de alcance e intended-use es de Regulatory (decisión del dueño del producto, ver G-04). Mientras no exista, cada respuesta de cálculo declara su algoritmo, su versión, la autoridad clínica de la que sale y la advertencia de uso, y la tabla de uso previsto por endpoint vive en docs/compliance/intended-use-by-endpoint.md.",
       "gaps": "Determinación formal de alcance/intended-use y clasificación de riesgo por módulo (Regulatory). La tabla de uso previsto por endpoint y la advertencia en cada respuesta ya existen; lo que falta es la decisión regulatoria y, si procede, el sistema de gestión de calidad que la norma exige.",
       "auditFinding": "R03-35 (anexo R03 de la auditoría 2026-09-19): autoexclusión contradicha por el código del propio repositorio."
+    },
+    {
+      "id": "NOM-007-SSA3-2011",
+      "name": "Organización y funcionamiento de los laboratorios clínicos",
+      "scope": "Obliga a cada laboratorio clínico a establecer, verificar y documentar sus propios intervalos de referencia y su lista de valores críticos (de pánico). Es la norma que asigna la responsabilidad de los umbrales que gobiernan el lazo de resultado crítico de este sistema.",
+      "applicability": "APPLICABLE",
+      "status": "PARTIAL",
+      "certificationClaimed": false,
+      "evidence": [
+        "tests/v22/lab-reference.test.ts",
+        "scripts/v22/live-result-closed-loop-proof.mts",
+        "packages/lab-reference/src/index.ts",
+        "docs/compliance/valores-de-referencia-mexico.md"
+      ],
+      "gaps": "Los 28 analitos usan umbrales de adulto DE DEMOSTRACIÓN, declarados como tales en el código y en la pantalla. Pendiente: la tabla del laboratorio real con método, estrato, vigencia y firma (decisión D4 del cotejo de guías). Sin ella el sistema no puede usarse en producción clínica."
+    },
+    {
+      "id": "NOM-015-SSA2-2010",
+      "name": "Prevención, tratamiento y control de la diabetes mellitus",
+      "scope": "Criterios diagnósticos por glucemia y metas de control glucémico, incluida la hemoglobina glucosilada.",
+      "applicability": "APPLICABLE",
+      "status": "EVALUATE",
+      "certificationClaimed": false,
+      "evidence": [
+        "tests/v22/care-goals.test.ts",
+        "tests/v22/trend-goals.test.ts",
+        "packages/care-goals/src/index.ts",
+        "docs/compliance/valores-de-referencia-mexico.md"
+      ],
+      "gaps": "Las metas del sistema citan ADA (fuente internacional). Pendiente: cotejar con la norma nacional y añadir la cita, tras verificar vigencia en el DOF."
+    },
+    {
+      "id": "NOM-030-SSA2-2009",
+      "name": "Prevención, detección, diagnóstico, tratamiento y control de la hipertensión arterial sistémica",
+      "scope": "Clasificación de la presión arterial y metas de control.",
+      "applicability": "APPLICABLE",
+      "status": "EVALUATE",
+      "certificationClaimed": false,
+      "evidence": [
+        "tests/v22/bp-staging.test.ts",
+        "packages/bp-staging/src/index.ts",
+        "docs/compliance/valores-de-referencia-mexico.md"
+      ],
+      "gaps": "El sistema estadifica con ACC/AHA 2017. Pendiente: cotejar con la clasificación nacional (decisión D5 del cotejo de guías)."
+    },
+    {
+      "id": "NOM-037-SSA2-2012",
+      "name": "Prevención, tratamiento y control de las dislipidemias",
+      "scope": "Categorías de colesterol total, LDL, HDL y triglicéridos.",
+      "applicability": "APPLICABLE",
+      "status": "EVALUATE",
+      "certificationClaimed": false,
+      "evidence": [
+        "tests/v22/care-goals.test.ts",
+        "packages/care-goals/src/index.ts",
+        "docs/compliance/valores-de-referencia-mexico.md"
+      ],
+      "gaps": "El sistema NO declara meta de LDL (correcto: depende de la categoría de riesgo). Pendiente: decidir si se muestran las categorías nacionales."
     }
   ],
   "evidenceRule": "Auditoria R09-007: la evidencia se valida contra el catalogo VIVO de capacidades y contra el disco, no contra la instantanea de reconciliacion del 15-sep-2026. Seis identificadores citados como evidencia regulatoria de NOM-004, NOM-024 y LFPDPPP (CAP-VITAL-001, CAP-BACKUP-DR-001, CAP-RECORD-EXPORT-001, CAP-TERMINOLOGY-001, CAP-BILLING-ICD10-001, CAP-OBSERVABILITY-SLI-001) no existian en el catalogo: solo en esa instantanea, que era justo el fichero contra el que el test comprobaba. Tres eran renombrados, uno tenia sustituto y dos no nombraban nada. Reglas vigentes, impuestas por tests/v22/nom-compliance-integrity.test.ts: (1) una capacidad citada tiene que estar en el catalogo vivo Y tener al menos una prueba declarada —una capacidad sin pruebas no sustenta nada—; (2) un artefacto citado tiene que existir, no estar retirado y no ser un esbozo; (3) todo instrumento APPLICABLE necesita al menos una evidencia EJECUTABLE (una prueba o una prueba en vivo), porque la prosa no sustenta un cumplimiento; (4) ningun instrumento declara certificacion."

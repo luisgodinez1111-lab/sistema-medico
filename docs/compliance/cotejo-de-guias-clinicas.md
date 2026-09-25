@@ -27,12 +27,12 @@ firma un especialista, y sigue siendo una condición de dueño en
 
 | # | Algoritmo | Veredicto | Decisión pendiente |
 | --- | --- | --- | --- |
-| 1 | CKD-EPI 2021 (eGFR adulto) | **Coincide** con la fuente | Estadificar ERC por **G + albuminuria** (KDIGO), hoy solo G |
+| 1 | CKD-EPI 2021 (eGFR adulto) | **Coincide**; **C-G-A APLICADO (D2, 25-sep-2026)** | Cistatina C y KFRE siguen sin implementar |
 | 2 | Schwartz de cabecera 2009 (eGFR pediátrico) | **Coincide** | Existe sucesor (CKiD U25, 2021): ¿se adopta? |
 | 3 | Gradiente alvéolo-arterial | **Coincide** | Ninguna |
-| 4 | Interpretación ácido-base | **Coincide** | Corregir la brecha aniónica por **albúmina** (misma fuente ya citada) |
+| 4 | Interpretación ácido-base | **Coincide**; la corrección por albúmina **YA ESTABA** (error de este cotejo, corregido) | Ninguna |
 | 5 | CURB-65 | **Coincide** con el artículo | **La guía de neumonía prefiere otro índice (PSI/PORT)** |
-| 6 | CHA₂DS₂-VASc | **Rezago frente a la guía europea 2024** | **Elegir guía: ESC 2024 (CHA₂DS₂-VA) o ACC/AHA 2023 (VASc)** |
+| 6 | CHA₂DS₂-VA | **APLICADO (D1, 25-sep-2026): se adoptó ESC 2024** | Ninguna. Alternativa ACC/AHA 2023 declarada y no implementada |
 | 7 | FIB-4 | **Coincide, con el ajuste por edad** | Nomenclatura MASLD (2023) en los textos |
 | 8 | Índice de Charlson | **Coincide** con la versión declarada | ¿Pesos originales (1987) o actualizados (2011)? |
 | 9 | NEWS2 | **Coincide** | Confirmar que aplica a la población del consultorio |
@@ -64,8 +64,19 @@ de raza es decisión de la propia fuente, no del implementador.
    cuando la decisión exige precisión. No implementado; el módulo ya advierte de los extremos de masa muscular.
 3. **Predicción de riesgo (KFRE)** para decidir referencia a nefrología. No implementado.
 
-**Decisión pendiente:** ¿se implementa la estadificación C-G-A con el mapa de riesgo de KDIGO? *(Recomendación del agente:
-sí, es la brecha de mayor consecuencia y no exige inventar ningún número: los cortes ya están en el repositorio.)*
+**DECISIÓN D2 APLICADA el 25-sep-2026.** Se implementó la estadificación C-G-A con el mapa de riesgo de KDIGO, sin inventar
+ningún número: las categorías de albuminuria salen de los cortes que ya estaban en el repositorio y la matriz de riesgo es la
+tabla publicada por la guía, transcrita entera (`cgaStage` en `packages/renal-function`, cableada en el endpoint de eGFR).
+Tres cosas que la implementación hace y conviene saber:
+
+- **Sin albuminuria no se afirma riesgo:** se devuelve «estadio C-G-A incompleto» y se pide el cociente albúmina/creatinina.
+  Estadificar por filtración sola y llamarlo riesgo era el defecto; devolver un riesgo a medias lo habría conservado.
+- **El caso del hallazgo queda fijado por prueba:** eGFR 95 con UACR 400 mg/g ya no es «G1 — normal o alto», es **G1A3, riesgo
+  alto**, con la conducta que corresponde (vigilancia y valorar referencia a nefrología).
+- **Se eliminó una segunda fuente:** el endpoint repetía los cortes de albuminuria por su cuenta y discrepaba en el límite
+  exacto de 300 mg/g (lo dejaba en A3 cuando KDIGO lo incluye en A2). Ahora hay una sola.
+
+**Siguen sin implementar** (y sin fingir que lo están): confirmación con cistatina C y predicción de riesgo KFRE.
 
 *Verificar vigencia: KDIGO publicó una actualización de la guía de ERC en 2024; conviene confirmar el texto vigente.*
 
@@ -113,13 +124,16 @@ cuatro trastornos** (no solo Winters), exige el **tipo de muestra** y no juzga c
 **Veredicto: COINCIDE**, y con más profundidad que la mayoría de las implementaciones (los cuatro trastornos, el delta-delta
 y la exigencia de muestra arterial).
 
-**Brecha concreta:** la **brecha aniónica no se corrige por albúmina**. Con hipoalbuminemia —frecuente en el paciente
-crítico, el cirrótico y el nefrótico— la brecha aniónica «normal» **enmascara una acidosis de brecha alta**. La corrección
-estándar es `AG corregido = AG + 2.5 × (4.0 − albúmina g/dL)`, y está en la misma fuente que el código ya cita (Berend 2014).
-El albúmina está en el catálogo de laboratorio del propio repositorio.
+**CORRECCIÓN DE ESTE COTEJO (25-sep-2026).** La primera versión de este documento afirmó que la brecha aniónica **no** se
+corregía por albúmina. **Era un error mío y la decisión D3 no hacía falta:** la corrección `AG + 2.5 × (4.0 − albúmina)` ya
+estaba implementada en `packages/lab-derivations`, el endpoint de ácido-base le pasa la albúmina del paciente, y el módulo
+declara expresamente cuándo NO pudo corregir («sin corregir por albúmina: una hipoalbuminemia la subestima»). Leí
+`packages/acid-base` —que recibe la brecha ya calculada— y no seguí el hilo hasta donde se calcula.
 
-**Decisión pendiente:** ¿se implementa la corrección por albúmina? *(Recomendación del agente: sí; el número no se inventa,
-sale de la fuente ya citada, y la consecuencia de no hacerlo es una acidosis no detectada.)*
+Queda una prueba que fija la corrección para que no se pierda, y la lección para el resto del cotejo: **un módulo que recibe
+un valor no es el sitio donde se decide ese valor.**
+
+**Decisión pendiente:** ninguna.
 
 ---
 
@@ -143,29 +157,34 @@ hacer a medias.)*
 
 ---
 
-## 6. `CHA2DS2-VASC` (CHA₂DS₂-VASc) — riesgo tromboembólico en fibrilación auricular
+## 6. `CHA2DS2-VA-ESC-2024` (CHA₂DS₂-VA) — riesgo tromboembólico en fibrilación auricular
 
-**Lo que hace el código** (`packages/stroke-risk`): componentes clásicos (ICC, hipertensión, edad ≥ 75 = 2 / ≥ 65 = 1,
-diabetes, ictus previo = 2, enfermedad vascular, **sexo femenino = 1**), con **umbrales específicos por sexo** (en mujeres el
-punto por sexo no cuenta para la decisión) y **sin cifra de riesgo anual** —se retiró porque la tabla del artículo no es
-monótona y presentarla daba una precisión falsa—. Declara además que **no evalúa riesgo de sangrado**.
+**Guía de referencia implementada:** 2024 ESC Guidelines for the management of atrial fibrillation (*European Heart Journal*
+2024).
 
-**Guía de referencia implementada:** Lip GYH et al., *Chest* 2010, en la línea de la guía **ACC/AHA/ACCP/HRS 2023** de
-fibrilación auricular, que mantiene CHA₂DS₂-VASc.
+**Veredicto: COINCIDE con la guía elegida.** Antes del 25-sep-2026 el veredicto era «rezago frente a la guía europea 2024»;
+la decisión D1 lo resolvió adoptándola.
 
-**Veredicto: REZAGO / DIVERGENCIA MAYOR.** La guía de **fibrilación auricular de la ESC (2024)** sustituyó el índice por
-**CHA₂DS₂-VA**, que **elimina el punto por sexo**, precisamente para no sostener umbrales distintos según el sexo, y
-recomienda anticoagulación con CHA₂DS₂-VA ≥ 2 (y considerarla con 1). Es decir: **dos guías vigentes discrepan**, y el
-sistema implementa la vertiente americana.
+**DECISIÓN D1 APLICADA el 25-sep-2026: se adoptó la ESC 2024.** El dueño instruyó elegir «la más reciente y con más peso de
+validez»; la guía de fibrilación auricular de la ESC (2024) es la más reciente de las dos y sustenta el cambio con
+re-análisis de discriminación del componente de sexo.
 
-Consecuencia concreta de la elección: con la versión europea, una mujer de 68 años con hipertensión puntúa 2 y se
-anticoagula; con la americana puntúa 3 pero, descontando el punto por sexo, la decisión queda en el mismo sitio. La
-diferencia práctica aparece en los casos de puntaje 1–2, que es donde vive la duda.
+**Lo que hace el código ahora** (`packages/stroke-risk`): los siete componentes de CHA₂DS₂-VA —ICC 1, hipertensión 1, edad
+≥ 75 = 2 / 65–74 = 1, diabetes 1, ictus/TIA previo 2, enfermedad vascular 1—, **sin punto por sexo** y con **umbrales
+iguales para ambos sexos**: ≥ 2 anticoagulación recomendada, = 1 considerarla, 0 sin antitrombótico. El sexo se informa como
+**modificador** (con puntaje 1 el riesgo absoluto de la mujer es mayor y pesa a favor de anticoagular), no como punto. Se
+conserva lo que ya era correcto: sin cifra de riesgo anual inventada y con la declaración de que el **riesgo hemorrágico no
+se ha evaluado**.
 
-**Decisión pendiente (la más importante de este cotejo):** ¿qué guía sigue el sistema, ESC 2024 o ACC/AHA 2023? La elección
-debe quedar escrita, porque el algoritmo cambia de nombre y de umbral.
+**Qué cambió en la práctica:** el puntaje de una mujer baja en uno y su umbral también, así que la conducta no cambia para la
+mayoría. Cambia donde vive la duda —puntajes 1 y 2— y, sobre todo, **desaparece el umbral que dependía del sexo**, que es la
+razón del cambio en la guía.
 
-*Verificar vigencia: ambas guías son recientes; confirmar si hay actualización posterior a mayo de 2026.*
+**Alternativa declarada y no implementada:** ACC/AHA/ACCP/HRS 2023 (CHA₂DS₂-VASc, Lip GYH et al., *Chest* 2010). Queda
+escrita en el módulo y en la especificación del algoritmo, para que nadie tenga que adivinar qué guía sigue el sistema.
+
+**Rastro del cambio:** el identificador del algoritmo pasó a `CHA2DS2-VA-ESC-2024` y la versión del recibo de cálculo a 4,
+así que los cálculos anteriores y los nuevos son distinguibles en la auditoría.
 
 ---
 
@@ -271,8 +290,11 @@ de adulto de demostración»** y que los oficiales se parametrizarían de la fue
 **Esto no es una brecha de guía: es una brecha institucional.** Los valores de pánico **los define cada laboratorio** según su
 método analítico y su población, y se acuerdan con el cuerpo clínico. Ninguna guía internacional los fija de forma universal.
 
-**Decisión pendiente:** conseguir la tabla de valores críticos del laboratorio con el que trabaja el consultorio y
-parametrizarla. Es la decisión con más alcance de todas las de esta página: esos umbrales disparan el lazo de resultado
+**Decisión pendiente (encauzada el 25-sep-2026):** conseguir la tabla del laboratorio y parametrizarla. El documento
+[`valores-de-referencia-mexico.md`](valores-de-referencia-mexico.md) explica por qué ninguna guía internacional ni ninguna NOM
+puede dar esos valores —la **NOM-007-SSA3-2011** obliga a cada laboratorio a establecer y documentar los suyos—, deja el
+formato exacto que hay que pedirle, la lista de los 28 analitos y lo que hago yo cuando llegue. Mientras no llegue, el sistema
+seguirá declarando que sus umbrales son de demostración. Es la decisión con más alcance de todas las de esta página: esos umbrales disparan el lazo de resultado
 crítico, bloquean la firma del encuentro y abren obligaciones urgentes.
 
 ---
@@ -281,16 +303,16 @@ crítico, bloquean la firma del encuentro y abren obligaciones urgentes.
 
 | # | Decisión | Prioridad del agente |
 | --- | --- | --- |
-| D1 | Guía de fibrilación auricular: **ESC 2024 (CHA₂DS₂-VA)** o **ACC/AHA 2023 (CHA₂DS₂-VASc)** | **Alta** — cambia nombre y umbral |
-| D2 | Estadificar ERC por **G + albuminuria** (KDIGO C-G-A) | **Alta** — hoy un eGFR normal con albuminuria grave se presenta como normal |
-| D3 | Corregir la **brecha aniónica por albúmina** | **Alta** — hoy una acidosis de brecha alta puede pasar desapercibida |
-| D4 | **Valores de pánico** del laboratorio real | **Alta** — gobiernan el lazo de resultado crítico |
-| D5 | Guía de presión arterial (ACC/AHA vs ESC), para meta **y** estadificación | Media |
-| D6 | CURB-65 como **cribado** o implementar **PSI/PORT** | Media |
-| D7 | Pesos de Charlson: 1987 (actual) o 2011 con su fórmula | Baja |
-| D8 | eGFR pediátrico: mantener Schwartz de cabecera o adoptar **CKiD U25** | Baja |
+| D1 | ~~Guía de fibrilación auricular~~ | **APLICADA (25-sep-2026): ESC 2024, CHA₂DS₂-VA** |
+| D2 | ~~Estadificar ERC por G + albuminuria~~ | **APLICADA (25-sep-2026): `cgaStage` con la tabla de KDIGO** |
+| D3 | ~~Corregir la brecha aniónica por albúmina~~ | **NO PROCEDÍA: ya estaba implementada.** Error de este cotejo, corregido en §4 |
+| D4 | **Valores de pánico** del laboratorio real | **Alta** — encauzada el 25-sep-2026: el marco normativo, el formato exacto que hay que pedir al laboratorio y por qué ninguna guía puede darlo están en [`valores-de-referencia-mexico.md`](valores-de-referencia-mexico.md). Falta la tabla firmada del laboratorio |
+| D5 | Guía de presión arterial (ACC/AHA vs ESC), para meta **y** estadificación | **Media** |
+| D6 | CURB-65 como **cribado** o implementar **PSI/PORT** | **Media** |
+| D7 | Pesos de Charlson: 1987 (actual) o 2011 con su fórmula | **Baja** |
+| D8 | eGFR pediátrico: mantener Schwartz de cabecera o adoptar **CKiD U25** | **Baja** |
 | D9 | Implementar **MELD 3.0** | Baja, salvo uso cercano a trasplante |
-| D10 | Nomenclatura **MASLD/MASH** en los textos | Baja |
+| D10 | Nomenclatura **MASLD/MASH** en los textos | **Baja** |
 
 ## Cómo se mantiene honesto este documento
 

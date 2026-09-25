@@ -16,7 +16,7 @@ las condiciones de admisión a producción de ADR-0300 que solo el dueño puede 
 - **Fórmula:** eGFR = 142 × min(Scr/κ,1)^α × max(Scr/κ,1)^(-1.200) × 0.9938^edad × (1.012 si mujer); κ=0.7 mujer / 0.9 hombre; α=-0.241 mujer / -0.302 hombre
 - **Unidades esperadas:** `creatinina` en mg/dL; `edad` en años; `sexo` en MALE | FEMALE
 - **Cotas y umbrales (importados del código):** `{"scrMgDl":[0.1,25],"ageYears":[18,120]}`
-- **Qué devuelve:** mL/min/1.73 m² y estadio de ERC (G1–G5). Fuera de las cotas NO se calcula: devuelve el motivo.
+- **Qué devuelve:** mL/min/1.73 m², categoría G (G1–G5) y —decisión D2 del cotejo de guías— estadio C-G-A con el riesgo de la tabla de KDIGO cuando hay albuminuria; sin ella se declara incompleto en vez de afirmar riesgo. Fuera de las cotas NO se calcula: devuelve el motivo.
 - **Fuente primaria:** Inker LA et al., New England Journal of Medicine 2021;385:1737-1749
 - **Población en que se validó:** Adultos (≥18 años). Ecuación SIN coeficiente de raza, por decisión de la propia fuente.
 - **Lo que NO hace:** No es válida en lesión renal aguda (la creatinina no está en equilibrio), ni en embarazo, ni en extremos de masa muscular. No sustituye la medición directa cuando la decisión depende de precisión (p. ej. dosis de quimioterapia).
@@ -66,13 +66,13 @@ las condiciones de admisión a producción de ADR-0300 que solo el dueño puede 
 - **Lo que NO hace:** No incluye oxigenación ni comorbilidad: una saturación baja con CURB-65 de 0 sigue siendo una neumonía grave. Es una ayuda a la decisión de ingreso, no la decisión.
 - **Expuesto por:** **ninguna ruta emite recibo con este id**
 
-## Riesgo tromboembólico en fibrilación auricular no valvular — `CHA2DS2-VASC`
+## Riesgo tromboembólico en fibrilación auricular no valvular (CHA₂DS₂-VA) — `CHA2DS2-VA-ESC-2024`
 
 - **Fórmula:** Insuficiencia cardiaca 1, hipertensión 1, edad ≥75 2, diabetes 1, ictus/AIT/embolia 2, enfermedad vascular 1, edad 65–74 1, sexo femenino 1
 - **Unidades esperadas:** `edad` en años; `sexo` en MALE | FEMALE
 - **Cotas y umbrales (importados del código):** `{"maximo":9}`
 - **Qué devuelve:** 0–9 puntos con el riesgo anual asociado. La indicación de anticoagular es del médico.
-- **Fuente primaria:** Lip GYH et al., Chest 2010;137:263-272
+- **Fuente primaria:** 2024 ESC Guidelines for the management of atrial fibrillation (European Heart Journal 2024) — decisión D1 del cotejo de guías: se adopta CHA₂DS₂-VA, que ELIMINA la categoría de sexo. Alternativa declarada y no implementada: ACC/AHA/ACCP/HRS 2023 (CHA₂DS₂-VASc, Lip GYH et al., Chest 2010;137:263-272).
 - **Población en que se validó:** Adultos con fibrilación auricular NO valvular.
 - **Lo que NO hace:** No aplica a fibrilación valvular ni a prótesis mecánicas (esas anticoagulan por indicación propia). No estima riesgo hemorrágico: eso es otra escala.
 - **Expuesto por:** `apps/web/app/api/v1/patients/[patientId]/cha2ds2vasc/route.ts`

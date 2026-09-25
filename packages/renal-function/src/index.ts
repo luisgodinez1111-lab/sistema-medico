@@ -12,6 +12,71 @@ export function ckdStage(egfr:number):CkdStage{
  if(egfr>=15)return{stage:"G4",label:"Severamente disminuido"};
  return{stage:"G5",label:"Falla renal"};
 }
+// ============================================================================================================
+// Cotejo de guías, decisión D2 (24-sep-2026, docs/compliance/cotejo-de-guias-clinicas.md §1) — ESTADIFICACIÓN C-G-A.
+//
+// EL HALLAZGO DEL COTEJO: la ecuación CKD-EPI 2021 estaba bien implementada, pero la ENFERMEDAD se estadificaba solo por
+// filtración (G). KDIGO estadifica la ERC por CAUSA, FILTRACIÓN y ALBUMINURIA, y la conducta —frecuencia de vigilancia,
+// referencia a nefrología— sale de la COMBINACIÓN de las dos últimas, no de la filtración sola.
+//
+// La consecuencia concreta, que es la que justifica este trabajo: un paciente con eGFR 95 y cociente albúmina/creatinina de
+// 400 mg/g tiene ERC de RIESGO MUY ALTO según KDIGO, y el sistema lo presentaba como «G1 — normal o alto». Un daño renal
+// establecido leído como función renal normal.
+//
+// NO SE INVENTA NINGÚN NÚMERO. Las categorías de albuminuria (A1 < 30, A2 30–300, A3 > 300 mg/g) ya estaban en el catálogo
+// de laboratorio de este repositorio con su fuente KDIGO; la matriz de riesgo es la tabla publicada por la guía, transcrita
+// entera, no una interpolación. Lo único que aporta este módulo es juntarlas.
+//
+// Fuente: KDIGO Clinical Practice Guideline for the Evaluation and Management of Chronic Kidney Disease (mapa de riesgo por
+// categoría de TFG y de albuminuria). Verificar vigencia contra la actualización de 2024.
+export type AlbuminuriaCategory="A1"|"A2"|"A3";
+export type CkdRisk="LOW"|"MODERATE"|"HIGH"|"VERY_HIGH";
+/** Cortes KDIGO del cociente albúmina/creatinina en orina (mg/g). Los mismos que el catálogo de laboratorio. */
+export const UACR_CATEGORY_CUTOFFS={a1Below:30,a3Above:300}as const;
+export function albuminuriaCategory(uacrMgG:number):AlbuminuriaCategory|undefined{
+ if(!Number.isFinite(uacrMgG)||uacrMgG<0)return undefined;
+ if(uacrMgG<UACR_CATEGORY_CUTOFFS.a1Below)return "A1";
+ return uacrMgG<=UACR_CATEGORY_CUTOFFS.a3Above?"A2":"A3";
+}
+/** Mapa de riesgo de KDIGO, transcrito completo: filas G1–G5 × columnas A1–A3. */
+const CGA_RISK:Readonly<Record<string,Readonly<Record<AlbuminuriaCategory,CkdRisk>>>>={
+ G1:{A1:"LOW",A2:"MODERATE",A3:"HIGH"},
+ G2:{A1:"LOW",A2:"MODERATE",A3:"HIGH"},
+ G3a:{A1:"MODERATE",A2:"HIGH",A3:"VERY_HIGH"},
+ G3b:{A1:"HIGH",A2:"VERY_HIGH",A3:"VERY_HIGH"},
+ G4:{A1:"VERY_HIGH",A2:"VERY_HIGH",A3:"VERY_HIGH"},
+ G5:{A1:"VERY_HIGH",A2:"VERY_HIGH",A3:"VERY_HIGH"},
+};
+const RISK_LABEL:Readonly<Record<CkdRisk,string>>={
+ LOW:"Riesgo bajo",MODERATE:"Riesgo moderadamente aumentado",HIGH:"Riesgo alto",VERY_HIGH:"Riesgo muy alto",
+};
+const RISK_ACTION:Readonly<Record<CkdRisk,string>>={
+ LOW:"Sin ERC por estos dos criterios si no hay otro marcador de daño renal. Vigilancia según el contexto clínico.",
+ MODERATE:"Vigilancia al menos anual.",
+ HIGH:"Vigilancia al menos cada 6 meses; valorar referencia a nefrología.",
+ VERY_HIGH:"Vigilancia al menos cada 3–4 meses; referencia a nefrología.",
+};
+export type CgaStage=Readonly<{
+ gCategory:string;aCategory:AlbuminuriaCategory;risk:CkdRisk;label:string;action:string;
+ /** Falso cuando falta la albuminuria: entonces NO hay estadio C-G-A y no se puede afirmar riesgo. */
+ complete:boolean;
+ /** Lo que falta para poder estadificar, dicho en la respuesta. */
+ missing:readonly string[];
+}>;
+/**
+ * Estadio C-G-A. Sin albuminuria NO devuelve un riesgo: devuelve qué falta. Estadificar por filtración sola y llamarlo
+ * riesgo es precisamente el defecto que corrige la decisión D2.
+ */
+export function cgaStage(egfr:number,uacrMgG?:number):CgaStage|undefined{
+ if(!Number.isFinite(egfr))return undefined;
+ const g=ckdStage(egfr).stage;
+ const a=uacrMgG===undefined?undefined:albuminuriaCategory(uacrMgG);
+ if(!a)return{gCategory:g,aCategory:"A1",risk:"LOW",label:"Estadio C-G-A incompleto",
+  action:"Solicite cociente albúmina/creatinina en orina: sin albuminuria la ERC no se puede estadificar ni su riesgo afirmar (KDIGO).",
+  complete:false,missing:["cociente albúmina/creatinina en orina (UACR)"]};
+ const risk=CGA_RISK[g]![a];
+ return{gCategory:g,aCategory:a,risk,label:`${g}${a} — ${RISK_LABEL[risk]}`,action:RISK_ACTION[risk],complete:true,missing:[]};
+}
 export type EgfrResult=Readonly<{egfr:number;stage:string;label:string}>;
 
 // ---------- Auditoría 2026-09-19, anexo R03 (R03-01): el DOMINIO de CKD-EPI ----------

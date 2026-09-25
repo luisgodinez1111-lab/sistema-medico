@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import{calcReceipt,CLINICAL_USE_WARNING}from"../../../../../../lib/calc-receipt";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../../../packages/runtime-errors/src";
-import{computeEGFR,egfrCheck,schwartzBedside,schwartzCheck,SCHWARTZ_AGE_RANGE,type Sex}from"../../../../../../../../packages/renal-function/src";
+import{computeEGFR,egfrCheck,schwartzBedside,schwartzCheck,SCHWARTZ_AGE_RANGE,albuminuriaCategory,cgaStage,type Sex}from"../../../../../../../../packages/renal-function/src";
 import{patientDemographics,analyteSeries,latestAnalyteReading}from"../../../../../../lib/clinical-runtime";
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,notComputable as notComputableBody}from"../../../../../../lib/analyte-inputs";
 import{readVitalInputs,vitalProvenance,MAX_VITAL_AGE_HOURS}from"../../../../../../lib/vital-inputs";
@@ -75,12 +75,15 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    :prior90.length>0?{status:"NOT_CONFIRMED",note:"Hay creatininas previas de hace ≥ 90 días con TFG ≥ 60: la reducción actual es reciente — descartar lesión renal aguda antes de estadificar"}
    :{status:"NOT_CONFIRMED",note:"No hay creatinina de hace ≥ 90 días: no se puede afirmar cronicidad (ERC) ni descartar lesión renal aguda"};
   const uacr=await latestAnalyteReading(tctx,patientId,"UACR");
-  const albuminuria=uacr&&Number.isFinite(uacr.value)?{category:uacr.value<30?"A1":uacr.value<300?"A2":"A3",uacrMgG:uacr.value,occurredAt:uacr.occurredAt,note:"UACR en mg/g (unidad asumida: el analito UACR aún no tiene especificación de unidad)"}:{category:null,note:"Sin albuminuria (UACR) registrada: la categoría A de KDIGO no se puede asignar"};
+  const albuminuria=uacr&&Number.isFinite(uacr.value)?{category:albuminuriaCategory(uacr.value)??null,uacrMgG:uacr.value,occurredAt:uacr.occurredAt,note:"UACR en mg/g (unidad asumida: el analito UACR aún no tiene especificación de unidad)"}:{category:null,note:"Sin albuminuria (UACR) registrada: la categoría A de KDIGO no se puede asignar"};
   return NextResponse.json({patientId,computable:true,ageYears:age,creatinineMgDl:scr,egfr:r.egfr,
    gCategory:r.stage,gLabel:r.label,
    // `stage` solo se afirma como estadio de ERC cuando la cronicidad está confirmada; si no, es una categoría G puntual.
    stage:chronicity.status==="CONFIRMED"?r.stage:null,
    chronicity,albuminuria,
+   // D2 (cotejo de guías §1): el ESTADIO y el RIESGO de KDIGO salen de la combinación G + A, no de la filtración sola. Sin
+   // albuminuria no se afirma riesgo: se dice qué falta. Antes un eGFR 95 con UACR 400 mg/g se presentaba como «G1 normal».
+   cga:cgaStage(r.egfr,uacr&&Number.isFinite(uacr.value)?uacr.value:undefined),
    caveat:chronicity.status==="CONFIRMED"?"Categoría G con cronicidad documentada; la categoría A depende de la albuminuria.":"Categoría G PUNTUAL: no confirma ERC ni descarta lesión renal aguda.",
    algorithm:{id:"CKD-EPI-2021",version:"2",authority:"Inker LA et al., N Engl J Med 2021;385:1737-49",staging:"KDIGO-2012 (G por TFG; cronicidad ≥ 90 días; A por UACR)"},
    receipt:calcReceipt({id:"CKD-EPI-2021",version:"2",authority:"Inker LA et al., NEJM 2021"},{ageYears:age,sex,creatinineMgDl:scr,inputs:provenance(inp.inputs),usageWarning:CLINICAL_USE_WARNING},"COMPUTED",r.egfr),

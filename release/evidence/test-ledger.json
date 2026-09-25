@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-25T04:35:23.341Z",
-  "files": 261,
-  "totalTests": 1612,
+  "generatedAt": "2026-09-25T05:16:53.659Z",
+  "files": 262,
+  "totalTests": 1623,
   "failedTests": 0,
   "results": [
     {
@@ -665,6 +665,11 @@
       "tests": 5
     },
     {
+      "file": "tests/v22/ckd-cga-staging.test.ts",
+      "status": "PASS",
+      "tests": 8
+    },
+    {
       "file": "tests/v22/claim-fold.test.ts",
       "status": "PASS",
       "tests": 5
@@ -1087,7 +1092,7 @@
     {
       "file": "tests/v22/stroke-risk.test.ts",
       "status": "PASS",
-      "tests": 8
+      "tests": 11
     },
     {
       "file": "tests/v22/surgery-fold.test.ts",

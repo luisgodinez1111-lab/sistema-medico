@@ -36,9 +36,16 @@ try{
  //    junto a applicable:false; una recomendación al lado de un booleano se lee como recomendación).
  ok(g.body.applicable===false&&/fibrilaci/i.test(g.body.reason),"NO_AFIB_REASON");
  ok(g.body.recommendation===undefined&&g.body.risk===undefined,"NO_AFIB_NO_RECOMMENDATION");
- // 4) mujer 70 con HTA -> edad(1)+HTA(1)+sexo(1)=3 -> HIGH
+ // 4) Decisión D1 (ESC 2024, CHA₂DS₂-VA): el SEXO NO SUMA. Mujer 70 con HTA -> edad(1)+HTA(1)=2 -> HIGH.
+ //    Esta prueba fijaba antes un 3 (incluía el punto por sexo), que es exactamente lo que la guía eliminó.
  const p3=crypto.randomUUID();await reg(phys,p3,70,"FEMALE");await dx(phys,p3,"I48.9");await dx(phys,p3,"I10");
- g=await get(phys,p3);ok(g.body.score===3&&g.body.risk==="HIGH","FEMALE_SCORE_3_HIGH");
+ g=await get(phys,p3);ok(g.body.score===2&&g.body.risk==="HIGH","FEMALE_SCORE_2_HIGH_NO_SEX_POINT");
+ ok(g.body.algorithm?.id==="CHA2DS2-VA-ESC-2024","ALGORITHM_IS_CHA2DS2_VA");
+ ok(/modificador de riesgo, NO suma puntos/.test(String(g.body.sexModifier??"")),"SEX_REPORTED_AS_MODIFIER");
+ // Y el par: el MISMO perfil en un varón da el MISMO puntaje y la MISMA conducta. Era imposible con VASc.
+ const p3b=crypto.randomUUID();await reg(phys,p3b,70,"MALE");await dx(phys,p3b,"I48.9");await dx(phys,p3b,"I10");
+ const gb=await get(phys,p3b);
+ ok(gb.body.score===g.body.score&&gb.body.risk===g.body.risk,"SAME_SCORE_AND_RISK_REGARDLESS_OF_SEX");
  // 5) R03-17: el criterio S₂ (ictus previo, 2 puntos) por fin es ALCANZABLE: antes ningún código de ictus existía en el
  //    catálogo, así que el criterio de más peso de la escala no podía cumplirse nunca. Z86.7 (antecedente) también cuenta.
  const p4=crypto.randomUUID();await reg(phys,p4,50,"MALE");await dx(phys,p4,"I48.9");await dx(phys,p4,"I63.9");
