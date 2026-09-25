@@ -1,7 +1,10 @@
+import type{Metadata}from"next";
 import{headers}from"next/headers";
 import{NonceProvider}from"../lib/nonce-context";
 // Sin prerender ni caché de página: cada respuesta HTML lleva su propio nonce (S-04).
 export const dynamic="force-dynamic";export const revalidate=0;
+// MEDIC OS — identidad de la app (title/favicon). Favicon: app/icon.svg (marca M+ nítida) + app/apple-icon.png.
+export const metadata:Metadata={title:"MEDIC OS",description:"Salud en un solo sistema — expediente clínico longitudinal, seguro y verificable."};
 // Auditoría S-04: el layout raíz LEE el nonce que generó el middleware (cabecera x-nonce). Leer `headers()` hace las páginas
 // dinámicas (se renderizan por petición): es la condición para que Next marque sus scripts en línea con el nonce de la CSP
 // y ningún script sin nonce se ejecute. Las páginas viven detrás del login: no pierden nada al dejar de ser estáticas.
