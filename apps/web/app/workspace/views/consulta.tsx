@@ -205,7 +205,9 @@ export default function ConsultaView(){
         {cOrdMsg&&<div style={{marginTop:10,fontSize:12.5,color:cOrdMsg.includes("✓")?P.greenOnPale:P.muted,fontWeight:600}}>{cOrdMsg}</div>}
        </div>;
       })()}
-      <div style={sec}><h3 style={sect}>Plan de manejo</h3><textarea style={{...ta,minHeight:110}} disabled={!!enc&&enc.state!=="OPEN"} value={cForm.plan} onChange={e=>setCForm(f=>({...f,plan:e.target.value}))} placeholder="Plan de manejo…"/></div>
+      <div style={sec}><h3 style={sect}>Plan de manejo</h3>
+       {(()=>{const dis=!!enc&&enc.state!=="OPEN";return <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>{["FARMACOLÓGICO","NO FARMACOLÓGICO","ESTUDIOS","INTERCONSULTA","SEGUIMIENTO","SIGNOS DE ALARMA"].map(tag=><button key={tag} disabled={dis} onClick={()=>setCForm(f=>{if(new RegExp("(^|\\n)"+tag+":").test(f.plan))return f;const sep=f.plan.trim()?"\n":"";return{...f,plan:f.plan+sep+tag+": "};})} style={{border:`1px solid ${LINE}`,background:P.white,color:P.purple,borderRadius:999,padding:"4px 11px",fontSize:11.5,fontWeight:600,cursor:dis?"default":"pointer",fontFamily:UI,opacity:dis?.5:1}}>+ {tag.charAt(0)+tag.slice(1).toLowerCase()}</button>)}</div>;})()}
+       <textarea style={{...ta,minHeight:120}} disabled={!!enc&&enc.state!=="OPEN"} value={cForm.plan} onChange={e=>setCForm(f=>({...f,plan:e.target.value}))} placeholder="Plan de manejo… usa los botones para estructurar por secciones (farmacológico, estudios, seguimiento, signos de alarma…)."/></div>
      </div>
      <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <div style={sec}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={sect}>Resumen clínico</h3><span style={{fontSize:11.5,color:P.muted}}>Derivado del expediente</span></div>

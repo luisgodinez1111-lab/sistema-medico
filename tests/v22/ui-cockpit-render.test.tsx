@@ -472,6 +472,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText(/agregado \(confirmado\)/i)).toBeTruthy();
  });
 
+ it("vista Consulta (Lote D): el Plan de manejo se estructura por secciones etiquetadas",async()=>{
+  render(<Workspace/>);
+  await abrirConsulta();
+  const plan=screen.getByPlaceholderText(/Plan de manejo/) as HTMLTextAreaElement;
+  expect(plan.value).toBe("");
+  fireEvent.click(screen.getByRole("button",{name:"+ Farmacológico"}));
+  fireEvent.click(screen.getByRole("button",{name:"+ Seguimiento"}));
+  expect(plan.value).toMatch(/FARMACOLÓGICO:/);
+  expect(plan.value).toMatch(/SEGUIMIENTO:/);
+  // no duplica una sección ya presente
+  fireEvent.click(screen.getByRole("button",{name:"+ Farmacológico"}));
+  expect(plan.value.match(/FARMACOLÓGICO:/g)!.length).toBe(1);
+ });
+
  it("vista Consulta: los antecedentes marcados se componen en la nota del encuentro",async()=>{
   render(<Workspace/>);
   await abrirConsulta();
