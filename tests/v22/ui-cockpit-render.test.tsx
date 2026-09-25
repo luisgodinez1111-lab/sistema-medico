@@ -465,9 +465,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   await abrirConsulta();
   // buscar en el catálogo CIE-10 real (packages/terminology)
   fireEvent.change(screen.getByPlaceholderText(/Buscar CIE-10 o descripción/),{target:{value:"diabetes"}});
+  // Lote D: la impresión diagnóstica lleva TIPO (presuntivo/confirmado/diferencial)
+  fireEvent.click(screen.getByRole("button",{name:"Confirmado"}));
   const opt=await screen.findByText(/Diabetes mellitus tipo 2 sin complicaciones/);
-  fireEvent.click(opt); // agrega el problema -> POST /problems
-  expect(await screen.findByText(/agregado a la lista/i)).toBeTruthy();
+  fireEvent.click(opt); // agrega el diagnóstico -> POST /problems con epistemic=CONFIRMED
+  expect(await screen.findByText(/agregado \(confirmado\)/i)).toBeTruthy();
  });
 
  it("vista Consulta: los antecedentes marcados se componen en la nota del encuentro",async()=>{

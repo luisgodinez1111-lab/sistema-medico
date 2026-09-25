@@ -971,13 +971,15 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   }catch(e){setAlgMsg(userMessage(e));}finally{setAlgBusy(false);}
  };
  // Agrega un problema (CIE-10 del catálogo real) a la lista del paciente (POST /problems) y refresca el snapshot.
- const addConsultaProblem=async(code:string)=>{
+ // Lote D: la impresión diagnóstica lleva TIPO (epistémico) real — el POST /problems ya lo acepta.
+ const addConsultaProblem=async(code:string,epistemic:string="PROBABLE")=>{
   if(!patientId){setCDxMsg("Selecciona un paciente.");return;}
   setCDxBusy(true);setCDxMsg(null);
   try{
-   const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:uuid(),patientId,code,occurredAt:nowIso()}});
+   const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:uuid(),patientId,code,epistemic,occurredAt:nowIso()}});
    if(r.status>=400){setCDxMsg(errMsg(r));return;}
-   setCDxQuery("");setCDxMsg(`Problema ${code} agregado a la lista ✓`);
+   const epLbl:Record<string,string>={PROBABLE:"presuntivo",CONFIRMED:"confirmado",POSSIBLE:"diferencial"};
+   setCDxQuery("");setCDxMsg(`Diagnóstico ${code} agregado (${epLbl[epistemic]??"presuntivo"}) ✓`);
    try{const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET"});if(sp.status<400&&sp.body["registered"])setSnap(conForma<Snap>(sp.body,FORMA.snap));}catch{/* refresco best-effort del snapshot */}
   }catch(e){setCDxMsg(userMessage(e));}finally{setCDxBusy(false);}
  };
