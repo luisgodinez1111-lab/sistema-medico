@@ -683,7 +683,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText("Sin firma cargada")).toBeTruthy();                    // estado real (no la firma falsa "Dr. Luis Godinez")
   expect(screen.getByText("Sin sello cargada")).toBeTruthy();
   // los ajustes se cargan de /office-settings (input controlado real); editar y guardar
-  const name=await screen.findByPlaceholderText(/Clínica Medical OS/,{},{timeout:2000});
+  const name=await screen.findByPlaceholderText(/Clínica San Rafael/,{},{timeout:2000});
   fireEvent.change(name,{target:{value:"Clínica Norte"}});
   const save=await screen.findByRole("button",{name:/Guardar cambios/});
   await waitFor(()=>expect((save as HTMLButtonElement).disabled).toBe(false),{timeout:2000});
