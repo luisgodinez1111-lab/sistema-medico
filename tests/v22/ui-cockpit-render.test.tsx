@@ -430,6 +430,9 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Consulta: interrogatorio y exploración física son campos REALES que alimentan la nota clínica",async()=>{
   render(<Workspace/>);
   await abrirConsulta();
+  // antecedentes estructurables por categoría (Lote D §4.1)
+  fireEvent.click(screen.getByRole("button",{name:"+ Heredofamiliares"}));
+  expect((screen.getByPlaceholderText(/Antecedentes por categoría/) as HTMLTextAreaElement).value).toMatch(/HEREDOFAMILIARES:/);
   // secciones 4 y 5 ya no son colapsables decorativos: son textareas reales, con andamiaje estructurado (Lote D)
   fireEvent.click(screen.getByRole("button",{name:"Negativo por aparatos"}));
   expect((screen.getByPlaceholderText(/Interrogatorio por aparatos/) as HTMLTextAreaElement).value).toMatch(/Negado por aparatos/);
