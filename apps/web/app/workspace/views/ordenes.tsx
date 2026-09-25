@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "ordenes" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{card,P,LINE,UI,act,actRow}from"../shared";
+import{card,P,LINE,UI,act,actRow,Skeleton}from"../shared";
 import{useWorkspace}from"../context";
 export default function OrdenesView(){
  const{ordReg,ordTab,ordQuery,ordStatus,ordSel,openConsulta,reloadOrders,setOrdMsg,setOrdNew,ordNew,setOrdTab,ordMsg,ordForm,setOrdForm,patientList,submitOrder,ordBusy,setOrdQuery,setOrdStatus,docDisplay,setOrdSel,orderTransition}=useWorkspace();
@@ -67,11 +67,11 @@ export default function OrdenesView(){
      <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void submitOrder()} disabled={ordBusy||!ordForm.patientId||!ordForm.detail.trim()} style={{border:0,background:(ordBusy||!ordForm.patientId||!ordForm.detail.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(ordBusy||!ordForm.patientId||!ordForm.detail.trim())?"default":"pointer",fontFamily:UI}}>{ordBusy?"Creando…":"Crear orden"}</button><button onClick={()=>setOrdNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
     </div>}
     <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
-     <div style={kcard}>{kico("#EEEBFD",P.purple,"M7 3h10v18H7z")}<div><div style={{fontSize:22,fontWeight:800}}>{kTot}</div><div style={{fontSize:11.5,color:P.muted}}>Órdenes totales</div></div></div>
-     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div><div style={{fontSize:22,fontWeight:800}}>{kSol}</div><div style={{fontSize:11.5,color:P.muted}}>Solicitadas</div></div></div>
-     <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 15V4m0 0l-4 4m4-4l4 4M4 20h16")}<div><div style={{fontSize:22,fontWeight:800}}>{kEnv}</div><div style={{fontSize:11.5,color:P.muted}}>Enviadas</div></div></div>
-     <div style={kcard}>{kico("#E6F6EE",P.green,"M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z")}<div><div style={{fontSize:22,fontWeight:800}}>{kCom}</div><div style={{fontSize:11.5,color:P.muted}}>Completadas</div></div></div>
-     <div style={kcard}>{kico("#F0F1F4","#8A8FA3","M6 6l12 12M6 18L18 6")}<div><div style={{fontSize:22,fontWeight:800,color:"#8A8FA3"}}>{kCan}</div><div style={{fontSize:11.5,color:P.muted}}>Canceladas</div></div></div>
+     <div style={kcard}>{kico("#EEEBFD",P.purple,"M7 3h10v18H7z")}<div><div style={{fontSize:22,fontWeight:800}}>{ordLoaded?kTot:<Skeleton w={40} h={20}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Órdenes totales</div></div></div>
+     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div><div style={{fontSize:22,fontWeight:800}}>{ordLoaded?kSol:<Skeleton w={40} h={20}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Solicitadas</div></div></div>
+     <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 15V4m0 0l-4 4m4-4l4 4M4 20h16")}<div><div style={{fontSize:22,fontWeight:800}}>{ordLoaded?kEnv:<Skeleton w={40} h={20}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Enviadas</div></div></div>
+     <div style={kcard}>{kico("#E6F6EE",P.green,"M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z")}<div><div style={{fontSize:22,fontWeight:800}}>{ordLoaded?kCom:<Skeleton w={40} h={20}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Completadas</div></div></div>
+     <div style={kcard}>{kico("#F0F1F4","#8A8FA3","M6 6l12 12M6 18L18 6")}<div><div style={{fontSize:22,fontWeight:800,color:"#8A8FA3"}}>{ordLoaded?kCan:<Skeleton w={40} h={20}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Canceladas</div></div></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"230px 1fr 320px",gap:14,marginTop:16,alignItems:"start"}} className="mos-ord3">
      <div style={{...card2,padding:16}}>
@@ -86,8 +86,8 @@ export default function OrdenesView(){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 12px 8px"}}><span style={{fontSize:16,fontWeight:700}}>Órdenes ({filtered.length})</span><span style={{fontSize:12,color:P.muted}}>{ordTab==="todas"?"Todas":OTABS.find(t=>t[0]===ordTab)?.[1]}{ordStatus?` · ${ordStatus}`:""}</span></div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr>{["Fecha","Paciente","Estudio / Orden","Estado","Acciones"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
-       <tbody>{items.length===0?(
-        <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"40px 12px"}}>{ordLoaded?"Aún no hay órdenes en el registro. Usa «+ Nueva orden» para crear la primera.":"Cargando órdenes…"}</td></tr>
+       <tbody>{!ordLoaded?Array.from({length:6}).map((_,i)=><tr key={`sk${i}`} aria-hidden>{Array.from({length:5}).map((__,j)=><td key={j} style={td}><Skeleton w={j===0?68:j===4?60:"80%"} h={12}/></td>)}</tr>):items.length===0?(
+        <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"40px 12px"}}>Aún no hay órdenes en el registro. Usa «+ Nueva orden» para crear la primera.</td></tr>
        ):filtered.length===0?(
         <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"40px 12px"}}>Ninguna orden coincide con el filtro.</td></tr>
        ):filtered.map(o=>{const[bg,fg]=stx(o.status);const on=(selected?.orderId===o.orderId);return <tr key={o.orderId} style={{background:on?"#F6F5FE":"transparent",cursor:"pointer"}} {...actRow(()=>setOrdSel(o.orderId))}>
