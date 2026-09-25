@@ -893,6 +893,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.queryByText(/Próxima cita de seguimiento/)).toBeNull();
   expect(screen.queryByText("Notas del seguimiento")).toBeNull();
   expect(screen.queryByText("Registro rápido")).toBeNull();
+  // Lote F — seguimiento POBLACIONAL cableado a GET /api/v1/worklist (pendientes de todos los pacientes)
+  expect((await screen.findAllByText("Seguimiento · Toda la clínica")).length).toBeGreaterThan(0);
+  expect(screen.getByText("Resultado crítico sin cerrar")).toBeTruthy();       // gap real del worklist
+  expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0); // nombre resuelto del padrón
+  expect(screen.getAllByText("HIGH").length).toBeGreaterThan(0);               // prioridad del gap
  });
 
  it("vista Interconsultas (S-INTERCONSULTA): form Nueva interconsulta + panel de contexto + envío",async()=>{
