@@ -18,7 +18,14 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  apiDownload:async()=>null,
  apiRequest:async(path:string,init?:{method?:string;body?:unknown})=>{
   if(init?.method==="POST")posted.push({path,body:init.body});
-  if(path.includes("/api/v1/vitals"))return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
+  if(path.includes("/api/v1/vitals")){
+   if(init?.method==="POST")return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
+   // Lote E — GET clínica-wide: registro POBLACIONAL de signos vitales
+   return{status:200,body:{items:[
+    {vitalId:"v1",patientId:"p1",patientName:"Ana López García",vitalType:"BP",vitalTypeLabel:"Presión arterial",value:"180/110",unit:"mmHg",status:"CRITICAL",critical:true,interpretation:"Crisis hipertensiva",recordedAt:"2026-09-17T10:00:00.000Z"},
+    {vitalId:"v2",patientId:"p2",patientName:"Carlos Mendoza",vitalType:"HR",vitalTypeLabel:"Frecuencia cardíaca",value:"72",unit:"lpm",status:"NORMAL",critical:false,interpretation:"",recordedAt:"2026-09-16T09:00:00.000Z"},
+   ],nextCursor:null,total:2,criticalCount:1,abnormalCount:0,patientsCount:2}};
+  }
   if(path.includes("/api/v1/care-plans"))return{status:201,body:{version:1}};
   // U-19: PRESCRIBE con bloqueo ANULABLE (alergia) -> 403 con qué se puede anular; con la anulación nombrada -> 201.
   if(path.endsWith("/prescription")&&init?.method==="POST"){
@@ -918,7 +925,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Signos vitales (S-SIGNOS): form + últimos registros + tendencias + referencia + alertas deterministas",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));
-  expect(screen.getByRole("heading",{name:"Signos vitales"})).toBeTruthy();
+  expect(await screen.findByRole("heading",{name:"Signos vitales"})).toBeTruthy();
   expect(screen.getByText("Registrar signos vitales")).toBeTruthy();          // título del form
   expect(screen.getByPlaceholderText("36.5")).toBeTruthy();                    // campo temperatura
   expect(screen.getByText(/Últimos registros/)).toBeTruthy();
@@ -933,6 +940,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.queryByText("Acciones rápidas")).toBeNull();
   expect(screen.queryByText("Plantilla rápida")).toBeNull();
   expect(screen.queryByText("Estado general")).toBeNull();                    // campo no persistido, eliminado
+  // Lote E — registro POBLACIONAL clínica-wide cableado a GET /api/v1/vitals (lectura vigente por paciente)
+  expect((await screen.findAllByText("Signos vitales · Toda la clínica")).length).toBeGreaterThan(0);
+  expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0); // lectura de otro paciente
+  expect(screen.getByText("180/110")).toBeTruthy();
+  expect(screen.getAllByText("Crítico").length).toBeGreaterThan(0);           // estado derivado del valor
  });
 
  it("vista Vacunas (S-VACUNAS): registro clínica-wide cableado a GET /api/v1/immunizations — KPIs, tabla, detalle y cobertura",async()=>{

@@ -26943,8 +26943,116 @@
    }
   },
   "/api/v1/vitals": {
+   "get": {
+    "summary": "EPIC E/UI (Lote E) — GET /api/v1/vitals -> registro POBLACIONAL de signos vitales de toda la clínica (vista",
+    "tags": [
+     "vitals"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "VALIDATION_ERROR (cuerpo o parámetros inválidos)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "UNAUTHENTICATED (sin sesión válida)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "FORBIDDEN / CROSS_TENANT / SAFETY_BLOCKED",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "NOT_FOUND (recurso o paciente inexistente en el tenant)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "CONFLICT / CONCURRENCY_CONFLICT / IDEMPOTENCY_CONFLICT",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "428": {
+      "description": "PRECONDITION_REQUIRED (Idempotency-Key, cédula profesional) o SAFETY_ACK_REQUIRED",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "RATE_LIMITED (Retry-After)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "DEPENDENCY_UNAVAILABLE (base de datos o almacén no disponibles)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     },
+     {
+      "bearer": []
+     }
+    ],
+    "x-handler": "apps/web/app/api/v1/vitals/route.ts"
+   },
    "post": {
-    "summary": "/api/v1/vitals",
+    "summary": "EPIC E/UI (Lote E) — GET /api/v1/vitals -> registro POBLACIONAL de signos vitales de toda la clínica (vista",
     "tags": [
      "vitals"
     ],

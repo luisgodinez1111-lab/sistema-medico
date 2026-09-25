@@ -119,6 +119,9 @@ export type ImmItem=Readonly<{immunizationId:string;patientId:string;patientName
 export type ImmRegistry=Readonly<{items:ImmItem[];total:number;appliedCount:number;pendingCount:number;vaccinatedPatients:number;incompleteSchemes:number;byVaccine:Record<string,number>}>;
 export type VitalRecord=Readonly<{at:string;ta:string;fc:string;fr:string;temp:string;spo2:string;peso:string;talla:string;imc:string}>;
 export type VitalHistory=Readonly<{records:VitalRecord[];series:{BP:{value:number;at:string}[];HR:{value:number;at:string}[];WEIGHT:{value:number;at:string}[];IMC:{value:number;at:string}[]};latest:VitalRecord|null;count:number}>;
+// Lote E — registro POBLACIONAL de signos vitales (GET /api/v1/vitals): una lectura vigente por fila, clínica-wide.
+export type VitalRegRow=Readonly<{vitalId:string;patientId:string;patientName:string;vitalType:string;vitalTypeLabel:string;value:string;unit:string;status:"NORMAL"|"ABNORMAL"|"CRITICAL"|"UNKNOWN";critical:boolean;interpretation:string;recordedAt:string}>;
+export type VitalsRegistry=Readonly<{items:VitalRegRow[];nextCursor:string|null;total:number;criticalCount:number;abnormalCount:number;patientsCount:number}>;
 export type CarePlanSnap=Readonly<{counts:{problems:number;medications:number;allergies:number};problems:{code:string;description:string;status:string;statusLabel:string}[];goals:{category:string;goal:string;status:string;statusLabel:string}[];metrics:{hba1c:string|null;bp:string|null;weight:string|null;imc:string|null}}>;
 export type RefContext=Readonly<{allergies:string[];medications:string[];problems:{code:string;description:string}[];labs:{hba1c:string|null};vitals:{bp:string|null;hr:string|null;imc:string|null}}>;
 export type FUDelta={first:number;last:number}|null;

@@ -213,6 +213,11 @@ export async function resultsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Pr
    orderType:o.order_type?String(o.order_type):null};}),total:cuentaDe(cuenta)};
  });
 }
+// EPIC E/UI (Lote E) — Registro POBLACIONAL de signos vitales de TODA la clínica: vive en su propio módulo porque
+// este dominio superaba las 300 líneas (mismo criterio que separó lab-facts y read-model-joins). Se re-exporta aquí
+// para que la fachada `clinical-runtime` siga viéndolo entre los registros clínica-wide.
+export{vitalsRegistry}from"./vitals-registry";
+export type{VitalRow}from"./vitals-registry";
 // EPIC E/UI — Registro de órdenes/solicitudes de estudio de TODA la clínica (Resultados › Solicitudes). Por cada
 // agregado ClinicalOrder toma el evento base ORDER_CREATED (tipo/detalle/paciente) y su ESTADO por la última
 // transición (CREATED->Solicitada, PLACED->Enviada, FULFILLED->Completada, CANCELLED->Cancelada). Une paciente. RLS-scoped.
