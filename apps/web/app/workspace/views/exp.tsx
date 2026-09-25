@@ -251,7 +251,8 @@ export default function ExpView(){
    </div>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Vista longitudinal de los items clínicos de este paciente (metadatos, sin contenido).</p>
    {exportInfo&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:12,background:"#f4f3fb",border:"1px solid #e0ddf3",fontSize:12}}>
-    <b style={{color:"#3f3aa0"}}>Expediente exportado (JSON de eventos; no es el formato de intercambio NOM-024)</b> · {exportInfo.aggregateCount} agregados · {exportInfo.eventCount} eventos<br/>
+    <b style={{color:"#3f3aa0"}}>Expediente exportado — archivo .json descargado</b> · {exportInfo.aggregateCount} agregados · {exportInfo.eventCount} eventos<br/>
+    <span style={{color:"#6d6e80"}}>Manifiesto reproducible (índice de agregados y eventos + hash); no es el formato de intercambio NOM-024 ni incluye el contenido con datos personales.</span><br/>
     <span style={{color:"#6d6e80"}}>hash reproducible del contenido: </span><span style={mono}>{exportInfo.contentHash}</span>
    </div>}
    {tl===null?<p style={{color:P.muted,fontSize:13,marginTop:12}}>Pulsa “Actualizar” para cargar el historial de este paciente.</p>

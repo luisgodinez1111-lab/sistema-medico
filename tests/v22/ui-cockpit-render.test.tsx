@@ -126,6 +126,8 @@ vi.mock("../../apps/web/lib/session-client",()=>({
    {aggregateType:"Appointment",aggregateId:"a1",latestKind:"SCHEDULED",version:1,lastAt:new Date().toISOString()},
    {aggregateType:"DiagnosticResult",aggregateId:"r1",latestKind:"VERIFIED",version:2,lastAt:new Date(Date.now()-100000).toISOString()},
   ]}};
+  // Lote H — export del expediente: manifiesto reproducible + hash (el cliente lo descarga como archivo)
+  if(path.includes("/export"))return{status:200,body:{manifest:{patientId:"p1",aggregateCount:3,eventCount:7,aggregates:[]},contentHash:"a1b2c3hashdeprueba",generatedAt:"2026-09-20T00:00:00.000Z"}};
   return{status:404,body:{}};
  },
 }));
@@ -653,6 +655,29 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"78"}}); // frecuencia cardíaca
   fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
   expect(await screen.findByText(/Signos vitales guardados/)).toBeTruthy();
+ });
+
+ it("vista Expediente (Lote H): «Exportar expediente» descarga un archivo real y muestra un resumen honesto",async()=>{
+  const createObjSpy=vi.fn(()=>"blob:mock");
+  const prevCreate=(URL as unknown as{createObjectURL?:unknown}).createObjectURL;
+  const prevRevoke=(URL as unknown as{revokeObjectURL?:unknown}).revokeObjectURL;
+  (URL as unknown as{createObjectURL:unknown}).createObjectURL=createObjSpy;
+  (URL as unknown as{revokeObjectURL:unknown}).revokeObjectURL=vi.fn();
+  const clickSpy=vi.spyOn(HTMLAnchorElement.prototype,"click").mockImplementation(()=>{});
+  try{
+   render(<Workspace/>);
+   await toExpediente();
+   fireEvent.click(screen.getByRole("button",{name:"Historia"})); // el botón de export vive en el Timeline (sub-vista Historia)
+   fireEvent.click(await screen.findByRole("button",{name:/Exportar expediente/}));
+   expect(await screen.findByText(/archivo \.json descargado/)).toBeTruthy();
+   expect(createObjSpy).toHaveBeenCalled();  // se generó el Blob del archivo
+   expect(clickSpy).toHaveBeenCalled();      // se disparó la descarga
+   expect(screen.getByText(/incluye el contenido con datos personales/)).toBeTruthy(); // honesto sobre qué contiene
+  }finally{
+   (URL as unknown as{createObjectURL:unknown}).createObjectURL=prevCreate;
+   (URL as unknown as{revokeObjectURL:unknown}).revokeObjectURL=prevRevoke;
+   clickSpy.mockRestore();
+  }
  });
 
  it("hero (panel 1) se materializa desde el snapshot: identidad, chips dx y vitales",async()=>{

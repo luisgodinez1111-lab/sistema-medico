@@ -1535,7 +1535,20 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   const r=await apiRequest(`/api/v1/patients/${patientId}/export`,{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
   const m=r.body["manifest"] as{aggregateCount:number;eventCount:number};
-  setExportInfo({aggregateCount:m.aggregateCount,eventCount:m.eventCount,contentHash:String(r.body["contentHash"]??"")});
+  const contentHash=String(r.body["contentHash"]??"");
+  // Lote H — entrega un ARCHIVO real y descargable (antes solo se mostraba el conteo+hash, sin fichero). El artefacto es
+  // el manifiesto reproducible del expediente (índice de agregados/eventos + hash), no el volcado de contenido con PHI.
+  const bundle={patient:{patientId,name:patientName||null},exportedAt:String(r.body["generatedAt"]??new Date().toISOString()),contentHash,manifest:r.body["manifest"]};
+  try{
+   if(typeof window!=="undefined"&&typeof URL!=="undefined"&&typeof URL.createObjectURL==="function"){
+    const blob=new Blob([JSON.stringify(bundle,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);const a=document.createElement("a");
+    const shortId=patientId.slice(0,8),day=new Date().toISOString().slice(0,10);
+    a.href=url;a.download=`expediente-${shortId}-${day}.json`;
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>{try{URL.revokeObjectURL(url);}catch{/* noop */}},0);
+   }
+  }catch{/* la descarga es un extra del navegador; el resumen+hash de abajo sigue siendo la evidencia */}
+  setExportInfo({aggregateCount:m.aggregateCount,eventCount:m.eventCount,contentHash});
  });
  const loadTimeline=()=>call("tl",async()=>{
   const r=await apiRequest(`/api/v1/patients/${patientId}/timeline`,{method:"GET"});
