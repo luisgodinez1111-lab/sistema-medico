@@ -4,7 +4,7 @@ import type{ZodType}from"zod";
 import{AdmitBody as admission__AdmitBody,CancelBody as admission__CancelBody,DischargeBody as admission__DischargeBody,TransferBody as admission__TransferBody}from"./admission-lifecycle";
 import{AssistBody as ai_copilot_gateway__AssistBody}from"./ai-copilot-gateway";
 import{CreateBody as allergy__CreateBody,WhenBody as allergy__WhenBody}from"./allergy-lifecycle";
-import{CancelBody as appointment__CancelBody,ScheduleBody as appointment__ScheduleBody,WhenBody as appointment__WhenBody}from"./appointment-lifecycle";
+import{CancelBody as appointment__CancelBody,NoShowBody as appointment__NoShowBody,ScheduleBody as appointment__ScheduleBody,WhenBody as appointment__WhenBody}from"./appointment-lifecycle";
 import{CancelBody as careplan__CancelBody,ProposeBody as careplan__ProposeBody,WhenBody as careplan__WhenBody}from"./careplan-lifecycle";
 import{CodeBody as claim__CodeBody,DraftBody as claim__DraftBody,ReasonBody as claim__ReasonBody,RefBody as claim__RefBody,WhenBody as claim__WhenBody}from"./claim-lifecycle";
 import{DraftBody as consent__DraftBody,GrantBody as consent__GrantBody,ReasonBody as consent__ReasonBody,WhenBody as consent__WhenBody}from"./consent-lifecycle";
@@ -42,7 +42,7 @@ export const API_BODY_SCHEMAS:Readonly<Record<string,ZodType>>={
  "POST /api/v1/appointments/{appointmentId}/cancellation":appointment__CancelBody,
  "POST /api/v1/appointments/{appointmentId}/check-in":appointment__WhenBody,
  "POST /api/v1/appointments/{appointmentId}/completion":appointment__WhenBody,
- "POST /api/v1/appointments/{appointmentId}/no-show":appointment__WhenBody,
+ "POST /api/v1/appointments/{appointmentId}/no-show":appointment__NoShowBody,
  "POST /api/v1/care-plans":careplan__ProposeBody,
  "POST /api/v1/care-plans/{carePlanId}/achievement":careplan__WhenBody,
  "POST /api/v1/care-plans/{carePlanId}/activation":careplan__WhenBody,

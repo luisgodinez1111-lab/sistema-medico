@@ -2415,6 +2415,11 @@
        "schema": {
         "type": "object",
         "properties": {
+         "reason": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 500
+         },
          "occurredAt": {
           "type": "string",
           "format": "date-time",

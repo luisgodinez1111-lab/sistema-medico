@@ -4,6 +4,7 @@
 // anatomía viven allí; aquí solo se conservan los nombres que usan las vistas.
 import {primitive,typography,LINE as DS_LINE,buttonStyle,cardStyle,inputStyle,badgeStyle,toneOfState,patientHeaderStyle} from "../../../../packages/design-system/src";
 import{lookupIcd10}from"../../../../packages/terminology/src";
+import{ageInYears}from"../../../../packages/prescription-safety/src";
 import{goalFor,INDIVIDUALIZATION_NOTICE}from"../../../../packages/care-goals/src";
 // Solo el FORMATO del UUID (módulo sin dependencias de Node: el bundle del cliente no puede traer node:crypto).
 import {uuidFromDigest} from "../../../../packages/canonical-json/src/uuid";
@@ -344,6 +345,22 @@ export const anchor=(name:string)=>({id:sectionId(name)});
 //   · LAS DEMÁS: dicen lo que son. Cablear las diecinueve exige un GET por paciente con etiqueta y versión por agregado,
 //     que hoy no existe (el timeline es deliberadamente SIN PHI y no trae etiquetas): eso es superficie de servidor nueva y
 //     queda anotada como decisión de producto, no escondida detrás de una ventana en blanco.
+// Auditoría 2026-09-19, anexo R05b (R05b-03 y R05b-21) — LA EDAD DE LA FILA, derivada de verdad.
+//
+// El campo `age` de las filas de Alergias, Problemas y Vacunas se construía SIEMPRE como cadena vacía: código muerto en
+// tres vistas. La condición `r.age&&` nunca era cierta, así que la fila no mostraba edad nunca y el panel de detalle
+// enseñaba el texto genérico «Paciente» para cada registro. El hallazgo lo marcó como sistemático, no aislado.
+//
+// La edad NO se inventa y no hace falta tocar el servidor: la lista de pacientes que estas vistas ya cargan trae
+// `birthDate`, y la edad se calcula con `ageInYears`, la misma función que usa la seguridad de prescripción. Si el paciente
+// no está en la lista cargada (está acotada), devuelve cadena vacía y la fila no afirma una edad que no conoce.
+export type PacienteBasico=Readonly<{patientId:string;birthDate?:string}>;
+export function edadDe(lista:readonly PacienteBasico[]|null,patientId:string,asOf:string=new Date().toISOString()):string{
+ const b=lista?.find(p=>p.patientId===patientId)?.birthDate; // la lista puede no haber cargado todavía
+ if(!b)return "";
+ const y=ageInYears(b,asOf);
+ return y===undefined?"":`${y} años`;
+}
 export const SOLO_ESTA_PANTALLA="Lista lo que se registre aquí. El historial completo del paciente está en su módulo del menú.";
 export function scrollToSection(name:string){
  if(!name){window.scrollTo({top:0,behavior:"smooth"});return;}

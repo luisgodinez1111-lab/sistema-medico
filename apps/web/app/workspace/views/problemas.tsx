@@ -2,10 +2,10 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "problemas" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {apiRequest} from "../../../lib/session-client";
-import{card,P,LINE,UI,errMsg,userMessage,act,actRow,scrollToSection,type IcdEntry}from"../shared";
+import{edadDe,card,P,LINE,UI,errMsg,userMessage,act,actRow,scrollToSection,type IcdEntry}from"../shared";
 import{useWorkspace}from"../context";
 export default function ProblemasView(){
- const{probScreen,setPfName,setPfCode,setPfResults,setPfDesc,setPfNotes,setPfType,setPfEstado,setPfSev,setPfOnset,pfCode,setPfMsg,patientId,pfOnset,pfEstado,pfNotes,setPfBusy,pfDesc,pfType,pfSev,setProbReg,setProbScreen,pfBusy,pfName,pfResults,pfMsg,probReg,probPlantCat,setProbPlantCat,probStatusF,probSearch,probSel,setProbSearch,setProbStatusF,setProbSel,selectPatientRaw,setView}=useWorkspace();
+ const{patientList,pfSearchErr,setPfSearchErr,probScreen,setPfName,setPfCode,setPfResults,setPfDesc,setPfNotes,setPfType,setPfEstado,setPfSev,setPfOnset,pfCode,setPfMsg,patientId,pfOnset,pfEstado,pfNotes,setPfBusy,pfDesc,pfType,pfSev,setProbReg,setProbScreen,pfBusy,pfName,pfResults,pfMsg,probReg,probPlantCat,setProbPlantCat,probStatusF,probSearch,probSel,setProbSearch,setProbStatusF,setProbSel,selectPatientRaw,setView}=useWorkspace();
 
    // ===== MÓDULO PROBLEMAS (S-PROBLEMAS) — lista clínica-wide cableada + form Nuevo problema + Plantillas =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -17,7 +17,9 @@ export default function ProblemasView(){
    // ---------- PANTALLA: NUEVO PROBLEMA (form cableado a CIE-10 + POST /problems) ----------
    if(probScreen==="nuevo"){
     const seg=(on:boolean):React.CSSProperties=>({padding:"9px 14px",fontSize:13,fontWeight:on?700:500,color:on?P.purple:P.muted,background:on?"#EEEBFD":P.white,border:`1px solid ${on?P.purple:LINE}`,borderRadius:9,cursor:"pointer",fontFamily:UI});
-    const searchCie=async(q:string)=>{setPfName(q);setPfCode("");if(q.trim().length>=2){try{const r=await apiRequest(`/api/v1/terminology/icd10?q=${encodeURIComponent(q)}`,{method:"GET"});if(r.status===200)setPfResults(((r.body["results"] as IcdEntry[])??[]).slice(0,6));}catch{/* búsqueda no disponible */}}else setPfResults([]);};
+    // Auditoría R05b-17: un fallo de red o un error del catálogo eran indistinguibles de «sin resultados». Sin código CIE-10
+    // no se puede registrar el problema: el médico tiene que saber si el catálogo no respondió, no quedarse buscando.
+    const searchCie=async(q:string)=>{setPfName(q);setPfCode("");setPfSearchErr(null);if(q.trim().length>=2){try{const r=await apiRequest(`/api/v1/terminology/icd10?q=${encodeURIComponent(q)}`,{method:"GET"});if(r.status!==200){setPfResults([]);setPfSearchErr(`El catálogo CIE-10 no respondió (${errMsg(r)}). Reintente: sin código no se puede registrar el problema.`);return;}setPfResults(((r.body["results"] as IcdEntry[])??[]).slice(0,6));}catch(e){setPfResults([]);setPfSearchErr(`No se pudo consultar el catálogo CIE-10: ${userMessage(e)}. Reintente: sin código no se puede registrar el problema.`);}}else setPfResults([]);};
     const pick=(e:IcdEntry)=>{setPfName(`${e.code} · ${e.description}`);setPfCode(e.code);setPfResults([]);};
     // Auditoría U-04: TODO lo capturado viaja (tipo, gravedad, fecha de inicio, notas); "Guardar y añadir otro" se queda en el
     // formulario; ambos botones se deshabilitan mientras guarda; "Crónico" y "Resuelto" se registran con sus transiciones.
@@ -58,6 +60,7 @@ export default function ProblemasView(){
          <div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Nombre del problema / Diagnóstico <span style={{color:P.red}}>*</span></div>
          <div style={{position:"relative"}}>
           <div style={{display:"flex",gap:8}}><input value={pfName} onChange={e=>searchCie(e.target.value)} placeholder="Buscar en CIE-10 o escribir diagnóstico..." style={{...selSty,flex:1}}/><button onClick={()=>searchCie(pfName)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>⊟ Buscar en CIE-10</button></div>
+          {pfSearchErr&&<div role="alert" style={{marginTop:6,padding:"8px 10px",borderRadius:9,background:"#FFF4E5",border:"1px solid #F0DBB8",color:"#A15C00",fontSize:12,fontWeight:600}}>{pfSearchErr}</div>}
           {pfResults.length>0&&<div style={{position:"absolute",top:"110%",left:0,right:0,zIndex:5,background:P.white,border:`1px solid ${LINE}`,borderRadius:11,boxShadow:"0 12px 32px rgba(20,30,60,.14)",overflow:"hidden"}}>{pfResults.map(e=><div key={e.code} {...act(()=>pick(e))} style={{display:"flex",gap:12,padding:"11px 14px",cursor:"pointer",borderBottom:`1px solid #F2F4F9`,alignItems:"center"}}><span style={{fontWeight:700,color:P.purple,fontSize:13,minWidth:56}}>{e.code}</span><span style={{fontSize:13}}>{e.description}</span></div>)}</div>}
          </div>
          {pfCode&&<div style={{marginTop:8,fontSize:12,color:P.green,fontWeight:600}}>✓ CIE-10 {pfCode} seleccionado</div>}
@@ -163,7 +166,7 @@ export default function ProblemasView(){
    type PRow={id:string;pid:string;name:string;type:string;patient:string;age:string;code:string;estado:string;date:string;active:boolean};
    const fmtD=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
    // Registro clínica-wide REAL (GET /api/v1/problems); sin datos de ejemplo.
-   const allRows:PRow[]=(probReg?.items??[]).map((it,i)=>({id:it.problemId||`x${i}`,pid:it.patientId,name:it.description||it.code,type:it.chronic?"Crónico":"Agudo",patient:it.patientName,age:"",code:it.code,estado:it.statusLabel,date:fmtD(it.recordedAt),active:it.status==="ACTIVE"||it.status==="CHRONIC"}));
+   const allRows:PRow[]=(probReg?.items??[]).map((it,i)=>({id:it.problemId||`x${i}`,pid:it.patientId,name:it.description||it.code,type:it.chronic?"Crónico":"Agudo",patient:it.patientName,age:edadDe(patientList,it.patientId),code:it.code,estado:it.statusLabel,date:fmtD(it.recordedAt),active:it.status==="ACTIVE"||it.status==="CHRONIC"}));
    const rows=allRows.filter(r=>(probStatusF==="Todos"||r.estado===probStatusF)&&(!probSearch||`${r.name} ${r.patient} ${r.code}`.toLowerCase().includes(probSearch.toLowerCase())));
    const selp:PRow|null=rows[probSel]??rows[0]??null;
    const total=probReg?.total??0;

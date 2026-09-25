@@ -84,9 +84,16 @@ export async function handleAppointmentCompletion(req:Request,appointmentId:stri
   return await commit(ctx,idempotencyKey,expectedVersion,appointmentId,folded,"COMPLETED","APPOINTMENT_COMPLETED",{kind:"COMPLETED"},b.occurredAt,"appointment.completed");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
+// Auditoría 2026-09-19, anexo R05b (R05b-15) — LA INASISTENCIA LLEVA CONSTANCIA.
+// Marcar «no asistió» se disparaba con un clic y no guardaba nada más que la fecha. Es una transición TERMINAL que afirma
+// algo sobre la conducta del paciente, queda en su expediente de solo-añadir y alimenta el indicador de inasistencia de los
+// reportes de calidad. La misma regla que el resto del registro (U-16): el motivo no es un literal del código, lo escribe
+// quien lo registra. `reason` es OPCIONAL en el contrato para no romper a los clientes que ya integran, pero cuando llega se
+// PERSISTE —antes se habría descartado en silencio, porque `WhenBody` desconoce el campo— y la interfaz siempre lo pide.
+export const NoShowBody=z.object({reason:z.string().trim().min(5,"La constancia de la inasistencia debe decir qué pasó (mín. 5 caracteres)").max(500).optional(),occurredAt:z.string().datetime()});
 export async function handleAppointmentNoShow(req:Request,appointmentId:string):Promise<Response>{
- try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,appointmentId);const b=await parseJson(req,WhenBody);
-  return await commit(ctx,idempotencyKey,expectedVersion,appointmentId,folded,"NO_SHOW","APPOINTMENT_NO_SHOW",{kind:"NO_SHOW"},b.occurredAt,"appointment.no_show");
+ try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,appointmentId);const b=await parseJson(req,NoShowBody);
+  return await commit(ctx,idempotencyKey,expectedVersion,appointmentId,folded,"NO_SHOW","APPOINTMENT_NO_SHOW",{kind:"NO_SHOW",...(b.reason?{reason:b.reason}:{})},b.occurredAt,"appointment.no_show");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 export const CancelBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});

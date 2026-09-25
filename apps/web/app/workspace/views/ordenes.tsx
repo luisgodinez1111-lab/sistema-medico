@@ -11,7 +11,7 @@ export default function OrdenesView(){
    // Fuente única: ordersRegistry (GET /api/v1/orders). Acciones: POST create / placement / fulfillment / cancellation.
    // Todo interconectado: seleccionar una orden actualiza el detalle; abrir lleva al expediente del paciente en Consulta.
    const card2:React.CSSProperties={...card,marginTop:0};
-   const OTABS:[typeof ordTab,string,string][]=[["todas","Todas las órdenes","M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"],["laboratorio","Laboratorio","M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"],["imagenologia","Imagenología","M3 5h18v14H3zM3 15l5-5 4 4"],["gabinete","Gabinete","M7 3h10v18H7z"],["interconsultas","Interconsultas","M8 11a3 3 0 100-6 3 3 0 000 6zM2 20a6 6 0 0112 0M16 4.5a3 3 0 010 6M22 20a6 6 0 00-5-5.9"],["procedimientos","Procedimientos","M14 4l6 6M6 14l4 4M16.5 6.5l-10 10"],["otros","Otros","M4 5h16v14H4z"]];
+   const OTABS:[typeof ordTab,string,string][]=[["todas","Todas las órdenes","M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"],["laboratorio","Laboratorio","M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"],["imagenologia","Imagenología","M3 5h18v14H3zM3 15l5-5 4 4"],["interconsultas","Interconsultas","M8 11a3 3 0 100-6 3 3 0 000 6zM2 20a6 6 0 0112 0M16 4.5a3 3 0 010 6M22 20a6 6 0 00-5-5.9"],["procedimientos","Procedimientos","M14 4l6 6M6 14l4 4M16.5 6.5l-10 10"],["otros","Otros","M4 5h16v14H4z"]];
    const kico=(bg:string,fg:string,d:string)=><span style={{width:40,height:40,borderRadius:11,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
    const kcard:React.CSSProperties={...card2,padding:15,display:"flex",gap:12,alignItems:"center"};
    const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"};
@@ -29,7 +29,10 @@ export default function OrdenesView(){
    const items=ordReg?.items??[];
    const ordLoaded=!!ordReg;
    const KNOWN=["LAB","IMAGING","PROCEDURE","REFERRAL"];
-   const TAB_TYPES:Record<string,string[]>={laboratorio:["LAB"],imagenologia:["IMAGING"],gabinete:["PROCEDURE"],interconsultas:["REFERRAL"],procedimientos:["PROCEDURE"]};
+   // Auditoría R05b-11: «Gabinete» y «Procedimientos» filtraban EXACTAMENTE el mismo tipo (PROCEDURE). Quien pulsaba
+   // «Gabinete» esperaba estudios de gabinete y obtenía todos los procedimientos: dos pestañas, un solo filtro. No existe un
+   // tipo de orden «gabinete» en el dominio, así que la pestaña se retira en vez de inventarle un tipo al servidor.
+   const TAB_TYPES:Record<string,string[]>={laboratorio:["LAB"],imagenologia:["IMAGING"],interconsultas:["REFERRAL"],procedimientos:["PROCEDURE"]};
    const byTab=ordTab==="todas"?items:ordTab==="otros"?items.filter(o=>!KNOWN.includes(o.orderType)):items.filter(o=>(TAB_TYPES[ordTab]??[]).includes(o.orderType));
    const q=ordQuery.trim().toLowerCase();
    const filtered=byTab.filter(o=>(!q||o.patientName.toLowerCase().includes(q)||o.detail.toLowerCase().includes(q))&&(!ordStatus||o.status===ordStatus));
@@ -74,7 +77,7 @@ export default function OrdenesView(){
      <div style={{...card2,padding:16}}>
       <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}} {...act(()=>{setOrdQuery("");setOrdStatus("");setOrdTab("todas");})}>Limpiar</span></div>
       <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA0BC" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input value={ordQuery} onChange={e=>setOrdQuery(e.target.value)} placeholder="Buscar paciente o estudio…" style={{border:0,outline:"none",fontSize:12.5,fontFamily:UI,color:P.ink,width:"100%",background:"transparent"}}/></div>
-      <div style={flbl}>Tipo de orden</div><select value={ordTab} onChange={e=>setOrdTab(e.target.value as typeof ordTab)} style={selSty}><option value="todas">Todos</option><option value="laboratorio">Laboratorio</option><option value="imagenologia">Imagenología</option><option value="gabinete">Gabinete</option><option value="interconsultas">Interconsultas</option><option value="procedimientos">Procedimientos</option><option value="otros">Otros</option></select>
+      <div style={flbl}>Tipo de orden</div><select value={ordTab} onChange={e=>setOrdTab(e.target.value as typeof ordTab)} style={selSty}><option value="todas">Todos</option><option value="laboratorio">Laboratorio</option><option value="imagenologia">Imagenología</option><option value="interconsultas">Interconsultas</option><option value="procedimientos">Procedimientos</option><option value="otros">Otros</option></select>
       <div style={{...flbl,marginTop:14}}>Estado</div><select value={ordStatus} onChange={e=>setOrdStatus(e.target.value)} style={selSty}><option value="">Todos</option><option value="Solicitada">Solicitada</option><option value="Enviada">Enviada</option><option value="Completada">Completada</option><option value="Cancelada">Cancelada</option></select>
       <div style={{...flbl,marginTop:14}}>Solicitado por</div><div style={{...selSty,color:P.muted,fontSize:12}}>Yo ({docDisplay})</div>
       <button style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,marginTop:14}} onClick={()=>{setOrdNew(true);window.scrollTo({top:0,behavior:"smooth"});}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M12 5v14M5 12h14"/></svg>Nueva orden</button>

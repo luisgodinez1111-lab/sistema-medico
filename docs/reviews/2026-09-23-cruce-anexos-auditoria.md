@@ -354,3 +354,38 @@ de auditoría es la línea base del proyecto y conviene que su fe de errores viv
 3. **Lo que exige una decisión del dueño** (retirar el outbox y las tablas muertas, tenants y claves foráneas, retención y
    borrado de PHI, verticales hospitalarias, aceptación humana C5, uso previsto, facturación de Actions, protección de
    rama) sigue en la sección de acciones del dueño: aquí solo se añade la evidencia fina que lo respalda.
+
+## Anexo R05b — Workspace UI 2 (30 hallazgos) · cruzado el 24-sep-2026
+
+| ID | Severidad | Estado | Hallazgo | Medición contra el código |
+| --- | --- | --- | --- | --- |
+| R05b-01 | MEDIA | YA CERRADO | Fallback a CIE-10 de demostración durante la carga | Los códigos `J02.9`/`B34.9` no existen en ninguna vista. |
+| R05b-02 | ALTA | YA CERRADO | «Guardar y añadir otro» no hacía lo que dice | `savePf(stay)` se queda en el formulario y ambos botones se deshabilitan mientras guarda (U-04). |
+| R05b-03 | MEDIA | CERRADO (13x) | Campo «edad» del registro de alergias: código muerto | `age:""` en tres vistas. Se deriva de verdad con `edadDe(patientList, …)` usando el `birthDate` que la lista de pacientes YA trae y `ageInYears`, la misma función de la seguridad de prescripción. Sin fecha de nacimiento devuelve vacío: no se inventa. |
+| R05b-04 | ALTA | CERRADO (13v) | Verificador de interacciones: fallo silencioso | Ver WS1-12: no tenía mensaje ni `catch`. |
+| R05b-05 | ALTA | CERRADO (13x) | El corte `criticalHigh<99` ocultaba umbrales críticos REALES | «Sin umbral» se declara ahora en `packages/lab-reference` (`criticalHighUnbounded`/`criticalLowUnbounded`) en vez de adivinarse en la vista con números mágicos. Solo dos analitos usan centinela —albúmina 99 g/dL y PO2 999 mmHg, ambos imposibles—; los once umbrales letales que el corte original ocultaba (potasio 6.5, pH 7.55, INR 5, troponina 0.04…) están fijados por prueba. |
+| R05b-06 | ALTA | YA CERRADO | Registrar resultado sin unidad | El formulario captura la unidad (`canonicalUnitOf`) y la envía; el servidor la exige (R02a-RES-01). |
+| R05b-07 | MEDIA | CERRADO (13x) | Reactividad cruzada por regex, 100 % cliente | **Contradicción clínica encontrada al cablearlo:** la alerta decía «evitar sulfonamidas» y el catálogo documenta desde R03-24 que ese antecedente NO debe retirar furosemida ni tiazidas. Ahora sale de `allergyCrossReactivity()` —el mismo motor que bloquea prescripciones— con sus matices (cadena lateral R1, ~1 % con cefalosporinas de 3.ª–4.ª), y si no reconoce la sustancia lo dice en vez de caer en «penicilinas» por omisión. |
+| R05b-08 | MEDIA | ABIERTO | Deriva de color frente al Design System | Pendiente: colores de marca a mano que no coinciden con los tokens importados. |
+| R05b-09 | MEDIA | ABIERTO | Controles interactivos no semánticos / no accesibles por teclado | Pendiente de medición fila por fila. |
+| R05b-10 | MEDIA | ABIERTO | Etiquetas de formulario no asociadas a su input (signos vitales) | Pendiente. |
+| R05b-11 | MEDIA | CERRADO (13x) | «Gabinete» y «Procedimientos» filtraban el mismo tipo | Las dos pestañas mapeaban a `PROCEDURE`. Se retira «Gabinete»: no existe ese tipo de orden en el dominio y no se le inventa uno al servidor. Guarda: ninguna pestaña puede repetir filtro. |
+| R05b-12 | ALTA | ABIERTO (declarado) | El catálogo/motor de interacciones es de demostración | El propio paquete lo declara en su cabecera; sustituirlo por RxNorm/COFEPRIS es decisión de dueño (ADR-0300, validación clínica del contenido). |
+| R05b-13 | Fortaleza | — | Transparencia explícita sobre simulaciones | Se conserva. |
+| R05b-14 | Fortaleza | — | Alta de problema con catálogo controlado | Se conserva (y ahora también avisa si el catálogo no responde: R05b-17). |
+| R05b-15 | MEDIA | CERRADO (13x) | Cancelación/inasistencia sin confirmación previa | Cancelar ya exigía motivo por diálogo. Marcar INASISTENCIA se disparaba al primer clic: ahora pide constancia (a qué hora se esperó, si se intentó contactar) **y el servidor la persiste** — `WhenBody` la habría descartado en silencio, así que se añadió `NoShowBody`. Es una transición terminal que afirma algo sobre la conducta del paciente y alimenta el indicador de inasistencia de los reportes. |
+| R05b-16 | BAJA | ABIERTO | Alta de cita pide la hora en UTC | Pendiente: el `datetime-local` del expediente se interpreta con el reloj del navegador. |
+| R05b-17 | BAJA | CERRADO (13x) | Búsqueda CIE-10: fallo de red indistinguible de «sin resultados» | Sin código no se puede registrar el problema. El fallo se dice con su propio aviso y el `catch` silencioso desaparece. |
+| R05b-18 | BAJA | ABIERTO | Truncamiento silencioso de alertas de Clinical Intelligence | Pendiente. |
+| R05b-19 | CRÍTICA | YA CERRADO | «Nuevo problema» descartaba los campos capturados | U-04: todo lo capturado viaja, la fecha de inicio se valida (obligatoria y no futura) y «Resuelto» exige nota. |
+| R05b-20 | ALTA | YA CERRADO | Estadísticas de uso fabricadas en plantillas | Las plantillas solo llevan nombre, código, descripción y categoría. |
+| R05b-21 | BAJA | CERRADO (13x) | El patrón `age:""` se repite en Problemas y Vacunas | Cerrado con R05b-03: era sistemático, se corrigió en las tres vistas. |
+| R05b-22 | Nota | ABIERTO | `spark()`: riesgo de NaN silencioso | Pendiente de medición. |
+| R05b-23 | ALTA | ABIERTO | Umbrales de vitales ad-hoc que divergen de NEWS2 | Pendiente de medición: no se encontraron umbrales en la vista de signos. |
+| R05b-24 | ALTA | YA CERRADO | `saveVitals` sin unidad transaccional | U-09: captura estable, se intentan todos y se informa guardados/no guardados. |
+| R05b-25 | MEDIA | ABIERTO | `as unknown as X` sobre respuestas de red sin validación | Pendiente. |
+| R05b-26 | BAJA | CERRADO (13x) | La barra de progreso usa un porcentaje FIJO (85 %/55 %) | Era una proporción inventada presentada como avance. Ahora el indicador es binario —«En meta»/«Fuera de meta», que es lo que el sistema sabe— con su `aria-label`. |
+| R05b-27 | ALTA | ABIERTO | Contraste de color: 4 de 6 pares fallan WCAG AA | Pendiente. |
+| R05b-28 | MEDIA | ABIERTO | Helpers de estilo redefinidos en cada vista | Pendiente. |
+| R05b-29 | PHI | — | Sin fugas de PHI en el rango | Verificado por el auditor. |
+| R05b-30 | MEDIA | ABIERTO | El «bloqueo» durante el guardado es solo visual | Pendiente de medición. |

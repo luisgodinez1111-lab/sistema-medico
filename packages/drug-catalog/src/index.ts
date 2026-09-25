@@ -383,6 +383,50 @@ const R1_CROSS:Readonly<Record<string,readonly string[]>>={
  FURANYL_METHOXYIMINO:["FURANYL_METHOXYIMINO"],
 };
 function r1CrossReacts(a:string,b:string):boolean{return a===b||(R1_CROSS[a]??[]).includes(b);}
+// Auditoría 2026-09-19, anexo R05b (R05b-07) — REACTIVIDAD CRUZADA DE UN ALÉRGENO, desde este catálogo y no desde un regex.
+//
+// EL HALLAZGO: la vista de Alergias pintaba una «Alerta clínica» a partir de siete palabras sueltas buscadas en un campo de
+// TEXTO LIBRE (`/penicil|amoxi|betalact|cefal|sulfa|aine|ibuprof/`), sin relación con el motor que de verdad bloquea las
+// prescripciones. Dos fuentes para el mismo hecho clínico, y ya discrepaban:
+//   · La alerta decía «Evitar sulfonamidas y considerar reactividad cruzada con otros de su familia». Este catálogo
+//     documenta lo contrario desde R03-24: quien dice «alergia a sulfas» se refiere al ANTIBIÓTICO, y propagarlo a
+//     furosemida o hidroclorotiazida es un daño sin base en la evidencia. La pantalla empujaba exactamente a ese daño.
+//   · La alerta afirmaba la reactividad cruzada de los betalactámicos sin matiz. Este catálogo la modela por cadena
+//     lateral R1 y anota que con cefalosporinas de 3.ª–4.ª generación la evidencia la sitúa en ~1 % o menos.
+//
+// Esta función expone lo que el catálogo YA sabe, para que la pantalla no tenga que inventarlo. Si no reconoce la clase del
+// alérgeno, lo dice: «no se pudo evaluar» es la única respuesta honesta, y no una alerta por omisión.
+const CLASS_ES:Readonly<Record<string,string>>={
+ PENICILLIN:"penicilinas",CEPHALOSPORIN:"cefalosporinas",BETA_LACTAM:"betalactámicos",
+ SULFONAMIDE_ANTIBIOTIC:"sulfonamidas antibióticas (tipo trimetoprima-sulfametoxazol)",SULFONAMIDE:"sulfonamidas",
+ NSAID:"AINE",SALICYLATE:"salicilatos",PYRAZOLONE:"pirazolonas",MACROLIDE:"macrólidos",
+};
+const CLASS_CAVEAT:Readonly<Record<string,string>>={
+ SULFONAMIDE_ANTIBIOTIC:"No incluye las sulfonamidas NO antibióticas: furosemida, tiazidas o celecoxib no se retiran por este antecedente (R03-24).",
+ BETA_LACTAM:"La reactividad penicilina↔cefalosporina depende de la cadena lateral R1: con cefalosporinas de 3.ª–4.ª generación la evidencia la sitúa en ~1 % o menos.",
+};
+export type AllergyCrossReactivity=Readonly<{
+ /** false = el catálogo no reconoce la clase de este alérgeno; no se puede afirmar nada sobre su familia. */
+ recognized:boolean;
+ /** Clases del alérgeno según los sinónimos y el propio catálogo de fármacos. */
+ classes:readonly string[];
+ /** Qué evitar, en español, derivado de esas clases. */
+ avoid:readonly string[];
+ /** Familias emparentadas (la misma tabla que usa el bloqueo de prescripción). */
+ crossFamilies:readonly string[];
+ /** Advertencias que este catálogo documenta para esas clases. Vacío si no hay ninguna. */
+ caveats:readonly string[];
+}>;
+export function allergyCrossReactivity(substance:string):AllergyCrossReactivity{
+ const propias=allergyClasses(substance);
+ const delCatalogo=resolveDrug(substance)?.classes??[];
+ const classes=[...new Set([...propias,...delCatalogo])];
+ if(classes.length===0)return{recognized:false,classes:[],avoid:[],crossFamilies:[],caveats:[]};
+ const crossFamilies=[...new Set(classes.flatMap(c=>CROSS_FAMILY[c]??[]))];
+ const avoid=[...new Set([...classes,...crossFamilies].map(c=>CLASS_ES[c]).filter((x):x is string=>!!x))];
+ const caveats=[...new Set([...classes,...crossFamilies].map(c=>CLASS_CAVEAT[c]).filter((x):x is string=>!!x))];
+ return{recognized:true,classes,avoid,crossFamilies,caveats};
+}
 export function effectiveAllergySeverity(a:AllergyRecord):AllergySeverity{
  if(a.reaction&&SEVERE_REACTION.test(a.reaction))return "SEVERE";
  return a.severity==="MILD"||a.severity==="MODERATE"||a.severity==="SEVERE"?a.severity:"SEVERE";

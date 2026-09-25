@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "vacunas" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{card,P,LINE,UI,actRow,scrollToSection}from"../shared";
+import{edadDe,card,P,LINE,UI,actRow,scrollToSection}from"../shared";
 import{useWorkspace}from"../context";
 export default function VacunasView(){
  const{immReg,immStatusF,immSearch,immSel,setVacNew,setVacMsg,vacNew,vacMsg,vacForm,setVacForm,patientList,createImmunizationInline,vacBusy,setImmSearch,setImmStatusF,setImmSel,selectPatientRaw,setView}=useWorkspace();
@@ -16,7 +16,7 @@ export default function VacunasView(){
    const estSty=(k:string):React.CSSProperties=>{const m:Record<string,[string,string]>={Completa:["#E6F6EE","#16A66A"],Pendiente:["#FBF0DC","#B7791F"],Rechazada:["#FDECEE","#C9364A"],["Evento adverso"]:["#FDECEE","#C9364A"]};const[bg,fg]=m[k]??m.Pendiente!;return{background:bg,color:fg,borderRadius:16,padding:"3px 11px",fontSize:12,fontWeight:700,whiteSpace:"nowrap"};};
    const immLoaded=!!immReg;
    type VRow={id:string;pid:string;date:string;patient:string;age:string;vaccine:string;dose:string;lot:string;estado:string;site:string};
-   const allRows:VRow[]=(immReg?.items??[]).map((it,i)=>({id:it.immunizationId||`v${i}`,pid:it.patientId,date:fmtD(it.appliedAt),patient:it.patientName,age:"",vaccine:it.vaccine,dose:it.dose,lot:it.lot||"—",estado:it.statusLabel,site:it.site||"—"}));
+   const allRows:VRow[]=(immReg?.items??[]).map((it,i)=>({id:it.immunizationId||`v${i}`,pid:it.patientId,date:fmtD(it.appliedAt),patient:it.patientName,age:edadDe(patientList,it.patientId),vaccine:it.vaccine,dose:it.dose,lot:it.lot||"—",estado:it.statusLabel,site:it.site||"—"}));
    const rows=allRows.filter(r=>(immStatusF==="Todos"||r.estado===immStatusF)&&(!immSearch||`${r.patient} ${r.vaccine} ${r.lot}`.toLowerCase().includes(immSearch.toLowerCase())));
    const selv:VRow|null=rows[immSel]??rows[0]??null;
    const total=immReg?.total??0;

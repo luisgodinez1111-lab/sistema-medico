@@ -45,7 +45,26 @@ const RANGES: Record<string, readonly [number, number, number, number]> = {
 };
 // Rangos de referencia expuestos (para la pestaña "Valores de referencia"): el rango NORMAL es
 // [abnormalLow, abnormalHigh] y los límites de pánico son [criticalLow, criticalHigh]. Deterministas.
-export type LabRefRange = Readonly<{ analyte: string; label: string; normalLow: number; normalHigh: number; criticalLow: number; criticalHigh: number; unit?: string; stratum?: string; source?: string }>;
+// Auditoría 2026-09-19, anexo R05b (R05b-05) — «SIN UMBRAL CRÍTICO» SE DECLARA AQUÍ, no se adivina en la pantalla.
+//
+// EL HALLAZGO: la tabla de valores de referencia decidía si un analito tenía umbral crítico alto con el corte `criticalHigh
+// < 99`. Esa tabla NO usa `null` para «sin límite»: usa el propio valor, y para casi todos los analitos es un número
+// clínicamente real. El corte ocultaba como «sin umbral alto» umbrales verdaderos y letales —potasio 6.5 mEq/L, pH 7.55,
+// INR 5, troponina 0.04, creatinina 4, lactato 4, calcio 13…—: once de veintiocho. Se cambió después a `!==99 && !==999`,
+// que acierta pero deja dos números mágicos en la vista y en la cabeza de quien lea el código.
+//
+// Solo DOS analitos usan un valor imposible como centinela: albúmina 99 g/dL y PO2 999 mmHg. Eso se declara una vez, con su
+// razón, y la interfaz recibe `criticalHighUnbounded` en vez de comparar números.
+const SIN_UMBRAL_ALTO:Readonly<Record<string,number>>={
+ ALBUMIN:99, // 99 g/dL es fisiológicamente imposible: la albúmina solo tiene crítico BAJO
+ PO2:999,    // 999 mmHg es imposible respirando aire: el PO2 solo tiene crítico BAJO (hipoxemia)
+};
+/** true cuando ese analito NO tiene umbral crítico ALTO y el número de la tabla es solo un centinela. */
+export function criticalHighUnbounded(analyte:string,criticalHigh:number):boolean{
+ const centinela=SIN_UMBRAL_ALTO[analyte.trim().toUpperCase()];
+ return centinela!==undefined&&criticalHigh>=centinela;
+}
+export type LabRefRange = Readonly<{ analyte: string; label: string; normalLow: number; normalHigh: number; criticalLow: number; criticalHigh: number; criticalHighUnbounded: boolean; criticalLowUnbounded: boolean; unit?: string; stratum?: string; source?: string }>;
 /**
  * Rangos expuestos a la interfaz. Auditoría R03-14: se derivan del MISMO selector de estrato que clasifica
  * (`rangeRowFor`), no de la tabla plana: si no, la pestaña «Valores de referencia» mostraría un rango y el resultado
@@ -57,7 +76,7 @@ export function labReferenceRanges(ctx: LabContext = {}): LabRefRange[] {
     const r = rangeRowFor(analyte, ctx)!;
     const [cl, al, ah, ch] = r.range;
     const unit = canonicalUnitOf(analyte);
-    return { analyte, label: analyteLabel(analyte), normalLow: al, normalHigh: ah, criticalLow: cl, criticalHigh: ch, ...(unit ? { unit } : {}), stratum: r.stratum, source: r.source };
+    return { analyte, label: analyteLabel(analyte), normalLow: al, normalHigh: ah, criticalLow: cl, criticalHigh: ch, criticalHighUnbounded: criticalHighUnbounded(analyte, ch), criticalLowUnbounded: cl <= 0, ...(unit ? { unit } : {}), stratum: r.stratum, source: r.source };
   });
 }
 // Cadena vacía NO es 0 (Number("") === 0): un campo sin capturar jamás debe leerse como un valor.

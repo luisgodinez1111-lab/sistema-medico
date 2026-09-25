@@ -2,7 +2,8 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "alergias" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{card,P,LINE,UI,actRow,scrollToSection,type AllergenType}from"../shared";
+import{edadDe,card,P,LINE,UI,actRow,scrollToSection,type AllergenType}from"../shared";
+import{allergyCrossReactivity}from"../../../../../packages/drug-catalog/src";
 import{useWorkspace}from"../context";
 export default function AlergiasView(){
  const{alergReg,alergOnlyActive,alergOnlySevere,alergType,alergSearch,alergSel,setAlgNew,setAlgMsg,algNew,algMsg,algForm,setAlgForm,patientList,createAllergyInline,algBusy,setAlergSearch,setAlergType,setAlergOnlySevere,setAlergOnlyActive,setAlergSel,selectPatientRaw,setView}=useWorkspace();
@@ -15,7 +16,7 @@ export default function AlergiasView(){
    const fmtDate=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})+", "+d.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});};
    const alergLoaded=!!alergReg;
    // Registro clínica-wide REAL (GET /api/v1/allergies); sin datos de ejemplo.
-   const allRows:ARow[]=(alergReg?.items??[]).map((it,i)=>({id:it.allergyId||`a${i}`,pid:it.patientId,name:it.patientName,age:"",substance:it.substance,type:it.type,reaction:it.reaction,sevKey:SEV_KEY[it.severity]??"Leve",estado:it.statusLabel,active:it.status==="ACTIVE",severe:it.severity==="SEVERE",exp:it.patientId.slice(0,8).toUpperCase(),date:fmtDate(it.recordedAt),by:it.registeredBy?"Médico tratante":"—",notes:it.reaction}));
+   const allRows:ARow[]=(alergReg?.items??[]).map((it,i)=>({id:it.allergyId||`a${i}`,pid:it.patientId,name:it.patientName,age:edadDe(patientList,it.patientId),substance:it.substance,type:it.type,reaction:it.reaction,sevKey:SEV_KEY[it.severity]??"Leve",estado:it.statusLabel,active:it.status==="ACTIVE",severe:it.severity==="SEVERE",exp:it.patientId.slice(0,8).toUpperCase(),date:fmtDate(it.recordedAt),by:it.registeredBy?"Médico tratante":"—",notes:it.reaction}));
    // Filtros (cliente): búsqueda, tipo, solo activas, solo graves
    const rows=allRows.filter(r=>(!alergOnlyActive||r.active)&&(!alergOnlySevere||r.severe)&&(alergType==="Todos"||r.type===alergType)&&(!alergSearch||`${r.name} ${r.substance}`.toLowerCase().includes(alergSearch.toLowerCase())));
    const sel:ARow|null=rows[alergSel]??rows[0]??null;
@@ -36,7 +37,10 @@ export default function AlergiasView(){
    const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"14px 0 6px"};
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
    const chk=(on:boolean,l:string,tog:()=>void)=><label key={l} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:"pointer"}} onClick={tog}><span style={{width:16,height:16,borderRadius:4,border:on?"0":"1.6px solid #C7CCE0",background:on?P.purple:"transparent",display:"grid",placeItems:"center",color:"#fff",fontSize:10,flex:"0 0 auto"}}>{on?"✓":""}</span>{l}</label>;
-   const alertBeta=!!sel&&/penicil|amoxi|betalact|cefal|sulfa|aine|ibuprof/i.test(sel.substance);
+   // Auditoría R05b-07: la reactividad cruzada la determina el CATÁLOGO (el mismo motor que bloquea prescripciones), no un
+   // regex de siete palabras sobre texto libre. Antes la pantalla decía «evitar sulfonamidas» y el catálogo documenta lo
+   // contrario (R03-24: no se propaga a furosemida ni tiazidas); dos fuentes para el mismo hecho clínico, ya discrepando.
+   const cruzada=sel?allergyCrossReactivity(sel.substance):null;
    return <div style={{padding:"18px 24px 40px"}}>
     {/* Encabezado */}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
@@ -112,7 +116,9 @@ export default function AlergiasView(){
         <div style={{display:"flex",justifyContent:"space-between",gap:10,fontSize:12.5}}><span style={{color:P.muted}}>Registrado por</span><span style={{fontWeight:600,textAlign:"right"}}>{sel.by}</span></div>
         <div style={{fontSize:12.5}}><div style={{color:P.muted,marginBottom:3}}>Notas</div><div style={{lineHeight:1.5}}>{sel.notes}</div></div>
        </div>
-       {alertBeta&&<div style={{marginTop:12,display:"flex",gap:9,padding:"11px 13px",borderRadius:11,background:"#FDECEE",border:"1px solid #F6C9D0"}}><span style={{color:P.red,flex:"0 0 auto"}}>⚠</span><div><div style={{fontWeight:700,fontSize:12.5,color:"#9B1C2E"}}>Alerta clínica</div><div style={{fontSize:12,color:"#7A2531",marginTop:2}}>Evitar {sel.substance.toLowerCase().includes("sulfa")?"sulfonamidas":sel.substance.toLowerCase().includes("aine")||sel.substance.toLowerCase().includes("ibuprof")?"AINE":"penicilinas"} y considerar reactividad cruzada con otros de su familia.</div></div></div>}
+       {cruzada&&(cruzada.recognized
+        ?<div style={{marginTop:12,display:"flex",gap:9,padding:"11px 13px",borderRadius:11,background:"#FDECEE",border:"1px solid #F6C9D0"}}><span style={{color:P.red,flex:"0 0 auto"}}>⚠</span><div><div style={{fontWeight:700,fontSize:12.5,color:"#9B1C2E"}}>Reactividad cruzada</div><div style={{fontSize:12,color:"#7A2531",marginTop:2}}>Evitar {cruzada.avoid.join(", ")}.</div>{cruzada.caveats.map((c,i)=><div key={i} style={{fontSize:11.5,color:"#7A2531",marginTop:4,opacity:.95}}>{c}</div>)}<div style={{fontSize:11,color:"#7A2531",marginTop:4,opacity:.8}}>Del catálogo de fármacos: es la misma clasificación que bloquea la prescripción.</div></div></div>
+        :<div style={{marginTop:12,display:"flex",gap:9,padding:"11px 13px",borderRadius:11,background:"#FFF4E5",border:"1px solid #F0DBB8"}}><span style={{color:"#B7791F",flex:"0 0 auto"}}>⚠</span><div><div style={{fontWeight:700,fontSize:12.5,color:"#A15C00"}}>Reactividad cruzada no evaluada</div><div style={{fontSize:12,color:"#8A5A12",marginTop:2}}>El catálogo no reconoce la clase de «{sel!.substance}»: no se puede afirmar con qué familia cruza. Codifique la sustancia o valórelo con la fuente clínica.</div></div></div>)}
        <div style={{display:"flex",gap:10,marginTop:14}}>
         <button onClick={()=>{selectPatientRaw(sel.pid,sel.name);setView("exp");setTimeout(()=>scrollToSection("Alergias"),0);}} style={{flex:1,border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"9px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button>
        </div>
