@@ -1,11 +1,21 @@
 "use client";
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "consulta" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
+import {useEffect,useRef} from "react";
 import {searchIcd10} from "../../../../../packages/terminology/src";
 import{Check,card,P,LINE,UI,act,scrollToSection,mono,DX_LABEL,NavIcon}from"../shared";
 import{useWorkspace}from"../context";
 export default function ConsultaView(){
- const{consultaPid,agenda,patientList,consultaNewPid,setApptNew,setAgendaDate,setView,setConsultaNewPid,openConsulta,patientName,snap,setConsultaPid,enc,gaps,patientId,busy,setCPreview,cPreview,consultaAdvance,cMsg,setCMsg,composeNote,cForm,docDisplay,chartState,setChartReload,setCTab,cTab,consTabs,setCForm,setCAntec,cAntec,clock,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdSel,setCOrdCat,setCOrdMsg,cOrdSel,createConsultaOrders,cOrdBusy,cOrdMsg}=useWorkspace();
+ const{consultaPid,agenda,patientList,consultaNewPid,setApptNew,setAgendaDate,setView,setConsultaNewPid,openConsulta,patientName,snap,setConsultaPid,enc,gaps,patientId,busy,setCPreview,cPreview,consultaAdvance,cMsg,setCMsg,composeNote,cForm,docDisplay,chartState,setChartReload,setCTab,cTab,consTabs,setCForm,setCAntec,cAntec,clock,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdSel,setCOrdCat,setCOrdMsg,cOrdSel,createConsultaOrders,cOrdBusy,cOrdMsg,patientQuery,setPatientQuery,loadPatients,setPatNew}=useWorkspace();
+ // Lote C: buscador incremental de paciente en Nueva consulta (server ?q=), con debounce; sustituye el <select> masivo.
+ const searchDeb=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
+ useEffect(()=>{
+  if(consultaPid)return; // solo en el landing (sin paciente en foco)
+  const q=patientQuery;
+  if(searchDeb.current)clearTimeout(searchDeb.current);
+  searchDeb.current=setTimeout(()=>{void loadPatients(q);},300);
+  return()=>{if(searchDeb.current)clearTimeout(searchDeb.current);};
+ },[patientQuery,consultaPid,loadPatients]);
 
    // ===== PANEL DE CONSULTAS (landing) — sin paciente en foco: citas de hoy + iniciar nueva consulta =====
    if(!consultaPid){
@@ -17,7 +27,7 @@ export default function ConsultaView(){
     const pend=appts.filter(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN");
     const cnt=agenda?.counts??{programadas:appts.length,atendidas:0,enEspera:0,canceladas:0};
     const kc=(bg:string,fg:string,d:string,n:number|string,l:string)=><div style={{...card2,padding:16,display:"flex",gap:13,alignItems:"center"}}><span style={{width:44,height:44,borderRadius:12,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span><div><div style={{fontSize:24,fontWeight:800}}>{n}</div><div style={{fontSize:11.5,color:P.muted}}>{l}</div></div></div>;
-    const npName=(patientList??[]).find(p=>p.patientId===consultaNewPid)?.name??"";
+    const matches=(patientList??[]).slice(0,8);const q=patientQuery.trim();
     return <div style={{padding:"22px 26px 40px",maxWidth:1120,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
       <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M6 4v5a5 5 0 0010 0V4M11 14v2a4 4 0 008 0M19 12a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Consultas</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Panel del día. Inicia una nueva consulta o abre la de una cita agendada.</p></div></div>
@@ -31,11 +41,21 @@ export default function ConsultaView(){
      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-mid">
       <div style={{...card2,padding:18}}>
        <div style={{fontSize:16,fontWeight:800,marginBottom:4}}>Iniciar nueva consulta</div>
-       <div style={{fontSize:12.5,color:P.muted,marginBottom:14}}>Elige el paciente para abrir su expediente de consulta.</div>
-       <div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Paciente</div>
-       <select value={consultaNewPid} onChange={e=>setConsultaNewPid(e.target.value)} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"10px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}><option value="">Selecciona un paciente…</option>{(patientList??[]).map(p=><option key={p.patientId} value={p.patientId}>{p.name}</option>)}</select>
-       {(patientList??[]).length===0&&<div style={{fontSize:11.5,color:P.muted,marginTop:6}}>No hay pacientes en el tenant. Regístralos en «Pacientes».</div>}
-       <button disabled={!consultaNewPid} onClick={()=>openConsulta(consultaNewPid,npName)} style={{marginTop:14,width:"100%",justifyContent:"center",display:"flex",border:0,background:consultaNewPid?P.purple:"#C7CCE0",color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:14,cursor:consultaNewPid?"pointer":"default",fontFamily:UI}}>Abrir consulta</button>
+       <div style={{fontSize:12.5,color:P.muted,marginBottom:14}}>Busca al paciente por nombre, CURP o teléfono, o registra uno nuevo.</div>
+       <div style={{position:"relative"}}>
+        <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:P.muted}} aria-hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></span>
+        <input value={patientQuery} onChange={e=>setPatientQuery(e.target.value)} placeholder="Buscar por nombre, CURP o teléfono…" aria-label="Buscar paciente" style={{width:"100%",boxSizing:"border-box",border:`1px solid ${LINE}`,borderRadius:9,padding:"10px 11px 10px 34px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink}}/>
+       </div>
+       <div style={{marginTop:10,minHeight:52}}>
+        {!q
+         ?<div style={{fontSize:12,color:P.muted,padding:"8px 2px"}}>Escribe para buscar un paciente. También puedes abrir una <b>cita de hoy →</b></div>
+         :busy==="pt-list"
+          ?<div style={{fontSize:12,color:P.muted,padding:"8px 2px"}}>Buscando…</div>
+          :matches.length===0
+           ?<div style={{fontSize:12,color:P.muted,padding:"8px 2px"}}>Sin coincidencias para «{q}». Registra un paciente nuevo abajo.</div>
+           :<div style={{display:"flex",flexDirection:"column",gap:4}}>{matches.map(p=><button key={p.patientId} onClick={()=>openConsulta(p.patientId,p.name)} style={{display:"flex",alignItems:"center",gap:10,textAlign:"left",width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 11px",cursor:"pointer",fontFamily:UI}}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{ini(p.name)}</span><span style={{flex:1,minWidth:0}}><span style={{display:"block",fontSize:13,fontWeight:600}}>{p.name}</span>{p.curp&&<span style={{display:"block",fontSize:11,color:P.muted}}>{p.curp}</span>}</span><span style={{fontSize:12,fontWeight:700,color:P.purple,flex:"0 0 auto"}}>Abrir →</span></button>)}</div>}
+       </div>
+       <button onClick={()=>{setPatNew(true);setView("pacientes");window.scrollTo({top:0,behavior:"smooth"});}} style={{marginTop:12,width:"100%",justifyContent:"center",display:"flex",alignItems:"center",gap:8,border:`1px dashed ${P.purple}`,background:"#F7F6FE",color:P.purple,borderRadius:10,padding:"11px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>+ Registrar paciente nuevo</button>
       </div>
       <div style={{...card2,padding:0,overflow:"hidden"}}>
        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 18px 10px"}}><div style={{fontSize:16,fontWeight:800}}>Citas de hoy ({pend.length} por atender)</div><span style={{color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"}} {...act(()=>setView("agenda"))}>Ver agenda →</span></div>

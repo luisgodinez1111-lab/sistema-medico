@@ -126,7 +126,7 @@ const noSeriousAxe=async(node:Element,label:string)=>{
 };
 
 // Consulta ahora abre un PANEL de consultas; el workspace clínico se abre eligiendo un paciente e "Abrir consulta".
-const abrirConsulta=async()=>{fireEvent.click(screen.getByRole("button",{name:"Consulta"}));const opt=await screen.findByRole("option",{name:"Ana López García"});fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});fireEvent.click(screen.getByRole("button",{name:"Abrir consulta"}));};
+const abrirConsulta=async()=>{fireEvent.click(screen.getByRole("button",{name:"Consulta"}));const input=await screen.findByLabelText("Buscar paciente");fireEvent.change(input,{target:{value:"Ana"}});const open=await screen.findByRole("button",{name:/Ana López García/},{timeout:2000});fireEvent.click(open);};
 
 // Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
 // EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
@@ -368,8 +368,9 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect((screen.getByPlaceholderText("Motivo de la consulta…") as HTMLTextAreaElement|HTMLInputElement).value).toBe("Cefalea del paciente A");
   // cambio a Carlos Mendoza (p2): volver al panel de consultas y abrir la suya
   fireEvent.click(screen.getByTitle("Volver al panel de consultas"));
-  const opt=await screen.findByRole("option",{name:"Carlos Mendoza"});
-  fireEvent.change(opt.closest("select")!,{target:{value:"p2"}});fireEvent.click(screen.getByRole("button",{name:"Abrir consulta"}));
+  const input2=await screen.findByLabelText("Buscar paciente");
+  fireEvent.change(input2,{target:{value:"Carlos"}});
+  const openC=await screen.findByRole("button",{name:/Carlos Mendoza/},{timeout:2000});fireEvent.click(openC);
   expect((screen.getByPlaceholderText("Motivo de la consulta…") as HTMLTextAreaElement|HTMLInputElement).value).toBe("");
   expect(screen.queryByText(/Cefalea del paciente A/)).toBeNull();
  });
