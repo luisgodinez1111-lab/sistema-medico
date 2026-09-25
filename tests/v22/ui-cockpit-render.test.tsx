@@ -430,9 +430,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Consulta: interrogatorio y exploración física son campos REALES que alimentan la nota clínica",async()=>{
   render(<Workspace/>);
   await abrirConsulta();
-  // secciones 4 y 5 ya no son colapsables decorativos: son textareas reales
-  fireEvent.change(screen.getByPlaceholderText(/Cardiovascular, respiratorio/),{target:{value:"Cardiopulmonar sin alteraciones"}});
-  fireEvent.change(screen.getByPlaceholderText(/Hallazgos de la exploración/),{target:{value:"Abdomen blando, no doloroso"}});
+  // secciones 4 y 5 ya no son colapsables decorativos: son textareas reales, con andamiaje estructurado (Lote D)
+  fireEvent.click(screen.getByRole("button",{name:"Negativo por aparatos"}));
+  expect((screen.getByPlaceholderText(/Interrogatorio por aparatos/) as HTMLTextAreaElement).value).toMatch(/Negado por aparatos/);
+  fireEvent.change(screen.getByPlaceholderText(/Interrogatorio por aparatos/),{target:{value:"Cardiopulmonar sin alteraciones"}});
+  fireEvent.change(screen.getByPlaceholderText(/Exploración física por regiones/),{target:{value:"Abdomen blando, no doloroso"}});
   // la vista previa de la nota compone lo escrito (cableado a composeNote)
   fireEvent.click(screen.getByRole("button",{name:"Vista previa"}));
   expect(await screen.findByText(/INTERROGATORIO POR APARATOS Y SISTEMAS: Cardiopulmonar sin alteraciones/)).toBeTruthy();
