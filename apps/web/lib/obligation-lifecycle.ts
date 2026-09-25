@@ -7,6 +7,7 @@ import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPati
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{aggregateLifecycle}from"./lifecycle-factory";
+import{decideDueAt,dueAtPayload,dueWindowFor}from"../../../packages/obligation-domain/src";
 // EPIC O — Ciclo de vida de la obligación (seguimiento): OPEN -> IN_PROGRESS -> COMPLETED / CANCELLED.
 // Completar exige EVIDENCIA (Zero Lost Follow-Up: nada se cierra sin constancia). Scope obligation:write.
 const AGG="ClinicalObligation";
@@ -19,7 +20,11 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
 // (se cierra el lazo Zero Lost Follow-Up de vitales críticos y se desbloquea la firma del encuentro).
 // Auditoría L-01: `priority` viaja en el evento (por defecto ROUTINE). URGENT sin resolver bloquea la firma; también cualquier
 // obligación VENCIDA. `sourceResultId` liga la obligación al resultado crítico que la originó (trazabilidad del lazo).
-export const CreateBody=z.object({obligationId:z.string().uuid(),patientId:z.string().uuid(),ownerId:z.string().uuid(),dueAt:z.string().datetime(),kind:z.string().min(1).max(200),
+// Auditoría R05a-F04: `dueAt` es OPCIONAL y su techo lo pone el SERVIDOR según el tipo y la prioridad (obligation-domain).
+// La pantalla enviaba «hoy + 7 días» para toda obligación nueva —urgente o de rutina, de cualquier tipo— y el servidor
+// aceptaba esa fecha sin mirarla. Si el cliente pide una fecha, se respeta cuando es más próxima que el techo de esa
+// severidad y se recorta cuando es más lejana, anotando en el evento la fecha pedida y el recorte.
+export const CreateBody=z.object({obligationId:z.string().uuid(),patientId:z.string().uuid(),ownerId:z.string().uuid(),dueAt:z.string().datetime().optional(),kind:z.string().min(1).max(200),
  priority:z.enum(["URGENT","HIGH","ROUTINE"]).default("ROUTINE"),sourceVitalId:z.string().uuid().optional(),sourceResultId:z.string().uuid().optional(),occurredAt:z.string().datetime()});
 export async function handleObligationCreate(req:Request):Promise<Response>{
  try{
@@ -28,12 +33,15 @@ export async function handleObligationCreate(req:Request):Promise<Response>{
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);
   await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
-  const payload:Record<string,unknown>={kind:"CREATED",patientId:b.patientId,ownerId:b.ownerId,dueAt:b.dueAt,obligationKind:b.kind,priority:b.priority};
+  // El plazo se deriva de `occurredAt`, no del reloj: el payload de un reintento tiene que ser idéntico.
+  const due=decideDueAt(b.occurredAt,b.dueAt,dueWindowFor(b.kind,b.priority));
+  const payload:Record<string,unknown>={kind:"CREATED",patientId:b.patientId,ownerId:b.ownerId,...dueAtPayload(due),obligationKind:b.kind,priority:b.priority};
   if(b.sourceVitalId)payload["sourceVitalId"]=b.sourceVitalId;if(b.sourceResultId)payload["sourceResultId"]=b.sourceResultId;
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.obligationId,expectedVersion:0,eventType:"OBLIGATION_CREATED",payload,occurredAt:b.occurredAt,topic:"obligation.created"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
-  return NextResponse.json({obligationId:b.obligationId,state:"OPEN",priority:b.priority,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+  // La respuesta dice el plazo EFECTIVO y si se recortó: quien lo pidió tiene que poder verlo, no enterarse por el expediente.
+  return NextResponse.json({obligationId:b.obligationId,state:"OPEN",priority:b.priority,dueAt:due.dueAt,dueAtClamped:due.clamped,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 

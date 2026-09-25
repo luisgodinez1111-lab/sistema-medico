@@ -374,7 +374,12 @@ export const input:React.CSSProperties=inputStyle;
 export const mono:React.CSSProperties={fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,background:"#EEF3FB",color:"#33507D",padding:"2px 6px",borderRadius:6};
 export const lbl:React.CSSProperties={fontSize:13,fontWeight:600,color:"#3C4658",display:"block",margin:"12px 0 6px"};
 export const stateBadge=(s:string):React.CSSProperties=>badgeStyle(toneOfState(s));
-export const in7days=()=>new Date(Date.now()+7*864e5).toISOString();
+// Auditoría R05a-F04: `in7days()` era la fecha límite de TODO seguimiento —incluido un potasio crítico— decidida en el
+// navegador. Ya no existe: el plazo de un seguimiento lo deriva el servidor de la severidad y el tipo (obligation-domain).
+// Lo único que queda aquí es la PROPUESTA DE FECHA de una cita cuando el médico no elige ninguna, que no es un plazo
+// clínico: es la posición inicial del calendario, y el médico la cambia en el propio formulario antes de crear la cita.
+export const CITA_PROPUESTA_DIAS=7;
+export const proximaCitaIso=()=>new Date(Date.now()+CITA_PROPUESTA_DIAS*864e5).toISOString();
 export const uuid=()=>globalThis.crypto.randomUUID();
 export const nowIso=()=>new Date().toISOString();
 // Auditoría U-12: al usuario nunca se le muestra una excepción cruda (String(e) con stack o "TypeError: Failed to fetch").
@@ -420,7 +425,9 @@ export function medNext(m:Med):{label:string;path:string;body:Record<string,unkn
 // Siguiente transición de un resultado diagnóstico (closed-loop de seguimiento).
 export function resNext(r:Result):{label:string;path:string;body:Record<string,unknown>;to:ResState}|null{
  if(r.state==="RECEIVED")return{label:"Verificar",path:`/api/v1/results/${r.id}/verification`,body:{occurredAt:nowIso()},to:"VERIFIED"};
- if(r.state==="VERIFIED")return{label:"Requiere acción",path:`/api/v1/results/${r.id}/action`,body:{ownerId:uuid(),dueAt:in7days(),occurredAt:nowIso()},to:"ACTIONED"};
+ // R05a-F04: NO se envía `dueAt`. El plazo lo pone el servidor según la severidad del resultado: un crítico hereda las 24 h
+ // de su obligación urgente. Antes la pantalla mandaba 7 días para cualquier resultado, incluido un valor de pánico.
+ if(r.state==="VERIFIED")return{label:"Requiere acción",path:`/api/v1/results/${r.id}/action`,body:{ownerId:uuid(),occurredAt:nowIso()},to:"ACTIONED"};
  if(r.state==="ACTIONED")return{label:"Cerrar",path:`/api/v1/results/${r.id}/closure`,body:{evidence:ASK("Evidencia del cierre del resultado crítico",10,"qué se hizo, cuándo y con qué resultado (p. ej. paciente contactado, potasio de control 4.4)"),occurredAt:nowIso()},to:"CLOSED"};
  return null;
 }

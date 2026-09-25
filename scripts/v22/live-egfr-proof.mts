@@ -15,7 +15,11 @@ const PP=(id:string)=>({params:Promise.resolve({patientId:id})});
 const ISO=new Date(Date.now()-3_600_000).toISOString()/* reloj RELATIVO: la creatinina obsoleta ya no se usa para el eGFR */;const idem=()=>crypto.randomUUID();
 let ts=Date.parse(ISO);const nextAt=()=>new Date(ts+=60000).toISOString(); // timestamps crecientes (la más reciente gana)
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
-function birth(yearsAgo:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-yearsAgo);return d.toISOString().slice(0,10);}
+// La fecha de nacimiento se deriva de ISO —el mismo instante con el que se REGISTRA al paciente—, no de `new Date()`.
+// Con `new Date()` esta prueba fallaba SEGÚN LA HORA DEL DÍA: cerca de la medianoche UTC `toISOString()` ya devuelve la
+// fecha de MAÑANA, así que el lactante (`yearsAgo:0`) se registraba con nacimiento POSTERIOR a su propio registro, el
+// servidor lo rechazaba con 400 (validación correcta) y la prueba no llegaba a comprobar el rango de Schwartz.
+function birth(yearsAgo:number){const d=new Date(Date.parse(ISO));d.setUTCFullYear(d.getUTCFullYear()-yearsAgo);return d.toISOString().slice(0,10);}
 async function register(t:string,p:string,sex:string,yearsAgo:number){await pat.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:`Prueba ${p.slice(0,8)}`,birthDate:birth(yearsAgo),sexAtBirth:sex,occurredAt:ISO})}));}
 async function creat(t:string,p:string,value:string){await res.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:"CREATININE",value,unit:"mg/dL",occurredAt:nextAt()})}));}
 // Variante con control total de la captura (hora, unidad) para probar unidades, plausibilidad y vigencia de punta a punta.

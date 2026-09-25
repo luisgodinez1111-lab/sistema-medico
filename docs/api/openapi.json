@@ -12170,7 +12170,6 @@
          "obligationId",
          "patientId",
          "ownerId",
-         "dueAt",
          "kind",
          "occurredAt"
         ]
@@ -21123,7 +21122,6 @@
         },
         "required": [
          "ownerId",
-         "dueAt",
          "occurredAt"
         ]
        }

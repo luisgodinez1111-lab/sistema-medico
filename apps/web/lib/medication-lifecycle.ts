@@ -12,6 +12,7 @@ import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindic
 import{validateMedicationOrder,normalizeRoute,checkDoseCeiling,checkPediatricDose,checkDurationLimit,durationToDays}from"../../../packages/medication-validation/src";
 import{physicianCredentials,requirePhysicianCredentials}from"./physician-profile-lifecycle";
 import{evaluatePrescriptionSafety,summarizeForEvent,ageInYears,decideOverride,OVERRIDABLE_BARRIERS,OVERRIDE_MIN_JUSTIFICATION,type OverrideRequest,type SafetyOverride}from"../../../packages/prescription-safety/src";
+import{dueAtFrom,OBLIGATION_DUE_WINDOWS}from"../../../packages/obligation-domain/src";
 // EPIC H — Ciclo de vida de medicación sobre el kernel. Physician Control:
 // PROPOSE lo puede hacer cualquier clínico (o IA), PRESCRIBE exige médico (IA nunca prescribe).
 // EXEC-0014: Lifecycle PROPOSED->PRESCRIBED->STARTED->ACTIVE->HELD->STOPPED->CANCELLED
@@ -138,7 +139,8 @@ async function createMonitoringObligations(ctx:Parameters<typeof runClinicalComm
   const obligationId=derivedUuid(baseIdemKey,"monitor-agg-undefined");
   const cmd=buildCommand({idempotencyKey:idem,aggregateType:"ClinicalObligation",aggregateId:obligationId,expectedVersion:0,
    eventType:"OBLIGATION_CREATED",payload:{kind:"CREATED",patientId,ownerId,
-    dueAt:new Date(new Date(occurredAt).getTime()+7*DAY_MS).toISOString(),
+    // R05a-F04: el plazo de este tipo de obligación está DECLARADO con su razón en obligation-domain, no escrito aquí.
+    dueAt:dueAtFrom(occurredAt,OBLIGATION_DUE_WINDOWS["MONITORING_UNDEFINED"]!),
     obligationKind:"MONITORING_UNDEFINED",test:`Definir el monitoreo de ${drugCode}`,priority:"HIGH",
     note:`El fármaco «${drugCode}» no está en el catálogo: el sistema no pudo derivar ninguna obligación de monitoreo. Defina qué vigilar y con qué periodicidad.`,
     sourceDrugCode:drugCode},

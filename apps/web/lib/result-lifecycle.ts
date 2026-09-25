@@ -9,6 +9,7 @@ import{ageInYears}from"../../../packages/prescription-safety/src";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload,derivedUuid}from"./http-command";
 import{foldObligation}from"../../../packages/obligation-fold/src";
+import{decideDueAt,dueAtFrom,dueAtPayload,dueWindowFor,OBLIGATION_DUE_WINDOWS,type DueWindow}from"../../../packages/obligation-domain/src";
 import{classifyLab,normalizeLabValue,deltaCheck}from"../../../packages/lab-reference/src";
 import{foldOrder}from"../../../packages/order-fold/src";
 // EPIC G — Ciclo de vida del resultado diagnóstico (closed-loop de seguimiento) sobre el kernel.
@@ -185,23 +186,34 @@ export async function handleResultVerification(req:Request,resultId:string):Prom
 }
 
 // ACTION = requerir acción (crea la obligación). Un resultado crítico exige owner + due date.
-export const ActionBody=z.object({ownerId:z.string().uuid(),dueAt:z.string().datetime(),occurredAt:z.string().datetime()});
+// Auditoría R05a-F04: `dueAt` es OPCIONAL y su TECHO lo pone el servidor según la severidad del resultado. La pantalla
+// enviaba «hoy + 7 días» para cualquier resultado, incluido un potasio de 7.0 mEq/L al que este mismo archivo ya le había
+// abierto una obligación urgente a 24 h: el expediente guardaba DOS vencimientos distintos para el mismo resultado crítico,
+// y el que ganaba era el del navegador. Si el cliente pide fecha, se respeta cuando es más próxima y se recorta cuando es
+// más lejana (ver `decideDueAt`: por qué se recorta en vez de responder 400).
+export const ActionBody=z.object({ownerId:z.string().uuid(),dueAt:z.string().datetime().optional(),occurredAt:z.string().datetime()});
+/** Techo del plazo de un resultado que pasa a «requiere acción»: si es crítico, el MISMO que su obligación urgente. */
+export const resultDueWindow=(critical:boolean):DueWindow=>dueWindowFor(critical?"CRITICAL_RESULT_REVIEW":"RESULT_ACTION",critical?"URGENT":"ROUTINE");
 export async function handleResultAction(req:Request,resultId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,resultId);
   const b=await parseJson(req,ActionBody);
+  // El plazo se deriva de `occurredAt`, no del reloj: un reintento con la misma Idempotency-Key tiene que producir el mismo payload.
+  const due=decideDueAt(b.occurredAt,b.dueAt,resultDueWindow(folded.critical));
   // payload lleva patientId + critical para que el gate de firma pueda contar sin proyección.
-  return await commitTransition(ctx,idempotencyKey,expectedVersion,resultId,folded,"ACTIONED","RESULT_ACTION_REQUIRED",{kind:"ACTIONED",patientId:folded.patientId,critical:folded.critical,ownerId:b.ownerId,dueAt:b.dueAt},b.occurredAt,"result.action_required");
+  return await commitTransition(ctx,idempotencyKey,expectedVersion,resultId,folded,"ACTIONED","RESULT_ACTION_REQUIRED",{kind:"ACTIONED",patientId:folded.patientId,critical:folded.critical,ownerId:b.ownerId,...dueAtPayload(due)},b.occurredAt,"result.action_required");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
 // CLOSURE = cierre con evidencia (resuelve la obligación -> desbloquea la firma).
 export const CloseBody=z.object({evidence:z.string().min(1),occurredAt:z.string().datetime()});
-export const CRITICAL_RESULT_DUE_HOURS=24;
+// R05a-F04: las 24 h ya no se escriben aquí; son el techo DECLARADO de CRITICAL_RESULT_REVIEW (packages/obligation-domain).
+// Se conserva el nombre porque la evidencia en vivo y el gate de firma lo citan.
+export const CRITICAL_RESULT_DUE_HOURS=OBLIGATION_DUE_WINDOWS["CRITICAL_RESULT_REVIEW"]!.maxHours;
 export const criticalObligationId=(resultId:string)=>derivedUuid(resultId,"critical-result-obligation");
 async function createCriticalResultObligation(ctx:Parameters<typeof runClinicalCommand>[0],resultId:string,patientId:string,ownerId:string,analyte:string,occurredAt:string):Promise<void>{
  const obligationId=criticalObligationId(resultId);
- const dueAt=new Date(Date.parse(occurredAt)+CRITICAL_RESULT_DUE_HOURS*3600000).toISOString();
+ const dueAt=dueAtFrom(occurredAt,OBLIGATION_DUE_WINDOWS["CRITICAL_RESULT_REVIEW"]!);
  const cmd=buildCommand({idempotencyKey:derivedUuid(resultId,"critical-result-obligation-idem"),aggregateType:"ClinicalObligation",aggregateId:obligationId,expectedVersion:0,eventType:"OBLIGATION_CREATED",
   payload:{kind:"CREATED",patientId,ownerId,dueAt,obligationKind:"CRITICAL_RESULT_REVIEW",priority:"URGENT",sourceResultId:resultId,test:analyte,note:`Resultado crítico de ${analyte}: contactar al paciente, actuar y cerrar el resultado con evidencia`},occurredAt,topic:"obligation.created"});
  let r=await lookupReplay(ctx,cmd);if(!r)r=await runClinicalCommand(ctx,cmd);

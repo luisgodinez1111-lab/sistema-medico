@@ -8,7 +8,7 @@ import {canonicalUnitOf} from "../../../../packages/lab-reference/src";
 import {getStoredSession,apiRequest,apiUpload,apiDelete,apiDownload,type MedicalSession} from "../../lib/session-client";
 import {assertNoForbidden} from "../../../../packages/design-system/src";
 import {summarizePatient} from "../../../../packages/patient-summary/src";
-import{composeDose,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,in7days,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey}from"./shared";
+import{composeDose,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey}from"./shared";
 export function useWorkspaceModel(){
 
  const cspNonce=useNonce(); // S-04: los <style> propios declaran el nonce de la petición
@@ -1053,7 +1053,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   setReferrals(rs=>rs.map(x=>x.id===rr.id?{...x,state:to,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const createAppointment=()=>call("apt-new",async()=>{
-  const id=uuid();const startIso=apptStart?new Date(apptStart).toISOString():in7days();
+  const id=uuid();const startIso=apptStart?new Date(apptStart).toISOString():proximaCitaIso();
   const r=await apiRequest("/api/v1/appointments",{method:"POST",body:{appointmentId:id,patientId,startAt:startIso,reason:apptReason,consultorio:apptCons,apptType,endAt:new Date(new Date(startIso).getTime()+30*60000).toISOString(),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
   setAppts(as=>[...as,{id,label:`${new Date(startIso).toLocaleString()} · ${apptReason}`,state:"SCHEDULED",version:Number(r.body["version"]??1)}]);setApptStart("");setApptReason("");
@@ -1266,9 +1266,12 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   setProblems(ps=>ps.map(x=>x.id===p.id?{...x,state:a.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const createObligation=()=>call("ob-new",async()=>{
-  const id=uuid();const r=await apiRequest("/api/v1/obligations",{method:"POST",body:{obligationId:id,patientId,ownerId:uuid(),dueAt:in7days(),kind:obKind||"FOLLOWUP",occurredAt:nowIso()}});
+  // R05a-F04: NO se envía `dueAt`. El plazo lo deriva el servidor del tipo y la prioridad; mandarlo desde aquí fijaba 7 días
+  // para toda obligación nueva, fuera cual fuera su severidad. La respuesta trae el plazo efectivo y se muestra.
+  const id=uuid();const r=await apiRequest("/api/v1/obligations",{method:"POST",body:{obligationId:id,patientId,ownerId:uuid(),kind:obKind||"FOLLOWUP",occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setObligations(os=>[...os,{id,label:obKind||"Seguimiento",state:"OPEN",version:Number(r.body["version"]??1)}]);setObKind("");
+  const vence=typeof r.body["dueAt"]==="string"?` · vence ${new Date(String(r.body["dueAt"])).toLocaleDateString()}`:"";
+  setObligations(os=>[...os,{id,label:`${obKind||"Seguimiento"}${vence}`,state:"OPEN",version:Number(r.body["version"]??1)}]);setObKind("");
  });
  const advanceObligation=(o:Ob)=>call("ob-"+o.id,async()=>{
   const n=obNext(o);if(!n)return;

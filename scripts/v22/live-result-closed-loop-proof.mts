@@ -94,6 +94,37 @@ try{
  r=await sign.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO,contentHash:HASH_AP})}),EP(enc2));
  ok(r.status===201,"NON_CRITICAL_RESULT_DOES_NOT_BLOCK_201");
 
+ // === C1) Auditoría R05a-F04 — EL PLAZO LO DECIDE EL SERVIDOR POR SEVERIDAD, no el navegador.
+ //     Antes la pantalla enviaba «hoy + 7 días» para CUALQUIER resultado. Arriba se envió a propósito ese mismo plazo de 7
+ //     días (`2026-03-10`, siete días después del ISO) en los dos casos; aquí se comprueba qué guardó el expediente:
+ //       · potasio 7.0 mEq/L (CRÍTICO): se RECORTA a 24 h —el mismo plazo que su obligación urgente— y queda anotado qué
+ //         fecha se pidió. Antes el expediente guardaba 24 h en la obligación y 7 días en el evento del mismo resultado.
+ //       · glucosa 100 mg/dL (no crítico): se RESPETA, porque un seguimiento de rutina puede tener horizonte largo y
+ //         recortarlo lo convertiría en una tarea vencida el mismo día.
+ const actionEvento=async(id:string)=>(await readAggregateEvents(octx,id)).find(e=>e.payload["kind"]==="ACTIONED")?.payload as
+  {dueAt?:string;dueAtRequested?:string;dueAtClamped?:boolean;critical?:boolean}|undefined;
+ const CRIT_24H=new Date(Date.parse(ISO)+24*3600000).toISOString();
+ const evCrit=await actionEvento(cres);
+ ok(evCrit?.critical===true&&evCrit.dueAt===CRIT_24H&&evCrit.dueAtClamped===true&&evCrit.dueAtRequested==="2026-03-10T00:00:00.000Z","CRITICAL_RESULT_DUE_CLAMPED_TO_24H");
+ // El plazo del resultado crítico y el de su obligación urgente son AHORA el mismo: un solo vencimiento por hecho.
+ const obCrit=(await readAggregateEvents(octx,criticalObligationId(cres)))[0]?.payload as{dueAt?:string}|undefined;
+ ok(obCrit?.dueAt===evCrit?.dueAt,"CRITICAL_RESULT_AND_ITS_OBLIGATION_SHARE_ONE_DUE_DATE");
+ const evRut=await actionEvento(nres);
+ ok(evRut?.critical===false&&evRut.dueAt==="2026-03-10T00:00:00.000Z"&&evRut.dueAtClamped===undefined,"ROUTINE_RESULT_DUE_RESPECTED");
+ // Y sin `dueAt` en el cuerpo —lo que ahora envía la pantalla— el servidor lo DERIVA: 24 h para un crítico.
+ const dres=crypto.randomUUID();
+ await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:dres,patientId:await freshPatient(TENANT_A),orderId:crypto.randomUUID(),analyte:"POTASSIUM",value:"7.0",unit:"mEq/L",occurredAt:ISO})}));
+ await rVerify.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),RP(dres));
+ const idemDer=idem(),derBody=JSON.stringify({ownerId:crypto.randomUUID(),occurredAt:ISO}); // mismo cuerpo exacto: el reintento tiene que ser idéntico
+ const derReq=()=>new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idemDer,"if-match":"2"}),body:derBody});
+ r=await rAction.POST(derReq(),RP(dres));
+ ok(r.status===201,"RESULT_ACTION_WITHOUT_DUEAT_201");
+ const evDer=await actionEvento(dres);
+ ok(evDer?.dueAt===CRIT_24H&&evDer.dueAtClamped===undefined,"CRITICAL_RESULT_DUE_DERIVED_24H");
+ // El plazo se deriva del HECHO y no del reloj: el reintento con la misma Idempotency-Key sigue siendo idempotente.
+ r=await rAction.POST(derReq(),RP(dres));
+ ok(r.status===200&&(await r.json()).replayed===true,"DERIVED_DUE_IS_REPLAY_STABLE");
+
  // === C2) Auditoría L-01/C-20 — el caso MÁS peligroso: un crítico recién RECIBIDO que NADIE ha visto también bloquea la firma.
  //         Antes solo contaban los que ya estaban en ACTIONED, aunque la UI promete "bloquea la firma hasta cerrarse".
  const enc4=crypto.randomUUID(),pat4=crypto.randomUUID(),unseen=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat4); /* L-07 */

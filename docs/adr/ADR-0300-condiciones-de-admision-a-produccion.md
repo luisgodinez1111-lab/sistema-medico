@@ -47,6 +47,7 @@ encontró en el esquema (dos definiciones de la misma tabla) y en los paquetes d
 | Determinación regulatoria (alcance y clasificación) | — | Si el sistema es dispositivo médico bajo NOM-241/ScDM, y el sistema de gestión de calidad que implique | R09-006; `docs/compliance/nom-applicability-register.json` |
 | Retención y borrado de PHI (ARCO) | — | Plazo legal, criptoborrado vs purga, menores y fallecidos, procedimiento ARCO | ADR-0280 §Decisiones pendientes; R06-30 |
 | Validación clínica del contenido | — | Un especialista que valide rangos, umbrales y algoritmos clínicos | Auditoría (validación clínica de todo el contenido) |
+| Plazos de seguimiento (techos operativos) | R05a-F04 | Confirmar o cambiar las 72 h de prioridad ALTA (decisión operativa, sin norma citada) y decidir si el seguimiento de un **vital crítico** debe heredar el techo urgente de 24 h: hoy nace como rutina (`kind:"CRITICAL_VITAL_FOLLOWUP"`, sin tipo declarado), y declararlo urgente cambiaría el gate de firma para los vitales registrados con más de 24 h de retraso | `packages/obligation-domain/src/index.ts` (`PRIORITY_DUE_WINDOWS`, `OBLIGATION_DUE_WINDOWS`) |
 
 ## Consecuencias
 

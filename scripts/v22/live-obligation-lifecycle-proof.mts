@@ -33,6 +33,25 @@ try{
  const physB=tok(TB);
  r=await prog.POST(new Request("http://l/",{method:"POST",headers:H(physB,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),OP(ob));
  ok(r.status===404,"CROSS_TENANT_404");
+ // Auditoría R05a-F04 — el plazo lo decide el SERVIDOR por severidad, no el cliente.
+ // Tres casos sobre el mismo endpoint, todos pidiendo 30 días (el tipo de plazo que la pantalla enviaba sin mirar la gravedad):
+ const crea=async(body:Record<string,unknown>)=>{const id=crypto.randomUUID();
+  const r2=await obs.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({obligationId:id,patientId:pat,ownerId:crypto.randomUUID(),kind:"FOLLOWUP",occurredAt:ISO,...body})}));
+  return await r2.json() as{dueAt?:string;dueAtClamped?:boolean;state?:string};};
+ const mas=(h:number)=>new Date(Date.parse(ISO)+h*3600000).toISOString();
+ const A30=mas(24*30);
+ // 1) URGENTE con 30 días -> recortado a 24 h. Una obligación urgente vencida bloquea la firma: admitir 30 días la vaciaría.
+ const urg=await crea({priority:"URGENT",dueAt:A30});
+ ok(urg.dueAt===mas(24)&&urg.dueAtClamped===true,"URGENT_OBLIGATION_DUE_CLAMPED_24H");
+ // 2) RUTINA con 30 días -> RESPETADO: «solicitar HbA1c en 3 meses» es un seguimiento legítimo, no un plazo que corregir.
+ const rut=await crea({priority:"ROUTINE",dueAt:A30});
+ ok(rut.dueAt===A30&&rut.dueAtClamped===false,"ROUTINE_OBLIGATION_DUE_RESPECTED");
+ // 3) SIN fecha —lo que ahora envía la pantalla— el servidor la DERIVA del hecho: 7 días para rutina, 24 h para urgente.
+ const der=await crea({});
+ ok(der.dueAt===mas(24*7)&&der.state==="OPEN","ROUTINE_OBLIGATION_DUE_DERIVED_7D");
+ ok((await crea({priority:"URGENT"})).dueAt===mas(24),"URGENT_OBLIGATION_DUE_DERIVED_24H");
+ // 4) El tipo declarado gana sobre la prioridad pedida: el plazo del resultado crítico no se relaja llamándolo rutina.
+ ok((await crea({kind:"CRITICAL_RESULT_REVIEW",priority:"ROUTINE",dueAt:A30})).dueAt===mas(24),"DECLARED_KIND_WINS_OVER_PRIORITY");
  // sin scope
  const noScope=tok(TA,["encounter:read"]);
  r=await obs.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({obligationId:crypto.randomUUID(),patientId:await freshPatient(TA),ownerId:crypto.randomUUID(),dueAt:"2026-08-15T00:00:00.000Z",kind:"x",occurredAt:ISO})}));
