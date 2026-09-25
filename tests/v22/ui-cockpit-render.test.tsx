@@ -760,28 +760,30 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:/^Configuración/}));           // acceso en HERRAMIENTAS
   expect(await screen.findByRole("heading",{name:"Configuración"})).toBeTruthy();
+  // Lote I — pestañas REALES: «General» por defecto muestra info/preferencias/regionales; NO horarios ni módulos.
   expect(screen.getAllByText("Información del consultorio").length).toBeGreaterThan(0);
   expect(screen.getByText("Preferencias de consulta")).toBeTruthy();
+  expect(screen.getByText("Configuraciones regionales")).toBeTruthy();
+  expect(screen.getByText(/NOM-024/)).toBeTruthy();                                // nota de seguridad (Datos y seguridad)
+  expect(screen.queryByText("Horarios de atención")).toBeNull();                   // vive en la pestaña «Consultorio»
+  const estado=await screen.findByPlaceholderText("Ej. Chihuahua") as HTMLInputElement;
+  fireEvent.change(estado,{target:{value:"Sonora"}});
+  expect(estado.value).toBe("Sonora");
+  // Pestaña «Consultorio»: horarios (persistidos) + módulos con toggle funcional
+  fireEvent.click(screen.getByRole("button",{name:"Consultorio"}));
+  expect(await screen.findByText("Horarios de atención")).toBeTruthy();
   expect(screen.getByText("Módulos activos")).toBeTruthy();
-  expect(screen.getByText("Horarios de atención")).toBeTruthy();                   // horarios reales (persistidos)
-  expect(screen.getByText(/NOM-024/)).toBeTruthy();                                // nota de seguridad
-  // horario controlado real: input de hora refleja el valor cargado y es editable
   const hIn=await screen.findByLabelText("Apertura Lunes") as HTMLInputElement;
   expect(hIn.value).toBe("08:00");
   fireEvent.change(hIn,{target:{value:"09:30"}});
   expect(hIn.value).toBe("09:30");
-  // módulo con toggle FUNCIONAL (role switch), no cosmético
-  const modSwitch=screen.getByRole("switch",{name:"Módulo Facturación"});
+  const modSwitch=screen.getByRole("switch",{name:"Módulo Facturación"});         // toggle FUNCIONAL (role switch)
   expect(modSwitch.getAttribute("aria-checked")).toBe("true");
   fireEvent.click(modSwitch);
   expect(modSwitch.getAttribute("aria-checked")).toBe("false");
-  // preferencias de consulta + regionales: controladas y persistibles (no defaultValue cosmético)
-  expect(screen.getByText("Configuraciones regionales")).toBeTruthy();
-  const estado=await screen.findByPlaceholderText("Ej. Chihuahua") as HTMLInputElement;
-  fireEvent.change(estado,{target:{value:"Sonora"}});
-  expect(estado.value).toBe("Sonora");
-  // Auditoría L-05: identidad profesional del médico (cédula) en su perfil, con validación real y aviso honesto si falta
-  expect(screen.getByText("Identidad profesional")).toBeTruthy();
+  // Pestaña «Identidad profesional»: cédula (L-05) con validación real + aviso honesto si falta
+  fireEvent.click(screen.getByRole("button",{name:"Identidad profesional"}));
+  expect((await screen.findAllByText("Identidad profesional")).length).toBeGreaterThan(0); // pestaña + sección
   expect(screen.getByText(/Sin cédula registrada: no podrás prescribir ni firmar/)).toBeTruthy();
   const credSave=screen.getByRole("button",{name:"Guardar identidad profesional"}) as HTMLButtonElement;
   expect(credSave.disabled).toBe(true);
@@ -800,7 +802,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByText("Firma y sello")).toBeTruthy();
   expect(screen.getByText("Sin firma cargada")).toBeTruthy();                    // estado real (no la firma falsa "Dr. Luis Godinez")
   expect(screen.getByText("Sin sello cargada")).toBeTruthy();
-  // los ajustes se cargan de /office-settings (input controlado real); editar y guardar
+  // los ajustes se cargan de /office-settings (input controlado real); editar y guardar (pestaña «General»)
+  fireEvent.click(screen.getByRole("button",{name:"General"}));
   const name=await screen.findByPlaceholderText(/Clínica San Rafael/,{},{timeout:2000});
   fireEvent.change(name,{target:{value:"Clínica Norte"}});
   const save=await screen.findByRole("button",{name:/Guardar cambios/});
