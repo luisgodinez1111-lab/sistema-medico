@@ -277,6 +277,10 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   // citas reales del registro (aparecen en la rejilla y en "Próximas citas")
   expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0);
   expect(screen.getAllByText("Carlos Mendoza").length).toBeGreaterThan(0);
+  // Lote F — Sala de espera: Carlos está CHECKED_IN, aparece en espera con acción real de atención
+  expect(screen.getByText("Sala de espera")).toBeTruthy();
+  expect(screen.getByText("1 en espera")).toBeTruthy();
+  expect(screen.getAllByText("Atender →").length).toBeGreaterThan(0);
   // la rejilla ya NO muestra citas de ejemplo inventadas (auditoría: cero datos ficticios)
   expect(screen.queryByText("Juan Pérez García")).toBeNull();
   expect(screen.queryByText("Sofía Vega Ramírez")).toBeNull();
