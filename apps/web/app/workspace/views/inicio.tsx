@@ -24,7 +24,7 @@ export default function InicioView(){
    // (U-02) Sin pacientes de ejemplo: si no hay registros, la tabla lo dice.
    const usingRealPts=realPts.length>0;
    const initials=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
-   const critCount=notifCount;
+   const critCount=notifCount??0;
    const kico=(bg:string,ic:React.ReactNode)=>(<span style={{width:44,height:44,borderRadius:12,background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}>{ic}</span>);
    const svg=(d:string,st:string,w="1.8")=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={st} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d}/></svg>;
    const kpiCard:React.CSSProperties={...card,marginTop:0,padding:18,display:"flex",gap:14,alignItems:"flex-start"};
@@ -55,7 +55,9 @@ export default function InicioView(){
     </div>
     {/* Banners */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16}} className="mos-banners">
-     <div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderRadius:14,background:"#FDECEE",border:"1px solid #F6CDD3"}}>{svg("M12 4l9 15.5H3zM12 10v4M12 17h.01",P.red)}<div style={{flex:1}}><div style={{fontWeight:700,fontSize:14}}>{critCount||2} resultados críticos sin resolver</div><div style={{fontSize:12.5,color:P.muted}}>Requieren acción para poder firmar consultas.</div></div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}} onClick={()=>setView("resultados")}>Ver resultados</button></div>
+     {critCount>0
+      ?<div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderRadius:14,background:"#FDECEE",border:"1px solid #F6CDD3"}}>{svg("M12 4l9 15.5H3zM12 10v4M12 17h.01",P.red)}<div style={{flex:1}}><div style={{fontWeight:700,fontSize:14}}>{critCount} {critCount===1?"resultado crítico sin resolver":"resultados críticos sin resolver"}</div><div style={{fontSize:12.5,color:P.muted}}>Requieren acción para poder firmar consultas.</div></div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}} onClick={()=>setView("resultados")}>Ver resultados</button></div>
+      :<div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderRadius:14,background:"#EAF7EF",border:"1px solid #CDEBD8"}}>{svg("M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",P.green)}<div style={{flex:1}}><div style={{fontWeight:700,fontSize:14,color:"#166534"}}>Sin resultados críticos pendientes</div><div style={{fontSize:12.5,color:P.muted}}>No hay pendientes que bloqueen la firma de consultas.</div></div></div>}
      <div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",borderRadius:14,background:"#FDF4E6",border:"1px solid #F2E1C0"}}>{svg("M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7zM7 8l6 6",P.amber)}<div style={{flex:1}}><div style={{fontWeight:700,fontSize:14}}>Verificador de interacciones</div><div style={{fontSize:12.5,color:P.muted}}>Revisa el conjunto de fármacos del paciente (motor determinista).</div></div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("medicamentos");setMedTab("interacciones");}}>Revisar</button></div>
     </div>
     {/* Mid: tareas | agenda | (CI + acciones) */}
@@ -82,10 +84,8 @@ export default function InicioView(){
      </div>
      <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <div style={cardP}><div style={h2row}><h2 style={{...h2s,color:P.purple}}><NavIcon k="brain"/>Clinical Intelligence (IA)</h2></div>
-       <div style={{padding:"0 18px",fontSize:12,color:P.muted,marginBottom:6}}>Ejemplos de hallazgos poblacionales (representativos; el tablero por cohorte se conecta al motor determinista).</div>
        <div style={{padding:"4px 18px 16px"}}>
-        {[["#EEEBFD",P.purple,"flask","3 pacientes","con tamizaje de depresión pendiente"],["#FDE7EA",P.red,"activity","2 pacientes","con HbA1c > 8% (sin ajuste en 3 meses)"],["#E7EEFB",P.blue,"syringe","1 paciente","con vacunas atrasadas"],["#FBF0DC",P.amber,"pill","1 posible duplicidad","terapéutica en antihipertensivos"]].map(([bg,fg,ic,b,rest],i)=>(
-         <div key={i} style={{display:"flex",gap:11,alignItems:"flex-start",padding:"9px 0",borderTop:i?`1px solid #F1F3F9`:"0"}}><span style={{width:30,height:30,borderRadius:8,background:bg as string,display:"grid",placeItems:"center",flex:"0 0 auto",color:fg as string}}><NavIcon k={ic as string}/></span><div style={{fontSize:13,lineHeight:1.35}}><b>{b}</b> {rest}</div></div>))}
+        <div style={{fontSize:13,color:P.muted,lineHeight:1.45,padding:"6px 0 12px"}}>El tablero poblacional por cohorte (tamizajes pendientes, control glucémico, posibles duplicidades) se conecta al <b>motor determinista</b> de Clinical Intelligence; a nivel de consultorio aún no está cableado. Abre el módulo para las herramientas ya disponibles.</div>
         <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI,width:"100%",marginTop:10}} onClick={()=>setView("clinicalIntel")}>Ver Clinical Intelligence →</button>
        </div>
       </div>
@@ -122,19 +122,11 @@ export default function InicioView(){
     </div>
     {/* Indicadores | donut | mensajes */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 340px",gap:16,marginTop:16,alignItems:"start"}} className="mos-low2">
-     <div style={cardP}><div style={h2row}><h2 style={{...h2s,fontSize:15}}>Indicadores del consultorio</h2><span style={{fontSize:11,color:P.muted,background:"#F3F5FA",borderRadius:6,padding:"2px 8px"}}>representativo</span></div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",padding:"0 6px 12px"}}>
-       {[["48","Consultas totales","↑ 12%",true,"#DDD8FA"],["92%","Asistencia a citas","↑ 5%",true,"#DDD8FA"],["2.3 días","Tiempo de seguimiento","↓ 18%",false,"#DDD8FA"],["4.8/5","Satisfacción pacientes","↑ 0.4",true,"#B7E7CC"]].map(([v,l,tr,up,bar],i)=>(
-        <div key={i} style={{padding:"14px 16px"}}><div style={{fontSize:23,fontWeight:800}}>{v as string}</div><div style={{fontSize:11.5,color:P.muted}}>{l as string}</div>
-         <div style={{display:"flex",alignItems:"flex-end",gap:3,height:32,margin:"8px 0"}}>{[40,62,48,75,88,70].map((h,j)=><span key={j} style={{flex:1,height:`${h}%`,background:bar as string,borderRadius:2}}/>)}</div>
-         <div style={{fontSize:12,fontWeight:700,color:up?P.green:P.redOnPale}}>{tr as string}</div></div>))}
-      </div>
+     <div style={cardP}><div style={h2row}><h2 style={{...h2s,fontSize:15}}>Indicadores del consultorio</h2><span style={link} {...act(()=>setView("reportes"))}>Ver Reportes →</span></div>
+      <div style={{padding:"4px 18px 18px",fontSize:13,color:P.muted,lineHeight:1.5}}>Los indicadores del consultorio —consultas, ingresos, tipos de consulta y calidad— se calculan con <b>dato real</b> en <b>Reportes</b>, con su rango del periodo.</div>
      </div>
-     <div style={{...cardP,padding:"16px 18px"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><h2 style={{...h2s,fontSize:15}}>Distribución de motivos de consulta</h2><span style={{fontSize:11,color:P.muted,background:"#F3F5FA",borderRadius:6,padding:"2px 8px"}}>representativo</span></div>
-      <div style={{display:"flex",gap:20,alignItems:"center"}}>
-       <div style={{width:150,height:150,borderRadius:"50%",flex:"0 0 auto",display:"grid",placeItems:"center",background:`conic-gradient(${P.purpleOnPale} 0 29%,#8B7DF8 29% 56%,#20B7D9 56% 71%,#5B8DEF 71% 83%,#C9CEE6 83% 100%)`}}><div style={{width:96,height:96,borderRadius:"50%",background:P.white,display:"grid",placeItems:"center",textAlign:"center"}}><div><div style={{fontSize:22,fontWeight:800}}>48</div><div style={{fontSize:10,color:P.muted}}>consultas</div></div></div></div>
-       <div style={{flex:1}}>{[["#6C5CF6","Infecciones respiratorias","29%"],["#8B7DF8","Control crónicos","27%"],[P.cyan,"Gastrointestinal","15%"],[P.blueOnPale,"Salud preventiva","12%"],["#C9CEE6","Otros","17%"]].map(([c,l,p],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:12.5,padding:"4px 0"}}><span style={{width:9,height:9,borderRadius:"50%",background:c as string,flex:"0 0 auto"}}/>{l as string}<b style={{marginLeft:"auto"}}>{p as string}</b></div>)}</div>
-      </div>
+     <div style={{...cardP,padding:"16px 18px"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><h2 style={{...h2s,fontSize:15}}>Distribución de motivos de consulta</h2><span style={link} {...act(()=>setView("reportes"))}>Ver Reportes →</span></div>
+      <div style={{fontSize:13,color:P.muted,lineHeight:1.5}}>La distribución real por <b>tipo de consulta</b> está en <b>Reportes</b>, calculada desde la agenda del consultorio.</div>
      </div>
      {/* Auditoría 2026-09-19, anexo R05a (WS1-01) — AVISOS REALES DEL CONSULTORIO, no tres ejemplos con hora inventada.
          Este widget mostraba una insignia roja fija con un «3» y tres mensajes escritos a mano («Nuevo resultado de
