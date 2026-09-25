@@ -223,11 +223,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   // "Resultados/Medicamentos/Seguimiento" existen en sidebar y como pestaña -> la pestaña es la última coincidencia.
   const lastTab=(name:RegExp)=>{const bs=screen.getAllByRole("button",{name});return bs[bs.length-1]!;};
   fireEvent.click(lastTab(/^Resultados$/));
-  expect(screen.getByText(/Resultados del paciente/)).toBeTruthy();
+  expect(await screen.findByText(/Resultados del paciente/)).toBeTruthy(); // espera a que el snapshot cargue (skeleton→contenido)
   fireEvent.click(lastTab(/^Medicamentos$/));
-  expect(screen.getByText(/Medicamentos activos/)).toBeTruthy();
+  expect(await screen.findByText(/Medicamentos activos/)).toBeTruthy();
   fireEvent.click(lastTab(/^Seguimiento$/));
-  expect(screen.getByText(/Tareas de seguimiento/)).toBeTruthy();
+  expect(await screen.findByText(/Tareas de seguimiento/)).toBeTruthy();
  });
 
  it("vista Órdenes: cableada a /api/v1/orders — KPIs reales, lista, detalle vivo y creador funcional",async()=>{
