@@ -427,3 +427,31 @@ de auditoría es la línea base del proyecto y conviene que su fe de errores viv
 | R05c-31 | BAJA | YA CERRADO | Omisión menor en `page.tsx`/`layout.tsx` | Revisados: `lang="es"`, nonce de CSP y redirección al login. |
 | R05c-32 | BAJA | CERRADO (14a) | Stub `patients/[id]` en inglés y sin guardia | Ruta retirada: hacía eco del id de la URL con un texto en inglés, sin verificación de sesión y sin que nada la referenciara. |
 | R05c-33 | — | — | (sin entrada en el anexo) | — |
+
+## Anexo R11 — Evidencia, CI y scripts (31 hallazgos) · cruzado el 24-sep-2026 (parcial: maquinaria de evidencia)
+
+| ID | Severidad | Estado | Medición contra el código |
+| --- | --- | --- | --- |
+| R11-01 | CRÍTICA | YA CERRADO | `_live-env.mts` exige `TEST_DATABASE_URL` y rechaza apuntar a la base de la aplicación (exit 2). |
+| R11-04/05 | MEDIA | YA CERRADO | No quedan archivos duplicados con sufijo « 2». |
+| R11-08/09 | MEDIA | YA CERRADO | De cinco workflows redundantes a uno (`ci.yml`), con `permissions` y `concurrency`. |
+| R11-11 | MEDIA | YA CERRADO | El smoke cubría 57 de 87 proofs; hoy **107 de 107**. |
+| R11-12/13/14/15/16/17 | ALTA | YA CERRADO | Los gates matemáticamente imposibles de fallar (`release/v20`, `v15`, `v5`) no existen ni están enganchados a CI. |
+| R11-18 | CRÍTICA | CERRADO (14c) | El dossier resumía un subconjunto sin decirlo. Ahora declara su cobertura y que **lo que no aparece no está respaldado**. |
+| R11-19 | CRÍTICA | PARCIAL (14c) | Lo que se podía cerrar por ingeniería: el dossier ya no presenta las decisiones del agente como aprobaciones —dice que son propuestas— y cuenta las firmas humanas (**0 de 151**). La firma en sí es del dueño (ADR-0300). |
+| R11-20 | ALTA | YA CERRADO | Cero capacidades sin invariantes y cero sin tests: el gate lo comprueba capacidad por capacidad. |
+| R11-22 | BAJA (real: ALTA) | CERRADO (14c) | **Era el más grave de los tres.** El dossier certificaba «evidencia COMPLETA» comprobando que el archivo EXISTIERA. Ahora cada cita se cruza con un LIBRO DE EJECUCIÓN (`release/evidence/test-ledger.json` y `live-smoke-ledger.json`): si no aparece en verde, no cuenta. Sin libros, el dossier no puede afirmar nada y falla. Un gate no puede ser evidencia de sí mismo. **Al cablearlo aparecieron 146 de 151 veredictos congelados** escritos a mano en el propio archivo de evidencia —uno decía «26 capacidades, evidencia COMPLETA» con 151 en el archivo; otro «14/14 proofs» con 107 en el smoke—: la cita se separó del relato y **53 capacidades resultaron no citar ningún artefacto ejecutable**, lo que ahora se declara y se cuenta en vez de disfrazarse. |
+| R11-24 | CRÍTICA | YA CERRADO | `pnpm db:migrate` aplica las migraciones y el drill de restauración las ejecuta con el migrador real. |
+| R11-26 | MEDIA | YA CERRADO | El Dockerfile construye `apps/web` en modo standalone (P-15). |
+| R11-28 | ALTA | YA CERRADO | El README documenta requisitos, instalación y arranque. |
+| R11-30/31 | BAJA | YA CERRADO | Storybook versionado retirado; de 34 ficheros `registry_meta` en la raíz queda 1. |
+| R11-02 | ALTA | ABIERTO | Las pruebas en vivo no limpian lo que crean. La base es DESECHABLE por contrato (P-07), así que el impacto real es nulo; pendiente de declararlo o de añadir limpieza. |
+| R11-03 | ALTA | ABIERTO | `_conc_probe`: limpieza fuera del `finally`. Pendiente de medir si el archivo sigue existiendo. |
+| R11-06 | ALTA | PARCIAL | Hay módulos compartidos (`_live-env`, `_patient`, `_physician-credentials`), pero el cuerpo de los 107 proofs sigue siendo plantilla repetida. |
+| R11-07 | BAJA | ABIERTO | **101 scripts** llevan `SESSION_SIGNING_SECRET ?? "epic-x-secret"` como respaldo hardcodeado. |
+| R11-10 | ALTA | ABIERTO (dueño) | El workflow de regresión en vivo no corre: depende de la facturación de GitHub Actions (P-01). |
+| R11-21 | MEDIA | PARCIAL (14c) | El esquema de la reconciliación se normalizó en este lote (cita vs. nota); la trazabilidad formal vacía sigue pendiente. |
+| R11-23 | BAJA | ABIERTO | `not-wired-registry.json` sigue siendo autodeclarado sin verificación. |
+| R11-25 | ALTA | ABIERTO | Política de lockfile: producción menos estricta que CI. |
+| R11-27 | BAJA | ABIERTO | El devcontainer se llama «Medical OS v15». |
+| R11-29 | MEDIA | ABIERTO | Corpus sintéticos versionados; pendiente de medir el tamaño real que queda. |

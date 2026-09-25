@@ -25,10 +25,11 @@
       "tests": [
         "tests/v22/http-principal.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-encounter-endpoint-proof.mts — PASS 10/10 (open 201, replay idempotente, RLS cross-tenant 404, no-session 401, rol 403, idempotency 428, validación 400)",
+      "runtime_evidence": "scripts/v22/live-encounter-endpoint-proof.mts",
       "epic": "B",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 (open 201, replay idempotente, RLS cross-tenant 404, no-session 401, rol 403, idempotency 428, validación 400)"
     },
     {
       "id": "CAP-ENCOUNTER-RUNTIME-003",
@@ -52,10 +53,11 @@
       "tests": [
         "tests/v22/encounter-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-encounter-lifecycle-proof.mts — PASS 12/12 (v1->3, replay, SM ilegal 409x2, concurrencia 409, cross-tenant 404, rol 403, obligación crítica bloquea firma). Verificado además EN NAVEGADOR en prod (open->assess->sign SIGNED v3).",
+      "runtime_evidence": "scripts/v22/live-encounter-lifecycle-proof.mts",
       "epic": "D + UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 12/12 (v1->3, replay, SM ilegal 409x2, concurrencia 409, cross-tenant 404, rol 403, obligación crítica bloquea firma). Verificado además EN NAVEGADOR en prod (open->assess->sign SIGNED v3)."
     },
     {
       "id": "CAP-VERTICAL-RESULT-001",
@@ -81,10 +83,11 @@
       "tests": [
         "tests/v22/result-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-result-closed-loop-proof.mts — PASS 12/12, incluye EL LOOP: SIGN_BLOCKED_BY_OPEN_CRITICAL_RESULT_403 -> RESULT_CLOSED -> SIGN_UNBLOCKED_201.",
+      "runtime_evidence": "scripts/v22/live-result-closed-loop-proof.mts",
       "epic": "G",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 12/12, incluye EL LOOP: SIGN_BLOCKED_BY_OPEN_CRITICAL_RESULT_403 -> RESULT_CLOSED -> SIGN_UNBLOCKED_201."
     },
     {
       "id": "CAP-MED-AUTH-003",
@@ -107,10 +110,11 @@
       "tests": [
         "tests/v22/medication-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-medication-lifecycle-proof.mts — PASS 12/12 (NURSE_PROPOSE_201, NURSE_PRESCRIBE_FORBIDDEN_403, PHYSICIAN_PRESCRIBE_201, ciclo v1->4, SM ilegal, concurrencia, cross-tenant, scope). UI de medicación desplegada.",
+      "runtime_evidence": "scripts/v22/live-medication-lifecycle-proof.mts",
       "epic": "H + UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 12/12 (NURSE_PROPOSE_201, NURSE_PRESCRIBE_FORBIDDEN_403, PHYSICIAN_PRESCRIBE_201, ciclo v1->4, SM ilegal, concurrencia, cross-tenant, scope). UI de medicación desplegada."
     },
     {
       "id": "CAP-AMENDMENT-001",
@@ -131,10 +135,11 @@
       "tests": [
         "tests/v22/document-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-document-lifecycle-proof.mts — PASS 14/14 (REPRODUCIBLE_SNAPSHOT_HASH, SIGNED_IMMUTABLE_409, AMEND v4->v5 append-only, NURSE_SIGN_FORBIDDEN_403).",
+      "runtime_evidence": "scripts/v22/live-document-lifecycle-proof.mts",
       "epic": "I",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 14/14 (REPRODUCIBLE_SNAPSHOT_HASH, SIGNED_IMMUTABLE_409, AMEND v4->v5 append-only, NURSE_SIGN_FORBIDDEN_403)."
     },
     {
       "id": "CAP-SESSION-001",
@@ -156,10 +161,11 @@
       "tests": [
         "tests/v22/session-issuance.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-session-issuance-proof.mts — PASS 6/6 (NO_VERIFIER_503, ROUNDTRIP_OPEN_201, TAMPERED_401, WRONG_IDP_SECRET_401, DEV_VERIFIER_DISABLED_IN_PROD_503).",
+      "runtime_evidence": "scripts/v22/live-session-issuance-proof.mts",
       "epic": "E",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 6/6 (NO_VERIFIER_503, ROUNDTRIP_OPEN_201, TAMPERED_401, WRONG_IDP_SECRET_401, DEV_VERIFIER_DISABLED_IN_PROD_503)."
     },
     {
       "id": "CAP-IDENTITY-001",
@@ -184,10 +190,11 @@
       "tests": [
         "tests/v22/oidc-verifier.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-oidc-login-proof.mts — PASS 7/7 (JWKS remoto real, ROUNDTRIP_OPEN_201, EXPIRED/WRONG_AUDIENCE/WRONG_ISSUER/UNKNOWN_KEY/MISSING_TENANT_401). VERIFICADO EN VIVO con Auth0 real en navegador (login humano -> sesión clínica).",
+      "runtime_evidence": "scripts/v22/live-oidc-login-proof.mts",
       "epic": "F",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 7/7 (JWKS remoto real, ROUNDTRIP_OPEN_201, EXPIRED/WRONG_AUDIENCE/WRONG_ISSUER/UNKNOWN_KEY/MISSING_TENANT_401). VERIFICADO EN VIVO con Auth0 real en navegador (login humano -> sesión clínica)."
     },
     {
       "id": "CAP-AUTHZ-001",
@@ -212,10 +219,11 @@
         "tests/v22/session-issuance.test.ts (scopesForRoles + union)",
         "tests/security/authz.test.ts"
       ],
-      "runtime_evidence": "Enforcement de scope observado en vivo: sin scope clínico la API responde 403; con RBAC de PHYSICIAN, 404 auth-OK. MISSING_SCOPE_403 en proofs de medicación/documentos.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "RBAC",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Enforcement de scope observado en vivo: sin scope clínico la API responde 403; con RBAC de PHYSICIAN, 404 auth-OK. MISSING_SCOPE_403 en proofs de medicación/documentos."
     },
     {
       "id": "CAP-UUID-BOUNDARY-001",
@@ -233,10 +241,11 @@
       "tests": [
         "tests/v22/http-principal.test.ts (subjectToActorId)"
       ],
-      "runtime_evidence": "Incidente real en prod con usuario Auth0: 500 (22P02 invalid input syntax for type uuid). Diagnosticado por logs de runtime de Vercel; corregido derivando un UUID determinista del subject. Post-fix: open->assess->sign OK en navegador.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "actorId-fix",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Incidente real en prod con usuario Auth0: 500 (22P02 invalid input syntax for type uuid). Diagnosticado por logs de runtime de Vercel; corregido derivando un UUID determinista del subject. Post-fix: open->assess->sign OK en navegador."
     },
     {
       "id": "CAP-ORDER-RESULT-001",
@@ -261,10 +270,11 @@
       "tests": [
         "tests/v22/order-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-order-lifecycle-proof.mts — PASS 10/10 (ciclo v1->3, replay, SM ilegal 409, cancel path, concurrencia 409, cross-tenant 404, missing-scope 403). UI de ordenes desplegada.",
+      "runtime_evidence": "scripts/v22/live-order-lifecycle-proof.mts",
       "epic": "M",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 (ciclo v1->3, replay, SM ilegal 409, cancel path, concurrencia 409, cross-tenant 404, missing-scope 403). UI de ordenes desplegada."
     },
     {
       "id": "CAP-APP-001",
@@ -284,10 +294,11 @@
       "tests": [
         "tests/v22/session-client.test.ts"
       ],
-      "runtime_evidence": "UI /workspace verificada EN PRODUCCIÓN con médico real (login Auth0 -> abrir/valorar/firmar encuentro SIGNED v3; panel de medicación). Nota: la UI es capa de presentación; su autoridad de seguridad la heredan los endpoints (deny-by-default, authz, RLS).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "K (UI)",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "UI /workspace verificada EN PRODUCCIÓN con médico real (login Auth0 -> abrir/valorar/firmar encuentro SIGNED v3; panel de medicación). Nota: la UI es capa de presentación; su autoridad de seguridad la heredan los endpoints (deny-by-default, authz, RLS)."
     },
     {
       "id": "CAP-OBLIGATION-002",
@@ -311,10 +322,11 @@
       "tests": [
         "tests/v22/obligation-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-obligation-lifecycle-proof.mts — PASS 8/8",
+      "runtime_evidence": "scripts/v22/live-obligation-lifecycle-proof.mts",
       "epic": "O",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 8/8"
     },
     {
       "id": "CAP-PATIENT-STATE-002",
@@ -336,10 +348,11 @@
       "tests": [
         "tests/v22/patient-summary.test.ts"
       ],
-      "runtime_evidence": "Proyeccion pura testeada (2/2); insumo (timeline) probado en vivo 6/6 (live-patient-timeline-proof). Header de resumen en /workspace.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "P",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Proyeccion pura testeada (2/2); insumo (timeline) probado en vivo 6/6 (live-patient-timeline-proof). Header de resumen en /workspace."
     },
     {
       "id": "CAP-PROBLEM-GRAPH-001",
@@ -364,10 +377,11 @@
       "tests": [
         "tests/v22/problem-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-problem-lifecycle-proof.mts — PASS 9/9",
+      "runtime_evidence": "scripts/v22/live-problem-lifecycle-proof.mts",
       "epic": "Q",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9"
     },
     {
       "id": "CAP-ALLERGY-001",
@@ -391,10 +405,11 @@
       "tests": [
         "tests/v22/allergy-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-allergy-medication-gate-proof.mts — PASS 9/9 (incluye PRESCRIBE_BLOCKED_BY_ALLERGY_403 -> inactivar -> PRESCRIBE_UNBLOCKED_201)",
+      "runtime_evidence": "scripts/v22/live-allergy-medication-gate-proof.mts",
       "epic": "R",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (incluye PRESCRIBE_BLOCKED_BY_ALLERGY_403 -> inactivar -> PRESCRIBE_UNBLOCKED_201)"
     },
     {
       "id": "CAP-PATIENT-001",
@@ -418,10 +433,11 @@
       "tests": [
         "tests/v22/patient-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-patient-registry-proof.mts — PASS 9/9 (REGISTER_ACTIVE_201, LIST_HAS_PATIENT_WITH_NAME, DEACTIVATE/REACTIVATE, REACTIVATE_ACTIVE_ILLEGAL_409, CROSS_TENANT_LIST_ISOLATED, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-patient-registry-proof.mts",
       "epic": "S",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (REGISTER_ACTIVE_201, LIST_HAS_PATIENT_WITH_NAME, DEACTIVATE/REACTIVATE, REACTIVATE_ACTIVE_ILLEGAL_409, CROSS_TENANT_LIST_ISOLATED, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-REFERRAL-001",
@@ -444,10 +460,11 @@
       "tests": [
         "tests/v22/referral-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-referral-lifecycle-proof.mts — PASS 9/9 (REQUEST/ACCEPT/COMPLETE_201, COMPLETE_TERMINAL_409, COMPLETE_WITHOUT_ACCEPT_409, DECLINE_201, CANCEL_FROM_ACCEPTED_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-referral-lifecycle-proof.mts",
       "epic": "T",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (REQUEST/ACCEPT/COMPLETE_201, COMPLETE_TERMINAL_409, COMPLETE_WITHOUT_ACCEPT_409, DECLINE_201, CANCEL_FROM_ACCEPTED_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-APPOINTMENT-001",
@@ -470,10 +487,11 @@
       "tests": [
         "tests/v22/appointment-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-appointment-lifecycle-proof.mts — PASS 9/9 (SCHEDULE/CHECKIN/COMPLETE_201, COMPLETE_WITHOUT_CHECKIN_409, NOSHOW_201, CHECKIN_AFTER_NOSHOW_409, CANCEL_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-appointment-lifecycle-proof.mts",
       "epic": "U",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (SCHEDULE/CHECKIN/COMPLETE_201, COMPLETE_WITHOUT_CHECKIN_409, NOSHOW_201, CHECKIN_AFTER_NOSHOW_409, CANCEL_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-IMMUNIZATION-001",
@@ -496,10 +514,11 @@
       "tests": [
         "tests/v22/immunization-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-immunization-lifecycle-proof.mts — PASS 9/9 (DUE/ADMINISTER/ADVERSE_EVENT_201, ADVERSE_TERMINAL_409, ADVERSE_WITHOUT_ADMIN_409, REFUSE_201, ADMIN_AFTER_REFUSE_409, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-immunization-lifecycle-proof.mts",
       "epic": "V",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (DUE/ADMINISTER/ADVERSE_EVENT_201, ADVERSE_TERMINAL_409, ADVERSE_WITHOUT_ADMIN_409, REFUSE_201, ADMIN_AFTER_REFUSE_409, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-VITAL-001",
@@ -522,10 +541,11 @@
       "tests": [
         "tests/v22/vital-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-vital-lifecycle-proof.mts — PASS 9/9 (RECORD/AMEND/RE_AMEND_201, ERROR_MARK_201, AMEND_AFTER_ERROR_409, AMEND3_REPLAY_200, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-vital-lifecycle-proof.mts",
       "epic": "W",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (RECORD/AMEND/RE_AMEND_201, ERROR_MARK_201, AMEND_AFTER_ERROR_409, AMEND3_REPLAY_200, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-CAREPLAN-001",
@@ -548,10 +568,11 @@
       "tests": [
         "tests/v22/careplan-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-careplan-lifecycle-proof.mts — PASS 10/10 (PROPOSE/ACTIVATE/HOLD/RESUME/ACHIEVE_201, HOLD_AFTER_ACHIEVE_409, ACHIEVE_WITHOUT_ACTIVATE_409, CANCEL_FROM_HOLD_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-careplan-lifecycle-proof.mts",
       "epic": "X",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 (PROPOSE/ACTIVATE/HOLD/RESUME/ACHIEVE_201, HOLD_AFTER_ACHIEVE_409, ACHIEVE_WITHOUT_ACTIVATE_409, CANCEL_FROM_HOLD_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-CLAIM-001",
@@ -574,10 +595,11 @@
       "tests": [
         "tests/v22/claim-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-claim-lifecycle-proof.mts — PASS 11/11 (DRAFT/CODE/SUBMIT/REJECT/RESUBMIT/PAY_201, VOID_AFTER_PAID_409, SUBMIT_WITHOUT_CODE_409, VOID_FROM_CODED_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-claim-lifecycle-proof.mts",
       "epic": "Y",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 11/11 (DRAFT/CODE/SUBMIT/REJECT/RESUBMIT/PAY_201, VOID_AFTER_PAID_409, SUBMIT_WITHOUT_CODE_409, VOID_FROM_CODED_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-CONSENT-001",
@@ -600,10 +622,11 @@
       "tests": [
         "tests/v22/consent-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-consent-lifecycle-proof.mts — PASS 10/10 (DRAFT/PRESENT/GRANT/REVOKE_201, REVOKE_TERMINAL_409, GRANT_WITHOUT_PRESENT_409, DECLINE_201, REVOKE_DECLINED_409, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-consent-lifecycle-proof.mts",
       "epic": "Z",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 (DRAFT/PRESENT/GRANT/REVOKE_201, REVOKE_TERMINAL_409, GRANT_WITHOUT_PRESENT_409, DECLINE_201, REVOKE_DECLINED_409, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-CAREGAPS-001",
@@ -624,10 +647,11 @@
       "tests": [
         "tests/v22/care-gaps.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-care-gaps-proof.mts — PASS 6/6 (CARE_GAPS_200, THREE_GAPS, EXPECTED_CODES, LOW_PRIORITY_LAST, CROSS_TENANT_EMPTY, MISSING_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-care-gaps-proof.mts",
       "epic": "AA",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 6/6 (CARE_GAPS_200, THREE_GAPS, EXPECTED_CODES, LOW_PRIORITY_LAST, CROSS_TENANT_EMPTY, MISSING_SCOPE_403)"
     },
     {
       "id": "CAP-RECORD-EXPORT-001",
@@ -650,10 +674,11 @@
       "tests": [
         "tests/v22/record-export.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-record-export-proof.mts — PASS 9/9 (EXPORT_200, MANIFEST_2_AGGREGATES, MANIFEST_3_EVENTS, CONTENT_HASH_SHA256, HASH_REPRODUCIBLE, CROSS_TENANT_EMPTY, CROSS_TENANT_DIFFERENT_HASH, MISSING_EXPORT_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-record-export-proof.mts",
       "epic": "AB",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (EXPORT_200, MANIFEST_2_AGGREGATES, MANIFEST_3_EVENTS, CONTENT_HASH_SHA256, HASH_REPRODUCIBLE, CROSS_TENANT_EMPTY, CROSS_TENANT_DIFFERENT_HASH, MISSING_EXPORT_SCOPE_403)"
     },
     {
       "id": "CAP-PANEL-WORKLIST-001",
@@ -675,10 +700,11 @@
       "tests": [
         "tests/v22/care-gaps.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-panel-worklist-proof.mts — PASS 7/7 (WORKLIST_200, PANEL_TWO_PATIENTS, PANEL_TWO_GAPS, MEDIUM_FIRST, LOW_LAST, CROSS_TENANT_ISOLATED, MISSING_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-panel-worklist-proof.mts",
       "epic": "AC",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 7/7 (WORKLIST_200, PANEL_TWO_PATIENTS, PANEL_TWO_GAPS, MEDIUM_FIRST, LOW_LAST, CROSS_TENANT_ISOLATED, MISSING_SCOPE_403)"
     },
     {
       "id": "CAP-ADJUDICATION-001",
@@ -700,10 +726,11 @@
       "tests": [
         "tests/v22/reconciliation-integrity.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/build-c5-dossier.mts — PASS (26 capacidades, evidencia COMPLETA, 0 citas rotas)",
+      "runtime_evidence": "tests/v22/reconciliation-integrity.test.ts",
       "epic": "AD",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "el veredicto lo pone el libro de ejecución (release/evidence/test-ledger.json). El gate scripts/v22/build-c5-dossier.mts NO es evidencia de sí mismo (R11-22)."
     },
     {
       "id": "CAP-ADMISSION-001",
@@ -727,10 +754,11 @@
       "tests": [
         "tests/v22/admission-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-admission-lifecycle-proof.mts — PASS 9/9 (ADMIT/TRANSFER_ICU/TRANSFER_WARD/DISCHARGE_201, TRANSFER_AFTER_DISCHARGE_409, CANCEL_201, DISCHARGE_AFTER_CANCEL_409, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-admission-lifecycle-proof.mts",
       "epic": "AE",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (ADMIT/TRANSFER_ICU/TRANSFER_WARD/DISCHARGE_201, TRANSFER_AFTER_DISCHARGE_409, CANCEL_201, DISCHARGE_AFTER_CANCEL_409, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-SPECIMEN-001",
@@ -754,10 +782,11 @@
       "tests": [
         "tests/v22/specimen-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-specimen-lifecycle-proof.mts — PASS 9/9 (COLLECT/TRANSIT/RECEIPT/RESULT_201, RESULT_TERMINAL_409, RESULT_WITHOUT_RECEIPT_409, REJECT_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-specimen-lifecycle-proof.mts",
       "epic": "AF",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (COLLECT/TRANSIT/RECEIPT/RESULT_201, RESULT_TERMINAL_409, RESULT_WITHOUT_RECEIPT_409, REJECT_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-INCIDENT-001",
@@ -781,10 +810,11 @@
       "tests": [
         "tests/v22/incident-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-incident-lifecycle-proof.mts — PASS 9/9 (REPORT/REVIEW/ESCALATE/RESOLVE_201, RESOLVE_TERMINAL_409, ESCALATE_WITHOUT_REVIEW_409, RESOLVE_FROM_REPORTED_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-incident-lifecycle-proof.mts",
       "epic": "AG",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (REPORT/REVIEW/ESCALATE/RESOLVE_201, RESOLVE_TERMINAL_409, ESCALATE_WITHOUT_REVIEW_409, RESOLVE_FROM_REPORTED_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-TRIAGE-001",
@@ -809,10 +839,11 @@
       "tests": [
         "tests/v22/triage-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-triage-lifecycle-proof.mts — PASS 10/10 (ARRIVE/START/TRIAGE/RETRIAGE/CLOSE_201, TRIAGE_AFTER_CLOSE_409, TRIAGE_WITHOUT_START_409, LWBS_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-triage-lifecycle-proof.mts",
       "epic": "AH",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 (ARRIVE/START/TRIAGE/RETRIAGE/CLOSE_201, TRIAGE_AFTER_CLOSE_409, TRIAGE_WITHOUT_START_409, LWBS_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-WOUND-001",
@@ -835,10 +866,11 @@
       "tests": [
         "tests/v22/wound-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-wound-lifecycle-proof.mts — PASS 9/9 (DOCUMENT/REASSESS_S3/REASSESS_S4/HEAL_201, REASSESS_AFTER_HEAL_409, ESCALATE_201, HEAL_AFTER_ESCALATE_409, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-wound-lifecycle-proof.mts",
       "epic": "AI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (DOCUMENT/REASSESS_S3/REASSESS_S4/HEAL_201, REASSESS_AFTER_HEAL_409, ESCALATE_201, HEAL_AFTER_ESCALATE_409, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-TRANSFUSION-001",
@@ -863,10 +895,11 @@
       "tests": [
         "tests/v22/transfusion-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-transfusion-lifecycle-proof.mts — PASS 10/10 (ORDER/CROSSMATCH/START/COMPLETE_201, START_WITHOUT_CROSSMATCH_409, REACTION_201, COMPLETE_AFTER_REACTION_409, CANCEL_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-transfusion-lifecycle-proof.mts",
       "epic": "AJ",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 (ORDER/CROSSMATCH/START/COMPLETE_201, START_WITHOUT_CROSSMATCH_409, REACTION_201, COMPLETE_AFTER_REACTION_409, CANCEL_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-SURGERY-001",
@@ -889,10 +922,11 @@
       "tests": [
         "tests/v22/surgery-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-surgery-lifecycle-proof.mts — PASS 9/9 (SCHEDULE/TIMEOUT/START/COMPLETE_201, START_WITHOUT_TIMEOUT_409, COMPLETE_WITHOUT_START_409, CANCEL_FROM_TIMEOUT_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-surgery-lifecycle-proof.mts",
       "epic": "AK",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (SCHEDULE/TIMEOUT/START/COMPLETE_201, START_WITHOUT_TIMEOUT_409, COMPLETE_WITHOUT_START_409, CANCEL_FROM_TIMEOUT_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-DIALYSIS-001",
@@ -916,10 +950,11 @@
       "tests": [
         "tests/v22/dialysis-fold.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-dialysis-lifecycle-proof.mts — PASS 10/10 (SCHEDULE/START/INTERRUPT/RESUME/COMPLETE_201, START_AFTER_COMPLETE_409, COMPLETE_WITHOUT_START_409, NOSHOW_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-dialysis-lifecycle-proof.mts",
       "epic": "AL",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 (SCHEDULE/START/INTERRUPT/RESUME/COMPLETE_201, START_AFTER_COMPLETE_409, COMPLETE_WITHOUT_START_409, NOSHOW_201, CROSS_TENANT_404, MISSING_WRITE_SCOPE_403)"
     },
     {
       "id": "CAP-TERMINOLOGY-001",
@@ -941,10 +976,11 @@
       "tests": [
         "tests/v22/terminology.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-terminology-proof.mts — PASS 6/6 (PROBLEM_CODED_201, CANONICAL_DESCRIPTION_ATTACHED, INVALID_CODE_400, SEARCH_FINDS_DIABETES, LOOKUP_VALID, MISSING_READ_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-terminology-proof.mts",
       "epic": "AM",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 6/6 (PROBLEM_CODED_201, CANONICAL_DESCRIPTION_ATTACHED, INVALID_CODE_400, SEARCH_FINDS_DIABETES, LOOKUP_VALID, MISSING_READ_SCOPE_403)"
     },
     {
       "id": "CAP-VITALS-REF-001",
@@ -965,10 +1001,11 @@
       "tests": [
         "tests/v22/lab-reference.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-vitals-reference-proof.mts — PASS 6/6 (BP_NORMAL, BP_CRITICAL, SPO2_CRITICAL, TEMP_ABNORMAL, BP_START_CRITICAL, AMEND_RECLASSIFIES_NORMAL)",
+      "runtime_evidence": "scripts/v22/live-vitals-reference-proof.mts",
       "epic": "AN",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 6/6 (BP_NORMAL, BP_CRITICAL, SPO2_CRITICAL, TEMP_ABNORMAL, BP_START_CRITICAL, AMEND_RECLASSIFIES_NORMAL)"
     },
     {
       "id": "CAP-CRITICAL-VITAL-GAP-001",
@@ -989,10 +1026,11 @@
       "tests": [
         "tests/v22/care-gaps.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-critical-vital-gap-proof.mts — PASS 5/5 (VITAL_RECORDED_CRITICAL, CARE_GAP_PRESENT, PANEL_HAS_CRITICAL_VITAL, VITAL_AMENDED_NORMAL, CARE_GAP_CLEARED)",
+      "runtime_evidence": "scripts/v22/live-critical-vital-gap-proof.mts",
       "epic": "AO",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 5/5 (VITAL_RECORDED_CRITICAL, CARE_GAP_PRESENT, PANEL_HAS_CRITICAL_VITAL, VITAL_AMENDED_NORMAL, CARE_GAP_CLEARED)"
     },
     {
       "id": "CAP-DRUG-ALLERGY-001",
@@ -1012,10 +1050,11 @@
       "tests": [
         "tests/v22/drug-catalog.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-cross-reactivity-gate-proof.mts — PASS 5/5 (AMOXICILLIN_BLOCKED_BY_CLASS, CEPHALEXIN_BLOCKED_CROSS_REACTIVITY, IBUPROFEN_ALLOWED, IBUPROFEN_BLOCKED_NSAID_CLASS, AMOXICILLIN_ALLOWED_FOR_NSAID_ALLERGIC); sin regresión en live-allergy-medication-gate-proof.mts",
+      "runtime_evidence": "scripts/v22/live-cross-reactivity-gate-proof.mts",
       "epic": "AP",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 5/5 (AMOXICILLIN_BLOCKED_BY_CLASS, CEPHALEXIN_BLOCKED_CROSS_REACTIVITY, IBUPROFEN_ALLOWED, IBUPROFEN_BLOCKED_NSAID_CLASS, AMOXICILLIN_ALLOWED_FOR_NSAID_ALLERGIC); sin regresión en live-allergy-medication-gate-proof.mts"
     },
     {
       "id": "CAP-BILLING-ICD10-001",
@@ -1035,10 +1074,11 @@
       "tests": [
         "tests/v22/terminology.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-claim-lifecycle-proof.mts — PASS 12/12 (incl. CODE_201 con E11/I10, INVALID_ICD10_CODE_400, VOID_FROM_CODED_201, CROSS_TENANT_404)",
+      "runtime_evidence": "scripts/v22/live-claim-lifecycle-proof.mts",
       "epic": "AR",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 12/12 (incl. CODE_201 con E11/I10, INVALID_ICD10_CODE_400, VOID_FROM_CODED_201, CROSS_TENANT_404)"
     },
     {
       "id": "CAP-CRITICAL-VITAL-LOOP-001",
@@ -1059,10 +1099,11 @@
       "tests": [
         "tests/v22/lab-reference.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-critical-vital-signing-loop-proof.mts — PASS 6/6 (VITAL_CRITICAL_RECORDED, ENCOUNTER_READY, SIGN_BLOCKED_BY_CRITICAL_VITAL_403, FOLLOWUP_OBLIGATION_CREATED, SIGN_UNBLOCKED_AFTER_FOLLOWUP_201, OTHER_PATIENT_STILL_BLOCKED_403)",
+      "runtime_evidence": "scripts/v22/live-critical-vital-signing-loop-proof.mts",
       "epic": "AS",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 6/6 (VITAL_CRITICAL_RECORDED, ENCOUNTER_READY, SIGN_BLOCKED_BY_CRITICAL_VITAL_403, FOLLOWUP_OBLIGATION_CREATED, SIGN_UNBLOCKED_AFTER_FOLLOWUP_201, OTHER_PATIENT_STILL_BLOCKED_403)"
     },
     {
       "id": "CAP-CLINICAL-INTEL-001",
@@ -1082,10 +1123,11 @@
       "tests": [
         "tests/v22/clinical-intelligence.test.ts"
       ],
-      "runtime_evidence": "tests/v22/clinical-intelligence.test.ts — 5/5 (chest pain -> ECG+red flag taquicardia; I10+BP190 -> crisis hipertensiva; determinista; no aplica sin criterio; registerPackage). Sin prueba en vivo: los handlers no están cableados a rutas.",
+      "runtime_evidence": "tests/v22/clinical-intelligence.test.ts",
       "epic": "AT",
       "proposed_review_decision": "REVIEW_REQUIRED_NOT_WIRED",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "5/5 (chest pain -> ECG+red flag taquicardia; I10+BP190 -> crisis hipertensiva; determinista; no aplica sin criterio; registerPackage). Sin prueba en vivo: los handlers no están cableados a rutas."
     },
     {
       "id": "CAP-LAB-REF-002",
@@ -1103,10 +1145,11 @@
       "tests": [
         "tests/v22/lab-reference.test.ts"
       ],
-      "runtime_evidence": "tests/v22/lab-reference.test.ts — 5/5 (potasio/glucosa/troponina + nuevos: calcio, bicarbonato, pH, lactato, BNP, ALT; unknown->UNKNOWN). El uso end-to-end en resultados está cubierto por live-result-closed-loop-proof.mts.",
+      "runtime_evidence": "tests/v22/lab-reference.test.ts",
       "epic": "AU",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "5/5 (potasio/glucosa/troponina + nuevos: calcio, bicarbonato, pH, lactato, BNP, ALT; unknown->UNKNOWN). El uso end-to-end en resultados está cubierto por live-result-closed-loop-proof.mts."
     },
     {
       "id": "CAP-MED-VALIDATION-001",
@@ -1126,10 +1169,11 @@
       "tests": [
         "tests/v22/medication-validation.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-medication-lifecycle-proof.mts — PASS (incl. INVALID_MED_ORDER_400); sin regresión en allergy/cross-reactivity gate proofs",
+      "runtime_evidence": "scripts/v22/live-medication-lifecycle-proof.mts",
       "epic": "AV",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS (incl. INVALID_MED_ORDER_400); sin regresión en allergy/cross-reactivity gate proofs"
     },
     {
       "id": "CAP-DUPLICATE-THERAPY-001",
@@ -1150,10 +1194,11 @@
       "tests": [
         "tests/v22/drug-catalog.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-duplicate-therapy-gate-proof.mts — PASS 5/5 (IBUPROFEN_ACTIVE, NAPROXEN_BLOCKED_DUPLICATE_403, AMOXICILLIN_ALLOWED, NAPROXEN_ALLOWED_OTHER_PATIENT)",
+      "runtime_evidence": "scripts/v22/live-duplicate-therapy-gate-proof.mts",
       "epic": "AW",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 5/5 (IBUPROFEN_ACTIVE, NAPROXEN_BLOCKED_DUPLICATE_403, AMOXICILLIN_ALLOWED, NAPROXEN_ALLOWED_OTHER_PATIENT)"
     },
     {
       "id": "CAP-DRUG-INTERACTION-001",
@@ -1173,10 +1218,11 @@
       "tests": [
         "tests/v22/drug-catalog.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-drug-interaction-gate-proof.mts — PASS 4/4 (WARFARIN_NSAID_BLOCKED_403, ACEI_KSPARING_BLOCKED_403, NO_INTERACTION_ALLOWED_201, NSAID_ALONE_ALLOWED_201)",
+      "runtime_evidence": "scripts/v22/live-drug-interaction-gate-proof.mts",
       "epic": "AX",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 4/4 (WARFARIN_NSAID_BLOCKED_403, ACEI_KSPARING_BLOCKED_403, NO_INTERACTION_ALLOWED_201, NSAID_ALONE_ALLOWED_201)"
     },
     {
       "id": "CAP-DRUG-CONDITION-001",
@@ -1198,10 +1244,11 @@
       "tests": [
         "tests/v22/drug-catalog.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-drug-condition-contraindication-gate-proof.mts — PASS 5/5 (NSAID_CKD_BLOCKED_403, NSAID_HF_BLOCKED_403, METFORMIN_CKD_MODERATE_ALLOWED_201, NONCONTRA_DRUG_ALLOWED_201, NSAID_NO_CONDITION_ALLOWED_201)",
+      "runtime_evidence": "scripts/v22/live-drug-condition-contraindication-gate-proof.mts",
       "epic": "AY",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 5/5 (NSAID_CKD_BLOCKED_403, NSAID_HF_BLOCKED_403, METFORMIN_CKD_MODERATE_ALLOWED_201, NONCONTRA_DRUG_ALLOWED_201, NSAID_NO_CONDITION_ALLOWED_201)"
     },
     {
       "id": "CAP-DOSE-CEILING-001",
@@ -1222,10 +1269,11 @@
       "tests": [
         "tests/v22/medication-validation.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-dose-ceiling-gate-proof.mts — PASS 6/6 (IBUPROFEN_OVERDOSE_BLOCKED_403, PARACETAMOL_OVERDOSE_BLOCKED_403, IBUPROFEN_WITHIN_LIMIT_ALLOWED_201, IBUPROFEN_AT_LIMIT_ALLOWED_201, PRN_NOT_BOUNDED_ALLOWED_201, NON_MASS_UNIT_ALLOWED_201)",
+      "runtime_evidence": "scripts/v22/live-dose-ceiling-gate-proof.mts",
       "epic": "AZ",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 6/6 (IBUPROFEN_OVERDOSE_BLOCKED_403, PARACETAMOL_OVERDOSE_BLOCKED_403, IBUPROFEN_WITHIN_LIMIT_ALLOWED_201, IBUPROFEN_AT_LIMIT_ALLOWED_201, PRN_NOT_BOUNDED_ALLOWED_201, NON_MASS_UNIT_ALLOWED_201)"
     },
     {
       "id": "CAP-MONITORING-OBLIGATION-001",
@@ -1247,10 +1295,11 @@
       "tests": [
         "tests/v22/drug-catalog.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-monitoring-obligation-proof.mts — PASS 8/8 (WARFARIN_PRESCRIBED_201, MONITOR_INR_OBLIGATION_CREATED_AND_STARTED_201, MONITOR_INR_OBLIGATION_COMPLETED_201, METFORMIN_PRESCRIBED_201, MONITOR_RENAL_OBLIGATION_CREATED_201, IBUPROFEN_PRESCRIBED_201, NO_MONITORING_NO_OBLIGATION_404, PRESCRIBE_REPLAY_200_NO_DUP)",
+      "runtime_evidence": "scripts/v22/live-monitoring-obligation-proof.mts",
       "epic": "BA",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 8/8 (WARFARIN_PRESCRIBED_201, MONITOR_INR_OBLIGATION_CREATED_AND_STARTED_201, MONITOR_INR_OBLIGATION_COMPLETED_201, METFORMIN_PRESCRIBED_201, MONITOR_RENAL_OBLIGATION_CREATED_201, IBUPROFEN_PRESCRIBED_201, NO_MONITORING_NO_OBLIGATION_404, PRESCRIBE_REPLAY_200_NO_DUP)"
     },
     {
       "id": "CAP-LAB-DELTA-001",
@@ -1272,10 +1321,11 @@
       "tests": [
         "tests/v22/lab-reference.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-lab-delta-check-proof.mts — PASS 7/7 (CREAT_BASELINE_NOT_CRITICAL, CREAT_DOUBLING_DELTA_CRITICAL, HGB_DROP_DELTA_CRITICAL, CREAT_STABLE_NO_DELTA, NO_PRIOR_NO_DELTA, PER_PATIENT_ISOLATION, ABSOLUTE_PANIC_STILL_CRITICAL)",
+      "runtime_evidence": "scripts/v22/live-lab-delta-check-proof.mts",
       "epic": "BB",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 7/7 (CREAT_BASELINE_NOT_CRITICAL, CREAT_DOUBLING_DELTA_CRITICAL, HGB_DROP_DELTA_CRITICAL, CREAT_STABLE_NO_DELTA, NO_PRIOR_NO_DELTA, PER_PATIENT_ISOLATION, ABSOLUTE_PANIC_STILL_CRITICAL)"
     },
     {
       "id": "CAP-NEWS2-001",
@@ -1297,10 +1347,11 @@
       "tests": [
         "tests/v22/lab-reference.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-news2-score-proof.mts — PASS 6/6 (STABLE_SCORE_0_LOW, DETERIORATING_HIGH_ESCALATION, USES_LATEST_VALUE_RECOVERED, MISSING_PARAMS_REPORTED, PER_PATIENT_ISOLATION, MISSING_SCOPE_403)",
+      "runtime_evidence": "scripts/v22/live-news2-score-proof.mts",
       "epic": "BC",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 6/6 (STABLE_SCORE_0_LOW, DETERIORATING_HIGH_ESCALATION, USES_LATEST_VALUE_RECOVERED, MISSING_PARAMS_REPORTED, PER_PATIENT_ISOLATION, MISSING_SCOPE_403)"
     },
     {
       "id": "CAP-PEDIATRIC-DOSE-001",
@@ -1322,10 +1373,11 @@
       "tests": [
         "tests/v22/medication-validation.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-pediatric-dose-gate-proof.mts — PASS 5/5 (PEDS_OVERDOSE_BLOCKED_403, PEDS_WITHIN_LIMIT_ALLOWED_201, ADULT_NOT_WEIGHT_GATED_201, NO_WEIGHT_NOT_BLOCKED_201, PEDS_AND_ABSOLUTE_BOTH_BLOCK_403)",
+      "runtime_evidence": "scripts/v22/live-pediatric-dose-gate-proof.mts",
       "epic": "BD",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 5/5 (PEDS_OVERDOSE_BLOCKED_403, PEDS_WITHIN_LIMIT_ALLOWED_201, ADULT_NOT_WEIGHT_GATED_201, NO_WEIGHT_NOT_BLOCKED_201, PEDS_AND_ABSOLUTE_BOTH_BLOCK_403)"
     },
     {
       "id": "CAP-LIVE-REGRESSION-001",
@@ -1347,10 +1399,11 @@
       "tests": [
         "scripts/ci/live-smoke.mts"
       ],
-      "runtime_evidence": "GitHub Actions workflow live-regression @75783c1 — PASS (postgres:17 desechable, 14/14 proofs del smoke). Local: runner 14/14 PASS vs Neon.",
+      "runtime_evidence": "scripts/ci/live-smoke.mts",
       "epic": "BE",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "el veredicto y el número de pruebas los pone el libro de ejecución (release/evidence/live-smoke-ledger.json), no una cadena fijada a mano."
     },
     {
       "id": "CAP-NOT-WIRED-REGISTRY-001",
@@ -1372,10 +1425,11 @@
       "tests": [
         "tests/v22/not-wired-integrity.test.ts"
       ],
-      "runtime_evidence": "tests/v22/not-wired-integrity.test.ts — PASS 4/4 (sin huérfanos ocultos, registro no obsoleto, entradas válidas, 8 conocidos declarados). Corre en CI (test:all / v15-runtime + v5-quality).",
+      "runtime_evidence": "tests/v22/not-wired-integrity.test.ts",
       "epic": "BF",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 4/4 (sin huérfanos ocultos, registro no obsoleto, entradas válidas, 8 conocidos declarados). Corre en CI (test:all / v15-runtime + v5-quality)."
     },
     {
       "id": "CAP-OBSERVABILITY-SLI-001",
@@ -1396,10 +1450,11 @@
       "tests": [
         "tests/v22/observability-sli.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-observability-sli-proof.mts — PASS 8/8 (ENCOUNTER_OPENED, SLI_EMITTED, SLI_SUCCESS_OUTCOME, SLI_HAS_CORRELATION_ID, SLI_HAS_LATENCY, SLI_TENANT_HASHED_NOT_RAW, SLI_PHI_FREE_ALLOWLIST, SLI_NO_PHI_NO_RAW_TENANT). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-observability-sli-proof.mts",
       "epic": "BG",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 8/8 (ENCOUNTER_OPENED, SLI_EMITTED, SLI_SUCCESS_OUTCOME, SLI_HAS_CORRELATION_ID, SLI_HAS_LATENCY, SLI_TENANT_HASHED_NOT_RAW, SLI_PHI_FREE_ALLOWLIST, SLI_NO_PHI_NO_RAW_TENANT). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-BACKUP-DR-001",
@@ -1422,10 +1477,11 @@
       "tests": [
         "tests/v22/downtime-no-false-save.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-dr-recovery-proof.mts — PASS 6/6 (STREAM_PERSISTED_2, DETERMINISTIC_REPLAY_MATCH, IDEMPOTENT_NO_DUPLICATION, AUDIT_CHAIN_CHAINED, RLS_ISOLATION, RESTORE_PROOF_CLEAN). En el smoke de CI (live-regression). Guard R004: tests/v22/downtime-no-false-save.test.ts 3/3.",
+      "runtime_evidence": "scripts/v22/live-dr-recovery-proof.mts",
       "epic": "BH",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 6/6 (STREAM_PERSISTED_2, DETERMINISTIC_REPLAY_MATCH, IDEMPOTENT_NO_DUPLICATION, AUDIT_CHAIN_CHAINED, RLS_ISOLATION, RESTORE_PROOF_CLEAN). En el smoke de CI (live-regression). Guard R004: tests/v22/downtime-no-false-save.test.ts 3/3."
     },
     {
       "id": "CAP-COMPLIANCE-NOM-001",
@@ -1447,10 +1503,11 @@
       "tests": [
         "tests/v22/nom-compliance-integrity.test.ts"
       ],
-      "runtime_evidence": "tests/v22/nom-compliance-integrity.test.ts — PASS 5/5 (estructura, no-cert-sin-evidencia, evidencia existe, foundational presentes, carpetas). Corre en CI (test:all).",
+      "runtime_evidence": "tests/v22/nom-compliance-integrity.test.ts",
       "epic": "BI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 5/5 (estructura, no-cert-sin-evidencia, evidencia existe, foundational presentes, carpetas). Corre en CI (test:all)."
     },
     {
       "id": "CAP-DEV-IDENTITY-HARDENING-001",
@@ -1471,10 +1528,11 @@
       "tests": [
         "tests/v22/dev-identity-prod-guard.test.ts"
       ],
-      "runtime_evidence": "tests/v22/dev-identity-prod-guard.test.ts — PASS 5/5. scripts/v22/live-session-issuance-proof.mts (incl. DEV_VERIFIER_DISABLED_IN_PROD_503) en el smoke de CI. live-oidc-login-proof verde.",
+      "runtime_evidence": "tests/v22/dev-identity-prod-guard.test.ts",
       "epic": "BJ",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 5/5. scripts/v22/live-session-issuance-proof.mts (incl. DEV_VERIFIER_DISABLED_IN_PROD_503) en el smoke de CI. live-oidc-login-proof verde."
     },
     {
       "id": "CAP-IMMUNIZATION-FORECAST-001",
@@ -1496,10 +1554,11 @@
       "tests": [
         "tests/v22/immunization-schedule.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-immunization-forecast-proof.mts — PASS 11/11 (PATIENT_REGISTERED, FORECAST_200, AGE_APPROX_24M, BCG_COMPLETE, SRP_12M_OVERDUE, PENTA_18M_OVERDUE, DPT_48M_UPCOMING, SUMMARY_OVERDUE_COUNT, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-immunization-forecast-proof.mts",
       "epic": "BK",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 11/11 (PATIENT_REGISTERED, FORECAST_200, AGE_APPROX_24M, BCG_COMPLETE, SRP_12M_OVERDUE, PENTA_18M_OVERDUE, DPT_48M_UPCOMING, SUMMARY_OVERDUE_COUNT, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-RENAL-EGFR-001",
@@ -1521,10 +1580,11 @@
       "tests": [
         "tests/v22/renal-function.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-egfr-proof.mts — PASS 9/9 (COMPUTABLE_200, MALE_50_SCR1_NORMAL_EGFR, STAGE_G1, ADVANCED_CKD, USES_LATEST_CREATININE, PEDIATRIC_NOT_COMPUTABLE, NO_CREATININE_NOT_COMPUTABLE, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-egfr-proof.mts",
       "epic": "BL",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (COMPUTABLE_200, MALE_50_SCR1_NORMAL_EGFR, STAGE_G1, ADVANCED_CKD, USES_LATEST_CREATININE, PEDIATRIC_NOT_COMPUTABLE, NO_CREATININE_NOT_COMPUTABLE, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-RENAL-DOSING-001",
@@ -1547,10 +1607,11 @@
       "tests": [
         "tests/v22/drug-catalog.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-renal-dosing-gate-proof.mts — PASS 5/5 (METFORMIN_LOW_EGFR_BLOCKED_403, NSAID_LOW_EGFR_BLOCKED_403, METFORMIN_NORMAL_EGFR_ALLOWED_201, NO_EGFR_NOT_BLOCKED_201, NONRENAL_DRUG_ALLOWED_201). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-renal-dosing-gate-proof.mts",
       "epic": "BM",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 5/5 (METFORMIN_LOW_EGFR_BLOCKED_403, NSAID_LOW_EGFR_BLOCKED_403, METFORMIN_NORMAL_EGFR_ALLOWED_201, NO_EGFR_NOT_BLOCKED_201, NONRENAL_DRUG_ALLOWED_201). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-LAB-DERIVATIONS-001",
@@ -1573,10 +1634,11 @@
       "tests": [
         "tests/v22/lab-derivations.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-metabolic-panel-proof.mts — PASS 8/8 (PANEL_200, ANION_GAP_HIGH_30, CORRECTED_CA_9_6, NOTHING_MISSING, USES_LATEST_HCO3, MISSING_REPORTED, PER_PATIENT_ISOLATION, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-metabolic-panel-proof.mts",
       "epic": "BN+BY",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 8/8 (PANEL_200, ANION_GAP_HIGH_30, CORRECTED_CA_9_6, NOTHING_MISSING, USES_LATEST_HCO3, MISSING_REPORTED, PER_PATIENT_ISOLATION, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-ANTHROPOMETRICS-BMI-001",
@@ -1598,10 +1660,11 @@
       "tests": [
         "tests/v22/anthropometrics.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-bmi-proof.mts — PASS 6/6 (COMPUTABLE_200, ADULT_BMI_OBESITY_I, USES_LATEST_WEIGHT, PEDIATRIC_PERCENTILE_FLAG, NO_HEIGHT_NOT_COMPUTABLE, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-bmi-proof.mts",
       "epic": "BO",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 6/6 (COMPUTABLE_200, ADULT_BMI_OBESITY_I, USES_LATEST_WEIGHT, PEDIATRIC_PERCENTILE_FLAG, NO_HEIGHT_NOT_COMPUTABLE, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-GLYCEMIC-CONTROL-001",
@@ -1623,10 +1686,11 @@
       "tests": [
         "tests/v22/glycemic.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-glycemic-status-proof.mts — PASS 8/8 (COMPUTABLE_200, SCREENING_DIABETES_RANGE, HAS_EAG, DIABETIC_CONTROLLED, DIABETIC_POOR, USES_LATEST_A1C, NO_A1C_NOT_COMPUTABLE, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-glycemic-status-proof.mts",
       "epic": "BP",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 8/8 (COMPUTABLE_200, SCREENING_DIABETES_RANGE, HAS_EAG, DIABETIC_CONTROLLED, DIABETIC_POOR, USES_LATEST_A1C, NO_A1C_NOT_COMPUTABLE, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-STROKE-RISK-001",
@@ -1648,10 +1712,11 @@
       "tests": [
         "tests/v22/stroke-risk.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-cha2ds2vasc-proof.mts — PASS 10/10 (COMPUTED_200, SCORE_5_HIGH, AFIB_APPLICABLE, ANTICOAG_RECOMMENDED, HAS_ANNUAL_RISK, SCORE_0_LOW, NO_AFIB_NOTE, FEMALE_SCORE_3_HIGH, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-cha2ds2vasc-proof.mts",
       "epic": "BQ",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 (COMPUTED_200, SCORE_5_HIGH, AFIB_APPLICABLE, ANTICOAG_RECOMMENDED, HAS_ANNUAL_RISK, SCORE_0_LOW, NO_AFIB_NOTE, FEMALE_SCORE_3_HIGH, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-LIVER-FIB4-001",
@@ -1673,10 +1738,11 @@
       "tests": [
         "tests/v22/liver-fibrosis.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-fib4-proof.mts — PASS 7/7 (COMPUTABLE_200, HIGH_RISK, LOW_RISK, USES_LATEST_PLATELETS, MISSING_ANALYTE, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-fib4-proof.mts",
       "epic": "BR",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 7/7 (COMPUTABLE_200, HIGH_RISK, LOW_RISK, USES_LATEST_PLATELETS, MISSING_ANALYTE, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-CLINICAL-INTELLIGENCE-001",
@@ -1699,10 +1765,11 @@
       "tests": [
         "tests/v22/clinical-summary.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-clinical-intelligence-proof.mts — PASS 11/11 (SUMMARY_200, MULTIPLE_FINDINGS, CRITICAL_FIRST, NEWS2_CRITICAL, RENAL_FLAG, GLYCEMIC_FLAG, ANTICOAG_FLAG, SUMMARY_COUNTS, HEALTHY_NO_FINDINGS, UNREGISTERED_404, MISSING_SCOPE_403, +BP_CRISIS_FINDING). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-clinical-intelligence-proof.mts",
       "epic": "BS+BV",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 11/11 (SUMMARY_200, MULTIPLE_FINDINGS, CRITICAL_FIRST, NEWS2_CRITICAL, RENAL_FLAG, GLYCEMIC_FLAG, ANTICOAG_FLAG, SUMMARY_COUNTS, HEALTHY_NO_FINDINGS, UNREGISTERED_404, MISSING_SCOPE_403, +BP_CRISIS_FINDING). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-BP-STAGING-001",
@@ -1724,10 +1791,11 @@
       "tests": [
         "tests/v22/bp-staging.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-bp-stage-proof.mts — PASS 6/6 (COMPUTABLE_200, STAGE_2, USES_LATEST_BP, CRISIS, NO_BP_NOT_COMPUTABLE, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-bp-stage-proof.mts",
       "epic": "BT",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 6/6 (COMPUTABLE_200, STAGE_2, USES_LATEST_BP, CRISIS, NO_BP_NOT_COMPUTABLE, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-ANTICOAG-INR-001",
@@ -1750,10 +1818,11 @@
       "tests": [
         "tests/v22/anticoagulation.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-anticoagulation-status-proof.mts — PASS 7/7 (COMPUTABLE_200, THERAPEUTIC_ON_ANTICOAG, SUBTHERAPEUTIC, CRITICAL_HIGH, NO_ANTICOAG_NOTE, NO_INR_NOT_COMPUTABLE, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-anticoagulation-status-proof.mts",
       "epic": "BU",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 7/7 (COMPUTABLE_200, THERAPEUTIC_ON_ANTICOAG, SUBTHERAPEUTIC, CRITICAL_HIGH, NO_ANTICOAG_NOTE, NO_INR_NOT_COMPUTABLE, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-MELD-001",
@@ -1775,10 +1844,11 @@
       "tests": [
         "tests/v22/meld.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-meld-proof.mts — PASS 6/6 (COMPUTABLE_200, VERY_HIGH_MELD, USES_LATEST_BILIRUBIN, NORMAL_MELD_6_LOW, MISSING_ANALYTE, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-meld-proof.mts",
       "epic": "BW",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 6/6 (COMPUTABLE_200, VERY_HIGH_MELD, USES_LATEST_BILIRUBIN, NORMAL_MELD_6_LOW, MISSING_ANALYTE, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-ACID-BASE-001",
@@ -1800,10 +1870,11 @@
       "tests": [
         "tests/v22/acid-base.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-acid-base-proof.mts — PASS 7/7 (COMPUTABLE_200, METABOLIC_ACIDOSIS_WINTERS, COMPENSATION_ADEQUATE, MIXED_ON_LATEST_PCO2, RESPIRATORY_ACIDOSIS, MISSING_ANALYTE, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-acid-base-proof.mts",
       "epic": "BX",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 7/7 (COMPUTABLE_200, METABOLIC_ACIDOSIS_WINTERS, COMPENSATION_ADEQUATE, MIXED_ON_LATEST_PCO2, RESPIRATORY_ACIDOSIS, MISSING_ANALYTE, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-PNEUMONIA-CURB65-001",
@@ -1825,10 +1896,11 @@
       "tests": [
         "tests/v22/pneumonia-severity.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-curb65-proof.mts — PASS 8/8 (COMPUTABLE_200, SCORE_3_HIGH, ADMIT_RECOMMENDED, SCORE_0_LOW, USES_LATEST_BP, MISSING_BUN, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-curb65-proof.mts",
       "epic": "BZ",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 8/8 (COMPUTABLE_200, SCORE_3_HIGH, ADMIT_RECOMMENDED, SCORE_0_LOW, USES_LATEST_BP, MISSING_BUN, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-OXYGENATION-AA-001",
@@ -1850,10 +1922,11 @@
       "tests": [
         "tests/v22/oxygenation.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-aa-gradient-proof.mts — PASS 8/8 (COMPUTABLE_200, ELEVATED_GRADIENT, NORMAL_GRADIENT_HYPOVENTILATION, ALTITUDE_LOWERS_PAO2, USES_LATEST_PO2, MISSING_PCO2, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-aa-gradient-proof.mts",
       "epic": "CA",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 8/8 (COMPUTABLE_200, ELEVATED_GRADIENT, NORMAL_GRADIENT_HYPOVENTILATION, ALTITUDE_LOWERS_PAO2, USES_LATEST_PO2, MISSING_PCO2, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-AI-COPILOT-GATEWAY-001",
@@ -1876,10 +1949,11 @@
       "tests": [
         "tests/v22/ai-copilot-gateway.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-ai-copilot-gateway-proof.mts — PASS 10/10 (KILL_SWITCH_OFF_503, HUMAN_AUTHORITY_PRESCRIBE_403, HUMAN_AUTHORITY_SIGN_403, SUMMARIZE_ALLOWED_200, AI_SUGGESTED_NOT_PROMOTED_NOT_GENERATIVE, DETERMINISTIC_GROUNDED_CONTENT, BUDGET_OPEN_CRITICAL_BLOCKED, SUGGEST_NO_EVIDENCE_BLOCKED, EXTRACT_ABSTAIN_NO_PROVIDER, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-ai-copilot-gateway-proof.mts",
       "epic": "CB",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 (KILL_SWITCH_OFF_503, HUMAN_AUTHORITY_PRESCRIBE_403, HUMAN_AUTHORITY_SIGN_403, SUMMARIZE_ALLOWED_200, AI_SUGGESTED_NOT_PROMOTED_NOT_GENERATIVE, DETERMINISTIC_GROUNDED_CONTENT, BUDGET_OPEN_CRITICAL_BLOCKED, SUGGEST_NO_EVIDENCE_BLOCKED, EXTRACT_ABSTAIN_NO_PROVIDER, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-AI-EVAL-HARNESS-001",
@@ -1901,10 +1975,11 @@
       "tests": [
         "tests/v22/ai-eval-suite.test.ts"
       ],
-      "runtime_evidence": "tests/v22/ai-eval-suite.test.ts — la suite atrapa todos los adversarios. scripts/v22/live-ai-copilot-gateway-proof.mts — PASS 11/11 (incl. SHADOW_DOES_NOT_LEAK_TO_CLINICIAN). En el smoke de CI (live-regression).",
+      "runtime_evidence": "tests/v22/ai-eval-suite.test.ts",
       "epic": "CC",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "la suite atrapa todos los adversarios. scripts/v22/live-ai-copilot-gateway-proof.mts — PASS 11/11 (incl. SHADOW_DOES_NOT_LEAK_TO_CLINICIAN). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-COMORBIDITY-CHARLSON-001",
@@ -1926,10 +2001,11 @@
       "tests": [
         "tests/v22/comorbidity.test.ts"
       ],
-      "runtime_evidence": "scripts/v22/live-charlson-proof.mts — PASS 9/9 (COMPUTED_200, SCORE_7_SEVERE, AGE_AND_COMORBIDITY_SPLIT, RENAL_WEIGHT_2, HAS_SURVIVAL_ESTIMATE, SCORE_0_LOW, DIABETES_SIMPLE_1, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression).",
+      "runtime_evidence": "scripts/v22/live-charlson-proof.mts",
       "epic": "CD",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 (COMPUTED_200, SCORE_7_SEVERE, AGE_AND_COMORBIDITY_SPLIT, RENAL_WEIGHT_2, HAS_SURVIVAL_ESTIMATE, SCORE_0_LOW, DIABETES_SIMPLE_1, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
       "id": "CAP-UI-GUX-001-001",
@@ -1955,10 +2031,11 @@
         "tests/v22/ui-sign-gate.test.ts",
         "tests/v22/ui-gux-001-render.test.tsx"
       ],
-      "runtime_evidence": "tests/v22/ui-sign-gate.test.ts — PASS 8/8 (BLOCKED sin firma, resolver exige evidencia, reconocer!=resolver, flujo completo BLOCKED->RESOLVING->READY->SIGNING->SIGNED, pending!=success, guard de estados prohibidos, ningún estado alcanzable viola el guard). Corre en CI (test:all). Artifact: https://claude.ai/artifact/E9mepsSyENL2pBghVL58wY. + render en jsdom: tests/v22/ui-gux-001-render.test.tsx PASS 7/7 (patient context visible, estado en texto no-solo-color, sin firma con crítico abierto, resolver-sin-evidencia bloqueado, reconocer!=resolver, axe sin violaciones serias). Gate del slice: PENDING_EVIDENCE (contraste visual WCAG + viewports + C5 humano pendientes).",
+      "runtime_evidence": "tests/v22/ui-sign-gate.test.ts",
       "epic": "CE",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 8/8 (BLOCKED sin firma, resolver exige evidencia, reconocer!=resolver, flujo completo BLOCKED->RESOLVING->READY->SIGNING->SIGNED, pending!=success, guard de estados prohibidos, ningún estado alcanzable viola el guard). Corre en CI (test:all). Artifact: https://claude.ai/artifact/E9mepsSyENL2pBghVL58wY. + render en jsdom: tests/v22/ui-gux-001-render.test.tsx PASS 7/7 (patient context visible, estado en texto no-solo-color, sin firma con crítico abierto, resolver-sin-evidencia bloqueado, reconocer!=resolver, axe sin violaciones serias). Gate del slice: PENDING_EVIDENCE (contraste visual WCAG + viewports + C5 humano pendientes)."
     },
     {
       "id": "CAP-CONSULTATION-SNAPSHOT-001",
@@ -1979,10 +2056,11 @@
       "tests": [
         "scripts/v22/live-consultation-snapshot-proof.mts"
       ],
-      "runtime_evidence": "scripts/v22/live-consultation-snapshot-proof.mts — PASS 11/11 vs Neon 2026-09-17 (200, registered, edad 54, sexo, 3 problemas, HbA1c 7.1, eGFR con estadio, findings array, alergia presente, no-registrado 404, sin-scope 403). En el smoke runner de CI (scripts/ci/live-smoke.mts).",
+      "runtime_evidence": "scripts/v22/live-consultation-snapshot-proof.mts",
       "epic": "CF",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 11/11 vs Neon 2026-09-17 (200, registered, edad 54, sexo, 3 problemas, HbA1c 7.1, eGFR con estadio, findings array, alergia presente, no-registrado 404, sin-scope 403). En el smoke runner de CI (scripts/ci/live-smoke.mts)."
     },
     {
       "id": "CAP-TRENDS-LONGITUDINAL-001",
@@ -2003,10 +2081,11 @@
       "tests": [
         "scripts/v22/live-trends-proof.mts"
       ],
-      "runtime_evidence": "scripts/v22/live-trends-proof.mts — PASS 8/8 vs Neon 2026-09-17 (200, serie HbA1c len 3, orden ascendente 8.2/7.5/7.1, ordenada por tiempo, últimos LDL/Creatinina/eGFR, sin-scope 403). En el smoke runner de CI.",
+      "runtime_evidence": "scripts/v22/live-trends-proof.mts",
       "epic": "CH",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 8/8 vs Neon 2026-09-17 (200, serie HbA1c len 3, orden ascendente 8.2/7.5/7.1, ordenada por tiempo, últimos LDL/Creatinina/eGFR, sin-scope 403). En el smoke runner de CI."
     },
     {
       "id": "CAP-PRESCRIPTION-CHECK-001",
@@ -2028,10 +2107,11 @@
       "tests": [
         "scripts/v22/live-prescription-check-proof.mts"
       ],
-      "runtime_evidence": "scripts/v22/live-prescription-check-proof.mts — PASS 10/10 vs Neon 2026-09-17 (amoxicilina->BLOQUEO por reactividad cruzada + veredicto BLOCK, metformina+eGFR bajo->ajuste renal flag + veredicto!=OK, paracetamol->sin alergia + no bloqueado + indicaciones, fármaco desconocido->WARN, sin-scope 403). En el smoke runner de CI.",
+      "runtime_evidence": "scripts/v22/live-prescription-check-proof.mts",
       "epic": "CG",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 vs Neon 2026-09-17 (amoxicilina->BLOQUEO por reactividad cruzada + veredicto BLOCK, metformina+eGFR bajo->ajuste renal flag + veredicto!=OK, paracetamol->sin alergia + no bloqueado + indicaciones, fármaco desconocido->WARN, sin-scope 403). En el smoke runner de CI."
     },
     {
       "id": "CAP-UI-COCKPIT-001",
@@ -2053,11 +2133,12 @@
       "tests": [
         "tests/v22/ui-cockpit-render.test.tsx"
       ],
-      "runtime_evidence": "tests/v22/ui-cockpit-render.test.tsx — PASS 6/6 en jsdom (render con datos deterministas mockeados): shell con sidebar+buscador; hero desde snapshot (chips dx CIE-10, vitales); panel 5 tabs+estado en texto+footer Zero-Lost; panel 6 saludo + Próximamente (>=2) + espejo solo-lectura; panel 7 estado del sistema + actividad (SIGNED en texto); axe sin violaciones serias/críticas en los 3 paneles de presentación. Corre en CI (test:all).",
+      "runtime_evidence": "tests/v22/ui-cockpit-render.test.tsx",
       "epic": "CI-CK",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
       "requires_human_c5_acceptance": true,
-      "gate_note": "UI de presentación probada en jsdom; validación autenticada en navegador real + contraste WCAG/viewports (GUX PENDING_EVIDENCE) siguen pendientes."
+      "gate_note": "UI de presentación probada en jsdom; validación autenticada en navegador real + contraste WCAG/viewports (GUX PENDING_EVIDENCE) siguen pendientes.",
+      "runtime_evidence_note": "x — PASS 6/6 en jsdom (render con datos deterministas mockeados): shell con sidebar+buscador; hero desde snapshot (chips dx CIE-10, vitales); panel 5 tabs+estado en texto+footer Zero-Lost; panel 6 saludo + Próximamente (>=2) + espejo solo-lectura; panel 7 estado del sistema + actividad (SIGNED en texto); axe sin violaciones serias/críticas en los 3 paneles de presentación. Corre en CI (test:all)."
     },
     {
       "id": "CAP-PATIENT-DEMOGRAPHICS-001",
@@ -2079,10 +2160,11 @@
       "tests": [
         "scripts/v22/live-patient-demographics-proof.mts"
       ],
-      "runtime_evidence": "scripts/v22/live-patient-demographics-proof.mts — PASS 14/14 vs Neon 2026-09-18 (registro 201; lista con CURP en mayúsculas + DOB/sexo; snapshot con curp/phone/email/address/occupation/marital/name + edad derivada; retrocompatibilidad sin contacto). En el smoke runner de CI.",
+      "runtime_evidence": "scripts/v22/live-patient-demographics-proof.mts",
       "epic": "CL",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 14/14 vs Neon 2026-09-18 (registro 201; lista con CURP en mayúsculas + DOB/sexo; snapshot con curp/phone/email/address/occupation/marital/name + edad derivada; retrocompatibilidad sin contacto). En el smoke runner de CI."
     },
     {
       "id": "CAP-AGENDA-DAY-001",
@@ -2104,10 +2186,11 @@
       "tests": [
         "scripts/v22/live-agenda-day-proof.mts"
       ],
-      "runtime_evidence": "scripts/v22/live-agenda-day-proof.mts — PASS 10/10 vs Neon 2026-09-18 (agenda 3 citas con consultorio/tipo, orden por hora, join del nombre del paciente, estado CHECKED_IN, conteos, otro día vacío, sin-scope 403). En el smoke runner de CI.",
+      "runtime_evidence": "scripts/v22/live-agenda-day-proof.mts",
       "epic": "CM",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 vs Neon 2026-09-18 (agenda 3 citas con consultorio/tipo, orden por hora, join del nombre del paciente, estado CHECKED_IN, conteos, otro día vacío, sin-scope 403). En el smoke runner de CI."
     },
     {
       "id": "CAP-DRUG-INTERACTION-SET-001",
@@ -2130,10 +2213,11 @@
         "scripts/v22/live-interactions-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (Interacciones: chips por defecto, factores, hallazgos con severidad en texto)"
       ],
-      "runtime_evidence": "scripts/v22/live-interactions-proof.mts — PASS 18/18 vs Neon 2026-09-18 (par SSRI+AINE Mayor, factor Alcohol×SSRI Moderada, Insuf.renal×BIGUANIDE Moderada e Insuf.renal×AINE Menor, orden por severidad, mecanismo+recomendación+etiqueta ES presentes, conteos y severidad máxima, síndrome serotoninérgico Sertralina+Tramadol Mayor, IECA+Embarazo Contraindicada, conjunto seguro sin hallazgos, no-resueltos reportados, sin-scope 403). En el smoke runner de CI. Render test 9/9 (jsdom).",
+      "runtime_evidence": "scripts/v22/live-interactions-proof.mts",
       "epic": "BN",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 18/18 vs Neon 2026-09-18 (par SSRI+AINE Mayor, factor Alcohol×SSRI Moderada, Insuf.renal×BIGUANIDE Moderada e Insuf.renal×AINE Menor, orden por severidad, mecanismo+recomendación+etiqueta ES presentes, conteos y severidad máxima, síndrome serotoninérgico Sertralina+Tramadol Mayor, IECA+Embarazo Contraindicada, conjunto seguro sin hallazgos, no-resueltos reportados, sin-scope 403). En el smoke runner de CI. Render test 9/9 (jsdom)."
     },
     {
       "id": "CAP-ALLERGY-REGISTRY-001",
@@ -2157,10 +2241,11 @@
         "scripts/v22/live-allergy-registry-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Alergias: KPIs, tabla, detalle, gráficas)"
       ],
-      "runtime_evidence": "scripts/v22/live-allergy-registry-proof.mts — PASS 16/16 vs Neon 2026-09-18 (5 alergias de 3 pacientes con tipos Medicamento/Alimento/Ambiental/Contraste, clasificación derivada, join del nombre, etiquetas ES, conteos por gravedad 2/2/1 y por tipo, transición a INACTIVE reflejada + activeCount, sin-scope 403). En el smoke runner de CI. Render test 10/10 (jsdom). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-allergy-registry-proof.mts",
       "epic": "R/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 16/16 vs Neon 2026-09-18 (5 alergias de 3 pacientes con tipos Medicamento/Alimento/Ambiental/Contraste, clasificación derivada, join del nombre, etiquetas ES, conteos por gravedad 2/2/1 y por tipo, transición a INACTIVE reflejada + activeCount, sin-scope 403). En el smoke runner de CI. Render test 10/10 (jsdom). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-PROBLEM-REGISTRY-001",
@@ -2183,10 +2268,11 @@
         "scripts/v22/live-problem-registry-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Problemas: KPIs, tabla, detalle, gráficas + navegación a form y plantillas)"
       ],
-      "runtime_evidence": "scripts/v22/live-problem-registry-proof.mts — PASS 16/16 vs Neon 2026-09-18 (5 problemas de 3 pacientes con categorías Endocrino/Cardiovascular/Salud mental/Respiratorio/Digestivo, categoría-UI derivada, join del nombre, transición RESOLVED y CHRONIC reflejadas en estado/etiqueta, conteos por estado 3/1/1, conteos por categoría, top de pacientes, sin-scope 403). En el smoke runner de CI. Render test 11/11 (jsdom). Fidelidad de la lista verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-problem-registry-proof.mts",
       "epic": "Q/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 16/16 vs Neon 2026-09-18 (5 problemas de 3 pacientes con categorías Endocrino/Cardiovascular/Salud mental/Respiratorio/Digestivo, categoría-UI derivada, join del nombre, transición RESOLVED y CHRONIC reflejadas en estado/etiqueta, conteos por estado 3/1/1, conteos por categoría, top de pacientes, sin-scope 403). En el smoke runner de CI. Render test 11/11 (jsdom). Fidelidad de la lista verificada por preview + captura."
     },
     {
       "id": "CAP-IMMUNIZATION-REGISTRY-001",
@@ -2209,10 +2295,11 @@
         "scripts/v22/live-immunization-registry-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Vacunas: KPIs, tabla, detalle, cobertura)"
       ],
-      "runtime_evidence": "scripts/v22/live-immunization-registry-proof.mts — PASS 15/15 vs Neon 2026-09-18 (4 dosis de 3 pacientes, 2 administradas con lote+sitio, estado Completa/Pendiente por transición, lote y fecha de aplicación unidos del evento ADMINISTERED, conteos aplicadas/pendientes 2/2, pacientes vacunados 2, esquemas incompletos 2, cobertura por vacuna, join del nombre, sin-scope 403). En el smoke runner de CI. Render test 12/12 (jsdom). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-immunization-registry-proof.mts",
       "epic": "V/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 15/15 vs Neon 2026-09-18 (4 dosis de 3 pacientes, 2 administradas con lote+sitio, estado Completa/Pendiente por transición, lote y fecha de aplicación unidos del evento ADMINISTERED, conteos aplicadas/pendientes 2/2, pacientes vacunados 2, esquemas incompletos 2, cobertura por vacuna, join del nombre, sin-scope 403). En el smoke runner de CI. Render test 12/12 (jsdom). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-VITALS-HISTORY-001",
@@ -2235,10 +2322,11 @@
         "scripts/v22/live-vitals-history-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Signos vitales: form, últimos registros, tendencias, referencia, alertas)"
       ],
-      "runtime_evidence": "scripts/v22/live-vitals-history-proof.mts — PASS 10/10 vs Neon 2026-09-18 (3 tomas de 7 tipos c/u, agrupación por toma con la más reciente primero, IMC derivado 29.6 = 65.7/1.49², resumen latest, series de TA sistólica 126->120 / peso / IMC ascendentes, aislamiento por paciente, sin-scope 403). En el smoke runner de CI. Render test 13/13 (jsdom). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-vitals-history-proof.mts",
       "epic": "W/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 vs Neon 2026-09-18 (3 tomas de 7 tipos c/u, agrupación por toma con la más reciente primero, IMC derivado 29.6 = 65.7/1.49², resumen latest, series de TA sistólica 126->120 / peso / IMC ascendentes, aislamiento por paciente, sin-scope 403). En el smoke runner de CI. Render test 13/13 (jsdom). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-CARE-PLAN-SNAPSHOT-001",
@@ -2261,10 +2349,11 @@
         "scripts/v22/live-care-plan-snapshot-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Plan de cuidado: problemas, objetivos, intervenciones, cronograma, métricas)"
       ],
-      "runtime_evidence": "scripts/v22/live-care-plan-snapshot-proof.mts — PASS 15/15 vs Neon 2026-09-18 (3 problemas con descripción CIE-10 real, conteos problemas 3/alergias 1, 2 metas del plan con estado por transición (una activada 'Activa', otra 'Propuesta'), métricas HbA1c 8.1 de labs, TA 138/86 y Peso 78 de vitales, IMC derivado 30.1, sin-scope 403). En el smoke runner de CI. Render test 14/14 (jsdom). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-care-plan-snapshot-proof.mts",
       "epic": "X/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 15/15 vs Neon 2026-09-18 (3 problemas con descripción CIE-10 real, conteos problemas 3/alergias 1, 2 metas del plan con estado por transición (una activada 'Activa', otra 'Propuesta'), métricas HbA1c 8.1 de labs, TA 138/86 y Peso 78 de vitales, IMC derivado 30.1, sin-scope 403). En el smoke runner de CI. Render test 14/14 (jsdom). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-REFERRAL-CONTEXT-001",
@@ -2286,10 +2375,11 @@
         "scripts/v22/live-referral-context-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Interconsultas: form + panel de contexto + envío)"
       ],
-      "runtime_evidence": "scripts/v22/live-referral-context-proof.mts — PASS 10/10 vs Neon 2026-09-18 (alergia listada, medicamentos activos por nombre metformina/losartan tras propose->prescribe->activate, 3 problemas con descripción CIE-10, HbA1c 8.1 de labs, TA 124/82 y FC 76 de vitales, IMC derivado 30.1, envío real de interconsulta 201, sin-scope 403). En el smoke runner de CI. Render test 15/15 (jsdom). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-referral-context-proof.mts",
       "epic": "Y/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 10/10 vs Neon 2026-09-18 (alergia listada, medicamentos activos por nombre metformina/losartan tras propose->prescribe->activate, 3 problemas con descripción CIE-10, HbA1c 8.1 de labs, TA 124/82 y FC 76 de vitales, IMC derivado 30.1, envío real de interconsulta 201, sin-scope 403). En el smoke runner de CI. Render test 15/15 (jsdom). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-FOLLOW-UP-SNAPSHOT-001",
@@ -2312,10 +2402,11 @@
         "scripts/v22/live-follow-up-snapshot-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Seguimiento: historia, tendencia, indicadores, tareas, próxima cita)"
       ],
-      "runtime_evidence": "scripts/v22/live-follow-up-snapshot-proof.mts — PASS 14/14 vs Neon 2026-09-18 (3 tareas con una completada por transición, tendencia TA sistólica 128->124 y último peso 67.3, indicadores HbA1c 8.1->7.2 / LDL 142->110 / Peso 69.4->67.3 / IMC último derivado 30.3, conteos, sin-scope 403). En el smoke runner de CI. Render test 16/16 (jsdom). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-follow-up-snapshot-proof.mts",
       "epic": "BA/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 14/14 vs Neon 2026-09-18 (3 tareas con una completada por transición, tendencia TA sistólica 128->124 y último peso 67.3, indicadores HbA1c 8.1->7.2 / LDL 142->110 / Peso 69.4->67.3 / IMC último derivado 30.3, conteos, sin-scope 403). En el smoke runner de CI. Render test 16/16 (jsdom). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-CLAIMS-REGISTRY-001",
@@ -2338,10 +2429,11 @@
         "scripts/v22/live-claims-registry-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Facturación: KPIs, tabla, wizard, gráficas)"
       ],
-      "runtime_evidence": "scripts/v22/live-claims-registry-proof.mts — PASS 13/13 vs Neon 2026-09-18 (4 facturas de 2 pacientes, 2 pagadas por transición draft->code->submit->pay, 1 anulada, KPIs ingresos 1700 / emitidas 4 / pendientes 1 monto 350 / cancelaciones 1, folio secuencial F-000004, join del nombre, etiquetas ES Pagada/Cancelada, sin-scope 403). En el smoke runner de CI. Render test 17/17 (jsdom). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-claims-registry-proof.mts",
       "epic": "Y/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 13/13 vs Neon 2026-09-18 (4 facturas de 2 pacientes, 2 pagadas por transición draft->code->submit->pay, 1 anulada, KPIs ingresos 1700 / emitidas 4 / pendientes 1 monto 350 / cancelaciones 1, folio secuencial F-000004, join del nombre, etiquetas ES Pagada/Cancelada, sin-scope 403). En el smoke runner de CI. Render test 17/17 (jsdom). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-DOCUMENTS-REGISTRY-001",
@@ -2364,10 +2456,11 @@
         "scripts/v22/live-documents-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Documentos: carpetas, tabla, vista previa, acciones)"
       ],
-      "runtime_evidence": "scripts/v22/live-documents-proof.mts — PASS 11/11 vs Neon 2026-09-18 (4 documentos de tipos PROGRESS_NOTE/REFERRAL/PROCEDURE_NOTE, tipo-UI derivado (Nota médica/Interconsulta/Procedimiento), conteos por carpeta 2/1/1, chip clínico 3, estado Finalizado tras finalizar, sin-scope 403). En el smoke runner de CI. Render test 18/18 (jsdom). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-documents-proof.mts",
       "epic": "Z/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 11/11 vs Neon 2026-09-18 (4 documentos de tipos PROGRESS_NOTE/REFERRAL/PROCEDURE_NOTE, tipo-UI derivado (Nota médica/Interconsulta/Procedimiento), conteos por carpeta 2/1/1, chip clínico 3, estado Finalizado tras finalizar, sin-scope 403). En el smoke runner de CI. Render test 18/18 (jsdom). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-REGULATORY-OBLIGATIONS-001",
@@ -2391,10 +2484,11 @@
         "scripts/v22/live-regulatory-obligations-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Obligaciones: KPIs, tabla, calendario, cumplimiento)"
       ],
-      "runtime_evidence": "scripts/v22/live-regulatory-obligations-proof.mts — PASS 11/11 vs Neon 2026-09-18 (5 obligaciones con fechas variadas, estado computado Próxima/Al día/Vencida/Vigente, KPIs al día 2 / próximas 2 / vencidas 1, cumplimiento Laboral 0% y Fiscal 100%, sin-scope 403). En el smoke runner de CI. Render test 19/19 (jsdom). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-regulatory-obligations-proof.mts",
       "epic": "AC/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 11/11 vs Neon 2026-09-18 (5 obligaciones con fechas variadas, estado computado Próxima/Al día/Vencida/Vigente, KPIs al día 2 / próximas 2 / vencidas 1, cumplimiento Laboral 0% y Fiscal 100%, sin-scope 403). En el smoke runner de CI. Render test 19/19 (jsdom). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-CLINICAL-INTELLIGENCE-UI-001",
@@ -2414,10 +2508,11 @@
       "tests": [
         "tests/v22/ui-cockpit-render.test.tsx (vista Clinical Intelligence: asistente, alertas, diferencial, calculadoras, nota de gobernanza)"
       ],
-      "runtime_evidence": "Sin proof nuevo: reutiliza live-consultation-snapshot-proof (findings deterministas) + live-egfr/bmi/cha2ds2vasc/news2 proofs (calculadoras), todos ya en el smoke runner. Render test 20/20 (jsdom) confirma la materialización de la vista y la nota de gobernanza R6. Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "R6/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Sin proof nuevo: reutiliza live-consultation-snapshot-proof (findings deterministas) + live-egfr/bmi/cha2ds2vasc/news2 proofs (calculadoras), todos ya en el smoke runner. Render test 20/20 (jsdom) confirma la materialización de la vista y la nota de gobernanza R6. Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-REPORTS-DASHBOARD-001",
@@ -2439,10 +2534,11 @@
         "scripts/v22/live-reports-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Reportes: KPIs, diagnósticos, gráficas)"
       ],
-      "runtime_evidence": "scripts/v22/live-reports-proof.mts — PASS 8/8 vs Neon 2026-09-18 (3 pacientes, 6 problemas (E11.9 x3, I10 x2, E66.9 x1), 2 facturas pagadas 500+1200; pacientes atendidos 3, ingresos 1700, diagnósticos total 6, top E11.9 con 3 (50%), I10 con 2, sin-scope 403). En el smoke runner de CI. Render test 21/21 (jsdom). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-reports-proof.mts",
       "epic": "AD/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 8/8 vs Neon 2026-09-18 (3 pacientes, 6 problemas (E11.9 x3, I10 x2, E66.9 x1), 2 facturas pagadas 500+1200; pacientes atendidos 3, ingresos 1700, diagnósticos total 6, top E11.9 con 3 (50%), I10 con 2, sin-scope 403). En el smoke runner de CI. Render test 21/21 (jsdom). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-CLINICAL-LIBRARY-UI-001",
@@ -2462,10 +2558,11 @@
       "tests": [
         "tests/v22/ui-cockpit-render.test.tsx (vista Biblioteca Clínica: KPIs, especialidades, contenido destacado, herramientas, fuentes)"
       ],
-      "runtime_evidence": "Sin proof nuevo: módulo presentacional de referencia; las herramientas enlazadas reutilizan capacidades ya probadas (interacciones + calculadoras deterministas en el smoke runner). Render test 22/22 (jsdom). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "REF/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Sin proof nuevo: módulo presentacional de referencia; las herramientas enlazadas reutilizan capacidades ya probadas (interacciones + calculadoras deterministas en el smoke runner). Render test 22/22 (jsdom). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-SETTINGS-UI-001",
@@ -2485,10 +2582,11 @@
       "tests": [
         "tests/v22/ui-cockpit-render.test.tsx (vista Configuración: secciones, módulos, guardar -> confirmación)"
       ],
-      "runtime_evidence": "Sin proof nuevo: módulo presentacional de ajustes (sin backend de settings). Render test 23/23 (jsdom) confirma la materialización de secciones y la confirmación local al guardar. Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "CFG/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Sin proof nuevo: módulo presentacional de ajustes (sin backend de settings). Render test 23/23 (jsdom) confirma la materialización de secciones y la confirmación local al guardar. Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-RESULTS-REGISTRY-001",
@@ -2511,10 +2609,11 @@
         "scripts/v22/live-results-registry-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Resultados: KPIs + lista con estado-UI)"
       ],
-      "runtime_evidence": "scripts/v22/live-results-registry-proof.mts — PASS 13/13 vs Neon 2026-09-18 (3 resultados: creatinina normal->ACTIONED, glucosa 520 crítica derivada, radiografía imagen; estado-UI Hallazgos/En seguimiento, tipo Imagenología, join del paciente, KPIs abnormal 1 / enSeguimiento 1 / pendientes 2, sin-scope 403). En el smoke runner de CI. Render test 24/24 (jsdom). Fidelidad verificada por preview previo del módulo S7.",
+      "runtime_evidence": "scripts/v22/live-results-registry-proof.mts",
       "epic": "AQ/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 13/13 vs Neon 2026-09-18 (3 resultados: creatinina normal->ACTIONED, glucosa 520 crítica derivada, radiografía imagen; estado-UI Hallazgos/En seguimiento, tipo Imagenología, join del paciente, KPIs abnormal 1 / enSeguimiento 1 / pendientes 2, sin-scope 403). En el smoke runner de CI. Render test 24/24 (jsdom). Fidelidad verificada por preview previo del módulo S7."
     },
     {
       "id": "CAP-RESULTS-TABS-001",
@@ -2538,10 +2637,11 @@
         "scripts/v22/live-orders-registry-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (Resultados: Solicitudes/Alertas/Valores de referencia)"
       ],
-      "runtime_evidence": "scripts/v22/live-orders-registry-proof.mts — PASS 11/11 vs Neon 2026-09-18 (3 órdenes LAB/IMAGING; place+fulfill -> Completada, place -> Enviada, sin transición -> Solicitada; tipo-UI Imagenología, join del paciente, conteos 1/1/1, sin-scope 403). En el smoke runner de CI. Render test 24/24 (jsdom, cubre Solicitudes/Valores de referencia/Alertas). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-orders-registry-proof.mts",
       "epic": "E/AQ/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 11/11 vs Neon 2026-09-18 (3 órdenes LAB/IMAGING; place+fulfill -> Completada, place -> Enviada, sin transición -> Solicitada; tipo-UI Imagenología, join del paciente, conteos 1/1/1, sin-scope 403). En el smoke runner de CI. Render test 24/24 (jsdom, cubre Solicitudes/Valores de referencia/Alertas). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-CONSULTATION-TABS-001",
@@ -2563,10 +2663,11 @@
         "scripts/v22/live-consultation-tabs-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (Consulta: pestañas Resultados/Medicamentos/Seguimiento)"
       ],
-      "runtime_evidence": "scripts/v22/live-consultation-tabs-proof.mts — PASS 9/9 vs Neon 2026-09-18 (resultados aislados por paciente (GLUCOSE Hallazgos, no el HBA1C de otro paciente), 1 orden Laboratorio, medicamentos metformina+losartán por nombre, 1 meta de plan, 1 documento Nota médica, obligación manual + obligaciones de monitoreo auto-generadas MONITOR_RENAL/MONITOR_K_CREAT, sin-scope 403). En el smoke runner de CI. Render test 24/24 (jsdom). Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-consultation-tabs-proof.mts",
       "epic": "K/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 9/9 vs Neon 2026-09-18 (resultados aislados por paciente (GLUCOSE Hallazgos, no el HBA1C de otro paciente), 1 orden Laboratorio, medicamentos metformina+losartán por nombre, 1 meta de plan, 1 documento Nota médica, obligación manual + obligaciones de monitoreo auto-generadas MONITOR_RENAL/MONITOR_K_CREAT, sin-scope 403). En el smoke runner de CI. Render test 24/24 (jsdom). Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-ORDERS-LIFECYCLE-UI-001",
@@ -2590,10 +2691,11 @@
         "scripts/v22/live-orders-registry-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Órdenes: KPIs/lista/detalle/creador)"
       ],
-      "runtime_evidence": "scripts/v22/live-orders-registry-proof.mts — PASS 16/16 vs Neon 2026-09-18 (crear 201; placement/fulfillment/cancellation OK; registro con estado por transicion Completada/Enviada/Solicitada/Cancelada; join de paciente; version Solicitada=1/Enviada=2/Completada=3; conteos; sin-scope 403). En el smoke runner de CI. Render test 25/25 (jsdom): KPIs reales, filas del registro, detalle vivo con accion placement, y creador con secuencia de opciones. Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-orders-registry-proof.mts",
       "epic": "M/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 16/16 vs Neon 2026-09-18 (crear 201; placement/fulfillment/cancellation OK; registro con estado por transicion Completada/Enviada/Solicitada/Cancelada; join de paciente; version Solicitada=1/Enviada=2/Completada=3; conteos; sin-scope 403). En el smoke runner de CI. Render test 25/25 (jsdom): KPIs reales, filas del registro, detalle vivo con accion placement, y creador con secuencia de opciones. Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-MEDICATIONS-CATALOG-UI-001",
@@ -2615,10 +2717,11 @@
         "tests/v22/drug-catalog.test.ts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Medicamentos: catálogo/detalle/alertas)"
       ],
-      "runtime_evidence": "tests/v22/drug-catalog.test.ts — 31/31 (deduplicación por principio activo, categoría/clases/reglas coherentes con el motor: metformina BIGUANIDE + MONITOR_RENAL + renal blockBelow 30, amoxicilina sin ajuste renal; matriz de interacciones con >=1 MAJOR). Render test 26/26 (jsdom): KPIs reales, filas del catálogo (metformina/losartan), detalle con monitoreo/función renal + acción Prescribir, pestaña Alertas con matriz por clase y vigilancia obligada. Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "tests/v22/drug-catalog.test.ts",
       "epic": "AP/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "31/31 (deduplicación por principio activo, categoría/clases/reglas coherentes con el motor: metformina BIGUANIDE + MONITOR_RENAL + renal blockBelow 30, amoxicilina sin ajuste renal; matriz de interacciones con >=1 MAJOR). Render test 26/26 (jsdom): KPIs reales, filas del catálogo (metformina/losartan), detalle con monitoreo/función renal + acción Prescribir, pestaña Alertas con matriz por clase y vigilancia obligada. Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-AGENDA-LIFECYCLE-UI-001",
@@ -2641,10 +2744,11 @@
         "scripts/v22/live-agenda-day-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (vista Agenda: citas/detalle/ciclo de vida/nueva cita/lista)"
       ],
-      "runtime_evidence": "scripts/v22/live-agenda-day-proof.mts — PASS 13/13 vs Neon 2026-09-18 (agenda de 5 citas; a1 SCHEDULED->CHECKED_IN->COMPLETED version 3; a2 SCHEDULED version 1; a4 CANCELLED version 2; a5 NO_SHOW version 2; orden por hora; join de paciente; consultorio/tipo; conteos programadas=5/atendidas=1/canceladas=2; otro dia vacio; sin-scope 403). En el smoke runner de CI. Render test 27/27 (jsdom): citas reales, detalle con Registrar llegada, creador de nueva cita, vista Lista. Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-agenda-day-proof.mts",
       "epic": "CM/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 13/13 vs Neon 2026-09-18 (agenda de 5 citas; a1 SCHEDULED->CHECKED_IN->COMPLETED version 3; a2 SCHEDULED version 1; a4 CANCELLED version 2; a5 NO_SHOW version 2; orden por hora; join de paciente; consultorio/tipo; conteos programadas=5/atendidas=1/canceladas=2; otro dia vacio; sin-scope 403). En el smoke runner de CI. Render test 27/27 (jsdom): citas reales, detalle con Registrar llegada, creador de nueva cita, vista Lista. Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-PATIENTS-UI-001",
@@ -2666,10 +2770,11 @@
         "scripts/v22/live-patient-registry-proof.mts",
         "scripts/v22/live-patient-demographics-proof.mts"
       ],
-      "runtime_evidence": "Render test 28/28 (jsdom): filas reales del registro, busqueda que filtra en vivo (al escribir Carlos, Ana desaparece), Limpiar filtros restaura, creador inline con Registrar paciente, e interconexion Agendar cita -> abre el creador en la vista Agenda. Backends reutilizados ya probados en vivo: live-patient-registry-proof y live-patient-demographics-proof (registro->lista->snapshot con CURP/contacto) y el export deterministico (GET /patients/:id/export).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "IDENT/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 28/28 (jsdom): filas reales del registro, busqueda que filtra en vivo (al escribir Carlos, Ana desaparece), Limpiar filtros restaura, creador inline con Registrar paciente, e interconexion Agendar cita -> abre el creador en la vista Agenda. Backends reutilizados ya probados en vivo: live-patient-registry-proof y live-patient-demographics-proof (registro->lista->snapshot con CURP/contacto) y el export deterministico (GET /patients/:id/export)."
     },
     {
       "id": "CAP-CONSULTA-ENCOUNTER-UI-001",
@@ -2691,10 +2796,11 @@
         "scripts/v22/live-encounter-lifecycle-proof.mts",
         "scripts/v22/live-result-closed-loop-proof.mts"
       ],
-      "runtime_evidence": "Render test 29/29 (jsdom): con paciente en contexto, Abrir encuentro -> badge Abierta + Guardar valoracion -> badge Lista para firmar -> Firmar consulta -> badge Firmada + aviso Consulta firmada. Backend reutilizado ya probado en vivo: live-encounter-lifecycle-proof (maquina de estados, RLS, concurrencia, GATE de firma) y live-result-closed-loop-proof (un resultado critico sin cerrar bloquea la firma).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "D/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 29/29 (jsdom): con paciente en contexto, Abrir encuentro -> badge Abierta + Guardar valoracion -> badge Lista para firmar -> Firmar consulta -> badge Firmada + aviso Consulta firmada. Backend reutilizado ya probado en vivo: live-encounter-lifecycle-proof (maquina de estados, RLS, concurrencia, GATE de firma) y live-result-closed-loop-proof (un resultado critico sin cerrar bloquea la firma)."
     },
     {
       "id": "CAP-INICIO-DASHBOARD-UI-001",
@@ -2715,10 +2821,11 @@
         "scripts/v22/live-patient-registry-proof.mts",
         "scripts/v22/live-agenda-day-proof.mts"
       ],
-      "runtime_evidence": "Render test 30/30 (jsdom): KPIs Citas de hoy / Consultas atendidas derivados de la agenda mock (2 citas), y una tarea real del worklist (con patientId) que al hacer clic abre la vista Consulta del paciente. Backends reutilizados ya probados en vivo: live-patient-registry-proof, live-agenda-day-proof (agenda del dia + conteos) y el worklist real.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 30/30 (jsdom): KPIs Citas de hoy / Consultas atendidas derivados de la agenda mock (2 citas), y una tarea real del worklist (con patientId) que al hacer clic abre la vista Consulta del paciente. Backends reutilizados ya probados en vivo: live-patient-registry-proof, live-agenda-day-proof (agenda del dia + conteos) y el worklist real."
     },
     {
       "id": "CAP-CONSULTA-VITALS-UI-001",
@@ -2740,10 +2847,11 @@
         "scripts/v22/live-critical-vital-signing-loop-proof.mts",
         "scripts/v22/live-vitals-history-proof.mts"
       ],
-      "runtime_evidence": "Render test 31/31 (jsdom): capturar TA en la grilla de la Consulta y Guardar -> POST /vitals -> aviso de guardado. Backend reutilizado ya probado en vivo: live-critical-vital-signing-loop-proof (un vital critico sin cerrar bloquea la firma del encuentro) y live-vitals-history-proof (historial por paciente + IMC + series).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "D/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 31/31 (jsdom): capturar TA en la grilla de la Consulta y Guardar -> POST /vitals -> aviso de guardado. Backend reutilizado ya probado en vivo: live-critical-vital-signing-loop-proof (un vital critico sin cerrar bloquea la firma del encuentro) y live-vitals-history-proof (historial por paciente + IMC + series)."
     },
     {
       "id": "CAP-CONSULTA-ORDERS-UI-001",
@@ -2763,10 +2871,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (vista Consulta: seleccionar estudio -> Crear orden -> POST /orders)",
         "scripts/v22/live-orders-registry-proof.mts"
       ],
-      "runtime_evidence": "Render test 32/32 (jsdom): en la Consulta, seleccionar Biometria hematica completa marca el checkbox, el boton refleja Crear 1 orden, y al pulsarlo POST /orders -> aviso de orden registrada en el expediente. Backend reutilizado ya probado en vivo: live-orders-registry-proof (crear + ciclo de vida + estado por transicion + version + conteos + 403).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "M/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 32/32 (jsdom): en la Consulta, seleccionar Biometria hematica completa marca el checkbox, el boton refleja Crear 1 orden, y al pulsarlo POST /orders -> aviso de orden registrada en el expediente. Backend reutilizado ya probado en vivo: live-orders-registry-proof (crear + ciclo de vida + estado por transicion + version + conteos + 403)."
     },
     {
       "id": "CAP-CONSULTA-PROBLEMS-UI-001",
@@ -2787,10 +2896,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (vista Consulta: buscar CIE-10 -> elegir -> POST /problems)",
         "scripts/v22/live-problem-registry-proof.mts"
       ],
-      "runtime_evidence": "Render test 33/33 (jsdom): en la Consulta, buscar \"diabetes\" muestra E11.9 del catalogo CIE-10 real y al elegirlo POST /problems -> aviso de problema agregado. Backend reutilizado ya probado en vivo: live-problem-registry-proof (crear + categoria-UI + estado por transicion + conteos).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "Q/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 33/33 (jsdom): en la Consulta, buscar \"diabetes\" muestra E11.9 del catalogo CIE-10 real y al elegirlo POST /problems -> aviso de problema agregado. Backend reutilizado ya probado en vivo: live-problem-registry-proof (crear + categoria-UI + estado por transicion + conteos)."
     },
     {
       "id": "CAP-CONSULTA-ANTECEDENTES-UI-001",
@@ -2810,10 +2920,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (vista Consulta: antecedente marcado -> aparece en la nota compuesta)",
         "scripts/v22/live-encounter-lifecycle-proof.mts"
       ],
-      "runtime_evidence": "Render test 34/34 (jsdom): marcar el antecedente HTA y abrir Vista previa muestra ANTECEDENTES RELEVANTES: HTA en la nota que se guardara. La persistencia de esa nota va por el mismo flujo ya probado en vivo: live-encounter-lifecycle-proof (assessment -> READY_TO_SIGN -> signature inmutable).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "D/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 34/34 (jsdom): marcar el antecedente HTA y abrir Vista previa muestra ANTECEDENTES RELEVANTES: HTA en la nota que se guardara. La persistencia de esa nota va por el mismo flujo ya probado en vivo: live-encounter-lifecycle-proof (assessment -> READY_TO_SIGN -> signature inmutable)."
     },
     {
       "id": "CAP-ALLERGIES-CREATE-UI-001",
@@ -2834,10 +2945,11 @@
         "scripts/v22/live-allergy-registry-proof.mts",
         "scripts/v22/live-allergy-medication-gate-proof.mts"
       ],
-      "runtime_evidence": "Render test 35/35 (jsdom): en Alergias, + Nueva alergia -> elegir paciente + sustancia Penicilina + reaccion Urticaria -> Registrar -> POST /allergies -> aviso de alergia registrada. Backends reutilizados ya probados en vivo: live-allergy-registry-proof (registro + conteos por gravedad/tipo) y live-allergy-medication-gate-proof (la alergia bloquea la prescripcion del farmaco por clase y reactividad cruzada beta-lactamicos).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "R/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 35/35 (jsdom): en Alergias, + Nueva alergia -> elegir paciente + sustancia Penicilina + reaccion Urticaria -> Registrar -> POST /allergies -> aviso de alergia registrada. Backends reutilizados ya probados en vivo: live-allergy-registry-proof (registro + conteos por gravedad/tipo) y live-allergy-medication-gate-proof (la alergia bloquea la prescripcion del farmaco por clase y reactividad cruzada beta-lactamicos)."
     },
     {
       "id": "CAP-IMMUNIZATIONS-CREATE-UI-001",
@@ -2858,10 +2970,11 @@
         "scripts/v22/live-immunization-registry-proof.mts",
         "scripts/v22/live-immunization-forecast-proof.mts"
       ],
-      "runtime_evidence": "Render test 36/36 (jsdom): en Vacunas, + Registrar vacuna -> elegir paciente + Influenza -> Registrar -> POST /immunizations -> aviso de vacuna registrada. Backends reutilizados ya probados en vivo: live-immunization-registry-proof (registro + estado + lote/fecha + cobertura) y live-immunization-forecast-proof (pronostico por edad).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 36/36 (jsdom): en Vacunas, + Registrar vacuna -> elegir paciente + Influenza -> Registrar -> POST /immunizations -> aviso de vacuna registrada. Backends reutilizados ya probados en vivo: live-immunization-registry-proof (registro + estado + lote/fecha + cobertura) y live-immunization-forecast-proof (pronostico por edad)."
     },
     {
       "id": "CAP-CAREPLAN-CREATE-UI-001",
@@ -2881,10 +2994,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (vista Plan de cuidado: agregar meta -> POST /care-plans)",
         "scripts/v22/live-care-plan-snapshot-proof.mts"
       ],
-      "runtime_evidence": "Render test 37/37 (jsdom): en Plan de cuidado, + Nueva meta -> escribir objetivo -> Agregar meta -> POST /care-plans -> aviso de meta agregada. Backend reutilizado ya probado en vivo: live-care-plan-snapshot-proof (snapshot compuesto: problemas + conteos + metas + metricas).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "BC/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 37/37 (jsdom): en Plan de cuidado, + Nueva meta -> escribir objetivo -> Agregar meta -> POST /care-plans -> aviso de meta agregada. Backend reutilizado ya probado en vivo: live-care-plan-snapshot-proof (snapshot compuesto: problemas + conteos + metas + metricas)."
     },
     {
       "id": "CAP-DOCUMENTS-CREATE-UI-001",
@@ -2905,10 +3019,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (vista Documentos: crear documento -> POST /documents)",
         "scripts/v22/live-documents-proof.mts"
       ],
-      "runtime_evidence": "Render test 38/38 (jsdom): en Documentos, + Nuevo documento -> tipo/titulo/contenido -> Crear documento -> POST /documents -> aviso de documento creado. Backend reutilizado ya probado en vivo: live-documents-proof (lista por paciente + tipo-UI + estado + conteos por carpeta).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "BD/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 38/38 (jsdom): en Documentos, + Nuevo documento -> tipo/titulo/contenido -> Crear documento -> POST /documents -> aviso de documento creado. Backend reutilizado ya probado en vivo: live-documents-proof (lista por paciente + tipo-UI + estado + conteos por carpeta)."
     },
     {
       "id": "CAP-REGULATORY-OBLIGATIONS-CREATE-UI-001",
@@ -2928,10 +3043,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (vista Obligaciones: agregar obligacion -> POST /regulatory-obligations)",
         "scripts/v22/live-regulatory-obligations-proof.mts"
       ],
-      "runtime_evidence": "Render test 39/39 (jsdom): en Obligaciones, + Agregar obligación -> nombre + categoria -> Agregar -> POST /regulatory-obligations -> aviso de obligacion agregada. Backend reutilizado ya probado en vivo: live-regulatory-obligations-proof (estado computado de la fecha limite + KPIs + cumplimiento por categoria).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "AC/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 39/39 (jsdom): en Obligaciones, + Agregar obligación -> nombre + categoria -> Agregar -> POST /regulatory-obligations -> aviso de obligacion agregada. Backend reutilizado ya probado en vivo: live-regulatory-obligations-proof (estado computado de la fecha limite + KPIs + cumplimiento por categoria)."
     },
     {
       "id": "CAP-BILLING-PATIENT-UI-001",
@@ -2951,10 +3067,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (vista Facturacion: elegir paciente -> Emitir -> POST /claims)",
         "scripts/v22/live-claims-registry-proof.mts"
       ],
-      "runtime_evidence": "Render test 40/40 (jsdom): en Facturacion, elegir el paciente en el selector real -> Emitir factura -> POST /claims -> aviso de factura emitida. Backend reutilizado ya probado en vivo: live-claims-registry-proof (registro de facturas clinica-wide + KPIs ingresos/emitidas/pendientes + ciclo de vida).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "BE/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 40/40 (jsdom): en Facturacion, elegir el paciente en el selector real -> Emitir factura -> POST /claims -> aviso de factura emitida. Backend reutilizado ya probado en vivo: live-claims-registry-proof (registro de facturas clinica-wide + KPIs ingresos/emitidas/pendientes + ciclo de vida)."
     },
     {
       "id": "CAP-REFERRALS-PATIENT-UI-001",
@@ -2974,10 +3091,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (vista Interconsultas: elegir paciente + motivo -> Enviar -> POST /referrals)",
         "scripts/v22/live-referral-context-proof.mts"
       ],
-      "runtime_evidence": "Render test 41/41 (jsdom): en Interconsultas, elegir paciente en el selector real + motivo -> Enviar interconsulta -> POST /referrals -> aviso de interconsulta enviada. Backend reutilizado ya probado en vivo: live-referral-context-proof (contexto del paciente: alergias/meds/problemas/labs/vitales + envio).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "BF/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 41/41 (jsdom): en Interconsultas, elegir paciente en el selector real + motivo -> Enviar interconsulta -> POST /referrals -> aviso de interconsulta enviada. Backend reutilizado ya probado en vivo: live-referral-context-proof (contexto del paciente: alergias/meds/problemas/labs/vitales + envio)."
     },
     {
       "id": "CAP-RESULTS-CREATE-UI-001",
@@ -2999,10 +3117,11 @@
         "scripts/v22/live-results-registry-proof.mts",
         "scripts/v22/live-result-closed-loop-proof.mts"
       ],
-      "runtime_evidence": "Render test 42/42 (jsdom): en Resultados, + Registrar resultado -> paciente + analito GLUCOSE + valor 520 -> Registrar -> POST /results -> aviso de resultado registrado. Backends reutilizados ya probados en vivo: live-results-registry-proof (estado-UI derivado + tipo + KPIs) y live-result-closed-loop-proof (un critico sin cerrar bloquea la firma; ciclo RECEIVED->VERIFIED->ACTIONED->CLOSED).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "AQ/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 42/42 (jsdom): en Resultados, + Registrar resultado -> paciente + analito GLUCOSE + valor 520 -> Registrar -> POST /results -> aviso de resultado registrado. Backends reutilizados ya probados en vivo: live-results-registry-proof (estado-UI derivado + tipo + KPIs) y live-result-closed-loop-proof (un critico sin cerrar bloquea la firma; ciclo RECEIVED->VERIFIED->ACTIONED->CLOSED)."
     },
     {
       "id": "CAP-VITALS-MODULE-PATIENT-UI-001",
@@ -3023,10 +3142,11 @@
         "scripts/v22/live-vitals-history-proof.mts",
         "scripts/v22/live-critical-vital-signing-loop-proof.mts"
       ],
-      "runtime_evidence": "Render test 43/43 (jsdom): en Signos vitales, elegir paciente en el selector real + capturar FC -> Guardar signos vitales -> POST /vitals -> aviso de signos vitales guardados. Backends reutilizados ya probados en vivo: live-vitals-history-proof (historial por paciente + IMC + series) y live-critical-vital-signing-loop-proof (un vital critico sin cerrar bloquea la firma).",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "BB/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 43/43 (jsdom): en Signos vitales, elegir paciente en el selector real + capturar FC -> Guardar signos vitales -> POST /vitals -> aviso de signos vitales guardados. Backends reutilizados ya probados en vivo: live-vitals-history-proof (historial por paciente + IMC + series) y live-critical-vital-signing-loop-proof (un vital critico sin cerrar bloquea la firma)."
     },
     {
       "id": "CAP-PATIENTS-FICHA-EDIT-UI-001",
@@ -3051,10 +3171,11 @@
         "scripts/v22/live-patient-amend-proof.mts",
         "tests/v22/ui-cockpit-render.test.tsx (Pacientes: ficha contextual + Historial en sitio + edición real + Agendar cita)"
       ],
-      "runtime_evidence": "scripts/v22/live-patient-amend-proof.mts — PASS 11/11 vs Neon 2026-09-19 (registrar -> AMEND nombre/CURP/telefono/ocupacion -> lista refleja nombre+CURP corregidos y estado sin cambios -> snapshot refleja contacto corregido y conserva birthDate no editado -> if-match desactualizado 409/412 -> sin-scope 403). En el smoke runner de CI. Render test 44/44 (jsdom): la ficha sólo aparece al seleccionar (sin Editar antes); Historial se despliega en sitio sin salir de Pacientes; Editar -> Guardar -> POST amendment -> ficha actualizada; Agendar cita interconecta con Agenda. Fidelidad verificada por preview + captura.",
+      "runtime_evidence": "scripts/v22/live-patient-amend-proof.mts",
       "epic": "IDENT/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "PASS 11/11 vs Neon 2026-09-19 (registrar -> AMEND nombre/CURP/telefono/ocupacion -> lista refleja nombre+CURP corregidos y estado sin cambios -> snapshot refleja contacto corregido y conserva birthDate no editado -> if-match desactualizado 409/412 -> sin-scope 403). En el smoke runner de CI. Render test 44/44 (jsdom): la ficha sólo aparece al seleccionar (sin Editar antes); Historial se despliega en sitio sin salir de Pacientes; Editar -> Guardar -> POST amendment -> ficha actualizada; Agendar cita interconecta con Agenda. Fidelidad verificada por preview + captura."
     },
     {
       "id": "CAP-CONSULTA-PANEL-UI-001",
@@ -3074,10 +3195,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Consulta: es un panel; abrir cita -> workspace; helper abrirConsulta en el resto)",
         "scripts/v22/live-agenda-day-proof.mts"
       ],
-      "runtime_evidence": "Render test 45/45 (jsdom): al entrar a Consulta aparece el PANEL (Consultas + Iniciar nueva consulta + Citas de hoy) y NO el workspace (sin 1. Motivo de consulta); al pulsar Abrir en una cita se entra al workspace del paciente. Los demas tests de Consulta abren el workspace via el panel (helper). Agenda del dia reutiliza live-agenda-day-proof.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "D/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 45/45 (jsdom): al entrar a Consulta aparece el PANEL (Consultas + Iniciar nueva consulta + Citas de hoy) y NO el workspace (sin 1. Motivo de consulta); al pulsar Abrir en una cita se entra al workspace del paciente. Los demas tests de Consulta abren el workspace via el panel (helper). Agenda del dia reutiliza live-agenda-day-proof."
     },
     {
       "id": "CAP-CONSULTA-AUDIT-DEEP-001",
@@ -3097,10 +3219,11 @@
       "tests": [
         "tests/v22/ui-cockpit-render.test.tsx (Consulta: interrogatorio/exploracion alimentan la nota; ausencia de + Añadir muerto)"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): al escribir en Interrogatorio y Exploracion fisica y abrir Vista previa, la nota compuesta contiene INTERROGATORIO POR APARATOS Y SISTEMAS y EXPLORACIÓN FÍSICA; queryByText(\"+ Añadir\") es null (control muerto eliminado). Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "D/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): al escribir en Interrogatorio y Exploracion fisica y abrir Vista previa, la nota compuesta contiene INTERROGATORIO POR APARATOS Y SISTEMAS y EXPLORACIÓN FÍSICA; queryByText(\"+ Añadir\") es null (control muerto eliminado). Typecheck limpio."
     },
     {
       "id": "CAP-AGENDA-AUDIT-DEEP-001",
@@ -3120,10 +3243,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (vista Agenda: citas reales cableadas + queryByText de nombres de ejemplo === null)",
         "scripts/v22/live-agenda-day-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): la rejilla muestra las citas reales del mock (Ana Lopez, Carlos Mendoza) y queryByText(\"Juan Perez Garcia\")/queryByText(\"Sofia Vega Ramirez\") === null (datos de ejemplo eliminados). Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "D/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): la rejilla muestra las citas reales del mock (Ana Lopez, Carlos Mendoza) y queryByText(\"Juan Perez Garcia\")/queryByText(\"Sofia Vega Ramirez\") === null (datos de ejemplo eliminados). Typecheck limpio."
     },
     {
       "id": "CAP-RESULTADOS-AUDIT-DEEP-001",
@@ -3144,10 +3268,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Resultados S7: detalle real Clasificacion CDS + Ciclo de vida; Descargar PDF y Folio falso === null; filtro de busqueda filtra la lista)",
         "scripts/v22/live-results-registry-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): la lista muestra GLUCOSE real del mock; el detalle muestra Clasificacion CDS y Ciclo de vida derivados del item; queryByText(\"Descargar PDF\") y queryByText(\"Laboratorio Chopo · Folio: LC260917-0042\") === null; escribir en el input de busqueda un termino inexistente muestra Ningun resultado coincide. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S7/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): la lista muestra GLUCOSE real del mock; el detalle muestra Clasificacion CDS y Ciclo de vida derivados del item; queryByText(\"Descargar PDF\") y queryByText(\"Laboratorio Chopo · Folio: LC260917-0042\") === null; escribir en el input de busqueda un termino inexistente muestra Ningun resultado coincide. Typecheck limpio."
     },
     {
       "id": "CAP-MEDICAMENTOS-AUDIT-DEEP-001",
@@ -3166,10 +3291,11 @@
       "tests": [
         "tests/v22/ui-cockpit-render.test.tsx (Medicamentos › Interacciones S8.3: verificador de conjunto cableado — chips, factores, hallazgos con severidad)"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): la pestaña Interacciones agrega farmacos, factores y produce hallazgos con severidad reales via POST /interactions. Typecheck limpio tras eliminar helpers muertos.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S8/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): la pestaña Interacciones agrega farmacos, factores y produce hallazgos con severidad reales via POST /interactions. Typecheck limpio tras eliminar helpers muertos."
     },
     {
       "id": "CAP-ORDENES-AUDIT-DEEP-001",
@@ -3189,10 +3315,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (vista Ordenes: KPIs reales, lista, detalle, transiciones, creador; Ordenes por tipo real y sin estado vacio con datos)",
         "scripts/v22/live-orders-registry-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): KPIs derivados del registro real; la seccion Ordenes por tipo aparece y queryByText(/Sin ordenes registradas/)===null con datos reales del mock. Typecheck limpio tras eliminar patName.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S8/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): KPIs derivados del registro real; la seccion Ordenes por tipo aparece y queryByText(/Sin ordenes registradas/)===null con datos reales del mock. Typecheck limpio tras eliminar patName."
     },
     {
       "id": "CAP-ALERGIAS-AUDIT-DEEP-001",
@@ -3212,10 +3339,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Alergias S-ALERGIAS: registro real, Ver en el expediente presente; Exportar/Accesos rapidos/Registro rapido === null)",
         "scripts/v22/live-allergy-registry-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): tabla y detalle desde el mock real (Ana Lopez, Grave); Ver en el expediente presente; queryByText(Exportar listado / Accesos rapidos / Registro rapido) === null. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-ALERGIAS/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): tabla y detalle desde el mock real (Ana Lopez, Grave); Ver en el expediente presente; queryByText(Exportar listado / Accesos rapidos / Registro rapido) === null. Typecheck limpio."
     },
     {
       "id": "CAP-PROBLEMAS-AUDIT-DEEP-001",
@@ -3236,10 +3364,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Problemas S-PROBLEMAS: registro real, Ver en el expediente presente; Exportar/Accesos rapidos === null; navegacion a Nuevo y Plantillas)",
         "scripts/v22/live-problem-registry-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): lista, detalle y graficas desde el mock real (Ana Lopez, En seguimiento); Ver en el expediente presente; queryByText(Exportar listado / Accesos rapidos) === null; navegacion a Nuevo problema y Plantillas OK. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-PROBLEMAS/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): lista, detalle y graficas desde el mock real (Ana Lopez, En seguimiento); Ver en el expediente presente; queryByText(Exportar listado / Accesos rapidos) === null; navegacion a Nuevo problema y Plantillas OK. Typecheck limpio."
     },
     {
       "id": "CAP-VACUNAS-AUDIT-DEEP-001",
@@ -3260,10 +3389,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Vacunas S-VACUNAS: registro real, Dosis por vacuna/Estado de vacunacion/Dosis pendientes reales, Ver en el expediente; Acciones rapidas/Exportar/Esquemas por edad === null)",
         "scripts/v22/live-immunization-registry-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): tabla/detalle/graficas desde el mock real (Ana Lopez, Completa/Pendiente); Dosis por vacuna, Estado de vacunacion y Dosis pendientes presentes; Ver en el expediente presente; queryByText(Acciones rapidas / Exportar listado / Esquemas por edad (cobertura)) === null. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-VACUNAS/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): tabla/detalle/graficas desde el mock real (Ana Lopez, Completa/Pendiente); Dosis por vacuna, Estado de vacunacion y Dosis pendientes presentes; Ver en el expediente presente; queryByText(Acciones rapidas / Exportar listado / Esquemas por edad (cobertura)) === null. Typecheck limpio."
     },
     {
       "id": "CAP-SIGNOS-AUDIT-DEEP-001",
@@ -3284,10 +3414,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Signos S-SIGNOS: sin fila ficticia 120/80; nota de hora actual; Acciones rapidas/Plantilla rapida/Estado general === null)",
         "scripts/v22/live-vitals-history-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): el historial ya no muestra 120/80 (fila ficticia eliminada); presente la nota Se registra con la fecha y hora actuales; queryByText(Acciones rapidas / Plantilla rapida / Estado general) === null. El test de guardado real (POST /vitals) sigue verde. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-SIGNOS/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): el historial ya no muestra 120/80 (fila ficticia eliminada); presente la nota Se registra con la fecha y hora actuales; queryByText(Acciones rapidas / Plantilla rapida / Estado general) === null. El test de guardado real (POST /vitals) sigue verde. Typecheck limpio."
     },
     {
       "id": "CAP-PLANCUIDADO-AUDIT-DEEP-001",
@@ -3307,10 +3438,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Plan de cuidado S-PLANCUIDADO: 3 tarjetas reales + Nueva meta; Intervenciones/Cronograma/Educacion/Documentos/Imprimir plan === null)",
         "scripts/v22/live-care-plan-snapshot-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): presentes Diagnosticos/Problemas asociados, Objetivos del plan, Metas y metricas y el boton Nueva meta; queryByText(Intervenciones y recomendaciones / Cronograma de seguimiento / Educacion para el paciente / Documentos relacionados / Imprimir plan) === null. El test de agregar meta real (POST /care-plans) sigue verde. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-PLANCUIDADO/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): presentes Diagnosticos/Problemas asociados, Objetivos del plan, Metas y metricas y el boton Nueva meta; queryByText(Intervenciones y recomendaciones / Cronograma de seguimiento / Educacion para el paciente / Documentos relacionados / Imprimir plan) === null. El test de agregar meta real (POST /care-plans) sigue verde. Typecheck limpio."
     },
     {
       "id": "CAP-INTERCONSULTA-AUDIT-DEEP-001",
@@ -3330,10 +3462,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Interconsultas S-INTERCONSULTA: form + contexto + envio; Antecedentes relevantes/Estudios anexos/Vista previa === null)",
         "scripts/v22/live-referral-context-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): el form (Especialidad/Motivo/Resumen), el panel Informacion relevante del paciente, Plantillas rapidas y Enviar interconsulta siguen presentes; queryByText(Antecedentes relevantes / Estudios anexos / Vista previa) === null. El test de envio real (POST /referrals) sigue verde. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-INTERCONSULTA/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): el form (Especialidad/Motivo/Resumen), el panel Informacion relevante del paciente, Plantillas rapidas y Enviar interconsulta siguen presentes; queryByText(Antecedentes relevantes / Estudios anexos / Vista previa) === null. El test de envio real (POST /referrals) sigue verde. Typecheck limpio."
     },
     {
       "id": "CAP-SEGUIMIENTO-AUDIT-DEEP-001",
@@ -3353,10 +3486,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Seguimiento S-SEGUIMIENTO: Tendencia/Indicadores/Tareas reales; Historia de seguimiento/Control de DM2/Proxima cita/Notas/Registro rapido === null)",
         "scripts/v22/live-follow-up-snapshot-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): presentes Tendencia de signos vitales, Indicadores clave y Tareas de seguimiento; queryByText(Historia de seguimiento / Control de DM2 / Proxima cita de seguimiento / Notas del seguimiento / Registro rapido) === null. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-SEGUIMIENTO/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): presentes Tendencia de signos vitales, Indicadores clave y Tareas de seguimiento; queryByText(Historia de seguimiento / Control de DM2 / Proxima cita de seguimiento / Notas del seguimiento / Registro rapido) === null. Typecheck limpio."
     },
     {
       "id": "CAP-FACTURACION-AUDIT-DEEP-001",
@@ -3376,10 +3510,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Facturación S-FACTURACION: registro real + creador; Registrar cargo emite POST /claims; Metodos de pago/Top servicios/Ingresos mensuales/Configuracion fiscal/Datos fiscales === null)",
         "scripts/v22/live-claims-registry-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): KPIs y tabla desde el mock real; seleccionar paciente y pulsar Registrar cargo emite (POST /claims) y muestra Factura emitida; queryByText(Metodos de pago / Top servicios facturados / Ingresos mensuales / Configuracion fiscal / Datos fiscales) === null. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-FACTURACION/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): KPIs y tabla desde el mock real; seleccionar paciente y pulsar Registrar cargo emite (POST /claims) y muestra Factura emitida; queryByText(Metodos de pago / Top servicios facturados / Ingresos mensuales / Configuracion fiscal / Datos fiscales) === null. Typecheck limpio."
     },
     {
       "id": "CAP-DOCUMENTOS-AUDIT-DEEP-001",
@@ -3399,10 +3534,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Documentos S-DOCUMENTOS: carpetas/chips/detalle reales + Generar desde plantilla; LABORATORIOS DEL NORTE/Carga masiva/Subido por === null)",
         "scripts/v22/live-documents-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): Carpetas, Todos los documentos, chip Documentos clinicos, Detalle del documento y Generar desde plantilla presentes; queryByText(LABORATORIOS DEL NORTE / Carga masiva / Subido por) === null; el test de crear documento real (POST /documents) sigue verde. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-DOCUMENTOS/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): Carpetas, Todos los documentos, chip Documentos clinicos, Detalle del documento y Generar desde plantilla presentes; queryByText(LABORATORIOS DEL NORTE / Carga masiva / Subido por) === null; el test de crear documento real (POST /documents) sigue verde. Typecheck limpio."
     },
     {
       "id": "CAP-OBLIGACIONES-AUDIT-DEEP-001",
@@ -3422,10 +3558,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Obligaciones S-OBLIGACIONES: KPI/tabla/Cumplimiento reales; Calendario/Recordatorios/Tareas pendientes/Documentos relacionados/Exportar reporte === null)",
         "scripts/v22/live-regulatory-obligations-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): KPI Total de obligaciones, tabla Obligaciones (N) y Cumplimiento por categoria presentes; queryByText(Calendario de proximas obligaciones / Recordatorios automaticos / Tareas pendientes / Documentos relacionados / Exportar reporte) === null; el test de agregar obligacion real (POST) sigue verde. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-OBLIGACIONES/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): KPI Total de obligaciones, tabla Obligaciones (N) y Cumplimiento por categoria presentes; queryByText(Calendario de proximas obligaciones / Recordatorios automaticos / Tareas pendientes / Documentos relacionados / Exportar reporte) === null; el test de agregar obligacion real (POST) sigue verde. Typecheck limpio."
     },
     {
       "id": "CAP-CLINICALINTEL-AUDIT-DEEP-001",
@@ -3445,10 +3582,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Clinical Intelligence S-CLINICALINTEL: Apoyo clinico determinista + Alertas + Calculadoras + nota de pausa; Asistente clinico con IA/GPT Clinico/Diagnostico diferencial (IA)/Configuracion de IA === null)",
         "scripts/v22/live-clinical-intelligence-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): presentes Apoyo clinico determinista, Alertas clinicas, Calculadoras clinicas y la nota en pausa intencional; queryByText(Asistente clinico con IA / GPT Clinico / Diagnostico diferencial (IA) / Configuracion de IA) === null. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-CLINICALINTEL/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): presentes Apoyo clinico determinista, Alertas clinicas, Calculadoras clinicas y la nota en pausa intencional; queryByText(Asistente clinico con IA / GPT Clinico / Diagnostico diferencial (IA) / Configuracion de IA) === null. Typecheck limpio."
     },
     {
       "id": "CAP-REPORTES-AUDIT-DEEP-001",
@@ -3468,10 +3606,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Reportes S-REPORTES: KPIs reales + Diagnosticos principales; Consultas por dia/Medicamentos mas prescritos/Indicadores de calidad/Reportes rapidos/vs. mes anterior/Exportar PDF === null)",
         "scripts/v22/live-reports-proof.mts"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): presentes Pacientes atendidos, Ingresos totales y Diagnosticos principales; queryByText(Consultas por dia / Medicamentos mas prescritos / Indicadores de calidad / Reportes rapidos / vs. mes anterior / Exportar PDF) === null. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-REPORTES/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): presentes Pacientes atendidos, Ingresos totales y Diagnosticos principales; queryByText(Consultas por dia / Medicamentos mas prescritos / Indicadores de calidad / Reportes rapidos / vs. mes anterior / Exportar PDF) === null. Typecheck limpio."
     },
     {
       "id": "CAP-BIBLIOTECA-AUDIT-DEEP-001",
@@ -3490,10 +3629,11 @@
       "tests": [
         "tests/v22/ui-cockpit-render.test.tsx (Biblioteca S-BIBLIOTECA: banner presentacional + Verificador de interacciones; Subir documento/Actualizar contenido/buscador/Explorar biblioteca === null)"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): presentes el banner Catalogo de referencia (presentacional), el boton Verificador de interacciones y las secciones de referencia; queryByText/Placeholder(Subir documento / Actualizar contenido / Buscar en la biblioteca / Explorar biblioteca) === null. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-BIBLIOTECA/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): presentes el banner Catalogo de referencia (presentacional), el boton Verificador de interacciones y las secciones de referencia; queryByText/Placeholder(Subir documento / Actualizar contenido / Buscar en la biblioteca / Explorar biblioteca) === null. Typecheck limpio."
     },
     {
       "id": "CAP-CONFIGURACION-AUDIT-DEEP-001",
@@ -3512,10 +3652,11 @@
       "tests": [
         "tests/v22/ui-cockpit-render.test.tsx (Configuracion S-CONFIG: banner presentacional + Guardar; Eliminar mi cuenta y Sugerencias de diagnostico con IA === null)"
       ],
-      "runtime_evidence": "Render test 46/46 (jsdom): presentes las secciones, Modulos activos, la nota NOM-024, el banner Ajustes presentacionales y Guardar cambios -> Cambios guardados; queryByText(Eliminar mi cuenta / Sugerencias de diagnostico con IA) === null. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-CONFIG/UI",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Render test 46/46 (jsdom): presentes las secciones, Modulos activos, la nota NOM-024, el banner Ajustes presentacionales y Guardar cambios -> Cambios guardados; queryByText(Eliminar mi cuenta / Sugerencias de diagnostico con IA) === null. Typecheck limpio."
     },
     {
       "id": "CAP-OFFICE-SETTINGS-BACKEND-001",
@@ -3540,10 +3681,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Configuracion S-CONFIG: carga de /office-settings, editar y Guardar -> Cambios guardados)",
         "scripts/v22/live-office-settings-proof.mts"
       ],
-      "runtime_evidence": "Live proof vs Neon PASS 13/13: GET defaults+version 0, PUT If-Match aplica y sube version, GET refleja lo guardado, PUT parcial hace merge preservando lo previo, If-Match desactualizado -> 409, aislamiento por tenant (otro tenant ve defaults/version 0), scope faltante -> 403 en GET y PUT. Render test 46/46 (jsdom): la vista carga, edita y guarda. Typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-CONFIG/BACKEND",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Live proof vs Neon PASS 13/13: GET defaults+version 0, PUT If-Match aplica y sube version, GET refleja lo guardado, PUT parcial hace merge preservando lo previo, If-Match desactualizado -> 409, aislamiento por tenant (otro tenant ve defaults/version 0), scope faltante -> 403 en GET y PUT. Render test 46/46 (jsdom): la vista carga, edita y guarda. Typecheck limpio."
     },
     {
       "id": "CAP-OFFICE-SETTINGS-SCHEDULE-BACKEND-001",
@@ -3564,10 +3706,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Configuracion: Horarios de atencion presente, input Apertura Lunes editable, toggle role=switch de modulo Facturacion funcional)",
         "scripts/v22/live-office-settings-proof.mts"
       ],
-      "runtime_evidence": "Live proof vs Neon PASS 25/25: GET incluye defaults de horario (7 dias, Lun 08:00-15:00, Dom cerrado) y modulos (todos activos); PUT de horario+modulos aplica (cierra Sabado, Lunes 09:00-14:00, desactiva Facturacion), preserva la info previa del consultorio y el resto de modulos (merge profundo), GET refleja lo persistido; hora invalida 25:99 -> 400; modulo desconocido -> 400; ademas todo lo previo (merge, 409, aislamiento por tenant, 403 sin scope). Render 46/46; typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-CONFIG/BACKEND",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Live proof vs Neon PASS 25/25: GET incluye defaults de horario (7 dias, Lun 08:00-15:00, Dom cerrado) y modulos (todos activos); PUT de horario+modulos aplica (cierra Sabado, Lunes 09:00-14:00, desactiva Facturacion), preserva la info previa del consultorio y el resto de modulos (merge profundo), GET refleja lo persistido; hora invalida 25:99 -> 400; modulo desconocido -> 400; ademas todo lo previo (merge, 409, aislamiento por tenant, 403 sin scope). Render 46/46; typecheck limpio."
     },
     {
       "id": "CAP-OFFICE-SETTINGS-PREFS-BACKEND-001",
@@ -3588,10 +3731,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Configuracion: Configuraciones regionales presente, input Estado/Provincia controlado y editable)",
         "scripts/v22/live-office-settings-proof.mts"
       ],
-      "runtime_evidence": "Live proof vs Neon PASS 29/29: GET inicial incluye defaults de prefs/regionales (Resumen clinico, MXN, 16); PUT de preferencias + regionales (If-Match 3 -> v4) aplica (Cronologia, Imperial, Chihuahua, 8%, USD) y el merge preserva la info previa del consultorio, los modulos (Facturacion=false) y el horario (Sabado cerrado); ademas todo lo previo (horario/modulos, hora invalida 400, modulo desconocido 400, 409, aislamiento por tenant, 403 sin scope). Render 46/46; typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-CONFIG/BACKEND",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Live proof vs Neon PASS 29/29: GET inicial incluye defaults de prefs/regionales (Resumen clinico, MXN, 16); PUT de preferencias + regionales (If-Match 3 -> v4) aplica (Cronologia, Imperial, Chihuahua, 8%, USD) y el merge preserva la info previa del consultorio, los modulos (Facturacion=false) y el horario (Sabado cerrado); ademas todo lo previo (horario/modulos, hora invalida 400, modulo desconocido 400, 409, aislamiento por tenant, 403 sin scope). Render 46/46; typecheck limpio."
     },
     {
       "id": "CAP-PHYSICIAN-PROFILE-SIGNATURE-BLOB-BACKEND-001",
@@ -3614,10 +3758,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Configuración: Firma y sello con estado honesto 'Sin firma/sello cargada', sin firma inventada)",
         "scripts/v22/live-physician-profile-proof.mts"
       ],
-      "runtime_evidence": "Live proof vs Neon + Blob real PASS 18/18: perfil inicial vacío; sube firma -> 201/v1 con sha256/mime correctos; el perfil refleja la firma; descarga -> bytes IDÉNTICOS + content-type; sube sello -> ambos presentes; re-sube firma (misma ruta, nuevo hash) y la descarga fresca devuelve el nuevo contenido; tipo no permitido (PDF) -> 400; kind desconocido -> 404; sin scope -> 403 en subida y descarga; otro médico ve su propio perfil vacío (aislamiento por usuario); quitar firma -> blob borrado + ASSET_REMOVED, el sello permanece, descarga posterior 404. No se registra en el smoke curado por depender del token de Blob. Render 46/46; typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-CONFIG/FIRMA",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Live proof vs Neon + Blob real PASS 18/18: perfil inicial vacío; sube firma -> 201/v1 con sha256/mime correctos; el perfil refleja la firma; descarga -> bytes IDÉNTICOS + content-type; sube sello -> ambos presentes; re-sube firma (misma ruta, nuevo hash) y la descarga fresca devuelve el nuevo contenido; tipo no permitido (PDF) -> 400; kind desconocido -> 404; sin scope -> 403 en subida y descarga; otro médico ve su propio perfil vacío (aislamiento por usuario); quitar firma -> blob borrado + ASSET_REMOVED, el sello permanece, descarga posterior 404. No se registra en el smoke curado por depender del token de Blob. Render 46/46; typecheck limpio."
     },
     {
       "id": "CAP-DOCUMENT-REPOSITORY-BACKEND-001",
@@ -3641,10 +3786,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Documentos: mock del GET :id -> el detalle muestra contenido/estado)",
         "scripts/v22/live-document-detail-proof.mts"
       ],
-      "runtime_evidence": "Live proof vs Neon PASS 14/14: crear -> finalizar -> firmar -> enmendar; GET devuelve contenido real, titulo/paciente reales, estado AMENDED, version 4, firma con hashes de 64, y 1 adenda; documento inexistente -> 404; sin scope -> 403. Render test 46/46; typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-DOCUMENTOS/BACKEND",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Live proof vs Neon PASS 14/14: crear -> finalizar -> firmar -> enmendar; GET devuelve contenido real, titulo/paciente reales, estado AMENDED, version 4, firma con hashes de 64, y 1 adenda; documento inexistente -> 404; sin scope -> 403. Render test 46/46; typecheck limpio."
     },
     {
       "id": "CAP-DOCUMENT-ATTACHMENTS-BLOB-BACKEND-001",
@@ -3670,10 +3816,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Documentos: tipos/límite reales -> 25 MB y Vercel Blob presentes, DICOM eliminado)",
         "scripts/v22/live-document-attachment-proof.mts"
       ],
-      "runtime_evidence": "Live proof vs Neon + Blob real PASS 16/16: sube un adjunto (multipart) -> 201 con sha256/size/mime correctos y ruta aislada por tenant; el detalle del documento refleja el adjunto (sin volcar el binario); descarga por la Function -> bytes IDÉNTICOS (mismo sha256) + content-type; tipo no permitido -> 400; sin scope -> 403 en subida y descarga; eliminar -> el binario se borra, desaparece del detalle y la descarga posterior da 404. No se registra en el smoke curado por depender del token de Blob (SKIP con DB presente contaría como FAIL). Render 46/46; typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-DOCUMENTOS/BLOB",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true
+      "requires_human_c5_acceptance": true,
+      "runtime_evidence_note": "Live proof vs Neon + Blob real PASS 16/16: sube un adjunto (multipart) -> 201 con sha256/size/mime correctos y ruta aislada por tenant; el detalle del documento refleja el adjunto (sin volcar el binario); descarga por la Function -> bytes IDÉNTICOS (mismo sha256) + content-type; tipo no permitido -> 400; sin scope -> 403 en subida y descarga; eliminar -> el binario se borra, desaparece del detalle y la descarga posterior da 404. No se registra en el smoke curado por depender del token de Blob (SKIP con DB presente contaría como FAIL). Render 46/46; typecheck limpio."
     },
     {
       "id": "CAP-REPORTES-AGGREGATES-BACKEND-001",
@@ -3694,10 +3841,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Reportes: KPIs de ordenes/vacunas, Ordenes por tipo y Procedimientos mas realizados presentes)",
         "scripts/v22/live-reports-proof.mts"
       ],
-      "runtime_evidence": "Live proof vs Neon PASS 14/14: siembra 3 pacientes, 6 diagnosticos, 2 facturas pagadas y 5 ordenes (LAB x2/IMAGING x1/PROCEDURE x2); GET /reports devuelve pacientes 3, ingresos 1700, dx total 6 (top E11.9=3, 50%), ordenes total 5, por tipo LAB=2/IMAGING=1/PROCEDURE=2, procedimiento top Electrocardiograma=2, y resultsTotal/immunizationsApplied como numeros; sin scope -> 403. Render 46/46; typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-REPORTES/BACKEND",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Live proof vs Neon PASS 14/14: siembra 3 pacientes, 6 diagnosticos, 2 facturas pagadas y 5 ordenes (LAB x2/IMAGING x1/PROCEDURE x2); GET /reports devuelve pacientes 3, ingresos 1700, dx total 6 (top E11.9=3, 50%), ordenes total 5, por tipo LAB=2/IMAGING=1/PROCEDURE=2, procedimiento top Electrocardiograma=2, y resultsTotal/immunizationsApplied como numeros; sin scope -> 403. Render 46/46; typecheck limpio."
     },
     {
       "id": "CAP-REPORTES-TRENDS-BACKEND-001",
@@ -3719,10 +3867,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Reportes: Consultas por día, Medicamentos más prescritos y fármaco real presentes)",
         "scripts/v22/live-reports-proof.mts"
       ],
-      "runtime_evidence": "Live proof vs Neon PASS 21/21: además de lo anterior, siembra 3 encuentros (2 el 2026-10-01 + 1 el 2026-10-02) y 3 recetas reales PROPOSED->PRESCRIBED (paracetamol x2, metformina x1); GET /reports devuelve encountersTotal 3, encountersByDay con 2 días (2026-10-01=2, 2026-10-02=1), prescriptionsTotal 3, topMedications[0]=paracetamol=2 y metformina=1; sin scope -> 403. Render 46/46; typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-REPORTES/BACKEND",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Live proof vs Neon PASS 21/21: además de lo anterior, siembra 3 encuentros (2 el 2026-10-01 + 1 el 2026-10-02) y 3 recetas reales PROPOSED->PRESCRIBED (paracetamol x2, metformina x1); GET /reports devuelve encountersTotal 3, encountersByDay con 2 días (2026-10-01=2, 2026-10-02=1), prescriptionsTotal 3, topMedications[0]=paracetamol=2 y metformina=1; sin scope -> 403. Render 46/46; typecheck limpio."
     },
     {
       "id": "CAP-REPORTES-APPTTYPES-BACKEND-001",
@@ -3744,10 +3893,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Reportes: Tipos de consulta y etiqueta real presentes)",
         "scripts/v22/live-reports-proof.mts"
       ],
-      "runtime_evidence": "Live proof vs Neon PASS 26/26: además de lo anterior, siembra 5 citas (CONTROL x3, PRIMERA_VEZ x1, VACUNACION x1); GET /reports devuelve appointmentsTotal 5, appointmentsByType[0]=CONTROL=3 con etiqueta 'Control', PRIMERA_VEZ=1 y VACUNACION=1; sin scope -> 403. Render 46/46; typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-REPORTES/BACKEND",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Live proof vs Neon PASS 26/26: además de lo anterior, siembra 5 citas (CONTROL x3, PRIMERA_VEZ x1, VACUNACION x1); GET /reports devuelve appointmentsTotal 5, appointmentsByType[0]=CONTROL=3 con etiqueta 'Control', PRIMERA_VEZ=1 y VACUNACION=1; sin scope -> 403. Render 46/46; typecheck limpio."
     },
     {
       "id": "CAP-REPORTES-QUALITY-BACKEND-001",
@@ -3769,10 +3919,11 @@
         "tests/v22/ui-cockpit-render.test.tsx (Reportes: Indicadores de calidad, indicador computado y 'sin datos' presentes)",
         "scripts/v22/live-reports-proof.mts"
       ],
-      "runtime_evidence": "Live proof vs Neon PASS 32/32: además de lo anterior, transiciona 3 citas a COMPLETED y 1 a NO_SHOW, y siembra 4 HbA1c (3 <7 + 1 =8.0); GET /reports devuelve asistencia 3/5=60% (no cumple meta 80), inasistencia 1/5=20% (no cumple meta <=10), HbA1c en control 3/4=75% (cumple meta >=70), expedientes cerrados con denominador 3 y computable=true; sin scope -> 403. Render 46/46; typecheck limpio.",
+      "runtime_evidence": "SIN CITA EJECUTABLE",
       "epic": "S-REPORTES/BACKEND",
       "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": false
+      "requires_human_c5_acceptance": false,
+      "runtime_evidence_note": "Live proof vs Neon PASS 32/32: además de lo anterior, transiciona 3 citas a COMPLETED y 1 a NO_SHOW, y siembra 4 HbA1c (3 <7 + 1 =8.0); GET /reports devuelve asistencia 3/5=60% (no cumple meta 80), inasistencia 1/5=20% (no cumple meta <=10), HbA1c en control 3/4=75% (cumple meta >=70), expedientes cerrados con denominador 3 y computable=true; sin scope -> 403. Render 46/46; typecheck limpio."
     }
   ],
   "honest_gaps": [

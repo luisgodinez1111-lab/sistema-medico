@@ -5,6 +5,7 @@
   "scripts": {
     "traceability:check": "tsx packages/clinical-safety/src/validate-registry.ts",
     "test": "vitest run",
+    "test:ledger": "tsx scripts/ci/test-ledger.mts",
     "typecheck": "tsc --noEmit",
     "test:safety": "vitest run tests/traceability",
     "release:check": "tsx packages/clinical-safety/src/release-admission.ts",
@@ -24,7 +25,8 @@
     "phi:retention": "tsx scripts/ops/phi-retention.mts",
     "openapi:registry": "tsx scripts/ops/api-body-registry.mts",
     "capability:check": "tsx packages/clinical-safety/src/capability-admission.ts",
-    "algorithms:inventory": "tsx scripts/docs/algorithm-inventory.mts"
+    "algorithms:inventory": "tsx scripts/docs/algorithm-inventory.mts",
+    "evidence:dossier": "tsx scripts/v22/build-c5-dossier.mts"
   },
   "devDependencies": {
     "@testing-library/dom": "^10",

@@ -1,0 +1,1308 @@
+{
+  "generatedAt": "2026-09-25T04:22:10.737Z",
+  "files": 260,
+  "totalTests": 1606,
+  "failedTests": 0,
+  "results": [
+    {
+      "file": "tests/application/health.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/application/patient-service.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/application/repository.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/application/resilience.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/domain/consent.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/domain/encounter-domain.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/domain/fhir-boundary.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/domain/medication-domain.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/domain/obligation-domain.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/domain/patient-domain.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/domain/problem-graph.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/domain/workflow-engine.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/platform/audit-ledger.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/platform/capability-graph.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/platform/feature-gates.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/platform/observability.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/platform/outbox.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/platform/policy-engine.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/platform/tenant-security.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/security/authz.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/security/logger.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/security/rate-limit.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/traceability/action-authority.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/traceability/ai-envelope.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/traceability/ai-task-card.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/traceability/applicability.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/traceability/clinical-semantics.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/traceability/corrected-result.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/traceability/epistemic-truth.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/traceability/invariants.test.ts",
+      "status": "PASS",
+      "tests": 4
+    },
+    {
+      "file": "tests/traceability/medication-safety.test.ts",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "file": "tests/traceability/obligation.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/traceability/reconciliation-critical.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/traceability/reconciliation.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/traceability/replay-impact.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/traceability/state-machines.test.ts",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "file": "tests/v10/calculation-receipt.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v10/clinical-lock.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v10/consent-enforcement.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v10/degradation.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v10/etag.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v10/export-control.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v10/fhir-r5.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v10/read-model.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v11/clinical-inbox.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v11/encounter-signing-v11.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v11/golden-slice.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v11/medication-ordering-v11.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v11/result-obligation-link.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v11/route-contracts.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v11/tenant-session.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v11/timeline-projection.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v12/clinical-repository-v12.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v12/encounter-runtime.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v12/medication-runtime.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v12/obligation-runtime.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v12/outbox-worker-v12.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/v12/patient-impact-runtime.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v12/projection-runtime.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v12/runtime-auth.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v12/safety-runtime.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v13/failure-injection.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v13/lease-coordinator.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v13/release-gate-v2.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v13/replay-verifier.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v13/tenant-isolation-proof.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v14/atomic-clinical-transaction.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v14/defect-attestation.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v14/durable-outbox.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v14/event-store-v14.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v14/persistent-idempotency.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v14/reconciliation-store.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v14/result-correction-graph-v14.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v14/signed-record-store.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v16/audit-chain-v3.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v16/canonical-json.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v16/correction-impact-v16.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v16/outbox-claim-v2.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/v16/release-evidence-v4.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v16/rls-guard-v16.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v16/secure-logger.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v16/uuid-boundary.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v17/architecture-boundary.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v17/atomic-v3.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v17/consistency-barrier.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v17/obligation-v2.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v17/replay-engine-v2.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v17/result-correction-v2.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v18/api-fuzz-boundary.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/v18/concurrency-model.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/v18/mutation-sentinel.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v18/outbox-fencing-v3.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v18/performance-gate.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v18/policy-conflict-v2.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v18/property-invariants.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v18/state-machine-model.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/v19/causal-impact.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v19/differential-replay.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v19/invariant-coverage.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v19/release-proof-v5.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v19/temporal-consistency.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v19/verification-claim-graph.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v20/claim-evidence-binder.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v20/crash-recovery-model.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v20/exactly-once-envelope.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v20/release-admission-v6.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v20/rls-adversary-model.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v20/runtime-proof-ledger.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v21/atomic-command-proof.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v21/postgres-role-proof.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v21/restore-proof.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v21/runtime-db-contract.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v22/acid-base.test.ts",
+      "status": "PASS",
+      "tests": 24
+    },
+    {
+      "file": "tests/v22/admission-fold.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/adr-integrity.test.ts",
+      "status": "PASS",
+      "tests": 12
+    },
+    {
+      "file": "tests/v22/ai-copilot-gateway.test.ts",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "file": "tests/v22/ai-eval-suite.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/v22/algorithm-inventory.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/allergy-fold.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/analyte-inputs.test.ts",
+      "status": "PASS",
+      "tests": 12
+    },
+    {
+      "file": "tests/v22/anthropometrics-bmi-single.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/anthropometrics.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/anticoagulation.test.ts",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "file": "tests/v22/appointment-fold.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/appointment-overlap.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/v22/audit-verifier.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/authorization-surface.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/authorize-resource.test.ts",
+      "status": "PASS",
+      "tests": 13
+    },
+    {
+      "file": "tests/v22/bp-staging.test.ts",
+      "status": "PASS",
+      "tests": 14
+    },
+    {
+      "file": "tests/v22/care-gaps.test.ts",
+      "status": "PASS",
+      "tests": 19
+    },
+    {
+      "file": "tests/v22/care-goals.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/careplan-fold.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/claim-fold.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/clinic-time.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/v22/clinical-intelligence.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/clinical-signature.test.ts",
+      "status": "PASS",
+      "tests": 17
+    },
+    {
+      "file": "tests/v22/clinical-summary.test.ts",
+      "status": "PASS",
+      "tests": 9
+    },
+    {
+      "file": "tests/v22/comorbidity.test.ts",
+      "status": "PASS",
+      "tests": 14
+    },
+    {
+      "file": "tests/v22/connection-and-identifiers.test.ts",
+      "status": "PASS",
+      "tests": 16
+    },
+    {
+      "file": "tests/v22/consent-fold.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/db-read-path-and-guardrails.test.ts",
+      "status": "PASS",
+      "tests": 38
+    },
+    {
+      "file": "tests/v22/design-contract-wiring.test.ts",
+      "status": "PASS",
+      "tests": 4
+    },
+    {
+      "file": "tests/v22/design-system-components.test.tsx",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "file": "tests/v22/design-system-contrast.test.ts",
+      "status": "PASS",
+      "tests": 9
+    },
+    {
+      "file": "tests/v22/dev-identity-prod-guard.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/dialysis-fold.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/document-fold.test.ts",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "file": "tests/v22/downtime-no-false-save.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/v22/drug-catalog.test.ts",
+      "status": "PASS",
+      "tests": 64
+    },
+    {
+      "file": "tests/v22/dx-label.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/encounter-fold.test.ts",
+      "status": "PASS",
+      "tests": 10
+    },
+    {
+      "file": "tests/v22/evidence-ledgers.test.ts",
+      "status": "PASS",
+      "tests": 9
+    },
+    {
+      "file": "tests/v22/feature-flags.test.ts",
+      "status": "PASS",
+      "tests": 10
+    },
+    {
+      "file": "tests/v22/follow-state.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/follow-up-due.test.ts",
+      "status": "PASS",
+      "tests": 11
+    },
+    {
+      "file": "tests/v22/forbidden-states-contract.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/v22/glycemic.test.ts",
+      "status": "PASS",
+      "tests": 10
+    },
+    {
+      "file": "tests/v22/golden-vectors.test.ts",
+      "status": "PASS",
+      "tests": 48
+    },
+    {
+      "file": "tests/v22/hazard-risk-integrity.test.ts",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "file": "tests/v22/http-boundary.test.ts",
+      "status": "PASS",
+      "tests": 12
+    },
+    {
+      "file": "tests/v22/http-principal.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/v22/immunization-fold.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/immunization-schedule.test.ts",
+      "status": "PASS",
+      "tests": 18
+    },
+    {
+      "file": "tests/v22/incident-fold.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/intended-use.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/irreversible-confirmation.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/lab-derivations.test.ts",
+      "status": "PASS",
+      "tests": 17
+    },
+    {
+      "file": "tests/v22/lab-reference.test.ts",
+      "status": "PASS",
+      "tests": 51
+    },
+    {
+      "file": "tests/v22/lifecycle-factory.test.ts",
+      "status": "PASS",
+      "tests": 12
+    },
+    {
+      "file": "tests/v22/liver-fibrosis.test.ts",
+      "status": "PASS",
+      "tests": 8
+    },
+    {
+      "file": "tests/v22/medication-fold.test.ts",
+      "status": "PASS",
+      "tests": 12
+    },
+    {
+      "file": "tests/v22/medication-result-gaps.test.ts",
+      "status": "PASS",
+      "tests": 14
+    },
+    {
+      "file": "tests/v22/medication-validation.test.ts",
+      "status": "PASS",
+      "tests": 15
+    },
+    {
+      "file": "tests/v22/meld.test.ts",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "file": "tests/v22/migrations-integrity.test.ts",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "file": "tests/v22/mutation-feedback.test.ts",
+      "status": "PASS",
+      "tests": 4
+    },
+    {
+      "file": "tests/v22/mx-identity.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/nom-compliance-integrity.test.ts",
+      "status": "PASS",
+      "tests": 11
+    },
+    {
+      "file": "tests/v22/not-wired-integrity.test.ts",
+      "status": "PASS",
+      "tests": 4
+    },
+    {
+      "file": "tests/v22/obligation-fold.test.ts",
+      "status": "PASS",
+      "tests": 11
+    },
+    {
+      "file": "tests/v22/observability-sli.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/oidc-verifier.test.ts",
+      "status": "PASS",
+      "tests": 9
+    },
+    {
+      "file": "tests/v22/openapi-inventory.test.ts",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/v22/order-fold.test.ts",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "file": "tests/v22/oxygenation.test.ts",
+      "status": "PASS",
+      "tests": 12
+    },
+    {
+      "file": "tests/v22/patient-fold.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/patient-order-vaccine-gaps.test.ts",
+      "status": "PASS",
+      "tests": 14
+    },
+    {
+      "file": "tests/v22/patient-summary.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/patient-switch-and-batches.test.ts",
+      "status": "PASS",
+      "tests": 12
+    },
+    {
+      "file": "tests/v22/phi-access-log.test.ts",
+      "status": "PASS",
+      "tests": 13
+    },
+    {
+      "file": "tests/v22/pneumonia-severity.test.ts",
+      "status": "PASS",
+      "tests": 11
+    },
+    {
+      "file": "tests/v22/pregnancy-lactation-factors.test.ts",
+      "status": "PASS",
+      "tests": 9
+    },
+    {
+      "file": "tests/v22/prescription-print.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/prescription-safety.test.ts",
+      "status": "PASS",
+      "tests": 41
+    },
+    {
+      "file": "tests/v22/problem-fold.test.ts",
+      "status": "PASS",
+      "tests": 9
+    },
+    {
+      "file": "tests/v22/rate-limit.test.ts",
+      "status": "PASS",
+      "tests": 12
+    },
+    {
+      "file": "tests/v22/reconciliation-integrity.test.ts",
+      "status": "PASS",
+      "tests": 153
+    },
+    {
+      "file": "tests/v22/record-export.test.ts",
+      "status": "PASS",
+      "tests": 4
+    },
+    {
+      "file": "tests/v22/record-panels.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/referral-fold.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/release-gates-not-vacuous.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/renal-function.test.ts",
+      "status": "PASS",
+      "tests": 12
+    },
+    {
+      "file": "tests/v22/request-cancellation.test.ts",
+      "status": "PASS",
+      "tests": 8
+    },
+    {
+      "file": "tests/v22/result-fold.test.ts",
+      "status": "PASS",
+      "tests": 8
+    },
+    {
+      "file": "tests/v22/result-void-and-readings.test.ts",
+      "status": "PASS",
+      "tests": 11
+    },
+    {
+      "file": "tests/v22/retired-paths.test.ts",
+      "status": "PASS",
+      "tests": 11
+    },
+    {
+      "file": "tests/v22/runtime-auth-scopes.test.ts",
+      "status": "PASS",
+      "tests": 10
+    },
+    {
+      "file": "tests/v22/runtime-modules.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/section-navigation.test.ts",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "file": "tests/v22/security-headers.test.ts",
+      "status": "PASS",
+      "tests": 9
+    },
+    {
+      "file": "tests/v22/session-client.test.ts",
+      "status": "PASS",
+      "tests": 15
+    },
+    {
+      "file": "tests/v22/session-cookie.test.ts",
+      "status": "PASS",
+      "tests": 4
+    },
+    {
+      "file": "tests/v22/session-issuance.test.ts",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/v22/session-revocation.test.ts",
+      "status": "PASS",
+      "tests": 13
+    },
+    {
+      "file": "tests/v22/specimen-fold.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/stroke-risk.test.ts",
+      "status": "PASS",
+      "tests": 8
+    },
+    {
+      "file": "tests/v22/surgery-fold.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/tenant-tx-guard.test.ts",
+      "status": "PASS",
+      "tests": 10
+    },
+    {
+      "file": "tests/v22/terminology.test.ts",
+      "status": "PASS",
+      "tests": 13
+    },
+    {
+      "file": "tests/v22/transfusion-fold.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/trend-goals.test.ts",
+      "status": "PASS",
+      "tests": 10
+    },
+    {
+      "file": "tests/v22/triage-fold.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v22/ui-clinical-truth.test.tsx",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/v22/ui-cockpit-render.test.tsx",
+      "status": "PASS",
+      "tests": 49
+    },
+    {
+      "file": "tests/v22/ui-gux-001-render.test.tsx",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "file": "tests/v22/ui-interaction-failure.test.tsx",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/v22/ui-patient-switch.test.tsx",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "file": "tests/v22/ui-request-cancellation.test.tsx",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "file": "tests/v22/ui-sign-gate.test.ts",
+      "status": "PASS",
+      "tests": 8
+    },
+    {
+      "file": "tests/v22/unknown-vs-empty.test.ts",
+      "status": "PASS",
+      "tests": 4
+    },
+    {
+      "file": "tests/v22/vital-fold.test.ts",
+      "status": "PASS",
+      "tests": 7
+    },
+    {
+      "file": "tests/v22/vital-units-and-inputs.test.ts",
+      "status": "PASS",
+      "tests": 28
+    },
+    {
+      "file": "tests/v22/workspace-accessibility.test.ts",
+      "status": "PASS",
+      "tests": 8
+    },
+    {
+      "file": "tests/v22/workspace-clinical-content.test.ts",
+      "status": "PASS",
+      "tests": 14
+    },
+    {
+      "file": "tests/v22/workspace-inputs-and-login.test.ts",
+      "status": "PASS",
+      "tests": 8
+    },
+    {
+      "file": "tests/v22/workspace-robustness.test.ts",
+      "status": "PASS",
+      "tests": 9
+    },
+    {
+      "file": "tests/v22/wound-fold.test.ts",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "file": "tests/v6/encounter-service.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v6/patient-state.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v7/ai-runtime-v7.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v7/encounter-completeness.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v7/feature-rollout.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v7/reconciliation-engine.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v7/result-impact.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v7/session.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v8/ai-evidence.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v8/defect-governance.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v8/idempotency-persistent.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v8/mapping-governance.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v8/migration-safety.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v8/release-evidence.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v8/replay-engine.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v8/result-correction-v8.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v9/access-decision.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v9/aggregate-store.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v9/ai-task-registry.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v9/clinical-transaction.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v9/policy-provenance.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v9/projection-rebuild.test.ts",
+      "status": "PASS",
+      "tests": 1
+    },
+    {
+      "file": "tests/v9/safety-case.test.ts",
+      "status": "PASS",
+      "tests": 1
+    }
+  ]
+}

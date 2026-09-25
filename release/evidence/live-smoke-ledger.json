@@ -1,0 +1,550 @@
+{
+  "generatedAt": "2026-09-25T04:24:11.403Z",
+  "target": "local-ephemeral",
+  "total": 107,
+  "results": [
+    {
+      "proof": "scripts/v22/live-aa-gradient-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-acid-base-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-admission-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-agenda-day-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-ai-copilot-gateway-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-allergy-medication-gate-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-allergy-registry-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-anticoagulation-status-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-appointment-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-audit-chain-verify-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-bmi-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-bp-stage-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-care-gaps-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-care-plan-snapshot-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-careplan-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-cha2ds2vasc-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-charlson-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-claim-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-claims-registry-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-clinical-intelligence-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-concurrency-and-audit-vector-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-consent-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-consultation-snapshot-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-consultation-tabs-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-critical-vital-gap-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-critical-vital-signing-loop-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-cross-reactivity-gate-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-curb65-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-dialysis-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-document-attachment-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-document-detail-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-document-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-documents-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-dose-ceiling-gate-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-dr-recovery-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-drug-condition-contraindication-gate-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-drug-interaction-gate-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-duplicate-therapy-gate-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-egfr-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-encounter-endpoint-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-encounter-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-fib4-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-follow-up-snapshot-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-glycemic-status-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-immunization-forecast-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-immunization-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-immunization-registry-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-incident-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-interactions-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-lab-delta-check-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-longitudinal-summary-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-medication-annotations-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-medication-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-meld-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-metabolic-panel-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-monitoring-obligation-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-news2-score-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-obligation-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-observability-sli-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-office-settings-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-oidc-login-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-order-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-orders-registry-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-panel-worklist-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-patient-amend-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-patient-demographics-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-patient-identity-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-patient-order-vaccine-gaps-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-patient-reference-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-patient-registry-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-patient-timeline-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-pediatric-dose-gate-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-phi-access-log-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-physician-profile-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-pregnancy-lactation-gate-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-prescription-check-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-prescription-print-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-problem-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-problem-registry-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-rate-limit-shared-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-record-export-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-referral-context-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-referral-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-registry-scope-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-regulatory-obligations-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-renal-dosing-gate-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-reports-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-restore-drill-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-result-closed-loop-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-result-correction-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-results-registry-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-rls-every-table-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-safety-override-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-session-issuance-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-session-revocation-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-signature-identity-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-specimen-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-surgery-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-terminology-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-transfusion-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-trends-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-triage-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-vital-inputs-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-vital-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-vitals-history-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-vitals-reference-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-wound-lifecycle-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    }
+  ],
+  "gates": [
+    {
+      "gate": "scripts/ci/live-smoke.mts",
+      "status": "PASS",
+      "passed": 107,
+      "total": 107
+    }
+  ]
+}
