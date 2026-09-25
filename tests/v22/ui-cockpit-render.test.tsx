@@ -118,6 +118,9 @@ beforeAll(()=>{
  Element.prototype.scrollIntoView=()=>{};
 });
 afterEach(cleanup);
+// jsdom comparte window.location entre tests del mismo archivo; el deep-link (?p=&v=) de un test contaminaría
+// al siguiente. Reseteamos la URL tras cada test (en producción cada carga tiene su propia URL).
+afterEach(()=>{try{window.history.replaceState(null,"","/");}catch{/* noop */}});
 
 const noSeriousAxe=async(node:Element,label:string)=>{
  const r=await axe.run(node,{resultTypes:["violations"]});
@@ -388,6 +391,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   fireEvent.click(screen.getByRole("button",{name:/Registrar y abrir consulta/}));
   // se abre el workspace de consulta del paciente recién creado
   expect(await screen.findByPlaceholderText("Motivo de la consulta…",{},{timeout:2000})).toBeTruthy();
+  // deep-link (Lote B): al seleccionar/abrir un paciente, la URL refleja ?p=&v=
+  await waitFor(()=>expect(window.location.search).toMatch(/[?&]p=/),{timeout:2000});
  });
 
  // Auditoría U-16: un motivo clínico lo escribe el médico; nada se envía con un literal del código.
@@ -1019,5 +1024,13 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   await noSeriousAxe(seg,"Seguimiento");
   await noSeriousAxe(por,"Portal");
   await noSeriousAxe(aud,"Auditoría");
+ });
+
+ // Último test: el deep-link carga el expediente completo (asíncrono y pesado); va al final para no contaminar
+ // el orden de otros tests aunque la URL se resetee en afterEach.
+ it("deep-link (Lote B): con ?p=<paciente> en la URL, al montar se restaura el foco del paciente",async()=>{
+  window.history.replaceState(null,"","/?p=p1&v=exp");
+  render(<Workspace/>);
+  expect((await screen.findAllByText(/Ana López García/,{},{timeout:2500})).length).toBeGreaterThan(0);
  });
 });
