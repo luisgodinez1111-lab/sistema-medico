@@ -4,11 +4,14 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,type TrendKey}from"../shared";
+import{Check,ESI_FORM_EMPTY,unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,type TrendKey}from"../shared";
 import{searchIcd10}from"../../../../../packages/terminology/src";
+// R2B-019: el plazo de reevaluación es de CTAS, no de ESI (ESI no publica tiempos). La pantalla lo dice para que nadie lo
+// lea como un número del algoritmo ESI.
+const REASSESSMENT_SOURCE_SHORT="CTAS";
 import{useWorkspace}from"../context";
 export default function ExpView(){
- const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error}=useWorkspace();
+ const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error}=useWorkspace();
 
  return <>
   {/* PATIENT HEADER — contexto del paciente SIEMPRE visible (design-contract); componente del design system (K-09) */}
@@ -735,12 +738,47 @@ export default function ExpView(){
    </div>
    {triages.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {triages.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {triages.map(t=><div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div style={{minWidth:0}}><b style={{fontSize:14}}>{t.chiefComplaint}{t.acuity>0&&<span style={{...stateBadge(t.acuity<=2?"ESCALATED":"TRIAGED"),marginLeft:8,fontSize:11}}>ESI-{t.acuity}</span>}</b><div style={{fontSize:12,color:P.muted}}>v{t.version}</div></div>
-     <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-      <span style={stateBadge(t.state)}>{t.state}</span>
-      {trActions(t).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="LWBS"?{color:P.amberOnPale,borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doTriageAction(t,act)}>{busy==="tr-"+t.id?"…":act.label}</button>)}
+    {triages.map(t=><div key={t.id} style={{padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <div style={{minWidth:0}}>
+       <b style={{fontSize:14}}>{t.chiefComplaint}{t.acuity>0&&<span style={{...stateBadge(t.acuity<=2?"ESCALATED":"TRIAGED"),marginLeft:8,fontSize:11}}>ESI-{t.acuity}</span>}</b>
+       {/* R2B-019: la trazabilidad de CÓMO se llegó al nivel. Antes el nivel era un entero sin origen. */}
+       <div style={{fontSize:12,color:P.muted}}>
+        v{t.version}
+        {t.decisionPoint&&<> · punto {t.decisionPoint}</>}
+        {t.reassessDueAt&&<> · reevaluar a las {new Date(t.reassessDueAt).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})} ({REASSESSMENT_SOURCE_SHORT})</>}
+        {t.acuity===1&&<> · vigilancia continua</>}
+       </div>
+       {t.upgradeConsidered&&<div role="note" style={{fontSize:12,color:P.amberOnPale,fontWeight:600,marginTop:4}}>Signos vitales en zona de peligro: el algoritmo sugiere considerar ESI-2.</div>}
+      </div>
+      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+       <span style={stateBadge(t.state)}>{t.state}</span>
+       {(t.state==="IN_TRIAGE"||t.state==="TRIAGED")&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""}
+        onClick={()=>{setTrEsiFor(trEsiFor===t.id?null:t.id);setTrEsi(ESI_FORM_EMPTY);setTrEsiMsg(null);}}>
+        {trEsiFor===t.id?"Cancelar":t.state==="TRIAGED"?"Re-clasificar":"Clasificar (ESI)"}</button>}
+       {trActions(t).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="LWBS"?{color:P.amberOnPale,borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doTriageAction(t,act)}>{busy==="tr-"+t.id?"…":act.label}</button>)}
+      </div>
      </div>
+     {/* Formulario de los discriminadores. El nivel NO está aquí: es una consecuencia que calcula el servidor con el
+         algoritmo, y por eso el botón dice «Calcular y registrar» y no «Clasificar ESI-2». */}
+     {trEsiFor===t.id&&<div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${LINE}`,display:"flex",flexDirection:"column",gap:10}}>
+      <div style={{fontSize:11.5,color:P.muted,lineHeight:1.5}}>Algoritmo ESI (cuatro puntos de decisión). Los puntos A, B y C son juicio clínico: el sistema exige que consten y aplica el árbol sin saltarse pasos. El punto D —signos vitales en zona de peligro— lo calcula con la tabla por edad.</div>
+      <Check checked={trEsi.requiresLifeSavingIntervention} onChange={()=>setTrEsi({...trEsi,requiresLifeSavingIntervention:!trEsi.requiresLifeSavingIntervention})} label="A · Requiere intervención inmediata para salvar la vida" />
+      <Check checked={trEsi.highRiskSituation} onChange={()=>setTrEsi({...trEsi,highRiskSituation:!trEsi.highRiskSituation})} label="B · Situación de alto riesgo" />
+      <Check checked={trEsi.newConfusionLethargyDisorientation} onChange={()=>setTrEsi({...trEsi,newConfusionLethargyDisorientation:!trEsi.newConfusionLethargyDisorientation})} label="B · Confusión, letargo o desorientación de nueva aparición" />
+      <Check checked={trEsi.severeDistress} onChange={()=>setTrEsi({...trEsi,severeDistress:!trEsi.severeDistress})} label="B · Distrés severo" />
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
+       <label style={{fontSize:12,color:P.muted}}>Dolor (0-10)<input style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.painScore} onChange={e=>setTrEsi({...trEsi,painScore:e.target.value})} placeholder="—" /></label>
+       <label style={{fontSize:12,color:P.muted}}>C · Recursos previstos<input style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.predictedResources} onChange={e=>setTrEsi({...trEsi,predictedResources:e.target.value})} /></label>
+       <label style={{fontSize:12,color:P.muted}}>Edad (meses)<input style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.ageMonths} onChange={e=>setTrEsi({...trEsi,ageMonths:e.target.value})} /></label>
+       <label style={{fontSize:12,color:P.muted}}>FC<input style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.heartRate} onChange={e=>setTrEsi({...trEsi,heartRate:e.target.value})} placeholder="—" /></label>
+       <label style={{fontSize:12,color:P.muted}}>FR<input style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.respiratoryRate} onChange={e=>setTrEsi({...trEsi,respiratoryRate:e.target.value})} placeholder="—" /></label>
+       <label style={{fontSize:12,color:P.muted}}>SpO₂ (%)<input style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.spo2} onChange={e=>setTrEsi({...trEsi,spo2:e.target.value})} placeholder="—" /></label>
+      </div>
+      <div style={{fontSize:11.5,color:P.muted}}>Un signo vital vacío es «no se midió», no «normal»: el algoritmo lo reporta como faltante en vez de asumirlo.</div>
+      {trEsiMsg&&<div role="alert" style={{padding:"10px 12px",border:"1px solid #F0DBB8",background:"#FFF4E5",color:P.amberOnPale,borderRadius:10,fontSize:12.5,fontWeight:600}}>{trEsiMsg}</div>}
+      <div><button style={btn} disabled={busy!==""} onClick={()=>classifyTriage(t)}>{busy==="tr-"+t.id?"Calculando…":"Calcular y registrar nivel"}</button></div>
+     </div>}
     </div>)}
    </div>}
   </section>}

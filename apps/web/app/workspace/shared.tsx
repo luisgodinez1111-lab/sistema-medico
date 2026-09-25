@@ -53,7 +53,7 @@ export type Sp=Readonly<{id:string;specimenType:string;state:SpSt;version:number
 export type IncSt="REPORTED"|"UNDER_REVIEW"|"ESCALATED"|"RESOLVED";
 export type Inc=Readonly<{id:string;label:string;state:IncSt;version:number}>;
 export type TrSt="WAITING"|"IN_TRIAGE"|"TRIAGED"|"CLOSED"|"LWBS";
-export type Tr=Readonly<{id:string;chiefComplaint:string;acuity:number;state:TrSt;version:number}>;
+export type Tr=Readonly<{id:string;chiefComplaint:string;acuity:number;state:TrSt;version:number;decisionPoint:string;reassessDueAt:string|null;upgradeConsidered:boolean}>;
 export type WnSt="OPEN"|"HEALED"|"ESCALATED";
 export type Wn=Readonly<{id:string;location:string;stage:string;state:WnSt;version:number}>;
 export type TfSt="ORDERED"|"CROSSMATCHED"|"TRANSFUSING"|"COMPLETED"|"REACTION"|"CANCELLED";
@@ -665,12 +665,35 @@ export function wnActions(w:{id:string;state:WnSt}):{label:string;path:string;bo
  if(w.state==="OPEN")return[{label:"Re-valorar (peor)",path:base+"/reassessment",body:{stage:"STAGE_3",occurredAt:nowIso()},to:"OPEN"},{label:"Cicatrizada",path:base+"/healing",body:{occurredAt:nowIso()},to:"HEALED"},{label:"Escalar",path:base+"/escalation",body:{reason:ASK("Descripción del deterioro",5),occurredAt:nowIso()},to:"ESCALATED"}];
  return[];
 }
+// Auditoría R02b (R2B-019, lote 16): estos botones decían «Clasificar ESI-2» y «Re-clasificar ESI-1» y enviaban el literal
+// `acuity:2` / `acuity:1`. Es el hallazgo exacto: un número tecleado con el nombre de una escala que no se aplicaba. Ahora la
+// clasificación NO es un botón de un clic: se rellenan los discriminadores del algoritmo en el formulario del panel y el
+// nivel lo calcula el servidor. Aquí solo quedan las transiciones que no clasifican.
 export function trActions(t:{id:string;state:TrSt}):{label:string;path:string;body:Record<string,unknown>;to:TrSt}[]{
  const base=`/api/v1/triage/${t.id}`;
- if(t.state==="WAITING")return[{label:"Iniciar triage",path:base+"/start",body:{occurredAt:nowIso()},to:"IN_TRIAGE"},{label:"LWBS",path:base+"/lwbs",body:{reason:ASK("Circunstancias de la salida sin atención",5),occurredAt:nowIso()},to:"LWBS"}];
- if(t.state==="IN_TRIAGE")return[{label:"Clasificar ESI-2",path:base+"/assessment",body:{acuity:2,occurredAt:nowIso()},to:"TRIAGED"},{label:"LWBS",path:base+"/lwbs",body:{reason:ASK("Circunstancias de la salida sin atención",5),occurredAt:nowIso()},to:"LWBS"}];
- if(t.state==="TRIAGED")return[{label:"Re-clasificar ESI-1",path:base+"/assessment",body:{acuity:1,occurredAt:nowIso()},to:"TRIAGED"},{label:"Cerrar",path:base+"/closure",body:{occurredAt:nowIso()},to:"CLOSED"}];
+ const lwbs={label:"LWBS",path:base+"/lwbs",body:{reason:ASK("Circunstancias de la salida sin atención",5),occurredAt:nowIso()},to:"LWBS" as TrSt};
+ if(t.state==="WAITING")return[{label:"Iniciar triage",path:base+"/start",body:{occurredAt:nowIso()},to:"IN_TRIAGE"},lwbs];
+ if(t.state==="IN_TRIAGE")return[lwbs];
+ if(t.state==="TRIAGED")return[{label:"Cerrar",path:base+"/closure",body:{occurredAt:nowIso()},to:"CLOSED"}];
  return[];
+}
+/** Discriminadores del algoritmo ESI que la pantalla recoge. El nivel NO está aquí: lo deriva el servidor. */
+export type EsiForm=Readonly<{requiresLifeSavingIntervention:boolean;highRiskSituation:boolean;
+ newConfusionLethargyDisorientation:boolean;severeDistress:boolean;painScore:string;predictedResources:string;
+ ageMonths:string;heartRate:string;respiratoryRate:string;spo2:string}>;
+export const ESI_FORM_EMPTY:EsiForm={requiresLifeSavingIntervention:false,highRiskSituation:false,
+ newConfusionLethargyDisorientation:false,severeDistress:false,painScore:"",predictedResources:"2",
+ ageMonths:"",heartRate:"",respiratoryRate:"",spo2:""};
+/** Convierte el formulario al cuerpo de la petición. Los numéricos vacíos se OMITEN: vacío es «no se midió», no cero. */
+export function esiBody(f:EsiForm):Record<string,unknown>{
+ const n=(v:string):number|undefined=>{const x=Number(v.trim());return v.trim()===""||Number.isNaN(x)?undefined:Math.round(x);};
+ const body:Record<string,unknown>={requiresLifeSavingIntervention:f.requiresLifeSavingIntervention,
+  highRiskSituation:f.highRiskSituation,newConfusionLethargyDisorientation:f.newConfusionLethargyDisorientation,
+  severeDistress:f.severeDistress,predictedResources:n(f.predictedResources)??0,ageMonths:n(f.ageMonths)??0,
+  occurredAt:nowIso()};
+ for(const[k,v]of[["painScore",n(f.painScore)],["heartRate",n(f.heartRate)],["respiratoryRate",n(f.respiratoryRate)],["spo2",n(f.spo2)]] as const)
+  if(v!==undefined)body[k]=v;
+ return body;
 }
 export function incActions(i:{id:string;state:IncSt}):{label:string;path:string;body:Record<string,unknown>;to:IncSt}[]{
  const base=`/api/v1/incidents/${i.id}`;const resolve={label:"Resolver",path:base+"/resolution",body:{resolution:"CAPA implementada",occurredAt:nowIso()},to:"RESOLVED" as IncSt};

@@ -23,7 +23,7 @@ import{CreateBody as referral__CreateBody,ReasonBody as referral__ReasonBody,Whe
 import{CreateBody as regulatory_obligation__CreateBody}from"./regulatory-obligation-lifecycle";
 import{ActionBody as result__ActionBody,CloseBody as result__CloseBody,CorrectionBody as result__CorrectionBody,ErrorMarkBody as result__ErrorMarkBody,ReceiveBody as result__ReceiveBody,VerifyBody as result__VerifyBody}from"./result-lifecycle";
 import{CollectBody as specimen__CollectBody,RejectBody as specimen__RejectBody,WhenBody as specimen__WhenBody}from"./specimen-lifecycle";
-import{CompleteBody as surgery__CompleteBody,ReasonBody as surgery__ReasonBody,ScheduleBody as surgery__ScheduleBody,WhenBody as surgery__WhenBody}from"./surgery-lifecycle";
+import{CompleteBody as surgery__CompleteBody,ReasonBody as surgery__ReasonBody,ScheduleBody as surgery__ScheduleBody,TimeoutBody as surgery__TimeoutBody,WhenBody as surgery__WhenBody}from"./surgery-lifecycle";
 import{CrossmatchBody as transfusion__CrossmatchBody,OrderBody as transfusion__OrderBody,ReactionBody as transfusion__ReactionBody,ReasonBody as transfusion__ReasonBody,WhenBody as transfusion__WhenBody}from"./transfusion-lifecycle";
 import{ArriveBody as triage__ArriveBody,AssessBody as triage__AssessBody,ReasonBody as triage__ReasonBody,WhenBody as triage__WhenBody}from"./triage-lifecycle";
 import{AmendBody as vital__AmendBody,ErrorBody as vital__ErrorBody,RecordBody as vital__RecordBody}from"./vital-lifecycle";
@@ -127,7 +127,7 @@ export const API_BODY_SCHEMAS:Readonly<Record<string,ZodType>>={
  "POST /api/v1/surgeries/{surgeryId}/cancellation":surgery__ReasonBody,
  "POST /api/v1/surgeries/{surgeryId}/completion":surgery__CompleteBody,
  "POST /api/v1/surgeries/{surgeryId}/start":surgery__WhenBody,
- "POST /api/v1/surgeries/{surgeryId}/timeout":surgery__WhenBody,
+ "POST /api/v1/surgeries/{surgeryId}/timeout":surgery__TimeoutBody,
  "POST /api/v1/transfusions":transfusion__OrderBody,
  "POST /api/v1/transfusions/{transfusionId}/cancellation":transfusion__ReasonBody,
  "POST /api/v1/transfusions/{transfusionId}/completion":transfusion__WhenBody,

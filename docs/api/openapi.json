@@ -23513,6 +23513,45 @@
           "type": "string",
           "minLength": 1
          },
+         "procedurePerformed": {
+          "type": "string",
+          "minLength": 1
+         },
+         "instrumentCount": {
+          "type": "string",
+          "enum": [
+           "CORRECT",
+           "INCORRECT",
+           "NOT_APPLICABLE"
+          ]
+         },
+         "spongeCount": {
+          "type": "string",
+          "enum": [
+           "CORRECT",
+           "INCORRECT",
+           "NOT_APPLICABLE"
+          ]
+         },
+         "needleCount": {
+          "type": "string",
+          "enum": [
+           "CORRECT",
+           "INCORRECT",
+           "NOT_APPLICABLE"
+          ]
+         },
+         "specimensLabelled": {
+          "type": "boolean"
+         },
+         "equipmentIssues": {
+          "default": "",
+          "type": "string",
+          "maxLength": 500
+         },
+         "recoveryConcernsReviewed": {
+          "type": "boolean"
+         },
          "occurredAt": {
           "type": "string",
           "format": "date-time",
@@ -23521,6 +23560,12 @@
         },
         "required": [
          "outcome",
+         "procedurePerformed",
+         "instrumentCount",
+         "spongeCount",
+         "needleCount",
+         "specimensLabelled",
+         "recoveryConcernsReviewed",
          "occurredAt"
         ]
        }
@@ -23842,6 +23887,46 @@
        "schema": {
         "type": "object",
         "properties": {
+         "teamIntroduced": {
+          "type": "boolean"
+         },
+         "patientConfirmed": {
+          "type": "boolean"
+         },
+         "procedureConfirmed": {
+          "type": "string",
+          "minLength": 1
+         },
+         "lateralityConfirmed": {
+          "type": "string",
+          "enum": [
+           "LEFT",
+           "RIGHT",
+           "BILATERAL",
+           "NA"
+          ]
+         },
+         "siteMarked": {
+          "type": "boolean"
+         },
+         "antibioticProphylaxis": {
+          "type": "string",
+          "enum": [
+           "GIVEN_WITHIN_60_MIN",
+           "NOT_INDICATED",
+           "NOT_GIVEN"
+          ]
+         },
+         "criticalEventsReviewed": {
+          "type": "boolean"
+         },
+         "imagingAvailable": {
+          "type": "boolean"
+         },
+         "ledBy": {
+          "type": "string",
+          "minLength": 3
+         },
          "occurredAt": {
           "type": "string",
           "format": "date-time",
@@ -23849,6 +23934,15 @@
          }
         },
         "required": [
+         "teamIntroduced",
+         "patientConfirmed",
+         "procedureConfirmed",
+         "lateralityConfirmed",
+         "siteMarked",
+         "antibioticProphylaxis",
+         "criticalEventsReviewed",
+         "imagingAvailable",
+         "ledBy",
          "occurredAt"
         ]
        }
@@ -25373,10 +25467,47 @@
        "schema": {
         "type": "object",
         "properties": {
-         "acuity": {
+         "requiresLifeSavingIntervention": {
+          "type": "boolean"
+         },
+         "highRiskSituation": {
+          "type": "boolean"
+         },
+         "newConfusionLethargyDisorientation": {
+          "type": "boolean"
+         },
+         "painScore": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 5
+          "minimum": 0,
+          "maximum": 10
+         },
+         "severeDistress": {
+          "type": "boolean"
+         },
+         "predictedResources": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+         },
+         "ageMonths": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1500
+         },
+         "heartRate": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 300
+         },
+         "respiratoryRate": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 120
+         },
+         "spo2": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 100
          },
          "occurredAt": {
           "type": "string",
@@ -25385,7 +25516,12 @@
          }
         },
         "required": [
-         "acuity",
+         "requiresLifeSavingIntervention",
+         "highRiskSituation",
+         "newConfusionLethargyDisorientation",
+         "severeDistress",
+         "predictedResources",
+         "ageMonths",
          "occurredAt"
         ]
        }

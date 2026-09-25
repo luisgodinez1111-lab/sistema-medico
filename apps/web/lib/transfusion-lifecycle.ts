@@ -44,7 +44,8 @@ export const WhenBody=z.object({occurredAt:z.string().datetime()});
 // barrera que lo evita es siempre la misma: comprobar el grupo de la unidad contra el del receptor, al pie de cama, por DOS
 // personas distintas, antes de conectar. Ahora:
 //   · CROSSMATCH exige los dos grupos (receptor y unidad), el número de la unidad y los dos verificadores identificados y
-//     DISTINTOS. Si la combinación es incompatible, responde 422 con la razón clínica y NO registra la transición.
+//     DISTINTOS. Si la combinación es incompatible responde 400 VALIDATION_ERROR con la razón clínica —el mapeo de este
+//     repositorio para un cuerpo que no cumple su contrato— y NO registra la transición.
 //   · START exige que la transición anterior haya quedado registrada con su verificación (la máquina de estados lo impone:
 //     de ORDERED no se puede pasar a TRANSFUSING) y anota qué verificación la respalda.
 const GRUPO=z.object({abo:z.enum(["O","A","B","AB"]),rh:z.enum(["POSITIVE","NEGATIVE"])});
