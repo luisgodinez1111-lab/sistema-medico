@@ -516,6 +516,21 @@ export function scrollToSection(name:string){
  const el=document.getElementById(sectionId(name));
  if(el)(el.closest("section")??el).scrollIntoView({behavior:"smooth",block:"start"});
 }
+// Patient 360 (Lote B): el expediente crudo deja de ser un scroll monolítico de ~30 secciones y se organiza en
+// sub-vistas navegables por flujo clínico. Cada sección se asigna a una de estas pestañas; la pestaña "hospital"
+// solo aparece con las verticales hospitalarias encendidas (hospitalOn). El estado vive en el modelo y se refleja
+// en la URL (?s=) para que el enlace sea compartible (deep-link).
+export type ExpTab="resumen"|"historia"|"diagnostico"|"tratamiento"|"coordinacion"|"hospital"|"admin";
+export const EXP_TABS:{key:ExpTab,label:string,hint:string,hospital?:boolean}[]=[
+ {key:"resumen",label:"Resumen",hint:"Vista principal, seguimiento, portal y auditoría"},
+ {key:"historia",label:"Historia",hint:"Timeline, evolución y encuentro"},
+ {key:"diagnostico",label:"Diagnóstico",hint:"Problemas, alergias, resultados y signos vitales"},
+ {key:"tratamiento",label:"Tratamiento",hint:"Medicación, prescripción segura, órdenes, plan y vacunas"},
+ {key:"coordinacion",label:"Coordinación",hint:"Agenda, interconsultas, obligaciones, documentos y consentimiento"},
+ {key:"hospital",label:"Hospital",hint:"Internamiento y verticales hospitalarias",hospital:true},
+ {key:"admin",label:"Administración",hint:"Paciente, panel del clínico y facturación"},
+];
+export const EXP_TAB_KEYS:ExpTab[]=EXP_TABS.map(t=>t.key);
 export const RAIL_CSS=`
 /* App-shell: expediente como cockpit (sidebar oscuro + body + rejilla de ventanas) */
 .mos-app{display:flex;min-height:100vh;background:#F4F7FB}

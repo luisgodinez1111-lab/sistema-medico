@@ -399,6 +399,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Expediente: la dosis viaja con unidad, un bloqueo anulable exige nombrar la barrera y justificar (U-19), y suspender exige el motivo del médico tal cual (U-16)",async()=>{
   render(<Workspace/>);
   await toExpediente();
+  // Patient 360 (Lote B): la Medicación y la Prescripción segura viven en la sub-vista "Tratamiento".
+  fireEvent.click(screen.getByRole("button",{name:"Tratamiento"}));
   // proponer -> prescribir -> activar (mocks 201) para llegar a un medicamento ACTIVO
   const form=within((await screen.findByRole("button",{name:"Proponer medicación"})).closest("section")!);
   fireEvent.change(form.getByPlaceholderText(/Fármaco \(ej\./),{target:{value:"ibuprofeno-400"}});
@@ -1024,6 +1026,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   await noSeriousAxe(seg,"Seguimiento");
   await noSeriousAxe(por,"Portal");
   await noSeriousAxe(aud,"Auditoría");
+ });
+
+ it("Patient 360 (Lote B): el expediente se navega por sub-vistas; la Medicación vive en Tratamiento, no en Resumen",async()=>{
+  render(<Workspace/>);
+  await toExpediente();
+  // Al abrir el expediente, la sub-vista por defecto es "Resumen": está el hero, NO el formulario de Medicación.
+  await screen.findByText(/Vista principal/,{},{timeout:2500});
+  expect(screen.queryByRole("button",{name:"Proponer medicación"})).toBeNull(); // oculto en otra sub-vista
+  // Al cambiar a "Tratamiento", aparece la Medicación y se oculta el panel de Resumen (Portal del paciente).
+  fireEvent.click(screen.getByRole("button",{name:"Tratamiento"}));
+  expect(await screen.findByRole("button",{name:"Proponer medicación"})).toBeTruthy();
+  expect(screen.queryByRole("heading",{name:"Portal del paciente"})).toBeNull();
+  // La sub-vista se refleja en la URL (?s=) para que el enlace sea compartible.
+  expect(window.location.search).toContain("s=tratamiento");
  });
 
  // Último test: el deep-link carga el expediente completo (asíncrono y pesado); va al final para no contaminar

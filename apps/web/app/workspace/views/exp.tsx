@@ -4,14 +4,20 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{Check,ESI_FORM_EMPTY,unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,type TrendKey}from"../shared";
+import{Check,ESI_FORM_EMPTY,unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,type ExpTab,type TrendKey}from"../shared";
 import{searchIcd10}from"../../../../../packages/terminology/src";
 // R2B-019: el plazo de reevaluación es de CTAS, no de ESI (ESI no publica tiempos). La pantalla lo dice para que nadie lo
 // lea como un número del algoritmo ESI.
 const REASSESSMENT_SOURCE_SHORT="CTAS";
 import{useWorkspace}from"../context";
 export default function ExpView(){
- const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error}=useWorkspace();
+ const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab}=useWorkspace();
+ // Patient 360 (Lote B): la sub-vista activa decide qué secciones se montan. La pestaña "hospital" solo existe con
+ // hospitalOn; si la URL trae ?s=hospital sin las verticales encendidas, caemos a "resumen" para no dejar la vista vacía.
+ const activeTab:ExpTab=(expTab==="hospital"&&!hospitalOn)?"resumen":expTab;
+ const inTab=(g:ExpTab)=>activeTab===g;
+ // Navegación entre sub-vistas (pestañas y accesos rápidos del hero); opcionalmente enfoca una sección tras montar.
+ const goTab=(g:ExpTab,section?:string)=>{setExpTab(g);if(section)requestAnimationFrame(()=>scrollToSection(section));else window.scrollTo({top:0,behavior:"smooth"});};
 
  return <>
   {/* PATIENT HEADER — contexto del paciente SIEMPRE visible (design-contract); componente del design system (K-09) */}
@@ -27,8 +33,12 @@ export default function ExpView(){
     )}
    actions={<button style={{...ghost,padding:"7px 12px",fontSize:13,flex:"0 0 auto"}} onClick={reset}>+ Paciente anónimo</button>}/>
   <main className="mos-grid">
+  {/* PATIENT 360 (Lote B) — navegación por sub-vistas: el expediente deja de ser un scroll único de ~30 secciones */}
+  <nav className="span2" aria-label="Secciones del expediente" style={{position:"sticky",top:0,zIndex:5,background:"#F4F7FB",display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",padding:"2px 0 10px",marginBottom:2,borderBottom:`1px solid ${LINE}`}}>
+   {EXP_TABS.filter(t=>!t.hospital||hospitalOn).map(t=>{const on=activeTab===t.key;return <button key={t.key} type="button" onClick={()=>goTab(t.key)} aria-current={on?"page":undefined} title={t.hint} style={{background:on?"#E7EEFB":"transparent",color:on?P.blue:P.muted,border:`1px solid ${on?"#CFE0F7":LINE}`,borderRadius:999,padding:"7px 16px",fontSize:13.5,fontWeight:on?700:600,fontFamily:UI,cursor:"pointer"}}>{t.label}</button>;})}
+  </nav>
   {/* HERO — Vista principal · Durante la consulta (panel 1, snapshot determinista) */}
-  {snap&&(()=>{
+  {inTab("resumen")&&snap&&(()=>{
    const d=snap.demographics;
    const dx=[...new Set(snap.problems.map(DX_LABEL))].slice(0,6);
    const bp=snap.vitals["BP"],hr=snap.vitals["HR"];
@@ -38,7 +48,8 @@ export default function ExpView(){
      <div style={{fontSize:24,fontWeight:800,letterSpacing:"-.01em",color:warn?"#A15C00":P.ink}}>{value??"—"} <span style={{fontSize:13,fontWeight:600,color:P.muted}}>{value!==undefined?unit:""}</span></div>
      <div style={{fontSize:11.5,color:P.muted,marginTop:2}}>{sub||" "}</div>
     </div>);
-   const tabs:[string,string?][]=[["Resumen"],["Historia","Timeline del paciente"],["Medicamentos","Medicación"],["Resultados","Resultados diagnósticos"],["Problemas","Lista de problemas"],["Plan","Plan de cuidados"],["Seguimiento","Obligaciones de seguimiento"]];
+   // [etiqueta, sub-vista destino, sección a enfocar] — accesos rápidos que navegan a la pestaña correspondiente.
+   const tabs:[string,ExpTab,string?][]=[["Resumen","resumen"],["Historia","historia","Timeline del paciente"],["Medicamentos","tratamiento","Medicación"],["Resultados","diagnostico","Resultados diagnósticos"],["Problemas","diagnostico","Lista de problemas"],["Plan","tratamiento","Plan de cuidados"],["Seguimiento","coordinacion","Obligaciones de seguimiento"]];
    return <section className="span2" style={{...card,marginTop:0,padding:0,overflow:"hidden"}}>
     <div style={{padding:"18px 22px",borderBottom:`1px solid ${LINE}`,background:"linear-gradient(180deg,#FBFCFE,#fff)"}}>
      <div style={{fontSize:17,fontWeight:800,letterSpacing:"-.01em"}}>Vista principal · Durante la consulta</div>
@@ -55,7 +66,7 @@ export default function ExpView(){
        </div>
       </div>
       <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:16,borderBottom:`1px solid ${LINE}`}}>
-       {tabs.map(([t,h2],i)=><button key={t} onClick={()=>h2&&scrollToSection(h2)} style={{background:"transparent",border:0,borderBottom:i===0?`2px solid ${P.blue}`:"2px solid transparent",color:i===0?P.blue:P.muted,fontWeight:i===0?700:500,fontSize:13,fontFamily:UI,padding:"7px 10px",cursor:"pointer"}}>{t}</button>)}
+       {tabs.map(([t,g,h2],i)=><button key={t} onClick={()=>goTab(g,h2)} style={{background:"transparent",border:0,borderBottom:i===0?`2px solid ${P.blue}`:"2px solid transparent",color:i===0?P.blue:P.muted,fontWeight:i===0?700:500,fontSize:13,fontFamily:UI,padding:"7px 10px",cursor:"pointer"}}>{t}</button>)}
       </div>
       <div style={{fontSize:13,fontWeight:700,margin:"16px 0 10px"}}>Estado clínico actual</div>
       <div className="mos-vitals">
@@ -85,7 +96,7 @@ export default function ExpView(){
    </section>;
   })()}
   {/* SEGUIMIENTO AUTOMÁTICO (panel 5) — Zero-Lost-Follow-Up desde timeline + care-gaps */}
-  <section style={card}>
+  <section hidden={!inTab("resumen")} style={card}>
    <div><h2 {...anchor("Seguimiento automático")} style={{fontSize:18,margin:0}}>Seguimiento automático</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Nada se pierde. Todo se coordina. Obligaciones e interconsultas con owner y cierre.</p></div>
    {(()=>{
     const fromTl=(tl??[]).filter(t=>FOLLOW_TYPES.has(t.aggregateType)).map(t=>({label:TYPE_LABEL[t.aggregateType]??t.aggregateType,kind:t.latestKind,at:t.lastAt,status:followState(t.latestKind),type:t.aggregateType}));
@@ -109,7 +120,7 @@ export default function ExpView(){
   </section>
 
   {/* SEGURIDAD Y AUDITORÍA (panel 7) — estado del sistema + actividad desde la cadena de auditoría */}
-  <section className="span2" style={card}>
+  <section hidden={!inTab("resumen")} className="span2" style={card}>
    <div><h2 {...anchor("Seguridad y auditoría")} style={{fontSize:18,margin:0}}>Seguridad y auditoría</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Confianza por diseño. Cada acción clínica queda registrada.</p></div>
    <div className="mos-rx-grid">
     <div style={{background:"linear-gradient(160deg,#0C2148,#15346B)",borderRadius:14,padding:"16px 18px",color:"#EAF0FA"}}>
@@ -129,7 +140,7 @@ export default function ExpView(){
   </section>
 
   {/* PORTAL DEL PACIENTE (panel 6) — vista previa (solo lectura) del app del paciente, desde datos reales */}
-  <section style={card}>
+  <section hidden={!inTab("resumen")} style={card}>
    <div><h2 {...anchor("Portal del paciente")} style={{fontSize:18,margin:0}}>Portal del paciente</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Informado. Involucrado. Vista previa (solo lectura) de lo que ve el paciente en su app.</p></div>
    {(()=>{
     const t=tl??[];
@@ -180,7 +191,7 @@ export default function ExpView(){
   </section>
 
   {/* PANEL / WORKLIST POBLACIONAL */}
-  <section style={card}>
+  <section hidden={!inTab("admin")} style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
     <h2 {...anchor("Panel del clínico")} style={{fontSize:18,margin:0}}>Panel del clínico</h2>
     <button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={loadPanel}>{busy==="panel"?"Cargando…":"Cargar worklist"}</button>
@@ -197,7 +208,7 @@ export default function ExpView(){
   </section>
 
   {/* PACIENTE (registro / selección) */}
-  <section style={card}>
+  <section hidden={!inTab("admin")} style={card}>
    <h2 {...anchor("Paciente")} style={{fontSize:18,margin:0}}>Paciente</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Registra un paciente o selecciónalo de la lista. El chart de abajo es del paciente activo.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 160px 150px auto",gap:10,marginTop:12,alignItems:"center"}}>
@@ -230,7 +241,7 @@ export default function ExpView(){
   </section>
 
   {/* TIMELINE DEL PACIENTE */}
-  <section style={card}>
+  <section hidden={!inTab("historia")} style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
     <h2 {...anchor("Timeline del paciente")} style={{fontSize:18,margin:0}}>Timeline del paciente</h2>
     <div style={{display:"flex",gap:8}}>
@@ -265,7 +276,7 @@ export default function ExpView(){
   </section>
 
   {/* ENCUENTRO */}
-  <section style={card}>
+  <section hidden={!inTab("historia")} style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
     <h2 {...anchor("Encuentro")} style={{fontSize:18,margin:0}}>Encuentro</h2>{enc&&<span style={stateBadge(enc.state)}>{enc.state}</span>}
    </div>
@@ -290,7 +301,7 @@ export default function ExpView(){
   </section>
 
   {/* MEDICACIÓN */}
-  <section style={card}>
+  <section hidden={!inTab("tratamiento")} style={card}>
    <h2 {...anchor("Medicación")} style={{fontSize:18,margin:0}}>Medicación</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Proponer una medicación no exige ser médico; sólo un médico puede prescribirla (Physician Control).</p>
    <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 90px 1fr",gap:10,marginTop:12}}>
@@ -332,7 +343,7 @@ export default function ExpView(){
   </section>
 
   {/* PRESCRIPCIÓN SEGURA (panel 3) — dry-run de las barreras antes de prescribir */}
-  <section className="span2" style={card}>
+  <section hidden={!inTab("tratamiento")} className="span2" style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
     <div><h2 {...anchor("Prescripción segura")} style={{fontSize:18,margin:0}}>Prescripción segura</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Verifica antes de prescribir. Previene errores, protege al paciente. Determinista, sin IA generativa.</p></div>
     {snap?.labs.egfr!==undefined&&<span style={{fontSize:12,color:P.muted}}>eGFR paciente: <b>{snap?.labs.egfr} mL/min</b>{snap?.labs.egfrStage?` · categoría ${snap.labs.egfrStage} (una creatinina: no confirma ERC)`:""}</span>}
@@ -382,7 +393,7 @@ export default function ExpView(){
   </section>
 
   {/* RESULTADOS DIAGNÓSTICOS */}
-  <section style={card}>
+  <section hidden={!inTab("diagnostico")} style={card}>
    <h2 {...anchor("Resultados diagnósticos")} style={{fontSize:18,margin:0}}>Resultados diagnósticos</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Closed-loop: un resultado <b>crítico</b> que requirió acción y no se ha cerrado <b>bloquea la firma</b> del encuentro (Zero Lost Follow-Up).</p>
    <div style={{display:"flex",gap:10,marginTop:12,alignItems:"center",flexWrap:"wrap"}}>
@@ -405,7 +416,7 @@ export default function ExpView(){
   </section>
 
   {/* EVOLUCIÓN LONGITUDINAL (panel 4) */}
-  <section className="span2" style={card}>
+  <section hidden={!inTab("historia")} className="span2" style={card}>
    <div><h2 {...anchor("Evolución longitudinal")} style={{fontSize:18,margin:0}}>Evolución longitudinal</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Tendencias que cuentan la historia completa. Valores medidos, sin proyección.</p></div>
    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:12}}>
     {(["HBA1C","GLUCOSE","LDL","CREATININE"] as TrendKey[]).map(k=><button key={k} onClick={()=>setTrendKey(k)} style={{background:trendKey===k?"#E7EEFB":"transparent",color:trendKey===k?P.blue:P.muted,border:`1px solid ${trendKey===k?"#CFE0F7":LINE}`,borderRadius:999,padding:"6px 14px",fontSize:13,fontWeight:trendKey===k?700:500,fontFamily:UI,cursor:"pointer"}}>{CHART[k].label}</button>)}
@@ -428,7 +439,7 @@ export default function ExpView(){
   </section>
 
   {/* ALERGIAS */}
-  <section style={card}>
+  <section hidden={!inTab("diagnostico")} style={card}>
    <h2 {...anchor("Alergias")} style={{fontSize:18,margin:0}}>Alergias</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Una alergia <b>activa</b> bloquea la prescripción de un fármaco que la contenga (gate de seguridad).</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 150px 1fr",gap:10,marginTop:12}}>
@@ -447,7 +458,7 @@ export default function ExpView(){
   </section>
 
   {/* LISTA DE PROBLEMAS */}
-  <section style={card}>
+  <section hidden={!inTab("diagnostico")} style={card}>
    <h2 {...anchor("Lista de problemas")} style={{fontSize:18,margin:0}}>Lista de problemas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Diagnósticos codificados en <b>CIE-10</b> (validados contra el catálogo; la descripción es canónica). PROD-011 + interoperabilidad NOM-024.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginTop:12}}>
@@ -470,7 +481,7 @@ export default function ExpView(){
   </section>
 
   {/* ÓRDENES CLÍNICAS */}
-  <section style={card}>
+  <section hidden={!inTab("tratamiento")} style={card}>
    <h2 {...anchor("Órdenes clínicas")} style={{fontSize:18,margin:0}}>Órdenes clínicas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Lab, imagen, patología, procedimiento o referencia. Colocar/cumplir una orden exige médico.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
@@ -493,7 +504,7 @@ export default function ExpView(){
   </section>
 
   {/* INTERCONSULTAS / REFERENCIAS */}
-  <section style={card}>
+  <section hidden={!inTab("coordinacion")} style={card}>
    <h2 {...anchor("Interconsultas")} style={{fontSize:18,margin:0}}>Interconsultas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Referencia a especialista: solicitar → aceptar → completar (o declinar/cancelar). Agregado propio con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:10,marginTop:12}}>
@@ -515,7 +526,7 @@ export default function ExpView(){
   </section>
 
   {/* AGENDA / CITAS */}
-  <section style={card}>
+  <section hidden={!inTab("coordinacion")} style={card}>
    <h2 {...anchor("Agenda")} style={{fontSize:18,margin:0}}>Agenda</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cita del paciente: agendar → registrar llegada → completar (o no-show/cancelar). Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:10,marginTop:12}}>
@@ -542,7 +553,7 @@ export default function ExpView(){
   </section>
 
   {/* VACUNAS / CARTILLA */}
-  <section style={card}>
+  <section hidden={!inTab("tratamiento")} style={card}>
    <h2 {...anchor("Vacunas")} style={{fontSize:18,margin:0}}>Vacunas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cartilla longitudinal: indicar → aplicar (o rechazar); tras aplicar puede registrarse un evento adverso (farmacovigilancia). Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",gap:10,marginTop:12}}>
@@ -563,7 +574,7 @@ export default function ExpView(){
   </section>
 
   {/* SIGNOS VITALES */}
-  <section style={card}>
+  <section hidden={!inTab("diagnostico")} style={card}>
    <h2 {...anchor("Signos vitales")} style={{fontSize:18,margin:0}}>Signos vitales</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Observaciones append-only: el valor histórico nunca se sobrescribe; cada corrección es una enmienda con motivo. Se puede marcar una toma como capturada por error.</p>
    <div style={{display:"grid",gridTemplateColumns:"150px 1fr 120px",gap:10,marginTop:12}}>
@@ -592,7 +603,7 @@ export default function ExpView(){
   </section>
 
   {/* PLAN DE CUIDADOS / METAS */}
-  <section style={card}>
+  <section hidden={!inTab("tratamiento")} style={card}>
    <h2 {...anchor("Plan de cuidados")} style={{fontSize:18,margin:0}}>Plan de cuidados</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Metas longitudinales de crónicos: proponer → activar → lograr, con pausa/reanudación. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
@@ -615,7 +626,7 @@ export default function ExpView(){
   </section>
 
   {/* FACTURACIÓN / RECLAMACIONES */}
-  <section style={card}>
+  <section hidden={!inTab("admin")} style={card}>
    <h2 {...anchor("Facturación")} style={{fontSize:18,margin:0}}>Facturación</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Ciclo de ingresos (seguimiento de estado, no mueve dinero): borrador → codificar → enviar → pagada/rechazada, con reenvío. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",gap:10,marginTop:12}}>
@@ -636,7 +647,7 @@ export default function ExpView(){
   </section>
 
   {/* CONSENTIMIENTO INFORMADO */}
-  <section style={card}>
+  <section hidden={!inTab("coordinacion")} style={card}>
    <h2 {...anchor("Consentimiento informado")} style={{fontSize:18,margin:0}}>Consentimiento informado</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Registro clínico-legal (NOM-004 / aviso de privacidad): redactar → presentar → otorgar/rechazar; un consentimiento otorgado puede revocarse. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
@@ -659,7 +670,7 @@ export default function ExpView(){
   </section>
 
   {/* INTERNAMIENTO / HOSPITALIZACIÓN */}
-  {hospitalOn&&<section style={card}>
+  {hospitalOn&&<section hidden={!inTab("hospital")} style={card}>
    <h2 {...anchor("Internamiento")} style={{fontSize:18,margin:0}}>Internamiento</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Episodio de hospitalización: admitir → trasladar (unidad) → dar de alta; cancelable si fue admisión por error. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"180px 1fr",gap:10,marginTop:12}}>
@@ -682,7 +693,7 @@ export default function ExpView(){
   </section>}
 
   {/* MUESTRAS / CADENA DE CUSTODIA */}
-  {hospitalOn&&<section style={card}>
+  {hospitalOn&&<section hidden={!inTab("hospital")} style={card}>
    <h2 {...anchor("Muestras de laboratorio")} style={{fontSize:18,margin:0}}>Muestras de laboratorio</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cadena de custodia pre-analítica: recolectar → enviar → recibir → resultar; rechazable en cualquier etapa. Una muestra rechazada aparece como pendiente HIGH en care gaps.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
@@ -705,7 +716,7 @@ export default function ExpView(){
   </section>}
 
   {/* INCIDENTES / SEGURIDAD DEL PACIENTE */}
-  <section style={card}>
+  <section hidden={!inTab("hospital")} style={card}>
    <h2 {...anchor("Incidentes de seguridad")} style={{fontSize:18,margin:0}}>Incidentes de seguridad</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Reporte de eventos adversos (farmacovigilancia): reportar → revisar → escalar/resolver. Un incidente abierto aparece como pendiente HIGH en care gaps. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 150px 1fr",gap:10,marginTop:12}}>
@@ -729,7 +740,7 @@ export default function ExpView(){
   </section>
 
   {/* TRIAGE / CLASIFICACIÓN DE ACUIDAD */}
-  {hospitalOn&&<section style={card}>
+  {hospitalOn&&<section hidden={!inTab("hospital")} style={card}>
    <h2 {...anchor("Triage")} style={{fontSize:18,margin:0}}>Triage</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Clasificación de acuidad (urgencias): arribar → iniciar → clasificar ESI (re-evaluable) → cerrar, o LWBS. Un paciente sin triage completado es un pendiente HIGH en care gaps.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginTop:12}}>
@@ -784,7 +795,7 @@ export default function ExpView(){
   </section>}
 
   {/* HERIDAS / LESIONES POR PRESIÓN */}
-  {hospitalOn&&<section style={card}>
+  {hospitalOn&&<section hidden={!inTab("hospital")} style={card}>
    <h2 {...anchor("Cuidado de heridas")} style={{fontSize:18,margin:0}}>Cuidado de heridas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Lesión por presión (UPP) longitudinal: documentar estadio → re-valorar (append-only) → cicatrizar/escalar. Métrica de calidad. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"180px 180px auto",gap:10,marginTop:12}}>
@@ -809,7 +820,7 @@ export default function ExpView(){
   </section>}
 
   {/* TRANSFUSIONES */}
-  {hospitalOn&&<section style={card}>
+  {hospitalOn&&<section hidden={!inTab("hospital")} style={card}>
    <h2 {...anchor("Transfusiones")} style={{fontSize:18,margin:0}}>Transfusiones</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Medicina transfusional con verificación pre-transfusional: ordenar → cruzar (crossmatch) → iniciar → completar; una reacción se registra como pendiente HIGH (hemovigilancia). Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 120px auto",gap:10,marginTop:12}}>
@@ -833,7 +844,7 @@ export default function ExpView(){
   </section>}
 
   {/* CIRUGÍA / QUIRÓFANO */}
-  {hospitalOn&&<section style={card}>
+  {hospitalOn&&<section hidden={!inTab("hospital")} style={card}>
    <h2 {...anchor("Cirugía")} style={{fontSize:18,margin:0}}>Cirugía</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Caso quirúrgico con barrera de seguridad: agendar → time-out OMS (checklist) → iniciar → completar. No se puede iniciar sin el time-out. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 150px auto",gap:10,marginTop:12}}>
@@ -855,7 +866,7 @@ export default function ExpView(){
   </section>}
 
   {/* DIÁLISIS */}
-  {hospitalOn&&<section style={card}>
+  {hospitalOn&&<section hidden={!inTab("hospital")} style={card}>
    <h2 {...anchor("Diálisis")} style={{fontSize:18,margin:0}}>Diálisis</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Terapia de reemplazo renal: agendar → iniciar → completar; una interrupción por complicación se registra como pendiente HIGH y puede reanudarse. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 200px auto",gap:10,marginTop:12}}>
@@ -880,7 +891,7 @@ export default function ExpView(){
   </section>}
 
   {/* DOCUMENTOS CLÍNICOS */}
-  <section style={card}>
+  <section hidden={!inTab("coordinacion")} style={card}>
    <h2 {...anchor("Documentos clínicos")} style={{fontSize:18,margin:0}}>Documentos clínicos</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>La firma produce un snapshot reproducible e inmutable; toda corrección posterior es un addendum append-only (PROD-014-R022).</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 200px",gap:10,marginTop:12}}>
@@ -905,7 +916,7 @@ export default function ExpView(){
   </section>
 
   {/* OBLIGACIONES / SEGUIMIENTO */}
-  <section style={card}>
+  <section hidden={!inTab("coordinacion")} style={card}>
    <h2 {...anchor("Obligaciones de seguimiento")} style={{fontSize:18,margin:0}}>Obligaciones de seguimiento</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Care gaps / follow-up. Completar exige evidencia (Zero Lost Follow-Up: nada se cierra sin constancia).</p>
    <div style={{display:"flex",gap:10,marginTop:12,alignItems:"center"}}>
