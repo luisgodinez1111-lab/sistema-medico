@@ -122,6 +122,9 @@ export type VitalHistory=Readonly<{records:VitalRecord[];series:{BP:{value:numbe
 // Lote E — registro POBLACIONAL de signos vitales (GET /api/v1/vitals): una lectura vigente por fila, clínica-wide.
 export type VitalRegRow=Readonly<{vitalId:string;patientId:string;patientName:string;vitalType:string;vitalTypeLabel:string;value:string;unit:string;status:"NORMAL"|"ABNORMAL"|"CRITICAL"|"UNKNOWN";critical:boolean;interpretation:string;recordedAt:string}>;
 export type VitalsRegistry=Readonly<{items:VitalRegRow[];nextCursor:string|null;total:number;criticalCount:number;abnormalCount:number;patientsCount:number}>;
+// Lote E — registro POBLACIONAL de planes de cuidado (GET /api/v1/care-plans): un plan por fila, clínica-wide.
+export type CarePlanRegRow=Readonly<{carePlanId:string;patientId:string;patientName:string;category:string;categoryLabel:string;goal:string;status:"PROPOSED"|"ACTIVE"|"ON_HOLD"|"ACHIEVED"|"CANCELLED";statusLabel:string;proposedAt:string}>;
+export type CarePlansRegistry=Readonly<{items:CarePlanRegRow[];nextCursor:string|null;total:number;activeCount:number;onHoldCount:number;achievedCount:number;patientsCount:number}>;
 export type CarePlanSnap=Readonly<{counts:{problems:number;medications:number;allergies:number};problems:{code:string;description:string;status:string;statusLabel:string}[];goals:{category:string;goal:string;status:string;statusLabel:string}[];metrics:{hba1c:string|null;bp:string|null;weight:string|null;imc:string|null}}>;
 export type RefContext=Readonly<{allergies:string[];medications:string[];problems:{code:string;description:string}[];labs:{hba1c:string|null};vitals:{bp:string|null;hr:string|null;imc:string|null}}>;
 export type FUDelta={first:number;last:number}|null;

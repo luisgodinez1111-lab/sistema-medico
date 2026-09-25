@@ -6,7 +6,7 @@ import{goalFor,INDIVIDUALIZATION_NOTICE}from"../../../../../packages/care-goals/
 import{card,P,UI,LINE}from"../shared";
 import{useWorkspace}from"../context";
 export default function PlanCuidadoView(){
- const{cpSnap,setCpNew,setCpMsg,cpNew,cpMsg,patientName,patientId,cpForm,setCpForm,addCarePlanGoal,cpBusy,patientSelector,setView}=useWorkspace();
+ const{cpSnap,setCpNew,setCpMsg,cpNew,cpMsg,patientName,patientId,cpForm,setCpForm,addCarePlanGoal,cpBusy,patientSelector,setView,cpReg,cpRegErr,selectPatientRaw}=useWorkspace();
 
    // ===== MÓDULO PLAN DE CUIDADO (S-PLANCUIDADO) — snapshot compuesto cableado a GET /patients/:id/care-plan =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -66,6 +66,33 @@ export default function PlanCuidadoView(){
       {imc&&metric("IMC",metaDe("IMC"),imc,"",enMeta("IMC",Number(imc)))}
      </>}</div>
     </div>
+    {/* Lote E — registro POBLACIONAL: planes de cuidado de TODOS los pacientes del consultorio (GET /api/v1/care-plans). */}
+    {(()=>{
+     const th:React.CSSProperties={textAlign:"left",fontSize:11,color:P.muted,fontWeight:600,padding:"9px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+     const tdc:React.CSSProperties={padding:"9px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,verticalAlign:"middle"};
+     const fmtD=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
+     const stSty=(st:string):React.CSSProperties=>{const m:Record<string,[string,string]>={PROPOSED:["#EEF1F7",P.muted],ACTIVE:["#E6F6EE",P.greenOnPale],ON_HOLD:["#FBF0DC",P.amberOnPale],ACHIEVED:["#E7EEFB",P.blueOnPale],CANCELLED:["#FDECEE",P.redOnPale]};const[b,f]=m[st]??m.PROPOSED!;return{background:b,color:f,borderRadius:16,padding:"3px 11px",fontSize:11.5,fontWeight:700,whiteSpace:"nowrap"};};
+     return <div style={{...card2,marginTop:16,padding:0,overflow:"hidden"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 18px",borderBottom:`1px solid ${LINE}`,flexWrap:"wrap",gap:10}}>
+       <div><div style={{fontSize:16,fontWeight:800}}>Plan de cuidado · Toda la clínica</div><div style={{fontSize:12,color:P.muted}}>Planes de cuidado de todos los pacientes del consultorio, con su estado.</div></div>
+       {cpReg&&<div style={{display:"flex",gap:18,flexWrap:"wrap"}}>{([["Planes",cpReg.total,P.ink],["Activos",cpReg.activeCount,P.greenOnPale],["En pausa",cpReg.onHoldCount,P.amberOnPale],["Logrados",cpReg.achievedCount,P.blueOnPale],["Pacientes",cpReg.patientsCount,P.purple]] as [string,number,string][]).map(([l,n,c])=><div key={l} style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:800,color:c,fontVariantNumeric:"tabular-nums"}}>{n}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div>)}</div>}
+      </div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+       <thead><tr>{["Paciente","Categoría","Objetivo","Estado","Propuesto",""].map((h,i)=><th key={i} style={th}>{h}</th>)}</tr></thead>
+       <tbody>
+        {(cpReg?.items??[]).slice(0,20).map(it=><tr key={it.carePlanId}>
+         <td style={tdc}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:26,height:26,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:10,fontWeight:700,flex:"0 0 auto"}}>{initials(it.patientName)}</span><span style={{fontWeight:600}}>{it.patientName}</span></div></td>
+         <td style={tdc}>{it.categoryLabel}</td>
+         <td style={{...tdc,maxWidth:280}}>{it.goal}</td>
+         <td style={tdc}><span style={stSty(it.status)}>{it.statusLabel}</span></td>
+         <td style={{...tdc,color:P.muted}}>{fmtD(it.proposedAt)}</td>
+         <td style={tdc}><button onClick={()=>{selectPatientRaw(it.patientId,it.patientName);setView("exp");}} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:8,padding:"5px 10px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:UI}}>Abrir expediente →</button></td>
+        </tr>)}
+        {cpReg&&cpReg.items.length===0&&<tr><td colSpan={6} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>Aún no hay planes de cuidado registrados en el consultorio.</td></tr>}
+        {!cpReg&&<tr><td colSpan={6} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>{cpRegErr?"No se pudo cargar el registro de la clínica.":"Cargando registro…"}</td></tr>}
+       </tbody></table></div>
+     </div>;
+    })()}
    </div>;
   
 }

@@ -19,7 +19,7 @@ export{PAGE_LIMIT_DEFAULT,PAGE_LIMIT_MAX,clampLimit,decodeCursor,encodeCursor}fr
 export{findPatientDuplicate,listPatients,patientBirthDate,patientDemographics,requireRegisteredPatient}from"./runtime/patients";
 export{activeAllergies,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,administeredVaccineCodes,administeredVaccines,carePlanGoals,latestVitalReadings,latestVitalsByType,patientDocuments,patientEgfr,patientObligations,patientVitals}from"./runtime/patient-facts";
 export{analyteSeries,latestAnalyteReading}from"./runtime/lab-facts";
-export{agendaForDate,allergyRegistry,claimsRegistry,immunizationRegistry,ordersRegistry,problemRegistry,resultsRegistry,vitalsRegistry,overdueOrders}from"./runtime/registries";
+export{agendaForDate,allergyRegistry,claimsRegistry,immunizationRegistry,ordersRegistry,problemRegistry,resultsRegistry,vitalsRegistry,carePlanRegistry,overdueOrders}from"./runtime/registries";
 export{officeSettings,regulatoryObligations}from"./runtime/office";
 export{appointmentOutcomes,appointmentsByType,encounterAnalytics,medicationsPrescribed,resultsSummary,claimsIncome,reportAggregates,HBA1C_CONTROL_THRESHOLD}from"./runtime/analytics";
 export{registrySummary,topPatientsOfRegistry}from"./runtime/registry-summaries";

@@ -26,7 +26,14 @@ vi.mock("../../apps/web/lib/session-client",()=>({
     {vitalId:"v2",patientId:"p2",patientName:"Carlos Mendoza",vitalType:"HR",vitalTypeLabel:"Frecuencia cardíaca",value:"72",unit:"lpm",status:"NORMAL",critical:false,interpretation:"",recordedAt:"2026-09-16T09:00:00.000Z"},
    ],nextCursor:null,total:2,criticalCount:1,abnormalCount:0,patientsCount:2}};
   }
-  if(path.includes("/api/v1/care-plans"))return{status:201,body:{version:1}};
+  if(path.includes("/api/v1/care-plans")){
+   if(init?.method==="POST")return{status:201,body:{version:1}};
+   // Lote E — GET clínica-wide: registro POBLACIONAL de planes de cuidado
+   return{status:200,body:{items:[
+    {carePlanId:"cp1",patientId:"p1",patientName:"Ana López García",category:"DIABETES",categoryLabel:"Diabetes",goal:"HbA1c < 7% en 3 meses",status:"ACTIVE",statusLabel:"Activo",proposedAt:"2026-09-10T10:00:00.000Z"},
+    {carePlanId:"cp2",patientId:"p2",patientName:"Carlos Mendoza",category:"HYPERTENSION",categoryLabel:"Hipertensión",goal:"TA < 130/80",status:"ON_HOLD",statusLabel:"En pausa",proposedAt:"2026-09-05T09:00:00.000Z"},
+   ],nextCursor:null,total:2,activeCount:1,onHoldCount:1,achievedCount:0,patientsCount:2}};
+  }
   // U-19: PRESCRIBE con bloqueo ANULABLE (alergia) -> 403 con qué se puede anular; con la anulación nombrada -> 201.
   if(path.endsWith("/prescription")&&init?.method==="POST"){
    const b=init.body as{overrideBarriers?:string[];overrideJustification?:string};
@@ -920,6 +927,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.queryByText("Educación para el paciente")).toBeNull();
   expect(screen.queryByText("Documentos relacionados")).toBeNull();
   expect(screen.queryByText("Imprimir plan")).toBeNull();
+  // Lote E — registro POBLACIONAL clínica-wide cableado a GET /api/v1/care-plans
+  expect((await screen.findAllByText("Plan de cuidado · Toda la clínica")).length).toBeGreaterThan(0);
+  expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0); // plan de otro paciente
+  expect(screen.getByText("HbA1c < 7% en 3 meses")).toBeTruthy();
+  expect(screen.getAllByText("En pausa").length).toBeGreaterThan(0);                 // estado por última transición
  });
 
  it("vista Signos vitales (S-SIGNOS): form + últimos registros + tendencias + referencia + alertas deterministas",async()=>{
