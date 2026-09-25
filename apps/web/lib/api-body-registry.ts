@@ -8,7 +8,7 @@ import{CancelBody as appointment__CancelBody,NoShowBody as appointment__NoShowBo
 import{CancelBody as careplan__CancelBody,ProposeBody as careplan__ProposeBody,WhenBody as careplan__WhenBody}from"./careplan-lifecycle";
 import{CodeBody as claim__CodeBody,DraftBody as claim__DraftBody,ReasonBody as claim__ReasonBody,RefBody as claim__RefBody,WhenBody as claim__WhenBody}from"./claim-lifecycle";
 import{DraftBody as consent__DraftBody,GrantBody as consent__GrantBody,ReasonBody as consent__ReasonBody,WhenBody as consent__WhenBody}from"./consent-lifecycle";
-import{ReasonBody as dialysis__ReasonBody,ScheduleBody as dialysis__ScheduleBody,WhenBody as dialysis__WhenBody}from"./dialysis-lifecycle";
+import{CompleteBody as dialysis__CompleteBody,InterruptBody as dialysis__InterruptBody,ReasonBody as dialysis__ReasonBody,ScheduleBody as dialysis__ScheduleBody,StartBody as dialysis__StartBody,WhenBody as dialysis__WhenBody}from"./dialysis-lifecycle";
 import{AmendBody as document__AmendBody,CreateBody as document__CreateBody,SignBody as document__SignBody,WhenBody as document__WhenBody}from"./document-lifecycle";
 import{AdminBody as immunization__AdminBody,AdverseBody as immunization__AdverseBody,DueBody as immunization__DueBody,ReasonBody as immunization__ReasonBody}from"./immunization-lifecycle";
 import{ReasonBody as incident__ReasonBody,ReportBody as incident__ReportBody,ResolveBody as incident__ResolveBody,WhenBody as incident__WhenBody}from"./incident-lifecycle";
@@ -62,11 +62,11 @@ export const API_BODY_SCHEMAS:Readonly<Record<string,ZodType>>={
  "POST /api/v1/consents/{consentId}/revocation":consent__ReasonBody,
  "POST /api/v1/dialysis-sessions":dialysis__ScheduleBody,
  "POST /api/v1/dialysis-sessions/{dialysisId}/cancellation":dialysis__ReasonBody,
- "POST /api/v1/dialysis-sessions/{dialysisId}/completion":dialysis__WhenBody,
- "POST /api/v1/dialysis-sessions/{dialysisId}/interruption":dialysis__ReasonBody,
+ "POST /api/v1/dialysis-sessions/{dialysisId}/completion":dialysis__CompleteBody,
+ "POST /api/v1/dialysis-sessions/{dialysisId}/interruption":dialysis__InterruptBody,
  "POST /api/v1/dialysis-sessions/{dialysisId}/no-show":dialysis__WhenBody,
  "POST /api/v1/dialysis-sessions/{dialysisId}/resumption":dialysis__WhenBody,
- "POST /api/v1/dialysis-sessions/{dialysisId}/start":dialysis__WhenBody,
+ "POST /api/v1/dialysis-sessions/{dialysisId}/start":dialysis__StartBody,
  "POST /api/v1/documents":document__CreateBody,
  "POST /api/v1/documents/{documentId}/amendment":document__AmendBody,
  "POST /api/v1/documents/{documentId}/finalization":document__WhenBody,

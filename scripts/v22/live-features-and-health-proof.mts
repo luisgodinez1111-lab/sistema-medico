@@ -36,7 +36,7 @@ try{
  // === cancelación de una sesión de diálisis: transición terminal con motivo ===
  const phys=tok();const pat=crypto.randomUUID();await ensurePatientIn(TA,pat);
  const id=crypto.randomUUID();
- r=await dz.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({dialysisId:id,patientId:pat,modality:"HEMODIALYSIS",accessType:"CATHETER",occurredAt:ISO})}));
+ r=await dz.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({dialysisId:id,patientId:pat,modality:"HEMODIALYSIS",accessType:"CATHETER",prescribedMinutes:240,occurredAt:ISO})}));
  ok(r.status===201,"DIALYSIS_SCHEDULED_201");
  const DP=(x:string)=>({params:Promise.resolve({dialysisId:x})});
  r=await dzCancel.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({reason:"Paciente hospitalizado por otra causa",occurredAt:ISO})}),DP(id));

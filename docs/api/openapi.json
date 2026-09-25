@@ -5962,6 +5962,21 @@
        "schema": {
         "type": "object",
         "properties": {
+         "postWeightKg": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 400
+         },
+         "durationMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 900
+         },
+         "postUreaMgDl": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 300
+         },
          "occurredAt": {
           "type": "string",
           "format": "date-time",
@@ -5969,6 +5984,8 @@
          }
         },
         "required": [
+         "postWeightKg",
+         "durationMinutes",
          "occurredAt"
         ]
        }
@@ -6126,9 +6143,33 @@
        "schema": {
         "type": "object",
         "properties": {
+         "cause": {
+          "type": "string",
+          "enum": [
+           "HIPOTENSION",
+           "CALAMBRES",
+           "ARRITMIA",
+           "DOLOR_TORACICO",
+           "COAGULACION_CIRCUITO",
+           "PROBLEMA_ACCESO",
+           "FALLA_EQUIPO",
+           "DECISION_PACIENTE",
+           "OTRA"
+          ]
+         },
          "reason": {
           "type": "string",
           "minLength": 1
+         },
+         "systolic": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 300
+         },
+         "diastolic": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 200
          },
          "occurredAt": {
           "type": "string",
@@ -6137,6 +6178,7 @@
          }
         },
         "required": [
+         "cause",
          "reason",
          "occurredAt"
         ]
@@ -6623,6 +6665,16 @@
        "schema": {
         "type": "object",
         "properties": {
+         "preWeightKg": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 400
+         },
+         "preUreaMgDl": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 300
+         },
          "occurredAt": {
           "type": "string",
           "format": "date-time",
@@ -6630,6 +6682,7 @@
          }
         },
         "required": [
+         "preWeightKg",
          "occurredAt"
         ]
        }
@@ -6796,6 +6849,16 @@
            "PERITONEAL_CATHETER"
           ]
          },
+         "prescribedMinutes": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 600
+         },
+         "dryWeightKg": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 400
+         },
          "occurredAt": {
           "type": "string",
           "format": "date-time",
@@ -6807,6 +6870,7 @@
          "patientId",
          "modality",
          "accessType",
+         "prescribedMinutes",
          "occurredAt"
         ]
        }
