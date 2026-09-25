@@ -14,6 +14,13 @@ import{deterministicUuid}from"../../../packages/canonical-json/src";
 // tenant). Las imágenes (PHI de identidad profesional) viven SOLO en Vercel Blob PRIVADO; en el event stream va
 // únicamente la referencia (pathname + sha256 + metadatos). version = nº de eventos (If-Match implícito por conteo).
 const AGG="PhysicianProfile";
+// Auditoría 2026-09-19, anexo R02b (R2B-025, medido en el lote 17) — EL PROPÓSITO SE COMPRUEBA.
+// El hallazgo se levantó sobre `office-settings`, pero al medir todas las llamadas a `authorize` apareció que las CINCO de
+// este archivo tampoco declaraban propósito, y aquí viven la cédula profesional, la firma y el sello del médico: los datos
+// con los que se emite una receta. Como `authorize` solo compara el propósito cuando el llamador lo declara, no comprobar
+// nada era el comportamiento efectivo. Gestionar el perfil profesional es legítimo bajo atención u operación, no bajo
+// investigación ni facturación.
+const ADMIN_PURPOSES=["TREATMENT","OPERATIONS"] as const;
 type Claims={sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string};
 const ASSET_KINDS=["signature","stamp"]as const;
 type AssetKind=(typeof ASSET_KINDS)[number];
@@ -71,7 +78,7 @@ export const CredentialsBody=z.object({
 export async function handleCredentialsSet(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{role:"PHYSICIAN",scope:"settings:write"});
+  authorize(principalFrom(c),{role:"PHYSICIAN",scope:"settings:write",purpose:ADMIN_PURPOSES});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CredentialsBody);
@@ -92,7 +99,7 @@ function assetOf(profile:PhysicianProfileRead,kind:AssetKind):ProfileAsset|null{
 export async function handleProfileGet(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{scope:"settings:read"});
+  authorize(principalFrom(c),{scope:"settings:read",purpose:ADMIN_PURPOSES});
   const profile=await foldProfile(ctx,profileId(c));
   return NextResponse.json(profile,{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
@@ -104,7 +111,7 @@ export async function handleProfileAssetUpload(req:Request,kind:string):Promise<
  try{
   if(!(ASSET_KINDS as readonly string[]).includes(kind))throw new ClinicalError("NOT_FOUND","Tipo de asset desconocido");
   const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{scope:"settings:write"});
+  authorize(principalFrom(c),{scope:"settings:write",purpose:ADMIN_PURPOSES});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const form=await req.formData().catch(()=>{throw new ClinicalError("VALIDATION_ERROR","multipart/form-data con campo 'file' requerido");});
@@ -139,7 +146,7 @@ export async function handleProfileAssetDownload(req:Request,kind:string):Promis
  try{
   if(!(ASSET_KINDS as readonly string[]).includes(kind))throw new ClinicalError("NOT_FOUND","Tipo de asset desconocido");
   const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{scope:"settings:read"});
+  authorize(principalFrom(c),{scope:"settings:read",purpose:ADMIN_PURPOSES});
   const profile=await foldProfile(ctx,profileId(c));
   const asset=assetOf(profile,kind as AssetKind);
   if(!asset)throw new ClinicalError("NOT_FOUND","Asset no encontrado");
@@ -154,7 +161,7 @@ export async function handleProfileAssetRemove(req:Request,kind:string):Promise<
  try{
   if(!(ASSET_KINDS as readonly string[]).includes(kind))throw new ClinicalError("NOT_FOUND","Tipo de asset desconocido");
   const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{scope:"settings:write"});
+  authorize(principalFrom(c),{scope:"settings:write",purpose:ADMIN_PURPOSES});
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const aggId=profileId(c);

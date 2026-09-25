@@ -41,7 +41,18 @@ export type AuthorizedResource=Readonly<{type:string;id:string;tenantId?:string;
 export type PatientAccessPolicy="TENANT_WIDE"|"CARE_RELATIONSHIP";
 // Política vigente. Cambiarla exige implementar el registro de relación asistencial (decisión del dueño, ADR-0230).
 export const patientAccessPolicy=():PatientAccessPolicy=>"TENANT_WIDE";
-export function authorize(p:Principal,x:{role?:string;scope:string;purpose?:string;resource?:AuthorizedResource;tenantId?:string}){
+// Auditoría 2026-09-19, anexo R02b (R2B-025) — `purpose` ADMITE UN CONJUNTO, no solo un valor.
+//
+// El hallazgo: `handleOfficeSettingsGet`/`Update` no pasaban `purpose`, y como esta función solo lo compara «si viene»
+// (`if(x.purpose&&...)`), la comprobación se omitía por completo: cualquier propósito en el token —RESEARCH, BILLING— servía
+// para leer o cambiar la configuración del consultorio, mientras `docs/compliance/README.md` declara «authz por
+// purpose-of-use» como control de LFPDPPP.
+//
+// Por qué un CONJUNTO y no un valor: hay operaciones legítimas bajo más de un propósito. Configurar el consultorio lo hace
+// tanto el médico en su sesión clínica (TREATMENT, que es la única que este sistema emite hoy) como personal administrativo
+// (OPERATIONS). Lo que NO puede es hacerse desde una sesión de investigación o de facturación. Con un solo valor admitido, la
+// única forma de no romper el uso real era no pasar propósito —es decir, no comprobar nada—, que es exactamente el hallazgo.
+export function authorize(p:Principal,x:{role?:string;scope:string;purpose?:string|readonly string[];resource?:AuthorizedResource;tenantId?:string}){
  if(!p.sessionId)throw new ClinicalError("UNAUTHENTICATED","Verified session required");
  if(!x.scope)throw new ClinicalError("INVARIANT_VIOLATION","authorize() requires a scope"); // fail-closed ante un llamador mal escrito
  // Chequeo cross-tenant REAL: solo cuando el tenant viene del RECURSO (o lo declara explícitamente el llamador),
@@ -51,7 +62,12 @@ export function authorize(p:Principal,x:{role?:string;scope:string;purpose?:stri
   throw new ClinicalError("CROSS_TENANT","Cross-tenant access denied",{...(x.resource?{resourceType:x.resource.type}:{})});
  if(x.role&&!p.roles.includes(x.role))throw new ClinicalError("FORBIDDEN","Required role missing",{role:x.role});
  if(!hasScope(p.scopes,x.scope))throw new ClinicalError("FORBIDDEN","Required scope missing",{scope:x.scope});
- if(x.purpose&&p.purpose!==x.purpose)throw new ClinicalError("FORBIDDEN","Purpose mismatch");
+ if(x.purpose!==undefined){
+  const admitidos=typeof x.purpose==="string"?[x.purpose]:x.purpose;
+  // Una lista vacía sería «ningún propósito admitido», que no es una política: es un llamador mal escrito. Fail-closed.
+  if(admitidos.length===0)throw new ClinicalError("INVARIANT_VIOLATION","authorize() recibió una lista de propósitos vacía");
+  if(!admitidos.includes(p.purpose))throw new ClinicalError("FORBIDDEN","Purpose mismatch",{purpose:p.purpose});
+ }
  // Relación asistencial: con la política vigente no se exige (y así queda dicho en el código, no solo en un ADR).
  if(patientAccessPolicy()==="CARE_RELATIONSHIP"&&x.resource?.patientId&&!p.scopes.includes("patient:all"))
   throw new ClinicalError("FORBIDDEN","Care relationship required",{resourceType:x.resource.type});

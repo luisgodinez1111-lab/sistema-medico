@@ -8,7 +8,8 @@ import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
-import{ClinicalIntelligenceEngine,DEFAULT_KNOWLEDGE_PACKAGES}from"../../../packages/clinical-intelligence/src";
+import{ClinicalIntelligenceEngine,DEFAULT_KNOWLEDGE_PACKAGES,compileCondition}from"../../../packages/clinical-intelligence/src";
+import type {DeclarativeCondition,KnowledgePackage}from"../../../packages/clinical-intelligence/src";
 import type {PatientStateSummary,IntelligenceOutput}from"../../../packages/clinical-intelligence/src";
 // EPIC S — Clinical Intelligence Deterministic Layer (EXEC-0021, EXEC-0022, EXEC-0025).
 // Deterministic engine: Patient State, Clinical Reasoning, Omission Detection, Safety, Care Gaps.
@@ -73,18 +74,38 @@ export async function handleIntelligenceEvaluate(req:Request):Promise<Response>{
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
+// Auditoría 2026-09-19, anexo R02b (R2B-007 — lote 17) — LAS CONDICIONES DEJAN DE SER TEXTO.
+//
+// Este cuerpo declaraba `condition`/`trigger` como `z.string()`. El hallazgo original era ejecución remota de código: esas
+// cadenas acababan en `new Function(...)` dentro del motor. El `new Function` se retiró (L-13), pero el `z.string()` se quedó,
+// y eso dejó un defecto distinto y silencioso: la ruta aceptaba el paquete, respondía `registered:true`, y al evaluar
+// `condition(ctx)` sobre una cadena el `TypeError` lo absorbía el `try/catch` del motor. Un paquete registrado con éxito y con
+// todas sus reglas MUERTAS. Ahora la condición es una estructura declarativa que el motor interpreta sin ejecutar código, y un
+// paquete que no se pueda interpretar se RECHAZA al registrarlo.
+//
+// El esquema es recursivo (`all`/`any`/`not`), así que se declara con `z.lazy`.
+const CONDITION:z.ZodType<DeclarativeCondition>=z.lazy(()=>z.object({
+  field:z.enum(["age","sex","chiefComplaint","hasProblem","hasMedication","hasAllergy","vital","result"]).optional(),
+  op:z.enum(["eq","ne","lt","lte","gt","gte","contains","startsWith","present"]).optional(),
+  value:z.union([z.string().max(200),z.number()]).optional(),
+  key:z.string().max(60).optional(),
+  all:z.array(CONDITION).max(10).optional(),
+  any:z.array(CONDITION).max(10).optional(),
+  not:CONDITION.optional(),
+}).strict().refine(c=>c.all!==undefined||c.any!==undefined||c.not!==undefined||(c.field!==undefined&&c.op!==undefined),
+  "Una condición es un combinador (all/any/not) o un par field+op") as unknown as z.ZodType<DeclarativeCondition>);
 const RegisterPackageBody=z.object({
   id:z.string().min(1),version:z.string().min(1),specialty:z.string(),
   effectiveDate:z.string(),reviewers:z.array(z.object({id:z.string(),role:z.string()})).min(1),
   sources:z.array(z.object({citation:z.string(),url:z.string().optional()})).default([]),
-  applicability:z.array(z.object({condition:z.string(),include:z.boolean()})).default([]),
-  questions:z.array(z.object({id:z.string(),text:z.string(),trigger:z.string(),expectedAnswers:z.array(z.string()),required:z.boolean()})).default([]),
-  redFlags:z.array(z.object({id:z.string(),condition:z.string(),action:z.string(),severity:z.enum(["INFO","CONSIDER","IMPORTANT","CRITICAL"]),evidence:z.array(z.string()),version:z.string()})).default([]),
-  focusedExam:z.array(z.object({id:z.string(),condition:z.string(),action:z.string(),evidence:z.array(z.string())})).default([]),
-  differentialHints:z.array(z.object({id:z.string(),condition:z.string(),action:z.string(),evidence:z.array(z.string())})).default([]),
-  orderConsiderations:z.array(z.object({id:z.string(),condition:z.string(),action:z.string(),evidence:z.array(z.string()),version:z.string()})).default([]),
-  followUpRules:z.array(z.object({id:z.string(),condition:z.string(),action:z.string(),evidence:z.array(z.string()),version:z.string()})).default([]),
-  safetyNet:z.array(z.object({id:z.string(),condition:z.string(),action:z.string(),evidence:z.array(z.string())})).default([]),
+  applicability:z.array(z.object({condition:CONDITION,include:z.boolean()})).default([]),
+  questions:z.array(z.object({id:z.string(),text:z.string(),trigger:CONDITION,expectedAnswers:z.array(z.string()),required:z.boolean()})).default([]),
+  redFlags:z.array(z.object({id:z.string(),condition:CONDITION,action:z.string(),severity:z.enum(["INFO","CONSIDER","IMPORTANT","CRITICAL"]),evidence:z.array(z.string()),version:z.string()})).default([]),
+  focusedExam:z.array(z.object({id:z.string(),condition:CONDITION,action:z.string(),severity:z.enum(["INFO","CONSIDER","IMPORTANT","CRITICAL"]).default("CONSIDER"),evidence:z.array(z.string()),version:z.string().default("1")})).default([]),
+  differentialHints:z.array(z.object({id:z.string(),condition:CONDITION,action:z.string(),severity:z.enum(["INFO","CONSIDER","IMPORTANT","CRITICAL"]).default("CONSIDER"),evidence:z.array(z.string()),version:z.string().default("1")})).default([]),
+  orderConsiderations:z.array(z.object({id:z.string(),condition:CONDITION,action:z.string(),evidence:z.array(z.string()),version:z.string()})).default([]),
+  followUpRules:z.array(z.object({id:z.string(),condition:CONDITION,action:z.string(),evidence:z.array(z.string()),version:z.string()})).default([]),
+  safetyNet:z.array(z.object({id:z.string(),condition:CONDITION,action:z.string(),severity:z.enum(["INFO","CONSIDER","IMPORTANT","CRITICAL"]).default("IMPORTANT"),evidence:z.array(z.string()),version:z.string().default("1")})).default([]),
 });
 
 export async function handleKnowledgePackageRegister(req:Request):Promise<Response>{
@@ -95,7 +116,22 @@ export async function handleKnowledgePackageRegister(req:Request):Promise<Respon
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,RegisterPackageBody);
 
-  const pkg={id:b.id,version:b.version,specialty:b.specialty,effectiveDate:b.effectiveDate,reviewers:b.reviewers,sources:b.sources,applicability:b.applicability,questions:b.questions,redFlags:b.redFlags,focusedExam:b.focusedExam,differentialHints:b.differentialHints,orderConsiderations:b.orderConsiderations,followUpRules:b.followUpRules,safetyNet:b.safetyNet};
+  // Las condiciones declarativas se COMPILAN a las funciones tipadas que el motor evalúa. Si alguna no es interpretable,
+  // `compileCondition` lanza y el paquete se rechaza aquí: es la diferencia entre «registrado con reglas muertas» y «no
+  // registrado, y se dice por qué».
+  const pkg:KnowledgePackage={id:b.id,version:b.version,specialty:b.specialty,effectiveDate:b.effectiveDate,
+   reviewers:b.reviewers,
+   // `exactOptionalPropertyTypes`: zod produce `url?:string|undefined` y el tipo del paquete pide `url?:string`. Se omite la
+   // clave cuando no viene, en vez de ensanchar el tipo del paquete para que acepte `undefined`.
+   sources:b.sources.map(x=>x.url===undefined?{citation:x.citation}:{citation:x.citation,url:x.url}),
+   applicability:b.applicability.map(r=>({condition:compileCondition(r.condition),include:r.include})),
+   questions:b.questions.map(q=>({id:q.id,text:q.text,trigger:compileCondition(q.trigger),expectedAnswers:q.expectedAnswers,required:q.required})),
+   redFlags:b.redFlags.map(r=>({id:r.id,condition:compileCondition(r.condition),action:r.action,severity:r.severity,evidence:r.evidence,version:r.version})),
+   focusedExam:b.focusedExam.map(r=>({id:r.id,condition:compileCondition(r.condition),action:r.action,severity:r.severity,evidence:r.evidence,version:r.version})),
+   differentialHints:b.differentialHints.map(r=>({id:r.id,condition:compileCondition(r.condition),action:r.action,severity:r.severity,evidence:r.evidence,version:r.version})),
+   orderConsiderations:b.orderConsiderations.map(r=>({id:r.id,condition:compileCondition(r.condition),action:r.action,evidence:r.evidence,version:r.version})),
+   followUpRules:b.followUpRules.map(r=>({id:r.id,condition:compileCondition(r.condition),action:r.action,evidence:r.evidence,version:r.version})),
+   safetyNet:b.safetyNet.map(r=>({id:r.id,condition:compileCondition(r.condition),action:r.action,severity:r.severity,evidence:r.evidence,version:r.version}))};
   // AUDITORÍA 2026-09-17: antes usaba require() en un módulo ESM y registraba sobre un motor DESECHABLE
   // (new Engine([])) -> el paquete se descartaba y la respuesta 'registered:true' mentía. Se registra en el
   // singleton `engine`. NOTA: es registro EN MEMORIA por instancia (no durable/compartido en serverless);

@@ -11,6 +11,9 @@ import{buildCommand,principalFrom,resolveVerified,parseJson,requireMutationHeade
 // event-sourced. Un unico agregado OfficeSettings por tenant (aggregateId constante; RLS separa por tenant).
 // El estado actual se reconstruye del ultimo evento OFFICE_SETTINGS_UPDATED; version = nº de eventos (If-Match).
 const AGG="OfficeSettings";
+// R2B-025: propósitos bajo los que configurar el consultorio es legítimo. RESEARCH y BILLING quedan FUERA a propósito: una
+// sesión de investigación no tiene por qué poder cambiar el RFC, la cédula o las alertas de seguimiento de la clínica.
+const ADMIN_PURPOSES=["TREATMENT","OPERATIONS"] as const;
 // UUID constante del singleton. La unicidad del kernel es por (tenant_id, aggregate_id), asi que el mismo id
 // bajo distintos tenants no colisiona (cada tenant tiene su propia serie de versiones).
 export const OFFICE_SETTINGS_ID="0ff1ce00-0000-4000-8000-000000000001";
@@ -72,7 +75,10 @@ export const UpdateBody=z.object({settings:SettingsSchema,occurredAt:z.string().
 export async function handleOfficeSettingsGet(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{scope:"settings:read"});
+  // R2B-025: el propósito SE COMPRUEBA. Antes no se pasaba ninguno y, como `authorize` solo compara el propósito cuando el
+  // llamador lo declara, la comprobación no existía: una sesión de investigación o de facturación leía la configuración del
+  // consultorio igual que el médico. Configurar el consultorio es legítimo bajo atención o bajo operación; no bajo las otras.
+  authorize(principalFrom(claims),{scope:"settings:read",purpose:ADMIN_PURPOSES});
   const cur=await officeSettings(ctx);
   return NextResponse.json({settings:{...DEFAULT_OFFICE_SETTINGS,...cur.settings},version:cur.version},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
@@ -83,7 +89,7 @@ export async function handleOfficeSettingsGet(req:Request):Promise<Response>{
 export async function handleOfficeSettingsUpdate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{scope:"settings:write"});
+  authorize(principalFrom(claims),{scope:"settings:write",purpose:ADMIN_PURPOSES});
   const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
   const b=await parseJson(req,UpdateBody);
   const cur=await officeSettings(ctx);

@@ -35,6 +35,108 @@ export type RuleContext=Readonly<{
 }>;
 export type RuleCondition=(c:RuleContext)=>boolean;
 
+// Auditoría 2026-09-19, anexo R02b (R2B-007, segunda mitad — lote 17) — LA CONDICIÓN QUE LLEGA POR API, SIN `eval`.
+//
+// El `new Function` se retiró en el lote de L-13, pero quedó el otro extremo del hallazgo: `RegisterPackageBody` seguía
+// declarando `condition`/`trigger` como `z.string()`. Con el motor ya exigiendo funciones tipadas, eso producía un defecto
+// distinto y igual de silencioso: la ruta aceptaba el paquete, respondía `registered:true`, y al evaluar `condition(ctx)`
+// sobre una cadena lanzaba un `TypeError` que el `try/catch` de `evalCondition` convertía en «la regla no dispara». Un
+// paquete de conocimiento registrado con éxito y con TODAS sus reglas muertas.
+//
+// Esto es el mini-DSL declarativo que el anexo pedía: `{field, op, value}` interpretado sin ejecutar código. Cubre lo que las
+// reglas reales necesitan (edad, sexo, motivo, problema/medicación/alergia por prefijo, y un signo vital o resultado
+// reciente contra un umbral) y NADA más: lo que no está en esta tabla no se puede expresar, que es justo la propiedad que se
+// busca. Añadir un operador es una decisión explícita de código, no un texto que alguien manda por HTTP.
+export type DeclarativeField="age"|"sex"|"chiefComplaint"|"hasProblem"|"hasMedication"|"hasAllergy"|"vital"|"result";
+export type DeclarativeOp="eq"|"ne"|"lt"|"lte"|"gt"|"gte"|"contains"|"startsWith"|"present";
+/** Un nodo de comparación: campo, operador y —según el campo— valor y clave. */
+export type DeclarativeComparison=Readonly<{
+  field:DeclarativeField;op:DeclarativeOp;
+  /** Valor de comparación. Para `vital`/`result` es el umbral numérico; para el resto, el texto o número a comparar. */
+  value?:string|number;
+  /** Solo para `vital` y `result`: qué tipo de signo vital (p. ej. "SBP") o qué código de resultado (p. ej. "GLU"). */
+  key?:string;
+}>;
+/**
+ * Un nodo combinador. Es una UNIÓN con el nodo de comparación, no un objeto con todo opcional: un combinador no tiene
+ * `field` ni `op`, y el tipo lo dice en vez de dejar que el compilador acepte mezclas que el intérprete tendría que
+ * rechazar en ejecución.
+ */
+export type DeclarativeCombinator=
+  |Readonly<{all:readonly DeclarativeCondition[]}>
+  |Readonly<{any:readonly DeclarativeCondition[]}>
+  |Readonly<{not:DeclarativeCondition}>;
+export type DeclarativeCondition=DeclarativeComparison|DeclarativeCombinator;
+
+const cmpNum=(op:DeclarativeOp,a:number,b:number):boolean=>{
+  switch(op){
+    case"eq":return a===b;case"ne":return a!==b;
+    case"lt":return a<b;case"lte":return a<=b;case"gt":return a>b;case"gte":return a>=b;
+    default:return false; // `contains`/`startsWith`/`present` no aplican a números: no comparan, no disparan
+  }
+};
+const cmpTxt=(op:DeclarativeOp,a:string,b:string):boolean=>{
+  const x=a.toLowerCase(),y=b.toLowerCase();
+  switch(op){
+    case"eq":return x===y;case"ne":return x!==y;
+    case"contains":return x.includes(y);case"startsWith":return x.startsWith(y);
+    case"present":return x.length>0;
+    default:return false;
+  }
+};
+
+/**
+ * Compila una condición declarativa a la función tipada que el motor evalúa. NO ejecuta código: interpreta una estructura.
+ * Lanza `INVARIANT_VIOLATION` si la condición no es interpretable, para que un paquete inválido se rechace AL REGISTRARLO en
+ * vez de registrarse con reglas que nunca disparan (que es el defecto que esto corrige).
+ */
+export function compileCondition(c:DeclarativeCondition):RuleCondition{
+  if("all" in c){const hijos=c.all.map(compileCondition);return ctx=>hijos.every(f=>f(ctx));}
+  if("any" in c){const hijos=c.any.map(compileCondition);return ctx=>hijos.some(f=>f(ctx));}
+  if("not" in c){const hijo=compileCondition(c.not);return ctx=>!hijo(ctx);}
+  const{field,op,value,key}=c;
+  const numérico=typeof value==="number"?value:Number(value);
+  switch(field){
+    case"age":
+      if(!Number.isFinite(numérico))throw new ClinicalError("INVARIANT_VIOLATION","La condición sobre `age` exige un valor numérico",{op});
+      return ctx=>cmpNum(op,ctx.age,numérico);
+    case"sex":
+      return ctx=>cmpTxt(op,ctx.sex,String(value??""));
+    case"chiefComplaint":
+      return ctx=>cmpTxt(op,ctx.chiefComplaint,String(value??""));
+    case"hasProblem":
+      return ctx=>ctx.hasProblem(String(value??""));
+    case"hasMedication":
+      return ctx=>ctx.hasMedication(String(value??""));
+    case"hasAllergy":
+      return ctx=>ctx.hasAllergy(String(value??""));
+    case"vital":{
+      if(!key)throw new ClinicalError("INVARIANT_VIOLATION","La condición sobre `vital` exige `key` (el tipo de signo vital)");
+      if(op!=="present"&&!Number.isFinite(numérico))throw new ClinicalError("INVARIANT_VIOLATION","La condición sobre `vital` exige un umbral numérico",{key,op});
+      // El MÁS RECIENTE, no cualquiera: «la última presión sistólica > 180» no es «alguna vez tuvo > 180».
+      return ctx=>{
+        const v=[...ctx.recentVitals].filter(x=>x.type===key).sort((a,b)=>b.timestamp.localeCompare(a.timestamp))[0];
+        if(!v)return false; // sin medición no se dispara: ausencia no es cumplimiento
+        return op==="present"?true:cmpNum(op,v.value,numérico);
+      };
+    }
+    case"result":{
+      if(!key)throw new ClinicalError("INVARIANT_VIOLATION","La condición sobre `result` exige `key` (el código del resultado)");
+      if(op!=="present"&&!Number.isFinite(numérico))throw new ClinicalError("INVARIANT_VIOLATION","La condición sobre `result` exige un umbral numérico",{key,op});
+      return ctx=>{
+        const r=[...ctx.recentResults].filter(x=>x.code===key).sort((a,b)=>b.timestamp.localeCompare(a.timestamp))[0];
+        if(!r)return false;
+        return op==="present"?true:cmpNum(op,r.value,numérico);
+      };
+    }
+    default:{
+      // `never` a propósito: añadir un campo al tipo sin compilarlo aquí rompe la compilación en vez de fallar en silencio.
+      const jamás:never=field;
+      throw new ClinicalError("INVARIANT_VIOLATION",`Campo de condición no interpretable: ${String(jamás)}`);
+    }
+  }
+}
+
 export type ApplicabilityRule={
   condition:RuleCondition;
   include:boolean;

@@ -8,7 +8,7 @@ import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
-import{ClinicalIntelligenceEngine,DEFAULT_KNOWLEDGE_PACKAGES,type PatientStateSummary,type IntelligenceOutput}from"../../../packages/clinical-intelligence/src";
+import type{PatientStateSummary,IntelligenceOutput}from"../../../packages/clinical-intelligence/src";
 import{Envelope,enforceEnvelope}from"../../../packages/ai-gateway/src";
 import{SafetyEnvelope}from"../../../packages/ai-gateway/src/safety-envelope";
 import{validateAiReceipt}from"../../../packages/ai-evidence/src";
@@ -27,8 +27,9 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),opts);
 }
 
-// Clinical Intelligence engine for deterministic pre/post-processing
-const clinicalEngine=new ClinicalIntelligenceEngine(DEFAULT_KNOWLEDGE_PACKAGES);
+// R2B-008: aquí había una segunda instancia del motor determinista, `clinicalEngine`, con el comentario «for deterministic
+// pre/post-processing». Cero usos en todo el archivo (la otra estaba dentro del handler, también sin usarse). Dos motores
+// instanciados y ninguna llamada a `.evaluate`: el comentario prometía un pre-procesamiento que no existía.
 
 // In-memory registry for AI Task Cards and Envelopes (production uses DB)
 const TASK_CARD_REGISTRY:Map<string,any>=new Map();
@@ -115,8 +116,10 @@ export async function handleAiGatewayExecute(req:Request):Promise<Response>{
     if(field in b.minimumNecessaryContext)throw new ClinicalError("VALIDATION_ERROR",`Prohibited field in context: ${field}`);
   }
 
-  // 4. Deterministic pre-processing (Clinical Intelligence Engine)
-  const engine=new ClinicalIntelligenceEngine(DEFAULT_KNOWLEDGE_PACKAGES);
+  // Auditoría R02b (R2B-008, lote 17): aquí se instanciaba un `ClinicalIntelligenceEngine` con el comentario «Deterministic
+  // pre-processing» y NUNCA se llamaba a `.evaluate(...)`. Era una llamada fantasma: el comentario afirmaba un
+  // pre-procesamiento determinista que no ocurría. Se retira el motor muerto en vez de dejar el comentario prometiéndolo; el
+  // día que exista pre-procesamiento real, se añade con su prueba.
 
   // 4. Enforce Safety Envelope (EXEC-0025)
   const envelopeCheck=enforceEnvelope({
@@ -135,15 +138,21 @@ export async function handleAiGatewayExecute(req:Request):Promise<Response>{
    hasEvidence:false,
    humanApproved:false,
   });
-  if(envelopeCheck.status!=="ALLOWED")throw new ClinicalError("SAFETY_BLOCKED",`AI task blocked by envelope: ${envelopeCheck.status}`);
+  // R2B-006: el sobre devuelve las CUATRO salidas con el mismo tipo, incluida la del kill switch (antes lanzaba un Error
+  // nativo que salía como 500). La razón del bloqueo viaja al cliente porque es información operativa, no PHI.
+  if(envelopeCheck.status!=="ALLOWED")
+   throw new ClinicalError("SAFETY_BLOCKED",`AI task blocked by envelope: ${envelopeCheck.status}`,
+    {envelopeStatus:envelopeCheck.status,...(envelopeCheck.reason?{envelopeReason:envelopeCheck.reason}:{})});
 
-  // 5. Execute AI call (simulated - in production calls actual model)
-  // EXEC-0024: All model calls pass through gateway
-  const aiResult=await simulateAiCall(taskCard,b.minimumNecessaryContext);
+  // 5. Execute AI call. R2B-002: no hay proveedor, y esto se NIEGA en vez de fabricar una salida (ver `callAiProvider`).
+  // EXEC-0024: todas las llamadas al modelo pasan por el gateway.
+  const aiResult=await callAiProvider(taskCard,b.minimumNecessaryContext);
 
-  // 5b. Validate AI result schema
-  if(!validateOutputSchema(aiResult,taskCard.outputSchema)){
-   throw new ClinicalError("VALIDATION_ERROR","AI output schema validation failed");
+  // 5b. Validate AI result schema. R2B-003: valida de verdad, y un esquema desconocido NO pasa.
+  const schemaCheck=validateOutputSchema(aiResult,taskCard.outputSchema);
+  if(!schemaCheck.ok){
+   throw new ClinicalError("VALIDATION_ERROR","AI output schema validation failed",
+    {...(schemaCheck.reason?{schemaReason:schemaCheck.reason}:{})});
   }
 
   // 5c. Validate evidence if required
@@ -181,16 +190,51 @@ export async function handleAiGatewayExecute(req:Request):Promise<Response>{
 }
 
 // --- HELPER FUNCTIONS ---
-async function simulateAiCall(taskCard:any,context:any){
- // Simulated AI call - in production calls actual model
- return{
-  model:"gpt-4o",modelVersion:"2024-08-06",promptTemplateVersion:taskCard.version,
-  decision:"ACCEPTED" as const,evidenceIds:["evidence-1","evidence-2"],reviewerId:"reviewer-1",
-  output:{summary:"Simulated AI output",confidence:0.95},
- };
+
+// Auditoría 2026-09-19, anexo R02b (R2B-002, lote 17) — EL «PROVEEDOR DE IA» FABRICABA LA EVIDENCIA QUE EL GATE VALIDABA.
+//
+// Esta función devolvía un objeto constante: `model:"gpt-4o"`, `decision:"ACCEPTED"`,
+// `evidenceIds:["evidence-1","evidence-2"]`, `reviewerId:"reviewer-1"`. Dos líneas después, el gate de evidencia obligatoria
+// para riesgo C4/C5 comprobaba `aiResult.evidenceIds.length===0` y `validateAiReceipt` exigía `reviewerId`: es decir, el gate
+// validaba los datos que el propio backend acababa de inventar PARA que pasaran. Teatro de verificación, no un mecanismo
+// capaz de bloquear una salida insegura.
+//
+// No hay proveedor de LLM en este repositorio (R6 en pausa, decisión del dueño). La respuesta honesta no es inventar una
+// salida: es negarse, igual que hace el copiloto que SÍ está cableado —responde `ABSTAIN`/`PROVIDER_NOT_ACTIVATED` en vez de
+// fingir—. Así el camino de ejecución no puede «funcionar» sin modelo, que es la única forma de que el día que se conecte uno
+// de verdad los gates se ejerciten contra datos reales.
+// El CONTRATO se declara —es lo que el gateway consumirá el día que exista un proveedor— y la implementación se niega. Así
+// el código que construye el recibo sigue compilando y significando algo, sin que exista una salida fabricada.
+export type AiProviderResult=Readonly<{model:string;modelVersion:string;promptTemplateVersion:string;
+ decision:"ACCEPTED"|"REJECTED";evidenceIds:readonly string[];reviewerId:string;output:Record<string,unknown>}>;
+async function callAiProvider(taskCard:{version:string},context:unknown):Promise<AiProviderResult>{
+ void taskCard;void context;
+ throw new ClinicalError("DEPENDENCY_UNAVAILABLE",
+  "No hay proveedor de IA activado: no se fabrica una salida ni un recibo de evidencia (R6 en pausa, ADR-0220).",
+  {reason:"AI_PROVIDER_NOT_ACTIVATED"});
 }
 
-function validateOutputSchema(result:any,schema:string):boolean{
- // Simplified schema validation
- return true;
+// Auditoría 2026-09-19, anexo R02b (R2B-003, lote 17) — `validateOutputSchema` NO VALIDABA NINGÚN ESQUEMA.
+//
+// Era `function validateOutputSchema(result:any,schema:string):boolean{ return true; }`: ignoraba los dos parámetros, usaba
+// `any` dos veces y estaba declarada como «Simplified schema validation». Una validación que siempre pasa no es una
+// validación laxa: es una comprobación que no existe, con el coste de que quien lee el código cree que existe.
+//
+// Ahora valida de verdad contra los esquemas que las task cards declaran, y —esto es lo importante— un esquema DESCONOCIDO
+// no pasa: fail-closed. Un `return true` para lo desconocido habría reintroducido el mismo defecto por la puerta de atrás.
+const OUTPUT_SCHEMAS:Readonly<Record<string,(o:Record<string,unknown>)=>boolean>>={
+ // Resumen clínico: texto no vacío y confianza en [0,1] si viene declarada.
+ "clinical-summary-v1":o=>typeof o["summary"]==="string"&&(o["summary"] as string).trim().length>0
+  &&(o["confidence"]===undefined||(typeof o["confidence"]==="number"&&(o["confidence"] as number)>=0&&(o["confidence"] as number)<=1)),
+ // Extracción estructurada: una lista de campos con nombre y valor.
+ "structured-extraction-v1":o=>Array.isArray(o["fields"])&&(o["fields"] as unknown[]).every(f=>typeof f==="object"&&f!==null
+  &&typeof (f as Record<string,unknown>)["name"]==="string"),
+};
+export function validateOutputSchema(result:unknown,schema:string):{ok:boolean;reason?:string}{
+ const validador=OUTPUT_SCHEMAS[schema];
+ if(!validador)return{ok:false,reason:`ESQUEMA_DESCONOCIDO:${schema}`}; // fail-closed: lo que no se sabe validar, no pasa
+ if(typeof result!=="object"||result===null)return{ok:false,reason:"SALIDA_NO_ES_OBJETO"};
+ const o=(result as Record<string,unknown>)["output"];
+ if(typeof o!=="object"||o===null)return{ok:false,reason:"SALIDA_SIN_CAMPO_OUTPUT"};
+ return validador(o as Record<string,unknown>)?{ok:true}:{ok:false,reason:`SALIDA_NO_CUMPLE:${schema}`};
 }
