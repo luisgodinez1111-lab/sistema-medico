@@ -584,7 +584,10 @@ export const RAIL_CSS=`
 @keyframes mos-sk-shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
 @media(prefers-reduced-motion:reduce){.mos-sk{animation:none;background:#E8ECF3}}
 /* App-shell: expediente como cockpit (sidebar oscuro + body + rejilla de ventanas) */
-.mos-app{display:flex;min-height:100vh;background:#F4F7FB}
+/* Tipografía ÚNICA en todo el sistema (refactor UI/UX): una sola familia por token, aplicada en el root y HEREDADA por los
+   controles nativos (button/input/select/textarea traen su propia fuente del navegador si no se les fuerza a heredar). */
+.mos-app{display:flex;min-height:100vh;background:#F4F7FB;font-family:${UI};font-size:14px;line-height:1.45;color:#14213D;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.mos-app button,.mos-app input,.mos-app select,.mos-app textarea{font-family:inherit}
 .mos-side{position:sticky;top:0;align-self:flex-start;height:100vh;flex:0 0 264px;width:264px;background:linear-gradient(177deg,#26235C 0%,#201D4A 45%,#1A1740 100%);color:#EAEBFA;display:flex;flex-direction:column;padding:18px 14px 14px;overflow:hidden;transition:width .18s ease,flex-basis .18s ease}
 .mos-side::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#7B6BF6,#4E8DF5);box-shadow:0 0 24px 3px #6a5bf580}
 .mos-side.col{flex:0 0 74px;width:74px;padding:18px 10px 14px}

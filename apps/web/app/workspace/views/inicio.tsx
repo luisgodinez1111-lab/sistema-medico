@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "inicio" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{card,P,UI,scrollToSection,LINE,act,NavIcon}from"../shared";
+import{card,P,UI,scrollToSection,LINE,act,NavIcon,Skeleton,srOnly}from"../shared";
 import{useWorkspace}from"../context";
 export default function InicioView(){
  const{clock,patientList,panel,notifCount,setView,openConsulta,agenda,docDisplay,setMedTab,setConsultaPid,setOrdNew,setApptNew}=useWorkspace();
@@ -48,10 +48,12 @@ export default function InicioView(){
     </div>
     {/* KPIs */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:16,marginTop:20}} className="mos-kpis">
+     {agenda===null?<>{Array.from({length:4}).map((_,i)=><div key={i} style={kpiCard}><Skeleton w={44} h={44} r={12}/><div style={{flex:1}}><Skeleton w="55%" h={12}/><Skeleton w={64} h={24} style={{margin:"6px 0"}}/><Skeleton w="72%" h={10}/></div></div>)}<span style={srOnly}>Cargando indicadores de hoy…</span></>:<>
      <div style={kpiCard}>{kico("#EEEBFD",svg("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",P.purple))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Citas de hoy</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{citasHoy}</div><div style={{height:6,borderRadius:99,background:"#EDEFF6",overflow:"hidden"}}><i style={{display:"block",height:"100%",width:`${citasHoy?Math.round(atendidasHoy/citasHoy*100):0}%`,background:P.purple,borderRadius:99}}/></div><div style={{fontSize:11.5,marginTop:5}}><span style={link} {...act(()=>setView("agenda"))}>Ver agenda →</span></div></div></div>
      <div style={kpiCard}>{kico("#E6F6EE",svg("M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z",P.green))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Consultas atendidas</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{atendidasHoy}</div><div style={{fontSize:11.5,color:P.muted,marginTop:5}}>de {citasHoy} citas de hoy</div></div></div>
      <div style={kpiCard}>{kico("#FDE7EA",svg("M7 3h7l4 4v14H7zM14 3v4h4M10 13h5M10 16h3",P.red))}<div style={{flex:1}}><div style={{fontSize:13,color:P.muted}}>Pendientes críticos</div><div style={{fontSize:26,fontWeight:800,margin:"2px 0"}}>{critCount}</div><div style={{fontSize:11.5,marginTop:5}}><span style={link} {...act(()=>setView("resultados"))}>Ver resultados →</span></div></div></div>
      <div style={kpiCard}>{kico("#E7EEFB",svg("M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",P.blue))}<div style={{flex:1,display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div>{(()=>{const nx=agenda?.appointments.find(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN");return <><div style={{fontSize:13,color:P.muted}}>Próxima cita</div><div style={{fontSize:22,fontWeight:800,margin:"2px 0"}}>{nx?new Date(nx.startAt).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase():"—"}</div><div style={{fontSize:11.5,color:P.muted}}>{nx?nx.patientName:"Sin citas próximas"}</div></>;})()}</div><span style={{width:30,height:30,borderRadius:"50%",background:"#E7EEFB",color:P.blue,display:"grid",placeItems:"center",cursor:"pointer"}} {...act(()=>setView("agenda"))}>→</span></div></div>
+     </>}
     </div>
     {/* Banners */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16}} className="mos-banners">
@@ -63,7 +65,8 @@ export default function InicioView(){
     {/* Mid: tareas | agenda | (CI + acciones) */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-mid">
      <div style={cardP}><div style={h2row}><h2 style={h2s}>Tareas clínicas prioritarias <span style={{background:P.purple,color:"#fff",fontSize:11,fontWeight:800,borderRadius:999,minWidth:20,height:20,display:"grid",placeItems:"center",padding:"0 5px"}}>{tasks.length}</span></h2><span style={link} {...act(()=>go("Panel del clínico"))}>Ver todas →</span></div>
-      {tasks.length===0&&<div style={{padding:"18px",fontSize:13,color:P.muted,borderTop:`1px solid ${LINE}`}}>{panel?"Sin tareas clínicas prioritarias.":"Cargando tareas…"}</div>}
+      {panel===null?<div role="status" aria-busy="true" style={{borderTop:`1px solid ${LINE}`}}>{[0,1,2].map(i=><div key={i} style={{display:"flex",gap:12,padding:"12px 18px",alignItems:"center"}}><Skeleton w={34} h={34} r={9}/><div style={{flex:1}}><Skeleton w="70%" h={13}/><Skeleton w="40%" h={11} style={{marginTop:6}}/></div><Skeleton w={64} h={18} r={6}/></div>)}<span style={srOnly}>Cargando tareas…</span></div>
+       :tasks.length===0?<div style={{padding:"18px",fontSize:13,color:P.muted,borderTop:`1px solid ${LINE}`}}>Sin tareas clínicas prioritarias.</div>:null}
       {tasks.map((t,i)=>{const[tag,tbg,tfg]=prTag(t.pr);return <div key={i} title={t.pid?"Abrir consulta del paciente":undefined} style={{display:"flex",gap:12,padding:"12px 18px",borderTop:`1px solid #F1F3F9`,cursor:"pointer"}} {...act(()=>openPatientCtx(t.pid,t.who))}>
        <span style={{width:34,height:34,borderRadius:9,background:tbg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><span style={{width:8,height:8,borderRadius:"50%",background:tfg}}/></span>
        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13.5,fontWeight:600}}>{t.title}</div><div style={{fontSize:12,color:P.muted}}>{t.who}</div></div>
@@ -73,7 +76,8 @@ export default function InicioView(){
      <div style={cardP}><div style={h2row}><h2 style={h2s}>Agenda de hoy</h2><span style={link} {...act(()=>setView("agenda"))}>Ver agenda →</span></div>
       <div style={{padding:"4px 18px 14px",position:"relative"}}>
        <div style={{position:"absolute",left:73,top:8,bottom:14,width:2,background:"#EDEFF6"}}/>
-       {!(agenda?.appointments.length)&&<div style={{padding:"10px 0 10px 84px",fontSize:13,color:P.muted}}>{agenda?"Sin citas registradas para hoy.":"Cargando agenda…"}</div>}
+       {agenda===null?<div role="status" aria-busy="true" style={{paddingLeft:84}}>{[0,1,2].map(i=><div key={i} style={{display:"flex",gap:14,padding:"9px 0",alignItems:"center"}}><Skeleton w={54} h={11}/><Skeleton w={11} h={11} r={99}/><div style={{flex:1}}><Skeleton w="40%" h={12}/><Skeleton w="72%" h={11} style={{marginTop:5}}/></div></div>)}<span style={srOnly}>Cargando agenda…</span></div>
+       :!agenda.appointments.length?<div style={{padding:"10px 0 10px 84px",fontSize:13,color:P.muted}}>Sin citas registradas para hoy.</div>:null}
        {(agenda?.appointments.length?agenda.appointments.slice(0,8).map(a=>({tm:new Date(a.startAt).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase(),txt:`${a.patientName} · ${a.reason}`,on:a.status==="CHECKED_IN",pid:a.patientId,name:a.patientName})):([] as {tm:string;txt:string;on:boolean;pid:string;name:string}[])).map((it,i)=>(
         <div key={i} {...act(()=>openPatientCtx(it.pid,it.name))} title={it.pid?"Abrir consulta del paciente":undefined} style={{display:"flex",gap:14,padding:it.on?"9px 12px":"9px 0",position:"relative",cursor:it.pid?"pointer":"default",...(it.on?{background:"#F1EFFE",border:"1px solid #D9D3FA",borderRadius:12,margin:"2px -12px"}:{})}}>
          <span style={{fontSize:12,color:P.muted,width:62,flex:"0 0 auto",textAlign:"right",paddingTop:1}}>{it.tm}</span>
@@ -107,7 +111,7 @@ export default function InicioView(){
      <div style={cardP}><div style={h2row}><h2 style={h2s}>Pacientes recientes</h2><span style={link} {...act(()=>setView("pacientes"))}>Ver todas →</span></div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr>{["Nombre","Edad","Última consulta","Motivo","Estado"].map(h=><th key={h} style={{textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"8px 18px",borderBottom:`1px solid ${LINE}`}}>{h}</th>)}</tr></thead>
-       <tbody>{!usingRealPts&&<tr><td colSpan={6} style={{padding:"22px 14px",textAlign:"center",color:P.muted,fontSize:13}}>{patientList?"Aún no hay pacientes registrados.":"Cargando pacientes…"}</td></tr>}{realPts.map((p,i)=>{const[stl,sbg,sfg]=stEs(p.status);const d=p as{name:string;status:string;age?:string;last?:string;motivo?:string;patientId?:string};return <tr key={i}>
+       <tbody>{patientList===null?[0,1,2,3].map(i=><tr key={`sk${i}`} aria-hidden><td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`}}><div style={{display:"flex",alignItems:"center",gap:10}}><Skeleton w={30} h={30} r={99}/><Skeleton w={140} h={13}/></div></td><td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`}}><Skeleton w={36} h={12}/></td><td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`}}><Skeleton w={80} h={12}/></td><td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`}}><Skeleton w={90} h={12}/></td><td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`}}><Skeleton w={56} h={18} r={99}/></td></tr>):(!usingRealPts?<tr><td colSpan={6} style={{padding:"22px 14px",textAlign:"center",color:P.muted,fontSize:13}}>Aún no hay pacientes registrados.</td></tr>:null)}{realPts.map((p,i)=>{const[stl,sbg,sfg]=stEs(p.status);const d=p as{name:string;status:string;age?:string;last?:string;motivo?:string;patientId?:string};return <tr key={i}>
         <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13}}><span style={{display:"flex",alignItems:"center",gap:10,fontWeight:600,cursor:"pointer"}} {...act(()=>d.patientId?openPatientCtx(d.patientId,p.name):setView("pacientes"))}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700}}>{initials(p.name)}</span>{p.name}</span></td>
         <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13,color:P.muted}}>{d.age??"—"}</td>
         <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13,color:P.muted}}>{d.last??"—"}</td>
