@@ -43,7 +43,14 @@ vi.mock("../../apps/web/lib/session-client",()=>({
   if(path.includes("/api/v1/medications"))return{status:201,body:{version:1}}; // proponer/activar/suspender (U-16)
   if(path.match(/\/api\/v1\/documents\/[^/]+$/))return{status:200,body:{documentId:"dc1",patientId:"p1",title:"Nota de evolución",docType:"PROGRESS_NOTE",typeLabel:"Nota médica",content:"Paciente estable. Continúa tratamiento.",state:"SIGNED",statusLabel:"Firmado",version:3,createdAt:"2026-09-17T00:00:00Z",addenda:[],signature:{authorId:"u1",contentHash:"a".repeat(64),signatureDigest:"b".repeat(64),signedAt:"2026-09-17T01:00:00Z"},attachments:[{attachmentId:"at1",filename:"laboratorio.pdf",mime:"application/pdf",size:23456,pathname:"tenants/t/documents/dc1/at1.pdf",contentHash:"c".repeat(64),authorId:"u1",attachedAt:"2026-09-17T02:00:00Z"}]}};
   if(path.includes("/api/v1/documents"))return{status:201,body:{version:1}};
-  if(path.includes("/api/v1/referrals"))return{status:201,body:{version:1}};
+  if(path.includes("/api/v1/referrals")){
+   if(init?.method==="POST")return{status:201,body:{version:1}};
+   // Lote G — GET clínica-wide: registro POBLACIONAL de interconsultas + directorio de destinatarios
+   return{status:200,body:{items:[
+    {referralId:"rf1",patientId:"p1",patientName:"Ana López García",specialty:"Cardiología",reason:"Soplo",recipientName:"Dra. Ruiz",recipientInstitution:"Hospital Ángeles",priority:"Urgente (48–72 h)",referralType:"Primera vez",status:"REQUESTED",statusLabel:"Solicitada",requestedAt:"2026-09-15T10:00:00.000Z"},
+    {referralId:"rf2",patientId:"p2",patientName:"Carlos Mendoza",specialty:"Nefrología",reason:"ERC",recipientName:"",recipientInstitution:"",priority:"Rutina (4–8 semanas)",referralType:"Subsecuente",status:"COMPLETED",statusLabel:"Completada",requestedAt:"2026-09-10T09:00:00.000Z"},
+   ],nextCursor:null,total:2,openCount:1,completedCount:1,patientsCount:2,recipientsCount:1,directory:[{name:"Dra. Ruiz",specialty:"Cardiología",institution:"Hospital Ángeles",count:1}]}};
+  }
   if(path.includes("/assessment"))return{status:201,body:{version:2}};
   if(path.includes("/signature"))return{status:201,body:{version:3,signatureDigest:"a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"}};
   if(path.includes("/api/v1/encounters"))return{status:201,body:{version:1}};
@@ -601,14 +608,24 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText(/Factura emitida/)).toBeTruthy();
  });
 
- it("vista Interconsultas: enviar una interconsulta real al paciente elegido (POST /referrals)",async()=>{
+ it("vista Interconsultas (Lote G): destinatario/prioridad/tipo viajan al POST + directorio y registro poblacional",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Interconsultas"}));
   const opt=await screen.findByRole("option",{name:"Ana López García"});
   fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});           // selector de paciente real
+  // registro POBLACIONAL + directorio cableados a GET /api/v1/referrals
+  expect((await screen.findAllByText("Interconsultas · Toda la clínica")).length).toBeGreaterThan(0);
+  expect((await screen.findAllByText("Dra. Ruiz")).length).toBeGreaterThan(0); // destinatario del directorio + fila real
+  // destinatario REAL (antes el input era decorativo) + motivo
+  fireEvent.change(screen.getByPlaceholderText(/Nombre del especialista/),{target:{value:"Dr. Nuevo"}});
   fireEvent.change(screen.getByPlaceholderText(/Describe el motivo/),{target:{value:"Valoración por endocrinología"}});
   fireEvent.click(screen.getByRole("button",{name:/Enviar interconsulta/}));
   expect(await screen.findByText(/Interconsulta enviada/)).toBeTruthy();
+  // auditoría: el destinatario, la prioridad y el tipo YA NO se descartan en la UI
+  const sent=posted.filter(p=>p.path==="/api/v1/referrals").at(-1)?.body as {recipientName?:string;priority?:string;referralType?:string}|undefined;
+  expect(sent?.recipientName).toBe("Dr. Nuevo");
+  expect(sent?.priority).toBeTruthy();
+  expect(sent?.referralType).toBeTruthy();
  });
 
  it("vista Resultados: registrar un resultado real (POST /results, interpretación derivada)",async()=>{
@@ -907,9 +924,9 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Interconsultas (S-INTERCONSULTA): form Nueva interconsulta + panel de contexto + envío",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Interconsultas"}));
-  expect(screen.getByRole("heading",{name:"Nueva interconsulta"})).toBeTruthy();
+  expect(await screen.findByRole("heading",{name:"Nueva interconsulta"})).toBeTruthy();
   expect(screen.getByText("Datos de la interconsulta")).toBeTruthy();
-  expect(screen.getByText(/Especialidad/)).toBeTruthy();
+  expect(screen.getAllByText(/Especialidad/).length).toBeGreaterThan(0); // label del form + columna del registro poblacional
   expect(screen.getByText(/Motivo de interconsulta/)).toBeTruthy();
   expect(screen.getAllByText(/Resumen clínico/).length).toBeGreaterThan(0);
   expect(screen.getByText("Información relevante del paciente")).toBeTruthy();  // panel derecho (rep/real)

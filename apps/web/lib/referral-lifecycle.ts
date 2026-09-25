@@ -14,7 +14,9 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"referral:write",purpose:"TREATMENT"});
 }
 
-export const CreateBody=z.object({referralId:z.string().uuid(),patientId:z.string().uuid(),specialty:z.string().min(1),reason:z.string().min(1),occurredAt:z.string().datetime()});
+// Lote G — la interconsulta puede nombrar al DESTINATARIO (médico/institución del directorio) y su prioridad/tipo.
+// Son opcionales y retrocompatibles: las interconsultas previas (sin destinatario) siguen siendo válidas.
+export const CreateBody=z.object({referralId:z.string().uuid(),patientId:z.string().uuid(),specialty:z.string().min(1),reason:z.string().min(1),recipientName:z.string().max(160).optional(),recipientInstitution:z.string().max(160).optional(),priority:z.string().max(60).optional(),referralType:z.string().max(60).optional(),occurredAt:z.string().datetime()});
 export async function handleReferralRequest(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -22,7 +24,7 @@ export async function handleReferralRequest(req:Request):Promise<Response>{
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);
   await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.referralId,expectedVersion:0,eventType:"REFERRAL_REQUESTED",payload:{kind:"REQUESTED",patientId:b.patientId,specialty:b.specialty,reason:b.reason},occurredAt:b.occurredAt,topic:"referral.requested"});
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.referralId,expectedVersion:0,eventType:"REFERRAL_REQUESTED",payload:{kind:"REQUESTED",patientId:b.patientId,specialty:b.specialty,reason:b.reason,...(b.recipientName?{recipientName:b.recipientName}:{}),...(b.recipientInstitution?{recipientInstitution:b.recipientInstitution}:{}),...(b.priority?{priority:b.priority}:{}),...(b.referralType?{referralType:b.referralType}:{})},occurredAt:b.occurredAt,topic:"referral.requested"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({referralId:b.referralId,state:"REQUESTED",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});

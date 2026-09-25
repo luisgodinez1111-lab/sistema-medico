@@ -125,6 +125,10 @@ export type VitalsRegistry=Readonly<{items:VitalRegRow[];nextCursor:string|null;
 // Lote E — registro POBLACIONAL de planes de cuidado (GET /api/v1/care-plans): un plan por fila, clínica-wide.
 export type CarePlanRegRow=Readonly<{carePlanId:string;patientId:string;patientName:string;category:string;categoryLabel:string;goal:string;status:"PROPOSED"|"ACTIVE"|"ON_HOLD"|"ACHIEVED"|"CANCELLED";statusLabel:string;proposedAt:string}>;
 export type CarePlansRegistry=Readonly<{items:CarePlanRegRow[];nextCursor:string|null;total:number;activeCount:number;onHoldCount:number;achievedCount:number;patientsCount:number}>;
+// Lote G — registro POBLACIONAL de interconsultas + directorio de destinatarios (GET /api/v1/referrals).
+export type ReferralRegRow=Readonly<{referralId:string;patientId:string;patientName:string;specialty:string;reason:string;recipientName:string;recipientInstitution:string;priority:string;referralType:string;status:"REQUESTED"|"ACCEPTED"|"DECLINED"|"COMPLETED"|"CANCELLED";statusLabel:string;requestedAt:string}>;
+export type ReferralDirEntry=Readonly<{name:string;specialty:string;institution:string;count:number}>;
+export type ReferralsRegistry=Readonly<{items:ReferralRegRow[];nextCursor:string|null;total:number;openCount:number;completedCount:number;patientsCount:number;recipientsCount:number;directory:ReferralDirEntry[]}>;
 export type CarePlanSnap=Readonly<{counts:{problems:number;medications:number;allergies:number};problems:{code:string;description:string;status:string;statusLabel:string}[];goals:{category:string;goal:string;status:string;statusLabel:string}[];metrics:{hba1c:string|null;bp:string|null;weight:string|null;imc:string|null}}>;
 export type RefContext=Readonly<{allergies:string[];medications:string[];problems:{code:string;description:string}[];labs:{hba1c:string|null};vitals:{bp:string|null;hr:string|null;imc:string|null}}>;
 export type FUDelta={first:number;last:number}|null;

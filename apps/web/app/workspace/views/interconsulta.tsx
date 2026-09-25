@@ -5,7 +5,7 @@ import {apiRequest} from "../../../lib/session-client";
 import{card,LINE,P,UI,act}from"../shared";
 import{useWorkspace}from"../context";
 export default function InterconsultaView(){
- const{refCtx,icPatientId,patientId,setIcMsg,icMotivo,setIcBusy,icResumen,icSpecialty,setIcMotivo,setIcResumen,setView,icBusy,patientList,patientName,setIcPatientId,setIcSpecialty,icPriority,setIcPriority,icType,setIcType,icMsg}=useWorkspace();
+ const{refCtx,icPatientId,patientId,setIcMsg,icMotivo,setIcBusy,icResumen,icSpecialty,setIcMotivo,setIcResumen,setView,icBusy,patientList,patientName,setIcPatientId,setIcSpecialty,icPriority,setIcPriority,icType,setIcType,icMsg,icRecipient,setIcRecipient,icReg,icRegErr,selectPatientRaw}=useWorkspace();
 
    // ===== MÓDULO INTERCONSULTAS (S-INTERCONSULTA) — form Nueva interconsulta; panel derecho cableado a referral-context =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -32,8 +32,10 @@ export default function InterconsultaView(){
     if(!icMotivo.trim()){setIcMsg("El motivo de interconsulta es obligatorio.");return;}
     setIcBusy(true);setIcMsg("");
     const reason=icResumen.trim()?`${icMotivo.trim()}\n\nResumen clínico: ${icResumen.trim()}`:icMotivo.trim();
-    try{const r=await apiRequest("/api/v1/referrals",{method:"POST",body:{referralId:crypto.randomUUID(),patientId:icBillTo,specialty:icSpecialty,reason,occurredAt:new Date().toISOString()}});
-     if(r.status===201||r.status===200){setIcMsg("Interconsulta enviada ✓");setIcMotivo("");setIcResumen("");}
+    // Lote G — la interconsulta viaja con su destinatario (directorio), prioridad y tipo: ya no se descartan en la UI.
+    const rec=icRecipient.trim();
+    try{const r=await apiRequest("/api/v1/referrals",{method:"POST",body:{referralId:crypto.randomUUID(),patientId:icBillTo,specialty:icSpecialty,reason,...(rec?{recipientName:rec}:{}),priority:icPriority,referralType:icType,occurredAt:new Date().toISOString()}});
+     if(r.status===201||r.status===200){setIcMsg("Interconsulta enviada ✓");setIcMotivo("");setIcResumen("");setIcRecipient("");}
      else setIcMsg("No se pudo enviar (estado "+r.status+").");
     }catch{setIcMsg("Error al enviar la interconsulta.");}finally{setIcBusy(false);}
    };
@@ -63,7 +65,10 @@ export default function InterconsultaView(){
         <div><div style={flbl}>Prioridad <span style={{color:P.red}}>*</span></div><select value={icPriority} onChange={e=>setIcPriority(e.target.value)} style={selSty}>{["Preferente (2–4 semanas)","Urgente (48–72 h)","Rutina (4–8 semanas)"].map(o=><option key={o}>{o}</option>)}</select></div>
         <div><div style={flbl}>Tipo de interconsulta <span style={{color:P.red}}>*</span></div><select value={icType} onChange={e=>setIcType(e.target.value)} style={selSty}>{["Primera vez","Subsecuente","Segunda opinión"].map(o=><option key={o}>{o}</option>)}</select></div>
        </div>
-       <div style={{marginTop:16}}><div style={flbl}>Médico o institución (opcional)</div><div style={{position:"relative"}}><input placeholder="Buscar por nombre o institución..." style={{...selSty,paddingLeft:34}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9" style={{position:"absolute",left:11,top:12}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div></div>
+       <div style={{marginTop:16}}><div style={flbl}>Médico o institución (opcional)</div><div style={{position:"relative"}}><input list="ic-directory" value={icRecipient} onChange={e=>setIcRecipient(e.target.value)} placeholder="Nombre del especialista o institución…" style={{...selSty,paddingLeft:34}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9" style={{position:"absolute",left:11,top:12}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        {/* Lote G — directorio auto-formado con los destinatarios ya usados (sin backend de CRUD): sugerencias reales. */}
+        <datalist id="ic-directory">{(icReg?.directory??[]).map(d=><option key={d.name} value={d.name}>{d.specialty}{d.institution?` · ${d.institution}`:""}</option>)}</datalist>
+       </div></div>
        <div style={{marginTop:16}}><div style={flbl}>Motivo de interconsulta <span style={{color:P.red}}>*</span></div><textarea value={icMotivo} onChange={e=>setIcMotivo(e.target.value.slice(0,500))} placeholder="Describe el motivo de la valoración solicitada..." style={{...selSty,minHeight:84,resize:"vertical"}}/><div style={{textAlign:"right",fontSize:11,color:P.muted}}>{icMotivo.length}/500</div></div>
        <div style={{marginTop:12}}><div style={flbl}>Resumen clínico <span style={{color:P.red}}>*</span></div>
         <textarea value={icResumen} onChange={e=>setIcResumen(e.target.value.slice(0,1000))} placeholder="Resumen del cuadro clínico, tratamiento actual y evolución..." style={{...selSty,minHeight:110,resize:"vertical",lineHeight:1.5}}/>
@@ -86,6 +91,39 @@ export default function InterconsultaView(){
       <div style={{...card2,padding:16,background:"#F7F6FE",borderColor:"#E2DEFB"}}><div style={{display:"flex",gap:10}}><span style={{color:P.purple}}>💡</span><div><div style={{fontWeight:700,fontSize:13}}>Tip</div><div style={{fontSize:12.5,color:P.muted,marginTop:2}}>Incluye laboratorios, estudios de imagen y un resumen clínico claro para una mejor y más rápida atención.</div></div></div></div>
      </div>
     </div>
+    {/* Lote G — directorio de destinatarios + registro POBLACIONAL de interconsultas (GET /api/v1/referrals). */}
+    {(()=>{
+     const th:React.CSSProperties={textAlign:"left",fontSize:11,color:P.muted,fontWeight:600,padding:"9px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
+     const tdc:React.CSSProperties={padding:"9px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,verticalAlign:"middle"};
+     const fmtD=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
+     const stSty=(st:string):React.CSSProperties=>{const m:Record<string,[string,string]>={REQUESTED:["#E7EEFB",P.blueOnPale],ACCEPTED:["#EEEBFD",P.purple],COMPLETED:["#E6F6EE",P.greenOnPale],DECLINED:["#FBF0DC",P.amberOnPale],CANCELLED:["#FDECEE",P.redOnPale]};const[b,f]=m[st]??m.REQUESTED!;return{background:b,color:f,borderRadius:16,padding:"3px 11px",fontSize:11.5,fontWeight:700,whiteSpace:"nowrap"};};
+     const dir=icReg?.directory??[];
+     return <div style={{...card2,marginTop:16,padding:0,overflow:"hidden"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 18px",borderBottom:`1px solid ${LINE}`,flexWrap:"wrap",gap:10}}>
+       <div><div style={{fontSize:16,fontWeight:800}}>Interconsultas · Toda la clínica</div><div style={{fontSize:12,color:P.muted}}>Directorio de destinatarios (se forma con los que ya usaste) e interconsultas de todos los pacientes.</div></div>
+       {icReg&&<div style={{display:"flex",gap:18,flexWrap:"wrap"}}>{([["Interconsultas",icReg.total,P.ink],["Abiertas",icReg.openCount,P.blueOnPale],["Completadas",icReg.completedCount,P.greenOnPale],["Destinatarios",icReg.recipientsCount,P.purple]] as [string,number,string][]).map(([l,n,c])=><div key={l} style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:800,color:c,fontVariantNumeric:"tabular-nums"}}>{n}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div>)}</div>}
+      </div>
+      <div style={{padding:"12px 18px 0"}}>
+       <div style={{fontSize:12.5,fontWeight:700,color:P.muted,marginBottom:8}}>Directorio de profesionales{dir.length?` (${dir.length})`:""}</div>
+       {dir.length===0?<div style={{fontSize:12.5,color:P.muted,paddingBottom:12}}>Aún no hay destinatarios. El primero que nombres en una interconsulta se guardará aquí para reutilizarlo.</div>
+        :<div style={{display:"flex",flexWrap:"wrap",gap:8,paddingBottom:12}}>{dir.map(d=><button key={d.name} onClick={()=>{setIcRecipient(d.name);if(d.specialty)setIcSpecialty(d.specialty);}} title="Usar este destinatario en la nueva interconsulta" style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:999,padding:"6px 12px",cursor:"pointer",fontFamily:UI}}><span style={{width:24,height:24,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:10,fontWeight:700}}>{initials(d.name)}</span><span style={{fontSize:12.5,fontWeight:600}}>{d.name}</span><span style={{fontSize:11,color:P.muted}}>{d.specialty}{d.institution?` · ${d.institution}`:""}</span><span style={{fontSize:11,fontWeight:700,color:P.purple}}>{d.count}</span></button>)}</div>}
+      </div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+       <thead><tr>{["Paciente","Especialidad","Destinatario","Estado","Fecha",""].map((h,i)=><th key={i} style={th}>{h}</th>)}</tr></thead>
+       <tbody>
+        {(icReg?.items??[]).slice(0,20).map(it=><tr key={it.referralId}>
+         <td style={tdc}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:26,height:26,borderRadius:"50%",background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontSize:10,fontWeight:700,flex:"0 0 auto"}}>{initials(it.patientName)}</span><span style={{fontWeight:600}}>{it.patientName}</span></div></td>
+         <td style={tdc}>{it.specialty}</td>
+         <td style={tdc}>{it.recipientName||<span style={{color:P.muted}}>—</span>}{it.recipientInstitution?<div style={{fontSize:11,color:P.muted}}>{it.recipientInstitution}</div>:null}</td>
+         <td style={tdc}><span style={stSty(it.status)}>{it.statusLabel}</span></td>
+         <td style={{...tdc,color:P.muted}}>{fmtD(it.requestedAt)}</td>
+         <td style={tdc}><button onClick={()=>{selectPatientRaw(it.patientId,it.patientName);setView("exp");}} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:8,padding:"5px 10px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:UI}}>Abrir expediente →</button></td>
+        </tr>)}
+        {icReg&&icReg.items.length===0&&<tr><td colSpan={6} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>Aún no hay interconsultas registradas en el consultorio.</td></tr>}
+        {!icReg&&<tr><td colSpan={6} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>{icRegErr?"No se pudo cargar el registro de la clínica.":"Cargando registro…"}</td></tr>}
+       </tbody></table></div>
+     </div>;
+    })()}
    </div>;
-  
+
 }
