@@ -24627,6 +24627,77 @@
        "schema": {
         "type": "object",
         "properties": {
+         "recipient": {
+          "type": "object",
+          "properties": {
+           "abo": {
+            "type": "string",
+            "enum": [
+             "O",
+             "A",
+             "B",
+             "AB"
+            ]
+           },
+           "rh": {
+            "type": "string",
+            "enum": [
+             "POSITIVE",
+             "NEGATIVE"
+            ]
+           }
+          },
+          "required": [
+           "abo",
+           "rh"
+          ]
+         },
+         "unit": {
+          "type": "object",
+          "properties": {
+           "abo": {
+            "type": "string",
+            "enum": [
+             "O",
+             "A",
+             "B",
+             "AB"
+            ]
+           },
+           "rh": {
+            "type": "string",
+            "enum": [
+             "POSITIVE",
+             "NEGATIVE"
+            ]
+           }
+          },
+          "required": [
+           "abo",
+           "rh"
+          ]
+         },
+         "unitId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 64
+         },
+         "verifiedBy": {
+          "type": "array",
+          "prefixItems": [
+           {
+            "type": "string",
+            "minLength": 3
+           },
+           {
+            "type": "string",
+            "minLength": 3
+           }
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+         },
          "occurredAt": {
           "type": "string",
           "format": "date-time",
@@ -24634,6 +24705,10 @@
          }
         },
         "required": [
+         "recipient",
+         "unit",
+         "unitId",
+         "verifiedBy",
          "occurredAt"
         ]
        }

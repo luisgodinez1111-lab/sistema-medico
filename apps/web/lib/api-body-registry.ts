@@ -24,7 +24,7 @@ import{CreateBody as regulatory_obligation__CreateBody}from"./regulatory-obligat
 import{ActionBody as result__ActionBody,CloseBody as result__CloseBody,CorrectionBody as result__CorrectionBody,ErrorMarkBody as result__ErrorMarkBody,ReceiveBody as result__ReceiveBody,VerifyBody as result__VerifyBody}from"./result-lifecycle";
 import{CollectBody as specimen__CollectBody,RejectBody as specimen__RejectBody,WhenBody as specimen__WhenBody}from"./specimen-lifecycle";
 import{CompleteBody as surgery__CompleteBody,ReasonBody as surgery__ReasonBody,ScheduleBody as surgery__ScheduleBody,WhenBody as surgery__WhenBody}from"./surgery-lifecycle";
-import{OrderBody as transfusion__OrderBody,ReactionBody as transfusion__ReactionBody,ReasonBody as transfusion__ReasonBody,WhenBody as transfusion__WhenBody}from"./transfusion-lifecycle";
+import{CrossmatchBody as transfusion__CrossmatchBody,OrderBody as transfusion__OrderBody,ReactionBody as transfusion__ReactionBody,ReasonBody as transfusion__ReasonBody,WhenBody as transfusion__WhenBody}from"./transfusion-lifecycle";
 import{ArriveBody as triage__ArriveBody,AssessBody as triage__AssessBody,ReasonBody as triage__ReasonBody,WhenBody as triage__WhenBody}from"./triage-lifecycle";
 import{AmendBody as vital__AmendBody,ErrorBody as vital__ErrorBody,RecordBody as vital__RecordBody}from"./vital-lifecycle";
 import{DocumentBody as wound__DocumentBody,ReasonBody as wound__ReasonBody,ReassessBody as wound__ReassessBody,WhenBody as wound__WhenBody}from"./wound-lifecycle";
@@ -131,7 +131,7 @@ export const API_BODY_SCHEMAS:Readonly<Record<string,ZodType>>={
  "POST /api/v1/transfusions":transfusion__OrderBody,
  "POST /api/v1/transfusions/{transfusionId}/cancellation":transfusion__ReasonBody,
  "POST /api/v1/transfusions/{transfusionId}/completion":transfusion__WhenBody,
- "POST /api/v1/transfusions/{transfusionId}/crossmatch":transfusion__WhenBody,
+ "POST /api/v1/transfusions/{transfusionId}/crossmatch":transfusion__CrossmatchBody,
  "POST /api/v1/transfusions/{transfusionId}/reaction":transfusion__ReactionBody,
  "POST /api/v1/transfusions/{transfusionId}/start":transfusion__WhenBody,
  "POST /api/v1/triage":triage__ArriveBody,

@@ -4,6 +4,8 @@ import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y re
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
+const{resolveVerified}=await import("../../apps/web/lib/http-command");
+const{readAggregateEvents}=await import("../../apps/web/lib/clinical-runtime");
 const tf=await import("../../apps/web/app/api/v1/transfusions/route");
 const cm=await import("../../apps/web/app/api/v1/transfusions/[transfusionId]/crossmatch/route");
 const st=await import("../../apps/web/app/api/v1/transfusions/[transfusionId]/start/route");
@@ -17,11 +19,14 @@ const PP=(id:string)=>({params:Promise.resolve({transfusionId:id})});const ISO="
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 async function mk(t:string){const id=crypto.randomUUID();const r=await tf.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({transfusionId:id,patientId:await freshPatient(TA),bloodProduct:"PRBC",units:"2",occurredAt:ISO})}));return{id,r};}
 const B=(t:string,v:number,body:Record<string,unknown>={})=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:ISO,...body})});
+// Auditoría R02b (R2B-017): la verificación al pie de cama es obligatoria para cruzar. Receptor A+ y unidad O− es la
+// combinación compatible clásica (dador universal de eritrocitos); los casos incompatibles se prueban aparte.
+const XM=(extra:Record<string,unknown>={})=>({recipient:{abo:"A",rh:"POSITIVE"},unit:{abo:"O",rh:"NEGATIVE"},unitId:"U-"+crypto.randomUUID().slice(0,8),verifiedBy:["QFB Ana Ruiz","Enf. Luis Prado"],...extra});
 try{
  const nurse=tok(TA);
  // ordenar -> cruzar -> iniciar -> completar
  let{id,r}=await mk(nurse);ok(r.status===201&&(await r.json()).state==="ORDERED","ORDER_201");
- r=await cm.POST(new Request("http://l/",B(nurse,1)),PP(id));ok(r.status===201&&(await r.json()).state==="CROSSMATCHED","CROSSMATCH_201");
+ r=await cm.POST(new Request("http://l/",B(nurse,1,XM())),PP(id));ok(r.status===201&&(await r.json()).state==="CROSSMATCHED","CROSSMATCH_201");
  r=await st.POST(new Request("http://l/",B(nurse,2)),PP(id));ok(r.status===201&&(await r.json()).state==="TRANSFUSING","START_201");
  r=await co.POST(new Request("http://l/",B(nurse,3)),PP(id));ok(r.status===201&&(await r.json()).state==="COMPLETED","COMPLETE_201");
  // SM: iniciar sin cruzar -> 409
@@ -29,7 +34,7 @@ try{
  r=await st.POST(new Request("http://l/",B(nurse,1)),PP(two.id));ok(r.status===409,"START_WITHOUT_CROSSMATCH_409");
  // camino de reacción: ordenar -> cruzar -> iniciar -> REACCIÓN
  const three=await mk(nurse);
- await cm.POST(new Request("http://l/",B(nurse,1)),PP(three.id));
+ await cm.POST(new Request("http://l/",B(nurse,1,XM())),PP(three.id));
  await st.POST(new Request("http://l/",B(nurse,2)),PP(three.id));
  r=await rx.POST(new Request("http://l/",B(nurse,3,{reaction:"Fiebre + escalofríos"})),PP(three.id));ok(r.status===201&&(await r.json()).state==="REACTION","REACTION_201");
  // SM: completar tras reacción (terminal) -> 409
@@ -39,10 +44,41 @@ try{
  r=await cn.POST(new Request("http://l/",B(nurse,1,{reason:"Ya no requerida"})),PP(four.id));ok(r.status===201&&(await r.json()).state==="CANCELLED","CANCEL_201");
  // cross-tenant -> 404
  const nurseB=tok(TB);
- r=await cm.POST(new Request("http://l/",B(nurseB,1)),PP(two.id));ok(r.status===404,"CROSS_TENANT_404");
+ r=await cm.POST(new Request("http://l/",B(nurseB,1,XM())),PP(two.id));ok(r.status===404,"CROSS_TENANT_404");
  // sin scope transfusion:write -> 403
  const noScope=tok(TA,["NURSE"],["patient:read"]);
  r=await tf.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({transfusionId:crypto.randomUUID(),patientId:await freshPatient(TA),bloodProduct:"FFP",units:"1",occurredAt:ISO})}));
  ok(r.status===403,"MISSING_WRITE_SCOPE_403");
+
+ // === R2B-017: LA BARRERA ABO/Rh. Antes «pruebas cruzadas» solo registraba una fecha. ===
+ // (a) ABO incompatible: receptor O con unidad A. Es el error que produce la reacción hemolítica aguda.
+ const inc=await mk(nurse);
+ r=await cm.POST(new Request("http://l/",B(nurse,1,XM({recipient:{abo:"O",rh:"POSITIVE"},unit:{abo:"A",rh:"POSITIVE"}}))),PP(inc.id));
+ let eb=await r.json() as {error?:{message?:string;details?:{blockers?:string[]}}};
+ ok(r.status>=400&&/ABO INCOMPATIBLE|hemol/i.test(JSON.stringify(eb)),"ABO_INCOMPATIBLE_REJECTED");
+ // Y la transición NO quedó registrada: el estado sigue en ORDERED, así que iniciar es imposible.
+ r=await st.POST(new Request("http://l/",B(nurse,2)),PP(inc.id));ok(r.status>=400,"CANNOT_START_AFTER_REJECTED_CROSSMATCH");
+ // (b) Rh: receptor Rh negativo con unidad Rh positiva.
+ const rh=await mk(nurse);
+ r=await cm.POST(new Request("http://l/",B(nurse,1,XM({recipient:{abo:"A",rh:"NEGATIVE"},unit:{abo:"O",rh:"POSITIVE"}}))),PP(rh.id));
+ ok(r.status>=400&&/Rh incompatible/i.test(JSON.stringify(await r.json())),"RH_INCOMPATIBLE_REJECTED");
+ // (c) La MISMA persona no puede ser la doble verificación: es el corazón de la barrera.
+ const dup=await mk(nurse);
+ r=await cm.POST(new Request("http://l/",B(nurse,1,XM({verifiedBy:["QFB Ana Ruiz","QFB Ana Ruiz"]}))),PP(dup.id));
+ ok(r.status>=400&&/DISTINTOS/i.test(JSON.stringify(await r.json())),"SAME_VERIFIER_TWICE_REJECTED");
+ // (d) Sin número de unidad no hay trazabilidad de qué se transfundió.
+ const noid=await mk(nurse);
+ r=await cm.POST(new Request("http://l/",B(nurse,1,XM({unitId:""}))),PP(noid.id));
+ ok(r.status>=400,"UNIT_WITHOUT_ID_REJECTED");
+ // (e) El registro guarda QUÉ se verificó y QUIÉN: sin eso no se puede reconstruir la transfusión después.
+ const okCase=await mk(nurse);
+ await cm.POST(new Request("http://l/",B(nurse,1,XM({unitId:"U-TRAZA-1"}))),PP(okCase.id));
+ r=await st.POST(new Request("http://l/",B(nurse,2)),PP(okCase.id));ok(r.status===201,"START_AFTER_VALID_CHECK_201");
+ const octx=resolveVerified(new Request("http://l/",{headers:H(nurse)})).ctx;
+ const evs=await readAggregateEvents(octx,okCase.id);
+ const xm=evs.find(e=>e.payload["kind"]==="CROSSMATCHED")?.payload as Record<string,unknown>|undefined;
+ const started=evs.find(e=>e.payload["kind"]==="STARTED")?.payload as Record<string,unknown>|undefined;
+ ok(xm?.["unitId"]==="U-TRAZA-1"&&Array.isArray(xm["verifiedBy"])&&(xm["verifiedBy"] as string[]).length===2,"CROSSMATCH_RECORDS_UNIT_AND_TWO_VERIFIERS");
+ ok(started?.["unitId"]==="U-TRAZA-1","START_CITES_THE_VERIFIED_UNIT");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

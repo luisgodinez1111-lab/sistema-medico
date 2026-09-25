@@ -3,7 +3,7 @@
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {drugCatalog,interactionRules,type DrugCatalogItem} from "../../../../../packages/drug-catalog/src";
 import {apiRequest} from "../../../lib/session-client";
-import{Check,errMsg,userMessage,card,P,LINE,UI,scrollToSection,act,actRow,type IxSev,type IxResult}from"../shared";
+import{Check,errMsg,userMessage,card,P,LINE,UI,scrollToSection,act,actRow,parseIxResult,IX_SEVERITIES,IX_SEV_LABEL,type IxSev}from"../shared";
 import{useWorkspace}from"../context";
 export default function MedicamentosView(){
  const{ixMsg,setIxMsg,medQuery,medCat,medOnlyMon,medOnlyRenal,medSel,setRxDrug,setView,setMedTab,medTab,ixInput,ixDrugs,setIxDrugs,setIxInput,setIxRes,setIxFactors,ixFactors,setIxBusy,ixBusy,ixRes,setMedQuery,setMedCat,setMedOnlyMon,setMedOnlyRenal,setMedSel}=useWorkspace();
@@ -45,7 +45,9 @@ export default function MedicamentosView(){
      // ===== Pestaña "Interacciones" (S8.3) — verificador de conjunto REAL cableado a POST /api/v1/interactions =====
      const IX_FACTORS=["Consumo de alcohol","Insuficiencia renal","Insuficiencia hepática","Embarazo","Adulto mayor"];
      const sevSty:Record<IxSev,{bg:string;bd:string;fg:string}>={CONTRAINDICATED:{bg:"#FBE3E6",bd:"#E79AA3",fg:P.redOnPale},MAJOR:{bg:"#FDECEE",bd:"#F4B5BE",fg:P.redOnPale},MODERATE:{bg:"#FBF0DC",bd:"#EBD2A0",fg:P.amberOnPale},MINOR:{bg:"#E7EEFB",bd:"#C5D6F2",fg:P.blueOnPale}};
-     const SEV_ORDER:IxSev[]=["CONTRAINDICATED","MAJOR","MODERATE","MINOR"];const SEV_L:Record<IxSev,string>={CONTRAINDICATED:"Contraindicada",MAJOR:"Mayor",MODERATE:"Moderada",MINOR:"Menor"};
+     // El orden clínico y las etiquetas vienen de shared.tsx: son los mismos que usa `parseIxResult` para derivar el conteo.
+     // Tenerlos dos veces es como tener dos parsers de presión arterial (R03-16): un día uno de los dos se queda atrás.
+     const SEV_ORDER=IX_SEVERITIES,SEV_L=IX_SEV_LABEL;
      const addDrug=()=>{const v=ixInput.trim();if(!v)return;if(!ixDrugs.some(d=>d.toLowerCase()===v.toLowerCase()))setIxDrugs([...ixDrugs,v]);setIxInput("");setIxRes(null);};
      const rmDrug=(d:string)=>{setIxDrugs(ixDrugs.filter(x=>x!==d));setIxRes(null);};
      const toggleF=(f:string)=>{setIxFactors(ixFactors.includes(f)?ixFactors.filter(x=>x!==f):[...ixFactors,f]);setIxRes(null);};
@@ -54,7 +56,15 @@ export default function MedicamentosView(){
      const run=async()=>{setIxBusy(true);setIxMsg(null);setIxRes(null);
       try{
        const r=await apiRequest("/api/v1/interactions",{method:"POST",body:{drugs:ixDrugs,factors:ixFactors}});
-       if(r.status===200){setIxRes(r.body as unknown as IxResult);return;}
+       // Auditoría R05b (lote 15): esto era `r.body as unknown as IxResult`. Ver `parseIxResult` en shared.tsx: un 200 con
+       // otra forma pasaba el casteo y reventaba el render al leer `ixRes.counts[s]` de un `undefined` —pantalla en blanco
+       // en el verificador de interacciones—. Una respuesta que no cumple la forma es un fallo, y se dice como tal.
+       if(r.status===200){
+        const v=parseIxResult(r.body);
+        if(v)setIxRes(v);
+        else setIxMsg("No se pudo verificar: el motor respondió en un formato que esta pantalla no reconoce. No hay veredicto de interacciones para este conjunto.");
+        return;
+       }
        setIxMsg(`No se pudo verificar: ${errMsg(r)}. No hay veredicto de interacciones para este conjunto.`);
       }catch(e){setIxMsg(`No se pudo verificar: ${userMessage(e)}. No hay veredicto de interacciones para este conjunto.`);}
       finally{setIxBusy(false);}};

@@ -68,6 +68,45 @@ export type PanelGap=Gap&Readonly<{patientId:string}>;
 export type IxSev="CONTRAINDICATED"|"MAJOR"|"MODERATE"|"MINOR";
 export type IxFinding=Readonly<{kind:"pair"|"factor";severity:IxSev;severityLabel:string;a:string;b:string;mechanism:string;recommendation:string}>;
 export type IxResult=Readonly<{findings:IxFinding[];counts:Record<IxSev,number>;highestSeverity:IxSev|null;highestSeverityLabel:string|null;resolvedDrugs:{input:string;ingredient:string|null;classes:string[]}[];resolvedFactors:{input:string;code:string|null}[];unresolvedDrugs:string[];unresolvedFactors:string[]}>;
+export const IX_SEVERITIES:readonly IxSev[]=["CONTRAINDICATED","MAJOR","MODERATE","MINOR"];
+export const IX_SEV_LABEL:Readonly<Record<IxSev,string>>={CONTRAINDICATED:"Contraindicada",MAJOR:"Mayor",MODERATE:"Moderada",MINOR:"Menor"};
+/**
+ * Auditoría R05b (lote 15, 25-sep-2026) — LA FORMA DE UNA RESPUESTA SE COMPRUEBA, NO SE AFIRMA.
+ *
+ * La vista hacía `setIxRes(r.body as unknown as IxResult)`: un casteo es una afirmación sin comprobar. Un 200 con otra forma
+ * —un proxy que recorta campos, una versión anterior del servidor, un contrato que cambia— pasaba el casteo y reventaba el
+ * render al leer `ixRes.counts[s]` de un `undefined`. Sin límite de errores eso era pantalla en blanco: en un verificador de
+ * interacciones, el médico no veía ni el resultado ni el fallo.
+ *
+ * Devuelve `null` si la forma no es la esperada, para que la vista lo trate como el fallo que es. Y `counts` NO se toma de la
+ * respuesta: se deriva de `findings`, porque un conteo es una función de los hallazgos y dos fuentes para el mismo número solo
+ * sirven para que un día se contradigan.
+ */
+export function parseIxResult(body:unknown):IxResult|null{
+ if(typeof body!=="object"||body===null)return null;
+ const b=body as Record<string,unknown>;
+ if(!Array.isArray(b.findings))return null;
+ const esSev=(x:unknown):x is IxSev=>typeof x==="string"&&(IX_SEVERITIES as readonly string[]).includes(x);
+ const txt=(x:unknown):string=>typeof x==="string"?x:"";
+ const findings:IxFinding[]=[];
+ for(const f of b.findings as unknown[]){
+  if(typeof f!=="object"||f===null)return null;
+  const g=f as Record<string,unknown>;
+  if(!esSev(g.severity))return null; // sin severidad reconocible no hay cómo pintar el hallazgo ni cómo ordenarlo
+  findings.push({kind:g.kind==="factor"?"factor":"pair",severity:g.severity,
+   severityLabel:txt(g.severityLabel)||IX_SEV_LABEL[g.severity],
+   a:txt(g.a),b:txt(g.b),mechanism:txt(g.mechanism),recommendation:txt(g.recommendation)});
+ }
+ const counts:Record<IxSev,number>={CONTRAINDICATED:0,MAJOR:0,MODERATE:0,MINOR:0};
+ for(const f of findings)counts[f.severity]++;
+ // La severidad máxima también se deriva: es el primer nivel del orden clínico con algún hallazgo.
+ const highestSeverity=IX_SEVERITIES.find(s=>counts[s]>0)??null;
+ const lista=(x:unknown):string[]=>Array.isArray(x)?x.filter((v):v is string=>typeof v==="string"):[];
+ return{findings,counts,highestSeverity,highestSeverityLabel:highestSeverity?IX_SEV_LABEL[highestSeverity]:null,
+  resolvedDrugs:Array.isArray(b.resolvedDrugs)?b.resolvedDrugs as IxResult["resolvedDrugs"]:[],
+  resolvedFactors:Array.isArray(b.resolvedFactors)?b.resolvedFactors as IxResult["resolvedFactors"]:[],
+  unresolvedDrugs:lista(b.unresolvedDrugs),unresolvedFactors:lista(b.unresolvedFactors)};
+}
 export type AllergenType="Medicamento"|"Alimento"|"Ambiental"|"Contraste"|"Otros";
 export type AllergyItem=Readonly<{allergyId:string;patientId:string;patientName:string;substance:string;type:AllergenType;reaction:string;severity:"MILD"|"MODERATE"|"SEVERE";severityLabel:string;status:"ACTIVE"|"REFUTED"|"INACTIVE";statusLabel:string;recordedAt:string;registeredBy:string}>;
 export type AllergyRegistry=Readonly<{items:AllergyItem[];total:number;patientsWithAllergies:number;bySeverity:{grave:number;moderada:number;leve:number;incierta:number};byType:Record<AllergenType,number>;activeCount:number}>;

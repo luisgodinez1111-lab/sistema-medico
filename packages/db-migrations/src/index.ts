@@ -39,3 +39,16 @@ export function renamedTables(body:string):string[]{
  for(const m of sql.matchAll(/([a-z_0-9]+)\|\|'(_retirada_\d{4})'/gi))nombres.push("*"+m[2]!.toLowerCase());
  return nombres;
 }
+// Tablas RETIRADAS del esquema vigente: las que una migración renombra en bloque recorriendo un `ARRAY[...]` de nombres.
+// Sin esto, «cuántas tablas debería tener el esquema» solo se puede contar a mano contra la base que uno tenga delante, y un
+// número contado a mano se recalibra cada vez que falla —que es exactamente cómo un umbral deja de ser una comprobación—.
+// Devuelve los nombres ORIGEN (no los `*_retirada_NNNN`), porque es lo que hay que restar a las tablas creadas.
+export function retiredTables(body:string):string[]{
+ const sql=body.replace(/--[^\n]*/g,"").replace(/\/\*[\s\S]*?\*\//g,"");
+ // Solo cuenta si el bucle construye un destino con sufijo de retiro; así un `FOREACH` con otro propósito no se confunde.
+ if(!/\|\|'_retirada_\d{4}'/i.test(sql))return[];
+ const out:string[]=[];
+ for(const m of sql.matchAll(/ARRAY\s*\[([^\]]*)\]/gi))
+  for(const lit of m[1]!.matchAll(/'([a-z_0-9]+)'/gi))out.push(lit[1]!.toLowerCase());
+ return[...new Set(out)];
+}

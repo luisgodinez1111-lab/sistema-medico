@@ -1,6 +1,6 @@
 import{describe,it,expect}from"vitest";
 import fs from"node:fs";
-import{readMigrationFiles,stripOwnTransaction,buildManifest,manifestDrift,createdTables,MIGRATION_FILE_RE}from"../../packages/db-migrations/src";
+import{readMigrationFiles,stripOwnTransaction,buildManifest,manifestDrift,createdTables,retiredTables,MIGRATION_FILE_RE}from"../../packages/db-migrations/src";
 // Auditoría 2026-09-19 (P-06, D-05, D-07, D-08) — las migraciones son un artefacto controlado, no una carpeta de SQL suelto.
 const files=readMigrationFiles();
 describe("db/migrations — integridad",()=>{
@@ -48,5 +48,44 @@ describe("db/migrations — integridad",()=>{
   for(const t of["access_decisions","aggregate_snapshots","ai_execution_receipts","break_glass_events","clinical_amendments","patient_state_projection"])expect(m20,t).toContain(`'${t}'`);
   expect(m20).toMatch(/ALTER TABLE audit_ledger\s+ENABLE ROW LEVEL SECURITY/);expect(m20).toMatch(/ALTER TABLE idempotency_keys ENABLE ROW LEVEL SECURITY/);
   expect(m20).toMatch(/REVOKE ALL ON audit_ledger, idempotency_keys FROM medical_os_runtime/);
+ });
+});
+
+// Auditoría 2026-09-19, anexo R06 (R06-17) — EL ESQUEMA VIGENTE SE DERIVA DE LAS MIGRACIONES, NO SE CUENTA A MANO.
+//
+// EL HALLAZGO, encontrado al ejecutar: `live-rls-every-table-proof` tenía dos umbrales escritos a mano (`>=35` tablas con RLS,
+// `>=22` tablas con aislamiento ejercitado) y los dos fallaban contra una base recién migrada, que da 33. El número no medía
+// el esquema: medía el clúster contra el que se calibró. Un umbral que se recalibra cada vez que falla deja de comprobar algo.
+describe("retiredTables: las tablas retiradas del esquema vigente se leen del SQL (R06-17)",()=>{
+ it("devuelve los seis nombres ORIGEN que la 0028 retira, y todos los crea alguna migración",()=>{
+  const retiradas=[...new Set(files.flatMap(f=>retiredTables(f.body)))];
+  expect(retiradas.sort()).toEqual(["break_glass_events","break_glass_reviews","patient_state_projection",
+   "projection_aggregate_checkpoints","projection_checkpoints","release_evidence"]);
+  // Si una «retirada» no la creara ninguna migración, el nombre estaría mal escrito y la resta sería silenciosamente inútil.
+  const creadas=new Set(files.flatMap(f=>createdTables(f.body)));
+  expect(retiradas.filter(t=>!creadas.has(t)),"tabla retirada que ninguna migración crea").toEqual([]);
+ });
+ it("no confunde un ARRAY con otro propósito: solo cuenta si el bucle construye el sufijo de retiro",()=>{
+  expect(retiredTables("DO $$ BEGIN FOREACH t IN ARRAY ARRAY['a','b'] LOOP EXECUTE 'ANALYZE '||t; END LOOP; END $$;")).toEqual([]);
+  expect(retiredTables("destino := t||'_retirada_0099'; FOREACH t IN ARRAY ARRAY['a','b'] LOOP")).toEqual(["a","b"]);
+  expect(retiredTables("-- destino := t||'_retirada_0099' con ARRAY['comentada']"),"los comentarios no cuentan").toEqual([]);
+ });
+ it("el esquema vigente es lo creado menos lo retirado, y cuadra con las tablas que el repo declara",()=>{
+  const creadas=new Set(files.flatMap(f=>createdTables(f.body)));
+  const retiradas=new Set(files.flatMap(f=>retiredTables(f.body)));
+  const vigentes=[...creadas].filter(t=>!retiradas.has(t));
+  expect(creadas.size).toBeGreaterThan(vigentes.length); // hubo retiro
+  expect(vigentes.length).toBe(creadas.size-retiradas.size);
+ });
+ it("la prueba en vivo de RLS ya no lleva umbrales escritos a mano",()=>{
+  // Es la garantía de que el arreglo no se deshace: si alguien vuelve a poner `>=N`, este test lo dice.
+  const src=fs.readFileSync("scripts/v22/live-rls-every-table-proof.mts","utf8")
+   .split("\n").filter(l=>!l.trimStart().startsWith("//")&&!l.trimStart().startsWith("--")).join("\n");
+  expect(/length\s*>=\s*\d+/.test(src),"umbral numérico a mano en la prueba de RLS").toBe(false);
+  expect(src,"el techo del inventario tiene que venir de las migraciones").toContain("vigentes.length");
+  // Y que sigue exigiendo que TODA tabla con RLS se ejercite o esté declarada, sin saco silencioso.
+  expect(src).toContain("UNDECLARED_NON_INSERTABLE");
+  expect(src).toContain("OBSOLETE_NON_INSERTABLE_DECLARATION");
+  expect(src).toMatch(/probadas\.length===conRls\.length-noProbadas\.length/);
  });
 });
