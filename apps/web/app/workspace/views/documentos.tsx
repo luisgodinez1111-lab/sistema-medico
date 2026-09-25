@@ -95,7 +95,7 @@ export default function DocumentosView(){
          <button onClick={()=>void removeAttachment(a)} disabled={attBusy} title="Quitar adjunto" style={{border:`1px solid #E7C9C4`,background:P.white,color:P.red,borderRadius:7,padding:"4px 8px",fontSize:11.5,fontWeight:600,cursor:attBusy?"default":"pointer",fontFamily:UI,flex:"0 0 auto"}}>Quitar</button>
         </div>)}
        </div>}
-       <button onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Documentos"),0);}} style={{marginTop:14,width:"100%",border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button>
+       <button onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Documentos clínicos"),0);}} style={{marginTop:14,width:"100%",border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button>
       </div>}
      </div>
     </div>

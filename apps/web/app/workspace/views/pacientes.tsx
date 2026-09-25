@@ -27,8 +27,7 @@ export default function PacientesView(){
    const dk:React.CSSProperties={color:P.muted,width:140,flex:"0 0 auto",fontSize:12.5};
    const flbl:React.CSSProperties={fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"};
    const inp:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink,boxSizing:"border-box"};
-   const isReal=(_r:Row)=>true; // todas las filas son pacientes reales del tenant
-   const selectRow=(r:Row)=>{if(isReal(r)){setPatSelId(r.patientId);selectPatientRaw(r.patientId,r.name);setPatTab("resumen");setPatEdit(false);}else{setPatSelId(null);}};
+   const selectRow=(r:Row)=>{setPatSelId(r.patientId);selectPatientRaw(r.patientId,r.name);setPatTab("resumen");setPatEdit(false);};
    const exportSelected=async(pid:string,name:string)=>{setPatMsg(`Generando export del expediente de ${name}…`);try{const resp=await apiRequest(`/api/v1/patients/${pid}/export`,{method:"GET"});if(resp.status>=400){setPatMsg(errMsg(resp));return;}const m=resp.body["manifest"] as{aggregateCount:number;eventCount:number};setPatMsg(`Export de ${name}: ${m.aggregateCount} agregados · ${m.eventCount} eventos · hash ${String(resp.body["contentHash"]??"").slice(0,12)}…`);}catch(e){setPatMsg(userMessage(e));}};
    // Paciente en foco (la ficha SÓLO existe si hay selección real):
    const fp=patSelId?(patientList??[]).find(p=>p.patientId===patSelId):undefined;
@@ -77,12 +76,12 @@ export default function PacientesView(){
        <thead><tr>{["Paciente","Edad","Sexo","Estado","Acciones"].map((h,i)=><th key={i} style={{textAlign:i>=3?"right":"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"12px 16px",borderBottom:`1px solid ${LINE}`,background:"#FAFBFD"}}>{h}</th>)}</tr></thead>
        <tbody>{rows.length===0?(
         <tr><td colSpan={5} style={{padding:"44px 16px",textAlign:"center",color:P.muted,fontSize:13.5}}>{loading?"Cargando pacientes…":allRows.length===0?<span>Aún no hay pacientes registrados. Usa <b style={{color:P.ink}}>«Nuevo paciente»</b> para crear el primero.</span>:"Ningún paciente coincide con la búsqueda o el filtro."}</td></tr>
-       ):rows.map(r=>{const[stl,sbg,sfg]=stTag(r.status);const on=isReal(r)&&r.patientId===patSelId;return <tr key={r.patientId} {...actRow(()=>selectRow(r))} style={{background:on?"#F6F5FE":"transparent",cursor:isReal(r)?"pointer":"default",borderLeft:on?`3px solid ${P.purple}`:"3px solid transparent"}}>
+       ):rows.map(r=>{const[stl,sbg,sfg]=stTag(r.status);const on=r.patientId===patSelId;return <tr key={r.patientId} {...actRow(()=>selectRow(r))} style={{background:on?"#F6F5FE":"transparent",cursor:"pointer",borderLeft:on?`3px solid ${P.purple}`:"3px solid transparent"}}>
         <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`}}><div style={{display:"flex",alignItems:"center",gap:11}}><span style={{width:38,height:38,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:12.5,fontWeight:700,flex:"0 0 auto"}}>{initials(r.name)}</span><div><div style={{fontWeight:600,fontSize:13.5}}>{r.name}</div><div style={{fontSize:11,color:P.muted}}>CURP: {r.curp}</div></div></div></td>
         <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{r.age!=null?`${r.age} años`:"—"}</td>
         <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`,fontSize:13}}>{sexEs(r.sexo)}</td>
         <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`,textAlign:"right"}}><span style={{fontSize:11.5,fontWeight:600,borderRadius:999,padding:"3px 11px",background:sbg,color:sfg}}>{stl}</span></td>
-        <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`,textAlign:"right"}}><span style={{color:isReal(r)?P.blue:"#C7CCE0",fontWeight:600,fontSize:12.5,cursor:isReal(r)?"pointer":"default"}} onClick={e=>{e.stopPropagation();selectRow(r);}}>{on?"En ficha ›":"Abrir ficha ›"}</span></td>
+        <td style={{padding:"12px 16px",borderBottom:`1px solid #F2F4F9`,textAlign:"right"}}><span style={{color:P.blue,fontWeight:600,fontSize:12.5,cursor:"pointer"}} onClick={e=>{e.stopPropagation();selectRow(r);}}>{on?"En ficha ›":"Abrir ficha ›"}</span></td>
        </tr>;})}</tbody>
       </table></div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",fontSize:13,color:P.muted,flexWrap:"wrap",gap:10}}>

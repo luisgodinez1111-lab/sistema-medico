@@ -4,7 +4,7 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{P,mono,ghost,DX_LABEL,LINE,card,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,type TrendKey}from"../shared";
+import{anchor,P,mono,ghost,DX_LABEL,LINE,card,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,type TrendKey}from"../shared";
 import{useWorkspace}from"../context";
 export default function ExpView(){
  const{patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error}=useWorkspace();
@@ -82,7 +82,7 @@ export default function ExpView(){
   })()}
   {/* SEGUIMIENTO AUTOMÁTICO (panel 5) — Zero-Lost-Follow-Up desde timeline + care-gaps */}
   <section style={card}>
-   <div><h2 style={{fontSize:18,margin:0}}>Seguimiento automático</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Nada se pierde. Todo se coordina. Obligaciones e interconsultas con owner y cierre.</p></div>
+   <div><h2 {...anchor("Seguimiento automático")} style={{fontSize:18,margin:0}}>Seguimiento automático</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Nada se pierde. Todo se coordina. Obligaciones e interconsultas con owner y cierre.</p></div>
    {(()=>{
     const fromTl=(tl??[]).filter(t=>FOLLOW_TYPES.has(t.aggregateType)).map(t=>({label:TYPE_LABEL[t.aggregateType]??t.aggregateType,kind:t.latestKind,at:t.lastAt,status:followState(t.latestKind),type:t.aggregateType}));
     const fromGaps=(gaps??[]).map(g=>({label:g.label,kind:g.priority,at:"",status:"pend" as const,type:g.aggregateType}));
@@ -106,7 +106,7 @@ export default function ExpView(){
 
   {/* SEGURIDAD Y AUDITORÍA (panel 7) — estado del sistema + actividad desde la cadena de auditoría */}
   <section className="span2" style={card}>
-   <div><h2 style={{fontSize:18,margin:0}}>Seguridad y auditoría</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Confianza por diseño. Cada acción clínica queda registrada.</p></div>
+   <div><h2 {...anchor("Seguridad y auditoría")} style={{fontSize:18,margin:0}}>Seguridad y auditoría</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Confianza por diseño. Cada acción clínica queda registrada.</p></div>
    <div className="mos-rx-grid">
     <div style={{background:"linear-gradient(160deg,#0C2148,#15346B)",borderRadius:14,padding:"16px 18px",color:"#EAF0FA"}}>
      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><span style={{width:22,height:22,borderRadius:"50%",background:"#1A7F43",display:"grid",placeItems:"center",fontSize:13}}>✓</span><b style={{fontSize:14}}>Estado del sistema</b></div>
@@ -126,7 +126,7 @@ export default function ExpView(){
 
   {/* PORTAL DEL PACIENTE (panel 6) — vista previa (solo lectura) del app del paciente, desde datos reales */}
   <section style={card}>
-   <div><h2 style={{fontSize:18,margin:0}}>Portal del paciente</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Informado. Involucrado. Vista previa (solo lectura) de lo que ve el paciente en su app.</p></div>
+   <div><h2 {...anchor("Portal del paciente")} style={{fontSize:18,margin:0}}>Portal del paciente</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Informado. Involucrado. Vista previa (solo lectura) de lo que ve el paciente en su app.</p></div>
    {(()=>{
     const t=tl??[];
     const appts=t.filter(x=>x.aggregateType==="Appointment");
@@ -178,7 +178,7 @@ export default function ExpView(){
   {/* PANEL / WORKLIST POBLACIONAL */}
   <section style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-    <h2 style={{fontSize:18,margin:0}}>Panel del clínico</h2>
+    <h2 {...anchor("Panel del clínico")} style={{fontSize:18,margin:0}}>Panel del clínico</h2>
     <button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={loadPanel}>{busy==="panel"?"Cargando…":"Cargar worklist"}</button>
    </div>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Pendientes clínicos accionables de TODO el panel (todos los pacientes del tenant), priorizados. Inteligencia por reglas, sin IA.</p>
@@ -194,7 +194,7 @@ export default function ExpView(){
 
   {/* PACIENTE (registro / selección) */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Paciente</h2>
+   <h2 {...anchor("Paciente")} style={{fontSize:18,margin:0}}>Paciente</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Registra un paciente o selecciónalo de la lista. El chart de abajo es del paciente activo.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 160px 150px auto",gap:10,marginTop:12,alignItems:"center"}}>
     <input style={input} value={regName} onChange={e=>setRegName(e.target.value)} placeholder="Nombre completo" />
@@ -228,7 +228,7 @@ export default function ExpView(){
   {/* TIMELINE DEL PACIENTE */}
   <section style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-    <h2 style={{fontSize:18,margin:0}}>Timeline del paciente</h2>
+    <h2 {...anchor("Timeline del paciente")} style={{fontSize:18,margin:0}}>Timeline del paciente</h2>
     <div style={{display:"flex",gap:8}}>
      <button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={exportRecord}>{busy==="exp"?"Exportando…":"Exportar expediente"}</button>
      <button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={loadTimeline}>{busy==="tl"?"Cargando…":"Actualizar"}</button>
@@ -263,7 +263,7 @@ export default function ExpView(){
   {/* ENCUENTRO */}
   <section style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-    <h2 style={{fontSize:18,margin:0}}>Encuentro</h2>{enc&&<span style={stateBadge(enc.state)}>{enc.state}</span>}
+    <h2 {...anchor("Encuentro")} style={{fontSize:18,margin:0}}>Encuentro</h2>{enc&&<span style={stateBadge(enc.state)}>{enc.state}</span>}
    </div>
    {!enc?<div style={{marginTop:14}}>
     <label htmlFor="patient-id-input" style={lbl}>ID de paciente</label><input id="patient-id-input" style={input} value={patientId} onChange={e=>setPatientId(e.target.value)} />
@@ -287,7 +287,7 @@ export default function ExpView(){
 
   {/* MEDICACIÓN */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Medicación</h2>
+   <h2 {...anchor("Medicación")} style={{fontSize:18,margin:0}}>Medicación</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Proponer una medicación no exige ser médico; sólo un médico puede prescribirla (Physician Control).</p>
    <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 90px 1fr",gap:10,marginTop:12}}>
     <input style={input} value={drug} onChange={e=>setDrug(e.target.value)} placeholder="Fármaco (ej. Amoxicilina)" />
@@ -316,7 +316,7 @@ export default function ExpView(){
   {/* PRESCRIPCIÓN SEGURA (panel 3) — dry-run de las barreras antes de prescribir */}
   <section className="span2" style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
-    <div><h2 style={{fontSize:18,margin:0}}>Prescripción segura</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Verifica antes de prescribir. Previene errores, protege al paciente. Determinista, sin IA generativa.</p></div>
+    <div><h2 {...anchor("Prescripción segura")} style={{fontSize:18,margin:0}}>Prescripción segura</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Verifica antes de prescribir. Previene errores, protege al paciente. Determinista, sin IA generativa.</p></div>
     {snap?.labs.egfr!==undefined&&<span style={{fontSize:12,color:P.muted}}>eGFR paciente: <b>{snap?.labs.egfr} mL/min</b>{snap?.labs.egfrStage?` · categoría ${snap.labs.egfrStage} (una creatinina: no confirma ERC)`:""}</span>}
    </div>
    <div className="mos-rx-form">
@@ -365,7 +365,7 @@ export default function ExpView(){
 
   {/* RESULTADOS DIAGNÓSTICOS */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Resultados diagnósticos</h2>
+   <h2 {...anchor("Resultados diagnósticos")} style={{fontSize:18,margin:0}}>Resultados diagnósticos</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Closed-loop: un resultado <b>crítico</b> que requirió acción y no se ha cerrado <b>bloquea la firma</b> del encuentro (Zero Lost Follow-Up).</p>
    <div style={{display:"flex",gap:10,marginTop:12,alignItems:"center",flexWrap:"wrap"}}>
     <select aria-label="Analito" style={{...input,maxWidth:200}} value={resQuick.analyte} onChange={e=>setResQuick({analyte:e.target.value,value:"",unit:canonicalUnitOf(e.target.value)??""})}>{labReferenceRanges().map(a=><option key={a.analyte} value={a.analyte}>{a.analyte}</option>)}</select>
@@ -387,7 +387,7 @@ export default function ExpView(){
 
   {/* EVOLUCIÓN LONGITUDINAL (panel 4) */}
   <section className="span2" style={card}>
-   <div><h2 style={{fontSize:18,margin:0}}>Evolución longitudinal</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Tendencias que cuentan la historia completa. Valores medidos, sin proyección.</p></div>
+   <div><h2 {...anchor("Evolución longitudinal")} style={{fontSize:18,margin:0}}>Evolución longitudinal</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Tendencias que cuentan la historia completa. Valores medidos, sin proyección.</p></div>
    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:12}}>
     {(["HBA1C","GLUCOSE","LDL","CREATININE"] as TrendKey[]).map(k=><button key={k} onClick={()=>setTrendKey(k)} style={{background:trendKey===k?"#E7EEFB":"transparent",color:trendKey===k?P.blue:P.muted,border:`1px solid ${trendKey===k?"#CFE0F7":LINE}`,borderRadius:999,padding:"6px 14px",fontSize:13,fontWeight:trendKey===k?700:500,fontFamily:UI,cursor:"pointer"}}>{CHART[k].label}</button>)}
    </div>
@@ -410,7 +410,7 @@ export default function ExpView(){
 
   {/* ALERGIAS */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Alergias</h2>
+   <h2 {...anchor("Alergias")} style={{fontSize:18,margin:0}}>Alergias</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Una alergia <b>activa</b> bloquea la prescripción de un fármaco que la contenga (gate de seguridad).</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 150px 1fr",gap:10,marginTop:12}}>
     <input style={input} value={alSub} onChange={e=>setAlSub(e.target.value)} placeholder="Sustancia (ej. amoxicilina)" />
@@ -428,7 +428,7 @@ export default function ExpView(){
 
   {/* LISTA DE PROBLEMAS */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Lista de problemas</h2>
+   <h2 {...anchor("Lista de problemas")} style={{fontSize:18,margin:0}}>Lista de problemas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Diagnósticos codificados en <b>CIE-10</b> (validados contra el catálogo; la descripción es canónica). PROD-011 + interoperabilidad NOM-024.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginTop:12}}>
     <input style={input} list="icd10-list" value={probCode} onChange={e=>setProbCode(e.target.value.toUpperCase())} placeholder="Código CIE-10 (ej. E11, I10, J45.9)" />
@@ -449,7 +449,7 @@ export default function ExpView(){
 
   {/* ÓRDENES CLÍNICAS */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Órdenes clínicas</h2>
+   <h2 {...anchor("Órdenes clínicas")} style={{fontSize:18,margin:0}}>Órdenes clínicas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Lab, imagen, patología, procedimiento o referencia. Colocar/cumplir una orden exige médico.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
     <select style={input} value={orderType} onChange={e=>setOrderType(e.target.value)}>
@@ -471,7 +471,7 @@ export default function ExpView(){
 
   {/* INTERCONSULTAS / REFERENCIAS */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Interconsultas</h2>
+   <h2 {...anchor("Interconsultas")} style={{fontSize:18,margin:0}}>Interconsultas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Referencia a especialista: solicitar → aceptar → completar (o declinar/cancelar). Agregado propio con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:10,marginTop:12}}>
     <input style={input} value={refSpecialty} onChange={e=>setRefSpecialty(e.target.value)} placeholder="Especialidad (ej. Cardiología)" />
@@ -492,7 +492,7 @@ export default function ExpView(){
 
   {/* AGENDA / CITAS */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Agenda</h2>
+   <h2 {...anchor("Agenda")} style={{fontSize:18,margin:0}}>Agenda</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cita del paciente: agendar → registrar llegada → completar (o no-show/cancelar). Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:10,marginTop:12}}>
     <input style={input} type="datetime-local" value={apptStart} onChange={e=>setApptStart(e.target.value)} />
@@ -516,7 +516,7 @@ export default function ExpView(){
 
   {/* VACUNAS / CARTILLA */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Vacunas</h2>
+   <h2 {...anchor("Vacunas")} style={{fontSize:18,margin:0}}>Vacunas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cartilla longitudinal: indicar → aplicar (o rechazar); tras aplicar puede registrarse un evento adverso (farmacovigilancia). Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",gap:10,marginTop:12}}>
     <input style={input} value={immCode} onChange={e=>setImmCode(e.target.value)} placeholder="Vacuna (ej. SRP, Hexavalente, Influenza)" />
@@ -536,7 +536,7 @@ export default function ExpView(){
 
   {/* SIGNOS VITALES */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Signos vitales</h2>
+   <h2 {...anchor("Signos vitales")} style={{fontSize:18,margin:0}}>Signos vitales</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Observaciones append-only: el valor histórico nunca se sobrescribe; cada corrección es una enmienda con motivo. Se puede marcar una toma como capturada por error.</p>
    <div style={{display:"grid",gridTemplateColumns:"150px 1fr 120px",gap:10,marginTop:12}}>
     <select style={input} value={vitType} onChange={e=>setVitType(e.target.value)}>
@@ -559,7 +559,7 @@ export default function ExpView(){
 
   {/* PLAN DE CUIDADOS / METAS */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Plan de cuidados</h2>
+   <h2 {...anchor("Plan de cuidados")} style={{fontSize:18,margin:0}}>Plan de cuidados</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Metas longitudinales de crónicos: proponer → activar → lograr, con pausa/reanudación. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
     <select style={input} value={planCat} onChange={e=>setPlanCat(e.target.value)}>
@@ -581,7 +581,7 @@ export default function ExpView(){
 
   {/* FACTURACIÓN / RECLAMACIONES */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Facturación</h2>
+   <h2 {...anchor("Facturación")} style={{fontSize:18,margin:0}}>Facturación</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Ciclo de ingresos (seguimiento de estado, no mueve dinero): borrador → codificar → enviar → pagada/rechazada, con reenvío. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",gap:10,marginTop:12}}>
     <input style={input} value={clmAmount} onChange={e=>setClmAmount(e.target.value)} placeholder="Monto (ej. 1500.00)" />
@@ -601,7 +601,7 @@ export default function ExpView(){
 
   {/* CONSENTIMIENTO INFORMADO */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Consentimiento informado</h2>
+   <h2 {...anchor("Consentimiento informado")} style={{fontSize:18,margin:0}}>Consentimiento informado</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Registro clínico-legal (NOM-004 / aviso de privacidad): redactar → presentar → otorgar/rechazar; un consentimiento otorgado puede revocarse. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
     <select style={input} value={csType} onChange={e=>setCsType(e.target.value)}>
@@ -623,7 +623,7 @@ export default function ExpView(){
 
   {/* INTERNAMIENTO / HOSPITALIZACIÓN */}
   {hospitalOn&&<section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Internamiento</h2>
+   <h2 {...anchor("Internamiento")} style={{fontSize:18,margin:0}}>Internamiento</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Episodio de hospitalización: admitir → trasladar (unidad) → dar de alta; cancelable si fue admisión por error. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"180px 1fr",gap:10,marginTop:12}}>
     <select style={input} value={admUnit} onChange={e=>setAdmUnit(e.target.value)}>
@@ -645,7 +645,7 @@ export default function ExpView(){
 
   {/* MUESTRAS / CADENA DE CUSTODIA */}
   {hospitalOn&&<section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Muestras de laboratorio</h2>
+   <h2 {...anchor("Muestras de laboratorio")} style={{fontSize:18,margin:0}}>Muestras de laboratorio</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cadena de custodia pre-analítica: recolectar → enviar → recibir → resultar; rechazable en cualquier etapa. Una muestra rechazada aparece como pendiente HIGH en care gaps.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
     <select style={input} value={specType} onChange={e=>setSpecType(e.target.value)}>
@@ -667,7 +667,7 @@ export default function ExpView(){
 
   {/* INCIDENTES / SEGURIDAD DEL PACIENTE */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Incidentes de seguridad</h2>
+   <h2 {...anchor("Incidentes de seguridad")} style={{fontSize:18,margin:0}}>Incidentes de seguridad</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Reporte de eventos adversos (farmacovigilancia): reportar → revisar → escalar/resolver. Un incidente abierto aparece como pendiente HIGH en care gaps. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 150px 1fr",gap:10,marginTop:12}}>
     <select style={input} value={incCat} onChange={e=>setIncCat(e.target.value)}>
@@ -690,7 +690,7 @@ export default function ExpView(){
 
   {/* TRIAGE / CLASIFICACIÓN DE ACUIDAD */}
   {hospitalOn&&<section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Triage</h2>
+   <h2 {...anchor("Triage")} style={{fontSize:18,margin:0}}>Triage</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Clasificación de acuidad (urgencias): arribar → iniciar → clasificar ESI (re-evaluable) → cerrar, o LWBS. Un paciente sin triage completado es un pendiente HIGH en care gaps.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginTop:12}}>
     <input style={input} value={trComplaint} onChange={e=>setTrComplaint(e.target.value)} placeholder="Motivo de consulta (ej. Dolor torácico)" />
@@ -709,7 +709,7 @@ export default function ExpView(){
 
   {/* HERIDAS / LESIONES POR PRESIÓN */}
   {hospitalOn&&<section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Cuidado de heridas</h2>
+   <h2 {...anchor("Cuidado de heridas")} style={{fontSize:18,margin:0}}>Cuidado de heridas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Lesión por presión (UPP) longitudinal: documentar estadio → re-valorar (append-only) → cicatrizar/escalar. Métrica de calidad. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"180px 180px auto",gap:10,marginTop:12}}>
     <select style={input} value={wnLoc} onChange={e=>setWnLoc(e.target.value)}>
@@ -733,7 +733,7 @@ export default function ExpView(){
 
   {/* TRANSFUSIONES */}
   {hospitalOn&&<section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Transfusiones</h2>
+   <h2 {...anchor("Transfusiones")} style={{fontSize:18,margin:0}}>Transfusiones</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Medicina transfusional con verificación pre-transfusional: ordenar → cruzar (crossmatch) → iniciar → completar; una reacción se registra como pendiente HIGH (hemovigilancia). Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 120px auto",gap:10,marginTop:12}}>
     <select style={input} value={tfProduct} onChange={e=>setTfProduct(e.target.value)}>
@@ -756,7 +756,7 @@ export default function ExpView(){
 
   {/* CIRUGÍA / QUIRÓFANO */}
   {hospitalOn&&<section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Cirugía</h2>
+   <h2 {...anchor("Cirugía")} style={{fontSize:18,margin:0}}>Cirugía</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Caso quirúrgico con barrera de seguridad: agendar → time-out OMS (checklist) → iniciar → completar. No se puede iniciar sin el time-out. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 150px auto",gap:10,marginTop:12}}>
     <input style={input} value={sgProc} onChange={e=>setSgProc(e.target.value)} placeholder="Procedimiento (ej. Colecistectomía)" />
@@ -777,7 +777,7 @@ export default function ExpView(){
 
   {/* DIÁLISIS */}
   {hospitalOn&&<section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Diálisis</h2>
+   <h2 {...anchor("Diálisis")} style={{fontSize:18,margin:0}}>Diálisis</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Terapia de reemplazo renal: agendar → iniciar → completar; una interrupción por complicación se registra como pendiente HIGH y puede reanudarse. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 200px auto",gap:10,marginTop:12}}>
     <select style={input} value={dzMod} onChange={e=>setDzMod(e.target.value)}>
@@ -801,7 +801,7 @@ export default function ExpView(){
 
   {/* DOCUMENTOS CLÍNICOS */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Documentos clínicos</h2>
+   <h2 {...anchor("Documentos clínicos")} style={{fontSize:18,margin:0}}>Documentos clínicos</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>La firma produce un snapshot reproducible e inmutable; toda corrección posterior es un addendum append-only (PROD-014-R022).</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 200px",gap:10,marginTop:12}}>
     <input style={input} value={docTitle} onChange={e=>setDocTitle(e.target.value)} placeholder="Título (ej. Nota de evolución)" />
@@ -825,7 +825,7 @@ export default function ExpView(){
 
   {/* OBLIGACIONES / SEGUIMIENTO */}
   <section style={card}>
-   <h2 style={{fontSize:18,margin:0}}>Obligaciones de seguimiento</h2>
+   <h2 {...anchor("Obligaciones de seguimiento")} style={{fontSize:18,margin:0}}>Obligaciones de seguimiento</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Care gaps / follow-up. Completar exige evidencia (Zero Lost Follow-Up: nada se cierra sin constancia).</p>
    <div style={{display:"flex",gap:10,marginTop:12,alignItems:"center"}}>
     <input style={{...input,maxWidth:420}} value={obKind} onChange={e=>setObKind(e.target.value)} placeholder="Tipo (ej. Contactar por resultado crítico)" />

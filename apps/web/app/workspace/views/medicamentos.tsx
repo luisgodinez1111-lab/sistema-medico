@@ -71,7 +71,7 @@ export default function MedicamentosView(){
          {IX_FACTORS.map(f=>{const on=ixFactors.includes(f);return <button key={f} onClick={()=>toggleF(f)} style={{display:"inline-flex",alignItems:"center",gap:6,border:on?`1px solid ${P.purple}`:`1px solid ${LINE}`,background:on?"#EEEBFD":P.white,color:on?P.purple:P.muted,borderRadius:20,padding:"7px 12px",fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:UI}}><span style={{width:14,height:14,borderRadius:4,border:on?"0":"1.5px solid #C7CCE0",background:on?P.purple:"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:9}}>{on?"✓":""}</span>{f}</button>;})}
         </div>
        </div>
-       <button onClick={run} disabled={ixBusy||ixDrugs.length<1} style={{border:0,background:ixDrugs.length<1?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"12px 16px",fontWeight:700,fontSize:14,cursor:ixDrugs.length<1?"default":"pointer",fontFamily:UI,opacity:ixBusy?.7:1}}>{ixBusy?"Analizando…":"Verificar interacciones"}</button>
+       <button onClick={run} disabled={ixBusy||ixDrugs.length<2} style={{border:0,background:ixDrugs.length<2?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"12px 16px",fontWeight:700,fontSize:14,cursor:ixDrugs.length<2?"default":"pointer",fontFamily:UI,opacity:ixBusy?.7:1}}>{ixBusy?"Analizando…":"Verificar interacciones"}</button>
        <div style={{fontSize:11.5,color:P.muted,lineHeight:1.5}}>Motor determinista por clase farmacológica y factores del paciente. Sin IA. La verificación no bloquea la prescripción; es una consulta previa.</div>
       </div>
       {/* — Columna de resultados — */}

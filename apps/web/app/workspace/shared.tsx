@@ -4,6 +4,7 @@
 // anatomía viven allí; aquí solo se conservan los nombres que usan las vistas.
 import {primitive,typography,LINE as DS_LINE,buttonStyle,cardStyle,inputStyle,badgeStyle,toneOfState,patientHeaderStyle} from "../../../../packages/design-system/src";
 import{lookupIcd10}from"../../../../packages/terminology/src";
+import{goalFor,INDIVIDUALIZATION_NOTICE}from"../../../../packages/care-goals/src";
 // Solo el FORMATO del UUID (módulo sin dependencias de Node: el bundle del cliente no puede traer node:crypto).
 import {uuidFromDigest} from "../../../../packages/canonical-json/src/uuid";
 
@@ -188,10 +189,22 @@ export const blockDetails=(r:{body:Record<string,unknown>}):BlockDetails=>((r.bo
 export type Series=readonly{value:number;at:string}[];
 export type Trends=Readonly<{series:Record<string,Series>;latest:{LDL:number|null;CREATININE:number|null;UACR:number|null;EGFR:number|null}}>;
 export type TrendKey="HBA1C"|"GLUCOSE"|"LDL"|"CREATININE";
-export const CHART:Record<TrendKey,{label:string;unit:string;target?:number;targetLabel?:string;domain:[number,number]}>={
- HBA1C:{label:"HbA1c",unit:"%",target:7,targetLabel:"Objetivo <7%",domain:[4,11]},
- GLUCOSE:{label:"Glucosa (ayuno)",unit:"mg/dL",target:100,targetLabel:"Meta <100 mg/dL",domain:[60,220]},
- LDL:{label:"Colesterol LDL",unit:"mg/dL",target:100,targetLabel:"Meta <100 mg/dL",domain:[40,220]},
+// Auditoría 2026-09-19, anexo R05a (WS1-09) — LAS METAS DEL GRÁFICO SALEN DEL MÓDULO CON FUENTE, no de esta tabla.
+//
+// El gráfico pintaba una FRANJA VERDE de «zona de meta» con su línea y su etiqueta —«Objetivo <7%», «Meta <100 mg/dL»—
+// sobre la serie de CUALQUIER paciente. Una franja verde es la afirmación más fuerte que puede hacer una pantalla: «por
+// debajo de esta línea, bien». Dos de las tres estaban mal para el paciente al que más se le miran:
+//   · GLUCOSA «<100 mg/dL» a alguien CON diabetes es MÁS ESTRICTO que el rango preprandial recomendado (80–130) y empuja
+//     a la hipoglucemia. «<100» es el umbral de NORMALIDAD, un criterio diagnóstico, no una meta de tratamiento.
+//   · LDL «<100 mg/dL» no es una meta universal: se fija por categoría de riesgo cardiovascular, y este sistema todavía
+//     no la calcula. Así que el gráfico ya NO dibuja una meta de LDL: dibuja la tendencia y dice de qué depende la meta.
+// `goal` es el nombre de la métrica en `packages/care-goals`; de ahí salen la etiqueta y el aviso de individualización.
+export const CHART:Record<TrendKey,{label:string;unit:string;target?:number;targetLow?:number;targetLabel?:string;goal?:string;domain:[number,number]}>={
+ HBA1C:{label:"HbA1c",unit:"%",target:7,targetLabel:"Meta por omisión <7%",goal:"HbA1c",domain:[4,11]},
+ // `targetLow` existe por la misma razón: la franja verde de la glucosa NO puede bajar hasta el suelo del gráfico, porque
+ // entonces pintaría 45 mg/dL —una hipoglucemia— como «en meta». La zona es un RANGO, y por debajo de 80 se sale de él.
+ GLUCOSE:{label:"Glucosa (ayuno)",unit:"mg/dL",target:130,targetLow:80,targetLabel:"Rango 80–130 con diabetes",goal:"Glucosa en ayuno",domain:[60,220]},
+ LDL:{label:"Colesterol LDL",unit:"mg/dL",goal:"Colesterol LDL",domain:[40,220]},
  CREATININE:{label:"Creatinina",unit:"mg/dL",domain:[0.4,3]},
 };
 export const fmtN=(v:number)=>v%1?v.toFixed(1):String(v);
@@ -208,15 +221,28 @@ export function trendChart(series:Series,key:TrendKey){
  const yticks=[dmin,(dmin+dmax)/2,dmax];
  const fmt=(at:string)=>{try{return new Date(at).toLocaleDateString("es-MX",{month:"short",year:"2-digit"});}catch{return "";}};
  const xIdx=series.length<=6?series.map((_,i)=>i):[0,Math.round((series.length-1)/2),series.length-1];
- return <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",maxWidth:W}} role="img" aria-label={`Tendencia de ${cfg.label}`}>
-  {cfg.target!==undefined&&y(cfg.target)<cb&&<rect x={padL} y={y(cfg.target)} width={W-padL-padR} height={cb-y(cfg.target)} fill="#EAF7EF"/>}
+ // R05a/WS1-09: la franja de meta llega hasta `targetLow` cuando la métrica tiene cota inferior (la glucosa la tiene), y
+ // no hasta el suelo del gráfico. Sin esto, la zona verde declararía «en meta» una hipoglucemia.
+ const bandaTop=cfg.target!==undefined?y(cfg.target):0;
+ const bandaBot=cfg.targetLow!==undefined?Math.min(y(cfg.targetLow),cb):cb;
+ const goal=cfg.goal?goalFor(cfg.goal):undefined;
+ return <>
+ <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",maxWidth:W}} role="img" aria-label={`Tendencia de ${cfg.label}`}>
+  {cfg.target!==undefined&&bandaTop<bandaBot&&<rect x={padL} y={bandaTop} width={W-padL-padR} height={bandaBot-bandaTop} fill="#EAF7EF"/>}
   {yticks.map((t,i)=><g key={i}><line x1={padL} y1={y(t)} x2={W-padR} y2={y(t)} stroke="#EEF1F6"/><text x={padL-6} y={y(t)+3} textAnchor="end" fontSize="10" fill="#8a8b9a">{fmtN(t)}</text></g>)}
   {cfg.target!==undefined&&<><line x1={padL} y1={y(cfg.target)} x2={W-padR} y2={y(cfg.target)} stroke="#168B5B" strokeDasharray="4 3" strokeWidth="1.2"/><text x={padL+6} y={y(cfg.target)-4} textAnchor="start" fontSize="10" fontWeight="600" fill="#168B5B">{cfg.targetLabel}</text></>}
+  {cfg.targetLow!==undefined&&y(cfg.targetLow)<cb&&<line x1={padL} y1={y(cfg.targetLow)} x2={W-padR} y2={y(cfg.targetLow)} stroke="#168B5B" strokeDasharray="4 3" strokeWidth="1.2"/>}
   <path d={area} fill="#1769E014"/>
   <path d={line} fill="none" stroke="#1769E0" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round"/>
   {series.map((p,i)=>{const last=i===series.length-1;return <g key={i}><circle cx={x(i)} cy={y(p.value)} r={last?4.5:3.2} fill="#fff" stroke="#1769E0" strokeWidth={last?2.4:1.8}/><text x={x(i)} y={y(p.value)-9} textAnchor="middle" fontSize="10" fontWeight={last?700:600} fill={last?"#14213D":"#5F6B7A"}>{fmtN(p.value)}</text></g>;})}
   {xIdx.map(i=>{const s=series[i];return s?<text key={i} x={x(i)} y={H-14} textAnchor="middle" fontSize="10" fill="#8a8b9a">{fmt(s.at)}</text>:null;})}
- </svg>;
+ </svg>
+ {/* R05a/WS1-09: la meta nunca se presenta sola. Debajo del gráfico van la población en la que aplica y el aviso de que
+     la meta del paciente la fija su médico; si la métrica no tiene meta universal (LDL), se dice de qué depende. */}
+ {goal&&<div style={{fontSize:11.5,color:P.muted,marginTop:2,lineHeight:1.45}}>
+  <strong style={{color:"#3C4658",fontWeight:600}}>{goal.defaultTarget}</strong> · {goal.appliesTo} {INDIVIDUALIZATION_NOTICE}
+ </div>}
+ </>;
 }
 // Severidad de hallazgo -> etiqueta + color del panel "Alertas y sugerencias".
 export const SEV:Record<"CRITICAL"|"WARNING"|"INFO",{label:string;bg:string;fg:string;bd:string}>={
@@ -296,10 +322,18 @@ export const ICONS:Record<string,string>={
  lock:"M6 11h12v9H6zM9 11V8a3 3 0 016 0v3",
 };
 export function NavIcon({k}:{k:string}){return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={ICONS[k]??ICONS.home}/></svg>;}
-export function scrollToSection(h2Text:string){
- if(!h2Text){window.scrollTo({top:0,behavior:"smooth"});return;}
- const h=Array.from(document.querySelectorAll("h2")).find(e=>e.textContent?.trim()===h2Text);
- h?.closest("section")?.scrollIntoView({behavior:"smooth",block:"start"});
+// Auditoría 2026-09-19, anexo R05a (WS1-15a) — la navegación entre ventanas del expediente se hace por ANCLA, no buscando
+// un `<h2>` por su texto exacto en todo el documento. Lo anterior fallaba de dos formas: al cambiar el texto de un título
+// el botón dejaba de navegar EN SILENCIO, y si el mismo texto aparecía en otra parte del DOM (sidebar, otra vista) el
+// scroll se iba al sitio equivocado. El ancla se deriva del nombre de la ventana, así que el texto visible puede cambiar
+// sin romper la navegación, y un guardián comprueba que todo destino navegable tenga su ancla en el expediente.
+export const sectionId=(name:string)=>"mos-"+name.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
+/** Ancla de una ventana del expediente. Va en su propio título: `<h2 {...anchor("Medicación")}>Medicación</h2>`. */
+export const anchor=(name:string)=>({id:sectionId(name)});
+export function scrollToSection(name:string){
+ if(!name){window.scrollTo({top:0,behavior:"smooth"});return;}
+ const el=document.getElementById(sectionId(name));
+ if(el)(el.closest("section")??el).scrollIntoView({behavior:"smooth",block:"start"});
 }
 export const RAIL_CSS=`
 /* App-shell: expediente como cockpit (sidebar oscuro + body + rejilla de ventanas) */

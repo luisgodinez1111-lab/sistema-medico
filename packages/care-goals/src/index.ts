@@ -65,6 +65,34 @@ export const CARE_GOALS:readonly CareGoal[]=[
   source:"Organización Mundial de la Salud, clasificación del índice de masa corporal en adultos.",
   meetsDefault:(v)=>v>=18.5&&v<25,
  },
+ // Auditoría R05a (WS1-09) — el GRÁFICO de tendencias pintaba además una franja verde de «zona de meta» con la línea
+ // «Meta <100 mg/dL» para glucosa y LDL, y «Objetivo <7%» para HbA1c, sobre la serie de CUALQUIER paciente. Una franja
+ // verde es la afirmación visual más fuerte que puede hacer una pantalla: «por debajo de esta línea, bien».
+ {
+  metric:"Glucosa en ayuno",defaultTarget:"80 – 130 mg/dL (con diabetes)",unit:"mg/dL",
+  appliesTo:"Adultos no embarazados CON diabetes: es el rango preprandial recomendado. En una persona SIN diabetes, < 100 mg/dL es el umbral de normalidad —no una meta de tratamiento— y 100–125 define la prediabetes.",
+  individualizeWhen:[
+   "El defecto que corrigió este hallazgo: mostrar «< 100 mg/dL» como meta a una persona CON diabetes es MÁS ESTRICTO que el rango recomendado y empuja a la hipoglucemia.",
+   "Adulto mayor frágil, con comorbilidad avanzada o esperanza de vida limitada: rango más laxo.",
+   "Antecedente de hipoglucemia grave o hipoglucemias inadvertidas.",
+   "Embarazo: las metas son distintas y más estrictas; no aplica esta tabla.",
+   "Enfermedad renal crónica avanzada: mayor riesgo de hipoglucemia.",
+  ],
+  source:"American Diabetes Association, Standards of Care in Diabetes (Glycemic Targets): glucosa capilar preprandial 80–130 mg/dL en la mayoría de adultos no embarazados con diabetes. El umbral de normalidad en ayuno (< 100 mg/dL) es diagnóstico, no una meta terapéutica.",
+  meetsDefault:(v)=>v>=80&&v<=130,
+ },
+ {
+  metric:"Colesterol LDL",defaultTarget:"Depende del riesgo cardiovascular",unit:"mg/dL",
+  appliesTo:"Nadie de forma universal: la meta de LDL se fija por CATEGORÍA DE RIESGO cardiovascular, y este sistema no calcula todavía esa categoría, así que no declara una meta por omisión.",
+  individualizeWhen:[
+   "Riesgo muy alto (enfermedad cardiovascular establecida, evento reciente): las guías piden metas bastante más bajas que 100 mg/dL.",
+   "Riesgo alto (diabetes con daño de órgano blanco, hipercolesterolemia familiar, ERC): meta más baja que en prevención primaria.",
+   "Prevención primaria de riesgo bajo: la decisión no es un umbral aislado sino el riesgo global a 10 años.",
+   "Embarazo y lactancia: las estatinas están contraindicadas; la meta no aplica.",
+  ],
+  source:"Las guías de dislipidemia (ACC/AHA y ESC/EAS) estratifican la meta de LDL por categoría de riesgo; no existe un umbral único aplicable a todo paciente. Los valores concretos por categoría quedan pendientes de la validación clínica del contenido (ADR-0300).",
+  meetsDefault:null, // no se declara «en meta» sin categoría de riesgo: sería inventar la meta
+ },
  {
   metric:"Peso",defaultTarget:"Seguimiento, sin meta única",unit:"kg",
   appliesTo:"Todos. El peso se sigue como tendencia; su meta depende del objetivo clínico del paciente.",

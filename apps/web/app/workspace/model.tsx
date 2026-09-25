@@ -108,7 +108,10 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const[medOnlyRenal,setMedOnlyRenal]=useState(false); // solo con alerta renal
  const[medSel,setMedSel]=useState<string|null>(null); // principio activo seleccionado (detalle)
  // Pestaña Interacciones (S8.3) — verificador de conjunto cableado a POST /api/v1/interactions
- const[ixDrugs,setIxDrugs]=useState<string[]>(["Sertralina","Ibuprofeno","Metformina"]);
+ // Auditoría R05a (WS1-15c): arrancaba con ["Sertralina","Ibuprofeno","Metformina"] — tres fármacos de EJEMPLO sin nada que
+ // dijera que lo eran, dentro de un verificador de interacciones. Se lee como la medicación de alguien: o el médico cree que
+ // son del paciente, o pulsa «Verificar» y recibe un veredicto real sobre un conjunto inventado. Arranca VACÍO.
+ const[ixDrugs,setIxDrugs]=useState<string[]>([]);
  const[ixFactors,setIxFactors]=useState<string[]>([]);
  const[ixInput,setIxInput]=useState("");
  const[ixRes,setIxRes]=useState<IxResult|null>(null);

@@ -936,17 +936,28 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.queryByText("Registro rápido")).toBeNull();
  });
 
- it("Medicamentos › Interacciones (S8.3): verificador de conjunto cableado — chips por defecto, factores y hallazgos con severidad",async()=>{
+ it("Medicamentos › Interacciones (S8.3): arranca VACÍO, exige dos fármacos y verifica los que escribe el médico",async()=>{
+  // Auditoría R05a (WS1-15c): esta prueba afirmaba «chips por defecto» — fijaba el defecto. El verificador arrancaba con
+  // Sertralina/Ibuprofeno/Metformina precargados, sin decir que eran de ejemplo, en una pantalla que emite un veredicto de
+  // interacciones. Ahora se comprueba lo contrario: nace vacío y el conjunto lo pone el médico.
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:/Medicamentos/})); // vista Medicamentos
   fireEvent.click(screen.getByRole("button",{name:/^Interacciones$/})); // pestaña
-  // entrada: medicamentos por defecto del ejemplo insignia + acción de verificación
   expect(screen.getByText("Medicamentos a evaluar")).toBeTruthy();
+  expect(screen.getByText("Agrega dos o más medicamentos.")).toBeTruthy(); // nace vacío
+  expect(screen.queryByText("Sertralina"),"ningún fármaco precargado").toBeNull();
+  expect((screen.getByRole("button",{name:"Verificar interacciones"}) as HTMLButtonElement).disabled,"sin fármacos no se verifica").toBe(true);
+  // El médico escribe el conjunto real que quiere evaluar.
+  const caja=screen.getByPlaceholderText(/Ej\. Sertralina/);
+  const agregar=screen.getByRole("button",{name:"Agregar"});
+  fireEvent.change(caja,{target:{value:"Sertralina"}});fireEvent.click(agregar);
+  expect((screen.getByRole("button",{name:"Verificar interacciones"}) as HTMLButtonElement).disabled,"con UN fármaco tampoco: no hay par que interactúe").toBe(true);
+  fireEvent.change(caja,{target:{value:"Ibuprofeno"}});fireEvent.click(agregar);
   expect(screen.getAllByText("Sertralina").length).toBeGreaterThan(0);
   expect(screen.getAllByText("Ibuprofeno").length).toBeGreaterThan(0);
   expect(screen.getByText("Factores del paciente")).toBeTruthy();
   const verify=screen.getByRole("button",{name:"Verificar interacciones"});
-  expect(verify).toBeTruthy();
+  expect((verify as HTMLButtonElement).disabled).toBe(false);
   fireEvent.click(verify);
   // resultado desde el endpoint (mock): hallazgo Mayor con etiqueta en TEXTO (no solo color) + mecanismo
   const badge=await screen.findByText("Mayor",{},{timeout:2500});
