@@ -448,10 +448,10 @@ de auditoría es la línea base del proyecto y conviene que su fe de errores viv
 | R11-02 | ALTA | ABIERTO | Las pruebas en vivo no limpian lo que crean. La base es DESECHABLE por contrato (P-07), así que el impacto real es nulo; pendiente de declararlo o de añadir limpieza. |
 | R11-03 | ALTA | ABIERTO | `_conc_probe`: limpieza fuera del `finally`. Pendiente de medir si el archivo sigue existiendo. |
 | R11-06 | ALTA | PARCIAL | Hay módulos compartidos (`_live-env`, `_patient`, `_physician-credentials`), pero el cuerpo de los 107 proofs sigue siendo plantilla repetida. |
-| R11-07 | BAJA | ABIERTO | **101 scripts** llevan `SESSION_SIGNING_SECRET ?? "epic-x-secret"` como respaldo hardcodeado. |
+| R11-07 | BAJA | CERRADO (14b) | Eran **101 scripts** con su propio secreto literal, uno por epic. Se resuelve una vez en el prólogo común: si el entorno trae el secreto se respeta, y si no se genera uno ALEATORIO por corrida —cada prueba firma y verifica dentro del mismo proceso, así que un secreto efímero basta y además no existe fuera de la corrida—. Comprobado con las 107 pruebas en vivo **con la variable borrada del entorno**. La guarda `no-hardcoded-secrets.test.ts` es más amplia que el hallazgo: prohíbe el valor por omisión de cuatro variables de secreto en todo el repositorio. |
 | R11-10 | ALTA | ABIERTO (dueño) | El workflow de regresión en vivo no corre: depende de la facturación de GitHub Actions (P-01). |
 | R11-21 | MEDIA | PARCIAL (14c) | El esquema de la reconciliación se normalizó en este lote (cita vs. nota); la trazabilidad formal vacía sigue pendiente. |
 | R11-23 | BAJA | ABIERTO | `not-wired-registry.json` sigue siendo autodeclarado sin verificación. |
 | R11-25 | ALTA | ABIERTO | Política de lockfile: producción menos estricta que CI. |
-| R11-27 | BAJA | ABIERTO | El devcontainer se llama «Medical OS v15». |
+| R11-27 | BAJA | CERRADO (14b) | El devcontainer dejó de llamarse «Medical OS v15». |
 | R11-29 | MEDIA | ABIERTO | Corpus sintéticos versionados; pendiente de medir el tamaño real que queda. |
