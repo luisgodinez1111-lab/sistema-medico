@@ -972,11 +972,22 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getByRole("heading",{name:"Nuevo problema"})).toBeTruthy();
   expect(screen.getByText("1. Información del problema")).toBeTruthy();
   expect(screen.getByRole("button",{name:/Guardar problema/})).toBeTruthy();
+  // Lote E — dead-UI del formulario eliminado (directiva: cero controles muertos)
+  expect(screen.queryByText("Prioridad")).toBeNull();
+  expect(screen.queryByText(/Etiquetas \/ Palabras clave/)).toBeNull();
   fireEvent.click(screen.getByRole("button",{name:"← Volver"}));
   // navegación a Plantillas
   fireEvent.click(screen.getByRole("button",{name:/Plantillas/}));
   expect(screen.getByRole("heading",{name:"Plantillas de problemas"})).toBeTruthy();
   expect(screen.getAllByText("Diabetes mellitus tipo 2").length).toBeGreaterThan(0);
+  // Lote E — botones muertos eliminados + búsqueda de plantillas REAL (filtra el catálogo)
+  expect(screen.queryByText("+ Nueva plantilla")).toBeNull();
+  expect(screen.queryByText(/Importar\/Exportar/)).toBeNull();
+  expect(screen.queryByText(/Editar plantilla/)).toBeNull();
+  const tplSearch=screen.getByPlaceholderText(/Buscar plantilla por nombre/);
+  fireEvent.change(tplSearch,{target:{value:"asma"}});
+  expect(screen.getAllByText("Asma").length).toBeGreaterThan(0);
+  expect(screen.queryByText("Diabetes mellitus tipo 2")).toBeNull();
  });
 
  it("vista Alergias (S-ALERGIAS): registro clínica-wide cableado a GET /api/v1/allergies — KPIs, tabla, detalle y gráficas",async()=>{

@@ -2,10 +2,13 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "problemas" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {apiRequest} from "../../../lib/session-client";
+import {useState} from "react";
 import{Check,edadDe,card,P,LINE,UI,errMsg,userMessage,act,actRow,scrollToSection,type IcdEntry}from"../shared";
 import{useWorkspace}from"../context";
 export default function ProblemasView(){
  const{patientList,pfSearchErr,setPfSearchErr,probScreen,setPfName,setPfCode,setPfResults,setPfDesc,setPfNotes,setPfType,setPfEstado,setPfSev,setPfOnset,pfCode,setPfMsg,patientId,pfOnset,pfEstado,pfNotes,setPfBusy,pfDesc,pfType,pfSev,setProbReg,setProbScreen,pfBusy,pfName,pfResults,pfMsg,probReg,probPlantCat,setProbPlantCat,probStatusF,probSearch,probSel,setProbSearch,setProbStatusF,setProbSel,selectPatientRaw,setView}=useWorkspace();
+ // Búsqueda REAL del catálogo de plantillas (filtra el catálogo local; sin backend de CRUD de plantillas).
+ const[tplQuery,setTplQuery]=useState("");
 
    // ===== MÓDULO PROBLEMAS (S-PROBLEMAS) — lista clínica-wide cableada + form Nuevo problema + Plantillas =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -77,12 +80,9 @@ export default function ProblemasView(){
          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{["Activo","Resuelto"].map(s=><button key={s} onClick={()=>setPfEstado(s)} style={seg(pfEstado===s)}>{s}</button>)}</div>
         </div>
        </div>
-       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,marginTop:20}}>
-        <div><div style={flbl}>Gravedad</div><select value={pfSev} onChange={e=>setPfSev(e.target.value)} style={selSty}>{["Leve","Moderada","Grave"].map(o=><option key={o}>{o}</option>)}</select></div>
-        <div><div style={flbl}>Prioridad</div><select style={selSty} defaultValue="Normal">{["Normal","Alta","Urgente"].map(o=><option key={o}>{o}</option>)}</select></div>
-        <div><div style={flbl}>Categoría</div><select style={selSty} defaultValue=""><option value="">Selecciona una categoría</option>{["Endocrinológicas","Cardiovasculares","Respiratorias","Psiquiátricas","Digestivas"].map(o=><option key={o}>{o}</option>)}</select></div>
+       <div style={{marginTop:20,maxWidth:260}}>
+        <div style={flbl}>Gravedad</div><select value={pfSev} onChange={e=>setPfSev(e.target.value)} style={selSty}>{["Leve","Moderada","Grave"].map(o=><option key={o}>{o}</option>)}</select>
        </div>
-       <div style={{marginTop:20}}><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Etiquetas / Palabras clave</div><input placeholder="Agregar etiqueta (presiona Enter)" style={selSty}/><div style={{display:"flex",gap:8,marginTop:8}}>{["síntomas","control","seguimiento"].map(t=><span key={t} style={{display:"inline-flex",alignItems:"center",gap:6,background:"#EEEBFD",color:P.purple,borderRadius:8,padding:"5px 10px",fontSize:12.5,fontWeight:600}}>{t}<span style={{cursor:"pointer"}}>×</span></span>)}</div></div>
        <div style={{marginTop:20}}><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Notas adicionales</div><textarea value={pfNotes} onChange={e=>setPfNotes(e.target.value.slice(0,500))} placeholder="Información adicional, contexto, observaciones..." style={{...selSty,minHeight:90,resize:"vertical"}}/><div style={{textAlign:"right",fontSize:11,color:P.muted}}>{pfNotes.length}/500</div></div>
        {pfMsg&&<div style={{marginTop:14,padding:"11px 14px",borderRadius:10,background:"#FDF4E6",border:"1px solid #F2E1C0",fontSize:13,color:"#7A5A16"}}>{pfMsg}</div>}
       </div>
@@ -90,9 +90,8 @@ export default function ProblemasView(){
        <div style={{...card2,padding:16}}>
         <div style={{fontSize:15,fontWeight:800,marginBottom:10}}>Sugerencias de diagnósticos</div>
         <input onChange={e=>searchCie(e.target.value)} placeholder="Buscar en CIE-10..." style={selSty}/>
-        <div style={{display:"flex",gap:14,marginTop:12,borderBottom:`1px solid ${LINE}`,fontSize:12.5}}>{["Más comunes","Recientes","Favoritos"].map((t,i)=><span key={t} style={{padding:"6px 0",fontWeight:i===0?700:500,color:i===0?P.purple:P.muted,borderBottom:i===0?`2px solid ${P.purple}`:"2px solid transparent",cursor:"pointer"}}>{t}</span>)}</div>
-        <div style={{marginTop:8}}>{COMMON.map(([c,d])=><div key={c} {...act(()=>pick({code:c,description:d,category:""}))} style={{display:"flex",gap:10,padding:"9px 6px",cursor:"pointer",alignItems:"center",borderRadius:8}}><span style={{fontWeight:700,color:P.purple,fontSize:12.5,minWidth:52}}>{c}</span><span style={{fontSize:12.5}}>{d}</span></div>)}</div>
-        <button style={{marginTop:10,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>⧉ Explorar catálogo CIE-10</button>
+        <div style={{fontSize:11.5,color:P.muted,margin:"10px 0 4px"}}>Diagnósticos frecuentes</div>
+        <div>{COMMON.map(([c,d])=><div key={c} {...act(()=>pick({code:c,description:d,category:""}))} style={{display:"flex",gap:10,padding:"9px 6px",cursor:"pointer",alignItems:"center",borderRadius:8}}><span style={{fontWeight:700,color:P.purple,fontSize:12.5,minWidth:52}}>{c}</span><span style={{fontSize:12.5}}>{d}</span></div>)}</div>
        </div>
        <div style={{...card2,padding:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{fontSize:15,fontWeight:800}}>Problemas recientes en el registro</div><span style={{fontSize:12,color:P.blue,cursor:"pointer"}} {...act(()=>setProbScreen("lista"))}>Ver todos</span></div>
@@ -124,37 +123,35 @@ export default function ProblemasView(){
     ];
     // Conteos reales por categoría, derivados de TPLS (sin cifras de maqueta; auditoría U-11).
     const CATS:[string,number][]=CAT_NAMES.map(c=>[c,c==="Todas las plantillas"?TPLS.length:TPLS.filter(x=>x.cat===c).length]);
-    const tpls=TPLS.filter(t=>probPlantCat==="Todas las plantillas"||t.cat===probPlantCat);
+    const tq=tplQuery.trim().toLowerCase();
+    const tpls=TPLS.filter(t=>(probPlantCat==="Todas las plantillas"||t.cat===probPlantCat)&&(!tq||`${t.name} ${t.code} ${t.desc}`.toLowerCase().includes(tq)));
     const selT=tpls[0]??TPLS[0]!;
     const useTpl=(t:Tpl)=>{setPfName(`${t.code} · ${t.name}`);setPfCode(t.code);setPfType("Crónico");setProbScreen("nuevo");};
     return <div style={{padding:"18px 24px 40px"}}>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
-      <div style={{display:"flex",alignItems:"center",gap:14}}><button onClick={()=>setProbScreen("lista")} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 14px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>← Volver</button><div><h1 style={{fontSize:26,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Plantillas de problemas</h1><p style={{color:P.muted,fontSize:13,margin:"3px 0 0"}}>Utiliza plantillas predefinidas para registrar problemas de salud de forma rápida y estandarizada.</p></div></div>
-      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 16px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>+ Nueva plantilla</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 15px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>↥ Importar/Exportar ▾</button></div>
+      <div style={{display:"flex",alignItems:"center",gap:14}}><button onClick={()=>setProbScreen("lista")} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 14px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>← Volver</button><div><h1 style={{fontSize:26,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Plantillas de problemas</h1><p style={{color:P.muted,fontSize:13,margin:"3px 0 0"}}>Catálogo de diagnósticos frecuentes. Elige una para precargar el formulario de «Nuevo problema».</p></div></div>
      </div>
-     <div style={{display:"flex",gap:10,marginTop:14,flexWrap:"wrap",alignItems:"center"}}><input placeholder="Buscar plantilla por nombre, CIE-10 o palabra clave..." style={{...selSty,flex:1,minWidth:220}}/><select style={{...selSty,width:"auto"}} defaultValue="Todas las categorías"><option>Todas las categorías</option></select><select style={{...selSty,width:"auto"}} defaultValue="Todos los grupos de edad"><option>Todos los grupos de edad</option></select><span style={{fontSize:12.5,color:P.blue,cursor:"pointer"}}>Limpiar</span></div>
+     <div style={{display:"flex",gap:10,marginTop:14,flexWrap:"wrap",alignItems:"center"}}><input value={tplQuery} onChange={e=>setTplQuery(e.target.value)} placeholder="Buscar plantilla por nombre, CIE-10 o palabra clave..." style={{...selSty,flex:1,minWidth:220}}/>{tplQuery&&<span {...act(()=>setTplQuery(""))} style={{fontSize:12.5,color:P.blue,cursor:"pointer"}}>Limpiar</span>}</div>
      <div style={{display:"grid",gridTemplateColumns:"220px 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-prob-tpl">
       <div style={{...card2,padding:14}}><div style={{fontSize:14,fontWeight:800,marginBottom:8}}>Categorías</div>{CATS.map(([c,n])=>{const on=c===probPlantCat;return <div key={c} {...act(()=>setProbPlantCat(c))} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 10px",borderRadius:9,cursor:"pointer",background:on?"#EEEBFD":"transparent",color:on?P.purple:P.ink,fontWeight:on?700:500,fontSize:13}}><span>{c}</span><span style={{fontSize:11.5,color:on?P.purple:P.muted}}>{n}</span></div>;})}</div>
       <div style={{...card2,padding:16}}>
-       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div style={{fontSize:16,fontWeight:800}}>Plantillas ({tpls.length})</div><select style={{...selSty,width:"auto",padding:"7px 10px"}} defaultValue="Más utilizadas"><option>Más utilizadas</option></select></div>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div style={{fontSize:16,fontWeight:800}}>Plantillas ({tpls.length})</div></div>
        <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:12}}>{tpls.map(t=><div key={t.code} style={{border:`1px solid ${LINE}`,borderRadius:12,padding:14,display:"flex",flexDirection:"column",gap:8}}><div style={{display:"flex",justifyContent:"space-between"}}><span style={{width:40,height:40,borderRadius:11,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center"}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 3h6l1 4H8zM7 7h10l1 13H6z"/></svg></span><span style={{color:t.fav?P.purple:"#C7CCE0"}}>{t.fav?"★":"☆"}</span></div><div><div style={{fontWeight:700,fontSize:14}}>{t.name}</div><div style={{fontSize:12,color:P.purple,fontWeight:600}}>{t.code}</div></div><div style={{fontSize:12,color:P.muted,lineHeight:1.4,minHeight:32}}>{t.desc}</div><button onClick={()=>useTpl(t)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"8px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>Usar plantilla</button></div>)}</div>
-       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:14,fontSize:13,color:P.muted}}><span>Mostrando {tpls.length} de {TPLS.length} plantillas</span><div style={{display:"flex",gap:5}}>{["1"].map((p,i)=><span key={i} style={{minWidth:30,height:30,border:`1px solid ${LINE}`,background:p==="1"?P.purple:P.white,color:p==="1"?"#fff":P.ink,borderRadius:8,display:"grid",placeItems:"center",fontSize:12.5,cursor:"pointer"}}>{p}</span>)}</div></div>
+       {tpls.length===0&&<div style={{padding:"18px 4px",fontSize:13,color:P.muted}}>Ninguna plantilla coincide con la búsqueda.</div>}
+       <div style={{marginTop:14,fontSize:13,color:P.muted}}>Mostrando {tpls.length} de {TPLS.length} plantillas</div>
       </div>
       <div style={{...card2,padding:0,overflow:"hidden"}}>
-       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:`1px solid ${LINE}`}}><div style={{fontSize:15,fontWeight:800}}>Detalle de la plantilla</div><span style={{color:P.muted,cursor:"pointer"}}>✕</span></div>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:`1px solid ${LINE}`}}><div style={{fontSize:15,fontWeight:800}}>Detalle de la plantilla</div></div>
        <div style={{padding:16}}>
         <div style={{display:"flex",gap:12,alignItems:"center"}}><span style={{width:44,height:44,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 3h6l1 4H8zM7 7h10l1 13H6z"/></svg></span><div><div style={{fontWeight:700,fontSize:15}}>{selT.name}</div><div style={{fontSize:12.5,color:P.purple,fontWeight:600}}>{selT.code}</div></div></div>
-        <div style={{display:"flex",gap:14,marginTop:12,borderBottom:`1px solid ${LINE}`,fontSize:12.5}}>{["Información","Campos","Notas","Vista previa"].map((t,i)=><span key={t} style={{padding:"6px 0",fontWeight:i===0?700:500,color:i===0?P.purple:P.muted,borderBottom:i===0?`2px solid ${P.purple}`:"2px solid transparent",cursor:"pointer"}}>{t}</span>)}</div>
         <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:11,fontSize:12.5}}>
          <div><div style={{color:P.muted,marginBottom:3}}>Categoría</div><span style={{background:"#EEEBFD",color:P.purple,borderRadius:8,padding:"3px 9px",fontWeight:600}}>{selT.cat}</span></div>
          <div><div style={{color:P.muted,marginBottom:3}}>Descripción</div><div style={{lineHeight:1.5}}>{selT.desc}</div></div>
          <div><div style={{color:P.muted,marginBottom:3}}>CIE-10</div><b>{selT.code}</b></div>
-         <div><div style={{color:P.muted,marginBottom:5}}>Palabras clave</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{["diabetes","hiperglucemia","crónica","control"].map(k=><span key={k} style={{background:"#F2F4F9",color:P.muted,borderRadius:7,padding:"3px 8px",fontSize:11.5}}>{k}</span>)}</div></div>
-         <div><div style={{color:P.muted,marginBottom:5}}>Incluye campos</div>{["Fecha de diagnóstico","Control (activo/inactivo)","Gravedad","Notas clínicas","Plan de manejo","Alertas y recordatorios"].map(f=><div key={f} style={{display:"flex",gap:8,alignItems:"center",padding:"3px 0"}}><span style={{color:P.green}}>✓</span>{f}</div>)}</div>
-         {/* (U-11) Sin estadísticas de uso: esa medición no existe; no se inventa. */}
+         {/* (U-11) Descripción honesta de lo que hace «Usar plantilla»: precarga el formulario; no hay campos ni estadísticas inventadas. */}
+         <div><div style={{color:P.muted,marginBottom:5}}>Al usar la plantilla se precarga</div>{["Diagnóstico (código CIE-10)","Nombre del problema","Tipo: Crónico"].map(f=><div key={f} style={{display:"flex",gap:8,alignItems:"center",padding:"3px 0"}}><span style={{color:P.green}}>✓</span>{f}</div>)}</div>
         </div>
         <button onClick={()=>useTpl(selT)} style={{marginTop:14,width:"100%",border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Usar plantilla</button>
-        <button style={{marginTop:8,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>✎ Editar plantilla</button>
        </div>
       </div>
      </div>
