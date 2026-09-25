@@ -354,7 +354,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText(/Ficha del paciente actualizada/)).toBeTruthy();
   // Agendar cita desde la ficha interconecta con Agenda
   fireEvent.click(screen.getByRole("button",{name:"Agendar cita"}));
-  expect(screen.getByRole("heading",{name:"Agenda"})).toBeTruthy();
+  expect(await screen.findByRole("heading",{name:"Agenda"})).toBeTruthy();
   expect(screen.getByText(/Nueva cita ·/)).toBeTruthy();
  });
 
