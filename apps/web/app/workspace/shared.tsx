@@ -559,7 +559,30 @@ export function agendaWindow(view:string,dateStr:string):string{
  if(view==="mes"){const{from,to}=monthRange(dateStr);return `from=${from}&to=${to}`;}
  return `date=${dateStr}`;
 }
+// ── SKELETONS (refactor UI/UX pro-max) ────────────────────────────────────────────────────────────────────────────
+// Fundamento transversal: TODA ventana muestra skeletons antes de que lleguen los datos del backend. Reservan el espacio
+// (evitan CLS), usan design tokens, animan solo si el usuario no pidió reducir movimiento (WCAG 2.3.3 / prefers-reduced-
+// motion), y NO se anuncian al lector de pantalla (aria-hidden); el estado "cargando" lo comunica el contenedor <Loading>.
+export function Skeleton({w="100%",h=14,r=primitive.radius.sm,style}:{w?:number|string;h?:number|string;r?:number;style?:React.CSSProperties}){
+ return <span aria-hidden className="mos-sk" style={{display:"block",width:w,height:h,borderRadius:r,...style}}/>;
+}
+// Varias líneas de texto simuladas (la última más corta, como un párrafo real).
+export function SkeletonText({lines=3,gap=8}:{lines?:number;gap?:number}){
+ return <span style={{display:"flex",flexDirection:"column",gap}} aria-hidden>{Array.from({length:lines}).map((_,i)=><Skeleton key={i} w={i===lines-1?"60%":"100%"} h={12}/>)}</span>;
+}
+// Contenedor accesible de carga: role=status + aria-busy para que el lector de pantalla anuncie "cargando" UNA vez,
+// mientras los skeletons (decorativos) reservan el layout. Cuando `loading` es false, renderiza los hijos reales.
+export function Loading({loading,label="Cargando…",children,skeleton}:{loading:boolean;label?:string;children:React.ReactNode;skeleton:React.ReactNode}){
+ if(!loading)return <>{children}</>;
+ return <div role="status" aria-busy="true" aria-live="polite">{skeleton}<span style={srOnly}>{label}</span></div>;
+}
+// Texto solo para lector de pantalla (para etiquetas invisibles pero anunciables).
+export const srOnly:React.CSSProperties={position:"absolute",width:1,height:1,padding:0,margin:-1,overflow:"hidden",clip:"rect(0 0 0 0)",whiteSpace:"nowrap",border:0};
 export const RAIL_CSS=`
+/* Skeletons: brillo sutil por defecto; SIN animación si el usuario pide reducir movimiento (a11y). Color por tokens. */
+.mos-sk{background:linear-gradient(90deg,#E8ECF3 25%,#F1F4F9 37%,#E8ECF3 63%);background-size:400% 100%;animation:mos-sk-shimmer 1.4s ease-in-out infinite}
+@keyframes mos-sk-shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
+@media(prefers-reduced-motion:reduce){.mos-sk{animation:none;background:#E8ECF3}}
 /* App-shell: expediente como cockpit (sidebar oscuro + body + rejilla de ventanas) */
 .mos-app{display:flex;min-height:100vh;background:#F4F7FB}
 .mos-side{position:sticky;top:0;align-self:flex-start;height:100vh;flex:0 0 264px;width:264px;background:linear-gradient(177deg,#26235C 0%,#201D4A 45%,#1A1740 100%);color:#EAEBFA;display:flex;flex-direction:column;padding:18px 14px 14px;overflow:hidden;transition:width .18s ease,flex-basis .18s ease}

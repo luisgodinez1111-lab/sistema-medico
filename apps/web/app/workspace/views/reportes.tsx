@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "reportes" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{card,P,LINE}from"../shared";
+import{card,P,LINE,Skeleton,srOnly}from"../shared";
 import{useWorkspace}from"../context";
 export default function ReportesView(){
  const{repSnap,repErr,reloadReports}=useWorkspace();
@@ -32,13 +32,18 @@ export default function ReportesView(){
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Reportes</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Analiza el desempeño de tu consulta con información clara y útil para la toma de decisiones.</p></div></div>
     </div>
     {repErr&&!repSnap&&<div style={{marginTop:16,padding:"12px 16px",borderRadius:12,background:"#FDECEE",border:"1px solid #F6CDD3",display:"flex",alignItems:"center",gap:12,fontSize:13,color:"#9c1f34"}}><span style={{flex:1}}>No se pudo cargar el tablero de reportes.</span><button onClick={()=>void reloadReports()} style={{border:`1px solid #E7C9C4`,background:"#fff",color:"#9c1f34",borderRadius:8,padding:"6px 14px",fontWeight:700,fontSize:12.5,cursor:"pointer"}}>Reintentar</button></div>}
+    {/* Skeletons de carga (refactor UI/UX): reservan el layout de los 5 KPI antes de que llegue GET /reports. */}
+    {!repLoaded&&!repErr?<div role="status" aria-busy="true" style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
+     {Array.from({length:5}).map((_,i)=><div key={i} style={kcard}><Skeleton w={44} h={44} r={12}/><div style={{flex:1}}><Skeleton w={64} h={22}/><Skeleton w="80%" h={11} style={{marginTop:8}}/></div></div>)}
+     <span style={srOnly}>Cargando indicadores del tablero…</span>
+    </div>:
     <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
      <div style={kcard}>{kico("#E7EEFB",P.blue,"M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M9 8a3 3 0 100-6 3 3 0 000 6z")}<div><div style={{fontSize:23,fontWeight:800}}>{kPac}</div><div style={{fontSize:11.5,color:P.muted}}>Pacientes atendidos</div></div></div>
      <div style={kcard}>{kico("#E6F6EE",P.greenOnPale,"M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6")}<div><div style={{fontSize:23,fontWeight:800}}>{money(kIng)}</div><div style={{fontSize:11.5,color:P.muted}}>Ingresos totales</div></div></div>
      <div style={kcard}>{kico("#EEEBFD",P.purple,"M7 3h10v18H7zM10 8h4")}<div><div style={{fontSize:23,fontWeight:800}}>{kOrders}</div><div style={{fontSize:11.5,color:P.muted}}>Órdenes y estudios</div></div></div>
      <div style={kcard}>{kico("#FBEEDF",P.amber,"M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3")}<div><div style={{fontSize:23,fontWeight:800}}>{kResults}</div><div style={{fontSize:11.5,color:P.muted}}>Resultados registrados</div></div></div>
      <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z")}<div><div style={{fontSize:23,fontWeight:800}}>{kVac}</div><div style={{fontSize:11.5,color:P.muted}}>Vacunas aplicadas</div></div></div>
-    </div>
+    </div>}
     <div style={{...card2,marginTop:16,padding:16}}>
      <div style={{fontSize:15,fontWeight:800,marginBottom:8}}>Diagnósticos principales (CIE-10)</div>
      {topDx.length===0?<div style={{fontSize:12.5,color:P.muted}}>{repLoaded?"Sin diagnósticos agregados en el periodo.":"Cargando reporte…"}</div>:topDx.map(([code,desc,n,pct],i)=>{const w=topDx[0]?Math.round(n/topDx[0][2]*100):0;return <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0"}}><span style={{fontSize:12,fontWeight:700,color:P.purple,width:46}}>{code}</span><span style={{flex:1,fontSize:12.5,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{desc}</span><div style={{width:70,height:8,borderRadius:6,background:"#EEF1F7",overflow:"hidden"}}><div style={{height:"100%",width:`${w}%`,background:P.purple,borderRadius:6,opacity:.85}}/></div><span style={{fontSize:12.5,fontWeight:700,width:24,textAlign:"right"}}>{n}</span><span style={{fontSize:12,color:P.muted,width:30,textAlign:"right"}}>{pct}%</span></div>;})}
