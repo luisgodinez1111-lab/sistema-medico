@@ -3,6 +3,7 @@
 import type{ZodType}from"zod";
 import{AdmitBody as admission__AdmitBody,CancelBody as admission__CancelBody,DischargeBody as admission__DischargeBody,TransferBody as admission__TransferBody}from"./admission-lifecycle";
 import{AssistBody as ai_copilot_gateway__AssistBody}from"./ai-copilot-gateway";
+import{ExecuteTaskBody as ai_gateway__ExecuteTaskBody,RegisterEnvelopeBody as ai_gateway__RegisterEnvelopeBody,RegisterTaskCardBody as ai_gateway__RegisterTaskCardBody}from"./ai-gateway-lifecycle";
 import{CreateBody as allergy__CreateBody,WhenBody as allergy__WhenBody}from"./allergy-lifecycle";
 import{CancelBody as appointment__CancelBody,NoShowBody as appointment__NoShowBody,ScheduleBody as appointment__ScheduleBody,WhenBody as appointment__WhenBody}from"./appointment-lifecycle";
 import{CancelBody as careplan__CancelBody,ProposeBody as careplan__ProposeBody,WhenBody as careplan__WhenBody}from"./careplan-lifecycle";
@@ -34,6 +35,9 @@ export const API_BODY_SCHEMAS:Readonly<Record<string,ZodType>>={
  "POST /api/v1/admissions/{admissionId}/discharge":admission__DischargeBody,
  "POST /api/v1/admissions/{admissionId}/transfer":admission__TransferBody,
  "POST /api/v1/ai/assist":ai_copilot_gateway__AssistBody,
+ "POST /api/v1/ai/envelopes":ai_gateway__RegisterEnvelopeBody,
+ "POST /api/v1/ai/execute":ai_gateway__ExecuteTaskBody,
+ "POST /api/v1/ai/task-cards":ai_gateway__RegisterTaskCardBody,
  "POST /api/v1/allergies":allergy__CreateBody,
  "POST /api/v1/allergies/{allergyId}/inactivation":allergy__WhenBody,
  "POST /api/v1/allergies/{allergyId}/reactivation":allergy__WhenBody,

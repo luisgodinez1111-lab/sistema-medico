@@ -43,7 +43,9 @@ describe("no-orphan guard: registro NOT_WIRED honesto (EPIC BF)",()=>{
   // Auditoría R01-023 (23-sep-2026): de los 8 huérfanos que halló la auditoría, TRES se retiraron del repo por duplicar
   // un handler ya cableado (clinical-inbox, lab-order) o por solaparse con la receta legal real (prescription). No basta
   // con que desaparezcan del registro: deben constar en `retiredModules` con el motivo, para que el historial no mienta.
-  const vivos=["adaptive-history-lifecycle","ai-gateway-lifecycle","clinical-intelligence-lifecycle","document-ingestion-lifecycle","imaging-lifecycle"];
+  // R6 opción B (reactivación de la pausa por decisión del usuario): `ai-gateway-lifecycle` YA está cableado (rutas
+  // /api/v1/ai/*) detrás de un kill-switch fail-closed, así que sale de la lista de huérfanos vivos.
+  const vivos=["adaptive-history-lifecycle","clinical-intelligence-lifecycle","document-ingestion-lifecycle","imaging-lifecycle"];
   for(const k of vivos)expect(declared.has(k),`falta declarar ${k}`).toBe(true);
   const retirados=(registry as unknown as{retiredModules?:{module:string;reason:string}[]}).retiredModules??[];
   for(const k of ["clinical-inbox-lifecycle","lab-order-lifecycle","prescription-lifecycle"]){

@@ -4,7 +4,7 @@
   "title": "Medical OS — API clínica",
   "version": "0.0.0",
   "description": "Generada desde el inventario real de rutas (pnpm openapi:generate). Sesión: cookie httpOnly medos_session o Authorization: Bearer. Toda respuesta de la API lleva Cache-Control: no-store.",
-  "x-bodies-with-schema": 120
+  "x-bodies-with-schema": 123
  },
  "servers": [
   {
@@ -1025,6 +1025,604 @@
         },
         "required": [
          "action"
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/ai/envelopes": {
+   "post": {
+    "summary": "R6 opción B — registro de Safety Envelopes, detrás del kill-switch.",
+    "tags": [
+     "ai"
+    ],
+    "parameters": [
+     {
+      "name": "Idempotency-Key",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "Clave única por intento; el reintento con la misma clave y el mismo cuerpo devuelve la misma respuesta (200, replayed:true); otro cuerpo -> 409 IDEMPOTENCY_CONFLICT"
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "Comando aplicado (200 con replayed:true si es un reintento idempotente)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "VALIDATION_ERROR (cuerpo o parámetros inválidos)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "UNAUTHENTICATED (sin sesión válida)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "FORBIDDEN / CROSS_TENANT / SAFETY_BLOCKED",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "NOT_FOUND (recurso o paciente inexistente en el tenant)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "CONFLICT / CONCURRENCY_CONFLICT / IDEMPOTENCY_CONFLICT",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "428": {
+      "description": "PRECONDITION_REQUIRED (Idempotency-Key, cédula profesional) o SAFETY_ACK_REQUIRED",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "RATE_LIMITED (Retry-After)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "DEPENDENCY_UNAVAILABLE (base de datos o almacén no disponibles)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     },
+     {
+      "bearer": []
+     }
+    ],
+    "x-handler": "apps/web/app/api/v1/ai/envelopes/route.ts",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "id": {
+          "type": "string",
+          "pattern": "^SE-\\d{4}$"
+         },
+         "aiTask": {
+          "type": "string",
+          "pattern": "^AI-TASK-\\d{4}$"
+         },
+         "supported": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "preconditions": {
+          "default": [],
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "exclusions": {
+          "default": [],
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "failureMode": {
+          "type": "string",
+          "enum": [
+           "ABSTAIN",
+           "SAFETY_BLOCKED",
+           "DEPENDENCY_UNAVAILABLE",
+           "INVALID_INPUT"
+          ]
+         },
+         "humanApprovalRequired": {
+          "type": "boolean"
+         },
+         "killSwitch": {
+          "type": "boolean"
+         },
+         "evidenceRequired": {
+          "type": "boolean"
+         }
+        },
+        "required": [
+         "id",
+         "aiTask",
+         "supported",
+         "failureMode",
+         "humanApprovalRequired",
+         "killSwitch",
+         "evidenceRequired"
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/ai/execute": {
+   "post": {
+    "summary": "R6 opción B — ejecución de tarea de IA por el gateway. Kill-switch primero: sin habilitar, 503 honesto (nada de IA).",
+    "tags": [
+     "ai"
+    ],
+    "parameters": [
+     {
+      "name": "Idempotency-Key",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "Clave única por intento; el reintento con la misma clave y el mismo cuerpo devuelve la misma respuesta (200, replayed:true); otro cuerpo -> 409 IDEMPOTENCY_CONFLICT"
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "Comando aplicado (200 con replayed:true si es un reintento idempotente)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "VALIDATION_ERROR (cuerpo o parámetros inválidos)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "UNAUTHENTICATED (sin sesión válida)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "FORBIDDEN / CROSS_TENANT / SAFETY_BLOCKED",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "NOT_FOUND (recurso o paciente inexistente en el tenant)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "CONFLICT / CONCURRENCY_CONFLICT / IDEMPOTENCY_CONFLICT",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "428": {
+      "description": "PRECONDITION_REQUIRED (Idempotency-Key, cédula profesional) o SAFETY_ACK_REQUIRED",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "RATE_LIMITED (Retry-After)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "DEPENDENCY_UNAVAILABLE (base de datos o almacén no disponibles)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     },
+     {
+      "bearer": []
+     }
+    ],
+    "x-handler": "apps/web/app/api/v1/ai/execute/route.ts",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "taskId": {
+          "type": "string",
+          "pattern": "^AI-TASK-\\d{4}$"
+         },
+         "tenantId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "patientContextRef": {
+          "type": "string"
+         },
+         "encounterId": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         "minimumNecessaryContext": {
+          "type": "object",
+          "propertyNames": {
+           "type": "string"
+          },
+          "additionalProperties": {}
+         },
+         "sensitivity": {
+          "type": "string",
+          "enum": [
+           "low",
+           "moderate",
+           "high"
+          ]
+         },
+         "intendedUse": {
+          "type": "string",
+          "minLength": 1
+         },
+         "outputSchema": {
+          "type": "string",
+          "minLength": 1
+         }
+        },
+        "required": [
+         "taskId",
+         "tenantId",
+         "minimumNecessaryContext",
+         "sensitivity",
+         "intendedUse",
+         "outputSchema"
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/ai/task-cards": {
+   "post": {
+    "summary": "R6 opción B — registro de AI-TASK cards (Physician Control), detrás del kill-switch.",
+    "tags": [
+     "ai"
+    ],
+    "parameters": [
+     {
+      "name": "Idempotency-Key",
+      "in": "header",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "Clave única por intento; el reintento con la misma clave y el mismo cuerpo devuelve la misma respuesta (200, replayed:true); otro cuerpo -> 409 IDEMPOTENCY_CONFLICT"
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "Comando aplicado (200 con replayed:true si es un reintento idempotente)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "VALIDATION_ERROR (cuerpo o parámetros inválidos)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "UNAUTHENTICATED (sin sesión válida)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "FORBIDDEN / CROSS_TENANT / SAFETY_BLOCKED",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "NOT_FOUND (recurso o paciente inexistente en el tenant)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "CONFLICT / CONCURRENCY_CONFLICT / IDEMPOTENCY_CONFLICT",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "428": {
+      "description": "PRECONDITION_REQUIRED (Idempotency-Key, cédula profesional) o SAFETY_ACK_REQUIRED",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "RATE_LIMITED (Retry-After)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "DEPENDENCY_UNAVAILABLE (base de datos o almacén no disponibles)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     },
+     {
+      "bearer": []
+     }
+    ],
+    "x-handler": "apps/web/app/api/v1/ai/task-cards/route.ts",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "id": {
+          "type": "string",
+          "pattern": "^AI-TASK-\\d{4}$"
+         },
+         "version": {
+          "type": "string",
+          "minLength": 1
+         },
+         "purpose": {
+          "type": "string",
+          "minLength": 1
+         },
+         "risk": {
+          "type": "string",
+          "enum": [
+           "C2",
+           "C3",
+           "C4",
+           "C5"
+          ]
+         },
+         "authority": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+           "type": "string",
+           "pattern": "^ENG-\\d{3}$"
+          }
+         },
+         "minimumNecessaryFields": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "outputSchema": {
+          "type": "string",
+          "minLength": 1
+         },
+         "allowed": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "prohibited": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "evidence": {
+          "type": "string",
+          "minLength": 1
+         },
+         "abstention": {
+          "type": "string",
+          "minLength": 1
+         },
+         "owner": {
+          "type": "string",
+          "minLength": 1
+         },
+         "evalSuite": {
+          "type": "string",
+          "minLength": 1
+         },
+         "killSwitch": {
+          "type": "boolean",
+          "const": true
+         },
+         "envelope": {
+          "type": "string",
+          "pattern": "^SE-\\d{4}$"
+         }
+        },
+        "required": [
+         "id",
+         "version",
+         "purpose",
+         "risk",
+         "authority",
+         "minimumNecessaryFields",
+         "outputSchema",
+         "allowed",
+         "prohibited",
+         "evidence",
+         "abstention",
+         "owner",
+         "evalSuite",
+         "killSwitch",
+         "envelope"
         ]
        }
       }

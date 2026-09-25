@@ -1,5 +1,7 @@
-// ⚠️ NOT_WIRED (endurecimiento G / Epic BF): este handler NO está cableado a ninguna ruta (código inalcanzable).
-// Ver docs/adjudication/not-wired-registry.json. R6 (IA) EN PAUSA: no activar. No cuenta como capacidad end-to-end.
+// R6 (Lote R6, opción B) — CABLEADO detrás de un KILL-SWITCH (env `AI_GATEWAY_ENABLED`), fail-closed y HONESTO:
+// sin proveedor de IA activado, la ejecución se ABSTIENE (DEPENDENCY_UNAVAILABLE) en vez de fabricar salida; las tareas
+// C4/C5 quedan bloqueadas por el envelope hasta que existan evidencia + aprobación humana reales. Enchufar un modelo
+// real es un paso de configuración (implementar `callAiProvider` + otorgar el scope `ai:write`). Rutas: /api/v1/ai/*.
 import{NextResponse}from"next/server";
 import crypto from"node:crypto";
 import{z}from"zod";
@@ -21,6 +23,12 @@ import{validateAiReceipt}from"../../../packages/ai-evidence/src";
 
 const AGG="AiGateway";
 
+// Kill-switch operativo (R6, opción B): el gateway solo responde si el entorno lo habilita explícitamente. Sin la variable
+// (el caso por defecto, incluida producción hoy) las rutas devuelven 503 AI_NOT_ENABLED — nada de IA, nada fabricado.
+// NUNCA hardcodear: se lee de la variable de entorno. Cuando se conecte un proveedor real se activa aquí.
+export function aiGatewayEnabled():boolean{return process.env.AI_GATEWAY_ENABLED==="true";}
+export function aiKillSwitchResponse():Response{return NextResponse.json({error:{code:"AI_NOT_ENABLED",message:"El gateway de IA no está habilitado en este entorno (R6: conecta un proveedor de IA y activa AI_GATEWAY_ENABLED)."}},{status:503});}
+
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string},requirePhysician=false){
  const opts:{role?:string;scope:string;purpose?:string}={scope:"ai:write",purpose:"TREATMENT"};
  if(requirePhysician)opts.role="PHYSICIAN";
@@ -36,7 +44,7 @@ const TASK_CARD_REGISTRY:Map<string,any>=new Map();
 const ENVELOPE_REGISTRY:Map<string,any>=new Map();
 
 // --- AI TASK CARD REGISTRATION (Physician Control) ---
-const RegisterTaskCardBody=z.object({
+export const RegisterTaskCardBody=z.object({
   id:z.string().regex(/^AI-TASK-\d{4}$/),version:z.string().min(1),
   purpose:z.string().min(1),risk:z.enum(["C2","C3","C4","C5"]),
   authority:z.array(z.string().regex(/^ENG-\d{3}$/)).min(1),
@@ -61,7 +69,7 @@ export async function handleRegisterTaskCard(req:Request):Promise<Response>{
 }
 
 // --- ENVELOPE REGISTRATION (Physician Control) ---
-const RegisterEnvelopeBody=z.object({
+export const RegisterEnvelopeBody=z.object({
   id:z.string().regex(/^SE-\d{4}$/),aiTask:z.string().regex(/^AI-TASK-\d{4}$/),
   supported:z.array(z.string()).min(1),preconditions:z.array(z.string()).default([]),
   exclusions:z.array(z.string()).default([]),
@@ -83,7 +91,7 @@ export async function handleRegisterEnvelope(req:Request):Promise<Response>{
 }
 
 // --- AI GATEWAY EXECUTION (EXEC-0024) ---
-const ExecuteTaskBody=z.object({
+export const ExecuteTaskBody=z.object({
   taskId:z.string().regex(/^AI-TASK-\d{4}$/),
   tenantId:z.string().uuid(),patientContextRef:z.string().optional(),
   encounterId:z.string().uuid().optional(),

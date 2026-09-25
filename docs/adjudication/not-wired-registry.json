@@ -1,6 +1,6 @@
 {
   "purpose": "Registro machine-checkable de handlers *-lifecycle.ts que NO están cableados a ninguna ruta (código inalcanzable desde la app). Da a cada huérfano un ESTADO TERMINAL documentado (ley no-orphan / EXEC-0003) y evita que inflen la sensación de avance. Enforzado por tests/v22/not-wired-integrity.test.ts. Autoridad: hallazgo #10 de la auditoría 2026-09-17 (scorecard).",
-  "policy": "Un módulo listado aquí NO debe ser importado por ninguna ruta bajo apps/web/app. Si se cablea, DEBE removerse de este registro (el guard falla si un módulo listado aparece cableado). Todo *-lifecycle.ts nuevo debe estar cableado o listado aquí (el guard falla ante un huérfano no declarado). R6 (IA del copiloto) está EN PAUSA: los módulos de IA no se activan.",
+  "policy": "Un módulo listado aquí NO debe ser importado por ninguna ruta bajo apps/web/app. Si se cablea, DEBE removerse de este registro (el guard falla si un módulo listado aparece cableado). Todo *-lifecycle.ts nuevo debe estar cableado o listado aquí (el guard falla ante un huérfano no declarado). R6 (opción B): `ai-gateway-lifecycle` YA está cableado (rutas /api/v1/ai/*) detrás de un KILL-SWITCH (env AI_GATEWAY_ENABLED) y fail-closed: sin proveedor se ABSTIENE, no fabrica salida. Los demás módulos de IA (clinical-intelligence, document-ingestion) siguen sin cablear hasta decisión de feature.",
   "updated": "2026-09-25",
   "modules": [
     {
@@ -10,15 +10,6 @@
       "classification": "UNBUILT_VERTICAL",
       "reason": "Vertical genuino (no-IA) aún sin ruta ni prueba en vivo. Candidato a cablear en un epic futuro.",
       "wireCandidate": true,
-      "decision": "NOT_WIRED"
-    },
-    {
-      "module": "ai-gateway-lifecycle",
-      "path": "apps/web/lib/ai-gateway-lifecycle.ts",
-      "header": "EPIC T — AI Gateway + Low/Moderate Risk Assistance (EXEC-0024/0025)",
-      "classification": "R6_PAUSED_AI",
-      "reason": "Núcleo de IA (R6). R6 está EN PAUSA por decisión del usuario: NO se cablea ni activa.",
-      "wireCandidate": false,
       "decision": "NOT_WIRED"
     },
     {
