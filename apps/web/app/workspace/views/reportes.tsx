@@ -5,7 +5,7 @@
 import{card,P,LINE}from"../shared";
 import{useWorkspace}from"../context";
 export default function ReportesView(){
- const{repSnap}=useWorkspace();
+ const{repSnap,repErr,reloadReports}=useWorkspace();
 
    // ===== MÓDULO REPORTES (S-REPORTES) — tablero analítico; KPIs de pacientes/ingresos y diagnósticos cableados a GET /reports =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -31,6 +31,7 @@ export default function ReportesView(){
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Reportes</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Analiza el desempeño de tu consulta con información clara y útil para la toma de decisiones.</p></div></div>
     </div>
+    {repErr&&!repSnap&&<div style={{marginTop:16,padding:"12px 16px",borderRadius:12,background:"#FDECEE",border:"1px solid #F6CDD3",display:"flex",alignItems:"center",gap:12,fontSize:13,color:"#9c1f34"}}><span style={{flex:1}}>No se pudo cargar el tablero de reportes.</span><button onClick={()=>void reloadReports()} style={{border:`1px solid #E7C9C4`,background:"#fff",color:"#9c1f34",borderRadius:8,padding:"6px 14px",fontWeight:700,fontSize:12.5,cursor:"pointer"}}>Reintentar</button></div>}
     <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
      <div style={kcard}>{kico("#E7EEFB",P.blue,"M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M9 8a3 3 0 100-6 3 3 0 000 6z")}<div><div style={{fontSize:23,fontWeight:800}}>{kPac}</div><div style={{fontSize:11.5,color:P.muted}}>Pacientes atendidos</div></div></div>
      <div style={kcard}>{kico("#E6F6EE",P.greenOnPale,"M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6")}<div><div style={{fontSize:23,fontWeight:800}}>{money(kIng)}</div><div style={{fontSize:11.5,color:P.muted}}>Ingresos totales</div></div></div>

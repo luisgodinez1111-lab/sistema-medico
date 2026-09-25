@@ -5,7 +5,7 @@ import {Fragment} from "react";
 import{card,P,LINE,act,UI,actRow,type AgendaAppt}from"../shared";
 import{useWorkspace}from"../context";
 export default function AgendaView(){
- const{agendaDate,clock,setAgendaDate,setApptSel,setApptNew,agenda,apptSel,openConsulta,reloadAgenda,setApptMsg,apptNew,agendaView,setAgendaView,apptMsg,apptForm,setApptForm,patientList,createAppt,apptBusy,apptTransition}=useWorkspace();
+ const{agendaDate,clock,setAgendaDate,setApptSel,setApptNew,agenda,agendaErr,apptSel,openConsulta,reloadAgenda,setApptMsg,apptNew,agendaView,setAgendaView,apptMsg,apptForm,setApptForm,patientList,createAppt,apptBusy,apptTransition}=useWorkspace();
 
    // ===== VISTA AGENDA — cableado REAL: navegación de fecha (refetch), ciclo de vida de la cita y creación =====
    const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
@@ -75,7 +75,7 @@ export default function AgendaView(){
       </div>
       {agendaView==="lista"?(
        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{["Hora","Paciente","Motivo","Consultorio","Estado"].map(h=><th key={h} style={{textAlign:"left",fontSize:11,color:P.muted,fontWeight:600,padding:"11px 14px",borderBottom:`1px solid ${LINE}`}}>{h}</th>)}</tr></thead><tbody>
-        {realAppts.length===0?<tr><td colSpan={5} style={{padding:"36px 14px",textAlign:"center",color:P.muted,fontSize:13}}>{agLoaded?"Sin citas para este día. Usa «+ Nueva cita» para agendar.":"Cargando agenda…"}</td></tr>:realAppts.map(a=>{const st=ST[a.status]??["",P.canvas,P.muted];const on=a.appointmentId===apptSel;return <tr key={a.appointmentId} {...actRow(()=>setApptSel(a.appointmentId))} style={{cursor:"pointer",background:on?"#F6F5FE":"transparent"}}>
+        {realAppts.length===0?<tr><td colSpan={5} style={{padding:"36px 14px",textAlign:"center",color:P.muted,fontSize:13}}>{agendaErr?<span>No se pudo cargar la agenda. <button onClick={()=>void reloadAgenda()} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"5px 12px",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI,marginLeft:6}}>Reintentar</button></span>:agLoaded?"Sin citas para este día. Usa «+ Nueva cita» para agendar.":"Cargando agenda…"}</td></tr>:realAppts.map(a=>{const st=ST[a.status]??["",P.canvas,P.muted];const on=a.appointmentId===apptSel;return <tr key={a.appointmentId} {...actRow(()=>setApptSel(a.appointmentId))} style={{cursor:"pointer",background:on?"#F6F5FE":"transparent"}}>
          <td style={{padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5}}>{tHM(a.startAt)}</td>
          <td style={{padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,fontWeight:600}}>{a.patientName}</td>
          <td style={{padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5}}>{a.reason}</td>
@@ -123,7 +123,7 @@ export default function AgendaView(){
      </div>
      {(()=>{const prox=realAppts.filter(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN");return <div style={card2}><div style={{display:"flex",justifyContent:"space-between",padding:"16px 16px 6px"}}><span style={sect}>Próximas citas</span>{prox.length>0&&<span style={link} {...act(()=>setAgendaView("lista"))}>Ver lista →</span>}</div>
       {prox.slice(0,5).map(a=><div key={a.appointmentId} {...act(()=>setApptSel(a.appointmentId))} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 16px",borderTop:`1px solid #F1F3F9`,cursor:"pointer",background:a.appointmentId===apptSel?"#F6F5FE":"transparent"}}><span style={{fontSize:13,color:P.muted,width:64,flex:"0 0 auto"}}>{tHM(a.startAt)}</span><span style={{width:34,height:34,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{(a.patientName||"P").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()}</span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{a.patientName}</div><div style={{fontSize:11.5,color:P.muted}}>{a.reason}</div></div><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",...(a.status==="CHECKED_IN"?{background:"#FBF0DC",color:P.amberOnPale}:{background:"#EAF1FD",color:P.blueOnPale})}}>{stLabel(a.status)}</span></div>)}
-      {prox.length===0&&<div style={{padding:"14px 16px",fontSize:12.5,color:P.muted,borderTop:`1px solid #F1F3F9`}}>{agLoaded?"Sin próximas citas para este día. Agenda una con «+ Nueva cita».":"Cargando agenda…"}</div>}</div>;})()}
+      {prox.length===0&&<div style={{padding:"14px 16px",fontSize:12.5,color:P.muted,borderTop:`1px solid #F1F3F9`}}>{agendaErr?"No se pudo cargar la agenda.":agLoaded?"Sin próximas citas para este día. Agenda una con «+ Nueva cita».":"Cargando agenda…"}</div>}</div>;})()}
     </div>
    </div>;
   
