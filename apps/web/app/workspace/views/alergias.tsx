@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "alergias" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{Check,edadDe,card,P,LINE,UI,actRow,scrollToSection,type AllergenType}from"../shared";
+import{Check,edadDe,card,P,LINE,UI,actRow,scrollToSection,type AllergenType,Skeleton}from"../shared";
 import{allergyCrossReactivity}from"../../../../../packages/drug-catalog/src";
 import{useWorkspace}from"../context";
 export default function AlergiasView(){
@@ -64,11 +64,11 @@ export default function AlergiasView(){
     </div>}
     {/* KPIs */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
-     <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z")}<div><div style={{fontSize:24,fontWeight:800}}>{patients}</div><div style={{fontSize:11.5,color:P.muted}}>Pacientes con alergias registradas</div></div></div>
-     <div style={kcard}>{kico("#FDECEE",P.red,"M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01")}<div><div style={{fontSize:24,fontWeight:800}}>{cGrave}</div><div style={{fontSize:11.5,color:P.muted}}>Alergias graves ({pct(cGrave)}%)</div></div></div>
-     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 9v4M12 17h.01M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{cMod}</div><div style={{fontSize:11.5,color:P.muted}}>Con reacción moderada ({pct(cMod)}%)</div></div></div>
-     <div style={kcard}>{kico("#E6F6EE",P.greenOnPale,"M20 6L9 17l-5-5")}<div><div style={{fontSize:24,fontWeight:800}}>{cLeve}</div><div style={{fontSize:11.5,color:P.muted}}>Con reacción leve ({pct(cLeve)}%)</div></div></div>
-     <div style={kcard}>{kico("#EEF1F7",P.muted,"M9.1 9a3 3 0 115.8 1c0 2-3 2-3 4M12 17h.01M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{cInc}</div><div style={{fontSize:11.5,color:P.muted}}>Alergias inciertas ({pct(cInc)}%)</div></div></div>
+     <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z")}<div><div style={{fontSize:24,fontWeight:800}}>{alergLoaded?(patients):<Skeleton w={44} h={22}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Pacientes con alergias registradas</div></div></div>
+     <div style={kcard}>{kico("#FDECEE",P.red,"M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01")}<div><div style={{fontSize:24,fontWeight:800}}>{alergLoaded?(cGrave):<Skeleton w={44} h={22}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Alergias graves ({pct(cGrave)}%)</div></div></div>
+     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 9v4M12 17h.01M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{alergLoaded?(cMod):<Skeleton w={44} h={22}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Con reacción moderada ({pct(cMod)}%)</div></div></div>
+     <div style={kcard}>{kico("#E6F6EE",P.greenOnPale,"M20 6L9 17l-5-5")}<div><div style={{fontSize:24,fontWeight:800}}>{alergLoaded?(cLeve):<Skeleton w={44} h={22}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Con reacción leve ({pct(cLeve)}%)</div></div></div>
+     <div style={kcard}>{kico("#EEF1F7",P.muted,"M9.1 9a3 3 0 115.8 1c0 2-3 2-3 4M12 17h.01M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{alergLoaded?(cInc):<Skeleton w={44} h={22}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Alergias inciertas ({pct(cInc)}%)</div></div></div>
     </div>
     {/* Tres columnas: filtros · tabla · detalle */}
     <div style={{display:"grid",gridTemplateColumns:"240px 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-alerg">
@@ -99,7 +99,7 @@ export default function AlergiasView(){
         <td style={td}><span style={sevBadge(r.sevKey)}>{r.sevKey}</span></td>
         <td style={td}><span style={estadoBadge(r.active)}>{r.estado}</span></td>
        </tr>;})}
-       {rows.length===0&&<tr><td colSpan={6} style={{...td,textAlign:"center",color:P.muted,padding:"30px"}}>{alergLoaded?(allRows.length===0?"Sin alergias registradas. Usa «+ Nueva alergia».":"Ninguna alergia coincide con los filtros."):"Cargando registro…"}</td></tr>}
+       {alergLoaded?(rows.length===0?<tr><td colSpan={6} style={{...td,textAlign:"center",color:P.muted,padding:"30px"}}>{allRows.length===0?"Sin alergias registradas. Usa «+ Nueva alergia».":"Ninguna alergia coincide con los filtros."}</td></tr>:null):Array.from({length:6}).map((_,i)=><tr key={`sk${i}`} aria-hidden>{Array.from({length:6}).map((__,j)=><td key={j} style={td}><Skeleton w={j===0?70:"80%"} h={12}/></td>)}</tr>)}
        </tbody>
       </table></div>
       {rows.length>0&&<div style={{padding:"13px 16px",fontSize:13,color:P.muted}}>Mostrando {rows.length} de {allRows.length} alergia(s) del registro</div>}

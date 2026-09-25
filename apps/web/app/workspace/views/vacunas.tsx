@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "vacunas" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{Check,edadDe,card,P,LINE,UI,actRow,scrollToSection}from"../shared";
+import{Check,edadDe,card,P,LINE,UI,actRow,scrollToSection,Skeleton}from"../shared";
 import{useWorkspace}from"../context";
 export default function VacunasView(){
  const{immReg,immStatusF,immSearch,immSel,setVacNew,setVacMsg,vacNew,vacMsg,vacForm,setVacForm,patientList,createImmunizationInline,vacBusy,setImmSearch,setImmStatusF,setImmSel,selectPatientRaw,setView}=useWorkspace();
@@ -58,10 +58,10 @@ export default function VacunasView(){
      <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void createImmunizationInline()} disabled={vacBusy||!vacForm.patientId||!vacForm.vaccineCode.trim()} style={{border:0,background:(vacBusy||!vacForm.patientId||!vacForm.vaccineCode.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(vacBusy||!vacForm.patientId||!vacForm.vaccineCode.trim())?"default":"pointer",fontFamily:UI}}>{vacBusy?"Registrando…":"Registrar vacuna"}</button><button onClick={()=>setVacNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
     </div>}
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
-     <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z")}<div><div style={{fontSize:24,fontWeight:800}}>{kVac}</div><div style={{fontSize:11.5,color:P.muted}}>Pacientes vacunados (en control)</div></div></div>
-     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{kPend}</div><div style={{fontSize:11.5,color:P.muted}}>Dosis pendientes</div></div></div>
-     <div style={kcard}>{kico("#E6F6EE",P.greenOnPale,"M20 6L9 17l-5-5")}<div><div style={{fontSize:24,fontWeight:800}}>{kApl}</div><div style={{fontSize:11.5,color:P.muted}}>Dosis aplicadas (total)</div></div></div>
-     <div style={kcard}>{kico("#FDECEE",P.red,"M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01")}<div><div style={{fontSize:24,fontWeight:800}}>{kInc}</div><div style={{fontSize:11.5,color:P.muted}}>Esquemas incompletos</div></div></div>
+     <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z")}<div><div style={{fontSize:24,fontWeight:800}}>{immLoaded?(kVac):<Skeleton w={44} h={22}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Pacientes vacunados (en control)</div></div></div>
+     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M12 3a9 9 0 100 18 9 9 0 000-18z")}<div><div style={{fontSize:24,fontWeight:800}}>{immLoaded?(kPend):<Skeleton w={44} h={22}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Dosis pendientes</div></div></div>
+     <div style={kcard}>{kico("#E6F6EE",P.greenOnPale,"M20 6L9 17l-5-5")}<div><div style={{fontSize:24,fontWeight:800}}>{immLoaded?(kApl):<Skeleton w={44} h={22}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Dosis aplicadas (total)</div></div></div>
+     <div style={kcard}>{kico("#FDECEE",P.red,"M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01")}<div><div style={{fontSize:24,fontWeight:800}}>{immLoaded?(kInc):<Skeleton w={44} h={22}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Esquemas incompletos</div></div></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"240px 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-vac">
      <div style={{...card2,padding:16}}>
@@ -83,7 +83,7 @@ export default function VacunasView(){
         <td style={{...tdc,color:P.muted}}>{r.lot}</td>
         <td style={tdc}><span style={estSty(r.estado)}>{r.estado}</span></td>
        </tr>;})}
-       {rows.length===0&&<tr><td colSpan={6} style={{...tdc,textAlign:"center",color:P.muted,padding:"30px"}}>{immLoaded?(allRows.length===0?"Sin vacunas registradas. Usa «+ Registrar vacuna».":"Ninguna vacuna coincide con los filtros."):"Cargando registro…"}</td></tr>}
+       {immLoaded?(rows.length===0?<tr><td colSpan={6} style={{...tdc,textAlign:"center",color:P.muted,padding:"30px"}}>{allRows.length===0?"Sin vacunas registradas. Usa «+ Registrar vacuna».":"Ninguna vacuna coincide con los filtros."}</td></tr>:null):Array.from({length:6}).map((_,i)=><tr key={`sk${i}`} aria-hidden>{Array.from({length:6}).map((__,j)=><td key={j} style={tdc}><Skeleton w={j===0?70:"80%"} h={12}/></td>)}</tr>)}
        </tbody></table></div>
       {rows.length>0&&<div style={{padding:"13px 16px",fontSize:13,color:P.muted}}>Mostrando {rows.length} de {allRows.length} registro(s)</div>}
      </div>
