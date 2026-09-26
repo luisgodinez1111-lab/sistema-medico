@@ -614,7 +614,7 @@ export const RAIL_CSS=`
 .mos-navi .lbl{flex:1;overflow:hidden;text-overflow:ellipsis}
 .mos-badge{flex:0 0 auto;min-width:22px;height:22px;border-radius:999px;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;padding:0 6px;font-variant-numeric:tabular-nums}
 .mos-badge.p{background:${P.purpleOnPale}}.mos-badge.r{background:${P.redOnPale}}
-.mos-navsec{font-size:10px;font-weight:700;letter-spacing:.16em;color:#7C81BC;padding:14px 14px 6px;white-space:nowrap;text-transform:uppercase}
+.mos-navsec{font-size:10px;font-weight:700;letter-spacing:.16em;color:#9398CF;padding:14px 14px 6px;white-space:nowrap;text-transform:uppercase}
 .mos-navsec:first-child{padding-top:2px}
 .mos-side.col .lbl,.mos-side.col .mos-bname,.mos-side.col .mos-bsub,.mos-side.col .mos-toolslbl,.mos-side.col .mos-doc .info,.mos-side.col .mos-collapse .lbl{display:none}
 .mos-side.col .mos-navsec{color:transparent;font-size:0;padding:0;height:0;margin:10px 10px 4px;border-top:1px solid #ffffff14}
@@ -623,7 +623,7 @@ export const RAIL_CSS=`
 .mos-side.col .mos-badge{position:absolute;top:3px;right:8px;min-width:16px;height:16px;font-size:9px;padding:0 3px}
 .mos-side.col .mos-brand{justify-content:center;padding:0}
 .mos-divider{height:1px;background:#ffffff14;margin:14px 6px}
-.mos-toolslbl{font-size:10px;font-weight:700;letter-spacing:.16em;color:#7C81BC;padding:2px 14px 8px}
+.mos-toolslbl{font-size:10px;font-weight:700;letter-spacing:.16em;color:#9398CF;padding:2px 14px 8px}
 .mos-doc{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:14px;cursor:pointer;position:relative}
 .mos-doc:hover{background:#ffffff0d}
 .mos-doc .av{width:40px;height:40px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-weight:700;font-size:14px;color:#fff;background:#3A3570;box-shadow:0 0 0 2px #7B6BF6}
