@@ -651,7 +651,9 @@ export const RAIL_CSS=`
 .mos-collapse{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:8px;padding:12px;border-radius:12px;background:#ffffff0a;border:1px solid #ffffff14;color:#9095CB;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .mos-collapse:hover{background:#ffffff12;color:#fff}
 .mos-body{flex:1;min-width:0;display:flex;flex-direction:column}
-.mos-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start;padding:20px 22px 52px;max-width:1400px;margin:0 auto;width:100%;box-sizing:border-box}
+.mos-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start;padding:20px clamp(20px,2.4vw,64px) 52px;max-width:2100px;margin:0 auto;width:100%;box-sizing:border-box}
+.mos-consulta{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(300px,1fr);gap:18px}
+@media(max-width:1120px){.mos-consulta{grid-template-columns:1fr!important}.mos-consulta-side{position:static!important}}
 .mos-grid>*{margin-top:0!important}
 .mos-grid>section{scroll-margin-top:132px}
 .mos-grid>.span2{grid-column:1 / -1}
