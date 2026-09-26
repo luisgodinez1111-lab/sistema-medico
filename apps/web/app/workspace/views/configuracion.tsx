@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "configuracion" del workspace.
 // Lote I: las pestañas (CFG_TABS) eran cosméticas —cfgTab no cambiaba el contenido—. Ahora cada pestaña MUESTRA su
 // propio contenido real y solo existen las pestañas implementadas; «Integraciones» es honesta (Próximamente).
-import{card,LINE,P,UI,act,CFG_MODULES,type ScheduleRow,type OfficeSettings}from"../shared";
+import{card,LINE,P,UI,act,Skeleton,CFG_MODULES,type ScheduleRow,type OfficeSettings}from"../shared";
 import{useWorkspace}from"../context";
 export default function ConfiguracionView(){
  const{setCfg,cfgSettings,setCfgTab,cfgTab,credMsg,credSaved,credForm,setCredForm,saveCredentials,credBusy,credValid,profMsg,profUrls,profHas,sigInputRef,stampInputRef,uploadProfileAsset,profBusy,removeProfileAsset,cfgMsg,saveOfficeSettings,cfgBusy,cfgLoaded}=useWorkspace();
@@ -42,7 +42,10 @@ export default function ConfiguracionView(){
 
     {/* ---------- PESTAÑA GENERAL ---------- */}
     {on("General")&&<div style={grid}>
-     <div style={{...card2,padding:18}}>{sec(clip,"Información del consultorio")}
+     {!cfgLoaded?<div style={{...card2,padding:18}} aria-hidden>{sec(clip,"Información del consultorio")}
+      <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:16}}><Skeleton w={52} h={52} r={12}/><div style={{flex:1}}><Skeleton w={"55%"} h={17}/><Skeleton w={"40%"} h={12} style={{marginTop:6}}/></div></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>{Array.from({length:8}).map((_,i)=><div key={i}><Skeleton w={"50%"} h={11}/><Skeleton w={"100%"} h={36} r={9} style={{marginTop:5}}/></div>)}</div>
+     </div>:<div style={{...card2,padding:18}}>{sec(clip,"Información del consultorio")}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{display:"flex",gap:12,alignItems:"center"}}><span style={{width:52,height:52,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={clip}/></svg></span><div><div style={{fontSize:17,fontWeight:800}}>{cfgSettings.officeName||"Consultorio sin nombre"}</div><div style={{fontSize:12,color:P.muted}}>{cfgSettings.specialty||"Completa los datos del consultorio"}</div></div></div></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
        <div><div style={lbl}>Nombre del consultorio</div><input value={cfgSettings.officeName} onChange={e=>setCfg("officeName",e.target.value)} placeholder="Ej. Clínica San Rafael" style={selSty}/></div>
@@ -54,7 +57,7 @@ export default function ConfiguracionView(){
        <div><div style={lbl}>Correo electrónico</div><input value={cfgSettings.email} onChange={e=>setCfg("email",e.target.value)} placeholder="contacto@consultorio.mx" style={selSty}/></div>
        <div><div style={lbl}>Idioma</div><select aria-label="Idioma" value={cfgSettings.language} onChange={e=>setCfg("language",e.target.value)} style={selSty}><option value="es">Español (México)</option><option value="en">English</option></select></div>
       </div>
-     </div>
+     </div>}
      <div style={{...card2,padding:18}}>{sec("M12 3l7 4v5c0 4-3 7-7 8-4-1-7-4-7-8V7z","Apariencia del sistema")}
       <div style={{display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap"}}>
        <div><div style={lbl}>Color principal</div><div style={{display:"flex",gap:8}}>{["#4653C4",P.purpleOnPale,P.blueOnPale,P.cyan,P.greenOnPale,P.amberOnPale,P.redOnPale].map(c=><span key={c} {...act(()=>setCfg("color",c))} aria-label={`Color ${c}`} aria-pressed={cfgSettings.color===c} title={c} style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",boxShadow:cfgSettings.color===c?`0 0 0 3px ${c}44`:"none",border:cfgSettings.color===c?"2px solid #fff":"none"}}/>)}</div></div>

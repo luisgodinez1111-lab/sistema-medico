@@ -3,7 +3,7 @@
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {drugCatalog,interactionRules,type DrugCatalogItem} from "../../../../../packages/drug-catalog/src";
 import {apiRequest} from "../../../lib/session-client";
-import{Check,errMsg,userMessage,card,P,LINE,UI,scrollToSection,act,actRow,parseIxResult,IX_SEVERITIES,IX_SEV_LABEL,type IxSev}from"../shared";
+import{Check,errMsg,userMessage,card,P,LINE,UI,scrollToSection,act,actRow,Skeleton,parseIxResult,IX_SEVERITIES,IX_SEV_LABEL,type IxSev}from"../shared";
 import{useWorkspace}from"../context";
 export default function MedicamentosView(){
  const{ixMsg,setIxMsg,medQuery,medCat,medOnlyMon,medOnlyRenal,medSel,setRxDrug,setView,setMedTab,medTab,ixInput,ixDrugs,setIxDrugs,setIxInput,setIxRes,setIxFactors,ixFactors,setIxBusy,ixBusy,ixRes,setMedQuery,setMedCat,setMedOnlyMon,setMedOnlyRenal,setMedSel}=useWorkspace();
@@ -103,7 +103,7 @@ export default function MedicamentosView(){
             después de pulsar «Verificar» se lee como «no hay interacciones»: la lectura más peligrosa. */}
         {ixMsg&&!ixBusy&&<div role="alert" style={{margin:16,padding:"12px 14px",border:"1px solid #F0DBB8",background:"#FFF4E5",color:P.amberOnPale,borderRadius:10,fontSize:13,fontWeight:600}}>{ixMsg}</div>}
         {!ixRes&&!ixBusy&&!ixMsg&&<div style={{padding:"48px 20px",textAlign:"center",color:P.muted}}><div style={{fontSize:32,marginBottom:8}}>🔎</div><div style={{fontSize:14,fontWeight:600,color:P.ink}}>Sin análisis todavía</div><p style={{fontSize:13,maxWidth:360,margin:"6px auto 0"}}>Agrega los medicamentos (y factores del paciente) y pulsa «Verificar interacciones».</p></div>}
-        {ixBusy&&<div style={{padding:"48px 20px",textAlign:"center",color:P.muted,fontSize:14}}>Analizando el conjunto…</div>}
+        {ixBusy&&<div role="status" aria-busy="true" aria-label="Analizando el conjunto" style={{display:"flex",flexDirection:"column",gap:12}}><Skeleton w={220} h={12}/>{Array.from({length:3}).map((_,i)=><div key={i} style={{border:`1px solid ${LINE}`,borderRadius:12,padding:"14px 16px"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><Skeleton w={"45%"} h={14}/><Skeleton w={72} h={20} r={20}/></div><Skeleton w={"90%"} h={11} style={{marginTop:10}}/><Skeleton w={"80%"} h={11} style={{marginTop:6}}/></div>)}</div>}
         {ixRes&&!ixBusy&&<>
          {ixRes.findings.length===0?(
           <div style={{display:"flex",alignItems:"center",gap:12,padding:"16px 18px",borderRadius:12,background:"#E6F6EE",border:"1px solid #BFE6CF"}}><span style={{width:38,height:38,borderRadius:"50%",background:P.greenOnPale,color:"#fff",display:"grid",placeItems:"center",flex:"0 0 auto"}}>✓</span><div><div style={{fontWeight:700,fontSize:14}}>Sin interacciones detectadas</div><div style={{fontSize:13,color:P.muted}}>No se encontraron interacciones ni conflictos por factores para este conjunto.</div></div></div>
