@@ -2,9 +2,14 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "pacientes" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {apiRequest} from "../../../lib/session-client";
+import {useState} from "react";
 import{card,P,LINE,UI,errMsg,userMessage,actRow,act,DX_LABEL,scrollToSection,TYPE_LABEL,Skeleton}from"../shared";
 import{useWorkspace}from"../context";
 export default function PacientesView(){
+ // Ley de Hick — divulgación progresiva del formulario de edición: la identidad (nombre, nacimiento, sexo, CURP) siempre
+ // visible; el contacto y los datos socio-demográficos (teléfono, correo, dirección, ocupación, estado civil) se despliegan
+ // bajo demanda, y se muestran de entrada si el paciente YA tiene alguno (editar un dato existente nunca queda oculto).
+ const[moreEdit,setMoreEdit]=useState(false);
  const{patientList,topSearch,patStatus,patSex,setPatSelId,selectPatientRaw,setPatTab,setPatEdit,setPatMsg,patSelId,patientId,snap,docsSnap,setPatNew,patNew,patMsg,regName,setRegName,regDob,setRegDob,regSex,setRegSex,regExtra,setRegExtra,guardianFields,dupPanel,registerPatient,busy,gaps,setTopSearch,setPatStatus,setPatSex,patEdit,openEdit,patTab,editForm,setEditForm,amendPatient,editBusy,setView,openConsulta,setApptForm,setApptNew,setAgendaDate,tl,setDocNew}=useWorkspace();
 
    // ===== VISTA PACIENTES — lista real + FICHA contextual (sólo al seleccionar) con pestañas en sitio y edición real =====
@@ -105,9 +110,12 @@ export default function PacientesView(){
          <div><div style={flbl}>Nombre completo</div><input value={editForm.name} onChange={e=>setEditForm({...editForm,name:e.target.value})} style={inp}/></div>
          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><div style={flbl}>Fecha de nacimiento</div><input type="date" value={editForm.birthDate} onChange={e=>setEditForm({...editForm,birthDate:e.target.value})} style={inp}/></div><div><div style={flbl}>Sexo</div><select aria-label="Sexo del paciente (edición)" value={editForm.sexAtBirth} onChange={e=>setEditForm({...editForm,sexAtBirth:e.target.value})} style={inp}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select></div></div>
          <div><div style={flbl}>CURP</div><input value={editForm.curp} onChange={e=>setEditForm({...editForm,curp:e.target.value.toUpperCase()})} style={inp}/></div>
-         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><div style={flbl}>Teléfono</div><input value={editForm.phone} onChange={e=>setEditForm({...editForm,phone:e.target.value})} style={inp}/></div><div><div style={flbl}>Correo</div><input value={editForm.email} onChange={e=>setEditForm({...editForm,email:e.target.value})} style={inp}/></div></div>
-         <div><div style={flbl}>Dirección</div><input value={editForm.address} onChange={e=>setEditForm({...editForm,address:e.target.value})} style={inp}/></div>
-         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><div style={flbl}>Ocupación</div><input value={editForm.occupation} onChange={e=>setEditForm({...editForm,occupation:e.target.value})} style={inp}/></div><div><div style={flbl}>Estado civil</div><input value={editForm.maritalStatus} onChange={e=>setEditForm({...editForm,maritalStatus:e.target.value})} style={inp}/></div></div>
+         {(()=>{const hasMore=!!(editForm.phone||editForm.email||editForm.address||editForm.occupation||editForm.maritalStatus);const show=moreEdit||hasMore;return show?<>
+          <div style={{fontSize:12,fontWeight:700,color:P.muted,marginTop:2}}>Contacto y datos socio-demográficos</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><div style={flbl}>Teléfono</div><input value={editForm.phone} onChange={e=>setEditForm({...editForm,phone:e.target.value})} style={inp}/></div><div><div style={flbl}>Correo</div><input value={editForm.email} onChange={e=>setEditForm({...editForm,email:e.target.value})} style={inp}/></div></div>
+          <div><div style={flbl}>Dirección</div><input value={editForm.address} onChange={e=>setEditForm({...editForm,address:e.target.value})} style={inp}/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}><div><div style={flbl}>Ocupación</div><input value={editForm.occupation} onChange={e=>setEditForm({...editForm,occupation:e.target.value})} style={inp}/></div><div><div style={flbl}>Estado civil</div><input value={editForm.maritalStatus} onChange={e=>setEditForm({...editForm,maritalStatus:e.target.value})} style={inp}/></div></div>
+         </>:<button type="button" onClick={()=>setMoreEdit(true)} style={{alignSelf:"flex-start",border:`1px solid ${LINE}`,background:P.white,color:P.purple,borderRadius:9,padding:"9px 13px",fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:UI}}>+ Contacto y datos socio-demográficos</button>;})()}
         </div>
         <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void amendPatient(fp.patientId)} disabled={editBusy||!editForm.name.trim()} style={{flex:1,border:0,background:(editBusy||!editForm.name.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:14,cursor:(editBusy||!editForm.name.trim())?"default":"pointer",fontFamily:UI}}>{editBusy?"Guardando…":"Guardar cambios"}</button><button onClick={()=>setPatEdit(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 16px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
        </div>
