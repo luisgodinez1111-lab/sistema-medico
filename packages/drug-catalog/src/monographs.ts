@@ -2,6 +2,7 @@
 // ~1.2 MB de datos y solo debe cargarse donde se muestran las monografías (la vista Medicamentos, que es lazy). El catálogo
 // de SEGURIDAD (alergia/renal/interacciones) sigue en index.ts, curado y autoritativo; esto es información de referencia.
 import{DRUG_MONOGRAPHS_TSV}from"./monographs-data";
+import{MONOGRAPH_SUPPLEMENT}from"./monographs-supplement";
 export type DrugMonograph=Readonly<{
  key:string;name:string;action:string;indications:string;contraindications:string;
  precautions:string;interactions:string;adverse:string;
@@ -15,9 +16,15 @@ let LIST:Row[]|null=null;
 function parse():Row[]{
  if(LIST)return LIST;
  LIST=[];
+ const seen=new Set<string>();
+ // Suplemento CURADO primero (gana en el emparejado exacto y evita que un fármaco común quede sin monografía).
+ for(const[key,name,action,indications,contraindications]of MONOGRAPH_SUPPLEMENT){
+  const k=normDrug(key);seen.add(k);
+  LIST.push({key:k,name,action,indications,contraindications,precautions:"",interactions:"",adverse:"",blob:normDrug(k+" "+action+" "+indications)});
+ }
  for(const line of DRUG_MONOGRAPHS_TSV.split("\n")){
   const t=line.split("\t");
-  if(!t[0]||!t[1])continue;
+  if(!t[0]||!t[1]||seen.has(t[0]))continue;
   const e={key:t[0],name:t[1],action:t[2]??"",indications:t[3]??"",contraindications:t[4]??"",precautions:t[5]??"",interactions:t[6]??"",adverse:t[7]??""};
   // blob normalizado (sin acentos) para buscar por nombre/acción/indicaciones sin importar tildes.
   LIST.push({...e,blob:normDrug(e.key+" "+e.action+" "+e.indications)});

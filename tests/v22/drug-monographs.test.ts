@@ -32,10 +32,10 @@ describe("marcas comerciales curadas (México)",()=>{
   expect(searchBrands("advil")[0]?.ingredient).toBe("ibuprofeno");
   expect(searchBrands("nexium")[0]?.ingredient).toBe("esomeprazol");
  });
- it("la mayoría de las marcas resuelven a una monografía real (detecta typos del principio activo)",()=>{
+ it("prácticamente TODAS las marcas resuelven a una monografía real (detecta typos del principio activo)",()=>{
   const bs=allBrands();
-  const conMono=bs.filter(b=>drugMonograph(b.ingredient)).length;
-  // No exigimos 100% (hay combinaciones/insumos sin monografía individual), pero sí una mayoría clara.
-  expect(conMono/bs.length,`solo ${conMono}/${bs.length} marcas enlazan a monografía`).toBeGreaterThan(0.7);
+  const sin=bs.filter(b=>!drugMonograph(b.ingredient));
+  // Con el suplemento curado, la cobertura es ~100%; se exige ≥0.95 para cazar cualquier typo nuevo del principio activo.
+  expect(sin.length/bs.length,`sin monografía: ${sin.map(b=>b.ingredient).join(", ")}`).toBeLessThan(0.05);
  });
 });
