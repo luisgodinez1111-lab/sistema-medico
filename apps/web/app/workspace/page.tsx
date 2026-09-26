@@ -98,12 +98,9 @@ export default function Workspace(){
      <span style={{fontSize:11,background:"#E7EAF2",borderRadius:5,padding:"2px 6px",color:P.muted,fontWeight:600,flex:"0 0 auto"}}>⌘ K</span>
     </div>
     <div style={{display:"flex",alignItems:"center",gap:16,flex:"0 0 auto",marginLeft:"auto"}}>
-     <button title="Notificaciones" onClick={()=>{setView("exp");scrollToSection("Seguridad y auditoría");}} style={{position:"relative",background:"transparent",border:0,cursor:"pointer",color:P.muted,padding:2,display:"grid",placeItems:"center"}}>
+     <button title="Notificaciones" aria-label="Notificaciones" onClick={()=>{setView("exp");scrollToSection("Seguridad y auditoría");}} style={{position:"relative",background:"transparent",border:0,cursor:"pointer",color:P.muted,padding:2,display:"grid",placeItems:"center"}}>
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 004 0"/></svg>
       {(notifCount===null||notifCount>0)&&<span title={notifCount===null?"Sin dato: no se pudo cargar el conteo de pendientes":undefined} style={{position:"absolute",top:-3,right:-3,minWidth:16,height:16,borderRadius:999,background:P.redOnPale,color:"#fff",fontSize:9.5,fontWeight:800,display:"grid",placeItems:"center",padding:"0 3px"}}>{notifCount===null?<><span aria-hidden="true">—</span><span className="mos-sr">sin dato</span></>:notifCount}</span>}
-     </button>
-     <button title="Ayuda" style={{background:"transparent",border:0,cursor:"pointer",color:P.muted,padding:2,display:"grid",placeItems:"center"}}>
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 .2c0 1.8-2.5 2-2.5 3.8M12 17h.01" strokeLinecap="round"/></svg>
      </button>
      <div style={{position:"relative"}}>
       <button onClick={()=>setTopMenu(m=>!m)} style={{display:"flex",alignItems:"center",gap:9,background:"transparent",border:0,cursor:"pointer",fontFamily:UI}}>
