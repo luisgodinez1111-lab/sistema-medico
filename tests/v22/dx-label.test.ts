@@ -45,10 +45,12 @@ describe("etiqueta de diagnóstico desde el código CIE-10 (R05a-F03)",()=>{
   expect(DX_LABEL(sinAbreviatura!.c)).not.toBe(sinAbreviatura!.c);
  });
  it("un código NO catalogado se muestra marcado como código, nunca disfrazado de diagnóstico",()=>{
-  expect(lookupIcd10("Z99.9"),"si algún día se cataloga, este caso hay que cambiarlo").toBeUndefined();
-  expect(DX_LABEL("Z99.9")).toBe("CIE-10 Z99.9");
+  // Al cargarse la CIE-10 OMS completa (~14 000 códigos), el caso «no catalogado» se prueba con un código de formato
+  // válido pero INEXISTENTE (E99.9 no es una subcategoría real de la CIE-10), no con uno que el dataset ya trae.
+  expect(lookupIcd10("E99.9"),"si algún día se cataloga, este caso hay que cambiarlo").toBeUndefined();
+  expect(DX_LABEL("E99.9")).toBe("CIE-10 E99.9");
   // La invariante que importa: el resultado nunca es el código a secas.
-  for(const c of ["Z99.9","F41.1","Q99.9"])expect(DX_LABEL(c)).not.toBe(c.toUpperCase());
+  for(const c of ["E99.9","F41.1","Q99.9"])expect(DX_LABEL(c)).not.toBe(c.toUpperCase());
  });
  it("normaliza como el resto del sistema (espacios y minúsculas)",()=>{
   expect(DX_LABEL(" e11.9 ")).toBe("DM2");

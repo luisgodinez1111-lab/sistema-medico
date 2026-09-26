@@ -5,8 +5,11 @@
 // CODIFICADOS y validados con descripción canónica. Puro, determinista, sin PHI.
 // Autoridad: PROD (interoperabilidad semántica / NOM-024), CAP-TERMINOLOGY-001.
 // Nota: subconjunto de demostración; el catálogo oficial completo se cargaría desde la fuente autorizada.
+import{ICD10_WHO_TSV}from"./icd10-who-data";
 export type Icd10Entry=Readonly<{code:string;description:string;category:string}>;
-const CATALOG:readonly Icd10Entry[]=[
+// CURATED: subconjunto autoritativo (descripciones canónicas exactas + categorías finas + códigos que los algoritmos de
+// comorbilidad necesitan REGISTRABLES). Gana sobre el dataset masivo en caso de código repetido.
+const CURATED:readonly Icd10Entry[]=[
  {code:"E11",description:"Diabetes mellitus tipo 2",category:"Endocrino"},
  {code:"E11.9",description:"Diabetes mellitus tipo 2 sin complicaciones",category:"Endocrino"},
  {code:"E11.2",description:"Diabetes mellitus tipo 2 con complicaciones renales",category:"Endocrino"},
@@ -224,6 +227,17 @@ const CATALOG:readonly Icd10Entry[]=[
  {code:"Z02.7",description:"Emisión de certificado médico",category:"Factores de salud"},
  {code:"Z71.9",description:"Consulta para asesoramiento, no especificada",category:"Factores de salud"},
 ];
+// Dataset COMPLETO de la CIE-10 OMS (~14 000 diagnósticos, todas las especialidades: de medicina general a psiquiatría,
+// oncología, ginecología, etc.). Se parsea del TSV una vez al cargar el módulo (síncrono: también valida en el servidor).
+// Los códigos ya presentes en CURATED se omiten (CURATED gana: conserva descripción canónica y categoría fina).
+const CURATED_CODES=new Set(CURATED.map(e=>e.code.toUpperCase()));
+const DATASET:Icd10Entry[]=[];
+for(const line of ICD10_WHO_TSV.split("\n")){
+ const t=line.split("\t");const code=t[0],description=t[1],category=t[2]??"Otros";
+ if(!code||!description||CURATED_CODES.has(code.toUpperCase()))continue;
+ DATASET.push({code,description,category});
+}
+const CATALOG:readonly Icd10Entry[]=[...CURATED,...DATASET];
 const BY_CODE=new Map(CATALOG.map(e=>[e.code.toUpperCase(),e]));
 export function normalizeIcd10(code:string):string{return code.trim().toUpperCase();}
 export function lookupIcd10(code:string):Icd10Entry|undefined{return BY_CODE.get(normalizeIcd10(code));}
@@ -246,8 +260,9 @@ function rankIcd10(e:Icd10Entry,q:string):number{
 export function searchIcd10(query:string,limit=20):Icd10Entry[]{
  const q=query.trim().toLowerCase();
  if(!q)return[];
+ // Dentro del mismo nivel de relevancia, las entradas CURADAS (comunes/autoritativas) van primero; luego, orden por código.
  return CATALOG.filter(e=>e.code.toLowerCase().includes(q)||e.description.toLowerCase().includes(q)||e.category.toLowerCase().includes(q))
-  .map(e=>({e,r:rankIcd10(e,q)}))
+  .map(e=>({e,r:rankIcd10(e,q)*2+(CURATED_CODES.has(e.code.toUpperCase())?0:1)}))
   .sort((a,b)=>a.r-b.r||a.e.code.localeCompare(b.e.code)).map(x=>x.e).slice(0,limit);
 }
 export function catalogSize():number{return CATALOG.length;}

@@ -15,9 +15,12 @@ describe("terminología CIE-10 (EPIC AM)",()=>{
  });
  it("búsqueda por código o texto, orden estable y con límite",()=>{
   expect(searchIcd10("diabetes").length).toBeGreaterThan(0);
-  expect(searchIcd10("E11").every(e=>e.code.includes("E11"))).toBe(true);
-  const codes=searchIcd10("E11").map(e=>e.code);
-  expect(codes).toEqual([...codes].sort((a,b)=>a.localeCompare(b)));
+  const res=searchIcd10("E11");
+  expect(res.every(e=>e.code.includes("E11"))).toBe(true);
+  // El orden es por RELEVANCIA (ya no alfabético puro): el código exacto «E11» va primero.
+  expect(res[0]?.code).toBe("E11");
+  // …y es determinista (misma consulta → mismo orden).
+  expect(searchIcd10("E11").map(e=>e.code)).toEqual(res.map(e=>e.code));
   expect(searchIcd10("")).toEqual([]);
  });
 });
