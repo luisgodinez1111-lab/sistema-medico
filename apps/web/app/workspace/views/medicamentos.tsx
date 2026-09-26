@@ -79,7 +79,7 @@ export default function MedicamentosView(){
          {ixDrugs.map(d=><span key={d} style={{display:"inline-flex",alignItems:"center",gap:7,background:"#EEEBFD",color:P.purple,borderRadius:8,padding:"6px 10px",fontSize:13,fontWeight:600}}>{d}<button onClick={()=>rmDrug(d)} aria-label={`Quitar ${d}`} style={{border:0,background:"transparent",color:P.purple,cursor:"pointer",fontSize:14,lineHeight:1,padding:0,fontFamily:UI}}>×</button></span>)}
         </div>
         <div style={{display:"flex",gap:8}}>
-         <input value={ixInput} onChange={e=>setIxInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addDrug();}} placeholder="Ej. Sertralina, Ibuprofeno…" style={{flex:1,border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,fontFamily:UI,color:P.ink}}/>
+         <input aria-label="Agregar fármaco o factor" value={ixInput} onChange={e=>setIxInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addDrug();}} placeholder="Ej. Sertralina, Ibuprofeno…" style={{flex:1,border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,fontFamily:UI,color:P.ink}}/>
          <button onClick={addDrug} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:9,padding:"9px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Agregar</button>
         </div>
        </div>
@@ -154,7 +154,7 @@ export default function MedicamentosView(){
     <div style={{display:"grid",gridTemplateColumns:"250px 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-med2">
      <div style={{...card2,padding:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}} {...act(()=>{setMedQuery("");setMedCat("");setMedOnlyMon(false);setMedOnlyRenal(false);})}>Limpiar</span></div>
-      <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input value={medQuery} onChange={e=>setMedQuery(e.target.value)} placeholder="Buscar principio activo o clase…" style={{border:0,outline:"none",fontSize:12.5,fontFamily:UI,color:P.ink,width:"100%",background:"transparent"}}/></div>
+      <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input aria-label="Buscar medicamento" value={medQuery} onChange={e=>setMedQuery(e.target.value)} placeholder="Buscar principio activo o clase…" style={{border:0,outline:"none",fontSize:12.5,fontFamily:UI,color:P.ink,width:"100%",background:"transparent"}}/></div>
       <div style={flbl}>Categoría terapéutica</div><select aria-label="Categoría terapéutica" value={medCat} onChange={e=>setMedCat(e.target.value)} style={selSty}><option value="">Todas</option>{categories.map(c=><option key={c} value={c}>{c}</option>)}</select>
       <div style={{...flbl,marginTop:14}}>Seguridad</div>
       <Check checked={medOnlyMon} label="Solo con monitoreo obligado" onChange={()=>setMedOnlyMon(v=>!v)}/>

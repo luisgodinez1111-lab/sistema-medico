@@ -305,9 +305,9 @@ export default function ExpView(){
    </div>:<div>
     <p style={{color:P.muted,fontSize:13}}>Encuentro <span style={mono}>{enc.id.slice(0,8)}</span> · versión {enc.version}</p>
     <label style={lbl}>Valoración (assessment)</label>
-    <textarea style={{...input,minHeight:64,resize:"vertical"}} value={assessment} disabled={enc.state!=="OPEN"} onChange={e=>setAssessment(e.target.value)} placeholder="Impresión diagnóstica…" />
+    <textarea style={{...input,minHeight:64,resize:"vertical"}} aria-label="Valoración clínica" value={assessment} disabled={enc.state!=="OPEN"} onChange={e=>setAssessment(e.target.value)} placeholder="Impresión diagnóstica…" />
     <label style={lbl}>Plan</label>
-    <textarea style={{...input,minHeight:64,resize:"vertical"}} value={plan} disabled={enc.state!=="OPEN"} onChange={e=>setPlan(e.target.value)} placeholder="Plan de manejo…" />
+    <textarea style={{...input,minHeight:64,resize:"vertical"}} aria-label="Plan" value={plan} disabled={enc.state!=="OPEN"} onChange={e=>setPlan(e.target.value)} placeholder="Plan de manejo…" />
     <div style={{display:"flex",gap:10,marginTop:14}}>
      {enc.state==="OPEN"&&<button style={btn} disabled={busy!==""||!assessment||!plan} onClick={saveAssessment}>{busy==="assess"?"Guardando…":"Guardar valoración"}</button>}
      {enc.state==="READY_TO_SIGN"&&<button style={btn} disabled={busy!==""} onClick={signEncounter}>{busy==="sign"?"Firmando…":"Firmar encuentro"}</button>}
@@ -920,7 +920,7 @@ export default function ExpView(){
      <option value="REFERRAL">Referencia</option><option value="PROCEDURE_NOTE">Nota de procedimiento</option><option value="OTHER">Otro</option>
     </select>
    </div>
-   <textarea style={{...input,minHeight:64,resize:"vertical",marginTop:10}} value={docContent} onChange={e=>setDocContent(e.target.value)} placeholder="Contenido clínico…" />
+   <textarea style={{...input,minHeight:64,resize:"vertical",marginTop:10}} aria-label="Contenido del documento" value={docContent} onChange={e=>setDocContent(e.target.value)} placeholder="Contenido clínico…" />
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!docContent} onClick={createDoc}>{busy==="doc-new"?"Creando…":"Crear documento"}</button></div>
    {docs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {docs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
@@ -967,7 +967,7 @@ export default function ExpView(){
    <p style={{margin:"6px 0 0",color:"#7a3b34",wordBreak:"break-word"}}>{overrideMed.message}</p>
    <ul style={{margin:"8px 0 0",paddingLeft:18,color:"#7a3b34",fontSize:13}}>{overrideMed.barriers.map(b=><li key={b}>Vas a anular: <b>{BARRIER_LABEL[b]??b}</b></li>)}</ul>
    <label htmlFor="override-why" style={{display:"block",margin:"10px 0 4px",fontSize:12,fontWeight:700,color:"#7a3b34"}}>Justificación clínica de la anulación (queda en el expediente con tu identidad; mínimo 20 caracteres)</label>
-   <textarea id="override-why" value={overrideWhy} onChange={e=>setOverrideWhy(e.target.value)} rows={2} maxLength={1000} style={{...input,width:"100%",resize:"vertical"}} />
+   <textarea id="override-why" aria-label="Motivo de la anulación" value={overrideWhy} onChange={e=>setOverrideWhy(e.target.value)} rows={2} maxLength={1000} style={{...input,width:"100%",resize:"vertical"}} />
    <div style={{display:"flex",gap:10,marginTop:10,justifyContent:"flex-end"}}>
     <button style={{...ghost,padding:"9px 16px"}} onClick={()=>{setOverrideMed(null);setOverrideWhy("");}}>Cancelar</button>
     <button style={{...btn,background:P.redOnPale,opacity:overrideWhy.trim().length<20?.5:1}} disabled={busy!==""||overrideWhy.trim().length<20} onClick={confirmOverrideMed}>Anular el bloqueo bajo mi responsabilidad</button>
@@ -977,7 +977,7 @@ export default function ExpView(){
    <b id="ack-title" style={{color:"#8A4B00"}}>Verificación automática incompleta — {ackMed.med.label}</b>
    <p style={{margin:"6px 0 0",color:"#5A3A0A",wordBreak:"break-word"}}>{ackMed.message}</p>
    <label htmlFor="ack-why" style={{display:"block",margin:"10px 0 4px",fontSize:12,fontWeight:700,color:"#5A3A0A"}}>Justificación clínica (queda en el expediente, mínimo 10 caracteres)</label>
-   <textarea id="ack-why" value={ackWhy} onChange={e=>setAckWhy(e.target.value)} rows={2} maxLength={500} style={{...input,width:"100%",resize:"vertical"}} />
+   <textarea id="ack-why" aria-label="Motivo del reconocimiento" value={ackWhy} onChange={e=>setAckWhy(e.target.value)} rows={2} maxLength={500} style={{...input,width:"100%",resize:"vertical"}} />
    <div style={{display:"flex",gap:10,marginTop:10,justifyContent:"flex-end"}}>
     <button style={{...ghost,padding:"9px 16px"}} onClick={()=>{setAckMed(null);setAckWhy("");}}>Cancelar</button>
     <button style={{...btn,opacity:ackWhy.trim().length<10?.5:1}} disabled={busy!==""||ackWhy.trim().length<10} onClick={confirmAckMed}>Prescribir bajo mi criterio clínico</button>

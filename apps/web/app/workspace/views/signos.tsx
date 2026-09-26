@@ -78,18 +78,18 @@ export default function SignosView(){
       <div style={{fontSize:18,fontWeight:800,marginBottom:6}}>Registrar signos vitales</div>
       <div style={{fontSize:12,color:P.muted,marginBottom:14}}>Se registra con la fecha y hora actuales.</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
-       <div><div style={flbl}>Temperatura (°C)</div><input value={svTemp} onChange={e=>setSvTemp(e.target.value)} placeholder="36.5" style={num}/></div>
-       <div><div style={flbl}>Frecuencia cardíaca (lpm)</div><input value={svFc} onChange={e=>setSvFc(e.target.value)} placeholder="72" style={num}/></div>
-       <div><div style={flbl}>Frecuencia respiratoria (rpm)</div><input value={svFr} onChange={e=>setSvFr(e.target.value)} placeholder="16" style={num}/></div>
+       <div><div style={flbl}>Temperatura (°C)</div><input aria-label="Temperatura" value={svTemp} onChange={e=>setSvTemp(e.target.value)} placeholder="36.5" style={num}/></div>
+       <div><div style={flbl}>Frecuencia cardíaca (lpm)</div><input aria-label="Frecuencia cardíaca" value={svFc} onChange={e=>setSvFc(e.target.value)} placeholder="72" style={num}/></div>
+       <div><div style={flbl}>Frecuencia respiratoria (rpm)</div><input aria-label="Frecuencia respiratoria" value={svFr} onChange={e=>setSvFr(e.target.value)} placeholder="16" style={num}/></div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginTop:12}}>
-       <div><div style={flbl}>Presión arterial (mmHg)</div><div style={{display:"flex",alignItems:"center",gap:6}}><input value={svBpS} onChange={e=>setSvBpS(e.target.value)} placeholder="120" style={{...num,textAlign:"center"}}/><span style={{color:P.muted}}>/</span><input value={svBpD} onChange={e=>setSvBpD(e.target.value)} placeholder="80" style={{...num,textAlign:"center"}}/></div></div>
-       <div><div style={flbl}>Saturación O₂ (%)</div><input value={svSpo2} onChange={e=>setSvSpo2(e.target.value)} placeholder="98" style={num}/></div>
-       <div><div style={flbl}>Peso (kg)</div><input value={svPeso} onChange={e=>setSvPeso(e.target.value)} placeholder="65.7" style={num}/></div>
+       <div><div style={flbl}>Presión arterial (mmHg)</div><div style={{display:"flex",alignItems:"center",gap:6}}><input aria-label="Presión sistólica" value={svBpS} onChange={e=>setSvBpS(e.target.value)} placeholder="120" style={{...num,textAlign:"center"}}/><span style={{color:P.muted}}>/</span><input aria-label="Presión diastólica" value={svBpD} onChange={e=>setSvBpD(e.target.value)} placeholder="80" style={{...num,textAlign:"center"}}/></div></div>
+       <div><div style={flbl}>Saturación O₂ (%)</div><input aria-label="Saturación de oxígeno (SpO2)" value={svSpo2} onChange={e=>setSvSpo2(e.target.value)} placeholder="98" style={num}/></div>
+       <div><div style={flbl}>Peso (kg)</div><input aria-label="Peso" value={svPeso} onChange={e=>setSvPeso(e.target.value)} placeholder="65.7" style={num}/></div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginTop:12}}>
-       <div><div style={flbl}>Talla (cm)</div><input value={svTalla} onChange={e=>setSvTalla(e.target.value)} placeholder="149" style={num}/></div>
-       <div><div style={flbl}>IMC (kg/m²)</div><input value={imcCalc} readOnly placeholder="—" style={{...num,background:"#F2F4F9",color:P.muted}}/></div>
+       <div><div style={flbl}>Talla (cm)</div><input aria-label="Talla" value={svTalla} onChange={e=>setSvTalla(e.target.value)} placeholder="149" style={num}/></div>
+       <div><div style={flbl}>IMC (kg/m²)</div><input aria-label="IMC calculado" value={imcCalc} readOnly placeholder="—" style={{...num,background:"#F2F4F9",color:P.muted}}/></div>
        <div/>
       </div>
       {svMsg&&<div style={{marginTop:10,padding:"10px 13px",borderRadius:10,background:svMsg.includes("✓")?"#E6F6EE":"#FDF4E6",border:`1px solid ${svMsg.includes("✓")?"#BFE6CF":"#F2E1C0"}`,fontSize:13,color:svMsg.includes("✓")?"#166534":"#7A5A16"}}>{svMsg}</div>}

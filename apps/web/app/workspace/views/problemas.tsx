@@ -62,13 +62,13 @@ export default function ProblemasView(){
         <div>
          <div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Nombre del problema / Diagnóstico <span style={{color:P.red}}>*</span></div>
          <div style={{position:"relative"}}>
-          <div style={{display:"flex",gap:8}}><input value={pfName} onChange={e=>searchCie(e.target.value)} placeholder="Buscar en CIE-10 o escribir diagnóstico..." style={{...selSty,flex:1}}/><button onClick={()=>searchCie(pfName)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>⊟ Buscar en CIE-10</button></div>
+          <div style={{display:"flex",gap:8}}><input aria-label="Nombre de la plantilla" value={pfName} onChange={e=>searchCie(e.target.value)} placeholder="Buscar en CIE-10 o escribir diagnóstico..." style={{...selSty,flex:1}}/><button onClick={()=>searchCie(pfName)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI,whiteSpace:"nowrap"}}>⊟ Buscar en CIE-10</button></div>
           {pfSearchErr&&<div role="alert" style={{marginTop:6,padding:"8px 10px",borderRadius:9,background:"#FFF4E5",border:"1px solid #F0DBB8",color:P.amberOnPale,fontSize:12,fontWeight:600}}>{pfSearchErr}</div>}
           {pfResults.length>0&&<div style={{position:"absolute",top:"110%",left:0,right:0,zIndex:5,background:P.white,border:`1px solid ${LINE}`,borderRadius:11,boxShadow:"0 12px 32px rgba(20,30,60,.14)",overflow:"hidden"}}>{pfResults.map(e=><div key={e.code} {...act(()=>pick(e))} style={{display:"flex",gap:12,padding:"11px 14px",cursor:"pointer",borderBottom:`1px solid #F2F4F9`,alignItems:"center"}}><span style={{fontWeight:700,color:P.purple,fontSize:13,minWidth:56}}>{e.code}</span><span style={{fontSize:13}}>{e.description}</span></div>)}</div>}
          </div>
          {pfCode&&<div style={{marginTop:8,fontSize:12,color:P.green,fontWeight:600}}>✓ CIE-10 {pfCode} seleccionado</div>}
          <div style={{fontSize:12.5,fontWeight:700,margin:"18px 0 6px"}}>Descripción clínica</div>
-         <textarea value={pfDesc} onChange={e=>setPfDesc(e.target.value.slice(0,1000))} placeholder="Describe el problema, síntomas, evolución, hallazgos relevantes..." style={{...selSty,minHeight:120,resize:"vertical"}}/>
+         <textarea aria-label="Descripción de la plantilla" value={pfDesc} onChange={e=>setPfDesc(e.target.value.slice(0,1000))} placeholder="Describe el problema, síntomas, evolución, hallazgos relevantes..." style={{...selSty,minHeight:120,resize:"vertical"}}/>
          <div style={{textAlign:"right",fontSize:11,color:P.muted}}>{pfDesc.length}/1000</div>
         </div>
         <div>
@@ -83,13 +83,13 @@ export default function ProblemasView(){
        <div style={{marginTop:20,maxWidth:260}}>
         <div style={flbl}>Gravedad</div><select aria-label="Gravedad" value={pfSev} onChange={e=>setPfSev(e.target.value)} style={selSty}>{["Leve","Moderada","Grave"].map(o=><option key={o}>{o}</option>)}</select>
        </div>
-       <div style={{marginTop:20}}><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Notas adicionales</div><textarea value={pfNotes} onChange={e=>setPfNotes(e.target.value.slice(0,500))} placeholder="Información adicional, contexto, observaciones..." style={{...selSty,minHeight:90,resize:"vertical"}}/><div style={{textAlign:"right",fontSize:11,color:P.muted}}>{pfNotes.length}/500</div></div>
+       <div style={{marginTop:20}}><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Notas adicionales</div><textarea aria-label="Notas de la plantilla" value={pfNotes} onChange={e=>setPfNotes(e.target.value.slice(0,500))} placeholder="Información adicional, contexto, observaciones..." style={{...selSty,minHeight:90,resize:"vertical"}}/><div style={{textAlign:"right",fontSize:11,color:P.muted}}>{pfNotes.length}/500</div></div>
        {pfMsg&&<div style={{marginTop:14,padding:"11px 14px",borderRadius:10,background:"#FDF4E6",border:"1px solid #F2E1C0",fontSize:13,color:"#7A5A16"}}>{pfMsg}</div>}
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:16}}>
        <div style={{...card2,padding:16}}>
         <div style={{fontSize:15,fontWeight:800,marginBottom:10}}>Sugerencias de diagnósticos</div>
-        <input onChange={e=>searchCie(e.target.value)} placeholder="Buscar en CIE-10..." style={selSty}/>
+        <input aria-label="Buscar en CIE-10" onChange={e=>searchCie(e.target.value)} placeholder="Buscar en CIE-10..." style={selSty}/>
         <div style={{fontSize:11.5,color:P.muted,margin:"10px 0 4px"}}>Diagnósticos frecuentes</div>
         <div>{COMMON.map(([c,d])=><div key={c} {...act(()=>pick({code:c,description:d,category:""}))} style={{display:"flex",gap:10,padding:"9px 6px",cursor:"pointer",alignItems:"center",borderRadius:8}}><span style={{fontWeight:700,color:P.purple,fontSize:12.5,minWidth:52}}>{c}</span><span style={{fontSize:12.5}}>{d}</span></div>)}</div>
        </div>
@@ -131,7 +131,7 @@ export default function ProblemasView(){
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
       <div style={{display:"flex",alignItems:"center",gap:14}}><button onClick={()=>setProbScreen("lista")} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 14px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>← Volver</button><div><h1 style={{fontSize:26,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Plantillas de problemas</h1><p style={{color:P.muted,fontSize:13,margin:"3px 0 0"}}>Catálogo de diagnósticos frecuentes. Elige una para precargar el formulario de «Nuevo problema».</p></div></div>
      </div>
-     <div style={{display:"flex",gap:10,marginTop:14,flexWrap:"wrap",alignItems:"center"}}><input value={tplQuery} onChange={e=>setTplQuery(e.target.value)} placeholder="Buscar plantilla por nombre, CIE-10 o palabra clave..." style={{...selSty,flex:1,minWidth:220}}/>{tplQuery&&<span {...act(()=>setTplQuery(""))} style={{fontSize:12.5,color:P.blue,cursor:"pointer"}}>Limpiar</span>}</div>
+     <div style={{display:"flex",gap:10,marginTop:14,flexWrap:"wrap",alignItems:"center"}}><input aria-label="Buscar plantilla" value={tplQuery} onChange={e=>setTplQuery(e.target.value)} placeholder="Buscar plantilla por nombre, CIE-10 o palabra clave..." style={{...selSty,flex:1,minWidth:220}}/>{tplQuery&&<span {...act(()=>setTplQuery(""))} style={{fontSize:12.5,color:P.blue,cursor:"pointer"}}>Limpiar</span>}</div>
      <div style={{display:"grid",gridTemplateColumns:"220px 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-prob-tpl">
       <div style={{...card2,padding:14}}><div style={{fontSize:14,fontWeight:800,marginBottom:8}}>Categorías</div>{CATS.map(([c,n])=>{const on=c===probPlantCat;return <div key={c} {...act(()=>setProbPlantCat(c))} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 10px",borderRadius:9,cursor:"pointer",background:on?"#EEEBFD":"transparent",color:on?P.purple:P.ink,fontWeight:on?700:500,fontSize:13}}><span>{c}</span><span style={{fontSize:11.5,color:on?P.purple:P.muted}}>{n}</span></div>;})}</div>
       <div style={{...card2,padding:16}}>
@@ -198,7 +198,7 @@ export default function ProblemasView(){
     <div style={{display:"grid",gridTemplateColumns:"240px 1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-prob">
      <div style={{...card2,padding:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:15,fontWeight:700}}>Filtros</div><button onClick={()=>{setProbSearch("");setProbStatusF("Todos");}} style={{border:0,background:"transparent",color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:UI}}>Limpiar</button></div>
-      <div style={{position:"relative",marginTop:10}}><input value={probSearch} onChange={e=>{setProbSearch(e.target.value);setProbSel(0);}} placeholder="Buscar problema, diagnóstico o CI..." style={{...selSty,padding:"9px 11px 9px 32px"}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
+      <div style={{position:"relative",marginTop:10}}><input aria-label="Buscar problema" value={probSearch} onChange={e=>{setProbSearch(e.target.value);setProbSel(0);}} placeholder="Buscar problema, diagnóstico o CI..." style={{...selSty,padding:"9px 11px 9px 32px"}}/><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9" style={{position:"absolute",left:10,top:11}}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
       <div style={flbl}>Estado</div><select aria-label="Filtrar por estado" value={probStatusF} onChange={e=>{setProbStatusF(e.target.value);setProbSel(0);}} style={selSty}>{["Todos","Activo","En seguimiento","Resuelto","Inactivo"].map(o=><option key={o}>{o}</option>)}</select>
       <div style={{marginTop:14,borderTop:`1px solid ${LINE}`,paddingTop:10}}>{chk2(probStatusF==="Activo","Solo activos",()=>{setProbStatusF(probStatusF==="Activo"?"Todos":"Activo");setProbSel(0);})}{chk2(probStatusF==="En seguimiento","Solo en seguimiento",()=>{setProbStatusF(probStatusF==="En seguimiento"?"Todos":"En seguimiento");setProbSel(0);})}</div>
       <div style={{marginTop:14,fontSize:12,color:P.muted}}>{rows.length} de {allRows.length} problema(s)</div>
