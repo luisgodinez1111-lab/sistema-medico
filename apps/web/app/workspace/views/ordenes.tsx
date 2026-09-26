@@ -24,7 +24,7 @@ export default function OrdenesView(){
    const TYPE_ICO:Record<string,string>={LAB:"🧪",IMAGING:"🩻",PROCEDURE:"🫀",REFERRAL:"👥",PATHOLOGY:"🔬"};
    const TYPE_LBL:Record<string,string>={LAB:"Laboratorio",IMAGING:"Imagenología",PROCEDURE:"Procedimiento",REFERRAL:"Interconsulta",PATHOLOGY:"Patología"};
    const SUGG:Record<string,string[]>={LAB:["Biometría hemática completa","Química sanguínea (6 elementos)","Perfil lipídico","HbA1c","Examen general de orina","TSH y T4 libre"],IMAGING:["Radiografía de tórax PA","Ultrasonido abdominal","Tomografía simple de cráneo","Mastografía"],PROCEDURE:["Electrocardiograma","Espirometría","Endoscopia","Prueba de esfuerzo"],REFERRAL:["Cardiología","Endocrinología","Nefrología","Oftalmología"],PATHOLOGY:["Biopsia","Citología cervical","Estudio histopatológico"]};
-   const stx=(s:string):[string,string]=>s==="Completada"?["#E6F6EE",P.greenOnPale]:s==="Enviada"?["#EAF1FD",P.blueOnPale]:s==="Cancelada"?["#F0F1F4","#8A8FA3"]:["#FBF0DC",P.amberOnPale];
+   const stx=(s:string):[string,string]=>s==="Completada"?["#E6F6EE",P.greenOnPale]:s==="Enviada"?["#EAF1FD",P.blueOnPale]:s==="Cancelada"?["#F0F1F4",P.muted]:["#FBF0DC",P.amberOnPale];
    const fmtDT=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleString("es-MX",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});};
    const items=ordReg?.items??[];
    const ordLoaded=!!ordReg;
@@ -71,7 +71,7 @@ export default function OrdenesView(){
      <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div><div style={{fontSize:22,fontWeight:800}}>{ordLoaded?kSol:<Skeleton w={40} h={20}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Solicitadas</div></div></div>
      <div style={kcard}>{kico("#E7EEFB",P.blue,"M12 15V4m0 0l-4 4m4-4l4 4M4 20h16")}<div><div style={{fontSize:22,fontWeight:800}}>{ordLoaded?kEnv:<Skeleton w={40} h={20}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Enviadas</div></div></div>
      <div style={kcard}>{kico("#E6F6EE",P.green,"M8.5 12l2.5 2.5 5-5M12 21a9 9 0 100-18 9 9 0 000 18z")}<div><div style={{fontSize:22,fontWeight:800}}>{ordLoaded?kCom:<Skeleton w={40} h={20}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Completadas</div></div></div>
-     <div style={kcard}>{kico("#F0F1F4","#8A8FA3","M6 6l12 12M6 18L18 6")}<div><div style={{fontSize:22,fontWeight:800,color:"#8A8FA3"}}>{ordLoaded?kCan:<Skeleton w={40} h={20}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Canceladas</div></div></div>
+     <div style={kcard}>{kico("#F0F1F4",P.muted,"M6 6l12 12M6 18L18 6")}<div><div style={{fontSize:22,fontWeight:800,color:P.muted}}>{ordLoaded?kCan:<Skeleton w={40} h={20}/>}</div><div style={{fontSize:11.5,color:P.muted}}>Canceladas</div></div></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"230px 1fr 320px",gap:14,marginTop:16,alignItems:"start"}} className="mos-ord3">
      <div style={{...card2,padding:16}}>
@@ -116,7 +116,7 @@ export default function OrdenesView(){
        <div style={{fontSize:13,fontWeight:700,margin:"6px 0 6px"}}>Seguimiento</div>
        <div style={{position:"relative",paddingLeft:20,marginTop:8}}>
         <div style={{position:"absolute",left:5,top:4,bottom:4,width:2,background:"#EDEFF6"}}/>
-        {timeline(selected.status).map(([t,s,done],i)=><div key={i} style={{position:"relative",padding:"6px 0",fontSize:12}}><span style={{position:"absolute",left:-19,top:9,width:11,height:11,borderRadius:"50%",background:"#fff",border:`2px solid ${done?(selected.status==="Cancelada"?"#8A8FA3":P.purple):"#C7CCE0"}`}}/><b style={{color:done?P.ink:P.muted}}>{t}</b><br/><span style={{color:P.muted}}>{s}</span></div>)}
+        {timeline(selected.status).map(([t,s,done],i)=><div key={i} style={{position:"relative",padding:"6px 0",fontSize:12}}><span style={{position:"absolute",left:-19,top:9,width:11,height:11,borderRadius:"50%",background:"#fff",border:`2px solid ${done?(selected.status==="Cancelada"?P.muted:P.purple):"#C7CCE0"}`}}/><b style={{color:done?P.ink:P.muted}}>{t}</b><br/><span style={{color:P.muted}}>{s}</span></div>)}
        </div>
       </>)}
      </div>

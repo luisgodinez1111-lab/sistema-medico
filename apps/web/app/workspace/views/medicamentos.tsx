@@ -19,7 +19,7 @@ export default function MedicamentosView(){
    const cat=drugCatalog();
    const categories=[...new Set(cat.map(d=>d.category))].sort((a,b)=>a.localeCompare(b,"es"));
    const ixRules=interactionRules();
-   const catColor=(c:string):[string,string]=>c.startsWith("Antibiótico")?["#E6F6EE",P.greenOnPale]:c.startsWith("AINE")||c.startsWith("Salicilato")?["#E7EEFB",P.blueOnPale]:c.startsWith("Analgésico")?["#EEEBFD",P.purpleOnPale]:c.startsWith("Antidiabético")?["#FBF0DC",P.amberOnPale]:c.includes("antihipertensivo")?["#FDECEE",P.redOnPale]:c.startsWith("Antidepresivo")||c.startsWith("Serotoninérgico")?["#F3EAFB","#9333EA"]:c.startsWith("Anticoagulante")?["#FCE9E4","#C2410C"]:c.startsWith("Diurético")?["#E0F7FA",P.cyan]:c.startsWith("Opioide")?["#F1F1F4","#8A8FA3"]:["#EEF0F5","#6B7391"];
+   const catColor=(c:string):[string,string]=>c.startsWith("Antibiótico")?["#E6F6EE",P.greenOnPale]:c.startsWith("AINE")||c.startsWith("Salicilato")?["#E7EEFB",P.blueOnPale]:c.startsWith("Analgésico")?["#EEEBFD",P.purpleOnPale]:c.startsWith("Antidiabético")?["#FBF0DC",P.amberOnPale]:c.includes("antihipertensivo")?["#FDECEE",P.redOnPale]:c.startsWith("Antidepresivo")||c.startsWith("Serotoninérgico")?["#F3EAFB","#9333EA"]:c.startsWith("Anticoagulante")?["#FCE9E4","#C2410C"]:c.startsWith("Diurético")?["#E0F7FA",P.cyan]:c.startsWith("Opioide")?["#F1F1F4",P.muted]:["#EEF0F5","#6B7391"];
    const mq=medQuery.trim().toLowerCase();
    const catFiltered=cat.filter(d=>(!mq||d.ingredient.includes(mq)||d.category.toLowerCase().includes(mq)||d.classes.some(cl=>cl.toLowerCase().includes(mq)))&&(!medCat||d.category===medCat)&&(!medOnlyMon||d.monitoring.length>0)&&(!medOnlyRenal||!!d.renal));
    const selDrug:DrugCatalogItem|null=cat.find(d=>d.code===medSel)??null;

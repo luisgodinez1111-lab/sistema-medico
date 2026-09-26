@@ -216,7 +216,7 @@ export default function ExpView(){
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Pendientes clínicos accionables de TODO el panel (todos los pacientes del tenant), priorizados. Inteligencia por reglas, sin IA.</p>
    {panel&&<div style={{marginTop:12}}>
     {panel.gaps.length===0?<div style={{padding:"10px 14px",borderRadius:12,background:"#f4faf6",border:"1px solid #d6ecdd",fontSize:13,color:P.greenOnPale}}>✓ Sin pendientes accionables en el panel.</div>
-     :<div><div style={{fontSize:12,color:"#6d6e80",marginBottom:8}}>{panel.gaps.length} pendientes · {panel.patientCount} pacientes</div>
+     :<div><div style={{fontSize:12,color:P.muted,marginBottom:8}}>{panel.gaps.length} pendientes · {panel.patientCount} pacientes</div>
      <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:280,overflowY:"auto"}}>{panel.gaps.map(g=>{const col=g.priority==="HIGH"?["#fdeaea",P.redOnPale]:g.priority==="MEDIUM"?["#fff4e5",P.amberOnPale]:["#eef0ff","#3f3aa0"];return <div key={g.patientId+g.aggregateId+g.code} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"8px 12px",border:"1px solid #eceafb",borderRadius:10}}>
       <div style={{minWidth:0}}><span style={{...mono,marginRight:8}}>{g.patientId.slice(0,8)}</span><span style={{fontSize:13}}>{g.label}</span></div>
       <div style={{display:"flex",gap:8,alignItems:"center",whiteSpace:"nowrap"}}><span style={{display:"inline-block",background:col[0],color:col[1],fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{g.priority}</span><button style={{...ghost,padding:"5px 10px",fontSize:12}} onClick={()=>selectPatientRaw(g.patientId,"")}>Abrir</button></div>
@@ -246,7 +246,7 @@ export default function ExpView(){
    <div style={{marginTop:10,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
     <input aria-label="Buscar paciente" style={{...input,maxWidth:280}} value={patientQuery} onChange={e=>setPatientQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void loadPatients();}} placeholder="Buscar por nombre o CURP…" />
     <button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>loadPatients()}>{busy==="pt-list"?"Cargando…":"Cargar / buscar pacientes"}</button>
-    {patientTotal!==null&&patientList&&<span style={{fontSize:12,color:"#6b6c7e"}}>{patientMore?`Mostrando ${patientList.length} de ${patientTotal} pacientes — escriba para acotar la búsqueda`:`${patientList.length} de ${patientTotal} pacientes`}</span>}
+    {patientTotal!==null&&patientList&&<span style={{fontSize:12,color:P.muted}}>{patientMore?`Mostrando ${patientList.length} de ${patientTotal} pacientes — escriba para acotar la búsqueda`:`${patientList.length} de ${patientTotal} pacientes`}</span>}
    </div>
    {patientList&&<div style={{marginTop:12,display:"flex",flexDirection:"column",gap:6,maxHeight:220,overflowY:"auto"}}>
     {patientList.length===0?<p style={{color:P.muted,fontSize:13}}>No hay pacientes registrados en este tenant.</p>
@@ -269,14 +269,14 @@ export default function ExpView(){
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Vista longitudinal de los items clínicos de este paciente (metadatos, sin contenido).</p>
    {exportInfo&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:12,background:"#f4f3fb",border:"1px solid #e0ddf3",fontSize:12}}>
     <b style={{color:"#3f3aa0"}}>Expediente exportado — archivo .json descargado</b> · {exportInfo.aggregateCount} agregados · {exportInfo.eventCount} eventos<br/>
-    <span style={{color:"#6d6e80"}}>Manifiesto reproducible (índice de agregados y eventos + hash); no es el formato de intercambio NOM-024 ni incluye el contenido con datos personales.</span><br/>
-    <span style={{color:"#6d6e80"}}>hash reproducible del contenido: </span><span style={mono}>{exportInfo.contentHash}</span>
+    <span style={{color:P.muted}}>Manifiesto reproducible (índice de agregados y eventos + hash); no es el formato de intercambio NOM-024 ni incluye el contenido con datos personales.</span><br/>
+    <span style={{color:P.muted}}>hash reproducible del contenido: </span><span style={mono}>{exportInfo.contentHash}</span>
    </div>}
    {busy==="tl"?<div aria-hidden style={{marginTop:14}}><div style={{display:"flex",gap:10,flexWrap:"wrap"}}>{Array.from({length:7}).map((_,i)=><div key={i} style={{flex:"1 1 90px",minWidth:90,padding:"10px 8px",borderRadius:12,background:"#f6f6fb",border:"1px solid #eceafb",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><Skeleton w={30} h={20}/><Skeleton w={"70%"} h={10}/></div>)}</div><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:16}}>{Array.from({length:4}).map((_,i)=><Skeleton key={i} w={"100%"} h={38} r={10}/>)}</div></div>
     :tl===null?<p style={{color:P.muted,fontSize:13,marginTop:12}}>Pulsa “Actualizar” para cargar el historial de este paciente.</p>
     :tl.length===0?<p style={{color:P.muted,fontSize:13,marginTop:12}}>Sin items registrados para este paciente todavía.</p>
     :<div>
-     {(()=>{const s=summarizePatient(tl);const stat=(n:number,l:string,warn=false)=>(<div style={{flex:"1 1 90px",minWidth:90,textAlign:"center",padding:"10px 8px",borderRadius:12,background:warn&&n>0?"#fff4e5":"#f6f6fb",border:"1px solid #eceafb"}}><div style={{fontSize:22,fontWeight:800,color:warn&&n>0?"#a15c00":"#3f3aa0"}}>{n}</div><div style={{fontSize:11,color:"#6d6e80"}}>{l}</div></div>);
+     {(()=>{const s=summarizePatient(tl);const stat=(n:number,l:string,warn=false)=>(<div style={{flex:"1 1 90px",minWidth:90,textAlign:"center",padding:"10px 8px",borderRadius:12,background:warn&&n>0?"#fff4e5":"#f6f6fb",border:"1px solid #eceafb"}}><div style={{fontSize:22,fontWeight:800,color:warn&&n>0?"#a15c00":"#3f3aa0"}}>{n}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div>);
       return <div style={{display:"flex",gap:10,marginTop:14,flexWrap:"wrap"}}>{stat(s.activeAllergies,"Alergias activas",true)}{stat(s.activeProblems,"Problemas activos")}{stat(s.signedEncounters,"Encuentros firmados")}{stat(s.activeMedications,"Medicación activa")}{stat(s.openResults,"Resultados abiertos",true)}{stat(s.openOrders,"Órdenes pendientes")}{stat(s.openObligations,"Obligaciones abiertas",true)}{stat(s.openReferrals,"Interconsultas abiertas")}{stat(s.upcomingAppointments,"Citas próximas")}{stat(s.pendingImmunizations,"Vacunas pendientes",true)}{stat(s.activeCarePlans,"Metas activas")}{stat(s.openClaims,"Facturas abiertas")}{stat(s.grantedConsents,"Consentimientos vigentes")}{stat(s.activeAdmissions,"Internamientos activos",true)}</div>;})()}
      {gaps&&gaps.length>0&&<div style={{marginTop:16,padding:14,borderRadius:12,background:"#fbf7f2",border:"1px solid #f0e2cf"}}>
       <div style={{fontSize:13,fontWeight:700,color:P.amberOnPale,marginBottom:8}}>⚑ Pendientes clínicos (care gaps) · {gaps.length}</div>
@@ -303,7 +303,7 @@ export default function ExpView(){
     <label htmlFor="patient-id-input" style={lbl}>ID de paciente</label><input id="patient-id-input" style={input} value={patientId} onChange={e=>setPatientId(e.target.value)} />
     <div style={{marginTop:14}}><button style={btn} disabled={busy!==""||!patientId} onClick={openEncounter}>{busy==="open"?"Abriendo…":"Abrir encuentro"}</button></div>
    </div>:<div>
-    <p style={{color:"#6d6e80",fontSize:13}}>Encuentro <span style={mono}>{enc.id.slice(0,8)}</span> · versión {enc.version}</p>
+    <p style={{color:P.muted,fontSize:13}}>Encuentro <span style={mono}>{enc.id.slice(0,8)}</span> · versión {enc.version}</p>
     <label style={lbl}>Valoración (assessment)</label>
     <textarea style={{...input,minHeight:64,resize:"vertical"}} value={assessment} disabled={enc.state!=="OPEN"} onChange={e=>setAssessment(e.target.value)} placeholder="Impresión diagnóstica…" />
     <label style={lbl}>Plan</label>
@@ -419,7 +419,7 @@ export default function ExpView(){
     <select aria-label="Analito" style={{...input,maxWidth:200}} value={resQuick.analyte} onChange={e=>setResQuick({analyte:e.target.value,value:"",unit:canonicalUnitOf(e.target.value)??""})}>{labReferenceRanges().map(a=><option key={a.analyte} value={a.analyte}>{a.analyte}</option>)}</select>
     <input aria-label="Valor" inputMode="decimal" style={{...input,maxWidth:120}} value={resQuick.value} onChange={e=>setResQuick({...resQuick,value:e.target.value})} placeholder="Valor" />
     <select aria-label="Unidad" style={{...input,maxWidth:120}} value={resQuick.unit} onChange={e=>setResQuick({...resQuick,unit:e.target.value})}>{acceptedUnitsOf(resQuick.analyte).map(u=><option key={u} value={u}>{u}</option>)}</select>
-    <span style={{fontSize:12,color:"#6b6c7e"}}>La criticidad se deriva del valor.</span>
+    <span style={{fontSize:12,color:P.muted}}>La criticidad se deriva del valor.</span>
     <button style={btn} disabled={busy!==""} onClick={receiveResult}>{busy==="res-new"?"Registrando…":"Registrar resultado"}</button>
    </div>
    {results.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}

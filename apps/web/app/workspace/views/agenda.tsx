@@ -38,7 +38,7 @@ export default function AgendaView(){
    const apptsOn=(iso:string)=>realAppts.filter(a=>dayKey(a)===iso);
    type Ap={h:number;t:string;n:string;m:string;c:"blue"|"green"|"purple"|"amber"|"red";id:string};
    const AC:Record<string,{bg:string;bd:string;fg:string}>={blue:{bg:"#EAF1FD",bd:P.blueOnPale,fg:"#123c73"},green:{bg:"#E7F7EE",bd:P.greenOnPale,fg:"#0d5c3b"},purple:{bg:"#EFEBFD",bd:P.purpleOnPale,fg:"#382a8f"},amber:{bg:"#FBF2DF",bd:P.amberOnPale,fg:P.amberOnPale},red:{bg:"#FDEBEE",bd:P.redOnPale,fg:"#9c1f34"}};
-   const ST:Record<string,[string,string,string]>={SCHEDULED:["Programada","#EAF1FD",P.blueOnPale],CHECKED_IN:["En espera","#FBF0DC",P.amberOnPale],COMPLETED:["Atendida","#E6F6EE",P.greenOnPale],CANCELLED:["Cancelada","#F0F1F4","#8A8FA3"],NO_SHOW:["Inasistencia","#FDE7EA",P.redOnPale]};
+   const ST:Record<string,[string,string,string]>={SCHEDULED:["Programada","#EAF1FD",P.blueOnPale],CHECKED_IN:["En espera","#FBF0DC",P.amberOnPale],COMPLETED:["Atendida","#E6F6EE",P.greenOnPale],CANCELLED:["Cancelada","#F0F1F4",P.muted],NO_SHOW:["Inasistencia","#FDE7EA",P.redOnPale]};
    const stLabel=(s:string)=>ST[s]?.[0]??s;
    const TYPE_COLOR:Record<string,"blue"|"green"|"purple"|"amber"|"red">={CONSULTA_GENERAL:"blue",RESULTADOS:"blue",CONTROL:"green",PRIMERA_VEZ:"purple",VACUNACION:"purple",PROCEDIMIENTO:"amber",URGENCIA:"red"};
    const tHM=(iso:string)=>{const d=new Date(iso);const h=d.getUTCHours();const mn=d.getUTCMinutes().toString().padStart(2,"0");const ap=h<12?"a.m.":"p.m.";const h12=h%12||12;return `${h12}:${mn} ${ap}`;};

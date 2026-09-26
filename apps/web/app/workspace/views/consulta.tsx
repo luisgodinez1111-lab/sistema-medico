@@ -24,7 +24,7 @@ export default function ConsultaView(){
     const card2:React.CSSProperties={...card,marginTop:0};
     const ini=(n:string)=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"P";
     const tHM=(iso:string)=>{const d=new Date(iso);if(isNaN(d.getTime()))return"—";const h=d.getUTCHours();const mn=d.getUTCMinutes().toString().padStart(2,"0");const ap=h<12?"a.m.":"p.m.";const h12=h%12||12;return `${h12}:${mn} ${ap}`;};
-    const ST:Record<string,[string,string,string]>={SCHEDULED:["Programada","#EAF1FD",P.blueOnPale],CHECKED_IN:["En espera","#FBF0DC",P.amberOnPale],COMPLETED:["Atendida","#E6F6EE",P.greenOnPale],CANCELLED:["Cancelada","#F0F1F4","#8A8FA3"],NO_SHOW:["Inasistencia","#FDE7EA",P.redOnPale]};
+    const ST:Record<string,[string,string,string]>={SCHEDULED:["Programada","#EAF1FD",P.blueOnPale],CHECKED_IN:["En espera","#FBF0DC",P.amberOnPale],COMPLETED:["Atendida","#E6F6EE",P.greenOnPale],CANCELLED:["Cancelada","#F0F1F4",P.muted],NO_SHOW:["Inasistencia","#FDE7EA",P.redOnPale]};
     const appts=(agenda?.appointments??[]).slice().sort((a,b)=>a.startAt.localeCompare(b.startAt));
     const pend=appts.filter(a=>a.status==="SCHEDULED"||a.status==="CHECKED_IN");
     const cnt=agenda?.counts??{programadas:appts.length,atendidas:0,enEspera:0,canceladas:0};
