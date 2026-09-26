@@ -155,7 +155,7 @@ export default function MedicamentosView(){
      <div style={{...card2,padding:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:15,fontWeight:700}}>Filtros</span><span style={{color:P.blue,fontSize:12.5,fontWeight:600,cursor:"pointer"}} {...act(()=>{setMedQuery("");setMedCat("");setMedOnlyMon(false);setMedOnlyRenal(false);})}>Limpiar</span></div>
       <div style={{display:"flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,borderRadius:9,padding:"8px 11px",margin:"12px 0"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={P.muted} strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input value={medQuery} onChange={e=>setMedQuery(e.target.value)} placeholder="Buscar principio activo o clase…" style={{border:0,outline:"none",fontSize:12.5,fontFamily:UI,color:P.ink,width:"100%",background:"transparent"}}/></div>
-      <div style={flbl}>Categoría terapéutica</div><select value={medCat} onChange={e=>setMedCat(e.target.value)} style={selSty}><option value="">Todas</option>{categories.map(c=><option key={c} value={c}>{c}</option>)}</select>
+      <div style={flbl}>Categoría terapéutica</div><select aria-label="Categoría terapéutica" value={medCat} onChange={e=>setMedCat(e.target.value)} style={selSty}><option value="">Todas</option>{categories.map(c=><option key={c} value={c}>{c}</option>)}</select>
       <div style={{...flbl,marginTop:14}}>Seguridad</div>
       <Check checked={medOnlyMon} label="Solo con monitoreo obligado" onChange={()=>setMedOnlyMon(v=>!v)}/>
       <Check checked={medOnlyRenal} label="Solo con alerta renal por TFG" onChange={()=>setMedOnlyRenal(v=>!v)}/>

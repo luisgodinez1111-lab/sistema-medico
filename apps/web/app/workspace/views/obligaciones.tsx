@@ -36,10 +36,10 @@ export default function ObligacionesView(){
      <div style={{fontWeight:800,fontSize:16,marginBottom:14}}>Nueva obligación del consultorio</div>
      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14}} className="mos-med2">
       <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Nombre</div><input value={oblForm.name} onChange={e=>setOblForm({...oblForm,name:e.target.value})} placeholder="Ej. Declaración mensual de IVA" style={selSty}/></div>
-      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Categoría</div><select value={oblForm.category} onChange={e=>setOblForm({...oblForm,category:e.target.value})} style={selSty}>{["Fiscal (SAT)","Salud (COFEPRIS)","Laboral","Protección civil","Administrativa","Otros"].map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Categoría</div><select aria-label="Categoría de la obligación" value={oblForm.category} onChange={e=>setOblForm({...oblForm,category:e.target.value})} style={selSty}>{["Fiscal (SAT)","Salud (COFEPRIS)","Laboral","Protección civil","Administrativa","Otros"].map(c=><option key={c} value={c}>{c}</option>)}</select></div>
      </div>
      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginTop:12}}>
-      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Periodicidad</div><select value={oblForm.periodicity} onChange={e=>setOblForm({...oblForm,periodicity:e.target.value})} style={selSty}>{["Mensual","Trimestral","Semestral","Anual","Cada 5 años","Única"].map(p=><option key={p} value={p}>{p}</option>)}</select></div>
+      <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Periodicidad</div><select aria-label="Periodicidad" value={oblForm.periodicity} onChange={e=>setOblForm({...oblForm,periodicity:e.target.value})} style={selSty}>{["Mensual","Trimestral","Semestral","Anual","Cada 5 años","Única"].map(p=><option key={p} value={p}>{p}</option>)}</select></div>
       <div><div style={{fontSize:12,fontWeight:700,color:P.muted,margin:"0 0 6px"}}>Fecha límite (opcional)</div><input type="date" value={oblForm.dueDate} onChange={e=>setOblForm({...oblForm,dueDate:e.target.value})} style={selSty}/></div>
      </div>
      <div style={{fontSize:11.5,color:P.muted,marginTop:8}}>El estado (Al día / Próxima / Vencida) se <b>computa</b> de la fecha límite; sin fecha se marca <b>Vigente</b>.</div>

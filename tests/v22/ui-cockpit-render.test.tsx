@@ -1144,6 +1144,36 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   }
  });
 
+ // Ampliación del sweep (refactor UI/UX pro-max): el barrido «Lote L» cubría 11 vistas; aquí se barren las de MÓDULO
+ // restantes cableadas al sidebar, que antes no pasaban por axe. Un defecto serio aquí es un defecto que el médico usa a diario.
+ it("accesibilidad (ampliación): las vistas de módulo restantes no tienen violaciones axe serias/críticas",async()=>{
+  render(<Workspace/>);
+  const nav=async(name:string)=>{
+   const btn=screen.getAllByRole("button").find(b=>(b.textContent??"").trim().startsWith(name));
+   if(!btn)throw new Error(`No se encontró el acceso «${name}» en el sidebar`);
+   fireEvent.click(btn);
+   await screen.findByRole("heading",{level:1},{timeout:2500});
+  };
+  for(const v of ["Resultados","Medicamentos","Órdenes","Facturación","Documentos","Obligaciones","Clinical Intelligence","Reportes","Biblioteca clínica"]){
+   await nav(v);
+   await noSeriousAxe(document.body,v);
+  }
+ });
+
+ // Ampliación del sweep: las SUB-VISTAS del expediente (Patient 360). El «Lote L» no entraba al cockpit; aquí se barre cada
+ // pestaña del expediente (Historia/Diagnóstico/Tratamiento/Coordinación/Administración) además del Resumen.
+ it("accesibilidad (ampliación): cada sub-vista del expediente (Patient 360) sin violaciones serias/críticas",async()=>{
+  render(<Workspace/>);
+  await toExpediente();
+  await screen.findByText(/Vista principal/,{},{timeout:2500}); // Resumen montado
+  const secciones=screen.getByRole("navigation",{name:"Secciones del expediente"});
+  for(const t of ["Historia","Diagnóstico","Tratamiento","Coordinación","Administración"]){
+   const tab=within(secciones).getByRole("button",{name:t});
+   fireEvent.click(tab);
+   await noSeriousAxe(document.body,`Expediente · ${t}`);
+  }
+ });
+
  it("Patient 360 (Lote B): el expediente se navega por sub-vistas; la Medicación vive en Tratamiento, no en Resumen",async()=>{
   render(<Workspace/>);
   await toExpediente();

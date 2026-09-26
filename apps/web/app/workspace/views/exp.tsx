@@ -229,19 +229,19 @@ export default function ExpView(){
    <h2 {...anchor("Paciente")} style={{fontSize:18,margin:0}}>Paciente</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Registra un paciente o selecciónalo de la lista. El chart de abajo es del paciente activo.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 160px 150px auto",gap:10,marginTop:12,alignItems:"center"}}>
-    <input style={input} value={regName} onChange={e=>setRegName(e.target.value)} placeholder="Nombre completo" />
-    <input style={input} type="date" value={regDob} onChange={e=>setRegDob(e.target.value)} />
-    <select style={input} value={regSex} onChange={e=>setRegSex(e.target.value)}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select>
+    <input aria-label="Nombre completo" style={input} value={regName} onChange={e=>setRegName(e.target.value)} placeholder="Nombre completo" />
+    <input aria-label="Fecha de nacimiento" style={input} type="date" value={regDob} onChange={e=>setRegDob(e.target.value)} />
+    <select aria-label="Sexo al nacer" style={input} value={regSex} onChange={e=>setRegSex(e.target.value)}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select>
     <button style={btn} disabled={busy!==""||!regName||!regDob} onClick={()=>registerPatient()}>{busy==="pt-reg"?"Registrando…":"Registrar"}</button>
    </div>
    {guardianFields(input)}{dupPanel(false)}
    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:10}}>
-    <input style={input} value={regExtra.curp} onChange={e=>setRegExtra(x=>({...x,curp:e.target.value.toUpperCase()}))} placeholder="CURP" maxLength={18} />
-    <input style={input} value={regExtra.phone} onChange={e=>setRegExtra(x=>({...x,phone:e.target.value}))} placeholder="Teléfono" />
-    <input style={input} value={regExtra.email} onChange={e=>setRegExtra(x=>({...x,email:e.target.value}))} placeholder="Correo electrónico" />
-    <input style={input} value={regExtra.address} onChange={e=>setRegExtra(x=>({...x,address:e.target.value}))} placeholder="Dirección (ciudad, estado)" />
-    <input style={input} value={regExtra.occupation} onChange={e=>setRegExtra(x=>({...x,occupation:e.target.value}))} placeholder="Ocupación" />
-    <select style={input} value={regExtra.maritalStatus} onChange={e=>setRegExtra(x=>({...x,maritalStatus:e.target.value}))}><option value="">Estado civil…</option><option>Soltero(a)</option><option>Casado(a)</option><option>Unión libre</option><option>Divorciado(a)</option><option>Viudo(a)</option></select>
+    <input aria-label="CURP" style={input} value={regExtra.curp} onChange={e=>setRegExtra(x=>({...x,curp:e.target.value.toUpperCase()}))} placeholder="CURP" maxLength={18} />
+    <input aria-label="Teléfono" style={input} value={regExtra.phone} onChange={e=>setRegExtra(x=>({...x,phone:e.target.value}))} placeholder="Teléfono" />
+    <input aria-label="Correo electrónico" style={input} value={regExtra.email} onChange={e=>setRegExtra(x=>({...x,email:e.target.value}))} placeholder="Correo electrónico" />
+    <input aria-label="Dirección" style={input} value={regExtra.address} onChange={e=>setRegExtra(x=>({...x,address:e.target.value}))} placeholder="Dirección (ciudad, estado)" />
+    <input aria-label="Ocupación" style={input} value={regExtra.occupation} onChange={e=>setRegExtra(x=>({...x,occupation:e.target.value}))} placeholder="Ocupación" />
+    <select aria-label="Estado civil" style={input} value={regExtra.maritalStatus} onChange={e=>setRegExtra(x=>({...x,maritalStatus:e.target.value}))}><option value="">Estado civil…</option><option>Soltero(a)</option><option>Casado(a)</option><option>Unión libre</option><option>Divorciado(a)</option><option>Viudo(a)</option></select>
    </div>
    <div style={{marginTop:10,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
     <input aria-label="Buscar paciente" style={{...input,maxWidth:280}} value={patientQuery} onChange={e=>setPatientQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void loadPatients();}} placeholder="Buscar por nombre o CURP…" />
@@ -300,7 +300,7 @@ export default function ExpView(){
     <h2 {...anchor("Encuentro")} style={{fontSize:18,margin:0}}>Encuentro</h2>{enc&&<span style={stateBadge(enc.state)}>{enc.state}</span>}
    </div>
    {!enc?<div style={{marginTop:14}}>
-    <label htmlFor="patient-id-input" style={lbl}>ID de paciente</label><input id="patient-id-input" style={input} value={patientId} onChange={e=>setPatientId(e.target.value)} />
+    <label htmlFor="patient-id-input" style={lbl}>ID de paciente</label><input aria-label="Identificador del paciente" id="patient-id-input" style={input} value={patientId} onChange={e=>setPatientId(e.target.value)} />
     <div style={{marginTop:14}}><button style={btn} disabled={busy!==""||!patientId} onClick={openEncounter}>{busy==="open"?"Abriendo…":"Abrir encuentro"}</button></div>
    </div>:<div>
     <p style={{color:P.muted,fontSize:13}}>Encuentro <span style={mono}>{enc.id.slice(0,8)}</span> · versión {enc.version}</p>
@@ -324,13 +324,13 @@ export default function ExpView(){
    <h2 {...anchor("Medicación")} style={{fontSize:18,margin:0}}>Medicación</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Proponer una medicación no exige ser médico; sólo un médico puede prescribirla (Physician Control).</p>
    <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 90px 1fr",gap:10,marginTop:12}}>
-    <input style={input} value={drug} onChange={e=>setDrug(e.target.value)} placeholder="Fármaco (ej. Amoxicilina)" />
+    <input aria-label="Fármaco" style={input} value={drug} onChange={e=>setDrug(e.target.value)} placeholder="Fármaco (ej. Amoxicilina)" />
     <div style={{display:"flex",gap:6}}>
      <input style={{...input,flex:1,minWidth:0}} type="number" inputMode="decimal" min={0} step="any" value={doseAmt} onChange={e=>setDoseAmt(e.target.value)} placeholder="Dosis (500mg)" aria-label="Cantidad de la dosis" />
      <select style={{...input,width:86}} value={doseUnit} onChange={e=>setDoseUnit(e.target.value)} aria-label="Unidad de la dosis">{DOSE_UNITS.map(u=><option key={u} value={u}>{u}</option>)}</select>
     </div>
-    <input style={input} value={route} onChange={e=>setRoute(e.target.value)} placeholder="Vía" />
-    <input style={input} value={freq} onChange={e=>setFreq(e.target.value)} placeholder="Frecuencia (c/8h)" />
+    <input aria-label="Vía de administración" style={input} value={route} onChange={e=>setRoute(e.target.value)} placeholder="Vía" />
+    <input aria-label="Frecuencia" style={input} value={freq} onChange={e=>setFreq(e.target.value)} placeholder="Frecuencia (c/8h)" />
    </div>
    <div style={{marginTop:12}}><button style={btn} disabled={busy!==""||!drug||!dose||!route||!freq} onClick={proposeMed}>{busy==="med-new"?"Proponiendo…":"Proponer medicación"}</button></div>
 
@@ -368,13 +368,13 @@ export default function ExpView(){
     {snap?.labs.egfr!==undefined&&<span style={{fontSize:12,color:P.muted}}>eGFR paciente: <b>{snap?.labs.egfr} mL/min</b>{snap?.labs.egfrStage?` · categoría ${snap.labs.egfrStage} (una creatinina: no confirma ERC)`:""}</span>}
    </div>
    <div className="mos-rx-form">
-    <input style={input} value={rxDrug} onChange={e=>{setRxDrug(e.target.value);setRxCheck(null);}} placeholder="Buscar medicamento (ej. metformina, losartan)" />
+    <input aria-label="Fármaco" style={input} value={rxDrug} onChange={e=>{setRxDrug(e.target.value);setRxCheck(null);}} placeholder="Buscar medicamento (ej. metformina, losartan)" />
     <div style={{display:"flex",gap:6}}>
      <input style={{...input,flex:1,minWidth:0}} type="number" inputMode="decimal" min={0} step="any" value={rxDoseAmt} onChange={e=>{setRxDoseAmt(e.target.value);setRxCheck(null);}} placeholder="Dosis" aria-label="Cantidad de la dosis" />
      <select style={{...input,width:86}} value={rxDoseUnit} onChange={e=>{setRxDoseUnit(e.target.value);setRxCheck(null);}} aria-label="Unidad de la dosis">{DOSE_UNITS.map(u=><option key={u} value={u}>{u}</option>)}</select>
     </div>
-    <select style={input} value={rxRoute} onChange={e=>{setRxRoute(e.target.value);setRxCheck(null);}}><option>Oral</option><option>IV</option><option>IM</option><option>SC</option><option>Tópica</option></select>
-    <input style={input} value={rxFreq} onChange={e=>{setRxFreq(e.target.value);setRxCheck(null);}} placeholder="Frecuencia (c/12h)" />
+    <select aria-label="Vía de administración" style={input} value={rxRoute} onChange={e=>{setRxRoute(e.target.value);setRxCheck(null);}}><option>Oral</option><option>IV</option><option>IM</option><option>SC</option><option>Tópica</option></select>
+    <input aria-label="Frecuencia" style={input} value={rxFreq} onChange={e=>{setRxFreq(e.target.value);setRxCheck(null);}} placeholder="Frecuencia (c/12h)" />
     <button style={btn} disabled={busy!==""||!rxDrug||!rxDose||!rxFreq} onClick={verifyRx}>{busy==="rxcheck"?"Verificando…":"Verificar"}</button>
    </div>
    {rxMsg&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:12,background:"#EAF7EF",border:"1px solid #CDEBD8",color:P.greenOnPale,fontSize:13,fontWeight:600}}>{rxMsg}</div>}
@@ -462,9 +462,9 @@ export default function ExpView(){
    <h2 {...anchor("Alergias")} style={{fontSize:18,margin:0}}>Alergias</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Una alergia <b>activa</b> bloquea la prescripción de un fármaco que la contenga (gate de seguridad).</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 150px 1fr",gap:10,marginTop:12}}>
-    <input style={input} value={alSub} onChange={e=>setAlSub(e.target.value)} placeholder="Sustancia (ej. amoxicilina)" />
-    <select style={input} value={alSev} onChange={e=>setAlSev(e.target.value)}><option value="MILD">Leve</option><option value="MODERATE">Moderada</option><option value="SEVERE">Grave</option></select>
-    <input style={input} value={alReac} onChange={e=>setAlReac(e.target.value)} placeholder="Reacción (ej. anafilaxia)" />
+    <input aria-label="Sustancia (alérgeno)" style={input} value={alSub} onChange={e=>setAlSub(e.target.value)} placeholder="Sustancia (ej. amoxicilina)" />
+    <select aria-label="Severidad de la alergia" style={input} value={alSev} onChange={e=>setAlSev(e.target.value)}><option value="MILD">Leve</option><option value="MODERATE">Moderada</option><option value="SEVERE">Grave</option></select>
+    <input aria-label="Reacción alérgica" style={input} value={alReac} onChange={e=>setAlReac(e.target.value)} placeholder="Reacción (ej. anafilaxia)" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!alSub} onClick={createAllergy}>{busy==="al-new"?"Registrando…":"Registrar alergia"}</button></div>
    {allergies.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -481,7 +481,7 @@ export default function ExpView(){
    <h2 {...anchor("Lista de problemas")} style={{fontSize:18,margin:0}}>Lista de problemas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Diagnósticos codificados en <b>CIE-10</b> (validados contra el catálogo; la descripción es canónica). PROD-011 + interoperabilidad NOM-024.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginTop:12}}>
-    <input style={input} list="icd10-list" value={probCode} onChange={e=>setProbCode(e.target.value.toUpperCase())} placeholder="Código CIE-10 (ej. E11, I10, J45.9)" />
+    <input aria-label="Problema o código CIE-10" style={input} list="icd10-list" value={probCode} onChange={e=>setProbCode(e.target.value.toUpperCase())} placeholder="Código CIE-10 (ej. E11, I10, J45.9)" />
     <button style={btn} disabled={busy!==""||!probCode} onClick={createProblem}>{busy==="pb-new"?"Añadiendo…":"Añadir problema"}</button>
    </div>
    {/* Auditoría R05c-17: las sugerencias salían de diez códigos escritos a mano, mientras el subtítulo prometía validación
@@ -504,10 +504,10 @@ export default function ExpView(){
    <h2 {...anchor("Órdenes clínicas")} style={{fontSize:18,margin:0}}>Órdenes clínicas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Lab, imagen, patología, procedimiento o referencia. Colocar/cumplir una orden exige médico.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
-    <select style={input} value={orderType} onChange={e=>setOrderType(e.target.value)}>
+    <select aria-label="Tipo de orden" style={input} value={orderType} onChange={e=>setOrderType(e.target.value)}>
      <option value="LAB">Laboratorio</option><option value="IMAGING">Imagen</option><option value="PATHOLOGY">Patología</option><option value="PROCEDURE">Procedimiento</option><option value="REFERRAL">Referencia</option>
     </select>
-    <input style={input} value={orderDetail} onChange={e=>setOrderDetail(e.target.value)} placeholder="Detalle (ej. Hemograma completo)" />
+    <input aria-label="Detalle de la orden" style={input} value={orderDetail} onChange={e=>setOrderDetail(e.target.value)} placeholder="Detalle (ej. Hemograma completo)" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!orderDetail} onClick={createOrder}>{busy==="ord-new"?"Creando…":"Crear orden"}</button></div>
    {orders.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -527,8 +527,8 @@ export default function ExpView(){
    <h2 {...anchor("Interconsultas")} style={{fontSize:18,margin:0}}>Interconsultas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Referencia a especialista: solicitar → aceptar → completar (o declinar/cancelar). Agregado propio con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:10,marginTop:12}}>
-    <input style={input} value={refSpecialty} onChange={e=>setRefSpecialty(e.target.value)} placeholder="Especialidad (ej. Cardiología)" />
-    <input style={input} value={refReason} onChange={e=>setRefReason(e.target.value)} placeholder="Motivo (ej. Soplo sistólico)" />
+    <input aria-label="Especialidad" style={input} value={refSpecialty} onChange={e=>setRefSpecialty(e.target.value)} placeholder="Especialidad (ej. Cardiología)" />
+    <input aria-label="Motivo de la interconsulta" style={input} value={refReason} onChange={e=>setRefReason(e.target.value)} placeholder="Motivo (ej. Soplo sistólico)" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!refSpecialty||!refReason} onClick={createReferral}>{busy==="ref-new"?"Solicitando…":"Solicitar interconsulta"}</button></div>
    {referrals.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -549,12 +549,12 @@ export default function ExpView(){
    <h2 {...anchor("Agenda")} style={{fontSize:18,margin:0}}>Agenda</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cita del paciente: agendar → registrar llegada → completar (o no-show/cancelar). Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:10,marginTop:12}}>
-    <div><input style={{...input,width:"100%"}} type="datetime-local" aria-describedby="mos-zona-cita" value={apptStart} onChange={e=>setApptStart(e.target.value)} />
+    <div><input aria-label="Fecha y hora de la cita" style={{...input,width:"100%"}} type="datetime-local" aria-describedby="mos-zona-cita" value={apptStart} onChange={e=>setApptStart(e.target.value)} />
      {/* R05b-16: la zona en la que se está agendando, dicha en la pantalla. */}
      <div id="mos-zona-cita" style={{fontSize:11,color:P.muted,marginTop:3}}>{avisoDeZona(cfgSettings.timezone)}</div></div>
-    <input style={input} value={apptReason} onChange={e=>setApptReason(e.target.value)} placeholder="Motivo (ej. Control anual)" />
-    <select style={input} value={apptCons} onChange={e=>setApptCons(e.target.value)}><option>Consultorio 1</option><option>Consultorio 2</option><option>Consultorio 3</option></select>
-    <select style={input} value={apptType} onChange={e=>setApptType(e.target.value)}><option value="CONSULTA_GENERAL">Consulta general</option><option value="CONTROL">Control / Seguimiento</option><option value="PRIMERA_VEZ">Primera vez</option><option value="PROCEDIMIENTO">Procedimiento</option><option value="VACUNACION">Vacunación</option><option value="RESULTADOS">Resultados</option><option value="URGENCIA">Urgencia</option></select>
+    <input aria-label="Motivo de la cita" style={input} value={apptReason} onChange={e=>setApptReason(e.target.value)} placeholder="Motivo (ej. Control anual)" />
+    <select aria-label="Consultorio" style={input} value={apptCons} onChange={e=>setApptCons(e.target.value)}><option>Consultorio 1</option><option>Consultorio 2</option><option>Consultorio 3</option></select>
+    <select aria-label="Tipo de cita" style={input} value={apptType} onChange={e=>setApptType(e.target.value)}><option value="CONSULTA_GENERAL">Consulta general</option><option value="CONTROL">Control / Seguimiento</option><option value="PRIMERA_VEZ">Primera vez</option><option value="PROCEDIMIENTO">Procedimiento</option><option value="VACUNACION">Vacunación</option><option value="RESULTADOS">Resultados</option><option value="URGENCIA">Urgencia</option></select>
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!apptReason} onClick={createAppointment}>{busy==="apt-new"?"Agendando…":"Agendar cita"}</button></div>
    {appts.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -576,8 +576,8 @@ export default function ExpView(){
    <h2 {...anchor("Vacunas")} style={{fontSize:18,margin:0}}>Vacunas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cartilla longitudinal: indicar → aplicar (o rechazar); tras aplicar puede registrarse un evento adverso (farmacovigilancia). Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",gap:10,marginTop:12}}>
-    <input style={input} value={immCode} onChange={e=>setImmCode(e.target.value)} placeholder="Vacuna (ej. SRP, Hexavalente, Influenza)" />
-    <input style={input} value={immDose} onChange={e=>setImmDose(e.target.value)} placeholder="Dosis" />
+    <input aria-label="Vacuna" style={input} value={immCode} onChange={e=>setImmCode(e.target.value)} placeholder="Vacuna (ej. SRP, Hexavalente, Influenza)" />
+    <input aria-label="Dosis de la vacuna" style={input} value={immDose} onChange={e=>setImmDose(e.target.value)} placeholder="Dosis" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!immCode} onClick={createImmunization}>{busy==="imm-new"?"Indicando…":"Indicar vacuna"}</button></div>
    {imms.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -626,10 +626,10 @@ export default function ExpView(){
    <h2 {...anchor("Plan de cuidados")} style={{fontSize:18,margin:0}}>Plan de cuidados</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Metas longitudinales de crónicos: proponer → activar → lograr, con pausa/reanudación. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
-    <select style={input} value={planCat} onChange={e=>setPlanCat(e.target.value)}>
+    <select aria-label="Categoría del plan de cuidado" style={input} value={planCat} onChange={e=>setPlanCat(e.target.value)}>
      <option value="DIABETES">Diabetes</option><option value="HYPERTENSION">Hipertensión</option><option value="OBESITY">Obesidad</option><option value="CARDIOVASCULAR">Cardiovascular</option><option value="MENTAL_HEALTH">Salud mental</option><option value="PRENATAL">Prenatal</option><option value="OTHER">Otro</option>
     </select>
-    <input style={input} value={planGoal} onChange={e=>setPlanGoal(e.target.value)} placeholder="Meta (ej. HbA1c < 7% en 6 meses)" />
+    <input aria-label="Meta del plan de cuidado" style={input} value={planGoal} onChange={e=>setPlanGoal(e.target.value)} placeholder="Meta (ej. HbA1c < 7% en 6 meses)" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!planGoal} onClick={createPlan}>{busy==="cp-new"?"Proponiendo…":"Proponer meta"}</button></div>
    {plans.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -649,8 +649,8 @@ export default function ExpView(){
    <h2 {...anchor("Facturación")} style={{fontSize:18,margin:0}}>Facturación</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Ciclo de ingresos (seguimiento de estado, no mueve dinero): borrador → codificar → enviar → pagada/rechazada, con reenvío. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",gap:10,marginTop:12}}>
-    <input style={input} value={clmAmount} onChange={e=>setClmAmount(e.target.value)} placeholder="Monto (ej. 1500.00)" />
-    <select style={input} value={clmCurrency} onChange={e=>setClmCurrency(e.target.value)}><option value="MXN">MXN</option><option value="USD">USD</option></select>
+    <input aria-label="Importe" style={input} value={clmAmount} onChange={e=>setClmAmount(e.target.value)} placeholder="Monto (ej. 1500.00)" />
+    <select aria-label="Moneda" style={input} value={clmCurrency} onChange={e=>setClmCurrency(e.target.value)}><option value="MXN">MXN</option><option value="USD">USD</option></select>
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!clmAmount} onClick={createClaim}>{busy==="clm-new"?"Creando…":"Crear reclamación"}</button></div>
    {claims.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -670,10 +670,10 @@ export default function ExpView(){
    <h2 {...anchor("Consentimiento informado")} style={{fontSize:18,margin:0}}>Consentimiento informado</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Registro clínico-legal (NOM-004 / aviso de privacidad): redactar → presentar → otorgar/rechazar; un consentimiento otorgado puede revocarse. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
-    <select style={input} value={csType} onChange={e=>setCsType(e.target.value)}>
+    <select aria-label="Tipo de consentimiento" style={input} value={csType} onChange={e=>setCsType(e.target.value)}>
      <option value="PROCEDURE">Procedimiento</option><option value="TREATMENT">Tratamiento</option><option value="ANESTHESIA">Anestesia</option><option value="DATA_SHARING">Compartir datos</option><option value="RESEARCH">Investigación</option>
     </select>
-    <input style={input} value={csRef} onChange={e=>setCsRef(e.target.value)} placeholder="Referencia del documento (ej. CI-2026-001)" />
+    <input aria-label="Referencia del consentimiento" style={input} value={csRef} onChange={e=>setCsRef(e.target.value)} placeholder="Referencia del documento (ej. CI-2026-001)" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!csRef} onClick={createConsent}>{busy==="cs-new"?"Redactando…":"Redactar consentimiento"}</button></div>
    {consents.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -693,10 +693,10 @@ export default function ExpView(){
    <h2 {...anchor("Internamiento")} style={{fontSize:18,margin:0}}>Internamiento</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Episodio de hospitalización: admitir → trasladar (unidad) → dar de alta; cancelable si fue admisión por error. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"180px 1fr",gap:10,marginTop:12}}>
-    <select style={input} value={admUnit} onChange={e=>setAdmUnit(e.target.value)}>
+    <select aria-label="Unidad de internamiento" style={input} value={admUnit} onChange={e=>setAdmUnit(e.target.value)}>
      <option value="ER">Urgencias</option><option value="WARD">Hospitalización</option><option value="ICU">UCI</option><option value="OR">Quirófano</option><option value="MATERNITY">Maternidad</option><option value="PEDIATRICS">Pediatría</option>
     </select>
-    <input style={input} value={admReason} onChange={e=>setAdmReason(e.target.value)} placeholder="Motivo (ej. Dolor torácico)" />
+    <input aria-label="Motivo de internamiento" style={input} value={admReason} onChange={e=>setAdmReason(e.target.value)} placeholder="Motivo (ej. Dolor torácico)" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!admReason} onClick={createAdmission}>{busy==="adm-new"?"Admitiendo…":"Admitir paciente"}</button></div>
    {adms.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -716,7 +716,7 @@ export default function ExpView(){
    <h2 {...anchor("Muestras de laboratorio")} style={{fontSize:18,margin:0}}>Muestras de laboratorio</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cadena de custodia pre-analítica: recolectar → enviar → recibir → resultar; rechazable en cualquier etapa. Una muestra rechazada aparece como pendiente HIGH en care gaps.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
-    <select style={input} value={specType} onChange={e=>setSpecType(e.target.value)}>
+    <select aria-label="Tipo de muestra" style={input} value={specType} onChange={e=>setSpecType(e.target.value)}>
      <option value="BLOOD">Sangre</option><option value="URINE">Orina</option><option value="TISSUE">Tejido</option><option value="SWAB">Hisopado</option><option value="CSF">LCR</option><option value="STOOL">Heces</option>
     </select>
     <button style={btn} disabled={busy!==""} onClick={createSpecimen}>{busy==="sp-new"?"Recolectando…":"Recolectar muestra"}</button>
@@ -739,11 +739,11 @@ export default function ExpView(){
    <h2 {...anchor("Incidentes de seguridad")} style={{fontSize:18,margin:0}}>Incidentes de seguridad</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Reporte de eventos adversos (farmacovigilancia): reportar → revisar → escalar/resolver. Un incidente abierto aparece como pendiente HIGH en care gaps. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 150px 1fr",gap:10,marginTop:12}}>
-    <select style={input} value={incCat} onChange={e=>setIncCat(e.target.value)}>
+    <select aria-label="Categoría del incidente" style={input} value={incCat} onChange={e=>setIncCat(e.target.value)}>
      <option value="MEDICATION_ERROR">Error de medicación</option><option value="FALL">Caída</option><option value="EQUIPMENT">Equipo</option><option value="ADVERSE_DRUG_REACTION">RAM</option><option value="INFECTION">Infección</option><option value="OTHER">Otro</option>
     </select>
-    <select style={input} value={incSev} onChange={e=>setIncSev(e.target.value)}><option value="LOW">Leve</option><option value="MODERATE">Moderado</option><option value="SEVERE">Grave</option></select>
-    <input style={input} value={incDesc} onChange={e=>setIncDesc(e.target.value)} placeholder="Descripción del incidente" />
+    <select aria-label="Severidad del incidente" style={input} value={incSev} onChange={e=>setIncSev(e.target.value)}><option value="LOW">Leve</option><option value="MODERATE">Moderado</option><option value="SEVERE">Grave</option></select>
+    <input aria-label="Descripción del incidente" style={input} value={incDesc} onChange={e=>setIncDesc(e.target.value)} placeholder="Descripción del incidente" />
    </div>
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!incDesc} onClick={createIncident}>{busy==="inc-new"?"Reportando…":"Reportar incidente"}</button></div>
    {incs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -763,7 +763,7 @@ export default function ExpView(){
    <h2 {...anchor("Triage")} style={{fontSize:18,margin:0}}>Triage</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Clasificación de acuidad (urgencias): arribar → iniciar → clasificar ESI (re-evaluable) → cerrar, o LWBS. Un paciente sin triage completado es un pendiente HIGH en care gaps.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginTop:12}}>
-    <input style={input} value={trComplaint} onChange={e=>setTrComplaint(e.target.value)} placeholder="Motivo de consulta (ej. Dolor torácico)" />
+    <input aria-label="Motivo de consulta (triage)" style={input} value={trComplaint} onChange={e=>setTrComplaint(e.target.value)} placeholder="Motivo de consulta (ej. Dolor torácico)" />
     <button style={btn} disabled={busy!==""||!trComplaint} onClick={createTriage}>{busy==="tr-new"?"Registrando…":"Registrar arribo"}</button>
    </div>
    {triages.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -798,12 +798,12 @@ export default function ExpView(){
       <Check checked={trEsi.newConfusionLethargyDisorientation} onChange={()=>setTrEsi({...trEsi,newConfusionLethargyDisorientation:!trEsi.newConfusionLethargyDisorientation})} label="B · Confusión, letargo o desorientación de nueva aparición" />
       <Check checked={trEsi.severeDistress} onChange={()=>setTrEsi({...trEsi,severeDistress:!trEsi.severeDistress})} label="B · Distrés severo" />
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
-       <label style={{fontSize:12,color:P.muted}}>Dolor (0-10)<input style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.painScore} onChange={e=>setTrEsi({...trEsi,painScore:e.target.value})} placeholder="—" /></label>
-       <label style={{fontSize:12,color:P.muted}}>C · Recursos previstos<input style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.predictedResources} onChange={e=>setTrEsi({...trEsi,predictedResources:e.target.value})} /></label>
-       <label style={{fontSize:12,color:P.muted}}>Edad (meses)<input style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.ageMonths} onChange={e=>setTrEsi({...trEsi,ageMonths:e.target.value})} /></label>
-       <label style={{fontSize:12,color:P.muted}}>FC<input style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.heartRate} onChange={e=>setTrEsi({...trEsi,heartRate:e.target.value})} placeholder="—" /></label>
-       <label style={{fontSize:12,color:P.muted}}>FR<input style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.respiratoryRate} onChange={e=>setTrEsi({...trEsi,respiratoryRate:e.target.value})} placeholder="—" /></label>
-       <label style={{fontSize:12,color:P.muted}}>SpO₂ (%)<input style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.spo2} onChange={e=>setTrEsi({...trEsi,spo2:e.target.value})} placeholder="—" /></label>
+       <label style={{fontSize:12,color:P.muted}}>Dolor (0-10)<input aria-label="Escala de dolor" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.painScore} onChange={e=>setTrEsi({...trEsi,painScore:e.target.value})} placeholder="—" /></label>
+       <label style={{fontSize:12,color:P.muted}}>C · Recursos previstos<input aria-label="Recursos previstos" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.predictedResources} onChange={e=>setTrEsi({...trEsi,predictedResources:e.target.value})} /></label>
+       <label style={{fontSize:12,color:P.muted}}>Edad (meses)<input aria-label="Edad en meses" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.ageMonths} onChange={e=>setTrEsi({...trEsi,ageMonths:e.target.value})} /></label>
+       <label style={{fontSize:12,color:P.muted}}>FC<input aria-label="Frecuencia cardíaca" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.heartRate} onChange={e=>setTrEsi({...trEsi,heartRate:e.target.value})} placeholder="—" /></label>
+       <label style={{fontSize:12,color:P.muted}}>FR<input aria-label="Frecuencia respiratoria" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.respiratoryRate} onChange={e=>setTrEsi({...trEsi,respiratoryRate:e.target.value})} placeholder="—" /></label>
+       <label style={{fontSize:12,color:P.muted}}>SpO₂ (%)<input aria-label="Saturación de oxígeno (SpO2)" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.spo2} onChange={e=>setTrEsi({...trEsi,spo2:e.target.value})} placeholder="—" /></label>
       </div>
       <div style={{fontSize:11.5,color:P.muted}}>Un signo vital vacío es «no se midió», no «normal»: el algoritmo lo reporta como faltante en vez de asumirlo.</div>
       {trEsiMsg&&<div role="alert" style={{padding:"10px 12px",border:"1px solid #F0DBB8",background:"#FFF4E5",color:P.amberOnPale,borderRadius:10,fontSize:12.5,fontWeight:600}}>{trEsiMsg}</div>}
@@ -818,10 +818,10 @@ export default function ExpView(){
    <h2 {...anchor("Cuidado de heridas")} style={{fontSize:18,margin:0}}>Cuidado de heridas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Lesión por presión (UPP) longitudinal: documentar estadio → re-valorar (append-only) → cicatrizar/escalar. Métrica de calidad. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"180px 180px auto",gap:10,marginTop:12}}>
-    <select style={input} value={wnLoc} onChange={e=>setWnLoc(e.target.value)}>
+    <select aria-label="Localización de la herida" style={input} value={wnLoc} onChange={e=>setWnLoc(e.target.value)}>
      <option value="SACRUM">Sacro</option><option value="HEEL">Talón</option><option value="ISCHIUM">Isquion</option><option value="TROCHANTER">Trocánter</option><option value="OCCIPUT">Occipucio</option><option value="ELBOW">Codo</option><option value="OTHER">Otro</option>
     </select>
-    <select style={input} value={wnStage} onChange={e=>setWnStage(e.target.value)}>
+    <select aria-label="Estadio de la herida" style={input} value={wnStage} onChange={e=>setWnStage(e.target.value)}>
      <option value="STAGE_1">Estadio 1</option><option value="STAGE_2">Estadio 2</option><option value="STAGE_3">Estadio 3</option><option value="STAGE_4">Estadio 4</option><option value="UNSTAGEABLE">No estadiable</option><option value="DTI">LTP profunda</option>
     </select>
     <button style={btn} disabled={busy!==""} onClick={createWound}>{busy==="wn-new"?"Documentando…":"Documentar herida"}</button>
@@ -843,10 +843,10 @@ export default function ExpView(){
    <h2 {...anchor("Transfusiones")} style={{fontSize:18,margin:0}}>Transfusiones</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Medicina transfusional con verificación pre-transfusional: ordenar → cruzar (crossmatch) → iniciar → completar; una reacción se registra como pendiente HIGH (hemovigilancia). Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 120px auto",gap:10,marginTop:12}}>
-    <select style={input} value={tfProduct} onChange={e=>setTfProduct(e.target.value)}>
+    <select aria-label="Producto sanguíneo" style={input} value={tfProduct} onChange={e=>setTfProduct(e.target.value)}>
      <option value="PRBC">Concentrado eritrocitario</option><option value="PLATELETS">Plaquetas</option><option value="FFP">Plasma fresco</option><option value="CRYO">Crioprecipitados</option><option value="WHOLE_BLOOD">Sangre total</option>
     </select>
-    <input style={input} value={tfUnits} onChange={e=>setTfUnits(e.target.value)} placeholder="Unidades" />
+    <input aria-label="Unidades a transfundir" style={input} value={tfUnits} onChange={e=>setTfUnits(e.target.value)} placeholder="Unidades" />
     <button style={btn} disabled={busy!==""} onClick={createTransfusion}>{busy==="tf-new"?"Ordenando…":"Ordenar transfusión"}</button>
    </div>
    {transfs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -867,8 +867,8 @@ export default function ExpView(){
    <h2 {...anchor("Cirugía")} style={{fontSize:18,margin:0}}>Cirugía</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Caso quirúrgico con barrera de seguridad: agendar → time-out OMS (checklist) → iniciar → completar. No se puede iniciar sin el time-out. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 150px auto",gap:10,marginTop:12}}>
-    <input style={input} value={sgProc} onChange={e=>setSgProc(e.target.value)} placeholder="Procedimiento (ej. Colecistectomía)" />
-    <select style={input} value={sgLat} onChange={e=>setSgLat(e.target.value)}><option value="NA">Sin lateralidad</option><option value="LEFT">Izquierdo</option><option value="RIGHT">Derecho</option><option value="BILATERAL">Bilateral</option></select>
+    <input aria-label="Procedimiento quirúrgico" style={input} value={sgProc} onChange={e=>setSgProc(e.target.value)} placeholder="Procedimiento (ej. Colecistectomía)" />
+    <select aria-label="Lateralidad quirúrgica" style={input} value={sgLat} onChange={e=>setSgLat(e.target.value)}><option value="NA">Sin lateralidad</option><option value="LEFT">Izquierdo</option><option value="RIGHT">Derecho</option><option value="BILATERAL">Bilateral</option></select>
     <button style={btn} disabled={busy!==""||!sgProc} onClick={createSurgery}>{busy==="sg-new"?"Agendando…":"Agendar cirugía"}</button>
    </div>
    {surgs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
@@ -889,10 +889,10 @@ export default function ExpView(){
    <h2 {...anchor("Diálisis")} style={{fontSize:18,margin:0}}>Diálisis</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Terapia de reemplazo renal: agendar → iniciar → completar; una interrupción por complicación se registra como pendiente HIGH y puede reanudarse. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 200px auto",gap:10,marginTop:12}}>
-    <select style={input} value={dzMod} onChange={e=>setDzMod(e.target.value)}>
+    <select aria-label="Modalidad de diálisis" style={input} value={dzMod} onChange={e=>setDzMod(e.target.value)}>
      <option value="HEMODIALYSIS">Hemodiálisis</option><option value="PERITONEAL">Peritoneal</option><option value="HEMOFILTRATION">Hemofiltración</option>
     </select>
-    <select style={input} value={dzAcc} onChange={e=>setDzAcc(e.target.value)}>
+    <select aria-label="Acceso vascular de diálisis" style={input} value={dzAcc} onChange={e=>setDzAcc(e.target.value)}>
      <option value="FISTULA">Fístula</option><option value="GRAFT">Injerto</option><option value="CATHETER">Catéter</option><option value="PERITONEAL_CATHETER">Catéter peritoneal</option>
     </select>
     <button style={btn} disabled={busy!==""} onClick={createDialysis}>{busy==="dz-new"?"Agendando…":"Agendar sesión"}</button>
@@ -914,8 +914,8 @@ export default function ExpView(){
    <h2 {...anchor("Documentos clínicos")} style={{fontSize:18,margin:0}}>Documentos clínicos</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>La firma produce un snapshot reproducible e inmutable; toda corrección posterior es un addendum append-only (PROD-014-R022).</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 200px",gap:10,marginTop:12}}>
-    <input style={input} value={docTitle} onChange={e=>setDocTitle(e.target.value)} placeholder="Título (ej. Nota de evolución)" />
-    <select style={input} value={docType} onChange={e=>setDocType(e.target.value)}>
+    <input aria-label="Título del documento" style={input} value={docTitle} onChange={e=>setDocTitle(e.target.value)} placeholder="Título (ej. Nota de evolución)" />
+    <select aria-label="Tipo de documento" style={input} value={docType} onChange={e=>setDocType(e.target.value)}>
      <option value="PROGRESS_NOTE">Nota de evolución</option><option value="DISCHARGE_SUMMARY">Alta</option>
      <option value="REFERRAL">Referencia</option><option value="PROCEDURE_NOTE">Nota de procedimiento</option><option value="OTHER">Otro</option>
     </select>
@@ -939,7 +939,7 @@ export default function ExpView(){
    <h2 {...anchor("Obligaciones de seguimiento")} style={{fontSize:18,margin:0}}>Obligaciones de seguimiento</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Care gaps / follow-up. Completar exige evidencia (Zero Lost Follow-Up: nada se cierra sin constancia).</p>
    <div style={{display:"flex",gap:10,marginTop:12,alignItems:"center"}}>
-    <input style={{...input,maxWidth:420}} value={obKind} onChange={e=>setObKind(e.target.value)} placeholder="Tipo (ej. Contactar por resultado crítico)" />
+    <input aria-label="Tipo de obligación" style={{...input,maxWidth:420}} value={obKind} onChange={e=>setObKind(e.target.value)} placeholder="Tipo (ej. Contactar por resultado crítico)" />
     <button style={btn} disabled={busy!==""||!obKind} onClick={createObligation}>{busy==="ob-new"?"Creando…":"Crear obligación"}</button>
    </div>
    {obligations.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
