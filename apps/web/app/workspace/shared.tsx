@@ -334,26 +334,31 @@ export const content:React.CSSProperties={maxWidth:1140,margin:"0 auto",padding:
 // Sidebar del expediente (diseño exacto S1.png): navegación primaria con íconos + badges en tiempo real.
 // h2:"" => volver arriba (Inicio). badge: clave del conteo real; badgeColor rojo=urgente, morado=informativo.
 export type BadgeKey="agenda"|"resultados"|"seguimiento"|"obligaciones";
-export const SIDE_NAV:{label:string;h2:string;icon:string;badge?:BadgeKey;badgeColor?:"r"|"p"}[]=[
- {label:"Inicio",h2:"",icon:"home"},
- {label:"Pacientes",h2:"Paciente",icon:"people"},
- {label:"Consulta",h2:"Encuentro",icon:"steth"},
- {label:"Agenda",h2:"Agenda",icon:"cal",badge:"agenda",badgeColor:"p"},
- {label:"Resultados",h2:"Resultados diagnósticos",icon:"flask",badge:"resultados",badgeColor:"r"},
- {label:"Órdenes",h2:"Órdenes clínicas",icon:"orders"},
- {label:"Medicamentos",h2:"Medicación",icon:"pill"},
- {label:"Alergias",h2:"Alergias",icon:"warning"},
- {label:"Problemas",h2:"Lista de problemas",icon:"clipboard"},
- {label:"Vacunas",h2:"Vacunas",icon:"syringe"},
- {label:"Signos vitales",h2:"Signos vitales",icon:"activity"},
- {label:"Plan de cuidados",h2:"Plan de cuidados",icon:"target"},
- {label:"Interconsultas",h2:"Interconsultas",icon:"people"},
- {label:"Seguimiento",h2:"Seguimiento automático",icon:"chart",badge:"seguimiento",badgeColor:"p"},
- {label:"Facturación",h2:"Facturación",icon:"card"},
- {label:"Documentos",h2:"Documentos clínicos",icon:"folder"},
- {label:"Obligaciones",h2:"Obligaciones de seguimiento",icon:"checkbox",badge:"obligaciones",badgeColor:"r"},
- {label:"Clinical Intelligence",h2:"",icon:"brain"},
- {label:"Reportes",h2:"Evolución longitudinal",icon:"barchart"},
+// Ley de Hick (refactor UI/UX pro-max): la navegación NO es una lista plana de 19 opciones equivalentes. Se agrupa en
+// secciones con encabezado para reducir el coste de decisión del médico. `group` marca la sección; el orden del array es el
+// orden de render, y el encabezado se pinta al cambiar de grupo (ver page.tsx). Biblioteca y Configuración viven aparte, en
+// TOOLS_NAV (HERRAMIENTAS).
+export type NavGroup="Clínica"|"Registros del paciente"|"Coordinación"|"Análisis";
+export const SIDE_NAV:{label:string;h2:string;icon:string;group:NavGroup;badge?:BadgeKey;badgeColor?:"r"|"p"}[]=[
+ {label:"Inicio",h2:"",icon:"home",group:"Clínica"},
+ {label:"Pacientes",h2:"Paciente",icon:"people",group:"Clínica"},
+ {label:"Consulta",h2:"Encuentro",icon:"steth",group:"Clínica"},
+ {label:"Agenda",h2:"Agenda",icon:"cal",group:"Clínica",badge:"agenda",badgeColor:"p"},
+ {label:"Problemas",h2:"Lista de problemas",icon:"clipboard",group:"Registros del paciente"},
+ {label:"Alergias",h2:"Alergias",icon:"warning",group:"Registros del paciente"},
+ {label:"Medicamentos",h2:"Medicación",icon:"pill",group:"Registros del paciente"},
+ {label:"Vacunas",h2:"Vacunas",icon:"syringe",group:"Registros del paciente"},
+ {label:"Signos vitales",h2:"Signos vitales",icon:"activity",group:"Registros del paciente"},
+ {label:"Resultados",h2:"Resultados diagnósticos",icon:"flask",group:"Registros del paciente",badge:"resultados",badgeColor:"r"},
+ {label:"Órdenes",h2:"Órdenes clínicas",icon:"orders",group:"Registros del paciente"},
+ {label:"Plan de cuidados",h2:"Plan de cuidados",icon:"target",group:"Registros del paciente"},
+ {label:"Interconsultas",h2:"Interconsultas",icon:"people",group:"Coordinación"},
+ {label:"Seguimiento",h2:"Seguimiento automático",icon:"chart",group:"Coordinación",badge:"seguimiento",badgeColor:"p"},
+ {label:"Documentos",h2:"Documentos clínicos",icon:"folder",group:"Coordinación"},
+ {label:"Obligaciones",h2:"Obligaciones de seguimiento",icon:"checkbox",group:"Coordinación",badge:"obligaciones",badgeColor:"r"},
+ {label:"Facturación",h2:"Facturación",icon:"card",group:"Coordinación"},
+ {label:"Clinical Intelligence",h2:"",icon:"brain",group:"Análisis"},
+ {label:"Reportes",h2:"Evolución longitudinal",icon:"barchart",group:"Análisis"},
 ];
 export const TOOLS_NAV:{label:string;h2:string;icon:string}[]=[
  {label:"Biblioteca clínica",h2:"",icon:"book"},
@@ -609,7 +614,11 @@ export const RAIL_CSS=`
 .mos-navi .lbl{flex:1;overflow:hidden;text-overflow:ellipsis}
 .mos-badge{flex:0 0 auto;min-width:22px;height:22px;border-radius:999px;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;padding:0 6px;font-variant-numeric:tabular-nums}
 .mos-badge.p{background:${P.purpleOnPale}}.mos-badge.r{background:${P.redOnPale}}
+.mos-navsec{font-size:10px;font-weight:700;letter-spacing:.16em;color:#7C81BC;padding:14px 14px 6px;white-space:nowrap;text-transform:uppercase}
+.mos-navsec:first-child{padding-top:2px}
 .mos-side.col .lbl,.mos-side.col .mos-bname,.mos-side.col .mos-bsub,.mos-side.col .mos-toolslbl,.mos-side.col .mos-doc .info,.mos-side.col .mos-collapse .lbl{display:none}
+.mos-side.col .mos-navsec{color:transparent;font-size:0;padding:0;height:0;margin:10px 10px 4px;border-top:1px solid #ffffff14}
+.mos-side.col .mos-navsec:first-child{margin-top:0;border-top:0}
 .mos-side.col .mos-navi{justify-content:center;padding:11px 0}
 .mos-side.col .mos-badge{position:absolute;top:3px;right:8px;min-width:16px;height:16px;font-size:9px;padding:0 3px}
 .mos-side.col .mos-brand{justify-content:center;padding:0}
