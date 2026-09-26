@@ -10,14 +10,19 @@ export default function ConsultaView(){
  const[newInline,setNewInline]=useState(false); // Lote C: alta de paciente inline dentro de Nueva consulta
  const[dxType,setDxType]=useState<"PROBABLE"|"CONFIRMED"|"POSSIBLE">("PROBABLE"); // Lote D: tipo de la impresión diagnóstica
  // Lote C: buscador incremental de paciente en Nueva consulta (server ?q=), con debounce; sustituye el <select> masivo.
+ // BUGFIX (parpadeo): `loadPatients` NO está memoizada, así que cambia de identidad en cada render. Tenerla en las
+ // dependencias del efecto lo re-disparaba en bucle → `busy="pt-list"` encendía/apagaba sin parar y la lista de resultados
+ // parpadeaba entre «Buscando…» y las coincidencias, dificultando el clic. Se guarda en un ref para llamar SIEMPRE a la
+ // última versión sin depender de su identidad; el efecto solo reacciona a `patientQuery` y `consultaPid`.
  const searchDeb=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
+ const loadPatientsRef=useRef(loadPatients);loadPatientsRef.current=loadPatients;
  useEffect(()=>{
   if(consultaPid)return; // solo en el landing (sin paciente en foco)
   const q=patientQuery;
   if(searchDeb.current)clearTimeout(searchDeb.current);
-  searchDeb.current=setTimeout(()=>{void loadPatients(q);},300);
+  searchDeb.current=setTimeout(()=>{void loadPatientsRef.current(q);},300);
   return()=>{if(searchDeb.current)clearTimeout(searchDeb.current);};
- },[patientQuery,consultaPid,loadPatients]);
+ },[patientQuery,consultaPid]);
 
    // ===== PANEL DE CONSULTAS (landing) — sin paciente en foco: citas de hoy + iniciar nueva consulta =====
    if(!consultaPid){
@@ -51,11 +56,13 @@ export default function ConsultaView(){
        <div style={{marginTop:10,minHeight:52}}>
         {!q
          ?<div style={{fontSize:12,color:P.muted,padding:"8px 2px"}}>Escribe para buscar un paciente. También puedes abrir una <b>cita de hoy →</b></div>
-         :busy==="pt-list"
-          ?<div style={{fontSize:12,color:P.muted,padding:"8px 2px"}}>Buscando…</div>
-          :matches.length===0
-           ?<div style={{fontSize:12,color:P.muted,padding:"8px 2px"}}>Sin coincidencias para «{q}». Registra un paciente nuevo abajo.</div>
-           :<div style={{display:"flex",flexDirection:"column",gap:4}}>{matches.map(p=><button key={p.patientId} onClick={()=>openConsulta(p.patientId,p.name)} style={{display:"flex",alignItems:"center",gap:10,textAlign:"left",width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 11px",cursor:"pointer",fontFamily:UI}}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{ini(p.name)}</span><span style={{flex:1,minWidth:0}}><span style={{display:"block",fontSize:13,fontWeight:600}}>{p.name}</span>{p.curp&&<span style={{display:"block",fontSize:11,color:P.muted}}>{p.curp}</span>}</span><span style={{fontSize:12,fontWeight:700,color:P.purple,flex:"0 0 auto"}}>Abrir →</span></button>)}</div>}
+         :matches.length===0
+          /* Sin resultados aún: «Buscando…» solo mientras carga; si ya hay coincidencias se conservan durante la
+             re-búsqueda para no parpadear (no se reemplaza la lista por «Buscando…» en cada tecla). */
+          ?(busy==="pt-list"
+            ?<div style={{fontSize:12,color:P.muted,padding:"8px 2px"}}>Buscando…</div>
+            :<div style={{fontSize:12,color:P.muted,padding:"8px 2px"}}>Sin coincidencias para «{q}». Registra un paciente nuevo abajo.</div>)
+          :<div style={{display:"flex",flexDirection:"column",gap:4}}>{matches.map(p=><button key={p.patientId} onClick={()=>openConsulta(p.patientId,p.name)} style={{display:"flex",alignItems:"center",gap:10,textAlign:"left",width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 11px",cursor:"pointer",fontFamily:UI}}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{ini(p.name)}</span><span style={{flex:1,minWidth:0}}><span style={{display:"block",fontSize:13,fontWeight:600}}>{p.name}</span>{p.curp&&<span style={{display:"block",fontSize:11,color:P.muted}}>{p.curp}</span>}</span><span style={{fontSize:12,fontWeight:700,color:P.purple,flex:"0 0 auto"}}>Abrir →</span></button>)}</div>}
        </div>
        {!newInline
         ?<button onClick={()=>setNewInline(true)} style={{marginTop:12,width:"100%",justifyContent:"center",display:"flex",alignItems:"center",gap:8,border:`1px dashed ${P.purple}`,background:"#F7F6FE",color:P.purple,borderRadius:10,padding:"11px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>+ Registrar paciente nuevo</button>
