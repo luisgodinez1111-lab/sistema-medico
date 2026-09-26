@@ -286,4 +286,156 @@ Palexia	tapentadol	Grünenthal
 Durogesic	fentanilo	Janssen
 Oxicontin	oxicodona	Mundipharma
 Morfina	morfina
-Sevredol	morfina	Mundipharma`;
+Sevredol	morfina	Mundipharma
+Mejoral	paracetamol
+Neo-Melubrina	metamizol	Sanofi
+Dorixina	clonixinato de lisina	Roemmers
+Profenid	ketoprofeno	Sanofi
+Lertus	diclofenaco	Carnot
+Posipen	dicloxacilina	Lakeside
+Duracef	cefadroxilo	Bristol-Myers Squibb
+Clavulin	amoxicilina	GSK
+Secnidal	secnidazol	Sanofi
+Daxon	nitazoxanida	Siegfried Rhein
+Ivexterm	ivermectina	Valeant
+Tamiflu	oseltamivir	Roche
+Sporanox	itraconazol	Janssen
+Micostatin	nistatina	Bristol-Myers Squibb
+Zalain	sertaconazol	Ferrer
+Bilaxten	bilastina	Menarini
+Rupafin	rupatadina	Adamed
+Atarax	hidroxizina	Sanofi
+Zaditen	ketotifeno	Novartis
+Fluimucil	acetilcisteína	Zambon
+Natrilix	indapamida	Servier
+Isoptin	verapamilo	Abbott
+Angiotrofin	diltiazem	Sanofi
+Procoralan	ivabradina	Servier
+Vastarel	trimetazidina	Servier
+Brilinta	ticagrelor	AstraZeneca
+Effient	prasugrel	Eli Lilly
+Pletal	cilostazol	Otsuka
+Trental	pentoxifilina	Sanofi
+Cordarone	amiodarona	Sanofi
+Rythmol	propafenona	Abbott
+Mevacor	lovastatina	Organon
+Livalo	pitavastatina	Kowa
+Diamicron	gliclazida	Servier
+Glucobay	acarbosa	Bayer
+Novonorm	repaglinida	Novo Nordisk
+Onglyza	saxagliptina	AstraZeneca
+Rybelsus	semaglutida	Novo Nordisk
+Byetta	exenatida	AstraZeneca
+Solu-Medrol	metilprednisolona	Pfizer
+Medrol	metilprednisolona	Pfizer
+Nasonex	mometasona	Organon
+Kenacort	triamcinolona	Bristol-Myers Squibb
+Libertrim	trimebutina	Carnot
+Dicetel	pinaverio	Mylan
+Xifaxan	rifaximina	Alfasigma
+Flonorm	rifaximina	Carnot
+Hidrasec	racecadotrilo	Carnot
+Dexilant	dexlansoprazol	Takeda
+Pentasa	mesalazina	Ferring
+Xatral	alfuzosina	Sanofi
+Vesicare	solifenacina	Astellas
+Ditropan	oxibutinina	Janssen
+Detrusitol	tolterodina	Pfizer
+Betmiga	mirabegron	Astellas
+Adenuric	febuxostat	Menarini
+Arava	leflunomida	Sanofi
+Azulfidine	sulfasalazina	Pfizer
+Forteo	teriparatida	Eli Lilly
+Evista	raloxifeno	Eli Lilly
+Requip	ropinirol	GSK
+Azilect	rasagilina	Teva
+Lioresal	baclofeno	Novartis
+Sirdalud	tizanidina	Novartis
+Stugeron	cinarizina	Janssen
+Sibelium	flunarizina	Janssen
+Valdoxan	agomelatina	Servier
+Brintellix	vortioxetina	Lundbeck
+Leponex	clozapina	Novartis
+Invega	paliperidona	Janssen
+Ritalin	metilfenidato	Novartis
+Concerta	metilfenidato	Janssen
+Strattera	atomoxetina	Eli Lilly
+Daxas	roflumilast	AstraZeneca
+Clexane	enoxaparina	Sanofi
+Lixiana	edoxabán	Daiichi Sankyo
+Livial	tibolona	Organon
+Transamin	ácido tranexámico	Daiichi Sankyo
+Visanne	dienogest	Bayer
+Primolut	noretisterona	Bayer
+Trusopt	dorzolamida	Organon
+Travatan	travoprost	Novartis
+Differin	adapaleno	Galderma
+Retin-A	tretinoína	Janssen
+Protopic	tacrolimus	Leo Pharma
+Elidel	pimecrolimus	Viatris
+Rozex	metronidazol	Galderma
+Maltofer	hierro	Vifor
+Imigran	sumatriptán	GSK
+Maxalt	rizatriptán	Organon
+Zomig	zolmitriptán	AstraZeneca
+Regaine	minoxidil	Johnson & Johnson
+Amikin	amikacina	Bristol-Myers Squibb
+Garamicina	gentamicina	Schering-Plough
+Meronem	meropenem	Pfizer
+Tienam	imipenem	Organon
+Zyvox	linezolid	Pfizer
+Maxipime	cefepima	Bristol-Myers Squibb
+Fortum	ceftazidima	GSK
+Cedax	ceftibuteno	Merck
+Cymevene	ganciclovir	Roche
+Xeloda	capecitabina	Roche
+Tasigna	nilotinib	Novartis
+Sprycel	dasatinib	Bristol-Myers Squibb
+Tarceva	erlotinib	Roche
+Iressa	gefitinib	AstraZeneca
+Sutent	sunitinib	Pfizer
+Nexavar	sorafenib	Bayer
+Avastin	bevacizumab	Roche
+Erbitux	cetuximab	Merck
+Zytiga	abiraterona	Janssen
+Xtandi	enzalutamida	Astellas
+Sandostatin	octreotida	Novartis
+Genotropin	somatropina	Pfizer
+Stelara	ustekinumab	Janssen
+Cosentyx	secukinumab	Novartis
+Xolair	omalizumab	Novartis
+Actemra	tocilizumab	Roche
+Simponi	golimumab	Janssen
+Xeljanz	tofacitinib	Pfizer
+Rinvoq	upadacitinib	Abbvie
+Otezla	apremilast	Amgen
+Repatha	evolocumab	Amgen
+Praluent	alirocumab	Sanofi
+Mounjaro	tirzepatida	Eli Lilly
+Vivanza	vardenafil	Bayer
+Muvett	clonixinato de lisina	Chinoin
+Sincol	ambroxol	Chinoin
+Iterax	hidroxizina	Chinoin
+Ledermicina	demeclociclina
+Fungicidina	nistatina
+Bedoyecta Tri	complejo b	Grossman
+Adecur	terazosina	Silanes
+Hytrin	terazosina	Abbott
+Minipres	prazosina	Pfizer
+Aldomet	metildopa	Organon
+Catapresan	clonidina	Boehringer Ingelheim
+Apresolina	hidralazina	Novartis
+Hidral	hidralazina
+Trandate	labetalol
+Coversyl Plus	perindopril	Servier
+Exforge	amlodipino	Novartis
+Twynsta	telmisartán	Boehringer Ingelheim
+Lyxumia	lixisenatida	Sanofi
+Trajenta	linagliptina	Boehringer Ingelheim
+Nesina	alogliptina	Takeda
+Steglatro	ertugliflozina	Merck
+Segluromet	ertugliflozina	Merck
+Metadoxil	metadoxina
+Silimarina	silimarina
+Legalon	silimarina	Viatris
+Ursofalk	ácido ursodesoxicólico	Dr. Falk`;
