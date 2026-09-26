@@ -116,17 +116,139 @@ const CATALOG:readonly Icd10Entry[]=[
  {code:"M15.9",description:"Poliartrosis, no especificada",category:"Musculoesquelético"},
  {code:"J44.0",description:"Enfermedad pulmonar obstructiva crónica con infección aguda de las vías respiratorias inferiores",category:"Respiratorio"},
  {code:"E11.7",description:"Diabetes mellitus tipo 2 con complicaciones múltiples",category:"Endocrino"},
+ // ---- Ampliación (solicitud del dueño): presentaciones FRECUENTES de consultorio / atención primaria, de lo muy leve a
+ // lo agudo cotidiano. El catálogo estaba sesgado a crónicas (para los algoritmos de comorbilidad); esto cubre el motivo
+ // real de la mayoría de las consultas. Todos son CIE-10 OMS (categoría de 3 o subcategoría de 4; el test de formato lo vigila).
+ // Respiratorio agudo
+ {code:"J00",description:"Rinofaringitis aguda (resfriado común)",category:"Respiratorio"},
+ {code:"J01.9",description:"Sinusitis aguda, no especificada",category:"Respiratorio"},
+ {code:"J02.9",description:"Faringitis aguda, no especificada",category:"Respiratorio"},
+ {code:"J02.0",description:"Faringitis estreptocócica",category:"Respiratorio"},
+ {code:"J03.9",description:"Amigdalitis aguda, no especificada",category:"Respiratorio"},
+ {code:"J04.0",description:"Laringitis aguda",category:"Respiratorio"},
+ {code:"J11.1",description:"Influenza (gripe) con otras manifestaciones respiratorias, virus no identificado",category:"Respiratorio"},
+ {code:"J20.9",description:"Bronquitis aguda, no especificada",category:"Respiratorio"},
+ {code:"J21.9",description:"Bronquiolitis aguda, no especificada",category:"Respiratorio"},
+ {code:"J30.4",description:"Rinitis alérgica, no especificada",category:"Respiratorio"},
+ {code:"J40",description:"Bronquitis, no especificada como aguda ni crónica",category:"Respiratorio"},
+ // Otorrinolaringología
+ {code:"H66.9",description:"Otitis media, no especificada",category:"Otorrinolaringología"},
+ {code:"H60.9",description:"Otitis externa, no especificada",category:"Otorrinolaringología"},
+ {code:"H61.2",description:"Cerumen impactado (tapón de cerumen)",category:"Otorrinolaringología"},
+ {code:"H92.0",description:"Otalgia (dolor de oído)",category:"Otorrinolaringología"},
+ // Oftalmología
+ {code:"H10.9",description:"Conjuntivitis, no especificada",category:"Oftalmología"},
+ {code:"H10.1",description:"Conjuntivitis alérgica aguda",category:"Oftalmología"},
+ {code:"H00.0",description:"Orzuelo y otras inflamaciones profundas del párpado",category:"Oftalmología"},
+ {code:"H01.0",description:"Blefaritis",category:"Oftalmología"},
+ {code:"H57.1",description:"Dolor ocular",category:"Oftalmología"},
+ // Neurológico / cefalea / sueño
+ {code:"R51",description:"Cefalea",category:"Síntomas y signos"},
+ {code:"G43.9",description:"Migraña, no especificada",category:"Neurológico"},
+ {code:"G44.2",description:"Cefalea tensional",category:"Neurológico"},
+ {code:"R42",description:"Mareo y desvanecimiento",category:"Síntomas y signos"},
+ {code:"H81.1",description:"Vértigo posicional paroxístico benigno",category:"Otorrinolaringología"},
+ {code:"R55",description:"Síncope y colapso",category:"Síntomas y signos"},
+ {code:"R56.8",description:"Otras convulsiones y las no especificadas",category:"Neurológico"},
+ {code:"G47.0",description:"Trastornos del inicio y del mantenimiento del sueño (insomnio)",category:"Neurológico"},
+ // Digestivo frecuente
+ {code:"K30",description:"Dispepsia (indigestión funcional)",category:"Digestivo"},
+ {code:"K59.0",description:"Estreñimiento",category:"Digestivo"},
+ {code:"K58.9",description:"Síndrome del intestino irritable sin diarrea",category:"Digestivo"},
+ {code:"K52.9",description:"Gastroenteritis y colitis no infecciosas, no especificadas",category:"Digestivo"},
+ {code:"K12.0",description:"Aftas bucales recurrentes",category:"Digestivo"},
+ {code:"K05.1",description:"Gingivitis crónica",category:"Digestivo"},
+ {code:"K02.9",description:"Caries dental, no especificada",category:"Digestivo"},
+ {code:"K64.9",description:"Hemorroides, no especificadas",category:"Digestivo"},
+ {code:"A08.4",description:"Infección intestinal viral, no especificada",category:"Infeccioso"},
+ {code:"B82.9",description:"Parasitosis intestinal, no especificada",category:"Infeccioso"},
+ // Genitourinario / ginecológico
+ {code:"N30.0",description:"Cistitis aguda",category:"Genitourinario"},
+ {code:"N76.0",description:"Vaginitis aguda",category:"Ginecológico"},
+ {code:"B37.3",description:"Candidiasis de la vulva y de la vagina",category:"Ginecológico"},
+ {code:"N94.6",description:"Dismenorrea, no especificada",category:"Ginecológico"},
+ {code:"N91.2",description:"Amenorrea, no especificada",category:"Ginecológico"},
+ {code:"N95.1",description:"Estados menopáusicos y climatéricos femeninos",category:"Ginecológico"},
+ {code:"Z30.0",description:"Consejo y asesoramiento general sobre anticoncepción",category:"Factores de salud"},
+ // Dermatología
+ {code:"L20.9",description:"Dermatitis atópica, no especificada",category:"Dermatología"},
+ {code:"L23.9",description:"Dermatitis alérgica de contacto, de causa no especificada",category:"Dermatología"},
+ {code:"L30.9",description:"Dermatitis, no especificada",category:"Dermatología"},
+ {code:"L50.9",description:"Urticaria, no especificada",category:"Dermatología"},
+ {code:"L70.0",description:"Acné vulgar",category:"Dermatología"},
+ {code:"L03.9",description:"Celulitis, no especificada",category:"Dermatología"},
+ {code:"L02.9",description:"Absceso cutáneo, forúnculo y carbunco, de sitio no especificado",category:"Dermatología"},
+ {code:"L65.9",description:"Pérdida no cicatricial del pelo, no especificada (alopecia)",category:"Dermatología"},
+ {code:"B35.9",description:"Dermatofitosis (tiña), no especificada",category:"Dermatología"},
+ {code:"B35.1",description:"Tiña de las uñas (onicomicosis)",category:"Dermatología"},
+ {code:"B35.3",description:"Tiña del pie (pie de atleta)",category:"Dermatología"},
+ {code:"B07",description:"Verrugas víricas",category:"Dermatología"},
+ {code:"B00.9",description:"Infección por virus del herpes simple, no especificada",category:"Dermatología"},
+ {code:"B02.9",description:"Herpes zóster sin complicaciones",category:"Dermatología"},
+ {code:"B08.1",description:"Molusco contagioso",category:"Dermatología"},
+ {code:"B86",description:"Escabiosis (sarna)",category:"Dermatología"},
+ // Musculoesquelético agudo
+ {code:"M54.2",description:"Cervicalgia",category:"Musculoesquelético"},
+ {code:"M54.4",description:"Lumbago con ciática",category:"Musculoesquelético"},
+ {code:"M54.9",description:"Dorsalgia, no especificada",category:"Musculoesquelético"},
+ {code:"M79.1",description:"Mialgia",category:"Musculoesquelético"},
+ {code:"M25.5",description:"Dolor articular (artralgia)",category:"Musculoesquelético"},
+ {code:"M10.9",description:"Gota, no especificada",category:"Musculoesquelético"},
+ {code:"M77.9",description:"Entesopatía, no especificada (tendinitis)",category:"Musculoesquelético"},
+ {code:"S93.4",description:"Esguince y torcedura del tobillo",category:"Musculoesquelético"},
+ {code:"S13.4",description:"Esguince y torcedura de la columna cervical",category:"Musculoesquelético"},
+ // Infeccioso / vírico frecuente
+ {code:"U07.1",description:"COVID-19, virus identificado",category:"Infeccioso"},
+ {code:"B01.9",description:"Varicela sin complicaciones",category:"Infeccioso"},
+ {code:"B26.9",description:"Parotiditis (paperas) sin complicaciones",category:"Infeccioso"},
+ // Síntomas y signos (motivos de consulta muy frecuentes)
+ {code:"R50.9",description:"Fiebre, no especificada",category:"Síntomas y signos"},
+ {code:"R05",description:"Tos",category:"Síntomas y signos"},
+ {code:"R07.0",description:"Dolor de garganta (odinofagia)",category:"Síntomas y signos"},
+ {code:"R07.4",description:"Dolor torácico, no especificado",category:"Síntomas y signos"},
+ {code:"R06.0",description:"Disnea",category:"Síntomas y signos"},
+ {code:"R10.4",description:"Otros dolores abdominales y los no especificados",category:"Síntomas y signos"},
+ {code:"R11",description:"Náuseas y vómito",category:"Síntomas y signos"},
+ {code:"R21",description:"Salpullido y otras erupciones cutáneas no especificadas",category:"Síntomas y signos"},
+ {code:"R53",description:"Malestar, fatiga y astenia",category:"Síntomas y signos"},
+ {code:"R60.9",description:"Edema, no especificado",category:"Síntomas y signos"},
+ {code:"R63.4",description:"Pérdida anormal de peso",category:"Síntomas y signos"},
+ {code:"R00.2",description:"Palpitaciones",category:"Síntomas y signos"},
+ {code:"R04.0",description:"Epistaxis (sangrado nasal)",category:"Síntomas y signos"},
+ {code:"E86",description:"Depleción del volumen (deshidratación)",category:"Endocrino"},
+ // Salud mental leve frecuente
+ {code:"F43.0",description:"Reacción al estrés agudo",category:"Salud mental"},
+ {code:"F45.9",description:"Trastorno somatomorfo, no especificado",category:"Salud mental"},
+ // Consulta preventiva / factores de salud
+ {code:"Z00.1",description:"Control de salud del niño (niño sano)",category:"Factores de salud"},
+ {code:"Z02.7",description:"Emisión de certificado médico",category:"Factores de salud"},
+ {code:"Z71.9",description:"Consulta para asesoramiento, no especificada",category:"Factores de salud"},
 ];
 const BY_CODE=new Map(CATALOG.map(e=>[e.code.toUpperCase(),e]));
 export function normalizeIcd10(code:string):string{return code.trim().toUpperCase();}
 export function lookupIcd10(code:string):Icd10Entry|undefined{return BY_CODE.get(normalizeIcd10(code));}
 export function isValidIcd10(code:string):boolean{return BY_CODE.has(normalizeIcd10(code));}
-// Búsqueda simple por código o texto de la descripción (case-insensitive). Orden estable por código.
+// Búsqueda por código o texto (case-insensitive), ordenada por RELEVANCIA y con desempate estable por código. Al ampliar el
+// catálogo, una subcadena podía tapar la coincidencia obvia (p. ej. «tos» devolvía «dermatofiTOSis» antes que «Tos» R05).
+// Ranking: código exacto > código que empieza por la consulta > palabra de la descripción que empieza por la consulta >
+// subcadena de la descripción > subcadena de código > categoría. Dentro de cada nivel, orden por código (estable).
+const wordStart=(text:string,q:string):boolean=>{let i=text.indexOf(q);while(i!==-1){if(i===0||!/[a-záéíóúüñ]/.test(text[i-1]!))return true;i=text.indexOf(q,i+1);}return false;};
+function rankIcd10(e:Icd10Entry,q:string):number{
+ const code=e.code.toLowerCase(),desc=e.description.toLowerCase(),cat=e.category.toLowerCase();
+ if(code===q)return 0;
+ if(code.startsWith(q))return 1;
+ if(wordStart(desc,q))return 2;
+ if(desc.includes(q))return 3;
+ if(code.includes(q))return 4;
+ if(cat.includes(q))return 5;
+ return 6;
+}
 export function searchIcd10(query:string,limit=20):Icd10Entry[]{
  const q=query.trim().toLowerCase();
  if(!q)return[];
  return CATALOG.filter(e=>e.code.toLowerCase().includes(q)||e.description.toLowerCase().includes(q)||e.category.toLowerCase().includes(q))
-  .sort((a,b)=>a.code.localeCompare(b.code)).slice(0,limit);
+  .map(e=>({e,r:rankIcd10(e,q)}))
+  .sort((a,b)=>a.r-b.r||a.e.code.localeCompare(b.e.code)).map(x=>x.e).slice(0,limit);
 }
 export function catalogSize():number{return CATALOG.length;}
 export*from"./value-sets";
