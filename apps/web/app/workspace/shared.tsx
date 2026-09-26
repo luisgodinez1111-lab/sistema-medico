@@ -601,6 +601,13 @@ export const RAIL_CSS=`
 .mos-check{position:relative}
 .mos-check input{position:absolute;left:0;top:50%;transform:translateY(-50%);opacity:0;margin:0;cursor:inherit}
 .mos-check input:focus-visible+span{outline:2px solid #1665D7;outline-offset:2px}
+/* Foco visible por teclado (WCAG 2.4.7): aro consistente en TODO elemento interactivo — botones, enlaces, campos y los
+   clicables custom de act()/actRow() (role=button / tabindex). Solo con :focus-visible (no aparece al hacer clic con ratón).
+   El aro azul cumple ≥3:1 sobre fondo claro; los buscadores con outline:none inline muestran el aro vía box-shadow (que el
+   estilo inline no pisa). En el sidebar oscuro el aro pasa a un lila claro (#C7CBEC, ~8.9:1 sobre el navy). */
+.mos-app :is(button,a[href],select,textarea,input,[role="button"],[tabindex]):focus-visible{outline:2px solid #1665D7;outline-offset:2px}
+.mos-app input:focus-visible,.mos-app textarea:focus-visible{box-shadow:0 0 0 3px #1665D733}
+.mos-side :is(button,[role="button"],[tabindex]):focus-visible{outline-color:#C7CBEC}
 .mos-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .mos-bname{font-size:20px;font-weight:800;letter-spacing:.01em;line-height:1;color:#fff;white-space:nowrap}
 .mos-bname .os{color:#8E7DF8}
