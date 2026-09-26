@@ -25,10 +25,17 @@ function parse():Row[]{
  return LIST;
 }
 export function drugMonographCount():number{return parse().length;}
-/** Monografía por nombre de sustancia (emparejado normalizado). */
+/** Raíz para emparejar variantes de género (nifedipino↔nifedipina, ciprofloxacino↔ciprofloxacina): quita la vocal final. */
+function stem(s:string):string{return s.replace(/[oa]$/,"");}
+/** Monografía por nombre de sustancia. Emparejado tolerante: exacto → sal («olmesartán» ↔ «olmesartán medoxomil») → raíz
+ *  por variante de género en la primera palabra. Así una marca cuyo principio activo se escribe distinto igual enlaza. */
 export function drugMonograph(name:string):DrugMonograph|undefined{
- const k=normDrug(name);
- return parse().find(m=>m.key===k);
+ const k=normDrug(name);if(!k)return undefined;
+ const list=parse();
+ const exact=list.find(m=>m.key===k);if(exact)return exact;
+ const salt=list.find(m=>m.key.startsWith(k+" "));if(salt)return salt;
+ const ks=stem(k);
+ return ks.length>=5?list.find(m=>{const first=m.key.split(" ")[0]??"";return stem(first)===ks;}):undefined;
 }
 /** Ranking: nombre exacto > nombre que empieza por la consulta > palabra del nombre > acción/indicaciones. Desempate por nombre. */
 function rank(m:DrugMonograph,q:string):number{

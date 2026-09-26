@@ -127,4 +127,163 @@ Redoxon	vitamina C	Bayer
 Bedoyecta	complejo b	Grossman
 Neurobión	complejo b	Procter & Gamble
 Cytotec	misoprostol	Pfizer
-Pepto-Bismol	subsalicilato de bismuto	Procter & Gamble`;
+Pepto-Bismol	subsalicilato de bismuto	Procter & Gamble
+Dolac	ketorolaco	Siegfried Rhein
+Supradol	ketorolaco	Senosiain
+Ketesse	dexketoprofeno	Menarini
+Feldene	piroxicam	Pfizer
+Tandene	nimesulida
+Prexige	lumiracoxib	Novartis
+Pentrexyl	ampicilina	Bristol-Myers Squibb
+Benzetacil	penicilina benzatínica	Teva
+Zinnat	cefuroxima	GSK
+Denvar	cefixima	Sanofi
+Klaricid	claritromicina	Abbott
+Elequine	levofloxacino	Sanofi
+Noroxin	norfloxacino	Organon
+Septrin	trimetoprima	GSK
+Monurol	fosfomicina	Zambon
+Macrodantina	nitrofurantoína	Teva
+Inhibitron	omeprazol	Carnot
+Zurcal	pantoprazol	Takeda
+Ogastro	lansoprazol	Takeda
+Pariet	rabeprazol	Janssen
+Imodium	loperamida	Janssen
+Salofalk	mesalazina	Dr. Falk
+Allegra	fexofenadina	Sanofi
+Kestine	ebastina	Almirall
+Clorotrimeton	clorfenamina	Organon
+Reactine	cetirizina	Johnson & Johnson
+Aprovel	irbesartán	Sanofi
+Atacand	candesartán	AstraZeneca
+Olmetec	olmesartán	Menarini
+Coversyl	perindopril	Servier
+Tritace	ramipril	Sanofi
+Glioten	enalapril	Senosiain
+Betaloc	metoprolol	AstraZeneca
+Dilatrend	carvedilol	Roche
+Nebilet	nebivolol	Menarini
+Coreg	carvedilol	GSK
+Higrotona	clortalidona	Rhein
+Isorbid	isosorbida	Rhein
+Lipidil	fenofibrato	Abbott
+Lopid	gemfibrozilo	Pfizer
+Ezetrol	ezetimiba	Organon
+Sintrom	acenocumarol	Merus
+Daonil	glibenclamida	Sanofi
+Euglucon	glibenclamida	Boehringer Ingelheim
+Trayenta	linagliptina	Boehringer Ingelheim
+Invokana	canagliflozina	Janssen
+Actos	pioglitazona	Takeda
+Apidra	insulina glulisina	Sanofi
+Tresiba	insulina degludec	Novo Nordisk
+Toujeo	insulina glargina	Sanofi
+Victoza	liraglutida	Novo Nordisk
+Saxenda	liraglutida	Novo Nordisk
+Ozempic	semaglutida	Novo Nordisk
+Trulicity	dulaglutida	Eli Lilly
+Pulmicort	budesonida	AstraZeneca
+Flixotide	fluticasona	GSK
+Atrovent	ipratropio	Boehringer Ingelheim
+Spiriva	tiotropio	Boehringer Ingelheim
+Bisolvon	bromhexina	Sanofi
+Altruline	sertralina	Pfizer
+Seropram	citalopram	Lundbeck
+Cymbalta	duloxetina	Eli Lilly
+Remeron	mirtazapina	Organon
+Lexotan	bromazepam	Roche
+Stilnox	zolpidem	Sanofi
+Abilify	aripiprazol	Otsuka
+Haldol	haloperidol	Janssen
+Carbolit	litio	Alpharma
+Epival	divalproato	Abbott
+Depakene	ácido valproico	Abbott
+Tegretol	carbamazepina	Novartis
+Lamictal	lamotrigina	GSK
+Keppra	levetiracetam	UCB
+Epamin	fenitoína	Pfizer
+Topamax	topiramato	Janssen
+Tirodril	tiamazol	Columbia
+Valtrex	valaciclovir	GSK
+Roaccutan	isotretinoína	Roche
+Bactroban	mupirocina	GSK
+Diprospan	betametasona	Organon
+Zyloprim	alopurinol	Aspen
+Calcort	deflazacort	Sanofi
+Plaquenil	hidroxicloroquina	Sanofi
+Viagra	sildenafil	Pfizer
+Cialis	tadalafil	Eli Lilly
+Levitra	vardenafil	Bayer
+Secotex	tamsulosina	Boehringer Ingelheim
+Proscar	finasterida	Organon
+Propecia	finasterida	Organon
+Avodart	dutasterida	GSK
+Postday	levonorgestrel	Asofarma
+Yasmin	drospirenona	Bayer
+Microgynon	levonorgestrel	Bayer
+Tobrex	tobramicina	Novartis
+Ciloxan	ciprofloxacino	Novartis
+Patanol	olopatadina	Novartis
+Xalatan	latanoprost	Pfizer
+Lumigan	bimatoprost	Abbvie
+Alphagan	brimonidina	Abbvie
+Combigan	brimonidina	Abbvie
+Timoftol	timolol	Organon
+Ambien	zolpidem	Sanofi
+Nootropil	piracetam	UCB
+Sifrol	pramipexol	Boehringer Ingelheim
+Madopar	levodopa	Roche
+Sinemet	levodopa	Organon
+Exelon	rivastigmina	Novartis
+Aricept	donepecilo	Pfizer
+Ebixa	memantina	Lundbeck
+Betaserc	betahistina	Abbott
+Serc	betahistina	Abbott
+Primperan	metoclopramida	Sanofi
+Vermox	mebendazol	Janssen
+Albendazol	albendazol	GSK
+Zentel	albendazol	GSK
+Flagystatin	metronidazol	Sanofi
+Fasigyn	tinidazol	Pfizer
+Nix	permetrina	GSK
+Herklin	permetrina
+Scabisan	permetrina	Chinoin
+Advagraf	tacrolimus	Astellas
+Prograf	tacrolimus	Astellas
+Cellcept	micofenolato	Roche
+Imuran	azatioprina	Aspen
+Rapamune	sirolimus	Pfizer
+Neoral	ciclosporina	Novartis
+Enbrel	etanercept	Pfizer
+Humira	adalimumab	Abbvie
+Remicade	infliximab	Janssen
+Mabthera	rituximab	Roche
+Herceptin	trastuzumab	Roche
+Glivec	imatinib	Novartis
+Femara	letrozol	Novartis
+Arimidex	anastrozol	AstraZeneca
+Nolvadex	tamoxifeno	AstraZeneca
+Casodex	bicalutamida	AstraZeneca
+Zoladex	goserelina	AstraZeneca
+Lupron	leuprorelina	Abbvie
+Fosamax	alendronato	Organon
+Actonel	risedronato	Sanofi
+Bonviva	ibandronato	Roche
+Prolia	denosumab	Amgen
+Caltrate	carbonato de calcio	Pfizer
+Rocaltrol	calcitriol	Roche
+Estrace	estradiol
+Premarin	estrógenos conjugados	Pfizer
+Provera	medroxiprogesterona	Pfizer
+Duphaston	dydrogesterona	Abbott
+Utrogestan	progesterona	Besins
+Clomid	clomifeno	Sanofi
+Glucosamina	glucosamina
+Celebra	celecoxib	Pfizer
+Arthrotec	diclofenaco	Pfizer
+Zaldiar	tramadol	Grünenthal
+Palexia	tapentadol	Grünenthal
+Durogesic	fentanilo	Janssen
+Oxicontin	oxicodona	Mundipharma
+Morfina	morfina
+Sevredol	morfina	Mundipharma`;
