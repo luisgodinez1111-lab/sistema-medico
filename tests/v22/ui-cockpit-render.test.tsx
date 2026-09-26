@@ -435,6 +435,18 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   await waitFor(()=>expect(window.location.search).toMatch(/[?&]p=/),{timeout:2000});
  });
 
+ it("Pacientes: «Registrar e iniciar consulta» crea el paciente y abre su consulta",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:/Pacientes/}));
+  await screen.findByRole("heading",{name:"Pacientes"});
+  fireEvent.click(screen.getByRole("button",{name:"Nuevo paciente"}));
+  fireEvent.change(await screen.findByLabelText("Nombre completo"),{target:{value:"Consulta Directa Prueba"}});
+  fireEvent.change(screen.getByLabelText("Fecha de nacimiento"),{target:{value:"1990-03-03"}});
+  fireEvent.click(screen.getByRole("button",{name:"Registrar e iniciar consulta"}));
+  // el alta con openInConsulta abre el workspace de consulta del paciente recién creado
+  expect(await screen.findByPlaceholderText("Motivo de la consulta…",{},{timeout:2000})).toBeTruthy();
+ });
+
  // Auditoría U-16: un motivo clínico lo escribe el médico; nada se envía con un literal del código.
  it("vista Expediente: la dosis viaja con unidad, un bloqueo anulable exige nombrar la barrera y justificar (U-19), y suspender exige el motivo del médico tal cual (U-16)",async()=>{
   render(<Workspace/>);

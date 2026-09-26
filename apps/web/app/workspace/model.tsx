@@ -369,7 +369,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // Auditoría L-06: tutor o representante legal (obligatorio en la práctica para menores: sin él no hay consentimiento) y
  // confirmación explícita cuando el servidor detecta un homónimo con la misma fecha de nacimiento.
  const[regGuardian,setRegGuardian]=useState({name:"",relationship:"",phone:""});
- const[regDup,setRegDup]=useState<{message:string;inline:boolean}|null>(null);
+ const[regDup,setRegDup]=useState<{message:string;inline:boolean;openConsulta?:boolean}|null>(null);
  const regIsMinor=(()=>{if(!regDob)return false;const b=new Date(`${regDob}T00:00:00Z`),a=new Date();let y=a.getUTCFullYear()-b.getUTCFullYear();if(a.getUTCMonth()<b.getUTCMonth()||(a.getUTCMonth()===b.getUTCMonth()&&a.getUTCDate()<b.getUTCDate()))y-=1;return y>=0&&y<18;})();
  const[busy,setBusy]=useState("");
  const[error,setError]=useState("");
@@ -1489,7 +1489,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   const guardian=regGuardian.name.trim()&&regGuardian.relationship.trim()?{name:regGuardian.name.trim(),relationship:regGuardian.relationship.trim(),...(regGuardian.phone.trim()?{phone:regGuardian.phone.trim()}:{})}:undefined;
   const r=await apiRequest("/api/v1/patients",{method:"POST",body:{patientId:id,name:regName.trim(),birthDate:regDob,sexAtBirth:regSex,occurredAt:nowIso(),...(e.curp?{curp:e.curp}:{}),...(e.phone?{phone:e.phone}:{}),...(e.email?{email:e.email}:{}),...(e.address?{address:e.address}:{}),...(e.occupation?{occupation:e.occupation}:{}),...(e.maritalStatus?{maritalStatus:e.maritalStatus}:{}),...(guardian?{guardian}:{}),...(confirmNotDuplicate?{confirmNotDuplicate:true}:{})}});
   if(r.status===409){const d=(r.body["error"] as{message?:string;details?:{duplicateBy?:string}}|undefined);
-   if(d?.details?.duplicateBy==="NAME_BIRTHDATE"){setRegDup({message:String(d.message??""),inline});return;}
+   if(d?.details?.duplicateBy==="NAME_BIRTHDATE"){setRegDup({message:String(d.message??""),inline,openConsulta:openInConsulta});return;}
    say(String(d?.message??errMsg(r)));return;}
   if(r.status>=400){say(errMsg(r));return;}
   const warn=(r.body["warnings"] as string[]|undefined)?.includes("MINOR_WITHOUT_GUARDIAN");
@@ -1508,7 +1508,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   <b id="dup-title">Posible duplicado</b><div style={{marginTop:4}}>{regDup.message}</div>
   <div style={{display:"flex",gap:8,marginTop:8,justifyContent:"flex-end"}}>
    <button style={{...ghost,padding:"7px 12px"}} onClick={()=>setRegDup(null)}>Cancelar</button>
-   <button style={{...btn,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>registerPatient(inline,true)}>Es una persona distinta: registrar</button>
+   <button style={{...btn,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>registerPatient(inline,true,regDup.openConsulta??false)}>Es una persona distinta: registrar{regDup.openConsulta?" e iniciar consulta":""}</button>
   </div>
  </div>:null;
  // ===== Pacientes: editar (AMENDED) la ficha del paciente con datos reales (POST /patients/:id/amendment) =====
