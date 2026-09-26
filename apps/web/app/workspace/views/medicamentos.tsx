@@ -2,6 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "medicamentos" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {drugCatalog,interactionRules,type DrugCatalogItem} from "../../../../../packages/drug-catalog/src";
+import {searchMonographs,drugMonograph,drugMonographCount,normDrug} from "../../../../../packages/drug-catalog/src/monographs";
 import {apiRequest} from "../../../lib/session-client";
 import{Check,errMsg,userMessage,card,P,LINE,UI,scrollToSection,act,actRow,Skeleton,parseIxResult,IX_SEVERITIES,IX_SEV_LABEL,type IxSev}from"../shared";
 import{useWorkspace}from"../context";
@@ -22,7 +23,18 @@ export default function MedicamentosView(){
    const catColor=(c:string):[string,string]=>c.startsWith("Antibiótico")?["#E6F6EE",P.greenOnPale]:c.startsWith("AINE")||c.startsWith("Salicilato")?["#E7EEFB",P.blueOnPale]:c.startsWith("Analgésico")?["#EEEBFD",P.purpleOnPale]:c.startsWith("Antidiabético")?["#FBF0DC",P.amberOnPale]:c.includes("antihipertensivo")?["#FDECEE",P.redOnPale]:c.startsWith("Antidepresivo")||c.startsWith("Serotoninérgico")?["#F3EAFB","#9333EA"]:c.startsWith("Anticoagulante")?["#FCE9E4","#B23A0A"]:c.startsWith("Diurético")?["#E0F7FA",P.cyan]:c.startsWith("Opioide")?["#F1F1F4",P.muted]:["#EEF0F5",P.muted];
    const mq=medQuery.trim().toLowerCase();
    const catFiltered=cat.filter(d=>(!mq||d.ingredient.includes(mq)||d.category.toLowerCase().includes(mq)||d.classes.some(cl=>cl.toLowerCase().includes(mq)))&&(!medCat||d.category===medCat)&&(!medOnlyMon||d.monitoring.length>0)&&(!medOnlyRenal||!!d.renal));
-   const selDrug:DrugCatalogItem|null=cat.find(d=>d.code===medSel)??null;
+   // Catálogo AMPLIO: el buscador consulta las ~1158 sustancias con monografía real (packages/drug-catalog/monographs); los
+   // filtros por categoría/monitoreo/renal aplican al subconjunto CURADO (con reglas de seguridad). `medSel` = clave (nombre
+   // normalizado) unificada para curados y sustancias del vademecum. La seguridad (alergia/renal/interacc.) sigue del curado.
+   const curatedByKey=new Map(cat.map(d=>[normDrug(d.ingredient),d] as const));
+   const searching=mq.length>=2&&!medCat&&!medOnlyMon&&!medOnlyRenal;
+   type Row={key:string;name:string;action:string;cur:DrugCatalogItem|null};
+   const rows:Row[]=searching
+    ?searchMonographs(medQuery,80).map(m=>({key:m.key,name:m.name,action:m.action,cur:curatedByKey.get(m.key)??null}))
+    :catFiltered.map(d=>({key:normDrug(d.ingredient),name:d.ingredient,action:drugMonograph(d.ingredient)?.action??"",cur:d}));
+   const selDrug:DrugCatalogItem|null=(medSel?curatedByKey.get(medSel):undefined)??null;
+   const selMono=medSel?drugMonograph(medSel):undefined;
+   const selName=selDrug?.ingredient??selMono?.name??"";
    const kClases=categories.length,kMon=cat.filter(d=>d.monitoring.length>0).length,kRenal=cat.filter(d=>d.renal).length;
    // Interconexión real: llevar el principio activo al formulario de prescripción del expediente (con barreras de seguridad).
    const prescribe=(ingredient:string)=>{setRxDrug(ingredient);setView("exp");setTimeout(()=>scrollToSection("Medicación"),0);};
@@ -163,29 +175,39 @@ export default function MedicamentosView(){
      </div>
      <div>
       <div style={{...card2,overflow:"hidden"}}>
-       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 16px 10px"}}><span style={{fontSize:17,fontWeight:700}}>Principios activos ({catFiltered.length})</span></div>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 16px 10px",gap:10,flexWrap:"wrap"}}><span style={{fontSize:17,fontWeight:700}}>{searching?`Sustancias · vademecum (${rows.length})`:`Principios activos ${medCat||medOnlyMon||medOnlyRenal?"":`curados `}(${rows.length})`}</span><span style={{fontSize:11.5,color:P.muted}}>{drugMonographCount().toLocaleString("es-MX")} sustancias con monografía · escribe ≥2 letras para buscar en todas</span></div>
        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
-        <thead><tr>{["Principio activo","Clases","Categoría","Seguridad","Acción"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
-        <tbody>{catFiltered.length===0?(
-         <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"36px 14px"}}>Ningún principio activo coincide con el filtro.</td></tr>
-        ):catFiltered.map(d=>{const[bg,fg]=catColor(d.category);const on=medSel===d.code;return <tr key={d.code} style={{cursor:"pointer",background:on?"#F6F5FE":"transparent"}} {...actRow(()=>setMedSel(on?null:d.code))}>
-         <td style={td}><div style={{fontWeight:700,textTransform:"capitalize"}}>{d.ingredient}</div></td>
-         <td style={td}><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{d.classes.map(cl=><span key={cl} style={{fontSize:10,fontWeight:600,borderRadius:6,padding:"2px 6px",background:"#EEF0F5",color:P.muted}}>{cl}</span>)}</div></td>
-         <td style={td}><span style={{fontSize:11.5,fontWeight:600,borderRadius:999,padding:"3px 11px",background:bg,color:fg}}>{d.category}</span></td>
-         <td style={td}><div style={{display:"flex",gap:6}}>{d.monitoring.length>0&&<span title="Requiere monitoreo" style={{fontSize:14}}>🔬</span>}{d.renal&&<span title="Alerta renal por TFG" style={{fontSize:14}}>⚠️</span>}{d.monitoring.length===0&&!d.renal&&<span style={{color:"#C7CCE0"}}>—</span>}</div></td>
-         <td style={td}><span style={{color:P.purple,fontWeight:700,fontSize:12,cursor:"pointer"}} {...act(ev=>{ev.stopPropagation();prescribe(d.ingredient);})}>Prescribir →</span></td>
+        <thead><tr>{["Sustancia","Clases","Categoría","Seguridad",""].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
+        <tbody>{rows.length===0?(
+         <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"36px 14px"}}>{searching?`Sin coincidencias para «${medQuery.trim()}» en el vademecum.`:"Ningún principio activo coincide con el filtro."}</td></tr>
+        ):rows.map(r=>{const d=r.cur;const[bg,fg]=d?catColor(d.category):["#EEF0F5",P.muted];const on=medSel===r.key;return <tr key={r.key} style={{cursor:"pointer",background:on?"#F6F5FE":"transparent"}} {...actRow(()=>setMedSel(on?null:r.key))}>
+         <td style={td}><div style={{fontWeight:700}}>{r.name}</div>{!d&&r.action&&<div style={{fontSize:11,color:P.muted}}>{r.action}</div>}</td>
+         <td style={td}><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{d?d.classes.map(cl=><span key={cl} style={{fontSize:10,fontWeight:600,borderRadius:6,padding:"2px 6px",background:"#EEF0F5",color:P.muted}}>{cl}</span>):<span style={{color:"#C7CCE0"}}>—</span>}</div></td>
+         <td style={td}>{d?<span style={{fontSize:11.5,fontWeight:600,borderRadius:999,padding:"3px 11px",background:bg,color:fg}}>{d.category}</span>:<span style={{fontSize:11,color:P.muted}}>Vademecum</span>}</td>
+         <td style={td}><div style={{display:"flex",gap:6}}>{d&&d.monitoring.length>0&&<span title="Requiere monitoreo" style={{fontSize:14}}>🔬</span>}{d&&d.renal&&<span title="Alerta renal por TFG" style={{fontSize:14}}>⚠️</span>}{(!d||(d.monitoring.length===0&&!d.renal))&&<span style={{color:"#C7CCE0"}}>—</span>}</div></td>
+         <td style={td}><span style={{color:P.purple,fontWeight:700,fontSize:12,cursor:"pointer"}} {...act(ev=>{ev.stopPropagation();prescribe(r.name);})}>Prescribir →</span></td>
         </tr>;})}</tbody>
        </table></div>
       </div>
-      {selDrug&&<div style={{...card2,marginTop:14,padding:16}}>
-       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div><div style={{fontSize:16,fontWeight:800,textTransform:"capitalize"}}>{selDrug.ingredient}</div><div style={{fontSize:12.5,color:P.muted}}>{selDrug.category}</div></div><button style={{border:0,background:P.purple,color:"#fff",borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI}} onClick={()=>prescribe(selDrug.ingredient)}>Prescribir →</button></div>
-       <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:10}}>{selDrug.classes.map(cl=><span key={cl} style={{fontSize:11,fontWeight:600,borderRadius:7,padding:"3px 9px",background:"#EEEBFD",color:P.purple}}>{cl}</span>)}</div>
-       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginTop:14}} className="mos-med2">
+      {(selDrug||selMono)&&<div style={{...card2,marginTop:14,padding:16}}>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}><div><div style={{fontSize:16,fontWeight:800,textTransform:"capitalize"}}>{selName}</div><div style={{fontSize:12.5,color:P.muted}}>{selDrug?selDrug.category:(selMono?.action||"Monografía de referencia (Vademecum)")}</div></div><button style={{border:0,background:P.purple,color:"#fff",borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI,flex:"0 0 auto"}} onClick={()=>prescribe(selName)}>Prescribir →</button></div>
+       {selDrug&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:10}}>{selDrug.classes.map(cl=><span key={cl} style={{fontSize:11,fontWeight:600,borderRadius:7,padding:"3px 9px",background:"#EEEBFD",color:P.purple}}>{cl}</span>)}</div>}
+       {/* Monografía REAL de la sustancia (fuente: Vademecum) — acción, indicaciones, contraindicaciones, etc. */}
+       {selMono?(()=>{const F=(t:string,v:string,c?:string)=>v?<div style={{marginTop:12}}><div style={{fontSize:12.5,fontWeight:700,marginBottom:4}}>{t}</div><div style={{fontSize:12.5,color:c??P.ink,lineHeight:1.5}}>{v}</div></div>:null;return <>
+        {F("Acción farmacológica",selMono.action)}
+        {F("Indicaciones",selMono.indications)}
+        {F("Contraindicaciones",selMono.contraindications,P.redOnPale)}
+        {F("Precauciones",selMono.precautions,P.amberOnPale)}
+        {F("Interacciones",selMono.interactions)}
+        {F("Reacciones adversas",selMono.adverse)}
+       </>;})():<div style={{fontSize:12.5,color:P.muted,marginTop:10}}>Sin monografía de referencia para esta sustancia en el vademecum.</div>}
+       {selDrug&&<><div style={{fontSize:12.5,fontWeight:800,margin:"16px 0 4px",color:P.purple}}>Barreras de seguridad del sistema (deterministas)</div>
+       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginTop:8}} className="mos-med2">
         <div><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Monitoreo obligado</div>{selDrug.monitoring.length===0?<div style={{fontSize:12.5,color:P.muted}}>Sin regla de monitoreo conocida.</div>:selDrug.monitoring.map((m,i)=><div key={i} style={{fontSize:12.5,padding:"5px 0",borderBottom:i<selDrug.monitoring.length-1?`1px solid #F2F4F9`:"0"}}><b>{m.test}</b> · cada {m.dueInDays} días<div style={{color:P.muted}}>{m.note}</div></div>)}</div>
         <div><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Función renal (TFG)</div>{!selDrug.renal?<div style={{fontSize:12.5,color:P.muted}}>Sin ajuste renal conocido.</div>:<div style={{fontSize:12.5}}>{selDrug.renal.blockBelow&&<div style={{color:P.red,fontWeight:600}}>Contraindicada si TFG &lt; {selDrug.renal.blockBelow}</div>}{selDrug.renal.cautionBelow&&<div style={{color:P.amber,fontWeight:600}}>Precaución si TFG &lt; {selDrug.renal.cautionBelow}</div>}<div style={{color:P.muted,marginTop:4}}>{selDrug.renal.note}</div></div>}</div>
        </div>
-       {(()=>{const rel=ixRules.filter(r=>selDrug.classes.includes(r.classA)||selDrug.classes.includes(r.classB));return rel.length>0&&<div style={{marginTop:14}}><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Interacciones de sus clases ({rel.length})</div>{rel.map((r,i)=><div key={i} style={{fontSize:12.5,padding:"5px 0",color:"#4B5168"}}><b>{r.classA} ↔ {r.classB}</b> <span style={{color:r.severity==="MAJOR"?P.red:P.amber,fontWeight:700}}>{r.severity==="MAJOR"?"Mayor":"Moderada"}</span> — {r.note}</div>)}</div>;})()}
-       <div style={{marginTop:12,fontSize:11.5,color:P.muted}}>La verificación completa (contra las alergias, medicación activa y problemas del paciente) se ejecuta al prescribir en el expediente.</div>
+       {(()=>{const rel=ixRules.filter(r=>selDrug.classes.includes(r.classA)||selDrug.classes.includes(r.classB));return rel.length>0&&<div style={{marginTop:14}}><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Interacciones de sus clases ({rel.length})</div>{rel.map((r,i)=><div key={i} style={{fontSize:12.5,padding:"5px 0",color:"#4B5168"}}><b>{r.classA} ↔ {r.classB}</b> <span style={{color:r.severity==="MAJOR"?P.red:P.amber,fontWeight:700}}>{r.severity==="MAJOR"?"Mayor":"Moderada"}</span> — {r.note}</div>)}</div>;})()}</>}
+       <div style={{marginTop:12,fontSize:11.5,color:P.muted,lineHeight:1.5}}>Monografía de referencia (Vademecum): NO sustituye la ficha técnica ni el juicio clínico. La verificación de seguridad completa (contra alergias, medicación activa, problemas y función renal del paciente) se ejecuta al prescribir en el expediente.</div>
       </div>}
      </div>
     </div>)}
