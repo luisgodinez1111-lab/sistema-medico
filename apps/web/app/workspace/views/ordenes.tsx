@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "ordenes" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{card,P,LINE,UI,act,actRow,Skeleton}from"../shared";
+import{scrollTop,card,P,LINE,UI,act,actRow,Skeleton}from"../shared";
 import{useWorkspace}from"../context";
 export default function OrdenesView(){
  const{ordReg,ordTab,ordQuery,ordStatus,ordSel,openConsulta,reloadOrders,setOrdMsg,setOrdNew,ordNew,setOrdTab,ordMsg,ordForm,setOrdForm,patientList,submitOrder,ordBusy,setOrdQuery,setOrdStatus,docDisplay,setOrdSel,orderTransition}=useWorkspace();
@@ -80,7 +80,7 @@ export default function OrdenesView(){
       <div style={flbl}>Tipo de orden</div><select aria-label="Categoría de orden" value={ordTab} onChange={e=>setOrdTab(e.target.value as typeof ordTab)} style={selSty}><option value="todas">Todos</option><option value="laboratorio">Laboratorio</option><option value="imagenologia">Imagenología</option><option value="interconsultas">Interconsultas</option><option value="procedimientos">Procedimientos</option><option value="otros">Otros</option></select>
       <div style={{...flbl,marginTop:14}}>Estado</div><select aria-label="Estado de la orden" value={ordStatus} onChange={e=>setOrdStatus(e.target.value)} style={selSty}><option value="">Todos</option><option value="Solicitada">Solicitada</option><option value="Enviada">Enviada</option><option value="Completada">Completada</option><option value="Cancelada">Cancelada</option></select>
       <div style={{...flbl,marginTop:14}}>Solicitado por</div><div style={{...selSty,color:P.muted,fontSize:12}}>Yo ({docDisplay})</div>
-      <button style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,marginTop:14}} onClick={()=>{setOrdNew(true);window.scrollTo({top:0,behavior:"smooth"});}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M12 5v14M5 12h14"/></svg>Nueva orden</button>
+      <button style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI,marginTop:14}} onClick={()=>{setOrdNew(true);scrollTop();}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M12 5v14M5 12h14"/></svg>Nueva orden</button>
      </div>
      <div style={{...card2,padding:6}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 12px 8px"}}><span style={{fontSize:16,fontWeight:700}}>Órdenes ({filtered.length})</span><span style={{fontSize:12,color:P.muted}}>{ordTab==="todas"?"Todas":OTABS.find(t=>t[0]===ordTab)?.[1]}{ordStatus?` · ${ordStatus}`:""}</span></div>

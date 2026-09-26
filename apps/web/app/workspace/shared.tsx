@@ -526,10 +526,16 @@ export function Check({checked,label,onChange,disabled,size=16}:{checked:boolean
  </label>;
 }
 export const SOLO_ESTA_PANTALLA="Lista lo que se registre aquí. El historial completo del paciente está en su módulo del menú.";
+// a11y (WCAG 2.3.3 «Animación desde interacciones»): si el usuario pidió movimiento reducido en su sistema, el scroll
+// programático deja de ser suave (el media query CSS no afecta al `behavior:"smooth"` de JS, hay que consultarlo aquí).
+export const prefersReducedMotion=():boolean=>typeof window!=="undefined"&&!!window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+/** Scroll al inicio respetando la preferencia de movimiento reducido. */
+export const scrollTop=():void=>window.scrollTo({top:0,behavior:prefersReducedMotion()?"auto":"smooth"});
 export function scrollToSection(name:string){
- if(!name){window.scrollTo({top:0,behavior:"smooth"});return;}
+ const b:ScrollBehavior=prefersReducedMotion()?"auto":"smooth";
+ if(!name){window.scrollTo({top:0,behavior:b});return;}
  const el=document.getElementById(sectionId(name));
- if(el)(el.closest("section")??el).scrollIntoView({behavior:"smooth",block:"start"});
+ if(el)(el.closest("section")??el).scrollIntoView({behavior:b,block:"start"});
 }
 // Patient 360 (Lote B): el expediente crudo deja de ser un scroll monolítico de ~30 secciones y se organiza en
 // sub-vistas navegables por flujo clínico. Cada sección se asigna a una de estas pestañas; la pestaña "hospital"
@@ -587,7 +593,10 @@ export const RAIL_CSS=`
 /* Skeletons: brillo sutil por defecto; SIN animación si el usuario pide reducir movimiento (a11y). Color por tokens. */
 .mos-sk{background:linear-gradient(90deg,#E8ECF3 25%,#F1F4F9 37%,#E8ECF3 63%);background-size:400% 100%;animation:mos-sk-shimmer 1.4s ease-in-out infinite}
 @keyframes mos-sk-shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
-@media(prefers-reduced-motion:reduce){.mos-sk{animation:none;background:#E8ECF3}}
+@media(prefers-reduced-motion:reduce){.mos-sk{animation:none;background:#E8ECF3}
+ /* a11y WCAG 2.3.3: con movimiento reducido se anulan TODAS las transiciones/animaciones del workspace (colapso del sidebar,
+    toggles, chevrons, hovers) y el scroll deja de ser suave. Cubre también cualquier transición inline de las vistas. */
+ .mos-app *,.mos-app *::before,.mos-app *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
 /* App-shell: expediente como cockpit (sidebar oscuro + body + rejilla de ventanas) */
 /* Tipografía ÚNICA en todo el sistema (refactor UI/UX): una sola familia por token, aplicada en el root y HEREDADA por los
    controles nativos (button/input/select/textarea traen su propia fuente del navegador si no se les fuerza a heredar). */

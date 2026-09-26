@@ -4,7 +4,7 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{Check,ESI_FORM_EMPTY,unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,type ExpTab,type TrendKey}from"../shared";
+import{Check,ESI_FORM_EMPTY,unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,type ExpTab,type TrendKey}from"../shared";
 import{searchIcd10}from"../../../../../packages/terminology/src";
 // R2B-019: el plazo de reevaluación es de CTAS, no de ESI (ESI no publica tiempos). La pantalla lo dice para que nadie lo
 // lea como un número del algoritmo ESI.
@@ -17,7 +17,7 @@ export default function ExpView(){
  const activeTab:ExpTab=(expTab==="hospital"&&!hospitalOn)?"resumen":expTab;
  const inTab=(g:ExpTab)=>activeTab===g;
  // Navegación entre sub-vistas (pestañas y accesos rápidos del hero); opcionalmente enfoca una sección tras montar.
- const goTab=(g:ExpTab,section?:string)=>{setExpTab(g);if(section)requestAnimationFrame(()=>scrollToSection(section));else window.scrollTo({top:0,behavior:"smooth"});};
+ const goTab=(g:ExpTab,section?:string)=>{setExpTab(g);if(section)requestAnimationFrame(()=>scrollToSection(section));else scrollTop();};
 
  return <>
   {/* PATIENT HEADER — contexto del paciente SIEMPRE visible (design-contract); componente del design system (K-09) */}

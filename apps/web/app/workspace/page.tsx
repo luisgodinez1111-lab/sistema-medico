@@ -3,7 +3,7 @@
 // handlers viven en ./model (useWorkspaceModel, mismo orden de hooks), los helpers en ./shared y cada vista en ./views/*.
 // Este fichero conserva los retornos tempranos, el layout (barra, rail, encabezado del paciente) y el conmutador de vistas.
 import {logout as sessionLogout} from "../../lib/session-client";
-import{RAIL_CSS,SIDE_NAV,scrollToSection,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap,BrandMark,BrandLockup}from"./shared";
+import{RAIL_CSS,SIDE_NAV,scrollToSection,scrollTop,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap,BrandMark,BrandLockup}from"./shared";
 import{Alert,Button,Card}from"../../../../packages/design-system/src";
 import{useWorkspaceModel,deriveHeader}from"./model";
 import{WorkspaceProvider,useWorkspace}from"./context";
@@ -62,7 +62,7 @@ export default function Workspace(){
      return SIDE_NAV.flatMap(it=>{const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;const rows:React.ReactNode[]=[];
       if(it.group!==prevGroup){prevGroup=it.group;rows.push(<div key={"sec-"+it.group} className="mos-navsec" aria-hidden="true">{it.group}</div>);}
       rows.push(
-       <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){if(vTarget==="consulta")setConsultaPid(null);setView(vTarget);window.scrollTo({top:0,behavior:"smooth"});}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
+       <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){if(vTarget==="consulta")setConsultaPid(null);setView(vTarget);scrollTop();}else{setView("exp");setTimeout(()=>scrollToSection(it.h2),0);}}}>
         <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&(n===null||n>0)&&<span className={"mos-badge "+(n===null?"p":(it.badgeColor??"p"))} title={n===null?"Sin dato: no se pudo cargar el conteo":undefined}>{n===null?<><span aria-hidden="true">—</span><span className="mos-sr">sin dato</span></>:n}</span>}
        </button>);
       return rows;});})()}
@@ -70,7 +70,7 @@ export default function Workspace(){
    <div className="mos-divider"/>
    <div className="mos-toolslbl">HERRAMIENTAS</div>
    {TOOLS_NAV.map(it=>(
-    <button key={it.label} className={"mos-navi"+((it.label==="Biblioteca clínica"&&view==="biblioteca")||(it.label==="Configuración"&&view==="configuracion")?" active":"")} aria-current={(it.label==="Biblioteca clínica"&&view==="biblioteca")||(it.label==="Configuración"&&view==="configuracion")?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(it.label==="Configuración"){setView("configuracion");window.scrollTo({top:0,behavior:"smooth"});}else if(it.label==="Biblioteca clínica"){setView("biblioteca");window.scrollTo({top:0,behavior:"smooth"});}}}>
+    <button key={it.label} className={"mos-navi"+((it.label==="Biblioteca clínica"&&view==="biblioteca")||(it.label==="Configuración"&&view==="configuracion")?" active":"")} aria-current={(it.label==="Biblioteca clínica"&&view==="biblioteca")||(it.label==="Configuración"&&view==="configuracion")?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(it.label==="Configuración"){setView("configuracion");scrollTop();}else if(it.label==="Biblioteca clínica"){setView("biblioteca");scrollTop();}}}>
      <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>
     </button>))}
    <div className="mos-divider"/>

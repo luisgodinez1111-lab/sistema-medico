@@ -3,7 +3,7 @@
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {useEffect,useRef,useState} from "react";
 import {searchIcd10} from "../../../../../packages/terminology/src";
-import{Check,card,P,LINE,UI,act,scrollToSection,mono,DX_LABEL,NavIcon,Skeleton,srOnly}from"../shared";
+import{Check,card,P,LINE,UI,act,scrollToSection,scrollTop,mono,DX_LABEL,NavIcon,Skeleton,srOnly}from"../shared";
 import{useWorkspace}from"../context";
 export default function ConsultaView(){
  const{consultaPid,agenda,patientList,consultaNewPid,setApptNew,setAgendaDate,setView,setConsultaNewPid,openConsulta,patientName,snap,setConsultaPid,enc,gaps,patientId,busy,setCPreview,cPreview,consultaAdvance,cMsg,setCMsg,composeNote,cForm,docDisplay,chartState,setChartReload,setCTab,cTab,consTabs,setCForm,setCAntec,cAntec,clock,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdSel,setCOrdCat,setCOrdMsg,cOrdSel,createConsultaOrders,cOrdBusy,cOrdMsg,patientQuery,setPatientQuery,loadPatients,regName,setRegName,regDob,setRegDob,regSex,setRegSex,regExtra,setRegExtra,registerPatient,guardianFields,dupPanel,patMsg,regIsMinor}=useWorkspace();
@@ -33,7 +33,7 @@ export default function ConsultaView(){
     return <div style={{padding:"22px 26px 40px",maxWidth:1120,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
       <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M6 4v5a5 5 0 0010 0V4M11 14v2a4 4 0 008 0M19 12a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Consultas</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Panel del día. Inicia una nueva consulta o abre la de una cita agendada.</p></div></div>
-      <button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setApptNew(true);setAgendaDate(new Date().toISOString().slice(0,10));setView("agenda");window.scrollTo({top:0,behavior:"smooth"});}}>+ Agendar consulta</button>
+      <button style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setApptNew(true);setAgendaDate(new Date().toISOString().slice(0,10));setView("agenda");scrollTop();}}>+ Agendar consulta</button>
      </div>
      <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:14,marginTop:18}} className="mos-kpis">
       {kc("#EEEBFD",P.purple,"M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",cnt.programadas,"Citas de hoy")}

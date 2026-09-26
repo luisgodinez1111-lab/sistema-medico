@@ -3,7 +3,7 @@
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {apiRequest} from "../../../lib/session-client";
 import {useState} from "react";
-import{card,P,LINE,UI,errMsg,userMessage,actRow,act,DX_LABEL,scrollToSection,TYPE_LABEL,Skeleton}from"../shared";
+import{card,P,LINE,UI,errMsg,userMessage,actRow,act,DX_LABEL,scrollToSection,scrollTop,TYPE_LABEL,Skeleton}from"../shared";
 import{useWorkspace}from"../context";
 export default function PacientesView(){
  // Ley de Hick — divulgación progresiva del formulario de edición: la identidad (nombre, nacimiento, sexo, CURP) siempre
@@ -134,7 +134,7 @@ export default function PacientesView(){
         <div style={{display:"flex",flexDirection:"column",gap:9}}>
          <button onClick={()=>openConsulta(fp.patientId,fp.name)} style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Ver consulta</button>
          <div style={{display:"flex",gap:9}}>
-          <button onClick={()=>{setApptForm(f=>({...f,patientId:fp.patientId}));setApptNew(true);setAgendaDate(new Date().toISOString().slice(0,10));setView("agenda");window.scrollTo({top:0,behavior:"smooth"});}} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Agendar cita</button>
+          <button onClick={()=>{setApptForm(f=>({...f,patientId:fp.patientId}));setApptNew(true);setAgendaDate(new Date().toISOString().slice(0,10));setView("agenda");scrollTop();}} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Agendar cita</button>
           <button onClick={()=>void exportSelected(fp.patientId,fp.name)} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Exportar</button>
          </div>
         </div>
