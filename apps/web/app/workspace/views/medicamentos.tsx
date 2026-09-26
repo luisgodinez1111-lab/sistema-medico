@@ -3,11 +3,15 @@
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {drugCatalog,interactionRules,type DrugCatalogItem} from "../../../../../packages/drug-catalog/src";
 import {searchMonographs,drugMonograph,drugMonographCount,normDrug} from "../../../../../packages/drug-catalog/src/monographs";
+import {searchBrands,brandsForIngredient,drugBrandCount,allBrands} from "../../../../../packages/drug-catalog/src/brands";
+import {useState} from "react";
 import {apiRequest} from "../../../lib/session-client";
 import{Check,errMsg,userMessage,card,P,LINE,UI,scrollToSection,act,actRow,Skeleton,parseIxResult,IX_SEVERITIES,IX_SEV_LABEL,type IxSev}from"../shared";
 import{useWorkspace}from"../context";
 export default function MedicamentosView(){
  const{ixMsg,setIxMsg,medQuery,medCat,medOnlyMon,medOnlyRenal,medSel,setRxDrug,setView,setMedTab,medTab,ixInput,ixDrugs,setIxDrugs,setIxInput,setIxRes,setIxFactors,ixFactors,setIxBusy,ixBusy,ixRes,setMedQuery,setMedCat,setMedOnlyMon,setMedOnlyRenal,setMedSel}=useWorkspace();
+ // Agrupación/primera opción configurable por el médico: ver por principio activo (genérico) o por nombre comercial (marca).
+ const[medGroupBy,setMedGroupBy]=useState<"generico"|"marca">("generico");
 
    // ===== MÓDULO MEDICAMENTOS — S8 (6 pestañas), pestaña "Catálogo" =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -28,10 +32,15 @@ export default function MedicamentosView(){
    // normalizado) unificada para curados y sustancias del vademecum. La seguridad (alergia/renal/interacc.) sigue del curado.
    const curatedByKey=new Map(cat.map(d=>[normDrug(d.ingredient),d] as const));
    const searching=mq.length>=2&&!medCat&&!medOnlyMon&&!medOnlyRenal;
-   type Row={key:string;name:string;action:string;cur:DrugCatalogItem|null};
-   const rows:Row[]=searching
-    ?searchMonographs(medQuery,80).map(m=>({key:m.key,name:m.name,action:m.action,cur:curatedByKey.get(m.key)??null}))
-    :catFiltered.map(d=>({key:normDrug(d.ingredient),name:d.ingredient,action:drugMonograph(d.ingredient)?.action??"",cur:d}));
+   const byBrand=medGroupBy==="marca";
+   // Fila unificada. En modo MARCA, `name`=nombre comercial y `key`=principio activo (para que al seleccionar salga su
+   // monografía); en modo GENÉRICO, `name`=principio activo. `sub` = línea secundaria (principio activo · laboratorio, o acción).
+   type Row={key:string;name:string;sub:string;presc:string;cur:DrugCatalogItem|null};
+   const rows:Row[]=byBrand
+    ?(searching?searchBrands(medQuery,120):allBrands()).map(b=>({key:b.ingredientKey,name:b.brand,sub:b.ingredient+(b.lab?` · ${b.lab}`:""),presc:b.ingredient,cur:curatedByKey.get(b.ingredientKey)??null}))
+    :searching
+     ?searchMonographs(medQuery,80).map(m=>({key:m.key,name:m.name,sub:m.action,presc:m.name,cur:curatedByKey.get(m.key)??null}))
+     :catFiltered.map(d=>({key:normDrug(d.ingredient),name:d.ingredient,sub:drugMonograph(d.ingredient)?.action??"",presc:d.ingredient,cur:d}));
    const selDrug:DrugCatalogItem|null=(medSel?curatedByKey.get(medSel):undefined)??null;
    const selMono=medSel?drugMonograph(medSel):undefined;
    const selName=selDrug?.ingredient??selMono?.name??"";
@@ -171,27 +180,37 @@ export default function MedicamentosView(){
       <div style={{...flbl,marginTop:14}}>Seguridad</div>
       <Check checked={medOnlyMon} label="Solo con monitoreo obligado" onChange={()=>setMedOnlyMon(v=>!v)}/>
       <Check checked={medOnlyRenal} label="Solo con alerta renal por TFG" onChange={()=>setMedOnlyRenal(v=>!v)}/>
-      <div style={{marginTop:14,padding:"11px 12px",borderRadius:10,background:"#F7F6FE",fontSize:12,color:P.muted,lineHeight:1.5}}><b style={{color:P.ink}}>Catálogo determinista.</b> Principio activo, clases y reglas de seguridad reales (packages/drug-catalog). Subconjunto de demostración; el vademécum oficial (RxNorm/COFEPRIS) se cargaría de la fuente autorizada.</div>
+      <div style={{marginTop:14,padding:"11px 12px",borderRadius:10,background:"#F7F6FE",fontSize:12,color:P.muted,lineHeight:1.5}}><b style={{color:P.ink}}>Catálogo.</b> Monografías por sustancia (acción, indicaciones, contraindicaciones) de referencia (Vademecum) y marcas comerciales de México (curadas). Las <b>barreras de seguridad</b> (alergia, renal, interacciones) son deterministas y reales; corren al prescribir en el expediente. El registro comercial completo de COFEPRIS se ingiere cuando esté disponible.</div>
      </div>
      <div>
       <div style={{...card2,overflow:"hidden"}}>
-       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 16px 10px",gap:10,flexWrap:"wrap"}}><span style={{fontSize:17,fontWeight:700}}>{searching?`Sustancias · vademecum (${rows.length})`:`Principios activos ${medCat||medOnlyMon||medOnlyRenal?"":`curados `}(${rows.length})`}</span><span style={{fontSize:11.5,color:P.muted}}>{drugMonographCount().toLocaleString("es-MX")} sustancias con monografía · escribe ≥2 letras para buscar en todas</span></div>
+       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 16px 10px",gap:10,flexWrap:"wrap"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+         <span style={{fontSize:17,fontWeight:700}}>{byBrand?`Marcas comerciales (${rows.length})`:searching?`Sustancias · vademecum (${rows.length})`:`Principios activos ${medCat||medOnlyMon||medOnlyRenal?"":`curados `}(${rows.length})`}</span>
+         {/* Toggle configurable: primera opción / agrupación por genérico o por marca. */}
+         <div role="group" aria-label="Agrupar por" style={{display:"inline-flex",border:`1px solid ${LINE}`,borderRadius:9,overflow:"hidden"}}>
+          {([["generico","Genéricos"],["marca","Marcas"]] as const).map(([v,l])=>{const on=medGroupBy===v;return <button key={v} onClick={()=>{setMedGroupBy(v);setMedSel(null);}} aria-pressed={on} style={{border:0,background:on?P.purple:P.white,color:on?"#fff":P.muted,padding:"6px 13px",fontSize:12.5,fontWeight:on?700:600,cursor:"pointer",fontFamily:UI}}>{l}</button>;})}
+         </div>
+        </div>
+        <span style={{fontSize:11.5,color:P.muted}}>{byBrand?`${drugBrandCount()} marcas curadas (México) · el catálogo completo COFEPRIS se ingiere aparte`:`${drugMonographCount().toLocaleString("es-MX")} sustancias · escribe ≥2 letras para buscar en todas`}</span></div>
        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
-        <thead><tr>{["Sustancia","Clases","Categoría","Seguridad",""].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
+        <thead><tr>{[byBrand?"Marca comercial":"Sustancia","Clases","Categoría","Seguridad",""].map((h,i)=><th key={i} style={th}>{h}</th>)}</tr></thead>
         <tbody>{rows.length===0?(
-         <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"36px 14px"}}>{searching?`Sin coincidencias para «${medQuery.trim()}» en el vademecum.`:"Ningún principio activo coincide con el filtro."}</td></tr>
-        ):rows.map(r=>{const d=r.cur;const[bg,fg]=d?catColor(d.category):["#EEF0F5",P.muted];const on=medSel===r.key;return <tr key={r.key} style={{cursor:"pointer",background:on?"#F6F5FE":"transparent"}} {...actRow(()=>setMedSel(on?null:r.key))}>
-         <td style={td}><div style={{fontWeight:700}}>{r.name}</div>{!d&&r.action&&<div style={{fontSize:11,color:P.muted}}>{r.action}</div>}</td>
+         <tr><td colSpan={5} style={{...td,textAlign:"center",color:P.muted,padding:"36px 14px"}}>{byBrand?(searching?`Sin marcas para «${medQuery.trim()}». Prueba el modo Genéricos (catálogo amplio).`:"Sin marcas."):searching?`Sin coincidencias para «${medQuery.trim()}» en el vademecum.`:"Ningún principio activo coincide con el filtro."}</td></tr>
+        ):rows.map(r=>{const d=r.cur;const[bg,fg]=d?catColor(d.category):["#EEF0F5",P.muted];const on=medSel===r.key;return <tr key={r.name} style={{cursor:"pointer",background:on?"#F6F5FE":"transparent"}} {...actRow(()=>setMedSel(on?null:r.key))}>
+         <td style={td}><div style={{fontWeight:700}}>{r.name}</div>{r.sub&&<div style={{fontSize:11,color:P.muted,textTransform:byBrand?"capitalize":"none"}}>{r.sub}</div>}</td>
          <td style={td}><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{d?d.classes.map(cl=><span key={cl} style={{fontSize:10,fontWeight:600,borderRadius:6,padding:"2px 6px",background:"#EEF0F5",color:P.muted}}>{cl}</span>):<span style={{color:"#C7CCE0"}}>—</span>}</div></td>
          <td style={td}>{d?<span style={{fontSize:11.5,fontWeight:600,borderRadius:999,padding:"3px 11px",background:bg,color:fg}}>{d.category}</span>:<span style={{fontSize:11,color:P.muted}}>Vademecum</span>}</td>
          <td style={td}><div style={{display:"flex",gap:6}}>{d&&d.monitoring.length>0&&<span title="Requiere monitoreo" style={{fontSize:14}}>🔬</span>}{d&&d.renal&&<span title="Alerta renal por TFG" style={{fontSize:14}}>⚠️</span>}{(!d||(d.monitoring.length===0&&!d.renal))&&<span style={{color:"#C7CCE0"}}>—</span>}</div></td>
-         <td style={td}><span style={{color:P.purple,fontWeight:700,fontSize:12,cursor:"pointer"}} {...act(ev=>{ev.stopPropagation();prescribe(r.name);})}>Prescribir →</span></td>
+         <td style={td}><span style={{color:P.purple,fontWeight:700,fontSize:12,cursor:"pointer"}} {...act(ev=>{ev.stopPropagation();prescribe(r.presc);})}>Prescribir →</span></td>
         </tr>;})}</tbody>
        </table></div>
       </div>
       {(selDrug||selMono)&&<div style={{...card2,marginTop:14,padding:16}}>
        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}><div><div style={{fontSize:16,fontWeight:800,textTransform:"capitalize"}}>{selName}</div><div style={{fontSize:12.5,color:P.muted}}>{selDrug?selDrug.category:(selMono?.action||"Monografía de referencia (Vademecum)")}</div></div><button style={{border:0,background:P.purple,color:"#fff",borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI,flex:"0 0 auto"}} onClick={()=>prescribe(selName)}>Prescribir →</button></div>
        {selDrug&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:10}}>{selDrug.classes.map(cl=><span key={cl} style={{fontSize:11,fontWeight:600,borderRadius:7,padding:"3px 9px",background:"#EEEBFD",color:P.purple}}>{cl}</span>)}</div>}
+       {/* Marcas comerciales (México) del principio activo — curadas; el universo completo se ingiere de COFEPRIS. */}
+       {(()=>{const bs=brandsForIngredient(selName);return bs.length>0&&<div style={{marginTop:12}}><div style={{fontSize:12.5,fontWeight:700,marginBottom:6}}>Nombres comerciales ({bs.length})</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{bs.map(b=><span key={b.brand} title={b.lab||undefined} style={{fontSize:11.5,fontWeight:600,borderRadius:7,padding:"3px 10px",background:"#E7EEFB",color:P.blueOnPale}}>{b.brand}{b.lab?<span style={{fontWeight:400,color:P.muted}}> · {b.lab}</span>:null}</span>)}</div><div style={{fontSize:10.5,color:P.muted,marginTop:5}}>Subconjunto curado (México). El registro completo de COFEPRIS se cargará cuando esté disponible.</div></div>;})()}
        {/* Monografía REAL de la sustancia (fuente: Vademecum) — acción, indicaciones, contraindicaciones, etc. */}
        {selMono?(()=>{const F=(t:string,v:string,c?:string)=>v?<div style={{marginTop:12}}><div style={{fontSize:12.5,fontWeight:700,marginBottom:4}}>{t}</div><div style={{fontSize:12.5,color:c??P.ink,lineHeight:1.5}}>{v}</div></div>:null;return <>
         {F("Acción farmacológica",selMono.action)}
