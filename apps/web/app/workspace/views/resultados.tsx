@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "resultados" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
-import{card,P,LINE,UI,scrollToSection,act}from"../shared";
+import{card,P,LINE,UI,scrollToSection,act,Skeleton}from"../shared";
 import{useWorkspace}from"../context";
 export default function ResultadosView(){
  const{resReg,resQ,resTypeF,resEstadoF,resSel,setResNew,setResMsg2,resNew,setView,setResTab,resTab,resMsg2,resForm,setResForm,patientList,createResult,resBusy2,setResSel,setResQ,setResTypeF,setResEstadoF,ordReg}=useWorkspace();
@@ -44,10 +44,10 @@ export default function ResultadosView(){
      <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>void createResult()} disabled={resBusy2||!resForm.patientId||!resForm.value.trim()} style={{border:0,background:(resBusy2||!resForm.patientId||!resForm.value.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(resBusy2||!resForm.patientId||!resForm.value.trim())?"default":"pointer",fontFamily:UI}}>{resBusy2?"Registrando…":"Registrar resultado"}</button><button onClick={()=>setResNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
     </div>}
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
-     <div style={kcard}>{kico("#EEEBFD",P.purple,"M4 4h16v16H4zM8 9h8M8 13h5")}<div><div style={{fontSize:22,fontWeight:800}}>{kTot}</div><div style={{fontSize:11.5,color:P.muted}}>Resultados totales</div></div></div>
-     <div style={kcard}>{kico("#FDECEE",P.red,"M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3")}<div><div style={{fontSize:22,fontWeight:800}}>{kAbn}</div><div style={{fontSize:11.5,color:P.muted}}>Con hallazgos anormales</div></div></div>
-     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div><div style={{fontSize:22,fontWeight:800}}>{kSeg}</div><div style={{fontSize:11.5,color:P.muted}}>En seguimiento</div></div></div>
-     <div style={kcard}>{kico("#E7EEFB",P.blue,"M7 3h10v18H7zM10 8h4")}<div><div style={{fontSize:22,fontWeight:800}}>{kPen}</div><div style={{fontSize:11.5,color:P.muted}}>Pendientes de revisión</div></div></div>
+     <div style={kcard}>{kico("#EEEBFD",P.purple,"M4 4h16v16H4zM8 9h8M8 13h5")}<div>{resLoaded?<div style={{fontSize:22,fontWeight:800}}>{kTot}</div>:<Skeleton w={38} h={20} style={{margin:"2px 0"}}/>}<div style={{fontSize:11.5,color:P.muted}}>Resultados totales</div></div></div>
+     <div style={kcard}>{kico("#FDECEE",P.red,"M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3")}<div>{resLoaded?<div style={{fontSize:22,fontWeight:800}}>{kAbn}</div>:<Skeleton w={38} h={20} style={{margin:"2px 0"}}/>}<div style={{fontSize:11.5,color:P.muted}}>Con hallazgos anormales</div></div></div>
+     <div style={kcard}>{kico("#FBF0DC",P.amber,"M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0")}<div>{resLoaded?<div style={{fontSize:22,fontWeight:800}}>{kSeg}</div>:<Skeleton w={38} h={20} style={{margin:"2px 0"}}/>}<div style={{fontSize:11.5,color:P.muted}}>En seguimiento</div></div></div>
+     <div style={kcard}>{kico("#E7EEFB",P.blue,"M7 3h10v18H7zM10 8h4")}<div>{resLoaded?<div style={{fontSize:22,fontWeight:800}}>{kPen}</div>:<Skeleton w={38} h={20} style={{margin:"2px 0"}}/>}<div style={{fontSize:11.5,color:P.muted}}>Pendientes de revisión</div></div></div>
     </div>
     {resTab!=="resultados"?(
      (()=>{
@@ -85,7 +85,7 @@ export default function ResultadosView(){
      <div style={{...card2,padding:8}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px"}}><span style={{fontSize:16,fontWeight:700}}>Resultados ({filteredItems.length})</span></div>
       {filteredItems.map(it=>{const[bg,fg]=rb(it.estado);const on=selItem?.resultId===it.resultId;const ico=it.tipo==="Imagenología"?"img":"flask";return <div key={it.resultId} {...act(()=>setResSel(it.resultId))} style={{display:"flex",alignItems:"center",gap:11,padding:11,borderRadius:11,cursor:"pointer",border:on?"1px solid #E0DAFB":"1px solid transparent",background:on?"#F6F5FE":"transparent"}}><span style={{width:36,height:36,borderRadius:9,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={ricoPath[ico]??ricoPath.flask}/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13.5}}>{it.analyte}</div><div style={{fontSize:11.5,color:P.muted}}>{it.patientName} · {fmtResD(it.receivedAt)}</div></div>{pill(bg,fg,it.estado)}</div>;})}
-      {filteredItems.length===0&&<div style={{padding:"30px 10px",textAlign:"center",color:P.muted,fontSize:13}}>{resLoaded?(allItems.length===0?"Sin resultados registrados. Usa «+ Registrar resultado».":"Ningún resultado coincide con los filtros."):"Cargando resultados…"}</div>}
+      {filteredItems.length===0&&(!resLoaded?<div aria-hidden>{Array.from({length:5}).map((_,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:11}}><Skeleton w={36} h={36} r={9}/><div style={{flex:1}}><Skeleton w={"55%"} h={13}/><Skeleton w={"75%"} h={11} style={{marginTop:5}}/></div><Skeleton w={56} h={18} r={999}/></div>)}</div>:<div style={{padding:"30px 10px",textAlign:"center",color:P.muted,fontSize:13}}>{allItems.length===0?"Sin resultados registrados. Usa «+ Registrar resultado».":"Ningún resultado coincide con los filtros."}</div>)}
       {filteredItems.length>0&&<div style={{padding:"12px 10px",fontSize:12.5,color:P.muted}}>Mostrando {filteredItems.length} de {allItems.length} resultado(s)</div>}
      </div>
      <div style={{...card2,padding:18}} className="mos-detail">

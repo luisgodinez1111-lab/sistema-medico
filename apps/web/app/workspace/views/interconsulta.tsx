@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "interconsulta" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {apiRequest} from "../../../lib/session-client";
-import{card,LINE,P,UI,act}from"../shared";
+import{card,LINE,P,UI,act,Skeleton}from"../shared";
 import{useWorkspace}from"../context";
 export default function InterconsultaView(){
  const{refCtx,icPatientId,patientId,setIcMsg,icMotivo,setIcBusy,icResumen,icSpecialty,setIcMotivo,setIcResumen,setView,icBusy,patientList,patientName,setIcPatientId,setIcSpecialty,icPriority,setIcPriority,icType,setIcType,icMsg,icRecipient,setIcRecipient,icReg,icRegErr,selectPatientRaw}=useWorkspace();
@@ -120,7 +120,7 @@ export default function InterconsultaView(){
          <td style={tdc}><button onClick={()=>{selectPatientRaw(it.patientId,it.patientName);setView("exp");}} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:8,padding:"5px 10px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:UI}}>Abrir expediente →</button></td>
         </tr>)}
         {icReg&&icReg.items.length===0&&<tr><td colSpan={6} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>Aún no hay interconsultas registradas en el consultorio.</td></tr>}
-        {!icReg&&<tr><td colSpan={6} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>{icRegErr?"No se pudo cargar el registro de la clínica.":"Cargando registro…"}</td></tr>}
+        {!icReg&&(icRegErr?<tr><td colSpan={6} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>No se pudo cargar el registro de la clínica.</td></tr>:Array.from({length:6}).map((_,i)=><tr key={"sk"+i} aria-hidden><td style={tdc}><div style={{display:"flex",alignItems:"center",gap:8}}><Skeleton w={26} h={26} r={13}/><Skeleton w={"60%"} h={12}/></div></td><td style={tdc}><Skeleton w={"70%"} h={12}/></td><td style={tdc}><Skeleton w={"70%"} h={12}/></td><td style={tdc}><Skeleton w={70} h={20} r={16}/></td><td style={tdc}><Skeleton w={80} h={12}/></td><td style={tdc}><Skeleton w={128} h={26} r={8}/></td></tr>))}
        </tbody></table></div>
      </div>;
     })()}

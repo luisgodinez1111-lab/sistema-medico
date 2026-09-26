@@ -4,7 +4,7 @@
 import {apiRequest} from "../../../lib/session-client";
 import {parseBp} from "../../../../../packages/bp-staging/src";
 import {classifyVital} from "../../../../../packages/lab-reference/src";
-import{card,LINE,P,UI,type VitalHistory,type VitalRecord}from"../shared";
+import{card,LINE,P,UI,Skeleton,type VitalHistory,type VitalRecord}from"../shared";
 import{useWorkspace}from"../context";
 export default function SignosView(){
  const{svPeso,svTalla,patientId,setSvMsg,svBpS,svBpD,svFc,svFr,svTemp,svSpo2,setSvBusy,setVitHist,setSvTemp,setSvFc,setSvFr,setSvBpS,setSvBpD,setSvSpo2,setSvPeso,setSvPab,setSvObs,setSvTalla,setSvPain,vitHist,snap,patientName,patientSelector,setView,svMsg,svBusy,vitReg,vitRegErr,selectPatientRaw}=useWorkspace();
@@ -102,7 +102,7 @@ export default function SignosView(){
        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
         <thead><tr><th style={th}>Fecha y hora</th><th style={th}>TA (mmHg)</th><th style={th}>FC (lpm)</th><th style={th}>FR (rpm)</th><th style={th}>Temp (°C)</th><th style={th}>SpO₂ (%)</th><th style={th}>Peso (kg)</th><th style={th}>IMC</th></tr></thead>
         <tbody>{records.slice(0,6).map((r,i)=>{const[d,t]=fmtDT(r.at);return <tr key={i}><td style={tdc}><div style={{fontWeight:600}}>{d}</div><div style={{fontSize:11,color:P.muted}}>{t}</div></td><td style={tdc}>{r.ta||"—"}</td><td style={tdc}>{r.fc||"—"}</td><td style={tdc}>{r.fr||"—"}</td><td style={tdc}>{r.temp||"—"}</td><td style={tdc}>{r.spo2||"—"}</td><td style={tdc}>{r.peso||"—"}</td><td style={tdc}>{r.imc||"—"}</td></tr>;})}
-        {records.length===0&&<tr><td colSpan={8} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>{patientId?(svHist?"Sin registros de signos vitales para este paciente.":"Cargando historial…"):"Selecciona un paciente para ver su historial."}</td></tr>}
+        {records.length===0&&(patientId&&!svHist?Array.from({length:5}).map((_,i)=><tr key={"sk"+i} aria-hidden><td style={tdc}><Skeleton w={"80%"} h={12}/><Skeleton w={"50%"} h={9} style={{marginTop:4}}/></td>{Array.from({length:7}).map((__,j)=><td key={j} style={tdc}><Skeleton w={36} h={12}/></td>)}</tr>):<tr><td colSpan={8} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>{patientId?"Sin registros de signos vitales para este paciente.":"Selecciona un paciente para ver su historial."}</td></tr>)}
         </tbody></table></div>
       </div>
       <div style={{...card2,padding:16}}>
@@ -124,7 +124,7 @@ export default function SignosView(){
     <div style={{...card2,marginTop:16,padding:0,overflow:"hidden"}}>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderBottom:`1px solid ${LINE}`,flexWrap:"wrap",gap:10}}>
       <div><div style={{fontSize:16,fontWeight:800}}>Signos vitales · Toda la clínica</div><div style={{fontSize:12,color:P.muted}}>Lecturas recientes de todos los pacientes del consultorio, con alertas por valor.</div></div>
-      {vitReg&&<div style={{display:"flex",gap:18,flexWrap:"wrap"}}>{([["Lecturas",vitReg.total,P.ink],["Críticas",vitReg.criticalCount,P.redOnPale],["Anormales",vitReg.abnormalCount,P.amberOnPale],["Pacientes",vitReg.patientsCount,P.purple]] as [string,number,string][]).map(([l,n,c])=><div key={l} style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:800,color:c,fontVariantNumeric:"tabular-nums"}}>{n}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div>)}</div>}
+      {vitReg?<div style={{display:"flex",gap:18,flexWrap:"wrap"}}>{([["Lecturas",vitReg.total,P.ink],["Críticas",vitReg.criticalCount,P.redOnPale],["Anormales",vitReg.abnormalCount,P.amberOnPale],["Pacientes",vitReg.patientsCount,P.purple]] as [string,number,string][]).map(([l,n,c])=><div key={l} style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:800,color:c,fontVariantNumeric:"tabular-nums"}}>{n}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div>)}</div>:!vitRegErr?<div style={{display:"flex",gap:18,flexWrap:"wrap"}} aria-hidden>{["Lecturas","Críticas","Anormales","Pacientes"].map(l=><div key={l} style={{textAlign:"right"}}><Skeleton w={36} h={18} style={{marginLeft:"auto"}}/><div style={{fontSize:11,color:P.muted,marginTop:4}}>{l}</div></div>)}</div>:null}
      </div>
      <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
       <thead><tr>{["Paciente","Signo","Valor","Estado","Fecha",""].map((h,i)=><th key={i} style={th}>{h}</th>)}</tr></thead>
@@ -138,7 +138,7 @@ export default function SignosView(){
         <td style={tdc}><button onClick={()=>{selectPatientRaw(it.patientId,it.patientName);setView("exp");}} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:8,padding:"5px 10px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:UI}}>Abrir expediente →</button></td>
        </tr>;})}
        {vitReg&&vitReg.items.length===0&&<tr><td colSpan={6} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>Aún no hay signos vitales registrados en el consultorio.</td></tr>}
-       {!vitReg&&<tr><td colSpan={6} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>{vitRegErr?"No se pudo cargar el registro de la clínica.":"Cargando registro…"}</td></tr>}
+       {!vitReg&&(vitRegErr?<tr><td colSpan={6} style={{...tdc,textAlign:"center",color:P.muted,padding:"24px"}}>No se pudo cargar el registro de la clínica.</td></tr>:Array.from({length:6}).map((_,i)=><tr key={"sk"+i} aria-hidden><td style={tdc}><div style={{display:"flex",alignItems:"center",gap:8}}><Skeleton w={26} h={26} r={13}/><Skeleton w={"55%"} h={12}/></div></td><td style={tdc}><Skeleton w={"60%"} h={12}/></td><td style={tdc}><Skeleton w={56} h={12}/></td><td style={tdc}><Skeleton w={60} h={20} r={16}/></td><td style={tdc}><Skeleton w={80} h={12}/></td><td style={tdc}><Skeleton w={128} h={26} r={8}/></td></tr>))}
       </tbody></table></div>
     </div>
    </div>;
