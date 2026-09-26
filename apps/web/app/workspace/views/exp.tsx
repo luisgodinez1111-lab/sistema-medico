@@ -4,7 +4,7 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{Check,ESI_FORM_EMPTY,unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,type ExpTab,type TrendKey}from"../shared";
+import{Check,ESI_FORM_EMPTY,unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,type ExpTab,type TrendKey}from"../shared";
 import{searchIcd10}from"../../../../../packages/terminology/src";
 // R2B-019: el plazo de reevaluación es de CTAS, no de ESI (ESI no publica tiempos). La pantalla lo dice para que nadie lo
 // lea como un número del algoritmo ESI.
@@ -95,6 +95,23 @@ export default function ExpView(){
     </div>
    </section>;
   })()}
+  {/* HERO skeleton — con paciente en foco pero snapshot aún sin cargar, se reserva el layout del hero (no un hueco). */}
+  {inTab("resumen")&&patientId&&!snap&&<section className="span2" aria-hidden style={{...card,marginTop:0,padding:0,overflow:"hidden"}}>
+   <div style={{padding:"18px 22px",borderBottom:`1px solid ${LINE}`,background:"linear-gradient(180deg,#FBFCFE,#fff)"}}><Skeleton w={260} h={16}/><Skeleton w={200} h={11} style={{marginTop:6}}/></div>
+   <div className="mos-hero-grid">
+    <div style={{padding:22,borderRight:`1px solid ${LINE}`}}>
+     <div style={{display:"flex",gap:14,alignItems:"center"}}><Skeleton w={52} h={52} r={26}/><div style={{flex:1}}><Skeleton w={"55%"} h={17}/><Skeleton w={"70%"} h={12} style={{marginTop:6}}/><div style={{display:"flex",gap:6,marginTop:8}}>{Array.from({length:3}).map((_,i)=><Skeleton key={i} w={70} h={20} r={8}/>)}</div></div></div>
+     <Skeleton w={140} h={12} style={{margin:"18px 0 10px"}}/>
+     <div className="mos-vitals">{Array.from({length:4}).map((_,i)=><div key={i} style={{background:"#fff",border:`1px solid ${LINE}`,borderRadius:14,padding:"14px 16px"}}><Skeleton w={"60%"} h={11}/><Skeleton w={80} h={22} style={{marginTop:6}}/><Skeleton w={"50%"} h={10} style={{marginTop:6}}/></div>)}</div>
+     <Skeleton w={120} h={12} style={{margin:"18px 0 8px"}}/>
+     <div style={{display:"flex",flexDirection:"column",gap:8}}>{Array.from({length:3}).map((_,i)=><Skeleton key={i} w={`${70-i*10}%`} h={13}/>)}</div>
+    </div>
+    <div style={{padding:22,display:"flex",flexDirection:"column",gap:18,background:"#FCFDFF"}}>
+     <div><Skeleton w={150} h={12} style={{marginBottom:8}}/><Skeleton w={"100%"} h={44} r={10}/></div>
+     <div style={{borderTop:`1px solid ${LINE}`,paddingTop:16}}><Skeleton w={160} h={12} style={{marginBottom:10}}/>{Array.from({length:3}).map((_,i)=><Skeleton key={i} w={"100%"} h={40} r={10} style={{marginBottom:8}}/>)}</div>
+    </div>
+   </div>
+  </section>}
   {/* SEGUIMIENTO AUTOMÁTICO (panel 5) — Zero-Lost-Follow-Up desde timeline + care-gaps */}
   <section hidden={!inTab("resumen")} style={card}>
    <div><h2 {...anchor("Seguimiento automático")} style={{fontSize:18,margin:0}}>Seguimiento automático</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Nada se pierde. Todo se coordina. Obligaciones e interconsultas con owner y cierre.</p></div>
@@ -255,7 +272,8 @@ export default function ExpView(){
     <span style={{color:"#6d6e80"}}>Manifiesto reproducible (índice de agregados y eventos + hash); no es el formato de intercambio NOM-024 ni incluye el contenido con datos personales.</span><br/>
     <span style={{color:"#6d6e80"}}>hash reproducible del contenido: </span><span style={mono}>{exportInfo.contentHash}</span>
    </div>}
-   {tl===null?<p style={{color:P.muted,fontSize:13,marginTop:12}}>Pulsa “Actualizar” para cargar el historial de este paciente.</p>
+   {busy==="tl"?<div aria-hidden style={{marginTop:14}}><div style={{display:"flex",gap:10,flexWrap:"wrap"}}>{Array.from({length:7}).map((_,i)=><div key={i} style={{flex:"1 1 90px",minWidth:90,padding:"10px 8px",borderRadius:12,background:"#f6f6fb",border:"1px solid #eceafb",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><Skeleton w={30} h={20}/><Skeleton w={"70%"} h={10}/></div>)}</div><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:16}}>{Array.from({length:4}).map((_,i)=><Skeleton key={i} w={"100%"} h={38} r={10}/>)}</div></div>
+    :tl===null?<p style={{color:P.muted,fontSize:13,marginTop:12}}>Pulsa “Actualizar” para cargar el historial de este paciente.</p>
     :tl.length===0?<p style={{color:P.muted,fontSize:13,marginTop:12}}>Sin items registrados para este paciente todavía.</p>
     :<div>
      {(()=>{const s=summarizePatient(tl);const stat=(n:number,l:string,warn=false)=>(<div style={{flex:"1 1 90px",minWidth:90,textAlign:"center",padding:"10px 8px",borderRadius:12,background:warn&&n>0?"#fff4e5":"#f6f6fb",border:"1px solid #eceafb"}}><div style={{fontSize:22,fontWeight:800,color:warn&&n>0?"#a15c00":"#3f3aa0"}}>{n}</div><div style={{fontSize:11,color:"#6d6e80"}}>{l}</div></div>);
