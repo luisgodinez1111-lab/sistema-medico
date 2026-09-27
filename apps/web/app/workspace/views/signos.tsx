@@ -1,13 +1,13 @@
 "use client";
-// GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "signos" del workspace, extraída de page.tsx sin cambios
-// en su JSX ni en su lógica. Toma del contexto solo lo que usa.
+// GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "signos" del workspace, extraída de page.tsx. Toma del contexto
+// solo lo que usa. Desde el hallazgo D11a guarda con `submitVitals`, la captura única que comparte con la Consulta.
 import {apiRequest} from "../../../lib/session-client";
 import {parseBp} from "../../../../../packages/bp-staging/src";
 import {classifyVital} from "../../../../../packages/lab-reference/src";
-import{card,LINE,P,UI,type VitalHistory,type VitalRecord}from"../shared";
+import{card,LINE,P,UI,newVitalCapture,submitVitals,userMessage,type VitalHistory,type VitalRecord}from"../shared";
 import{useWorkspace}from"../context";
 export default function SignosView(){
- const{svPeso,svTalla,patientId,setSvMsg,svBpS,svBpD,svFc,svFr,svTemp,svSpo2,setSvBusy,setVitHist,setSvTemp,setSvFc,setSvFr,setSvBpS,setSvBpD,setSvSpo2,setSvPeso,setSvPab,setSvObs,setSvTalla,setSvPain,vitHist,snap,patientName,patientSelector,setView,svMsg,svBusy}=useWorkspace();
+ const{svCapture,svPeso,svTalla,patientId,setSvMsg,svBpS,svBpD,svFc,svFr,svTemp,svSpo2,setSvBusy,setVitHist,setSvTemp,setSvFc,setSvFr,setSvBpS,setSvBpD,setSvSpo2,setSvPeso,setSvPab,setSvObs,setSvTalla,setSvPain,vitHist,snap,patientName,patientSelector,setView,svMsg,svBusy}=useWorkspace();
 
    // ===== MÓDULO SIGNOS VITALES (S-SIGNOS) — form cableado a POST /vitals + historial/tendencias por paciente =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -18,17 +18,22 @@ export default function SignosView(){
    const imcCalc=svPeso&&svTalla&&Number(svTalla)>0?(Number(svPeso)/Math.pow(Number(svTalla)/100,2)).toFixed(1):"";
    const saveVitals=async()=>{
     if(!patientId){setSvMsg("Selecciona un paciente en el buscador superior para guardar los signos vitales.");return;}
-    const at=new Date().toISOString();const toSave:[string,string,string][]=[];
+    const toSave:[string,string,string][]=[];
     if(svBpS&&svBpD)toSave.push(["BP",`${svBpS}/${svBpD}`,"mmHg"]);
     if(svFc)toSave.push(["HR",svFc,"lpm"]);if(svFr)toSave.push(["RESP",svFr,"rpm"]);
     if(svTemp)toSave.push(["TEMP",svTemp,"°C"]);if(svSpo2)toSave.push(["SPO2",svSpo2,"%"]);
     if(svPeso)toSave.push(["WEIGHT",svPeso,"kg"]);if(svTalla)toSave.push(["HEIGHT",svTalla,"cm"]);
     if(!toSave.length){setSvMsg("Captura al menos un signo vital.");return;}
     setSvBusy(true);setSvMsg("");
-    try{for(const[vt,val,u]of toSave){await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId:crypto.randomUUID(),patientId,vitalType:vt,value:val,unit:u,occurredAt:at}});}
+    // D11a: antes cada clic regeneraba vitalId y llave (un reintento duplicaba) y se anunciaba «guardados ✓» aunque el servidor
+    // rechazara valores. Ahora la captura es estable hasta que TODO se guarda y el mensaje dice exactamente qué se guardó.
+    const capture=svCapture.current??(svCapture.current=newVitalCapture());
+    try{const{saved,failed,critical}=await submitVitals(capture,patientId,toSave);
      const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET"});if(r.status===200)setVitHist(r.body as unknown as VitalHistory);
-     setSvMsg("Signos vitales guardados ✓");setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvPab("");setSvObs("");
-    }catch{setSvMsg("Error al guardar los signos vitales.");}finally{setSvBusy(false);}
+     if(failed.length){setSvMsg(`Guardados: ${saved.length?saved.join(", "):"ninguno"}. NO guardados: ${failed.join(" · ")}. Corrija y vuelva a guardar: los ya guardados no se duplicarán.`);return;}
+     svCapture.current=null;
+     setSvMsg(critical.length?`Signos vitales guardados ✓ — ⚠ ${critical.length} crítico(s): ${critical.join("; ")}. Un vital crítico sin atender bloquea la firma.`:"Signos vitales guardados ✓");setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvPab("");setSvObs("");
+    }catch(e){setSvMsg(userMessage(e));}finally{setSvBusy(false);}
    };
    const clearForm=()=>{setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvTalla("");setSvPab("");setSvPain("0");setSvObs("");setSvMsg("");};
    const svHist=!!vitHist;

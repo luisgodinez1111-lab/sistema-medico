@@ -18,7 +18,8 @@ vi.mock("../../apps/web/lib/session-client",()=>({
  apiDownload:async()=>null,
  apiRequest:async(path:string,init?:{method?:string;body?:unknown})=>{
   if(init?.method==="POST")posted.push({path,body:init.body});
-  if(path.includes("/api/v1/vitals"))return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
+  // D11a: el servidor rechaza un valor (400) para probar que la UI no anuncia éxito y que el reintento no duplica.
+  if(path.includes("/api/v1/vitals"))return(init?.body as{value?:string}|undefined)?.value==="999"?{status:400,body:{error:{code:"VALIDATION_ERROR",message:"Valor fuera de rango plausible"}}}:{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
   if(path.includes("/api/v1/care-plans"))return{status:201,body:{version:1}};
   // U-19: PRESCRIBE con bloqueo ANULABLE (alergia) -> 403 con qué se puede anular; con la anulación nombrada -> 201.
   if(path.endsWith("/prescription")&&init?.method==="POST"){
@@ -960,5 +961,50 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   await noSeriousAxe(seg,"Seguimiento");
   await noSeriousAxe(por,"Portal");
   await noSeriousAxe(aud,"Auditoría");
+ });
+
+ // Lote 11, hallazgo D11a: un valor rechazado por el servidor NO se anuncia como guardado, y el reintento reutiliza la misma
+ // captura (mismo vitalId y hora para lo ya guardado): sin duplicados.
+ it("D11a — Signos vitales: rechazo del servidor visible y reintento sin duplicados",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));await elegirPaciente();
+  const before=posted.length;
+  fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"78"}});
+  fireEvent.change(screen.getByPlaceholderText("36.5"),{target:{value:"999"}});
+  fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
+  expect(await screen.findByText(/NO guardados: TEMP/)).toBeTruthy();
+  expect(screen.queryByText(/Signos vitales guardados ✓/)).toBeNull();
+  fireEvent.change(screen.getByPlaceholderText("36.5"),{target:{value:"36.8"}});
+  fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
+  expect(await screen.findByText(/Signos vitales guardados ✓/)).toBeTruthy();
+  const vit=posted.slice(before).filter(p=>p.path==="/api/v1/vitals").map(p=>p.body as{vitalId:string;vitalType:string;occurredAt:string});
+  const hr=vit.filter(v=>v.vitalType==="HR"),temp=vit.filter(v=>v.vitalType==="TEMP");
+  expect(hr.length).toBe(2);expect(hr[0]!.vitalId).toBe(hr[1]!.vitalId);expect(hr[0]!.occurredAt).toBe(hr[1]!.occurredAt);
+  expect(temp.length).toBe(2);expect(temp[0]!.vitalId).toBe(temp[1]!.vitalId);
+ });
+ // Lote 11, hallazgo D11b: teclear otro id de paciente es un cambio de paciente completo (nada del anterior queda en pantalla).
+ it("D11b — Expediente: teclear otro id de paciente vacía los datos del paciente anterior",async()=>{
+  render(<Workspace/>);
+  await toExpediente();
+  const form=within((await screen.findByRole("button",{name:"Proponer medicación"})).closest("section")!);
+  fireEvent.change(form.getByPlaceholderText(/Fármaco \(ej\./),{target:{value:"ibuprofeno-400"}});
+  fireEvent.change(form.getByPlaceholderText(/Dosis \(500mg\)/),{target:{value:"400"}});
+  fireEvent.change(form.getByPlaceholderText("Vía"),{target:{value:"VO"}});
+  fireEvent.change(form.getByPlaceholderText(/Frecuencia \(c\/8h\)/),{target:{value:"c/8h"}});
+  fireEvent.click(form.getByRole("button",{name:"Proponer medicación"}));
+  expect(await screen.findByRole("button",{name:"Prescribir"})).toBeTruthy(); // medicación del paciente A en pantalla
+  fireEvent.change(screen.getByLabelText(/ID de paciente/),{target:{value:"22222222-2222-4222-8222-222222222222"}});
+  await waitFor(()=>expect(screen.queryByRole("button",{name:"Prescribir"})).toBeNull());
+ });
+ // Lote 11, hallazgo D11c: ningún dato de un evento permanente se inventa en el cliente; los pide el diálogo U-16.
+ it("D11c — acciones: lote/sitio, firmante, códigos, referencia de pago y destino al alta se piden, no se inventan",async()=>{
+  const{immActions,csActions,clmActions,admActions,isAsk}=await import("../../apps/web/app/workspace/shared");
+  const asks=(b:Record<string,unknown>,k:string)=>{const v=b[k];return Array.isArray(v)?v.every(isAsk):isAsk(v);};
+  const imm=immActions({id:"i1",state:"DUE"})[0]!.body;expect(asks(imm,"lot")&&asks(imm,"site")).toBe(true);
+  const cs=csActions({id:"c1",state:"PRESENTED"})[0]!.body;expect(asks(cs,"signerName")).toBe(true);
+  const code=clmActions({id:"x",state:"DRAFT"})[0]!.body;expect(asks(code,"codes")).toBe(true);
+  const pay=clmActions({id:"x",state:"SUBMITTED"})[0]!.body;expect(asks(pay,"reference")).toBe(true);
+  const dis=admActions({id:"a1",state:"ADMITTED"}).find(a=>a.label==="Dar de alta")!.body;expect(asks(dis,"disposition")).toBe(true);
+  expect(JSON.stringify([imm,cs,code,pay,dis])).not.toMatch(/L-2026-A|Paciente\/Tutor|99213|EOB-|Alta a domicilio/);
  });
 });
