@@ -6,7 +6,7 @@ import{resolveDrug}from"../../../../../../../../packages/drug-catalog/src";
 import{foldMedication}from"../../../../../../../../packages/medication-fold/src";
 import{ageInYears}from"../../../../../../../../packages/prescription-safety/src";
 import{checkPrescriptionLegal,describeMissing,renderPrescriptionHtml,type PrescriptionData,type PrescriptionItem}from"../../../../../../../../packages/prescription-print/src";
-import{patientDemographics,officeSettings,readAggregateEvents}from"../../../../../../lib/clinical-runtime";
+import{patientDemographics,officeSettings,readAggregateStream}from"../../../../../../lib/clinical-runtime";
 import{requirePhysicianCredentials}from"../../../../../../lib/physician-profile-lifecycle";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
@@ -37,7 +37,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const issuedAt=new Date().toISOString();
   const items:PrescriptionItem[]=[];
   for(const medicationId of ids){
-   const events=await readAggregateEvents(tctx,medicationId);
+   const events=await readAggregateStream(tctx,"Medication",medicationId);
    const folded=foldMedication(events);
    if(!folded.exists||folded.patientId!==patientId)throw new ClinicalError("NOT_FOUND",`Medication ${medicationId} not found for this patient`);
    if(folded.state!=="PRESCRIBED"&&folded.state!=="ACTIVE")throw new ClinicalError("CONFLICT",`La medicación ${medicationId} está ${folded.state}: solo se imprimen medicaciones prescritas o activas`,{state:folded.state});

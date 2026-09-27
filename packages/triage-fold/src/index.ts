@@ -11,7 +11,7 @@ export type FoldedTriage=Readonly<{exists:boolean;state:TriageState;version:numb
 function kindOf(e:StoredTriageEvent):TriageEventKind{
  const k=e.payload["kind"];
  if(k==="ARRIVED"||k==="TRIAGE_STARTED"||k==="TRIAGED"||k==="CLOSED"||k==="LWBS")return k;
- if(e.sequence===1)return "ARRIVED";
+ if(e.sequence===1&&k===undefined)return "ARRIVED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (hallazgo D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown triage event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<TriageEventKind,TriageState>={ARRIVED:"WAITING",TRIAGE_STARTED:"IN_TRIAGE",TRIAGED:"TRIAGED",CLOSED:"CLOSED",LWBS:"LWBS"};

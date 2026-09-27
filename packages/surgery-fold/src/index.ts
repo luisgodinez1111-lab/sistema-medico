@@ -12,7 +12,7 @@ export type FoldedSurgery=Readonly<{exists:boolean;state:SurgeryState;version:nu
 function kindOf(e:StoredSurgeryEvent):SurgeryEventKind{
  const k=e.payload["kind"];
  if(k==="SCHEDULED"||k==="TIMEOUT_COMPLETED"||k==="STARTED"||k==="COMPLETED"||k==="CANCELLED")return k;
- if(e.sequence===1)return "SCHEDULED";
+ if(e.sequence===1&&k===undefined)return "SCHEDULED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (hallazgo D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown surgery event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<SurgeryEventKind,SurgeryState>={SCHEDULED:"SCHEDULED",TIMEOUT_COMPLETED:"TIMED_OUT",STARTED:"IN_PROGRESS",COMPLETED:"COMPLETED",CANCELLED:"CANCELLED"};

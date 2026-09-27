@@ -12,7 +12,7 @@ export type FoldedResult=Readonly<{exists:boolean;state:ResultState;version:numb
 function kindOf(e:StoredResultEvent):ResultEventKind{
  const k=e.payload["kind"];
  if(k==="RECEIVED"||k==="VERIFIED"||k==="ACTIONED"||k==="CLOSED"||k==="CORRECTED")return k;
- if(e.sequence===1)return "RECEIVED";
+ if(e.sequence===1&&k===undefined)return "RECEIVED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (hallazgo D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown result event at sequence ${e.sequence}`);
 }
 export function foldResult(events:readonly StoredResultEvent[]):FoldedResult{

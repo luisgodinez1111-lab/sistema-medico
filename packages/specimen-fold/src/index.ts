@@ -11,7 +11,7 @@ export type FoldedSpecimen=Readonly<{exists:boolean;state:SpecimenState;version:
 function kindOf(e:StoredSpecimenEvent):SpecimenEventKind{
  const k=e.payload["kind"];
  if(k==="COLLECTED"||k==="IN_TRANSIT"||k==="RECEIVED"||k==="RESULTED"||k==="REJECTED")return k;
- if(e.sequence===1)return "COLLECTED";
+ if(e.sequence===1&&k===undefined)return "COLLECTED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (hallazgo D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown specimen event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<SpecimenEventKind,SpecimenState>={COLLECTED:"COLLECTED",IN_TRANSIT:"IN_TRANSIT",RECEIVED:"RECEIVED",RESULTED:"RESULTED",REJECTED:"REJECTED"};

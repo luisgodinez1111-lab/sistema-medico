@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import{ClinicalError}from"../../../../packages/runtime-errors/src";
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{buildCommand,requireMutationHeaders}from"../http-command";
-import{readAggregateEvents}from"../runtime/event-store";
+import{readAggregateStream}from"../runtime/event-store";
 import{lookupReplay,runClinicalCommand,type ClinicalCommandResult}from"../runtime/command";
 import{endpoint,type Guard,type Verified}from"../http/endpoint";
 // Lote 11 (ADR-0300) — PIPELINE DE COMANDOS de los agregados clínicos. Es el protocolo que cada *-lifecycle.ts copiaba a mano
@@ -15,7 +15,7 @@ import{endpoint,type Guard,type Verified}from"../http/endpoint";
 // él mismo el chequeo del paciente registrado justo después, como hoy. El pipeline no toca el `payload`: el hash de
 // idempotencia del kernel lo serializa tal cual (claves `undefined` incluidas).
 export type CommitReceipt=Readonly<{version:number;auditHash?:string}>;
-type Events=Awaited<ReturnType<typeof readAggregateEvents>>;
+type Events=Awaited<ReturnType<typeof readAggregateStream>>;
 export type AggregateSpec<F>=Readonly<{
  aggregateType:string;
  idField:string;               // clave del id en la respuesta (allergyId, orderId…)
@@ -26,9 +26,10 @@ export type AggregateSpec<F>=Readonly<{
 }>;
 export type TransitionSpec<F,S extends string>=AggregateSpec<F>&Readonly<{assertTransition:(from:S,to:S)=>void}>;
 const stateKey=(spec:Readonly<{stateField?:"state"|"status"}>)=>spec.stateField??"state";
-// Carga el agregado o 404: el preludio que comparten los handlers que no pasan por transitionCommand.
+// Carga el agregado o 404: el preludio que comparten los handlers que no pasan por transitionCommand. Lee el stream TIPADO
+// (hallazgo D4): un id de otro tipo de agregado es un 404, nunca un stream ajeno que plegar y en el que escribir.
 export async function loadAggregate<F extends{exists:boolean}>(ctx:HttpTenantContext,spec:AggregateSpec<F>,id:string):Promise<F>{
- const folded=spec.fold(await readAggregateEvents(ctx,id));
+ const folded=spec.fold(await readAggregateStream(ctx,spec.aggregateType,id));
  if(!folded.exists)throw new ClinicalError("NOT_FOUND",spec.notFound);
  return folded;
 }

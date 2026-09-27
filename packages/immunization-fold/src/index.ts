@@ -12,7 +12,7 @@ export type FoldedImmunization=Readonly<{exists:boolean;state:ImmunizationState;
 function kindOf(e:StoredImmunizationEvent):ImmunizationEventKind{
  const k=e.payload["kind"];
  if(k==="DUE"||k==="ADMINISTERED"||k==="REFUSED"||k==="ADVERSE_EVENT")return k;
- if(e.sequence===1)return "DUE";
+ if(e.sequence===1&&k===undefined)return "DUE"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (hallazgo D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown immunization event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<ImmunizationEventKind,ImmunizationState>={DUE:"DUE",ADMINISTERED:"ADMINISTERED",REFUSED:"REFUSED",ADVERSE_EVENT:"ADVERSE_EVENT"};

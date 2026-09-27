@@ -11,6 +11,7 @@ const STATUS:Record<ClinicalErrorCode,number>={
 const KERNEL:Record<string,ClinicalErrorCode>={
  CONCURRENCY_CONFLICT:"CONCURRENCY_CONFLICT",IDEMPOTENCY_CONFLICT:"IDEMPOTENCY_CONFLICT",
  IDEMPOTENCY_IN_PROGRESS:"CONFLICT",
+ AGGREGATE_TYPE_MISMATCH:"NOT_FOUND", // D4: el id es de otro tipo de agregado; para este comando no existe
 };
 // Auditoría U-19: la UI necesita saber QUÉ barreras bloquean y cuáles admiten anulación para ofrecer el diálogo correcto
 // (no se puede inferir del texto). Lista cerrada por código y por clave: lo que no está aquí no sale.

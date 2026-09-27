@@ -1,5 +1,7 @@
-// Lote 11 (ADR-0300) — lectura directa del event store (streams de agregado, payload por id de evento, encuentro). Extraído de apps/web/lib/clinical-runtime.ts sin cambios de código.
+// Lote 11 (ADR-0300) — lectura directa del event store (streams de agregado, payload por id de evento, encuentro). Extraído de
+// apps/web/lib/clinical-runtime.ts en 11.1; `readAggregateStream` (lectura tipada) es la corrección del hallazgo D4.
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
+import{ClinicalError}from"../../../../packages/runtime-errors/src";
 import{withTenantTx}from"./db";
 // EPIC D — Lectura RLS-scoped del stream de eventos CON payload (para reconstruir estado).
 // El payload es contenido clínico (fuente de verdad, RLS-aislado); nunca se loguea.
@@ -20,6 +22,18 @@ export async function readEventPayloadById(ctx:HttpTenantContext,eventId:string,
 }
 export async function readAggregateEvents(ctx:HttpTenantContext,aggregateId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
  return readEncounterEvents(ctx,aggregateId);
+}
+// Hallazgo D4 del lote 11 — stream de UN agregado de un TIPO dado; es la lectura de todo caso de uso cableado (las lecturas
+// sin tipo de arriba quedan para los módulos NOT_WIRED). Antes la lectura ignoraba `aggregate_type`: una transición de alergia
+// sobre el id de un paciente plegaba el stream del paciente y escribía en él (el paciente quedaba en 500 para siempre).
+//   · id inexistente, o que pertenece a OTRO tipo de agregado (su génesis es de otro tipo) -> [] (el caso de uso responde 404);
+//   · stream que mezcla tipos (contaminado antes de esta corrección) -> INVARIANT_VIOLATION explícito: nunca se pliega a medias.
+export async function readAggregateStream(ctx:HttpTenantContext,aggregateType:string,aggregateId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
+ const rows=await withTenantTx(ctx,async tx=>
+  tx`select sequence,aggregate_type,payload from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${aggregateId} order by sequence`) as ReadonlyArray<Record<string,unknown>>;
+ if(rows.length===0||String(rows[0]!.aggregate_type)!==aggregateType)return [];
+ if(rows.some(r=>String(r.aggregate_type)!==aggregateType))throw new ClinicalError("INVARIANT_VIOLATION",`${aggregateType} stream mixes aggregate types`,{aggregateType});
+ return rows.map(r=>({sequence:Number(r.sequence),payload:(r.payload??{}) as Record<string,unknown>}));
 }
 export type EncounterView=Readonly<{encounterId:string;version:number;events:ReadonlyArray<{sequence:number;type:string;occurredAt:string}>}>;
 // Lectura RLS-scoped del agregado (sin payload clínico: solo metadatos no-PHI).

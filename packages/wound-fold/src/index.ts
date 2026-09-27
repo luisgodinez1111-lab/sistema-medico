@@ -11,7 +11,7 @@ export type FoldedWound=Readonly<{exists:boolean;state:WoundState;version:number
 function kindOf(e:StoredWoundEvent):WoundEventKind{
  const k=e.payload["kind"];
  if(k==="DOCUMENTED"||k==="REASSESSED"||k==="HEALED"||k==="ESCALATED")return k;
- if(e.sequence===1)return "DOCUMENTED";
+ if(e.sequence===1&&k===undefined)return "DOCUMENTED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (hallazgo D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown wound event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<WoundEventKind,WoundState>={DOCUMENTED:"OPEN",REASSESSED:"OPEN",HEALED:"HEALED",ESCALATED:"ESCALATED"};

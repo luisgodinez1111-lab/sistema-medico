@@ -3,7 +3,7 @@ import{z}from"zod";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldResult,assertResultTransition,assertResultCorrectable}from"../../../packages/result-fold/src";
 import{runClinicalCommand,lookupReplay}from"./runtime/command";
-import{readAggregateEvents}from"./runtime/event-store";
+import{readAggregateStream}from"./runtime/event-store";
 import{latestResultValueForAnalyte}from"./runtime/read-models/results";
 import{requireRegisteredPatient}from"./runtime/read-models/patient";
 import{buildCommand,requireMutationHeaders,parseJson,replayStablePayload,derivedUuid}from"./http-command";
@@ -95,7 +95,7 @@ export async function handleResultCorrection(req:Request,resultId:string):Promis
   if(replayed){const r=replayed.response as{version:number;auditHash?:string};return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,version:r.version,auditHash:r.auditHash,replayed:true},{status:200});}
   if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Result changed since last read",{expected:expectedVersion,actual:folded.version});
   assertResultCorrectable(folded);
-  const original=(await readAggregateEvents(ctx,resultId)).find(e=>e.payload["kind"]==="RECEIVED")?.payload??{};
+  const original=(await readAggregateStream(ctx,AGG,resultId)).find(e=>e.payload["kind"]==="RECEIVED")?.payload??{};
   const analyte=String(original["analyte"]??"");if(!analyte)throw new ClinicalError("CONFLICT","El resultado original no tiene analito: no se puede corregir");
   const input:ReceiveInput={resultId:b.correctedResultId,patientId:folded.patientId,orderId:String(original["orderId"]??resultId),analyte,value:b.value,...(b.unit!==undefined?{unit:b.unit}:{}),...(typeof original["specimenId"]==="string"?{specimenId:String(original["specimenId"])}:{}),occurredAt:b.occurredAt};
   // 1) el resultado corregido, con `supersedes`: es lo que leen las calculadoras aunque la anotación (2) fallara.
@@ -140,7 +140,7 @@ async function createCriticalResultObligation(ctx:Parameters<typeof runClinicalC
 // Al CERRAR un resultado crítico con evidencia, la obligación derivada se completa con esa misma evidencia (si sigue abierta).
 async function completeCriticalResultObligation(ctx:Parameters<typeof runClinicalCommand>[0],resultId:string,evidence:string,occurredAt:string):Promise<void>{
  const obligationId=criticalObligationId(resultId);
- const folded=foldObligation(await readAggregateEvents(ctx,obligationId));
+ const folded=foldObligation(await readAggregateStream(ctx,"ClinicalObligation",obligationId));
  if(!folded.exists||(folded.state!=="OPEN"&&folded.state!=="IN_PROGRESS"))return;
  const cmd=buildCommand({idempotencyKey:derivedUuid(resultId,"critical-result-obligation-closed"),aggregateType:"ClinicalObligation",aggregateId:obligationId,expectedVersion:folded.version,eventType:"OBLIGATION_COMPLETED",payload:{kind:"COMPLETED",evidence:`Resultado crítico cerrado: ${evidence}`,sourceResultId:resultId},occurredAt,topic:"obligation.completed"});
  let r=await lookupReplay(ctx,cmd);if(!r)r=await runClinicalCommand(ctx,cmd);

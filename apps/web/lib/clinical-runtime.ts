@@ -9,7 +9,7 @@ export{runClinicalCommand,lookupReplay}from"./runtime/command";
 export type{ClinicalCommandResult}from"./runtime/command";
 export{encodeCursor,decodeCursor,PAGE_LIMIT_DEFAULT,PAGE_LIMIT_MAX,clampLimit}from"./runtime/pagination";
 export type{Page}from"./runtime/pagination";
-export{readEncounterEvents,readEventPayloadById,readAggregateEvents,readEncounter}from"./runtime/event-store";
+export{readEncounterEvents,readEventPayloadById,readAggregateEvents,readAggregateStream,readEncounter}from"./runtime/event-store";
 export type{EncounterView}from"./runtime/event-store";
 export{listPatients,patientDemographics,requireRegisteredPatient,findPatientDuplicate,patientBirthDate}from"./runtime/read-models/patient";
 export type{PatientRow,PatientListQuery,PatientGuardian,PatientDemographics,PatientDuplicate}from"./runtime/read-models/patient";

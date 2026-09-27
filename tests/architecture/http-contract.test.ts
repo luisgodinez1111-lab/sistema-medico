@@ -94,7 +94,7 @@ const READ:Scenario[]=[WRITE[0]!,WRITE[1]!,{id:"lectura",auth:"full",headers:fal
 function arrange(s:Scenario){
  h.state.calls=[];h.state.impl.clear();
  const ev=s.events==="genesis"?[{sequence:1,payload:{patientId:P}}]:[];
- h.state.impl.set("readAggregateEvents",async()=>structuredClone(ev));h.state.impl.set("readEncounterEvents",async()=>structuredClone(ev));
+ h.state.impl.set("readAggregateEvents",async()=>structuredClone(ev));h.state.impl.set("readEncounterEvents",async()=>structuredClone(ev));h.state.impl.set("readAggregateStream",async()=>structuredClone(ev));
  const receipt=(v:number)=>({aggregateId:P,version:v,eventId:"e-contract",outboxId:"o-contract",auditId:"a-contract",auditHash:`audit-${v}`});
  h.state.impl.set("lookupReplay",async()=>s.replay?{replayed:true,response:receipt(9)}:null);
  h.state.impl.set("runClinicalCommand",async(_c:unknown,cmd:unknown)=>({replayed:s.replay,response:receipt(s.replay?9:Number((cmd as{expectedVersion:number}).expectedVersion)+1)}));

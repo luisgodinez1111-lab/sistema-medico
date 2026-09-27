@@ -79,13 +79,15 @@ describe("guardas de arquitectura (ADR-0300)",()=>{
   const fat=routes.filter(f=>/authorize\(|toHttpError/.test(fs.readFileSync(f,"utf8")));
   expect(fat.length).toBeLessThanOrEqual(MAX_FAT_ROUTES);
  });
- it("los casos de uso cableados (*-lifecycle) pasan por el kit de transporte y el pipeline: sin preludio a mano ni la fachada",()=>{
+ it("los casos de uso cableados (*-lifecycle) pasan por el kit de transporte y el pipeline: sin preludio a mano, fachada ni streams sin tipo",()=>{
   // Lote 11.2: sesión, autorización y traducción de errores viven en endpoint(); la persistencia se importa de lib/runtime.
+  // Hallazgo D4: los streams se leen TIPADOS (readAggregateStream); las lecturas sin tipo tampoco en las rutas.
   // Solo los módulos del registro NOT_WIRED (sin ruta; su retiro es decisión del dueño) conservan el patrón anterior.
   const notWired=new Set((JSON.parse(fs.readFileSync("docs/adjudication/not-wired-registry.json","utf8")) as{modules:{module:string}[]}).modules.map(m=>`apps/web/lib/${m.module}.ts`));
   const wired=sourceFiles("apps/web/lib").filter(f=>f.endsWith("-lifecycle.ts")&&!notWired.has(f));
   expect(wired.length).toBeGreaterThanOrEqual(27);
-  const handWritten=wired.filter(f=>/\b(resolveVerified|authorize|toHttpError)\(/.test(fs.readFileSync(f,"utf8"))||specifiersOf(f).some(s=>/\/clinical-runtime$/.test(s)));
+  const handWritten=wired.filter(f=>/\b(resolveVerified|authorize|toHttpError|readAggregateEvents|readEncounterEvents)\(/.test(fs.readFileSync(f,"utf8"))||specifiersOf(f).some(s=>/\/clinical-runtime$/.test(s)));
   expect(handWritten).toEqual([]);
+  expect(sourceFiles("apps/web/app").filter(f=>/\b(readAggregateEvents|readEncounterEvents)\(/.test(fs.readFileSync(f,"utf8")))).toEqual([]);
  });
 });

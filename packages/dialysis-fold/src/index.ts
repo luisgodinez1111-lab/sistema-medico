@@ -12,7 +12,7 @@ export type FoldedDialysis=Readonly<{exists:boolean;state:DialysisState;version:
 function kindOf(e:StoredDialysisEvent):DialysisEventKind{
  const k=e.payload["kind"];
  if(k==="SCHEDULED"||k==="STARTED"||k==="INTERRUPTED"||k==="RESUMED"||k==="COMPLETED"||k==="CANCELLED"||k==="NO_SHOW")return k;
- if(e.sequence===1)return "SCHEDULED";
+ if(e.sequence===1&&k===undefined)return "SCHEDULED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (hallazgo D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown dialysis event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<DialysisEventKind,DialysisState>={SCHEDULED:"SCHEDULED",STARTED:"IN_SESSION",RESUMED:"IN_SESSION",INTERRUPTED:"INTERRUPTED",COMPLETED:"COMPLETED",CANCELLED:"CANCELLED",NO_SHOW:"NO_SHOW"};

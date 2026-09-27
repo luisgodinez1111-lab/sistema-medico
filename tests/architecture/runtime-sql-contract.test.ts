@@ -41,6 +41,7 @@ type Runtime=typeof import("../../apps/web/lib/clinical-runtime");
 const CALLS:ReadonlyArray<readonly[string,(m:Runtime)=>Promise<unknown>]>=[
  ["lookupReplay",m=>m.lookupReplay(ctx,cmd)],
  ["runClinicalCommand",m=>m.runClinicalCommand(ctx,cmd)],
+ ["runClinicalCommand(transición)",m=>m.runClinicalCommand(ctx,{...cmd,expectedVersion:1})], // D4: el kernel exige el tipo del stream
  ["listPatients()",m=>m.listPatients(ctx)],
  ["listPatients(q,cursor)",m=>m.listPatients(ctx,{limit:10,q:"Ána",cursor:m.encodeCursor(["Ana","x"])})],
  ["activeAllergies",m=>m.activeAllergies(ctx,P)],
@@ -87,6 +88,7 @@ const CALLS:ReadonlyArray<readonly[string,(m:Runtime)=>Promise<unknown>]>=[
  ["readEncounterEvents",m=>m.readEncounterEvents(ctx,P)],
  ["readEventPayloadById",m=>m.readEventPayloadById(ctx,"e-1",P)],
  ["readAggregateEvents",m=>m.readAggregateEvents(ctx,P)],
+ ["readAggregateStream",m=>m.readAggregateStream(ctx,"Allergy",P)],
  ["documentDetail",m=>m.documentDetail(ctx,P)],
  ["blockingObligations",m=>m.blockingObligations(ctx,P,"2026-09-01T10:00:00.000Z")],
  ["countUnresolvedCriticalObligations",m=>m.countUnresolvedCriticalObligations(ctx,P)],

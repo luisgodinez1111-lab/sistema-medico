@@ -2126,6 +2126,37 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       },
     ],
   },
+  "readAggregateStream": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "tx": "BEGIN",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select sequence,aggregate_type,payload from clinical_events where tenant_id=$1 and aggregate_id=$2 order by sequence",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
+      },
+    ],
+  },
   "readEncounter": {
     "outcome": {
       "ok": {
@@ -2749,6 +2780,57 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       },
       {
         "tx": "COMMIT",
+      },
+    ],
+  },
+  "runClinicalCommand(transición)": {
+    "outcome": {
+      "error": "Error: AGGREGATE_TYPE_MISMATCH",
+    },
+    "queries": [
+      {
+        "params": [
+          "write",
+          "00000000-0000-4000-8000-000000000001:00000000-0000-4000-8000-000000000002",
+          120,
+          2,
+        ],
+        "text": "select allowed, tokens from rate_limit_take($1,$2,$3::double precision,$4::double precision)",
+        "via": "pool",
+      },
+      {
+        "tx": "BEGIN",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "k-1",
+          "05ceaf7457e06fbae65558a07b80b59f6702a5fa2bfda185130a4ca20cf393b2",
+        ],
+        "text": "insert into command_idempotency(tenant_id,actor_id,key,request_hash,status,expires_at) values($1,$2,$3,$4,'IN_PROGRESS',now()+interval '24 hours') on conflict do nothing returning key",
+        "via": "tx",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select aggregate_type from clinical_events where tenant_id=$1 and aggregate_id=$2 and sequence=1",
+        "via": "tx",
+      },
+      {
+        "tx": "ROLLBACK",
       },
     ],
   },
@@ -4728,6 +4810,37 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       },
     ],
   },
+  "readAggregateStream": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "tx": "BEGIN",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select sequence,aggregate_type,payload from clinical_events where tenant_id=$1 and aggregate_id=$2 order by sequence",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
+      },
+    ],
+  },
   "readEncounter": {
     "outcome": {
       "ok": null,
@@ -5159,6 +5272,58 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "00000000-0000-4000-8000-000000000002",
           "k-1",
           "3f3cac575fcdcc49ce6fc7fef0ed5ca398af01749b14681ca4a488d5884fb3c6",
+        ],
+        "text": "insert into command_idempotency(tenant_id,actor_id,key,request_hash,status,expires_at) values($1,$2,$3,$4,'IN_PROGRESS',now()+interval '24 hours') on conflict do nothing returning key",
+        "via": "tx",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "k-1",
+        ],
+        "text": "select request_hash,status,response_json from command_idempotency where tenant_id=$1 and actor_id=$2 and key=$3 for update",
+        "via": "tx",
+      },
+      {
+        "tx": "ROLLBACK",
+      },
+    ],
+  },
+  "runClinicalCommand(transición)": {
+    "outcome": {
+      "error": "Error: IDEMPOTENCY_CONFLICT",
+    },
+    "queries": [
+      {
+        "params": [
+          "write",
+          "00000000-0000-4000-8000-000000000001:00000000-0000-4000-8000-000000000002",
+          120,
+          2,
+        ],
+        "text": "select allowed, tokens from rate_limit_take($1,$2,$3::double precision,$4::double precision)",
+        "via": "pool",
+      },
+      {
+        "tx": "BEGIN",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "k-1",
+          "05ceaf7457e06fbae65558a07b80b59f6702a5fa2bfda185130a4ca20cf393b2",
         ],
         "text": "insert into command_idempotency(tenant_id,actor_id,key,request_hash,status,expires_at) values($1,$2,$3,$4,'IN_PROGRESS',now()+interval '24 hours') on conflict do nothing returning key",
         "via": "tx",

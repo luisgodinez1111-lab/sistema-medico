@@ -10,7 +10,7 @@ export type FoldedProblem=Readonly<{exists:boolean;state:ProblemState;version:nu
 function kindOf(e:StoredProblemEvent):ProblemEventKind{
  const k=e.payload["kind"];
  if(k==="ADDED"||k==="RESOLVED"||k==="REACTIVATED"||k==="MARKED_CHRONIC"||k==="MARKED_ERROR"||k==="EPISTEMIC_CHANGED"||k==="EVIDENCE_UPDATED")return k;
- if(e.sequence===1)return "ADDED";
+ if(e.sequence===1&&k===undefined)return "ADDED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (hallazgo D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown problem event at sequence ${e.sequence}`);
 }
 // Auditoría 2026-09-19 (L-04) — eventos de ANOTACIÓN (estado epistémico, evidencia): NO cambian el estado del problema.

@@ -10,7 +10,7 @@ export type FoldedMedication=Readonly<{exists:boolean;state:MedicationState;vers
 function kindOf(e:StoredMedEvent):MedEventKind{
  const k=e.payload["kind"];
  if(k==="PROPOSED"||k==="PRESCRIBED"||k==="ACTIVATED"||k==="HELD"||k==="RESUMED"||k==="STOPPED"||k==="MODIFIED"||k==="RECONCILED")return k;
- if(e.sequence===1)return "PROPOSED";
+ if(e.sequence===1&&k===undefined)return "PROPOSED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (hallazgo D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown medication event at sequence ${e.sequence}`);
 }
 // Auditoría 2026-09-19 (L-04) — eventos de ANOTACIÓN: enriquecen el agregado SIN cambiar su estado de ciclo de vida.

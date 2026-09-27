@@ -5,7 +5,7 @@ import{type HttpTenantContext}from"../../../packages/http-principal/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldEncounter,assertTransition}from"../../../packages/encounter-fold/src";
 import{runClinicalCommand,lookupReplay}from"./runtime/command";
-import{readEncounterEvents}from"./runtime/event-store";
+import{readAggregateStream}from"./runtime/event-store";
 import{blockingObligations,countOpenCriticalResults,countOpenCriticalVitals}from"./runtime/read-models/follow-up";
 import{buildCommand,requireMutationHeaders,replayStablePayload}from"./http-command";
 import{endpoint}from"./http/endpoint";
@@ -26,11 +26,10 @@ const AssessBody=z.object({assessment:z.string().min(1),plan:z.string().min(1),o
 const SignBody=z.object({occurredAt:z.string().datetime(),contentHash:z.string().regex(/^[0-9a-f]{64}$/,"contentHash must be a sha256 hex digest")});
 export function encounterContentHash(assessment:string,plan:string):string{return crypto.createHash("sha256").update(`${assessment}\n${plan}`).digest("hex");}
 
-// Tras `endpoint`: cabeceras de mutación (428/400) y encuentro plegado (404). Lee con `readEncounterEvents` (el mismo SQL que
-// `loadAggregate`, pero es la llamada que registra el oráculo del contrato HTTP).
+// Tras `endpoint`: cabeceras de mutación (428/400) y encuentro plegado (404), leído con el stream TIPADO como `loadAggregate`.
 async function load(req:Request,ctx:HttpTenantContext,encounterId:string){
  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const events=await readEncounterEvents(ctx,encounterId);
+ const events=await readAggregateStream(ctx,AGG,encounterId);
  const folded=foldEncounter(events);
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Encounter not found");
  // La concurrencia optimista la impone el kernel (expectedVersion en aggregate_versions);

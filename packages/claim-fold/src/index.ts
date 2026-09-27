@@ -12,7 +12,7 @@ export type FoldedClaim=Readonly<{exists:boolean;state:ClaimState;version:number
 function kindOf(e:StoredClaimEvent):ClaimEventKind{
  const k=e.payload["kind"];
  if(k==="DRAFTED"||k==="CODED"||k==="SUBMITTED"||k==="PAID"||k==="REJECTED"||k==="VOIDED")return k;
- if(e.sequence===1)return "DRAFTED";
+ if(e.sequence===1&&k===undefined)return "DRAFTED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (hallazgo D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown claim event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<ClaimEventKind,ClaimState>={DRAFTED:"DRAFT",CODED:"CODED",SUBMITTED:"SUBMITTED",PAID:"PAID",REJECTED:"REJECTED",VOIDED:"VOIDED"};

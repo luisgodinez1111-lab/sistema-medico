@@ -10,7 +10,7 @@ export type FoldedOrder=Readonly<{exists:boolean;state:OrderState;version:number
 function kindOf(e:StoredOrderEvent):OrderEventKind{
  const k=e.payload["kind"];
  if(k==="CREATED"||k==="PLACED"||k==="FULFILLED"||k==="CANCELLED")return k;
- if(e.sequence===1)return "CREATED";
+ if(e.sequence===1&&k===undefined)return "CREATED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (hallazgo D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown order event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<OrderEventKind,OrderState>={CREATED:"DRAFT",PLACED:"ORDERED",FULFILLED:"FULFILLED",CANCELLED:"CANCELLED"};
