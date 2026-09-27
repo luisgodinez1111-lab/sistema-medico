@@ -56,6 +56,55 @@ verificó sobre un worktree limpio con exactamente el árbol del commit: typeche
 | D12a | — | **Pendiente de decisión PROD/ENG** (ver abajo) | — |
 | D12d | — | **Pendiente de decisión del dueño** (ver abajo) | — |
 
+### Revisión adversarial de las correcciones (2026-09-27)
+
+Cinco revisores independientes (proyecciones SQL, pipeline y kernel, efectos externos, dominio e interfaz, pruebas y
+gobierno) revisaron los commits D1–D12c; cada hallazgo pasó después por un verificador que intentó refutarlo contra un árbol
+limpio y una base desechable. Se corrigió todo lo confirmado (commit `2609be9`), otra vez en la raíz, con prueba unitaria o de render y prueba en
+vivo nueva con control negativo contra el commit anterior (`live-review-hardening-proof`, 16 checks: 11 fallan antes;
+`live-review-blob-effects-proof`, 11 checks: 5 fallan antes).
+
+| Hallazgo confirmado | Corrección en la raíz | Evidencia |
+|---|---|---|
+| D11c envió los marcadores `ASK` sin resolver (Aplicar, Otorgar, Codificar, Pagada, Dar de alta → 400) | `postAction` en el cockpit: toda acción genérica resuelve sus `ASK` con el diálogo U-16 antes de enviar | render «Aplicar» vacuna |
+| Consentimiento sin rol del firmante (un tutor quedaba como PATIENT; un menor no podía otorgarse) | «Otorga el paciente» / «Otorga el tutor» con `signerRole` explícito | render D11c |
+| Captura de vitales más larga que el intento (409 perpetuo, hora vieja, doble lectura) | La captura recuerda la lectura guardada de cada tipo, caduca (`VITAL_CAPTURE_TTL_MIN`), termina al limpiar; lo guardado sale del formulario | render D11a (2) |
+| Cambio de paciente dejaba el formulario de Signos del anterior | `selectPatientRaw` vacía Signos, historial y snapshots; `isSelectedPatient` descarta respuestas tardías | render D11b |
+| Críticos callados por un rechazo en la misma toma | `vitalSubmitMessage` informa críticos siempre | render D11a |
+| Estadio «STAGE_3», «CAPA implementada» y «—» inventados | `ASK_CHOICE` con `WOUND_STAGES` (fuente única en `wound-fold`, la usa también el servidor); resolución pedida; `REACTION_UNSPECIFIED` explícito | render F5 |
+| Brecha aniónica baja corregida atribuida a hipoalbuminemia | Interpretación propia para la brecha corregida | unitaria |
+| Duplicados del alta 20× más lentos (demografía de todo el padrón) | `patientsEverWith`: prefiltro por el valor buscado antes de la demografía vigente | `live-patient-demographics-projection-proof` |
+| Registro de resultados: un resultado cerrado y corregido volvía a «En revisión» | `RESULT_ANNOTATION_KINDS` en `result-fold`; el registro ignora anotaciones; `resultEstado` (regla única, estado «Corregido»); KPIs sobre vigentes | hardening (E) |
+| Indicador glucémico excluía en silencio valores no interpretables | `excluded` y nota explícita | hardening (F) |
+| Guarda de tipo del kernel con TOCTOU ante una génesis concurrente | La guarda corre después de reclamar la versión (bloqueo de fila) | hardening (A) |
+| `GET /encounters` sin tipo ni validación de id (otro agregado; 500 con id inválido) | `readEncounter` exige uuid y génesis Encounter | hardening (B) |
+| D5 reabría la obligación urgente de un resultado ya cerrado o corregido | En el replay solo se crea si el resultado sigue abierto | hardening (C) |
+| Replay de la corrección aceptaba otro valor y omitía `corrected` | Replay contra el resultado corregido guardado (digest) y respuesta con `corrected` | hardening (D) |
+| Retirada de adjunto: un borrado fallido nunca se repetía | El replay de la retirada repite el borrado | blob (A) |
+| Perfil: rutas únicas conservaban cada firma anterior | La imagen reemplazada se retira tras el commit; retirar la firma borra todas las de ese tipo | blob (B) |
+| Envío idéntico simultáneo recibía 409; commit ambiguo podía borrar un binario citado | `uploadThenCommit`: borra solo ante rechazo definitivo, conserva ante error ambiguo, responde el replay en la carrera | blob (C) + unitaria (9) |
+| Comentarios que afirmaban más de lo que el código hace | Cabecera de `runtime/command.ts`, «sin huérfanos» y la reconciliación de D5 corregidos | — |
+
+Refutados por su verificador: la unidad de un vital en la proyección (SQL-4, sin cambio) y la omisión de críticos en la vista
+Signos (el panel de alertas ya los muestra; el mensaje se corrigió igualmente porque la Consulta no tiene ese panel). La
+retención de las imágenes del perfil tuvo veredictos opuestos (un verificador la tomó por diseño de D6, otro la confirmó como
+regresión frente al comportamiento anterior, en el que el reemplazo sobrescribía la imagen): se restauró la retención previa a
+D6, sin volver a sobrescribir antes del commit.
+
+### Pendiente declarado (no resuelto en este lote)
+
+- **Reconciliación de D5 sin el cliente.** Un derivado que falla tras el commit principal se reconcilia solo con un reintento
+  idéntico (misma llave y cuerpo); el cockpit no lo hace. Cerrar Zero-Lost-Follow-Up exige un reconciliador del lado del
+  servidor ligado al consumidor del outbox (D-03).
+- **Barrido de binarios huérfanos.** Un intento que muere entre la subida y el commit, o un commit ambiguo, deja un binario que
+  ningún evento cita (se prefiere a borrar uno citado). Falta el barrido.
+- **Responsable y vencimiento de «Requiere acción» y de la obligación manual.** Siguen siendo un uuid y +7 días del cliente;
+  requieren un selector de responsables o que el servidor asigne al actor (decisión de producto).
+- **Invariantes (INV) de las correcciones C4/C5.** AGENTS.md exige INV + TEST; las pruebas existen, pero registrar las INV
+  requiere la autoridad ENG del dueño del registro.
+- **Validación PROD de textos clínicos nuevos:** advertencia e interpretación de la brecha aniónica (D9, F7), nota y meta del
+  indicador glucémico (D10, SQL-3), estado «Corregido» del registro y las etiquetas de los diálogos del cockpit (D11).
+
 ### Pendiente de decisión
 
 - **D12a — scopes de las vistas compuestas.** ADR-0230 fija scopes por recurso (`<recurso>:read`) pero no dice nada de las
@@ -78,5 +127,5 @@ comportamiento, y quedan registrados para su propio lote:
   `vitalPlausible`/`classifyVital` ignoran la unidad.
 - Carreras (TOCTOU) en el traslape de citas y en la detección de pacientes duplicados.
 - `problem`: el evento guarda `codeSystem:"CIE-10 OMS"` y la respuesta dice `"ICD-10"`.
-- `office-settings` PUT no tiene replay (un reintento tras un éxito responde 409); el replay de la corrección de un resultado
-  omite `corrected` en la respuesta.
+- `office-settings` PUT no tiene replay (un reintento tras un éxito responde 409). (El replay de la corrección de un resultado
+  que omitía `corrected` quedó corregido en la revisión adversarial.)
