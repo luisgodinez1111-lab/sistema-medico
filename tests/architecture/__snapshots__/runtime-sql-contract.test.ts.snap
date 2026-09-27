@@ -14,6 +14,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -21,6 +24,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -33,6 +37,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    where r.tenant_id=$1 and r.aggregate_type='Allergy' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=$2
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) in ('RECORDED','REACTIVATED')",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -44,6 +52,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -51,6 +62,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -63,6 +75,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    where r.tenant_id=$1 and r.aggregate_type='Allergy' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=$2
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) in ('RECORDED','REACTIVATED')",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -74,6 +90,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -81,6 +100,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -96,6 +116,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and r.aggregate_id::text<>$3
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id
            and c.payload->>'kind' not in ('MODIFIED','RECONCILED') order by sequence desc limit 1) in ('ACTIVATED','RESUMED')",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -107,6 +131,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -114,6 +141,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -129,6 +157,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and r.aggregate_id::text<>$3
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id
            and c.payload->>'kind' not in ('MODIFIED','RECONCILED') order by sequence desc limit 1) in ('ACTIVATED','RESUMED')",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -140,6 +172,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -147,6 +182,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -160,6 +196,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where r.tenant_id=$1 and r.aggregate_type='ClinicalProblem' and r.payload->>'kind'='ADDED' and r.payload->>'patientId'=$2
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id
            and c.payload->>'kind' not in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED') order by sequence desc limit 1) in ('ADDED','REACTIVATED','MARKED_CHRONIC')",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -171,6 +211,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -178,6 +221,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -192,6 +236,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    where r.tenant_id=$2 and r.aggregate_type='Immunization' and r.payload->>'kind'='DUE' and r.payload->>'patientId'=$3
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1)='ADMINISTERED'",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -206,6 +254,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -213,6 +264,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -227,6 +279,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    where r.tenant_id=$2 and r.aggregate_type='Immunization' and r.payload->>'kind'='DUE' and r.payload->>'patientId'=$3
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1)='ADMINISTERED'",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -249,6 +305,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -256,6 +315,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -276,6 +336,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where a.tenant_id=$4 and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
      and a.payload->>'startAt' >= $5 and a.payload->>'startAt' < $6
    order by a.payload->>'startAt' asc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -297,6 +361,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -304,6 +371,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -319,6 +387,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$3 and a.aggregate_type='Allergy' and a.payload->>'kind'='RECORDED'
    order by a.occurred_at desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -328,6 +400,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -335,6 +410,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -350,6 +426,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and r.payload->>'patientId'=$2 and upper(r.payload->>'analyte')=upper($3)
      and not exists(select 1 from clinical_events s where s.tenant_id=$4 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at asc, r.sequence asc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -366,6 +446,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -373,6 +456,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -384,6 +468,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
    group by last_kind",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -398,6 +486,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -405,6 +496,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -415,6 +507,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$1 and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
    group by appt_type order by n desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -424,6 +520,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -431,6 +530,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -443,6 +543,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -460,6 +564,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -467,6 +574,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -480,6 +588,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='CarePlan' and a.payload->>'kind'='PROPOSED' and a.payload->>'patientId'=$3
    order by a.occurred_at asc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -500,6 +612,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -507,6 +622,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -523,6 +639,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$4 and a.aggregate_type='Claim' and a.payload->>'kind'='DRAFTED'
    order by a.occurred_at desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -532,6 +652,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -539,6 +662,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -554,6 +678,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and not exists(
       select 1 from clinical_events c
       where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id and c.payload->>'kind' in ('CLOSED','CORRECTED'))",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -563,6 +691,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -570,6 +701,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -587,6 +719,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       select 1 from clinical_events c
       where c.tenant_id=$3 and c.aggregate_type='ClinicalObligation'
         and c.payload->>'sourceVitalId'=r.aggregate_id::text and c.payload->>'kind'='CREATED')",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -596,6 +732,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -603,6 +742,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -615,6 +755,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -637,6 +781,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -644,6 +791,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -655,6 +803,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$1 and a.aggregate_type='ClinicalDocument' and a.aggregate_id=$2
    order by a.sequence asc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -673,6 +825,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -680,6 +835,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -690,6 +846,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$1 and a.aggregate_type='Encounter' and a.payload->>'kind'='OPENED'
    group by day order by day asc",
+        "via": "tx",
       },
       {
         "params": [
@@ -698,6 +855,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "text": "
    select count(*)::int as n from clinical_events a
    where a.tenant_id=$1 and a.aggregate_type='Encounter' and a.payload->>'kind'='SIGNED'",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -710,6 +871,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -717,6 +881,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -724,6 +889,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "HEGG560427MVZRRL04",
         ],
         "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(r.payload->>'curp')=$2 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -736,6 +905,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -743,6 +915,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -750,6 +923,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "HEGG560427MVZRRL04",
         ],
         "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(r.payload->>'curp')=$2 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -762,6 +939,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -769,6 +949,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -779,6 +960,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
     and r.payload->>'birthDate'=$2
     and btrim(regexp_replace(lower(translate(r.payload->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=$3 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -801,6 +986,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -808,6 +996,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -830,6 +1019,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$6 and a.aggregate_type='Immunization' and a.payload->>'kind'='DUE'
    order by coalesce((select occurred_at from clinical_events ad where ad.tenant_id=$7 and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1), a.occurred_at) desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -839,6 +1032,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -846,6 +1042,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -862,6 +1059,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and r.payload->>'patientId'=$2 and upper(r.payload->>'analyte')=upper($3)
      and not exists(select 1 from clinical_events s where s.tenant_id=$4 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at desc, r.sequence desc limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "ROLLBACK",
       },
     ],
   },
@@ -871,6 +1072,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -878,6 +1082,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -895,6 +1100,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and r.aggregate_id::text<>$4
      and not exists(select 1 from clinical_events s where s.tenant_id=$5 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at desc, r.sequence desc limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -904,6 +1113,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -911,6 +1123,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -928,6 +1141,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and r.aggregate_id::text<>$4
      and not exists(select 1 from clinical_events s where s.tenant_id=$5 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at desc, r.sequence desc limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -939,6 +1156,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -946,6 +1166,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -958,6 +1179,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where r.tenant_id=$1 and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
      and r.payload->>'patientId'=$2
    order by r.payload->>'vitalType', r.occurred_at desc, r.sequence desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -981,6 +1206,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -988,12 +1216,14 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
         ],
         "text": "select count(*)::int as n from clinical_events where tenant_id=$1 and aggregate_type='Patient' and payload->>'kind'='REGISTERED'",
+        "via": "tx",
       },
       {
         "params": [
@@ -1030,6 +1260,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and ($9::text is null or (p.name, p.aggregate_id::text) > ($10::text, $11::text))
    order by p.name, p.aggregate_id
    limit $12",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1053,6 +1287,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1060,12 +1297,14 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
         ],
         "text": "select count(*)::int as n from clinical_events where tenant_id=$1 and aggregate_type='Patient' and payload->>'kind'='REGISTERED'",
+        "via": "tx",
       },
       {
         "params": [
@@ -1102,6 +1341,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and ($9::text is null or (p.name, p.aggregate_id::text) > ($10::text, $11::text))
    order by p.name, p.aggregate_id
    limit $12",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1111,6 +1354,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1118,6 +1364,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1126,6 +1373,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "k-1",
         ],
         "text": "select status,request_hash,response_json from command_idempotency where tenant_id=$1 and actor_id=$2 and key=$3",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1140,6 +1391,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1147,6 +1401,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1159,6 +1414,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where base.tenant_id=$1 and base.aggregate_type='Medication' and base.payload->>'kind'='PROPOSED'
      and exists (select 1 from clinical_events pr where pr.tenant_id=$2 and pr.aggregate_id=base.aggregate_id and pr.payload->>'kind'='PRESCRIBED')
    group by drug order by n desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1171,6 +1430,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1178,6 +1440,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1190,6 +1453,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='OfficeSettings' and a.payload->>'kind'='UPDATED'
    order by a.sequence desc limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1210,6 +1477,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1217,6 +1487,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1233,6 +1504,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$4 and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED'
    order by a.occurred_at desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1242,6 +1517,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1249,6 +1527,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1270,6 +1549,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    left join lateral (select payload from clinical_events am where am.tenant_id=$1 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
    where r.tenant_id=$2 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=$3 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1289,6 +1572,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1296,6 +1582,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1317,6 +1604,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    left join lateral (select payload from clinical_events am where am.tenant_id=$1 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
    where r.tenant_id=$2 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=$3 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1335,6 +1626,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1342,6 +1636,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1355,6 +1650,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='ClinicalDocument' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3
    order by a.occurred_at desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1364,6 +1663,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1371,6 +1673,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1392,6 +1695,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    left join lateral (select payload from clinical_events am where am.tenant_id=$1 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
    where r.tenant_id=$2 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=$3 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1410,6 +1717,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1417,6 +1727,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1430,6 +1741,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3
    order by a.payload->>'dueAt' asc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1439,6 +1754,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1446,6 +1764,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1459,6 +1778,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where v.tenant_id=$1 and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=$2
    order by v.occurred_at desc
    limit $3",
+        "via": "tx",
+      },
+      {
+        "tx": "ROLLBACK",
       },
     ],
   },
@@ -1468,6 +1791,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1475,6 +1801,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1488,6 +1815,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where v.tenant_id=$1 and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=$2
    order by v.occurred_at desc
    limit $3",
+        "via": "tx",
+      },
+      {
+        "tx": "ROLLBACK",
       },
     ],
   },
@@ -1509,6 +1840,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1516,6 +1850,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1531,6 +1866,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$3 and a.aggregate_type='ClinicalProblem' and a.payload->>'kind'='ADDED'
    order by a.occurred_at desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1550,6 +1889,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1557,6 +1899,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1564,6 +1907,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "select sequence,payload from clinical_events where tenant_id=$1 and aggregate_id=$2 order by sequence",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1583,6 +1930,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1590,6 +1940,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1597,6 +1948,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "select version from aggregate_versions where tenant_id=$1 and aggregate_id=$2",
+        "via": "tx",
       },
       {
         "params": [
@@ -1604,6 +1956,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "select sequence,aggregate_type,occurred_at from clinical_events where tenant_id=$1 and aggregate_id=$2 order by sequence",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1623,6 +1979,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1630,6 +1989,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1637,6 +1997,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "select sequence,payload from clinical_events where tenant_id=$1 and aggregate_id=$2 order by sequence",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1651,6 +2015,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1658,6 +2025,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1666,6 +2034,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "select payload from clinical_events where tenant_id=$1 and id=$2 and aggregate_id=$3 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1683,6 +2055,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1690,6 +2065,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1703,6 +2079,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where r.tenant_id=$1 and r.aggregate_id in (
      select aggregate_id from clinical_events where tenant_id=$2 and sequence=1 and payload->>'patientId'=$3)
    order by r.aggregate_id, r.sequence",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1725,6 +2105,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1732,6 +2115,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1763,6 +2147,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    having ($6::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($7::timestamptz, $8::text))
    order by min(r.occurred_at) desc, r.aggregate_id desc
    limit $9",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1785,6 +2173,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1792,6 +2183,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1823,6 +2215,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    having ($6::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($7::timestamptz, $8::text))
    order by min(r.occurred_at) desc, r.aggregate_id desc
    limit $9",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1840,6 +2236,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1847,6 +2246,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1863,6 +2263,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_status
    from clinical_events r
    where r.tenant_id=$3 and r.sequence=1 and r.payload->>'patientId' is not null",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1881,6 +2285,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1888,6 +2295,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1898,6 +2306,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$1 and a.aggregate_type='RegulatoryObligation' and a.payload->>'kind'='CREATED'
    order by a.payload->>'dueDate' asc nulls last",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1907,6 +2319,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1914,6 +2329,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1921,6 +2337,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "select payload->>'kind' as kind from clinical_events where tenant_id=$1 and aggregate_type='Patient' and aggregate_id=$2 and payload->>'kind' in ('REGISTERED','DEACTIVATED','REACTIVATED','DECEASED') order by sequence desc limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1943,6 +2363,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -1950,6 +2373,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -1965,6 +2389,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$3 and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
    order by a.occurred_at desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -1991,6 +2419,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           2,
         ],
         "text": "select allowed, tokens from rate_limit_take($1,$2,$3::double precision,$4::double precision)",
+        "via": "pool",
+      },
+      {
+        "tx": "BEGIN",
       },
       {
         "params": [
@@ -2000,6 +2432,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2009,6 +2442,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "3f3cac575fcdcc49ce6fc7fef0ed5ca398af01749b14681ca4a488d5884fb3c6",
         ],
         "text": "insert into command_idempotency(tenant_id,actor_id,key,request_hash,status,expires_at) values($1,$2,$3,$4,'IN_PROGRESS',now()+interval '24 hours') on conflict do nothing returning key",
+        "via": "tx",
       },
       {
         "params": [
@@ -2017,6 +2451,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           0,
         ],
         "text": "insert into aggregate_versions(tenant_id,aggregate_id,version) values($1,$2,1) on conflict(tenant_id,aggregate_id) do update set version=aggregate_versions.version+1,updated_at=now() where aggregate_versions.version=$3 returning version",
+        "via": "tx",
       },
       {
         "params": [
@@ -2042,6 +2477,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "2026-09-01T10:00:00.000Z",
         ],
         "text": "insert into clinical_events(id,tenant_id,aggregate_id,aggregate_type,sequence,actor_id,actor_type,authority,correlation_id,payload,schema_version,occurred_at) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,1,$11)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2056,6 +2492,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           },
         ],
         "text": "insert into outbox(id,tenant_id,topic,aggregate_id,payload,state,available_at) values($1,$2,$3,$4,$5,'PENDING',now())",
+        "via": "tx",
       },
       {
         "params": [
@@ -2071,6 +2508,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           },
         ],
         "text": "select app.append_audit_v17($1,$2,$3,'CLINICAL_COMMAND',$4,$5) as entry_hash",
+        "via": "tx",
       },
       {
         "params": [
@@ -2089,6 +2527,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "k-1",
         ],
         "text": "update command_idempotency set status='COMPLETED',response_json=$1 where tenant_id=$2 and actor_id=$3 and key=$4",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2103,6 +2545,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2110,6 +2555,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2122,6 +2568,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    where r.tenant_id=$1 and r.aggregate_type='Allergy' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=$2
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) in ('RECORDED','REACTIVATED')",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2131,6 +2581,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2138,6 +2591,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2150,6 +2604,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    where r.tenant_id=$1 and r.aggregate_type='Allergy' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=$2
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) in ('RECORDED','REACTIVATED')",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2159,6 +2617,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2166,6 +2627,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2181,6 +2643,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and r.aggregate_id::text<>$3
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id
            and c.payload->>'kind' not in ('MODIFIED','RECONCILED') order by sequence desc limit 1) in ('ACTIVATED','RESUMED')",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2190,6 +2656,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2197,6 +2666,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2212,6 +2682,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and r.aggregate_id::text<>$3
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id
            and c.payload->>'kind' not in ('MODIFIED','RECONCILED') order by sequence desc limit 1) in ('ACTIVATED','RESUMED')",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2221,6 +2695,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2228,6 +2705,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2241,6 +2719,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where r.tenant_id=$1 and r.aggregate_type='ClinicalProblem' and r.payload->>'kind'='ADDED' and r.payload->>'patientId'=$2
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id
            and c.payload->>'kind' not in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED') order by sequence desc limit 1) in ('ADDED','REACTIVATED','MARKED_CHRONIC')",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2250,6 +2732,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2257,6 +2742,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2271,6 +2757,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    where r.tenant_id=$2 and r.aggregate_type='Immunization' and r.payload->>'kind'='DUE' and r.payload->>'patientId'=$3
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1)='ADMINISTERED'",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2280,6 +2770,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2287,6 +2780,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2301,6 +2795,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    where r.tenant_id=$2 and r.aggregate_type='Immunization' and r.payload->>'kind'='DUE' and r.payload->>'patientId'=$3
      and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1)='ADMINISTERED'",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2310,6 +2808,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2317,6 +2818,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2337,6 +2839,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where a.tenant_id=$4 and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
      and a.payload->>'startAt' >= $5 and a.payload->>'startAt' < $6
    order by a.payload->>'startAt' asc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2346,6 +2852,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2353,6 +2862,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2368,6 +2878,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$3 and a.aggregate_type='Allergy' and a.payload->>'kind'='RECORDED'
    order by a.occurred_at desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2377,6 +2891,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2384,6 +2901,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2399,6 +2917,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and r.payload->>'patientId'=$2 and upper(r.payload->>'analyte')=upper($3)
      and not exists(select 1 from clinical_events s where s.tenant_id=$4 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at asc, r.sequence asc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2415,6 +2937,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2422,6 +2947,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2433,6 +2959,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
    group by last_kind",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2442,6 +2972,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2449,6 +2982,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2459,6 +2993,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$1 and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
    group by appt_type order by n desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2468,6 +3006,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2475,6 +3016,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2487,6 +3029,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2496,6 +3042,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2503,6 +3052,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2516,6 +3066,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='CarePlan' and a.payload->>'kind'='PROPOSED' and a.payload->>'patientId'=$3
    order by a.occurred_at asc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2525,6 +3079,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2532,6 +3089,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2548,6 +3106,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$4 and a.aggregate_type='Claim' and a.payload->>'kind'='DRAFTED'
    order by a.occurred_at desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2557,6 +3119,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2564,6 +3129,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2579,6 +3145,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and not exists(
       select 1 from clinical_events c
       where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id and c.payload->>'kind' in ('CLOSED','CORRECTED'))",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2588,6 +3158,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2595,6 +3168,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2612,6 +3186,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       select 1 from clinical_events c
       where c.tenant_id=$3 and c.aggregate_type='ClinicalObligation'
         and c.payload->>'sourceVitalId'=r.aggregate_id::text and c.payload->>'kind'='CREATED')",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2621,6 +3199,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2628,6 +3209,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2640,6 +3222,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2662,6 +3248,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2669,6 +3258,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2680,6 +3270,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$1 and a.aggregate_type='ClinicalDocument' and a.aggregate_id=$2
    order by a.sequence asc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2693,6 +3287,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2700,6 +3297,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2710,6 +3308,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$1 and a.aggregate_type='Encounter' and a.payload->>'kind'='OPENED'
    group by day order by day asc",
+        "via": "tx",
       },
       {
         "params": [
@@ -2718,6 +3317,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "text": "
    select count(*)::int as n from clinical_events a
    where a.tenant_id=$1 and a.aggregate_type='Encounter' and a.payload->>'kind'='SIGNED'",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2727,6 +3330,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2734,6 +3340,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2741,6 +3348,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "HEGG560427MVZRRL04",
         ],
         "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(r.payload->>'curp')=$2 limit 1",
+        "via": "tx",
       },
       {
         "params": [
@@ -2751,6 +3359,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
     and r.payload->>'birthDate'=$2
     and btrim(regexp_replace(lower(translate(r.payload->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=$3 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2760,6 +3372,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2767,6 +3382,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2774,6 +3390,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "HEGG560427MVZRRL04",
         ],
         "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(r.payload->>'curp')=$2 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2783,6 +3403,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2790,6 +3413,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2800,6 +3424,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
     and r.payload->>'birthDate'=$2
     and btrim(regexp_replace(lower(translate(r.payload->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=$3 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2809,6 +3437,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2816,6 +3447,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2838,6 +3470,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$6 and a.aggregate_type='Immunization' and a.payload->>'kind'='DUE'
    order by coalesce((select occurred_at from clinical_events ad where ad.tenant_id=$7 and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1), a.occurred_at) desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2847,6 +3483,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2854,6 +3493,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2870,6 +3510,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and r.payload->>'patientId'=$2 and upper(r.payload->>'analyte')=upper($3)
      and not exists(select 1 from clinical_events s where s.tenant_id=$4 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at desc, r.sequence desc limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2879,6 +3523,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2886,6 +3533,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2903,6 +3551,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and r.aggregate_id::text<>$4
      and not exists(select 1 from clinical_events s where s.tenant_id=$5 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at desc, r.sequence desc limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2912,6 +3564,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2919,6 +3574,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2936,6 +3592,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and r.aggregate_id::text<>$4
      and not exists(select 1 from clinical_events s where s.tenant_id=$5 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at desc, r.sequence desc limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2945,6 +3605,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2952,6 +3615,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -2964,6 +3628,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where r.tenant_id=$1 and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
      and r.payload->>'patientId'=$2
    order by r.payload->>'vitalType', r.occurred_at desc, r.sequence desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -2977,6 +3645,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -2984,12 +3655,14 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
         ],
         "text": "select count(*)::int as n from clinical_events where tenant_id=$1 and aggregate_type='Patient' and payload->>'kind'='REGISTERED'",
+        "via": "tx",
       },
       {
         "params": [
@@ -3026,6 +3699,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and ($9::text is null or (p.name, p.aggregate_id::text) > ($10::text, $11::text))
    order by p.name, p.aggregate_id
    limit $12",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3039,6 +3716,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3046,12 +3726,14 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
         ],
         "text": "select count(*)::int as n from clinical_events where tenant_id=$1 and aggregate_type='Patient' and payload->>'kind'='REGISTERED'",
+        "via": "tx",
       },
       {
         "params": [
@@ -3088,6 +3770,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      and ($9::text is null or (p.name, p.aggregate_id::text) > ($10::text, $11::text))
    order by p.name, p.aggregate_id
    limit $12",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3097,6 +3783,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3104,6 +3793,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3112,6 +3802,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "k-1",
         ],
         "text": "select status,request_hash,response_json from command_idempotency where tenant_id=$1 and actor_id=$2 and key=$3",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3121,6 +3815,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3128,6 +3825,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3140,6 +3838,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where base.tenant_id=$1 and base.aggregate_type='Medication' and base.payload->>'kind'='PROPOSED'
      and exists (select 1 from clinical_events pr where pr.tenant_id=$2 and pr.aggregate_id=base.aggregate_id and pr.payload->>'kind'='PRESCRIBED')
    group by drug order by n desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3152,6 +3854,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3159,6 +3864,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3171,6 +3877,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='OfficeSettings' and a.payload->>'kind'='UPDATED'
    order by a.sequence desc limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3180,6 +3890,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3187,6 +3900,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3203,6 +3917,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$4 and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED'
    order by a.occurred_at desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3212,6 +3930,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3219,6 +3940,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3240,6 +3962,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    left join lateral (select payload from clinical_events am where am.tenant_id=$1 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
    where r.tenant_id=$2 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=$3 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3249,6 +3975,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3256,6 +3985,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3277,6 +4007,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    left join lateral (select payload from clinical_events am where am.tenant_id=$1 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
    where r.tenant_id=$2 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=$3 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3286,6 +4020,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3293,6 +4030,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3306,6 +4044,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='ClinicalDocument' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3
    order by a.occurred_at desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3315,6 +4057,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3322,6 +4067,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3343,6 +4089,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events r
    left join lateral (select payload from clinical_events am where am.tenant_id=$1 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
    where r.tenant_id=$2 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=$3 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3352,6 +4102,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3359,6 +4112,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3372,6 +4126,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$2 and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3
    order by a.payload->>'dueAt' asc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3381,6 +4139,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3388,6 +4149,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3401,6 +4163,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where v.tenant_id=$1 and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=$2
    order by v.occurred_at desc
    limit $3",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3410,6 +4176,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3417,6 +4186,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3430,6 +4200,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where v.tenant_id=$1 and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=$2
    order by v.occurred_at desc
    limit $3",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3439,6 +4213,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3446,6 +4223,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3461,6 +4239,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$3 and a.aggregate_type='ClinicalProblem' and a.payload->>'kind'='ADDED'
    order by a.occurred_at desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3470,6 +4252,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3477,6 +4262,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3484,6 +4270,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "select sequence,payload from clinical_events where tenant_id=$1 and aggregate_id=$2 order by sequence",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3493,6 +4283,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3500,6 +4293,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3507,6 +4301,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "select version from aggregate_versions where tenant_id=$1 and aggregate_id=$2",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3516,6 +4314,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3523,6 +4324,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3530,6 +4332,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "select sequence,payload from clinical_events where tenant_id=$1 and aggregate_id=$2 order by sequence",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3539,6 +4345,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3546,6 +4355,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3554,6 +4364,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "select payload from clinical_events where tenant_id=$1 and id=$2 and aggregate_id=$3 limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3563,6 +4377,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3570,6 +4387,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3583,6 +4401,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    where r.tenant_id=$1 and r.aggregate_id in (
      select aggregate_id from clinical_events where tenant_id=$2 and sequence=1 and payload->>'patientId'=$3)
    order by r.aggregate_id, r.sequence",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3595,6 +4417,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3602,6 +4427,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3633,6 +4459,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    having ($6::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($7::timestamptz, $8::text))
    order by min(r.occurred_at) desc, r.aggregate_id desc
    limit $9",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3645,6 +4475,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3652,6 +4485,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3683,6 +4517,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    having ($6::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($7::timestamptz, $8::text))
    order by min(r.occurred_at) desc, r.aggregate_id desc
    limit $9",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3692,6 +4530,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3699,6 +4540,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3715,6 +4557,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_status
    from clinical_events r
    where r.tenant_id=$3 and r.sequence=1 and r.payload->>'patientId' is not null",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3724,6 +4570,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3731,6 +4580,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3741,6 +4591,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$1 and a.aggregate_type='RegulatoryObligation' and a.payload->>'kind'='CREATED'
    order by a.payload->>'dueDate' asc nulls last",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3750,6 +4604,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3757,6 +4614,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3764,6 +4622,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "select payload->>'kind' as kind from clinical_events where tenant_id=$1 and aggregate_type='Patient' and aggregate_id=$2 and payload->>'kind' in ('REGISTERED','DEACTIVATED','REACTIVATED','DECEASED') order by sequence desc limit 1",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3773,6 +4635,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     },
     "queries": [
       {
+        "tx": "BEGIN",
+      },
+      {
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000002",
@@ -3780,6 +4645,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3795,6 +4661,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
    from clinical_events a
    where a.tenant_id=$3 and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
    order by a.occurred_at desc",
+        "via": "tx",
+      },
+      {
+        "tx": "COMMIT",
       },
     ],
   },
@@ -3811,6 +4681,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           2,
         ],
         "text": "select allowed, tokens from rate_limit_take($1,$2,$3::double precision,$4::double precision)",
+        "via": "pool",
+      },
+      {
+        "tx": "BEGIN",
       },
       {
         "params": [
@@ -3820,6 +4694,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "req-contract",
         ],
         "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+        "via": "tx",
       },
       {
         "params": [
@@ -3829,6 +4704,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "3f3cac575fcdcc49ce6fc7fef0ed5ca398af01749b14681ca4a488d5884fb3c6",
         ],
         "text": "insert into command_idempotency(tenant_id,actor_id,key,request_hash,status,expires_at) values($1,$2,$3,$4,'IN_PROGRESS',now()+interval '24 hours') on conflict do nothing returning key",
+        "via": "tx",
       },
       {
         "params": [
@@ -3837,6 +4713,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "k-1",
         ],
         "text": "select request_hash,status,response_json from command_idempotency where tenant_id=$1 and actor_id=$2 and key=$3 for update",
+        "via": "tx",
+      },
+      {
+        "tx": "ROLLBACK",
       },
     ],
   },

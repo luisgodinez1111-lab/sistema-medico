@@ -1,0 +1,1693 @@
+{
+ "lote": "11.1",
+ "commit": "12611cf",
+ "base": "PostgreSQL 16 desechable (UTF8) con las 22 migraciones; Vercel Blob de pruebas",
+ "generado": "2026-09-27",
+ "resumen": "SMOKE: 97 PASS · 0 FAIL · 0 SKIP (de 97)",
+ "pruebas": [
+  {
+   "prueba": "live-aa-gradient-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPUTABLE_200",
+    "ELEVATED_GRADIENT",
+    "NORMAL_GRADIENT_HYPOVENTILATION",
+    "ALTITUDE_LOWERS_PAO2",
+    "USES_LATEST_PO2",
+    "MISSING_PCO2",
+    "FIO2_REQUIRED",
+    "FIO2_OUT_OF_RANGE_REJECTED",
+    "SUPPLEMENTAL_O2_NO_ROOM_AIR_FORMULA",
+    "PROVENANCE_RETURNED",
+    "UNREGISTERED_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-acid-base-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPUTABLE_200",
+    "METABOLIC_ACIDOSIS_WINTERS",
+    "COMPENSATION_ADEQUATE",
+    "MIXED_ON_LATEST_PCO2",
+    "RESPIRATORY_ACIDOSIS",
+    "MISSING_ANALYTE",
+    "STALE_BLOOD_GAS_NOT_COMPUTABLE",
+    "DIFFERENT_DRAWS_NOT_COMPUTABLE",
+    "SAME_SPECIMEN_IS_COHERENT",
+    "KPA_CONVERTED_TO_MMHG",
+    "IMPLAUSIBLE_PH_REJECTED_400",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-admission-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "ADMIT_201",
+    "TRANSFER_ICU_201",
+    "TRANSFER_WARD_201",
+    "DISCHARGE_201",
+    "TRANSFER_AFTER_DISCHARGE_409",
+    "CANCEL_201",
+    "DISCHARGE_AFTER_CANCEL_409",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-agenda-day-proof",
+   "estado": "PASS",
+   "checks": [
+    "SCHEDULE_201",
+    "AGENDA_200",
+    "FIVE_APPTS",
+    "SORTED_BY_TIME",
+    "PATIENT_NAME_JOINED",
+    "CONSULTORIO_TYPE",
+    "A1_COMPLETED_V3",
+    "A2_SCHEDULED_V1",
+    "A4_CANCELLED_V2",
+    "A5_NOSHOW_V2",
+    "COUNTS",
+    "OTHER_DAY_EMPTY",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-ai-copilot-gateway-proof",
+   "estado": "PASS",
+   "checks": [
+    "KILL_SWITCH_OFF_503",
+    "HUMAN_AUTHORITY_PRESCRIBE_403",
+    "HUMAN_AUTHORITY_SIGN_403",
+    "SUMMARIZE_ALLOWED_200",
+    "AI_SUGGESTED_NOT_PROMOTED_NOT_GENERATIVE",
+    "DETERMINISTIC_GROUNDED_CONTENT",
+    "BUDGET_OPEN_CRITICAL_BLOCKED",
+    "SUGGEST_NO_EVIDENCE_BLOCKED",
+    "EXTRACT_ABSTAIN_NO_PROVIDER",
+    "MISSING_SCOPE_403",
+    "SHADOW_DOES_NOT_LEAK_TO_CLINICIAN"
+   ]
+  },
+  {
+   "prueba": "live-allergy-medication-gate-proof",
+   "estado": "PASS",
+   "checks": [
+    "ALLERGY_ACTIVE_201",
+    "PRESCRIBE_BLOCKED_BY_ALLERGY_403",
+    "ALLERGY_INACTIVATED_201",
+    "PRESCRIBE_UNBLOCKED_AFTER_INACTIVATE_201",
+    "ALLERGY_REACTIVATED_201",
+    "ALLERGY_REFUTED_201",
+    "REACTIVATE_REFUTED_ILLEGAL_409",
+    "CROSS_TENANT_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-allergy-registry-proof",
+   "estado": "PASS",
+   "checks": [
+    "RECORD_201",
+    "LIST_200",
+    "TOTAL_5",
+    "PATIENTS_3",
+    "TYPE_MED",
+    "TYPE_ENV",
+    "TYPE_FOOD",
+    "TYPE_CONTRAST",
+    "PATIENT_JOIN",
+    "LABELS_ES",
+    "SEVERITY_COUNTS",
+    "TYPE_COUNTS",
+    "INACTIVATE_OK",
+    "STATUS_INACTIVE",
+    "ACTIVE_COUNT_4",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-anticoagulation-status-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPUTABLE_200",
+    "THERAPEUTIC_ON_ANTICOAG",
+    "SUBTHERAPEUTIC",
+    "CRITICAL_HIGH",
+    "NO_ANTICOAG_NOTE",
+    "NO_INR_NOT_COMPUTABLE",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-appointment-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "SCHEDULE_201",
+    "CHECKIN_201",
+    "COMPLETE_201",
+    "COMPLETE_WITHOUT_CHECKIN_409",
+    "NOSHOW_201",
+    "CHECKIN_AFTER_NOSHOW_409",
+    "CANCEL_201",
+    "SLOT_FREE_201",
+    "DOUBLE_BOOKING_409",
+    "PARTIAL_OVERLAP_409",
+    "OTHER_ROOM_SAME_TIME_201",
+    "SAME_PATIENT_OVERLAP_409",
+    "END_BEFORE_START_400",
+    "CANCEL_FREES_SLOT",
+    "SLOT_REUSED_AFTER_CANCEL_201",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-audit-chain-verify-proof",
+   "estado": "PASS",
+   "checks": [
+    "EMPTY_CHAIN_IS_GENESIS",
+    "FIVE_ENTRIES_VERIFIED",
+    "LAST_HASH_MATCHES_KERNEL_RESPONSE",
+    "CHAIN_LINKS_STORED_CORRECTLY",
+    "TAMPER_DETECTED_AT_SEQUENCE_3",
+    "APPEND_ONLY_UPDATE_AND_DELETE_REJECTED",
+    "CHAIN_INTACT_AFTER_ATTEMPTS",
+    "OTHER_TENANT_SEES_NOTHING"
+   ]
+  },
+  {
+   "prueba": "live-bmi-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPUTABLE_200",
+    "ADULT_BMI_OBESITY_I",
+    "USES_LATEST_WEIGHT",
+    "PEDIATRIC_PERCENTILE_FLAG",
+    "NO_HEIGHT_NOT_COMPUTABLE",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-bp-stage-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPUTABLE_200",
+    "STAGE_2",
+    "USES_LATEST_BP",
+    "CRISIS",
+    "NO_BP_NOT_COMPUTABLE",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-care-gaps-proof",
+   "estado": "PASS",
+   "checks": [
+    "CARE_GAPS_200",
+    "THREE_GAPS",
+    "EXPECTED_CODES",
+    "LOW_PRIORITY_LAST",
+    "CROSS_TENANT_EMPTY",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-care-plan-snapshot-proof",
+   "estado": "PASS",
+   "checks": [
+    "SNAP_200",
+    "THREE_PROBLEMS",
+    "PROBLEM_DESCRIPTION",
+    "PROBLEM_STATUS_LABEL",
+    "COUNT_PROBLEMS_3",
+    "COUNT_ALLERGIES_1",
+    "TWO_GOALS",
+    "GOAL_CONTENT",
+    "GOAL_ACTIVATED",
+    "GOAL_PROPOSED",
+    "METRIC_HBA1C",
+    "METRIC_BP",
+    "METRIC_WEIGHT",
+    "METRIC_IMC_DERIVED",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-careplan-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "PROPOSE_201",
+    "ACTIVATE_201",
+    "HOLD_201",
+    "RESUME_201",
+    "ACHIEVE_201",
+    "HOLD_AFTER_ACHIEVE_409",
+    "ACHIEVE_WITHOUT_ACTIVATE_409",
+    "CANCEL_FROM_HOLD_201",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-cha2ds2vasc-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPUTED_200",
+    "SCORE_5_HIGH",
+    "AFIB_APPLICABLE",
+    "ANTICOAG_RECOMMENDED",
+    "HAS_ANNUAL_RISK",
+    "SCORE_0_LOW",
+    "NO_AFIB_NOTE",
+    "FEMALE_SCORE_3_HIGH",
+    "UNREGISTERED_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-charlson-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPUTED_200",
+    "SCORE_7_SEVERE",
+    "AGE_AND_COMORBIDITY_SPLIT",
+    "RENAL_WEIGHT_2",
+    "HAS_SURVIVAL_ESTIMATE",
+    "SCORE_0_LOW",
+    "DIABETES_SIMPLE_1",
+    "UNREGISTERED_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-claim-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "DRAFT_201",
+    "CODE_201",
+    "INVALID_ICD10_CODE_400",
+    "SUBMIT_201",
+    "REJECT_201",
+    "RESUBMIT_201",
+    "PAY_201",
+    "VOID_AFTER_PAID_409",
+    "SUBMIT_WITHOUT_CODE_409",
+    "VOID_FROM_CODED_201",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-claims-registry-proof",
+   "estado": "PASS",
+   "checks": [
+    "DRAFT_201",
+    "PAY1_OK",
+    "VOID_OK",
+    "PAY_AUGUST_OK",
+    "LIST_200",
+    "TOTAL_5",
+    "ISSUED_5",
+    "INCOME_SEPTEMBER_1700_EXCLUDES_AUGUST",
+    "INCOME_ALL_TIME_2699",
+    "INCOME_AUGUST_999",
+    "PENDING_1_350",
+    "CANCELLATIONS_1",
+    "FOLIO_SEQUENTIAL",
+    "PATIENT_JOIN",
+    "LABELS_ES",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-clinical-intelligence-proof",
+   "estado": "PASS",
+   "checks": [
+    "SUMMARY_200",
+    "MULTIPLE_FINDINGS",
+    "CRITICAL_FIRST",
+    "NEWS2_CRITICAL",
+    "RENAL_FLAG",
+    "GLYCEMIC_FLAG",
+    "ANTICOAG_FLAG",
+    "SUMMARY_COUNTS",
+    "BP_CRISIS_FINDING",
+    "HEALTHY_NO_FINDINGS",
+    "UNREGISTERED_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-consent-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "DRAFT_201",
+    "PRESENT_201",
+    "GRANT_201",
+    "REVOKE_201",
+    "REVOKE_TERMINAL_409",
+    "GRANT_WITHOUT_PRESENT_409",
+    "DECLINE_201",
+    "REVOKE_DECLINED_409",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-consultation-snapshot-proof",
+   "estado": "PASS",
+   "checks": [
+    "SNAPSHOT_200",
+    "REGISTERED",
+    "AGE_54",
+    "SEX_FEMALE",
+    "PROBLEMS_3",
+    "HBA1C_VALUE",
+    "EGFR_STAGED",
+    "FINDINGS_ARRAY",
+    "ALLERGY_PRESENT",
+    "UNREGISTERED_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-consultation-tabs-proof",
+   "estado": "PASS",
+   "checks": [
+    "TABS_200",
+    "RESULTS_PATIENT_ISOLATED",
+    "ORDERS",
+    "MEDS_NAMED",
+    "PLAN_GOAL",
+    "DOC",
+    "OBLIGATION_MANUAL",
+    "OBLIGATION_AUTO_MONITOR",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-critical-vital-gap-proof",
+   "estado": "PASS",
+   "checks": [
+    "VITAL_RECORDED_CRITICAL",
+    "CARE_GAP_PRESENT",
+    "PANEL_HAS_CRITICAL_VITAL",
+    "VITAL_AMENDED_NORMAL",
+    "CARE_GAP_CLEARED"
+   ]
+  },
+  {
+   "prueba": "live-critical-vital-signing-loop-proof",
+   "estado": "PASS",
+   "checks": [
+    "VITAL_CRITICAL_RECORDED",
+    "ENCOUNTER_READY",
+    "SIGN_BLOCKED_BY_CRITICAL_VITAL_403",
+    "FOLLOWUP_OBLIGATION_CREATED",
+    "SIGN_UNBLOCKED_AFTER_FOLLOWUP_201",
+    "OTHER_PATIENT_STILL_BLOCKED_403",
+    "OVERDUE_FOLLOWUP_STILL_BLOCKS_403"
+   ]
+  },
+  {
+   "prueba": "live-cross-reactivity-gate-proof",
+   "estado": "PASS",
+   "checks": [
+    "AMOXICILLIN_BLOCKED_BY_CLASS",
+    "CEPHALEXIN_BLOCKED_CROSS_REACTIVITY",
+    "IBUPROFEN_ALLOWED",
+    "IBUPROFEN_BLOCKED_NSAID_CLASS",
+    "AMOXICILLIN_ALLOWED_FOR_NSAID_ALLERGIC"
+   ]
+  },
+  {
+   "prueba": "live-curb65-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPUTABLE_200",
+    "SCORE_3_HIGH",
+    "ADMIT_RECOMMENDED",
+    "SCORE_0_LOW",
+    "USES_LATEST_BP",
+    "MISSING_BUN",
+    "UNREGISTERED_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-dialysis-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "SCHEDULE_201",
+    "START_201",
+    "INTERRUPT_201",
+    "RESUME_201",
+    "COMPLETE_201",
+    "START_AFTER_COMPLETE_409",
+    "COMPLETE_WITHOUT_START_409",
+    "NOSHOW_201",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-document-attachment-proof",
+   "estado": "PASS",
+   "checks": [
+    "ATTACH_201",
+    "ATTACH_HASH_MATCH",
+    "ATTACH_META",
+    "ATTACH_TENANT_SCOPED_PATH",
+    "DOC_GET_200",
+    "DETAIL_HAS_ATTACHMENT",
+    "DETAIL_ATTACHMENT_META",
+    "DOWNLOAD_200",
+    "DOWNLOAD_CTYPE",
+    "DOWNLOAD_BYTES_MATCH",
+    "DISALLOWED_MIME_400",
+    "ATTACH_MISSING_SCOPE_403",
+    "DOWNLOAD_MISSING_SCOPE_403",
+    "REMOVE_200",
+    "DETAIL_ATTACHMENT_GONE",
+    "DOWNLOAD_AFTER_REMOVE_404"
+   ]
+  },
+  {
+   "prueba": "live-document-detail-proof",
+   "estado": "PASS",
+   "checks": [
+    "CREATE_201",
+    "FINALIZE_201",
+    "SIGN_201",
+    "AMEND_201",
+    "GET_200",
+    "EXISTS",
+    "CONTENT_REAL",
+    "METADATA_REAL",
+    "STATE_AMENDED",
+    "VERSION_4",
+    "SIGNATURE_PRESENT",
+    "ADDENDUM_APPENDED",
+    "UNKNOWN_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-document-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "CREATE_DRAFT_201_v1",
+    "FINALIZE_201_v2",
+    "NURSE_SIGN_FORBIDDEN_403",
+    "SIGN_WITHOUT_CONTENT_HASH_400",
+    "SIGN_CONTENT_MISMATCH_409",
+    "SIGN_201_v3",
+    "SIGNED_AT_IS_SERVER_TIME",
+    "REPRODUCIBLE_SNAPSHOT_HASH",
+    "SIGN_REPLAY_200_SAME_SIGNATURE",
+    "SIGNED_IMMUTABLE_409",
+    "AMEND_201_v4",
+    "AMEND_AGAIN_201_v5",
+    "AMEND_WITHOUT_TEXT_400",
+    "SIGN_DRAFT_ILLEGAL_409",
+    "OPTIMISTIC_CONFLICT_409",
+    "CROSS_TENANT_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-documents-proof",
+   "estado": "PASS",
+   "checks": [
+    "CREATE_201",
+    "FINALIZE_OK",
+    "LIST_200",
+    "TOTAL_4",
+    "TYPE_REFERRAL",
+    "TYPE_NOTE",
+    "TYPE_PROCEDURE",
+    "FOLDER_COUNTS",
+    "CHIP_CLINICAL_3",
+    "STATUS_FINALIZED",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-dose-ceiling-gate-proof",
+   "estado": "PASS",
+   "checks": [
+    "IBUPROFEN_OVERDOSE_BLOCKED_403",
+    "PARACETAMOL_OVERDOSE_BLOCKED_403",
+    "IBUPROFEN_WITHIN_LIMIT_ALLOWED_201",
+    "IBUPROFEN_AT_LIMIT_ALLOWED_201",
+    "PRN_NOT_BOUNDED_ALLOWED_201",
+    "NON_MASS_UNIT_ALLOWED_201"
+   ]
+  },
+  {
+   "prueba": "live-dr-recovery-proof",
+   "estado": "PASS",
+   "checks": [
+    "STREAM_PERSISTED_2",
+    "DETERMINISTIC_REPLAY_MATCH",
+    "IDEMPOTENT_NO_DUPLICATION",
+    "AUDIT_CHAIN_CHAINED",
+    "RLS_ISOLATION",
+    "RESTORE_PROOF_CLEAN"
+   ]
+  },
+  {
+   "prueba": "live-drug-condition-contraindication-gate-proof",
+   "estado": "PASS",
+   "checks": [
+    "NSAID_CKD_BLOCKED_403",
+    "NSAID_HF_BLOCKED_403",
+    "METFORMIN_CKD_MODERATE_ALLOWED_201",
+    "NONCONTRA_DRUG_ALLOWED_201",
+    "NSAID_NO_CONDITION_ALLOWED_201"
+   ]
+  },
+  {
+   "prueba": "live-drug-interaction-gate-proof",
+   "estado": "PASS",
+   "checks": [
+    "WARFARIN_NSAID_BLOCKED_403",
+    "ACEI_KSPARING_BLOCKED_403",
+    "NO_INTERACTION_ALLOWED_201",
+    "NSAID_ALONE_ALLOWED_201"
+   ]
+  },
+  {
+   "prueba": "live-duplicate-therapy-gate-proof",
+   "estado": "PASS",
+   "checks": [
+    "IBUPROFEN_PRESCRIBED_201",
+    "IBUPROFEN_ACTIVE_201",
+    "NAPROXEN_BLOCKED_DUPLICATE_403",
+    "AMOXICILLIN_ALLOWED_201",
+    "NAPROXEN_ALLOWED_OTHER_PATIENT_201"
+   ]
+  },
+  {
+   "prueba": "live-egfr-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPUTABLE_200",
+    "MALE_50_SCR1_NORMAL_EGFR",
+    "STAGE_G1",
+    "ADVANCED_CKD",
+    "SINGLE_CREATININE_DOES_NOT_STAGE_CKD",
+    "USES_LATEST_CREATININE",
+    "CHRONICITY_CONFIRMED_WITH_90_DAY_PRIOR",
+    "RECENT_DROP_NOT_STAGED",
+    "PEDIATRIC_NOT_COMPUTABLE",
+    "NO_CREATININE_NOT_COMPUTABLE",
+    "UMOL_CONVERTED_AT_RECEIVE",
+    "UMOL_SAME_EGFR_AS_MGDL",
+    "PROVENANCE_AND_ALGORITHM_RETURNED",
+    "IMPLAUSIBLE_CREATININE_REJECTED_400",
+    "STALE_CREATININE_NOT_COMPUTABLE",
+    "UNREGISTERED_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-encounter-endpoint-proof",
+   "estado": "PASS",
+   "checks": [
+    "OPEN_201_v1",
+    "AUDIT_HASH_PRESENT",
+    "IDEMPOTENT_REPLAY_200",
+    "READ_200_v1",
+    "EVENT_AGGREGATE_TYPE",
+    "CROSS_TENANT_ISOLATION_404",
+    "NO_SESSION_401",
+    "ROLE_FORBIDDEN_403",
+    "IDEMPOTENCY_REQUIRED_428",
+    "VALIDATION_400"
+   ]
+  },
+  {
+   "prueba": "live-encounter-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "OPEN_201_v1",
+    "SIGN_WITHOUT_ASSESSMENT_403",
+    "ASSESS_201_v2",
+    "ASSESS_REPLAY_200",
+    "REASSESS_STALE_VERSION_409",
+    "REASSESS_BEFORE_SIGN_201_v3",
+    "SIGN_CONTENT_MISMATCH_409",
+    "SIGN_WITHOUT_CONTENT_HASH_400",
+    "SIGN_201_v4",
+    "SIGNED_AT_IS_SERVER_TIME",
+    "SIGNED_EVENT_CARRIES_SERVER_TIME",
+    "SIGN_REPLAY_200_SAME_SIGNATURE",
+    "ASSESS_AFTER_SIGNED_409",
+    "OPTIMISTIC_CONFLICT_409",
+    "CROSS_TENANT_404",
+    "ROLE_FORBIDDEN_403",
+    "URGENT_OBLIGATION_BLOCKS_SIGN_403",
+    "URGENT_OBLIGATION_COMPLETED_WITH_EVIDENCE",
+    "OVERDUE_OBLIGATION_BLOCKS_SIGN_403",
+    "OVERDUE_OBLIGATION_CANCELLED_WITH_REASON",
+    "ROUTINE_FUTURE_OBLIGATION_DOES_NOT_BLOCK_201"
+   ]
+  },
+  {
+   "prueba": "live-fib4-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPUTABLE_200",
+    "HIGH_RISK",
+    "LOW_RISK",
+    "USES_LATEST_PLATELETS",
+    "MISSING_ANALYTE",
+    "PLATELETS_PER_UL_CONVERTED",
+    "IMPLAUSIBLE_PLATELETS_REJECTED_400",
+    "UNKNOWN_UNIT_REJECTED_400",
+    "STALE_LIVER_PANEL_NOT_COMPUTABLE",
+    "UNREGISTERED_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-follow-up-snapshot-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPLETE_OK",
+    "FU_200",
+    "THREE_TASKS",
+    "TASK_COMPLETED",
+    "TASK_PENDING",
+    "BP_SERIES",
+    "LAST_TA",
+    "LAST_WEIGHT",
+    "HBA1C_DELTA",
+    "LDL_DELTA",
+    "WEIGHT_DELTA",
+    "IMC_LAST_DERIVED",
+    "COUNT_PROBLEMS",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-glycemic-status-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPUTABLE_200",
+    "SCREENING_DIABETES_RANGE",
+    "HAS_EAG",
+    "DIABETIC_CONTROLLED",
+    "DIABETIC_POOR",
+    "USES_LATEST_A1C",
+    "NO_A1C_NOT_COMPUTABLE",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-immunization-forecast-proof",
+   "estado": "PASS",
+   "checks": [
+    "PATIENT_REGISTERED",
+    "FORECAST_200",
+    "FORECAST_NONEMPTY",
+    "AGE_APPROX_24M",
+    "BCG_COMPLETE",
+    "SRP_12M_OVERDUE",
+    "PENTA_18M_OVERDUE",
+    "DPT_48M_UPCOMING",
+    "SUMMARY_OVERDUE_COUNT",
+    "UNREGISTERED_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-immunization-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "DUE_201",
+    "ADMINISTER_201",
+    "ADVERSE_EVENT_201",
+    "ADVERSE_TERMINAL_409",
+    "ADVERSE_WITHOUT_ADMIN_409",
+    "REFUSE_201",
+    "ADMIN_AFTER_REFUSE_409",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-immunization-registry-proof",
+   "estado": "PASS",
+   "checks": [
+    "DUE_201",
+    "ADMIN1_OK",
+    "ADMIN2_OK",
+    "LIST_200",
+    "TOTAL_4",
+    "APPLIED_PENDING_COUNTS",
+    "VACCINATED_PATIENTS_2",
+    "INCOMPLETE_SCHEMES_2",
+    "COVERAGE_INFLUENZA_2",
+    "STATUS_COMPLETA",
+    "LOT_JOINED",
+    "APPLIED_DATE_PRESENT",
+    "STATUS_PENDIENTE",
+    "PATIENT_JOIN",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-incident-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "REPORT_201",
+    "REVIEW_201",
+    "ESCALATE_201",
+    "RESOLVE_201",
+    "RESOLVE_TERMINAL_409",
+    "ESCALATE_WITHOUT_REVIEW_409",
+    "RESOLVE_FROM_REPORTED_201",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-interactions-proof",
+   "estado": "PASS",
+   "checks": [
+    "VERIFY_200",
+    "FINDINGS_PRESENT",
+    "PAIR_SSRI_NSAID_MAYOR",
+    "FACTOR_ALCOHOL_SSRI_MODERADA",
+    "FACTOR_RENAL_BIGUANIDE_MODERADA",
+    "FACTOR_RENAL_NSAID_MENOR",
+    "SORTED_BY_SEVERITY",
+    "MECHANISM_RECO_LABEL_PRESENT",
+    "COUNTS_AND_HIGHEST",
+    "SEROTONIN_SYNDROME_MAYOR",
+    "SEROTONIN_MECHANISM_TEXT",
+    "ACE_PREGNANCY_CONTRAINDICADA",
+    "HIGHEST_CONTRAINDICADA",
+    "NO_INTERACTION_CLEAN",
+    "UNKNOWN_200",
+    "UNRESOLVED_DRUG_REPORTED",
+    "UNRESOLVED_FACTOR_REPORTED",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-lab-delta-check-proof",
+   "estado": "PASS",
+   "checks": [
+    "CREAT_BASELINE_NOT_CRITICAL",
+    "CREAT_DOUBLING_DELTA_CRITICAL",
+    "HGB_DROP_DELTA_CRITICAL",
+    "CREAT_STABLE_NO_DELTA",
+    "NO_PRIOR_NO_DELTA",
+    "PER_PATIENT_ISOLATION",
+    "ABSOLUTE_PANIC_STILL_CRITICAL",
+    "DELTA_RESULT_FIRST_201",
+    "DELTA_RESULT_REPLAY_200",
+    "ABNORMAL_STATUS_RETURNED",
+    "NORMAL_STATUS_AND_ASSUMED_UNIT_DECLARED"
+   ]
+  },
+  {
+   "prueba": "live-longitudinal-summary-proof",
+   "estado": "PASS",
+   "checks": [
+    "TIMELINE_200",
+    "TIMELINE_HAS_6_VERTICALS",
+    "SUMMARY_REFERRAL",
+    "SUMMARY_APPOINTMENT",
+    "SUMMARY_IMMUNIZATION",
+    "SUMMARY_CAREPLAN_PROPOSED_NOT_ACTIVE",
+    "SUMMARY_CLAIM",
+    "SUMMARY_CONSENT_DRAFTED_NOT_GRANTED",
+    "SUMMARY_TOTAL_6"
+   ]
+  },
+  {
+   "prueba": "live-medication-annotations-proof",
+   "estado": "PASS",
+   "checks": [
+    "PRESCRIBED_201_NO_ACK_NEEDED",
+    "ACTIVE_201",
+    "MODIFY_201_STATE_UNCHANGED_v4",
+    "MODIFY_OVER_CEILING_BLOCKED_403",
+    "MODIFY_WITHOUT_CHANGES_400",
+    "MODIFY_INVALID_ORDER_400",
+    "MODIFY_STALE_VERSION_409",
+    "DUPLICATE_STILL_SEEN_AFTER_MODIFY_403",
+    "HOLD_WITHOUT_REASON_400",
+    "HOLD_201_v5",
+    "SECOND_NSAID_ALLOWED_WHILE_FIRST_HELD",
+    "SECOND_NSAID_ACTIVE",
+    "RESUME_REEVALUATES_SAFETY_403",
+    "SECOND_NSAID_STOPPED",
+    "RESUME_201_v6",
+    "RESUMED_MEDICATION_COUNTS_AS_ACTIVE_403",
+    "MODIFY_PROPOSED_409",
+    "NURSE_CANNOT_MODIFY_403",
+    "MODIFY_AGAIN_201_v7",
+    "MODIFY_REPLAY_200",
+    "SAME_KEY_DIFFERENT_BODY_409",
+    "PROBLEM_ADDED_201",
+    "EPISTEMIC_201_STATE_UNCHANGED",
+    "EVIDENCE_201_v3",
+    "EVIDENCE_EMPTY_400",
+    "CHRONIC_AFTER_ANNOTATIONS_201",
+    "ANNOTATION_KEEPS_CHRONIC",
+    "PATIENT_LISTED_ACTIVE"
+   ]
+  },
+  {
+   "prueba": "live-medication-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "INVALID_MED_ORDER_400",
+    "NURSE_PROPOSE_201",
+    "NURSE_PRESCRIBE_FORBIDDEN_403",
+    "PHYSICIAN_PRESCRIBE_UNVERIFIED_428",
+    "PHYSICIAN_PRESCRIBE_201_v2",
+    "PRESCRIBE_REPLAY_200",
+    "STOP_FROM_PRESCRIBED_ILLEGAL_409",
+    "ACTIVATE_201_v3",
+    "STOP_WITHOUT_REASON_400",
+    "DISCONTINUE_201_v4",
+    "ACTIVATE_AFTER_STOPPED_409",
+    "OPTIMISTIC_CONFLICT_409",
+    "CROSS_TENANT_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-meld-proof",
+   "estado": "PASS",
+   "checks": [
+    "COMPUTABLE_200",
+    "VERY_HIGH_MELD",
+    "USES_LATEST_BILIRUBIN",
+    "NORMAL_MELD_6_LOW",
+    "MISSING_ANALYTE",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-metabolic-panel-proof",
+   "estado": "PASS",
+   "checks": [
+    "PANEL_200",
+    "ANION_GAP_HIGH_20_CORRECTED_25",
+    "CORRECTED_CA_9_6",
+    "CORRECTED_NA_138",
+    "OSMOLALITY_HIGH",
+    "NOTHING_MISSING",
+    "USES_LATEST_HCO3",
+    "MISSING_REPORTED",
+    "PER_PATIENT_ISOLATION",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-monitoring-obligation-proof",
+   "estado": "PASS",
+   "checks": [
+    "WARFARIN_PRESCRIBED_201",
+    "MONITOR_INR_OBLIGATION_CREATED_AND_STARTED_201",
+    "MONITOR_INR_OBLIGATION_COMPLETED_201",
+    "METFORMIN_PRESCRIBED_201",
+    "MONITOR_RENAL_OBLIGATION_CREATED_201",
+    "IBUPROFEN_PRESCRIBED_201",
+    "NO_MONITORING_NO_OBLIGATION_404",
+    "PRESCRIBE_REPLAY_200_NO_DUP"
+   ]
+  },
+  {
+   "prueba": "live-news2-score-proof",
+   "estado": "PASS",
+   "checks": [
+    "STABLE_SCORE_0_LOW",
+    "UNDECLARED_O2_IS_INCOMPLETE_NOT_LOW",
+    "SUPPLEMENTAL_O2_SCORES_2",
+    "SCALE_2_HYPEROXIA_ON_O2_SCORES_3",
+    "DETERIORATING_HIGH_ESCALATION",
+    "USES_LATEST_VALUE_RECOVERED",
+    "MISSING_PARAMS_REPORTED",
+    "PER_PATIENT_ISOLATION",
+    "PEDIATRIC_NOT_COMPUTABLE",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-obligation-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "CREATE_OPEN_201",
+    "PROGRESS_201_v2",
+    "COMPLETE_WITHOUT_EVIDENCE_400",
+    "COMPLETE_201_v3",
+    "COMPLETE_REPLAY_200",
+    "CANCEL_AFTER_COMPLETED_409",
+    "CROSS_TENANT_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-observability-sli-proof",
+   "estado": "PASS",
+   "checks": [
+    "ENCOUNTER_OPENED",
+    "SLI_EMITTED",
+    "SLI_SUCCESS_OUTCOME",
+    "SLI_HAS_CORRELATION_ID",
+    "SLI_HAS_LATENCY",
+    "SLI_TENANT_HASHED_NOT_RAW",
+    "SLI_PHI_FREE_ALLOWLIST",
+    "SLI_NO_PHI_NO_RAW_TENANT"
+   ]
+  },
+  {
+   "prueba": "live-office-settings-proof",
+   "estado": "PASS",
+   "checks": [
+    "GET_200",
+    "INITIAL_VERSION_0",
+    "DEFAULTS",
+    "SCHEDULE_DEFAULT_7",
+    "SCHEDULE_DEFAULT_MON",
+    "SCHEDULE_DEFAULT_SUN_CLOSED",
+    "MODULES_DEFAULT_ALL_ON",
+    "PUT_201",
+    "VERSION_1",
+    "PUT_APPLIED",
+    "GET_REFLECTS_SAVE",
+    "PARTIAL_PUT_VERSION_2",
+    "MERGE_PRESERVES",
+    "SCHEDULE_MODULES_PUT_VERSION_3",
+    "SCHEDULE_APPLIED",
+    "MODULE_DISABLED",
+    "MODULE_MERGE_PRESERVES",
+    "PREF_REG_DEFAULTS",
+    "SCHEDULE_MERGE_PRESERVES",
+    "GET_REFLECTS_SCHEDULE_MODULES",
+    "SCHEDULE_BAD_TIME_400",
+    "MODULE_UNKNOWN_400",
+    "PREF_REG_PUT_VERSION_4",
+    "PREF_REG_APPLIED",
+    "PREF_REG_MERGE_PRESERVES",
+    "STALE_IFMATCH_409",
+    "TENANT_ISOLATION",
+    "GET_MISSING_SCOPE_403",
+    "PUT_MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-oidc-login-proof",
+   "estado": "PASS",
+   "checks": [
+    "OIDC_LOGIN_201",
+    "OIDC_ROUNDTRIP_OPEN_201",
+    "EXPIRED_401",
+    "WRONG_AUDIENCE_401",
+    "WRONG_ISSUER_401",
+    "UNKNOWN_KEY_401",
+    "MISSING_TENANT_401"
+   ]
+  },
+  {
+   "prueba": "live-order-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "CREATE_DRAFT_201",
+    "FULFILL_FROM_DRAFT_ILLEGAL_409",
+    "PLACE_201_v2",
+    "PLACE_REPLAY_200",
+    "FULFILL_201_v3",
+    "CANCEL_AFTER_FULFILLED_409",
+    "CANCEL_FROM_DRAFT_201",
+    "OPTIMISTIC_CONFLICT_409",
+    "CROSS_TENANT_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-orders-registry-proof",
+   "estado": "PASS",
+   "checks": [
+    "CREATE_201",
+    "PLACE_OK",
+    "FULFILL_OK",
+    "CANCEL_OK",
+    "LIST_200",
+    "TOTAL_4",
+    "STATUS_COMPLETADA",
+    "STATUS_ENVIADA_IMG",
+    "STATUS_SOLICITADA",
+    "STATUS_CANCELADA_REF",
+    "PATIENT_JOIN",
+    "VERSION_SOLICITADA_1",
+    "VERSION_ENVIADA_2",
+    "VERSION_COMPLETADA_3",
+    "COUNTS",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-panel-worklist-proof",
+   "estado": "PASS",
+   "checks": [
+    "WORKLIST_200",
+    "PANEL_TWO_PATIENTS",
+    "PANEL_TWO_GAPS",
+    "MEDIUM_FIRST",
+    "LOW_LAST",
+    "WORKLIST_PAGE_1_KEEPS_TOTALS",
+    "WORKLIST_PAGE_2_LAST",
+    "CROSS_TENANT_ISOLATED",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-patient-amend-proof",
+   "estado": "PASS",
+   "checks": [
+    "REGISTER_201",
+    "AMEND_OK",
+    "LIST_200",
+    "LIST_NAME_AMENDED",
+    "LIST_CURP_AMENDED",
+    "STATUS_UNCHANGED",
+    "SNAP_200",
+    "SNAP_CONTACT_AMENDED",
+    "SNAP_UNEDITED_PRESERVED",
+    "STALE_IFMATCH_CONFLICT",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-patient-demographics-proof",
+   "estado": "PASS",
+   "checks": [
+    "REGISTER_201",
+    "IN_LIST",
+    "LIST_CURP_UPPERCASE",
+    "LIST_DOB_SEX",
+    "SNAPSHOT_200",
+    "SNAP_CURP",
+    "SNAP_PHONE",
+    "SNAP_EMAIL",
+    "SNAP_ADDRESS",
+    "SNAP_OCCUPATION",
+    "SNAP_MARITAL",
+    "SNAP_NAME",
+    "SNAP_AGE_DERIVED",
+    "BACKWARD_COMPAT_NO_CONTACT"
+   ]
+  },
+  {
+   "prueba": "live-patient-identity-proof",
+   "estado": "PASS",
+   "checks": [
+    "CURP_CHECK_DIGIT_400",
+    "CURP_SEX_MISMATCH_400",
+    "VALID_CURP_201",
+    "SAME_CURP_409_EVEN_IF_CONFIRMED",
+    "IDEMPOTENT_RETRY_NOT_DUPLICATE",
+    "SAME_NAME_BIRTHDATE_409",
+    "HOMONYM_CONFIRMED_201",
+    "CONFIRMATION_RECORDED_IN_EVENT",
+    "MINOR_REGISTERED_WITH_WARNING",
+    "CONSENT_DRAFTED",
+    "CONSENT_PRESENTED",
+    "MINOR_CONSENT_WITHOUT_GUARDIAN_428",
+    "GUARDIAN_AMENDED",
+    "MINOR_CANNOT_SIGN_AS_PATIENT_400",
+    "GUARDIAN_CONSENT_201",
+    "CONSENT_EVENT_CARRIES_GUARDIAN",
+    "AMEND_CANNOT_STEAL_CURP_409"
+   ]
+  },
+  {
+   "prueba": "live-patient-reference-proof",
+   "estado": "PASS",
+   "checks": [
+    "GHOST_VITAL_404",
+    "GHOST_ALLERGY_404",
+    "GHOST_MEDICATION_404",
+    "GHOST_PROBLEM_404",
+    "GHOST_RESULT_404",
+    "GHOST_APPOINTMENT_404",
+    "GHOST_ENCOUNTER_404",
+    "PATIENT_REGISTERED",
+    "REGISTERED_VITAL_201",
+    "REGISTERED_ALLERGY_201",
+    "REGISTERED_MEDICATION_201",
+    "REGISTERED_PROBLEM_201",
+    "REGISTERED_RESULT_201",
+    "REGISTERED_APPOINTMENT_201",
+    "REGISTERED_ENCOUNTER_201",
+    "OTHER_TENANT_PATIENT_404",
+    "PATIENT_DEACTIVATED",
+    "INACTIVE_PATIENT_STILL_ACCEPTS_RESULTS"
+   ]
+  },
+  {
+   "prueba": "live-patient-registry-proof",
+   "estado": "PASS",
+   "checks": [
+    "REGISTER_ACTIVE_201",
+    "LIST_HAS_PATIENT_WITH_NAME",
+    "DEACTIVATE_201_v2",
+    "LIST_REFLECTS_INACTIVE",
+    "REACTIVATE_201_v3",
+    "REACTIVATE_ACTIVE_ILLEGAL_409",
+    "CROSS_TENANT_LIST_ISOLATED",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403",
+    "PAGE_1_OF_3_SORTED_WITH_TOTAL",
+    "PAGE_2_FOLLOWS_CURSOR",
+    "LAST_PAGE_NO_CURSOR",
+    "INVALID_CURSOR_STARTS_OVER_NO_500",
+    "LIMIT_CLAMPED_TO_MAX",
+    "SEARCH_BY_NAME_WORD_PREFIX",
+    "SEARCH_SECOND_WORD_PREFIX",
+    "SEARCH_BY_CURP_PREFIX",
+    "SEARCH_NO_MATCH_KEEPS_TOTAL"
+   ]
+  },
+  {
+   "prueba": "live-patient-timeline-proof",
+   "estado": "PASS",
+   "checks": [
+    "TIMELINE_200",
+    "TIMELINE_HAS_3_TYPES",
+    "TIMELINE_EXACTLY_3_ITEMS",
+    "TIMELINE_HAS_KINDS",
+    "TIMELINE_PAGE_1_OF_2",
+    "TIMELINE_LAST_PAGE",
+    "TIMELINE_PAGES_COVER_ALL_WITHOUT_DUPLICATES",
+    "CROSS_TENANT_EMPTY",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-pediatric-dose-gate-proof",
+   "estado": "PASS",
+   "checks": [
+    "PEDS_OVERDOSE_BLOCKED_403",
+    "PEDS_WITHIN_LIMIT_ALLOWED_201",
+    "ADULT_NOT_WEIGHT_GATED_201",
+    "NO_WEIGHT_NOT_BLOCKED_201",
+    "PEDS_AND_ABSOLUTE_BOTH_BLOCK_403"
+   ]
+  },
+  {
+   "prueba": "live-physician-profile-proof",
+   "estado": "PASS",
+   "checks": [
+    "GET_200",
+    "EMPTY_PROFILE",
+    "SIGNATURE_UPLOAD_201",
+    "SIGNATURE_META",
+    "PROFILE_HAS_SIGNATURE",
+    "SIGNATURE_DOWNLOAD_MATCH",
+    "STAMP_UPLOAD_201",
+    "PROFILE_HAS_BOTH",
+    "SIGNATURE_REUPLOAD",
+    "SIGNATURE_REUPLOAD_BYTES",
+    "DISALLOWED_MIME_400",
+    "UNKNOWN_KIND_404",
+    "UPLOAD_MISSING_SCOPE_403",
+    "DOWNLOAD_MISSING_SCOPE_403",
+    "PER_USER_ISOLATION",
+    "REMOVE_200",
+    "SIGNATURE_GONE_STAMP_STAYS",
+    "DOWNLOAD_AFTER_REMOVE_404"
+   ]
+  },
+  {
+   "prueba": "live-prescription-check-proof",
+   "estado": "PASS",
+   "checks": [
+    "CHECK_200",
+    "ALLERGY_CROSS_REACTIVITY_BLOCK",
+    "VERDICT_BLOCK_ON_ALLERGY",
+    "RENAL_ADJUSTMENT_FLAGGED",
+    "VERDICT_NOT_OK_LOW_EGFR",
+    "PARACETAMOL_NO_ALLERGY",
+    "PARACETAMOL_NOT_BLOCKED",
+    "INDICATIONS_PRESENT",
+    "UNKNOWN_DRUG_NOT_EVALUATED",
+    "UNKNOWN_DRUG_REQUIRES_ACK",
+    "UNKNOWN_DRUG_NO_FALSE_OK",
+    "NOT_EVALUATED_LISTED",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-prescription-print-proof",
+   "estado": "PASS",
+   "checks": [
+    "PATIENT_REGISTERED",
+    "PRESCRIBE_WITHOUT_CEDULA_428",
+    "PRESCRIBE_WITHOUT_CEDULA_WROTE_NOTHING",
+    "ENCOUNTER_READY",
+    "SIGN_WITHOUT_CEDULA_428",
+    "INVALID_CEDULA_400",
+    "CREDENTIALS_SET_201",
+    "PROFILE_RETURNS_CREDENTIALS",
+    "PRESCRIBED_WITH_CEDULA_201",
+    "PRESCRIBED_EVENT_CARRIES_PRESCRIBER_IDENTITY",
+    "SIGNED_WITH_CEDULA_201",
+    "SIGNED_EVENT_CARRIES_SIGNER_IDENTITY",
+    "PRINT_MISSING_ESTABLISHMENT_400",
+    "OFFICE_SETTINGS_SET",
+    "SECOND_PRESCRIBED",
+    "PRINT_MISSING_DURATION_400",
+    "PRINT_200",
+    "PRINT_FOLIO_AND_GENERIC",
+    "PRINT_HTML_HAS_ALL_LEGAL_FIELDS",
+    "PRINT_HTML_HAS_NO_SCRIPTS",
+    "PATIENT_B",
+    "PRESCRIBED_WITH_OVERRIDE",
+    "PRINT_WITH_OVERRIDE_200",
+    "PRINT_SHOWS_OVERRIDE_AND_ESCAPES_HTML",
+    "OTHER_PHYSICIAN_CANNOT_PRINT_403",
+    "PROPOSED_ONLY_NOT_PRINTABLE_409",
+    "NURSE_CANNOT_SET_CREDENTIALS_403"
+   ]
+  },
+  {
+   "prueba": "live-problem-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "ADD_ACTIVE_201",
+    "RESOLVE_WITHOUT_NOTE_400",
+    "RESOLVE_201_v2",
+    "RESOLVE_REPLAY_200",
+    "REACTIVATE_201_v3",
+    "CHRONIC_201_v4",
+    "REACTIVATE_CHRONIC_ILLEGAL_409",
+    "CROSS_TENANT_404",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-problem-registry-proof",
+   "estado": "PASS",
+   "checks": [
+    "ADD_201",
+    "RESOLVE_OK",
+    "CHRONIC_OK",
+    "LIST_200",
+    "TOTAL_5",
+    "CAT_ENDO",
+    "CAT_CARDIO",
+    "CAT_PSYCH",
+    "PATIENT_JOIN",
+    "STATUS_RESOLVED",
+    "STATUS_CHRONIC",
+    "STATUS_ACTIVE",
+    "STATUS_COUNTS",
+    "CATEGORY_COUNTS",
+    "TOP_PATIENTS",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-rate-limit-shared-proof",
+   "estado": "PASS",
+   "checks": [
+    "THREE_ALLOWED_FROM_INSTANCE_A",
+    "FOURTH_DENIED_FROM_INSTANCE_B_WITH_RETRY_AFTER",
+    "OTHER_KEY_UNAFFECTED",
+    "OTHER_SCOPE_UNAFFECTED",
+    "BUCKET_PERSISTED_IN_SHARED_STORE",
+    "WRITE_SCOPE_SHARED_DENIAL",
+    "GC_REMOVES_STALE_BUCKETS"
+   ]
+  },
+  {
+   "prueba": "live-record-export-proof",
+   "estado": "PASS",
+   "checks": [
+    "EXPORT_200",
+    "MANIFEST_2_AGGREGATES",
+    "MANIFEST_3_EVENTS",
+    "CONTENT_HASH_SHA256",
+    "HASH_REPRODUCIBLE",
+    "HAS_GENERATED_AT",
+    "CROSS_TENANT_EMPTY",
+    "CROSS_TENANT_DIFFERENT_HASH",
+    "MISSING_EXPORT_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-referral-context-proof",
+   "estado": "PASS",
+   "checks": [
+    "CTX_200",
+    "ALLERGY_LISTED",
+    "MEDS_NAMED",
+    "THREE_PROBLEMS",
+    "PROBLEM_DESCRIPTION",
+    "HBA1C_REAL",
+    "VITALS_REAL",
+    "IMC_DERIVED",
+    "REFERRAL_SENT_201",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-referral-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "REQUEST_201",
+    "ACCEPT_201",
+    "COMPLETE_201",
+    "COMPLETE_TERMINAL_409",
+    "COMPLETE_WITHOUT_ACCEPT_409",
+    "DECLINE_201",
+    "CANCEL_FROM_ACCEPTED_201",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-regulatory-obligations-proof",
+   "estado": "PASS",
+   "checks": [
+    "CREATE_201",
+    "LIST_200",
+    "TOTAL_5",
+    "STATUS_PROXIMA",
+    "STATUS_AL_DIA",
+    "STATUS_VENCIDA",
+    "STATUS_VIGENTE",
+    "KPIS",
+    "COMPLIANCE_LABORAL_0",
+    "COMPLIANCE_FISCAL_100",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-renal-dosing-gate-proof",
+   "estado": "PASS",
+   "checks": [
+    "METFORMIN_LOW_EGFR_BLOCKED_403",
+    "NSAID_LOW_EGFR_BLOCKED_403",
+    "METFORMIN_NORMAL_EGFR_ALLOWED_201",
+    "NO_EGFR_REQUIRES_ACK_428",
+    "ACK_WITHOUT_JUSTIFICATION_400",
+    "NO_EGFR_ACKNOWLEDGED_201",
+    "ACK_DOES_NOT_OVERRIDE_BLOCK_403",
+    "NONRENAL_DRUG_ALLOWED_201"
+   ]
+  },
+  {
+   "prueba": "live-reports-proof",
+   "estado": "PASS",
+   "checks": [
+    "REPORTS_200",
+    "PATIENTS_3",
+    "INCOME_1700",
+    "DX_TOTAL_6",
+    "TOP_DX_E119",
+    "DX_I10_2",
+    "TOP_DX_PCT_50",
+    "ORDERS_TOTAL_5",
+    "ORDERS_LAB_2",
+    "ORDERS_IMAGING_1",
+    "ORDERS_PROCEDURE_2",
+    "TOP_PROC_EKG_2",
+    "RESULTS_VAC_WIRED",
+    "ENC_TOTAL_3",
+    "ENC_DAYS_2",
+    "ENC_DAY_2026_10_01_2",
+    "ENC_DAY_2026_10_02_1",
+    "RX_TOTAL_3",
+    "TOP_MED_PARACETAMOL_2",
+    "MED_METFORMINA_1",
+    "APPT_TOTAL_5",
+    "APPT_TOP_CONTROL_3",
+    "APPT_LABEL_CONTROL",
+    "APPT_PRIMERA_VEZ_1",
+    "APPT_VACUNACION_1",
+    "QI_ATTENDANCE_60",
+    "QI_ATTENDANCE_NOT_MET",
+    "QI_NOSHOW_20_NOT_MET",
+    "QI_GLYCEMIC_75",
+    "QI_GLYCEMIC_MET",
+    "QI_CLOSED_COMPUTABLE",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-result-closed-loop-proof",
+   "estado": "PASS",
+   "checks": [
+    "RESULT_RECEIVED_201_v1",
+    "RESULT_VERIFIED_201_v2",
+    "RESULT_ACTIONED_201_v3",
+    "RESULT_ACTION_REPLAY_200",
+    "RESULT_ILLEGAL_SKIP_409",
+    "LOOP_ENCOUNTER_READY",
+    "SIGN_BLOCKED_BY_OPEN_CRITICAL_RESULT_403",
+    "CRITICAL_RESULT_CREATES_URGENT_OBLIGATION",
+    "RESULT_CLOSED_201_v4",
+    "CLOSURE_COMPLETES_DERIVED_OBLIGATION",
+    "SIGN_UNBLOCKED_AFTER_CLOSURE_201",
+    "NON_CRITICAL_RESULT_DOES_NOT_BLOCK_201",
+    "UNSEEN_CRITICAL_RESULT_BLOCKS_SIGN_403",
+    "VERIFIED_CRITICAL_RESULT_STILL_BLOCKS_403",
+    "SIGN_AFTER_CRITICAL_CLOSED_201",
+    "CROSS_TENANT_RESULT_404",
+    "ROLE_FORBIDDEN_403"
+   ]
+  },
+  {
+   "prueba": "live-result-correction-proof",
+   "estado": "PASS",
+   "checks": [
+    "CRITICAL_RECEIVED",
+    "CRITICAL_COUNTS_BEFORE_CORRECTION",
+    "CORRECTION_WITHOUT_REASON_400",
+    "CORRECTED_201_NEW_RESULT_NORMAL",
+    "FOLDS_LINKED_BOTH_WAYS",
+    "CALCULATORS_READ_CORRECTED_VALUE",
+    "SERIES_EXCLUDES_SUPERSEDED",
+    "SIGN_GATE_NO_LONGER_COUNTS_CORRECTED_CRITICAL",
+    "DERIVED_OBLIGATION_COMPLETED_WITH_REASON",
+    "IDEMPOTENT_RETRY_NO_DUPLICATES",
+    "ALREADY_SUPERSEDED_409"
+   ]
+  },
+  {
+   "prueba": "live-results-registry-proof",
+   "estado": "PASS",
+   "checks": [
+    "RECEIVE_201",
+    "GLUCOSE_CRITICAL_DERIVED",
+    "VERIFY_OK",
+    "ACTION_OK",
+    "LIST_200",
+    "TOTAL_3",
+    "GLUCOSE_HALLAZGOS",
+    "CREATININE_EN_SEGUIMIENTO",
+    "RADIO_IMAGENOLOGIA",
+    "PATIENT_JOIN",
+    "KPIS",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-safety-override-proof",
+   "estado": "PASS",
+   "checks": [
+    "BLOCKED_403_WITHOUT_OVERRIDE",
+    "RESPONSE_NAMES_OVERRIDABLE_AND_MISSING",
+    "JUSTIFICATION_WITHOUT_BARRIERS_400",
+    "NAMING_NON_BLOCKING_BARRIER_400",
+    "SHORT_JUSTIFICATION_400",
+    "HARD_BARRIER_NOT_ACCEPTED_IN_SCHEMA",
+    "NOTHING_WRITTEN_UNTIL_VALID_OVERRIDE",
+    "PRESCRIBED_WITH_OVERRIDE_201",
+    "EVENT_RECORDS_OVERRIDE_WITH_AUTHOR",
+    "IDEMPOTENT_RETRY_NO_DUPLICATE",
+    "DOSE_CEILING_BLOCKS_AT_PROPOSAL_403",
+    "CHILD_REGISTERED",
+    "CHILD_WEIGHT_RECORDED_AFTER_PROPOSAL",
+    "PEDIATRIC_DOSE_HARD_BLOCK_403",
+    "PEDIATRIC_DOSE_NOT_OVERRIDABLE",
+    "HARD_BLOCK_WROTE_NOTHING"
+   ]
+  },
+  {
+   "prueba": "live-session-issuance-proof",
+   "estado": "PASS",
+   "checks": [
+    "NO_VERIFIER_503",
+    "LOGIN_201_TOKEN",
+    "ROUNDTRIP_OPEN_201",
+    "TAMPERED_ASSERTION_401",
+    "WRONG_IDP_SECRET_401",
+    "DEV_VERIFIER_DISABLED_IN_PROD_503"
+   ]
+  },
+  {
+   "prueba": "live-specimen-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "COLLECT_201",
+    "TRANSIT_201",
+    "RECEIPT_201",
+    "RESULT_201",
+    "RESULT_TERMINAL_409",
+    "RESULT_WITHOUT_RECEIPT_409",
+    "REJECT_201",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-surgery-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "SCHEDULE_201",
+    "TIMEOUT_201",
+    "START_201",
+    "COMPLETE_201",
+    "START_WITHOUT_TIMEOUT_409",
+    "COMPLETE_WITHOUT_START_409",
+    "CANCEL_FROM_TIMEOUT_201",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-terminology-proof",
+   "estado": "PASS",
+   "checks": [
+    "PROBLEM_CODED_201",
+    "CANONICAL_DESCRIPTION_ATTACHED",
+    "INVALID_CODE_400",
+    "SEARCH_FINDS_DIABETES",
+    "LOOKUP_VALID",
+    "MISSING_READ_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-transfusion-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "ORDER_201",
+    "CROSSMATCH_201",
+    "START_201",
+    "COMPLETE_201",
+    "START_WITHOUT_CROSSMATCH_409",
+    "REACTION_201",
+    "COMPLETE_AFTER_REACTION_409",
+    "CANCEL_201",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-trends-proof",
+   "estado": "PASS",
+   "checks": [
+    "TRENDS_200",
+    "HBA1C_SERIES_3",
+    "HBA1C_ASCENDING_ORDER",
+    "SERIES_TIME_SORTED",
+    "LATEST_LDL",
+    "LATEST_CREATININE",
+    "LATEST_EGFR_COMPUTED",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-triage-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "ARRIVE_201",
+    "START_201",
+    "TRIAGE_201",
+    "RETRIAGE_201",
+    "CLOSE_201",
+    "TRIAGE_AFTER_CLOSE_409",
+    "TRIAGE_WITHOUT_START_409",
+    "LWBS_201",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-vital-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "RECORD_201",
+    "AMEND_201",
+    "RE_AMEND_201",
+    "ERROR_MARK_201",
+    "AMEND_AFTER_ERROR_409",
+    "IMPLAUSIBLE_WEIGHT_REJECTED_400",
+    "IMPLAUSIBLE_BP_REJECTED_400",
+    "AMEND3_201",
+    "AMEND3_REPLAY_200",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-vitals-history-proof",
+   "estado": "PASS",
+   "checks": [
+    "HIST_200",
+    "THREE_TOMAS",
+    "LATEST_ROW_GROUPED",
+    "IMC_DERIVED_296",
+    "LATEST_SUMMARY",
+    "BP_SERIES_ASC",
+    "WEIGHT_SERIES",
+    "IMC_SERIES",
+    "OTHER_PATIENT_EMPTY",
+    "MISSING_SCOPE_403"
+   ]
+  },
+  {
+   "prueba": "live-vitals-reference-proof",
+   "estado": "PASS",
+   "checks": [
+    "BP_NORMAL",
+    "BP_CRITICAL",
+    "SPO2_CRITICAL",
+    "TEMP_ABNORMAL",
+    "BP_START_CRITICAL",
+    "AMEND_RECLASSIFIES_NORMAL"
+   ]
+  },
+  {
+   "prueba": "live-wound-lifecycle-proof",
+   "estado": "PASS",
+   "checks": [
+    "DOCUMENT_201",
+    "REASSESS_S3_201",
+    "REASSESS_S4_201",
+    "HEAL_201",
+    "REASSESS_AFTER_HEAL_409",
+    "ESCALATE_201",
+    "HEAL_AFTER_ESCALATE_409",
+    "CROSS_TENANT_404",
+    "MISSING_WRITE_SCOPE_403"
+   ]
+  }
+ ]
+}

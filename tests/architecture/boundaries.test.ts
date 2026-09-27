@@ -53,6 +53,26 @@ describe("guardas de arquitectura (ADR-0300)",()=>{
   bad.push(...files.filter(f=>/clinical-runtime|\/runtime\//.test(f)).map(f=>`el middleware alcanza ${f}`));
   expect(bad).toEqual([]);
  });
+ it("solo el pool (runtime/db), el ejecutor de comandos y el límite de tasa compartido tocan getSql(); lo demás usa withTenantTx",()=>{
+  const allowed=new Set(["apps/web/lib/runtime/db.ts","apps/web/lib/runtime/command.ts","apps/web/lib/rate-limit-shared.ts"]);
+  const users=sourceFiles("apps/web").filter(f=>/\bgetSql\(\)/.test(fs.readFileSync(f,"utf8")));
+  expect(users.filter(f=>!allowed.has(f))).toEqual([]);
+ });
+ it("el código de cliente ('use client') no alcanza la persistencia, los casos de uso del servidor, secretos ni Node",()=>{
+  const clients=sourceFiles("apps/web/app").filter(f=>/^\s*["']use client["']/.test(fs.readFileSync(f,"utf8")));
+  expect(clients.length).toBeGreaterThan(20);
+  const server=(t:string)=>/^apps\/web\/lib\/(runtime\/|clinical-runtime|http-command|http-errors|session-issuance|rate-limit-shared)|-lifecycle\.ts$/.test(t);
+  const bad:string[]=[];
+  for(const c of clients){const reach=[...closure([c])];
+   bad.push(...reach.filter(server).map(t=>`${c} alcanza ${t}`));
+   bad.push(...reach.flatMap(f=>specifiersOf(f).filter(s=>s.startsWith("node:")||s==="postgres"||s==="@vercel/blob").map(s=>`${c} alcanza ${f} que importa ${s}`)));}
+  expect([...new Set(bad)]).toEqual([]);
+ });
+ it("la lectura de process.env en apps/web no se extiende a módulos nuevos (trinquete hacia una configuración única)",()=>{
+  const KNOWN=["apps/web/app/login/page.tsx","apps/web/lib/ai-copilot-gateway.ts","apps/web/lib/csp.mjs","apps/web/lib/document-lifecycle.ts","apps/web/lib/feature-flags.ts","apps/web/lib/physician-profile-lifecycle.ts","apps/web/lib/runtime/db.ts","apps/web/lib/runtime/secrets.ts","apps/web/lib/session-issuance.ts","apps/web/middleware.ts","apps/web/next.config.mjs"];
+  const readers=sourceFiles("apps/web",/\.(ts|tsx|mts|mjs)$/).filter(f=>/process\.env/.test(fs.readFileSync(f,"utf8")));
+  expect(readers.filter(f=>!KNOWN.includes(f))).toEqual([]);
+ });
  it(`a lo sumo ${MAX_FAT_ROUTES} rutas llevan el pipeline HTTP en línea (trinquete hacia rutas delgadas)`,()=>{
   const routes=sourceFiles("apps/web/app/api").filter(f=>f.endsWith("/route.ts"));
   expect(routes.length).toBeGreaterThan(100);

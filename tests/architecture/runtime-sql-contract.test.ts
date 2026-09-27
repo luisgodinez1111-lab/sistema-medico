@@ -4,19 +4,28 @@ import{describe,it,expect,vi,beforeAll,afterAll}from"vitest";
 // versionada. Es el oráculo del refactor estructural de apps/web/lib/clinical-runtime.ts: mover o partir los read models
 // no puede cambiar ni un carácter del SQL que llega a la base, ni el rol RLS del pool (ADR-0250), ni el mapeo fila -> DTO.
 // Dos escenarios por función: la base no devuelve filas, y devuelve una fila sintética con valores deterministas.
+// Cada consulta registra si corrió DENTRO de la transacción (`tx`) o directamente en el pool, y `begin` registra BEGIN /
+// COMMIT / ROLLBACK: así el oráculo ve también los límites de transacción de los que depende RLS (set_config es
+// transaction-local), no solo el texto del SQL.
 const h=vi.hoisted(()=>{
  type Frag={readonly __frag:true;strings:readonly string[];values:readonly unknown[]};
- const state={queries:[] as{text:string;params:unknown[]}[],pool:[] as unknown[],rows:(()=>[]) as ()=>unknown[]};
+ type Entry={text:string;params:unknown[];via:"tx"|"pool"}|{tx:"BEGIN"|"COMMIT"|"ROLLBACK";mode?:string};
+ const state={queries:[] as Entry[],pool:[] as unknown[],rows:(()=>[]) as ()=>unknown[]};
  const isFrag=(v:unknown):v is Frag=>typeof v==="object"&&v!==null&&(v as Frag).__frag===true;
  const render=(f:Frag,params:unknown[]):string=>{let t="";f.strings.forEach((s,i)=>{t+=s;if(i<f.values.length){const v=f.values[i];if(isFrag(v))t+=render(v,params);else{params.push(v);t+=`$${params.length}`;}}});return t;};
- const tag=(strings:TemplateStringsArray,...values:unknown[])=>{
+ const tagFor=(via:"tx"|"pool")=>(strings:TemplateStringsArray,...values:unknown[])=>{
   const f:Frag={__frag:true,strings:[...strings],values};
-  const run=()=>{const params:unknown[]=[];state.queries.push({text:render(f,params),params});return Promise.resolve(state.rows());};
+  const run=()=>{const params:unknown[]=[];state.queries.push({text:render(f,params),params,via});return Promise.resolve(state.rows());};
   return Object.assign(f,{then:(a?:(v:unknown)=>unknown,b?:(e:unknown)=>unknown)=>run().then(a,b),catch:(b:(e:unknown)=>unknown)=>run().catch(b)});
  };
  const json=(v:unknown)=>({json:v});
- const tx=Object.assign(tag,{json});
- const sql=Object.assign(tag,{json,begin:async(a:unknown,b?:unknown)=>(typeof a==="function"?a:b as(t:unknown)=>unknown)(tx)});
+ const tx=Object.assign(tagFor("tx"),{json});
+ const begin=async(a:unknown,b?:unknown)=>{
+  const fn=(typeof a==="function"?a:b) as(t:unknown)=>unknown;
+  state.queries.push(typeof a==="string"?{tx:"BEGIN",mode:a}:{tx:"BEGIN"});
+  try{const r=await fn(tx);state.queries.push({tx:"COMMIT"});return r;}catch(e){state.queries.push({tx:"ROLLBACK"});throw e;}
+ };
+ const sql=Object.assign(tagFor("pool"),{json,begin});
  return{state,sql};
 });
 vi.mock("postgres",()=>({default:(url:string,opts:unknown)=>{h.state.pool.push({url,opts});return h.sql;}}));
@@ -90,10 +99,10 @@ let m:Runtime;
 beforeAll(async()=>{
  vi.useFakeTimers({toFake:["Date"]});vi.setSystemTime(new Date("2026-09-15T12:00:00.000Z"));
  vi.spyOn(console,"error").mockImplementation(()=>{});
- process.env.DATABASE_URL="postgres://owner:secret@ep-contract-pooler.neon.tech/medical_os?sslmode=require&channel_binding=require";
+ vi.stubEnv("DATABASE_URL","postgres://owner:secret@ep-contract-pooler.neon.tech/medical_os?sslmode=require&channel_binding=require");
  m=await import("../../apps/web/lib/clinical-runtime");
 });
-afterAll(()=>{vi.useRealTimers();vi.restoreAllMocks();});
+afterAll(()=>{vi.useRealTimers();vi.restoreAllMocks();vi.unstubAllEnvs();});
 describe("contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lote 11)",()=>{
  for(const scenario of["sin filas","fila sintética"] as const){
   it(`SQL, parámetros y resultado de cada función — ${scenario}`,async()=>{
@@ -103,7 +112,7 @@ describe("contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lo
     h.state.queries=[];
     let outcome:unknown;
     try{outcome={ok:plain(await call(m))};}catch(e){outcome={error:e instanceof Error?`${e.name}: ${e.message}`:String(e)};}
-    out[label]={queries:h.state.queries.map(q=>({text:q.text,params:plain(q.params)})),outcome};
+    out[label]={queries:h.state.queries.map(q=>"tx" in q?q:{via:q.via,text:q.text,params:plain(q.params)}),outcome};
    }
    expect(out).toMatchSnapshot();
   });
