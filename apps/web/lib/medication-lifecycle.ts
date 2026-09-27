@@ -1,7 +1,7 @@
 import{z}from"zod";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldMedication,assertMedicationTransition,assertMedicationAnnotation,type FoldedMedication}from"../../../packages/medication-fold/src";
-import{runClinicalCommand,lookupReplay}from"./runtime/command";
+import{runClinicalCommand,runDerivedCommand}from"./runtime/command";
 import{activeAllergies,activeMedicationDrugCodes,activeProblemCodes}from"./runtime/read-models/safety-inputs";
 import{latestVitalsByType}from"./runtime/read-models/vitals";
 import{patientEgfr}from"./runtime/read-models/renal";
@@ -71,7 +71,8 @@ export const PrescribeBody=z.object({occurredAt:z.string().datetime(),acknowledg
 const DAY_MS=86_400_000;
 // EPIC BA — Crea automáticamente las obligaciones de monitoreo del fármaco al prescribir (Zero-Lost-Follow-Up).
 // Idempotente: ids/keys derivados de la key de la prescripción + slot; un reintento reconstruye lo mismo.
-// Cada obligación es su propia transacción (no atómica con la prescripción); un reintento la reconcilia.
+// Cada obligación es su propia transacción (no atómica con la prescripción); un reintento la reconcilia: el pipeline ejecuta
+// este derivado también en el replay de la prescripción y runDerivedCommand no vuelve a cobrar el límite (hallazgo D5).
 async function createMonitoringObligations(ctx:Parameters<typeof runClinicalCommand>[0],baseIdemKey:string,patientId:string,ownerId:string,drugCode:string,occurredAt:string):Promise<void>{
  const rules=monitoringFor(drugCode);
  for(let i=0;i<rules.length;i++){
@@ -80,8 +81,7 @@ async function createMonitoringObligations(ctx:Parameters<typeof runClinicalComm
   const obligationId=derivedUuid(baseIdemKey,`monitor-agg-${i}`);
   const dueAt=new Date(new Date(occurredAt).getTime()+rule.dueInDays*DAY_MS).toISOString();
   const cmd=buildCommand({idempotencyKey:idem,aggregateType:"ClinicalObligation",aggregateId:obligationId,expectedVersion:0,eventType:"OBLIGATION_CREATED",payload:{kind:"CREATED",patientId,ownerId,dueAt,obligationKind:rule.kind,test:rule.test,note:rule.note,sourceMedicationDrug:drugCode},occurredAt,topic:"obligation.created"});
-  let r=await lookupReplay(ctx,cmd);
-  if(!r)r=await runClinicalCommand(ctx,cmd);
+  await runDerivedCommand(ctx,cmd);
  }
 }
 // Evaluación de barreras COMPARTIDA por PRESCRIBE y MODIFY: mismos datos del paciente, mismo evaluador puro. La propia

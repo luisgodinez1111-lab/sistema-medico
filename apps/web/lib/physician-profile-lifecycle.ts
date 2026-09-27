@@ -7,6 +7,7 @@ import{readAggregateStream}from"./runtime/event-store";
 import{z}from"zod";
 import{buildCommand,parseJson}from"./http-command";
 import{endpoint,errorResponse}from"./http/endpoint";
+import{priorCommand,blobReferenced}from"./command/aggregate-command";
 import{isValidCedula,type PrescriberIdentity}from"../../../packages/prescription-print/src";
 // EPIC S-CONFIG/FIRMA — Perfil del MÉDICO (firma y sello) sobre el kernel event-sourced. La firma/sello son
 // del médico (no del consultorio): el agregado es por-usuario (aggregateId derivado del sub del médico; RLS por
@@ -112,18 +113,25 @@ export async function handleProfileAssetUpload(req:Request,kind:string):Promise<
   if(bytes.byteLength>MAX_ASSET_BYTES)throw new ClinicalError("VALIDATION_ERROR",`Imagen demasiado grande (${bytes.byteLength} bytes; máx ${MAX_ASSET_BYTES})`);
   const contentHash=crypto.createHash("sha256").update(bytes).digest("hex");
   const aggId=profileId(c);
-  const pathname=`tenants/${c.tenantId}/physicians/${aggId}/${kind}.${EXT_BY_MIME[mime]??"png"}`;
+  // D6: el reintento se reconoce ANTES de tocar el Blob (misma llave y misma imagen -> la respuesta original; otra -> 409).
+  const prior=await priorCommand(ctx,{idempotencyKey,aggregateType:AGG,aggregateId:aggId,eventType:"PROFILE_ASSET_SET",topic:"physician_profile.asset_set",at:"setAt"});
+  if(prior){
+   const p=prior.payload;if(p["contentHash"]!==contentHash||p["assetKind"]!==kind)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
+   return NextResponse.json({assetKind:kind,mime:p["mime"],size:p["size"],contentHash,version:prior.version,auditHash:prior.auditHash,replayed:true},{status:200});
+  }
+  // Ruta ÚNICA por subida (D6): antes era fija por tipo y MIME y la nueva imagen sobrescribía la vigente ANTES del commit
+  // (un fallo dejaba el perfil citando una imagen que ya no era la suya). La imagen anterior sigue citada por su evento.
+  const pathname=`tenants/${c.tenantId}/physicians/${aggId}/${kind}-${crypto.randomUUID()}.${EXT_BY_MIME[mime]??"png"}`;
   const setAt=new Date().toISOString();
   const profile=await foldProfile(ctx,aggId);
-  await put(pathname,Buffer.from(bytes),{access:"private",token:blobToken(),contentType:mime,addRandomSuffix:false,allowOverwrite:true});
+  await put(pathname,Buffer.from(bytes),{access:"private",token:blobToken(),contentType:mime,addRandomSuffix:false,allowOverwrite:false});
   try{
    const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:aggId,expectedVersion:profile.version,eventType:"PROFILE_ASSET_SET",payload:{kind:"ASSET_SET",assetKind:kind,pathname,mime,size:bytes.byteLength,contentHash,authorId:c.sub,setAt},occurredAt:setAt,topic:"physician_profile.asset_set"});
-   let result=await lookupReplay(ctx,cmd);
-   if(!result)result=await runClinicalCommand(ctx,cmd);
+   const result=await runClinicalCommand(ctx,cmd);
    const r=result.response as{version:number;auditHash?:string};
    return NextResponse.json({assetKind:kind,mime,size:bytes.byteLength,contentHash,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
   }catch(commitErr){
-   await del(pathname,{token:blobToken()}).catch(()=>{/* mejor esfuerzo */});
+   if(!(await blobReferenced(ctx,idempotencyKey,aggId,pathname)))await del(pathname,{token:blobToken()}).catch(()=>{/* mejor esfuerzo */});
    throw commitErr;
   }
  });
@@ -149,13 +157,18 @@ export async function handleProfileAssetRemove(req:Request,kind:string):Promise<
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const aggId=profileId(c);
+  // D6: un reintento de una retirada ya aplicada responde la original (antes: 404, el asset ya no figuraba).
+  const prior=await priorCommand(ctx,{idempotencyKey,aggregateType:AGG,aggregateId:aggId,eventType:"PROFILE_ASSET_REMOVED",topic:"physician_profile.asset_removed",at:"removedAt"});
+  if(prior){
+   if(prior.payload["assetKind"]!==kind)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
+   return NextResponse.json({assetKind:kind,removed:true,version:prior.version,replayed:true},{status:200});
+  }
   const profile=await foldProfile(ctx,aggId);
   const asset=assetOf(profile,kind as AssetKind);
   if(!asset)throw new ClinicalError("NOT_FOUND","Asset no encontrado");
   const removedAt=new Date().toISOString();
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:aggId,expectedVersion:profile.version,eventType:"PROFILE_ASSET_REMOVED",payload:{kind:"ASSET_REMOVED",assetKind:kind,authorId:c.sub,removedAt},occurredAt:removedAt,topic:"physician_profile.asset_removed"});
-  let result=await lookupReplay(ctx,cmd);
-  if(!result)result=await runClinicalCommand(ctx,cmd);
+  const result=await runClinicalCommand(ctx,cmd);
   await del(asset.pathname,{token:blobToken()}).catch(()=>{/* ya pudo no existir */});
   const r=result.response as{version:number};
   return NextResponse.json({assetKind:kind,removed:true,version:r.version,replayed:result.replayed},{status:200});

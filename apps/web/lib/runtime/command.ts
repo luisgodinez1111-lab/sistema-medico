@@ -37,3 +37,20 @@ export async function lookupReplay(ctx:HttpTenantContext,command:ClinicalCommand
   return null;
  }) as Promise<ClinicalCommandResult|null>;
 }
+// Hallazgo D5 del lote 11 — COMANDO DERIVADO (obligaciones de monitoreo de un fármaco, obligación de un resultado crítico):
+// consecuencia obligatoria de un comando principal ya cobrado por el límite de tasa. Es idempotente por su llave derivada
+// (replay si ya se aplicó) y NO se cobra otra vez: antes, con el cubo del actor agotado entre ambos, el principal quedaba
+// confirmado y la obligación nunca se creaba (warfarina sin control de INR). Los casos de uso lo ejecutan también en el
+// camino de replay del principal, así que un reintento reconcilia lo que un fallo tras el commit principal dejó pendiente.
+export async function runDerivedCommand(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult>{
+ const replay=await lookupReplay(ctx,command);if(replay)return replay;
+ const span=sliSpan(flowForTopic(command.topic),"commit",command.correlationId);
+ try{
+  const r=await executeAtomicClinicalCommand(getSql(),ctx,command) as ClinicalCommandResult;
+  span.end("success",{tenantId:ctx.tenantId});
+  return r;
+ }catch(e){
+  span.end("error",{code:(e as{code?:string}).code??"ERROR",tenantId:ctx.tenantId});
+  throw e;
+ }
+}

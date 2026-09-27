@@ -99,7 +99,7 @@ function arrange(s:Scenario){
  h.state.impl.set("lookupReplay",async()=>s.replay?{replayed:true,response:receipt(9)}:null);
  h.state.impl.set("runClinicalCommand",async(_c:unknown,cmd:unknown)=>({replayed:s.replay,response:receipt(s.replay?9:Number((cmd as{expectedVersion:number}).expectedVersion)+1)}));
 }
-const summarizeCall=(c:unknown[])=>c[0]==="runClinicalCommand"||c[0]==="lookupReplay"?[c[0],c[1],crypto.createHash("sha256").update(canonicalize(c[1])).digest("hex").slice(0,16)]:c;
+const summarizeCall=(c:unknown[])=>c[0]==="runClinicalCommand"||c[0]==="lookupReplay"||c[0]==="runDerivedCommand"?[c[0],c[1],crypto.createHash("sha256").update(canonicalize(c[1])).digest("hex").slice(0,16)]:c;
 async function responseOf(r:Response){
  const text=await r.text();let body:unknown;try{body=JSON.parse(text);}catch{body=text.length>200?{sha256:crypto.createHash("sha256").update(text).digest("hex"),length:text.length}:text;}
  return{status:r.status,type:r.headers.get("content-type")?.split(";")[0]??null,body};

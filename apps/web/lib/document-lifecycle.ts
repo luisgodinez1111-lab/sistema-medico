@@ -4,12 +4,12 @@ import{z}from"zod";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldDocument,assertDocumentTransition}from"../../../packages/document-fold/src";
 import{put,del,get}from"@vercel/blob";
-import{runClinicalCommand,lookupReplay}from"./runtime/command";
+import{runClinicalCommand}from"./runtime/command";
 import{documentDetail}from"./runtime/read-models/documents";
 import{requireRegisteredPatient}from"./runtime/read-models/patient";
 import{buildCommand,parseJson,replayStablePayload}from"./http-command";
 import{endpoint,assertRouteIds}from"./http/endpoint";
-import{createCommand,transitionCommand}from"./command/aggregate-command";
+import{createCommand,transitionCommand,priorCommand,blobReferenced}from"./command/aggregate-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
 // EPIC I — Ciclo de vida del documento clínico sobre el kernel. Autoridad PROD-014-R022 /
 // PROD-022-R018: la firma produce un snapshot reproducible (contentHash) y las correcciones son
@@ -119,23 +119,27 @@ export async function handleDocumentAttach(req:Request,documentId:string):Promis
   if(bytes.byteLength===0)throw new ClinicalError("VALIDATION_ERROR","Archivo vacío");
   if(bytes.byteLength>MAX_ATTACHMENT_BYTES)throw new ClinicalError("VALIDATION_ERROR",`Archivo demasiado grande (${bytes.byteLength} bytes; máx ${MAX_ATTACHMENT_BYTES})`);
   const contentHash=crypto.createHash("sha256").update(bytes).digest("hex");
+  // D6: el reintento se reconoce ANTES de tocar el Blob (misma llave y mismo archivo -> la respuesta original; otro -> 409).
+  const prior=await priorCommand(ctx,{idempotencyKey,aggregateType:AGG,aggregateId:documentId,eventType:"DOCUMENT_ATTACHED",topic:"document.attached",at:"attachedAt"});
+  if(prior){
+   const p=prior.payload;if(p["contentHash"]!==contentHash)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
+   return NextResponse.json({documentId,attachmentId:p["attachmentId"],filename:p["filename"],mime:p["mime"],size:p["size"],pathname:p["pathname"],contentHash,version:prior.version,auditHash:prior.auditHash,replayed:true},{status:200});
+  }
   const attachmentId=derivedUuid(`${idempotencyKey}:${documentId}:attachment`);
   const filename=safeName(file.name);
-  // Aislamiento por tenant en la ruta del blob; nombre determinista para idempotencia del reintento.
-  const pathname=`tenants/${c.tenantId}/documents/${documentId}/${attachmentId}.${EXT_BY_MIME[mime]??"bin"}`;
+  // Aislamiento por tenant en la ruta del blob y ruta ÚNICA por intento (D6): ningún intento sobrescribe el binario de otro.
+  const pathname=`tenants/${c.tenantId}/documents/${documentId}/${attachmentId}-${crypto.randomUUID()}.${EXT_BY_MIME[mime]??"bin"}`;
   const occurredAt=new Date().toISOString();
-  // Sube PRIMERO al blob (privado, sin sufijo aleatorio para que el reintento sobrescriba la misma ruta).
-  await put(pathname,Buffer.from(bytes),{access:"private",token:blobToken(),contentType:mime,addRandomSuffix:false,allowOverwrite:true});
-  // Luego registra el evento. Si el commit falla, borra el blob para no dejar huérfanos.
+  // Sube PRIMERO al blob (privado); luego registra el evento.
+  await put(pathname,Buffer.from(bytes),{access:"private",token:blobToken(),contentType:mime,addRandomSuffix:false,allowOverwrite:false});
   try{
    const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:documentId,expectedVersion:detail.version,eventType:"DOCUMENT_ATTACHED",payload:{kind:"ATTACHED",attachmentId,filename,mime,size:bytes.byteLength,pathname,contentHash,authorId:c.sub,attachedAt:occurredAt},occurredAt,topic:"document.attached"});
-   let result=await lookupReplay(ctx,cmd);
-   if(!result)result=await runClinicalCommand(ctx,cmd);
+   const result=await runClinicalCommand(ctx,cmd);
    const r=result.response as{version:number;auditHash?:string};
    return NextResponse.json({documentId,attachmentId,filename,mime,size:bytes.byteLength,pathname,contentHash,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
   }catch(commitErr){
-   // rollback del binario: el evento no se registró, el blob no debe quedar
-   await del(pathname,{token:blobToken()}).catch(()=>{/* mejor esfuerzo; no enmascarar el error original */});
+   // Sin evento no hay adjunto: se borra el binario de ESTE intento, salvo que un evento confirmado lo cite (D6).
+   if(!(await blobReferenced(ctx,idempotencyKey,documentId,pathname)))await del(pathname,{token:blobToken()}).catch(()=>{/* mejor esfuerzo; no enmascarar el error original */});
    throw commitErr;
   }
  });
@@ -164,13 +168,18 @@ export async function handleDocumentAttachmentRemove(req:Request,documentId:stri
   assertRouteIds({documentId,attachmentId}); // D8
   const detail=await documentDetail(ctx,documentId);
   if(!detail.exists)throw new ClinicalError("NOT_FOUND","Document not found");
+  // D6: un reintento de una retirada ya aplicada responde la original (antes: 404, el adjunto ya no figuraba).
+  const prior=await priorCommand(ctx,{idempotencyKey,aggregateType:AGG,aggregateId:documentId,eventType:"DOCUMENT_ATTACHMENT_REMOVED",topic:"document.attachment_removed",at:"removedAt"});
+  if(prior){
+   if(prior.payload["attachmentId"]!==attachmentId)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
+   return NextResponse.json({documentId,attachmentId,removed:true,version:prior.version,auditHash:prior.auditHash,replayed:true},{status:200});
+  }
   const att=detail.attachments.find(a=>a.attachmentId===attachmentId);
   if(!att)throw new ClinicalError("NOT_FOUND","Attachment not found");
   const occurredAt=new Date().toISOString();
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:documentId,expectedVersion:detail.version,eventType:"DOCUMENT_ATTACHMENT_REMOVED",payload:{kind:"ATTACHMENT_REMOVED",attachmentId,authorId:c.sub,removedAt:occurredAt},occurredAt,topic:"document.attachment_removed"});
-  let result=await lookupReplay(ctx,cmd);
-  if(!result)result=await runClinicalCommand(ctx,cmd);
-  // borra el binario del store (mejor esfuerzo; el evento es la fuente de verdad)
+  const result=await runClinicalCommand(ctx,cmd);
+  // Retirada explícita: el binario (PHI) se borra del store DESPUÉS del evento (mejor esfuerzo; el evento es la fuente de verdad).
   await del(att.pathname,{token:blobToken()}).catch(()=>{/* ya pudo no existir */});
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({documentId,attachmentId,removed:true,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:200});

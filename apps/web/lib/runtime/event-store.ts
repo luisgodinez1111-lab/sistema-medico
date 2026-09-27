@@ -21,6 +21,14 @@ export async function readEventPayloadById(ctx:HttpTenantContext,eventId:string,
   const p=rows[0]?.payload;return p&&typeof p==="object"?p as Record<string,unknown>:undefined;
  }) as Promise<Record<string,unknown>|undefined>;
 }
+// Hallazgo D6 del lote 11 — el evento que produjo una llave de idempotencia, con su secuencia (para reconstruir el comando exacto
+// que se ejecutó y reconocer un reintento ANTES de tocar efectos externos como el Blob).
+export async function readEventById(ctx:HttpTenantContext,eventId:string,aggregateId:string):Promise<{sequence:number;payload:Record<string,unknown>}|undefined>{
+ return withTenantTx(ctx,async tx=>{
+  const rows=await tx`select sequence,payload from clinical_events where tenant_id=${ctx.tenantId} and id=${eventId} and aggregate_id=${aggregateId} limit 1`;
+  const r=rows[0];return r&&r.payload&&typeof r.payload==="object"?{sequence:Number(r.sequence),payload:r.payload as Record<string,unknown>}:undefined;
+ }) as Promise<{sequence:number;payload:Record<string,unknown>}|undefined>;
+}
 export async function readAggregateEvents(ctx:HttpTenantContext,aggregateId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
  return readEncounterEvents(ctx,aggregateId);
 }
