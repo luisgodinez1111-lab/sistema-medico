@@ -1,6 +1,8 @@
-// Lote 11 (ADR-0300) — read models de documentos clínicos. Extraído de apps/web/lib/clinical-runtime.ts sin cambios de código.
+// Lote 11 (ADR-0300) — read models de documentos clínicos. Extraído de apps/web/lib/clinical-runtime.ts en 11.1; el estado de la
+// lista ignora las anotaciones (adjuntos) desde el hallazgo D3.
 import{type HttpTenantContext}from"../../../../../packages/http-principal/src";
 import{withTenantTx}from"../db";
+import{lifecycleEventOnly}from"../sql";
 // EPIC Z/UI — Documentos clínicos de UN paciente (vista Documentos). Por cada agregado ClinicalDocument toma el
 // evento base DOCUMENT_CREATED (tipo/título/fecha) y su ESTADO por la última transición
 // (CREATED->DRAFT, FINALIZED, SIGNED, AMENDED). RLS-scoped.
@@ -10,7 +12,7 @@ export async function patientDocuments(ctx:HttpTenantContext,patientId:string):P
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select a.aggregate_id, a.payload->>'title' as title, a.payload->>'docType' as doc_type, a.occurred_at as created_at, a.actor_id as actor_id,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id and ${lifecycleEventOnly(tx)} order by sequence desc limit 1) as last_kind
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalDocument' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=${patientId}
    order by a.occurred_at desc`;

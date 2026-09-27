@@ -2,15 +2,21 @@
 // hallazgos D1 y D2 añaden las proyecciones que replican la regla de su fold (vitales vigentes, demografía vigente).
 import postgres from"postgres";
 import{VITAL_VOID_KIND}from"../../../../packages/vital-fold/src";
-import{PATIENT_DEMOGRAPHIC_FIELDS,PATIENT_DEMOGRAPHIC_KINDS}from"../../../../packages/patient-fold/src";
+import{PATIENT_ANNOTATION_KINDS,PATIENT_DEMOGRAPHIC_FIELDS,PATIENT_DEMOGRAPHIC_KINDS}from"../../../../packages/patient-fold/src";
+import{MED_ANNOTATION_KINDS}from"../../../../packages/medication-fold/src";
+import{PROBLEM_ANNOTATION_KINDS}from"../../../../packages/problem-fold/src";
+import{DOCUMENT_ANNOTATION_KINDS}from"../../../../packages/document-fold/src";
 // Auditoría L-04/K-05 — Eventos de ANOTACIÓN por tipo de agregado: enriquecen el agregado sin cambiar su estado. Toda
 // consulta genérica que derive el estado del "último evento" debe ignorarlos; si no, corregir el teléfono de un paciente
 // fallecido lo mostraba ACTIVO, y modificar una dosis habría sacado la medicación de la lista de activas.
 // Alias fijo `c` (el de las subconsultas latest_kind). AMENDED es anotación SOLO en Patient (en VitalSign/Document es estado).
+// Las listas son las que cada fold declara (hallazgo D3: los adjuntos de un documento faltaban y un firmado se listaba como
+// borrador); una anotación nueva en un fold llega aquí sin duplicar literales.
 export const lifecycleEventOnly=(tx:postgres.TransactionSql)=>tx`not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED'))`;
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any(${[...MED_ANNOTATION_KINDS]}::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any(${[...PROBLEM_ANNOTATION_KINDS]}::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any(${[...PATIENT_ANNOTATION_KINDS]}::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any(${[...DOCUMENT_ANNOTATION_KINDS]}::text[])))`;
 // Hallazgo D1 del lote 11 — OBSERVACIÓN VIGENTE de un signo vital, con la semántica de packages/vital-fold: valor, unidad,
 // estado y bandera crítica son los del ÚLTIMO evento que aporta valor (RECORDED o AMENDED) y un signo vital cuyo último
 // evento es VITAL_VOID_KIND (ENTERED_IN_ERROR) no existe clínicamente. Antes los read models leían solo el RECORDED original:

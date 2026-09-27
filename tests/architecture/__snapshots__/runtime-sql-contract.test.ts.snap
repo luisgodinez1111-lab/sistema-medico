@@ -1320,6 +1320,21 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           [
             "REGISTERED",
@@ -1355,23 +1370,24 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      d.demo->>'sexAtBirth' as sex_at_birth,
      d.demo->>'curp' as curp,
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
-     (select count(*)::int from clinical_events v where v.tenant_id=$2 and v.aggregate_id=r.aggregate_id) as version
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($2::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($3::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($4::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($5::text[]))) order by sequence desc limit 1) as latest_kind,
+     (select count(*)::int from clinical_events v where v.tenant_id=$6 and v.aggregate_id=r.aggregate_id) as version
    from clinical_events r
    left join lateral (
    select jsonb_object_agg(f.key,f.value) as demo from (
     select distinct on (kv.key) kv.key, kv.value from clinical_events e cross join lateral jsonb_each(e.payload) kv
-    where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($3::text[])
-      and kv.key=any($4::text[])
+    where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($7::text[])
+      and kv.key=any($8::text[])
     order by kv.key, e.sequence desc) f) d on true
-   where r.tenant_id=$5 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+   where r.tenant_id=$9 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
    ) p
-   where ($6='' or lower(p.name) like $7 or lower(p.name) like $8 or lower(coalesce(p.curp,'')) like $9)
-     and ($10::text is null or (p.name, p.aggregate_id::text) > ($11::text, $12::text))
+   where ($10='' or lower(p.name) like $11 or lower(p.name) like $12 or lower(coalesce(p.curp,'')) like $13)
+     and ($14::text is null or (p.name, p.aggregate_id::text) > ($15::text, $16::text))
    order by p.name, p.aggregate_id
-   limit $13",
+   limit $17",
         "via": "tx",
       },
       {
@@ -1421,6 +1437,21 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           [
             "REGISTERED",
@@ -1456,23 +1487,24 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      d.demo->>'sexAtBirth' as sex_at_birth,
      d.demo->>'curp' as curp,
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
-     (select count(*)::int from clinical_events v where v.tenant_id=$2 and v.aggregate_id=r.aggregate_id) as version
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($2::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($3::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($4::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($5::text[]))) order by sequence desc limit 1) as latest_kind,
+     (select count(*)::int from clinical_events v where v.tenant_id=$6 and v.aggregate_id=r.aggregate_id) as version
    from clinical_events r
    left join lateral (
    select jsonb_object_agg(f.key,f.value) as demo from (
     select distinct on (kv.key) kv.key, kv.value from clinical_events e cross join lateral jsonb_each(e.payload) kv
-    where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($3::text[])
-      and kv.key=any($4::text[])
+    where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($7::text[])
+      and kv.key=any($8::text[])
     order by kv.key, e.sequence desc) f) d on true
-   where r.tenant_id=$5 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+   where r.tenant_id=$9 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
    ) p
-   where ($6='' or lower(p.name) like $7 or lower(p.name) like $8 or lower(coalesce(p.curp,'')) like $9)
-     and ($10::text is null or (p.name, p.aggregate_id::text) > ($11::text, $12::text))
+   where ($10='' or lower(p.name) like $11 or lower(p.name) like $12 or lower(coalesce(p.curp,'')) like $13)
+     and ($14::text is null or (p.name, p.aggregate_id::text) > ($15::text, $16::text))
    order by p.name, p.aggregate_id
-   limit $13",
+   limit $17",
         "via": "tx",
       },
       {
@@ -1819,14 +1851,33 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "
    select a.aggregate_id, a.payload->>'title' as title, a.payload->>'docType' as doc_type, a.occurred_at as created_at, a.actor_id as actor_id,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($2::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($3::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($4::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($5::text[]))) order by sequence desc limit 1) as last_kind
    from clinical_events a
-   where a.tenant_id=$2 and a.aggregate_type='ClinicalDocument' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3
+   where a.tenant_id=$6 and a.aggregate_type='ClinicalDocument' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$7
    order by a.occurred_at desc",
         "via": "tx",
       },
@@ -2363,7 +2414,37 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
@@ -2375,21 +2456,23 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "text": "
    select r.aggregate_id, r.aggregate_type,
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
-     (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_status,
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($2::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($3::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($4::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($5::text[]))) order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=$6 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($7::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($8::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($9::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($10::text[]))) order by sequence desc limit 1) as latest_status,
      max(r.sequence) as version, min(r.occurred_at) as opened_at, max(r.occurred_at) as last_at
    from clinical_events r
-   where r.tenant_id=$3 and r.aggregate_id in (
-     select aggregate_id from clinical_events where tenant_id=$4 and sequence=1 and payload->>'patientId'=$5)
+   where r.tenant_id=$11 and r.aggregate_id in (
+     select aggregate_id from clinical_events where tenant_id=$12 and sequence=1 and payload->>'patientId'=$13)
    group by r.aggregate_id, r.aggregate_type
-   having ($6::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($7::timestamptz, $8::text))
+   having ($14::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($15::timestamptz, $16::text))
    order by min(r.occurred_at) desc, r.aggregate_id desc
-   limit $9",
+   limit $17",
         "via": "tx",
       },
       {
@@ -2431,7 +2514,37 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
@@ -2443,21 +2556,23 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "text": "
    select r.aggregate_id, r.aggregate_type,
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
-     (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_status,
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($2::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($3::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($4::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($5::text[]))) order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=$6 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($7::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($8::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($9::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($10::text[]))) order by sequence desc limit 1) as latest_status,
      max(r.sequence) as version, min(r.occurred_at) as opened_at, max(r.occurred_at) as last_at
    from clinical_events r
-   where r.tenant_id=$3 and r.aggregate_id in (
-     select aggregate_id from clinical_events where tenant_id=$4 and sequence=1 and payload->>'patientId'=$5)
+   where r.tenant_id=$11 and r.aggregate_id in (
+     select aggregate_id from clinical_events where tenant_id=$12 and sequence=1 and payload->>'patientId'=$13)
    group by r.aggregate_id, r.aggregate_type
-   having ($6::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($7::timestamptz, $8::text))
+   having ($14::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($15::timestamptz, $16::text))
    order by min(r.occurred_at) desc, r.aggregate_id desc
-   limit $9",
+   limit $17",
         "via": "tx",
       },
       {
@@ -2494,18 +2609,34 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000001",
         ],
         "text": "
    select r.aggregate_id, r.aggregate_type, r.payload->>'patientId' as patient_id,
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
-     (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_status
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($2::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($3::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($4::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($5::text[]))) order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=$6 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_status
    from clinical_events r
-   where r.tenant_id=$3 and r.sequence=1 and r.payload->>'patientId' is not null",
+   where r.tenant_id=$7 and r.sequence=1 and r.payload->>'patientId' is not null",
         "via": "tx",
       },
       {
@@ -4084,6 +4215,21 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           [
             "REGISTERED",
@@ -4119,23 +4265,24 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      d.demo->>'sexAtBirth' as sex_at_birth,
      d.demo->>'curp' as curp,
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
-     (select count(*)::int from clinical_events v where v.tenant_id=$2 and v.aggregate_id=r.aggregate_id) as version
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($2::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($3::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($4::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($5::text[]))) order by sequence desc limit 1) as latest_kind,
+     (select count(*)::int from clinical_events v where v.tenant_id=$6 and v.aggregate_id=r.aggregate_id) as version
    from clinical_events r
    left join lateral (
    select jsonb_object_agg(f.key,f.value) as demo from (
     select distinct on (kv.key) kv.key, kv.value from clinical_events e cross join lateral jsonb_each(e.payload) kv
-    where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($3::text[])
-      and kv.key=any($4::text[])
+    where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($7::text[])
+      and kv.key=any($8::text[])
     order by kv.key, e.sequence desc) f) d on true
-   where r.tenant_id=$5 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+   where r.tenant_id=$9 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
    ) p
-   where ($6='' or lower(p.name) like $7 or lower(p.name) like $8 or lower(coalesce(p.curp,'')) like $9)
-     and ($10::text is null or (p.name, p.aggregate_id::text) > ($11::text, $12::text))
+   where ($10='' or lower(p.name) like $11 or lower(p.name) like $12 or lower(coalesce(p.curp,'')) like $13)
+     and ($14::text is null or (p.name, p.aggregate_id::text) > ($15::text, $16::text))
    order by p.name, p.aggregate_id
-   limit $13",
+   limit $17",
         "via": "tx",
       },
       {
@@ -4175,6 +4322,21 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           [
             "REGISTERED",
@@ -4210,23 +4372,24 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      d.demo->>'sexAtBirth' as sex_at_birth,
      d.demo->>'curp' as curp,
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
-     (select count(*)::int from clinical_events v where v.tenant_id=$2 and v.aggregate_id=r.aggregate_id) as version
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($2::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($3::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($4::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($5::text[]))) order by sequence desc limit 1) as latest_kind,
+     (select count(*)::int from clinical_events v where v.tenant_id=$6 and v.aggregate_id=r.aggregate_id) as version
    from clinical_events r
    left join lateral (
    select jsonb_object_agg(f.key,f.value) as demo from (
     select distinct on (kv.key) kv.key, kv.value from clinical_events e cross join lateral jsonb_each(e.payload) kv
-    where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($3::text[])
-      and kv.key=any($4::text[])
+    where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($7::text[])
+      and kv.key=any($8::text[])
     order by kv.key, e.sequence desc) f) d on true
-   where r.tenant_id=$5 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+   where r.tenant_id=$9 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
    ) p
-   where ($6='' or lower(p.name) like $7 or lower(p.name) like $8 or lower(coalesce(p.curp,'')) like $9)
-     and ($10::text is null or (p.name, p.aggregate_id::text) > ($11::text, $12::text))
+   where ($10='' or lower(p.name) like $11 or lower(p.name) like $12 or lower(coalesce(p.curp,'')) like $13)
+     and ($14::text is null or (p.name, p.aggregate_id::text) > ($15::text, $16::text))
    order by p.name, p.aggregate_id
-   limit $13",
+   limit $17",
         "via": "tx",
       },
       {
@@ -4538,14 +4701,33 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
         ],
         "text": "
    select a.aggregate_id, a.payload->>'title' as title, a.payload->>'docType' as doc_type, a.occurred_at as created_at, a.actor_id as actor_id,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($2::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($3::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($4::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($5::text[]))) order by sequence desc limit 1) as last_kind
    from clinical_events a
-   where a.tenant_id=$2 and a.aggregate_type='ClinicalDocument' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3
+   where a.tenant_id=$6 and a.aggregate_type='ClinicalDocument' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$7
    order by a.occurred_at desc",
         "via": "tx",
       },
@@ -5000,7 +5182,37 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
@@ -5012,21 +5224,23 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "text": "
    select r.aggregate_id, r.aggregate_type,
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
-     (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_status,
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($2::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($3::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($4::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($5::text[]))) order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=$6 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($7::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($8::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($9::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($10::text[]))) order by sequence desc limit 1) as latest_status,
      max(r.sequence) as version, min(r.occurred_at) as opened_at, max(r.occurred_at) as last_at
    from clinical_events r
-   where r.tenant_id=$3 and r.aggregate_id in (
-     select aggregate_id from clinical_events where tenant_id=$4 and sequence=1 and payload->>'patientId'=$5)
+   where r.tenant_id=$11 and r.aggregate_id in (
+     select aggregate_id from clinical_events where tenant_id=$12 and sequence=1 and payload->>'patientId'=$13)
    group by r.aggregate_id, r.aggregate_type
-   having ($6::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($7::timestamptz, $8::text))
+   having ($14::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($15::timestamptz, $16::text))
    order by min(r.occurred_at) desc, r.aggregate_id desc
-   limit $9",
+   limit $17",
         "via": "tx",
       },
       {
@@ -5058,7 +5272,37 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
@@ -5070,21 +5314,23 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "text": "
    select r.aggregate_id, r.aggregate_type,
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
-     (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_status,
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($2::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($3::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($4::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($5::text[]))) order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=$6 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($7::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($8::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($9::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($10::text[]))) order by sequence desc limit 1) as latest_status,
      max(r.sequence) as version, min(r.occurred_at) as opened_at, max(r.occurred_at) as last_at
    from clinical_events r
-   where r.tenant_id=$3 and r.aggregate_id in (
-     select aggregate_id from clinical_events where tenant_id=$4 and sequence=1 and payload->>'patientId'=$5)
+   where r.tenant_id=$11 and r.aggregate_id in (
+     select aggregate_id from clinical_events where tenant_id=$12 and sequence=1 and payload->>'patientId'=$13)
    group by r.aggregate_id, r.aggregate_type
-   having ($6::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($7::timestamptz, $8::text))
+   having ($14::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($15::timestamptz, $16::text))
    order by min(r.occurred_at) desc, r.aggregate_id desc
-   limit $9",
+   limit $17",
         "via": "tx",
       },
       {
@@ -5113,18 +5359,34 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "MODIFIED",
+            "RECONCILED",
+          ],
+          [
+            "EPISTEMIC_CHANGED",
+            "EVIDENCE_UPDATED",
+          ],
+          [
+            "AMENDED",
+          ],
+          [
+            "ATTACHED",
+            "ATTACHMENT_REMOVED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-000000000001",
         ],
         "text": "
    select r.aggregate_id, r.aggregate_type, r.payload->>'patientId' as patient_id,
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
-     (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_status
+  (c.aggregate_type='Medication' and c.payload->>'kind'=any($2::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind'=any($3::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'=any($4::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind'=any($5::text[]))) order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=$6 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_status
    from clinical_events r
-   where r.tenant_id=$3 and r.sequence=1 and r.payload->>'patientId' is not null",
+   where r.tenant_id=$7 and r.sequence=1 and r.payload->>'patientId' is not null",
         "via": "tx",
       },
       {
