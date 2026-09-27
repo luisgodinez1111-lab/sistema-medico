@@ -4,7 +4,7 @@
 // la degradación sin PHI. Las llaves son IPs (login) o `tenant:actor` (escrituras): no hay PHI en la tabla.
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{KeyedRateLimiter,LOGIN_POLICY,WRITE_POLICY,type LimitDecision,type LimitPolicy}from"./rate-limit";
-import{getSql}from"./clinical-runtime";
+import{getSql}from"./runtime/db";
 const fallback:Record<SharedScope,KeyedRateLimiter>={login:new KeyedRateLimiter(LOGIN_POLICY),write:new KeyedRateLimiter(WRITE_POLICY)};
 export type SharedScope="login"|"write";
 export const SHARED_POLICY:Record<SharedScope,LimitPolicy>={login:LOGIN_POLICY,write:WRITE_POLICY};

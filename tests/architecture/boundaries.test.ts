@@ -12,8 +12,8 @@ const DOMAIN=new Set([...packages.filter(p=>p.endsWith("-fold")),
  "renal-function","acid-base","oxygenation","glycemic","anticoagulation","stroke-risk","pneumonia-severity","liver-fibrosis",
  "comorbidity","lab-derivations","immunization-schedule","terminology","mx-identity","clinical-intelligence",
  "encounter-domain","medication-domain","order-result-domain"]);
-// Ciclos de archivo conocidos en apps/web/lib. La lista solo puede encogerse: el lote 1 (persistencia) la deja vacía.
-const KNOWN_LIB_CYCLES:string[][]=[["apps/web/lib/clinical-runtime.ts","apps/web/lib/rate-limit-shared.ts"]];
+// Ciclos de archivo conocidos en apps/web/lib. El único (clinical-runtime <-> rate-limit-shared) lo rompió el lote 11.1.
+const KNOWN_LIB_CYCLES:string[][]=[];
 // Rutas que aún llevan el pipeline HTTP en línea (autorización o traducción de errores). Solo puede bajar; meta del lote 3: 0.
 const MAX_FAT_ROUTES=43;
 
@@ -38,6 +38,14 @@ describe("guardas de arquitectura (ADR-0300)",()=>{
  it("apps/web/lib no tiene ciclos de importación nuevos (y los conocidos no vuelven una vez resueltos)",()=>{
   const lib=sourceFiles("apps/web/lib");
   expect(cycles(lib,f=>edgesOf(f).filter(t=>t.startsWith("apps/web/lib/")))).toEqual(KNOWN_LIB_CYCLES);
+ });
+ it("la persistencia (lib/runtime) no depende de casos de uso, del transporte HTTP ni de la fachada clinical-runtime",()=>{
+  const runtime=sourceFiles("apps/web/lib/runtime");
+  expect(runtime.length).toBeGreaterThan(10);
+  const forbidden=(t:string)=>t==="apps/web/lib/clinical-runtime.ts"||t==="apps/web/lib/http-command.ts"||/-lifecycle\.ts$/.test(t)||/^apps\/web\/lib\/(http|command|queries|presenters)\//.test(t)||t.startsWith("apps/web/app/");
+  const bad=runtime.flatMap(f=>edgesOf(f).filter(forbidden).map(t=>`${f} -> ${t}`));
+  bad.push(...runtime.flatMap(f=>specifiersOf(f).filter(s=>s==="next/server"||s.startsWith("next/")).map(s=>`${f} importa ${s}`)));
+  expect(bad).toEqual([]);
  });
  it("el middleware (Edge) solo carga módulos sin Node, sin postgres y sin la persistencia",()=>{
   const files=[...closure(["apps/web/middleware.ts"])];
