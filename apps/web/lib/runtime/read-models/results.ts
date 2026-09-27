@@ -2,6 +2,7 @@
 import{type HttpTenantContext}from"../../../../../packages/http-principal/src";
 import{normalizeLabValue}from"../../../../../packages/lab-reference/src";
 import{withTenantTx}from"../db";
+import{currentPatientName}from"../sql";
 // EPIC BB — Valor PREVIO del mismo analito del paciente (resultado más reciente ya recibido). RLS-scoped.
 // Para el delta check de laboratorio en la recepción de un resultado nuevo. Devuelve el value textual o undefined.
 // `excludeResultId`: al RECIBIR un resultado, el "previo" jamás debe ser el propio resultado. Sin esto, el REINTENTO
@@ -73,7 +74,7 @@ export async function resultsRegistry(ctx:HttpTenantContext):Promise<ResultRow[]
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
      a.payload->>'critical' as critical, a.payload->>'status' as status, a.payload->>'interpretation' as interpretation, a.occurred_at as received_at,
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
-     (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+     ${currentPatientName(tx,ctx.tenantId)} as patient_name
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
    order by a.occurred_at desc`;

@@ -1,6 +1,7 @@
 // Lote 11 (ADR-0300) — agenda del consultorio. Extraído de apps/web/lib/clinical-runtime.ts sin cambios de código.
 import{type HttpTenantContext}from"../../../../../packages/http-principal/src";
 import{withTenantTx}from"../db";
+import{currentPatientName}from"../sql";
 // EPIC CM — Agenda del día: citas cuyo startAt cae en [fromIso, toIso), con estado (última transición)
 // y nombre del paciente. RLS-scoped. Comparación por string ISO (orden lexicográfico correcto).
 export type AgendaAppt=Readonly<{appointmentId:string;patientId:string;patientName:string;startAt:string;endAt:string|null;reason:string;consultorio:string|null;apptType:string|null;status:string;version:number}>;
@@ -11,7 +12,7 @@ export async function agendaForDate(ctx:HttpTenantContext,fromIso:string,toIso:s
      a.payload->>'reason' as reason, a.payload->>'consultorio' as consultorio, a.payload->>'apptType' as appt_type,
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as status,
      (select count(*)::int from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id) as version,
-     (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+     ${currentPatientName(tx,ctx.tenantId)} as patient_name
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
      and a.payload->>'startAt' >= ${fromIso} and a.payload->>'startAt' < ${toIso}

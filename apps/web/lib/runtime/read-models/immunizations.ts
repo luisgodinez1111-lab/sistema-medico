@@ -1,6 +1,7 @@
 // Lote 11 (ADR-0300) — read models de vacunación. Extraído de apps/web/lib/clinical-runtime.ts sin cambios de código.
 import{type HttpTenantContext}from"../../../../../packages/http-principal/src";
 import{withTenantTx}from"../db";
+import{currentPatientName}from"../sql";
 // EPIC BK — Códigos de vacunas ADMINISTRADAS del paciente (último kind ADMINISTERED). RLS-scoped.
 // Auditoría C-10: las dosis periódicas (influenza anual, Td decenal) se deciden por la FECHA de la última aplicación.
 export type AdministeredVaccine=Readonly<{code:string;occurredAt:string|null}>;
@@ -31,7 +32,7 @@ export async function immunizationRegistry(ctx:HttpTenantContext):Promise<Immuni
      (select payload->>'lot' from clinical_events ad where ad.tenant_id=${ctx.tenantId} and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as lot,
      (select payload->>'site' from clinical_events ad where ad.tenant_id=${ctx.tenantId} and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as site,
      (select occurred_at from clinical_events ad where ad.tenant_id=${ctx.tenantId} and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as applied_at,
-     (select p.payload->>'name' from clinical_events p where p.tenant_id=${ctx.tenantId} and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+     ${currentPatientName(tx,ctx.tenantId)} as patient_name
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Immunization' and a.payload->>'kind'='DUE'
    order by coalesce((select occurred_at from clinical_events ad where ad.tenant_id=${ctx.tenantId} and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1), a.occurred_at) desc`;
