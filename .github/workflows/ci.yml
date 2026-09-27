@@ -26,8 +26,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - name: Typecheck estricto (raíz) y de la app que se despliega
-        run: pnpm typecheck && pnpm typecheck:web
+      - name: Typecheck estricto (raíz), de la app que se despliega y de scripts y pruebas en vivo
+        run: pnpm typecheck && pnpm typecheck:web && pnpm typecheck:scripts
       - name: Suite de tests
         run: pnpm test
       - name: Gates de autoridad (trazabilidad + admisión de release)

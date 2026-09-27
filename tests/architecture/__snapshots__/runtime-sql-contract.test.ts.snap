@@ -1,0 +1,3861 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lote 11) > SQL, parámetros y resultado de cada función — fila sintética 1`] = `
+{
+  "activeAllergies": {
+    "outcome": {
+      "ok": [
+        {
+          "reaction": "v_reaction",
+          "severity": null,
+          "substance": "v_substance",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'substance' as substance, r.payload->>'severity' as severity, r.payload->>'reaction' as reaction
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='Allergy' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=$2
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) in ('RECORDED','REACTIVATED')",
+      },
+    ],
+  },
+  "activeAllergySubstances": {
+    "outcome": {
+      "ok": [
+        "v_substance",
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'substance' as substance
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='Allergy' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=$2
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) in ('RECORDED','REACTIVATED')",
+      },
+    ],
+  },
+  "activeMedicationDrugCodes": {
+    "outcome": {
+      "ok": [
+        "v_drug_code",
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'drugCode' as drug_code
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='Medication' and r.payload->>'kind'='PROPOSED' and r.payload->>'patientId'=$2
+     and r.aggregate_id::text<>$3
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id
+           and c.payload->>'kind' not in ('MODIFIED','RECONCILED') order by sequence desc limit 1) in ('ACTIVATED','RESUMED')",
+      },
+    ],
+  },
+  "activeMedicationDrugCodes(exclude)": {
+    "outcome": {
+      "ok": [
+        "v_drug_code",
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "m-1",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'drugCode' as drug_code
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='Medication' and r.payload->>'kind'='PROPOSED' and r.payload->>'patientId'=$2
+     and r.aggregate_id::text<>$3
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id
+           and c.payload->>'kind' not in ('MODIFIED','RECONCILED') order by sequence desc limit 1) in ('ACTIVATED','RESUMED')",
+      },
+    ],
+  },
+  "activeProblemCodes": {
+    "outcome": {
+      "ok": [
+        "v_code",
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'code' as code
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='ClinicalProblem' and r.payload->>'kind'='ADDED' and r.payload->>'patientId'=$2
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id
+           and c.payload->>'kind' not in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED') order by sequence desc limit 1) in ('ADDED','REACTIVATED','MARKED_CHRONIC')",
+      },
+    ],
+  },
+  "administeredVaccineCodes": {
+    "outcome": {
+      "ok": [
+        "v_code",
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'vaccineCode' as code,
+     (select occurred_at from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and c.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as administered_at
+   from clinical_events r
+   where r.tenant_id=$2 and r.aggregate_type='Immunization' and r.payload->>'kind'='DUE' and r.payload->>'patientId'=$3
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1)='ADMINISTERED'",
+      },
+    ],
+  },
+  "administeredVaccines": {
+    "outcome": {
+      "ok": [
+        {
+          "code": "v_code",
+          "occurredAt": "2026-09-01T10:00:00.000Z",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'vaccineCode' as code,
+     (select occurred_at from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and c.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as administered_at
+   from clinical_events r
+   where r.tenant_id=$2 and r.aggregate_type='Immunization' and r.payload->>'kind'='DUE' and r.payload->>'patientId'=$3
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1)='ADMINISTERED'",
+      },
+    ],
+  },
+  "agendaForDate": {
+    "outcome": {
+      "ok": [
+        {
+          "appointmentId": "v_aggregate_id",
+          "apptType": "v_appt_type",
+          "consultorio": "v_consultorio",
+          "endAt": "2026-09-01T10:00:00.000Z",
+          "patientId": "v_pid",
+          "patientName": "v_patient_name",
+          "reason": "v_reason",
+          "startAt": "2026-09-01T10:00:00.000Z",
+          "status": "v_status",
+          "version": 1,
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "2026-09-01T06:00:00.000Z",
+          "2026-09-02T06:00:00.000Z",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'startAt' as start_at, a.payload->>'endAt' as end_at,
+     a.payload->>'reason' as reason, a.payload->>'consultorio' as consultorio, a.payload->>'apptType' as appt_type,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as status,
+     (select count(*)::int from clinical_events v where v.tenant_id=$2 and v.aggregate_id=a.aggregate_id) as version,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$3 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$4 and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
+     and a.payload->>'startAt' >= $5 and a.payload->>'startAt' < $6
+   order by a.payload->>'startAt' asc",
+      },
+    ],
+  },
+  "allergyRegistry": {
+    "outcome": {
+      "ok": [
+        {
+          "allergyId": "v_aggregate_id",
+          "patientId": "v_pid",
+          "patientName": "v_patient_name",
+          "reaction": "v_reaction",
+          "recordedAt": "2026-09-01T10:00:00.000Z",
+          "registeredBy": "v_actor_id",
+          "severity": "MILD",
+          "status": "ACTIVE",
+          "substance": "v_substance",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'substance' as substance,
+     a.payload->>'reaction' as reaction, a.payload->>'severity' as severity, a.occurred_at as recorded_at, a.actor_id as actor_id,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$2 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$3 and a.aggregate_type='Allergy' and a.payload->>'kind'='RECORDED'
+   order by a.occurred_at desc",
+      },
+    ],
+  },
+  "analyteSeries": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "HBA1C",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select coalesce(r.payload->>'canonicalValue',r.payload->>'value') as value, r.occurred_at as at
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
+     and r.payload->>'patientId'=$2 and upper(r.payload->>'analyte')=upper($3)
+     and not exists(select 1 from clinical_events s where s.tenant_id=$4 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+   order by r.occurred_at asc, r.sequence asc",
+      },
+    ],
+  },
+  "appointmentOutcomes": {
+    "outcome": {
+      "ok": {
+        "cancelled": 0,
+        "checkedIn": 0,
+        "completed": 0,
+        "noShow": 0,
+        "scheduled": 0,
+        "total": 1,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select coalesce((select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1),'SCHEDULED') as last_kind, count(*)::int as n
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
+   group by last_kind",
+      },
+    ],
+  },
+  "appointmentsByType": {
+    "outcome": {
+      "ok": [
+        {
+          "apptType": "v_appt_type",
+          "count": 1,
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select coalesce(a.payload->>'apptType','SIN_TIPO') as appt_type, count(*)::int as n
+   from clinical_events a
+   where a.tenant_id=$1 and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
+   group by appt_type order by n desc",
+      },
+    ],
+  },
+  "blockingObligations": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'dueAt' as due_at, a.payload->>'priority' as priority,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3",
+      },
+    ],
+  },
+  "carePlanGoals": {
+    "outcome": {
+      "ok": [
+        {
+          "carePlanId": "v_aggregate_id",
+          "category": "v_category",
+          "goal": "v_goal",
+          "recordedAt": "2026-09-01T10:00:00.000Z",
+          "status": "PROPOSED",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'category' as category, a.payload->>'goal' as goal, a.occurred_at as recorded_at,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='CarePlan' and a.payload->>'kind'='PROPOSED' and a.payload->>'patientId'=$3
+   order by a.occurred_at asc",
+      },
+    ],
+  },
+  "claimsRegistry": {
+    "outcome": {
+      "ok": [
+        {
+          "amount": "v_amount",
+          "claimId": "v_aggregate_id",
+          "currency": "v_currency",
+          "paidAt": "2026-09-01T10:00:00.000Z",
+          "patientId": "v_pid",
+          "patientName": "v_patient_name",
+          "recordedAt": "2026-09-01T10:00:00.000Z",
+          "status": "PENDING",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'amount' as amount, a.payload->>'currency' as currency, a.occurred_at as recorded_at,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select c.occurred_at from clinical_events c where c.tenant_id=$2 and c.aggregate_id=a.aggregate_id and c.payload->>'kind'='PAID' order by sequence desc limit 1) as paid_at,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$3 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$4 and a.aggregate_type='Claim' and a.payload->>'kind'='DRAFTED'
+   order by a.occurred_at desc",
+      },
+    ],
+  },
+  "countOpenCriticalResults": {
+    "outcome": {
+      "ok": 1,
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select count(distinct r.aggregate_id)::int n
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='DiagnosticResult'
+     and r.payload->>'kind'='RECEIVED' and r.payload->>'patientId'=$2 and r.payload->>'critical'='true'
+     and not exists(
+      select 1 from clinical_events c
+      where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id and c.payload->>'kind' in ('CLOSED','CORRECTED'))",
+      },
+    ],
+  },
+  "countOpenCriticalVitals": {
+    "outcome": {
+      "ok": 1,
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select count(distinct r.aggregate_id)::int n
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='VitalSign'
+     and r.payload->>'kind' in ('RECORDED','AMENDED')
+     and r.payload->>'patientId'=$2 and r.payload->>'critical'='true'
+     and not exists(
+      select 1 from clinical_events c
+      where c.tenant_id=$3 and c.aggregate_type='ClinicalObligation'
+        and c.payload->>'sourceVitalId'=r.aggregate_id::text and c.payload->>'kind'='CREATED')",
+      },
+    ],
+  },
+  "countUnresolvedCriticalObligations": {
+    "outcome": {
+      "ok": 1,
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'dueAt' as due_at, a.payload->>'priority' as priority,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3",
+      },
+    ],
+  },
+  "documentDetail": {
+    "outcome": {
+      "ok": {
+        "addenda": [],
+        "attachments": [],
+        "content": "",
+        "createdAt": "",
+        "docType": "",
+        "documentId": "00000000-0000-4000-8000-0000000000aa",
+        "exists": true,
+        "patientId": "",
+        "signature": null,
+        "state": "DRAFT",
+        "title": "",
+        "version": 1,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select a.payload as payload, a.occurred_at as occurred_at
+   from clinical_events a
+   where a.tenant_id=$1 and a.aggregate_type='ClinicalDocument' and a.aggregate_id=$2
+   order by a.sequence asc",
+      },
+    ],
+  },
+  "encounterAnalytics": {
+    "outcome": {
+      "ok": {
+        "byDay": [
+          {
+            "count": 1,
+            "date": "2026-09-01T10:00:00.000Z",
+          },
+        ],
+        "signed": 1,
+        "total": 1,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select to_char(a.occurred_at,'YYYY-MM-DD') as day, count(*)::int as n
+   from clinical_events a
+   where a.tenant_id=$1 and a.aggregate_type='Encounter' and a.payload->>'kind'='OPENED'
+   group by day order by day asc",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select count(*)::int as n from clinical_events a
+   where a.tenant_id=$1 and a.aggregate_type='Encounter' and a.payload->>'kind'='SIGNED'",
+      },
+    ],
+  },
+  "findPatientDuplicate(both)": {
+    "outcome": {
+      "ok": {
+        "by": "CURP",
+        "patientId": "v_aggregate_id",
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "HEGG560427MVZRRL04",
+        ],
+        "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(r.payload->>'curp')=$2 limit 1",
+      },
+    ],
+  },
+  "findPatientDuplicate(curp)": {
+    "outcome": {
+      "ok": {
+        "by": "CURP",
+        "patientId": "v_aggregate_id",
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "HEGG560427MVZRRL04",
+        ],
+        "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(r.payload->>'curp')=$2 limit 1",
+      },
+    ],
+  },
+  "findPatientDuplicate(name)": {
+    "outcome": {
+      "ok": {
+        "by": "NAME_BIRTHDATE",
+        "patientId": "v_aggregate_id",
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "1990-01-01",
+          "ana perez",
+        ],
+        "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+    and r.payload->>'birthDate'=$2
+    and btrim(regexp_replace(lower(translate(r.payload->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=$3 limit 1",
+      },
+    ],
+  },
+  "immunizationRegistry": {
+    "outcome": {
+      "ok": [
+        {
+          "appliedAt": "2026-09-01T10:00:00.000Z",
+          "dose": "v_dose",
+          "immunizationId": "v_aggregate_id",
+          "lot": "v_lot",
+          "patientId": "v_pid",
+          "patientName": "v_patient_name",
+          "registeredBy": "v_actor_id",
+          "site": "v_site",
+          "status": "PENDING",
+          "vaccine": "v_vaccine",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'vaccineCode' as vaccine,
+     a.payload->>'dose' as dose, a.occurred_at as due_at, a.actor_id as actor_id,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select payload->>'lot' from clinical_events ad where ad.tenant_id=$2 and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as lot,
+     (select payload->>'site' from clinical_events ad where ad.tenant_id=$3 and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as site,
+     (select occurred_at from clinical_events ad where ad.tenant_id=$4 and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as applied_at,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$5 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$6 and a.aggregate_type='Immunization' and a.payload->>'kind'='DUE'
+   order by coalesce((select occurred_at from clinical_events ad where ad.tenant_id=$7 and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1), a.occurred_at) desc",
+      },
+    ],
+  },
+  "latestAnalyteReading": {
+    "outcome": {
+      "error": "RangeError: Invalid time value",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "CREATININE",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.aggregate_id as result_id, r.occurred_at as at, r.payload->>'value' as raw, r.payload->>'canonicalValue' as canonical,
+          r.payload->>'unit' as unit, r.payload->>'canonicalUnit' as canonical_unit, r.payload->>'unitAssumed' as unit_assumed, r.payload->>'specimenId' as specimen_id
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
+     and r.payload->>'patientId'=$2 and upper(r.payload->>'analyte')=upper($3)
+     and not exists(select 1 from clinical_events s where s.tenant_id=$4 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+   order by r.occurred_at desc, r.sequence desc limit 1",
+      },
+    ],
+  },
+  "latestResultValueForAnalyte": {
+    "outcome": {
+      "ok": "v_value",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "CREATININE",
+          "",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select coalesce(r.payload->>'canonicalValue',r.payload->>'value') as value
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
+     and r.payload->>'patientId'=$2 and upper(r.payload->>'analyte')=upper($3)
+     and r.aggregate_id::text<>$4
+     and not exists(select 1 from clinical_events s where s.tenant_id=$5 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+   order by r.occurred_at desc, r.sequence desc limit 1",
+      },
+    ],
+  },
+  "latestResultValueForAnalyte(exclude)": {
+    "outcome": {
+      "ok": "v_value",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "CREATININE",
+          "r-1",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select coalesce(r.payload->>'canonicalValue',r.payload->>'value') as value
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
+     and r.payload->>'patientId'=$2 and upper(r.payload->>'analyte')=upper($3)
+     and r.aggregate_id::text<>$4
+     and not exists(select 1 from clinical_events s where s.tenant_id=$5 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+   order by r.occurred_at desc, r.sequence desc limit 1",
+      },
+    ],
+  },
+  "latestVitalsByType": {
+    "outcome": {
+      "ok": {
+        "v_vital_type": "v_value",
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select distinct on (r.payload->>'vitalType') r.payload->>'vitalType' as vital_type, r.payload->>'value' as value
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
+     and r.payload->>'patientId'=$2
+   order by r.payload->>'vitalType', r.occurred_at desc, r.sequence desc",
+      },
+    ],
+  },
+  "listPatients()": {
+    "outcome": {
+      "ok": {
+        "items": [
+          {
+            "birthDate": "2026-09-01T10:00:00.000Z",
+            "curp": "v_curp",
+            "name": "v_name",
+            "patientId": "v_aggregate_id",
+            "sexAtBirth": "v_sex_at_birth",
+            "status": "ACTIVE",
+            "version": 1,
+          },
+        ],
+        "nextCursor": null,
+        "total": 1,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "select count(*)::int as n from clinical_events where tenant_id=$1 and aggregate_type='Patient' and payload->>'kind'='REGISTERED'",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "",
+          "%",
+          "% %",
+          "%",
+          null,
+          null,
+          null,
+          501,
+        ],
+        "text": "
+   select * from (
+   select r.aggregate_id,
+     coalesce(a.payload->>'name', r.payload->>'name') as name,
+     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as birth_date,
+     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sex_at_birth,
+     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
+     (select count(*)::int from clinical_events v where v.tenant_id=$2 and v.aggregate_id=r.aggregate_id) as version
+   from clinical_events r
+   left join lateral (select payload from clinical_events am where am.tenant_id=$3 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   where r.tenant_id=$4 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+   ) p
+   where ($5='' or lower(p.name) like $6 or lower(p.name) like $7 or lower(coalesce(p.curp,'')) like $8)
+     and ($9::text is null or (p.name, p.aggregate_id::text) > ($10::text, $11::text))
+   order by p.name, p.aggregate_id
+   limit $12",
+      },
+    ],
+  },
+  "listPatients(q,cursor)": {
+    "outcome": {
+      "ok": {
+        "items": [
+          {
+            "birthDate": "2026-09-01T10:00:00.000Z",
+            "curp": "v_curp",
+            "name": "v_name",
+            "patientId": "v_aggregate_id",
+            "sexAtBirth": "v_sex_at_birth",
+            "status": "ACTIVE",
+            "version": 1,
+          },
+        ],
+        "nextCursor": null,
+        "total": 1,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "select count(*)::int as n from clinical_events where tenant_id=$1 and aggregate_type='Patient' and payload->>'kind'='REGISTERED'",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "ána",
+          "ána%",
+          "% ána%",
+          "ána%",
+          "Ana",
+          "Ana",
+          "x",
+          11,
+        ],
+        "text": "
+   select * from (
+   select r.aggregate_id,
+     coalesce(a.payload->>'name', r.payload->>'name') as name,
+     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as birth_date,
+     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sex_at_birth,
+     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
+     (select count(*)::int from clinical_events v where v.tenant_id=$2 and v.aggregate_id=r.aggregate_id) as version
+   from clinical_events r
+   left join lateral (select payload from clinical_events am where am.tenant_id=$3 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   where r.tenant_id=$4 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+   ) p
+   where ($5='' or lower(p.name) like $6 or lower(p.name) like $7 or lower(coalesce(p.curp,'')) like $8)
+     and ($9::text is null or (p.name, p.aggregate_id::text) > ($10::text, $11::text))
+   order by p.name, p.aggregate_id
+   limit $12",
+      },
+    ],
+  },
+  "lookupReplay": {
+    "outcome": {
+      "ok": null,
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "k-1",
+        ],
+        "text": "select status,request_hash,response_json from command_idempotency where tenant_id=$1 and actor_id=$2 and key=$3",
+      },
+    ],
+  },
+  "medicationsPrescribed": {
+    "outcome": {
+      "ok": [
+        {
+          "count": 1,
+          "drugCode": "v_drug",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select base.payload->>'drugCode' as drug, count(*)::int as n
+   from clinical_events base
+   where base.tenant_id=$1 and base.aggregate_type='Medication' and base.payload->>'kind'='PROPOSED'
+     and exists (select 1 from clinical_events pr where pr.tenant_id=$2 and pr.aggregate_id=base.aggregate_id and pr.payload->>'kind'='PRESCRIBED')
+   group by drug order by n desc",
+      },
+    ],
+  },
+  "officeSettings": {
+    "outcome": {
+      "ok": {
+        "settings": "v_settings",
+        "version": 1,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.payload->'settings' as settings,
+     (select count(*)::int from clinical_events v where v.tenant_id=$1 and v.aggregate_id=a.aggregate_id) as version
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='OfficeSettings' and a.payload->>'kind'='UPDATED'
+   order by a.sequence desc limit 1",
+      },
+    ],
+  },
+  "ordersRegistry": {
+    "outcome": {
+      "ok": [
+        {
+          "createdAt": "2026-09-01T10:00:00.000Z",
+          "detail": "v_detail",
+          "orderId": "v_aggregate_id",
+          "orderType": "v_order_type",
+          "patientId": "v_pid",
+          "patientName": "v_patient_name",
+          "status": "Solicitada",
+          "version": 1,
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'orderType' as order_type, a.payload->>'detail' as detail, a.occurred_at as created_at,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select count(*)::int from clinical_events v where v.tenant_id=$2 and v.aggregate_id=a.aggregate_id) as version,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$3 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$4 and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED'
+   order by a.occurred_at desc",
+      },
+    ],
+  },
+  "patientBirthDate": {
+    "outcome": {
+      "ok": "v_bd",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select
+     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as bd,
+     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sx,
+     coalesce(a.payload->>'name', r.payload->>'name') as nm,
+     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     coalesce(a.payload->>'phone', r.payload->>'phone') as phone,
+     coalesce(a.payload->>'email', r.payload->>'email') as email,
+     coalesce(a.payload->>'address', r.payload->>'address') as address,
+     coalesce(a.payload->>'occupation', r.payload->>'occupation') as occupation,
+     coalesce(a.payload->>'maritalStatus', r.payload->>'maritalStatus') as marital,
+     coalesce(a.payload->'guardian', r.payload->'guardian') as guardian
+   from clinical_events r
+   left join lateral (select payload from clinical_events am where am.tenant_id=$1 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   where r.tenant_id=$2 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=$3 limit 1",
+      },
+    ],
+  },
+  "patientDemographics": {
+    "outcome": {
+      "ok": {
+        "address": "v_address",
+        "birthDate": "v_bd",
+        "curp": "v_curp",
+        "email": "v_email",
+        "maritalStatus": "v_marital",
+        "name": "v_nm",
+        "occupation": "v_occupation",
+        "phone": "v_phone",
+        "sexAtBirth": "v_sx",
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select
+     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as bd,
+     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sx,
+     coalesce(a.payload->>'name', r.payload->>'name') as nm,
+     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     coalesce(a.payload->>'phone', r.payload->>'phone') as phone,
+     coalesce(a.payload->>'email', r.payload->>'email') as email,
+     coalesce(a.payload->>'address', r.payload->>'address') as address,
+     coalesce(a.payload->>'occupation', r.payload->>'occupation') as occupation,
+     coalesce(a.payload->>'maritalStatus', r.payload->>'maritalStatus') as marital,
+     coalesce(a.payload->'guardian', r.payload->'guardian') as guardian
+   from clinical_events r
+   left join lateral (select payload from clinical_events am where am.tenant_id=$1 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   where r.tenant_id=$2 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=$3 limit 1",
+      },
+    ],
+  },
+  "patientDocuments": {
+    "outcome": {
+      "ok": [
+        {
+          "actorId": "v_actor_id",
+          "createdAt": "2026-09-01T10:00:00.000Z",
+          "docType": "v_doc_type",
+          "documentId": "v_aggregate_id",
+          "status": "DRAFT",
+          "title": "v_title",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'title' as title, a.payload->>'docType' as doc_type, a.occurred_at as created_at, a.actor_id as actor_id,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='ClinicalDocument' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3
+   order by a.occurred_at desc",
+      },
+    ],
+  },
+  "patientEgfr": {
+    "outcome": {
+      "ok": "<undefined>",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select
+     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as bd,
+     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sx,
+     coalesce(a.payload->>'name', r.payload->>'name') as nm,
+     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     coalesce(a.payload->>'phone', r.payload->>'phone') as phone,
+     coalesce(a.payload->>'email', r.payload->>'email') as email,
+     coalesce(a.payload->>'address', r.payload->>'address') as address,
+     coalesce(a.payload->>'occupation', r.payload->>'occupation') as occupation,
+     coalesce(a.payload->>'maritalStatus', r.payload->>'maritalStatus') as marital,
+     coalesce(a.payload->'guardian', r.payload->'guardian') as guardian
+   from clinical_events r
+   left join lateral (select payload from clinical_events am where am.tenant_id=$1 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   where r.tenant_id=$2 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=$3 limit 1",
+      },
+    ],
+  },
+  "patientObligations": {
+    "outcome": {
+      "ok": [
+        {
+          "blocksSignature": "OVERDUE",
+          "dueAt": "2026-09-01T10:00:00.000Z",
+          "obligationId": "v_aggregate_id",
+          "priority": "v_priority",
+          "status": "OPEN",
+          "task": "v_task",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'obligationKind' as task, a.payload->>'dueAt' as due_at, a.payload->>'priority' as priority,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3
+   order by a.payload->>'dueAt' asc",
+      },
+    ],
+  },
+  "patientVitals": {
+    "outcome": {
+      "error": "RangeError: Invalid time value",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          400,
+        ],
+        "text": "
+   select v.occurred_at as at, v.payload->>'vitalType' as vital_type, v.payload->>'value' as value, v.payload->>'unit' as unit
+   from clinical_events v
+   where v.tenant_id=$1 and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=$2
+   order by v.occurred_at desc
+   limit $3",
+      },
+    ],
+  },
+  "patientVitals(limit)": {
+    "outcome": {
+      "error": "RangeError: Invalid time value",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          50,
+        ],
+        "text": "
+   select v.occurred_at as at, v.payload->>'vitalType' as vital_type, v.payload->>'value' as value, v.payload->>'unit' as unit
+   from clinical_events v
+   where v.tenant_id=$1 and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=$2
+   order by v.occurred_at desc
+   limit $3",
+      },
+    ],
+  },
+  "problemRegistry": {
+    "outcome": {
+      "ok": [
+        {
+          "category": "v_category",
+          "code": "v_code",
+          "description": "v_description",
+          "patientId": "v_pid",
+          "patientName": "v_patient_name",
+          "problemId": "v_aggregate_id",
+          "recordedAt": "2026-09-01T10:00:00.000Z",
+          "registeredBy": "v_actor_id",
+          "status": "ACTIVE",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'code' as code,
+     a.payload->>'description' as description, a.payload->>'category' as category, a.occurred_at as recorded_at, a.actor_id as actor_id,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id and c.payload->>'kind' in ('ADDED','REACTIVATED','MARKED_CHRONIC','RESOLVED','ENTERED_IN_ERROR') order by sequence desc limit 1) as last_kind,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$2 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$3 and a.aggregate_type='ClinicalProblem' and a.payload->>'kind'='ADDED'
+   order by a.occurred_at desc",
+      },
+    ],
+  },
+  "readAggregateEvents": {
+    "outcome": {
+      "ok": [
+        {
+          "payload": {
+            "kind": "RECORDED",
+            "patientId": "00000000-0000-4000-8000-0000000000aa",
+            "unit": "kg",
+            "value": "7",
+          },
+          "sequence": 1,
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select sequence,payload from clinical_events where tenant_id=$1 and aggregate_id=$2 order by sequence",
+      },
+    ],
+  },
+  "readEncounter": {
+    "outcome": {
+      "ok": {
+        "encounterId": "00000000-0000-4000-8000-0000000000aa",
+        "events": [
+          {
+            "occurredAt": "2026-09-01T10:00:00.000Z",
+            "sequence": 1,
+            "type": "v_aggregate_type",
+          },
+        ],
+        "version": 1,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select version from aggregate_versions where tenant_id=$1 and aggregate_id=$2",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select sequence,aggregate_type,occurred_at from clinical_events where tenant_id=$1 and aggregate_id=$2 order by sequence",
+      },
+    ],
+  },
+  "readEncounterEvents": {
+    "outcome": {
+      "ok": [
+        {
+          "payload": {
+            "kind": "RECORDED",
+            "patientId": "00000000-0000-4000-8000-0000000000aa",
+            "unit": "kg",
+            "value": "7",
+          },
+          "sequence": 1,
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select sequence,payload from clinical_events where tenant_id=$1 and aggregate_id=$2 order by sequence",
+      },
+    ],
+  },
+  "readEventPayloadById": {
+    "outcome": {
+      "ok": {
+        "kind": "RECORDED",
+        "patientId": "00000000-0000-4000-8000-0000000000aa",
+        "unit": "kg",
+        "value": "7",
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "e-1",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select payload from clinical_events where tenant_id=$1 and id=$2 and aggregate_id=$3 limit 1",
+      },
+    ],
+  },
+  "readPatientRecordRows": {
+    "outcome": {
+      "ok": [
+        {
+          "aggregateId": "v_aggregate_id",
+          "aggregateType": "v_aggregate_type",
+          "kind": "v_kind",
+          "occurredAt": "2026-09-01T10:00:00.000Z",
+          "sequence": 1,
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select r.aggregate_id, r.aggregate_type, r.sequence, r.payload->>'kind' as kind, r.occurred_at
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_id in (
+     select aggregate_id from clinical_events where tenant_id=$2 and sequence=1 and payload->>'patientId'=$3)
+   order by r.aggregate_id, r.sequence",
+      },
+    ],
+  },
+  "readPatientTimeline()": {
+    "outcome": {
+      "ok": {
+        "items": [
+          {
+            "aggregateId": "v_aggregate_id",
+            "aggregateType": "v_aggregate_type",
+            "lastAt": "2026-09-01T10:00:00.000Z",
+            "latestKind": "v_latest_kind",
+            "openedAt": "2026-09-01T10:00:00.000Z",
+            "status": "v_latest_status",
+            "version": 1,
+          },
+        ],
+        "nextCursor": null,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          null,
+          null,
+          null,
+          501,
+        ],
+        "text": "
+   select r.aggregate_id, r.aggregate_type,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_status,
+     max(r.sequence) as version, min(r.occurred_at) as opened_at, max(r.occurred_at) as last_at
+   from clinical_events r
+   where r.tenant_id=$3 and r.aggregate_id in (
+     select aggregate_id from clinical_events where tenant_id=$4 and sequence=1 and payload->>'patientId'=$5)
+   group by r.aggregate_id, r.aggregate_type
+   having ($6::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($7::timestamptz, $8::text))
+   order by min(r.occurred_at) desc, r.aggregate_id desc
+   limit $9",
+      },
+    ],
+  },
+  "readPatientTimeline(cursor)": {
+    "outcome": {
+      "ok": {
+        "items": [
+          {
+            "aggregateId": "v_aggregate_id",
+            "aggregateType": "v_aggregate_type",
+            "lastAt": "2026-09-01T10:00:00.000Z",
+            "latestKind": "v_latest_kind",
+            "openedAt": "2026-09-01T10:00:00.000Z",
+            "status": "v_latest_status",
+            "version": 1,
+          },
+        ],
+        "nextCursor": null,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "2026-09-01T10:00:00.000Z",
+          "2026-09-01T10:00:00.000Z",
+          "x",
+          6,
+        ],
+        "text": "
+   select r.aggregate_id, r.aggregate_type,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_status,
+     max(r.sequence) as version, min(r.occurred_at) as opened_at, max(r.occurred_at) as last_at
+   from clinical_events r
+   where r.tenant_id=$3 and r.aggregate_id in (
+     select aggregate_id from clinical_events where tenant_id=$4 and sequence=1 and payload->>'patientId'=$5)
+   group by r.aggregate_id, r.aggregate_type
+   having ($6::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($7::timestamptz, $8::text))
+   order by min(r.occurred_at) desc, r.aggregate_id desc
+   limit $9",
+      },
+    ],
+  },
+  "readTenantOpenAggregates": {
+    "outcome": {
+      "ok": [
+        {
+          "aggregateId": "v_aggregate_id",
+          "aggregateType": "v_aggregate_type",
+          "latestKind": "v_latest_kind",
+          "patientId": "v_patient_id",
+          "status": "v_latest_status",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.aggregate_id, r.aggregate_type, r.payload->>'patientId' as patient_id,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_status
+   from clinical_events r
+   where r.tenant_id=$3 and r.sequence=1 and r.payload->>'patientId' is not null",
+      },
+    ],
+  },
+  "regulatoryObligations": {
+    "outcome": {
+      "ok": [
+        {
+          "category": "v_category",
+          "createdAt": "2026-09-01T10:00:00.000Z",
+          "dueDate": "2026-09-01T10:00:00.000Z",
+          "name": "v_name",
+          "obligationId": "v_aggregate_id",
+          "periodicity": "v_periodicity",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'name' as name, a.payload->>'category' as category, a.payload->>'periodicity' as periodicity, a.payload->>'dueDate' as due_date, a.occurred_at as created_at
+   from clinical_events a
+   where a.tenant_id=$1 and a.aggregate_type='RegulatoryObligation' and a.payload->>'kind'='CREATED'
+   order by a.payload->>'dueDate' asc nulls last",
+      },
+    ],
+  },
+  "requireRegisteredPatient": {
+    "outcome": {
+      "ok": "<undefined>",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select payload->>'kind' as kind from clinical_events where tenant_id=$1 and aggregate_type='Patient' and aggregate_id=$2 and payload->>'kind' in ('REGISTERED','DEACTIVATED','REACTIVATED','DECEASED') order by sequence desc limit 1",
+      },
+    ],
+  },
+  "resultsRegistry": {
+    "outcome": {
+      "ok": [
+        {
+          "analyte": "v_analyte",
+          "critical": false,
+          "interpretation": "v_interpretation",
+          "lifecycle": "RECEIVED",
+          "patientId": "v_pid",
+          "patientName": "v_patient_name",
+          "receivedAt": "2026-09-01T10:00:00.000Z",
+          "resultId": "v_aggregate_id",
+          "status": "v_status",
+          "value": "v_value",
+        },
+      ],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
+     a.payload->>'critical' as critical, a.payload->>'status' as status, a.payload->>'interpretation' as interpretation, a.occurred_at as received_at,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$2 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$3 and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
+   order by a.occurred_at desc",
+      },
+    ],
+  },
+  "runClinicalCommand": {
+    "outcome": {
+      "ok": {
+        "replayed": false,
+        "response": {
+          "aggregateId": "00000000-0000-4000-8000-0000000000aa",
+          "auditHash": "v_entry_hash",
+          "auditId": "au-1",
+          "eventId": "e-1",
+          "outboxId": "o-1",
+          "version": 1,
+        },
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "write",
+          "00000000-0000-4000-8000-000000000001:00000000-0000-4000-8000-000000000002",
+          120,
+          2,
+        ],
+        "text": "select allowed, tokens from rate_limit_take($1,$2,$3::double precision,$4::double precision)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "k-1",
+          "3f3cac575fcdcc49ce6fc7fef0ed5ca398af01749b14681ca4a488d5884fb3c6",
+        ],
+        "text": "insert into command_idempotency(tenant_id,actor_id,key,request_hash,status,expires_at) values($1,$2,$3,$4,'IN_PROGRESS',now()+interval '24 hours') on conflict do nothing returning key",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          0,
+        ],
+        "text": "insert into aggregate_versions(tenant_id,aggregate_id,version) values($1,$2,1) on conflict(tenant_id,aggregate_id) do update set version=aggregate_versions.version+1,updated_at=now() where aggregate_versions.version=$3 returning version",
+      },
+      {
+        "params": [
+          "e-1",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "Allergy",
+          1,
+          "00000000-0000-4000-8000-000000000002",
+          "HUMAN",
+          {
+            "json": {
+              "purpose": "TREATMENT",
+            },
+          },
+          "co-1",
+          {
+            "json": {
+              "kind": "RECORDED",
+              "patientId": "00000000-0000-4000-8000-0000000000aa",
+            },
+          },
+          "2026-09-01T10:00:00.000Z",
+        ],
+        "text": "insert into clinical_events(id,tenant_id,aggregate_id,aggregate_type,sequence,actor_id,actor_type,authority,correlation_id,payload,schema_version,occurred_at) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,1,$11)",
+      },
+      {
+        "params": [
+          "o-1",
+          "00000000-0000-4000-8000-000000000001",
+          "allergy.recorded",
+          "00000000-0000-4000-8000-0000000000aa",
+          {
+            "json": {
+              "eventId": "e-1",
+            },
+          },
+        ],
+        "text": "insert into outbox(id,tenant_id,topic,aggregate_id,payload,state,available_at) values($1,$2,$3,$4,$5,'PENDING',now())",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "au-1",
+          "00000000-0000-4000-8000-000000000002",
+          "Allergy",
+          {
+            "json": {
+              "commandId": "c-1",
+              "eventId": "e-1",
+            },
+          },
+        ],
+        "text": "select app.append_audit_v17($1,$2,$3,'CLINICAL_COMMAND',$4,$5) as entry_hash",
+      },
+      {
+        "params": [
+          {
+            "json": {
+              "aggregateId": "00000000-0000-4000-8000-0000000000aa",
+              "auditHash": "v_entry_hash",
+              "auditId": "au-1",
+              "eventId": "e-1",
+              "outboxId": "o-1",
+              "version": 1,
+            },
+          },
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "k-1",
+        ],
+        "text": "update command_idempotency set status='COMPLETED',response_json=$1 where tenant_id=$2 and actor_id=$3 and key=$4",
+      },
+    ],
+  },
+}
+`;
+
+exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lote 11) > SQL, parámetros y resultado de cada función — sin filas 1`] = `
+{
+  "activeAllergies": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'substance' as substance, r.payload->>'severity' as severity, r.payload->>'reaction' as reaction
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='Allergy' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=$2
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) in ('RECORDED','REACTIVATED')",
+      },
+    ],
+  },
+  "activeAllergySubstances": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'substance' as substance
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='Allergy' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=$2
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) in ('RECORDED','REACTIVATED')",
+      },
+    ],
+  },
+  "activeMedicationDrugCodes": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'drugCode' as drug_code
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='Medication' and r.payload->>'kind'='PROPOSED' and r.payload->>'patientId'=$2
+     and r.aggregate_id::text<>$3
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id
+           and c.payload->>'kind' not in ('MODIFIED','RECONCILED') order by sequence desc limit 1) in ('ACTIVATED','RESUMED')",
+      },
+    ],
+  },
+  "activeMedicationDrugCodes(exclude)": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "m-1",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'drugCode' as drug_code
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='Medication' and r.payload->>'kind'='PROPOSED' and r.payload->>'patientId'=$2
+     and r.aggregate_id::text<>$3
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id
+           and c.payload->>'kind' not in ('MODIFIED','RECONCILED') order by sequence desc limit 1) in ('ACTIVATED','RESUMED')",
+      },
+    ],
+  },
+  "activeProblemCodes": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'code' as code
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='ClinicalProblem' and r.payload->>'kind'='ADDED' and r.payload->>'patientId'=$2
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id
+           and c.payload->>'kind' not in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED') order by sequence desc limit 1) in ('ADDED','REACTIVATED','MARKED_CHRONIC')",
+      },
+    ],
+  },
+  "administeredVaccineCodes": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'vaccineCode' as code,
+     (select occurred_at from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and c.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as administered_at
+   from clinical_events r
+   where r.tenant_id=$2 and r.aggregate_type='Immunization' and r.payload->>'kind'='DUE' and r.payload->>'patientId'=$3
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1)='ADMINISTERED'",
+      },
+    ],
+  },
+  "administeredVaccines": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.payload->>'vaccineCode' as code,
+     (select occurred_at from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and c.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as administered_at
+   from clinical_events r
+   where r.tenant_id=$2 and r.aggregate_type='Immunization' and r.payload->>'kind'='DUE' and r.payload->>'patientId'=$3
+     and (select payload->>'kind' from clinical_events c where c.tenant_id=$4 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1)='ADMINISTERED'",
+      },
+    ],
+  },
+  "agendaForDate": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "2026-09-01T06:00:00.000Z",
+          "2026-09-02T06:00:00.000Z",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'startAt' as start_at, a.payload->>'endAt' as end_at,
+     a.payload->>'reason' as reason, a.payload->>'consultorio' as consultorio, a.payload->>'apptType' as appt_type,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as status,
+     (select count(*)::int from clinical_events v where v.tenant_id=$2 and v.aggregate_id=a.aggregate_id) as version,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$3 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$4 and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
+     and a.payload->>'startAt' >= $5 and a.payload->>'startAt' < $6
+   order by a.payload->>'startAt' asc",
+      },
+    ],
+  },
+  "allergyRegistry": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'substance' as substance,
+     a.payload->>'reaction' as reaction, a.payload->>'severity' as severity, a.occurred_at as recorded_at, a.actor_id as actor_id,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$2 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$3 and a.aggregate_type='Allergy' and a.payload->>'kind'='RECORDED'
+   order by a.occurred_at desc",
+      },
+    ],
+  },
+  "analyteSeries": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "HBA1C",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select coalesce(r.payload->>'canonicalValue',r.payload->>'value') as value, r.occurred_at as at
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
+     and r.payload->>'patientId'=$2 and upper(r.payload->>'analyte')=upper($3)
+     and not exists(select 1 from clinical_events s where s.tenant_id=$4 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+   order by r.occurred_at asc, r.sequence asc",
+      },
+    ],
+  },
+  "appointmentOutcomes": {
+    "outcome": {
+      "ok": {
+        "cancelled": 0,
+        "checkedIn": 0,
+        "completed": 0,
+        "noShow": 0,
+        "scheduled": 0,
+        "total": 0,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select coalesce((select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1),'SCHEDULED') as last_kind, count(*)::int as n
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
+   group by last_kind",
+      },
+    ],
+  },
+  "appointmentsByType": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select coalesce(a.payload->>'apptType','SIN_TIPO') as appt_type, count(*)::int as n
+   from clinical_events a
+   where a.tenant_id=$1 and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED'
+   group by appt_type order by n desc",
+      },
+    ],
+  },
+  "blockingObligations": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'dueAt' as due_at, a.payload->>'priority' as priority,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3",
+      },
+    ],
+  },
+  "carePlanGoals": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'category' as category, a.payload->>'goal' as goal, a.occurred_at as recorded_at,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='CarePlan' and a.payload->>'kind'='PROPOSED' and a.payload->>'patientId'=$3
+   order by a.occurred_at asc",
+      },
+    ],
+  },
+  "claimsRegistry": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'amount' as amount, a.payload->>'currency' as currency, a.occurred_at as recorded_at,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select c.occurred_at from clinical_events c where c.tenant_id=$2 and c.aggregate_id=a.aggregate_id and c.payload->>'kind'='PAID' order by sequence desc limit 1) as paid_at,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$3 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$4 and a.aggregate_type='Claim' and a.payload->>'kind'='DRAFTED'
+   order by a.occurred_at desc",
+      },
+    ],
+  },
+  "countOpenCriticalResults": {
+    "outcome": {
+      "ok": 0,
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select count(distinct r.aggregate_id)::int n
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='DiagnosticResult'
+     and r.payload->>'kind'='RECEIVED' and r.payload->>'patientId'=$2 and r.payload->>'critical'='true'
+     and not exists(
+      select 1 from clinical_events c
+      where c.tenant_id=$3 and c.aggregate_id=r.aggregate_id and c.payload->>'kind' in ('CLOSED','CORRECTED'))",
+      },
+    ],
+  },
+  "countOpenCriticalVitals": {
+    "outcome": {
+      "ok": 0,
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select count(distinct r.aggregate_id)::int n
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='VitalSign'
+     and r.payload->>'kind' in ('RECORDED','AMENDED')
+     and r.payload->>'patientId'=$2 and r.payload->>'critical'='true'
+     and not exists(
+      select 1 from clinical_events c
+      where c.tenant_id=$3 and c.aggregate_type='ClinicalObligation'
+        and c.payload->>'sourceVitalId'=r.aggregate_id::text and c.payload->>'kind'='CREATED')",
+      },
+    ],
+  },
+  "countUnresolvedCriticalObligations": {
+    "outcome": {
+      "ok": 0,
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'dueAt' as due_at, a.payload->>'priority' as priority,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3",
+      },
+    ],
+  },
+  "documentDetail": {
+    "outcome": {
+      "ok": {
+        "addenda": [],
+        "attachments": [],
+        "content": "",
+        "createdAt": "",
+        "docType": "",
+        "documentId": "00000000-0000-4000-8000-0000000000aa",
+        "exists": false,
+        "patientId": "",
+        "signature": null,
+        "state": "DRAFT",
+        "title": "",
+        "version": 0,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select a.payload as payload, a.occurred_at as occurred_at
+   from clinical_events a
+   where a.tenant_id=$1 and a.aggregate_type='ClinicalDocument' and a.aggregate_id=$2
+   order by a.sequence asc",
+      },
+    ],
+  },
+  "encounterAnalytics": {
+    "outcome": {
+      "ok": {
+        "byDay": [],
+        "signed": 0,
+        "total": 0,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select to_char(a.occurred_at,'YYYY-MM-DD') as day, count(*)::int as n
+   from clinical_events a
+   where a.tenant_id=$1 and a.aggregate_type='Encounter' and a.payload->>'kind'='OPENED'
+   group by day order by day asc",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select count(*)::int as n from clinical_events a
+   where a.tenant_id=$1 and a.aggregate_type='Encounter' and a.payload->>'kind'='SIGNED'",
+      },
+    ],
+  },
+  "findPatientDuplicate(both)": {
+    "outcome": {
+      "ok": "<undefined>",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "HEGG560427MVZRRL04",
+        ],
+        "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(r.payload->>'curp')=$2 limit 1",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "1990-01-01",
+          "ana perez",
+        ],
+        "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+    and r.payload->>'birthDate'=$2
+    and btrim(regexp_replace(lower(translate(r.payload->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=$3 limit 1",
+      },
+    ],
+  },
+  "findPatientDuplicate(curp)": {
+    "outcome": {
+      "ok": "<undefined>",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "HEGG560427MVZRRL04",
+        ],
+        "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(r.payload->>'curp')=$2 limit 1",
+      },
+    ],
+  },
+  "findPatientDuplicate(name)": {
+    "outcome": {
+      "ok": "<undefined>",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "1990-01-01",
+          "ana perez",
+        ],
+        "text": "select r.aggregate_id from clinical_events r where r.tenant_id=$1 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+    and r.payload->>'birthDate'=$2
+    and btrim(regexp_replace(lower(translate(r.payload->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=$3 limit 1",
+      },
+    ],
+  },
+  "immunizationRegistry": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'vaccineCode' as vaccine,
+     a.payload->>'dose' as dose, a.occurred_at as due_at, a.actor_id as actor_id,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select payload->>'lot' from clinical_events ad where ad.tenant_id=$2 and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as lot,
+     (select payload->>'site' from clinical_events ad where ad.tenant_id=$3 and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as site,
+     (select occurred_at from clinical_events ad where ad.tenant_id=$4 and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1) as applied_at,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$5 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$6 and a.aggregate_type='Immunization' and a.payload->>'kind'='DUE'
+   order by coalesce((select occurred_at from clinical_events ad where ad.tenant_id=$7 and ad.aggregate_id=a.aggregate_id and ad.payload->>'kind'='ADMINISTERED' order by sequence desc limit 1), a.occurred_at) desc",
+      },
+    ],
+  },
+  "latestAnalyteReading": {
+    "outcome": {
+      "ok": "<undefined>",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "CREATININE",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.aggregate_id as result_id, r.occurred_at as at, r.payload->>'value' as raw, r.payload->>'canonicalValue' as canonical,
+          r.payload->>'unit' as unit, r.payload->>'canonicalUnit' as canonical_unit, r.payload->>'unitAssumed' as unit_assumed, r.payload->>'specimenId' as specimen_id
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
+     and r.payload->>'patientId'=$2 and upper(r.payload->>'analyte')=upper($3)
+     and not exists(select 1 from clinical_events s where s.tenant_id=$4 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+   order by r.occurred_at desc, r.sequence desc limit 1",
+      },
+    ],
+  },
+  "latestResultValueForAnalyte": {
+    "outcome": {
+      "ok": "<undefined>",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "CREATININE",
+          "",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select coalesce(r.payload->>'canonicalValue',r.payload->>'value') as value
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
+     and r.payload->>'patientId'=$2 and upper(r.payload->>'analyte')=upper($3)
+     and r.aggregate_id::text<>$4
+     and not exists(select 1 from clinical_events s where s.tenant_id=$5 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+   order by r.occurred_at desc, r.sequence desc limit 1",
+      },
+    ],
+  },
+  "latestResultValueForAnalyte(exclude)": {
+    "outcome": {
+      "ok": "<undefined>",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "CREATININE",
+          "r-1",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select coalesce(r.payload->>'canonicalValue',r.payload->>'value') as value
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
+     and r.payload->>'patientId'=$2 and upper(r.payload->>'analyte')=upper($3)
+     and r.aggregate_id::text<>$4
+     and not exists(select 1 from clinical_events s where s.tenant_id=$5 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+   order by r.occurred_at desc, r.sequence desc limit 1",
+      },
+    ],
+  },
+  "latestVitalsByType": {
+    "outcome": {
+      "ok": {},
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select distinct on (r.payload->>'vitalType') r.payload->>'vitalType' as vital_type, r.payload->>'value' as value
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
+     and r.payload->>'patientId'=$2
+   order by r.payload->>'vitalType', r.occurred_at desc, r.sequence desc",
+      },
+    ],
+  },
+  "listPatients()": {
+    "outcome": {
+      "ok": {
+        "items": [],
+        "nextCursor": null,
+        "total": 0,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "select count(*)::int as n from clinical_events where tenant_id=$1 and aggregate_type='Patient' and payload->>'kind'='REGISTERED'",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "",
+          "%",
+          "% %",
+          "%",
+          null,
+          null,
+          null,
+          501,
+        ],
+        "text": "
+   select * from (
+   select r.aggregate_id,
+     coalesce(a.payload->>'name', r.payload->>'name') as name,
+     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as birth_date,
+     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sex_at_birth,
+     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
+     (select count(*)::int from clinical_events v where v.tenant_id=$2 and v.aggregate_id=r.aggregate_id) as version
+   from clinical_events r
+   left join lateral (select payload from clinical_events am where am.tenant_id=$3 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   where r.tenant_id=$4 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+   ) p
+   where ($5='' or lower(p.name) like $6 or lower(p.name) like $7 or lower(coalesce(p.curp,'')) like $8)
+     and ($9::text is null or (p.name, p.aggregate_id::text) > ($10::text, $11::text))
+   order by p.name, p.aggregate_id
+   limit $12",
+      },
+    ],
+  },
+  "listPatients(q,cursor)": {
+    "outcome": {
+      "ok": {
+        "items": [],
+        "nextCursor": null,
+        "total": 0,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "select count(*)::int as n from clinical_events where tenant_id=$1 and aggregate_type='Patient' and payload->>'kind'='REGISTERED'",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "ána",
+          "ána%",
+          "% ána%",
+          "ána%",
+          "Ana",
+          "Ana",
+          "x",
+          11,
+        ],
+        "text": "
+   select * from (
+   select r.aggregate_id,
+     coalesce(a.payload->>'name', r.payload->>'name') as name,
+     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as birth_date,
+     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sex_at_birth,
+     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
+     (select count(*)::int from clinical_events v where v.tenant_id=$2 and v.aggregate_id=r.aggregate_id) as version
+   from clinical_events r
+   left join lateral (select payload from clinical_events am where am.tenant_id=$3 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   where r.tenant_id=$4 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+   ) p
+   where ($5='' or lower(p.name) like $6 or lower(p.name) like $7 or lower(coalesce(p.curp,'')) like $8)
+     and ($9::text is null or (p.name, p.aggregate_id::text) > ($10::text, $11::text))
+   order by p.name, p.aggregate_id
+   limit $12",
+      },
+    ],
+  },
+  "lookupReplay": {
+    "outcome": {
+      "ok": null,
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "k-1",
+        ],
+        "text": "select status,request_hash,response_json from command_idempotency where tenant_id=$1 and actor_id=$2 and key=$3",
+      },
+    ],
+  },
+  "medicationsPrescribed": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select base.payload->>'drugCode' as drug, count(*)::int as n
+   from clinical_events base
+   where base.tenant_id=$1 and base.aggregate_type='Medication' and base.payload->>'kind'='PROPOSED'
+     and exists (select 1 from clinical_events pr where pr.tenant_id=$2 and pr.aggregate_id=base.aggregate_id and pr.payload->>'kind'='PRESCRIBED')
+   group by drug order by n desc",
+      },
+    ],
+  },
+  "officeSettings": {
+    "outcome": {
+      "ok": {
+        "settings": {},
+        "version": 0,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.payload->'settings' as settings,
+     (select count(*)::int from clinical_events v where v.tenant_id=$1 and v.aggregate_id=a.aggregate_id) as version
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='OfficeSettings' and a.payload->>'kind'='UPDATED'
+   order by a.sequence desc limit 1",
+      },
+    ],
+  },
+  "ordersRegistry": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'orderType' as order_type, a.payload->>'detail' as detail, a.occurred_at as created_at,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select count(*)::int from clinical_events v where v.tenant_id=$2 and v.aggregate_id=a.aggregate_id) as version,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$3 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$4 and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED'
+   order by a.occurred_at desc",
+      },
+    ],
+  },
+  "patientBirthDate": {
+    "outcome": {
+      "ok": "<undefined>",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select
+     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as bd,
+     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sx,
+     coalesce(a.payload->>'name', r.payload->>'name') as nm,
+     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     coalesce(a.payload->>'phone', r.payload->>'phone') as phone,
+     coalesce(a.payload->>'email', r.payload->>'email') as email,
+     coalesce(a.payload->>'address', r.payload->>'address') as address,
+     coalesce(a.payload->>'occupation', r.payload->>'occupation') as occupation,
+     coalesce(a.payload->>'maritalStatus', r.payload->>'maritalStatus') as marital,
+     coalesce(a.payload->'guardian', r.payload->'guardian') as guardian
+   from clinical_events r
+   left join lateral (select payload from clinical_events am where am.tenant_id=$1 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   where r.tenant_id=$2 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=$3 limit 1",
+      },
+    ],
+  },
+  "patientDemographics": {
+    "outcome": {
+      "ok": "<undefined>",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select
+     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as bd,
+     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sx,
+     coalesce(a.payload->>'name', r.payload->>'name') as nm,
+     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     coalesce(a.payload->>'phone', r.payload->>'phone') as phone,
+     coalesce(a.payload->>'email', r.payload->>'email') as email,
+     coalesce(a.payload->>'address', r.payload->>'address') as address,
+     coalesce(a.payload->>'occupation', r.payload->>'occupation') as occupation,
+     coalesce(a.payload->>'maritalStatus', r.payload->>'maritalStatus') as marital,
+     coalesce(a.payload->'guardian', r.payload->'guardian') as guardian
+   from clinical_events r
+   left join lateral (select payload from clinical_events am where am.tenant_id=$1 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   where r.tenant_id=$2 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=$3 limit 1",
+      },
+    ],
+  },
+  "patientDocuments": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'title' as title, a.payload->>'docType' as doc_type, a.occurred_at as created_at, a.actor_id as actor_id,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='ClinicalDocument' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3
+   order by a.occurred_at desc",
+      },
+    ],
+  },
+  "patientEgfr": {
+    "outcome": {
+      "ok": "<undefined>",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select
+     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as bd,
+     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sx,
+     coalesce(a.payload->>'name', r.payload->>'name') as nm,
+     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     coalesce(a.payload->>'phone', r.payload->>'phone') as phone,
+     coalesce(a.payload->>'email', r.payload->>'email') as email,
+     coalesce(a.payload->>'address', r.payload->>'address') as address,
+     coalesce(a.payload->>'occupation', r.payload->>'occupation') as occupation,
+     coalesce(a.payload->>'maritalStatus', r.payload->>'maritalStatus') as marital,
+     coalesce(a.payload->'guardian', r.payload->'guardian') as guardian
+   from clinical_events r
+   left join lateral (select payload from clinical_events am where am.tenant_id=$1 and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   where r.tenant_id=$2 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=$3 limit 1",
+      },
+    ],
+  },
+  "patientObligations": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'obligationKind' as task, a.payload->>'dueAt' as due_at, a.payload->>'priority' as priority,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+   from clinical_events a
+   where a.tenant_id=$2 and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=$3
+   order by a.payload->>'dueAt' asc",
+      },
+    ],
+  },
+  "patientVitals": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          400,
+        ],
+        "text": "
+   select v.occurred_at as at, v.payload->>'vitalType' as vital_type, v.payload->>'value' as value, v.payload->>'unit' as unit
+   from clinical_events v
+   where v.tenant_id=$1 and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=$2
+   order by v.occurred_at desc
+   limit $3",
+      },
+    ],
+  },
+  "patientVitals(limit)": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          50,
+        ],
+        "text": "
+   select v.occurred_at as at, v.payload->>'vitalType' as vital_type, v.payload->>'value' as value, v.payload->>'unit' as unit
+   from clinical_events v
+   where v.tenant_id=$1 and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=$2
+   order by v.occurred_at desc
+   limit $3",
+      },
+    ],
+  },
+  "problemRegistry": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'code' as code,
+     a.payload->>'description' as description, a.payload->>'category' as category, a.occurred_at as recorded_at, a.actor_id as actor_id,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id and c.payload->>'kind' in ('ADDED','REACTIVATED','MARKED_CHRONIC','RESOLVED','ENTERED_IN_ERROR') order by sequence desc limit 1) as last_kind,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$2 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$3 and a.aggregate_type='ClinicalProblem' and a.payload->>'kind'='ADDED'
+   order by a.occurred_at desc",
+      },
+    ],
+  },
+  "readAggregateEvents": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select sequence,payload from clinical_events where tenant_id=$1 and aggregate_id=$2 order by sequence",
+      },
+    ],
+  },
+  "readEncounter": {
+    "outcome": {
+      "ok": null,
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select version from aggregate_versions where tenant_id=$1 and aggregate_id=$2",
+      },
+    ],
+  },
+  "readEncounterEvents": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select sequence,payload from clinical_events where tenant_id=$1 and aggregate_id=$2 order by sequence",
+      },
+    ],
+  },
+  "readEventPayloadById": {
+    "outcome": {
+      "ok": "<undefined>",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "e-1",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select payload from clinical_events where tenant_id=$1 and id=$2 and aggregate_id=$3 limit 1",
+      },
+    ],
+  },
+  "readPatientRecordRows": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "
+   select r.aggregate_id, r.aggregate_type, r.sequence, r.payload->>'kind' as kind, r.occurred_at
+   from clinical_events r
+   where r.tenant_id=$1 and r.aggregate_id in (
+     select aggregate_id from clinical_events where tenant_id=$2 and sequence=1 and payload->>'patientId'=$3)
+   order by r.aggregate_id, r.sequence",
+      },
+    ],
+  },
+  "readPatientTimeline()": {
+    "outcome": {
+      "ok": {
+        "items": [],
+        "nextCursor": null,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          null,
+          null,
+          null,
+          501,
+        ],
+        "text": "
+   select r.aggregate_id, r.aggregate_type,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_status,
+     max(r.sequence) as version, min(r.occurred_at) as opened_at, max(r.occurred_at) as last_at
+   from clinical_events r
+   where r.tenant_id=$3 and r.aggregate_id in (
+     select aggregate_id from clinical_events where tenant_id=$4 and sequence=1 and payload->>'patientId'=$5)
+   group by r.aggregate_id, r.aggregate_type
+   having ($6::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($7::timestamptz, $8::text))
+   order by min(r.occurred_at) desc, r.aggregate_id desc
+   limit $9",
+      },
+    ],
+  },
+  "readPatientTimeline(cursor)": {
+    "outcome": {
+      "ok": {
+        "items": [],
+        "nextCursor": null,
+      },
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+          "2026-09-01T10:00:00.000Z",
+          "2026-09-01T10:00:00.000Z",
+          "x",
+          6,
+        ],
+        "text": "
+   select r.aggregate_id, r.aggregate_type,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_status,
+     max(r.sequence) as version, min(r.occurred_at) as opened_at, max(r.occurred_at) as last_at
+   from clinical_events r
+   where r.tenant_id=$3 and r.aggregate_id in (
+     select aggregate_id from clinical_events where tenant_id=$4 and sequence=1 and payload->>'patientId'=$5)
+   group by r.aggregate_id, r.aggregate_type
+   having ($6::timestamptz is null or (min(r.occurred_at), r.aggregate_id::text) < ($7::timestamptz, $8::text))
+   order by min(r.occurred_at) desc, r.aggregate_id desc
+   limit $9",
+      },
+    ],
+  },
+  "readTenantOpenAggregates": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select r.aggregate_id, r.aggregate_type, r.payload->>'patientId' as patient_id,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=r.aggregate_id and not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
+  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED')) order by sequence desc limit 1) as latest_kind,
+     (select payload->>'status' from clinical_events c where c.tenant_id=$2 and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_status
+   from clinical_events r
+   where r.tenant_id=$3 and r.sequence=1 and r.payload->>'patientId' is not null",
+      },
+    ],
+  },
+  "regulatoryObligations": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'name' as name, a.payload->>'category' as category, a.payload->>'periodicity' as periodicity, a.payload->>'dueDate' as due_date, a.occurred_at as created_at
+   from clinical_events a
+   where a.tenant_id=$1 and a.aggregate_type='RegulatoryObligation' and a.payload->>'kind'='CREATED'
+   order by a.payload->>'dueDate' asc nulls last",
+      },
+    ],
+  },
+  "requireRegisteredPatient": {
+    "outcome": {
+      "error": "ClinicalError: Patient not registered in this tenant",
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-0000000000aa",
+        ],
+        "text": "select payload->>'kind' as kind from clinical_events where tenant_id=$1 and aggregate_type='Patient' and aggregate_id=$2 and payload->>'kind' in ('REGISTERED','DEACTIVATED','REACTIVATED','DECEASED') order by sequence desc limit 1",
+      },
+    ],
+  },
+  "resultsRegistry": {
+    "outcome": {
+      "ok": [],
+    },
+    "queries": [
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+        ],
+        "text": "
+   select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
+     a.payload->>'critical' as critical, a.payload->>'status' as status, a.payload->>'interpretation' as interpretation, a.occurred_at as received_at,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select p.payload->>'name' from clinical_events p where p.tenant_id=$2 and p.aggregate_type='Patient' and p.payload->>'kind'='REGISTERED' and p.aggregate_id=(a.payload->>'patientId')::uuid limit 1) as patient_name
+   from clinical_events a
+   where a.tenant_id=$3 and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
+   order by a.occurred_at desc",
+      },
+    ],
+  },
+  "runClinicalCommand": {
+    "outcome": {
+      "error": "Error: IDEMPOTENCY_CONFLICT",
+    },
+    "queries": [
+      {
+        "params": [
+          "write",
+          "00000000-0000-4000-8000-000000000001:00000000-0000-4000-8000-000000000002",
+          120,
+          2,
+        ],
+        "text": "select allowed, tokens from rate_limit_take($1,$2,$3::double precision,$4::double precision)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "TREATMENT",
+          "req-contract",
+        ],
+        "text": "select set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true),set_config('app.purpose',$3,true),set_config('app.request_id',$4,true)",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "k-1",
+          "3f3cac575fcdcc49ce6fc7fef0ed5ca398af01749b14681ca4a488d5884fb3c6",
+        ],
+        "text": "insert into command_idempotency(tenant_id,actor_id,key,request_hash,status,expires_at) values($1,$2,$3,$4,'IN_PROGRESS',now()+interval '24 hours') on conflict do nothing returning key",
+      },
+      {
+        "params": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "k-1",
+        ],
+        "text": "select request_hash,status,response_json from command_idempotency where tenant_id=$1 and actor_id=$2 and key=$3 for update",
+      },
+    ],
+  },
+}
+`;
+
+exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lote 11) > el pool se crea una sola vez, contra el endpoint DIRECTO y con el rol NOBYPASSRLS (ADR-0250) 1`] = `
+[
+  {
+    "opts": {
+      "connect_timeout": 10,
+      "connection": {
+        "options": "-c role=medical_os_runtime",
+      },
+      "idle_timeout": 20,
+      "max": 5,
+      "prepare": true,
+    },
+    "url": "postgres://owner:secret@ep-contract.neon.tech/medical_os?sslmode=require",
+  },
+]
+`;

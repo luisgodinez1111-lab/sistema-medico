@@ -6,9 +6,10 @@
     "traceability:check": "tsx packages/clinical-safety/src/validate-registry.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "typecheck:scripts": "tsc -p tsconfig.scripts.json",
     "test:safety": "vitest run tests/traceability",
     "release:check": "tsx packages/clinical-safety/src/release-admission.ts",
-    "verify": "pnpm typecheck && pnpm typecheck:web && pnpm traceability:check && pnpm test:safety && pnpm release:check",
+    "verify": "pnpm typecheck && pnpm typecheck:web && pnpm typecheck:scripts && pnpm traceability:check && pnpm test:safety && pnpm release:check",
     "test:all": "vitest run tests",
     "db:check": "tsx scripts/db/check.mts",
     "outbox:purge": "tsx scripts/ops/outbox-purge.mts",
@@ -34,8 +35,7 @@
     "jsdom": "^25",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4",
-    "zod": "^4.1.5"
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@auth0/auth0-spa-js": "^2.26.0",
@@ -44,6 +44,7 @@
     "next": "^15.5.0",
     "postgres": "^3.4.7",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "zod": "^4.1.5"
   }
 }

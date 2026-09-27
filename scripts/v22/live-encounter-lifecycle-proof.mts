@@ -29,14 +29,14 @@ const OP=(id:string)=>({params:Promise.resolve({obligationId:id})});
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
 function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 
-const raw=process.env.DATABASE_URL.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,"");
+const raw=process.env.DATABASE_URL!.replace("-pooler","").replace(/([?&])channel_binding=require/,"$1").replace(/[?&]$/,"");
 const sql=postgres(raw,{max:2,prepare:false,onnotice:()=>{}});
 try{
  const physA=tok(TENANT_A,["PHYSICIAN"]);await registerPhysicianCredentials(physA);
  const enc=crypto.randomUUID(),pat=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat); /* L-07 */
 
  // 1) Abrir
- let r=await open.POST(new Request("http://l/",{method:"POST",headers:h(physA,{"idempotency-key":crypto.randomUUID()}),body:JSON.stringify({encounterId:enc,patientId:pat,occurredAt:ISO})}));
+ let r:Response=await open.POST(new Request("http://l/",{method:"POST",headers:h(physA,{"idempotency-key":crypto.randomUUID()}),body:JSON.stringify({encounterId:enc,patientId:pat,occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).version===1,"OPEN_201_v1");
 
  // 2) Firmar sin assessment -> 403 (nada que firmar)
