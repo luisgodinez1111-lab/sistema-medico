@@ -1,4 +1,5 @@
-// Lote 11 (ADR-0300) — read models de signos vitales. Extraído de apps/web/lib/clinical-runtime.ts sin cambios de código.
+// Lote 11 (ADR-0300) — read models de signos vitales. Extraído de apps/web/lib/clinical-runtime.ts en 11.1; desde el hallazgo D1
+// proyectan las reglas de `foldVital` (valor vigente, anulación) con `currentVitalJoins`/`vitalNotVoided` de ../sql.
 import{type HttpTenantContext}from"../../../../../packages/http-principal/src";
 import{withTenantTx}from"../db";
 import{currentVitalJoins,vitalNotVoided}from"../sql";

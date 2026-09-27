@@ -1,4 +1,5 @@
-// Lote 11 (ADR-0300) — seguimiento: plan de cuidados, obligaciones y los contadores del gate de firma (Zero-Lost-Follow-Up). Extraído de apps/web/lib/clinical-runtime.ts sin cambios de código.
+// Lote 11 (ADR-0300) — seguimiento: plan de cuidados, obligaciones y los contadores del gate de firma (Zero-Lost-Follow-Up). Extraído de apps/web/lib/clinical-runtime.ts en 11.1
+// (countOpenCriticalVitals corregido en el hallazgo D1: valor vigente y vitales anulados, como `foldVital`).
 import{type HttpTenantContext}from"../../../../../packages/http-principal/src";
 import{signatureBlockReason,type SignatureBlockReason}from"../../../../../packages/obligation-fold/src";
 import{withTenantTx}from"../db";
