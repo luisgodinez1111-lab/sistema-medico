@@ -1,6 +1,7 @@
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{listPatients,claimsRegistry,problemRegistry,ordersRegistry,resultsRegistry,immunizationRegistry,encounterAnalytics,medicationsPrescribed,appointmentsByType,appointmentOutcomes}from"../../../../lib/clinical-runtime";
+import{A1C_DIABETIC_TARGET_PCT}from"../../../../../../packages/glycemic/src";
 import{toHttpError}from"../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../lib/http-command";
 // EPIC AD/UI — GET /api/v1/reports -> tablero analítico del consultorio (vista Reportes).
@@ -57,9 +58,11 @@ export async function GET(req:Request){
   const appointmentsByTypeOut=apptRows.map(a=>({type:a.apptType,label:APPT_TYPE_LBL[a.apptType]??"Otro",count:a.count,pct:apptTotal?Math.round(a.count/apptTotal*100):0}));
   // Indicadores de CALIDAD deterministas — cada uno computado del event stream real, con su meta clínica y
   // dirección (mayor/menor es mejor). Si no hay denominador, el indicador NO se inventa: computable=false.
-  // HbA1c en control: proporción de resultados de HbA1c por debajo de 7% (calidad del control glucémico del lab).
-  const a1cRows=resultRows.filter(r=>String(r.analyte).toUpperCase()==="HBA1C");
-  const a1cInControl=a1cRows.filter(r=>{const v=parseFloat(String(r.value).replace(/[^0-9.]/g,""));return Number.isFinite(v)&&v<7;}).length;
+  // HbA1c en control: proporción de resultados de HbA1c VIGENTES por debajo de la meta (calidad del control glucémico del lab).
+  // Hallazgo D10: se usa el valor CANÓNICO en % (el mismo que la evaluación por paciente; «6,5» o 48 mmol/mol IFCC ya no se
+  // leen como 65 o 48 %) y se excluyen los resultados reemplazados por una corrección; un valor no normalizable no se cuenta.
+  const a1cRows=resultRows.filter(r=>String(r.analyte).toUpperCase()==="HBA1C"&&!r.superseded&&r.canonicalValue!==null);
+  const a1cInControl=a1cRows.filter(r=>r.canonicalValue!<A1C_DIABETIC_TARGET_PCT).length;
   type QI={key:string;label:string;numerator:number;denominator:number;pct:number;target:number;direction:"higher"|"lower";met:boolean;computable:boolean;note:string};
   const mkQI=(key:string,label:string,num:number,den:number,target:number,direction:"higher"|"lower",note:string):QI=>{
    const computable=den>0;const pct=computable?Math.round(num/den*100):0;
@@ -70,7 +73,7 @@ export async function GET(req:Request){
    mkQI("closed_records","Expedientes cerrados (notas firmadas)",encAnalytics.signed,encAnalytics.total,90,"higher","Consultas con nota clínica firmada respecto al total de consultas abiertas."),
    mkQI("attendance","Asistencia efectiva",apptOut.completed,apptOut.total,80,"higher","Citas completadas respecto al total de citas agendadas."),
    mkQI("no_show","Inasistencia (no-show)",apptOut.noShow,apptOut.total,10,"lower","Citas marcadas como inasistencia respecto al total de citas agendadas."),
-   mkQI("glycemic_control","HbA1c en control (<7%)",a1cInControl,a1cRows.length,70,"higher","Resultados de HbA1c por debajo de 7% respecto al total de HbA1c registradas."),
+   mkQI("glycemic_control",`HbA1c en control (<${A1C_DIABETIC_TARGET_PCT}%)`,a1cInControl,a1cRows.length,70,"higher",`Resultados vigentes de HbA1c por debajo de ${A1C_DIABETIC_TARGET_PCT}% respecto al total de HbA1c vigentes registradas.`),
   ];
   return NextResponse.json({
    patientsAttended:patients.total, // total del tenant (S-08: listPatients pagina; el conteo no depende de la página)

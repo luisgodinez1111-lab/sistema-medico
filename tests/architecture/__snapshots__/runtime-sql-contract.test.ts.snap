@@ -2592,6 +2592,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       "ok": [
         {
           "analyte": "v_analyte",
+          "canonicalValue": null,
           "critical": false,
           "interpretation": "v_interpretation",
           "lifecycle": "RECEIVED",
@@ -2600,6 +2601,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
           "receivedAt": "2026-09-01T10:00:00.000Z",
           "resultId": "v_aggregate_id",
           "status": "v_status",
+          "superseded": false,
           "value": "v_value",
         },
       ],
@@ -2627,6 +2629,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
             "AMENDED",
           ],
           "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
         ],
         "text": "
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
@@ -2634,9 +2637,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
      (select p.payload->>'name' from clinical_events p
       where p.tenant_id=$2 and p.aggregate_type='Patient' and p.aggregate_id=(a.payload->>'patientId')::uuid
-        and p.payload->>'kind'=any($3::text[]) and p.payload ? 'name' order by p.sequence desc limit 1) as patient_name
+        and p.payload->>'kind'=any($3::text[]) and p.payload ? 'name' order by p.sequence desc limit 1) as patient_name,
+     a.payload->>'canonicalValue' as canonical_value, exists(select 1 from clinical_events s where s.tenant_id=$4 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=a.aggregate_id::text) as superseded
    from clinical_events a
-   where a.tenant_id=$4 and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
+   where a.tenant_id=$5 and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
    order by a.occurred_at desc",
         "via": "tx",
       },
@@ -5220,6 +5224,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
             "AMENDED",
           ],
           "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
         ],
         "text": "
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
@@ -5227,9 +5232,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
      (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
      (select p.payload->>'name' from clinical_events p
       where p.tenant_id=$2 and p.aggregate_type='Patient' and p.aggregate_id=(a.payload->>'patientId')::uuid
-        and p.payload->>'kind'=any($3::text[]) and p.payload ? 'name' order by p.sequence desc limit 1) as patient_name
+        and p.payload->>'kind'=any($3::text[]) and p.payload ? 'name' order by p.sequence desc limit 1) as patient_name,
+     a.payload->>'canonicalValue' as canonical_value, exists(select 1 from clinical_events s where s.tenant_id=$4 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=a.aggregate_id::text) as superseded
    from clinical_events a
-   where a.tenant_id=$4 and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
+   where a.tenant_id=$5 and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
    order by a.occurred_at desc",
         "via": "tx",
       },

@@ -35,3 +35,7 @@ export const patientDemographicsJoin=(tx:postgres.TransactionSql)=>tx`left join 
 export const currentPatientName=(tx:postgres.TransactionSql,tenantId:string)=>tx`(select p.payload->>'name' from clinical_events p
       where p.tenant_id=${tenantId} and p.aggregate_type='Patient' and p.aggregate_id=(a.payload->>'patientId')::uuid
         and p.payload->>'kind'=any(${[...PATIENT_DEMOGRAPHIC_KINDS]}::text[]) and p.payload ? 'name' order by p.sequence desc limit 1)`;
+// Auditoría C-02 / hallazgo D10 — un resultado está SUPERSEDIDO cuando otro resultado RECIBIDO lo declara en `supersedes`
+// (la corrección del laboratorio). Es la regla que leen calculadoras, series y registros aunque la anotación CORRECTED del
+// original hubiera fallado. `id` = fragmento con el id del resultado a comprobar (p. ej. tx`r.aggregate_id`).
+export const resultSuperseded=(tx:postgres.TransactionSql,tenantId:string,id:postgres.PendingQuery<postgres.Row[]>)=>tx`exists(select 1 from clinical_events s where s.tenant_id=${tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=${id}::text)`;

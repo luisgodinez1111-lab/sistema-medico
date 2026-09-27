@@ -1,8 +1,9 @@
-// Lote 11 (ADR-0300) — read models de resultados de laboratorio (última lectura, series, registro). Extraído de apps/web/lib/clinical-runtime.ts sin cambios de código.
+// Lote 11 (ADR-0300) — read models de resultados de laboratorio (última lectura, series, registro). Extraído de
+// apps/web/lib/clinical-runtime.ts en 11.1; el registro expone valor canónico y supersesión desde el hallazgo D10.
 import{type HttpTenantContext}from"../../../../../packages/http-principal/src";
 import{normalizeLabValue}from"../../../../../packages/lab-reference/src";
 import{withTenantTx}from"../db";
-import{currentPatientName}from"../sql";
+import{currentPatientName,resultSuperseded}from"../sql";
 // EPIC BB — Valor PREVIO del mismo analito del paciente (resultado más reciente ya recibido). RLS-scoped.
 // Para el delta check de laboratorio en la recepción de un resultado nuevo. Devuelve el value textual o undefined.
 // `excludeResultId`: al RECIBIR un resultado, el "previo" jamás debe ser el propio resultado. Sin esto, el REINTENTO
@@ -16,7 +17,7 @@ export async function latestResultValueForAnalyte(ctx:HttpTenantContext,patientI
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
      and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
      and r.aggregate_id::text<>${excludeResultId??""}
-     and not exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+     and not ${resultSuperseded(tx,ctx.tenantId,tx`r.aggregate_id`)} -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at desc, r.sequence desc limit 1`;
   const v=rows[0]?.value;if(v==null)return undefined;
   // Auditoría C-01: un valor físicamente IMPLAUSIBLE en la unidad canónica (evento antiguo capturado sin unidad en otra
@@ -37,7 +38,7 @@ export async function latestAnalyteReading(ctx:HttpTenantContext,patientId:strin
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
      and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
-     and not exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+     and not ${resultSuperseded(tx,ctx.tenantId,tx`r.aggregate_id`)} -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at desc, r.sequence desc limit 1`;
   const o=rows[0] as Record<string,unknown>|undefined;if(!o)return undefined;
   const raw=String(o["raw"]??"");const canonical=o["canonical"]==null?Number(raw.trim().replace(",",".")):Number(o["canonical"]);
@@ -56,7 +57,7 @@ export async function analyteSeries(ctx:HttpTenantContext,patientId:string,analy
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
      and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
-     and not exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+     and not ${resultSuperseded(tx,ctx.tenantId,tx`r.aggregate_id`)} -- C-02: corregido -> se lee el nuevo
    order by r.occurred_at asc, r.sequence asc`;
   // Los puntos implausibles se EXCLUYEN de la serie: un solo valor en otra escala deforma la tendencia y su pendiente.
   return rows.map(r=>{const o=r as Record<string,unknown>;return{value:Number(o.value),at:String(o.at)};}).filter(p=>Number.isFinite(p.value)&&normalizeLabValue(analyte,p.value).ok);
@@ -66,7 +67,14 @@ export async function analyteSeries(ctx:HttpTenantContext,patientId:string,analy
 // DiagnosticResult toma el evento base RESULT_RECEIVED (analito/valor/critical/status/interpretación derivados)
 // y su ESTADO por la última transición de ciclo de vida (RECEIVED/VERIFIED/ACTIONED/CLOSED). Une el nombre del
 // paciente. El estado-UI (Hallazgos/Normal/En seguimiento/En revisión) se deriva. RLS-scoped.
-export type ResultRow=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;critical:boolean;status:string;interpretation:string;lifecycle:"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";receivedAt:string}>;
+// Hallazgo D10: `canonicalValue` es el valor en la unidad canónica del analito (el que usan las calculadoras; null si no es
+// normalizable) y `superseded` marca el resultado reemplazado por una corrección. `value` sigue siendo el texto recibido.
+export type ResultRow=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;canonicalValue:number|null;superseded:boolean;critical:boolean;status:string;interpretation:string;lifecycle:"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";receivedAt:string}>;
+// Valor canónico: el normalizado al recibir; un evento anterior a C-01 (sin unidad) se normaliza aquí con la misma función.
+const canonicalOf=(analyte:string,canonical:unknown,raw:unknown):number|null=>{
+ if(canonical!=null&&Number.isFinite(Number(canonical)))return Number(canonical);
+ const n=normalizeLabValue(analyte,String(raw??""));return n.ok?n.canonicalValue:null;
+};
 const RES_LIFECYCLE:Record<string,"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED">={RECEIVED:"RECEIVED",VERIFIED:"VERIFIED",ACTIONED:"ACTIONED",CLOSED:"CLOSED"};
 export async function resultsRegistry(ctx:HttpTenantContext):Promise<ResultRow[]>{
  return withTenantTx(ctx,async tx=>{
@@ -74,13 +82,14 @@ export async function resultsRegistry(ctx:HttpTenantContext):Promise<ResultRow[]
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
      a.payload->>'critical' as critical, a.payload->>'status' as status, a.payload->>'interpretation' as interpretation, a.occurred_at as received_at,
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
-     ${currentPatientName(tx,ctx.tenantId)} as patient_name
+     ${currentPatientName(tx,ctx.tenantId)} as patient_name,
+     a.payload->>'canonicalValue' as canonical_value, ${resultSuperseded(tx,ctx.tenantId,tx`a.aggregate_id`)} as superseded
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
    order by a.occurred_at desc`;
   return rows.map(r=>{const o=r as Record<string,unknown>;return{
    resultId:String(o.aggregate_id),patientId:String(o.pid??""),patientName:String(o.patient_name??"Paciente"),
-   analyte:String(o.analyte??""),value:String(o.value??""),critical:String(o.critical)==="true",
+   analyte:String(o.analyte??""),value:String(o.value??""),canonicalValue:canonicalOf(String(o.analyte??""),o.canonical_value,o.value),superseded:o.superseded===true,critical:String(o.critical)==="true",
    status:String(o.status??"NORMAL"),interpretation:String(o.interpretation??""),
    lifecycle:RES_LIFECYCLE[String(o.last_kind??"RECEIVED")]??"RECEIVED",
    receivedAt:o.received_at?new Date(String(o.received_at)).toISOString():""};});

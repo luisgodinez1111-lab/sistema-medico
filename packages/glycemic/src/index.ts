@@ -6,6 +6,9 @@ export function estimatedAverageGlucose(a1c:number):number|undefined{
  if(!Number.isFinite(a1c)||a1c<=0)return undefined;
  return Math.round(28.7*a1c-46.7+1e-9); // épsilon: evita que 125.4999… (flotante) redondee a 125 en vez de 126
 }
+// Meta ADA de HbA1c para el diabético conocido (%, NGSP). Fuente única: la usan la evaluación por paciente y el indicador de
+// calidad del tablero (hallazgo D10 del lote 11).
+export const A1C_DIABETIC_TARGET_PCT=7;
 export type GlycemicFrame="DIABETIC"|"SCREENING";
 export type GlycemicCategory="CONTROLLED"|"ABOVE_TARGET"|"POOR"|"NORMAL"|"PREDIABETES"|"DIABETES_RANGE";
 export type GlycemicAssessment=Readonly<{a1c:number;eag:number;frame:GlycemicFrame;category:GlycemicCategory;label:string}>;
@@ -15,7 +18,7 @@ export function glycemicAssessment(a1c:number,diabetic:boolean):GlycemicAssessme
  if(eag===undefined)return undefined;
  let category:GlycemicCategory,label:string;
  if(diabetic){
-  if(a1c<7){category="CONTROLLED";label="Diabético en meta (HbA1c <7%)";}
+  if(a1c<A1C_DIABETIC_TARGET_PCT){category="CONTROLLED";label="Diabético en meta (HbA1c <7%)";}
   else if(a1c<=8){category="ABOVE_TARGET";label="Diabético sobre meta (HbA1c 7–8%): intensificar";}
   else{category="POOR";label="Diabético con mal control (HbA1c >8%): ajustar tratamiento";}
  }else{
