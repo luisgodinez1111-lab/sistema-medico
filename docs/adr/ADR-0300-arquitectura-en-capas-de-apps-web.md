@@ -85,9 +85,9 @@ Reglas, verificadas por `tests/architecture/boundaries.test.ts` (fuera del manif
 
 | Grupo | Módulos | Destino |
 |---|---|---|
-| Uniformes (82 handlers: 64 transiciones, 18 creaciones) | admission, allergy, careplan, claim, consent, dialysis, immunization, incident, obligation, order, referral, regulatory-obligation, specimen, surgery, transfusion, triage, vital, wound | `createCommand` / `transitionCommand` |
-| Con variantes | problem, appointment, patient (`status`), medication (guardas por operación, anotaciones, barreras, derivados) | `createCommand` / `transitionCommand` con T1–T10 donde el ajuste es exacto |
-| Solo preludio | document (adjuntos multipart, firma), encounter, result (recepción con valores del servidor), office-settings, physician-profile | `endpoint()` + `loadAggregate`; el cuerpo queda escrito a mano |
+| Uniformes (82 handlers: 64 transiciones, 18 creaciones) | admission, allergy, careplan, claim, consent, dialysis, immunization, incident, obligation, order, referral, regulatory-obligation, specimen, surgery, transfusion, triage, vital, wound | `createCommand` / `transitionCommand` (alergia en 11.2a, el resto en 11.2b) |
+| Con variantes (24 handlers) | problem, appointment, patient (`status`), medication (guardas por operación, anotaciones, barreras, derivados) | 22 al pipeline con T1–T10 (`extra`, `tail`, `check`, `strictVersion`, `guard`, `afterRun`). `handlePatientRegister` y `handlePatientList` quedan en `endpoint()`: el alta consulta el replay ANTES del 409 de duplicado y `createCommand` no consulta el replay |
+| Preludio, y pipeline donde el ajuste es exacto (22 handlers) | document, encounter, result, office-settings, physician-profile | 7 al pipeline (documento: crear, finalizar, firmar, enmendar; resultado: verificar, actuar, cerrar). 15 en `endpoint()` con el cuerpo escrito a mano: adjuntos multipart, descargas y lecturas, encuentro (lee con `readEncounterEvents`), recepción y corrección de resultados (valores del servidor; la corrección con `loadAggregate`), ajustes del consultorio y perfil del médico |
 | Sin cablear (8, registro NOT_WIRED) | adaptive-history, ai-gateway, clinical-inbox, clinical-intelligence, document-ingestion, imaging, lab-order, prescription | No se tocan (decisión del dueño) |
 
 ### Oráculos (un lote se acepta solo si todos son idénticos)
@@ -96,7 +96,7 @@ Reglas, verificadas por `tests/architecture/boundaries.test.ts` (fuera del manif
 |---|---|
 | SQL de cada read model, límites de transacción y rol RLS del pool | `tests/architecture/runtime-sql-contract.test.ts` (texto, parámetros, BEGIN/COMMIT, consultas dentro o fuera de la transacción, resultado mapeado, opciones del pool) |
 | Contrato HTTP de las 177 operaciones sin base de datos: precedencia 401/403 → 428 → 404 → 400 → replay → 409, cuerpos y el comando exacto que llega al kernel | `tests/architecture/http-contract.test.ts` (persistencia sustituida por dobles), tomado antes del lote 11.2 |
-| Respuestas contra PostgreSQL real | Las 97 pruebas en vivo: `SMOKE: 97 PASS · 0 FAIL · 0 SKIP` (una corrida sin base de datos NO cuenta) y las etiquetas `checks` de cada prueba idénticas antes y después |
+| Respuestas contra PostgreSQL real | Todas las pruebas en vivo (97 al aceptar este ADR; cada defecto corregido añade la suya): `SMOKE: N PASS · 0 FAIL · 0 SKIP` (una corrida sin base de datos, o sin `BLOB_READ_WRITE_TOKEN` para las de adjuntos, NO cuenta) y las etiquetas `checks` de cada prueba existente idénticas antes y después |
 | Ids derivados y hash de idempotencia | Sin cambios en el kernel ni en `derivedUuid`; el oráculo HTTP registra el comando completo |
 | `docs/api/openapi.json`, `api-body-registry.ts` | `pnpm openapi:check` sobre un árbol limpio (el `--check` reescribe `lib/*.ts` antes de fallar: `git status` debe quedar limpio) |
 | Manifiesto de evidencia, capacidades, invariantes y registros de adjudicación | Ningún test fijado ni registro se edita; `release`, `capability` y `traceability` con salida idéntica |
@@ -110,9 +110,9 @@ El estilo compacto del código se conserva: el refactor cambia estructura, no fo
 |---|---|---|
 | 11.0 | Red de seguridad: oráculo SQL, guardas de arquitectura, `typecheck:scripts`, `zod` a dependencias | Hecho |
 | 11.1 | Persistencia partida en `lib/runtime/`, fachada, `withTenantTx`, ciclo roto | Hecho |
-| 11.1b | Oráculos reforzados: SQL con límites de transacción (re-verificado contra la línea base anterior a la partición), contrato HTTP de las 177 operaciones, guarda cliente/servidor y trinquete de `process.env` | — |
-| 11.2a | `endpoint()` / `errorResponse()` en todos los handlers cableados | — |
-| 11.2b | Pipeline de comandos por familia de agregados (primero los 18 uniformes) | — |
+| 11.1b | Oráculos reforzados: SQL con límites de transacción (re-verificado contra la línea base anterior a la partición), contrato HTTP de las 177 operaciones, guarda cliente/servidor y trinquete de `process.env` | Hecho |
+| 11.2a | Kit de transporte (`endpoint()` / `errorResponse()`), pipeline de comandos y alergia como migración de referencia | Hecho |
+| 11.2b | Los 26 módulos cableados restantes: 107 handlers al pipeline (21 creaciones, 86 transiciones) y 17 en `endpoint()` | Hecho |
 | 11.3 | Rutas delgadas: `lib/queries` + `lib/presenters` con pruebas unitarias | — |
 | 11.4 | Arnés único de las pruebas en vivo (P-08) | — |
 

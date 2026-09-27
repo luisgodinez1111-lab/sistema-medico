@@ -1,28 +1,23 @@
-import{NextResponse}from"next/server";
 import{z}from"zod";
-import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
-import{foldVital,assertVitalTransition,type FoldedVital,type VitalState}from"../../../packages/vital-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
+import{foldVital,assertVitalTransition}from"../../../packages/vital-fold/src";
+import{patientDemographics,requireRegisteredPatient}from"./runtime/read-models/patient";
 import{ageInYears}from"../../../packages/prescription-safety/src";
-import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
-import{classifyVital,vitalPlausible,type VitalStatus}from"../../../packages/lab-reference/src";
+import{parseJson}from"./http-command";
+import{createCommand,transitionCommand}from"./command/aggregate-command";
+import{classifyVital,vitalPlausible}from"../../../packages/lab-reference/src";
 // EPIC W — Ciclo de vida de una observación de signo vital: RECORDED -> {AMENDED, ENTERED_IN_ERROR}.
 // EPIC AN (profundidad): cada valor se interpreta contra rangos de referencia (NORMAL/ABNORMAL/CRITICAL).
 // El valor vigente es append-only: cada corrección genera un evento nuevo (scope vital:write).
 // EPIC AQ: critical flag derivado del valor real alimenta closed-loop de signos vitales críticos.
-const AGG="VitalSign";
-function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"vital:write",purpose:"TREATMENT"});
-}
+// Lote 11 (ADR-0300): el protocolo (sesión, autorización, cabeceras, replay, máquina de estados, kernel) vive en el pipeline;
+// la clasificación (status/critical/interpretation) viaja en `extra`, entre el estado y `version`, como antes.
+const VITAL={aggregateType:"VitalSign",idField:"vitalId",fold:foldVital,assertTransition:assertVitalTransition,notFound:"Vital sign not found"} as const;
+const WRITE={scope:"vital:write",purpose:"TREATMENT"} as const;
 
 export const RecordBody=z.object({vitalId:z.string().uuid(),patientId:z.string().uuid(),vitalType:z.enum(["BP","HR","TEMP","SPO2","WEIGHT","HEIGHT","RESP"]),value:z.string().min(1),unit:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleVitalRecord(req:Request):Promise<Response>{
- try{
-  const{claims,ctx}=resolveVerified(req);authz(claims);
-  const idempotencyKey=req.headers.get("idempotency-key");
-  if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
+ return createCommand(req,WRITE,VITAL,async({ctx})=>{
   const b=await parseJson(req,RecordBody);
   await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   // Auditoría C-13: (1) un valor físicamente imposible se RECHAZA (no se guarda como "UNKNOWN"); (2) la interpretación
@@ -32,42 +27,22 @@ export async function handleVitalRecord(req:Request):Promise<Response>{
   const demo=await patientDemographics(ctx,b.patientId);
   const ageYears=demo?.birthDate?ageInYears(demo.birthDate,b.occurredAt):undefined;
   const a=classifyVital(b.vitalType,b.value,{ageYears});
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.vitalId,expectedVersion:0,eventType:"VITAL_RECORDED",payload:{kind:"RECORDED",patientId:b.patientId,vitalType:b.vitalType,value:b.value,unit:b.unit,status:a.status,critical:a.critical,interpretation:a.interpretation,...(ageYears!==undefined?{ageYearsAtRecording:ageYears}:{}),...(a.ageBand?{ageBand:a.ageBand}:{})},occurredAt:b.occurredAt,topic:"vital.recorded"});
-  const result=await runClinicalCommand(ctx,cmd);
-  const r=result.response as{version:number;auditHash?:string};
-  return NextResponse.json({vitalId:b.vitalId,state:"RECORDED",status:a.status,critical:a.critical,interpretation:a.interpretation,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
-}
-
-async function loadForTransition(req:Request,vitalId:string){
- const{claims,ctx}=resolveVerified(req);authz(claims);
- const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldVital(await readAggregateEvents(ctx,vitalId));
- if(!folded.exists)throw new ClinicalError("NOT_FOUND","Vital sign not found");
- return{ctx,idempotencyKey,expectedVersion,folded};
-}
-async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,vitalId:string,folded:FoldedVital,to:VitalState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string,extra:Record<string,unknown>={}){
- const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:vitalId,expectedVersion,eventType,payload,occurredAt,topic});
- let result=await lookupReplay(ctx,cmd);
- if(!result){assertVitalTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
- const r=result.response as{version:number;auditHash?:string};
- return NextResponse.json({vitalId,state:to,...extra,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+  return{aggregateId:b.vitalId,state:"RECORDED",eventType:"VITAL_RECORDED",payload:{kind:"RECORDED",patientId:b.patientId,vitalType:b.vitalType,value:b.value,unit:b.unit,status:a.status,critical:a.critical,interpretation:a.interpretation,...(ageYears!==undefined?{ageYearsAtRecording:ageYears}:{}),...(a.ageBand?{ageBand:a.ageBand}:{})},occurredAt:b.occurredAt,topic:"vital.recorded",extra:{status:a.status,critical:a.critical,interpretation:a.interpretation}};
+ });
 }
 
 export const AmendBody=z.object({value:z.string().min(1),unit:z.string().min(1),reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleVitalAmendment(req:Request,vitalId:string):Promise<Response>{
- try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,vitalId);const b=await parseJson(req,AmendBody);
+ return transitionCommand(req,WRITE,VITAL,vitalId,async({ctx,folded})=>{const b=await parseJson(req,AmendBody);
   const pl=vitalPlausible(folded.vitalType,b.value);
   if(!pl.ok)throw new ClinicalError("VALIDATION_ERROR",pl.message,{vitalType:folded.vitalType});
   const demo=await patientDemographics(ctx,folded.patientId);
   const ageYears=demo?.birthDate?ageInYears(demo.birthDate,b.occurredAt):undefined;
   const a=classifyVital(folded.vitalType,b.value,{ageYears});
-  return await commit(ctx,idempotencyKey,expectedVersion,vitalId,folded,"AMENDED","VITAL_AMENDED",{kind:"AMENDED",value:b.value,unit:b.unit,reason:b.reason,status:a.status,critical:a.critical,interpretation:a.interpretation,...(ageYears!==undefined?{ageYearsAtRecording:ageYears}:{})},b.occurredAt,"vital.amended",{status:a.status,critical:a.critical,interpretation:a.interpretation});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+  return{to:"AMENDED",eventType:"VITAL_AMENDED",payload:{kind:"AMENDED",value:b.value,unit:b.unit,reason:b.reason,status:a.status,critical:a.critical,interpretation:a.interpretation,...(ageYears!==undefined?{ageYearsAtRecording:ageYears}:{})},occurredAt:b.occurredAt,topic:"vital.amended",extra:{status:a.status,critical:a.critical,interpretation:a.interpretation}};});
 }
 export const ErrorBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleVitalErrorMark(req:Request,vitalId:string):Promise<Response>{
- try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,vitalId);const b=await parseJson(req,ErrorBody);
-  return await commit(ctx,idempotencyKey,expectedVersion,vitalId,folded,"ENTERED_IN_ERROR","VITAL_ENTERED_IN_ERROR",{kind:"ENTERED_IN_ERROR",reason:b.reason},b.occurredAt,"vital.entered_in_error");
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ return transitionCommand(req,WRITE,VITAL,vitalId,async()=>{const b=await parseJson(req,ErrorBody);
+  return{to:"ENTERED_IN_ERROR",eventType:"VITAL_ENTERED_IN_ERROR",payload:{kind:"ENTERED_IN_ERROR",reason:b.reason},occurredAt:b.occurredAt,topic:"vital.entered_in_error"};});
 }

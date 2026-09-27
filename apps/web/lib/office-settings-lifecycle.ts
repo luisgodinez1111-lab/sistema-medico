@@ -1,13 +1,15 @@
 import{NextResponse}from"next/server";
 import{z}from"zod";
-import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
-import{runClinicalCommand,officeSettings}from"./clinical-runtime";
-import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,resolveVerified,parseJson,requireMutationHeaders}from"./http-command";
+import{runClinicalCommand}from"./runtime/command";
+import{officeSettings}from"./runtime/read-models/settings";
+import{buildCommand,parseJson,requireMutationHeaders}from"./http-command";
+import{endpoint}from"./http/endpoint";
 // EPIC S-CONFIG — Ajustes del consultorio (singleton por tenant, NO PHI, sin paciente), sobre el mismo kernel
 // event-sourced. Un unico agregado OfficeSettings por tenant (aggregateId constante; RLS separa por tenant).
 // El estado actual se reconstruye del ultimo evento OFFICE_SETTINGS_UPDATED; version = nº de eventos (If-Match).
+// Lote 11 (ADR-0300): sesión, autorización y errores viven en `endpoint`. El PUT no pasa por el pipeline de comandos: el
+// estado sale del read model `officeSettings` (singleton sin 404), la versión se compara ANTES del kernel y no hay replay.
 const AGG="OfficeSettings";
 // UUID constante del singleton. La unicidad del kernel es por (tenant_id, aggregate_id), asi que el mismo id
 // bajo distintos tenants no colisiona (cada tenant tiene su propia serie de versiones).
@@ -62,20 +64,16 @@ export const UpdateBody=z.object({settings:SettingsSchema,occurredAt:z.string().
 
 // GET — devuelve los ajustes efectivos (defaults + lo persistido) y la version para el If-Match del siguiente PUT.
 export async function handleOfficeSettingsGet(req:Request):Promise<Response>{
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"settings:read"});
+ return endpoint(req,{scope:"settings:read"},async({ctx})=>{
   const cur=await officeSettings(ctx);
   return NextResponse.json({settings:{...DEFAULT_OFFICE_SETTINGS,...cur.settings},version:cur.version},{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }
 
 // PUT — merge de los campos recibidos sobre los actuales; persiste el objeto COMPLETO en el evento (para que el
 // read del ultimo evento sea autosuficiente). Concurrencia optimista via If-Match (expectedVersion = nº de eventos).
 export async function handleOfficeSettingsUpdate(req:Request):Promise<Response>{
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"settings:write"});
+ return endpoint(req,{scope:"settings:write"},async({ctx})=>{
   const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
   const b=await parseJson(req,UpdateBody);
   const cur=await officeSettings(ctx);
@@ -89,5 +87,5 @@ export async function handleOfficeSettingsUpdate(req:Request):Promise<Response>{
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({settings:merged,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }

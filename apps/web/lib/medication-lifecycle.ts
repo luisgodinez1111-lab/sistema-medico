@@ -1,13 +1,14 @@
-import{NextResponse}from"next/server";
 import{z}from"zod";
-import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
-import{foldMedication,assertMedicationTransition,assertMedicationAnnotation,type FoldedMedication,type MedAnnotationKind}from"../../../packages/medication-fold/src";
-import{type MedicationState}from"../../../packages/medication-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergies,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
-import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid,replayStablePayload}from"./http-command";
-import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindications,resolveDrug,monitoringFor,checkRenalDosing}from"../../../packages/drug-catalog/src";
+import{foldMedication,assertMedicationTransition,assertMedicationAnnotation,type FoldedMedication}from"../../../packages/medication-fold/src";
+import{runClinicalCommand,lookupReplay}from"./runtime/command";
+import{activeAllergies,activeMedicationDrugCodes,activeProblemCodes}from"./runtime/read-models/safety-inputs";
+import{latestVitalsByType}from"./runtime/read-models/vitals";
+import{patientEgfr}from"./runtime/read-models/renal";
+import{patientDemographics,requireRegisteredPatient}from"./runtime/read-models/patient";
+import{buildCommand,parseJson,derivedUuid,replayStablePayload}from"./http-command";
+import{createCommand,transitionCommand}from"./command/aggregate-command";
+import{resolveDrug,monitoringFor}from"../../../packages/drug-catalog/src";
 import{validateMedicationOrder,normalizeRoute,checkDoseCeiling,checkPediatricDose}from"../../../packages/medication-validation/src";
 import{physicianCredentials,requirePhysicianCredentials}from"./physician-profile-lifecycle";
 import{evaluatePrescriptionSafety,summarizeForEvent,ageInYears,decideOverride,OVERRIDABLE_BARRIERS,OVERRIDE_MIN_JUSTIFICATION,type OverrideRequest,type SafetyOverride}from"../../../packages/prescription-safety/src";
@@ -16,8 +17,12 @@ import{evaluatePrescriptionSafety,summarizeForEvent,ageInYears,decideOverride,OV
 // EXEC-0014: Lifecycle PROPOSED->PRESCRIBED->STARTED->ACTIVE->HELD->STOPPED->CANCELLED
 // Track: indication, dose/route/freq, duration, start/stop, response, adverse effects,
 // monitoring obligations, reconciliation status, calculated vs prescribed dose, override reason.
-const AGG="Medication";
-type Claims={sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string};
+// Lote 11 (ADR-0300): el protocolo (sesión, autorización, cabeceras, replay, versión, máquina de estados, kernel) vive en el
+// pipeline; la guarda es POR OPERACIÓN (proponer no exige médico) y las barreras y los derivados van en `guard` / `afterRun`.
+const MED={aggregateType:"Medication",idField:"medicationId",fold:foldMedication,assertTransition:assertMedicationTransition,notFound:"Medication not found",changed:"Medication changed since last read"} as const;
+const PROPOSE={scope:"medication:propose",purpose:"TREATMENT"} as const;
+// Physician Control: prescribir/activar/suspender exige médico; scope medication:write.
+const WRITE={role:"PHYSICIAN",scope:"medication:write",purpose:"TREATMENT"} as const;
 // EPIC BD — Último peso (kg) del paciente para el ceiling pediátrico. undefined si no hay peso registrado
 // o no es numérico. Asume el vital WEIGHT en kg (unidad del catálogo de vitales).
 async function patientWeightKg(ctx:Parameters<typeof runClinicalCommand>[0],patientId:string):Promise<number|undefined>{
@@ -28,11 +33,7 @@ async function patientWeightKg(ctx:Parameters<typeof runClinicalCommand>[0],pati
 export const ProposeBody=z.object({medicationId:z.string().uuid(),patientId:z.string().uuid(),drugCode:z.string().min(1),indication:z.string().optional(),dose:z.string().min(1),route:z.string().min(1),frequency:z.string().min(1),duration:z.string().optional(),calculatedDose:z.string().optional(),occurredAt:z.string().datetime()});
 // PROPOSE = creación. Cualquier clínico/IA con scope medication:propose (no exige médico).
 export async function handleMedicationProposal(req:Request):Promise<Response>{
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"medication:propose",purpose:"TREATMENT"});
-  const idempotencyKey=req.headers.get("idempotency-key");
-  if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
+ return createCommand(req,PROPOSE,MED,async({ctx})=>{
   const b=await parseJson(req,ProposeBody);
   await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
   // EPIC AV (profundidad/seguridad): validación estructurada de dosis/vía/frecuencia (vocabulario controlado).
@@ -46,42 +47,8 @@ export async function handleMedicationProposal(req:Request):Promise<Response>{
    const w=await patientWeightKg(ctx,b.patientId);
    const pd=checkPediatricDose(ing,b.dose,b.frequency,w);
    if(pd.checked&&pd.exceeded)throw new ClinicalError("SAFETY_BLOCKED",`Dosis pediátrica excede el máximo de ${ing}: ${pd.computedMgPerKgPerDay}mg/kg/día > ${pd.maxMgPerKgPerDay}mg/kg/día (peso ${pd.weightKg}kg). Recalcule por peso.`,{computedMgPerKgPerDay:pd.computedMgPerKgPerDay,maxMgPerKgPerDay:pd.maxMgPerKgPerDay,weightKg:pd.weightKg});}
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.medicationId,expectedVersion:0,eventType:"MEDICATION_PROPOSED",payload:{kind:"PROPOSED",patientId:b.patientId,drugCode:b.drugCode,indication:b.indication,dose:b.dose,route:normalizeRoute(b.route),frequency:b.frequency,duration:b.duration,calculatedDose:b.calculatedDose},occurredAt:b.occurredAt,topic:"medication.proposed"});
-  const result=await runClinicalCommand(ctx,cmd);
-  const r=result.response as{version:number;auditHash?:string};
-  return NextResponse.json({medicationId:b.medicationId,state:"PROPOSED",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
-}
-
-async function loadForTransition(req:Request,medicationId:string,requirePhysician:boolean){
- const{claims,ctx}=resolveVerified(req);
- const c=claims as Claims;
- // Physician Control: prescribir/activar/suspender exige médico; scope medication:write.
- authorize(principalFrom(c),requirePhysician?{tenantId:c.tenantId,role:"PHYSICIAN",scope:"medication:write",purpose:"TREATMENT"}:{tenantId:c.tenantId,scope:"medication:write",purpose:"TREATMENT"});
- const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldMedication(await readAggregateEvents(ctx,medicationId));
- if(!folded.exists)throw new ClinicalError("NOT_FOUND","Medication not found");
- return{claims:c,ctx,idempotencyKey,expectedVersion,folded};
-}
-async function commitTransition(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,medicationId:string,folded:FoldedMedication,to:MedicationState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
- const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType,payload,occurredAt,topic});
- let result=await lookupReplay(ctx,cmd);
- if(!result){assertMedicationTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
- const r=result.response as{version:number;auditHash?:string};
- return NextResponse.json({medicationId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
-}
-// Anotación: el estado NO cambia (la respuesta devuelve el estado vigente). Misma disciplina que una transición: replay
-// idempotente primero, versión (If-Match) antes que cualquier otra precondición, y guardas de dominio al final.
-async function commitAnnotation(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,medicationId:string,folded:FoldedMedication,kind:MedAnnotationKind,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string,guard?:()=>void,extra:Record<string,unknown>={}){
- const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType,payload,occurredAt,topic});
- let result=await lookupReplay(ctx,cmd);
- if(!result){
-  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
-  assertMedicationAnnotation(folded.state,kind);guard?.();
-  result=await runClinicalCommand(ctx,cmd);
- }
- const r=result.response as{version:number;auditHash?:string};
- return NextResponse.json({medicationId,state:folded.state,annotation:kind,version:r.version,auditHash:r.auditHash,replayed:result.replayed,...extra},{status:result.replayed?200:201});
+  return{aggregateId:b.medicationId,state:"PROPOSED",eventType:"MEDICATION_PROPOSED",payload:{kind:"PROPOSED",patientId:b.patientId,drugCode:b.drugCode,indication:b.indication,dose:b.dose,route:normalizeRoute(b.route),frequency:b.frequency,duration:b.duration,calculatedDose:b.calculatedDose},occurredAt:b.occurredAt,topic:"medication.proposed"};
+ });
 }
 
 export const WhenBody=z.object({occurredAt:z.string().datetime()});
@@ -152,8 +119,7 @@ function enforceSafety(safety:ReturnType<typeof evaluatePrescriptionSafety>,verb
 }
 // PRESCRIBE = PROPOSED -> PRESCRIBED. EXIGE médico (Physician Control): la IA nunca prescribe.
 export async function handleMedicationPrescription(req:Request,medicationId:string):Promise<Response>{
- try{
-  const{ctx,idempotencyKey,expectedVersion,folded,claims}=await loadForTransition(req,medicationId,true);
+ return transitionCommand(req,WRITE,MED,medicationId,async({ctx,idempotencyKey,folded,claims})=>{
   const b=await parseJson(req,PrescribeBody);
   // Auditoría 2026-09-19 (C-03/C-04): evaluador ÚNICO de barreras (el mismo del dry-run /prescription-check).
   // Antes, un fármaco fuera del catálogo omitía TODAS las barreras en silencio. Ahora cada barrera queda en un
@@ -166,73 +132,58 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
   const payload=await replayStablePayload(ctx,idempotencyKey,medicationId,b,()=>({kind:"PRESCRIBED",prescriberId:claims.sub,
    prescriber:cred?{fullName:cred.fullName,cedulaProfesional:cred.cedulaProfesional}:undefined,
    safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification},overrideForEvent(safety,override,claims.sub))}));
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType:"MEDICATION_PRESCRIBED",payload,occurredAt:b.occurredAt,topic:"medication.prescribed"});
-  let result=await lookupReplay(ctx,cmd);
-  if(!result){
-   // Orden de precondiciones: PRIMERO la versión. No se le pide al médico que confirme y justifique una prescripción
-   // sobre una vista obsoleta del expediente: con If-Match desfasado responde 409 y el cliente debe releer.
-   if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
-   assertMedicationTransition(folded.state,"PRESCRIBED");
-   await requirePhysicianCredentials(ctx,claims); // L-05: sin cédula registrada no hay prescripción (428)
-   enforceSafety(safety,"prescribe",acknowledged,b.unverifiedJustification,override);
+  // Orden de precondiciones: PRIMERO la versión (`strictVersion`). No se le pide al médico que confirme y justifique una
+  // prescripción sobre una vista obsoleta del expediente: con If-Match desfasado responde 409 y el cliente debe releer.
+  return{to:"PRESCRIBED",strictVersion:true,eventType:"MEDICATION_PRESCRIBED",payload,occurredAt:b.occurredAt,topic:"medication.prescribed",
+   guard:async()=>{
+    await requirePhysicianCredentials(ctx,claims); // L-05: sin cédula registrada no hay prescripción (428)
+    enforceSafety(safety,"prescribe",acknowledged,b.unverifiedJustification,override);},
    // EXEC-0014 / EPIC BA: al prescribir, crear las obligaciones de monitoreo del fármaco (INR, creatinina/TFG, potasio...).
-   result=await runClinicalCommand(ctx,cmd);
-   await createMonitoringObligations(ctx,idempotencyKey,folded.patientId,claims.sub,folded.drugCode,b.occurredAt);
-  }
-  const r=result.response as{version:number;auditHash?:string};
-  return NextResponse.json({medicationId,state:"PRESCRIBED",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+   afterRun:()=>createMonitoringObligations(ctx,idempotencyKey,folded.patientId,claims.sub,folded.drugCode,b.occurredAt)};
+ });
 }
 // ACTIVATE = PRESCRIBED -> ACTIVE (inicio de administración/primera dosis).
 export async function handleMedicationActivation(req:Request,medicationId:string):Promise<Response>{
- try{
-  const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,medicationId,true);
+ return transitionCommand(req,WRITE,MED,medicationId,async()=>{
   const b=await parseJson(req,WhenBody);
-  return await commitTransition(ctx,idempotencyKey,expectedVersion,medicationId,folded,"ACTIVE","MEDICATION_ACTIVATED",{kind:"ACTIVATED",startedAt:b.occurredAt},b.occurredAt,"medication.activated");
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+  return{to:"ACTIVE",eventType:"MEDICATION_ACTIVATED",payload:{kind:"ACTIVATED",startedAt:b.occurredAt},occurredAt:b.occurredAt,topic:"medication.activated"};
+ });
 }
 // HOLD = ACTIVE -> HELD. Suspensión temporal con razón.
 export const HoldBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleMedicationHold(req:Request,medicationId:string):Promise<Response>{
- try{
-  const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,medicationId,true);
+ return transitionCommand(req,WRITE,MED,medicationId,async()=>{
   const b=await parseJson(req,HoldBody);
-  return await commitTransition(ctx,idempotencyKey,expectedVersion,medicationId,folded,"HELD","MEDICATION_HELD",{kind:"HELD",reason:b.reason},b.occurredAt,"medication.held");
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+  return{to:"HELD",eventType:"MEDICATION_HELD",payload:{kind:"HELD",reason:b.reason},occurredAt:b.occurredAt,topic:"medication.held"};
+ });
 }
 // RESUME = HELD -> ACTIVE. Reanudación tras suspensión. Durante la suspensión el paciente pudo iniciar otro fármaco, sumar
 // un diagnóstico o deteriorar su función renal: reanudar vuelve a poner el fármaco EN CURSO, así que pasa por el MISMO
 // evaluador que PRESCRIBE (bloqueo -> 403; no verificable -> 428 con confirmación y justificación).
 export const ResumeBody=z.object({occurredAt:z.string().datetime(),acknowledgeUnverified:z.boolean().optional(),unverifiedJustification:z.string().max(500).optional(),...OverrideFields});
 export async function handleMedicationResume(req:Request,medicationId:string):Promise<Response>{
- try{
-  const{ctx,idempotencyKey,expectedVersion,folded,claims}=await loadForTransition(req,medicationId,true);
+ return transitionCommand(req,WRITE,MED,medicationId,async({ctx,idempotencyKey,folded,claims})=>{
   const b=await parseJson(req,ResumeBody);
   const safety=await evaluateSafetyFor(ctx,medicationId,folded,{dose:folded.dose,route:folded.route,frequency:folded.frequency},b.occurredAt);
   const acknowledged=b.acknowledgeUnverified===true;const override=overrideRequestOf(b);
   const payload=await replayStablePayload(ctx,idempotencyKey,medicationId,b,()=>({kind:"RESUMED",safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification},overrideForEvent(safety,override,claims.sub))}));
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType:"MEDICATION_RESUMED",payload,occurredAt:b.occurredAt,topic:"medication.resumed"});
-  let result=await lookupReplay(ctx,cmd);
-  if(!result){
-   if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
-   assertMedicationTransition(folded.state,"ACTIVE");
-   if(folded.state!=="HELD")throw new ClinicalError("CONFLICT",`Illegal medication transition ${folded.state} -> ACTIVE (resume requires HELD)`,{from:folded.state});
-   enforceSafety(safety,"resume",acknowledged,b.unverifiedJustification,override);
-   result=await runClinicalCommand(ctx,cmd);
-  }
-  const r=result.response as{version:number;auditHash?:string};
-  return NextResponse.json({medicationId,state:"ACTIVE",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+  return{to:"ACTIVE",strictVersion:true,eventType:"MEDICATION_RESUMED",payload,occurredAt:b.occurredAt,topic:"medication.resumed",
+   guard:()=>{
+    if(folded.state!=="HELD")throw new ClinicalError("CONFLICT",`Illegal medication transition ${folded.state} -> ACTIVE (resume requires HELD)`,{from:folded.state});
+    enforceSafety(safety,"resume",acknowledged,b.unverifiedJustification,override);}};
+ });
 }
 // MODIFY = cambio de dosis/vía/frecuencia de una medicación EN CURSO (ACTIVE/HELD). Es una ANOTACIÓN: no cambia el estado.
 // Auditoría L-04: antes pedía la transición X->X y respondía 409 siempre. Además, al hacerla funcionar, NO puede ser un atajo
 // para saltarse las barreras: la orden resultante pasa por la MISMA validación de orden y el MISMO evaluador que PRESCRIBE
 // (un `overrideWarning` afirmado por el cliente no es una verificación). Exige razón clínica del cambio.
+// Anotaciones (MODIFY y RECONCILE): la respuesta devuelve el estado vigente. Misma disciplina que una transición: replay
+// idempotente primero, versión (If-Match) antes que cualquier otra precondición, y guardas de dominio al final
+// (`strictVersion`, `check` con assertMedicationAnnotation y `guard` en el pipeline).
 export const ModifyBody=z.object({dose:z.string().min(1).optional(),route:z.string().min(1).optional(),frequency:z.string().min(1).optional(),calculatedDose:z.string().optional(),reason:z.string().min(3).max(500),
  acknowledgeUnverified:z.boolean().optional(),unverifiedJustification:z.string().max(500).optional(),...OverrideFields,occurredAt:z.string().datetime()});
 export async function handleMedicationModification(req:Request,medicationId:string):Promise<Response>{
- try{
-  const{ctx,idempotencyKey,expectedVersion,folded,claims}=await loadForTransition(req,medicationId,true);
+ return transitionCommand(req,WRITE,MED,medicationId,async({ctx,idempotencyKey,folded,claims})=>{
   const b=await parseJson(req,ModifyBody);
   if(b.dose===undefined&&b.route===undefined&&b.frequency===undefined)throw new ClinicalError("VALIDATION_ERROR","Indique al menos un cambio: dose, route o frequency");
   const next:OrderFields={dose:b.dose??folded.dose,route:b.route!==undefined?normalizeRoute(b.route):folded.route,frequency:b.frequency??folded.frequency};
@@ -244,26 +195,24 @@ export async function handleMedicationModification(req:Request,medicationId:stri
   const payload=await replayStablePayload(ctx,idempotencyKey,medicationId,b,()=>({kind:"MODIFIED",reason:b.reason,
    dose:b.dose!==undefined?next.dose:undefined,route:b.route!==undefined?next.route:undefined,frequency:b.frequency!==undefined?next.frequency:undefined,calculatedDose:b.calculatedDose,
    previous:{dose:folded.dose,route:folded.route,frequency:folded.frequency},safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification},overrideForEvent(safety,override,claims.sub))}));
-  return await commitAnnotation(ctx,idempotencyKey,expectedVersion,medicationId,folded,"MODIFIED","MEDICATION_MODIFIED",payload,b.occurredAt,"medication.modified",
-   ()=>enforceSafety(safety,"modify",acknowledged,b.unverifiedJustification,override),{order:next});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+  return{to:folded.state,strictVersion:true,check:()=>assertMedicationAnnotation(folded.state,"MODIFIED"),eventType:"MEDICATION_MODIFIED",payload,occurredAt:b.occurredAt,topic:"medication.modified",
+   guard:()=>enforceSafety(safety,"modify",acknowledged,b.unverifiedJustification,override),extra:{annotation:"MODIFIED"},tail:{order:next}};
+ });
 }
 // DISCONTINUE = {ACTIVE,HELD} -> STOPPED. Exige razón (trazabilidad clínica).
 export const StopBody=z.object({reason:z.string().min(1),occurredAt:z.string().datetime()});
 export async function handleMedicationDiscontinuation(req:Request,medicationId:string):Promise<Response>{
- try{
-  const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,medicationId,true);
+ return transitionCommand(req,WRITE,MED,medicationId,async()=>{
   const b=await parseJson(req,StopBody);
-  return await commitTransition(ctx,idempotencyKey,expectedVersion,medicationId,folded,"STOPPED","MEDICATION_STOPPED",{kind:"STOPPED",reason:b.reason,stoppedAt:b.occurredAt},b.occurredAt,"medication.stopped");
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+  return{to:"STOPPED",eventType:"MEDICATION_STOPPED",payload:{kind:"STOPPED",reason:b.reason,stoppedAt:b.occurredAt},occurredAt:b.occurredAt,topic:"medication.stopped"};
+ });
 }
 // RECONCILE = Marcar estado de reconciliación (ADMITTED/DISCHARGED/TRANSFER).
 const ReconcileBody=z.object({status:z.enum(["ADMITTED","DISCHARGED","TRANSFERRED","UNCHANGED"]),note:z.string().optional(),occurredAt:z.string().datetime()});
 export async function handleMedicationReconciliation(req:Request,medicationId:string):Promise<Response>{
- try{
-  const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,medicationId,true);
+ return transitionCommand(req,WRITE,MED,medicationId,async({folded})=>{
   const b=await parseJson(req,ReconcileBody);
   const payload:Record<string,unknown>={kind:"RECONCILED",reconciliationStatus:b.status};if(b.note!==undefined)payload["note"]=b.note;
-  return await commitAnnotation(ctx,idempotencyKey,expectedVersion,medicationId,folded,"RECONCILED","MEDICATION_RECONCILED",payload,b.occurredAt,"medication.reconciled");
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+  return{to:folded.state,strictVersion:true,check:()=>assertMedicationAnnotation(folded.state,"RECONCILED"),eventType:"MEDICATION_RECONCILED",payload,occurredAt:b.occurredAt,topic:"medication.reconciled",extra:{annotation:"RECONCILED"}};
+ });
 }

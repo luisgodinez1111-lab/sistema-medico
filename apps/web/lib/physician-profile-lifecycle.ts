@@ -1,17 +1,19 @@
 import{NextResponse}from"next/server";
 import crypto from"node:crypto";
-import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{put,del,get}from"@vercel/blob";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
-import{toHttpError}from"./http-errors";
+import{runClinicalCommand,lookupReplay}from"./runtime/command";
+import{readAggregateEvents}from"./runtime/event-store";
 import{z}from"zod";
-import{buildCommand,principalFrom,resolveVerified,parseJson}from"./http-command";
+import{buildCommand,parseJson}from"./http-command";
+import{endpoint,errorResponse}from"./http/endpoint";
 import{isValidCedula,type PrescriberIdentity}from"../../../packages/prescription-print/src";
 // EPIC S-CONFIG/FIRMA — Perfil del MÉDICO (firma y sello) sobre el kernel event-sourced. La firma/sello son
 // del médico (no del consultorio): el agregado es por-usuario (aggregateId derivado del sub del médico; RLS por
 // tenant). Las imágenes (PHI de identidad profesional) viven SOLO en Vercel Blob PRIVADO; en el event stream va
 // únicamente la referencia (pathname + sha256 + metadatos). version = nº de eventos (If-Match implícito por conteo).
+// Lote 11 (ADR-0300): sesión, autorización y errores viven en `endpoint`; el agregado se pliega aquí (foldProfile, sin 404) y
+// el tipo de asset se valida ANTES de la sesión (un tipo desconocido responde 404 aun sin sesión: contrato vigente).
 const AGG="PhysicianProfile";
 type Claims={sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string};
 const ASSET_KINDS=["signature","stamp"]as const;
@@ -68,9 +70,7 @@ export const CredentialsBody=z.object({
 // POST /api/v1/physician-profile/credentials -> registra (o sustituye) la identidad profesional del médico autenticado.
 // Solo un MÉDICO registra su propia cédula; queda como evento inmutable (quién, cuándo, qué) en su perfil.
 export async function handleCredentialsSet(req:Request):Promise<Response>{
- try{
-  const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,role:"PHYSICIAN",scope:"settings:write"});
+ return endpoint(req,{role:"PHYSICIAN",scope:"settings:write"},async({claims:c,ctx})=>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CredentialsBody);
@@ -83,27 +83,23 @@ export async function handleCredentialsSet(req:Request):Promise<Response>{
   if(!result)result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({credentials:{fullName:b.fullName,cedulaProfesional:b.cedulaProfesional,institution:b.institution,...(b.specialty?{specialty:b.specialty}:{}),...(b.cedulaEspecialidad?{cedulaEspecialidad:b.cedulaEspecialidad}:{})},version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }
 function assetOf(profile:PhysicianProfileRead,kind:AssetKind):ProfileAsset|null{return kind==="signature"?profile.signature:profile.stamp;}
 
 // GET /api/v1/physician-profile -> metadatos de firma y sello del médico (sin binarios) + version.
 export async function handleProfileGet(req:Request):Promise<Response>{
- try{
-  const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"settings:read"});
+ return endpoint(req,{scope:"settings:read"},async({claims:c,ctx})=>{
   const profile=await foldProfile(ctx,profileId(c));
   return NextResponse.json(profile,{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }
 
 // POST /api/v1/physician-profile/assets/:kind (multipart, campo "file") -> sube la imagen al Blob privado y
 // registra PROFILE_ASSET_SET (solo la referencia). Sube PRIMERO; si el commit falla, borra el blob (sin huérfanos).
 export async function handleProfileAssetUpload(req:Request,kind:string):Promise<Response>{
- try{
-  if(!(ASSET_KINDS as readonly string[]).includes(kind))throw new ClinicalError("NOT_FOUND","Tipo de asset desconocido");
-  const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"settings:write"});
+ if(!(ASSET_KINDS as readonly string[]).includes(kind))return errorResponse(new ClinicalError("NOT_FOUND","Tipo de asset desconocido"));
+ return endpoint(req,{scope:"settings:write"},async({claims:c,ctx})=>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const form=await req.formData().catch(()=>{throw new ClinicalError("VALIDATION_ERROR","multipart/form-data con campo 'file' requerido");});
@@ -130,30 +126,26 @@ export async function handleProfileAssetUpload(req:Request,kind:string):Promise<
    await del(pathname,{token:blobToken()}).catch(()=>{/* mejor esfuerzo */});
    throw commitErr;
   }
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }
 
 // GET /api/v1/physician-profile/assets/:kind -> descarga la imagen a través de la Function (privada).
 export async function handleProfileAssetDownload(req:Request,kind:string):Promise<Response>{
- try{
-  if(!(ASSET_KINDS as readonly string[]).includes(kind))throw new ClinicalError("NOT_FOUND","Tipo de asset desconocido");
-  const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"settings:read"});
+ if(!(ASSET_KINDS as readonly string[]).includes(kind))return errorResponse(new ClinicalError("NOT_FOUND","Tipo de asset desconocido"));
+ return endpoint(req,{scope:"settings:read"},async({claims:c,ctx})=>{
   const profile=await foldProfile(ctx,profileId(c));
   const asset=assetOf(profile,kind as AssetKind);
   if(!asset)throw new ClinicalError("NOT_FOUND","Asset no encontrado");
   const res=await get(asset.pathname,{access:"private",token:blobToken(),useCache:false});
   if(!res||res.statusCode!==200||!res.stream)throw new ClinicalError("NOT_FOUND","Blob no encontrado");
   return new Response(res.stream,{status:200,headers:{"content-type":asset.mime,"cache-control":"private, no-store"}});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }
 
 // DELETE /api/v1/physician-profile/assets/:kind -> quita la imagen (borra el blob + registra ASSET_REMOVED).
 export async function handleProfileAssetRemove(req:Request,kind:string):Promise<Response>{
- try{
-  if(!(ASSET_KINDS as readonly string[]).includes(kind))throw new ClinicalError("NOT_FOUND","Tipo de asset desconocido");
-  const{claims,ctx}=resolveVerified(req);const c=claims as Claims;
-  authorize(principalFrom(c),{tenantId:c.tenantId,scope:"settings:write"});
+ if(!(ASSET_KINDS as readonly string[]).includes(kind))return errorResponse(new ClinicalError("NOT_FOUND","Tipo de asset desconocido"));
+ return endpoint(req,{scope:"settings:write"},async({claims:c,ctx})=>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const aggId=profileId(c);
@@ -167,5 +159,5 @@ export async function handleProfileAssetRemove(req:Request,kind:string):Promise<
   await del(asset.pathname,{token:blobToken()}).catch(()=>{/* ya pudo no existir */});
   const r=result.response as{version:number};
   return NextResponse.json({assetKind:kind,removed:true,version:r.version,replayed:result.replayed},{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }

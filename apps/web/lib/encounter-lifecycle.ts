@@ -1,36 +1,24 @@
 import{NextResponse}from"next/server";
 import crypto from"node:crypto";
 import{z}from"zod";
-import{resolvePrincipal}from"../../../packages/http-principal/src";
-import{authorize}from"../../../packages/runtime-auth/src";
+import{type HttpTenantContext}from"../../../packages/http-principal/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
-import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
 import{foldEncounter,assertTransition}from"../../../packages/encounter-fold/src";
-import{runClinicalCommand,lookupReplay,readEncounterEvents,blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,sessionSecret}from"./clinical-runtime";
-import{toHttpError}from"./http-errors";
-import{readerFor,replayStablePayload}from"./http-command";
+import{runClinicalCommand,lookupReplay}from"./runtime/command";
+import{readEncounterEvents}from"./runtime/event-store";
+import{blockingObligations,countOpenCriticalResults,countOpenCriticalVitals}from"./runtime/read-models/follow-up";
+import{buildCommand,requireMutationHeaders,replayStablePayload}from"./http-command";
+import{endpoint}from"./http/endpoint";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
 // EPIC D — Ciclo de vida del encuentro sobre el kernel probado: assess (OPEN->READY_TO_SIGN)
 // y sign (READY_TO_SIGN->SIGNED). Concurrencia optimista real (If-Match=version) e invariantes
 // V2: Physician Control (solo un médico humano firma) y Zero Lost Follow-Up (no firmar con
 // obligaciones críticas abiertas). Envelope determinista (idempotencia estilo Stripe).
-
-function derivedUuid(idempotencyKey:string,slot:string):string{
- const h=crypto.createHash("sha256").update(`${idempotencyKey}:${slot}`).digest("hex");
- return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;
-}
-function principalFrom(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
- return{tenantId:claims.tenantId,actorId:claims.sub,roles:claims.roles,scopes:claims.scopes,purpose:claims.purpose,sessionId:claims.sessionId};
-}
-function requireHeaders(req:Request){
- const idempotencyKey=req.headers.get("idempotency-key");
- if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
- const ifMatch=req.headers.get("if-match");
- if(!ifMatch)throw new ClinicalError("PRECONDITION_REQUIRED","If-Match header (expected version) required");
- const expectedVersion=Number(ifMatch);
- if(!Number.isInteger(expectedVersion)||expectedVersion<0)throw new ClinicalError("VALIDATION_ERROR","If-Match must be a non-negative integer version");
- return{idempotencyKey,expectedVersion};
-}
+// Lote 11 (ADR-0300): sesión, autorización y traducción de errores viven en `endpoint`; el envelope es `buildCommand`. El
+// cuerpo de cada transición queda escrito a mano (parseo en línea con sus mensajes, respuesta con claves propias).
+const AGG="Encounter";
+// Physician Control: solo un médico con propósito de tratamiento escribe en el encuentro.
+const WRITE={role:"PHYSICIAN",scope:"encounter:write",purpose:"TREATMENT"} as const;
 
 const AssessBody=z.object({assessment:z.string().min(1),plan:z.string().min(1),occurredAt:z.string().datetime()});
 // Auditoría L-03 — `contentHash`: huella (sha256 hex de `${assessment}\n${plan}`) del texto QUE EL MÉDICO TIENE EN PANTALLA al
@@ -38,34 +26,24 @@ const AssessBody=z.object({assessment:z.string().min(1),plan:z.string().min(1),o
 const SignBody=z.object({occurredAt:z.string().datetime(),contentHash:z.string().regex(/^[0-9a-f]{64}$/,"contentHash must be a sha256 hex digest")});
 export function encounterContentHash(assessment:string,plan:string):string{return crypto.createHash("sha256").update(`${assessment}\n${plan}`).digest("hex");}
 
-async function build(req:Request,encounterId:string){
- const requestId=req.headers.get("x-request-id")??crypto.randomUUID();
- const{claims,ctx}=resolvePrincipal(readerFor(req),sessionSecret(),requestId);
- // Physician Control: solo un médico con propósito de tratamiento escribe en el encuentro.
- authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"encounter:write",purpose:"TREATMENT"});
- const{idempotencyKey,expectedVersion}=requireHeaders(req);
+// Tras `endpoint`: cabeceras de mutación (428/400) y encuentro plegado (404). Lee con `readEncounterEvents` (el mismo SQL que
+// `loadAggregate`, pero es la llamada que registra el oráculo del contrato HTTP).
+async function load(req:Request,ctx:HttpTenantContext,encounterId:string){
+ const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
  const events=await readEncounterEvents(ctx,encounterId);
  const folded=foldEncounter(events);
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Encounter not found");
  // La concurrencia optimista la impone el kernel (expectedVersion en aggregate_versions);
  // no se valida la versión aquí para no bloquear el replay idempotente de una transición.
- return{requestId,claims,ctx,idempotencyKey,expectedVersion,folded};
-}
-function baseCommand(idempotencyKey:string,encounterId:string,expectedVersion:number,eventType:string,payload:unknown,occurredAt:string,topic:string):ClinicalCommand{
- return{
-  commandId:derivedUuid(idempotencyKey,"command"),idempotencyKey,aggregateId:encounterId,aggregateType:"Encounter",
-  expectedVersion,eventId:derivedUuid(idempotencyKey,"event"),eventType,payload,
-  outboxId:derivedUuid(idempotencyKey,"outbox"),topic,auditId:derivedUuid(idempotencyKey,"audit"),
-  correlationId:derivedUuid(idempotencyKey,"correlation"),occurredAt,
- };
+ return{idempotencyKey,expectedVersion,folded};
 }
 
 export async function handleAssessment(req:Request,encounterId:string):Promise<Response>{
- try{
-  const{idempotencyKey,expectedVersion,ctx,folded}=await build(req,encounterId);
+ return endpoint(req,WRITE,async({ctx})=>{
+  const{idempotencyKey,expectedVersion,folded}=await load(req,ctx,encounterId);
   const parsed=AssessBody.safeParse(await req.json().catch(()=>{throw new ClinicalError("VALIDATION_ERROR","Body must be valid JSON");}));
   if(!parsed.success)throw new ClinicalError("VALIDATION_ERROR","Invalid assessment payload",{issues:parsed.error.issues.length});
-  const cmd=baseCommand(idempotencyKey,encounterId,expectedVersion,"ENCOUNTER_ASSESSED",{kind:"ASSESSED",assessment:parsed.data.assessment,plan:parsed.data.plan},parsed.data.occurredAt,"encounter.assessed");
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:encounterId,expectedVersion,eventType:"ENCOUNTER_ASSESSED",payload:{kind:"ASSESSED",assessment:parsed.data.assessment,plan:parsed.data.plan},occurredAt:parsed.data.occurredAt,topic:"encounter.assessed"});
   let result=await lookupReplay(ctx,cmd);
   if(!result){
    // Auditoría L-03: mientras la nota NO esté firmada el médico puede CORREGIRLA (nuevo evento ASSESSED, nueva versión). Antes
@@ -75,12 +53,12 @@ export async function handleAssessment(req:Request,encounterId:string):Promise<R
   }
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({encounterId,status:"READY_TO_SIGN",version:r.version,contentHash:encounterContentHash(parsed.data.assessment,parsed.data.plan),auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }
 
 export async function handleSignature(req:Request,encounterId:string):Promise<Response>{
- try{
-  const{idempotencyKey,expectedVersion,ctx,claims,folded}=await build(req,encounterId);
+ return endpoint(req,WRITE,async({claims,ctx})=>{
+  const{idempotencyKey,expectedVersion,folded}=await load(req,ctx,encounterId);
   const parsed=SignBody.safeParse(await req.json().catch(()=>{throw new ClinicalError("VALIDATION_ERROR","Body must be valid JSON");}));
   if(!parsed.success)throw new ClinicalError("VALIDATION_ERROR","Invalid signature payload",{issues:parsed.error.issues.length});
   if(folded.assessment===undefined||folded.plan===undefined)throw new ClinicalError("SAFETY_BLOCKED","Encounter has no assessment to sign");
@@ -96,7 +74,7 @@ export async function handleSignature(req:Request,encounterId:string):Promise<Re
    return{kind:"SIGNED",authorId:claims.sub,signer:cred?{fullName:cred.fullName,cedulaProfesional:cred.cedulaProfesional}:undefined,contentHash,signedAt,signedAtSource:"SERVER",clientOccurredAt:parsed.data.occurredAt,signedVersion:expectedVersion,
     signatureDigest:crypto.createHash("sha256").update(`${encounterId}:${expectedVersion}:${contentHash}:${claims.sub}:${signedAt}`).digest("hex")};});
   const signedAt=String(payload["signedAt"]);const signatureDigest=String(payload["signatureDigest"]);
-  const cmd=baseCommand(idempotencyKey,encounterId,expectedVersion,"ENCOUNTER_SIGNED",payload,signedAt,"encounter.signed");
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:encounterId,expectedVersion,eventType:"ENCOUNTER_SIGNED",payload,occurredAt:signedAt,topic:"encounter.signed"});
   let result=await lookupReplay(ctx,cmd);
   if(!result){
    // Orden de precondiciones: versión -> transición -> contenido -> lazo cerrado.
@@ -118,5 +96,5 @@ export async function handleSignature(req:Request,encounterId:string):Promise<Re
   }
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({encounterId,status:"SIGNED",version:r.version,signatureDigest,contentHash,signedAt,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }
