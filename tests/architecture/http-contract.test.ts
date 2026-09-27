@@ -2,7 +2,7 @@ import{describe,it,expect,vi,beforeAll,afterAll}from"vitest";
 import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";
 import{sourceFiles}from"./_graph";
 import{canonicalize}from"../../packages/canonical-json/src";
-// Lote 11 (ADR-0300) — CONTRATO HTTP de las 177 operaciones de la API, SIN base de datos. Llama a cada export de cada
+// Lote 11 (ADR-0300) — CONTRATO HTTP de todas las operaciones de la API (177 al crearlo; 175 tras retirar el stub /api/v1/timeline, D12b), SIN base de datos. Llama a cada export de cada
 // apps/web/app/api/**/route.ts (lo mismo que hacen las pruebas en vivo) con escenarios fijos —anónimo, sin scope, sin
 // cabeceras de mutación, agregado inexistente, agregado existente, replay idempotente, JSON inválido y cuerpo vacío— y
 // registra el estado, el cuerpo de la respuesta y la secuencia de llamadas a la persistencia (el comando COMPLETO que llega
