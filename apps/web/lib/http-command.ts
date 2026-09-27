@@ -5,7 +5,8 @@ import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
 import{canonicalize}from"../../../packages/canonical-json/src";
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
-import{sessionSecret,readEventPayloadById}from"./clinical-runtime";
+import{sessionSecret}from"./runtime/secrets";
+import{readEventPayloadById}from"./runtime/event-store";
 // EPIC D/G — Helpers compartidos por los verticales que escriben comandos clínicos vía HTTP.
 // Envelope determinista (idempotencia estilo Stripe) + concurrencia optimista vía If-Match.
 

@@ -139,6 +139,8 @@ describe("contrato HTTP de la API sin base de datos (ADR-0300, oráculo de los l
     }
    }
   }
+  // HTTP_CONTRACT_DUMP=<ruta>: vuelca las líneas para compararlas por operación mientras se migra un módulo.
+  if(process.env.HTTP_CONTRACT_DUMP)fs.writeFileSync(process.env.HTTP_CONTRACT_DUMP,lines.join("\n")+"\n");
   expect(lines.length).toBeGreaterThan(1000);
   await expect(lines.join("\n")+"\n").toMatchFileSnapshot("__snapshots__/http-contract.jsonl");
  },600_000);
