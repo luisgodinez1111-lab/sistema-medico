@@ -21,7 +21,7 @@ fichero del repositorio se modificó para reproducirlos. Verificados sobre `e021
 | D10 | Media | El indicador de control glucémico del tablero parsea la HbA1c cruda (`'6,5'` → 65; IFCC en mmol/mol contado como no controlado) y cuenta resultados reemplazados. | 4 pacientes controlados: el tablero muestra 25 % contra 100 % real. | Usar el valor canónico y excluir reemplazados. | Autoridad PROD; validación |
 | D8 | Baja | Ningún parámetro de ruta se valida: un id que no es UUID produce 500 INTERNAL (22P02) en unas rutas y 200 vacío en otras. | `GET /patients/not-a-uuid/egfr` → 500; `…/timeline` → 200 `{items:[]}`. | Validar el id en el kit de transporte (lote 11.2) y responder 400/404 explícito. | Cambio de contrato (400 en vez de 500) |
 
-## Estado y siguiente paso
+## Estado y siguiente paso (al registrar los hallazgos)
 
 - Ninguno se corrige en el refactor. El pipeline del lote 11.2 deja **un solo sitio** donde aplicar D7 y D8, y la partición
   de la persistencia (lote 11.1) deja cada read model afectado (D1, D2, D3) en su propio módulo con el oráculo SQL que hará
@@ -29,3 +29,54 @@ fichero del repositorio se modificó para reproducirlos. Verificados sobre `e021
 - Prioridad propuesta: D1 y D4 (críticas) antes de cualquier uso asistencial; después D5, D2, D3, D6, D11 y D12.
 - Los guiones de reproducción existen como pruebas en vivo desechables del análisis; se incorporan al repositorio como
   pruebas en vivo de regresión junto con cada corrección, que debe hacerlas pasar.
+
+## Estado de las correcciones (2026-09-27)
+
+Cada corrección se hizo en la raíz, con una sola fuente de verdad por regla (la constante o función que el fold o el paquete
+de dominio ya poseía, reutilizada por la proyección SQL, el pipeline o la interfaz), su prueba unitaria o de arquitectura y una
+prueba en vivo de regresión que **falla contra el código anterior** (control negativo ejecutado en cada caso). Cada lote se
+verificó sobre un worktree limpio con exactamente el árbol del commit: typecheck ×3, suite completa, `traceability`, `release`,
+`openapi` y `capability`, y todas las pruebas en vivo con los `checks` de las existentes idénticos a la evidencia anterior.
+
+| ID | Commit | Raíz corregida | Prueba en vivo nueva |
+|---|---|---|---|
+| D1 | `a06e14e` | `VITAL_VOID_KIND` en `vital-fold`; `currentVitalJoins`/`vitalNotVoided` (runtime/sql) en los 3 read models de vitales | `live-vital-correction-proof` (17) |
+| D2 | `1813367` | `PATIENT_DEMOGRAPHIC_FIELDS/KINDS` + `patientDemographicsOf` en `patient-fold` (el fold la usa); `patientDemographicsJoin`/`currentPatientName` en SQL (lista, demografía, duplicados y 7 registros) | `live-patient-demographics-projection-proof` (14) |
+| D3 | `c72a942` | `DOCUMENT_ANNOTATION_KINDS` en `document-fold`; `lifecycleEventOnly` construido con las listas de anotaciones de cada fold (sin literales) | `live-document-attachment-annotation-proof` (7) |
+| D4 | `204e91b` | Lectura tipada `readAggregateStream`; génesis de los 26 folds solo sin `kind`; el kernel rechaza escribir en un stream de otro tipo (`AGGREGATE_TYPE_MISMATCH` → 404) | `live-aggregate-stream-isolation-proof` (9) |
+| D5 | `0f7f263` | `runDerivedCommand` (idempotente, sin volver a cobrar el límite); el pipeline ejecuta los derivados también en el replay | `live-derived-command-reconciliation-proof` (5) |
+| D6 | `0f7f263` | `priorCommand` reconoce el reintento antes de tocar el Blob; rutas únicas por intento; `blobReferenced` antes de borrar | `live-blob-idempotency-proof` (9) |
+| D7 | `ecb9e1c` | `assertReadVersion` en `transitionCommand` (toda transición) y en los handlers manuales; desaparece el opt-in `strictVersion` | `live-optimistic-version-proof` (6) |
+| D8 | `ecb9e1c` | `isAggregateId` (forma del tipo uuid de PostgreSQL) en `loadAggregate` y la lectura tipada; `assertRouteIds` del kit de transporte; prueba de arquitectura sobre TODA operación con `*Id` | `live-route-id-validation-proof` (6) |
+| D9 | `b6a3ddc` | `anionGapCaveat` en `lab-derivations` | `live-metabolic-panel-caveat-proof` (4) |
+| D10 | `a69a0e4` | `A1C_DIABETIC_TARGET_PCT` en `glycemic`; `resultSuperseded` (runtime/sql, sustituye 3 copias); valor canónico en el registro | `live-glycemic-quality-indicator-proof` (5) |
+| D11 | `1c949d2` | `submitVitals` + captura estable compartida por Consulta y Signos; `selectPatientRaw` como único cambio de paciente; `ASK` en todo dato que antes se inventaba | pruebas de render D11a–c |
+| D12b | `8be73a2` | Ruta stub retirada; OpenAPI regenerada | — |
+| D12c | `36034cd` | `safeLog` emite a un sumidero (`setLogSink`) | — |
+| D12a | — | **Pendiente de decisión PROD/ENG** (ver abajo) | — |
+| D12d | — | **Pendiente de decisión del dueño** (ver abajo) | — |
+
+### Pendiente de decisión
+
+- **D12a — scopes de las vistas compuestas.** ADR-0230 fija scopes por recurso (`<recurso>:read`) pero no dice nada de las
+  vistas que agregan varios recursos (`consultation-tabs`, `trends`, `metabolic-panel`). Opciones: (1) exigir el scope de
+  lectura de CADA recurso que la vista expone (una sesión sin `result:read` recibe 403 en toda la vista); (2) servir la vista
+  con `patient:read` y **omitir** las secciones cuyo scope falta, declarándolas (`"results":{"omitted":"SCOPE"}`).
+  Recomendación: (2), porque aplica el mínimo privilegio de ADR-0230 sin romper el flujo de un rol administrativo. Es un
+  SPEC_CONFLICT: no se toca hasta que PROD/ENG decida.
+- **D12d — gates vacíos y `release/test-execution.json`.** RG-002, RG-003 y C4_C5_INV_WITHOUT_TEST recorren registros vacíos y
+  no pueden fallar; el fichero de ejecución no tiene generador. Hacerlos fallar cerrados bloquearía hoy el release (G-03,
+  re-línea base de evidencia): decisión del dueño.
+
+### Hallazgos adicionales vistos durante el lote (sin verificar en vivo)
+
+Los reportaron los agentes de migración al clasificar los handlers; se conservaron tal cual porque el refactor preserva el
+comportamiento, y quedan registrados para su propio lote:
+
+- `specimen`: el `orderId` opcional se guarda como `""` y no se valida; `regulatory-obligation`: `dueDate` sin formato.
+- Signos vitales: la clasificación derivada por el servidor no es estable ante reintentos si cambia la fecha de nacimiento;
+  `vitalPlausible`/`classifyVital` ignoran la unidad.
+- Carreras (TOCTOU) en el traslape de citas y en la detección de pacientes duplicados.
+- `problem`: el evento guarda `codeSystem:"CIE-10 OMS"` y la respuesta dice `"ICD-10"`.
+- `office-settings` PUT no tiene replay (un reintento tras un éxito responde 409); el replay de la corrección de un resultado
+  omite `corrected` en la respuesta.

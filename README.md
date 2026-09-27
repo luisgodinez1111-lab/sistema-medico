@@ -14,12 +14,15 @@ real de cada capacidad, sus deudas y lo que solo puede decidir el dueño están 
 |---|---|---|
 | Kernel clínico | `packages/atomic-clinical-transaction-v3`, `db/migrations` | Un comando = una transacción: evento en `clinical_events` (`payload` jsonb), idempotencia (`command_idempotency`), cadena de auditoría (`audit_chain_v3`, append-only) y outbox. RLS forzada por tenant (`app.current_tenant()`). |
 | Folds / dominio | `packages/*-fold`, `packages/prescription-safety`, `packages/lab-reference`, `packages/drug-catalog`… | Puros y deterministas: estado a partir del stream de eventos; barreras de seguridad de prescripción; calculadoras clínicas. Sin E/S ni PHI en mensajes. |
-| Handlers HTTP | `apps/web/lib/*-lifecycle.ts`, `apps/web/app/api/v1/**` | Autenticación (OIDC + sesión HMAC en cookie `medos_session`), autorización por rol y scope, `Idempotency-Key` + `If-Match`, errores fail-closed (`apps/web/lib/http-errors.ts`). |
+| Rutas y casos de uso | `apps/web/app/api/v1/**`, `apps/web/lib/*-lifecycle.ts` | Cada ruta delega en su caso de uso, que solo decide el evento: esquema del cuerpo, reglas de dominio y respuesta. |
+| Transporte y pipeline de comandos | `apps/web/lib/http/endpoint.ts`, `apps/web/lib/command/aggregate-command.ts` | Una sola copia del protocolo (ADR-0300): sesión verificada (OIDC + sesión HMAC en `medos_session`), autorización por rol, scope y propósito, ids de ruta, `Idempotency-Key` + `If-Match` estricto, lectura tipada del agregado, replay, máquina de estados, kernel y comandos derivados reconciliables; errores fail-closed (`apps/web/lib/http-errors.ts`). |
+| Persistencia de la app | `apps/web/lib/runtime/` (`db`, `command`, `event-store`, `sql`, `read-models/*`) | Transacción de tenant única (`withTenantTx`, RLS), ejecutor de comandos y read models; las proyecciones SQL reutilizan las reglas y el vocabulario de su fold (valor vigente, anotaciones, demografía). `clinical-runtime.ts` queda como fachada. |
 | Interfaz | `apps/web/app/workspace/` (`page.tsx` orquestador, `model.tsx` estado y handlers, `shared.tsx`, `views/*`), `packages/design-system` | Cockpit clínico (consulta, expediente, medicación con barreras, resultados, seguimiento, configuración); las vistas no esenciales se cargan al navegar. Design system con tokens AA y componentes (`Button`, `Card`, `Badge`, `Alert`, `AllergyBanner`, `PatientHeader`). |
 | Gobierno de seguridad | `packages/clinical-safety`, `safety/`, `capabilities/`, `release/` | Registro de invariantes y peligros, admisión de release (`pnpm release:check`), trazabilidad de tests (`pnpm traceability:check`). |
 | Operación | `scripts/db`, `scripts/ops`, `docs/runbooks` | Migrador con tabla de control y detección de deriva, verificación de la cadena de auditoría, retención del outbox. |
 
-Decisiones de arquitectura: [`docs/adr/`](docs/adr/) (las reales del código: ADR-0230 y siguientes).
+Decisiones de arquitectura: [`docs/adr/`](docs/adr/) (las reales del código: ADR-0230 y siguientes; las capas de `apps/web`, en
+ADR-0300, con sus guardas en `tests/architecture/`).
 
 ## Requisitos
 

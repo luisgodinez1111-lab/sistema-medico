@@ -95,7 +95,7 @@ Reglas, verificadas por `tests/architecture/boundaries.test.ts` (fuera del manif
 | Contrato | Oráculo |
 |---|---|
 | SQL de cada read model, límites de transacción y rol RLS del pool | `tests/architecture/runtime-sql-contract.test.ts` (texto, parámetros, BEGIN/COMMIT, consultas dentro o fuera de la transacción, resultado mapeado, opciones del pool) |
-| Contrato HTTP de las 177 operaciones sin base de datos: precedencia 401/403 → 428 → 404 → 400 → replay → 409, cuerpos y el comando exacto que llega al kernel | `tests/architecture/http-contract.test.ts` (persistencia sustituida por dobles), tomado antes del lote 11.2 |
+| Contrato HTTP de todas las operaciones sin base de datos (177 al tomarlo; 175 desde D12b): precedencia 401/403 → 428 → 404 → 400 → replay → 409, cuerpos y el comando exacto que llega al kernel; y toda operación con `*Id` responde 404 a un id inválido sin tocar la persistencia (D8) | `tests/architecture/http-contract.test.ts` (persistencia sustituida por dobles), tomado antes del lote 11.2 |
 | Respuestas contra PostgreSQL real | Todas las pruebas en vivo (97 al aceptar este ADR; cada defecto corregido añade la suya): `SMOKE: N PASS · 0 FAIL · 0 SKIP` (una corrida sin base de datos, o sin `BLOB_READ_WRITE_TOKEN` para las de adjuntos, NO cuenta) y las etiquetas `checks` de cada prueba existente idénticas antes y después |
 | Ids derivados y hash de idempotencia | Sin cambios en el kernel ni en `derivedUuid`; el oráculo HTTP registra el comando completo |
 | `docs/api/openapi.json`, `api-body-registry.ts` | `pnpm openapi:check` sobre un árbol limpio (el `--check` reescribe `lib/*.ts` antes de fallar: `git status` debe quedar limpio) |
@@ -113,8 +113,8 @@ El estilo compacto del código se conserva: el refactor cambia estructura, no fo
 | 11.1b | Oráculos reforzados: SQL con límites de transacción (re-verificado contra la línea base anterior a la partición), contrato HTTP de las 177 operaciones, guarda cliente/servidor y trinquete de `process.env` | Hecho |
 | 11.2a | Kit de transporte (`endpoint()` / `errorResponse()`), pipeline de comandos y alergia como migración de referencia | Hecho |
 | 11.2b | Los 26 módulos cableados restantes: 107 handlers al pipeline (21 creaciones, 86 transiciones) y 17 en `endpoint()` | Hecho |
-| 11.3 | Rutas delgadas: `lib/queries` + `lib/presenters` con pruebas unitarias | — |
-| 11.4 | Arnés único de las pruebas en vivo (P-08) | — |
+| 11.3 | Rutas delgadas: `lib/queries` + `lib/presenters` con pruebas unitarias | Pendiente (43 rutas; trinquete `MAX_FAT_ROUTES`) |
+| 11.4 | Arnés único de las pruebas en vivo (P-08) | Pendiente |
 
 ## Descartado en este refactor
 
@@ -127,6 +127,16 @@ El estilo compacto del código se conserva: el refactor cambia estructura, no fo
   pruebas de UI que simulan `session-client` por ruta y marcadores leídos por regex.
 - **Retiro de paquetes heredados (K-01/K-07)** y cualquier cambio del manifiesto, del catálogo o de los predicados de
   invariantes: re-línea base de evidencia (G-03), decisión del dueño.
+
+## Correcciones de defectos sobre esta arquitectura
+
+Los 12 defectos verificados (`docs/reviews/2026-09-27-hallazgos-verificados-lote-11.md`) se corrigieron después de 11.2b, uno
+por commit, cada uno en la capa donde nace y con una sola fuente de verdad: la proyección SQL reutiliza el vocabulario de su
+fold (D1 vitales, D2 demografía, D3 anotaciones), el pipeline concentra las reglas transversales (D4 lectura tipada y guarda del
+kernel, D5 derivados reconciliables, D6 replay antes de efectos externos, D7 versión estricta, D8 ids de ruta) y el dominio
+expone sus constantes (D9, D10). D12a (scopes de vistas compuestas) y D12d (gates) quedan pendientes de decisión.
+Guardas nuevas en `tests/architecture/`: casos de uso cableados sin preludio a mano, sin fachada ni lecturas sin tipo; y la
+prueba de ids de ruta inválidos sobre toda la API.
 
 ## Consecuencias
 
