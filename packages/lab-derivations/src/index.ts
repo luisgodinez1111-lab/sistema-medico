@@ -19,7 +19,11 @@ export function anionGap(sodium:number,chloride:number,bicarbonate:number,albumi
  const value=albuminCorrected?round1(raw+2.5*(4-albuminGdl)):raw;
  let status:AnionGapStatus,interpretation:string;
  if(value>12){status="HIGH";interpretation="Brecha aniónica elevada: acidosis metabólica de brecha aumentada (cetoacidosis, uremia, lactato, tóxicos)";}
- else if(value<8){status="LOW";interpretation="Brecha aniónica baja (hipoalbuminemia, paraproteínas)";}
+ // Revisión adversarial del lote 11 (F7): corregida por albúmina, una brecha baja ya NO se explica por hipoalbuminemia; las causas
+ // que quedan son otras (texto clínico pendiente de validación PROD, como el resto de interpretaciones de este paquete).
+ else if(value<8){status="LOW";interpretation=albuminCorrected
+  ?"Brecha aniónica baja pese a la corrección por albúmina (paraproteínas, hipercalcemia, litio o bromuro, o error de laboratorio)"
+  :"Brecha aniónica baja (hipoalbuminemia, paraproteínas)";}
  else{status="NORMAL";interpretation="Brecha aniónica normal";}
  if(albuminCorrected)interpretation+=` (corregida por albúmina ${albuminGdl} g/dL; cruda ${raw})`;else interpretation+=" (sin corregir por albúmina: una hipoalbuminemia la subestima)";
  return albuminCorrected?{value,status,interpretation,raw,albuminCorrected,albuminGdl:albuminGdl!}:{value,status,interpretation,raw,albuminCorrected};

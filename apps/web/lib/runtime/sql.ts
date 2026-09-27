@@ -36,6 +36,12 @@ export const patientDemographicsJoin=(tx:postgres.TransactionSql)=>tx`left join 
     where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any(${[...PATIENT_DEMOGRAPHIC_KINDS]}::text[])
       and kv.key=any(${[...PATIENT_DEMOGRAPHIC_FIELDS]}::text[])
     order by kv.key, e.sequence desc) f) d on true`;
+// Candidatos de una búsqueda por un campo demográfico: pacientes en los que ALGÚN alta o enmienda aportó ese valor (el valor
+// vigente sale necesariamente de uno de ellos). Filtro previo que evita calcular `patientDemographicsJoin` para todo el padrón
+// en la detección de duplicados del alta (revisión adversarial del lote 11). Alias fijo `r` = el evento REGISTERED.
+export const patientsEverWith=(tx:postgres.TransactionSql,tenantId:string,field:string,value:string,upper=false)=>tx`r.aggregate_id in (select c.aggregate_id from clinical_events c
+      where c.tenant_id=${tenantId} and c.aggregate_type='Patient' and c.payload->>'kind'=any(${[...PATIENT_DEMOGRAPHIC_KINDS]}::text[])
+        and ${upper?tx`upper(c.payload->>${field})`:tx`c.payload->>${field}`}=${value})`;
 // Nombre VIGENTE del paciente de un agregado clínico (listas de agenda, órdenes, resultados, vacunas…), misma regla.
 // Alias fijo `a` = el evento del agregado que lleva `payload.patientId`.
 export const currentPatientName=(tx:postgres.TransactionSql,tenantId:string)=>tx`(select p.payload->>'name' from clinical_events p

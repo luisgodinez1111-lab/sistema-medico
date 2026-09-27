@@ -56,8 +56,10 @@ try{
  const up=(key:string,b:number[])=>assetR.POST(new Request("http://l/",{method:"POST",headers:{authorization:"Bearer "+phys,"idempotency-key":key},body:file(b,"firma.png","image/png")}),{params:Promise.resolve({kind:"signature"})});
  const SK=idem();const before=puts.length;const s1=await up(SK,[0x89,0x50,0x4e,0x47,1]);const s2=await up(SK,[0x89,0x50,0x4e,0x47,1]);
  ok(s1.status===201&&s2.status===200&&((await s2.json()) as{replayed:boolean}).replayed===true&&puts.length===before+1,"PROFILE_RETRY_REPLAYS_WITHOUT_UPLOAD");
+ // La imagen nueva va a OTRA ruta (nunca sobrescribe la vigente antes del commit). Que la reemplazada se retire del almacén
+ // DESPUÉS del commit lo prueba live-review-blob-effects-proof (revisión adversarial del lote 11).
  const s3=await up(idem(),[0x89,0x50,0x4e,0x47,2]);const firstPath=puts[before]!;
- ok(s3.status===201&&puts[puts.length-1]!==firstPath&&!dels.includes(firstPath),"PROFILE_NEW_IMAGE_NEVER_OVERWRITES_PREVIOUS");
+ ok(s3.status===201&&puts[puts.length-1]!==firstPath,"PROFILE_NEW_IMAGE_NEVER_OVERWRITES_PREVIOUS");
 }catch(e){result.status="FAIL";result.error=String(e);}
 server.close();
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

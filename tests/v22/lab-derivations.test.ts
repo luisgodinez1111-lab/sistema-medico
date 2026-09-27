@@ -66,6 +66,13 @@ describe("brecha aniónica corregida por albúmina",()=>{
   const r=anionGap(140,105,24)!;expect(r.value).toBe(11);expect(r.albuminCorrected).toBe(false);expect(r.interpretation).toMatch(/sin corregir/);
  });
 });
+describe("brecha baja corregida por albúmina (revisión adversarial F7)",()=>{
+ it("ya corregida, una brecha baja no se atribuye a hipoalbuminemia; sin corregir, sí",()=>{
+  const c=anionGap(140,115,24,4.5)!;expect(c.status).toBe("LOW");expect(c.albuminCorrected).toBe(true);
+  expect(c.interpretation).not.toMatch(/hipoalbuminemia/);expect(c.interpretation).toMatch(/pese a la corrección por albúmina/);
+  const u=anionGap(140,115,24)!;expect(u.status).toBe("LOW");expect(u.interpretation).toMatch(/hipoalbuminemia/);
+ });
+});
 // Lote 11, hallazgo D9: la advertencia se deriva de la brecha calculada, nunca es un texto fijo que la contradiga.
 describe("anionGapCaveat (D9)",()=>{
  it("brecha corregida por albúmina -> la advertencia dice corregida, no «SIN corrección»",()=>{

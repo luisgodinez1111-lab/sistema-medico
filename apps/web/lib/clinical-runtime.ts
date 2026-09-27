@@ -20,8 +20,8 @@ export{administeredVaccines,administeredVaccineCodes,immunizationRegistry}from".
 export type{AdministeredVaccine,ImmunizationRow}from"./runtime/read-models/immunizations";
 export{latestVitalsByType,patientVitals}from"./runtime/read-models/vitals";
 export type{VitalPoint}from"./runtime/read-models/vitals";
-export{latestResultValueForAnalyte,latestAnalyteReading,analyteSeries,resultsRegistry}from"./runtime/read-models/results";
-export type{AnalyteReading,ResultRow}from"./runtime/read-models/results";
+export{latestResultValueForAnalyte,latestAnalyteReading,analyteSeries,resultsRegistry,resultEstado}from"./runtime/read-models/results";
+export type{AnalyteReading,ResultRow,ResultEstado}from"./runtime/read-models/results";
 export{agendaForDate}from"./runtime/read-models/scheduling";
 export type{AgendaAppt}from"./runtime/read-models/scheduling";
 export{allergyRegistry,problemRegistry,claimsRegistry,ordersRegistry,regulatoryObligations}from"./runtime/read-models/registries";

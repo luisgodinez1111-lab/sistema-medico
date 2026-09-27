@@ -8,7 +8,7 @@ import {canonicalUnitOf} from "../../../../packages/lab-reference/src";
 import {getStoredSession,apiRequest,apiUpload,apiDelete,apiDownload,type MedicalSession} from "../../lib/session-client";
 import {assertNoForbidden} from "../../../../packages/design-system/src";
 import {summarizePatient} from "../../../../packages/patient-summary/src";
-import{composeDose,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,in7days,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey,submitVitals,newVitalCapture,type VitalCapture}from"./shared";
+import{composeDose,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,in7days,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey,submitVitals,liveVitalCapture,vitalSubmitMessage,REACTION_UNSPECIFIED,type VitalCapture}from"./shared";
 export function useWorkspaceModel(){
 
  const cspNonce=useNonce(); // S-04: los <style> propios declaran el nonce de la petición
@@ -78,6 +78,12 @@ export function useWorkspaceModel(){
    else if(Array.isArray(v)&&v.some(isAsk)){const arr:unknown[]=[];for(const x of v){if(isAsk(x)){const text=await askReason(x);if(text===null)return null;arr.push(text);}else arr.push(x);}out[k]=arr;} // D11c
   }
   return out;
+ };
+ // U-16 / D11c: TODA acción de las tablas de ciclo de vida resuelve sus ASK antes de enviar (motivos, lote, sitio, firmante,
+ // códigos…); si el médico cancela no se envía nada. Antes las acciones genéricas mandaban el marcador ASK tal cual (400).
+ const postAction=async(act:Readonly<{path:string;body:Record<string,unknown>}>,version:number)=>{
+  const body=await resolveAsks(act.body);if(!body)return null;
+  return{r:await apiRequest(act.path,{method:"POST",body,ifMatch:version}),body};
  };
  // Auditoría L-10/L-11: las verticales hospitalarias solo se pintan si el SERVIDOR las declara encendidas
  // (GET /api/v1/features). Por defecto, y ante cualquier fallo, APAGADAS.
@@ -303,6 +309,9 @@ export function useWorkspaceModel(){
  const cVitSubmission=useRef<VitalCapture|null>(null);const svCapture=useRef<VitalCapture|null>(null);
  const draftOwner=useRef<string>(""); // U-17: paciente al que pertenece el borrador de consulta
  const dataOwner=useRef<string>("");  // U-17: paciente al que pertenecen tl/gaps/snap/trends cargados
+ // Revisión adversarial del lote 11 (F4): paciente seleccionado AHORA (lo fija solo selectPatientRaw). Una respuesta que llega
+ // después de cambiar de paciente se compara con él y se descarta en lugar de mostrarse bajo el paciente nuevo.
+ const selectedPatient=useRef<string>("");const isSelectedPatient=(id:string)=>selectedPatient.current===id;
  const[cVitMsg,setCVitMsg]=useState<string|null>(null);const[cVitBusy,setCVitBusy]=useState(false);
  const[cOrdCat,setCOrdCat]=useState<"LAB"|"IMAGING"|"PROCEDURE"|"REFERRAL">("LAB"); // categoría de órdenes de la Consulta
  const[cOrdSel,setCOrdSel]=useState<string[]>([]);const[cOrdMsg,setCOrdMsg]=useState<string|null>(null);const[cOrdBusy,setCOrdBusy]=useState(false);
@@ -776,15 +785,19 @@ export function useWorkspaceModel(){
   if(cVit.spo2.trim())toSave.push(["SPO2",cVit.spo2.trim(),"%"]);
   if(!toSave.length){setCVitMsg("Captura al menos un signo vital.");return;}
   setCVitBusy(true);setCVitMsg(null);
-  // Auditoría U-09 / D11a: la captura (id y hora) se conserva hasta que TODO se guarda: un reintento repite idempotentemente lo
-  // ya guardado y solo crea lo que faltaba (submitVitals, la implementación única que comparte con Signos vitales).
-  const capture=cVitSubmission.current??(cVitSubmission.current=newVitalCapture());
+  // Auditoría U-09 / D11a: la captura (id y hora) se conserva mientras dura: un reintento no duplica lo ya guardado y solo crea lo
+  // que faltaba (submitVitals, la implementación única que comparte con Signos vitales; reglas de la captura en shared.tsx).
+  const capture=liveVitalCapture(cVitSubmission.current);cVitSubmission.current=capture;
   try{
-   const{saved,failed,critical:marks}=await submitVitals(capture,patientId,toSave);
-   if(failed.length){setCVitMsg(`Guardados: ${saved.length?saved.join(", "):"ninguno"}. NO guardados: ${failed.join(" · ")}. Corrija y vuelva a guardar: los ya guardados no se duplicarán.`);return;}
+   const res=await submitVitals(capture,patientId,toSave);
+   if(!isSelectedPatient(patientId))return; // F4: el médico cambió de paciente durante el guardado
+   cVitSubmission.current=res.capture;
+   setCVitMsg(vitalSubmitMessage(res));
+   // F3: lo guardado sale del formulario; queda solo lo rechazado para corregirlo.
+   const field:Record<string,keyof typeof cVit>={BP:"ta",HR:"fc",RESP:"fr",TEMP:"temp",SPO2:"spo2"};
+   if(res.failed.length){setCVit(v=>{const n={...v};for(const vt of res.saved){const f=field[vt];if(f)n[f]="";}return n;});return;}
    cVitSubmission.current=null;
    setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});
-   setCVitMsg(marks.length?`Guardados. ⚠ ${marks.length} signo(s) crítico(s) — ${marks.join("; ")}. Un vital crítico sin atender bloquea la firma.`:"Signos vitales guardados en el expediente ✓");
   }catch(e){setCVitMsg(userMessage(e));}finally{setCVitBusy(false);}
  };
  // Crea órdenes clínicas reales desde la Consulta (POST /orders) por cada estudio seleccionado, con el tipo de la categoría.
@@ -879,7 +892,7 @@ export function useWorkspaceModel(){
   if(!algForm.patientId||!algForm.substance.trim()){setAlgMsg("Selecciona un paciente e indica la sustancia.");return;}
   setAlgBusy(true);setAlgMsg(null);
   try{
-   const r=await apiRequest("/api/v1/allergies",{method:"POST",body:{allergyId:uuid(),patientId:algForm.patientId,substance:algForm.substance.trim(),severity:algForm.severity,reaction:algForm.reaction.trim()||"No especificada",occurredAt:nowIso()}});
+   const r=await apiRequest("/api/v1/allergies",{method:"POST",body:{allergyId:uuid(),patientId:algForm.patientId,substance:algForm.substance.trim(),severity:algForm.severity,reaction:algForm.reaction.trim()||REACTION_UNSPECIFIED,occurredAt:nowIso()}});
    if(r.status>=400){setAlgMsg(errMsg(r));return;}
    await reloadAllergies();setAlgNew(false);setAlgForm({patientId:"",substance:"",severity:"MODERATE",reaction:""});setAlgMsg("Alergia registrada. Ya bloquea la prescripción del fármaco relacionado.");
   }catch(e){setAlgMsg(userMessage(e));}finally{setAlgBusy(false);}
@@ -1060,7 +1073,7 @@ export function useWorkspaceModel(){
   setDialz(ds=>[...ds,{id,modality:dzMod,state:"SCHEDULED",version:Number(r.body["version"]??1)}]);
  });
  const doDialysisAction=(d:Dz,act:{path:string;body:Record<string,unknown>;to:DzSt})=>call("dz-"+d.id,async()=>{
-  const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:d.version});
+  const sent=await postAction(act,d.version);if(!sent)return;const{r,body}=sent;
   if(r.status>=400){setError(errMsg(r));return;}
   setDialz(ds=>ds.map(x=>x.id===d.id?{...x,state:act.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
@@ -1106,9 +1119,9 @@ export function useWorkspaceModel(){
   setWounds(ws=>[...ws,{id,location:wnLoc,stage:wnStage,state:"OPEN",version:Number(r.body["version"]??1)}]);
  });
  const doWoundAction=(w:Wn,act:{path:string;body:Record<string,unknown>;to:WnSt})=>call("wn-"+w.id,async()=>{
-  const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:w.version});
+  const sent=await postAction(act,w.version);if(!sent)return;const{r,body}=sent;
   if(r.status>=400){setError(errMsg(r));return;}
-  const ns=act.body["stage"];setWounds(ws=>ws.map(x=>x.id===w.id?{...x,state:act.to,stage:typeof ns==="string"?ns:x.stage,version:Number(r.body["version"]??x.version+1)}:x));
+  const ns=body["stage"];setWounds(ws=>ws.map(x=>x.id===w.id?{...x,state:act.to,stage:typeof ns==="string"?ns:x.stage,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const createTriage=()=>call("tr-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/triage",{method:"POST",body:{triageId:id,patientId,chiefComplaint:trComplaint,occurredAt:nowIso()}});
@@ -1116,9 +1129,9 @@ export function useWorkspaceModel(){
   setTriages(ts=>[...ts,{id,chiefComplaint:trComplaint,acuity:0,state:"WAITING",version:Number(r.body["version"]??1)}]);setTrComplaint("");
  });
  const doTriageAction=(t:Tr,act:{path:string;body:Record<string,unknown>;to:TrSt})=>call("tr-"+t.id,async()=>{
-  const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:t.version});
+  const sent=await postAction(act,t.version);if(!sent)return;const{r,body}=sent;
   if(r.status>=400){setError(errMsg(r));return;}
-  const na=act.body["acuity"];setTriages(ts=>ts.map(x=>x.id===t.id?{...x,state:act.to,acuity:typeof na==="number"?na:x.acuity,version:Number(r.body["version"]??x.version+1)}:x));
+  const na=body["acuity"];setTriages(ts=>ts.map(x=>x.id===t.id?{...x,state:act.to,acuity:typeof na==="number"?na:x.acuity,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const createIncident=()=>call("inc-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/incidents",{method:"POST",body:{incidentId:id,patientId,category:incCat,severity:incSev,description:incDesc,occurredAt:nowIso()}});
@@ -1126,7 +1139,7 @@ export function useWorkspaceModel(){
   setIncs(is=>[...is,{id,label:`${incCat} · ${incSev} · ${incDesc}`,state:"REPORTED",version:Number(r.body["version"]??1)}]);setIncDesc("");
  });
  const doIncAction=(i:Inc,act:{path:string;body:Record<string,unknown>;to:IncSt})=>call("inc-"+i.id,async()=>{
-  const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:i.version});
+  const sent=await postAction(act,i.version);if(!sent)return;const{r,body}=sent;
   if(r.status>=400){setError(errMsg(r));return;}
   setIncs(is=>is.map(x=>x.id===i.id?{...x,state:act.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
@@ -1154,9 +1167,9 @@ export function useWorkspaceModel(){
   setAdms(as=>[...as,{id,unit:admUnit,state:"ADMITTED",version:Number(r.body["version"]??1)}]);setAdmReason("");
  });
  const doAdmAction=(a:Adm,act:{path:string;body:Record<string,unknown>;to:AdmSt})=>call("adm-"+a.id,async()=>{
-  const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:a.version});
+  const sent=await postAction(act,a.version);if(!sent)return;const{r,body}=sent;
   if(r.status>=400){setError(errMsg(r));return;}
-  const nu=act.body["unit"];setAdms(as=>as.map(x=>x.id===a.id?{...x,state:act.to,unit:typeof nu==="string"?nu:x.unit,version:Number(r.body["version"]??x.version+1)}:x));
+  const nu=body["unit"];setAdms(as=>as.map(x=>x.id===a.id?{...x,state:act.to,unit:typeof nu==="string"?nu:x.unit,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const createConsent=()=>call("cs-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/consents",{method:"POST",body:{consentId:id,patientId,scopeType:csType,documentRef:csRef,occurredAt:nowIso()}});
@@ -1164,7 +1177,7 @@ export function useWorkspaceModel(){
   setConsents(cs=>[...cs,{id,label:`${csType} · ${csRef}`,state:"DRAFTED",version:Number(r.body["version"]??1)}]);setCsRef("");
  });
  const doConsentAction=(c:Cs,act:{path:string;body:Record<string,unknown>;to:CsSt})=>call("cs-"+c.id,async()=>{
-  const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:c.version});
+  const sent=await postAction(act,c.version);if(!sent)return;const{r,body}=sent;
   if(r.status>=400){setError(errMsg(r));return;}
   setConsents(cs=>cs.map(x=>x.id===c.id?{...x,state:act.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
@@ -1174,7 +1187,7 @@ export function useWorkspaceModel(){
   setClaims(cs=>[...cs,{id,label:`${clmAmount} ${clmCurrency}`,state:"DRAFT",version:Number(r.body["version"]??1)}]);setClmAmount("");
  });
  const doClaimAction=(c:Clm,act:{path:string;body:Record<string,unknown>;to:ClmSt})=>call("clm-"+c.id,async()=>{
-  const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:c.version});
+  const sent=await postAction(act,c.version);if(!sent)return;const{r,body}=sent;
   if(r.status>=400){setError(errMsg(r));return;}
   setClaims(cs=>cs.map(x=>x.id===c.id?{...x,state:act.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
@@ -1184,7 +1197,7 @@ export function useWorkspaceModel(){
   setPlans(ps=>[...ps,{id,label:`${planCat} · ${planGoal}`,state:"PROPOSED",version:Number(r.body["version"]??1)}]);setPlanGoal("");
  });
  const doPlanAction=(c:Cp,act:{path:string;body:Record<string,unknown>;to:CpSt})=>call("cp-"+c.id,async()=>{
-  const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:c.version});
+  const sent=await postAction(act,c.version);if(!sent)return;const{r,body}=sent;
   if(r.status>=400){setError(errMsg(r));return;}
   setPlans(ps=>ps.map(x=>x.id===c.id?{...x,state:act.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
@@ -1194,9 +1207,9 @@ export function useWorkspaceModel(){
   setVitals(vs=>[...vs,{id,vitalType:vitType,value:vitValue,unit:vitUnit,state:"RECORDED",version:Number(r.body["version"]??1),vstatus:String(r.body["status"]??""),interp:String(r.body["interpretation"]??"")}]);setVitValue("");
  });
  const doVitAction=(v:Vit,act:{path:string;body:Record<string,unknown>;to:VitSt})=>call("vit-"+v.id,async()=>{
-  const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:v.version});
+  const sent=await postAction(act,v.version);if(!sent)return;const{r,body}=sent;
   if(r.status>=400){setError(errMsg(r));return;}
-  const nv=act.body["value"];setVitals(vs=>vs.map(x=>x.id===v.id?{...x,state:act.to,value:typeof nv==="string"?nv:x.value,version:Number(r.body["version"]??x.version+1),vstatus:r.body["status"]!==undefined?String(r.body["status"]):(x.vstatus??""),interp:r.body["interpretation"]!==undefined?String(r.body["interpretation"]):(x.interp??"")}:x));
+  const nv=body["value"];setVitals(vs=>vs.map(x=>x.id===v.id?{...x,state:act.to,value:typeof nv==="string"?nv:x.value,version:Number(r.body["version"]??x.version+1),vstatus:r.body["status"]!==undefined?String(r.body["status"]):(x.vstatus??""),interp:r.body["interpretation"]!==undefined?String(r.body["interpretation"]):(x.interp??"")}:x));
  });
  const createImmunization=()=>call("imm-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/immunizations",{method:"POST",body:{immunizationId:id,patientId,vaccineCode:immCode,dose:immDose,occurredAt:nowIso()}});
@@ -1204,17 +1217,17 @@ export function useWorkspaceModel(){
   setImms(is=>[...is,{id,label:`${immCode} · dosis ${immDose}`,state:"DUE",version:Number(r.body["version"]??1)}]);setImmCode("");
  });
  const doImmAction=(i:Imm,act:{path:string;body:Record<string,unknown>;to:ImmSt})=>call("imm-"+i.id,async()=>{
-  const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:i.version});
+  const sent=await postAction(act,i.version);if(!sent)return;const{r,body}=sent;
   if(r.status>=400){setError(errMsg(r));return;}
   setImms(is=>is.map(x=>x.id===i.id?{...x,state:act.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const createAllergy=()=>call("al-new",async()=>{
-  const id=uuid();const r=await apiRequest("/api/v1/allergies",{method:"POST",body:{allergyId:id,patientId,substance:alSub,severity:alSev,reaction:alReac||"—",occurredAt:nowIso()}});
+  const id=uuid();const r=await apiRequest("/api/v1/allergies",{method:"POST",body:{allergyId:id,patientId,substance:alSub,severity:alSev,reaction:alReac.trim()||REACTION_UNSPECIFIED,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
   setAllergies(as=>[...as,{id,label:`${alSub} (${alSev})`,state:"ACTIVE",version:Number(r.body["version"]??1)}]);setAlSub("");setAlReac("");
  });
  const doAllergyAction=(a:Al,act:{path:string;body:Record<string,unknown>;to:AlSt})=>call("al-"+a.id,async()=>{
-  const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:a.version});
+  const sent=await postAction(act,a.version);if(!sent)return;const{r,body}=sent;
   if(r.status>=400){setError(errMsg(r));return;}
   setAllergies(as=>as.map(x=>x.id===a.id?{...x,state:act.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
@@ -1246,7 +1259,11 @@ export function useWorkspaceModel(){
  // prohibidos pueda comprobarlo. Las respuestas tardías del paciente anterior se descartan por el flag `cancelled` de cada efecto.
  // D11b: el ÚNICO cambio de paciente del cockpit. Vacía TODO lo del paciente anterior (listas, instantáneas, borradores y capturas
  // en curso) antes de fijar el nuevo; lo usan el selector, el alta, la Consulta, el id tecleado en Expediente y `reset`.
- function selectPatientRaw(id:string,name:string){cVitSubmission.current=null;svCapture.current=null;draftOwner.current=id;setCForm({motivo:"",historia:"",antec:"",interrog:"",explor:"",plan:""});setCAntec([]);setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});setCPreview(false);setCMsg(null);setCVitMsg(null);setSnap(null);setTrends(null);setConsTabs(null);setFuSnap(null);setRxCheck(null);setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
+ function selectPatientRaw(id:string,name:string){cVitSubmission.current=null;svCapture.current=null;draftOwner.current=id;selectedPatient.current=id;
+  // Revisión adversarial (F4): también el formulario, el mensaje y el historial de Signos vitales y las instantáneas por paciente
+  // (plan de cuidados, contexto de interconsulta): antes quedaban los del paciente anterior y «Guardar» los enviaba al nuevo.
+  setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvTalla("");setSvPab("");setSvPain("0");setSvObs("");setSvMsg("");setVitHist(null);setCpSnap(null);setRefCtx(null);
+  setCForm({motivo:"",historia:"",antec:"",interrog:"",explor:"",plan:""});setCAntec([]);setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});setCPreview(false);setCMsg(null);setCVitMsg(null);setSnap(null);setTrends(null);setConsTabs(null);setFuSnap(null);setRxCheck(null);setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
  const loadPatients=(q=patientQuery)=>call("pt-list",async()=>{
   const r=await apiRequest(`/api/v1/patients?limit=200${q.trim()?`&q=${encodeURIComponent(q.trim())}`:""}`,{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}
@@ -1366,7 +1383,7 @@ export function useWorkspaceModel(){
   if(g.status<400)setGaps((g.body["gaps"] as Gap[])??[]);
  });
  function reset(){selectPatientRaw("","");} // D11b: la misma limpieza completa que cualquier cambio de paciente
- return{svCapture,cspNonce,session,setSession,ready,setReady,patientId,setPatientId,enc,setEnc,assessment,setAssessment,plan,setPlan,meds,setMeds,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,results,setResults,resQuick,setResQuick,docs,setDocs,docTitle,setDocTitle,docContent,setDocContent,docType,setDocType,orders,setOrders,orderType,setOrderType,orderDetail,setOrderDetail,allergies,setAllergies,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,problems,setProblems,probCode,setProbCode,probDesc,setProbDesc,obligations,setObligations,obKind,setObKind,referrals,setReferrals,refSpecialty,setRefSpecialty,refReason,setRefReason,appts,setAppts,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,imms,setImms,immCode,setImmCode,immDose,setImmDose,vitals,setVitals,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,plans,setPlans,planCat,setPlanCat,planGoal,setPlanGoal,claims,setClaims,clmAmount,setClmAmount,clmCurrency,setClmCurrency,consents,setConsents,csType,setCsType,csRef,setCsRef,adms,setAdms,admUnit,setAdmUnit,admReason,setAdmReason,specs,setSpecs,specType,setSpecType,incs,setIncs,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,triages,setTriages,trComplaint,setTrComplaint,wounds,setWounds,wnLoc,setWnLoc,wnStage,setWnStage,transfs,setTransfs,tfProduct,setTfProduct,tfUnits,setTfUnits,surgs,setSurgs,sgProc,setSgProc,sgLat,setSgLat,dialz,setDialz,dzMod,setDzMod,dzAcc,setDzAcc,tl,setTl,gaps,setGaps,exportInfo,setExportInfo,panel,setPanel,patientName,setPatientName,activeH2,setActiveH2,snap,setSnap,chartState,setChartState,chartReload,setChartReload,rxDrug,setRxDrug,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,rxCheck,setRxCheck,signAsk,setSignAsk,signBusy,setSignBusy,signErr,setSignErr,amendAsk,setAmendAsk,amendText,setAmendText,reasonAsk,setReasonAsk,reasonText,setReasonText,askReason,resolveAsks,hospitalOn,setHospitalOn,ackMed,setAckMed,ackWhy,setAckWhy,overrideMed,setOverrideMed,overrideWhy,setOverrideWhy,rxMsg,setRxMsg,trends,setTrends,trendKey,setTrendKey,followTab,setFollowTab,topSearch,setTopSearch,sideCollapsed,setSideCollapsed,docMenu,setDocMenu,view,setView,medTab,setMedTab,medQuery,setMedQuery,medCat,setMedCat,medOnlyMon,setMedOnlyMon,medOnlyRenal,setMedOnlyRenal,medSel,setMedSel,ixDrugs,setIxDrugs,ixFactors,setIxFactors,ixInput,setIxInput,ixRes,setIxRes,ixBusy,setIxBusy,alergReg,setAlergReg,alergSel,setAlergSel,alergOnlyActive,setAlergOnlyActive,alergOnlySevere,setAlergOnlySevere,alergSearch,setAlergSearch,alergType,setAlergType,algNew,setAlgNew,algBusy,setAlgBusy,algMsg,setAlgMsg,algForm,setAlgForm,probScreen,setProbScreen,probReg,setProbReg,probSel,setProbSel,probSearch,setProbSearch,probStatusF,setProbStatusF,probPlantCat,setProbPlantCat,pfName,setPfName,pfCode,setPfCode,pfType,setPfType,pfEstado,setPfEstado,pfDesc,setPfDesc,pfSev,setPfSev,pfNotes,setPfNotes,pfOnset,setPfOnset,pfResults,setPfResults,pfBusy,setPfBusy,pfMsg,setPfMsg,immReg,setImmReg,immSel,setImmSel,vacNew,setVacNew,vacBusy,setVacBusy,vacMsg,setVacMsg,vacForm,setVacForm,immSearch,setImmSearch,immStatusF,setImmStatusF,vitHist,setVitHist,svTemp,setSvTemp,svFc,setSvFc,svFr,setSvFr,svBpS,setSvBpS,svBpD,setSvBpD,svSpo2,setSvSpo2,svPeso,setSvPeso,svTalla,setSvTalla,svPab,setSvPab,svPain,setSvPain,svEstado,setSvEstado,svObs,setSvObs,svBusy,setSvBusy,svMsg,setSvMsg,cpSnap,setCpSnap,cpPlanTab,setCpPlanTab,cpNew,setCpNew,cpBusy,setCpBusy,cpMsg,setCpMsg,cpForm,setCpForm,refCtx,setRefCtx,icPatientId,setIcPatientId,icTab,setIcTab,icSpecialty,setIcSpecialty,icPriority,setIcPriority,icType,setIcType,icMotivo,setIcMotivo,icResumen,setIcResumen,icBusy,setIcBusy,icMsg,setIcMsg,fuSnap,setFuSnap,segTab,setSegTab,claimsReg,setClaimsReg,facTab,setFacTab,nfConcepts,setNfConcepts,nfPatientId,setNfPatientId,nfBusy,setNfBusy,nfMsg,setNfMsg,docsSnap,setDocsSnap,docDetail,setDocDetail,docDetBusy,setDocDetBusy,loadDoc,attInputRef,attBusy,setAttBusy,attMsg,setAttMsg,ATT_MAX,ATT_MIME,onPickAttachment,viewAttachment,removeAttachment,fmtBytes,sigInputRef,stampInputRef,profHas,setProfHas,CRED_EMPTY,credSaved,setCredSaved,credForm,setCredForm,credMsg,setCredMsg,credBusy,setCredBusy,credValid,saveCredentials,profUrls,setProfUrls,profBusy,setProfBusy,profMsg,setProfMsg,PROF_MIME,loadProfile,uploadProfileAsset,removeProfileAsset,docsTab,setDocsTab,docSel,setDocSel,docFolder,setDocFolder,docMsg,setDocMsg,docNew,setDocNew,docBusy,setDocBusy,docForm,setDocForm,regObSnap,setRegObSnap,oblNew,setOblNew,oblBusy,setOblBusy,oblMsg,setOblMsg,oblForm,setOblForm,oblTab,setOblTab,ciSnap,setCiSnap,ciTab,setCiTab,repSnap,setRepSnap,repTab,setRepTab,bibTab,setBibTab,bibEsp,setBibEsp,cfgTab,setCfgTab,CFG_DEFAULTS,cfgSettings,setCfgSettings,cfgVer,setCfgVer,cfgLoaded,setCfgLoaded,cfgBusy,setCfgBusy,cfgMsg,setCfgMsg,setCfg,saveOfficeSettings,ordTab,setOrdTab,selRow,setSelRow,cTab,setCTab,consultaPid,setConsultaPid,consultaNewPid,setConsultaNewPid,openConsulta,consTabs,setConsTabs,resTab,setResTab,resReg,setResReg,resNew,setResNew,resBusy2,setResBusy2,resMsg2,setResMsg2,resForm,setResForm,resSel,setResSel,resQ,setResQ,resTypeF,setResTypeF,resEstadoF,setResEstadoF,ordReg,setOrdReg,ordSel,setOrdSel,ordBusy,setOrdBusy,ordMsg,setOrdMsg,ordNew,setOrdNew,ordForm,setOrdForm,ordQuery,setOrdQuery,ordStatus,setOrdStatus,cForm,setCForm,cPreview,setCPreview,cMsg,setCMsg,cVit,setCVit,cVitSubmission,draftOwner,dataOwner,cVitMsg,setCVitMsg,cVitBusy,setCVitBusy,cOrdCat,setCOrdCat,cOrdSel,setCOrdSel,cOrdMsg,setCOrdMsg,cOrdBusy,setCOrdBusy,cDxQuery,setCDxQuery,cDxMsg,setCDxMsg,cDxBusy,setCDxBusy,cAntec,setCAntec,agenda,setAgenda,agendaDate,setAgendaDate,agendaView,setAgendaView,apptSel,setApptSel,apptBusy,setApptBusy,apptMsg,setApptMsg,apptNew,setApptNew,apptForm,setApptForm,clock,setClock,topMenu,setTopMenu,patientList,setPatientList,patientQuery,setPatientQuery,patientTotal,setPatientTotal,patientMore,setPatientMore,patientSelector,regName,setRegName,regDob,setRegDob,regSex,setRegSex,patStatus,setPatStatus,patSex,setPatSex,patNew,setPatNew,patMsg,setPatMsg,patSelId,setPatSelId,patTab,setPatTab,patEdit,setPatEdit,editBusy,setEditBusy,editForm,setEditForm,regExtra,setRegExtra,regGuardian,setRegGuardian,regDup,setRegDup,regIsMinor,busy,setBusy,error,setError,uiForbidden,call,openEncounter,saveAssessment,sha256Hex,askSignEncounter,signEncounter,askSignDocument,confirmSign,composeNote,consultaAdvance,saveConsultaVitals,createConsultaOrders,reloadResults,createResult,reloadRegObligations,createRegObligation,createDocument,reloadCarePlan,addCarePlanGoal,reloadImmunizations,createImmunizationInline,reloadAllergies,createAllergyInline,addConsultaProblem,proposeMed,advanceMed,printPrescription,confirmOverrideMed,confirmAckMed,verifyRx,sendRx,receiveResult,advanceResult,createDoc,advanceDoc,confirmAmend,advanceDocNow,createOrder,advanceOrder,createReferral,advanceReferral,cancelReferral,createAppointment,advanceAppt,closeAppt,createDialysis,doDialysisAction,createSurgery,advanceSurgery,cancelSurgery,createTransfusion,advanceTransfusion,transfusionReaction,createWound,doWoundAction,createTriage,doTriageAction,createIncident,doIncAction,createSpecimen,advanceSpecimen,rejectSpecimen,createAdmission,doAdmAction,createConsent,doConsentAction,createClaim,doClaimAction,createPlan,doPlanAction,createVital,doVitAction,createImmunization,doImmAction,createAllergy,doAllergyAction,createProblem,doProblemAction,createObligation,advanceObligation,selectPatientRaw,loadPatients,reloadOrders,submitOrder,orderTransition,reloadAgenda,apptTransition,createAppt,loadPanel,registerPatient,guardianFields,dupPanel,openEdit,amendPatient,exportRecord,loadTimeline,reset};
+ return{svCapture,isSelectedPatient,cspNonce,session,setSession,ready,setReady,patientId,setPatientId,enc,setEnc,assessment,setAssessment,plan,setPlan,meds,setMeds,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,results,setResults,resQuick,setResQuick,docs,setDocs,docTitle,setDocTitle,docContent,setDocContent,docType,setDocType,orders,setOrders,orderType,setOrderType,orderDetail,setOrderDetail,allergies,setAllergies,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,problems,setProblems,probCode,setProbCode,probDesc,setProbDesc,obligations,setObligations,obKind,setObKind,referrals,setReferrals,refSpecialty,setRefSpecialty,refReason,setRefReason,appts,setAppts,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,imms,setImms,immCode,setImmCode,immDose,setImmDose,vitals,setVitals,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,plans,setPlans,planCat,setPlanCat,planGoal,setPlanGoal,claims,setClaims,clmAmount,setClmAmount,clmCurrency,setClmCurrency,consents,setConsents,csType,setCsType,csRef,setCsRef,adms,setAdms,admUnit,setAdmUnit,admReason,setAdmReason,specs,setSpecs,specType,setSpecType,incs,setIncs,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,triages,setTriages,trComplaint,setTrComplaint,wounds,setWounds,wnLoc,setWnLoc,wnStage,setWnStage,transfs,setTransfs,tfProduct,setTfProduct,tfUnits,setTfUnits,surgs,setSurgs,sgProc,setSgProc,sgLat,setSgLat,dialz,setDialz,dzMod,setDzMod,dzAcc,setDzAcc,tl,setTl,gaps,setGaps,exportInfo,setExportInfo,panel,setPanel,patientName,setPatientName,activeH2,setActiveH2,snap,setSnap,chartState,setChartState,chartReload,setChartReload,rxDrug,setRxDrug,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,rxCheck,setRxCheck,signAsk,setSignAsk,signBusy,setSignBusy,signErr,setSignErr,amendAsk,setAmendAsk,amendText,setAmendText,reasonAsk,setReasonAsk,reasonText,setReasonText,askReason,resolveAsks,hospitalOn,setHospitalOn,ackMed,setAckMed,ackWhy,setAckWhy,overrideMed,setOverrideMed,overrideWhy,setOverrideWhy,rxMsg,setRxMsg,trends,setTrends,trendKey,setTrendKey,followTab,setFollowTab,topSearch,setTopSearch,sideCollapsed,setSideCollapsed,docMenu,setDocMenu,view,setView,medTab,setMedTab,medQuery,setMedQuery,medCat,setMedCat,medOnlyMon,setMedOnlyMon,medOnlyRenal,setMedOnlyRenal,medSel,setMedSel,ixDrugs,setIxDrugs,ixFactors,setIxFactors,ixInput,setIxInput,ixRes,setIxRes,ixBusy,setIxBusy,alergReg,setAlergReg,alergSel,setAlergSel,alergOnlyActive,setAlergOnlyActive,alergOnlySevere,setAlergOnlySevere,alergSearch,setAlergSearch,alergType,setAlergType,algNew,setAlgNew,algBusy,setAlgBusy,algMsg,setAlgMsg,algForm,setAlgForm,probScreen,setProbScreen,probReg,setProbReg,probSel,setProbSel,probSearch,setProbSearch,probStatusF,setProbStatusF,probPlantCat,setProbPlantCat,pfName,setPfName,pfCode,setPfCode,pfType,setPfType,pfEstado,setPfEstado,pfDesc,setPfDesc,pfSev,setPfSev,pfNotes,setPfNotes,pfOnset,setPfOnset,pfResults,setPfResults,pfBusy,setPfBusy,pfMsg,setPfMsg,immReg,setImmReg,immSel,setImmSel,vacNew,setVacNew,vacBusy,setVacBusy,vacMsg,setVacMsg,vacForm,setVacForm,immSearch,setImmSearch,immStatusF,setImmStatusF,vitHist,setVitHist,svTemp,setSvTemp,svFc,setSvFc,svFr,setSvFr,svBpS,setSvBpS,svBpD,setSvBpD,svSpo2,setSvSpo2,svPeso,setSvPeso,svTalla,setSvTalla,svPab,setSvPab,svPain,setSvPain,svEstado,setSvEstado,svObs,setSvObs,svBusy,setSvBusy,svMsg,setSvMsg,cpSnap,setCpSnap,cpPlanTab,setCpPlanTab,cpNew,setCpNew,cpBusy,setCpBusy,cpMsg,setCpMsg,cpForm,setCpForm,refCtx,setRefCtx,icPatientId,setIcPatientId,icTab,setIcTab,icSpecialty,setIcSpecialty,icPriority,setIcPriority,icType,setIcType,icMotivo,setIcMotivo,icResumen,setIcResumen,icBusy,setIcBusy,icMsg,setIcMsg,fuSnap,setFuSnap,segTab,setSegTab,claimsReg,setClaimsReg,facTab,setFacTab,nfConcepts,setNfConcepts,nfPatientId,setNfPatientId,nfBusy,setNfBusy,nfMsg,setNfMsg,docsSnap,setDocsSnap,docDetail,setDocDetail,docDetBusy,setDocDetBusy,loadDoc,attInputRef,attBusy,setAttBusy,attMsg,setAttMsg,ATT_MAX,ATT_MIME,onPickAttachment,viewAttachment,removeAttachment,fmtBytes,sigInputRef,stampInputRef,profHas,setProfHas,CRED_EMPTY,credSaved,setCredSaved,credForm,setCredForm,credMsg,setCredMsg,credBusy,setCredBusy,credValid,saveCredentials,profUrls,setProfUrls,profBusy,setProfBusy,profMsg,setProfMsg,PROF_MIME,loadProfile,uploadProfileAsset,removeProfileAsset,docsTab,setDocsTab,docSel,setDocSel,docFolder,setDocFolder,docMsg,setDocMsg,docNew,setDocNew,docBusy,setDocBusy,docForm,setDocForm,regObSnap,setRegObSnap,oblNew,setOblNew,oblBusy,setOblBusy,oblMsg,setOblMsg,oblForm,setOblForm,oblTab,setOblTab,ciSnap,setCiSnap,ciTab,setCiTab,repSnap,setRepSnap,repTab,setRepTab,bibTab,setBibTab,bibEsp,setBibEsp,cfgTab,setCfgTab,CFG_DEFAULTS,cfgSettings,setCfgSettings,cfgVer,setCfgVer,cfgLoaded,setCfgLoaded,cfgBusy,setCfgBusy,cfgMsg,setCfgMsg,setCfg,saveOfficeSettings,ordTab,setOrdTab,selRow,setSelRow,cTab,setCTab,consultaPid,setConsultaPid,consultaNewPid,setConsultaNewPid,openConsulta,consTabs,setConsTabs,resTab,setResTab,resReg,setResReg,resNew,setResNew,resBusy2,setResBusy2,resMsg2,setResMsg2,resForm,setResForm,resSel,setResSel,resQ,setResQ,resTypeF,setResTypeF,resEstadoF,setResEstadoF,ordReg,setOrdReg,ordSel,setOrdSel,ordBusy,setOrdBusy,ordMsg,setOrdMsg,ordNew,setOrdNew,ordForm,setOrdForm,ordQuery,setOrdQuery,ordStatus,setOrdStatus,cForm,setCForm,cPreview,setCPreview,cMsg,setCMsg,cVit,setCVit,cVitSubmission,draftOwner,dataOwner,cVitMsg,setCVitMsg,cVitBusy,setCVitBusy,cOrdCat,setCOrdCat,cOrdSel,setCOrdSel,cOrdMsg,setCOrdMsg,cOrdBusy,setCOrdBusy,cDxQuery,setCDxQuery,cDxMsg,setCDxMsg,cDxBusy,setCDxBusy,cAntec,setCAntec,agenda,setAgenda,agendaDate,setAgendaDate,agendaView,setAgendaView,apptSel,setApptSel,apptBusy,setApptBusy,apptMsg,setApptMsg,apptNew,setApptNew,apptForm,setApptForm,clock,setClock,topMenu,setTopMenu,patientList,setPatientList,patientQuery,setPatientQuery,patientTotal,setPatientTotal,patientMore,setPatientMore,patientSelector,regName,setRegName,regDob,setRegDob,regSex,setRegSex,patStatus,setPatStatus,patSex,setPatSex,patNew,setPatNew,patMsg,setPatMsg,patSelId,setPatSelId,patTab,setPatTab,patEdit,setPatEdit,editBusy,setEditBusy,editForm,setEditForm,regExtra,setRegExtra,regGuardian,setRegGuardian,regDup,setRegDup,regIsMinor,busy,setBusy,error,setError,uiForbidden,call,openEncounter,saveAssessment,sha256Hex,askSignEncounter,signEncounter,askSignDocument,confirmSign,composeNote,consultaAdvance,saveConsultaVitals,createConsultaOrders,reloadResults,createResult,reloadRegObligations,createRegObligation,createDocument,reloadCarePlan,addCarePlanGoal,reloadImmunizations,createImmunizationInline,reloadAllergies,createAllergyInline,addConsultaProblem,proposeMed,advanceMed,printPrescription,confirmOverrideMed,confirmAckMed,verifyRx,sendRx,receiveResult,advanceResult,createDoc,advanceDoc,confirmAmend,advanceDocNow,createOrder,advanceOrder,createReferral,advanceReferral,cancelReferral,createAppointment,advanceAppt,closeAppt,createDialysis,doDialysisAction,createSurgery,advanceSurgery,cancelSurgery,createTransfusion,advanceTransfusion,transfusionReaction,createWound,doWoundAction,createTriage,doTriageAction,createIncident,doIncAction,createSpecimen,advanceSpecimen,rejectSpecimen,createAdmission,doAdmAction,createConsent,doConsentAction,createClaim,doClaimAction,createPlan,doPlanAction,createVital,doVitAction,createImmunization,doImmAction,createAllergy,doAllergyAction,createProblem,doProblemAction,createObligation,advanceObligation,selectPatientRaw,loadPatients,reloadOrders,submitOrder,orderTransition,reloadAgenda,apptTransition,createAppt,loadPanel,registerPatient,guardianFields,dupPanel,openEdit,amendPatient,exportRecord,loadTimeline,reset};
 }
 export type WorkspaceModel=ReturnType<typeof useWorkspaceModel>;
 // Valores derivados tras los retornos tempranos (sesión garantizada).

@@ -70,8 +70,10 @@ async function commitReceived(ctx:Parameters<typeof runClinicalCommand>[0],idemp
   // Auditoría C-20: un resultado CRÍTICO crea además una obligación con RESPONSABLE (quien lo recibió: es quien debe
   // localizar al paciente o derivarlo) y FECHA (24 h, URGENTE). Identificadores derivados del resultId: el reintento no
   // duplica y el cierre del resultado la completa (ver handleResultClosure).
-  // D5: también en el replay (el derivado es idempotente): un reintento crea la obligación si un fallo la dejó pendiente.
-  if(stable["critical"]===true)await createCriticalResultObligation(ctx,b.resultId,b.patientId,ctx.actorId,String(stable["analyte"]??b.analyte??""),b.occurredAt);
+  // D5: también en el replay (el derivado es idempotente): un reintento crea la obligación si un fallo la dejó pendiente. Pero
+  // en el replay solo si el resultado sigue ABIERTO: si ya se cerró o se corrigió, su cierre ya no puede completar una obligación
+  // creada después, que quedaría URGENTE y abierta para siempre bloqueando la firma (revisión adversarial del lote 11).
+  if(stable["critical"]===true&&(!result.replayed||await criticalResultStillOpen(ctx,b.resultId)))await createCriticalResultObligation(ctx,b.resultId,b.patientId,ctx.actorId,String(stable["analyte"]??b.analyte??""),b.occurredAt);
   const r=result.response as{version:number;auditHash?:string};
   // La respuesta dice la VERDAD de la interpretación: NORMAL / ABNORMAL / CRITICAL / UNKNOWN (antes solo `critical`, y la UI
   // anunciaba "dentro de rango" para todo lo no crítico, incluidos valores anormales y analitos sin rango tabulado).
@@ -94,8 +96,11 @@ export async function handleResultCorrection(req:Request,resultId:string):Promis
   const annotation=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:resultId,expectedVersion,eventType:"RESULT_CORRECTED",payload:{kind:"CORRECTED",supersededBy:b.correctedResultId,reason:b.reason},occurredAt:b.occurredAt,topic:"result.corrected"});
   const replayed=await lookupReplay(ctx,annotation);
   if(replayed){const r=replayed.response as{version:number;auditHash?:string};
+   // El resultado corregido que produjo esta llave: con OTRO valor o unidad es IDEMPOTENCY_CONFLICT (antes el replay aceptaba en
+   // silencio el primer valor), y la respuesta lleva `corrected` como la primera (revisión adversarial del lote 11).
+   const c=await replayStablePayload(ctx,derivedUuid(idempotencyKey,"corrected-result"),b.correctedResultId,b,()=>{throw new ClinicalError("INVARIANT_VIOLATION","Replayed correction without its corrected result");});
    await completeCriticalResultObligation(ctx,resultId,`resultado corregido (${b.reason})`,b.occurredAt); // D5: el replay reconcilia el derivado
-   return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,version:r.version,auditHash:r.auditHash,replayed:true},{status:200});}
+   return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,corrected:{resultId:b.correctedResultId,critical:c["critical"]===true,status:c["status"],interpretation:c["interpretation"]},version:r.version,auditHash:r.auditHash,replayed:true},{status:200});}
   assertReadVersion("Result changed since last read",expectedVersion,folded.version);
   assertResultCorrectable(folded);
   const original=(await readAggregateStream(ctx,AGG,resultId)).find(e=>e.payload["kind"]==="RECEIVED")?.payload??{};
@@ -139,6 +144,10 @@ async function createCriticalResultObligation(ctx:Parameters<typeof runClinicalC
  const cmd=buildCommand({idempotencyKey:derivedUuid(resultId,"critical-result-obligation-idem"),aggregateType:"ClinicalObligation",aggregateId:obligationId,expectedVersion:0,eventType:"OBLIGATION_CREATED",
   payload:{kind:"CREATED",patientId,ownerId,dueAt,obligationKind:"CRITICAL_RESULT_REVIEW",priority:"URGENT",sourceResultId:resultId,test:analyte,note:`Resultado crítico de ${analyte}: contactar al paciente, actuar y cerrar el resultado con evidencia`},occurredAt,topic:"obligation.created"});
  await runDerivedCommand(ctx,cmd);
+}
+async function criticalResultStillOpen(ctx:Parameters<typeof runClinicalCommand>[0],resultId:string):Promise<boolean>{
+ const f=foldResult(await readAggregateStream(ctx,AGG,resultId));
+ return f.exists&&f.state!=="CLOSED"&&!f.supersededBy;
 }
 // Al CERRAR un resultado crítico con evidencia, la obligación derivada se completa con esa misma evidencia (si sigue abierta).
 async function completeCriticalResultObligation(ctx:Parameters<typeof runClinicalCommand>[0],resultId:string,evidence:string,occurredAt:string):Promise<void>{

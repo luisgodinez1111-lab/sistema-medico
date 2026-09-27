@@ -61,19 +61,25 @@ export async function GET(req:Request){
   // HbA1c en control: proporción de resultados de HbA1c VIGENTES por debajo de la meta (calidad del control glucémico del lab).
   // Hallazgo D10: se usa el valor CANÓNICO en % (el mismo que la evaluación por paciente; «6,5» o 48 mmol/mol IFCC ya no se
   // leen como 65 o 48 %) y se excluyen los resultados reemplazados por una corrección; un valor no normalizable no se cuenta.
-  const a1cRows=resultRows.filter(r=>String(r.analyte).toUpperCase()==="HBA1C"&&!r.superseded&&r.canonicalValue!==null);
+  // Revisión adversarial del lote 11 (SQL-3): un valor no normalizable («6.5%», «<5.0») no se cuenta, pero la exclusión se
+  // DECLARA (`excluded` y la nota): antes salía en silencio del denominador y la nota decía que era «el total».
+  const a1cVigentes=resultRows.filter(r=>String(r.analyte).toUpperCase()==="HBA1C"&&!r.superseded);
+  const a1cRows=a1cVigentes.filter(r=>r.canonicalValue!==null);
+  const a1cExcluded=a1cVigentes.length-a1cRows.length;
   const a1cInControl=a1cRows.filter(r=>r.canonicalValue!<A1C_DIABETIC_TARGET_PCT).length;
-  type QI={key:string;label:string;numerator:number;denominator:number;pct:number;target:number;direction:"higher"|"lower";met:boolean;computable:boolean;note:string};
-  const mkQI=(key:string,label:string,num:number,den:number,target:number,direction:"higher"|"lower",note:string):QI=>{
+  type QI={key:string;label:string;numerator:number;denominator:number;excluded:number;pct:number;target:number;direction:"higher"|"lower";met:boolean;computable:boolean;note:string};
+  const mkQI=(key:string,label:string,num:number,den:number,target:number,direction:"higher"|"lower",note:string,excluded=0):QI=>{
    const computable=den>0;const pct=computable?Math.round(num/den*100):0;
    const met=computable&&(direction==="higher"?pct>=target:pct<=target);
-   return{key,label,numerator:num,denominator:den,pct,target,direction,met,computable,note};
+   return{key,label,numerator:num,denominator:den,excluded,pct,target,direction,met,computable,note};
   };
   const qualityIndicators:QI[]=[
    mkQI("closed_records","Expedientes cerrados (notas firmadas)",encAnalytics.signed,encAnalytics.total,90,"higher","Consultas con nota clínica firmada respecto al total de consultas abiertas."),
    mkQI("attendance","Asistencia efectiva",apptOut.completed,apptOut.total,80,"higher","Citas completadas respecto al total de citas agendadas."),
    mkQI("no_show","Inasistencia (no-show)",apptOut.noShow,apptOut.total,10,"lower","Citas marcadas como inasistencia respecto al total de citas agendadas."),
-   mkQI("glycemic_control",`HbA1c en control (<${A1C_DIABETIC_TARGET_PCT}%)`,a1cInControl,a1cRows.length,70,"higher",`Resultados vigentes de HbA1c por debajo de ${A1C_DIABETIC_TARGET_PCT}% respecto al total de HbA1c vigentes registradas.`),
+   mkQI("glycemic_control",`HbA1c en control (<${A1C_DIABETIC_TARGET_PCT}%)`,a1cInControl,a1cRows.length,70,"higher",
+    `Resultados vigentes de HbA1c por debajo de ${A1C_DIABETIC_TARGET_PCT}% respecto a las HbA1c vigentes con valor numérico interpretable.`
+    +(a1cExcluded>0?` No se cuentan ${a1cExcluded} con valor no interpretable (revíselas en Resultados).`:""),a1cExcluded),
   ];
   return NextResponse.json({
    patientsAttended:patients.total, // total del tenant (S-08: listPatients pagina; el conteo no depende de la página)

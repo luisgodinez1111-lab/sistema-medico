@@ -1,8 +1,10 @@
 // Lote 11 (ADR-0300) — read models de resultados de laboratorio (última lectura, series, registro). Extraído de
-// apps/web/lib/clinical-runtime.ts en 11.1; el registro expone valor canónico y supersesión desde el hallazgo D10.
+// apps/web/lib/clinical-runtime.ts en 11.1; el registro expone valor canónico y supersesión desde el hallazgo D10, y desde la
+// revisión adversarial (SQL-2) su ciclo de vida es el del fold y su estado-UI sale de una sola regla (`resultEstado`).
 import{type HttpTenantContext}from"../../../../../packages/http-principal/src";
 import{normalizeLabValue}from"../../../../../packages/lab-reference/src";
 import{withTenantTx}from"../db";
+import{RESULT_ANNOTATION_KINDS}from"../../../../../packages/result-fold/src";
 import{currentPatientName,resultSuperseded}from"../sql";
 // EPIC BB — Valor PREVIO del mismo analito del paciente (resultado más reciente ya recibido). RLS-scoped.
 // Para el delta check de laboratorio en la recepción de un resultado nuevo. Devuelve el value textual o undefined.
@@ -67,6 +69,10 @@ export async function analyteSeries(ctx:HttpTenantContext,patientId:string,analy
 // DiagnosticResult toma el evento base RESULT_RECEIVED (analito/valor/critical/status/interpretación derivados)
 // y su ESTADO por la última transición de ciclo de vida (RECEIVED/VERIFIED/ACTIONED/CLOSED). Une el nombre del
 // paciente. El estado-UI (Hallazgos/Normal/En seguimiento/En revisión) se deriva. RLS-scoped.
+// Revisión adversarial del lote 11 (SQL-2): la transición es la del último evento que NO es una anotación del fold
+// (RESULT_ANNOTATION_KINDS). Antes un resultado CERRADO y luego corregido leía CORRECTED, caía a «RECEIVED» y volvía a
+// contarse como «En revisión». No se usa `lifecycleEventOnly`: la cronología expone CORRECTED como último evento a propósito
+// (care-gaps da por cerrado el seguimiento de un resultado corregido con él).
 // Hallazgo D10: `canonicalValue` es el valor en la unidad canónica del analito (el que usan las calculadoras; null si no es
 // normalizable) y `superseded` marca el resultado reemplazado por una corrección. `value` sigue siendo el texto recibido.
 export type ResultRow=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;canonicalValue:number|null;superseded:boolean;critical:boolean;status:string;interpretation:string;lifecycle:"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";receivedAt:string}>;
@@ -81,7 +87,8 @@ export async function resultsRegistry(ctx:HttpTenantContext):Promise<ResultRow[]
   const rows=await tx`
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
      a.payload->>'critical' as critical, a.payload->>'status' as status, a.payload->>'interpretation' as interpretation, a.occurred_at as received_at,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id
+       and not (c.payload->>'kind'=any(${[...RESULT_ANNOTATION_KINDS]}::text[])) order by sequence desc limit 1) as last_kind,
      ${currentPatientName(tx,ctx.tenantId)} as patient_name,
      a.payload->>'canonicalValue' as canonical_value, ${resultSuperseded(tx,ctx.tenantId,tx`a.aggregate_id`)} as superseded
    from clinical_events a
@@ -94,4 +101,16 @@ export async function resultsRegistry(ctx:HttpTenantContext):Promise<ResultRow[]
    lifecycle:RES_LIFECYCLE[String(o.last_kind??"RECEIVED")]??"RECEIVED",
    receivedAt:o.received_at?new Date(String(o.received_at)).toISOString():""};});
  }) as Promise<ResultRow[]>;
+}
+// Estado-UI de un resultado del registro: la ÚNICA regla que usan la vista Resultados y la pestaña de la consulta (antes
+// cada ruta tenía su copia). Un resultado reemplazado por una corrección se declara «Corregido»: sus hallazgos y su revisión
+// pendiente ya no son los vigentes, y contarlos como tales duplicaba alertas y pendientes con los de la corrección.
+export type ResultEstado="Corregido"|"Hallazgos"|"En seguimiento"|"En revisión"|"Normal";
+const ABNORMAL_STATUS=new Set(["HIGH","LOW","CRITICAL","ABNORMAL","PANIC"]);
+export function resultEstado(r:Pick<ResultRow,"superseded"|"critical"|"status"|"lifecycle">):ResultEstado{
+ if(r.superseded)return"Corregido";
+ if(r.critical||ABNORMAL_STATUS.has(r.status.toUpperCase()))return"Hallazgos";
+ if(r.lifecycle==="ACTIONED")return"En seguimiento";
+ if(r.lifecycle==="RECEIVED")return"En revisión";
+ return"Normal";
 }

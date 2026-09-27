@@ -4,6 +4,7 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
+import{WOUND_STAGES,WOUND_STAGE_LABEL}from"../../../../../packages/wound-fold/src";
 import{P,mono,ghost,DX_LABEL,LINE,card,SEX_ES,scrollToSection,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,type TrendKey}from"../shared";
 import{useWorkspace}from"../context";
 export default function ExpView(){
@@ -714,7 +715,7 @@ export default function ExpView(){
      <option value="SACRUM">Sacro</option><option value="HEEL">Talón</option><option value="ISCHIUM">Isquion</option><option value="TROCHANTER">Trocánter</option><option value="OCCIPUT">Occipucio</option><option value="ELBOW">Codo</option><option value="OTHER">Otro</option>
     </select>
     <select style={input} value={wnStage} onChange={e=>setWnStage(e.target.value)}>
-     <option value="STAGE_1">Estadio 1</option><option value="STAGE_2">Estadio 2</option><option value="STAGE_3">Estadio 3</option><option value="STAGE_4">Estadio 4</option><option value="UNSTAGEABLE">No estadiable</option><option value="DTI">LTP profunda</option>
+     {WOUND_STAGES.map(v=><option key={v} value={v}>{WOUND_STAGE_LABEL[v]}</option>)}
     </select>
     <button style={btn} disabled={busy!==""} onClick={createWound}>{busy==="wn-new"?"Documentando…":"Documentar herida"}</button>
    </div>

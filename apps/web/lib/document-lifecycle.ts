@@ -6,10 +6,11 @@ import{foldDocument,assertDocumentTransition}from"../../../packages/document-fol
 import{put,del,get}from"@vercel/blob";
 import{runClinicalCommand}from"./runtime/command";
 import{documentDetail}from"./runtime/read-models/documents";
+import{readAggregateStream}from"./runtime/event-store";
 import{requireRegisteredPatient}from"./runtime/read-models/patient";
 import{buildCommand,parseJson,replayStablePayload}from"./http-command";
 import{endpoint,assertRouteIds}from"./http/endpoint";
-import{createCommand,transitionCommand,priorCommand,blobReferenced}from"./command/aggregate-command";
+import{createCommand,transitionCommand,priorCommand,uploadThenCommit}from"./command/aggregate-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
 // EPIC I — Ciclo de vida del documento clínico sobre el kernel. Autoridad PROD-014-R022 /
 // PROD-022-R018: la firma produce un snapshot reproducible (contentHash) y las correcciones son
@@ -119,29 +120,27 @@ export async function handleDocumentAttach(req:Request,documentId:string):Promis
   if(bytes.byteLength===0)throw new ClinicalError("VALIDATION_ERROR","Archivo vacío");
   if(bytes.byteLength>MAX_ATTACHMENT_BYTES)throw new ClinicalError("VALIDATION_ERROR",`Archivo demasiado grande (${bytes.byteLength} bytes; máx ${MAX_ATTACHMENT_BYTES})`);
   const contentHash=crypto.createHash("sha256").update(bytes).digest("hex");
-  // D6: el reintento se reconoce ANTES de tocar el Blob (misma llave y mismo archivo -> la respuesta original; otro -> 409).
-  const prior=await priorCommand(ctx,{idempotencyKey,aggregateType:AGG,aggregateId:documentId,eventType:"DOCUMENT_ATTACHED",topic:"document.attached",at:"attachedAt"});
-  if(prior){
+  // D6: replay ANTES de tocar el Blob (misma llave y mismo archivo -> la respuesta original; otro archivo -> 409), subida a una
+  // ruta ÚNICA por intento y limpieza segura; el flujo completo vive en `uploadThenCommit` (lo comparte el perfil del médico).
+  const replay=async()=>{
+   const prior=await priorCommand(ctx,{idempotencyKey,aggregateType:AGG,aggregateId:documentId,eventType:"DOCUMENT_ATTACHED",topic:"document.attached",at:"attachedAt"});
+   if(!prior)return null;
    const p=prior.payload;if(p["contentHash"]!==contentHash)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
    return NextResponse.json({documentId,attachmentId:p["attachmentId"],filename:p["filename"],mime:p["mime"],size:p["size"],pathname:p["pathname"],contentHash,version:prior.version,auditHash:prior.auditHash,replayed:true},{status:200});
-  }
+  };
   const attachmentId=derivedUuid(`${idempotencyKey}:${documentId}:attachment`);
   const filename=safeName(file.name);
-  // Aislamiento por tenant en la ruta del blob y ruta ÚNICA por intento (D6): ningún intento sobrescribe el binario de otro.
-  const pathname=`tenants/${c.tenantId}/documents/${documentId}/${attachmentId}-${crypto.randomUUID()}.${EXT_BY_MIME[mime]??"bin"}`;
+  const pathname=`tenants/${c.tenantId}/documents/${documentId}/${attachmentId}-${crypto.randomUUID()}.${EXT_BY_MIME[mime]??"bin"}`; // aislada por tenant
   const occurredAt=new Date().toISOString();
-  // Sube PRIMERO al blob (privado); luego registra el evento.
-  await put(pathname,Buffer.from(bytes),{access:"private",token:blobToken(),contentType:mime,addRandomSuffix:false,allowOverwrite:false});
-  try{
-   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:documentId,expectedVersion:detail.version,eventType:"DOCUMENT_ATTACHED",payload:{kind:"ATTACHED",attachmentId,filename,mime,size:bytes.byteLength,pathname,contentHash,authorId:c.sub,attachedAt:occurredAt},occurredAt,topic:"document.attached"});
-   const result=await runClinicalCommand(ctx,cmd);
-   const r=result.response as{version:number;auditHash?:string};
-   return NextResponse.json({documentId,attachmentId,filename,mime,size:bytes.byteLength,pathname,contentHash,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
-  }catch(commitErr){
-   // Sin evento no hay adjunto: se borra el binario de ESTE intento, salvo que un evento confirmado lo cite (D6).
-   if(!(await blobReferenced(ctx,idempotencyKey,documentId,pathname)))await del(pathname,{token:blobToken()}).catch(()=>{/* mejor esfuerzo; no enmascarar el error original */});
-   throw commitErr;
-  }
+  return uploadThenCommit(ctx,{idempotencyKey,aggregateId:documentId,pathname,replay,
+   upload:()=>put(pathname,Buffer.from(bytes),{access:"private",token:blobToken(),contentType:mime,addRandomSuffix:false,allowOverwrite:false}),
+   discard:()=>del(pathname,{token:blobToken()}),
+   commit:async()=>{
+    const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:documentId,expectedVersion:detail.version,eventType:"DOCUMENT_ATTACHED",payload:{kind:"ATTACHED",attachmentId,filename,mime,size:bytes.byteLength,pathname,contentHash,authorId:c.sub,attachedAt:occurredAt},occurredAt,topic:"document.attached"});
+    const result=await runClinicalCommand(ctx,cmd);
+    const r=result.response as{version:number;auditHash?:string};
+    return NextResponse.json({documentId,attachmentId,filename,mime,size:bytes.byteLength,pathname,contentHash,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+   }});
  });
 }
 
@@ -172,6 +171,9 @@ export async function handleDocumentAttachmentRemove(req:Request,documentId:stri
   const prior=await priorCommand(ctx,{idempotencyKey,aggregateType:AGG,aggregateId:documentId,eventType:"DOCUMENT_ATTACHMENT_REMOVED",topic:"document.attachment_removed",at:"removedAt"});
   if(prior){
    if(prior.payload["attachmentId"]!==attachmentId)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
+   // El reintento REPITE el borrado del binario (idempotente): si falló tras el evento, el PHI no queda en el almacén.
+   const cited=(await readAggregateStream(ctx,AGG,documentId)).find(e=>e.payload["kind"]==="ATTACHED"&&e.payload["attachmentId"]===attachmentId)?.payload["pathname"];
+   if(typeof cited==="string")await del(cited,{token:blobToken()}).catch(()=>{/* ya pudo no existir */});
    return NextResponse.json({documentId,attachmentId,removed:true,version:prior.version,auditHash:prior.auditHash,replayed:true},{status:200});
   }
   const att=detail.attachments.find(a=>a.attachmentId===attachmentId);

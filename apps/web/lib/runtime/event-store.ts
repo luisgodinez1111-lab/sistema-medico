@@ -46,13 +46,16 @@ export async function readAggregateStream(ctx:HttpTenantContext,aggregateType:st
  return rows.map(r=>({sequence:Number(r.sequence),payload:(r.payload??{}) as Record<string,unknown>}));
 }
 export type EncounterView=Readonly<{encounterId:string;version:number;events:ReadonlyArray<{sequence:number;type:string;occurredAt:string}>}>;
-// Lectura RLS-scoped del agregado (sin payload clínico: solo metadatos no-PHI).
+// Lectura RLS-scoped del agregado (sin payload clínico: solo metadatos no-PHI). Revisión del lote 11 (D4/D8): un id que no es
+// uuid no llega a la base y un id cuya génesis NO es un encuentro es «no encontrado» (antes devolvía la vista de otro agregado).
 export async function readEncounter(ctx:HttpTenantContext,encounterId:string):Promise<EncounterView|null>{
+ if(!isAggregateId(encounterId))return null;
  return withTenantTx(ctx,async tx=>{
   const agg=await tx`select version from aggregate_versions where tenant_id=${ctx.tenantId} and aggregate_id=${encounterId}`;
   const head=agg[0];
   if(!head)return null;
   const events=await tx`select sequence,aggregate_type,occurred_at from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${encounterId} order by sequence`;
+  if(events.length===0||String(events[0]!.aggregate_type)!=="Encounter")return null;
   return{
    encounterId,
    version:Number(head.version),

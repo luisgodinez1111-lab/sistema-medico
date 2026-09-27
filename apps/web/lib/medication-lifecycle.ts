@@ -71,8 +71,9 @@ export const PrescribeBody=z.object({occurredAt:z.string().datetime(),acknowledg
 const DAY_MS=86_400_000;
 // EPIC BA — Crea automáticamente las obligaciones de monitoreo del fármaco al prescribir (Zero-Lost-Follow-Up).
 // Idempotente: ids/keys derivados de la key de la prescripción + slot; un reintento reconstruye lo mismo.
-// Cada obligación es su propia transacción (no atómica con la prescripción); un reintento la reconcilia: el pipeline ejecuta
-// este derivado también en el replay de la prescripción y runDerivedCommand no vuelve a cobrar el límite (hallazgo D5).
+// Cada obligación es su propia transacción (no atómica con la prescripción); un reintento IDÉNTICO la reconcilia: el pipeline
+// ejecuta este derivado también en el replay de la prescripción y runDerivedCommand no vuelve a cobrar el límite (hallazgo D5).
+// Sin ese reintento no se reconcilia todavía (pendiente: reconciliador del servidor, ver runtime/command.ts).
 async function createMonitoringObligations(ctx:Parameters<typeof runClinicalCommand>[0],baseIdemKey:string,patientId:string,ownerId:string,drugCode:string,occurredAt:string):Promise<void>{
  const rules=monitoringFor(drugCode);
  for(let i=0;i<rules.length;i++){

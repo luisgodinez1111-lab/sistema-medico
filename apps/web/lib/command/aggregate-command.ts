@@ -12,7 +12,8 @@ import{endpoint,type Guard,type Verified}from"../http/endpoint";
 //                 reglas de dominio) → kernel → {<id>, <estado>, ...extra, version, auditHash, replayed} 201 / 200
 //   transicionar: sesión → autorización → Idempotency-Key + If-Match (428/400) → agregado (404) → caso de uso (cuerpo 400) →
 //                 replay idempotente → versión estricta (409) → máquina de estados (409) → [guardas] → kernel; [derivados]
-//                 SIEMPRE, también en el replay (idempotentes por su llave: un reintento reconcilia, hallazgo D5)
+//                 SIEMPRE, también en el replay (idempotentes por su llave: un reintento idéntico reconcilia, hallazgo D5;
+//                 sin reintento no hay reconciliación del lado del servidor todavía, ver runtime/command.ts)
 // El caso de uso conserva su `parseJson(req,XBody)` literal (el registro de OpenAPI lo lee en el texto de cada handler) y hace
 // él mismo el chequeo del paciente registrado justo después, como hoy. El pipeline no toca el `payload`: el hash de
 // idempotencia del kernel lo serializa tal cual (claves `undefined` incluidas).
@@ -101,6 +102,26 @@ export async function priorCommand(ctx:HttpTenantContext,a:Readonly<{idempotency
 }
 // ¿Algún evento confirmado cita este blob? Solo el evento de ESTA llave podría (las rutas son únicas por intento). Si no se
 // puede comprobar, se responde que sí: un blob huérfano es preferible a un evento que cite un binario borrado.
-export async function blobReferenced(ctx:HttpTenantContext,idempotencyKey:string,aggregateId:string,pathname:string):Promise<boolean>{
+async function blobReferenced(ctx:HttpTenantContext,idempotencyKey:string,aggregateId:string,pathname:string):Promise<boolean>{
  return readEventById(ctx,derivedUuid(idempotencyKey,"event"),aggregateId).then(e=>e?.payload["pathname"]===pathname,()=>true);
+}
+// Revisión adversarial del lote 11 (D6) — SUBIDA AL BLOB + EVENTO que la cita, en un solo sitio (adjuntos y perfil del médico):
+//  1) replay primero, antes de subir nada; 2) subida a una ruta ÚNICA por intento; 3) commit del evento;
+//  4) si el commit falla por un rechazo DEFINITIVO del kernel y ningún evento cita la ruta, se borra el binario de este intento;
+//     ante un error ambiguo (p. ej. la conexión cae durante el COMMIT) se conserva: un huérfano es preferible a un evento que
+//     cite un binario borrado (PENDIENTE declarado: no existe aún un barrido que retire los binarios que ningún evento cita);
+//  5) si el rechazo se debe a que otro intento IDÉNTICO con la misma llave confirmó antes, se responde su replay (no un 409).
+const KERNEL_REJECTIONS:ReadonlySet<string>=new Set(["CONCURRENCY_CONFLICT","IDEMPOTENCY_CONFLICT","IDEMPOTENCY_IN_PROGRESS","AGGREGATE_TYPE_MISMATCH"]);
+const definiteRejection=(e:unknown)=>e instanceof ClinicalError?e.code!=="DEPENDENCY_UNAVAILABLE":e instanceof Error&&KERNEL_REJECTIONS.has(e.message);
+const idempotencyRace=(e:unknown)=>e instanceof Error&&(e.message==="IDEMPOTENCY_CONFLICT"||e.message==="IDEMPOTENCY_IN_PROGRESS");
+export async function uploadThenCommit(ctx:HttpTenantContext,a:Readonly<{idempotencyKey:string;aggregateId:string;pathname:string;
+ replay:()=>Promise<Response|null>;upload:()=>Promise<unknown>;commit:()=>Promise<Response>;discard:()=>Promise<unknown>}>):Promise<Response>{
+ const first=await a.replay();if(first)return first;
+ await a.upload();
+ try{return await a.commit();}
+ catch(e){
+  if(definiteRejection(e)&&!(await blobReferenced(ctx,a.idempotencyKey,a.aggregateId,a.pathname)))await a.discard().catch(()=>{/* mejor esfuerzo */});
+  if(idempotencyRace(e)){const again=await a.replay();if(again)return again;}
+  throw e;
+ }
 }

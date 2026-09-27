@@ -6,6 +6,8 @@ import{ClinicalError}from"../../runtime-errors/src";
 // Auditoría 2026-09-19 (C-02): CORRECTED es una ANOTACIÓN (no cambia el estado del ciclo de vida): el resultado queda
 // SUPERSEDIDO por otro resultado nuevo (`supersededBy`), que es el que leen las calculadoras y el gate de firma.
 export type ResultEventKind="RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED"|"CORRECTED";
+// Anotaciones del resultado: no cambian `state`. Toda proyección SQL del ciclo de vida las ignora con ESTA lista.
+export const RESULT_ANNOTATION_KINDS=["CORRECTED"]as const satisfies readonly ResultEventKind[];
 export type StoredResultEvent=Readonly<{sequence:number;payload:Record<string,unknown>}>;
 export type FoldedResult=Readonly<{exists:boolean;state:ResultState;version:number;patientId:string;critical:boolean;supersededBy:string|null;supersedes:string|null}>;
 

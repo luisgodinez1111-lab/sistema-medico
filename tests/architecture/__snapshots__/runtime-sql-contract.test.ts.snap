@@ -922,6 +922,13 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
             "guardian",
           ],
           "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          [
+            "REGISTERED",
+            "AMENDED",
+          ],
+          "curp",
+          "HEGG560427MVZRRL04",
           "HEGG560427MVZRRL04",
         ],
         "text": "select r.aggregate_id from clinical_events r left join lateral (
@@ -929,7 +936,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     select distinct on (kv.key) kv.key, kv.value from clinical_events e cross join lateral jsonb_each(e.payload) kv
     where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($1::text[])
       and kv.key=any($2::text[])
-    order by kv.key, e.sequence desc) f) d on true where r.tenant_id=$3 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(d.demo->>'curp')=$4 limit 1",
+    order by kv.key, e.sequence desc) f) d on true where r.tenant_id=$3 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id in (select c.aggregate_id from clinical_events c
+      where c.tenant_id=$4 and c.aggregate_type='Patient' and c.payload->>'kind'=any($5::text[])
+        and upper(c.payload->>$6)=$7) and upper(d.demo->>'curp')=$8 limit 1",
         "via": "tx",
       },
       {
@@ -977,6 +986,13 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
             "guardian",
           ],
           "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          [
+            "REGISTERED",
+            "AMENDED",
+          ],
+          "curp",
+          "HEGG560427MVZRRL04",
           "HEGG560427MVZRRL04",
         ],
         "text": "select r.aggregate_id from clinical_events r left join lateral (
@@ -984,7 +1000,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     select distinct on (kv.key) kv.key, kv.value from clinical_events e cross join lateral jsonb_each(e.payload) kv
     where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($1::text[])
       and kv.key=any($2::text[])
-    order by kv.key, e.sequence desc) f) d on true where r.tenant_id=$3 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(d.demo->>'curp')=$4 limit 1",
+    order by kv.key, e.sequence desc) f) d on true where r.tenant_id=$3 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id in (select c.aggregate_id from clinical_events c
+      where c.tenant_id=$4 and c.aggregate_type='Patient' and c.payload->>'kind'=any($5::text[])
+        and upper(c.payload->>$6)=$7) and upper(d.demo->>'curp')=$8 limit 1",
         "via": "tx",
       },
       {
@@ -1032,6 +1050,13 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
             "guardian",
           ],
           "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          [
+            "REGISTERED",
+            "AMENDED",
+          ],
+          "birthDate",
+          "1990-01-01",
           "1990-01-01",
           "ana perez",
         ],
@@ -1041,8 +1066,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($1::text[])
       and kv.key=any($2::text[])
     order by kv.key, e.sequence desc) f) d on true where r.tenant_id=$3 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
-    and d.demo->>'birthDate'=$4
-    and btrim(regexp_replace(lower(translate(d.demo->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=$5 limit 1",
+    and r.aggregate_id in (select c.aggregate_id from clinical_events c
+      where c.tenant_id=$4 and c.aggregate_type='Patient' and c.payload->>'kind'=any($5::text[])
+        and c.payload->>$6=$7) and d.demo->>'birthDate'=$8
+    and btrim(regexp_replace(lower(translate(d.demo->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=$9 limit 1",
         "via": "tx",
       },
       {
@@ -2210,17 +2237,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
   },
   "readEncounter": {
     "outcome": {
-      "ok": {
-        "encounterId": "00000000-0000-4000-8000-0000000000aa",
-        "events": [
-          {
-            "occurredAt": "2026-09-01T10:00:00.000Z",
-            "sequence": 1,
-            "type": "v_aggregate_type",
-          },
-        ],
-        "version": 1,
-      },
+      "ok": null,
     },
     "queries": [
       {
@@ -2754,6 +2771,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "CORRECTED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           [
             "REGISTERED",
@@ -2765,13 +2785,14 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "text": "
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
      a.payload->>'critical' as critical, a.payload->>'status' as status, a.payload->>'interpretation' as interpretation, a.occurred_at as received_at,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id
+       and not (c.payload->>'kind'=any($2::text[])) order by sequence desc limit 1) as last_kind,
      (select p.payload->>'name' from clinical_events p
-      where p.tenant_id=$2 and p.aggregate_type='Patient' and p.aggregate_id=(a.payload->>'patientId')::uuid
-        and p.payload->>'kind'=any($3::text[]) and p.payload ? 'name' order by p.sequence desc limit 1) as patient_name,
-     a.payload->>'canonicalValue' as canonical_value, exists(select 1 from clinical_events s where s.tenant_id=$4 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=a.aggregate_id::text) as superseded
+      where p.tenant_id=$3 and p.aggregate_type='Patient' and p.aggregate_id=(a.payload->>'patientId')::uuid
+        and p.payload->>'kind'=any($4::text[]) and p.payload ? 'name' order by p.sequence desc limit 1) as patient_name,
+     a.payload->>'canonicalValue' as canonical_value, exists(select 1 from clinical_events s where s.tenant_id=$5 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=a.aggregate_id::text) as superseded
    from clinical_events a
-   where a.tenant_id=$5 and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
+   where a.tenant_id=$6 and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
    order by a.occurred_at desc",
         "via": "tx",
       },
@@ -2920,7 +2941,7 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
   },
   "runClinicalCommand(transición)": {
     "outcome": {
-      "error": "Error: AGGREGATE_TYPE_MISMATCH",
+      "error": "Error: CONCURRENCY_CONFLICT",
     },
     "queries": [
       {
@@ -2960,8 +2981,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
+          1,
         ],
-        "text": "select aggregate_type from clinical_events where tenant_id=$1 and aggregate_id=$2 and sequence=1",
+        "text": "insert into aggregate_versions(tenant_id,aggregate_id,version) values($1,$2,1) on conflict(tenant_id,aggregate_id) do update set version=aggregate_versions.version+1,updated_at=now() where aggregate_versions.version=$3 returning version",
         "via": "tx",
       },
       {
@@ -3816,6 +3838,13 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
             "guardian",
           ],
           "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          [
+            "REGISTERED",
+            "AMENDED",
+          ],
+          "curp",
+          "HEGG560427MVZRRL04",
           "HEGG560427MVZRRL04",
         ],
         "text": "select r.aggregate_id from clinical_events r left join lateral (
@@ -3823,7 +3852,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     select distinct on (kv.key) kv.key, kv.value from clinical_events e cross join lateral jsonb_each(e.payload) kv
     where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($1::text[])
       and kv.key=any($2::text[])
-    order by kv.key, e.sequence desc) f) d on true where r.tenant_id=$3 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(d.demo->>'curp')=$4 limit 1",
+    order by kv.key, e.sequence desc) f) d on true where r.tenant_id=$3 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id in (select c.aggregate_id from clinical_events c
+      where c.tenant_id=$4 and c.aggregate_type='Patient' and c.payload->>'kind'=any($5::text[])
+        and upper(c.payload->>$6)=$7) and upper(d.demo->>'curp')=$8 limit 1",
         "via": "tx",
       },
       {
@@ -3845,6 +3876,13 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
             "guardian",
           ],
           "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          [
+            "REGISTERED",
+            "AMENDED",
+          ],
+          "birthDate",
+          "1990-01-01",
           "1990-01-01",
           "ana perez",
         ],
@@ -3854,8 +3892,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($1::text[])
       and kv.key=any($2::text[])
     order by kv.key, e.sequence desc) f) d on true where r.tenant_id=$3 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
-    and d.demo->>'birthDate'=$4
-    and btrim(regexp_replace(lower(translate(d.demo->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=$5 limit 1",
+    and r.aggregate_id in (select c.aggregate_id from clinical_events c
+      where c.tenant_id=$4 and c.aggregate_type='Patient' and c.payload->>'kind'=any($5::text[])
+        and c.payload->>$6=$7) and d.demo->>'birthDate'=$8
+    and btrim(regexp_replace(lower(translate(d.demo->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=$9 limit 1",
         "via": "tx",
       },
       {
@@ -3900,6 +3940,13 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
             "guardian",
           ],
           "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          [
+            "REGISTERED",
+            "AMENDED",
+          ],
+          "curp",
+          "HEGG560427MVZRRL04",
           "HEGG560427MVZRRL04",
         ],
         "text": "select r.aggregate_id from clinical_events r left join lateral (
@@ -3907,7 +3954,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     select distinct on (kv.key) kv.key, kv.value from clinical_events e cross join lateral jsonb_each(e.payload) kv
     where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($1::text[])
       and kv.key=any($2::text[])
-    order by kv.key, e.sequence desc) f) d on true where r.tenant_id=$3 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(d.demo->>'curp')=$4 limit 1",
+    order by kv.key, e.sequence desc) f) d on true where r.tenant_id=$3 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id in (select c.aggregate_id from clinical_events c
+      where c.tenant_id=$4 and c.aggregate_type='Patient' and c.payload->>'kind'=any($5::text[])
+        and upper(c.payload->>$6)=$7) and upper(d.demo->>'curp')=$8 limit 1",
         "via": "tx",
       },
       {
@@ -3952,6 +4001,13 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
             "guardian",
           ],
           "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000001",
+          [
+            "REGISTERED",
+            "AMENDED",
+          ],
+          "birthDate",
+          "1990-01-01",
           "1990-01-01",
           "ana perez",
         ],
@@ -3961,8 +4017,10 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
     where e.tenant_id=r.tenant_id and e.aggregate_id=r.aggregate_id and e.payload->>'kind'=any($1::text[])
       and kv.key=any($2::text[])
     order by kv.key, e.sequence desc) f) d on true where r.tenant_id=$3 and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
-    and d.demo->>'birthDate'=$4
-    and btrim(regexp_replace(lower(translate(d.demo->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=$5 limit 1",
+    and r.aggregate_id in (select c.aggregate_id from clinical_events c
+      where c.tenant_id=$4 and c.aggregate_type='Patient' and c.payload->>'kind'=any($5::text[])
+        and c.payload->>$6=$7) and d.demo->>'birthDate'=$8
+    and btrim(regexp_replace(lower(translate(d.demo->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=$9 limit 1",
         "via": "tx",
       },
       {
@@ -5480,6 +5538,9 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
       {
         "params": [
           "00000000-0000-4000-8000-000000000001",
+          [
+            "CORRECTED",
+          ],
           "00000000-0000-4000-8000-000000000001",
           [
             "REGISTERED",
@@ -5491,13 +5552,14 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "text": "
    select a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
      a.payload->>'critical' as critical, a.payload->>'status' as status, a.payload->>'interpretation' as interpretation, a.occurred_at as received_at,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind,
+     (select payload->>'kind' from clinical_events c where c.tenant_id=$1 and c.aggregate_id=a.aggregate_id
+       and not (c.payload->>'kind'=any($2::text[])) order by sequence desc limit 1) as last_kind,
      (select p.payload->>'name' from clinical_events p
-      where p.tenant_id=$2 and p.aggregate_type='Patient' and p.aggregate_id=(a.payload->>'patientId')::uuid
-        and p.payload->>'kind'=any($3::text[]) and p.payload ? 'name' order by p.sequence desc limit 1) as patient_name,
-     a.payload->>'canonicalValue' as canonical_value, exists(select 1 from clinical_events s where s.tenant_id=$4 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=a.aggregate_id::text) as superseded
+      where p.tenant_id=$3 and p.aggregate_type='Patient' and p.aggregate_id=(a.payload->>'patientId')::uuid
+        and p.payload->>'kind'=any($4::text[]) and p.payload ? 'name' order by p.sequence desc limit 1) as patient_name,
+     a.payload->>'canonicalValue' as canonical_value, exists(select 1 from clinical_events s where s.tenant_id=$5 and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=a.aggregate_id::text) as superseded
    from clinical_events a
-   where a.tenant_id=$5 and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
+   where a.tenant_id=$6 and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
    order by a.occurred_at desc",
         "via": "tx",
       },

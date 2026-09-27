@@ -4,7 +4,7 @@ import{type HttpTenantContext}from"../../../../../packages/http-principal/src";
 import{ClinicalError}from"../../../../../packages/runtime-errors/src";
 import{withTenantTx}from"../db";
 import{decodeCursor,encodeCursor,type Page,PAGE_LIMIT_MAX}from"../pagination";
-import{lifecycleEventOnly,patientDemographicsJoin}from"../sql";
+import{lifecycleEventOnly,patientDemographicsJoin,patientsEverWith}from"../sql";
 // EPIC S — Registro de pacientes del tenant (RLS-scoped). Devuelve id + nombre (PHI) + estado.
 export type PatientRow=Readonly<{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version:number}>;
 export type PatientListQuery=Readonly<{limit:number;cursor?:string|null;q?:string|null}>;
@@ -88,13 +88,13 @@ export type PatientDuplicate=Readonly<{patientId:string;by:"CURP"|"NAME_BIRTHDAT
 export async function findPatientDuplicate(ctx:HttpTenantContext,q:{curp?:string|undefined;normalizedName?:string|undefined;birthDate?:string|undefined}):Promise<PatientDuplicate|undefined>{
  return withTenantTx(ctx,async tx=>{
   if(q.curp){
-   const byCurp=await tx`select r.aggregate_id from clinical_events r ${patientDemographicsJoin(tx)} where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(d.demo->>'curp')=${q.curp} limit 1`;
+   const byCurp=await tx`select r.aggregate_id from clinical_events r ${patientDemographicsJoin(tx)} where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and ${patientsEverWith(tx,ctx.tenantId,"curp",q.curp,true)} and upper(d.demo->>'curp')=${q.curp} limit 1`;
    const row=byCurp[0] as{aggregate_id:string}|undefined;if(row)return{patientId:String(row.aggregate_id),by:"CURP"};
   }
   if(!q.normalizedName||!q.birthDate)return undefined;
   // Nombre: se compara sin acentos ni mayúsculas (unaccent no está garantizado en Neon: se normaliza en SQL con translate).
   const byName=await tx`select r.aggregate_id from clinical_events r ${patientDemographicsJoin(tx)} where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
-    and d.demo->>'birthDate'=${q.birthDate}
+    and ${patientsEverWith(tx,ctx.tenantId,"birthDate",q.birthDate)} and d.demo->>'birthDate'=${q.birthDate}
     and btrim(regexp_replace(lower(translate(d.demo->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=${q.normalizedName} limit 1`;
   const row=byName[0] as{aggregate_id:string}|undefined;return row?{patientId:String(row.aggregate_id),by:"NAME_BIRTHDATE"}:undefined;
  }) as Promise<PatientDuplicate|undefined>;

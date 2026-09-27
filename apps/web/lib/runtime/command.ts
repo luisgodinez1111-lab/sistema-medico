@@ -1,4 +1,5 @@
-// Lote 11 (ADR-0300) — ejecución de comandos clínicos en el kernel atómico (límite de tasa compartido, SLI) y replay idempotente. Extraído de apps/web/lib/clinical-runtime.ts sin cambios de código.
+// Lote 11 (ADR-0300) — ejecución de comandos clínicos en el kernel atómico (límite de tasa compartido, SLI) y replay idempotente.
+// Extraído de apps/web/lib/clinical-runtime.ts en 11.1; `runDerivedCommand` es la corrección del hallazgo D5.
 import crypto from"node:crypto";
 import{executeAtomicClinicalCommand,type ClinicalCommand}from"../../../../packages/atomic-clinical-transaction-v3/src";
 import{canonicalize}from"../../../../packages/canonical-json/src";
@@ -41,7 +42,10 @@ export async function lookupReplay(ctx:HttpTenantContext,command:ClinicalCommand
 // consecuencia obligatoria de un comando principal ya cobrado por el límite de tasa. Es idempotente por su llave derivada
 // (replay si ya se aplicó) y NO se cobra otra vez: antes, con el cubo del actor agotado entre ambos, el principal quedaba
 // confirmado y la obligación nunca se creaba (warfarina sin control de INR). Los casos de uso lo ejecutan también en el
-// camino de replay del principal, así que un reintento reconcilia lo que un fallo tras el commit principal dejó pendiente.
+// camino de replay del principal, así que un reintento IDÉNTICO (misma llave y mismo cuerpo) reconcilia lo que un fallo tras
+// el commit principal dejó pendiente. LÍMITE declarado por la revisión adversarial: sin ese reintento nada lo reconcilia (el
+// cliente del cockpit no reintenta un 409/500 y un clic nuevo lleva otra llave); falta un reconciliador del lado del servidor,
+// ligado al consumidor del outbox (D-03), para cerrar Zero-Lost-Follow-Up sin depender del cliente.
 export async function runDerivedCommand(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult>{
  const replay=await lookupReplay(ctx,command);if(replay)return replay;
  const span=sliSpan(flowForTopic(command.topic),"commit",command.correlationId);

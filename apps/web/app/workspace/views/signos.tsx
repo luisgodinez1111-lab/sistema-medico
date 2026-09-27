@@ -4,10 +4,10 @@
 import {apiRequest} from "../../../lib/session-client";
 import {parseBp} from "../../../../../packages/bp-staging/src";
 import {classifyVital} from "../../../../../packages/lab-reference/src";
-import{card,LINE,P,UI,newVitalCapture,submitVitals,userMessage,type VitalHistory,type VitalRecord}from"../shared";
+import{card,LINE,P,UI,liveVitalCapture,submitVitals,vitalSubmitMessage,userMessage,type VitalHistory,type VitalRecord}from"../shared";
 import{useWorkspace}from"../context";
 export default function SignosView(){
- const{svCapture,svPeso,svTalla,patientId,setSvMsg,svBpS,svBpD,svFc,svFr,svTemp,svSpo2,setSvBusy,setVitHist,setSvTemp,setSvFc,setSvFr,setSvBpS,setSvBpD,setSvSpo2,setSvPeso,setSvPab,setSvObs,setSvTalla,setSvPain,vitHist,snap,patientName,patientSelector,setView,svMsg,svBusy}=useWorkspace();
+ const{svCapture,isSelectedPatient,svPeso,svTalla,patientId,setSvMsg,svBpS,svBpD,svFc,svFr,svTemp,svSpo2,setSvBusy,setVitHist,setSvTemp,setSvFc,setSvFr,setSvBpS,setSvBpD,setSvSpo2,setSvPeso,setSvPab,setSvObs,setSvTalla,setSvPain,vitHist,snap,patientName,patientSelector,setView,svMsg,svBusy}=useWorkspace();
 
    // ===== MÓDULO SIGNOS VITALES (S-SIGNOS) — form cableado a POST /vitals + historial/tendencias por paciente =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -26,16 +26,24 @@ export default function SignosView(){
     if(!toSave.length){setSvMsg("Captura al menos un signo vital.");return;}
     setSvBusy(true);setSvMsg("");
     // D11a: antes cada clic regeneraba vitalId y llave (un reintento duplicaba) y se anunciaba «guardados ✓» aunque el servidor
-    // rechazara valores. Ahora la captura es estable hasta que TODO se guarda y el mensaje dice exactamente qué se guardó.
-    const capture=svCapture.current??(svCapture.current=newVitalCapture());
-    try{const{saved,failed,critical}=await submitVitals(capture,patientId,toSave);
-     const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET"});if(r.status===200)setVitHist(r.body as unknown as VitalHistory);
-     if(failed.length){setSvMsg(`Guardados: ${saved.length?saved.join(", "):"ninguno"}. NO guardados: ${failed.join(" · ")}. Corrija y vuelva a guardar: los ya guardados no se duplicarán.`);return;}
+    // rechazara valores. Ahora la captura es estable mientras dura y el mensaje dice exactamente qué se guardó (y los críticos).
+    const capture=liveVitalCapture(svCapture.current);svCapture.current=capture;
+    try{const res=await submitVitals(capture,patientId,toSave);
+     // Revisión adversarial (F4): si el médico cambió de paciente durante el guardado, nada de esta respuesta se muestra ni
+     // se asigna al paciente nuevo (la captura ya se descartó al cambiar).
+     if(!isSelectedPatient(patientId))return;
+     svCapture.current=res.capture;
+     const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET"});if(r.status===200&&isSelectedPatient(patientId))setVitHist(r.body as unknown as VitalHistory);
+     setSvMsg(vitalSubmitMessage(res));
+     // F3: lo guardado sale del formulario; queda solo lo rechazado para corregirlo.
+     const clearOf:Record<string,()=>void>={BP:()=>{setSvBpS("");setSvBpD("");},HR:()=>setSvFc(""),RESP:()=>setSvFr(""),TEMP:()=>setSvTemp(""),SPO2:()=>setSvSpo2(""),WEIGHT:()=>setSvPeso(""),HEIGHT:()=>setSvTalla("")};
+     if(res.failed.length){for(const vt of res.saved)clearOf[vt]?.();return;}
      svCapture.current=null;
-     setSvMsg(critical.length?`Signos vitales guardados ✓ — ⚠ ${critical.length} crítico(s): ${critical.join("; ")}. Un vital crítico sin atender bloquea la firma.`:"Signos vitales guardados ✓");setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvPab("");setSvObs("");
+     setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvPab("");setSvObs("");
     }catch(e){setSvMsg(userMessage(e));}finally{setSvBusy(false);}
    };
-   const clearForm=()=>{setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvTalla("");setSvPab("");setSvPain("0");setSvObs("");setSvMsg("");};
+   // F3: limpiar el formulario termina la captura: la siguiente toma lleva su propio id y su propia hora.
+   const clearForm=()=>{svCapture.current=null;setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvTalla("");setSvPab("");setSvPain("0");setSvObs("");setSvMsg("");};
    const svHist=!!vitHist;
    const records:VitalRecord[]=vitHist?.records??[];
    const sys=(ta:string)=>parseBp(ta)?.systolic??0; // C-21: parser único
