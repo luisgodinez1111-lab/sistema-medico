@@ -5,6 +5,7 @@ import{resolveDrug}from"../../../../../../../../packages/drug-catalog/src";
 import{problemRegistry,activeMedicationDrugCodes,activeAllergySubstances,latestResultValueForAnalyte,patientVitals,type VitalPoint}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC Y/UI — GET /api/v1/patients/:id/referral-context  (vista Nueva interconsulta, panel derecho)
 // Compone la "Información relevante del paciente": alergias, medicamentos actuales (nombre del principio activo),
 // problemas activos (código + descripción), últimos laboratorios (HbA1c) y signos vitales (TA/FC/IMC).
@@ -18,6 +19,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"referral:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const[allProblems,medCodes,allergies,hba1c,vitals]=await Promise.all([
    problemRegistry(tctx),
    activeMedicationDrugCodes(tctx,patientId),

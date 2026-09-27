@@ -3,6 +3,7 @@
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{ClinicalError}from"../../../../packages/runtime-errors/src";
 import{withTenantTx}from"./db";
+import{isAggregateId}from"./ids";
 // EPIC D — Lectura RLS-scoped del stream de eventos CON payload (para reconstruir estado).
 // El payload es contenido clínico (fuente de verdad, RLS-aislado); nunca se loguea.
 export async function readEncounterEvents(ctx:HttpTenantContext,encounterId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
@@ -29,6 +30,7 @@ export async function readAggregateEvents(ctx:HttpTenantContext,aggregateId:stri
 //   · id inexistente, o que pertenece a OTRO tipo de agregado (su génesis es de otro tipo) -> [] (el caso de uso responde 404);
 //   · stream que mezcla tipos (contaminado antes de esta corrección) -> INVARIANT_VIOLATION explícito: nunca se pliega a medias.
 export async function readAggregateStream(ctx:HttpTenantContext,aggregateType:string,aggregateId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
+ if(!isAggregateId(aggregateId))return []; // D8: un id que no es UUID no existe (sin viaje a la base)
  const rows=await withTenantTx(ctx,async tx=>
   tx`select sequence,aggregate_type,payload from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${aggregateId} order by sequence`) as ReadonlyArray<Record<string,unknown>>;
  if(rows.length===0||String(rows[0]!.aggregate_type)!==aggregateType)return [];

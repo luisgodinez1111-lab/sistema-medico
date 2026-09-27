@@ -8,7 +8,7 @@ import{latestResultValueForAnalyte}from"./runtime/read-models/results";
 import{requireRegisteredPatient}from"./runtime/read-models/patient";
 import{buildCommand,requireMutationHeaders,parseJson,replayStablePayload,derivedUuid}from"./http-command";
 import{endpoint}from"./http/endpoint";
-import{loadAggregate,transitionCommand}from"./command/aggregate-command";
+import{assertReadVersion,loadAggregate,transitionCommand}from"./command/aggregate-command";
 import{foldObligation}from"../../../packages/obligation-fold/src";
 import{classifyLab,normalizeLabValue,deltaCheck}from"../../../packages/lab-reference/src";
 // EPIC G — Ciclo de vida del resultado diagnóstico (closed-loop de seguimiento) sobre el kernel.
@@ -93,7 +93,7 @@ export async function handleResultCorrection(req:Request,resultId:string):Promis
   const annotation=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:resultId,expectedVersion,eventType:"RESULT_CORRECTED",payload:{kind:"CORRECTED",supersededBy:b.correctedResultId,reason:b.reason},occurredAt:b.occurredAt,topic:"result.corrected"});
   const replayed=await lookupReplay(ctx,annotation);
   if(replayed){const r=replayed.response as{version:number;auditHash?:string};return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,version:r.version,auditHash:r.auditHash,replayed:true},{status:200});}
-  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Result changed since last read",{expected:expectedVersion,actual:folded.version});
+  assertReadVersion("Result changed since last read",expectedVersion,folded.version);
   assertResultCorrectable(folded);
   const original=(await readAggregateStream(ctx,AGG,resultId)).find(e=>e.payload["kind"]==="RECEIVED")?.payload??{};
   const analyte=String(original["analyte"]??"");if(!analyte)throw new ClinicalError("CONFLICT","El resultado original no tiene analito: no se puede corregir");

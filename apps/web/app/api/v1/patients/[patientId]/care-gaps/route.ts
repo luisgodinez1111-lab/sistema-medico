@@ -6,6 +6,7 @@ import{ageInYears}from"../../../../../../../../packages/prescription-safety/src"
 import{readPatientTimeline,patientDemographics,activeProblemCodes,patientVitals,administeredVaccines,latestAnalyteReading}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC AA — GET /api/v1/patients/:id/care-gaps  (worklist clínico basado en reglas, metadatos sin PHI)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -14,6 +15,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   // Las brechas se calculan sobre TODOS los agregados del paciente: se recorren las páginas hasta agotar (S-08).
   const items:Awaited<ReturnType<typeof readPatientTimeline>>["items"][number][]=[];let cursor:string|null=null;
   do{const page=await readPatientTimeline(tctx,patientId,{limit:500,cursor});items.push(...page.items);cursor=page.nextCursor;}while(cursor);

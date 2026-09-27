@@ -6,6 +6,7 @@ import{evaluatePrescriptionSafety,ageInYears,type BarrierStatus}from"../../../..
 import{activeAllergies,activeMedicationDrugCodes,activeProblemCodes,patientEgfr,patientDemographics,latestVitalsByType}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom,parseJson}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC CG — POST /api/v1/patients/:id/prescription-check  (panel 3: "Prescripción segura y verificación")
 // DRY-RUN de las barreras de seguridad SIN escribir: alergia, interacción, duplicado terapéutico,
 // contraindicación por dx, dosis-techo, y ajuste renal por eGFR + monitorización. Núcleo determinista.
@@ -23,6 +24,7 @@ export async function POST(req:Request,ctx:{params:Promise<{patientId:string}>})
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const body=await parseJson(req,Body);
   const code=norm(body.drug);
   const[substances,activeMeds,conditions,egfrRaw,vitals,demo]=await Promise.all([

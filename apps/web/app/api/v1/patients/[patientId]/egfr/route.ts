@@ -6,6 +6,7 @@ import{patientDemographics,analyteSeries,latestAnalyteReading}from"../../../../.
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,notComputable as notComputableBody}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC BL — GET /api/v1/patients/:id/egfr (función renal CKD-EPI 2021 + estadio ERC; metadatos sin PHI cruda)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -21,6 +22,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const demo=await patientDemographics(tctx,patientId);
   if(!demo?.birthDate)throw new ClinicalError("NOT_FOUND","Patient not registered (demographics unavailable)");
   const asOf=new Date().toISOString();

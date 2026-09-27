@@ -144,4 +144,31 @@ describe("contrato HTTP de la API sin base de datos (ADR-0300, oráculo de los l
   expect(lines.length).toBeGreaterThan(1000);
   await expect(lines.join("\n")+"\n").toMatchFileSnapshot("__snapshots__/http-contract.jsonl");
  },600_000);
+ // Hallazgo D8 del lote 11: un id de ruta que no es UUID no puede existir. Con sesión y cabeceras válidas, toda operación con
+ // parámetros `*Id` responde 404 NOT_FOUND y NO llega a la persistencia con ese id (antes: 500 por 22P02 o 200 vacío).
+ it("un id de ruta con formato inválido es 404 tras autenticar, sin tocar la persistencia (D8)",async()=>{
+  const BAD="no-es-un-uuid",out:string[]=[];
+  for(const file of routes){
+   const rel=path.relative(API,file).split(path.sep).join("/");const oa="/api/"+rel.replace(/\/route\.ts$/,"").replace(/\[([^\]]+)\]/g,"{$1}");
+   const names=[...rel.matchAll(/\[([^\]]+)\]/g)].map(m=>m[1]!).filter(n=>n.endsWith("Id"));if(!names.length)continue;
+   const mod=await import(path.join(process.cwd(),file)) as Record<string,unknown>;
+   for(const method of["GET","POST","PUT","PATCH","DELETE"]){
+    const fn=mod[method];if(typeof fn!=="function")continue;
+    for(const bad of names){
+     arrange({id:"id-invalido",auth:"full",headers:true,body:"valid",events:"genesis",replay:false});
+     const params=Object.fromEntries([...rel.matchAll(/\[([^\]]+)\]/g)].map(m=>[m[1]!,m[1]===bad?BAD:m[1]==="kind"?"signature":P]));
+     const headers:Record<string,string>={"x-request-id":"req-contract","content-type":"application/json",authorization:`Bearer ${token(SCOPES,["PHYSICIAN"])}`};
+     if(method!=="GET"){headers["idempotency-key"]="idem-contract";headers["if-match"]="1";}
+     const schema=spec.paths[oa]?.[method.toLowerCase()]?.requestBody?.content["application/json"]?.schema;
+     const body=method==="GET"?undefined:JSON.stringify({...(schema?sample(schema) as object:{}),...OVERRIDE[`${method} ${oa}`]});
+     const req=new Request(`http://contract.local${oa.replace(/\{([^}]+)\}/g,(_m,k:string)=>String(params[k]))}`,{method,headers,...(body!==undefined?{body}:{})});
+     let status=0,code="";
+     try{const r=await (fn as(r:Request,c:unknown)=>Promise<Response>)(req,{params:Promise.resolve(params)});status=r.status;code=String(((await r.json().catch(()=>({}))) as{error?:{code?:string}}).error?.code??"");}catch(e){code=String(e);}
+     const touched=h.state.calls.some(c=>c.slice(1).some(a=>JSON.stringify(a)?.includes(BAD)));
+     if(status!==404||code!=="NOT_FOUND"||touched)out.push(`${method} ${oa} [${bad}] -> ${status} ${code}${touched?" (tocó la persistencia)":""}`);
+    }
+   }
+  }
+  expect(out).toEqual([]);
+ },600_000);
 });

@@ -5,6 +5,7 @@ import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{patientObligations,patientVitals,analyteSeries,problemRegistry,activeMedicationDrugCodes,activeAllergySubstances,type VitalPoint}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC BA/UI — GET /api/v1/patients/:id/follow-up  (vista Seguimiento, snapshot compuesto)
 // Compone: Tareas de seguimiento (obligaciones), Tendencia de signos vitales (series+promedios) e
 // Indicadores clave (HbA1c/LDL de labs, Peso/IMC de vitales, primero->último). Determinista, RLS-scoped.
@@ -18,6 +19,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"obligation:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const[tasks,points,hba1cS,ldlS,allProblems,meds,allergies]=await Promise.all([
    patientObligations(tctx,patientId),
    patientVitals(tctx,patientId),

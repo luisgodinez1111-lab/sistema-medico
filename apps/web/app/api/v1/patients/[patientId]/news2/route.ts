@@ -5,6 +5,7 @@ import{computeNEWS2,type News2Params}from"../../../../../../../../packages/lab-r
 import{latestVitalsByType,patientDemographics}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC BC — GET /api/v1/patients/:id/news2  (NEWS2 desde los últimos signos vitales; metadatos sin PHI)
 import{ageInYears}from"../../../../../../../../packages/prescription-safety/src";
 export const runtime="nodejs";
@@ -15,6 +16,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   // Auditoría C-09: NEWS2 está validado en adultos (≥16). El O₂ suplementario, la escala de SpO₂ y el nivel de conciencia
   // no son signos vitales registrados: se declaran en la consulta (?o2=true|false, ?spo2Scale=1|2, ?avpu=A|V|P|U). Lo que
   // no se declara FALTA, y con faltantes el score es una cota inferior (nunca "riesgo bajo").

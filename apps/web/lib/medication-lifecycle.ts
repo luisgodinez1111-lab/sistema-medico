@@ -132,9 +132,9 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
   const payload=await replayStablePayload(ctx,idempotencyKey,medicationId,b,()=>({kind:"PRESCRIBED",prescriberId:claims.sub,
    prescriber:cred?{fullName:cred.fullName,cedulaProfesional:cred.cedulaProfesional}:undefined,
    safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification},overrideForEvent(safety,override,claims.sub))}));
-  // Orden de precondiciones: PRIMERO la versión (`strictVersion`). No se le pide al médico que confirme y justifique una
+  // Orden de precondiciones: PRIMERO la versión (la comprueba el pipeline en toda transición, D7). No se le pide al médico que confirme y justifique una
   // prescripción sobre una vista obsoleta del expediente: con If-Match desfasado responde 409 y el cliente debe releer.
-  return{to:"PRESCRIBED",strictVersion:true,eventType:"MEDICATION_PRESCRIBED",payload,occurredAt:b.occurredAt,topic:"medication.prescribed",
+  return{to:"PRESCRIBED",eventType:"MEDICATION_PRESCRIBED",payload,occurredAt:b.occurredAt,topic:"medication.prescribed",
    guard:async()=>{
     await requirePhysicianCredentials(ctx,claims); // L-05: sin cédula registrada no hay prescripción (428)
     enforceSafety(safety,"prescribe",acknowledged,b.unverifiedJustification,override);},
@@ -167,7 +167,7 @@ export async function handleMedicationResume(req:Request,medicationId:string):Pr
   const safety=await evaluateSafetyFor(ctx,medicationId,folded,{dose:folded.dose,route:folded.route,frequency:folded.frequency},b.occurredAt);
   const acknowledged=b.acknowledgeUnverified===true;const override=overrideRequestOf(b);
   const payload=await replayStablePayload(ctx,idempotencyKey,medicationId,b,()=>({kind:"RESUMED",safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification},overrideForEvent(safety,override,claims.sub))}));
-  return{to:"ACTIVE",strictVersion:true,eventType:"MEDICATION_RESUMED",payload,occurredAt:b.occurredAt,topic:"medication.resumed",
+  return{to:"ACTIVE",eventType:"MEDICATION_RESUMED",payload,occurredAt:b.occurredAt,topic:"medication.resumed",
    guard:()=>{
     if(folded.state!=="HELD")throw new ClinicalError("CONFLICT",`Illegal medication transition ${folded.state} -> ACTIVE (resume requires HELD)`,{from:folded.state});
     enforceSafety(safety,"resume",acknowledged,b.unverifiedJustification,override);}};
@@ -179,7 +179,7 @@ export async function handleMedicationResume(req:Request,medicationId:string):Pr
 // (un `overrideWarning` afirmado por el cliente no es una verificación). Exige razón clínica del cambio.
 // Anotaciones (MODIFY y RECONCILE): la respuesta devuelve el estado vigente. Misma disciplina que una transición: replay
 // idempotente primero, versión (If-Match) antes que cualquier otra precondición, y guardas de dominio al final
-// (`strictVersion`, `check` con assertMedicationAnnotation y `guard` en el pipeline).
+// (versión del pipeline, `check` con assertMedicationAnnotation y `guard`).
 export const ModifyBody=z.object({dose:z.string().min(1).optional(),route:z.string().min(1).optional(),frequency:z.string().min(1).optional(),calculatedDose:z.string().optional(),reason:z.string().min(3).max(500),
  acknowledgeUnverified:z.boolean().optional(),unverifiedJustification:z.string().max(500).optional(),...OverrideFields,occurredAt:z.string().datetime()});
 export async function handleMedicationModification(req:Request,medicationId:string):Promise<Response>{
@@ -195,7 +195,7 @@ export async function handleMedicationModification(req:Request,medicationId:stri
   const payload=await replayStablePayload(ctx,idempotencyKey,medicationId,b,()=>({kind:"MODIFIED",reason:b.reason,
    dose:b.dose!==undefined?next.dose:undefined,route:b.route!==undefined?next.route:undefined,frequency:b.frequency!==undefined?next.frequency:undefined,calculatedDose:b.calculatedDose,
    previous:{dose:folded.dose,route:folded.route,frequency:folded.frequency},safety:summarizeForEvent(safety,{acknowledged,justification:b.unverifiedJustification},overrideForEvent(safety,override,claims.sub))}));
-  return{to:folded.state,strictVersion:true,check:()=>assertMedicationAnnotation(folded.state,"MODIFIED"),eventType:"MEDICATION_MODIFIED",payload,occurredAt:b.occurredAt,topic:"medication.modified",
+  return{to:folded.state,check:()=>assertMedicationAnnotation(folded.state,"MODIFIED"),eventType:"MEDICATION_MODIFIED",payload,occurredAt:b.occurredAt,topic:"medication.modified",
    guard:()=>enforceSafety(safety,"modify",acknowledged,b.unverifiedJustification,override),extra:{annotation:"MODIFIED"},tail:{order:next}};
  });
 }
@@ -213,6 +213,6 @@ export async function handleMedicationReconciliation(req:Request,medicationId:st
  return transitionCommand(req,WRITE,MED,medicationId,async({folded})=>{
   const b=await parseJson(req,ReconcileBody);
   const payload:Record<string,unknown>={kind:"RECONCILED",reconciliationStatus:b.status};if(b.note!==undefined)payload["note"]=b.note;
-  return{to:folded.state,strictVersion:true,check:()=>assertMedicationAnnotation(folded.state,"RECONCILED"),eventType:"MEDICATION_RECONCILED",payload,occurredAt:b.occurredAt,topic:"medication.reconciled",extra:{annotation:"RECONCILED"}};
+  return{to:folded.state,check:()=>assertMedicationAnnotation(folded.state,"RECONCILED"),eventType:"MEDICATION_RECONCILED",payload,occurredAt:b.occurredAt,topic:"medication.reconciled",extra:{annotation:"RECONCILED"}};
  });
 }

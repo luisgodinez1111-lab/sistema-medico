@@ -5,6 +5,7 @@ import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{patientVitals,type VitalPoint}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC W/UI — GET /api/v1/patients/:id/vitals  (vista Signos vitales: Últimos registros + Tendencias)
 // Agrupa los puntos VITAL_RECORDED por toma (mismo occurredAt) en filas TA/FC/FR/Temp/SpO2/Peso/Talla/IMC,
 // deriva IMC (peso/talla²) y las series de tendencia (TA sistólica, FC, Peso, IMC). Determinista, RLS-scoped.
@@ -19,6 +20,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const points=await patientVitals(tctx,patientId);
   // Agrupar por toma (occurredAt). Cada toma reúne los tipos con el mismo timestamp.
   const byAt=new Map<string,Record<string,string>>();

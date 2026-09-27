@@ -5,6 +5,7 @@ import{latestAnalyteReading}from"../../../../../../lib/clinical-runtime";
 import{verifyAnalyteReadings,provenance,MAX_AGE_DAYS,COHERENCE_HOURS}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC BN — GET /api/v1/patients/:id/metabolic-panel (derivaciones multi-analito: anion gap, calcio corregido)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -13,6 +14,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   // Se lee cada analito UNA vez (valor canónico + unidad + fecha) y cada derivada exige sus entradas plausibles,
   // vigentes y de la MISMA extracción (≤24 h): una brecha aniónica con sodio de hoy y cloro del mes pasado no es válida.
   const NAMES=["SODIUM","CHLORIDE","BICARBONATE","CALCIUM","ALBUMIN","GLUCOSE","BUN"] as const;

@@ -8,7 +8,7 @@ import{runClinicalCommand,lookupReplay}from"./runtime/command";
 import{documentDetail}from"./runtime/read-models/documents";
 import{requireRegisteredPatient}from"./runtime/read-models/patient";
 import{buildCommand,parseJson,replayStablePayload}from"./http-command";
-import{endpoint}from"./http/endpoint";
+import{endpoint,assertRouteIds}from"./http/endpoint";
 import{createCommand,transitionCommand}from"./command/aggregate-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
 // EPIC I — Ciclo de vida del documento clínico sobre el kernel. Autoridad PROD-014-R022 /
@@ -45,6 +45,7 @@ const TYPE_UI:Record<string,string>={PROGRESS_NOTE:"Nota médica",DISCHARGE_SUMM
 const STATUS_ES:Record<string,string>={DRAFT:"Borrador",FINALIZED:"Finalizado",SIGNED:"Firmado",AMENDED:"Enmendado"};
 export async function handleDocumentGet(req:Request,documentId:string):Promise<Response>{
  return endpoint(req,READ,async({ctx})=>{
+  assertRouteIds({documentId}); // D8
   const d=await documentDetail(ctx,documentId);
   if(!d.exists)throw new ClinicalError("NOT_FOUND","Document not found");
   return NextResponse.json({...d,typeLabel:TYPE_UI[d.docType]??"Otro",statusLabel:STATUS_ES[d.state]??"Borrador"},{status:200});
@@ -74,7 +75,7 @@ export async function handleDocumentSignature(req:Request,documentId:string):Pro
     signatureDigest:crypto.createHash("sha256").update(`${documentId}:${expectedVersion}:${contentHash}:${claims.sub}:${signedAt}`).digest("hex")};});
   const signedAt=String(payload["signedAt"]);const signatureDigest=String(payload["signatureDigest"]);
   // Sin replay: versión estricta -> transición -> contenido -> cédula. La huella y la hora de firma van tras `replayed`.
-  return{to:"SIGNED",eventType:"DOCUMENT_SIGNED",payload,occurredAt:signedAt,topic:"document.signed",strictVersion:true,tail:{signatureDigest,contentHash,signedAt},
+  return{to:"SIGNED",eventType:"DOCUMENT_SIGNED",payload,occurredAt:signedAt,topic:"document.signed",tail:{signatureDigest,contentHash,signedAt},
    guard:()=>{if(b.contentHash!==contentHash)throw new ClinicalError("CONFLICT","El contenido en pantalla no coincide con el documento guardado (SIGNED_CONTENT_MISMATCH). Recargue el documento y revíselo antes de firmar.");
     assertPhysicianCredentials(cred);}}; // L-05: sin cédula registrada no hay firma (428)
  });
@@ -105,6 +106,7 @@ export async function handleDocumentAttach(req:Request,documentId:string):Promis
  return endpoint(req,WRITE,async({claims:c,ctx})=>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
+  assertRouteIds({documentId}); // D8
   const detail=await documentDetail(ctx,documentId);
   if(!detail.exists)throw new ClinicalError("NOT_FOUND","Document not found");
   // Lee el archivo del multipart.
@@ -142,6 +144,7 @@ export async function handleDocumentAttach(req:Request,documentId:string):Promis
 // GET /api/v1/documents/:id/attachments/:attachmentId  -> descarga el binario a través de la Function (privado).
 export async function handleDocumentDownload(req:Request,documentId:string,attachmentId:string):Promise<Response>{
  return endpoint(req,READ,async({ctx})=>{
+  assertRouteIds({documentId,attachmentId}); // D8
   const detail=await documentDetail(ctx,documentId);
   if(!detail.exists)throw new ClinicalError("NOT_FOUND","Document not found");
   const att=detail.attachments.find(a=>a.attachmentId===attachmentId);
@@ -158,6 +161,7 @@ export async function handleDocumentAttachmentRemove(req:Request,documentId:stri
  return endpoint(req,WRITE,async({claims:c,ctx})=>{
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
+  assertRouteIds({documentId,attachmentId}); // D8
   const detail=await documentDetail(ctx,documentId);
   if(!detail.exists)throw new ClinicalError("NOT_FOUND","Document not found");
   const att=detail.attachments.find(a=>a.attachmentId===attachmentId);

@@ -4,6 +4,7 @@ import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{problemRegistry,carePlanGoals,activeMedicationDrugCodes,activeAllergySubstances,latestResultValueForAnalyte,patientVitals,type VitalPoint}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC X/UI — GET /api/v1/patients/:id/care-plan  (vista Plan de cuidado, snapshot compuesto)
 // Compone el contexto REAL del paciente: problemas asociados (con descripción y estado), conteos
 // (problemas/medicamentos/alergias), metas del plan (CarePlan) y métricas clave (HbA1c, TA, Peso, IMC).
@@ -19,6 +20,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"careplan:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const[allProblems,goals,meds,allergies,hba1c,vitals]=await Promise.all([
    problemRegistry(tctx),
    carePlanGoals(tctx,patientId),

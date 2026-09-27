@@ -5,6 +5,7 @@ import{buildRecordManifest,canonicalManifest}from"../../../../../../../../packag
 import{readPatientRecordRows}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC AB — GET /api/v1/patients/:id/export  (manifiesto del expediente + hash reproducible, NOM-024).
 // contentHash = sha256 del manifiesto canónico (SIN generatedAt) -> exportaciones idénticas => mismo hash.
 export const runtime="nodejs";
@@ -14,6 +15,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"record:export",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const rows=await readPatientRecordRows(tctx,patientId);
   const manifest=buildRecordManifest(patientId,rows);
   const contentHash=createHash("sha256").update(canonicalManifest(manifest)).digest("hex");

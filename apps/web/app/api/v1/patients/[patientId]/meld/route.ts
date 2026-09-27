@@ -4,6 +4,7 @@ import{meldScore}from"../../../../../../../../packages/meld/src";
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,COHERENCE_HOURS,notComputable}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC BW — GET /api/v1/patients/:id/meld (pronóstico de hepatopatía avanzada: bilirrubina + INR + creatinina)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -12,6 +13,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   // Entradas VERIFICADAS y de un mismo periodo (antes podían mezclarse una bilirrubina de hoy con un INR de hace meses).
   const inp=await readAnalyteInputs(tctx,patientId,[{analyte:"BILIRUBIN",maxAgeDays:MAX_AGE_DAYS.MELD},{analyte:"INR",maxAgeDays:MAX_AGE_DAYS.MELD},{analyte:"CREATININE",maxAgeDays:MAX_AGE_DAYS.MELD}],{coherenceHours:COHERENCE_HOURS.MELD});
   if(!inp.ok)return NextResponse.json({patientId,computable:false,...notComputable(inp)},{status:200});

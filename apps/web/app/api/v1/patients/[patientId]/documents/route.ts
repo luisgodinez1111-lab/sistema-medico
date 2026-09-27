@@ -3,6 +3,7 @@ import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{patientDocuments}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC Z/UI — GET /api/v1/patients/:id/documents  (vista Documentos: lista + carpetas por tipo)
 // Cada documento con título, tipo-UI, estado, fecha; MÁS conteos por carpeta (tipo) para el panel de carpetas
 // y los chips del paciente. Determinista, RLS-scoped.
@@ -15,6 +16,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"document:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const rows=await patientDocuments(tctx,patientId);
   const items=rows.map(r=>({
    documentId:r.documentId,title:r.title,

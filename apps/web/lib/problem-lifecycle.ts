@@ -36,10 +36,10 @@ export const EpistemicBody=z.object({epistemic:z.enum(["POSSIBLE","PROBABLE","CO
 export const EvidenceBody=z.object({evidenceFor:z.array(z.string()).optional(),evidenceAgainst:z.array(z.string()).optional(),confidence:z.number().min(0).max(100).optional(),occurredAt:z.string().datetime()});
 // Auditoría L-04 — ANOTACIÓN (estado epistémico / evidencia): no cambia el estado del problema. Antes se pedía la
 // "transición" X->X, que ningún fold admite, y estas dos rutas respondían 409 siempre. En el pipeline: versión estricta
-// (`strictVersion`), `assertProblemAnnotation` en lugar de la máquina de estados (`check`) y el estado plegado en la respuesta.
+// (la del pipeline, D7), `assertProblemAnnotation` en lugar de la máquina de estados (`check`) y el estado plegado en la respuesta.
 export async function handleProblemEpistemicUpdate(req:Request,problemId:string):Promise<Response>{
  return transitionCommand(req,WRITE,PROBLEM,problemId,async({folded})=>{const b=await parseJson(req,EpistemicBody);
-  return{to:folded.state,strictVersion:true,check:()=>assertProblemAnnotation(folded.state,"EPISTEMIC_CHANGED"),eventType:"PROBLEM_EPISTEMIC_CHANGED",payload:{kind:"EPISTEMIC_CHANGED",epistemic:b.epistemic},occurredAt:b.occurredAt,topic:"problem.epistemic_changed",extra:{annotation:"EPISTEMIC_CHANGED"}};});
+  return{to:folded.state,check:()=>assertProblemAnnotation(folded.state,"EPISTEMIC_CHANGED"),eventType:"PROBLEM_EPISTEMIC_CHANGED",payload:{kind:"EPISTEMIC_CHANGED",epistemic:b.epistemic},occurredAt:b.occurredAt,topic:"problem.epistemic_changed",extra:{annotation:"EPISTEMIC_CHANGED"}};});
 }
 
 export async function handleProblemEvidenceUpdate(req:Request,problemId:string):Promise<Response>{
@@ -47,7 +47,7 @@ export async function handleProblemEvidenceUpdate(req:Request,problemId:string):
   if(b.evidenceFor===undefined&&b.evidenceAgainst===undefined&&b.confidence===undefined)throw new ClinicalError("VALIDATION_ERROR","Indique evidenceFor, evidenceAgainst o confidence");
   const payload:Record<string,unknown>={kind:"EVIDENCE_UPDATED"};
   if(b.evidenceFor!==undefined)payload["evidenceFor"]=b.evidenceFor;if(b.evidenceAgainst!==undefined)payload["evidenceAgainst"]=b.evidenceAgainst;if(b.confidence!==undefined)payload["confidence"]=b.confidence;
-  return{to:folded.state,strictVersion:true,check:()=>assertProblemAnnotation(folded.state,"EVIDENCE_UPDATED"),eventType:"PROBLEM_EVIDENCE_UPDATED",payload,occurredAt:b.occurredAt,topic:"problem.evidence_updated",extra:{annotation:"EVIDENCE_UPDATED"}};});
+  return{to:folded.state,check:()=>assertProblemAnnotation(folded.state,"EVIDENCE_UPDATED"),eventType:"PROBLEM_EVIDENCE_UPDATED",payload,occurredAt:b.occurredAt,topic:"problem.evidence_updated",extra:{annotation:"EVIDENCE_UPDATED"}};});
 }
 export async function handleProblemResolution(req:Request,problemId:string):Promise<Response>{
  return transitionCommand(req,WRITE,PROBLEM,problemId,async()=>{const b=await parseJson(req,ResolveBody);

@@ -10,6 +10,7 @@ import{patientDemographics,officeSettings,readAggregateStream}from"../../../../.
 import{requirePhysicianCredentials}from"../../../../../../lib/physician-profile-lifecycle";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // Auditoría 2026-09-19 (U-20, L-05) — GET /api/v1/patients/:id/prescription-print?medications=<id>[,<id>…]
 // Receta imprimible con los requisitos legales mexicanos (RIS arts. 28–31; LGS arts. 83, 226, 241; NOM-004-SSA3-2012).
 // Es una LECTURA: no crea eventos; reimprimir no altera el expediente. Reglas:
@@ -29,6 +30,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,role:"PHYSICIAN",scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const ids=[...new Set((new URL(req.url).searchParams.get("medications")??"").split(",").map(s=>s.trim()).filter(Boolean))];
   if(ids.length===0||ids.length>MAX_ITEMS||ids.some(id=>!UUID.test(id)))throw new ClinicalError("VALIDATION_ERROR",`medications: entre 1 y ${MAX_ITEMS} identificadores UUID separados por coma`);
   const cred=await requirePhysicianCredentials(tctx,claims);

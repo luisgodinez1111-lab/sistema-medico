@@ -5,10 +5,10 @@ import{type HttpTenantContext}from"../../../packages/http-principal/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldEncounter,assertTransition}from"../../../packages/encounter-fold/src";
 import{runClinicalCommand,lookupReplay}from"./runtime/command";
-import{readAggregateStream}from"./runtime/event-store";
 import{blockingObligations,countOpenCriticalResults,countOpenCriticalVitals}from"./runtime/read-models/follow-up";
 import{buildCommand,requireMutationHeaders,replayStablePayload}from"./http-command";
 import{endpoint}from"./http/endpoint";
+import{assertReadVersion,loadAggregate}from"./command/aggregate-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
 // EPIC D — Ciclo de vida del encuentro sobre el kernel probado: assess (OPEN->READY_TO_SIGN)
 // y sign (READY_TO_SIGN->SIGNED). Concurrencia optimista real (If-Match=version) e invariantes
@@ -26,14 +26,12 @@ const AssessBody=z.object({assessment:z.string().min(1),plan:z.string().min(1),o
 const SignBody=z.object({occurredAt:z.string().datetime(),contentHash:z.string().regex(/^[0-9a-f]{64}$/,"contentHash must be a sha256 hex digest")});
 export function encounterContentHash(assessment:string,plan:string):string{return crypto.createHash("sha256").update(`${assessment}\n${plan}`).digest("hex");}
 
-// Tras `endpoint`: cabeceras de mutación (428/400) y encuentro plegado (404), leído con el stream TIPADO como `loadAggregate`.
+// Tras `endpoint`: cabeceras de mutación (428/400) y encuentro plegado (404) con `loadAggregate` (stream tipado, id válido).
+const ENCOUNTER={aggregateType:AGG,idField:"encounterId",stateField:"status",fold:foldEncounter,notFound:"Encounter not found"} as const;
 async function load(req:Request,ctx:HttpTenantContext,encounterId:string){
  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const events=await readAggregateStream(ctx,AGG,encounterId);
- const folded=foldEncounter(events);
- if(!folded.exists)throw new ClinicalError("NOT_FOUND","Encounter not found");
- // La concurrencia optimista la impone el kernel (expectedVersion en aggregate_versions);
- // no se valida la versión aquí para no bloquear el replay idempotente de una transición.
+ const folded=await loadAggregate(ctx,ENCOUNTER,encounterId);
+ // La versión (If-Match) se valida tras consultar el replay (assertReadVersion, D7): un reintento ya aplicado no se re-evalúa.
  return{idempotencyKey,expectedVersion,folded};
 }
 
@@ -47,6 +45,7 @@ export async function handleAssessment(req:Request,encounterId:string):Promise<R
   if(!result){
    // Auditoría L-03: mientras la nota NO esté firmada el médico puede CORREGIRLA (nuevo evento ASSESSED, nueva versión). Antes
    // la re-valoración era ilegal, así que un cambio hecho tras "guardar" no tenía forma de llegar a lo que se firmaba.
+   assertReadVersion("Encounter changed since last read",expectedVersion,folded.version); // D7
    if(folded.status!=="READY_TO_SIGN")assertTransition(folded.status,"READY_TO_SIGN");
    result=await runClinicalCommand(ctx,cmd);
   }
@@ -77,7 +76,7 @@ export async function handleSignature(req:Request,encounterId:string):Promise<Re
   let result=await lookupReplay(ctx,cmd);
   if(!result){
    // Orden de precondiciones: versión -> transición -> contenido -> lazo cerrado.
-   if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Encounter changed since last read",{expected:expectedVersion,actual:folded.version});
+   assertReadVersion("Encounter changed since last read",expectedVersion,folded.version);
    assertTransition(folded.status,"SIGNED");
    if(parsed.data.contentHash!==contentHash)throw new ClinicalError("CONFLICT","El contenido en pantalla no coincide con la valoración guardada (SIGNED_CONTENT_MISMATCH). Guarde la valoración de nuevo y revise el texto antes de firmar.");
    assertPhysicianCredentials(cred); // L-05: sin cédula registrada no hay firma (428)

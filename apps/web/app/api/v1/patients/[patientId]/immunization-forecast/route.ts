@@ -5,6 +5,7 @@ import{forecastImmunizations,forecastSummary,ageInMonths}from"../../../../../../
 import{patientBirthDate,administeredVaccines}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC BK — GET /api/v1/patients/:id/immunization-forecast (cartilla: DUE/OVERDUE/UPCOMING por edad)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -13,6 +14,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const birthDate=await patientBirthDate(tctx,patientId);
   if(!birthDate)throw new ClinicalError("NOT_FOUND","Patient not registered (birthDate unavailable)");
   const administered=await administeredVaccines(tctx,patientId);

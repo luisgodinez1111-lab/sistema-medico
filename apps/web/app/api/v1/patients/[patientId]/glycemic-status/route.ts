@@ -5,6 +5,7 @@ import{activeProblemCodes}from"../../../../../../lib/clinical-runtime";
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,notComputable}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC BP — GET /api/v1/patients/:id/glycemic-status (HbA1c -> eAG + control; marco diabético vs tamizaje)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -13,6 +14,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   // HbA1c VERIFICADA: en % (NGSP; se convierte desde mmol/mol IFCC si así se registró), plausible y vigente.
   const inp=await readAnalyteInputs(tctx,patientId,[{analyte:"HBA1C",maxAgeDays:MAX_AGE_DAYS.GLYCEMIC_CONTROL}]);
   if(!inp.ok)return NextResponse.json({patientId,computable:false,...notComputable(inp)},{status:200});

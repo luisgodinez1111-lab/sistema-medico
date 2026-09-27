@@ -6,6 +6,7 @@ import{activeMedicationDrugCodes}from"../../../../../../lib/clinical-runtime";
 import{readAnalyteInputs,provenance,MAX_AGE_DAYS,notComputable}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC BU — GET /api/v1/patients/:id/anticoagulation-status (INR interpretado en contexto del anticoagulante)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -14,6 +15,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   // INR VERIFICADO y reciente: un INR de hace meses no describe la anticoagulación actual.
   const inp=await readAnalyteInputs(tctx,patientId,[{analyte:"INR",maxAgeDays:MAX_AGE_DAYS.ANTICOAGULATION}]);
   // ¿Está el paciente con un antagonista de vitamina K activo? (contexto de aplicación del rango terapéutico)

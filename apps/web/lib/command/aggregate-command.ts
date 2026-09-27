@@ -3,6 +3,7 @@ import{ClinicalError}from"../../../../packages/runtime-errors/src";
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{buildCommand,requireMutationHeaders}from"../http-command";
 import{readAggregateStream}from"../runtime/event-store";
+import{isAggregateId}from"../runtime/ids";
 import{lookupReplay,runClinicalCommand,type ClinicalCommandResult}from"../runtime/command";
 import{endpoint,type Guard,type Verified}from"../http/endpoint";
 // Lote 11 (ADR-0300) — PIPELINE DE COMANDOS de los agregados clínicos. Es el protocolo que cada *-lifecycle.ts copiaba a mano
@@ -10,7 +11,7 @@ import{endpoint,type Guard,type Verified}from"../http/endpoint";
 //   crear:        sesión (401) → autorización (403) → Idempotency-Key (428) → caso de uso (cuerpo 400, paciente 404/409,
 //                 reglas de dominio) → kernel → {<id>, <estado>, ...extra, version, auditHash, replayed} 201 / 200
 //   transicionar: sesión → autorización → Idempotency-Key + If-Match (428/400) → agregado (404) → caso de uso (cuerpo 400) →
-//                 replay idempotente → [versión estricta 409] → máquina de estados (409) → [guardas] → kernel → [derivados]
+//                 replay idempotente → versión estricta (409) → máquina de estados (409) → [guardas] → kernel → [derivados]
 // El caso de uso conserva su `parseJson(req,XBody)` literal (el registro de OpenAPI lo lee en el texto de cada handler) y hace
 // él mismo el chequeo del paciente registrado justo después, como hoy. El pipeline no toca el `payload`: el hash de
 // idempotencia del kernel lo serializa tal cual (claves `undefined` incluidas).
@@ -26,9 +27,18 @@ export type AggregateSpec<F>=Readonly<{
 }>;
 export type TransitionSpec<F,S extends string>=AggregateSpec<F>&Readonly<{assertTransition:(from:S,to:S)=>void}>;
 const stateKey=(spec:Readonly<{stateField?:"state"|"status"}>)=>spec.stateField??"state";
+// Hallazgo D7 del lote 11 — concurrencia optimista ESTRICTA: las reglas de dominio y la máquina de estados se evalúan sobre la
+// misma versión que el kernel exigirá (If-Match). Si el cliente trae otra: 409 CONCURRENCY_CONFLICT {expected,actual} antes de
+// cualquier regla. Antes 23 transiciones evaluaban la máquina sobre la versión leída por el servidor: un If-Match desfasado
+// respondía un CONFLICT engañoso y, bajo concurrencia, se persistían transiciones ilegales. Solo en el camino SIN replay.
+export function assertReadVersion(changed:string,expected:number,actual:number):void{
+ if(expected!==actual)throw new ClinicalError("CONCURRENCY_CONFLICT",changed,{expected,actual});
+}
 // Carga el agregado o 404: el preludio que comparten los handlers que no pasan por transitionCommand. Lee el stream TIPADO
-// (hallazgo D4): un id de otro tipo de agregado es un 404, nunca un stream ajeno que plegar y en el que escribir.
+// (hallazgo D4): un id de otro tipo de agregado es un 404, nunca un stream ajeno que plegar y en el que escribir; un id que no
+// es UUID (hallazgo D8), también, y sin tocar la base.
 export async function loadAggregate<F extends{exists:boolean}>(ctx:HttpTenantContext,spec:AggregateSpec<F>,id:string):Promise<F>{
+ if(!isAggregateId(id))throw new ClinicalError("NOT_FOUND",spec.notFound);
  const folded=spec.fold(await readAggregateStream(ctx,spec.aggregateType,id));
  if(!folded.exists)throw new ClinicalError("NOT_FOUND",spec.notFound);
  return folded;
@@ -51,7 +61,6 @@ export type Transition<S extends string>=Readonly<{
  extra?:Record<string,unknown>;         // claves entre el estado y `version` en la respuesta
  tail?:Record<string,unknown>;          // claves tras `replayed` en la respuesta
  check?:false|(()=>void);               // sustituye a la máquina de estados (anotaciones) o la omite (false)
- strictVersion?:true;                   // If-Match ≠ versión leída → 409 CONCURRENCY_CONFLICT {expected,actual}, antes del chequeo
  guard?:()=>void|Promise<void>;         // barreras previas al kernel (cédula, seguridad), solo si no es replay
  afterRun?:(r:ClinicalCommandResult)=>Promise<void>; // comandos derivados tras el kernel, solo si no es replay
 }>;
@@ -64,7 +73,7 @@ export async function transitionCommand<F extends{exists:boolean;version:number}
   const cmd=buildCommand({idempotencyKey,aggregateType:spec.aggregateType,aggregateId:id,expectedVersion,eventType:t.eventType,payload:t.payload,occurredAt:t.occurredAt,topic:t.topic});
   let result=await lookupReplay(v.ctx,cmd);
   if(!result){
-   if(t.strictVersion&&expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT",spec.changed??`${spec.aggregateType} changed since last read`,{expected:expectedVersion,actual:folded.version});
+   assertReadVersion(spec.changed??`${spec.aggregateType} changed since last read`,expectedVersion,folded.version);
    if(t.check!==false){if(t.check)t.check();else spec.assertTransition((folded as unknown as Record<string,S>)[stateKey(spec)]!,t.to);}
    if(t.guard)await t.guard();
    result=await runClinicalCommand(v.ctx,cmd);

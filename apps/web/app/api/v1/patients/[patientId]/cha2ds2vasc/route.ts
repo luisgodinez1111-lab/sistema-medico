@@ -5,6 +5,7 @@ import{cha2ds2vasc}from"../../../../../../../../packages/stroke-risk/src";
 import{patientDemographics,activeProblemCodes}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC BQ — GET /api/v1/patients/:id/cha2ds2vasc (riesgo de ictus en FA -> indicación de anticoagulación)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -18,6 +19,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const demo=await patientDemographics(tctx,patientId);
   if(!demo?.birthDate)throw new ClinicalError("NOT_FOUND","Patient not registered (demographics unavailable)");
   const codes=await activeProblemCodes(tctx,patientId);

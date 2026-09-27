@@ -4,6 +4,7 @@ import{resolveDrug}from"../../../../../../../../packages/drug-catalog/src";
 import{resultsRegistry,ordersRegistry,activeMedicationDrugCodes,carePlanGoals,patientDocuments,patientObligations,type VitalPoint}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC K/UI — GET /api/v1/patients/:id/consultation-tabs  (vista Consulta, pestañas por paciente)
 // Compone en un solo snapshot los datos por paciente de las pestañas Resultados/Órdenes/Medicamentos/Plan de
 // cuidados/Documentos/Seguimiento, reutilizando los readers ya probados. Determinista, sin escritura, RLS-scoped.
@@ -19,6 +20,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const[allResults,allOrders,medCodes,goals,docs,obls]=await Promise.all([
    resultsRegistry(tctx),
    ordersRegistry(tctx),

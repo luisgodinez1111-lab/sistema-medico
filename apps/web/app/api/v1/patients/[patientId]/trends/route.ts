@@ -3,6 +3,7 @@ import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{analyteSeries,latestResultValueForAnalyte,patientEgfr}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom}from"../../../../../../lib/http-command";
+import{assertRouteIds}from"../../../../../../lib/http/endpoint";
 // EPIC CH — GET /api/v1/patients/:id/trends  (panel 4: "Resultados y evolución longitudinal")
 // Series temporales de analitos clave + últimos valores para el grid de "otros resultados". Determinista.
 export const runtime="nodejs";
@@ -14,6 +15,7 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await ctx.params;
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{tenantId:claims.tenantId,scope:"patient:read",purpose:"TREATMENT"});
+  assertRouteIds({patientId}); // D8: id con formato inválido -> 404, sin tocar la base
   const[hba1c,glucose,ldl,creatinine,latLdl,latCreat,latUacr,egfr]=await Promise.all([
    analyteSeries(tctx,patientId,"HBA1C"),
    analyteSeries(tctx,patientId,"GLUCOSE"),
