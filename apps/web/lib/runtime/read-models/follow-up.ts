@@ -2,6 +2,7 @@
 import{type HttpTenantContext}from"../../../../../packages/http-principal/src";
 import{signatureBlockReason,type SignatureBlockReason}from"../../../../../packages/obligation-fold/src";
 import{withTenantTx}from"../db";
+import{currentVitalJoins,vitalNotVoided}from"../sql";
 // EPIC X/UI — Metas del plan de cuidados de UN paciente (vista Plan de cuidado). Por cada agregado CarePlan
 // toma el evento base CAREPLAN_PROPOSED (categoría/meta) y su ESTADO por la última transición
 // (PROPOSED/ACTIVATED/RESUMED->ACTIVE, ON_HOLD, ACHIEVED, CANCELLED). RLS-scoped.
@@ -82,17 +83,18 @@ export async function countOpenCriticalResults(ctx:HttpTenantContext,patientId:s
   return Number(rows[0]?.n??0);
  }) as Promise<number>;
 }
-// EPIC AN + Zero Lost Follow-Up: cuenta signos vitales CRÍTICOS del paciente
-// que están en estado RECORDED o AMENDED (no corregidos) y no han sido abordados
-// (no existe obligación creada para ese vital). Bloquea firma del encuentro.
+// EPIC AN + Zero Lost Follow-Up: cuenta signos vitales del paciente cuyo valor VIGENTE (el de la última corrección) es
+// CRÍTICO, que no están anulados y no han sido abordados (no existe obligación creada para ese vital). Bloquea firma del
+// encuentro. Hallazgo D1 del lote 11: antes el paciente se buscaba también en AMENDED (que no lo lleva) y un vital marcado
+// como erróneo seguía contando; ahora usa la misma proyección de "valor vigente" que el fold (`currentVitalJoins`).
 export async function countOpenCriticalVitals(ctx:HttpTenantContext,patientId:string):Promise<number>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select count(distinct r.aggregate_id)::int n
    from clinical_events r
-   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='VitalSign'
-     and r.payload->>'kind' in ('RECORDED','AMENDED')
-     and r.payload->>'patientId'=${patientId} and r.payload->>'critical'='true'
+   ${currentVitalJoins(tx)}
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
+     and r.payload->>'patientId'=${patientId} and ${vitalNotVoided(tx)} and cur.payload->>'critical'='true'
      and not exists(
       select 1 from clinical_events c
       where c.tenant_id=${ctx.tenantId} and c.aggregate_type='ClinicalObligation'

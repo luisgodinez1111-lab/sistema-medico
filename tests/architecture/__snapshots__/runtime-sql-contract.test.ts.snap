@@ -707,17 +707,19 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
+          "ENTERED_IN_ERROR",
           "00000000-0000-4000-8000-000000000001",
         ],
         "text": "
    select count(distinct r.aggregate_id)::int n
    from clinical_events r
-   where r.tenant_id=$1 and r.aggregate_type='VitalSign'
-     and r.payload->>'kind' in ('RECORDED','AMENDED')
-     and r.payload->>'patientId'=$2 and r.payload->>'critical'='true'
+   join lateral (select l.payload->>'kind' as kind from clinical_events l where l.tenant_id=r.tenant_id and l.aggregate_id=r.aggregate_id order by l.sequence desc limit 1) last on true
+   join lateral (select v.payload from clinical_events v where v.tenant_id=r.tenant_id and v.aggregate_id=r.aggregate_id and v.payload ? 'value' order by v.sequence desc limit 1) cur on true
+   where r.tenant_id=$1 and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
+     and r.payload->>'patientId'=$2 and last.kind<>$3 and cur.payload->>'critical'='true'
      and not exists(
       select 1 from clinical_events c
-      where c.tenant_id=$3 and c.aggregate_type='ClinicalObligation'
+      where c.tenant_id=$4 and c.aggregate_type='ClinicalObligation'
         and c.payload->>'sourceVitalId'=r.aggregate_id::text and c.payload->>'kind'='CREATED')",
         "via": "tx",
       },
@@ -1172,12 +1174,15 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
+          "ENTERED_IN_ERROR",
         ],
         "text": "
-   select distinct on (r.payload->>'vitalType') r.payload->>'vitalType' as vital_type, r.payload->>'value' as value
+   select distinct on (r.payload->>'vitalType') r.payload->>'vitalType' as vital_type, cur.payload->>'value' as value
    from clinical_events r
+   join lateral (select l.payload->>'kind' as kind from clinical_events l where l.tenant_id=r.tenant_id and l.aggregate_id=r.aggregate_id order by l.sequence desc limit 1) last on true
+   join lateral (select v.payload from clinical_events v where v.tenant_id=r.tenant_id and v.aggregate_id=r.aggregate_id and v.payload ? 'value' order by v.sequence desc limit 1) cur on true
    where r.tenant_id=$1 and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
-     and r.payload->>'patientId'=$2
+     and r.payload->>'patientId'=$2 and last.kind<>$3
    order by r.payload->>'vitalType', r.occurred_at desc, r.sequence desc",
         "via": "tx",
       },
@@ -1770,14 +1775,18 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
+          "ENTERED_IN_ERROR",
           400,
         ],
         "text": "
-   select v.occurred_at as at, v.payload->>'vitalType' as vital_type, v.payload->>'value' as value, v.payload->>'unit' as unit
-   from clinical_events v
-   where v.tenant_id=$1 and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=$2
-   order by v.occurred_at desc
-   limit $3",
+   select r.occurred_at as at, r.payload->>'vitalType' as vital_type, cur.payload->>'value' as value, cur.payload->>'unit' as unit
+   from clinical_events r
+   join lateral (select l.payload->>'kind' as kind from clinical_events l where l.tenant_id=r.tenant_id and l.aggregate_id=r.aggregate_id order by l.sequence desc limit 1) last on true
+   join lateral (select v.payload from clinical_events v where v.tenant_id=r.tenant_id and v.aggregate_id=r.aggregate_id and v.payload ? 'value' order by v.sequence desc limit 1) cur on true
+   where r.tenant_id=$1 and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=$2
+     and last.kind<>$3
+   order by r.occurred_at desc
+   limit $4",
         "via": "tx",
       },
       {
@@ -1807,14 +1816,18 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
+          "ENTERED_IN_ERROR",
           50,
         ],
         "text": "
-   select v.occurred_at as at, v.payload->>'vitalType' as vital_type, v.payload->>'value' as value, v.payload->>'unit' as unit
-   from clinical_events v
-   where v.tenant_id=$1 and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=$2
-   order by v.occurred_at desc
-   limit $3",
+   select r.occurred_at as at, r.payload->>'vitalType' as vital_type, cur.payload->>'value' as value, cur.payload->>'unit' as unit
+   from clinical_events r
+   join lateral (select l.payload->>'kind' as kind from clinical_events l where l.tenant_id=r.tenant_id and l.aggregate_id=r.aggregate_id order by l.sequence desc limit 1) last on true
+   join lateral (select v.payload from clinical_events v where v.tenant_id=r.tenant_id and v.aggregate_id=r.aggregate_id and v.payload ? 'value' order by v.sequence desc limit 1) cur on true
+   where r.tenant_id=$1 and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=$2
+     and last.kind<>$3
+   order by r.occurred_at desc
+   limit $4",
         "via": "tx",
       },
       {
@@ -3174,17 +3187,19 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
+          "ENTERED_IN_ERROR",
           "00000000-0000-4000-8000-000000000001",
         ],
         "text": "
    select count(distinct r.aggregate_id)::int n
    from clinical_events r
-   where r.tenant_id=$1 and r.aggregate_type='VitalSign'
-     and r.payload->>'kind' in ('RECORDED','AMENDED')
-     and r.payload->>'patientId'=$2 and r.payload->>'critical'='true'
+   join lateral (select l.payload->>'kind' as kind from clinical_events l where l.tenant_id=r.tenant_id and l.aggregate_id=r.aggregate_id order by l.sequence desc limit 1) last on true
+   join lateral (select v.payload from clinical_events v where v.tenant_id=r.tenant_id and v.aggregate_id=r.aggregate_id and v.payload ? 'value' order by v.sequence desc limit 1) cur on true
+   where r.tenant_id=$1 and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
+     and r.payload->>'patientId'=$2 and last.kind<>$3 and cur.payload->>'critical'='true'
      and not exists(
       select 1 from clinical_events c
-      where c.tenant_id=$3 and c.aggregate_type='ClinicalObligation'
+      where c.tenant_id=$4 and c.aggregate_type='ClinicalObligation'
         and c.payload->>'sourceVitalId'=r.aggregate_id::text and c.payload->>'kind'='CREATED')",
         "via": "tx",
       },
@@ -3621,12 +3636,15 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
+          "ENTERED_IN_ERROR",
         ],
         "text": "
-   select distinct on (r.payload->>'vitalType') r.payload->>'vitalType' as vital_type, r.payload->>'value' as value
+   select distinct on (r.payload->>'vitalType') r.payload->>'vitalType' as vital_type, cur.payload->>'value' as value
    from clinical_events r
+   join lateral (select l.payload->>'kind' as kind from clinical_events l where l.tenant_id=r.tenant_id and l.aggregate_id=r.aggregate_id order by l.sequence desc limit 1) last on true
+   join lateral (select v.payload from clinical_events v where v.tenant_id=r.tenant_id and v.aggregate_id=r.aggregate_id and v.payload ? 'value' order by v.sequence desc limit 1) cur on true
    where r.tenant_id=$1 and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
-     and r.payload->>'patientId'=$2
+     and r.payload->>'patientId'=$2 and last.kind<>$3
    order by r.payload->>'vitalType', r.occurred_at desc, r.sequence desc",
         "via": "tx",
       },
@@ -4155,14 +4173,18 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
+          "ENTERED_IN_ERROR",
           400,
         ],
         "text": "
-   select v.occurred_at as at, v.payload->>'vitalType' as vital_type, v.payload->>'value' as value, v.payload->>'unit' as unit
-   from clinical_events v
-   where v.tenant_id=$1 and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=$2
-   order by v.occurred_at desc
-   limit $3",
+   select r.occurred_at as at, r.payload->>'vitalType' as vital_type, cur.payload->>'value' as value, cur.payload->>'unit' as unit
+   from clinical_events r
+   join lateral (select l.payload->>'kind' as kind from clinical_events l where l.tenant_id=r.tenant_id and l.aggregate_id=r.aggregate_id order by l.sequence desc limit 1) last on true
+   join lateral (select v.payload from clinical_events v where v.tenant_id=r.tenant_id and v.aggregate_id=r.aggregate_id and v.payload ? 'value' order by v.sequence desc limit 1) cur on true
+   where r.tenant_id=$1 and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=$2
+     and last.kind<>$3
+   order by r.occurred_at desc
+   limit $4",
         "via": "tx",
       },
       {
@@ -4192,14 +4214,18 @@ exports[`contrato SQL de la persistencia de apps/web (ADR-0300, oráculo del lot
         "params": [
           "00000000-0000-4000-8000-000000000001",
           "00000000-0000-4000-8000-0000000000aa",
+          "ENTERED_IN_ERROR",
           50,
         ],
         "text": "
-   select v.occurred_at as at, v.payload->>'vitalType' as vital_type, v.payload->>'value' as value, v.payload->>'unit' as unit
-   from clinical_events v
-   where v.tenant_id=$1 and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=$2
-   order by v.occurred_at desc
-   limit $3",
+   select r.occurred_at as at, r.payload->>'vitalType' as vital_type, cur.payload->>'value' as value, cur.payload->>'unit' as unit
+   from clinical_events r
+   join lateral (select l.payload->>'kind' as kind from clinical_events l where l.tenant_id=r.tenant_id and l.aggregate_id=r.aggregate_id order by l.sequence desc limit 1) last on true
+   join lateral (select v.payload from clinical_events v where v.tenant_id=r.tenant_id and v.aggregate_id=r.aggregate_id and v.payload ? 'value' order by v.sequence desc limit 1) cur on true
+   where r.tenant_id=$1 and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=$2
+     and last.kind<>$3
+   order by r.occurred_at desc
+   limit $4",
         "via": "tx",
       },
       {
