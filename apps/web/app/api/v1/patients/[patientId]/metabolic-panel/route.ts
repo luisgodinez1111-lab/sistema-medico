@@ -1,6 +1,6 @@
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
-import{anionGap,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../../../../../../../packages/lab-derivations/src";
+import{anionGap,anionGapCaveat,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../../../../../../../packages/lab-derivations/src";
 import{latestAnalyteReading}from"../../../../../../lib/clinical-runtime";
 import{verifyAnalyteReadings,provenance,MAX_AGE_DAYS,COHERENCE_HOURS}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
@@ -30,8 +30,9 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   if(!gCa.ok)missing.push(`correctedCalcium: ${gCa.reason}`);
   if(!gNa.ok)missing.push(`correctedSodium: ${gNa.reason}`);
   if(!gOsm.ok)missing.push(`osmolality: ${gOsm.reason}`);
-  const used=[gAg,gCa,gNa,gOsm].flatMap(g=>g.ok?g.inputs:[]);const inputs=provenance(used.filter((x,i)=>used.findIndex(y=>y.analyte===x.analyte)===i));
+  // D9: si la brecha se corrigió, la albúmina usada es una entrada más de la procedencia (aunque el calcio no se haya calculado).
+  const used=[gAg,gCa,gNa,gOsm,...(ag?.albuminCorrected?[gAgAlb]:[])].flatMap(g=>g.ok?g.inputs:[]);const inputs=provenance(used.filter((x,i)=>used.findIndex(y=>y.analyte===x.analyte)===i));
   return NextResponse.json({patientId,anionGap:ag??null,correctedCalcium:cca??null,correctedSodium:cna??null,osmolality:osm??null,missing,
-   caveat:"Brecha aniónica SIN corrección por albúmina y sin delta-delta.",algorithm:{id:"METABOLIC-DERIVATIONS",version:"1"},inputs},{status:200});
+   caveat:anionGapCaveat(ag),algorithm:{id:"METABOLIC-DERIVATIONS",version:"1"},inputs},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

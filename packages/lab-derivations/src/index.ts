@@ -24,6 +24,11 @@ export function anionGap(sodium:number,chloride:number,bicarbonate:number,albumi
  if(albuminCorrected)interpretation+=` (corregida por albúmina ${albuminGdl} g/dL; cruda ${raw})`;else interpretation+=" (sin corregir por albúmina: una hipoalbuminemia la subestima)";
  return albuminCorrected?{value,status,interpretation,raw,albuminCorrected,albuminGdl:albuminGdl!}:{value,status,interpretation,raw,albuminCorrected};
 }
+// Hallazgo D9 del lote 11: la advertencia de la brecha se DERIVA de lo que realmente se calculó. Antes el panel decía siempre
+// «SIN corrección por albúmina» aunque la brecha que devolvía viniera corregida (contradicción en el mismo informe).
+export function anionGapCaveat(ag:Pick<AnionGapEx,"albuminCorrected">|undefined):string{
+ return ag?.albuminCorrected?"Brecha aniónica corregida por albúmina (Figge) y sin delta-delta.":"Brecha aniónica SIN corrección por albúmina y sin delta-delta.";
+}
 
 // ---- Sodio corregido por glucemia (EPIC BY). La hiperglucemia arrastra agua al intravascular y DILUYE el
 // sodio (pseudohiponatremia). Na corregido = Na + 1.6·((glucosa − 100)/100) (factor de Katz). Puro. ----
