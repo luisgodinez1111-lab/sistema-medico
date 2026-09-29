@@ -166,53 +166,10 @@ export async function claimsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Pro
    paidAt:o.paid_at?new Date(String(o.paid_at)).toISOString():null};}),total:cuentaDe(cuenta)};
  });
 }
-// EPIC AQ/UI — Registro de resultados diagnósticos de TODA la clínica (vista Resultados). Por cada agregado
-// DiagnosticResult toma el evento base RESULT_RECEIVED (analito/valor/critical/status/interpretación derivados)
-// y su ESTADO por la última transición de ciclo de vida (RECEIVED/VERIFIED/ACTIONED/CLOSED). Une el nombre del
-// paciente. El estado-UI (Hallazgos/Normal/En seguimiento/En revisión) se deriva. RLS-scoped.
-export type ResultRow=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;critical:boolean;status:string;interpretation:string;lifecycle:"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";receivedAt:string;orderType:string|null}>;
-const RES_LIFECYCLE:Record<string,"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED">={RECEIVED:"RECEIVED",VERIFIED:"VERIFIED",ACTIONED:"ACTIONED",CLOSED:"CLOSED"};
-export async function resultsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Promise<Page<ResultRow>&{total:number}>{
- const limit=limiteDe(q),after=decodeCursor(q?.cursor,2);
- return withTenantTx(ctx,async tx=>{
-  const cuenta=await tx`select count(*)::int as n from clinical_events a where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED' ${porPaciente(tx,q)}`;
-  const rows=await tx`
-   select a.occurred_at as cursor_at, a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
-     a.payload->>'critical' as critical, a.payload->>'status' as status, a.payload->>'interpretation' as interpretation, a.occurred_at as received_at,
-     lk.kind as last_kind, pn.name as patient_name, ord.order_type as order_type
-   from clinical_events a
-   ${ultimaTransicion(tx,ctx.tenantId)}
-   ${nombreDePaciente(tx,ctx.tenantId)}
-   -- Auditoría R04-F04: el TIPO de estudio (laboratorio, imagenología, patología…) lo declara la ORDEN que lo originó, y
-   -- el resultado lleva su orderId. Antes se adivinaba con una expresión regular sobre el NOMBRE del analito, que
-   -- clasificaba «Radioinmunoensayo de TSH» y «Placas de Petri (cultivo)» como imagenología —los dos son de laboratorio—
-   -- y no distinguía patología, procedimiento ni interconsulta de un análisis. Aquí se lee el hecho, no el nombre.
-   left join lateral (
-     select o.payload->>'orderType' as order_type from clinical_events o
-     where o.tenant_id=${ctx.tenantId} and o.aggregate_type='ClinicalOrder'
-       and o.aggregate_id=(a.payload->>'orderId')::uuid and o.payload->>'kind'='CREATED'
-     limit 1) ord on true
-   -- R03-10: un resultado ANULADO (paciente equivocado, muestra mal identificada) no aparece en el registro clínico.
-   -- El criterio es «anulado ALGUNA VEZ», no «su última transición es ENTERED_IN_ERROR»: una anotación posterior no
-   -- resucita un resultado anulado. Antes era un NOT EXISTS correlacionado por fila; ahora es una anti-unión que se
-   -- resuelve una vez, con la misma semántica.
-   left join lateral (select 1 as anulado from clinical_events v
-              where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR'
-              limit 1) anul on true
-   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
-     ${porPaciente(tx,q)}
-     and anul.anulado is null
-     ${despuesDelCursor(tx,after)}
-   ${paginaOrdenada(tx,limit)}`;
-  return{...armarPagina(rows,limit,r=>{const o=r as Record<string,unknown>;return{
-   resultId:String(o.aggregate_id),patientId:String(o.pid??""),patientName:String(o.patient_name??"Paciente"),
-   analyte:String(o.analyte??""),value:String(o.value??""),critical:String(o.critical)==="true",
-   status:String(o.status??"NORMAL"),interpretation:String(o.interpretation??""),
-   lifecycle:RES_LIFECYCLE[String(o.last_kind??"RECEIVED")]??"RECEIVED",
-   receivedAt:o.received_at?new Date(String(o.received_at)).toISOString():"",
-   orderType:o.order_type?String(o.order_type):null};}),total:cuentaDe(cuenta)};
- });
-}
+// EPIC AQ/UI — Registro de resultados diagnósticos de TODA la clínica: vive en `results-registry.ts` desde el porte de D10 y
+// SQL-2 (valor canónico, reemplazo y la regla única del estado-UI), porque este dominio no tenía margen bajo las 300 líneas.
+export{resultsRegistry,resultEstado,RESULT_ABNORMAL_STATUSES}from"./results-registry";
+export type{ResultRow,ResultEstado}from"./results-registry";
 // EPIC E/UI (Lote E) — Registro POBLACIONAL de signos vitales de TODA la clínica: vive en su propio módulo porque
 // este dominio superaba las 300 líneas (mismo criterio que separó lab-facts y read-model-joins). Se re-exporta aquí
 // para que la fachada `clinical-runtime` siga viéndolo entre los registros clínica-wide.

@@ -11,6 +11,11 @@ import{ClinicalError}from"../../runtime-errors/src";
 // deja de existir para todo lector (calculadoras, series, delta check, gate de firma), pero su evento permanece en la
 // cadena: se anula, no se borra.
 export type ResultEventKind="RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED"|"CORRECTED"|"ENTERED_IN_ERROR";
+// SQL-2 (porte): las dos listas que parten ResultEventKind, declaradas aquí para que ninguna proyección las copie a mano.
+// Anotaciones: no cambian `state`. Ciclo de vida: las transiciones que sí lo cambian (las que lee el registro como estado;
+// antes tomaba el último evento de cualquier tipo y un resultado CERRADO y luego corregido volvía a «En revisión»).
+export const RESULT_ANNOTATION_KINDS=["CORRECTED","ENTERED_IN_ERROR"]as const satisfies readonly ResultEventKind[];
+export const RESULT_LIFECYCLE_KINDS=["RECEIVED","VERIFIED","ACTIONED","CLOSED"]as const satisfies readonly Exclude<ResultEventKind,typeof RESULT_ANNOTATION_KINDS[number]>[];
 export type StoredResultEvent=Readonly<{sequence:number;payload:Record<string,unknown>}>;
 export type FoldedResult=Readonly<{exists:boolean;state:ResultState;version:number;patientId:string;critical:boolean;supersededBy:string|null;supersedes:string|null;enteredInError:boolean;errorReason:string|null}>;
 

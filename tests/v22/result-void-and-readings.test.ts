@@ -49,7 +49,7 @@ describe("anulación de un resultado (R03-10)",()=>{
   const lectores:[string,string][]=[
    ["apps/web/lib/runtime/lab-facts.ts","latestAnalyteReading"],
    ["apps/web/lib/runtime/lab-facts.ts","analyteSeries"],
-   ["apps/web/lib/runtime/registries.ts","resultsRegistry"],
+   ["apps/web/lib/runtime/results-registry.ts","resultsRegistry"], // extraído de registries.ts en el porte D10/SQL-2
    ["apps/web/lib/runtime/records.ts","countOpenCriticalResults"],
   ];
   for(const[f,fn]of lectores){

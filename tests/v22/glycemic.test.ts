@@ -1,5 +1,6 @@
 import{describe,it,expect}from"vitest";
-import{estimatedAverageGlucose,glycemicAssessment,A1C_PLAUSIBLE}from"../../packages/glycemic/src";
+import{estimatedAverageGlucose,glycemicAssessment,A1C_PLAUSIBLE,A1C_DIABETIC_TARGET_PCT}from"../../packages/glycemic/src";
+import{HBA1C_CONTROL_THRESHOLD}from"../../apps/web/lib/runtime/analytics";
 // EPIC BP — Control glucémico (HbA1c -> eAG + clasificación).
 describe("estimatedAverageGlucose (ADAG)",()=>{
  it("A1c 7% -> ~154 mg/dL",()=>{expect(estimatedAverageGlucose(7)).toBe(154);}); // 28.7*7-46.7=154.2
@@ -43,4 +44,13 @@ describe("cotas de la HbA1c en el eAG (R03-F01)",()=>{
   expect(estimatedAverageGlucose(A1C_PLAUSIBLE[0])).toBeDefined();
   expect(estimatedAverageGlucose(A1C_PLAUSIBLE[1])).toBeDefined();
  });
+});
+// Hallazgo D10 (porte): una sola meta para la evaluación por paciente y el indicador del tablero.
+describe("meta glucémica del diabético (D10)",()=>{
+ it("la evaluación por paciente usa A1C_DIABETIC_TARGET_PCT como corte",()=>{
+  expect(A1C_DIABETIC_TARGET_PCT).toBe(7);
+  expect(glycemicAssessment(A1C_DIABETIC_TARGET_PCT-0.01,true)?.category).toBe("CONTROLLED");
+  expect(glycemicAssessment(A1C_DIABETIC_TARGET_PCT,true)?.category).toBe("ABOVE_TARGET");
+ });
+ it("el umbral del tablero ES la misma constante",()=>{expect(HBA1C_CONTROL_THRESHOLD).toBe(A1C_DIABETIC_TARGET_PCT);});
 });

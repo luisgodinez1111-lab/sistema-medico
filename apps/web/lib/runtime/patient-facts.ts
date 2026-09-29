@@ -8,7 +8,7 @@ import{logPhiAccess,patientAccessLog,type PhiAccessEntry,type PhiAccessAction,ty
 import{withTenantTx}from"./connection";
 import{patientDemographics}from"./patients";
 import{latestAnalyteReading}from"./lab-facts";
-import{vitalVigente,vitalNoAnulada}from"./read-model-joins";
+import{vitalVigente,vitalNoAnulada,lifecycleEventOnly}from"./read-model-joins";
 
 // EPIC R — Gate de seguridad de medicación: sustancias con alergia ACTIVA del paciente (RLS-scoped).
 // Una alergia está activa si su último evento es RECORDED o REACTIVATED (no REFUTED/INACTIVATED).
@@ -51,7 +51,7 @@ export async function activeMedicationDrugCodes(ctx:HttpTenantContext,patientId:
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Medication' and r.payload->>'kind'='PROPOSED' and r.payload->>'patientId'=${patientId}
      and r.aggregate_id::text<>${excludeMedicationId??""}
      and (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id
-           and c.payload->>'kind' not in ('MODIFIED','RECONCILED') order by sequence desc limit 1) in ('ACTIVATED','RESUMED')`;
+           and ${lifecycleEventOnly(tx)} order by sequence desc limit 1) in ('ACTIVATED','RESUMED')`; // anotaciones: MED_ANNOTATION_KINDS (lifecycleEventOnly)
   return rows.map(x=>String(x.drug_code??"")).filter(Boolean);
  });
 }
@@ -208,14 +208,15 @@ export async function patientObligations(ctx:HttpTenantContext,patientId:string)
 }
 // EPIC Z/UI — Documentos clínicos de UN paciente (vista Documentos). Por cada agregado ClinicalDocument toma el
 // evento base DOCUMENT_CREATED (tipo/título/fecha) y su ESTADO por la última transición
-// (CREATED->DRAFT, FINALIZED, SIGNED, AMENDED). RLS-scoped.
+// (CREATED->DRAFT, FINALIZED, SIGNED, AMENDED). RLS-scoped. Hallazgo D3 (porte): la última transición ignora las
+// anotaciones (adjuntar/quitar un archivo); antes un documento firmado con un adjunto se listaba como «Borrador».
 export type DocRow=Readonly<{documentId:string;title:string;docType:string;status:"DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED";createdAt:string;actorId:string}>;
 const DOC_STATUS:Record<string,"DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED">={CREATED:"DRAFT",FINALIZED:"FINALIZED",SIGNED:"SIGNED",AMENDED:"AMENDED"};
 export async function patientDocuments(ctx:HttpTenantContext,patientId:string):Promise<DocRow[]>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select a.aggregate_id, a.payload->>'title' as title, a.payload->>'docType' as doc_type, a.occurred_at as created_at, a.actor_id as actor_id,
-     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id order by sequence desc limit 1) as last_kind
+     (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=a.aggregate_id and ${lifecycleEventOnly(tx)} order by sequence desc limit 1) as last_kind
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalDocument' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=${patientId}
    order by a.occurred_at desc`;
@@ -235,7 +236,7 @@ export async function activeProblemCodes(ctx:HttpTenantContext,patientId:string)
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='ClinicalProblem' and r.payload->>'kind'='ADDED' and r.payload->>'patientId'=${patientId}
      and (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id
-           and c.payload->>'kind' not in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED') order by sequence desc limit 1) in ('ADDED','REACTIVATED','MARKED_CHRONIC')`;
+           and ${lifecycleEventOnly(tx)} order by sequence desc limit 1) in ('ADDED','REACTIVATED','MARKED_CHRONIC')`; // anotaciones: PROBLEM_ANNOTATION_KINDS (lifecycleEventOnly)
   return rows.map(x=>String(x.code??"")).filter(Boolean);
  });
 }

@@ -1,7 +1,6 @@
 // Read-models del EXPEDIENTE: eventos por agregado, línea de tiempo, documento con su contenido, encuentro y
 // obligaciones que bloquean la firma. Aquí viven las lecturas que dejan constancia de acceso a PHI (R01-026).
 // Auditoría R01-001: extraído del god-module `clinical-runtime.ts`.
-import postgres,{type Sql,type TransactionSql}from"postgres";
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{ClinicalError}from"../../../../packages/runtime-errors/src";
 import{isUuid}from"../../../../packages/tenant-context/src";
@@ -10,19 +9,13 @@ import{logPhiAccess,patientAccessLog,type PhiAccessEntry,type PhiAccessAction,ty
 import{withTenantTx}from"./connection";
 import{PAGE_LIMIT_MAX,Page,decodeCursor,encodeCursor}from"./pagination";
 import{OBLIGATION_STATUS}from"./patient-facts";
-import{vitalVigente,vitalNoAnulada}from"./read-model-joins";
+import{vitalVigente,vitalNoAnulada,lifecycleEventOnly}from"./read-model-joins";
 
 // EPIC D — Replay idempotente previo a la validación de state-machine: si este Idempotency-Key
 // ya produjo ESTE comando exacto (mismo hash) y quedó COMPLETED, devuelve la respuesta guardada.
 // Así un reintento de una transición ya aplicada no choca con la SM (el estado ya avanzó).
-// Auditoría L-04/K-05 — Eventos de ANOTACIÓN por tipo de agregado: enriquecen el agregado sin cambiar su estado. Toda
-// consulta genérica que derive el estado del "último evento" debe ignorarlos; si no, corregir el teléfono de un paciente
-// fallecido lo mostraba ACTIVO, y modificar una dosis habría sacado la medicación de la lista de activas.
-// Alias fijo `c` (el de las subconsultas latest_kind). AMENDED es anotación SOLO en Patient (en VitalSign/Document es estado).
-export const lifecycleEventOnly=(tx:postgres.TransactionSql)=>tx`not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED'))`;
+// Auditoría L-04/K-05 — `lifecycleEventOnly` (ignorar las ANOTACIONES al derivar el estado del «último evento») vive en
+// read-model-joins.ts desde el porte de D3, construido con las listas que declara cada fold.
 // EPIC N — Timeline del paciente: un item por agregado clínico del paciente, con tipo, último kind
 // (estado), versión y fechas. RLS-scoped. SIN PHI: solo metadatos, nunca el contenido clínico.
 export type TimelineItem=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;status:string;version:number;openedAt:string;lastAt:string}>;

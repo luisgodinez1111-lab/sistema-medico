@@ -30,8 +30,40 @@
 //     vez. Aquí sí gana: 1 116 buffers frente a 72 389 en el tenant de la medición. Ver `transicionesPorAgregado`.
 import type postgres from"postgres";
 import{VITAL_VOID_KIND}from"../../../../packages/vital-fold/src";
-import{PATIENT_DEMOGRAPHIC_FIELDS,PATIENT_DEMOGRAPHIC_KINDS,type PatientDemographicField}from"../../../../packages/patient-fold/src";
+import{PATIENT_DEMOGRAPHIC_FIELDS,PATIENT_DEMOGRAPHIC_KINDS,PATIENT_ANNOTATION_KINDS,type PatientDemographicField}from"../../../../packages/patient-fold/src";
+import{MED_ANNOTATION_KINDS}from"../../../../packages/medication-fold/src";
+import{PROBLEM_ANNOTATION_KINDS}from"../../../../packages/problem-fold/src";
+import{DOCUMENT_ANNOTATION_KINDS}from"../../../../packages/document-fold/src";
 type Tx=postgres.TransactionSql;
+
+/**
+ * Auditoría L-04/K-05 — eventos de ANOTACIÓN por tipo de agregado: enriquecen el agregado sin cambiar su estado. Toda
+ * consulta genérica que derive el estado del «último evento» debe ignorarlos; si no, corregir el teléfono de un paciente
+ * fallecido lo mostraba ACTIVO y modificar una dosis habría sacado la medicación de la lista de activas. Alias fijo `c`
+ * (el de las subconsultas latest_kind). Hallazgo D3 (porte): las listas son las que declara cada fold, como parámetros;
+ * antes eran literales copiados a mano y faltaban los adjuntos del documento, así que un documento firmado con un adjunto
+ * se listaba como borrador. Vive aquí (y no en records.ts) para que patient-facts lo use sin un ciclo de importación.
+ * DiagnosticResult NO está a propósito: la cronología y el gate de críticos leen CORRECTED/ENTERED_IN_ERROR como último
+ * evento; el registro de resultados filtra con RESULT_LIFECYCLE_KINDS (ver results-registry.ts).
+ */
+export const lifecycleEventOnly=(tx:Tx)=>tx`not (
+  (c.aggregate_type='Medication' and c.payload->>'kind' = any(${[...MED_ANNOTATION_KINDS]}::text[]))
+  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' = any(${[...PROBLEM_ANNOTATION_KINDS]}::text[]))
+  or (c.aggregate_type='Patient' and c.payload->>'kind' = any(${[...PATIENT_ANNOTATION_KINDS]}::text[]))
+  or (c.aggregate_type='ClinicalDocument' and c.payload->>'kind' = any(${[...DOCUMENT_ANNOTATION_KINDS]}::text[])))`;
+
+/**
+ * Auditoría C-02 / hallazgo D10 (porte) — un resultado está REEMPLAZADO cuando otro resultado RECIBIDO lo declara en
+ * `supersedes` (la corrección del laboratorio), aunque la anotación CORRECTED del original hubiera fallado. Es la regla
+ * que leen calculadoras, series, registro y tablero, escrita una vez (antes, copias a mano en cada lector). `id` es la
+ * expresión del id del resultado (p. ej. tx`a.aggregate_id`). La subconsulta NO está correlacionada: Postgres la resuelve
+ * una vez por consulta (hashed SubPlan), así que su coste no crece con las filas devueltas; `is not null` hace que el
+ * `in` nunca dé NULL (un `not` sobre NULL descartaría la fila en silencio).
+ */
+export const resultSuperseded=(tx:Tx,tenantId:string,id:postgres.Fragment)=>tx`((${id})::text in (
+  select s.payload->>'supersedes' from clinical_events s
+  where s.tenant_id=${tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED'
+    and s.payload->>'supersedes' is not null))`;
 
 /** Opciones comunes de los registros de clínica. `patientId` acota EN SQL; sin él, el registro es de toda la clínica. */
 export type RegistryQuery=Readonly<{patientId?:string;limit?:number;cursor?:string|null}>;

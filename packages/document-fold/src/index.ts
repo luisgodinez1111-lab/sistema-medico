@@ -5,13 +5,18 @@ import{ClinicalError}from"../../runtime-errors/src";
 // preliminary/final/amended), PROD-022-R018 (NUNCA borrar historial de firma/amendments).
 // Modelo append-only sobre el kernel: la firma es inmutable; las enmiendas se agregan, no editan.
 export type DocumentState="DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED";
-export type DocEventKind="CREATED"|"FINALIZED"|"SIGNED"|"AMENDED";
+export type DocEventKind="CREATED"|"FINALIZED"|"SIGNED"|"AMENDED"|"ATTACHED"|"ATTACHMENT_REMOVED";
+// Hallazgo D3 (porte): adjuntar o quitar un archivo es una ANOTACIÓN (el estado no cambia; la versión sí avanza). Antes el
+// fold no conocía estos eventos: un documento con adjunto respondía 500 al finalizar, firmar o enmendar, incluso tras
+// quitarlo. Vocabulario compartido con la proyección SQL (apps/web/lib/runtime/read-model-joins.ts `lifecycleEventOnly`).
+export const DOCUMENT_ANNOTATION_KINDS=["ATTACHED","ATTACHMENT_REMOVED"]as const satisfies readonly DocEventKind[];
 export type StoredDocEvent=Readonly<{sequence:number;payload:Record<string,unknown>}>;
 export type FoldedDocument=Readonly<{exists:boolean;state:DocumentState;version:number;patientId:string;docType:string;content:string;amendmentCount:number}>;
 
 function kindOf(e:StoredDocEvent):DocEventKind{
  const k=e.payload["kind"];
  if(k==="CREATED"||k==="FINALIZED"||k==="SIGNED"||k==="AMENDED")return k;
+ if((DOCUMENT_ANNOTATION_KINDS as readonly unknown[]).includes(k))return k as DocEventKind;
  if(e.sequence===1&&k===undefined)return "CREATED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown document event at sequence ${e.sequence}`);
 }
@@ -25,6 +30,7 @@ export function foldDocument(events:readonly StoredDocEvent[]):FoldedDocument{
    case"FINALIZED":state="FINALIZED";break;
    case"SIGNED":state="SIGNED";break;
    case"AMENDED":state="AMENDED";amendmentCount+=1;break; // append-only: cada enmienda suma, nada se borra
+   case"ATTACHED":case"ATTACHMENT_REMOVED":break; // anotación: el estado no cambia (D3)
   }
  }
  return{exists:true,state,version:ordered[ordered.length-1]!.sequence,patientId,docType,content,amendmentCount};

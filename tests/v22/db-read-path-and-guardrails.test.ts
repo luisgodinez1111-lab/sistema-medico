@@ -233,7 +233,8 @@ describe("el restore drill verifica lo que promete (R06-17)",()=>{
   // Medido en una base desechable (900 pacientes, 9 000 problemas): 72 389 buffers para 9 000 filas, con dos escaneos de
   // índice POR FILA. Con LATERAL sobre un conjunto acotado, 106 para las diez filas de un paciente. La invariante que se
   // fija aquí es estructural: en `registries.ts` no puede volver a aparecer una subconsulta correlacionada en el SELECT.
-  const reg=fs.readFileSync("apps/web/lib/runtime/registries.ts","utf8");
+  // Porte D10/SQL-2: el registro de resultados vive en `results-registry.ts`; la invariante lo cubre igual.
+  const reg=["registries","results-registry"].map(d=>fs.readFileSync(`apps/web/lib/runtime/${d}.ts`,"utf8")).join("\n");
   const correlacionadas=[...reg.matchAll(/\(select [^)]*from clinical_events \w+ where[^)]*aggregate_id=a\.aggregate_id/gi)].map(m=>m[0].slice(0,70));
   expect(correlacionadas,"subconsulta correlacionada por fila: use un LATERAL de read-model-joins").toEqual([]);
   expect(reg,"los LATERAL compartidos viven en su propio módulo").toContain("./read-model-joins");
@@ -270,7 +271,8 @@ describe("el restore drill verifica lo que promete (R06-17)",()=>{
  it("los seis tableros de clínica devuelven una PÁGINA acotada, no el tenant entero (R06-20)",()=>{
   // La segunda mitad de R06-20. Cada tablero devolvía todas las filas del tenant; ahora devuelve `items` + `nextCursor`
   // y un `total` contado en la base. El guardarraíl exige las tres cosas en el registro y el cursor en la ruta.
-  const reg=fs.readFileSync("apps/web/lib/runtime/registries.ts","utf8");
+  // Porte D10/SQL-2: `resultsRegistry` se extrajo a `results-registry.ts` (registries.ts lo reexporta): se exige lo mismo allí.
+  const reg=["registries","results-registry"].map(d=>fs.readFileSync(`apps/web/lib/runtime/${d}.ts`,"utf8")).join("\n");
   for(const fn of["allergyRegistry","problemRegistry","immunizationRegistry","claimsRegistry","resultsRegistry","ordersRegistry"]){
    const firma=new RegExp(`export async function ${fn}\\(ctx:HttpTenantContext,q\\?:RegistryQuery\\):Promise<Page<\\w+>&\\{total:number\\}>`);
    expect(firma.test(reg),`${fn}: debe devolver una página con total, no un arreglo sin cota`).toBe(true);

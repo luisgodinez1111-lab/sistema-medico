@@ -4,8 +4,7 @@ import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{ClinicalError}from"../../../../packages/runtime-errors/src";
 import{logPhiAccess,patientAccessLog,type PhiAccessEntry,type PhiAccessAction,type PhiResourceType}from"../phi-access-log";
 import{withTenantTx}from"./connection";
-import{lifecycleEventOnly}from"./records";
-import{demografiaVigente,pacientesConValor}from"./read-model-joins";
+import{demografiaVigente,lifecycleEventOnly,pacientesConValor}from"./read-model-joins";
 import{PAGE_LIMIT_MAX,Page,decodeCursor,encodeCursor}from"./pagination";
 
 // EPIC S — Registro de pacientes del tenant (RLS-scoped). Devuelve id + nombre (PHI) + estado.

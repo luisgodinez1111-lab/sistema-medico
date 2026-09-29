@@ -1,7 +1,11 @@
 // Analítica agregada del tenant (reportes). Auditoría R01-001: extraído del god-module `clinical-runtime.ts`.
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{withTenantTx}from"./connection";
-import{transicionesPorAgregado,type ReportWindow,enVentana}from"./read-model-joins";
+import{normalizeLabValue}from"../../../../packages/lab-reference/src";
+import{A1C_DIABETIC_TARGET_PCT}from"../../../../packages/glycemic/src";
+import{RESULT_LIFECYCLE_KINDS}from"../../../../packages/result-fold/src";
+import{transicionesPorAgregado,resultSuperseded,type ReportWindow,enVentana}from"./read-model-joins";
+import{RESULT_ABNORMAL_STATUSES}from"./results-registry";
 export type{ReportWindow};
 
 
@@ -24,20 +28,25 @@ export type{ReportWindow};
 /**
  * Recuentos del tablero de RESULTADOS. Va aparte del resumen genérico porque su indicador «Hallazgos» no es un estado del
  * ciclo de vida: combina el flag `critical` con el `status` del resultado (HIGH/LOW/CRITICAL/ABNORMAL/PANIC). Dos recuentos
- * marginales no dan el conjunto, así que se cuenta con `filter` en la misma pasada, con la MISMA regla que la lista.
+ * marginales no dan el conjunto, así que se cuenta con `filter` en la misma pasada, con la MISMA regla que la lista
+ * (`resultEstado` y RESULT_ABNORMAL_STATUSES de results-registry.ts).
+ * SQL-2 (porte): el estado es la última transición de CICLO DE VIDA (RESULT_LIFECYCLE_KINDS; antes un resultado cerrado y
+ * corregido leía CORRECTED y no contaba en ningún estado) y los indicadores cuentan solo resultados VIGENTES: uno
+ * reemplazado por una corrección no es un hallazgo, un seguimiento ni una revisión pendiente —lo es su corrección, que ya
+ * cuenta—. `total` sigue contando toda fila no anulada, igual que la lista.
  */
 export type ResultsSummary=Readonly<{total:number;abnormal:number;enSeguimiento:number;pendientes:number}>;
-export const RESULT_ABNORMAL_STATUSES=["HIGH","LOW","CRITICAL","ABNORMAL","PANIC"] as const;
 export async function resultsSummary(ctx:HttpTenantContext,w?:ReportWindow):Promise<ResultsSummary>{
  return withTenantTx(ctx,async tx=>{
+  const vigente=tx`not ${resultSuperseded(tx,ctx.tenantId,tx`a.aggregate_id`)}`;
   const rows=await tx`
    select count(*)::int as total,
-     count(*) filter (where a.payload->>'critical'='true'
-                         or upper(coalesce(a.payload->>'status',''))=any(${RESULT_ABNORMAL_STATUSES as unknown as string[]}))::int as abnormal,
-     count(*) filter (where coalesce(lk.kind,'RECEIVED')='ACTIONED')::int as en_seguimiento,
-     count(*) filter (where coalesce(lk.kind,'RECEIVED')='RECEIVED')::int as pendientes
+     count(*) filter (where (a.payload->>'critical'='true'
+                         or upper(coalesce(a.payload->>'status',''))=any(${RESULT_ABNORMAL_STATUSES as unknown as string[]})) and ${vigente})::int as abnormal,
+     count(*) filter (where coalesce(lk.kind,'RECEIVED')='ACTIONED' and ${vigente})::int as en_seguimiento,
+     count(*) filter (where coalesce(lk.kind,'RECEIVED')='RECEIVED' and ${vigente})::int as pendientes
    from clinical_events a
-   left join ${transicionesPorAgregado(tx,ctx.tenantId,"DiagnosticResult")} lk
+   left join ${transicionesPorAgregado(tx,ctx.tenantId,"DiagnosticResult",RESULT_LIFECYCLE_KINDS)} lk
      on lk.aggregate_id=a.aggregate_id and lk.rn=1
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED' ${enVentana(tx,w)}
      -- Mismo criterio que el registro: un resultado anulado no cuenta (R03-10).
@@ -101,11 +110,15 @@ export type ReportAggregates=Readonly<{
  topDiagnoses:ReadonlyArray<CodeCount>;
  topProcedures:ReadonlyArray<DetailCount>;
  proceduresTotal:number;
+ /** HbA1c VIGENTES con valor interpretable en % (el denominador del indicador). */
  hba1cTotal:number;
  hba1cInControl:number;
+ /** SQL-3 (porte): HbA1c vigentes cuyo valor no se puede interpretar como % («<5.0», «pendiente», implausible). No entran
+  * en el denominador y se DECLARAN: antes salían en silencio y la nota decía «el total». */
+ hba1cExcluded:number;
 }>;
-/** Umbral de control glucémico del indicador de calidad: HbA1c por debajo de 7 %. */
-export const HBA1C_CONTROL_THRESHOLD=7;
+/** Umbral de control glucémico del indicador de calidad: la meta del diabético de packages/glycemic (fuente única, D10). */
+export const HBA1C_CONTROL_THRESHOLD=A1C_DIABETIC_TARGET_PCT;
 export async function reportAggregates(ctx:HttpTenantContext,w?:ReportWindow):Promise<ReportAggregates>{
  return withTenantTx(ctx,async tx=>{
   // Top de diagnósticos: el código manda y la descripción se toma de la fila más reciente de ese código.
@@ -124,23 +137,39 @@ export async function reportAggregates(ctx:HttpTenantContext,w?:ReportWindow):Pr
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED' ${enVentana(tx,w)}
      and a.payload->>'orderType'='PROCEDURE' and coalesce(a.payload->>'detail','')<>''
    group by 1 order by 2 desc, 1 asc`;
-  // HbA1c: total y cuántas por debajo del umbral. El valor es texto en el payload; se limpia igual que en la lista.
+  // HbA1c (hallazgo D10, porte): solo las VIGENTES —ni anuladas (R03-10) ni reemplazadas por una corrección (C-02)— y con
+  // el valor CANÓNICO en % que guardó la recepción, el mismo que usa la evaluación por paciente. Antes se limpiaba el texto
+  // recibido con una expresión regular: «6,5» se leía 65 y 48 mmol/mol (IFCC) se leía 48 %, y el original corregido seguía
+  // contando. El canónico se castea solo si TIENE forma de número (log append-only: puede haber basura, como en claimsIncome).
+  // Los eventos sin canónico (anteriores a C-01, o no numéricos) se devuelven crudos y se normalizan abajo con la MISMA
+  // función que la recepción; no hay una segunda regla de normalización.
   const a1c=await tx`
-   select count(*)::int as total,
-     count(*) filter (where nullif(regexp_replace(a.payload->>'value','[^0-9.]','','g'),'')::numeric < ${HBA1C_CONTROL_THRESHOLD})::int as en_control
-   from clinical_events a
-   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
-     and upper(a.payload->>'analyte')='HBA1C' ${enVentana(tx,w)}
-     and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR')`;
+   select count(*) filter (where h.cv is not null)::int as total,
+     count(*) filter (where h.cv < ${A1C_DIABETIC_TARGET_PCT})::int as en_control,
+     coalesce(array_agg(h.raw) filter (where h.cv is null),'{}') as sin_canonico
+   from (select a.payload->>'value' as raw,
+           case when a.payload->>'canonicalValue' ~ '^-?[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$' then (a.payload->>'canonicalValue')::numeric end as cv
+         from clinical_events a
+         where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
+           and upper(a.payload->>'analyte')='HBA1C' ${enVentana(tx,w)}
+           and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR')
+           and not ${resultSuperseded(tx,ctx.tenantId,tx`a.aggregate_id`)}) h`;
   const oa1c=(a1c[0]??{}) as Record<string,unknown>;
+  let a1cTotal=Number(oa1c.total??0),a1cEnControl=Number(oa1c.en_control??0),a1cExcluidas=0;
+  for(const raw of (oa1c.sin_canonico as unknown[]|null)??[]){
+   const n=normalizeLabValue("HBA1C",String(raw??""));
+   if(!n.ok){a1cExcluidas++;continue;}
+   a1cTotal++;if(n.canonicalValue<A1C_DIABETIC_TARGET_PCT)a1cEnControl++;
+  }
   const filasProc=proc.map(r=>r as Record<string,unknown>);
   return{
    topDiagnoses:dx.map(r=>{const o=r as Record<string,unknown>;
     return{code:String(o.code??""),description:String(o.description??""),count:Number(o.n??0)};}),
    topProcedures:filasProc.slice(0,5).map(o=>({detail:String(o.detail??""),count:Number(o.n??0)})),
    proceduresTotal:Number(filasProc[0]?.total??0),
-   hba1cTotal:Number(oa1c.total??0),
-   hba1cInControl:Number(oa1c.en_control??0),
+   hba1cTotal:a1cTotal,
+   hba1cInControl:a1cEnControl,
+   hba1cExcluded:a1cExcluidas,
   };
  });
 }

@@ -14,6 +14,8 @@ export type FoldedPatient=Readonly<{exists:boolean;status:PatientStatus;version:
 export const PATIENT_DEMOGRAPHIC_FIELDS=["name","birthDate","sexAtBirth","curp","phone","email","address","occupation","maritalStatus","guardian"] as const;
 export type PatientDemographicField=(typeof PATIENT_DEMOGRAPHIC_FIELDS)[number];
 export const PATIENT_DEMOGRAPHIC_KINDS=["REGISTERED","AMENDED"] as const satisfies readonly PatientEventKind[];
+// Anotaciones: eventos que NO cambian el estado del paciente (la corrección de datos). Vocabulario de `lifecycleEventOnly`.
+export const PATIENT_ANNOTATION_KINDS=["AMENDED"] as const satisfies readonly PatientEventKind[];
 
 function kindOf(e:StoredPatientEvent):PatientEventKind{
  const k=e.payload["kind"];
