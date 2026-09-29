@@ -14,7 +14,7 @@
 //   runtime/analytics.ts      analítica agregada
 //   runtime/records.ts        expediente: eventos, timeline, documento, encuentro, obligaciones bloqueantes
 export{getSql,readPatientAccessLog,recordPhiAccess,revokeCurrentSession,sessionSecret,withTenantTx}from"./runtime/connection";
-export{lookupReplay,runClinicalCommand}from"./runtime/command";
+export{lookupReplay,runClinicalCommand,runDerivedCommand}from"./runtime/command";
 export{PAGE_LIMIT_DEFAULT,PAGE_LIMIT_MAX,clampLimit,decodeCursor,encodeCursor}from"./runtime/pagination";
 export{findPatientDuplicate,listPatients,patientBirthDate,patientDemographics,requireRegisteredPatient}from"./runtime/patients";
 export{activeAllergies,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,administeredVaccineCodes,administeredVaccines,carePlanGoals,latestVitalReadings,latestVitalsByType,patientDocuments,patientEgfr,patientObligations,patientVitals}from"./runtime/patient-facts";

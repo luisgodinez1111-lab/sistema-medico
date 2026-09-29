@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{foldResult,RESULT_ANNOTATION_KINDS,RESULT_LIFECYCLE_KINDS}from"../../packages/result-fold/src";
+import{foldResult,RESULT_ANNOTATION_KINDS,RESULT_LIFECYCLE_KINDS,RESULT_FOLLOW_UP_CLOSING_KINDS,resultAwaitsFollowUp}from"../../packages/result-fold/src";
 // Va en su propio fichero porque tests/v22/result-fold.test.ts está fijado por sha256 en release/test-evidence-manifest.json
 // (RG-013): una prueba nueva no reescribe la evidencia de otra.
 const received=(critical:boolean)=>({sequence:1,payload:{kind:"RECEIVED",patientId:"p-1",orderId:"o-1",critical}});
@@ -25,5 +25,30 @@ describe("anotaciones y ciclo de vida del resultado (SQL-2, porte)",()=>{
   for(const kind of all)expect(()=>foldResult([received(false),{sequence:2,payload:{kind}}])).not.toThrow();
   expect(()=>foldResult([received(false),{sequence:2,payload:{kind:"AMENDED"}}])).toThrow(/Unknown result event/);
   expect([...RESULT_LIFECYCLE_KINDS]).toEqual(["RECEIVED","VERIFIED","ACTIONED","CLOSED"]);
+ });
+});
+
+// Porte D5 (REV-C): una sola regla decide si un resultado sigue esperando seguimiento — el gate de firma (SQL) y el derivado
+// del replay (la obligación urgente de un crítico no se reabre si su seguimiento ya terminó).
+describe("resultAwaitsFollowUp (porte D5)",()=>{
+ const corrected={sequence:2,payload:{kind:"CORRECTED",supersededBy:"r-2",reason:"hemólisis"}};
+ const voided={sequence:2,payload:{kind:"ENTERED_IN_ERROR",reason:"paciente equivocado"}};
+ it("un resultado abierto (RECEIVED, VERIFIED, ACTIONED) espera seguimiento",()=>{
+  expect(resultAwaitsFollowUp(foldResult([received(true)]))).toBe(true);
+  expect(resultAwaitsFollowUp(foldResult([received(true),verified]))).toBe(true);
+  expect(resultAwaitsFollowUp(foldResult([received(true),verified,actioned]))).toBe(true);
+ });
+ it("CLOSED, CORRECTED y ENTERED_IN_ERROR terminan el seguimiento; un resultado inexistente no lo espera",()=>{
+  expect(resultAwaitsFollowUp(foldResult([received(true),verified,actioned,closed]))).toBe(false);
+  expect(resultAwaitsFollowUp(foldResult([received(true),corrected]))).toBe(false);
+  expect(resultAwaitsFollowUp(foldResult([received(true),voided]))).toBe(false);
+  expect(resultAwaitsFollowUp(foldResult([]))).toBe(false);
+ });
+ it("la lista SQL y el predicado son la misma regla: cada tipo de la lista, añadido a un resultado abierto, lo termina",()=>{
+  expect([...RESULT_FOLLOW_UP_CLOSING_KINDS].sort()).toEqual(["CLOSED","CORRECTED","ENTERED_IN_ERROR"]);
+  for(const kind of RESULT_FOLLOW_UP_CLOSING_KINDS){
+   const ev={sequence:4,payload:{kind,supersededBy:"r-2",reason:"x",evidence:"x"}};
+   expect(resultAwaitsFollowUp(foldResult([received(true),verified,actioned,ev])),kind).toBe(false);
+  }
  });
 });

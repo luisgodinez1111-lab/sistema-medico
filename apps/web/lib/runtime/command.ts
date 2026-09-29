@@ -21,6 +21,23 @@ export async function runClinicalCommand(ctx:HttpTenantContext,command:ClinicalC
  assertPayloadSchema(command);
  const limit=await sharedAllow("write",`${ctx.tenantId}:${ctx.actorId}`);
  if(!limit.allowed)throw rateLimitedError(limit);
+ return commitCommand(ctx,command);
+}
+// Porte D5 — COMANDO DERIVADO (obligaciones de monitoreo de un fármaco, obligación URGENTE de un resultado crítico, cierre de
+// esa obligación): consecuencia obligatoria de un comando principal que YA se cobró al límite de tasa. Es idempotente por su
+// llave derivada (replay si ya se aplicó) y NO se cobra otra vez: antes, con el cubo del actor agotado entre ambos, el
+// principal quedaba confirmado y la obligación nunca se creaba (warfarina sin control de INR). Conserva la validación del
+// esquema (R06-19) y el preflight de sesión revocada (R01-014): un derivado de una sesión revocada sigue fallando. Los casos
+// de uso lo ejecutan también en el camino de replay del principal, así que un reintento IDÉNTICO reconcilia lo que un fallo
+// tras el commit principal dejó pendiente (no hay reconciliador del lado del servidor: eso sigue abierto).
+// Superficie: un actor puede disparar N derivados por cada comando principal cobrado, acotado por el número de reglas.
+export async function runDerivedCommand(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult>{
+ const replay=await lookupReplay(ctx,command);if(replay)return replay;
+ assertPayloadSchema(command);
+ return commitCommand(ctx,command);
+}
+// Cuerpo común del commit (sin límite de tasa): SLI del flujo + kernel atómico con el preflight de sesión revocada.
+async function commitCommand(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult>{
  const span=sliSpan(flowForTopic(command.topic),"commit",command.correlationId);
  try{
   // R01-014: la sesión revocada se rechaza DENTRO de la transacción del comando (preflight del kernel): ni ventana entre

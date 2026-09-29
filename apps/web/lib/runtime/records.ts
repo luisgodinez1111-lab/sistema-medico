@@ -5,6 +5,7 @@ import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{ClinicalError}from"../../../../packages/runtime-errors/src";
 import{isUuid}from"../../../../packages/tenant-context/src";
 import{signatureBlockReason,type SignatureBlockReason}from"../../../../packages/obligation-fold/src";
+import{RESULT_FOLLOW_UP_CLOSING_KINDS}from"../../../../packages/result-fold/src";
 import{logPhiAccess,patientAccessLog,type PhiAccessEntry,type PhiAccessAction,type PhiResourceType}from"../phi-access-log";
 import{withTenantTx}from"./connection";
 import{PAGE_LIMIT_MAX,Page,decodeCursor,encodeCursor}from"./pagination";
@@ -181,7 +182,7 @@ export async function countOpenCriticalResults(ctx:HttpTenantContext,patientId:s
      and r.payload->>'kind'='RECEIVED' and r.payload->>'patientId'=${patientId} and r.payload->>'critical'='true'
      and not exists(
       select 1 from clinical_events c
-      where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and c.payload->>'kind' in ('CLOSED','CORRECTED','ENTERED_IN_ERROR'))`; // C-02: un crítico corregido deja de bloquear · R03-10: un crítico ANULADO tampoco // C-02: un crítico corregido deja de bloquear; si la corrección sigue siendo crítica, bloquea el nuevo
+      where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and c.payload->>'kind' = any(${RESULT_FOLLOW_UP_CLOSING_KINDS}))`; // C-02: un crítico corregido deja de bloquear (si la corrección sigue siendo crítica, bloquea el nuevo) · R03-10: un crítico ANULADO tampoco · porte D5: la lista es la de result-fold, la misma que decide el derivado del replay
   return Number(rows[0]?.n??0);
  });
 }

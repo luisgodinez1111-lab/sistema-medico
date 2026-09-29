@@ -16,6 +16,10 @@ export type ResultEventKind="RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED"|"CORRECTED
 // antes tomaba el último evento de cualquier tipo y un resultado CERRADO y luego corregido volvía a «En revisión»).
 export const RESULT_ANNOTATION_KINDS=["CORRECTED","ENTERED_IN_ERROR"]as const satisfies readonly ResultEventKind[];
 export const RESULT_LIFECYCLE_KINDS=["RECEIVED","VERIFIED","ACTIONED","CLOSED"]as const satisfies readonly Exclude<ResultEventKind,typeof RESULT_ANNOTATION_KINDS[number]>[];
+// Porte D5 (REV-C): los eventos que TERMINAN el seguimiento de un resultado (cierre con evidencia, corrección que lo reemplaza,
+// anulación R03-10). Una sola regla para el gate de firma (countOpenCriticalResults la usa en SQL) y para el derivado del
+// replay (un reintento del laboratorio no reabre la obligación urgente de un crítico cuyo seguimiento ya terminó).
+export const RESULT_FOLLOW_UP_CLOSING_KINDS=["CLOSED","CORRECTED","ENTERED_IN_ERROR"]as const satisfies readonly ResultEventKind[];
 export type StoredResultEvent=Readonly<{sequence:number;payload:Record<string,unknown>}>;
 export type FoldedResult=Readonly<{exists:boolean;state:ResultState;version:number;patientId:string;critical:boolean;supersededBy:string|null;supersedes:string|null;enteredInError:boolean;errorReason:string|null}>;
 
@@ -40,6 +44,10 @@ export function foldResult(events:readonly StoredResultEvent[]):FoldedResult{
   }
  }
  return{exists:true,state,version:ordered[ordered.length-1]!.sequence,patientId,critical,supersededBy,supersedes,enteredInError,errorReason};
+}
+// La misma regla sobre el fold: el resultado existe y ningún evento de RESULT_FOLLOW_UP_CLOSING_KINDS terminó su seguimiento.
+export function resultAwaitsFollowUp(f:FoldedResult):boolean{
+ return f.exists&&f.state!=="CLOSED"&&!f.supersededBy&&!f.enteredInError;
 }
 // Un resultado se corrige UNA vez (la corrección de una corrección se hace sobre el resultado vigente).
 export function assertResultCorrectable(f:FoldedResult){

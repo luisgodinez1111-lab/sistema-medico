@@ -4,7 +4,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldMedication,assertMedicationTransition,assertMedicationAnnotation,type FoldedMedication,type MedAnnotationKind}from"../../../packages/medication-fold/src";
 import{type MedicationState}from"../../../packages/medication-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateStream,activeAllergies,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
+import{runClinicalCommand,runDerivedCommand,lookupReplay,readAggregateStream,activeAllergies,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{derivePatientFactors}from"./patient-factors";
 import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid,replayStablePayload}from"./http-command";
@@ -128,7 +128,10 @@ export const PrescribeBody=z.object({occurredAt:z.string().datetime(),acknowledg
 const DAY_MS=86_400_000;
 // EPIC BA — Crea automáticamente las obligaciones de monitoreo del fármaco al prescribir (Zero-Lost-Follow-Up).
 // Idempotente: ids/keys derivados de la key de la prescripción + slot; un reintento reconstruye lo mismo.
-// Cada obligación es su propia transacción (no atómica con la prescripción); un reintento la reconcilia.
+// Cada obligación es su propia transacción (no atómica con la prescripción). Porte D5: corre también en el REPLAY de la
+// prescripción y con runDerivedCommand (no vuelve a cobrar el límite de tasa), así que un reintento IDÉNTICO reconcilia lo que
+// un fallo tras el commit principal dejó pendiente. No hay reconciliador del lado del servidor ligado al outbox: sin reintento,
+// la obligación sigue faltando (Zero-Lost-Follow-Up no queda cerrado del todo).
 async function createMonitoringObligations(ctx:Parameters<typeof runClinicalCommand>[0],baseIdemKey:string,patientId:string,ownerId:string,drugCode:string,occurredAt:string):Promise<void>{
  // Auditoría R02a-MED-01: `monitoringFor` devuelve [] para un fármaco FUERA del catálogo, así que prescribirlo creaba
  // CERO obligaciones de monitoreo… en silencio. Para el médico, «ninguna obligación» se lee como «este fármaco no
@@ -146,8 +149,7 @@ async function createMonitoringObligations(ctx:Parameters<typeof runClinicalComm
     note:`El fármaco «${drugCode}» no está en el catálogo: el sistema no pudo derivar ninguna obligación de monitoreo. Defina qué vigilar y con qué periodicidad.`,
     sourceDrugCode:drugCode},
    occurredAt,topic:"obligation.created"});
-  let r=await lookupReplay(ctx,cmd);
-  if(!r)r=await runClinicalCommand(ctx,cmd);
+  await runDerivedCommand(ctx,cmd);
   return;
  }
  for(let i=0;i<rules.length;i++){
@@ -156,8 +158,7 @@ async function createMonitoringObligations(ctx:Parameters<typeof runClinicalComm
   const obligationId=derivedUuid(baseIdemKey,`monitor-agg-${i}`);
   const dueAt=new Date(new Date(occurredAt).getTime()+rule.dueInDays*DAY_MS).toISOString();
   const cmd=buildCommand({idempotencyKey:idem,aggregateType:"ClinicalObligation",aggregateId:obligationId,expectedVersion:0,eventType:"OBLIGATION_CREATED",payload:{kind:"CREATED",patientId,ownerId,dueAt,obligationKind:rule.kind,test:rule.test,note:rule.note,sourceMedicationDrug:drugCode},occurredAt,topic:"obligation.created"});
-  let r=await lookupReplay(ctx,cmd);
-  if(!r)r=await runClinicalCommand(ctx,cmd);
+  await runDerivedCommand(ctx,cmd);
  }
 }
 // Evaluación de barreras COMPARTIDA por PRESCRIBE y MODIFY: mismos datos del paciente, mismo evaluador puro. La propia
@@ -236,8 +237,9 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
    enforceSafety(safety,"prescribe",acknowledged,b.unverifiedJustification,override);
    // EXEC-0014 / EPIC BA: al prescribir, crear las obligaciones de monitoreo del fármaco (INR, creatinina/TFG, potasio...).
    result=await runClinicalCommand(ctx,cmd);
-   await createMonitoringObligations(ctx,idempotencyKey,folded.patientId,claims.sub,folded.drugCode,b.occurredAt);
   }
+  // Porte D5: fuera del `if`: también en el replay (idempotente por sus llaves derivadas de la Idempotency-Key).
+  await createMonitoringObligations(ctx,idempotencyKey,folded.patientId,claims.sub,folded.drugCode,b.occurredAt);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({medicationId,state:"PRESCRIBED",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
