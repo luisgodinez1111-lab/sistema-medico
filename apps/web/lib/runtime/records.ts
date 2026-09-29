@@ -86,11 +86,16 @@ export async function readEncounterEvents(ctx:HttpTenantContext,encounterId:stri
 // EPIC G — Lector genérico de eventos de un agregado (RLS-scoped, con payload).
 // Payload de UN evento por su id, acotado al agregado esperado (RLS-scoped). El id del evento es determinista respecto de
 // la llave de idempotencia (derivedUuid(key,"event")), así que esto responde: "¿esta llave ya produjo su evento, y con qué?".
-export async function readEventPayloadById(ctx:HttpTenantContext,eventId:string,aggregateId:string):Promise<Record<string,unknown>|undefined>{
+// Porte del hallazgo D6 — con su `sequence`: la versión que el comando original esperaba es `sequence - 1` (el replay de los
+// comandos con efectos en Blob reconstruye el comando exacto). Una sola consulta: readEventPayloadById la reutiliza.
+export async function readEventById(ctx:HttpTenantContext,eventId:string,aggregateId:string):Promise<{sequence:number;payload:Record<string,unknown>}|undefined>{
  return withTenantTx(ctx,async tx=>{
-  const rows=await tx`select payload from clinical_events where tenant_id=${ctx.tenantId} and id=${eventId} and aggregate_id=${aggregateId} limit 1`;
-  const p=rows[0]?.payload;return p&&typeof p==="object"?p as Record<string,unknown>:undefined;
+  const rows=await tx`select sequence,payload from clinical_events where tenant_id=${ctx.tenantId} and id=${eventId} and aggregate_id=${aggregateId} limit 1`;
+  const p=rows[0]?.payload;return p&&typeof p==="object"?{sequence:Number(rows[0]!.sequence),payload:p as Record<string,unknown>}:undefined;
  });
+}
+export async function readEventPayloadById(ctx:HttpTenantContext,eventId:string,aggregateId:string):Promise<Record<string,unknown>|undefined>{
+ return(await readEventById(ctx,eventId,aggregateId))?.payload;
 }
 export async function readAggregateEvents(ctx:HttpTenantContext,aggregateId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
  return readEncounterEvents(ctx,aggregateId);

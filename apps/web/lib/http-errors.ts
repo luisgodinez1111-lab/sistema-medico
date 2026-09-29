@@ -13,6 +13,11 @@ const KERNEL:Record<string,ClinicalErrorCode>={
  IDEMPOTENCY_IN_PROGRESS:"CONFLICT",
  AGGREGATE_TYPE_MISMATCH:"NOT_FOUND", // Porte D4: el id es de otro tipo de agregado; para este comando no existe
 };
+// Porte del hallazgo D6 — ¿es un RECHAZO del kernel (el comando no se confirmó, con certeza)? Fuente única: las claves de KERNEL.
+// Un `Error` plano con otro mensaje (p. ej. la conexión cae durante el COMMIT) es ambiguo: el evento pudo quedar confirmado.
+export function isKernelRejection(e:unknown):boolean{
+ return e instanceof Error&&!(e instanceof ClinicalError)&&Object.prototype.hasOwnProperty.call(KERNEL,e.message);
+}
 // Auditoría U-19: la UI necesita saber QUÉ barreras bloquean y cuáles admiten anulación para ofrecer el diálogo correcto
 // (no se puede inferir del texto). Lista cerrada por código y por clave: lo que no está aquí no sale.
 const EXPOSED_DETAILS:Partial<Record<ClinicalErrorCode,readonly string[]>>={

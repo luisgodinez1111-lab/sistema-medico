@@ -6,7 +6,8 @@ import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
 import{canonicalize,deterministicUuid}from"../../../packages/canonical-json/src";
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
-import{sessionSecret,readEventPayloadById}from"./clinical-runtime";
+import{sessionSecret,readEventPayloadById,readEventById,lookupReplay}from"./clinical-runtime";
+import{isKernelRejection}from"./http-errors";
 // EPIC D/G — Helpers compartidos por los verticales que escriben comandos clínicos vía HTTP.
 // Envelope determinista (idempotencia estilo Stripe) + concurrencia optimista vía If-Match.
 
@@ -108,6 +109,48 @@ function stripUndefined<T>(v:T):T{
  if(Array.isArray(v))return v.map(stripUndefined) as unknown as T;
  if(v!==null&&typeof v==="object")return Object.fromEntries(Object.entries(v as Record<string,unknown>).filter(([,x])=>x!==undefined).map(([k,x])=>[k,stripUndefined(x)])) as T;
  return v;
+}
+// Porte del hallazgo D6 — REINTENTO de un comando con efectos externos (Blob), reconocido ANTES de tocarlos. Si esta llave ya
+// produjo su evento, se reconstruye el comando exacto que se ejecutó (versión = secuencia − 1, mismo payload y la misma hora,
+// que el payload guarda en `at`) y se devuelve la respuesta que el kernel guardó; si la llave se usó para otro comando,
+// IDEMPOTENCY_CONFLICT. Antes el reintento volvía a subir el archivo, el kernel lo rechazaba (la hora del servidor entra en el
+// hash) y la limpieza borraba el blob que el evento ya confirmado seguía citando; una retirada ya aplicada respondía 404.
+// Requisito: el payload no lleva claves `undefined` (JSONB no las guarda) y `occurredAt` es exactamente `payload[at]`.
+export type PriorCommand=Readonly<{payload:Record<string,unknown>;version:number;auditHash?:string}>;
+export async function priorCommand(ctx:HttpTenantContext,a:Readonly<{idempotencyKey:string;aggregateType:string;aggregateId:string;eventType:string;topic:string;at:string}>):Promise<PriorCommand|undefined>{
+ const prior=await readEventById(ctx,derivedUuid(a.idempotencyKey,"event"),a.aggregateId);
+ if(!prior)return undefined;
+ const cmd=buildCommand({idempotencyKey:a.idempotencyKey,aggregateType:a.aggregateType,aggregateId:a.aggregateId,expectedVersion:prior.sequence-1,eventType:a.eventType,payload:prior.payload,occurredAt:String(prior.payload[a.at]??""),topic:a.topic});
+ const replay=await lookupReplay(ctx,cmd);
+ if(!replay)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
+ const r=replay.response as{version:number;auditHash?:string};
+ return{payload:prior.payload,version:r.version,...(r.auditHash!==undefined?{auditHash:r.auditHash}:{})};
+}
+// ¿Algún evento confirmado cita este blob? Solo el evento de ESTA llave podría (las rutas son únicas por intento). Si no se
+// puede comprobar, se responde que sí: un blob huérfano es preferible a un evento que cite un binario borrado.
+async function blobReferenced(ctx:HttpTenantContext,idempotencyKey:string,aggregateId:string,pathname:string):Promise<boolean>{
+ return readEventById(ctx,derivedUuid(idempotencyKey,"event"),aggregateId).then(e=>e?.payload["pathname"]===pathname,()=>true);
+}
+// Porte del hallazgo D6 — SUBIDA AL BLOB + EVENTO que la cita, en un solo sitio (adjuntos y perfil del médico). No depende de
+// @vercel/blob: subir y descartar los pasa el caso de uso.
+//  1) replay primero, antes de subir nada; 2) subida a una ruta ÚNICA por intento; 3) commit del evento;
+//  4) si el commit falla por un rechazo DEFINITIVO (ClinicalError que no sea DEPENDENCY_UNAVAILABLE, o un rechazo del kernel
+//     —`isKernelRejection`, las claves de KERNEL—) y ningún evento cita la ruta, se borra el binario de este intento; ante un
+//     error ambiguo (p. ej. la conexión cae durante el COMMIT) se conserva. PENDIENTE declarado: no existe aún un barrido que
+//     retire los binarios que ningún evento cita (commit ambiguo o proceso muerto entre la subida y el commit);
+//  5) si el rechazo se debe a que otro intento IDÉNTICO con la misma llave confirmó antes, se responde su replay (no un 409).
+const definiteRejection=(e:unknown)=>e instanceof ClinicalError?e.code!=="DEPENDENCY_UNAVAILABLE":isKernelRejection(e);
+const idempotencyRace=(e:unknown)=>e instanceof Error&&!(e instanceof ClinicalError)&&(e.message==="IDEMPOTENCY_CONFLICT"||e.message==="IDEMPOTENCY_IN_PROGRESS");
+export async function uploadThenCommit(ctx:HttpTenantContext,a:Readonly<{idempotencyKey:string;aggregateId:string;pathname:string;
+ replay:()=>Promise<Response|null>;upload:()=>Promise<unknown>;commit:()=>Promise<Response>;discard:()=>Promise<unknown>}>):Promise<Response>{
+ const first=await a.replay();if(first)return first;
+ await a.upload();
+ try{return await a.commit();}
+ catch(e){
+  if(definiteRejection(e)&&!(await blobReferenced(ctx,a.idempotencyKey,a.aggregateId,a.pathname)))await a.discard().catch(()=>{/* mejor esfuerzo */});
+  if(idempotencyRace(e)){const again=await a.replay();if(again)return again;}
+  throw e;
+ }
 }
 export async function parseJson<T>(req:Request,schema:z.ZodType<T>):Promise<T>{
  let raw:unknown;
