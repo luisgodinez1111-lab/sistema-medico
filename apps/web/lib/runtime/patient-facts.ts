@@ -8,6 +8,7 @@ import{logPhiAccess,patientAccessLog,type PhiAccessEntry,type PhiAccessAction,ty
 import{withTenantTx}from"./connection";
 import{patientDemographics}from"./patients";
 import{latestAnalyteReading}from"./lab-facts";
+import{vitalVigente,vitalNoAnulada}from"./read-model-joins";
 
 // EPIC R — Gate de seguridad de medicación: sustancias con alergia ACTIVA del paciente (RLS-scoped).
 // Una alergia está activa si su último evento es RECORDED o REACTIVATED (no REFUTED/INACTIVATED).
@@ -101,7 +102,8 @@ export async function administeredVaccineCodes(ctx:HttpTenantContext,patientId:s
 //     última»: el puntaje se calculaba sobre un dato explícitamente anulado.
 //  3. NO DEVOLVÍA UNIDAD NI FECHA, así que ningún cálculo podía comprobar ni la escala ni la vigencia (una PA de hace
 //     tres semanas decidía un ingreso hospitalario hoy).
-// Ahora se pliega cada agregado a su ÚLTIMO evento, se descarta lo anulado, se toma el valor canónico cuando existe y se
+// Ahora se pliega cada agregado con la proyección de `foldVital` (`vitalVigente`/`vitalNoAnulada`, read-model-joins: el
+// valor es el del último evento que lo aporta y lo anulado no existe), se toma el valor canónico cuando existe y se
 // devuelven unidad y momento de la toma. `occurredAt` es el de la toma (el RECORDED): una enmienda corrige el VALOR, no
 // el instante en que se midió al paciente — y para la vigencia, la fecha más antigua es la conservadora.
 export type VitalReading=Readonly<{vitalType:string;value:string;unit:string|null;canonicalUnit:string|null;unitAssumed:boolean;occurredAt:string;amended:boolean;vitalId:string}>;
@@ -110,17 +112,15 @@ export async function latestVitalReadings(ctx:HttpTenantContext,patientId:string
   const rows=await tx`
    select distinct on (r.payload->>'vitalType')
      r.payload->>'vitalType' as vital_type, r.aggregate_id as vital_id, r.occurred_at as at,
-     coalesce(l.payload->>'canonicalValue',l.payload->>'value',r.payload->>'canonicalValue',r.payload->>'value') as value,
-     coalesce(l.payload->>'unit',r.payload->>'unit') as unit,
-     coalesce(l.payload->>'canonicalUnit',r.payload->>'canonicalUnit') as canonical_unit,
+     coalesce(cur.payload->>'canonicalValue',cur.payload->>'value') as value,
+     cur.payload->>'unit' as unit,
+     cur.payload->>'canonicalUnit' as canonical_unit,
      l.payload->>'kind' as last_kind
    from clinical_events r
-   join lateral (select payload from clinical_events c
-                 where c.tenant_id=r.tenant_id and c.aggregate_id=r.aggregate_id
-                 order by c.sequence desc limit 1) l on true
+   ${vitalVigente(tx)}
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
      and r.payload->>'patientId'=${patientId}
-     and l.payload->>'kind'<>'ENTERED_IN_ERROR' -- una toma anulada NO es "la última"
+     and ${vitalNoAnulada(tx)} -- una toma anulada NO es "la última"
    order by r.payload->>'vitalType', r.occurred_at desc, r.sequence desc`;
   const out:Record<string,VitalReading>={};
   for(const x of rows){
@@ -143,8 +143,9 @@ export async function latestVitalsByType(ctx:HttpTenantContext,patientId:string)
  const r=await latestVitalReadings(ctx,patientId);
  return Object.fromEntries(Object.entries(r).map(([k,v])=>[k,v.value]));
 }
-// EPIC W/UI — Historial de signos vitales de UN paciente (vista Signos vitales). Devuelve los puntos
-// VITAL_RECORDED (tipo/valor/unidad/fecha) ordenados por fecha desc. La agrupación por timestamp en filas
+// EPIC W/UI — Historial de signos vitales de UN paciente (vista Signos vitales): una fila por toma NO anulada, con el valor y
+// la unidad VIGENTES (última corrección, hallazgo D1: antes era el RECORDED original aunque se hubiera corregido o anulado) y
+// la fecha de la toma, ordenadas por fecha desc. La agrupación por timestamp en filas
 // (una toma = varios tipos con el mismo occurredAt) y las series de tendencia se derivan en la capa de API. RLS-scoped.
 export type VitalPoint=Readonly<{at:string;vitalType:string;value:string;unit:string}>;
 export async function patientVitals(ctx:HttpTenantContext,patientId:string,limit=400):Promise<VitalPoint[]>{
@@ -152,12 +153,14 @@ export async function patientVitals(ctx:HttpTenantContext,patientId:string,limit
   const rows=await tx`
    -- R03-09/R03-33: el historial muestra el valor CANÓNICO (el mismo con el que se calcula). Antes devolvía el crudo, así
    -- que una toma capturada en libras se mostraba como «154» junto a un IMC calculado con 69.9 kg: dos cifras del mismo dato.
-   select v.occurred_at as at, v.payload->>'vitalType' as vital_type,
-     coalesce(v.payload->>'canonicalValue',v.payload->>'value') as value,
-     coalesce(v.payload->>'canonicalUnit',v.payload->>'unit') as unit
-   from clinical_events v
-   where v.tenant_id=${ctx.tenantId} and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=${patientId}
-   order by v.occurred_at desc
+   select r.occurred_at as at, r.payload->>'vitalType' as vital_type,
+     coalesce(cur.payload->>'canonicalValue',cur.payload->>'value') as value,
+     coalesce(cur.payload->>'canonicalUnit',cur.payload->>'unit') as unit
+   from clinical_events r
+   ${vitalVigente(tx)}
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=${patientId}
+     and ${vitalNoAnulada(tx)}
+   order by r.occurred_at desc
    limit ${limit}`;
   // R01-026: constancia de acceso de lectura a PHI (en la misma transacción que la consulta).
   await logPhiAccess(tx,ctx,{resourceType:"PATIENT_VITALS",resourceId:patientId,patientId});

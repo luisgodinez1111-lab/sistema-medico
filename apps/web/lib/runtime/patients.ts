@@ -5,6 +5,7 @@ import{ClinicalError}from"../../../../packages/runtime-errors/src";
 import{logPhiAccess,patientAccessLog,type PhiAccessEntry,type PhiAccessAction,type PhiResourceType}from"../phi-access-log";
 import{withTenantTx}from"./connection";
 import{lifecycleEventOnly}from"./records";
+import{demografiaVigente,pacientesConValor}from"./read-model-joins";
 import{PAGE_LIMIT_MAX,Page,decodeCursor,encodeCursor}from"./pagination";
 
 // EPIC S — Registro de pacientes del tenant (RLS-scoped). Devuelve id + nombre (PHI) + estado.
@@ -20,14 +21,11 @@ export async function listPatients(ctx:HttpTenantContext,query:PatientListQuery=
   const rows=await tx`
    select * from (
    select r.aggregate_id,
-     coalesce(a.payload->>'name', r.payload->>'name') as name,
-     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as birth_date,
-     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sex_at_birth,
-     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
+     d.demo->>'name' as name, d.demo->>'birthDate' as birth_date, d.demo->>'sexAtBirth' as sex_at_birth, d.demo->>'curp' as curp,
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and ${lifecycleEventOnly(tx)} order by sequence desc limit 1) as latest_kind,
      (select count(*)::int from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=r.aggregate_id) as version
    from clinical_events r
-   left join lateral (select payload from clinical_events am where am.tenant_id=${ctx.tenantId} and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   ${demografiaVigente(tx)}
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
    ) p
    where (${q}='' or lower(p.name) like ${q+'%'} or lower(p.name) like ${'% '+q+'%'} or lower(coalesce(p.curp,'')) like ${q+'%'})
@@ -40,25 +38,20 @@ export async function listPatients(ctx:HttpTenantContext,query:PatientListQuery=
   return{items,nextCursor:rows.length>query.limit&&last?encodeCursor([last.name,last.patientId]):null,total:Number(total[0]?.n??0)};
  });
 }
-// EPIC BK/BL — Demografía del paciente (nacimiento + sexo, del evento REGISTERED). RLS-scoped.
+// EPIC BK/BL — Demografía VIGENTE del paciente (alta + enmiendas, campo a campo). RLS-scoped.
 // Auditoría L-06: `guardian` (tutor o representante legal) para menores de edad; lo fija el alta o una enmienda.
 export type PatientGuardian=Readonly<{name:string;relationship:string;phone?:string}>;
 export type PatientDemographics=Readonly<{birthDate?:string;sexAtBirth?:string;curp?:string;phone?:string;email?:string;address?:string;occupation?:string;maritalStatus?:string;name?:string;guardian?:PatientGuardian}>;
 export async function patientDemographics(ctx:HttpTenantContext,patientId:string):Promise<PatientDemographics|undefined>{
  return withTenantTx(ctx,async tx=>{
+  // Hallazgo D2: demografía VIGENTE campo a campo (`demografiaVigente`, la regla de `patientDemographicsOf`), no el alta
+  // combinada con la última enmienda: una enmienda que solo trae el teléfono ya no revierte nombre, nacimiento ni tutor.
   const rows=await tx`select
-     coalesce(a.payload->>'birthDate', r.payload->>'birthDate') as bd,
-     coalesce(a.payload->>'sexAtBirth', r.payload->>'sexAtBirth') as sx,
-     coalesce(a.payload->>'name', r.payload->>'name') as nm,
-     coalesce(a.payload->>'curp', r.payload->>'curp') as curp,
-     coalesce(a.payload->>'phone', r.payload->>'phone') as phone,
-     coalesce(a.payload->>'email', r.payload->>'email') as email,
-     coalesce(a.payload->>'address', r.payload->>'address') as address,
-     coalesce(a.payload->>'occupation', r.payload->>'occupation') as occupation,
-     coalesce(a.payload->>'maritalStatus', r.payload->>'maritalStatus') as marital,
-     coalesce(a.payload->'guardian', r.payload->'guardian') as guardian
+     d.demo->>'birthDate' as bd, d.demo->>'sexAtBirth' as sx, d.demo->>'name' as nm, d.demo->>'curp' as curp,
+     d.demo->>'phone' as phone, d.demo->>'email' as email, d.demo->>'address' as address,
+     d.demo->>'occupation' as occupation, d.demo->>'maritalStatus' as marital, d.demo->'guardian' as guardian
    from clinical_events r
-   left join lateral (select payload from clinical_events am where am.tenant_id=${ctx.tenantId} and am.aggregate_id=r.aggregate_id and am.payload->>'kind'='AMENDED' order by am.sequence desc limit 1) a on true
+   ${demografiaVigente(tx)}
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and r.aggregate_id=${patientId} limit 1`;
   const row=rows[0] as Record<string,unknown>|undefined;
   if(!row)return undefined;
@@ -87,22 +80,25 @@ export async function requireRegisteredPatient(ctx:HttpTenantContext,patientId:s
 }
 // Auditoría L-06 — detección de duplicados al dar de alta: misma CURP en el tenant (identidad legal única) o mismo nombre
 // normalizado + misma fecha de nacimiento (sospecha fuerte que el usuario puede confirmar como no duplicado).
+// Hallazgo D2: se compara contra la demografía VIGENTE (una CURP o un nombre corregidos por enmienda también cuentan), con
+// el prefiltro `pacientesConValor` (SQL-1) para no proyectar la demografía de todo el padrón.
 export type PatientDuplicate=Readonly<{patientId:string;by:"CURP"|"NAME_BIRTHDATE"}>;
 export async function findPatientDuplicate(ctx:HttpTenantContext,q:{curp?:string|undefined;normalizedName?:string|undefined;birthDate?:string|undefined}):Promise<PatientDuplicate|undefined>{
  return withTenantTx(ctx,async tx=>{
   if(q.curp){
-   const byCurp=await tx`select r.aggregate_id from clinical_events r where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED' and upper(r.payload->>'curp')=${q.curp} limit 1`;
+   const byCurp=await tx`select r.aggregate_id from clinical_events r ${demografiaVigente(tx)} where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+    and ${pacientesConValor(tx,ctx.tenantId,"curp",q.curp,true)} and upper(d.demo->>'curp')=${q.curp} limit 1`;
    const row=byCurp[0] as{aggregate_id:string}|undefined;if(row)return{patientId:String(row.aggregate_id),by:"CURP"};
   }
   if(!q.normalizedName||!q.birthDate)return undefined;
   // Nombre: se compara sin acentos ni mayúsculas (unaccent no está garantizado en Neon: se normaliza en SQL con translate).
-  const byName=await tx`select r.aggregate_id from clinical_events r where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
-    and r.payload->>'birthDate'=${q.birthDate}
-    and btrim(regexp_replace(lower(translate(r.payload->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=${q.normalizedName} limit 1`;
+  const byName=await tx`select r.aggregate_id from clinical_events r ${demografiaVigente(tx)} where r.tenant_id=${ctx.tenantId} and r.aggregate_type='Patient' and r.payload->>'kind'='REGISTERED'
+    and ${pacientesConValor(tx,ctx.tenantId,"birthDate",q.birthDate)} and d.demo->>'birthDate'=${q.birthDate}
+    and btrim(regexp_replace(lower(translate(d.demo->>'name','ÁÉÍÓÚÜáéíóúü','AEIOUUaeiouu')),'\\s+',' ','g'))=${q.normalizedName} limit 1`;
   const row=byName[0] as{aggregate_id:string}|undefined;return row?{patientId:String(row.aggregate_id),by:"NAME_BIRTHDATE"}:undefined;
  });
 }
-// EPIC BK — Fecha de nacimiento del paciente (del evento REGISTERED). RLS-scoped. Para el pronóstico de vacunación.
+// EPIC BK — Fecha de nacimiento VIGENTE del paciente (de `patientDemographics`). RLS-scoped. Para el pronóstico de vacunación.
 export async function patientBirthDate(ctx:HttpTenantContext,patientId:string):Promise<string|undefined>{
  const d=await patientDemographics(ctx,patientId);return d?.birthDate;
 }

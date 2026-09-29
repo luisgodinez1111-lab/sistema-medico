@@ -1,12 +1,13 @@
 // EPIC E/UI (Lote E) — Registro POBLACIONAL de signos vitales de TODA la clínica (vista Signos vitales › «Toda la
 // clínica»). Una fila por lectura (agregado VitalSign). El VALOR VIGENTE es append-only: si la lectura fue enmendada,
 // se muestra el último valor (RECORDED→AMENDED, por secuencia), no el original. Una lectura marcada «capturada por
-// error» (ENTERED_IN_ERROR alguna vez) NO aparece en el registro. Une el nombre del paciente. RLS-scoped.
+// error» (VITAL_VOID_KIND, el evento terminal del fold, alguna vez) NO aparece en el registro. Une el nombre del paciente. RLS-scoped.
 //
 // Vive en su propio módulo por el mismo criterio que separó lab-facts / read-model-joins: `registries.ts` pasaba de
 // 300 líneas (R01-001). Auditoría R02a-ENC-01: la «fecha de registro» sale de `recorded_at` (reloj del servidor), no
 // del `occurred_at` que declara el cliente.
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
+import{VITAL_VOID_KIND}from"../../../../packages/vital-fold/src";
 import{withTenantTx}from"./connection";
 import{type RegistryQuery,porPaciente,nombreDePaciente,despuesDelCursor,paginaOrdenada}from"./read-model-joins";
 import{type Page,armarPagina,limiteDe,decodeCursor}from"./pagination";
@@ -29,7 +30,7 @@ export async function vitalsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Pro
      order by e.sequence desc limit 1) cur on true
    left join lateral (
      select 1 as eie from clinical_events v
-     where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR'
+     where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'=${VITAL_VOID_KIND}
      limit 1) er on true
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='VitalSign' and a.payload->>'kind'='RECORDED' and er.eie is null ${porPaciente(tx,q)}`;
   const s=(sum as Array<Record<string,unknown>>)[0]??{};
@@ -47,7 +48,7 @@ export async function vitalsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Pro
      order by e.sequence desc limit 1) cur on true
    left join lateral (
      select 1 as eie from clinical_events v
-     where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR'
+     where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'=${VITAL_VOID_KIND}
      limit 1) er on true
    ${nombreDePaciente(tx,ctx.tenantId)}
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='VitalSign' and a.payload->>'kind'='RECORDED'

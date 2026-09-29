@@ -10,6 +10,7 @@ import{logPhiAccess,patientAccessLog,type PhiAccessEntry,type PhiAccessAction,ty
 import{withTenantTx}from"./connection";
 import{PAGE_LIMIT_MAX,Page,decodeCursor,encodeCursor}from"./pagination";
 import{OBLIGATION_STATUS}from"./patient-facts";
+import{vitalVigente,vitalNoAnulada}from"./read-model-joins";
 
 // EPIC D — Replay idempotente previo a la validación de state-machine: si este Idempotency-Key
 // ya produjo ESTE comando exacto (mismo hash) y quedó COMPLETED, devuelve la respuesta guardada.
@@ -190,17 +191,18 @@ export async function countOpenCriticalResults(ctx:HttpTenantContext,patientId:s
   return Number(rows[0]?.n??0);
  });
 }
-// EPIC AN + Zero Lost Follow-Up: cuenta signos vitales CRÍTICOS del paciente
-// que están en estado RECORDED o AMENDED (no corregidos) y no han sido abordados
-// (no existe obligación creada para ese vital). Bloquea firma del encuentro.
+// EPIC AN + Zero Lost Follow-Up: cuenta signos vitales del paciente cuyo valor VIGENTE (el de la última corrección) es
+// CRÍTICO, que no están anulados y no han sido abordados (no existe obligación creada para ese vital). Bloquea firma del
+// encuentro. Hallazgo D1: antes buscaba el paciente también en AMENDED (que no lo lleva), así que un vital corregido A
+// crítico no contaba, y un crítico anulado seguía contando; ahora usa la proyección del fold (`vitalVigente`).
 export async function countOpenCriticalVitals(ctx:HttpTenantContext,patientId:string):Promise<number>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select count(distinct r.aggregate_id)::int n
    from clinical_events r
-   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='VitalSign'
-     and r.payload->>'kind' in ('RECORDED','AMENDED')
-     and r.payload->>'patientId'=${patientId} and r.payload->>'critical'='true'
+   ${vitalVigente(tx)}
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
+     and r.payload->>'patientId'=${patientId} and ${vitalNoAnulada(tx)} and cur.payload->>'critical'='true'
      and not exists(
       select 1 from clinical_events c
       where c.tenant_id=${ctx.tenantId} and c.aggregate_type='ClinicalObligation'

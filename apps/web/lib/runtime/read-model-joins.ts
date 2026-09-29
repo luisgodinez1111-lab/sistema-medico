@@ -29,6 +29,8 @@
 //   · RESUMEN (todo el conjunto, salida de tamaño fijo): se resuelve con una TABLA DERIVADA por ventana, que se calcula una
 //     vez. Aquí sí gana: 1 116 buffers frente a 72 389 en el tenant de la medición. Ver `transicionesPorAgregado`.
 import type postgres from"postgres";
+import{VITAL_VOID_KIND}from"../../../../packages/vital-fold/src";
+import{PATIENT_DEMOGRAPHIC_FIELDS,PATIENT_DEMOGRAPHIC_KINDS,type PatientDemographicField}from"../../../../packages/patient-fold/src";
 type Tx=postgres.TransactionSql;
 
 /** Opciones comunes de los registros de clínica. `patientId` acota EN SQL; sin él, el registro es de toda la clínica. */
@@ -44,12 +46,56 @@ export type RegistryQuery=Readonly<{patientId?:string;limit?:number;cursor?:stri
 export const porPaciente=(tx:Tx,q:RegistryQuery|undefined)=>
  q?.patientId?tx`and a.payload->>'patientId'=${q.patientId}`:tx``;
 
-/** Nombre del paciente del evento base. LATERAL: una búsqueda por FILA DEVUELTA, no por fila del tenant. */
-export const nombreDePaciente=(tx:Tx,tenantId:string)=>tx`left join lateral (
-  select payload->>'name' as name from clinical_events pt
-  where pt.tenant_id=${tenantId} and pt.aggregate_type='Patient' and pt.payload->>'kind'='REGISTERED'
-    and pt.aggregate_id=(a.payload->>'patientId')::uuid
-  limit 1) pn on true`;
+/**
+ * Nombre VIGENTE del paciente (hallazgo D2): el del último alta o enmienda que TRAE `name`, la regla de `patientDemographicsOf`
+ * (packages/patient-fold). Antes era el del alta, así que una corrección de nombre no llegaba a ningún registro. LATERAL: una
+ * búsqueda por FILA DEVUELTA, no por fila del tenant. `pid` es la expresión del paciente; por omisión, la del evento base `a`
+ * (un resumen agrupado pasa la suya, p. ej. tx`g.pid`, porque dentro del `group by` no puede correlacionar con `a`).
+ */
+export const nombreDePaciente=(tx:Tx,tenantId:string,pid:postgres.Fragment=tx`a.payload->>'patientId'`)=>tx`left join lateral (
+  select pt.payload->>'name' as name from clinical_events pt
+  where pt.tenant_id=${tenantId} and pt.aggregate_type='Patient' and pt.aggregate_id=(${pid})::uuid
+    and pt.payload->>'kind'=any(${[...PATIENT_DEMOGRAPHIC_KINDS]}::text[]) and pt.payload ? 'name'
+  order by pt.sequence desc limit 1) pn on true`;
+
+/**
+ * DEMOGRAFÍA VIGENTE del paciente (hallazgo D2), campo a campo con la regla de `patientDemographicsOf`: por cada campo de
+ * PATIENT_DEMOGRAPHIC_FIELDS, el valor del último evento de PATIENT_DEMOGRAPHIC_KINDS que lo trae. Antes se combinaba el
+ * alta con la ÚLTIMA enmienda: corregir solo el teléfono devolvía el nombre y la fecha de nacimiento del alta (edad, TFG,
+ * tutor, receta). Alias fijo `r` = el evento REGISTERED del paciente; `d.demo` = jsonb con los campos vigentes presentes.
+ */
+export const demografiaVigente=(tx:Tx)=>tx`left join lateral (
+  select jsonb_object_agg(f.key,f.value) as demo from (
+   select distinct on (kv.key) kv.key, kv.value from clinical_events e cross join lateral jsonb_each(e.payload) kv
+   where e.tenant_id=r.tenant_id and e.aggregate_type='Patient' and e.aggregate_id=r.aggregate_id
+     and e.payload->>'kind'=any(${[...PATIENT_DEMOGRAPHIC_KINDS]}::text[]) and kv.key=any(${[...PATIENT_DEMOGRAPHIC_FIELDS]}::text[])
+   order by kv.key, e.sequence desc) f) d on true`;
+
+/**
+ * Prefiltro de una búsqueda por un campo demográfico (SQL-1): pacientes en los que ALGÚN alta o enmienda aportó ese valor.
+ * Es exacto como prefiltro porque el valor vigente sale necesariamente de uno de esos eventos, y evita calcular
+ * `demografiaVigente` para todo el padrón en la detección de duplicados del alta. Alias fijo `r` = el evento REGISTERED.
+ */
+export const pacientesConValor=(tx:Tx,tenantId:string,field:PatientDemographicField,value:string,upper=false)=>tx`r.aggregate_id in (
+  select c.aggregate_id from clinical_events c
+  where c.tenant_id=${tenantId} and c.aggregate_type='Patient' and c.payload->>'kind'=any(${[...PATIENT_DEMOGRAPHIC_KINDS]}::text[])
+    and ${upper?tx`upper(c.payload->>${field})`:tx`c.payload->>${field}`}=${value})`;
+
+/**
+ * OBSERVACIÓN VIGENTE de un signo vital (hallazgo D1), con la semántica de `foldVital` (packages/vital-fold): valor,
+ * unidad, estado y bandera crítica son los del ÚLTIMO evento que aporta `value` (RECORDED o AMENDED), y una toma cuyo
+ * último evento es VITAL_VOID_KIND no existe clínicamente. Alias fijo `r` = el evento RECORDED (paciente, tipo y momento de
+ * la toma: los eventos posteriores no los repiten); `l` = último evento del agregado; `cur` = payload de la observación
+ * vigente. Se usa SIEMPRE junto con `vitalNoAnulada`.
+ */
+export const vitalVigente=(tx:Tx)=>tx`join lateral (
+  select c.payload from clinical_events c
+  where c.tenant_id=r.tenant_id and c.aggregate_id=r.aggregate_id order by c.sequence desc limit 1) l on true
+ join lateral (
+  select v.payload from clinical_events v
+  where v.tenant_id=r.tenant_id and v.aggregate_id=r.aggregate_id and v.payload ? 'value' order by v.sequence desc limit 1) cur on true`;
+/** La toma no está anulada: su último evento no es VITAL_VOID_KIND (parámetro, no un literal duplicado). */
+export const vitalNoAnulada=(tx:Tx)=>tx`l.payload->>'kind'<>${VITAL_VOID_KIND}`;
 
 /**
  * Última transición de ciclo de vida del agregado. `kinds` restringe a las transiciones que de verdad cambian el estado:

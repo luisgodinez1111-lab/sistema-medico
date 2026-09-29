@@ -4,7 +4,7 @@
 // genérico que sirve a los seis tableros; en `analytics.ts`, los agregados propios del tablero de REPORTES.
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{withTenantTx}from"./connection";
-import{transicionesPorAgregado,type ReportWindow,enVentana}from"./read-model-joins";
+import{transicionesPorAgregado,type ReportWindow,enVentana,nombreDePaciente}from"./read-model-joins";
 
 export type RegistrySummarySpec=Readonly<{
  aggregateType:string;              // p. ej. "Allergy"
@@ -80,7 +80,8 @@ export type TopPatientRow=Readonly<{patientId:string;name:string;count:number}>;
 export async function topPatientsOfRegistry(ctx:HttpTenantContext,spec:Pick<RegistrySummarySpec,"aggregateType"|"baseKind">,n=5,w?:ReportWindow):Promise<ReadonlyArray<TopPatientRow>>{
  return withTenantTx(ctx,async tx=>{
   // El nombre se resuelve FUERA de la agregación: dentro de un `group by` no se puede correlacionar por `a.payload`
-  // («subquery uses ungrouped column»). Se agrupa primero, se corta a las n filas y solo entonces se busca el nombre.
+  // («subquery uses ungrouped column»). Se agrupa primero, se corta a las n filas y solo entonces se busca el nombre, con
+  // la MISMA regla de nombre vigente que los registros (`nombreDePaciente`, hallazgo D2) sobre la expresión `g.pid`.
   const rows=await tx`
    select g.pid as pid, g.n as n, pn.name as name
    from (
@@ -90,10 +91,7 @@ export async function topPatientsOfRegistry(ctx:HttpTenantContext,spec:Pick<Regi
        and a.payload->>'patientId' is not null
      group by 1 order by 2 desc, 1 asc limit ${n}
    ) g
-   left join lateral (
-     select pt.payload->>'name' as name from clinical_events pt
-     where pt.tenant_id=${ctx.tenantId} and pt.aggregate_id=g.pid::uuid and pt.payload->>'kind'='REGISTERED'
-     limit 1) pn on true
+   ${nombreDePaciente(tx,ctx.tenantId,tx`g.pid`)}
    order by g.n desc, g.pid asc`;
   return rows.map(r=>{const o=r as Record<string,unknown>;
    return{patientId:String(o.pid??""),name:String(o.name??"Paciente"),count:Number(o.n??0)};});
