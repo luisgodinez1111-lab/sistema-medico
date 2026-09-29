@@ -7,7 +7,7 @@ import{type ResultState}from"../../../packages/order-result-domain/src";
 import{runClinicalCommand,lookupReplay,readAggregateStream,latestAnalyteReading,requireRegisteredPatient,patientDemographics}from"./clinical-runtime";
 import{ageInYears}from"../../../packages/prescription-safety/src";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload,derivedUuid}from"./http-command";
+import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload,derivedUuid}from"./http-command";
 import{foldObligation}from"../../../packages/obligation-fold/src";
 import{decideDueAt,dueAtFrom,dueAtPayload,dueWindowFor,OBLIGATION_DUE_WINDOWS,type DueWindow}from"../../../packages/obligation-domain/src";
 import{classifyLab,normalizeLabValue,deltaCheck}from"../../../packages/lab-reference/src";
@@ -118,7 +118,7 @@ export async function handleResultCorrection(req:Request,resultId:string):Promis
   const annotation=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:resultId,expectedVersion,eventType:"RESULT_CORRECTED",payload:{kind:"CORRECTED",supersededBy:b.correctedResultId,reason:b.reason},occurredAt:b.occurredAt,topic:"result.corrected"});
   const replayed=await lookupReplay(ctx,annotation);
   if(replayed){const r=replayed.response as{version:number;auditHash?:string};return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,version:r.version,auditHash:r.auditHash,replayed:true},{status:200});}
-  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Result changed since last read",{expected:expectedVersion,actual:folded.version});
+  assertReadVersion("Result changed since last read",expectedVersion,folded.version);
   assertResultCorrectable(folded);
   const original=(await readAggregateStream(ctx,AGG,resultId)).find(e=>e.payload["kind"]==="RECEIVED")?.payload??{};
   const analyte=String(original["analyte"]??"");if(!analyte)throw new ClinicalError("CONFLICT","El resultado original no tiene analito: no se puede corregir");
@@ -150,7 +150,7 @@ export async function handleResultErrorMark(req:Request,resultId:string):Promise
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:resultId,expectedVersion,eventType:"RESULT_ENTERED_IN_ERROR",payload:{kind:"ENTERED_IN_ERROR",reason:b.reason,patientId:folded.patientId},occurredAt:b.occurredAt,topic:"result.entered_in_error"});
   const replayed=await lookupReplay(ctx,cmd);
   if(replayed){const r=replayed.response as{version:number;auditHash?:string};return NextResponse.json({resultId,state:folded.state,enteredInError:true,version:r.version,auditHash:r.auditHash,replayed:true},{status:200});}
-  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Result changed since last read",{expected:expectedVersion,actual:folded.version});
+  assertReadVersion("Result changed since last read",expectedVersion,folded.version);
   assertResultVoidable(folded);
   const result=await runClinicalCommand(ctx,cmd);
   // Un resultado anulado no deja pendiente: la obligación que abrió por ser crítico se cierra con el motivo.
@@ -171,7 +171,7 @@ async function loadForTransition(req:Request,resultId:string){
 async function commitTransition(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,resultId:string,folded:FoldedResult,to:ResultState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:resultId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
- if(!result){assertResultTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
+ if(!result){assertReadVersion("Result changed since last read",expectedVersion,folded.version);assertResultTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);} // D7
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({resultId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }

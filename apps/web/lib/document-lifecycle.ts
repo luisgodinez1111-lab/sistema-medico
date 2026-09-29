@@ -7,7 +7,7 @@ import{foldDocument,assertDocumentTransition,type FoldedDocument,type DocumentSt
 import{put,del,get}from"@vercel/blob";
 import{runClinicalCommand,lookupReplay,readAggregateStream,documentDetail,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload}from"./http-command";
+import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload}from"./http-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
 import{deterministicUuid}from"../../../packages/canonical-json/src";
 import{signedPayload}from"./clinical-signature";
@@ -81,7 +81,8 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:documentId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
  if(!result){
-  if(guard&&expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Document changed since last read",{expected:expectedVersion,actual:folded.version});
+  // D7: TODA transición (no solo la firma) exige If-Match = versión leída antes de la máquina de estados.
+  assertReadVersion("Document changed since last read",expectedVersion,folded.version);
   assertDocumentTransition(folded.state,to);guard?.();result=await runClinicalCommand(ctx,cmd);}
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({documentId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed,...extra},{status:result.replayed?200:201});

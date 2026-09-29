@@ -28,6 +28,14 @@ export function requireMutationHeaders(req:Request){
  if(!Number.isInteger(expectedVersion)||expectedVersion<0)throw new ClinicalError("VALIDATION_ERROR","If-Match must be a non-negative integer version");
  return{idempotencyKey,expectedVersion};
 }
+// Hallazgo D7 — CONCURRENCIA OPTIMISTA ESTRICTA, escrita una sola vez. La máquina de estados y las reglas de dominio se evalúan
+// sobre la versión que el servidor leyó; el kernel exige If-Match. Si difieren, las reglas se habrían evaluado sobre un estado
+// que no es el que el cliente vio: un If-Match desfasado respondía un CONFLICT de máquina de estados engañoso y, con un If-Match
+// ADELANTADO y un escritor concurrente, se persistía una transición ilegal (alergia INACTIVE -> REFUTED). Se llama SOLO en el
+// camino sin replay (tras `lookupReplay`: un reintento ya aplicado no se re-evalúa) y ANTES de cualquier regla.
+export function assertReadVersion(changed:string,expected:number,actual:number):void{
+ if(expected!==actual)throw new ClinicalError("CONCURRENCY_CONFLICT",changed,{expected,actual});
+}
 // EPIC L (hardening) — la sesión viaja en una cookie httpOnly; el header Authorization: Bearer
 // se mantiene como fallback (scripts/API). El nombre del cookie es único.
 import{SESSION_COOKIE}from"./session-cookie-name";
@@ -64,7 +72,9 @@ export async function pathIds<T extends Record<string,string>>(params:Promise<T>
  for(const[clave,valor]of Object.entries(p)){
   // Solo los parámetros que son identificadores de agregado. Un parámetro como `date` o `slug` no es un UUID.
   if(!/Id$/.test(clave))continue;
-  if(typeof valor!=="string"||!isUuid(valor))
+  // `isUuid` recorta espacios (el esquema de payload los tolera); un id de RUTA con espacios alrededor no se normaliza en
+  // silencio: llegaría tal cual a la columna uuid (22P02 -> 500). Se rechaza (hallazgo D8).
+  if(typeof valor!=="string"||valor!==valor.trim()||!isUuid(valor))
    throw new ClinicalError("VALIDATION_ERROR",`El identificador «${clave}» de la ruta no es un UUID válido.`,{pathParam:clave});
  }
  return p;

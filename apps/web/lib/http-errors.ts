@@ -48,3 +48,10 @@ export function toHttpError(e:unknown):HttpError{
  console.error("[clinical] unexpected runtime error ->",detail,code?`(code=${String(code)})`:"");
  return{status:500,body:{error:{code:"INTERNAL",message:"Unexpected runtime error"}}};
 }
+// Hallazgo D8 — la respuesta HTTP de un fallo, para las rutas que validan sus ids con `pathIds` ANTES de delegar en el handler.
+// Sin ella, el VALIDATION_ERROR de un id malformado escapaba del route handler (que no tenía try) y Next respondía un 500 sin
+// cuerpo en vez del 400 declarado por R04-007.
+export function httpErrorResponse(e:unknown):Response{
+ const h=toHttpError(e);
+ return Response.json(h.body,{status:h.status});
+}

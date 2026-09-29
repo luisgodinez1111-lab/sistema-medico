@@ -71,9 +71,12 @@ export async function readPatientRecordRows(ctx:HttpTenantContext,patientId:stri
   return rows.map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),sequence:Number(x.sequence),kind:String(x.kind??""),occurredAt:String(x.occurred_at)}));
  });
 }
+// Un id que no es uuid (o con espacios, que isUuid recorta) nunca llega a la base: la columna es uuid y Postgres lanzaría 22P02 (500).
+const isAggregateId=(id:string):boolean=>isUuid(id)&&id===id.trim();
 // EPIC D — Lectura RLS-scoped del stream de eventos CON payload (para reconstruir estado).
 // El payload es contenido clínico (fuente de verdad, RLS-aislado); nunca se loguea.
 export async function readEncounterEvents(ctx:HttpTenantContext,encounterId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
+ if(!isAggregateId(encounterId))return []; // D8: defensa en profundidad, sin viajar a la base (22P02 -> 500)
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`select sequence,payload from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${encounterId} order by sequence`;
   return rows.map(r=>({sequence:Number(r.sequence),payload:(r.payload??{}) as Record<string,unknown>}));
@@ -94,8 +97,6 @@ export async function readAggregateEvents(ctx:HttpTenantContext,aggregateId:stri
 // Porte del hallazgo D4 — génesis del stream: la secuencia 1 fija el tipo del agregado. Regla ÚNICA que comparten la lectura
 // tipada y readEncounter: un id cuya génesis es de otro tipo no existe para quien pide este tipo.
 const genesisIs=(rows:ReadonlyArray<Record<string,unknown>>,aggregateType:string):boolean=>rows.length>0&&String(rows[0]!.aggregate_type)===aggregateType;
-// Un id que no es uuid (o con espacios, que isUuid recorta) nunca llega a la base: la columna es uuid y Postgres lanzaría 22P02 (500).
-const isAggregateId=(id:string):boolean=>isUuid(id)&&id===id.trim();
 // Porte del hallazgo D4 — stream de UN agregado de un TIPO dado; es la lectura de todo caso de uso cableado (las lecturas sin
 // tipo de arriba quedan solo para los módulos NOT_WIRED). Antes la lectura ignoraba `aggregate_type`: una transición de alergia
 // sobre el id de un paciente plegaba el stream del paciente y escribía en él (el paciente quedaba en 500 para siempre).

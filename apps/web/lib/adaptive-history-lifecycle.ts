@@ -7,7 +7,7 @@ import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldHistory,assertHistoryTransition,type FoldedHistory,type HistoryEventKind,type Finding}from"../../../packages/adaptive-history/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC R — Historia clínica adaptativa: Chief Complaint -> HPI dinámico -> ROS -> Physical.
 // EXEC-0009: Orden canónico: chief complaint -> HPI -> ROS -> Physical -> Assessment.
 // EXEC-0010: Estados epistémicos explícitos (NOT_ASKED/NEGATIVE/POSITIVE/NOT_APPLICABLE/UNABLE_TO_ASSESS).
@@ -46,6 +46,7 @@ async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKe
   // R2B-026: el ORIGEN es el último evento real de la historia, que ahora el fold expone. Antes era
   // `folded.chiefComplaint?to:"CHIEF_COMPLAINT"`, una condición siempre verdadera que hacía `assertHistoryTransition(to,to)`
   // y dejaba a `handleHpiComplete` y `handleRosComplete` incapaces de tener éxito en el 100 % de las llamadas reales.
+  assertReadVersion("History changed since last read",expectedVersion,folded.version); // D7: If-Match = versión leída, antes de la máquina
   assertHistoryTransition(folded.lastEventKind??"CHIEF_COMPLAINT",to);
   result=await runClinicalCommand(ctx,cmd);
  }

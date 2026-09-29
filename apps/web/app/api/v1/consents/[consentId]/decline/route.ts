@@ -1,5 +1,6 @@
 import{handleConsentDecline}from"../../../../../../lib/consent-lifecycle";
 import{pathIds}from"../../../../../../lib/http-command";
+import{httpErrorResponse}from"../../../../../../lib/http-errors";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
-export async function POST(req:Request,ctx:{params:Promise<{consentId:string}>}){const{consentId}=await pathIds(ctx.params);return handleConsentDecline(req,consentId);}
+export async function POST(req:Request,ctx:{params:Promise<{consentId:string}>}){try{const{consentId}=await pathIds(ctx.params);return await handleConsentDecline(req,consentId);}catch(e){return httpErrorResponse(e);}}

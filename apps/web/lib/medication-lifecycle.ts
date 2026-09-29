@@ -7,7 +7,7 @@ import{type MedicationState}from"../../../packages/medication-domain/src";
 import{runClinicalCommand,lookupReplay,readAggregateStream,activeAllergies,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{derivePatientFactors}from"./patient-factors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid,replayStablePayload}from"./http-command";
+import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid,replayStablePayload}from"./http-command";
 import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindications,resolveDrug,monitoringFor,checkRenalDosing}from"../../../packages/drug-catalog/src";
 import{validateMedicationOrder,normalizeRoute,checkDoseCeiling,checkPediatricDose,checkDurationLimit,durationToDays}from"../../../packages/medication-validation/src";
 import{physicianCredentials,requirePhysicianCredentials}from"./physician-profile-lifecycle";
@@ -89,7 +89,8 @@ async function loadForTransition(req:Request,medicationId:string,requirePhysicia
 async function commitTransition(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,medicationId:string,folded:FoldedMedication,to:MedicationState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
- if(!result){assertMedicationTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
+ // D7: tras el replay, If-Match debe ser la versión leída ANTES de la máquina de estados (STOPPED -> HELD con If-Match adelantado).
+ if(!result){assertReadVersion("Medication changed since last read",expectedVersion,folded.version);assertMedicationTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({medicationId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
@@ -99,7 +100,7 @@ async function commitAnnotation(ctx:Parameters<typeof runClinicalCommand>[0],ide
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
  if(!result){
-  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
+  assertReadVersion("Medication changed since last read",expectedVersion,folded.version);
   assertMedicationAnnotation(folded.state,kind);guard?.();
   result=await runClinicalCommand(ctx,cmd);
  }
@@ -229,7 +230,7 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
   if(!result){
    // Orden de precondiciones: PRIMERO la versión. No se le pide al médico que confirme y justifique una prescripción
    // sobre una vista obsoleta del expediente: con If-Match desfasado responde 409 y el cliente debe releer.
-   if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
+   assertReadVersion("Medication changed since last read",expectedVersion,folded.version);
    assertMedicationTransition(folded.state,"PRESCRIBED");
    await requirePhysicianCredentials(ctx,claims); // L-05: sin cédula registrada no hay prescripción (428)
    enforceSafety(safety,"prescribe",acknowledged,b.unverifiedJustification,override);
@@ -272,7 +273,7 @@ export async function handleMedicationResume(req:Request,medicationId:string):Pr
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType:"MEDICATION_RESUMED",payload,occurredAt:b.occurredAt,topic:"medication.resumed"});
   let result=await lookupReplay(ctx,cmd);
   if(!result){
-   if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
+   assertReadVersion("Medication changed since last read",expectedVersion,folded.version);
    assertMedicationTransition(folded.state,"ACTIVE");
    if(folded.state!=="HELD")throw new ClinicalError("CONFLICT",`Illegal medication transition ${folded.state} -> ACTIVE (resume requires HELD)`,{from:folded.state});
    enforceSafety(safety,"resume",acknowledged,b.unverifiedJustification,override);

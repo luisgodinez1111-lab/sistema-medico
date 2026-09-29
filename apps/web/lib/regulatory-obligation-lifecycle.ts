@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{runClinicalCommand,lookupReplay,readAggregateStream}from"./clinical-runtime";
-import{requireMutationHeaders}from"./http-command";
+import{assertReadVersion,requireMutationHeaders}from"./http-command";
 import{PERIODICITIES,nextDueDate,obligationTemplate,OBLIGATION_CATALOG,assertObligationTransition,
  type ObligationState}from"../../../packages/regulatory-obligations/src";
 import{toHttpError}from"./http-errors";
@@ -75,15 +75,17 @@ async function prepararTransicion(req:Request,obligationId:string){
  if(!plegada.exists)throw new ClinicalError("NOT_FOUND","Regulatory obligation not found");
  return{ctx,claims,idempotencyKey,expectedVersion,plegada};
 }
-/** Escribe la transición validando la máquina de estados contra el estado REAL del stream. */
+/** Escribe la transición validando la máquina de estados contra el estado REAL del stream, leído en la versión `version`. */
 async function escribir(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,
- obligationId:string,from:ObligationState,to:ObligationState,eventType:string,payload:Record<string,unknown>,
+ obligationId:string,version:number,from:ObligationState,to:ObligationState,eventType:string,payload:Record<string,unknown>,
  occurredAt:string,topic:string,extra:Record<string,unknown>={}):Promise<Response>{
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:obligationId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
  if(!result){
   // Cumplir dos veces, o renovar algo que no se ha cumplido, son errores de SECUENCIA: se responden como conflicto y no se
   // escriben. Sin estado real no habría con qué compararlos, que es el defecto que R2B-026 documenta en otro módulo.
+  // D7: el estado `from` es el de la versión leída; si If-Match es otra, la regla se evaluaría sobre lo que el cliente no vio.
+  assertReadVersion("Regulatory obligation changed since last read",expectedVersion,version);
   try{assertObligationTransition(from,to);}
   catch(e){throw new ClinicalError("CONFLICT",String((e as Error).message),{from,to});}
   result=await runClinicalCommand(ctx,cmd);
@@ -102,7 +104,7 @@ export async function handleRegulatoryObligationComply(req:Request,obligationId:
  try{
   const{ctx,claims,idempotencyKey,expectedVersion,plegada}=await prepararTransicion(req,obligationId);
   const b=await parseJson(req,ComplyBody);
-  return await escribir(ctx,idempotencyKey,expectedVersion,obligationId,plegada.state,"COMPLIED",
+  return await escribir(ctx,idempotencyKey,expectedVersion,obligationId,plegada.version,plegada.state,"COMPLIED",
    "REGULATORY_OBLIGATION_COMPLIED",
    {kind:"COMPLIED",evidenceRef:b.evidenceRef,...(b.notes?{notes:b.notes}:{}),compliedBy:claims.sub},
    b.occurredAt,"regulatory_obligation.complied",{evidenceRef:b.evidenceRef});
@@ -123,7 +125,7 @@ export async function handleRegulatoryObligationRenew(req:Request,obligationId:s
   const nueva=b.dueDate??derivada;
   if(!nueva)throw new ClinicalError("VALIDATION_ERROR",
    "Esta obligación no tiene periodicidad ni fecha previa que permitan derivar el próximo vencimiento: hay que declararla.");
-  return await escribir(ctx,idempotencyKey,expectedVersion,obligationId,plegada.state,"OPEN",
+  return await escribir(ctx,idempotencyKey,expectedVersion,obligationId,plegada.version,plegada.state,"OPEN",
    "REGULATORY_OBLIGATION_RENEWED",
    {kind:"RENEWED",dueDate:nueva,derivedFromPeriodicity:b.dueDate===undefined},
    b.occurredAt,"regulatory_obligation.renewed",{dueDate:nueva,derivedFromPeriodicity:b.dueDate===undefined});

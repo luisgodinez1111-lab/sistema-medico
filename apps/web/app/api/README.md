@@ -14,11 +14,14 @@ R02a-TPL-01, que costó 25 copias de la misma tríada de autorización).
 // apps/web/app/api/v1/<recurso>/[<recurso>Id]/<transición>/route.ts
 import{handleAlgo}from"../../../../../../lib/algo-lifecycle";
 import{pathIds}from"../../../../../../lib/http-command";
+import{httpErrorResponse}from"../../../../../../lib/http-errors";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function POST(req:Request,ctx:{params:Promise<{algoId:string}>}){
- const{algoId}=await pathIds(ctx.params); // R04-007: el identificador se valida ANTES de tocar el kernel
- return handleAlgo(req,algoId);
+ try{
+  const{algoId}=await pathIds(ctx.params); // R04-007: el identificador se valida ANTES de tocar el kernel
+  return await handleAlgo(req,algoId);
+ }catch(e){return httpErrorResponse(e);} // D8: sin el try, el 400 de pathIds escapa y Next responde un 500 sin cuerpo
 }
 ```
 
@@ -40,6 +43,8 @@ Estos tests fallan y son la razón por la que la convención se sostiene; convie
 
 - **`tests/v22/http-boundary.test.ts`** — toda ruta con parámetro de ruta lo valida con `pathIds` antes de llamar al
   handler. Un identificador sin validar llega al kernel y produce un 500 de Postgres en vez de un 400.
+- **`tests/v22/route-id-dynamic.test.ts`** — invoca **toda** operación con parámetro `*Id` con un id malformado y exige
+  400 `VALIDATION_ERROR` sin tocar la persistencia (hallazgo D8: el `pathIds` fuera del `try` daba un 500 sin cuerpo).
 - **`tests/v22/route-coverage.test.ts`** — **toda** ruta HTTP la ejercita al menos una prueba en vivo
   (`scripts/v22/live-*-proof.mts`) que importa el handler real y lo invoca con un `Request` real contra una base real con RLS
   forzado. Añadir una ruta sin prueba rompe la suite: es lo que mantiene el 100 % y evita que «las rutas están probadas»

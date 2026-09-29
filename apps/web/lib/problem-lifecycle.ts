@@ -5,7 +5,7 @@ import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldProblem,assertProblemTransition,assertProblemAnnotation,type FoldedProblem,type ProblemState,type ProblemAnnotationKind}from"../../../packages/problem-fold/src";
 import{runClinicalCommand,lookupReplay,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{normalizeIcd10,lookupIcd10}from"../../../packages/terminology/src";
 import{aggregateLifecycle}from"./lifecycle-factory";
 // EPIC Q — Lista de problemas: ADDED(ACTIVE) -> RESOLVED / CHRONIC / ENTERED_IN_ERROR; RESOLVED -> ACTIVE.
@@ -49,7 +49,7 @@ async function commitAnnotation(ctx:Parameters<typeof runClinicalCommand>[0],ide
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:problemId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
  if(!result){
-  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Problem changed since last read",{expected:expectedVersion,actual:folded.version});
+  assertReadVersion("Problem changed since last read",expectedVersion,folded.version);
   assertProblemAnnotation(folded.state,kind);result=await runClinicalCommand(ctx,cmd);
  }
  const r=result.response as{version:number;auditHash?:string};
