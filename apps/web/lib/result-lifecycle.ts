@@ -4,7 +4,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldResult,assertResultTransition,assertResultCorrectable,assertResultVoidable,type FoldedResult}from"../../../packages/result-fold/src";
 import{type ResultState}from"../../../packages/order-result-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,latestAnalyteReading,requireRegisteredPatient,patientDemographics}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream,latestAnalyteReading,requireRegisteredPatient,patientDemographics}from"./clinical-runtime";
 import{ageInYears}from"../../../packages/prescription-safety/src";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload,derivedUuid}from"./http-command";
@@ -44,7 +44,7 @@ export async function handleResultReceived(req:Request):Promise<Response>{
   // («este resultado responde a esta orden») que nadie podía detectar después. Se valida el vínculo: si la orden existe
   // en el tenant, tiene que ser del mismo paciente. Se admite un `orderId` sin orden registrada porque hay resultados
   // legítimos sin orden previa en el sistema (traía el paciente un laboratorio externo), pero entonces queda marcado.
-  const ordenVinculada=foldOrder(await readAggregateEvents(ctx,b.orderId));
+  const ordenVinculada=foldOrder(await readAggregateStream(ctx,"ClinicalOrder",b.orderId));
   if(ordenVinculada.exists&&ordenVinculada.patientId!==b.patientId)
    throw new ClinicalError("CONFLICT","La orden declarada es de otro paciente",{conflictReason:"ORDER_PATIENT_MISMATCH"});
   const payload=await interpretForReceive(ctx,b);
@@ -84,7 +84,7 @@ async function interpretForReceive(ctx:Parameters<typeof runClinicalCommand>[0],
    :{flagged:false,severity:"NONE" as const,changeAbs:0,changePct:0,note:""};
   const critical=assessment.critical||delta.flagged;
   const interpretation=delta.flagged?`${assessment.interpretation} · Δ crítico vs previo (${prior}→${b.value}): ${delta.note}`:assessment.interpretation;
-  const payload:Record<string,unknown>={kind:"RECEIVED",patientId:b.patientId,orderId:b.orderId,orderLinked:foldOrder(await readAggregateEvents(ctx,b.orderId)).exists,critical,status:delta.flagged?"CRITICAL":assessment.status,interpretation,analyte:b.analyte,value:b.value};
+  const payload:Record<string,unknown>={kind:"RECEIVED",patientId:b.patientId,orderId:b.orderId,orderLinked:foldOrder(await readAggregateStream(ctx,"ClinicalOrder",b.orderId)).exists,critical,status:delta.flagged?"CRITICAL":assessment.status,interpretation,analyte:b.analyte,value:b.value};
   if(norm.ok){payload["unit"]=b.unit?.trim()||null;payload["canonicalValue"]=norm.canonicalValue;payload["canonicalUnit"]=norm.canonicalUnit;payload["unitAssumed"]=norm.unitAssumed;}
   if(b.specimenId)payload["specimenId"]=b.specimenId;
   if(delta.flagged){payload["deltaFlagged"]=true;payload["deltaSeverity"]=delta.severity;payload["deltaChangeAbs"]=delta.changeAbs;payload["deltaChangePct"]=delta.changePct;payload["priorValue"]=prior;}
@@ -120,7 +120,7 @@ export async function handleResultCorrection(req:Request,resultId:string):Promis
   if(replayed){const r=replayed.response as{version:number;auditHash?:string};return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,version:r.version,auditHash:r.auditHash,replayed:true},{status:200});}
   if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Result changed since last read",{expected:expectedVersion,actual:folded.version});
   assertResultCorrectable(folded);
-  const original=(await readAggregateEvents(ctx,resultId)).find(e=>e.payload["kind"]==="RECEIVED")?.payload??{};
+  const original=(await readAggregateStream(ctx,AGG,resultId)).find(e=>e.payload["kind"]==="RECEIVED")?.payload??{};
   const analyte=String(original["analyte"]??"");if(!analyte)throw new ClinicalError("CONFLICT","El resultado original no tiene analito: no se puede corregir");
   const input:ReceiveInput={resultId:b.correctedResultId,patientId:folded.patientId,orderId:String(original["orderId"]??resultId),analyte,value:b.value,...(b.unit!==undefined?{unit:b.unit}:{}),...(typeof original["specimenId"]==="string"?{specimenId:String(original["specimenId"])}:{}),occurredAt:b.occurredAt};
   // 1) el resultado corregido, con `supersedes`: es lo que leen las calculadoras aunque la anotación (2) fallara.
@@ -164,7 +164,7 @@ async function loadForTransition(req:Request,resultId:string){
  const{claims,ctx}=resolveVerified(req);
  authz(claims);
  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldResult(await readAggregateEvents(ctx,resultId));
+ const folded=foldResult(await readAggregateStream(ctx,AGG,resultId));
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Result not found");
  return{ctx,idempotencyKey,expectedVersion,folded};
 }
@@ -221,7 +221,7 @@ async function createCriticalResultObligation(ctx:Parameters<typeof runClinicalC
 // Al CERRAR un resultado crítico con evidencia, la obligación derivada se completa con esa misma evidencia (si sigue abierta).
 async function completeCriticalResultObligation(ctx:Parameters<typeof runClinicalCommand>[0],resultId:string,evidence:string,occurredAt:string):Promise<void>{
  const obligationId=criticalObligationId(resultId);
- const folded=foldObligation(await readAggregateEvents(ctx,obligationId));
+ const folded=foldObligation(await readAggregateStream(ctx,"ClinicalObligation",obligationId));
  if(!folded.exists||(folded.state!=="OPEN"&&folded.state!=="IN_PROGRESS"))return;
  const cmd=buildCommand({idempotencyKey:derivedUuid(resultId,"critical-result-obligation-closed"),aggregateType:"ClinicalObligation",aggregateId:obligationId,expectedVersion:folded.version,eventType:"OBLIGATION_COMPLETED",payload:{kind:"COMPLETED",evidence:`Resultado crítico cerrado: ${evidence}`,sourceResultId:resultId},occurredAt,topic:"obligation.completed"});
  let r=await lookupReplay(ctx,cmd);if(!r)r=await runClinicalCommand(ctx,cmd);

@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldImmunization,assertImmunizationTransition,type FoldedImmunization,type ImmunizationState}from"../../../packages/immunization-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient,activeAllergies}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,requireRegisteredPatient,activeAllergies}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{isVaccineCode,VACCINE_CODES,vaccineComponents}from"../../../packages/immunization-schedule/src";

@@ -6,7 +6,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
 import{foldEncounter,assertTransition}from"../../../packages/encounter-fold/src";
-import{runClinicalCommand,lookupReplay,readEncounterEvents,blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,sessionSecret}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream,blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,sessionSecret}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{readerFor,replayStablePayload,derivedUuid}from"./http-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
@@ -53,7 +53,7 @@ async function build(req:Request,encounterId:string){
  // Physician Control: solo un médico con propósito de tratamiento escribe en el encuentro.
  authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"encounter:write",purpose:"TREATMENT"});
  const{idempotencyKey,expectedVersion}=requireHeaders(req);
- const events=await readEncounterEvents(ctx,encounterId);
+ const events=await readAggregateStream(ctx,"Encounter",encounterId);
  const folded=foldEncounter(events);
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Encounter not found");
  // La concurrencia optimista la impone el kernel (expectedVersion en aggregate_versions);

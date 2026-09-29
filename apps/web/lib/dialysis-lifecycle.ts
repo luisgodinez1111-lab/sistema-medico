@@ -4,7 +4,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldDialysis,assertDialysisTransition,type FoldedDialysis,type DialysisState}from"../../../packages/dialysis-fold/src";
 import{dialysisAdequacy,KTV_FORMULA}from"../../../packages/dialysis-adequacy/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{aggregateLifecycle}from"./lifecycle-factory";
@@ -79,7 +79,7 @@ export async function handleDialysisCompletion(req:Request,dialysisId:string):Pr
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,dialysisId);const b=await parseJson(req,CompleteBody);
   // Lo prescrito y el peso pre vienen del STREAM, no del cuerpo: si vinieran del cuerpo, quien cierra la sesión podría
   // declarar una prescripción a medida de lo que hizo, y «cumplió lo prescrito» dejaría de significar algo.
-  const eventos=await readAggregateEvents(ctx,dialysisId);
+  const eventos=await readAggregateStream(ctx,AGG,dialysisId);
   const agendado=eventos.find(e=>e.payload["kind"]==="SCHEDULED")?.payload??{};
   const iniciado=eventos.filter(e=>e.payload["kind"]==="STARTED").at(-1)?.payload??{};
   const preWeightKg=Number(iniciado["preWeightKg"]??0);

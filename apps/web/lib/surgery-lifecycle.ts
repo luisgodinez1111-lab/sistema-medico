@@ -4,7 +4,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldSurgery,assertSurgeryTransition,type FoldedSurgery,type SurgeryState}from"../../../packages/surgery-fold/src";
 import{verifyTimeOut,verifySignOut}from"../../../packages/surgical-checklist/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{aggregateLifecycle}from"./lifecycle-factory";

@@ -10,7 +10,7 @@ export type FoldedEncounter=Readonly<{exists:boolean;status:EncounterState;versi
 function kindOf(e:StoredEncounterEvent):EncounterEventKind{
  const k=e.payload["kind"];
  if(k==="OPENED"||k==="ASSESSED"||k==="SIGNED")return k;
- if(e.sequence===1)return "OPENED"; // compat: encuentros abiertos sin discriminador explícito
+ if(e.sequence===1&&k===undefined)return "OPENED"; // génesis heredada SIN discriminador (compat: encuentros abiertos sin `kind`); un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown encounter event at sequence ${e.sequence}`);
 }
 export function foldEncounter(events:readonly StoredEncounterEvent[]):FoldedEncounter{

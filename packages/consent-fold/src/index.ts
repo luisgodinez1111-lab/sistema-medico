@@ -14,7 +14,7 @@ export type FoldedConsent=Readonly<{exists:boolean;state:ConsentState;version:nu
 function kindOf(e:StoredConsentEvent):ConsentEventKind{
  const k=e.payload["kind"];
  if(k==="DRAFTED"||k==="PRESENTED"||k==="GRANTED"||k==="DECLINED"||k==="REVOKED")return k;
- if(e.sequence===1)return "DRAFTED";
+ if(e.sequence===1&&k===undefined)return "DRAFTED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown consent event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<ConsentEventKind,ConsentState>={DRAFTED:"DRAFTED",PRESENTED:"PRESENTED",GRANTED:"GRANTED",DECLINED:"DECLINED",REVOKED:"REVOKED"};

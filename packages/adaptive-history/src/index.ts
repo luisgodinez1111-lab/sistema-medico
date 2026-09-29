@@ -27,7 +27,7 @@ export type Finding=Readonly<{id:string;section:"HPI"|"ROS"|"PHYSICAL";question:
 function kindOf(e:StoredHistoryEvent):HistoryEventKind{
  const k=e.payload["kind"];
  if(k==="CHIEF_COMPLAINT"||k==="HPI_FINDING"||k==="ROS_FINDING"||k==="PHYSICAL_FINDING"||k==="HPI_COMPLETED"||k==="ROS_COMPLETED")return k;
- if(e.sequence===1)return "CHIEF_COMPLAINT";
+ if(e.sequence===1&&k===undefined)return "CHIEF_COMPLAINT"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown history event at sequence ${e.sequence}`);
 }
 

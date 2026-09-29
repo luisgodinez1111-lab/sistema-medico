@@ -11,7 +11,7 @@ export type FoldedVital=Readonly<{exists:boolean;state:VitalState;version:number
 function kindOf(e:StoredVitalEvent):VitalEventKind{
  const k=e.payload["kind"];
  if(k==="RECORDED"||k==="AMENDED"||k==="ENTERED_IN_ERROR")return k;
- if(e.sequence===1)return "RECORDED";
+ if(e.sequence===1&&k===undefined)return "RECORDED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown vital event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<VitalEventKind,VitalState>={RECORDED:"RECORDED",AMENDED:"AMENDED",ENTERED_IN_ERROR:"ENTERED_IN_ERROR"};

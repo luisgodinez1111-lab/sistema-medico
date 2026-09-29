@@ -116,7 +116,7 @@ describe("el hallazgo no puede volver (R2B-020)",()=>{
  it("lo prescrito y el peso pre se leen del STREAM, no del cuerpo de la petición",()=>{
   // Si vinieran del cuerpo, quien cierra la sesión podría declarar una prescripción a medida de lo que hizo, y «cumplió lo
   // prescrito» dejaría de significar algo.
-  expect(src).toMatch(/readAggregateEvents\(ctx,dialysisId\)/);
+  expect(src).toMatch(/readAggregateStream\(ctx,AGG,dialysisId\)/);
   expect(src).toMatch(/agendado\["prescribedMinutes"\]/);
   expect(src).toMatch(/iniciado\["preWeightKg"\]/);
  });

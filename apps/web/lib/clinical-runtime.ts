@@ -26,7 +26,7 @@ export{registrySummary,topPatientsOfRegistry}from"./runtime/registry-summaries";
 export type{ResultsSummary,ClaimsIncome,ReportAggregates,ReportWindow}from"./runtime/analytics";
 export type{RegistrySummary,RegistrySummarySpec,TopPatientRow}from"./runtime/registry-summaries";
 export type{RegistryQuery}from"./runtime/read-model-joins";
-export{blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,countUnresolvedCriticalObligations,documentDetail,readAggregateEvents,readEncounter,readEncounterEvents,readEventPayloadById,readPatientRecordRows,readPatientTimeline,readTenantOpenAggregates}from"./runtime/records";
+export{blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,countUnresolvedCriticalObligations,documentDetail,readAggregateEvents,readAggregateStream,readEncounter,readEncounterEvents,readEventPayloadById,readPatientRecordRows,readPatientTimeline,readTenantOpenAggregates}from"./runtime/records";
 export type{ClinicalCommandResult}from"./runtime/command";
 export type{Page}from"./runtime/pagination";
 export type{PatientDemographics,PatientDuplicate,PatientGuardian,PatientListQuery,PatientRow}from"./runtime/patients";

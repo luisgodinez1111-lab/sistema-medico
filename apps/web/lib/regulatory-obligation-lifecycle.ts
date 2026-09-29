@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream}from"./clinical-runtime";
 import{requireMutationHeaders}from"./http-command";
 import{PERIODICITIES,nextDueDate,obligationTemplate,OBLIGATION_CATALOG,assertObligationTransition,
  type ObligationState}from"../../../packages/regulatory-obligations/src";
@@ -49,7 +49,7 @@ export async function handleRegulatoryObligationCreate(req:Request):Promise<Resp
  */
 type Plegada=Readonly<{exists:boolean;state:ObligationState;version:number;periodicity:string;dueDate:string|null;name:string}>;
 async function loadState(ctx:Parameters<typeof runClinicalCommand>[0],obligationId:string):Promise<Plegada>{
- const eventos=await readAggregateEvents(ctx,obligationId);
+ const eventos=await readAggregateStream(ctx,AGG,obligationId);
  if(eventos.length===0)return{exists:false,state:"OPEN",version:0,periodicity:"OTRA",dueDate:null,name:""};
  const ordenados=[...eventos].sort((a,b)=>a.sequence-b.sequence);
  let state:ObligationState="OPEN",periodicity="OTRA",dueDate:string|null=null,name="";

@@ -4,7 +4,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldMedication,assertMedicationTransition,assertMedicationAnnotation,type FoldedMedication,type MedAnnotationKind}from"../../../packages/medication-fold/src";
 import{type MedicationState}from"../../../packages/medication-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergies,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream,activeAllergies,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{derivePatientFactors}from"./patient-factors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid,replayStablePayload}from"./http-command";
@@ -82,7 +82,7 @@ async function loadForTransition(req:Request,medicationId:string,requirePhysicia
  // Physician Control: prescribir/activar/suspender exige médico; scope medication:write.
  authorize(principalFrom(c),requirePhysician?{role:"PHYSICIAN",scope:"medication:write",purpose:"TREATMENT"}:{scope:"medication:write",purpose:"TREATMENT"});
  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldMedication(await readAggregateEvents(ctx,medicationId));
+ const folded=foldMedication(await readAggregateStream(ctx,AGG,medicationId));
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Medication not found");
  return{claims:c,ctx,idempotencyKey,expectedVersion,folded};
 }

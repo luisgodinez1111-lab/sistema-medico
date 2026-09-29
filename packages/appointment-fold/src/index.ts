@@ -11,7 +11,7 @@ export type FoldedAppointment=Readonly<{exists:boolean;state:AppointmentState;ve
 function kindOf(e:StoredAppointmentEvent):AppointmentEventKind{
  const k=e.payload["kind"];
  if(k==="SCHEDULED"||k==="CHECKED_IN"||k==="COMPLETED"||k==="CANCELLED"||k==="NO_SHOW")return k;
- if(e.sequence===1)return "SCHEDULED";
+ if(e.sequence===1&&k===undefined)return "SCHEDULED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown appointment event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<AppointmentEventKind,AppointmentState>={SCHEDULED:"SCHEDULED",CHECKED_IN:"CHECKED_IN",COMPLETED:"COMPLETED",CANCELLED:"CANCELLED",NO_SHOW:"NO_SHOW"};

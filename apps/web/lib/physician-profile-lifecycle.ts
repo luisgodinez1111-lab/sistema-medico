@@ -3,7 +3,7 @@ import crypto from"node:crypto";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{put,del,get}from"@vercel/blob";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{z}from"zod";
 import{buildCommand,principalFrom,resolveVerified,parseJson}from"./http-command";
@@ -40,8 +40,8 @@ export type PhysicianCredentials=PrescriberIdentity&Readonly<{setAt:string}>;
 export type PhysicianProfileRead=Readonly<{signature:ProfileAsset|null;stamp:ProfileAsset|null;credentials:PhysicianCredentials|null;version:number}>;
 // Pliega los eventos del perfil: el último ASSET_SET por tipo gana; ASSET_REMOVED lo limpia; el último CREDENTIALS_SET gana.
 // version = nº eventos.
-async function foldProfile(ctx:Parameters<typeof readAggregateEvents>[0],aggId:string):Promise<PhysicianProfileRead>{
- const events=await readAggregateEvents(ctx,aggId);
+async function foldProfile(ctx:Parameters<typeof readAggregateStream>[0],aggId:string):Promise<PhysicianProfileRead>{
+ const events=await readAggregateStream(ctx,AGG,aggId);
  let signature:ProfileAsset|null=null,stamp:ProfileAsset|null=null,credentials:PhysicianCredentials|null=null;
  for(const e of events){const p=e.payload;const k=String(p.kind);
   if(k==="ASSET_SET"){const a:ProfileAsset={pathname:String(p.pathname??""),mime:String(p.mime??"image/png"),size:Number(p.size??0),contentHash:String(p.contentHash??""),setAt:String(p.setAt??"")};if(p.assetKind==="signature")signature=a;else if(p.assetKind==="stamp")stamp=a;}
@@ -53,7 +53,7 @@ async function foldProfile(ctx:Parameters<typeof readAggregateEvents>[0],aggId:s
  return{signature,stamp,credentials,version:events.length};
 }
 // Lectura de las credenciales del médico autenticado (null si nunca las registró). Para PRESCRIBE, firma y receta.
-export async function physicianCredentials(ctx:Parameters<typeof readAggregateEvents>[0],claims:{sub:string;tenantId:string}):Promise<PhysicianCredentials|null>{
+export async function physicianCredentials(ctx:Parameters<typeof readAggregateStream>[0],claims:{sub:string;tenantId:string}):Promise<PhysicianCredentials|null>{
  return(await foldProfile(ctx,profileId(claims as Claims))).credentials;
 }
 // Physician Control con identidad legal: sin cédula profesional registrada no se prescribe ni se firma (428, con `reason`
@@ -62,7 +62,7 @@ export function assertPhysicianCredentials(c:PhysicianCredentials|null):Physicia
  if(!c)throw new ClinicalError("PRECONDITION_REQUIRED","Cédula profesional no registrada: complete su perfil profesional (nombre, cédula e institución que expidió el título) antes de prescribir o firmar",{reason:"PHYSICIAN_CREDENTIALS_REQUIRED"});
  return c;
 }
-export async function requirePhysicianCredentials(ctx:Parameters<typeof readAggregateEvents>[0],claims:{sub:string;tenantId:string}):Promise<PhysicianCredentials>{
+export async function requirePhysicianCredentials(ctx:Parameters<typeof readAggregateStream>[0],claims:{sub:string;tenantId:string}):Promise<PhysicianCredentials>{
  return assertPhysicianCredentials(await physicianCredentials(ctx,claims));
 }
 const CEDULA_MSG="cédula profesional de 7 u 8 dígitos";

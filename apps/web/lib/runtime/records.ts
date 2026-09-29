@@ -3,6 +3,8 @@
 // Auditoría R01-001: extraído del god-module `clinical-runtime.ts`.
 import postgres,{type Sql,type TransactionSql}from"postgres";
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
+import{ClinicalError}from"../../../../packages/runtime-errors/src";
+import{isUuid}from"../../../../packages/tenant-context/src";
 import{signatureBlockReason,type SignatureBlockReason}from"../../../../packages/obligation-fold/src";
 import{logPhiAccess,patientAccessLog,type PhiAccessEntry,type PhiAccessAction,type PhiResourceType}from"../phi-access-log";
 import{withTenantTx}from"./connection";
@@ -94,6 +96,24 @@ export async function readEventPayloadById(ctx:HttpTenantContext,eventId:string,
 }
 export async function readAggregateEvents(ctx:HttpTenantContext,aggregateId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
  return readEncounterEvents(ctx,aggregateId);
+}
+// Porte del hallazgo D4 — génesis del stream: la secuencia 1 fija el tipo del agregado. Regla ÚNICA que comparten la lectura
+// tipada y readEncounter: un id cuya génesis es de otro tipo no existe para quien pide este tipo.
+const genesisIs=(rows:ReadonlyArray<Record<string,unknown>>,aggregateType:string):boolean=>rows.length>0&&String(rows[0]!.aggregate_type)===aggregateType;
+// Un id que no es uuid (o con espacios, que isUuid recorta) nunca llega a la base: la columna es uuid y Postgres lanzaría 22P02 (500).
+const isAggregateId=(id:string):boolean=>isUuid(id)&&id===id.trim();
+// Porte del hallazgo D4 — stream de UN agregado de un TIPO dado; es la lectura de todo caso de uso cableado (las lecturas sin
+// tipo de arriba quedan solo para los módulos NOT_WIRED). Antes la lectura ignoraba `aggregate_type`: una transición de alergia
+// sobre el id de un paciente plegaba el stream del paciente y escribía en él (el paciente quedaba en 500 para siempre).
+//   · id no uuid, inexistente, o que pertenece a OTRO tipo de agregado -> [] (el caso de uso responde 404);
+//   · stream que mezcla tipos (contaminado antes de esta corrección) -> INVARIANT_VIOLATION explícito: nunca se pliega a medias.
+export async function readAggregateStream(ctx:HttpTenantContext,aggregateType:string,aggregateId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
+ if(!isAggregateId(aggregateId))return [];
+ const rows=await withTenantTx(ctx,async tx=>
+  tx`select sequence,aggregate_type,payload from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${aggregateId} order by sequence`) as ReadonlyArray<Record<string,unknown>>;
+ if(!genesisIs(rows,aggregateType))return [];
+ if(rows.some(r=>String(r.aggregate_type)!==aggregateType))throw new ClinicalError("INVARIANT_VIOLATION",`${aggregateType} stream mixes aggregate types`,{aggregateType});
+ return rows.map(r=>({sequence:Number(r.sequence),payload:(r.payload??{}) as Record<string,unknown>}));
 }
 // EPIC Z/UI — Repositorio de documentos: UN documento clínico con su CONTENIDO real, adenda (append-only) y
 // firma, plegando todos sus eventos (CREATED/FINALIZED/SIGNED/AMENDED) en orden. RLS-scoped. Nunca borra: cada
@@ -189,13 +209,16 @@ export async function countOpenCriticalVitals(ctx:HttpTenantContext,patientId:st
  });
 }
 export type EncounterView=Readonly<{encounterId:string;version:number;events:ReadonlyArray<{sequence:number;type:string;occurredAt:string}>}>;
-// Lectura RLS-scoped del agregado (sin payload clínico: solo metadatos no-PHI).
+// Lectura RLS-scoped del agregado (sin payload clínico: solo metadatos no-PHI). Porte de la revisión de D4: un id que no es
+// uuid no llega a la base y un id cuya génesis NO es un encuentro es «no encontrado» (antes devolvía la vista de otro agregado).
 export async function readEncounter(ctx:HttpTenantContext,encounterId:string):Promise<EncounterView|null>{
+ if(!isAggregateId(encounterId))return null;
  return withTenantTx(ctx,async tx=>{
   const agg=await tx`select version from aggregate_versions where tenant_id=${ctx.tenantId} and aggregate_id=${encounterId}`;
   const head=agg[0];
   if(!head)return null;
   const events=await tx`select sequence,aggregate_type,occurred_at from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${encounterId} order by sequence`;
+  if(!genesisIs(events,"Encounter"))return null;
   return{
    encounterId,
    version:Number(head.version),

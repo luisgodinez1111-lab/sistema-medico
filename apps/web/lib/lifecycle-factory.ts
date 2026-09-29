@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import type{HttpTenantContext}from"../../../packages/http-principal/src";
 import{buildCommand,requireMutationHeaders,resolveVerified}from"./http-command";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream}from"./clinical-runtime";
 // Fábrica de ciclos de vida de agregado. NO es un handler de dominio: por eso NO se llama `*-lifecycle.ts`, nombre que en
 // este repositorio significa «handler cableado a una ruta» y que el guardián de huérfanos (tests/v22/not-wired-integrity)
 // exige que esté cableado o declarado NOT_WIRED.
@@ -48,7 +48,7 @@ export function aggregateLifecycle<F extends FoldedAggregate<S>,S extends string
   const{claims,ctx}=resolveVerified(req);
   spec.authz(claims as LifecycleClaims);
   const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
-  const folded=spec.fold(await readAggregateEvents(ctx,aggregateId));
+  const folded=spec.fold(await readAggregateStream(ctx,spec.aggregateType,aggregateId));
   if(!folded.exists)throw new ClinicalError("NOT_FOUND",spec.notFound);
   return{ctx,idempotencyKey,expectedVersion,folded,claims:claims as LifecycleClaims};
  };

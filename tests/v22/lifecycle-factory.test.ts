@@ -34,11 +34,11 @@ describe("la plantilla de ciclo de vida vive en un solo sitio (R02a-TPL-01)",()=
  });
  it("la fábrica autoriza ANTES de leer nada y exige las cabeceras de mutación",()=>{
   const src=fs.readFileSync(`${LIB}/lifecycle-factory.ts`,"utf8");
-  // Se compara el orden DENTRO del cuerpo de loadForTransition (en el fichero, el import de readAggregateEvents va antes).
+  // Se compara el orden DENTRO del cuerpo de loadForTransition (en el fichero, el import de readAggregateStream va antes).
   const cuerpo=/const loadForTransition=async[\s\S]*?\n \};/.exec(src)?.[0]??"";
   expect(cuerpo,"no se encontró loadForTransition").not.toBe("");
   const authz=cuerpo.indexOf("spec.authz(");
-  const lectura=cuerpo.indexOf("readAggregateEvents");
+  const lectura=cuerpo.indexOf("readAggregateStream");
   expect(authz).toBeGreaterThan(-1);
   expect(lectura).toBeGreaterThan(authz);
   expect(src).toContain("requireMutationHeaders");

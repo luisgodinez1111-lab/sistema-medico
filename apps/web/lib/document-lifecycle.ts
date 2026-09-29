@@ -5,7 +5,7 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldDocument,assertDocumentTransition,type FoldedDocument,type DocumentState}from"../../../packages/document-fold/src";
 import{put,del,get}from"@vercel/blob";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,documentDetail,requireRegisteredPatient}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream,documentDetail,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload}from"./http-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
@@ -40,7 +40,7 @@ export async function handleDocumentCreate(req:Request):Promise<Response>{
   // declara, tiene que existir y ser del mismo paciente. Sigue siendo opcional porque hay documentos legítimos sin
   // encuentro (un consentimiento, una referencia externa), pero un vínculo declarado ya no puede ser mentira.
   if(b.encounterId!==undefined){
-   const enc=foldEncounter(await readAggregateEvents(ctx,b.encounterId));
+   const enc=foldEncounter(await readAggregateStream(ctx,"Encounter",b.encounterId));
    if(!enc.exists)throw new ClinicalError("NOT_FOUND","El encuentro declarado no existe en este tenant",{resourceType:"Encounter"});
    if(enc.patientId!==b.patientId)throw new ClinicalError("CONFLICT","El encuentro declarado es de otro paciente",{conflictReason:"ENCOUNTER_PATIENT_MISMATCH"});
   }
@@ -73,7 +73,7 @@ async function loadForTransition(req:Request,documentId:string,requirePhysician:
  const c=claims as Claims;
  authorize(principalFrom(c),requirePhysician?{role:"PHYSICIAN",scope:"document:write",purpose:"TREATMENT"}:{scope:"document:write",purpose:"TREATMENT"});
  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldDocument(await readAggregateEvents(ctx,documentId));
+ const folded=foldDocument(await readAggregateStream(ctx,AGG,documentId));
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Document not found");
  return{claims:c,ctx,idempotencyKey,expectedVersion,folded};
 }

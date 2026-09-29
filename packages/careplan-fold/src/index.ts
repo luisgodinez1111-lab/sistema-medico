@@ -11,7 +11,7 @@ export type FoldedCarePlan=Readonly<{exists:boolean;state:CarePlanState;version:
 function kindOf(e:StoredCarePlanEvent):CarePlanEventKind{
  const k=e.payload["kind"];
  if(k==="PROPOSED"||k==="ACTIVATED"||k==="HELD"||k==="RESUMED"||k==="ACHIEVED"||k==="CANCELLED")return k;
- if(e.sequence===1)return "PROPOSED";
+ if(e.sequence===1&&k===undefined)return "PROPOSED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown care plan event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<CarePlanEventKind,CarePlanState>={PROPOSED:"PROPOSED",ACTIVATED:"ACTIVE",HELD:"ON_HOLD",RESUMED:"ACTIVE",ACHIEVED:"ACHIEVED",CANCELLED:"CANCELLED"};

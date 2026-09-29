@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldPatient,assertPatientTransition,type FoldedPatient,type PatientStatus}from"../../../packages/patient-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,listPatients,clampLimit,findPatientDuplicate,patientDemographics,patientBirthDate}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream,listPatients,clampLimit,findPatientDuplicate,patientDemographics,patientBirthDate}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{validateCurp,normalizeCurp,normalizeName,isMinor,CURP_ISSUE_ES}from"../../../packages/mx-identity/src";
@@ -66,7 +66,7 @@ export async function handlePatientList(req:Request):Promise<Response>{
 async function loadForTransition(req:Request,patientId:string){
  const{claims,ctx}=resolveVerified(req);authzWrite(claims);
  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldPatient(await readAggregateEvents(ctx,patientId));
+ const folded=foldPatient(await readAggregateStream(ctx,AGG,patientId));
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Patient not found");
  return{ctx,idempotencyKey,expectedVersion,folded};
 }
@@ -130,7 +130,7 @@ export async function handlePatientAmend(req:Request,patientId:string):Promise<R
  try{
   const{claims,ctx}=resolveVerified(req);authzWrite(claims);
   const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
-  const folded=foldPatient(await readAggregateEvents(ctx,patientId));
+  const folded=foldPatient(await readAggregateStream(ctx,AGG,patientId));
   if(!folded.exists)throw new ClinicalError("NOT_FOUND","Patient not found");
   const b=await parseJson(req,AmendBody);
   // L-06: la CURP corregida se valida contra los datos VIGENTES (o los que se corrigen en la misma enmienda).

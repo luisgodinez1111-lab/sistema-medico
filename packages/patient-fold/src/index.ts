@@ -11,7 +11,7 @@ export type FoldedPatient=Readonly<{exists:boolean;status:PatientStatus;version:
 function kindOf(e:StoredPatientEvent):PatientEventKind{
  const k=e.payload["kind"];
  if(k==="REGISTERED"||k==="DEACTIVATED"||k==="REACTIVATED"||k==="DECEASED"||k==="AMENDED")return k;
- if(e.sequence===1)return "REGISTERED";
+ if(e.sequence===1&&k===undefined)return "REGISTERED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown patient event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATUS:Record<Exclude<PatientEventKind,"AMENDED">,PatientStatus>={REGISTERED:"ACTIVE",DEACTIVATED:"INACTIVE",REACTIVATED:"ACTIVE",DECEASED:"DECEASED"};

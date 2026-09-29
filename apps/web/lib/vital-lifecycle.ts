@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldVital,assertVitalTransition,type FoldedVital,type VitalState}from"../../../packages/vital-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
 import{ageInYears}from"../../../packages/prescription-safety/src";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
@@ -44,7 +44,7 @@ export async function handleVitalRecord(req:Request):Promise<Response>{
 async function loadForTransition(req:Request,vitalId:string){
  const{claims,ctx}=resolveVerified(req);authz(claims);
  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldVital(await readAggregateEvents(ctx,vitalId));
+ const folded=foldVital(await readAggregateStream(ctx,AGG,vitalId));
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Vital sign not found");
  return{ctx,idempotencyKey,expectedVersion,folded};
 }
