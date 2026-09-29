@@ -1,6 +1,6 @@
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
-import{anionGap,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../../../../../../../packages/lab-derivations/src";
+import{anionGap,anionGapCaveat,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../../../../../../../packages/lab-derivations/src";
 import{latestAnalyteReading}from"../../../../../../lib/clinical-runtime";
 import{verifyAnalyteReadings,provenance,MAX_AGE_DAYS,COHERENCE_HOURS}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
@@ -30,12 +30,14 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   if(!gCa.ok)missing.push(`correctedCalcium: ${gCa.reason}`);
   if(!gNa.ok)missing.push(`correctedSodium: ${gNa.reason}`);
   if(!gOsm.ok)missing.push(`osmolality: ${gOsm.reason}`);
-  const used=[gAg,gCa,gNa,gOsm].flatMap(g=>g.ok?g.inputs:[]);const inputs=provenance(used.filter((x,i)=>used.findIndex(y=>y.analyte===x.analyte)===i));
+  // Hallazgo D9 del lote 11: la albúmina que corrigió la brecha es una entrada de la derivada y entra en la procedencia aunque
+  // no se haya calculado el calcio corregido (la deduplicación por analito evita repetir Na/Cl/HCO3).
+  const used=[gAg,gCa,gNa,gOsm,...(ag?.albuminCorrected?[gAgAlb]:[])].flatMap(g=>g.ok?g.inputs:[]);const inputs=provenance(used.filter((x,i)=>used.findIndex(y=>y.analyte===x.analyte)===i));
   return NextResponse.json({patientId,anionGap:ag??null,correctedCalcium:cca??null,correctedSodium:cna??null,osmolality:osm??null,missing,
    // Auditoría R03-05: este caveat afirmaba «SIN corrección por albúmina y sin delta-delta» cuando la corrección ya
    // existía (C-22) y el delta-delta se calcula ahora en /acid-base, que es donde tiene sentido (necesita el HCO₃ y el
    // trastorno primario). Un caveat obsoleto es desinformación con apariencia de prudencia.
-   caveat:ag?(ag.albuminCorrected?"Brecha aniónica corregida por albúmina (Figge). El delta-delta y la bifurcación brecha aumentada vs hiperclorémica se obtienen en /acid-base, que además interpreta la compensación.":"Brecha aniónica SIN corregir por albúmina (no hay albúmina coherente con la misma extracción): una hipoalbuminemia la subestima. El delta-delta se obtiene en /acid-base."):"Sin brecha aniónica: faltan entradas coherentes.",
+   caveat:anionGapCaveat(ag),
    algorithm:{id:"METABOLIC-DERIVATIONS",version:"2"},inputs},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

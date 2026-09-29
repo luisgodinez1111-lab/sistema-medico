@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{anionGap,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../packages/lab-derivations/src";
+import{anionGap,anionGapCaveat,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../packages/lab-derivations/src";
 // EPIC BN — Derivaciones de laboratorio multi-analito.
 describe("anionGap (Na − Cl − HCO3)",()=>{
  it("normal: 140 − 104 − 24 = 12 -> NORMAL",()=>{
@@ -76,5 +76,25 @@ describe("brecha aniónica corregida por albúmina",()=>{
  it("con albúmina normal (4.0) no cambia; sin albúmina se declara sin corregir",()=>{
   expect(anionGap(140,105,24,4.0)!.value).toBe(11);
   const r=anionGap(140,105,24)!;expect(r.value).toBe(11);expect(r.albuminCorrected).toBe(false);expect(r.interpretation).toMatch(/sin corregir/);
+ });
+});
+describe("brecha baja corregida por albúmina (revisión adversarial F7)",()=>{
+ it("ya corregida, una brecha baja no se atribuye a hipoalbuminemia; sin corregir, sí",()=>{
+  const c=anionGap(140,115,24,4.5)!;expect(c.status).toBe("LOW");expect(c.albuminCorrected).toBe(true);
+  expect(c.interpretation).not.toMatch(/hipoalbuminemia/);expect(c.interpretation).toMatch(/pese a la corrección por albúmina/);
+  const u=anionGap(140,115,24)!;expect(u.status).toBe("LOW");expect(u.interpretation).toMatch(/hipoalbuminemia/);
+ });
+});
+// Lote 11, hallazgo D9: la advertencia se deriva de la brecha calculada, nunca es un texto fijo que la contradiga; y el estado
+// ausente (sin brecha) queda explícito como tal (R03-05: el delta-delta vive en /acid-base).
+describe("anionGapCaveat (D9)",()=>{
+ it("brecha corregida por albúmina -> la advertencia dice corregida, no «SIN corrección» ni «SIN corregir»",()=>{
+  const c=anionGapCaveat(anionGap(130,100,10,2.0));expect(c).toContain("corregida por albúmina");expect(c).not.toContain("SIN corrección");expect(c).not.toContain("SIN corregir");
+ });
+ it("sin albúmina -> la advertencia declara la falta de corrección",()=>{
+  expect(anionGapCaveat(anionGap(130,100,10))).toContain("SIN corregir por albúmina");
+ });
+ it("sin brecha -> estado ausente explícito, nunca «corregida»",()=>{
+  const c=anionGapCaveat(undefined);expect(c).toContain("Sin brecha aniónica");expect(c).not.toContain("corregida por albúmina");
  });
 });
