@@ -1,13 +1,14 @@
 "use client";
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "signos" del workspace, extraída de page.tsx sin cambios
-// en su JSX ni en su lógica. Toma del contexto solo lo que usa.
+// en su JSX. Toma del contexto solo lo que usa. Desde el hallazgo D11a guarda con `submitVitals`, la captura única que comparte
+// con la Consulta.
 import {apiRequest} from "../../../lib/session-client";
 import {parseBp} from "../../../../../packages/bp-staging/src";
 import {classifyVital} from "../../../../../packages/lab-reference/src";
-import{card,LINE,P,UI,Skeleton,type VitalHistory,type VitalRecord}from"../shared";
+import{card,LINE,P,UI,Skeleton,liveVitalCapture,submitVitals,vitalSubmitMessage,userMessage,type VitalHistory,type VitalRecord}from"../shared";
 import{useWorkspace}from"../context";
 export default function SignosView(){
- const{svPeso,svTalla,patientId,setSvMsg,svBpS,svBpD,svFc,svFr,svTemp,svSpo2,setSvBusy,setVitHist,setSvTemp,setSvFc,setSvFr,setSvBpS,setSvBpD,setSvSpo2,setSvPeso,setSvPab,setSvObs,setSvTalla,setSvPain,vitHist,snap,patientName,patientSelector,setView,svMsg,svBusy,vitReg,vitRegErr,selectPatientRaw}=useWorkspace();
+ const{svCapture,isSelectedPatient,svPeso,svTalla,patientId,setSvMsg,svBpS,svBpD,svFc,svFr,svTemp,svSpo2,setSvBusy,setVitHist,setSvTemp,setSvFc,setSvFr,setSvBpS,setSvBpD,setSvSpo2,setSvPeso,setSvPab,setSvObs,setSvTalla,setSvPain,vitHist,snap,patientName,patientSelector,setView,svMsg,svBusy,vitReg,vitRegErr,selectPatientRaw}=useWorkspace();
 
    // ===== MÓDULO SIGNOS VITALES (S-SIGNOS) — form cableado a POST /vitals + historial/tendencias por paciente =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -18,19 +19,34 @@ export default function SignosView(){
    const imcCalc=svPeso&&svTalla&&Number(svTalla)>0?(Number(svPeso)/Math.pow(Number(svTalla)/100,2)).toFixed(1):"";
    const saveVitals=async()=>{
     if(!patientId){setSvMsg("Selecciona un paciente en el buscador superior para guardar los signos vitales.");return;}
-    const at=new Date().toISOString();const toSave:[string,string,string][]=[];
+    const toSave:[string,string,string][]=[];
     if(svBpS&&svBpD)toSave.push(["BP",`${svBpS}/${svBpD}`,"mmHg"]);
     if(svFc)toSave.push(["HR",svFc,"lpm"]);if(svFr)toSave.push(["RESP",svFr,"rpm"]);
     if(svTemp)toSave.push(["TEMP",svTemp,"°C"]);if(svSpo2)toSave.push(["SPO2",svSpo2,"%"]);
     if(svPeso)toSave.push(["WEIGHT",svPeso,"kg"]);if(svTalla)toSave.push(["HEIGHT",svTalla,"cm"]);
     if(!toSave.length){setSvMsg("Captura al menos un signo vital.");return;}
     setSvBusy(true);setSvMsg("");
-    try{for(const[vt,val,u]of toSave){await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId:crypto.randomUUID(),patientId,vitalType:vt,value:val,unit:u,occurredAt:at}});}
-     const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET"});if(r.status===200)setVitHist(r.body as unknown as VitalHistory);
-     setSvMsg("Signos vitales guardados ✓");setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvPab("");setSvObs("");
-    }catch{setSvMsg("Error al guardar los signos vitales.");}finally{setSvBusy(false);}
+    // D11a: antes cada clic regeneraba vitalId y llave (un reintento duplicaba) y se anunciaba «guardados ✓» aunque el servidor
+    // rechazara valores. Ahora la captura es estable mientras dura y el mensaje dice exactamente qué se guardó (y los críticos).
+    const capture=liveVitalCapture(svCapture.current);svCapture.current=capture;
+    try{const res=await submitVitals(capture,patientId,toSave);
+     // D11b (revisión F4): si el médico cambió de paciente durante el guardado, nada de esta respuesta se muestra ni se asigna al
+     // paciente nuevo (la captura ya se descartó al cambiar).
+     if(!isSelectedPatient(patientId))return;
+     svCapture.current=res.capture;
+     const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET"});if(r.status===200&&isSelectedPatient(patientId))setVitHist(r.body as unknown as VitalHistory);
+     setSvMsg(vitalSubmitMessage(res));
+     // F3: lo guardado sale del formulario; queda solo lo rechazado para corregirlo.
+     const clearOf:Record<string,()=>void>={BP:()=>{setSvBpS("");setSvBpD("");},HR:()=>setSvFc(""),RESP:()=>setSvFr(""),TEMP:()=>setSvTemp(""),SPO2:()=>setSvSpo2(""),WEIGHT:()=>setSvPeso(""),HEIGHT:()=>setSvTalla("")};
+     if(res.failed.length){for(const vt of res.saved)clearOf[vt]?.();return;}
+     svCapture.current=null;
+     setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvPab("");setSvObs("");
+    }catch(e){setSvMsg(userMessage(e));}finally{setSvBusy(false);}
    };
-   const clearForm=()=>{setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvTalla("");setSvPab("");setSvPain("0");setSvObs("");setSvMsg("");};
+   // F3: limpiar el formulario termina la captura: la siguiente toma lleva su propio id y su propia hora.
+   const clearForm=()=>{svCapture.current=null;setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvTalla("");setSvPab("");setSvPain("0");setSvObs("");setSvMsg("");};
+   // El aviso es verde solo si todo se guardó y no hay críticos (un «guardados ✓ ⚠ crítico» se pinta como advertencia).
+   const svOk=svMsg.includes("✓")&&!svMsg.includes("⚠");
    const svHist=!!vitHist;
    const records:VitalRecord[]=vitHist?.records??[];
    const sys=(ta:string)=>parseBp(ta)?.systolic??0; // C-21: parser único
@@ -92,7 +108,7 @@ export default function SignosView(){
        <div><div style={flbl}>IMC (kg/m²)</div><input aria-label="IMC calculado" value={imcCalc} readOnly placeholder="—" style={{...num,background:"#F2F4F9",color:P.muted}}/></div>
        <div/>
       </div>
-      {svMsg&&<div style={{marginTop:10,padding:"10px 13px",borderRadius:10,background:svMsg.includes("✓")?"#E6F6EE":"#FDF4E6",border:`1px solid ${svMsg.includes("✓")?"#BFE6CF":"#F2E1C0"}`,fontSize:13,color:svMsg.includes("✓")?"#166534":"#7A5A16"}}>{svMsg}</div>}
+      {svMsg&&<div style={{marginTop:10,padding:"10px 13px",borderRadius:10,background:svOk?"#E6F6EE":"#FDF4E6",border:`1px solid ${svOk?"#BFE6CF":"#F2E1C0"}`,fontSize:13,color:svOk?"#166534":"#7A5A16"}}>{svMsg}</div>}
       <div style={{display:"flex",gap:12,marginTop:14}}><button onClick={clearForm} style={{flex:"0 0 34%",border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"12px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Limpiar</button><button onClick={saveVitals} disabled={svBusy} style={{flex:1,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"12px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:UI}}>{svBusy?"Guardando…":"✓ Guardar signos vitales"}</button></div>
      </div>
      {/* Últimos registros + Tendencias */}

@@ -37,6 +37,24 @@ function mutaciones():Hallazgo[]{
  return out;
 }
 
+/** Helper que envuelve la mutación de la línea `i` (la definición más cercana, en la misma ventana de 14 líneas): su nombre, o null. */
+function delegado(lineas:string[],i:number):string|null{
+ for(let k=i;k>=Math.max(0,i-14);k--){const m=/(?:const (\w+)=async\(|async function (\w+)\()/.exec(lineas[k]!);if(m)return m[1]??m[2]!;}
+ return null;
+}
+/** Cada llamada al helper en el workspace (fuera de su definición) y si su contexto avisa al médico. */
+function llamadasDe(helper:string):{at:string;aviso:boolean}[]{
+ const out:{at:string;aviso:boolean}[]=[];const uso=new RegExp(`\\b${helper}\\(`);const def=new RegExp(`(?:const ${helper}=async\\(|async function ${helper}\\()`);
+ for(const f of archivos()){
+  const lineas=fs.readFileSync(f,"utf8").split("\n");
+  for(let i=0;i<lineas.length;i++){
+   if(!uso.test(lineas[i]!)||def.test(lineas[i]!))continue;
+   out.push({at:`${f}:${i+1}`,aviso:AVISO.test(lineas.slice(Math.max(0,i-14),i+10).join("\n"))});
+  }
+ }
+ return out;
+}
+
 describe("toda mutación avisa de su fallo (WS1-12)",()=>{
  it("ninguna mutación se queda sin forma de avisar al médico",()=>{
   const m=mutaciones();
@@ -47,7 +65,13 @@ describe("toda mutación avisa de su fallo (WS1-12)",()=>{
    for(let i=0;i<lineas.length;i++){
     if(!MUTACION.test(lineas[i]!))continue;
     const ctx=lineas.slice(Math.max(0,i-14),i+10).join("\n");
-    if(!AVISO.test(ctx))mudas.push(`${f}:${i+1}`);
+    if(AVISO.test(ctx))continue;
+    // Porte D11 (`postAction`, `submitVitals`): una mutación dentro de un helper que DEVUELVE la respuesta a quien lo llama no
+    // avisa por sí misma; la regla se exige entonces en CADA llamada del helper (el fallo debe llegar a la pantalla allí).
+    const helper=delegado(lineas,i);
+    if(helper){const sitios=llamadasDe(helper);if(sitios.length>0&&sitios.every(x=>x.aviso))continue;
+     for(const x of sitios.filter(y=>!y.aviso))mudas.push(`${x.at} (vía ${helper})`);if(sitios.length===0)mudas.push(`${f}:${i+1} (${helper} sin llamadas)`);continue;}
+    mudas.push(`${f}:${i+1}`);
    }
   }
   expect(mudas,"mutación que puede fallar sin que el médico se entere").toEqual([]);

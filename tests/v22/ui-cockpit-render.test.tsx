@@ -9,17 +9,23 @@ import axe from"axe-core";
 
 // Datos canónicos que alimentan la auto-carga del workspace (timeline + care-gaps + snapshot + trends).
 // Cuerpos de los POST que emite la UI (para afirmar QUÉ se envía, no solo que "algo" se envió).
-const{posted}=vi.hoisted(()=>({posted:[] as {path:string;body:unknown}[]}));
+const{posted,flags}=vi.hoisted(()=>({posted:[] as {path:string;body:unknown;idem?:string}[],flags:{hospital:false}}));
 vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
  apiUpload:async()=>({status:201,body:{version:1}}),
  apiDelete:async()=>({status:200,body:{removed:true,version:1}}),
  apiDownload:async()=>null,
- apiRequest:async(path:string,init?:{method?:string;body?:unknown})=>{
-  if(init?.method==="POST")posted.push({path,body:init.body});
+ apiRequest:async(path:string,init?:{method?:string;body?:unknown;idempotencyKey?:string})=>{
+  if(init?.method==="POST")posted.push({path,body:init.body,...(init.idempotencyKey?{idem:init.idempotencyKey}:{})});
+  if(path.includes("/api/v1/features"))return{status:200,body:{hospitalVerticals:flags.hospital}}; // verticales hospitalarias solo donde la prueba las pide
+  if(path.includes("/api/v1/wounds"))return{status:201,body:{version:1}};
   if(path.includes("/api/v1/vitals")){
-   if(init?.method==="POST")return{status:201,body:{version:1,status:"NORMAL",interpretation:""}};
+   // D11a: el servidor rechaza un valor (400) para probar que la UI no anuncia éxito y que el reintento no duplica.
+   // Revisión (F6): «180» se guarda como CRÍTICO para probar que un crítico nunca se calla por otro rechazo.
+   if(init?.method==="POST"){const v=(init.body as{value?:string}|undefined)?.value;
+    if(v==="999")return{status:400,body:{error:{code:"VALIDATION_ERROR",message:"Valor fuera de rango plausible"}}};
+    return{status:201,body:{version:1,status:v==="180"?"CRITICAL":"NORMAL",interpretation:v==="180"?"Taquicardia extrema":""}};}
    // Lote E — GET clínica-wide: registro POBLACIONAL de signos vitales
    return{status:200,body:{items:[
     {vitalId:"v1",patientId:"p1",patientName:"Ana López García",vitalType:"BP",vitalTypeLabel:"Presión arterial",value:"180/110",unit:"mmHg",status:"CRITICAL",critical:true,interpretation:"Crisis hipertensiva",recordedAt:"2026-09-17T10:00:00.000Z"},
@@ -511,7 +517,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   // capturar la TA en la grilla de signos vitales y guardar
   fireEvent.change(screen.getByPlaceholderText("120/80"),{target:{value:"128/82"}});
   fireEvent.click(screen.getByRole("button",{name:"Guardar signos vitales"}));
-  expect(await screen.findByText(/guardados en el expediente/i)).toBeTruthy();
+  expect(await screen.findByText(/Signos vitales guardados ✓/)).toBeTruthy(); // D11a: única redacción (vitalSubmitMessage)
  });
 
  it("vista Consulta: crear órdenes reales desde el formulario (POST /orders)",async()=>{
@@ -1198,6 +1204,174 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.queryByRole("heading",{name:"Portal del paciente"})).toBeNull();
   // La sub-vista se refleja en la URL (?s=) para que el enlace sea compartible.
   expect(window.location.search).toContain("s=tratamiento");
+ });
+
+ // Lote 11, hallazgo D11a: un valor rechazado por el servidor NO se anuncia como guardado, y el reintento reutiliza la misma
+ // captura (mismo vitalId y hora): sin duplicados. Revisión (F3): lo ya guardado sale del formulario y no se reenvía.
+ it("D11a — Signos vitales: rechazo del servidor visible y reintento sin duplicados",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));await elegirPaciente();
+  const before=posted.length;
+  fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"78"}});
+  fireEvent.change(screen.getByPlaceholderText("36.5"),{target:{value:"999"}});
+  fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
+  expect(await screen.findByText(/NO guardados: TEMP/)).toBeTruthy();
+  expect(screen.queryByText(/Signos vitales guardados ✓/)).toBeNull();
+  expect((screen.getByPlaceholderText("72") as HTMLInputElement).value).toBe(""); // FC guardada: ya no está en el formulario
+  fireEvent.change(screen.getByPlaceholderText("36.5"),{target:{value:"36.8"}});
+  fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
+  expect(await screen.findByText(/Signos vitales guardados ✓/)).toBeTruthy();
+  const vit=posted.slice(before).filter(p=>p.path==="/api/v1/vitals").map(p=>({...(p.body as{vitalId:string;vitalType:string;occurredAt:string}),idem:p.idem}));
+  const hr=vit.filter(v=>v.vitalType==="HR"),temp=vit.filter(v=>v.vitalType==="TEMP");
+  expect(hr.length).toBe(1);
+  expect(temp.length).toBe(2);expect(temp[0]!.vitalId).toBe(temp[1]!.vitalId);expect(temp[0]!.occurredAt).toBe(temp[1]!.occurredAt);
+  // Revisión (F6): también la Idempotency-Key del reintento es la misma, y distinta entre tipos.
+  expect(temp[0]!.idem).toBeTruthy();expect(temp[0]!.idem).toBe(temp[1]!.idem);expect(hr[0]!.idem).not.toBe(temp[0]!.idem);
+ });
+ // Revisión del lote 11 (F3/F6): un crítico guardado se informa aunque otro vital se rechace; una lectura distinta de un tipo ya
+ // guardado en la toma no se envía (se corrige con «Enmendar»); «Limpiar» termina la toma (la siguiente es otra).
+ it("D11a — Signos vitales: críticos siempre visibles, sin segunda lectura del mismo tipo y «Limpiar» inicia otra toma",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));await elegirPaciente();
+  const before=posted.length;
+  const vitals=()=>posted.slice(before).filter(p=>p.path==="/api/v1/vitals").map(p=>p.body as{vitalId:string;vitalType:string;value:string});
+  fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"180"}});
+  fireEvent.change(screen.getByPlaceholderText("36.5"),{target:{value:"999"}});
+  fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
+  expect(await screen.findByText(/NO guardados: TEMP.*1 crítico\(s\): HR 180: Taquicardia extrema/)).toBeTruthy();
+  fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"90"}});
+  fireEvent.change(screen.getByPlaceholderText("36.5"),{target:{value:"36.8"}});
+  fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
+  expect(await screen.findByText(/HR: en esta toma ya se guardó 180 lpm; corríjalo con «Enmendar»/)).toBeTruthy();
+  expect(vitals().filter(v=>v.vitalType==="HR").map(v=>v.value)).toEqual(["180"]);
+  const firstHr=vitals().find(v=>v.vitalType==="HR")!.vitalId;
+  fireEvent.click(screen.getByRole("button",{name:"Limpiar"}));
+  fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"90"}});
+  fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
+  expect(await screen.findByText(/Signos vitales guardados ✓/)).toBeTruthy();
+  const hrs=vitals().filter(v=>v.vitalType==="HR");
+  expect(hrs.map(v=>v.value)).toEqual(["180","90"]);expect(hrs[1]!.vitalId).not.toBe(firstHr);
+ });
+ // Revisión del lote 11 (F4): cambiar de paciente vacía también el formulario y el mensaje de Signos vitales.
+ it("D11b — Signos vitales: cambiar de paciente vacía el formulario y el mensaje del anterior",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));await elegirPaciente();
+  fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"78"}});
+  fireEvent.change(screen.getByPlaceholderText("36.5"),{target:{value:"999"}});
+  fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
+  expect(await screen.findByText(/NO guardados: TEMP/)).toBeTruthy();
+  const opt=await screen.findByRole("option",{name:"Carlos Mendoza"});fireEvent.change(opt.closest("select")!,{target:{value:"p2"}});
+  await waitFor(()=>expect(screen.queryByText(/NO guardados: TEMP/)).toBeNull());
+  expect((screen.getByPlaceholderText("36.5") as HTMLInputElement).value).toBe("");
+ });
+ // D11b (F4), aislado de D11a: lo tecleado y NO guardado para el paciente anterior tampoco pasa al nuevo (antes «Guardar» lo
+ // habría enviado al paciente recién seleccionado).
+ it("D11b — Signos vitales: lo tecleado sin guardar no sobrevive al cambio de paciente",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));await elegirPaciente();
+  fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"78"}});
+  fireEvent.change(screen.getByPlaceholderText("36.5"),{target:{value:"37.9"}});
+  const opt=await screen.findByRole("option",{name:"Carlos Mendoza"});fireEvent.change(opt.closest("select")!,{target:{value:"p2"}});
+  await waitFor(()=>expect((screen.getByPlaceholderText("72") as HTMLInputElement).value).toBe(""));
+  expect((screen.getByPlaceholderText("36.5") as HTMLInputElement).value).toBe("");
+ });
+ // Lote 11, hallazgo D11b: teclear otro id de paciente es un cambio de paciente completo (nada del anterior queda en pantalla).
+ // Patient 360: las secciones se ocultan por pestaña, así que la aserción negativa se hace DE VUELTA en «Tratamiento» (si no,
+ // pasaría en falso por estar oculta la medicación).
+ it("D11b — Expediente: teclear otro id de paciente vacía los datos del paciente anterior",async()=>{
+  render(<Workspace/>);
+  await toExpediente();
+  const secciones=()=>within(screen.getByRole("navigation",{name:"Secciones del expediente"}));
+  fireEvent.click(secciones().getByRole("button",{name:"Tratamiento"}));
+  const form=within((await screen.findByRole("button",{name:"Proponer medicación"})).closest("section")!);
+  fireEvent.change(form.getByPlaceholderText(/Fármaco \(ej\./),{target:{value:"ibuprofeno-400"}});
+  fireEvent.change(form.getByPlaceholderText(/Dosis \(500mg\)/),{target:{value:"400"}});
+  fireEvent.change(form.getByPlaceholderText("Vía"),{target:{value:"VO"}});
+  fireEvent.change(form.getByPlaceholderText(/Frecuencia \(c\/8h\)/),{target:{value:"c/8h"}});
+  fireEvent.click(form.getByRole("button",{name:"Proponer medicación"}));
+  expect(await screen.findByRole("button",{name:"Prescribir"})).toBeTruthy(); // medicación del paciente A en pantalla
+  fireEvent.click(secciones().getByRole("button",{name:"Historia"}));
+  fireEvent.change(await screen.findByLabelText(/ID de paciente|Identificador del paciente/),{target:{value:"22222222-2222-4222-8222-222222222222"}});
+  fireEvent.click(secciones().getByRole("button",{name:"Tratamiento"}));
+  expect(await screen.findByRole("button",{name:"Proponer medicación"})).toBeTruthy(); // de vuelta en la pestaña de la medicación
+  await waitFor(()=>expect(screen.queryByRole("button",{name:"Prescribir"})).toBeNull());
+ });
+ // Lote 11, hallazgo D11c: ningún dato de un evento permanente se inventa en el cliente; los pide el diálogo U-16.
+ it("D11c — acciones: lote/sitio, firmante, códigos, referencia de pago y destino al alta se piden, no se inventan",async()=>{
+  const{immActions,csActions,clmActions,admActions,isAsk}=await import("../../apps/web/app/workspace/shared");
+  const asks=(b:Record<string,unknown>,k:string)=>{const v=b[k];return Array.isArray(v)?v.every(isAsk):isAsk(v);};
+  const imm=immActions({id:"i1",state:"DUE"})[0]!.body;expect(asks(imm,"lot")&&asks(imm,"site")).toBe(true);
+  const cs=csActions({id:"c1",state:"PRESENTED"})[0]!.body;expect(asks(cs,"signerName")).toBe(true);
+  // F2: el rol del firmante es explícito en cada acción (paciente o tutor), nunca el valor por defecto del servidor.
+  expect(csActions({id:"c1",state:"PRESENTED"}).filter(a=>a.path.endsWith("/grant")).map(a=>a.body["signerRole"])).toEqual(["PATIENT","GUARDIAN"]);
+  // F5: el estadio re-valorado de una herida y la resolución de un incidente también se piden.
+  const{wnActions,incActions}=await import("../../apps/web/app/workspace/shared");
+  const re=wnActions({id:"w1",state:"OPEN"}).find(a=>a.path.endsWith("/reassessment"))!.body;expect(asks(re,"stage")).toBe(true);
+  const res=incActions({id:"n1",state:"REPORTED"}).find(a=>a.path.endsWith("/resolution"))!.body;expect(asks(res,"resolution")).toBe(true);
+  const code=clmActions({id:"x",state:"DRAFT"})[0]!.body;expect(asks(code,"codes")).toBe(true);
+  const pay=clmActions({id:"x",state:"SUBMITTED"})[0]!.body;expect(asks(pay,"reference")).toBe(true);
+  const dis=admActions({id:"a1",state:"ADMITTED"}).find(a=>a.label==="Dar de alta")!.body;expect(asks(dis,"disposition")).toBe(true);
+  expect(JSON.stringify([imm,cs,code,pay,dis,re,res])).not.toMatch(/L-2026-A|Paciente\/Tutor|99213|EOB-|Alta a domicilio|CAPA implementada/);
+ });
+ // Revisión del lote 11 (F1): las acciones genéricas de las tablas resuelven sus ASK con el diálogo U-16 antes de enviar; antes
+ // mandaban el marcador tal cual y el servidor respondía 400 (y D11c lo habría extendido a «Aplicar»).
+ it("D11c — «Aplicar» vacuna pide lote y sitio en el diálogo y envía exactamente lo escrito",async()=>{
+  render(<Workspace/>);
+  await toExpediente();
+  fireEvent.click(within(screen.getByRole("navigation",{name:"Secciones del expediente"})).getByRole("button",{name:"Tratamiento"}));
+  fireEvent.change(await screen.findByPlaceholderText(/Vacuna \(ej\. SRP/),{target:{value:"SRP"}});
+  fireEvent.click(screen.getByRole("button",{name:"Indicar vacuna"}));
+  fireEvent.click(await screen.findByRole("button",{name:"Aplicar"}));
+  const lote=within(await screen.findByRole("dialog",{name:/Lote de la vacuna aplicada/}));
+  fireEvent.change(lote.getByLabelText(/Lote de la vacuna aplicada/),{target:{value:"AB1234"}});
+  fireEvent.click(lote.getByRole("button",{name:"Registrar"}));
+  const sitio=within(await screen.findByRole("dialog",{name:/Sitio de aplicación/}));
+  fireEvent.change(sitio.getByLabelText(/Sitio de aplicación/),{target:{value:"deltoides izquierdo"}});
+  fireEvent.click(sitio.getByRole("button",{name:"Registrar"}));
+  await waitFor(()=>expect(posted.some(p=>p.path.endsWith("/administration"))).toBe(true));
+  const sent=posted.filter(p=>p.path.endsWith("/administration")).at(-1)?.body as{lot?:unknown;site?:unknown};
+  expect(sent).toMatchObject({lot:"AB1234",site:"deltoides izquierdo"});
+ });
+ // Exclusivo de main (D11c-F1): acciones que YA llevaban ASK en main y aun así lo enviaban sin resolver (400 del servidor), p. ej.
+ // «Rechazar» una vacuna: ahora el diálogo pide el motivo y se envía exactamente lo escrito; cancelar no envía nada.
+ it("D11c-F1 — «Rechazar» vacuna (acción genérica con ASK) pide el motivo y no envía el marcador ASK",async()=>{
+  render(<Workspace/>);
+  await toExpediente();
+  fireEvent.click(within(screen.getByRole("navigation",{name:"Secciones del expediente"})).getByRole("button",{name:"Tratamiento"}));
+  fireEvent.change(await screen.findByPlaceholderText(/Vacuna \(ej\. SRP/),{target:{value:"Influenza"}});
+  fireEvent.click(screen.getByRole("button",{name:"Indicar vacuna"}));
+  const refusals=()=>posted.filter(p=>p.path.endsWith("/refusal"));const n0=refusals().length;
+  fireEvent.click(await screen.findByRole("button",{name:"Rechazar"}));
+  const cancel=within(await screen.findByRole("dialog",{name:/Motivo del rechazo/}));
+  fireEvent.click(cancel.getByRole("button",{name:"Cancelar"}));
+  await waitFor(()=>expect(screen.queryByRole("dialog",{name:/Motivo del rechazo/})).toBeNull());
+  expect(refusals().length).toBe(n0); // cancelado: no se envía nada
+  fireEvent.click(await screen.findByRole("button",{name:"Rechazar"}));
+  const dlg=within(await screen.findByRole("dialog",{name:/Motivo del rechazo/}));
+  fireEvent.change(dlg.getByLabelText(/Motivo del rechazo/),{target:{value:"La madre prefiere aplazarla a la próxima consulta"}});
+  fireEvent.click(dlg.getByRole("button",{name:"Registrar"}));
+  await waitFor(()=>expect(refusals().length).toBe(n0+1));
+  const body=refusals().at(-1)!.body as{reason?:unknown};
+  expect(body.reason).toBe("La madre prefiere aplazarla a la próxima consulta");
+ });
+ // Revisión del lote 11 (F5): un dato de vocabulario cerrado se ELIGE en el diálogo (ASK_CHOICE), no se inventa.
+ it("F5 — «Re-valorar» herida pide el estadio entre las opciones del fold y envía el elegido",async()=>{
+  flags.hospital=true;
+  try{
+  render(<Workspace/>);
+  await toExpediente();
+  fireEvent.click(await within(screen.getByRole("navigation",{name:"Secciones del expediente"})).findByRole("button",{name:"Hospital"},{timeout:2500}));
+  fireEvent.click(await screen.findByRole("button",{name:"Documentar herida"},{timeout:2500}));
+  fireEvent.click(await screen.findByRole("button",{name:"Re-valorar"}));
+  const dlg=within(await screen.findByRole("dialog",{name:/Estadio de la herida/}));
+  const sel=dlg.getByLabelText(/Estadio de la herida/) as HTMLSelectElement;
+  expect([...sel.options].map(o=>o.value)).toEqual(["","STAGE_1","STAGE_2","STAGE_3","STAGE_4","UNSTAGEABLE","DTI"]);
+  expect((dlg.getByRole("button",{name:"Registrar"}) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(sel,{target:{value:"STAGE_2"}});
+  fireEvent.click(dlg.getByRole("button",{name:"Registrar"}));
+  await waitFor(()=>expect(posted.some(p=>p.path.endsWith("/reassessment"))).toBe(true));
+  expect(posted.filter(p=>p.path.endsWith("/reassessment")).at(-1)?.body).toMatchObject({stage:"STAGE_2"});
+  }finally{flags.hospital=false;}
  });
 
  // Último test: el deep-link carga el expediente completo (asíncrono y pesado); va al final para no contaminar

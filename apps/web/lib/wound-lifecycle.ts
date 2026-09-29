@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
-import{foldWound,assertWoundTransition,type FoldedWound,type WoundState}from"../../../packages/wound-fold/src";
+import{foldWound,assertWoundTransition,WOUND_STAGES,type FoldedWound,type WoundState}from"../../../packages/wound-fold/src";
 import{runClinicalCommand,lookupReplay,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
@@ -10,12 +10,11 @@ import{aggregateLifecycle}from"./lifecycle-factory";
 // EPIC AI — Ciclo de vida de una herida/UPP: OPEN -> {OPEN (re-valoración), HEALED, ESCALATED}.
 // Cuidado de heridas; documentar/re-valorar/cerrar/escalar exige scope wound:write.
 const AGG="Wound";
-const STAGES=["STAGE_1","STAGE_2","STAGE_3","STAGE_4","UNSTAGEABLE","DTI"] as const;
 function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string}){
  authorize(principalFrom(claims),{scope:"wound:write",purpose:"TREATMENT"});
 }
 
-export const DocumentBody=z.object({woundId:z.string().uuid(),patientId:z.string().uuid(),location:z.enum(["SACRUM","HEEL","ISCHIUM","TROCHANTER","OCCIPUT","ELBOW","OTHER"]),stage:z.enum(STAGES),occurredAt:z.string().datetime()});
+export const DocumentBody=z.object({woundId:z.string().uuid(),patientId:z.string().uuid(),location:z.enum(["SACRUM","HEEL","ISCHIUM","TROCHANTER","OCCIPUT","ELBOW","OTHER"]),stage:z.enum(WOUND_STAGES),occurredAt:z.string().datetime()});
 export async function handleWoundDocument(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -36,7 +35,7 @@ const loadForTransition=(req:Request,woundId:string)=>LIFECYCLE.loadForTransitio
 const commit=(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,woundId:string,folded:FoldedWound,to:WoundState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string)=>
  LIFECYCLE.commit(ctx,idempotencyKey,expectedVersion,woundId,folded,to,eventType,payload,occurredAt,topic);
 
-export const ReassessBody=z.object({stage:z.enum(STAGES),occurredAt:z.string().datetime()});
+export const ReassessBody=z.object({stage:z.enum(WOUND_STAGES),occurredAt:z.string().datetime()});
 export async function handleWoundReassessment(req:Request,woundId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,woundId);const b=await parseJson(req,ReassessBody);
   return await commit(ctx,idempotencyKey,expectedVersion,woundId,folded,"OPEN","WOUND_REASSESSED",{kind:"REASSESSED",stage:b.stage},b.occurredAt,"wound.reassessed");
