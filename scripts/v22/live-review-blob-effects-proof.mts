@@ -29,6 +29,7 @@ const docGet=await import("../../apps/web/app/api/v1/documents/[documentId]/rout
 const attR=await import("../../apps/web/app/api/v1/documents/[documentId]/attachments/route");
 const attId=await import("../../apps/web/app/api/v1/documents/[documentId]/attachments/[attachmentId]/route");
 const assetR=await import("../../apps/web/app/api/v1/physician-profile/assets/[kind]/route");
+const profR=await import("../../apps/web/app/api/v1/physician-profile/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 const phys=signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes:["document:write","document:read","patient:write","settings:write","settings:read"],purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);
 const DP=(id:string)=>({params:Promise.resolve({documentId:id})});const idem=()=>crypto.randomUUID();
@@ -64,6 +65,13 @@ try{
  const rmSig=await assetR.DELETE(new Request("http://l/",{method:"DELETE",headers:{authorization:"Bearer "+phys,"idempotency-key":idem()}}),{params:Promise.resolve({kind:"signature"})});
  ok(rmSig.status===200&&[sA,sB,sC,sD].every(s=>!stored.has(s.path))&&[sA.path,sB.path,sD.path].every(p=>(delAttempts.get(p)??0)>=1),"PROFILE_REMOVAL_RETIRES_EVERY_IMAGE_OF_KIND");
  ok(stamp.status===201&&stored.has(stamp.path),"PROFILE_REMOVAL_KEEPS_OTHER_KIND");
+ // Revisión del porte (574fb06): el reintento TARDÍO de una retirada (tras volver a subir la imagen) solo repite el borrado de
+ // las imágenes anteriores a esa retirada; la subida posterior es la vigente, el perfil la cita y debe seguir en el almacén.
+ const rmStamp=(key:string)=>assetR.DELETE(new Request("http://l/",{method:"DELETE",headers:{authorization:"Bearer "+phys,"idempotency-key":key}}),{params:Promise.resolve({kind:"stamp"})});
+ const RS=idem();const rs1=await rmStamp(RS);const stampNew=await upload("stamp",idem(),png(10));
+ const rs2=await rmStamp(RS);const rs2b=await rs2.json() as{replayed?:boolean};
+ const cur=await(await profR.GET(new Request("http://l/",{headers:{authorization:"Bearer "+phys}}))).json() as{stamp?:{pathname:string}|null};
+ ok(rs1.status===200&&!stored.has(stamp.path)&&stampNew.status===201&&rs2.status===200&&rs2b.replayed===true&&stored.has(stampNew.path)&&!delAttempts.has(stampNew.path)&&cur.stamp?.pathname===stampNew.path,"LATE_REMOVAL_RETRY_KEEPS_LATER_IMAGE");
  // (C) Dos adjuntos IDÉNTICOS simultáneos con la misma llave: uno confirma (201) y el otro recibe su replay (200).
  const d2=await newDoc();const K2=idem();holdPuts=2;
  const both=Promise.all([attach(d2,K2,PDF),attach(d2,K2,PDF)]);

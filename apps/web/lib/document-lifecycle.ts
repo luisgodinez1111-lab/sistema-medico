@@ -7,7 +7,7 @@ import{foldDocument,assertDocumentTransition,type FoldedDocument,type DocumentSt
 import{put,del,get}from"@vercel/blob";
 import{runClinicalCommand,lookupReplay,readAggregateStream,documentDetail,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload,priorCommand,uploadThenCommit}from"./http-command";
+import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload,priorCommand,uploadThenCommit,assertSameRequest}from"./http-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
 import{deterministicUuid}from"../../../packages/canonical-json/src";
 import{signedPayload}from"./clinical-signature";
@@ -168,14 +168,14 @@ export async function handleDocumentAttach(req:Request,documentId:string):Promis
   // 409), subida a una ruta ÚNICA por intento (nunca sobrescribe) y limpieza segura; el flujo vive en `uploadThenCommit`
   // (lo comparte el perfil del médico). Antes: ruta determinista con allowOverwrite, y el catch borraba el blob que el
   // evento ya confirmado citaba cuando el reintento con la misma llave terminaba en IDEMPOTENCY_CONFLICT.
+  const filename=safeName(file.name);
   const replay=async()=>{
    const prior=await priorCommand(ctx,{idempotencyKey,aggregateType:AGG,aggregateId:documentId,eventType:"DOCUMENT_ATTACHED",topic:"document.attached",at:"attachedAt"});
    if(!prior)return null;
-   const p=prior.payload;if(p["contentHash"]!==contentHash)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
+   const p=prior.payload;assertSameRequest(p,{contentHash,filename,mime});
    return NextResponse.json({documentId,attachmentId:p["attachmentId"],filename:p["filename"],mime:p["mime"],size:p["size"],pathname:p["pathname"],contentHash,version:prior.version,auditHash:prior.auditHash,replayed:true},{status:200});
   };
   const attachmentId=derivedUuid(`${idempotencyKey}:${documentId}:attachment`);
-  const filename=safeName(file.name);
   const pathname=`tenants/${c.tenantId}/documents/${documentId}/${attachmentId}-${crypto.randomUUID()}.${EXT_BY_MIME[mime]??"bin"}`; // aislada por tenant
   const occurredAt=new Date().toISOString();
   return await uploadThenCommit(ctx,{idempotencyKey,aggregateId:documentId,pathname,replay,

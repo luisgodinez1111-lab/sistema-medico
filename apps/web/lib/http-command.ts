@@ -120,7 +120,9 @@ function stripUndefined<T>(v:T):T{
 // IDEMPOTENCY_CONFLICT. Antes el reintento volvía a subir el archivo, el kernel lo rechazaba (la hora del servidor entra en el
 // hash) y la limpieza borraba el blob que el evento ya confirmado seguía citando; una retirada ya aplicada respondía 404.
 // Requisito: el payload no lleva claves `undefined` (JSONB no las guarda) y `occurredAt` es exactamente `payload[at]`.
-export type PriorCommand=Readonly<{payload:Record<string,unknown>;version:number;auditHash?:string}>;
+// `sequence` es la posición del evento de ESA llave en el stream: un efecto repetido en el reintento (p. ej. retirar imágenes)
+// se limita a lo que existía antes de ese evento, nunca a lo que se confirmó después.
+export type PriorCommand=Readonly<{payload:Record<string,unknown>;sequence:number;version:number;auditHash?:string}>;
 export async function priorCommand(ctx:HttpTenantContext,a:Readonly<{idempotencyKey:string;aggregateType:string;aggregateId:string;eventType:string;topic:string;at:string}>):Promise<PriorCommand|undefined>{
  const prior=await readEventById(ctx,derivedUuid(a.idempotencyKey,"event"),a.aggregateId);
  if(!prior)return undefined;
@@ -128,7 +130,13 @@ export async function priorCommand(ctx:HttpTenantContext,a:Readonly<{idempotency
  const replay=await lookupReplay(ctx,cmd);
  if(!replay)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
  const r=replay.response as{version:number;auditHash?:string};
- return{payload:prior.payload,version:r.version,...(r.auditHash!==undefined?{auditHash:r.auditHash}:{})};
+ return{payload:prior.payload,sequence:prior.sequence,version:r.version,...(r.auditHash!==undefined?{auditHash:r.auditHash}:{})};
+}
+// "Misma llave + petición distinta = conflicto" en el replay de un comando con efectos: `priorCommand` reconstruye el comando
+// desde el payload GUARDADO, así que la petición actual solo se compara aquí. Se pasan TODOS los campos que controla el cliente
+// (ya normalizados como se guardarían); si alguno difiere del evento original, IDEMPOTENCY_CONFLICT.
+export function assertSameRequest(stored:Record<string,unknown>,current:Readonly<Record<string,string|number>>):void{
+ for(const[k,v]of Object.entries(current))if(stored[k]!==v)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
 }
 // ¿Algún evento confirmado cita este blob? Solo el evento de ESTA llave podría (las rutas son únicas por intento). Si no se
 // puede comprobar, se responde que sí: un blob huérfano es preferible a un evento que cite un binario borrado.

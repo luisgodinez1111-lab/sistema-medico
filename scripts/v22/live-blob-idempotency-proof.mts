@@ -60,6 +60,17 @@ try{
  // DESPUÉS del commit lo prueba live-review-blob-effects-proof (revisión adversarial del lote 11).
  const s3=await up(idem(),[0x89,0x50,0x4e,0x47,2]);const firstPath=puts[before]!;
  ok(s3.status===201&&puts[puts.length-1]!==firstPath,"PROFILE_NEW_IMAGE_NEVER_OVERWRITES_PREVIOUS");
+ // Revisión del porte (574fb06): el replay compara TODO lo que controla el cliente, no solo los bytes. Misma llave y mismos bytes
+ // con otro nombre o MIME declarado es otra petición: 409, sin subir ni borrar nada (antes: 200 «replayed» con los datos viejos).
+ const pb=puts.length,db=dels.length;
+ const reqAtt=(name:string,type:string)=>attR.POST(new Request("http://l/",{method:"POST",headers:{authorization:"Bearer "+phys,"idempotency-key":K},body:file(PDF,name,type)}),DP(d));
+ const same=await reqAtt("lab.pdf","application/pdf");
+ const otherName=await reqAtt("otro.pdf","application/pdf");const otherNameB=await otherName.json() as{error?:{code:string}};
+ const otherMime=await reqAtt("lab.pdf","image/png");const otherMimeB=await otherMime.json() as{error?:{code:string}};
+ ok(same.status===200&&otherName.status===409&&otherNameB.error?.code==="IDEMPOTENCY_CONFLICT"&&otherMime.status===409&&otherMimeB.error?.code==="IDEMPOTENCY_CONFLICT"&&puts.length===pb&&dels.length===db,"SAME_KEY_OTHER_FILENAME_OR_MIME_409");
+ const sm=await assetR.POST(new Request("http://l/",{method:"POST",headers:{authorization:"Bearer "+phys,"idempotency-key":SK},body:file([0x89,0x50,0x4e,0x47,1],"firma.png","image/webp")}),{params:Promise.resolve({kind:"signature"})});
+ const smB=await sm.json() as{error?:{code:string}};
+ ok(sm.status===409&&smB.error?.code==="IDEMPOTENCY_CONFLICT"&&puts.length===pb,"PROFILE_SAME_KEY_OTHER_MIME_409");
 }catch(e){result.status="FAIL";result.error=String(e);}
 server.close();
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

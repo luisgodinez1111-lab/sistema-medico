@@ -2,9 +2,9 @@ import{describe,it,expect,vi,beforeEach}from"vitest";
 // Porte del hallazgo D6 (revisión adversarial del lote 11) — `uploadThenCommit`: qué se hace con el binario de un intento según cómo falle el commit.
 // Solo un rechazo DEFINITIVO del kernel con la ruta sin citar lo borra; un error ambiguo (la conexión cae durante el COMMIT) lo
 // conserva; una carrera con un intento idéntico de la misma llave responde el replay en vez del 409.
-const{readEventById}=vi.hoisted(()=>({readEventById:vi.fn()}));
-vi.mock("../../apps/web/lib/clinical-runtime",()=>({readEventById,readEventPayloadById:vi.fn(),lookupReplay:vi.fn(),sessionSecret:vi.fn()}));
-const{uploadThenCommit}=await import("../../apps/web/lib/http-command");
+const{readEventById,lookupReplay}=vi.hoisted(()=>({readEventById:vi.fn(),lookupReplay:vi.fn()}));
+vi.mock("../../apps/web/lib/clinical-runtime",()=>({readEventById,readEventPayloadById:vi.fn(),lookupReplay,sessionSecret:vi.fn()}));
+const{uploadThenCommit,assertSameRequest,priorCommand}=await import("../../apps/web/lib/http-command");
 const{ClinicalError}=await import("../../packages/runtime-errors/src");
 const ctx={tenantId:"00000000-0000-4000-8000-000000000001",actorId:"00000000-0000-4000-8000-000000000002",actorType:"HUMAN" as const,purpose:"TREATMENT",requestId:"r"};
 const ok=new Response("{}",{status:201});
@@ -18,7 +18,7 @@ function run(commitError:unknown,opts:{replayAfter?:Response|null;cited?:boolean
   discard:async()=>{calls.push("discard");}});
  return{p,calls};
 }
-beforeEach(()=>{readEventById.mockReset();});
+beforeEach(()=>{readEventById.mockReset();lookupReplay.mockReset();});
 describe("uploadThenCommit (D6)",()=>{
  it("replay primero: con respuesta previa no sube nada",async()=>{
   const calls:string[]=[];const prior=new Response("{}",{status:200});
@@ -63,5 +63,21 @@ describe("isKernelRejection (D6)",()=>{
   for(const m of["CONNECTION_CLOSED","toString","__proto__","constructor"])expect(isKernelRejection(new Error(m))).toBe(false);
   expect(isKernelRejection(new ClinicalError("CONCURRENCY_CONFLICT","x"))).toBe(false); // un ClinicalError se juzga por su código
   expect(isKernelRejection("CONCURRENCY_CONFLICT")).toBe(false);
+ });
+});
+// Revisión del porte (574fb06): el replay de un comando con efectos compara TODO lo que controla el cliente, y `priorCommand`
+// expone la secuencia del evento de la llave (límite de lo que un reintento puede volver a borrar).
+describe("assertSameRequest / priorCommand (revisión 574fb06)",()=>{
+ const stored={contentHash:"h",filename:"lab.pdf",mime:"application/pdf",attachmentId:"x"};
+ it("misma petición: no lanza",()=>{expect(()=>assertSameRequest(stored,{contentHash:"h",filename:"lab.pdf",mime:"application/pdf"})).not.toThrow();});
+ it("mismos bytes con otro nombre u otro MIME: IDEMPOTENCY_CONFLICT",()=>{
+  for(const cur of[{contentHash:"h",filename:"otro.pdf",mime:"application/pdf"},{contentHash:"h",filename:"lab.pdf",mime:"image/png"},{contentHash:"z",filename:"lab.pdf",mime:"application/pdf"}])
+   expect(()=>assertSameRequest(stored,cur)).toThrow(expect.objectContaining({code:"IDEMPOTENCY_CONFLICT"}));
+ });
+ it("priorCommand devuelve la secuencia del evento de la llave",async()=>{
+  readEventById.mockResolvedValue({sequence:4,payload:{kind:"ASSET_REMOVED",assetKind:"stamp",removedAt:"2026-01-01T00:00:00.000Z"}});
+  lookupReplay.mockResolvedValue({replayed:true,response:{version:4}});
+  const p=await priorCommand(ctx,{idempotencyKey:"k",aggregateType:"PhysicianProfile",aggregateId:"00000000-0000-4000-8000-000000000003",eventType:"PROFILE_ASSET_REMOVED",topic:"t",at:"removedAt"});
+  expect(p?.sequence).toBe(4);expect(p?.version).toBe(4);
  });
 });

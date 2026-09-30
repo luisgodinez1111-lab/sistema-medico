@@ -6,7 +6,7 @@ import{put,del,get}from"@vercel/blob";
 import{runClinicalCommand,lookupReplay,readAggregateStream}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{z}from"zod";
-import{buildCommand,principalFrom,resolveVerified,parseJson,priorCommand,uploadThenCommit}from"./http-command";
+import{buildCommand,principalFrom,resolveVerified,parseJson,priorCommand,uploadThenCommit,assertSameRequest}from"./http-command";
 import{isValidCedula,type PrescriberIdentity}from"../../../packages/prescription-print/src";
 import{deterministicUuid}from"../../../packages/canonical-json/src";
 // EPIC S-CONFIG/FIRMA — Perfil del MÉDICO (firma y sello) sobre el kernel event-sourced. La firma/sello son
@@ -130,7 +130,7 @@ export async function handleProfileAssetUpload(req:Request,kind:string):Promise<
   const replay=async()=>{
    const prior=await priorCommand(ctx,{idempotencyKey,aggregateType:AGG,aggregateId:aggId,eventType:"PROFILE_ASSET_SET",topic:"physician_profile.asset_set",at:"setAt"});
    if(!prior)return null;
-   const p=prior.payload;if(p["contentHash"]!==contentHash||p["assetKind"]!==kind)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
+   const p=prior.payload;assertSameRequest(p,{contentHash,assetKind:kind,mime});
    return NextResponse.json({assetKind:kind,mime:p["mime"],size:p["size"],contentHash,version:prior.version,auditHash:prior.auditHash,replayed:true},{status:200});
   };
   const pathname=`tenants/${c.tenantId}/physicians/${aggId}/${kind}-${crypto.randomUUID()}.${EXT_BY_MIME[mime]??"png"}`;
@@ -167,10 +167,15 @@ export async function handleProfileAssetDownload(req:Request,kind:string):Promis
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
-// DELETE /api/v1/physician-profile/assets/:kind -> quita la imagen (registra ASSET_REMOVED y borra del almacén todas las de ese
-// tipo: con rutas únicas por subida (D6) cada reemplazo deja su propia ruta; las del otro tipo no se tocan).
-async function deleteAssetImages(ctx:Parameters<typeof readAggregateStream>[0],aggId:string,kind:string):Promise<void>{
- const paths=(await readAggregateStream(ctx,AGG,aggId)).filter(e=>e.payload["kind"]==="ASSET_SET"&&e.payload["assetKind"]===kind).map(e=>String(e.payload["pathname"]??"")).filter(Boolean);
+// DELETE /api/v1/physician-profile/assets/:kind -> quita la imagen (registra ASSET_REMOVED y borra del almacén las de ese tipo
+// confirmadas ANTES de esa retirada: con rutas únicas por subida (D6) cada reemplazo deja su propia ruta; las del otro tipo no se
+// tocan). Límite por secuencia: una subida confirmada DESPUÉS (un reintento tardío de la retirada, o una subida que entra entre
+// el commit y esta lectura) es la imagen vigente y nunca se borra; y por construcción nunca se borra la ruta que el perfil cita.
+async function deleteAssetImages(ctx:Parameters<typeof readAggregateStream>[0],aggId:string,kind:string,removalSequence:number):Promise<void>{
+ const events=await readAggregateStream(ctx,AGG,aggId);
+ let cited:string|undefined;
+ for(const e of events){const p=e.payload;if(p["assetKind"]!==kind)continue;if(p["kind"]==="ASSET_SET")cited=String(p["pathname"]??"");else if(p["kind"]==="ASSET_REMOVED")cited=undefined;}
+ const paths=events.filter(e=>e.sequence<removalSequence&&e.payload["kind"]==="ASSET_SET"&&e.payload["assetKind"]===kind).map(e=>String(e.payload["pathname"]??"")).filter(p=>p!==""&&p!==cited);
  for(const p of new Set(paths))await del(p,{token:blobToken()}).catch(()=>{/* ya pudo no existir */});
 }
 export async function handleProfileAssetRemove(req:Request,kind:string):Promise<Response>{
@@ -185,7 +190,7 @@ export async function handleProfileAssetRemove(req:Request,kind:string):Promise<
   const prior=await priorCommand(ctx,{idempotencyKey,aggregateType:AGG,aggregateId:aggId,eventType:"PROFILE_ASSET_REMOVED",topic:"physician_profile.asset_removed",at:"removedAt"});
   if(prior){
    if(prior.payload["assetKind"]!==kind)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
-   await deleteAssetImages(ctx,aggId,kind); // el reintento repite el borrado (idempotente) por si falló tras el evento
+   await deleteAssetImages(ctx,aggId,kind,prior.sequence); // el reintento repite el borrado (idempotente) por si falló tras el evento
    return NextResponse.json({assetKind:kind,removed:true,version:prior.version,replayed:true},{status:200});
   }
   const profile=await foldProfile(ctx,aggId);
@@ -194,8 +199,8 @@ export async function handleProfileAssetRemove(req:Request,kind:string):Promise<
   const removedAt=new Date().toISOString();
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:aggId,expectedVersion:profile.version,eventType:"PROFILE_ASSET_REMOVED",payload:{kind:"ASSET_REMOVED",assetKind:kind,authorId:c.sub,removedAt},occurredAt:removedAt,topic:"physician_profile.asset_removed"});
   const result=await runClinicalCommand(ctx,cmd);
-  await deleteAssetImages(ctx,aggId,kind); // la vigente y TODAS las anteriores de ese tipo (retirada explícita del médico)
   const r=result.response as{version:number};
+  await deleteAssetImages(ctx,aggId,kind,r.version); // la retirada es el evento nº version: la vigente y TODAS las anteriores de ese tipo
   return NextResponse.json({assetKind:kind,removed:true,version:r.version,replayed:result.replayed},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
