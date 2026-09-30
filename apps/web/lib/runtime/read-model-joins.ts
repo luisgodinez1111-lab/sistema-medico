@@ -59,11 +59,14 @@ export const lifecycleEventOnly=(tx:Tx)=>tx`not (
  * expresión del id del resultado (p. ej. tx`a.aggregate_id`). La subconsulta NO está correlacionada: Postgres la resuelve
  * una vez por consulta (hashed SubPlan), así que su coste no crece con las filas devueltas; `is not null` hace que el
  * `in` nunca dé NULL (un `not` sobre NULL descartaría la fila en silencio).
+ * Revisión del porte (d424bdc): con `w`, solo cuentan las correcciones FECHADAS en esa ventana de reporte (la de
+ * `enVentana`, sobre su `occurred_at`). Sirve para declarar lo que una ventana pierde: un original dentro del periodo cuya
+ * corrección cae fuera sale del periodo como reemplazado y su corrección cuenta en el suyo, y eso no puede ser silencioso.
  */
-export const resultSuperseded=(tx:Tx,tenantId:string,id:postgres.Fragment)=>tx`((${id})::text in (
+export const resultSuperseded=(tx:Tx,tenantId:string,id:postgres.Fragment,w?:ReportWindow)=>tx`((${id})::text in (
   select s.payload->>'supersedes' from clinical_events s
   where s.tenant_id=${tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED'
-    and s.payload->>'supersedes' is not null))`;
+    and s.payload->>'supersedes' is not null ${enVentana(tx,w,tx`s.occurred_at`)}))`;
 
 /** Opciones comunes de los registros de clínica. `patientId` acota EN SQL; sin él, el registro es de toda la clínica. */
 export type RegistryQuery=Readonly<{patientId?:string;limit?:number;cursor?:string|null}>;
@@ -179,9 +182,10 @@ export const transicionesPorAgregado=(tx:Tx,tenantId:string,aggregateType:string
 // capturado hoy pertenece a ayer para cualquier indicador clínico, y mezclar las dos fechas produce números que no
 // cuadran con el expediente. Sin ventana, el comportamiento es el de antes: toda la historia.
 export type ReportWindow=Readonly<{fromIso?:string;toIso?:string}>;
-export const enVentana=(tx:postgres.TransactionSql,w:ReportWindow|undefined)=>{
+// `col` es la fecha que se acota; por omisión la del evento base `a` (una subconsulta pasa la suya, p. ej. tx`s.occurred_at`).
+export const enVentana=(tx:postgres.TransactionSql,w:ReportWindow|undefined,col:postgres.Fragment=tx`a.occurred_at`)=>{
  if(!w?.fromIso&&!w?.toIso)return tx``;
- if(w.fromIso&&w.toIso)return tx`and a.occurred_at >= ${w.fromIso}::timestamptz and a.occurred_at < ${w.toIso}::timestamptz`;
- if(w.fromIso)return tx`and a.occurred_at >= ${w.fromIso}::timestamptz`;
- return tx`and a.occurred_at < ${w.toIso!}::timestamptz`;
+ if(w.fromIso&&w.toIso)return tx`and ${col} >= ${w.fromIso}::timestamptz and ${col} < ${w.toIso}::timestamptz`;
+ if(w.fromIso)return tx`and ${col} >= ${w.fromIso}::timestamptz`;
+ return tx`and ${col} < ${w.toIso!}::timestamptz`;
 };

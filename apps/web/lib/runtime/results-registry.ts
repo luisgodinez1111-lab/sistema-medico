@@ -4,7 +4,6 @@
 // estaba en 290 líneas y el porte de D10 y SQL-2 le añadía el valor canónico, el reemplazo y el estado-UI (R01-001).
 // `registries.ts` lo reexporta, así que la fachada `clinical-runtime` no cambia.
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
-import{normalizeLabValue}from"../../../../packages/lab-reference/src";
 import{RESULT_LIFECYCLE_KINDS}from"../../../../packages/result-fold/src";
 import{withTenantTx}from"./connection";
 import{type RegistryQuery,porPaciente,nombreDePaciente,ultimaTransicion,resultSuperseded,despuesDelCursor,paginaOrdenada}from"./read-model-joins";
@@ -17,17 +16,12 @@ import{type Page,armarPagina,cuentaDe,limiteDe,decodeCursor}from"./pagination";
 // SQL-2 (porte): antes la transición era el último evento de CUALQUIER tipo, así que un resultado CERRADO y luego corregido
 // leía CORRECTED, caía a «RECEIVED» y volvía a mostrarse «En revisión». Las anotaciones (RESULT_ANNOTATION_KINDS) no son
 // estado. No se usa `lifecycleEventOnly`: la cronología expone CORRECTED como último evento a propósito.
-// Hallazgo D10 (porte): `canonicalValue` es el valor en la unidad canónica del analito (el que usan las calculadoras; null
-// si no es normalizable) y `superseded` marca el resultado reemplazado por una corrección. `value` sigue siendo el texto
-// recibido.
-export type ResultRow=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;canonicalValue:number|null;superseded:boolean;critical:boolean;status:string;interpretation:string;lifecycle:"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";receivedAt:string;orderType:string|null}>;
+// Hallazgo D10 (porte): `superseded` marca el resultado reemplazado por una corrección. `value` es el texto recibido.
+// Revisión del porte (d424bdc): la fila ya no lleva `canonicalValue`. Ninguna ruta lo publicaba ni nadie lo leía, y su
+// normalización de respaldo ignoraba la unidad (un calcio en mmol/L sin canónico guardado se habría leído como mg/dL). Quien
+// necesite el valor canónico lo lee de donde ya se calcula con la unidad: lab-facts y los indicadores de analytics.ts.
+export type ResultRow=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;superseded:boolean;critical:boolean;status:string;interpretation:string;lifecycle:"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";receivedAt:string;orderType:string|null}>;
 const RES_LIFECYCLE:Record<string,"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED">={RECEIVED:"RECEIVED",VERIFIED:"VERIFIED",ACTIONED:"ACTIONED",CLOSED:"CLOSED"};
-// Valor canónico: el normalizado al recibir; un evento anterior a C-01 (sin canonicalValue) se normaliza aquí con la MISMA
-// función que la recepción, así que no hay una segunda regla de normalización.
-export const canonicalOf=(analyte:string,canonical:unknown,raw:unknown):number|null=>{
- if(canonical!=null&&String(canonical).trim()!==""&&Number.isFinite(Number(canonical)))return Number(canonical);
- const n=normalizeLabValue(analyte,String(raw??""));return n.ok?n.canonicalValue:null;
-};
 export async function resultsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Promise<Page<ResultRow>&{total:number}>{
  const limit=limiteDe(q),after=decodeCursor(q?.cursor,2);
  return withTenantTx(ctx,async tx=>{
@@ -35,7 +29,7 @@ export async function resultsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Pr
   const rows=await tx`
    select a.occurred_at as cursor_at, a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
      a.payload->>'critical' as critical, a.payload->>'status' as status, a.payload->>'interpretation' as interpretation, a.occurred_at as received_at,
-     a.payload->>'canonicalValue' as canonical_value, ${resultSuperseded(tx,ctx.tenantId,tx`a.aggregate_id`)} as superseded,
+     ${resultSuperseded(tx,ctx.tenantId,tx`a.aggregate_id`)} as superseded,
      lk.kind as last_kind, pn.name as patient_name, ord.order_type as order_type
    from clinical_events a
    ${ultimaTransicion(tx,ctx.tenantId,RESULT_LIFECYCLE_KINDS)}
@@ -61,9 +55,9 @@ export async function resultsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Pr
      and anul.anulado is null
      ${despuesDelCursor(tx,after)}
    ${paginaOrdenada(tx,limit)}`;
-  return{...armarPagina(rows,limit,r=>{const o=r as Record<string,unknown>;const analyte=String(o.analyte??"");return{
+  return{...armarPagina(rows,limit,r=>{const o=r as Record<string,unknown>;return{
    resultId:String(o.aggregate_id),patientId:String(o.pid??""),patientName:String(o.patient_name??"Paciente"),
-   analyte,value:String(o.value??""),canonicalValue:canonicalOf(analyte,o.canonical_value,o.value),superseded:o.superseded===true,
+   analyte:String(o.analyte??""),value:String(o.value??""),superseded:o.superseded===true,
    critical:String(o.critical)==="true",status:String(o.status??"NORMAL"),interpretation:String(o.interpretation??""),
    lifecycle:RES_LIFECYCLE[String(o.last_kind??"RECEIVED")]??"RECEIVED",
    receivedAt:o.received_at?new Date(String(o.received_at)).toISOString():"",

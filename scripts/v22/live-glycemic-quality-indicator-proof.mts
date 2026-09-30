@@ -17,13 +17,13 @@ const tok=()=>signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 let ts=Date.now()-3_600_000;const at=()=>new Date(ts+=60000).toISOString();const idem=()=>crypto.randomUUID();
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
-type QI={key:string;numerator:number;denominator:number;pct:number;computable:boolean};
+type QI={key:string;numerator:number;denominator:number;excluded:number;pct:number;computable:boolean;note:string};
 try{
  const phys=tok();
- async function receive(p:string,value:string,unit?:string){const resultId=crypto.randomUUID();
-  const r=await resR.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({resultId,patientId:p,orderId:crypto.randomUUID(),analyte:"HBA1C",value,...(unit?{unit}:{}),occurredAt:at()})}));
+ async function receive(p:string,value:string,unit?:string,occurredAt=at()){const resultId=crypto.randomUUID();
+  const r=await resR.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({resultId,patientId:p,orderId:crypto.randomUUID(),analyte:"HBA1C",value,...(unit?{unit}:{}),occurredAt})}));
   if(r.status!==201)throw new Error(`RECEIVE_${value}_${r.status}`);return resultId;}
- const qi=async()=>((await(await repR.GET(new Request("http://l/",{headers:H(phys)}))).json()).qualityIndicators as QI[]).find(q=>q.key==="glycemic_control")!;
+ const qi=async(query="")=>((await(await repR.GET(new Request("http://l/"+query,{headers:H(phys)}))).json()).qualityIndicators as QI[]).find(q=>q.key==="glycemic_control")!;
  const category=async(p:string)=>(await(await gs.GET(new Request("http://l/",{headers:H(phys)}),{params:Promise.resolve({patientId:p})})).json()).category as string;
  // Cuatro diabéticos EN META capturados en formatos distintos; el cuarto con un resultado corregido (9.0 % -> 6.3 %).
  const pts:string[]=[];let toCorrect="";
@@ -41,5 +41,18 @@ try{
  ok(q.numerator===4&&q.pct===100,"DASHBOARD_MATCHES_PER_PATIENT_ASSESSMENT");
  const reg=(await(await resR.GET(new Request("http://l/",{headers:H(phys)}))).json()).items as{value:string}[];
  ok(reg.some(i=>i.value==="6,5")&&reg.some(i=>i.value==="48"),"REGISTRY_KEEPS_VALUE_AS_RECEIVED");
+ // Revisión del porte (d424bdc) — VENTANA DE REPORTE. Dos HbA1c de enero (6.5 y 9.0); la 9.0 se corrige a 6.3 con fecha de
+ // febrero. Enero lee la vigente en enero: la 9.0 reemplazada sale del denominador y su corrección cuenta en febrero. Antes
+ // enero daba 1/1, excluded 0 y una nota que no decía nada: el periodo perdía un resultado en silencio.
+ const pw=crypto.randomUUID();await ensurePatientIn(TA,pw);
+ await receive(pw,"6.5","%","2020-01-15T15:00:00.000Z");const jan90=await receive(pw,"9.0","%","2020-01-15T16:00:00.000Z");
+ const cw=await corrR.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({correctedResultId:crypto.randomUUID(),value:"6.3",unit:"%",reason:"Corrección del laboratorio",occurredAt:"2020-02-02T15:00:00.000Z"})}),{params:Promise.resolve({resultId:jan90})});
+ ok(cw.status===201,"RESULT_CORRECTED_IN_A_LATER_MONTH");
+ const ene=await qi("?from=2020-01-01&to=2020-01-31");
+ ok(ene.denominator===1&&ene.numerator===1&&ene.excluded===1&&/No se cuentan 1 reemplazadas por una corrección fechada fuera del periodo/.test(ene.note),"WINDOW_DECLARES_ORIGINAL_CORRECTED_OUTSIDE_IT");
+ const feb=await qi("?from=2020-02-01&to=2020-02-29");
+ ok(feb.denominator===1&&feb.numerator===1&&feb.excluded===0,"CORRECTION_COUNTS_IN_ITS_OWN_WINDOW");
+ const ambos=await qi("?from=2020-01-01&to=2020-02-29");
+ ok(ambos.denominator===2&&ambos.excluded===0&&!/reemplazadas/.test(ambos.note),"WINDOW_WITH_BOTH_DECLARES_NOTHING");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

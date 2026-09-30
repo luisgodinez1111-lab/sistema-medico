@@ -116,6 +116,10 @@ export type ReportAggregates=Readonly<{
  /** SQL-3 (porte): HbA1c vigentes cuyo valor no se puede interpretar como % («<5.0», «pendiente», implausible). No entran
   * en el denominador y se DECLARAN: antes salían en silencio y la nota decía «el total». */
  hba1cExcluded:number;
+ /** Revisión del porte (d424bdc): HbA1c del periodo reemplazadas por una corrección FECHADA FUERA de él. No son vigentes
+  * en el periodo (la corrección cuenta en el suyo), así que no entran en el denominador; se declaran aparte. Antes el
+  * periodo las perdía en silencio: ni denominador, ni `excluded`, ni nota. Sin ventana es siempre 0. */
+ hba1cCorrectedOutsideWindow:number;
 }>;
 /** Umbral de control glucémico del indicador de calidad: la meta del diabético de packages/glycemic (fuente única, D10). */
 export const HBA1C_CONTROL_THRESHOLD=A1C_DIABETIC_TARGET_PCT;
@@ -143,17 +147,22 @@ export async function reportAggregates(ctx:HttpTenantContext,w?:ReportWindow):Pr
   // contando. El canónico se castea solo si TIENE forma de número (log append-only: puede haber basura, como en claimsIncome).
   // Los eventos sin canónico (anteriores a C-01, o no numéricos) se devuelven crudos y se normalizan abajo con la MISMA
   // función que la recepción; no hay una segunda regla de normalización.
+  // Revisión del porte (d424bdc): el periodo lee el valor VIGENTE en él. Un original del periodo reemplazado por una
+  // corrección fechada FUERA sale del denominador (su corrección cuenta en su propio periodo) y se DECLARA en
+  // `corregidas_fuera`; uno reemplazado DENTRO no se declara porque su corrección ya cuenta aquí.
   const a1c=await tx`
-   select count(*) filter (where h.cv is not null)::int as total,
-     count(*) filter (where h.cv < ${A1C_DIABETIC_TARGET_PCT})::int as en_control,
-     coalesce(array_agg(h.raw) filter (where h.cv is null),'{}') as sin_canonico
+   select count(*) filter (where not h.reemplazada and h.cv is not null)::int as total,
+     count(*) filter (where not h.reemplazada and h.cv < ${A1C_DIABETIC_TARGET_PCT})::int as en_control,
+     coalesce(array_agg(h.raw) filter (where not h.reemplazada and h.cv is null),'{}') as sin_canonico,
+     count(*) filter (where h.reemplazada and not h.reemplazada_en_ventana)::int as corregidas_fuera
    from (select a.payload->>'value' as raw,
-           case when a.payload->>'canonicalValue' ~ '^-?[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$' then (a.payload->>'canonicalValue')::numeric end as cv
+           case when a.payload->>'canonicalValue' ~ '^-?[0-9]+([.][0-9]+)?([eE][-+]?[0-9]+)?$' then (a.payload->>'canonicalValue')::numeric end as cv,
+           ${resultSuperseded(tx,ctx.tenantId,tx`a.aggregate_id`)} as reemplazada,
+           ${resultSuperseded(tx,ctx.tenantId,tx`a.aggregate_id`,w)} as reemplazada_en_ventana
          from clinical_events a
          where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
            and upper(a.payload->>'analyte')='HBA1C' ${enVentana(tx,w)}
-           and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR')
-           and not ${resultSuperseded(tx,ctx.tenantId,tx`a.aggregate_id`)}) h`;
+           and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR')) h`;
   const oa1c=(a1c[0]??{}) as Record<string,unknown>;
   let a1cTotal=Number(oa1c.total??0),a1cEnControl=Number(oa1c.en_control??0),a1cExcluidas=0;
   for(const raw of (oa1c.sin_canonico as unknown[]|null)??[]){
@@ -170,6 +179,7 @@ export async function reportAggregates(ctx:HttpTenantContext,w?:ReportWindow):Pr
    hba1cTotal:a1cTotal,
    hba1cInControl:a1cEnControl,
    hba1cExcluded:a1cExcluidas,
+   hba1cCorrectedOutsideWindow:Number(oa1c.corregidas_fuera??0),
   };
  });
 }

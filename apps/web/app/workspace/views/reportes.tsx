@@ -76,7 +76,7 @@ export default function ReportesView(){
       <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8}}><span style={{fontSize:12.5,fontWeight:700,lineHeight:1.25}}>{q.label}</span><span style={{fontSize:18,fontWeight:800,color:col,flex:"0 0 auto"}}>{q.computable?`${q.pct}%`:"—"}</span></div>
       <div style={{height:7,borderRadius:5,background:barBg,overflow:"hidden",margin:"8px 0 6px"}}><div style={{height:"100%",width:`${q.computable?q.pct:0}%`,background:col,borderRadius:5,opacity:.9}}/></div>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:P.muted}}><span>{q.computable?`${q.numerator}/${q.denominator}`:"sin datos"}</span><span>Meta {q.direction==="higher"?"≥":"≤"} {q.target}%{q.computable?` · ${q.met?"cumple":"por debajo"}`:""}</span></div>
-      {q.excluded>0&&<div style={{fontSize:11,color:P.amberOnPale,marginTop:4}}>{q.excluded} sin valor interpretable (no se cuentan)</div>}
+      {q.excluded>0&&<div style={{fontSize:11,color:P.amberOnPale,marginTop:4}} title={q.note}>{q.excluded} no se cuentan en el indicador</div>}
      </div>;})}</div>}
     </div>
    </div>;

@@ -76,7 +76,10 @@ export async function GET(req:Request){
   // HbA1c en control: proporción de HbA1c VIGENTES por debajo de la meta del diabético (HBA1C_CONTROL_THRESHOLD, la de
   // packages/glycemic), con el valor canónico en % (hallazgo D10). SQL-3: las vigentes con valor no interpretable no entran
   // en el denominador, pero se DECLARAN (`excluded` y la nota); antes salían en silencio y la nota decía «el total».
+  // Revisión del porte (d424bdc): tampoco se pierden en silencio las del periodo reemplazadas por una corrección fechada
+  // fuera de él; `excluded` es el total que no entra en el denominador y la nota dice por qué, motivo a motivo.
   const a1cTotal=agregados.hba1cTotal,a1cInControl=agregados.hba1cInControl,a1cExcluded=agregados.hba1cExcluded;
+  const a1cCorrectedOut=agregados.hba1cCorrectedOutsideWindow;
   type QI={key:string;label:string;numerator:number;denominator:number;excluded:number;pct:number;target:number;direction:"higher"|"lower";met:boolean;computable:boolean;note:string};
   const mkQI=(key:string,label:string,num:number,den:number,target:number,direction:"higher"|"lower",note:string,excluded=0):QI=>{
    const computable=den>0;const pct=computable?Math.round(num/den*100):0;
@@ -89,7 +92,9 @@ export async function GET(req:Request){
    mkQI("no_show","Inasistencia (no-show)",apptOut.noShow,apptOut.total,10,"lower","Citas marcadas como inasistencia respecto al total de citas agendadas."),
    mkQI("glycemic_control",`HbA1c en control (<${HBA1C_CONTROL_THRESHOLD}%)`,a1cInControl,a1cTotal,70,"higher",
     `Resultados vigentes de HbA1c por debajo de ${HBA1C_CONTROL_THRESHOLD}% respecto a las HbA1c vigentes con valor numérico interpretable.`
-    +(a1cExcluded>0?` No se cuentan ${a1cExcluded} con valor no interpretable (revíselas en Resultados).`:""),a1cExcluded),
+    +(a1cExcluded>0?` No se cuentan ${a1cExcluded} con valor no interpretable (revíselas en Resultados).`:"")
+    +(a1cCorrectedOut>0?` No se cuentan ${a1cCorrectedOut} reemplazadas por una corrección fechada fuera del periodo (la corrección cuenta en el periodo de su fecha).`:""),
+    a1cExcluded+a1cCorrectedOut),
   ];
   return NextResponse.json({
    reportWindow:{from:desde??null,to:hasta??null},

@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{foldResult,RESULT_ANNOTATION_KINDS,RESULT_LIFECYCLE_KINDS,RESULT_FOLLOW_UP_CLOSING_KINDS,resultAwaitsFollowUp}from"../../packages/result-fold/src";
+import{foldResult,RESULT_ANNOTATION_KINDS,RESULT_LIFECYCLE_KINDS,RESULT_EVENT_KINDS,RESULT_FOLLOW_UP_CLOSING_KINDS,resultAwaitsFollowUp,type ResultEventKind}from"../../packages/result-fold/src";
 // Va en su propio fichero porque tests/v22/result-fold.test.ts está fijado por sha256 en release/test-evidence-manifest.json
 // (RG-013): una prueba nueva no reescribe la evidencia de otra.
 const received=(critical:boolean)=>({sequence:1,payload:{kind:"RECEIVED",patientId:"p-1",orderId:"o-1",critical}});
@@ -25,6 +25,14 @@ describe("anotaciones y ciclo de vida del resultado (SQL-2, porte)",()=>{
   for(const kind of all)expect(()=>foldResult([received(false),{sequence:2,payload:{kind}}])).not.toThrow();
   expect(()=>foldResult([received(false),{sequence:2,payload:{kind:"AMENDED"}}])).toThrow(/Unknown result event/);
   expect([...RESULT_LIFECYCLE_KINDS]).toEqual(["RECEIVED","VERIFIED","ACTIONED","CLOSED"]);
+  // Revisión del porte (d424bdc): EXHAUSTIVIDAD, no solo ausencia de duplicados. Los kinds que acepta el fold son
+  // exactamente la unión de las dos listas, en tipos (un kind de ResultEventKind fuera de ambas no compila: `pnpm typecheck`
+  // incluye tests/) y en ejecución (RESULT_EVENT_KINDS es lo que reconoce `kindOf`).
+  type Particion=typeof RESULT_LIFECYCLE_KINDS[number]|typeof RESULT_ANNOTATION_KINDS[number];
+  type Igual<A,B>=[A] extends [B]?([B] extends [A]?true:false):false;
+  const particionExacta:Igual<ResultEventKind,Particion>=true;
+  expect(particionExacta).toBe(true);
+  expect([...RESULT_EVENT_KINDS].sort()).toEqual([...all].sort());
  });
 });
 
