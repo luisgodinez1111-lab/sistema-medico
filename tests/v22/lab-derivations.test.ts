@@ -1,5 +1,6 @@
 import{describe,it,expect}from"vitest";
-import{anionGap,anionGapCaveat,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../packages/lab-derivations/src";
+import crypto from"node:crypto";
+import{METABOLIC_DERIVATIONS_ALGORITHM,anionGap,anionGapCaveat,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../packages/lab-derivations/src";
 // EPIC BN — Derivaciones de laboratorio multi-analito.
 describe("anionGap (Na − Cl − HCO3)",()=>{
  it("normal: 140 − 104 − 24 = 12 -> NORMAL",()=>{
@@ -82,7 +83,11 @@ describe("brecha baja corregida por albúmina (revisión adversarial F7)",()=>{
  it("ya corregida, una brecha baja no se atribuye a hipoalbuminemia; sin corregir, sí",()=>{
   const c=anionGap(140,115,24,4.5)!;expect(c.status).toBe("LOW");expect(c.albuminCorrected).toBe(true);
   expect(c.interpretation).not.toMatch(/hipoalbuminemia/);expect(c.interpretation).toMatch(/pese a la corrección por albúmina/);
-  const u=anionGap(140,115,24)!;expect(u.status).toBe("LOW");expect(u.interpretation).toMatch(/hipoalbuminemia/);
+  // Revisión del porte (2122aa9): el sufijo «sin corregir por albúmina: una hipoalbuminemia la subestima» contiene la palabra
+  // en TODA brecha sin corregir; se exige la causa propia de la rama baja, antes del sufijo, y que no sea el texto F7.
+  const u=anionGap(140,115,24)!;expect(u.status).toBe("LOW");expect(u.albuminCorrected).toBe(false);
+  expect(u.interpretation).toMatch(/^Brecha aniónica baja \(hipoalbuminemia, paraproteínas\) \(sin corregir por albúmina/);
+  expect(u.interpretation).not.toMatch(/pese a la corrección/);
  });
 });
 // Lote 11, hallazgo D9: la advertencia se deriva de la brecha calculada, nunca es un texto fijo que la contradiga; y el estado
@@ -96,5 +101,31 @@ describe("anionGapCaveat (D9)",()=>{
  });
  it("sin brecha -> estado ausente explícito, nunca «corregida»",()=>{
   const c=anionGapCaveat(undefined);expect(c).toContain("Sin brecha aniónica");expect(c).not.toContain("corregida por albúmina");
+ });
+});
+// Revisión del porte (2122aa9): F7 cambió la interpretación devuelta por /metabolic-panel sin versión nueva. La huella de la salida
+// observable (valor, estado, interpretación y advertencia) sobre una rejilla fija queda anclada a cada versión: cambiar un texto
+// o un umbral sin subir METABOLIC_DERIVATIONS_ALGORITHM.version rompe esta prueba. Las huellas de versiones previas son inmutables.
+describe("METABOLIC-DERIVATIONS versionado (Companion #14)",()=>{
+ const HUELLAS:Readonly<Record<string,string>>={
+  "2":"65b2a65c56b6ba536097c84afa308fe823b71ef9501771d5857483afec92cefd", // antes de F7 (brecha baja corregida -> hipoalbuminemia)
+  "3":"0b344de87c0724667f08bc3c35f5833cb99a02071273a7f52072ef67020a78df", // F7
+ };
+ function huella():string{
+  const out:unknown[]=[];
+  for(const[na,cl,hc]of[[140,100,10],[140,104,24],[140,115,24]]as const)for(const alb of[undefined,2.0,4.5]){const ag=anionGap(na,cl,hc,alb);out.push(ag,anionGapCaveat(ag));}
+  out.push(anionGapCaveat(undefined));
+  for(const[ca,alb]of[[8.0,2.0],[9.5,4.0],[10.8,1.5]]as const)out.push(correctedCalcium(ca,alb));
+  for(const[na,g]of[[130,600],[140,90]]as const)out.push(correctedSodiumForGlucose(na,g));
+  for(const[na,g,b]of[[140,90,14],[145,600,40],[125,90,10]]as const)out.push(calculatedOsmolality(na,g,b));
+  return crypto.createHash("sha256").update(JSON.stringify(out)).digest("hex");
+ }
+ it("la salida actual es exactamente la registrada para la versión declarada",()=>{
+  expect(METABOLIC_DERIVATIONS_ALGORITHM.id).toBe("METABOLIC-DERIVATIONS");
+  expect(HUELLAS[METABOLIC_DERIVATIONS_ALGORITHM.version],`sin huella registrada para la versión ${METABOLIC_DERIVATIONS_ALGORITHM.version}`).toBeDefined();
+  expect(huella()).toBe(HUELLAS[METABOLIC_DERIVATIONS_ALGORITHM.version]);
+ });
+ it("dos versiones nunca comparten huella (una versión nueva implica salida distinta y viceversa)",()=>{
+  const v=Object.values(HUELLAS);expect(new Set(v).size).toBe(v.length);
  });
 });

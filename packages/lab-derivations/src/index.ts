@@ -5,6 +5,12 @@ import{classifyLab,type LabStatus}from"../../lab-reference/src";
 
 function round1(n:number):number{return Math.round(n*10)/10;}
 
+// Identidad versionada de las derivaciones que devuelve /metabolic-panel (fuente única: la ruta la importa). Toda variación
+// observable de su salida (valor, estado, interpretación o advertencia) exige una versión nueva e inmutable (Companion #14:
+// un algoritmo no cambia en silencio). v3: la brecha BAJA ya corregida por albúmina deja de atribuirse a hipoalbuminemia (F7).
+// tests/v22/lab-derivations.test.ts ancla la huella de la salida de cada versión.
+export const METABOLIC_DERIVATIONS_ALGORITHM=Object.freeze({id:"METABOLIC-DERIVATIONS",version:"3"}as const);
+
 // ---- Brecha aniónica (anion gap) = Na − (Cl + HCO3). Alta (>12) sugiere acidosis metabólica de brecha
 // aumentada (cetoacidosis, uremia, lactato, tóxicos). Puro. ----
 export type AnionGapStatus="HIGH"|"NORMAL"|"LOW";

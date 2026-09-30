@@ -1,6 +1,6 @@
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
-import{anionGap,anionGapCaveat,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../../../../../../../packages/lab-derivations/src";
+import{METABOLIC_DERIVATIONS_ALGORITHM,anionGap,anionGapCaveat,correctedCalcium,correctedSodiumForGlucose,calculatedOsmolality}from"../../../../../../../../packages/lab-derivations/src";
 import{latestAnalyteReading}from"../../../../../../lib/clinical-runtime";
 import{verifyAnalyteReadings,provenance,MAX_AGE_DAYS,COHERENCE_HOURS}from"../../../../../../lib/analyte-inputs";
 import{toHttpError}from"../../../../../../lib/http-errors";
@@ -38,6 +38,6 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
    // existía (C-22) y el delta-delta se calcula ahora en /acid-base, que es donde tiene sentido (necesita el HCO₃ y el
    // trastorno primario). Un caveat obsoleto es desinformación con apariencia de prudencia.
    caveat:anionGapCaveat(ag),
-   algorithm:{id:"METABOLIC-DERIVATIONS",version:"2"},inputs},{status:200});
+   algorithm:{...METABOLIC_DERIVATIONS_ALGORITHM},inputs},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

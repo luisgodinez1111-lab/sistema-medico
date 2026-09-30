@@ -49,6 +49,12 @@ try{
  const d=crypto.randomUUID();await ensurePatientIn(TA,d);
  for(const[k,v]of[["SODIUM","140"],["CHLORIDE","115"],["BICARBONATE","24"]]as const)await res(phys,d,k,v);
  const lu=await panel(phys,d);
- ok(lu.status===200&&lu.body.anionGap?.status==="LOW"&&lu.body.anionGap.albuminCorrected===false&&/hipoalbuminemia/.test(String(lu.body.anionGap.interpretation)),"LOW_UNCORRECTED_GAP_MENTIONS_HYPOALBUMINEMIA");
+ // Revisión del porte (2122aa9): el sufijo «sin corregir» contiene «hipoalbuminemia» en toda brecha sin corregir; se exige la
+ // causa propia de la rama baja, antes del sufijo.
+ const lui=String(lu.body.anionGap?.interpretation);
+ ok(lu.status===200&&lu.body.anionGap?.status==="LOW"&&lu.body.anionGap.albuminCorrected===false&&/^Brecha aniónica baja \(hipoalbuminemia, paraproteínas\) \(sin corregir por albúmina/.test(lui)&&!lui.includes("pese a la corrección"),"LOW_UNCORRECTED_GAP_MENTIONS_HYPOALBUMINEMIA");
+ // La interpretación cambió con F7: la ruta declara la versión del dominio (fuente única), que ya no es la «2» previa a F7.
+ const alg=lab.METABOLIC_DERIVATIONS_ALGORITHM as {id:string;version:string}|undefined;
+ ok(!!alg&&[g,u,n,l,lu].every(r=>JSON.stringify(r.body.algorithm)===JSON.stringify(alg))&&alg.id==="METABOLIC-DERIVATIONS"&&alg.version!=="2","ALGORITHM_VERSION_FROM_DOMAIN_AFTER_F7");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
