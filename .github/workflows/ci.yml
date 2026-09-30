@@ -48,6 +48,10 @@ jobs:
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/medical_os_test?sslmode=disable
       CI_DB_BOOTSTRAP_ALLOW: '1'
       SESSION_SIGNING_SECRET: ci-live-regression-secret
+      # Las pruebas de adjuntos y de firma/sello usan Vercel Blob REAL: el token llega solo como secreto del repositorio
+      # (Settings → Secrets and variables → Actions → BLOB_READ_WRITE_TOKEN), nunca en el código. Sin él esas pruebas
+      # responden NOT_RUN y el smoke falla cerrado, como debe: no se da por verde lo que no se ejecutó.
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4

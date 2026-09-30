@@ -156,6 +156,11 @@ afterEach(()=>{gate.vitalsPost=null;gate.vitalsHist=null;});
 // al siguiente. Reseteamos la URL tras cada test (en producción cada carga tiene su propia URL).
 afterEach(()=>{try{window.history.replaceState(null,"","/");}catch{/* noop */}});
 
+// Un barrido axe recorre de 3 a 11 vistas completas y cada `axe.run` sobre el documento tarda ~0.3–0.6 s: en un runner de CI
+// compartido el barrido entero pasa de los 5 s por defecto de vitest. Al cortarse por tiempo, axe seguía corriendo y rompía
+// en cascada las pruebas siguientes («Axe is already running»). El presupuesto es de tiempo, no de exigencia: las aserciones
+// (cero violaciones serias o críticas en cada vista) no cambian.
+const AXE_SWEEP_TIMEOUT_MS=30_000;
 const noSeriousAxe=async(node:Element,label:string)=>{
  const r=await axe.run(node,{resultTypes:["violations"]});
  const serious=r.violations.filter(v=>v.impact==="critical"||v.impact==="serious").map(v=>v.id);
@@ -271,7 +276,9 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Medicamentos: catálogo determinista real (drug-catalog) con detalle y pestaña Alertas",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Medicamentos"}));
-  expect(await screen.findByRole("heading",{name:"Medicamentos"})).toBeTruthy();
+  // La vista es diferida y arrastra el catálogo de monografías (~1 MB): en frío (prueba aislada o runner de CI) su primer
+  // montaje pasa del segundo por defecto de findBy. Mismo presupuesto que las demás vistas diferidas de este archivo.
+  expect(await screen.findByRole("heading",{name:"Medicamentos"},{timeout:5000})).toBeTruthy();
   expect(screen.getByText("Principios activos")).toBeTruthy();       // KPI real (nº del catálogo)
   expect(screen.getByText("Con monitoreo obligado")).toBeTruthy();   // KPI real
   expect(screen.getByText("Reglas de interacción")).toBeTruthy();    // KPI real
@@ -1151,7 +1158,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   await noSeriousAxe(seg,"Seguimiento");
   await noSeriousAxe(por,"Portal");
   await noSeriousAxe(aud,"Auditoría");
- });
+ },AXE_SWEEP_TIMEOUT_MS);
 
  it("accesibilidad (Lote L): las vistas principales del sidebar no tienen violaciones axe serias/críticas",async()=>{
   render(<Workspace/>);
@@ -1165,7 +1172,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
    await nav(v);
    await noSeriousAxe(document.body,v);
   }
- });
+ },AXE_SWEEP_TIMEOUT_MS);
 
  // Ampliación del sweep (refactor UI/UX pro-max): el barrido «Lote L» cubría 11 vistas; aquí se barren las de MÓDULO
  // restantes cableadas al sidebar, que antes no pasaban por axe. Un defecto serio aquí es un defecto que el médico usa a diario.
@@ -1181,7 +1188,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
    await nav(v);
    await noSeriousAxe(document.body,v);
   }
- });
+ },AXE_SWEEP_TIMEOUT_MS);
 
  // Ampliación del sweep: las SUB-VISTAS del expediente (Patient 360). El «Lote L» no entraba al cockpit; aquí se barre cada
  // pestaña del expediente (Historia/Diagnóstico/Tratamiento/Coordinación/Administración) además del Resumen.
@@ -1195,7 +1202,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
    fireEvent.click(tab);
    await noSeriousAxe(document.body,`Expediente · ${t}`);
   }
- });
+ },AXE_SWEEP_TIMEOUT_MS);
 
  it("Patient 360 (Lote B): el expediente se navega por sub-vistas; la Medicación vive en Tratamiento, no en Resumen",async()=>{
   render(<Workspace/>);
