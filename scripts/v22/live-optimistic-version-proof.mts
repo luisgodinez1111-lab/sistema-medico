@@ -41,16 +41,44 @@ try{
  ok(await conflict(await post(alRe,tB,"1",a2),1,2)&&await kinds(a2)==="RECORDED,INACTIVATED","STALE_LEGAL_TRANSITION_409");
  // 3) If-Match ADELANTADO sin escritor concurrente: 409 antes de cualquier regla; nada se escribe.
  const a3=await record();ok(await conflict(await post(alRef,tA,"2",a3),2,1)&&await kinds(a3)==="RECORDED","AHEAD_IF_MATCH_409");
- // 4) La carrera del hallazgo: A (If-Match adelantado) queda retenido tras sus reglas mientras B inactiva; antes A escribía
- //    REFUTED sobre INACTIVE. Ahora A se rechaza por versión antes de llegar al kernel y el stream queda legal.
- const a4=await record();const key=`${TA}:${subjectToActorId(subA)}`;let aRes!:Response;
- await sql.begin(async tx=>{
-  await tx`insert into rate_limit_buckets(scope,key,tokens,updated_at) values('write',${key},100,now()) on conflict(scope,key) do update set tokens=rate_limit_buckets.tokens`;
-  const pending=post(alRef,tA,"2",a4);
-  const b=await post(alIn,tB,"1",a4);if(b.status!==201)throw new Error("B_"+b.status);
-  aRes=await Promise.race([pending,new Promise<Response>(r=>setTimeout(()=>r(new Response(null,{status:599})),3000))]);
+ // 4) La carrera del hallazgo, con A retenido de verdad. El punto de retención es el límite de tasa compartido del actor A
+ //    (fila de rate_limit_buckets): runClinicalCommand lo toma DESPUÉS de lookupReplay -> assertReadVersion -> regla y ANTES del
+ //    kernel, que es la ventana donde vivía el defecto. Que A esté ahí se observa en pg_stat_activity (backend de ESTA base
+ //    esperando un Lock, excluida la sesión que retiene la fila), no se supone por tiempo.
+ //  4a) If-Match ADELANTADO (el defecto): A no llega a la ventana. Se rechaza con el 409 de versión {2,1} MIENTRAS la fila sigue
+ //      retenida y sin ningún backend esperándola. Antes (máquina evaluada sobre la versión leída) A pasaba su regla, quedaba
+ //      retenido aquí y, tras la inactivación concurrente de B, el kernel aceptaba If-Match 2 y escribía REFUTED sobre INACTIVE.
+ //  4b) If-Match correcto (= versión leída) y regla evaluada sobre esa lectura: A SÍ queda retenido tras su regla; B inactiva
+ //      entretanto; al liberar, el kernel rechaza la versión (409 del kernel, sin {expected,actual}) y el stream queda legal.
+ //      Es la garantía que complementa a 4a (no un control negativo: también pasa sin D7).
+ const actorKey=`${TA}:${subjectToActorId(subA)}`;
+ const lockWaiters=async(exclude:number)=>Number((await sql`select count(*)::int as c from pg_stat_activity
+  where datname=current_database() and wait_event_type='Lock' and pid<>pg_backend_pid() and pid<>${exclude}`)[0]!.c);
+ const waitForWaiter=async(exclude:number)=>{for(let i=0;i<100;i++){if(await lockWaiters(exclude)>0)return true;await new Promise(r=>setTimeout(r,50));}return false;};
+ // Retiene la fila del cubo de A en una transacción aparte hasta que `body` termine (siempre se libera, también si falla).
+ const holdingActorBucket=async<T,>(body:(holderPid:number)=>Promise<T>):Promise<T>=>{
+  let release!:()=>void;const released=new Promise<void>(r=>{release=r;});let locked!:(pid:number)=>void;const lockHeld=new Promise<number>(r=>{locked=r;});
+  const holder=sql.begin(async tx=>{
+   await tx`insert into rate_limit_buckets(scope,key,tokens,updated_at) values('write',${actorKey},100,now()) on conflict(scope,key) do update set tokens=rate_limit_buckets.tokens`;
+   locked(Number((await tx`select pg_backend_pid() as p`)[0]!.p));await released;});
+  try{return await body(await lockHeld);}finally{release();await holder;}
+ };
+ const a4=await record();
+ const ahead=await holdingActorBucket(async holderPid=>{
+  const settled=await Promise.race([post(alRef,tA,"2",a4).then(r=>r),new Promise<null>(r=>setTimeout(()=>r(null),3000))]);
+  return{settled,waiters:await lockWaiters(holderPid)};
  });
- ok(await conflict(aRes,2,1)&&await kinds(a4)==="RECORDED,INACTIVATED","RACE_NEVER_PERSISTS_ILLEGAL_TRANSITION");
+ ok(ahead.settled!==null&&ahead.waiters===0&&await conflict(ahead.settled,2,1)&&await kinds(a4)==="RECORDED","RACE_AHEAD_IF_MATCH_REJECTED_BEFORE_THE_PRE_KERNEL_WINDOW");
+ const a5=await record();
+ const race=await holdingActorBucket(async holderPid=>{
+  const pendingA=post(alRef,tA,"1",a5);
+  const held=await waitForWaiter(holderPid);
+  const b=await post(alIn,tB,"1",a5);
+  return{pendingA,held,bStatus:b.status};
+ });
+ const aRes=await race.pendingA;const aBody=await aRes.json().catch(()=>({})) as{error?:{code?:string;details?:unknown}};
+ ok(race.held&&race.bStatus===201&&aRes.status===409&&aBody.error?.code==="CONCURRENCY_CONFLICT"&&aBody.error.details===undefined
+  &&await kinds(a5)==="RECORDED,INACTIVATED","RACE_HELD_AFTER_RULES_KERNEL_NEVER_PERSISTS_ILLEGAL_TRANSITION");
  // 5) Ciclo con forma propia (medicación): If-Match ADELANTADO sobre PROPOSED -> 409 de versión antes de la máquina (antes: CONFLICT
  //    «Illegal medication transition PROPOSED -> HELD», evaluado sobre una versión que el cliente no pidió); nada se escribe.
  const m1=crypto.randomUUID();
