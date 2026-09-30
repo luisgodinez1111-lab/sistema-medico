@@ -2,11 +2,11 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "alergias" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{Check,edadDe,card,P,LINE,UI,actRow,scrollToSection,type AllergenType,Skeleton}from"../shared";
+import{Check,edadDe,card,P,LINE,UI,actRow,scrollToSection,goExpSection,type AllergenType,Skeleton}from"../shared";
 import{allergyCrossReactivity}from"../../../../../packages/drug-catalog/src";
 import{useWorkspace}from"../context";
 export default function AlergiasView(){
- const{alergReg,alergOnlyActive,alergOnlySevere,alergType,alergSearch,alergSel,setAlgNew,setAlgMsg,algNew,algMsg,algForm,setAlgForm,patientList,createAllergyInline,algBusy,setAlergSearch,setAlergType,setAlergOnlySevere,setAlergOnlyActive,setAlergSel,selectPatientRaw,setView}=useWorkspace();
+ const{alergReg,alergOnlyActive,alergOnlySevere,alergType,alergSearch,alergSel,setAlgNew,setAlgMsg,algNew,algMsg,algForm,setAlgForm,patientList,createAllergyInline,algBusy,setAlergSearch,setAlergType,setAlergOnlySevere,setAlergOnlyActive,setAlergSel,selectPatientRaw,setView,setExpTab}=useWorkspace();
 
    // ===== MÓDULO ALERGIAS (S-ALERGIAS) — registro clínica-wide cableado a GET /api/v1/allergies =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -121,7 +121,7 @@ export default function AlergiasView(){
         ?<div style={{marginTop:12,display:"flex",gap:9,padding:"11px 13px",borderRadius:11,background:"#FDECEE",border:"1px solid #F6C9D0"}}><span style={{color:P.red,flex:"0 0 auto"}}>⚠</span><div><div style={{fontWeight:700,fontSize:12.5,color:P.redOnPale}}>Reactividad cruzada</div><div style={{fontSize:12,color:P.redOnPale,marginTop:2}}>Evitar {cruzada.avoid.join(", ")}.</div>{cruzada.caveats.map((c,i)=><div key={i} style={{fontSize:11.5,color:P.redOnPale,marginTop:4,opacity:.95}}>{c}</div>)}<div style={{fontSize:11,color:P.redOnPale,marginTop:4,opacity:.8}}>Del catálogo de fármacos: es la misma clasificación que bloquea la prescripción.</div></div></div>
         :<div style={{marginTop:12,display:"flex",gap:9,padding:"11px 13px",borderRadius:11,background:"#FFF4E5",border:"1px solid #F0DBB8"}}><span style={{color:P.amberOnPale,flex:"0 0 auto"}}>⚠</span><div><div style={{fontWeight:700,fontSize:12.5,color:P.amberOnPale}}>Reactividad cruzada no evaluada</div><div style={{fontSize:12,color:P.amberOnPale,marginTop:2}}>El catálogo no reconoce la clase de «{sel!.substance}»: no se puede afirmar con qué familia cruza. Codifique la sustancia o valórelo con la fuente clínica.</div></div></div>)}
        <div style={{display:"flex",gap:10,marginTop:14}}>
-        <button onClick={()=>{selectPatientRaw(sel.pid,sel.name);setView("exp");setTimeout(()=>scrollToSection("Alergias"),0);}} style={{flex:1,border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"9px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button>
+        <button onClick={()=>{selectPatientRaw(sel.pid,sel.name);goExpSection("Alergias",setView,setExpTab);}} style={{flex:1,border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"9px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button>
        </div>
       </div>}
      </div>

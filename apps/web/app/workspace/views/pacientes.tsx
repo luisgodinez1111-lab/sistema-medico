@@ -3,14 +3,14 @@
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {apiRequest} from "../../../lib/session-client";
 import {useState} from "react";
-import{card,P,LINE,UI,errMsg,userMessage,actRow,act,DX_LABEL,scrollToSection,scrollTop,TYPE_LABEL,Skeleton}from"../shared";
+import{card,P,LINE,UI,errMsg,userMessage,actRow,act,DX_LABEL,scrollToSection,goExpSection,scrollTop,TYPE_LABEL,Skeleton}from"../shared";
 import{useWorkspace}from"../context";
 export default function PacientesView(){
  // Ley de Hick — divulgación progresiva del formulario de edición: la identidad (nombre, nacimiento, sexo, CURP) siempre
  // visible; el contacto y los datos socio-demográficos (teléfono, correo, dirección, ocupación, estado civil) se despliegan
  // bajo demanda, y se muestran de entrada si el paciente YA tiene alguno (editar un dato existente nunca queda oculto).
  const[moreEdit,setMoreEdit]=useState(false);
- const{patientList,topSearch,patStatus,patSex,setPatSelId,selectPatientRaw,setPatTab,setPatEdit,setPatMsg,patSelId,patientId,snap,docsSnap,setPatNew,patNew,patMsg,regName,setRegName,regDob,setRegDob,regSex,setRegSex,regExtra,setRegExtra,guardianFields,dupPanel,registerPatient,busy,gaps,setTopSearch,setPatStatus,setPatSex,patEdit,openEdit,patTab,editForm,setEditForm,amendPatient,editBusy,setView,openConsulta,setApptForm,setApptNew,setAgendaDate,tl,setDocNew}=useWorkspace();
+ const{patientList,topSearch,patStatus,patSex,setPatSelId,selectPatientRaw,setPatTab,setPatEdit,setPatMsg,patSelId,patientId,snap,docsSnap,setPatNew,patNew,patMsg,regName,setRegName,regDob,setRegDob,regSex,setRegSex,regExtra,setRegExtra,guardianFields,dupPanel,registerPatient,busy,gaps,setTopSearch,setPatStatus,setPatSex,patEdit,openEdit,patTab,editForm,setEditForm,amendPatient,editBusy,setView,setExpTab,openConsulta,setApptForm,setApptNew,setAgendaDate,tl,setDocNew}=useWorkspace();
 
    // ===== VISTA PACIENTES — lista real + FICHA contextual (sólo al seleccionar) con pestañas en sitio y edición real =====
    const ageOf=(bd?:string):number|null=>{if(!bd)return null;const b=new Date(bd),n=new Date();let y=n.getFullYear()-b.getFullYear();if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))y--;return y;};
@@ -132,7 +132,7 @@ export default function PacientesView(){
         <div style={{display:"flex",flexDirection:"column",gap:9}}>
          <div style={{display:"flex",gap:10,padding:"9px 11px",borderRadius:10,background:"#FDECEE"}}><span style={{color:P.redOnPale,fontWeight:800,fontSize:12,minWidth:78}}>Alergias</span><span style={{fontSize:12.5,color:"#7a1f2b"}}>{sd&&snap?.allergies.length?snap.allergies.join(", "):"Sin alergias conocidas"}</span></div>
          <div style={{display:"flex",gap:10,padding:"9px 11px",borderRadius:10,background:"#EEEBFD"}}><span style={{color:P.purpleOnPale,fontWeight:800,fontSize:12,minWidth:78}}>Problemas</span><span style={{fontSize:12.5,color:"#3a2f7a"}}>{sd&&snap?.problems.length?snap.problems.map(DX_LABEL).slice(0,4).join(", "):"Sin problemas activos"}</span></div>
-         <div style={{display:"flex",gap:8}}>{([["Medicamentos","Medicación"],["Vacunas","Vacunas"]] as const).map(([l,h2])=><button key={l} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection(h2),0);}} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px",fontSize:12.5,fontWeight:600,color:P.ink,cursor:"pointer",fontFamily:UI}}>{l} →</button>)}</div>
+         <div style={{display:"flex",gap:8}}>{([["Medicamentos","Medicación"],["Vacunas","Vacunas"]] as const).map(([l,h2])=><button key={l} onClick={()=>{goExpSection(h2,setView,setExpTab);}} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px",fontSize:12.5,fontWeight:600,color:P.ink,cursor:"pointer",fontFamily:UI}}>{l} →</button>)}</div>
         </div>
         <div style={{fontSize:13.5,fontWeight:800,margin:"18px 0 10px"}}>Acciones</div>
         <div style={{display:"flex",flexDirection:"column",gap:9}}>

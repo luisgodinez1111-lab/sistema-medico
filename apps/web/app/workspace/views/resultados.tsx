@@ -2,10 +2,10 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "resultados" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
-import{card,P,LINE,UI,scrollToSection,act,Skeleton}from"../shared";
+import{card,P,LINE,UI,scrollToSection,goExpSection,act,Skeleton}from"../shared";
 import{useWorkspace}from"../context";
 export default function ResultadosView(){
- const{resReg,resQ,resTypeF,resEstadoF,resSel,setResNew,setResMsg2,resNew,setView,setResTab,resTab,resMsg2,resForm,setResForm,patientList,createResult,resBusy2,setResSel,setResQ,setResTypeF,setResEstadoF,ordReg}=useWorkspace();
+ const{resReg,resQ,resTypeF,resEstadoF,resSel,setResNew,setResMsg2,resNew,setView,setExpTab,setResTab,resTab,resMsg2,resForm,setResForm,patientList,createResult,resBusy2,setResSel,setResQ,setResTypeF,setResEstadoF,ordReg}=useWorkspace();
 
    // ===== MÓDULO RESULTADOS — S7 (5 pestañas) =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -65,7 +65,7 @@ export default function ResultadosView(){
        const rows=(ordReg?.items??[]).slice(0,20).map(o=>({typeLabel:o.typeLabel,detail:o.detail,patientName:o.patientName,status:o.status,createdAt:fmtResD(o.createdAt)}));
        const totO=ordReg?.total??0;
        const est=(s:string):[string,string]=>s==="Completada"?["#E6F6EE",P.greenOnPale]:s==="Enviada"?["#EAF1FD",P.blueOnPale]:s==="Cancelada"?["#EEF1F7",P.muted]:["#FBF0DC",P.amberOnPale];
-       return <div style={{...card2,marginTop:16,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><div style={{fontSize:16,fontWeight:800}}>Solicitudes de estudio ({totO})</div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"7px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Órdenes clínicas"),0);}}>+ Nueva solicitud</button></div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={th2}>Estudio</th><th style={th2}>Tipo</th><th style={th2}>Paciente</th><th style={th2}>Fecha</th><th style={{...th2,textAlign:"right"}}>Estado</th></tr></thead><tbody>{rows.map((r,i)=>{const[bg,fg]=est(r.status);return <tr key={i}><td style={{...td2,fontWeight:600}}>{r.detail}</td><td style={{...td2,color:P.muted}}>{r.typeLabel}</td><td style={td2}>{r.patientName}</td><td style={{...td2,color:P.muted}}>{r.createdAt}</td><td style={{...td2,textAlign:"right"}}>{pill(bg,fg,r.status)}</td></tr>;})}{rows.length===0&&<tr><td colSpan={5} style={{...td2,textAlign:"center",color:P.muted,padding:"30px"}}>Sin solicitudes de estudio.</td></tr>}</tbody></table></div></div>;
+       return <div style={{...card2,marginTop:16,padding:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><div style={{fontSize:16,fontWeight:800}}>Solicitudes de estudio ({totO})</div><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"7px 12px",fontWeight:600,fontSize:12.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{goExpSection("Órdenes clínicas",setView,setExpTab);}}>+ Nueva solicitud</button></div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={th2}>Estudio</th><th style={th2}>Tipo</th><th style={th2}>Paciente</th><th style={th2}>Fecha</th><th style={{...th2,textAlign:"right"}}>Estado</th></tr></thead><tbody>{rows.map((r,i)=>{const[bg,fg]=est(r.status);return <tr key={i}><td style={{...td2,fontWeight:600}}>{r.detail}</td><td style={{...td2,color:P.muted}}>{r.typeLabel}</td><td style={td2}>{r.patientName}</td><td style={{...td2,color:P.muted}}>{r.createdAt}</td><td style={{...td2,textAlign:"right"}}>{pill(bg,fg,r.status)}</td></tr>;})}{rows.length===0&&<tr><td colSpan={5} style={{...td2,textAlign:"center",color:P.muted,padding:"30px"}}>Sin solicitudes de estudio.</td></tr>}</tbody></table></div></div>;
       }
       if(resTab==="referencia"){
        const ranges=labReferenceRanges();

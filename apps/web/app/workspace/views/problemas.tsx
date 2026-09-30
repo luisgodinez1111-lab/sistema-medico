@@ -3,10 +3,10 @@
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {apiRequest} from "../../../lib/session-client";
 import {useState} from "react";
-import{Check,edadDe,card,P,LINE,UI,errMsg,userMessage,act,actRow,scrollToSection,type IcdEntry,Skeleton}from"../shared";
+import{Check,edadDe,card,P,LINE,UI,errMsg,userMessage,act,actRow,scrollToSection,goExpSection,type IcdEntry,Skeleton}from"../shared";
 import{useWorkspace}from"../context";
 export default function ProblemasView(){
- const{patientList,pfSearchErr,setPfSearchErr,probScreen,setPfName,setPfCode,setPfResults,setPfDesc,setPfNotes,setPfType,setPfEstado,setPfSev,setPfOnset,pfCode,setPfMsg,patientId,pfOnset,pfEstado,pfNotes,setPfBusy,pfDesc,pfType,pfSev,setProbReg,setProbScreen,pfBusy,pfName,pfResults,pfMsg,probReg,probPlantCat,setProbPlantCat,probStatusF,probSearch,probSel,setProbSearch,setProbStatusF,setProbSel,selectPatientRaw,setView}=useWorkspace();
+ const{patientList,pfSearchErr,setPfSearchErr,probScreen,setPfName,setPfCode,setPfResults,setPfDesc,setPfNotes,setPfType,setPfEstado,setPfSev,setPfOnset,pfCode,setPfMsg,patientId,pfOnset,pfEstado,pfNotes,setPfBusy,pfDesc,pfType,pfSev,setProbReg,setProbScreen,pfBusy,pfName,pfResults,pfMsg,probReg,probPlantCat,setProbPlantCat,probStatusF,probSearch,probSel,setProbSearch,setProbStatusF,setProbSel,selectPatientRaw,setView,setExpTab}=useWorkspace();
  // Búsqueda REAL del catálogo de plantillas (filtra el catálogo local; sin backend de CRUD de plantillas).
  const[tplQuery,setTplQuery]=useState("");
 
@@ -226,7 +226,7 @@ export default function ProblemasView(){
        <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:9,fontSize:12.5}}>
         {[["Código CIE-10",selp.code],["Fecha de registro",selp.date],["Tipo",selp.type],["Estado",selp.estado]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",gap:10}}><span style={{color:P.muted}}>{k}</span><span style={{fontWeight:600,textAlign:"right"}}>{v}</span></div>)}
        </div>
-       <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>{selectPatientRaw(selp.pid,selp.patient);setView("exp");setTimeout(()=>scrollToSection("Lista de problemas"),0);}} style={{flex:1,border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"9px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button></div>
+       <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>{selectPatientRaw(selp.pid,selp.patient);goExpSection("Lista de problemas",setView,setExpTab);}} style={{flex:1,border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"9px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button></div>
       </div>}
      </div>
     </div>

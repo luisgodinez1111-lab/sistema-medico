@@ -2,10 +2,10 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "documentos" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {apiRequest} from "../../../lib/session-client";
-import{card,LINE,P,UI,act,actRow,scrollToSection,Skeleton,type DocsSnap}from"../shared";
+import{card,LINE,P,UI,act,actRow,scrollToSection,goExpSection,Skeleton,type DocsSnap}from"../shared";
 import{useWorkspace}from"../context";
 export default function DocumentosView(){
- const{docsSnap,docFolder,docSel,patientId,setDocMsg,setDocsSnap,setDocNew,docNew,patientName,docForm,setDocForm,createDocument,docBusy,patientSelector,setView,setDocFolder,setDocSel,loadDoc,docDetail,docDetBusy,attInputRef,attBusy,onPickAttachment,attMsg,fmtBytes,viewAttachment,removeAttachment,docMsg}=useWorkspace();
+ const{docsSnap,docFolder,docSel,patientId,setDocMsg,setDocsSnap,setDocNew,docNew,patientName,docForm,setDocForm,createDocument,docBusy,patientSelector,setView,setExpTab,setDocFolder,setDocSel,loadDoc,docDetail,docDetBusy,attInputRef,attBusy,onPickAttachment,attMsg,fmtBytes,viewAttachment,removeAttachment,docMsg}=useWorkspace();
 
    // ===== MÓDULO DOCUMENTOS (S-DOCUMENTOS) — lista por paciente cableada a GET /patients/:id/documents =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -95,7 +95,7 @@ export default function DocumentosView(){
          <button onClick={()=>void removeAttachment(a)} disabled={attBusy} title="Quitar adjunto" style={{border:`1px solid #E7C9C4`,background:P.white,color:P.red,borderRadius:7,padding:"4px 8px",fontSize:11.5,fontWeight:600,cursor:attBusy?"default":"pointer",fontFamily:UI,flex:"0 0 auto"}}>Quitar</button>
         </div>)}
        </div>}
-       <button onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Documentos clínicos"),0);}} style={{marginTop:14,width:"100%",border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button>
+       <button onClick={()=>{goExpSection("Documentos clínicos",setView,setExpTab);}} style={{marginTop:14,width:"100%",border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"10px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button>
       </div>}
      </div>
     </div>

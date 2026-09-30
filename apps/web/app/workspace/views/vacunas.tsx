@@ -2,10 +2,10 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "vacunas" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{Check,edadDe,card,P,LINE,UI,actRow,scrollToSection,Skeleton}from"../shared";
+import{Check,edadDe,card,P,LINE,UI,actRow,scrollToSection,goExpSection,Skeleton}from"../shared";
 import{useWorkspace}from"../context";
 export default function VacunasView(){
- const{immReg,immStatusF,immSearch,immSel,setVacNew,setVacMsg,vacNew,vacMsg,vacForm,setVacForm,patientList,createImmunizationInline,vacBusy,setImmSearch,setImmStatusF,setImmSel,selectPatientRaw,setView}=useWorkspace();
+ const{immReg,immStatusF,immSearch,immSel,setVacNew,setVacMsg,vacNew,vacMsg,vacForm,setVacForm,patientList,createImmunizationInline,vacBusy,setImmSearch,setImmStatusF,setImmSel,selectPatientRaw,setView,setExpTab}=useWorkspace();
 
    // ===== MÓDULO VACUNAS (S-VACUNAS) — registro clínica-wide cableado a GET /api/v1/immunizations =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -96,7 +96,7 @@ export default function VacunasView(){
         {[["Fecha de aplicación",selv.date],["Dosis",selv.dose],["Lote",selv.lot],["Sitio de aplicación",selv.site],["Estado",selv.estado]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",gap:10}}><span style={{color:P.muted}}>{k}</span><span style={{fontWeight:600,textAlign:"right"}}>{v}</span></div>)}
        </div>
        {complete&&<div style={{marginTop:12,display:"flex",gap:9,padding:"11px 13px",borderRadius:11,background:"#EEF4FF",border:"1px solid #D3E1FB"}}><span style={{color:P.blue}}>✓</span><div><div style={{fontWeight:700,fontSize:12.5}}>Dosis aplicada</div><div style={{fontSize:12,color:P.muted,marginTop:2}}>{selv.vaccine} · dosis {selv.dose} registrada como aplicada.</div></div></div>}
-       <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>{selectPatientRaw(selv.pid,selv.patient);setView("exp");setTimeout(()=>scrollToSection("Vacunas"),0);}} style={{flex:1,border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"9px",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button></div>
+       <div style={{display:"flex",gap:10,marginTop:16}}><button onClick={()=>{selectPatientRaw(selv.pid,selv.patient);goExpSection("Vacunas",setView,setExpTab);}} style={{flex:1,border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"9px",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>Ver en el expediente →</button></div>
       </div>}
      </div>
     </div>
