@@ -46,21 +46,26 @@ describe("anulación de un resultado (R03-10)",()=>{
   expect(fs.readFileSync("docs/api/openapi.json","utf8")).toContain("/api/v1/results/{resultId}/error-mark");
  });
  it("TODOS los lectores de resultados excluyen los anulados (guardián de las consultas SQL)",()=>{
-  const lectores:[string,string][]=[
-   ["apps/web/lib/runtime/lab-facts.ts","latestAnalyteReading"],
-   ["apps/web/lib/runtime/lab-facts.ts","analyteSeries"],
-   ["apps/web/lib/runtime/results-registry.ts","resultsRegistry"], // extraído de registries.ts en el porte D10/SQL-2
-   ["apps/web/lib/runtime/records.ts","countOpenCriticalResults"],
+  // El filtro se exige EN EL SQL (la comparación del `kind`), no como mención suelta: un comentario no basta.
+  const soloAnulado=/payload->>'kind'\s*=\s*'ENTERED_IN_ERROR'/;
+  // Porte D5: SOLO el gate de firma toma la lista de result-fold (RESULT_FOLLOW_UP_CLOSING_KINDS: cierre, corrección y
+  // anulación dejan de bloquear); esa lista tiene que seguir conteniendo la anulación (se exige abajo). En la serie, la última
+  // lectura y el registro esa lista sería la regla EQUIVOCADA (quitaría los resultados cerrados y corregidos de calculadoras y
+  // series): ahí se sigue exigiendo el literal ENTERED_IN_ERROR y se prohíbe la lista (revisión del porte D5).
+  const listaDeCierre=/payload->>'kind'\s*=\s*any\(\$\{RESULT_FOLLOW_UP_CLOSING_KINDS\}\)/;
+  const lectores:[string,string,RegExp][]=[
+   ["apps/web/lib/runtime/lab-facts.ts","latestAnalyteReading",soloAnulado],
+   ["apps/web/lib/runtime/lab-facts.ts","analyteSeries",soloAnulado],
+   ["apps/web/lib/runtime/results-registry.ts","resultsRegistry",soloAnulado], // extraído de registries.ts en el porte D10/SQL-2
+   ["apps/web/lib/runtime/records.ts","countOpenCriticalResults",listaDeCierre],
   ];
-  for(const[f,fn]of lectores){
+  for(const[f,fn,regla]of lectores){
    const src=fs.readFileSync(f,"utf8");
    const i=src.indexOf(`export async function ${fn}(`);
    const cuerpo=i<0?"":src.slice(i,src.indexOf("\n}",i));
    expect(cuerpo,`no se encontró ${fn} en ${f}`).not.toBe("");
-   // Porte D5: el gate de firma toma la lista de result-fold (RESULT_FOLLOW_UP_CLOSING_KINDS) en vez de copiarla; esa lista
-   // tiene que seguir conteniendo la anulación (se exige abajo), así que la regla probada es la misma.
-   const excluye=cuerpo.includes("ENTERED_IN_ERROR")||cuerpo.includes("RESULT_FOLLOW_UP_CLOSING_KINDS");
-   expect(excluye,`${fn} no excluye los resultados anulados`).toBe(true);
+   expect(cuerpo,`${fn} no excluye los resultados anulados`).toMatch(regla);
+   if(regla===soloAnulado)expect(cuerpo,`${fn} no puede excluir los cerrados/corregidos con la lista del gate de firma`).not.toContain("RESULT_FOLLOW_UP_CLOSING_KINDS");
   }
   expect([...RESULT_FOLLOW_UP_CLOSING_KINDS]).toContain("ENTERED_IN_ERROR");
  });

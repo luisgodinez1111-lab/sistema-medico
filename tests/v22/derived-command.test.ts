@@ -10,6 +10,11 @@ describe("comando derivado (porte D5)",()=>{
   const d=cuerpo(cmd,"runDerivedCommand");
   expect(d).not.toBe("");
   expect(d).toContain("lookupReplay(ctx,command)");
+  // Revisión del porte D5: si el hash no coincide (texto o plazo del servidor cambiado entre intentos), el derivado ya aplicado
+  // se reconoce por su evento; sin esto el reintento idéntico del principal respondía 409 IDEMPOTENCY_CONFLICT.
+  expect(d).toContain("derivedAlreadyApplied(ctx,command)");
+  const id=cuerpo(cmd,"derivedAlreadyApplied");
+  expect(id).toMatch(/id=\$\{command\.eventId\} and aggregate_id=\$\{command\.aggregateId\} and aggregate_type=\$\{command\.aggregateType\}/);
   expect(d).toContain("assertPayloadSchema(command)");
   expect(d).toContain("commitCommand(ctx,command)");
   expect(d,"el derivado no se cobra otra vez").not.toContain("sharedAllow");

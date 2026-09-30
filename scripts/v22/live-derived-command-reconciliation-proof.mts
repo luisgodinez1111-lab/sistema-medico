@@ -55,6 +55,18 @@ try{
  const r3=await receive();ok(r3.status!==201&&await obligationState(obl3)==="ABSENT","CRITICAL_OBLIGATION_FAILURE_AFTER_MAIN_COMMIT");
  await unblock(obl3);const r3b=await receive();const b3=await r3b.json() as{replayed?:boolean;critical?:boolean};
  ok(r3b.status===200&&b3.replayed===true&&b3.critical===true&&await obligationState(obl3)==="OPEN","RESULT_REPLAY_RECONCILES_CRITICAL_OBLIGATION");
+ // D) Revisión del porte D5: el derivado se reconoce por IDENTIDAD (su evento), no por el hash del comando completo. Su payload
+ // lleva textos y plazos del SERVIDOR (nota de la regla, dueInDays, ventanas): si un despliegue los cambia entre el primer
+ // intento y el reintento, el hash guardado de la llave derivada ya no coincide. Se simula cambiando ese request_hash: el
+ // reintento IDÉNTICO del principal tiene que seguir siendo 200 replayed (antes: 409 IDEMPOTENCY_CONFLICT) y sin duplicar nada.
+ const staleHash=(key:string)=>sql`update command_idempotency set request_hash=${"0".repeat(64)} where tenant_id=${TA} and key=${key}`;
+ const events=async(id:string)=>(await readAggregateEvents(ctx,id)).length;
+ await staleHash(derivedUuid(k1,"monitor-idem-0"));
+ const p1b=await prescribe(w1,k1);const b1b=await p1b.json() as{replayed?:boolean};
+ ok(p1b.status===200&&b1b.replayed===true&&await obligationState(derivedUuid(k1,"monitor-agg-0"))==="OPEN"&&await events(derivedUuid(k1,"monitor-agg-0"))===1,"PRESCRIPTION_REPLAY_WITH_CHANGED_DERIVED_PAYLOAD_200");
+ await staleHash(derivedUuid(resultId,"critical-result-obligation-idem"));
+ const r3c=await receive();const b3c=await r3c.json() as{replayed?:boolean};
+ ok(r3c.status===200&&b3c.replayed===true&&await obligationState(obl3)==="OPEN"&&await events(obl3)===1,"RESULT_REPLAY_WITH_CHANGED_DERIVED_PAYLOAD_200");
 }catch(e){result.status="FAIL";result.error=String(e);}
 await sql.end();
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
