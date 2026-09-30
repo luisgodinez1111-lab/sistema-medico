@@ -68,15 +68,19 @@ export function resolveVerified(req:Request){
 //
 // Se valida en el BORDE, donde el dato entra, y con el mismo `isUuid` que usa el esquema de payload: una sola definición
 // de qué es un UUID en todo el repositorio.
+// Regla ÚNICA de formato de un identificador que entra por HTTP (ruta o query): malformado -> 400 VALIDATION_ERROR, nunca 404
+// ni 500. `isUuid` recorta espacios (el esquema de payload los tolera); un id con espacios alrededor no se normaliza en
+// silencio: llegaría tal cual a la columna uuid (22P02 -> 500). Se rechaza (hallazgo D8).
+export function assertIdFormat(clave:string,valor:unknown,origen:"path"|"query"="path"):asserts valor is string{
+ if(typeof valor!=="string"||valor!==valor.trim()||!isUuid(valor))
+  throw new ClinicalError("VALIDATION_ERROR",`El identificador «${clave}» de la ${origen==="path"?"ruta":"consulta"} no es un UUID válido.`,origen==="path"?{pathParam:clave}:{queryParam:clave});
+}
 export async function pathIds<T extends Record<string,string>>(params:Promise<T>):Promise<T>{
  const p=await params;
  for(const[clave,valor]of Object.entries(p)){
   // Solo los parámetros que son identificadores de agregado. Un parámetro como `date` o `slug` no es un UUID.
   if(!/Id$/.test(clave))continue;
-  // `isUuid` recorta espacios (el esquema de payload los tolera); un id de RUTA con espacios alrededor no se normaliza en
-  // silencio: llegaría tal cual a la columna uuid (22P02 -> 500). Se rechaza (hallazgo D8).
-  if(typeof valor!=="string"||valor!==valor.trim()||!isUuid(valor))
-   throw new ClinicalError("VALIDATION_ERROR",`El identificador «${clave}» de la ruta no es un UUID válido.`,{pathParam:clave});
+  assertIdFormat(clave,valor);
  }
  return p;
 }

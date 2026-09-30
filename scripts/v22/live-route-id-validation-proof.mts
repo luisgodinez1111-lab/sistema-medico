@@ -2,7 +2,7 @@
 // VALIDATION_ERROR, en lecturas y escrituras, sin llegar a PostgreSQL. En main, 100 rutas llamaban a `pathIds` fuera de un `try`:
 // su VALIDATION_ERROR escapaba del handler (Next responde un 500 sin cuerpo). Además, un id con espacios alrededor pasaba `isUuid`
 // (que recorta) y llegaba a la columna uuid (22P02 -> 500), y `GET /encounters?encounterId=` consultaba la base con cualquier
-// cadena (22P02 -> 500; el porte D4 lo dejó en 404 NOT_FOUND, que aquí se fija). Precedencia de main: `pathIds` valida ANTES de autenticar (decisión R04-007; ver openIssues del porte).
+// cadena (22P02 -> 500; hoy 400 VALIDATION_ERROR con la misma regla que `pathIds`). Precedencia de main: `pathIds` valida ANTES de autenticar (decisión R04-007; ver openIssues del porte).
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=process.env.SESSION_SIGNING_SECRET; // R11-07: lo fija el prólogo _live-env (aleatorio por corrida si no viene del entorno)
@@ -27,9 +27,8 @@ try{
  ok(await invalidId(docR.GET(new Request("http://l/",{headers:H(t)}),{params:Promise.resolve({documentId:BAD})})),"DOCUMENT_BAD_ID_400");
  // Huecos que quedaban en main: id con espacios alrededor (isUuid recorta, la columna uuid no) e id de la query de /encounters.
  ok(await invalidId(egfrR.GET(new Request("http://l/",{headers:H(t)}),{params:Promise.resolve({patientId:` ${crypto.randomUUID()} `})})),"WHITESPACE_PADDED_ID_400_NOT_500");
- // El id de la QUERY no es un id de ruta: contrato fijado por el porte D4 (live-aggregate-kernel-race-proof): 404 NOT_FOUND exacto.
- const eq=await encR.GET(new Request(`http://l/api/v1/encounters?encounterId=${BAD}`,{headers:H(t)}));
- ok(eq.status===404&&((await eq.json().catch(()=>({}))) as{error?:{code?:string}}).error?.code==="NOT_FOUND","ENCOUNTER_QUERY_BAD_ID_404_NOT_500");
+ // El id de la QUERY sigue el mismo contrato que el de ruta (R04-007, `assertIdFormat`): 400 VALIDATION_ERROR exacto, ni 404 ni 500.
+ ok(await invalidId(encR.GET(new Request(`http://l/api/v1/encounters?encounterId=${BAD}`,{headers:H(t)}))),"ENCOUNTER_QUERY_BAD_ID_400_NOT_500");
  // Precedencia de main (R04-007): sin sesión, un UUID válido es 401; un id malformado es 400 sin tocar nada (pathIds va primero).
  // El check original de la rama (anónimo + id inválido -> 401) NO se cumple en main por decisión de contrato: se sustituye por
  // estos dos checks estrictos (ver openIssues), sin aceptar «400 o 401».

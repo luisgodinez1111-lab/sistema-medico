@@ -100,9 +100,17 @@ export async function readEventPayloadById(ctx:HttpTenantContext,eventId:string,
 export async function readAggregateEvents(ctx:HttpTenantContext,aggregateId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
  return readEncounterEvents(ctx,aggregateId);
 }
-// Porte del hallazgo D4 — génesis del stream: la secuencia 1 fija el tipo del agregado. Regla ÚNICA que comparten la lectura
-// tipada y readEncounter: un id cuya génesis es de otro tipo no existe para quien pide este tipo.
+// Porte del hallazgo D4 — génesis del stream: la secuencia 1 fija el tipo del agregado; un id cuya génesis es de otro tipo no
+// existe para quien pide este tipo.
 const genesisIs=(rows:ReadonlyArray<Record<string,unknown>>,aggregateType:string):boolean=>rows.length>0&&String(rows[0]!.aggregate_type)===aggregateType;
+// ¿Es este stream un agregado de `aggregateType`? Génesis de otro tipo (o vacío) -> false («no existe» para este tipo); génesis
+// propia pero stream que mezcla tipos (contaminado antes de la corrección del kernel) -> INVARIANT_VIOLATION explícito. Regla
+// ÚNICA de readAggregateStream y readEncounter: la lectura y la escritura del mismo id nunca discrepan.
+function isStreamOf(rows:ReadonlyArray<Record<string,unknown>>,aggregateType:string):boolean{
+ if(!genesisIs(rows,aggregateType))return false;
+ if(rows.some(r=>String(r.aggregate_type)!==aggregateType))throw new ClinicalError("INVARIANT_VIOLATION",`${aggregateType} stream mixes aggregate types`,{aggregateType});
+ return true;
+}
 // Porte del hallazgo D4 — stream de UN agregado de un TIPO dado; es la lectura de todo caso de uso cableado (las lecturas sin
 // tipo de arriba quedan solo para los módulos NOT_WIRED). Antes la lectura ignoraba `aggregate_type`: una transición de alergia
 // sobre el id de un paciente plegaba el stream del paciente y escribía en él (el paciente quedaba en 500 para siempre).
@@ -112,8 +120,7 @@ export async function readAggregateStream(ctx:HttpTenantContext,aggregateType:st
  if(!isAggregateId(aggregateId))return [];
  const rows=await withTenantTx(ctx,async tx=>
   tx`select sequence,aggregate_type,payload from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${aggregateId} order by sequence`) as ReadonlyArray<Record<string,unknown>>;
- if(!genesisIs(rows,aggregateType))return [];
- if(rows.some(r=>String(r.aggregate_type)!==aggregateType))throw new ClinicalError("INVARIANT_VIOLATION",`${aggregateType} stream mixes aggregate types`,{aggregateType});
+ if(!isStreamOf(rows,aggregateType))return [];
  return rows.map(r=>({sequence:Number(r.sequence),payload:(r.payload??{}) as Record<string,unknown>}));
 }
 // EPIC Z/UI — Repositorio de documentos: UN documento clínico con su CONTENIDO real, adenda (append-only) y
@@ -220,7 +227,7 @@ export async function readEncounter(ctx:HttpTenantContext,encounterId:string):Pr
   const head=agg[0];
   if(!head)return null;
   const events=await tx`select sequence,aggregate_type,occurred_at from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${encounterId} order by sequence`;
-  if(!genesisIs(events,"Encounter"))return null;
+  if(!isStreamOf(events,"Encounter"))return null; // stream contaminado -> INVARIANT_VIOLATION, como la escritura
   return{
    encounterId,
    version:Number(head.version),

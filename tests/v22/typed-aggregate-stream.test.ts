@@ -26,8 +26,7 @@ describe("lectura tipada de streams de agregado (porte D4)",()=>{
   const body=runtimeBlock("readAggregateStream");
   expect(body).toMatch(/select sequence,aggregate_type,payload from clinical_events/);
   expect(body).toContain("isAggregateId(aggregateId)");
-  expect(body).toContain("genesisIs(rows,aggregateType)");
-  expect(body).toMatch(/new ClinicalError\("INVARIANT_VIOLATION"/);
+  expect(body).toContain("if(!isStreamOf(rows,aggregateType))return []");
   expect(body).toContain("withTenantTx(");
  });
  it("readEncounter solo sirve encuentros y un id no-uuid no llega a la base",()=>{
@@ -35,7 +34,18 @@ describe("lectura tipada de streams de agregado (porte D4)",()=>{
   const guard=body.indexOf("if(!isAggregateId(encounterId))return null");
   expect(guard).toBeGreaterThan(-1);
   expect(guard).toBeLessThan(body.indexOf("withTenantTx("));
-  expect(body).toContain('if(!genesisIs(events,"Encounter"))return null');
+  // Misma regla que la lectura tipada (isStreamOf): un encuentro contaminado es INVARIANT_VIOLATION, no una vista con el evento ajeno.
+  expect(body).toContain('if(!isStreamOf(events,"Encounter"))return null');
+  expect(body).not.toMatch(/genesisIs\(/);
+ });
+ it("isStreamOf: génesis ajena -> no existe; stream mezclado -> INVARIANT_VIOLATION (regla única de lectura tipada y readEncounter)",()=>{
+  const src=fs.readFileSync("apps/web/lib/runtime/records.ts","utf8");
+  const i=src.indexOf("function isStreamOf(");expect(i).toBeGreaterThan(-1);
+  const body=src.slice(i,src.indexOf("\n}",i));
+  expect(body).toContain("if(!genesisIs(rows,aggregateType))return false");
+  expect(body).toMatch(/rows\.some\(r=>String\(r\.aggregate_type\)!==aggregateType\)\)throw new ClinicalError\("INVARIANT_VIOLATION"/);
+  // Nadie más reimplementa la comprobación de tipos mezclados.
+  expect(src.match(/stream mixes aggregate types/g)?.length).toBe(1);
  });
  it("la guarda del kernel corre DESPUÉS de reclamar la versión y ANTES de escribir el evento (sin TOCTOU)",()=>{
   const kernel=fs.readFileSync("packages/atomic-clinical-transaction-v3/src/index.ts","utf8");

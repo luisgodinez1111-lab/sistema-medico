@@ -76,13 +76,13 @@ describe("id de ruta malformado: 400 sin tocar la persistencia, en TODA operaci�
   // Si esto cae, la prueba dejó de cubrir algo (hoy: más de 120 rutas con parámetro, varias operaciones cada una).
   expect(checked).toBeGreaterThanOrEqual(240);
  },600_000);
- it("GET /encounters?encounterId=<no uuid o con espacios> es 404 NOT_FOUND sin tocar la base (contrato del porte D4), no un 500",async()=>{
+ it("GET /encounters?encounterId=<no uuid o con espacios> es 400 VALIDATION_ERROR sin tocar la base (contrato R04-007, misma regla que pathIds), no 404 ni 500",async()=>{
   const mod=await import(path.join(process.cwd(),API,"v1/encounters/route.ts")) as{GET:(r:Request)=>Promise<Response>};
   for(const bad of["not-a-uuid",` ${P} `]){
    calls.length=0;
    const r=await mod.GET(new Request(`http://route-id.local/api/v1/encounters?encounterId=${encodeURIComponent(bad)}`,{headers:{authorization:`Bearer ${token}`}}));
    const body=await r.json() as{error?:{code?:string}};
-   expect([r.status,body.error?.code],bad).toEqual([404,"NOT_FOUND"]);
+   expect([r.status,body.error?.code],bad).toEqual([400,"VALIDATION_ERROR"]);
    expect(calls,"no debe tocar la persistencia").toEqual([]);
   }
  },60_000);
