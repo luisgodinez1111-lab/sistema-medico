@@ -749,26 +749,38 @@ export const isAsk=(v:unknown):v is Ask=>!!v&&typeof v==="object"&&typeof(v as{_
 // id y hora FIJOS mientras dura; cada vital deriva su vitalId y su Idempotency-Key de la captura y de su tipo (U-09), así que un
 // reintento tras una respuesta perdida se repite idempotentemente y solo se crea lo que faltaba. El resultado distingue guardados,
 // rechazados (con el motivo del servidor) y críticos: nunca se anuncia éxito si el servidor rechazó algo.
-// Revisión (F3/F6): la captura RECUERDA qué lectura guardó de cada tipo y si fue crítica. Lo ya guardado no se reenvía, y una
-// lectura DISTINTA de un tipo ya guardado no se envía (sería una segunda observación del mismo momento): se corrige con
-// «Enmendar» en el historial. La captura termina cuando todo se guarda, al limpiar el formulario, al cambiar de paciente o a los
-// VITAL_CAPTURE_TTL_MIN minutos (una toma nueva lleva su propia hora). Los críticos se informan SIEMPRE.
+// Revisión (F3/F6): la captura RECUERDA qué lectura guardó de cada tipo, con su vitalId y su versión, y si fue crítica. Lo ya
+// guardado no se reenvía, y una lectura DISTINTA de un tipo ya guardado no se crea como segunda observación del mismo momento:
+// es una CORRECCIÓN de ese vital. Revisión del porte (c44dd6c): antes se bloqueaba y se remitía a un «Enmendar» del historial
+// que la Consulta y Signos vitales no tienen (su historial no lleva ids); ahora la propia captura enmienda el vital guardado
+// (POST /vitals/:id/amendment, If-Match de su versión) con el motivo que escribe el médico (`askCorrection`, diálogo U-16); sin
+// motivo no se envía y se dice. La captura termina cuando todo se guarda, al limpiar el formulario, al cambiar de paciente o a
+// los VITAL_CAPTURE_TTL_MIN minutos (una toma nueva lleva su propia hora). Los críticos se informan SIEMPRE.
 export const VITAL_CAPTURE_TTL_MIN=15;
-type SavedVital=Readonly<{reading:string;critical:string|null}>;
+type SavedVital=Readonly<{reading:string;critical:string|null;vitalId:string;version:number}>;
 export type VitalCapture=Readonly<{id:string;at:string;saved:Readonly<Record<string,SavedVital>>}>;
 export const newVitalCapture=():VitalCapture=>({id:uuid(),at:nowIso(),saved:{}});
 export const liveVitalCapture=(c:VitalCapture|null,now=Date.now()):VitalCapture=>c&&now-Date.parse(c.at)<VITAL_CAPTURE_TTL_MIN*60_000?c:newVitalCapture();
 export type VitalSubmitResult=Readonly<{capture:VitalCapture;saved:string[];failed:string[];critical:string[]}>;
-export async function submitVitals(capture:VitalCapture,patientId:string,toSave:readonly(readonly[string,string,string])[]):Promise<VitalSubmitResult>{
+// Pide al médico un dato (aquí, el motivo de una corrección); null = canceló. En el cockpit es `askReason` del modelo.
+export type AskText=(ask:Ask)=>Promise<string|null>;
+const criticalOf=(vt:string,val:string,body:Record<string,unknown>)=>String(body["status"]??"")==="CRITICAL"?`${vt} ${val}: ${String(body["interpretation"]??"crítico")}`:null;
+export async function submitVitals(capture:VitalCapture,patientId:string,toSave:readonly(readonly[string,string,string])[],askCorrection:AskText):Promise<VitalSubmitResult>{
  const saved:string[]=[],failed:string[]=[];const done:Record<string,SavedVital>={...capture.saved};
  for(const[vt,val,u]of toSave){
   const reading=`${val} ${u}`;const prev=done[vt];
-  if(prev){if(prev.reading===reading)saved.push(vt);else failed.push(`${vt}: en esta toma ya se guardó ${prev.reading}; corríjalo con «Enmendar» en el historial`);continue;}
-  const key=`${capture.id}:${vt}`;
-  const r=await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId:derivedClientUuid(key),patientId,vitalType:vt,value:val,unit:u,occurredAt:capture.at},idempotencyKey:derivedClientUuid(key+":idem")});
+  if(prev?.reading===reading){saved.push(vt);continue;}
+  // Una lectura DISTINTA de un tipo ya guardado en la toma es una corrección: enmienda de ESE vital, con el motivo del médico.
+  const reason=prev?await askCorrection(ASK(`Motivo de la corrección de ${vt}: ${prev.reading} → ${reading}`,5,"p. ej. error de captura, lectura repetida con el equipo calibrado")):null;
+  if(prev&&reason===null){failed.push(`${vt}: en esta toma ya se guardó ${prev.reading}; la corrección a ${reading} no se envió porque enmendar exige el motivo`);continue;}
+  const vitalId=prev?.vitalId??derivedClientUuid(`${capture.id}:${vt}`);
+  // Llaves estables: la del alta, por captura y tipo; la de la enmienda, además por la versión enmendada. Un reintento tras una
+  // respuesta perdida se repite idempotentemente en ambos casos.
+  const r=prev?await apiRequest(`/api/v1/vitals/${vitalId}/amendment`,{method:"POST",body:{value:val,unit:u,reason,occurredAt:nowIso()},ifMatch:prev.version,idempotencyKey:derivedClientUuid(`${capture.id}:${vt}:amend:${prev.version}`)})
+   :await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId,patientId,vitalType:vt,value:val,unit:u,occurredAt:capture.at},idempotencyKey:derivedClientUuid(`${capture.id}:${vt}:idem`)});
   if(r.status>=400){failed.push(`${vt}: ${errMsg(r)}`);continue;}
   saved.push(vt);
-  done[vt]={reading,critical:String(r.body["status"]??"")==="CRITICAL"?`${vt} ${val}: ${String(r.body["interpretation"]??"crítico")}`:null};
+  done[vt]={reading,critical:criticalOf(vt,val,r.body),vitalId,version:Number(r.body["version"]??(prev?prev.version+1:1))};
  }
  const critical=Object.values(done).flatMap(v=>v.critical?[v.critical]:[]);
  return{capture:{...capture,saved:done},saved,failed,critical};
@@ -913,9 +925,11 @@ export function cpActions(c:{id:string;state:CpSt}):{label:string;path:string;bo
  if(c.state==="ON_HOLD")return[{label:"Reanudar",path:base+"/resumption",body:w,to:"ACTIVE"},{label:"Cancelar",path:base+"/cancellation",body:{reason:ASK("Motivo",5),occurredAt:nowIso()},to:"CANCELLED"}];
  return[];
 }
+// Revisión del porte (c44dd6c): «Enmendar» pide el valor CORREGIDO (antes reenviaba el valor ya guardado y solo pedía el motivo,
+// así que no corregía nada).
 export function vitActions(v:{id:string;state:VitSt;value:string;unit:string}):{label:string;path:string;body:Record<string,unknown>;to:VitSt}[]{
  const base=`/api/v1/vitals/${v.id}`;
- if(v.state==="RECORDED"||v.state==="AMENDED")return[{label:"Enmendar",path:base+"/amendment",body:{value:v.value,unit:v.unit,reason:ASK("Motivo de la corrección",5),occurredAt:nowIso()},to:"AMENDED"},{label:"Marcar error",path:base+"/error-mark",body:{reason:ASK("Motivo de marcar el registro como error",5),occurredAt:nowIso()},to:"ENTERED_IN_ERROR"}];
+ if(v.state==="RECORDED"||v.state==="AMENDED")return[{label:"Enmendar",path:base+"/amendment",body:{value:ASK(`Valor corregido (${v.unit}); registrado: ${v.value}`,1),unit:v.unit,reason:ASK("Motivo de la corrección",5),occurredAt:nowIso()},to:"AMENDED"},{label:"Marcar error",path:base+"/error-mark",body:{reason:ASK("Motivo de marcar el registro como error",5),occurredAt:nowIso()},to:"ENTERED_IN_ERROR"}];
  return[];
 }
 export function immActions(i:{id:string;state:ImmSt}):{label:string;path:string;body:Record<string,unknown>;to:ImmSt}[]{

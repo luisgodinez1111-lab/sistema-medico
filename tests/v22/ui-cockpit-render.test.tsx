@@ -9,15 +9,19 @@ import axe from"axe-core";
 
 // Datos canónicos que alimentan la auto-carga del workspace (timeline + care-gaps + snapshot + trends).
 // Cuerpos de los POST que emite la UI (para afirmar QUÉ se envía, no solo que "algo" se envió).
-const{posted,flags}=vi.hoisted(()=>({posted:[] as {path:string;body:unknown;idem?:string}[],flags:{hospital:false}}));
+// `gate` (revisión del porte c44dd6c, F4): retiene la respuesta de POST /vitals o de GET /patients/:id/vitals hasta que la prueba
+// la suelte, para cambiar de paciente con el guardado EN VUELO.
+const{posted,flags,gate}=vi.hoisted(()=>({posted:[] as {path:string;body:unknown;idem?:string;ifMatch?:number}[],flags:{hospital:false},gate:{vitalsPost:null as Promise<void>|null,vitalsHist:null as Promise<void>|null}}));
 vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
  apiUpload:async()=>({status:201,body:{version:1}}),
  apiDelete:async()=>({status:200,body:{removed:true,version:1}}),
  apiDownload:async()=>null,
- apiRequest:async(path:string,init?:{method?:string;body?:unknown;idempotencyKey?:string})=>{
-  if(init?.method==="POST")posted.push({path,body:init.body,...(init.idempotencyKey?{idem:init.idempotencyKey}:{})});
+ apiRequest:async(path:string,init?:{method?:string;body?:unknown;idempotencyKey?:string;ifMatch?:number})=>{
+  if(init?.method==="POST")posted.push({path,body:init.body,...(init.idempotencyKey?{idem:init.idempotencyKey}:{}),...(init.ifMatch!==undefined?{ifMatch:init.ifMatch}:{})});
+  if(path==="/api/v1/vitals"&&init?.method==="POST"&&gate.vitalsPost)await gate.vitalsPost;
+  if(/\/api\/v1\/patients\/[^/]+\/vitals$/.test(path)&&gate.vitalsHist)await gate.vitalsHist;
   if(path.includes("/api/v1/features"))return{status:200,body:{hospitalVerticals:flags.hospital}}; // verticales hospitalarias solo donde la prueba las pide
   if(path.includes("/api/v1/wounds"))return{status:201,body:{version:1}};
   if(path.includes("/api/v1/vitals")){
@@ -147,6 +151,7 @@ beforeAll(()=>{
  Element.prototype.scrollIntoView=()=>{};
 });
 afterEach(cleanup);
+afterEach(()=>{gate.vitalsPost=null;gate.vitalsHist=null;});
 // jsdom comparte window.location entre tests del mismo archivo; el deep-link (?p=&v=) de un test contaminaría
 // al siguiente. Reseteamos la URL tras cada test (en producción cada carga tiene su propia URL).
 afterEach(()=>{try{window.history.replaceState(null,"","/");}catch{/* noop */}});
@@ -1229,28 +1234,97 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(temp[0]!.idem).toBeTruthy();expect(temp[0]!.idem).toBe(temp[1]!.idem);expect(hr[0]!.idem).not.toBe(temp[0]!.idem);
  });
  // Revisión del lote 11 (F3/F6): un crítico guardado se informa aunque otro vital se rechace; una lectura distinta de un tipo ya
- // guardado en la toma no se envía (se corrige con «Enmendar»); «Limpiar» termina la toma (la siguiente es otra).
- it("D11a — Signos vitales: críticos siempre visibles, sin segunda lectura del mismo tipo y «Limpiar» inicia otra toma",async()=>{
+ // guardado en la toma NO se crea como segunda observación; «Limpiar» termina la toma (la siguiente es otra).
+ // Revisión del porte (c44dd6c): esa lectura distinta es una CORRECCIÓN y se hace ahí mismo: se pide el motivo y se enmienda el
+ // vital ya guardado (mismo vitalId, If-Match de su versión). Antes se remitía a un «Enmendar» del historial que no existe.
+ it("D11a — Signos vitales: críticos siempre visibles, la corrección enmienda el vital guardado y «Limpiar» inicia otra toma",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));await elegirPaciente();
   const before=posted.length;
   const vitals=()=>posted.slice(before).filter(p=>p.path==="/api/v1/vitals").map(p=>p.body as{vitalId:string;vitalType:string;value:string});
+  const amends=()=>posted.slice(before).filter(p=>p.path.endsWith("/amendment"));
   fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"180"}});
   fireEvent.change(screen.getByPlaceholderText("36.5"),{target:{value:"999"}});
   fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
   expect(await screen.findByText(/NO guardados: TEMP.*1 crítico\(s\): HR 180: Taquicardia extrema/)).toBeTruthy();
+  const firstHr=vitals().find(v=>v.vitalType==="HR")!.vitalId;
   fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"90"}});
   fireEvent.change(screen.getByPlaceholderText("36.5"),{target:{value:"36.8"}});
   fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
-  expect(await screen.findByText(/HR: en esta toma ya se guardó 180 lpm; corríjalo con «Enmendar»/)).toBeTruthy();
+  // Sin motivo no se enmienda, y el mensaje lo dice (no remite a ningún otro lugar).
+  let dlg=within(await screen.findByRole("dialog",{name:/Motivo de la corrección de HR: 180 lpm → 90 lpm/}));
+  fireEvent.click(dlg.getByRole("button",{name:"Cancelar"}));
+  expect(await screen.findByText(/HR: en esta toma ya se guardó 180 lpm; la corrección a 90 lpm no se envió porque enmendar exige el motivo/)).toBeTruthy();
+  expect(amends()).toEqual([]);
+  expect(vitals().filter(v=>v.vitalType==="HR").map(v=>v.value)).toEqual(["180"]); // nunca una segunda observación
+  // Con motivo: enmienda del MISMO vital, con el valor corregido y su versión; el crítico deja de anunciarse.
+  fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
+  dlg=within(await screen.findByRole("dialog",{name:/Motivo de la corrección de HR/}));
+  fireEvent.change(dlg.getByLabelText(/Motivo de la corrección de HR/),{target:{value:"Error de captura: se tecleó 180"}});
+  fireEvent.click(dlg.getByRole("button",{name:"Registrar"}));
+  expect(await screen.findByText(/Signos vitales guardados ✓/)).toBeTruthy();
+  expect(screen.queryByText(/crítico\(s\)/)).toBeNull();
+  expect(amends().map(a=>({path:a.path,ifMatch:a.ifMatch,value:(a.body as{value:string}).value,unit:(a.body as{unit:string}).unit,reason:(a.body as{reason:string}).reason})))
+   .toEqual([{path:`/api/v1/vitals/${firstHr}/amendment`,ifMatch:1,value:"90",unit:"lpm",reason:"Error de captura: se tecleó 180"}]);
   expect(vitals().filter(v=>v.vitalType==="HR").map(v=>v.value)).toEqual(["180"]);
-  const firstHr=vitals().find(v=>v.vitalType==="HR")!.vitalId;
   fireEvent.click(screen.getByRole("button",{name:"Limpiar"}));
   fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"90"}});
   fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
-  expect(await screen.findByText(/Signos vitales guardados ✓/)).toBeTruthy();
+  await waitFor(()=>expect(vitals().filter(v=>v.vitalType==="HR").length).toBe(2));
   const hrs=vitals().filter(v=>v.vitalType==="HR");
   expect(hrs.map(v=>v.value)).toEqual(["180","90"]);expect(hrs[1]!.vitalId).not.toBe(firstHr);
+ });
+ // Revisión del porte (c44dd6c), F4: la respuesta TARDÍA de un guardado de signos del paciente anterior se descarta entera —ni su
+ // mensaje (ni su crítico), ni el borrado del formulario— en cada espera: el POST, la lectura del historial posterior y la Consulta.
+ const cambiarAPaciente2=async()=>{const opt=await screen.findByRole("option",{name:"Carlos Mendoza"});fireEvent.change(opt.closest("select")!,{target:{value:"p2"}});};
+ for(const ventana of["POST /vitals","GET del historial","error de red del POST"] as const){
+  it(`D11b — Signos vitales: la respuesta tardía (${ventana}) del paciente anterior no llega al nuevo`,async()=>{
+   let soltar!:()=>void;const g=new Promise<void>((ok,ko)=>{soltar=ventana==="error de red del POST"?()=>ko(new Error("Failed to fetch")):ok;});
+   if(ventana==="GET del historial")gate.vitalsHist=g;else gate.vitalsPost=g;
+   render(<Workspace/>);
+   fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));await elegirPaciente();
+   const before=posted.length;
+   fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"180"}});
+   fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
+   await waitFor(()=>expect(posted.slice(before).some(p=>p.path==="/api/v1/vitals")).toBe(true));
+   await cambiarAPaciente2();
+   await waitFor(()=>expect((screen.getByPlaceholderText("72") as HTMLInputElement).value).toBe(""));
+   fireEvent.change(screen.getByPlaceholderText("36.5"),{target:{value:"37.2"}}); // lo que el médico ya tecleó para el paciente nuevo
+   soltar();await new Promise(r=>setTimeout(r,30));gate.vitalsPost=null;gate.vitalsHist=null;
+   await waitFor(()=>expect((screen.getByRole("button",{name:/Guardar signos vitales/}) as HTMLButtonElement).disabled).toBe(false));
+   expect(screen.queryByText(/Signos vitales guardados ✓/)).toBeNull();
+   expect(screen.queryByText(/Sin conexión con el servidor/)).toBeNull();
+   expect(screen.queryByText(/crítico\(s\)/)).toBeNull();
+   expect((screen.getByPlaceholderText("36.5") as HTMLInputElement).value).toBe("37.2");
+   // La toma del paciente anterior tampoco se hereda: la FC del nuevo es una observación NUEVA suya, no una corrección de la otra.
+   const hrA=posted.slice(before).find(p=>p.path==="/api/v1/vitals"&&(p.body as{vitalType:string}).vitalType==="HR")!.body as{vitalId:string};
+   fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"88"}});
+   fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
+   expect(await screen.findByText(/Signos vitales guardados ✓/)).toBeTruthy();
+   const hrB=posted.slice(before).filter(p=>p.path==="/api/v1/vitals"&&(p.body as{vitalType:string}).vitalType==="HR").map(p=>p.body as{vitalId:string;patientId:string;value:string});
+   expect(hrB.map(v=>[v.patientId,v.value])).toEqual([["p1","180"],["p2","88"]]);expect(hrB[1]!.vitalId).not.toBe(hrA.vitalId);
+   expect(posted.slice(before).filter(p=>p.path.endsWith("/amendment"))).toEqual([]);
+  });
+ }
+ for(const ventana of["respuesta","error de red"] as const)
+ it(`D11b — Consulta: ${ventana==="respuesta"?"la respuesta tardía":"el error de red tardío"} del guardado de signos del paciente anterior no llega al nuevo`,async()=>{
+  let soltar!:()=>void;gate.vitalsPost=new Promise<void>((ok,ko)=>{soltar=ventana==="error de red"?()=>ko(new Error("Failed to fetch")):ok;});
+  render(<Workspace/>);
+  await abrirConsulta();
+  const before=posted.length;
+  fireEvent.change(screen.getByLabelText("FC (lpm)"),{target:{value:"180"}});
+  fireEvent.click(screen.getByRole("button",{name:"Guardar signos vitales"}));
+  await waitFor(()=>expect(posted.slice(before).some(p=>p.path==="/api/v1/vitals")).toBe(true));
+  fireEvent.click(screen.getByTitle("Volver al panel de consultas"));
+  fireEvent.change(await screen.findByLabelText("Buscar paciente"),{target:{value:"Carlos"}});
+  fireEvent.click(await screen.findByRole("button",{name:/Carlos Mendoza/},{timeout:2000}));
+  fireEvent.change(await screen.findByLabelText("FC (lpm)"),{target:{value:"88"}});
+  soltar();await new Promise(r=>setTimeout(r,30));
+  await waitFor(()=>expect((screen.getByRole("button",{name:"Guardar signos vitales"}) as HTMLButtonElement).disabled).toBe(false));
+  expect(screen.queryByText(/Signos vitales guardados ✓/)).toBeNull();
+  expect(screen.queryByText(/Sin conexión con el servidor/)).toBeNull();
+  expect(screen.queryByText(/crítico\(s\)/)).toBeNull();
+  expect((screen.getByLabelText("FC (lpm)") as HTMLInputElement).value).toBe("88");
  });
  // Revisión del lote 11 (F4): cambiar de paciente vacía también el formulario y el mensaje de Signos vitales.
  it("D11b — Signos vitales: cambiar de paciente vacía el formulario y el mensaje del anterior",async()=>{
@@ -1331,6 +1405,26 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   await waitFor(()=>expect(posted.some(p=>p.path.endsWith("/administration"))).toBe(true));
   const sent=posted.filter(p=>p.path.endsWith("/administration")).at(-1)?.body as{lot?:unknown;site?:unknown};
   expect(sent).toMatchObject({lot:"AB1234",site:"deltoides izquierdo"});
+ });
+ // Revisión del porte (c44dd6c): «Enmendar» un signo vital pide el valor CORREGIDO y lo envía (antes reenviaba el valor ya
+ // registrado y solo pedía el motivo: la «enmienda» no corregía nada).
+ it("Expediente — «Enmendar» un signo vital pide y envía el valor corregido, no el registrado",async()=>{
+  render(<Workspace/>);
+  await toExpediente();
+  fireEvent.click(within(screen.getByRole("navigation",{name:"Secciones del expediente"})).getByRole("button",{name:"Diagnóstico"}));
+  fireEvent.change(await screen.findByLabelText("Tipo de signo vital"),{target:{value:"HR"}});
+  fireEvent.change(screen.getByLabelText("Valor de HR"),{target:{value:"180"}});
+  fireEvent.click(screen.getByRole("button",{name:"Registrar signo vital"}));
+  fireEvent.click(await screen.findByRole("button",{name:"Enmendar"}));
+  const valor=within(await screen.findByRole("dialog",{name:/Valor corregido \(lpm\); registrado: 180/}));
+  fireEvent.change(valor.getByLabelText(/Valor corregido/),{target:{value:"80"}});
+  fireEvent.click(valor.getByRole("button",{name:"Registrar"}));
+  const motivo=within(await screen.findByRole("dialog",{name:/Motivo de la corrección/}));
+  fireEvent.change(motivo.getByLabelText(/Motivo de la corrección/),{target:{value:"Error de captura"}});
+  fireEvent.click(motivo.getByRole("button",{name:"Registrar"}));
+  await waitFor(()=>expect(posted.some(p=>p.path.endsWith("/amendment")&&p.path.startsWith("/api/v1/vitals/"))).toBe(true));
+  const sent=posted.filter(p=>p.path.startsWith("/api/v1/vitals/")&&p.path.endsWith("/amendment")).at(-1)?.body;
+  expect(sent).toMatchObject({value:"80",unit:"lpm",reason:"Error de captura"});
  });
  // Exclusivo de main (D11c-F1): acciones que YA llevaban ASK en main y aun así lo enviaban sin resolver (400 del servidor), p. ej.
  // «Rechazar» una vacuna: ahora el diálogo pide el motivo y se envía exactamente lo escrito; cancelar no envía nada.

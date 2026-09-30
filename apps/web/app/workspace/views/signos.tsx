@@ -8,7 +8,7 @@ import {classifyVital} from "../../../../../packages/lab-reference/src";
 import{card,LINE,P,UI,Skeleton,liveVitalCapture,submitVitals,vitalSubmitMessage,userMessage,type VitalHistory,type VitalRecord}from"../shared";
 import{useWorkspace}from"../context";
 export default function SignosView(){
- const{svCapture,isSelectedPatient,svPeso,svTalla,patientId,setSvMsg,svBpS,svBpD,svFc,svFr,svTemp,svSpo2,setSvBusy,setVitHist,setSvTemp,setSvFc,setSvFr,setSvBpS,setSvBpD,setSvSpo2,setSvPeso,setSvPab,setSvObs,setSvTalla,setSvPain,vitHist,snap,patientName,patientSelector,setView,svMsg,svBusy,vitReg,vitRegErr,selectPatientRaw}=useWorkspace();
+ const{svCapture,isSelectedPatient,askReason,svPeso,svTalla,patientId,setSvMsg,svBpS,svBpD,svFc,svFr,svTemp,svSpo2,setSvBusy,setVitHist,setSvTemp,setSvFc,setSvFr,setSvBpS,setSvBpD,setSvSpo2,setSvPeso,setSvPab,setSvObs,setSvTalla,setSvPain,vitHist,snap,patientName,patientSelector,setView,svMsg,svBusy,vitReg,vitRegErr,selectPatientRaw}=useWorkspace();
 
    // ===== MÓDULO SIGNOS VITALES (S-SIGNOS) — form cableado a POST /vitals + historial/tendencias por paciente =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -29,19 +29,22 @@ export default function SignosView(){
     // D11a: antes cada clic regeneraba vitalId y llave (un reintento duplicaba) y se anunciaba «guardados ✓» aunque el servidor
     // rechazara valores. Ahora la captura es estable mientras dura y el mensaje dice exactamente qué se guardó (y los críticos).
     const capture=liveVitalCapture(svCapture.current);svCapture.current=capture;
-    try{const res=await submitVitals(capture,patientId,toSave);
+    try{const res=await submitVitals(capture,patientId,toSave,askReason);
      // D11b (revisión F4): si el médico cambió de paciente durante el guardado, nada de esta respuesta se muestra ni se asigna al
-     // paciente nuevo (la captura ya se descartó al cambiar).
+     // paciente nuevo (la captura ya se descartó al cambiar). Revisión del porte (c44dd6c): se vuelve a comprobar tras CADA espera
+     // (el guardado, la lectura del historial y el error), no solo tras la primera.
      if(!isSelectedPatient(patientId))return;
      svCapture.current=res.capture;
-     const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET"});if(r.status===200&&isSelectedPatient(patientId))setVitHist(r.body as unknown as VitalHistory);
+     const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET"});
+     if(!isSelectedPatient(patientId))return;
+     if(r.status===200)setVitHist(r.body as unknown as VitalHistory);
      setSvMsg(vitalSubmitMessage(res));
      // F3: lo guardado sale del formulario; queda solo lo rechazado para corregirlo.
      const clearOf:Record<string,()=>void>={BP:()=>{setSvBpS("");setSvBpD("");},HR:()=>setSvFc(""),RESP:()=>setSvFr(""),TEMP:()=>setSvTemp(""),SPO2:()=>setSvSpo2(""),WEIGHT:()=>setSvPeso(""),HEIGHT:()=>setSvTalla("")};
      if(res.failed.length){for(const vt of res.saved)clearOf[vt]?.();return;}
      svCapture.current=null;
      setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvPab("");setSvObs("");
-    }catch(e){setSvMsg(userMessage(e));}finally{setSvBusy(false);}
+    }catch(e){if(isSelectedPatient(patientId))setSvMsg(userMessage(e));}finally{setSvBusy(false);}
    };
    // F3: limpiar el formulario termina la captura: la siguiente toma lleva su propio id y su propia hora.
    const clearForm=()=>{svCapture.current=null;setSvTemp("");setSvFc("");setSvFr("");setSvBpS("");setSvBpD("");setSvSpo2("");setSvPeso("");setSvTalla("");setSvPab("");setSvPain("0");setSvObs("");setSvMsg("");};

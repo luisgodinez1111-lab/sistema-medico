@@ -904,7 +904,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   // que faltaba. `submitVitals` es la implementación única que comparte con Signos vitales (reglas de la captura en shared.tsx).
   const capture=liveVitalCapture(cVitSubmission.current);cVitSubmission.current=capture;
   try{
-   const res=await submitVitals(capture,patientId,toSave);
+   const res=await submitVitals(capture,patientId,toSave,askReason);
    if(!isSelectedPatient(patientId))return; // F4: el médico cambió de paciente durante el guardado
    cVitSubmission.current=res.capture;
    setCVitMsg(vitalSubmitMessage(res));
@@ -913,7 +913,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
    if(res.failed.length){setCVit(v=>{const n={...v};for(const vt of res.saved){const f=field[vt];if(f)n[f]="";}return n;});return;}
    cVitSubmission.current=null;
    setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});
-  }catch(e){setCVitMsg(userMessage(e));}finally{setCVitBusy(false);}
+  }catch(e){if(isSelectedPatient(patientId))setCVitMsg(userMessage(e));}finally{setCVitBusy(false);} // F4: tampoco el error
  };
  // Crea órdenes clínicas reales desde la Consulta (POST /orders) por cada estudio seleccionado, con el tipo de la categoría.
  // Auditoría 2026-09-19, anexo R05a (WS1-11) — LAS ÓRDENES DEL LOTE NO SE DUPLICAN Y SE DICE CUÁLES QUEDARON.

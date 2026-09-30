@@ -33,10 +33,13 @@ const wnRe=await import("../../apps/web/app/api/v1/wounds/[woundId]/reassessment
 const coR=await import("../../apps/web/app/api/v1/consents/route");
 const coPre=await import("../../apps/web/app/api/v1/consents/[consentId]/presentation/route");
 const coGr=await import("../../apps/web/app/api/v1/consents/[consentId]/grant/route");
+const vtR=await import("../../apps/web/app/api/v1/vitals/route");
+const vtAm=await import("../../apps/web/app/api/v1/vitals/[vitalId]/amendment/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(roles:string[],scopes:string[]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles,scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 const nurse=tok(["NURSE"],["immunization:write","admission:write","incident:write","wound:write","consent:write"]);
 const billing=tok(["CLINICAL_ADMIN"],["billing:write"]);
+const physician=tok(["PHYSICIAN"],["vital:read","vital:write"]);
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const ISO="2026-09-11T11:00:00.000Z";const idem=()=>crypto.randomUUID();
 const P=(k:string,id:string)=>({params:Promise.resolve({[k]:id})});
@@ -131,6 +134,15 @@ try{
  r=await post(coGr,nurse,"consentId",co,2,{...(tutorBody??{}),documentHash:HASH,method:"ELECTRONIC_SIGNATURE",signatureArtifactRef:"blob://consents/firma-tutor.png",occurredAt:ISO});
  pl=await lastPayload(co);
  ok(r.status===201&&pl?.["signerRole"]==="GUARDIAN"&&pl["signerName"]==="María Pérez Gómez","CONSENT_TUTOR_GRANT_RECORDED_AS_GUARDIAN");
+ // (7) Revisión del porte (c44dd6c): «Enmendar» un signo vital pide el valor CORREGIDO (antes reenviaba el registrado y la enmienda
+ // no corregía nada) y el servidor guarda exactamente lo tecleado, reclasificado.
+ const vi=crypto.randomUUID();r=await create(vtR,physician,{vitalId:vi,patientId:await freshPatient(TA),vitalType:"HR",value:"180",unit:"lpm"});
+ ok(r.status===201,"VITAL_RECORDED_180");
+ const vAm=find(ws.vitActions({id:vi,state:"RECORDED",value:"180",unit:"lpm"}),a=>a.path.endsWith("/amendment"));
+ ok(vAm.label==="Enmendar"&&asked(vAm.body,["value","reason"])&&vAm.body["unit"]==="lpm","VITAL_AMEND_ASKS_CORRECTED_VALUE_AND_REASON");
+ r=await sendResolved(vtAm as Route,physician,"vitalId",vi,1,vAm,{"Valor corregido (lpm); registrado: 180":"80","Motivo de la corrección":"Error de captura: se tecleó 180"});
+ pl=await lastPayload(vi);
+ ok(r.status===201&&pl?.["value"]==="80"&&pl["reason"]==="Error de captura: se tecleó 180"&&pl["status"]!=="CRITICAL","VITAL_AMENDMENT_RECORDS_TYPED_VALUE");
 }catch(e){result.status="FAIL";result.error=String(e);}
 await sql.end();
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
