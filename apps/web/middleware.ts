@@ -36,7 +36,9 @@ export function middleware(req:NextRequest){
   // decidiéndose en el servidor (la API verifica la firma HMAC y la revocación en cada petición). Sirve para no entregar
   // el cockpit a quien no trae sesión y para que la redirección no dependa de que el JavaScript del cliente llegue a correr.
   if(PROTECTED_PAGE.test(path)&&!req.cookies.get(SESSION_COOKIE)?.value){
-   const to=req.nextUrl.clone();to.pathname="/login";to.search=`?next=${encodeURIComponent(path)}`;
+   // Se preserva la ruta COMPLETA (pathname + query) para que un deep-link del expediente (?v=exp&p=…&s=…) sobreviva al
+   // rebote al login y se restaure tras autenticar; sin esto el enlace compartido caía en /workspace pelón (sin paciente).
+   const to=req.nextUrl.clone();to.pathname="/login";to.search=`?next=${encodeURIComponent(path+req.nextUrl.search)}`;
    return NextResponse.redirect(to);
   }
   const nonce=nonceFor();const csp=contentSecurityPolicy(process.env,nonce);
