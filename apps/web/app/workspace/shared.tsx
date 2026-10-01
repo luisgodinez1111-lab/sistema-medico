@@ -544,6 +544,24 @@ export function scrollToSection(name:string){
 // solo aparece con las verticales hospitalarias encendidas (hospitalOn). El estado vive en el modelo y se refleja
 // en la URL (?s=) para que el enlace sea compartible (deep-link).
 export type ExpTab="resumen"|"historia"|"diagnostico"|"tratamiento"|"coordinacion"|"hospital"|"admin";
+// Mapa sección→sub-pestaña del expediente. Tras el Patient 360 (Lote B) cada sección vive en una sub-pestaña que se OCULTA
+// si no está activa; por eso navegar con solo scrollToSection aterriza en una sección vacía. Al ir a una sección hay que
+// ACTIVAR primero su sub-pestaña. Úsese con `goExpSection`.
+export const SECTION_EXP_TAB:Record<string,ExpTab>={
+ "Seguimiento automático":"resumen","Seguridad y auditoría":"resumen","Portal del paciente":"resumen",
+ "Panel del clínico":"admin","Paciente":"admin","Facturación":"admin",
+ "Timeline del paciente":"historia","Encuentro":"historia","Evolución longitudinal":"historia",
+ ["Medicación"]:"tratamiento",["Prescripción segura"]:"tratamiento",["Órdenes clínicas"]:"tratamiento",Vacunas:"tratamiento",["Plan de cuidados"]:"tratamiento",
+ ["Resultados diagnósticos"]:"diagnostico",Alergias:"diagnostico",["Lista de problemas"]:"diagnostico",["Signos vitales"]:"diagnostico",
+ Interconsultas:"coordinacion",Agenda:"coordinacion",["Consentimiento informado"]:"coordinacion",["Documentos clínicos"]:"coordinacion",["Obligaciones de seguimiento"]:"coordinacion",
+ Internamiento:"hospital",["Muestras de laboratorio"]:"hospital",["Incidentes de seguridad"]:"hospital",Triage:"hospital",
+};
+/** Abre una sección del expediente activando su sub-pestaña y luego haciendo scroll (evita aterrizar en una sección oculta). */
+export function goExpSection(section:string,setView:(v:"exp")=>void,setExpTab:(t:ExpTab)=>void):void{
+ const t=SECTION_EXP_TAB[section];if(t)setExpTab(t);setView("exp");
+ // Espera a que la sub-pestaña (y la vista lazy) monten su contenido antes de desplazarse.
+ setTimeout(()=>scrollToSection(section),80);
+}
 export const EXP_TABS:{key:ExpTab,label:string,hint:string,hospital?:boolean}[]=[
  {key:"resumen",label:"Resumen",hint:"Vista principal, seguimiento, portal y auditoría"},
  {key:"historia",label:"Historia",hint:"Timeline, evolución y encuentro"},

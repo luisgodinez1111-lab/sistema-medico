@@ -6,10 +6,10 @@ import {searchMonographs,drugMonograph,drugMonographCount,normDrug} from "../../
 import {searchBrands,brandsForIngredient,drugBrandCount,allBrands} from "../../../../../packages/drug-catalog/src/brands";
 import {useState} from "react";
 import {apiRequest} from "../../../lib/session-client";
-import{Check,errMsg,userMessage,card,P,LINE,UI,scrollToSection,act,actRow,Skeleton,parseIxResult,IX_SEVERITIES,IX_SEV_LABEL,type IxSev}from"../shared";
+import{Check,errMsg,userMessage,card,P,LINE,UI,scrollToSection,goExpSection,act,actRow,Skeleton,parseIxResult,IX_SEVERITIES,IX_SEV_LABEL,type IxSev}from"../shared";
 import{useWorkspace}from"../context";
 export default function MedicamentosView(){
- const{ixMsg,setIxMsg,medQuery,medCat,medOnlyMon,medOnlyRenal,medSel,setRxDrug,setView,setMedTab,medTab,ixInput,ixDrugs,setIxDrugs,setIxInput,setIxRes,setIxFactors,ixFactors,setIxBusy,ixBusy,ixRes,setMedQuery,setMedCat,setMedOnlyMon,setMedOnlyRenal,setMedSel}=useWorkspace();
+ const{ixMsg,setIxMsg,medQuery,medCat,medOnlyMon,medOnlyRenal,medSel,setRxDrug,setView,setExpTab,setMedTab,medTab,ixInput,ixDrugs,setIxDrugs,setIxInput,setIxRes,setIxFactors,ixFactors,setIxBusy,ixBusy,ixRes,setMedQuery,setMedCat,setMedOnlyMon,setMedOnlyRenal,setMedSel}=useWorkspace();
  // Agrupación/primera opción configurable por el médico: ver por principio activo (genérico) o por nombre comercial (marca).
  const[medGroupBy,setMedGroupBy]=useState<"generico"|"marca">("generico");
 
@@ -46,13 +46,13 @@ export default function MedicamentosView(){
    const selName=selDrug?.ingredient??selMono?.name??"";
    const kClases=categories.length,kMon=cat.filter(d=>d.monitoring.length>0).length,kRenal=cat.filter(d=>d.renal).length;
    // Interconexión real: llevar el principio activo al formulario de prescripción del expediente (con barreras de seguridad).
-   const prescribe=(ingredient:string)=>{setRxDrug(ingredient);setView("exp");setTimeout(()=>scrollToSection("Medicación"),0);};
+   const prescribe=(ingredient:string)=>{setRxDrug(ingredient);goExpSection("Medicación",setView,setExpTab);};
    const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"12px 14px",borderBottom:`1px solid ${LINE}`};
    const td:React.CSSProperties={padding:"11px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:13,verticalAlign:"top"};
    return <div style={{padding:"18px 24px 40px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7zM7 8l6 6"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Medicamentos</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Catálogo de principios activos con sus reglas de seguridad (monitoreo, ajuste renal, interacciones). Prescribe desde aquí con verificación en el expediente.</p></div></div>
-     <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Medicación"),0);}}>+ Prescribir en el expediente →</button>
+     <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{goExpSection("Medicación",setView,setExpTab);}}>+ Prescribir en el expediente →</button>
     </div>
     <div style={{display:"flex",gap:2,marginTop:14,borderBottom:`1px solid ${LINE}`,overflowX:"auto"}}>{MTABS.map(([k,l,d])=><button key={k} onClick={()=>setMedTab(k)} style={{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",fontSize:13.5,fontWeight:medTab===k?700:500,color:medTab===k?P.purple:P.muted,cursor:"pointer",borderBottom:medTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:0,borderBottomWidth:2,fontFamily:UI,whiteSpace:"nowrap"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg>{l}</button>)}</div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:12,marginTop:16}} className="mos-kpis">
@@ -170,7 +170,7 @@ export default function MedicamentosView(){
       </div>
      </div>;
     })():medTab!=="catalogo"?(
-     <div style={{...card2,marginTop:16,padding:"48px 20px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:700}}>{MTABS.find(t=>t[0]===medTab)?.[1]}</div><p style={{color:P.muted,fontSize:14,maxWidth:560,margin:"8px auto 0"}}>{medTab==="reportes"?"Los reportes de prescripción requieren un registro de medicamentos por consultorio (agregado por clase/fármaco). El motor de prescripción y sus barreras ya son reales en el expediente; el tablero analítico se conecta cuando exista ese registro clínica-wide.":"Las plantillas y prescripciones rápidas necesitan un almacén de plantillas por médico (aún no implementado). Hoy la prescripción real —con verificación de alergia, duplicidad, interacción, contraindicación y dosis— se hace en el expediente del paciente."}</p><button style={{marginTop:14,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setView("exp");setTimeout(()=>scrollToSection("Medicación"),0);}}>Ir a prescribir en el expediente →</button></div>
+     <div style={{...card2,marginTop:16,padding:"48px 20px",textAlign:"center"}}><div style={{fontSize:16,fontWeight:700}}>{MTABS.find(t=>t[0]===medTab)?.[1]}</div><p style={{color:P.muted,fontSize:14,maxWidth:560,margin:"8px auto 0"}}>{medTab==="reportes"?"Los reportes de prescripción requieren un registro de medicamentos por consultorio (agregado por clase/fármaco). El motor de prescripción y sus barreras ya son reales en el expediente; el tablero analítico se conecta cuando exista ese registro clínica-wide.":"Las plantillas y prescripciones rápidas necesitan un almacén de plantillas por médico (aún no implementado). Hoy la prescripción real —con verificación de alergia, duplicidad, interacción, contraindicación y dosis— se hace en el expediente del paciente."}</p><button style={{marginTop:14,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"9px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{goExpSection("Medicación",setView,setExpTab);}}>Ir a prescribir en el expediente →</button></div>
     ):(
     <div style={{display:"grid",gridTemplateColumns:"250px 1fr",gap:16,marginTop:16,alignItems:"start"}} className="mos-med2">
      <div style={{...card2,padding:16}}>

@@ -5,6 +5,7 @@ import{exchangeForSession,storeSession,getStoredSession,logout as sessionLogout,
 import{primitive,semantic,typography}from"../../../../packages/design-system/src";
 import{useNonce}from"../../lib/nonce-context";
 import{mensajeDeError}from"../../lib/idp-errors";
+import{safeNext}from"../../lib/safe-next";
 // EPIC J / eje E — PUERTA ÚNICA de sesión (auth split premium clínico). Una sola ventana:
 // panel de marca con la identidad del producto (Zero-Lost-Follow-Up) + tarjeta de acción.
 // Identidad de la organización vía Auth0 (PKCE) -> access token (audience medical-os) ->
@@ -88,6 +89,9 @@ export default function LoginPage(){
   const params=new URLSearchParams(location.search);
   const urlErr=params.get("error");
   const returning=params.has("code")&&params.has("state");
+  // Destino deep-link: en una visita normal viene en ?next= de la URL; tras volver de Auth0 la URL ya es /login?code&state
+  // (redirect_uri limpio), así que el next viaja en el appState y se recupera de handleRedirectCallback más abajo.
+  let nextTarget=safeNext(params.get("next"));
   // Cliente LISTO de inmediato: el constructor NO hace el checkSession con iframe del factory
   // (que se cuelga hasta el timeout con cookies de terceros bloqueadas). La puerta no espera.
   const c=new Auth0Client({domain,clientId,authorizationParams:{redirect_uri:window.location.origin+"/login",audience},cacheLocation:"memory"});
@@ -102,11 +106,14 @@ export default function LoginPage(){
   (async()=>{
    try{
     if(returning){
-     await c.handleRedirectCallback();
+     const cb=await c.handleRedirectCallback();
+     // El next se guardó en appState antes de ir a Auth0; se recupera aquí (ya validado por safeNext al guardarlo).
+     const appNext=(cb?.appState as{next?:string}|undefined)?.next;
+     if(appNext)nextTarget=safeNext(appNext);
      window.history.replaceState({},document.title,"/login");
     }
     const existing=getStoredSession();
-    if(existing){if(cancelled)return;setPhase("redirecting");window.location.replace("/workspace");return;}
+    if(existing){if(cancelled)return;setPhase("redirecting");window.location.replace(nextTarget);return;}
     // Sesión SSO activa? Silencioso (resuelve/rechaza rápido). Si falla, se queda la puerta visible.
     const idpToken=await c.getTokenSilently({authorizationParams:{audience}}).catch(()=>null);
     if(cancelled)return;
@@ -121,7 +128,7 @@ export default function LoginPage(){
      storeSession({...s,...(physicianName?{physicianName}:{}),...(physicianRole?{physicianRole}:{})});
      if(cancelled)return;
      setPhase("redirecting");
-     window.location.replace("/workspace");
+     window.location.replace(nextTarget);
     }else if(returning){
      setDetail("No se pudo emitir la sesión clínica tras el inicio de sesión. Reintenta.");
      setPhase("error");
@@ -131,7 +138,7 @@ export default function LoginPage(){
   return()=>{cancelled=true;};
  },[]);
 
- async function login(){setDetail("");try{await client?.loginWithRedirect();}catch(e){setDetail(String(e));setPhase("error");}}
+ async function login(){setDetail("");try{const next=safeNext(new URLSearchParams(location.search).get("next"));await client?.loginWithRedirect({appState:{next}});}catch(e){setDetail(String(e));setPhase("error");}}
  async function resetAuth(){try{await sessionLogout();}catch{/* limpiar aunque falle */}location.reload();}
 
  return <main className="mos-auth">
