@@ -5,6 +5,7 @@ import{AdmitBody as admission__AdmitBody,CancelBody as admission__CancelBody,Dis
 import{AssistBody as ai_copilot_gateway__AssistBody}from"./ai-copilot-gateway";
 import{ExecuteTaskBody as ai_gateway__ExecuteTaskBody,RegisterEnvelopeBody as ai_gateway__RegisterEnvelopeBody,RegisterTaskCardBody as ai_gateway__RegisterTaskCardBody}from"./ai-gateway-lifecycle";
 import{CreateBody as allergy__CreateBody,WhenBody as allergy__WhenBody}from"./allergy-lifecycle";
+import{AmendBody as antecedentes__AmendBody,RecordBody as antecedentes__RecordBody}from"./antecedentes-lifecycle";
 import{CancelBody as appointment__CancelBody,NoShowBody as appointment__NoShowBody,ScheduleBody as appointment__ScheduleBody,WhenBody as appointment__WhenBody}from"./appointment-lifecycle";
 import{CancelBody as careplan__CancelBody,ProposeBody as careplan__ProposeBody,WhenBody as careplan__WhenBody}from"./careplan-lifecycle";
 import{CodeBody as claim__CodeBody,DraftBody as claim__DraftBody,ReasonBody as claim__ReasonBody,RefBody as claim__RefBody,WhenBody as claim__WhenBody}from"./claim-lifecycle";
@@ -100,6 +101,8 @@ export const API_BODY_SCHEMAS:Readonly<Record<string,ZodType>>={
  "POST /api/v1/orders/{orderId}/placement":order__PlaceBody,
  "POST /api/v1/patients":patient__RegisterBody,
  "POST /api/v1/patients/{patientId}/amendment":patient__AmendBody,
+ "POST /api/v1/patients/{patientId}/antecedentes":antecedentes__RecordBody,
+ "POST /api/v1/patients/{patientId}/antecedentes/amendment":antecedentes__AmendBody,
  "POST /api/v1/patients/{patientId}/deactivation":patient__WhenBody,
  "POST /api/v1/patients/{patientId}/deceased":patient__DeceasedBody,
  "POST /api/v1/patients/{patientId}/reactivation":patient__WhenBody,

@@ -17,7 +17,7 @@ export{getSql,readPatientAccessLog,recordPhiAccess,revokeCurrentSession,sessionS
 export{lookupReplay,runClinicalCommand}from"./runtime/command";
 export{PAGE_LIMIT_DEFAULT,PAGE_LIMIT_MAX,clampLimit,decodeCursor,encodeCursor}from"./runtime/pagination";
 export{findPatientDuplicate,listPatients,patientBirthDate,patientDemographics,requireRegisteredPatient}from"./runtime/patients";
-export{activeAllergies,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,administeredVaccineCodes,administeredVaccines,carePlanGoals,latestVitalReadings,latestVitalsByType,patientDocuments,patientEgfr,patientObligations,patientVitals}from"./runtime/patient-facts";
+export{activeAllergies,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,administeredVaccineCodes,administeredVaccines,antecedentes,carePlanGoals,latestVitalReadings,latestVitalsByType,patientDocuments,patientEgfr,patientObligations,patientVitals}from"./runtime/patient-facts";
 export{analyteSeries,latestAnalyteReading}from"./runtime/lab-facts";
 export{agendaForDate,allergyRegistry,claimsRegistry,immunizationRegistry,ordersRegistry,problemRegistry,resultsRegistry,vitalsRegistry,carePlanRegistry,referralsRegistry,overdueOrders}from"./runtime/registries";
 export{officeSettings,regulatoryObligations}from"./runtime/office";
@@ -30,7 +30,7 @@ export{blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,coun
 export type{ClinicalCommandResult}from"./runtime/command";
 export type{Page}from"./runtime/pagination";
 export type{PatientDemographics,PatientDuplicate,PatientGuardian,PatientListQuery,PatientRow}from"./runtime/patients";
-export type{ActiveAllergy,AdministeredVaccine,CarePlanGoal,DocRow,FollowUpTask,VitalPoint,VitalReading}from"./runtime/patient-facts";
+export type{ActiveAllergy,AdministeredVaccine,CarePlanGoal,DocRow,FollowUpTask,PatientAntecedentes,VitalPoint,VitalReading}from"./runtime/patient-facts";
 export type{AnalyteReading}from"./runtime/lab-facts";
 export type{AgendaAppt,AllergyRow,ClaimRow,ImmunizationRow,OrderRow,ProblemRow,ResultRow,OverdueOrderRow}from"./runtime/registries";
 export type{OfficeSettingsRead,RegulatoryObligationRow}from"./runtime/office";
