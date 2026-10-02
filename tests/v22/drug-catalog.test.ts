@@ -98,6 +98,14 @@ describe("interacciones farmacológicas (EPIC AX)",()=>{
   expect(checkInteractions("omeprazol-20",["clopidogrel-75"]).severity).toBe("MODERATE");
   expect(checkInteractions("digoxina-0.25",["furosemida-40"]).severity).toBe("MODERATE");
  });
+ it("verapamilo/diltiazem + betabloqueador -> MAJOR; + estatina -> MODERATE (fármacos de la ampliación)",()=>{
+  expect(checkInteractions("verapamilo-80",["metoprolol-50"]).severity).toBe("MAJOR");
+  expect(checkInteractions("diltiazem-60",["atenolol-50"]).severity).toBe("MAJOR");
+  expect(checkInteractions("verapamilo-80",["simvastatina-20"]).severity).toBe("MODERATE");
+  // y los nuevos ARA-II/IECA/SNRI heredan las reglas de su clase
+  expect(checkInteractions("valsartan-80",["espironolactona-25"]).severity).toBe("MAJOR"); // ARB + ahorrador de K
+  expect(checkInteractions("venlafaxina-75",["fluoxetina-20"]).severity).toBe("MAJOR");     // doble serotoninérgico
+ });
 });
 describe("contraindicación fármaco–condición (EPIC AY)",()=>{
  it("AINE + ERC (N18.3) -> MAJOR (bloquea)",()=>{
