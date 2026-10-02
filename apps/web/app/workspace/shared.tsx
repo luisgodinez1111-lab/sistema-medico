@@ -182,6 +182,20 @@ export const DX_LABEL=(code:string):string=>{const c=code.trim().toUpperCase();
  return `CIE-10 ${c}`;};
 export type Snap=Readonly<{demographics:{age:number;sex:string;birthDate:string;name?:string;curp?:string;phone?:string;email?:string;address?:string;occupation?:string;maritalStatus?:string};problems:string[];allergies:string[];vitals:Record<string,string>;labs:{hba1c?:number;creatinine?:number;glucose?:number;ldl?:number;egfr?:number;egfrStage?:string};findings:{domain:string;severity:"CRITICAL"|"WARNING"|"INFO";summary:string}[]}>;
 export const SEX_ES:Record<string,string>={FEMALE:"Femenino",MALE:"Masculino",INTERSEX:"Intersexual",UNKNOWN:"Sin especificar"};
+// MATRIZ FUNDACIONAL — antecedentes (historia clínica basal). Estructurados para alimentar el CDS/IA (hábitos como flags),
+// no texto estático. El contenido viaja tal cual al evento RECORDED/AMENDED; el backend valida la forma (antecedentes-lifecycle).
+export type AntContent={
+ heredofamiliares?:{flags?:string[];notas?:string};
+ patologicos?:{cronicos?:string[];cirugias?:boolean;hospitalizaciones?:boolean;transfusiones?:boolean;notas?:string};
+ noPatologicos?:{tabaquismo:boolean;alcoholismo:boolean;toxicomanias:boolean;actividadFisica?:string;alimentacion?:string;notas?:string};
+ quirurgicos?:{notas?:string};
+ ginecoObstetricos?:{aplica?:boolean;notas?:string};
+};
+export type AntSnap=Readonly<{recorded:boolean;state:string|null;version:number;content:AntContent;updatedAt:string}>;
+export const ANT_EMPTY:AntContent={heredofamiliares:{flags:[],notas:""},patologicos:{cronicos:[],cirugias:false,hospitalizaciones:false,transfusiones:false,notas:""},noPatologicos:{tabaquismo:false,alcoholismo:false,toxicomanias:false,actividadFisica:"",alimentacion:"",notas:""},quirurgicos:{notas:""},ginecoObstetricos:{aplica:false,notas:""}};
+// Catálogos de los campos estructurados (marcables). Clínicos y amplios; las notas por sección cubren lo no listado.
+export const ANT_HEREDO=["Diabetes","Hipertensión","Cardiopatía","Cáncer","Enf. renal","Enf. tiroidea","Enf. mental","Asma/EPOC","Enf. autoinmune"];
+export const ANT_CRONICOS=["Diabetes","Hipertensión","Dislipidemia","Cardiopatía","ERC","EPOC/Asma","Hipotiroidismo","Cáncer","Epilepsia","Hepatopatía","VIH"];
 // Tiempo relativo compacto (panel de auditoría / actividad).
 export function relTime(iso:string):string{try{const d=Date.now()-new Date(iso).getTime();const m=Math.floor(d/60000);if(m<1)return "ahora";if(m<60)return `hace ${m} min`;const h=Math.floor(m/60);if(h<24)return `hace ${h} h`;const dd=Math.floor(h/24);return dd<30?`hace ${dd} d`:new Date(iso).toLocaleDateString("es-MX",{day:"2-digit",month:"short"});}catch{return "";}}
 // Panel 5 — clasificación del estado de un follow-up (por latestKind del agregado).
@@ -550,7 +564,7 @@ export type ExpTab="resumen"|"historia"|"diagnostico"|"tratamiento"|"coordinacio
 export const SECTION_EXP_TAB:Record<string,ExpTab>={
  "Seguimiento automático":"resumen","Seguridad y auditoría":"resumen","Portal del paciente":"resumen",
  "Panel del clínico":"admin","Paciente":"admin","Facturación":"admin",
- "Timeline del paciente":"historia","Encuentro":"historia","Evolución longitudinal":"historia",
+ "Antecedentes":"historia","Timeline del paciente":"historia","Encuentro":"historia","Evolución longitudinal":"historia",
  ["Medicación"]:"tratamiento",["Prescripción segura"]:"tratamiento",["Órdenes clínicas"]:"tratamiento",Vacunas:"tratamiento",["Plan de cuidados"]:"tratamiento",
  ["Resultados diagnósticos"]:"diagnostico",Alergias:"diagnostico",["Lista de problemas"]:"diagnostico",["Signos vitales"]:"diagnostico",
  Interconsultas:"coordinacion",Agenda:"coordinacion",["Consentimiento informado"]:"coordinacion",["Documentos clínicos"]:"coordinacion",["Obligaciones de seguimiento"]:"coordinacion",

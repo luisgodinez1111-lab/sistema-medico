@@ -489,9 +489,6 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Consulta: interrogatorio y exploración física son campos REALES que alimentan la nota clínica",async()=>{
   render(<Workspace/>);
   await abrirConsulta();
-  // antecedentes estructurables por categoría (Lote D §4.1)
-  fireEvent.click(screen.getByRole("button",{name:"+ Heredofamiliares"}));
-  expect((screen.getByPlaceholderText(/Antecedentes por categoría/) as HTMLTextAreaElement).value).toMatch(/HEREDOFAMILIARES:/);
   // secciones 4 y 5 ya no son colapsables decorativos: son textareas reales, con andamiaje estructurado (Lote D)
   fireEvent.click(screen.getByRole("button",{name:"Negativo por aparatos"}));
   expect((screen.getByPlaceholderText(/Interrogatorio por aparatos/) as HTMLTextAreaElement).value).toMatch(/Negado por aparatos/);
@@ -550,12 +547,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(plan.value.match(/FARMACOLÓGICO:/g)!.length).toBe(1);
  });
 
- it("vista Consulta: los antecedentes marcados se componen en la nota del encuentro",async()=>{
+ it("vista Consulta: los antecedentes NO se re-preguntan — son la matriz del expediente, read-only en la consulta",async()=>{
+  // Rediseño: la historia clínica basal (antecedentes/hábitos) se captura UNA vez en el expediente, no en cada consulta.
+  // La consulta ya no tiene checkboxes de antecedentes ni los serializa en la nota: solo los muestra y enlaza al expediente.
   render(<Workspace/>);
   await abrirConsulta();
-  fireEvent.click(screen.getByText("HTA")); // marca el antecedente (checkbox real)
-  fireEvent.click(screen.getByRole("button",{name:"Vista previa"})); // la nota compuesta muestra lo que se guardará
-  expect(await screen.findByText(/ANTECEDENTES RELEVANTES: HTA/)).toBeTruthy();
+  expect(screen.queryByText("HTA"),"la consulta ya no re-pregunta antecedentes con checkboxes").toBeNull();
+  expect(screen.queryByPlaceholderText(/Antecedentes por categoría/),"se eliminó el textarea de antecedentes de la consulta").toBeNull();
+  // En su lugar, un acceso para capturar/editar la matriz en el expediente del paciente.
+  expect(screen.getByRole("button",{name:/en el expediente/})).toBeTruthy();
+  // Y la nota del encuentro ya NO serializa antecedentes (viven en el expediente, no en la nota de la visita).
+  fireEvent.change(screen.getByPlaceholderText(/Motivo de la consulta/),{target:{value:"Cefalea tensional"}});
+  fireEvent.click(screen.getByRole("button",{name:"Vista previa"}));
+  expect(await screen.findByText(/MOTIVO DE CONSULTA: Cefalea tensional/)).toBeTruthy();
+  expect(screen.queryByText(/ANTECEDENTES RELEVANTES/),"la nota de la consulta ya no lleva antecedentes").toBeNull();
  });
 
  it("vista Alergias: registrar una alergia real desde el módulo (POST /allergies)",async()=>{
