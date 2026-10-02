@@ -85,6 +85,19 @@ describe("interacciones farmacológicas (EPIC AX)",()=>{
   expect(checkInteractions("amoxicilina-500",["metformina-850"]).found).toBe(false);
   expect(checkInteractions("ibuprofeno-400",[]).found).toBe(false);
  });
+ // Ampliación 2026 — pares de alto valor con ambos fármacos en el catálogo.
+ it("ciprofloxacino + teofilina/clozapina (CYP1A2) -> MAJOR; clopidogrel + anticoagulante -> MAJOR",()=>{
+  expect(checkInteractions("ciprofloxacino-500",["teofilina-300"])).toMatchObject({found:true,severity:"MAJOR"});
+  expect(checkInteractions("ciprofloxacino-500",["clozapina-100"]).severity).toBe("MAJOR");
+  expect(checkInteractions("clopidogrel-75",["warfarina-5"]).severity).toBe("MAJOR");
+  expect(checkInteractions("ciprofloxacino-500",["warfarina-5"]).severity).toBe("MAJOR");
+ });
+ it("prednisona + AINE, ARA-II + AINE, omeprazol + clopidogrel y digoxina + furosemida -> MODERATE",()=>{
+  expect(checkInteractions("prednisona-5",["ibuprofeno-400"])).toMatchObject({found:true,severity:"MODERATE"});
+  expect(checkInteractions("losartan-50",["naproxeno-500"]).severity).toBe("MODERATE");
+  expect(checkInteractions("omeprazol-20",["clopidogrel-75"]).severity).toBe("MODERATE");
+  expect(checkInteractions("digoxina-0.25",["furosemida-40"]).severity).toBe("MODERATE");
+ });
 });
 describe("contraindicación fármaco–condición (EPIC AY)",()=>{
  it("AINE + ERC (N18.3) -> MAJOR (bloquea)",()=>{
