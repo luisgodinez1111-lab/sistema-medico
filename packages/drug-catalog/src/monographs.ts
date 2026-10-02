@@ -32,6 +32,9 @@ function parse():Row[]{
  return LIST;
 }
 export function drugMonographCount():number{return parse().length;}
+/** Todas las claves normalizadas de las monografías (nombres de sustancia en español). Lo usa el generador de
+ *  ingesta (scripts/ops/drug-ingest.mts) como vocabulario español real a resolver contra RxNorm. */
+export function allMonographKeys():readonly string[]{return parse().map(m=>m.key);}
 /** Raíz para emparejar variantes de género (nifedipino↔nifedipina, ciprofloxacino↔ciprofloxacina): quita la vocal final. */
 function stem(s:string):string{return s.replace(/[oa]$/,"");}
 /** Monografía por nombre de sustancia. Emparejado tolerante: exacto → sal («olmesartán» ↔ «olmesartán medoxomil») → raíz

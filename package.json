@@ -26,6 +26,7 @@
     "openapi:check": "tsx scripts/ops/api-body-registry.mts --check && tsx scripts/ops/openapi.mts --check",
     "phi:retention": "tsx scripts/ops/phi-retention.mts",
     "openapi:registry": "tsx scripts/ops/api-body-registry.mts",
+    "drug:ingest": "tsx scripts/ops/drug-ingest.mts",
     "capability:check": "tsx packages/clinical-safety/src/capability-admission.ts",
     "algorithms:inventory": "tsx scripts/docs/algorithm-inventory.mts",
     "evidence:dossier": "tsx scripts/v22/build-c5-dossier.mts"

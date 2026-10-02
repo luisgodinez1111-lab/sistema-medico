@@ -1,0 +1,4647 @@
+{
+ "generatedAt": "2026-10-02",
+ "source": "RxNorm/RxClass ATC vía RxNav (NLM)",
+ "totalMonographs": 1217,
+ "alreadyCurated": 168,
+ "processed": 1049,
+ "admitted": 105,
+ "curationNeeded": 944,
+ "byReason": {
+  "CLASS_NOT_CROSSWALKED": 779,
+  "LOW_CONFIDENCE_MATCH": 71,
+  "NO_RXCUI": 29,
+  "RENAL_EXCEPTION_NEEDS_CURATION": 3,
+  "NO_ATC": 62
+ },
+ "items": [
+  {
+   "name": "abacavir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AF Nucleoside and nucleotide reverse transcriptase inhibitors"
+  },
+  {
+   "name": "abatacept",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AA Selective immunosuppressants"
+  },
+  {
+   "name": "abemaciclib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EF Cyclin-dependent kinase (CDK) inhibitors"
+  },
+  {
+   "name": "abiraterona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BX Other hormone antagonists and related agents"
+  },
+  {
+   "name": "abrocitinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AH Agents for dermatitis, excluding corticosteroids"
+  },
+  {
+   "name": "acalabrutinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EL Bruton's tyrosine kinase (BTK) inhibitors"
+  },
+  {
+   "name": "acarbosa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A10BF Alpha glucosidase inhibitors"
+  },
+  {
+   "name": "acetico acido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G01AD Organic acids; S02AA Antiinfectives"
+  },
+  {
+   "name": "acetilcarnitina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06BX Other psychostimulants and nootropics"
+  },
+  {
+   "name": "acetilcisteina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R05CB Mucolytics; S01XA Other ophthalmologicals; V03AB Antidotes"
+  },
+  {
+   "name": "acido tranexamico",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02AA Amino acids"
+  },
+  {
+   "name": "acido ursodesoxicolico",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V08AC Watersoluble, hepatotropic X-ray contrast media"
+  },
+  {
+   "name": "acitretina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D05BB Retinoids for treatment of psoriasis"
+  },
+  {
+   "name": "adalimumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AB Tumor necrosis factor alpha (TNF-alpha) inhibitors"
+  },
+  {
+   "name": "adapaleno",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D10AD Retinoids for topical use in acne"
+  },
+  {
+   "name": "adrenalina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A01AD Other agents for local oral treatment; B02BC Local hemostatics; C01CA Adrenergic and dopaminergic agents; R01AA Sympathomimetics, plain; R03AA Alpha- and beta-adrenoreceptor agonists; S01EA Sympathomimetics in glaucoma therapy"
+  },
+  {
+   "name": "afatinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EB Epidermal growth factor receptor (EGFR) tyrosine kinase inhibitors"
+  },
+  {
+   "name": "aflibercept",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XX Other antineoplastic agents; S01LA Antineovascularisation agents"
+  },
+  {
+   "name": "agalsidasa alfa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AB Enzymes"
+  },
+  {
+   "name": "agalsidasa beta",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AB Enzymes"
+  },
+  {
+   "name": "albendazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "P02CA Benzimidazole derivatives"
+  },
+  {
+   "name": "alcaftadina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01GX Other antiallergics"
+  },
+  {
+   "name": "alectinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01ED Anaplastic lymphoma kinase (ALK) inhibitors"
+  },
+  {
+   "name": "alemtuzumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AG Monoclonal antibodies"
+  },
+  {
+   "name": "alirocumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C10AX Other lipid modifying agents"
+  },
+  {
+   "name": "allopurinol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M04AA Preparations inhibiting uric acid production"
+  },
+  {
+   "name": "alopurinol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M04AA Preparations inhibiting uric acid production"
+  },
+  {
+   "name": "alpelisib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EM Phosphatidylinositol-3-kinase (Pi3K) inhibitors"
+  },
+  {
+   "name": "alprostadil",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01EA Prostaglandins; G04BE Drugs used in erectile dysfunction"
+  },
+  {
+   "name": "alteplasa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B01AD Enzymes; S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "aluminio hidroxido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A02AB Aluminium compounds"
+  },
+  {
+   "name": "amantadina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N04BB Adamantane derivatives"
+  },
+  {
+   "name": "ambrisentan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C02KX Antihypertensives for pulmonary arterial hypertension"
+  },
+  {
+   "name": "ambroxol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R02AD Anesthetics, local; R05CB Mucolytics"
+  },
+  {
+   "name": "amilorida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C03DB Other potassium-sparing agents"
+  },
+  {
+   "name": "amivantamab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FX Other monoclonal antibodies and antibody drug conjugates"
+  },
+  {
+   "name": "amorolfina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AE Other antifungals for topical use"
+  },
+  {
+   "name": "anagrelida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XX Other antineoplastic agents"
+  },
+  {
+   "name": "anastrozol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BG Aromatase inhibitors"
+  },
+  {
+   "name": "anidulafungina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J02AX Other antimycotics for systemic use"
+  },
+  {
+   "name": "anifrolumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AG Monoclonal antibodies"
+  },
+  {
+   "name": "antipirina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02BB Pyrazolones; S02DA Analgesics and anesthetics"
+  },
+  {
+   "name": "antitrombina iii",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B01AB Heparin group"
+  },
+  {
+   "name": "apalutamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BB Anti-androgens"
+  },
+  {
+   "name": "apremilast",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AA Selective immunosuppressants"
+  },
+  {
+   "name": "aprepitant",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A04AD Other antiemetics"
+  },
+  {
+   "name": "aprotinina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02AB Proteinase inhibitors"
+  },
+  {
+   "name": "armodafinilo",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06BA Centrally acting sympathomimetics"
+  },
+  {
+   "name": "asciminib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EA BCR-ABL tyrosine kinase inhibitors"
+  },
+  {
+   "name": "ascorbico acido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A11GA Ascorbic acid (vitamin C), plain; G01AD Organic acids; S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "asparaginasa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XX Other antineoplastic agents"
+  },
+  {
+   "name": "atezolizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FF PD-1/PD-L1 (Programmed cell death protein 1/death ligand 1) inhibitors"
+  },
+  {
+   "name": "atogepant",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02CD Calcitonin gene-related peptide (CGRP) antagonists"
+  },
+  {
+   "name": "atomoxetina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06BA Centrally acting sympathomimetics"
+  },
+  {
+   "name": "atosiban",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G02CX Other gynecologicals"
+  },
+  {
+   "name": "atracurio",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M03AC Other quaternary ammonium compounds"
+  },
+  {
+   "name": "atropina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A03BA Belladonna alkaloids, tertiary amines; S01FA Anticholinergics"
+  },
+  {
+   "name": "avalglucosidasa alfa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AB Enzymes"
+  },
+  {
+   "name": "avatrombopag",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BX Other systemic hemostatics"
+  },
+  {
+   "name": "avelumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FF PD-1/PD-L1 (Programmed cell death protein 1/death ligand 1) inhibitors"
+  },
+  {
+   "name": "axitinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EK Vascular endothelial growth factor receptor (VEGFR) tyrosine kinase inhibitors"
+  },
+  {
+   "name": "azacitidina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BC Pyrimidine analogues"
+  },
+  {
+   "name": "azatioprina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AX Other immunosuppressants"
+  },
+  {
+   "name": "azelastina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R01AC Antiallergic agents, excl. corticosteroids; R06AX Other antihistamines for systemic use; S01GX Other antiallergics"
+  },
+  {
+   "name": "aztreonam",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J01DF Monobactams"
+  },
+  {
+   "name": "azul de metileno",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V03AB Antidotes; V04CG Tests for gastric secretion"
+  },
+  {
+   "name": "bacitracina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D06AX Other antibiotics for topical use; J01XX Other antibacterials; R02AB Antibiotics; S01AA Antibiotics"
+  },
+  {
+   "name": "baclofeno",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M03BX Other centrally acting agents"
+  },
+  {
+   "name": "baricitinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AF Janus-associated kinase (JAK) inhibitors"
+  },
+  {
+   "name": "basiliximab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AC Interleukin inhibitors"
+  },
+  {
+   "name": "belatacept",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AA Selective immunosuppressants"
+  },
+  {
+   "name": "belimumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AG Monoclonal antibodies"
+  },
+  {
+   "name": "belzutifan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XX Other antineoplastic agents"
+  },
+  {
+   "name": "bemiparina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B01AB Heparin group"
+  },
+  {
+   "name": "bencidamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A01AD Other agents for local oral treatment; G02CC Antiinflammatory products for vaginal administration; M01AX Other antiinflammatory and antirheumatic agents, non-steroids; M02AA Antiinflammatory preparations, non-steroids for topical use; R02AX Other throat preparations"
+  },
+  {
+   "name": "bendamustina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01AA Nitrogen mustard analogues"
+  },
+  {
+   "name": "benralizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R03DX Other systemic drugs for obstructive airway diseases"
+  },
+  {
+   "name": "benznidazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "P01CA Nitroimidazole derivatives"
+  },
+  {
+   "name": "benzocaina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C05AD Local anesthetics; D04AB Anesthetics for topical use; N01BA Esters of aminobenzoic acid; R02AD Anesthetics, local"
+  },
+  {
+   "name": "benzoilo peroxido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D10AE Peroxides"
+  },
+  {
+   "name": "berotralstat",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B06AC Drugs used in hereditary angioedema"
+  },
+  {
+   "name": "besifloxacina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01AE Fluoroquinolones"
+  },
+  {
+   "name": "beta caroteno",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A11CA Vitamin A, plain; D02BB Protectives against UV-radiation for systemic use"
+  },
+  {
+   "name": "betahistina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07CA Antivertigo preparations"
+  },
+  {
+   "name": "bevacizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FG VEGF/VEGFR (Vascular Endothelial Growth Factor / -Receptor) inhibitors; S01LA Antineovascularisation agents"
+  },
+  {
+   "name": "bexaroteno",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XF Retinoids for cancer treatment"
+  },
+  {
+   "name": "bezafibrato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C10AB Fibrates"
+  },
+  {
+   "name": "bicalutamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BB Anti-androgens"
+  },
+  {
+   "name": "bifonazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AC Imidazole and triazole derivatives"
+  },
+  {
+   "name": "bimatoprost",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01EE Prostaglandin analogues"
+  },
+  {
+   "name": "binimetinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EE Mitogen-activated protein kinase (MEK) inhibitors"
+  },
+  {
+   "name": "biotina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A11HA Other plain vitamin preparations"
+  },
+  {
+   "name": "biperideno",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N04AA Tertiary amines"
+  },
+  {
+   "name": "bisacodilo",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A06AB Contact laxatives; A06AG Enemas"
+  },
+  {
+   "name": "bleomicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01DC Other cytotoxic antibiotics"
+  },
+  {
+   "name": "blinatumomab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FX Other monoclonal antibodies and antibody drug conjugates"
+  },
+  {
+   "name": "bortezomib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XG Proteasome inhibitors"
+  },
+  {
+   "name": "bosentano",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C02KX Antihypertensives for pulmonary arterial hypertension"
+  },
+  {
+   "name": "bosutinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EA BCR-ABL tyrosine kinase inhibitors"
+  },
+  {
+   "name": "brentuximab vedotina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FX Other monoclonal antibodies and antibody drug conjugates"
+  },
+  {
+   "name": "brigatinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01ED Anaplastic lymphoma kinase (ALK) inhibitors"
+  },
+  {
+   "name": "brimonidina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AX Other dermatologicals; S01EA Sympathomimetics in glaucoma therapy; S01GA Sympathomimetics used as decongestants"
+  },
+  {
+   "name": "brinzolamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01EC Carbonic anhydrase inhibitors"
+  },
+  {
+   "name": "brivaracetam",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AX Other antiepileptics"
+  },
+  {
+   "name": "brolucizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01LA Antineovascularisation agents"
+  },
+  {
+   "name": "bromfenaco",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01BC Antiinflammatory agents, non-steroids"
+  },
+  {
+   "name": "bromhexina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R05CB Mucolytics"
+  },
+  {
+   "name": "buflomedilo",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C04AX Other peripheral vasodilators"
+  },
+  {
+   "name": "bupivacaina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N01BB Amides"
+  },
+  {
+   "name": "bupropion",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06AX Other antidepressants"
+  },
+  {
+   "name": "buserelina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02AE Gonadotropin releasing hormone analogues"
+  },
+  {
+   "name": "busulfan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01AB Alkyl sulfonates"
+  },
+  {
+   "name": "cabazitaxel",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01CD Taxanes"
+  },
+  {
+   "name": "cabergolina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G02CB Prolactine inhibitors; N04BC Dopamine agonists"
+  },
+  {
+   "name": "cabotegravir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AJ Integrase inhibitors"
+  },
+  {
+   "name": "cabozantinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "cafeina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AX Other dermatologicals; N06BC Xanthine derivatives"
+  },
+  {
+   "name": "calcio acetato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V03AE Drugs for treatment of hyperkalemia and hyperphosphatemia"
+  },
+  {
+   "name": "calcio gluconato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A12AA Calcium; B05XA Electrolyte solutions; D11AX Other dermatologicals"
+  },
+  {
+   "name": "calcipotriol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D05AX Other antipsoriatics for topical use"
+  },
+  {
+   "name": "calcitriol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A11CC Vitamin D and analogues; D05AX Other antipsoriatics for topical use"
+  },
+  {
+   "name": "canakinumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AC Interleukin inhibitors"
+  },
+  {
+   "name": "capecitabina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BC Pyrimidine analogues"
+  },
+  {
+   "name": "capivasertib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "carbocisteina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R05CB Mucolytics"
+  },
+  {
+   "name": "carbon activado",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A07BA Charcoal preparations"
+  },
+  {
+   "name": "carbonato de calcio",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A02AC Calcium compounds; A12AA Calcium"
+  },
+  {
+   "name": "carboplatino",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XA Platinum compounds"
+  },
+  {
+   "name": "carfilzomib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XG Proteasome inhibitors"
+  },
+  {
+   "name": "carglumico acido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AA Amino acids and derivatives"
+  },
+  {
+   "name": "carisoprodol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M03BA Carbamic acid esters"
+  },
+  {
+   "name": "carmustina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01AD Nitrosoureas"
+  },
+  {
+   "name": "carnitina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AA Amino acids and derivatives"
+  },
+  {
+   "name": "caspofungina acetato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J02AX Other antimycotics for systemic use"
+  },
+  {
+   "name": "ceftarolina fosamilo",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J01DI Other cephalosporins and penems"
+  },
+  {
+   "name": "certolizumab pegol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AB Tumor necrosis factor alpha (TNF-alpha) inhibitors"
+  },
+  {
+   "name": "cetirizina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AE Piperazine derivatives; S01GX Other antiallergics"
+  },
+  {
+   "name": "cetrorelix",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01CC Anti-gonadotropin-releasing hormones"
+  },
+  {
+   "name": "cetuximab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FE EGFR (Epidermal Growth Factor Receptor) inhibitors"
+  },
+  {
+   "name": "ciclobenzaprina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M03BX Other centrally acting agents"
+  },
+  {
+   "name": "ciclofosfamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01AA Nitrogen mustard analogues"
+  },
+  {
+   "name": "ciclopentolato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01FA Anticholinergics"
+  },
+  {
+   "name": "ciclopirox",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AE Other antifungals for topical use; G01AX Other antiinfectives and antiseptics"
+  },
+  {
+   "name": "ciclosporina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AD Calcineurin inhibitors; S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "cinacalcet",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H05BX Other anti-parathyroid agents"
+  },
+  {
+   "name": "cinarizina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07CA Antivertigo preparations"
+  },
+  {
+   "name": "ciprofibrato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C10AB Fibrates"
+  },
+  {
+   "name": "ciproheptadina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AX Other antihistamines for systemic use"
+  },
+  {
+   "name": "ciproterona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03HA Antiandrogens, plain"
+  },
+  {
+   "name": "cisplatino",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XA Platinum compounds"
+  },
+  {
+   "name": "cisteamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AA Amino acids and derivatives; S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "citarabina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BC Pyrimidine analogues"
+  },
+  {
+   "name": "citicolina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06BX Other psychostimulants and nootropics"
+  },
+  {
+   "name": "cladribina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BB Purine analogues; L04AA Selective immunosuppressants"
+  },
+  {
+   "name": "clenbuterol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R03AC Selective beta-2-adrenoreceptor agonists; R03CC Selective beta-2-adrenoreceptor agonists"
+  },
+  {
+   "name": "clobetasol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D07AD Corticosteroids, very potent (group IV); S01BA Corticosteroids, plain"
+  },
+  {
+   "name": "clobetasona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D07AB Corticosteroids, moderately potent (group II); S01BA Corticosteroids, plain"
+  },
+  {
+   "name": "clofarabina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BB Purine analogues"
+  },
+  {
+   "name": "clomifeno citrato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03GB Ovulation stimulants, synthetic"
+  },
+  {
+   "name": "clonidina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C02AC Imidazoline receptor agonists; N02CX Other antimigraine preparations; S01EA Sympathomimetics in glaucoma therapy"
+  },
+  {
+   "name": "clorambucilo",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01AA Nitrogen mustard analogues"
+  },
+  {
+   "name": "cloranfenicol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D06AX Other antibiotics for topical use; D10AF Antiinfectives for treatment of acne; G01AA Antibiotics; J01BA Amphenicols; S01AA Antibiotics; S02AA Antiinfectives; S03AA Antiinfectives"
+  },
+  {
+   "name": "clorfenamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AB Substituted alkylamines"
+  },
+  {
+   "name": "clorfeniramina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AB Substituted alkylamines"
+  },
+  {
+   "name": "clorhexidina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A01AB Antiinfectives and antiseptics for local oral treatment; B05CA Antiinfectives; D08AC Biguanides and amidines; D09AA Medicated dressings with antiinfectives; R02AA Antiseptics; S01AX Other antiinfectives; S02AA Antiinfectives; S03AA Antiinfectives"
+  },
+  {
+   "name": "cloroquina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "P01BA Aminoquinolines"
+  },
+  {
+   "name": "cloroxilenol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D08AE Phenol and derivatives"
+  },
+  {
+   "name": "clorpromazina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05AA Phenothiazines with aliphatic side-chain"
+  },
+  {
+   "name": "clorzoxazona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M03BB Oxazol, thiazine, and triazine derivatives"
+  },
+  {
+   "name": "clotrimazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A01AB Antiinfectives and antiseptics for local oral treatment; D01AC Imidazole and triazole derivatives; G01AF Imidazole derivatives"
+  },
+  {
+   "name": "cobimetinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EE Mitogen-activated protein kinase (MEK) inhibitors"
+  },
+  {
+   "name": "colagenasa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D03BA Proteolytic enzymes"
+  },
+  {
+   "name": "colageno",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BC Local hemostatics; G04BX Other urologicals"
+  },
+  {
+   "name": "colchicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M04AC Preparations with no effect on uric acid metabolism"
+  },
+  {
+   "name": "colestiramina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C10AC Bile acid sequestrants"
+  },
+  {
+   "name": "colistina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A07AA Antibiotics; J01XB Polymyxins"
+  },
+  {
+   "name": "coriogonadotropina alfa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03GA Gonadotropins"
+  },
+  {
+   "name": "crisaborol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AH Agents for dermatitis, excluding corticosteroids"
+  },
+  {
+   "name": "crizotinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01ED Anaplastic lymphoma kinase (ALK) inhibitors"
+  },
+  {
+   "name": "dabrafenib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EC B-Raf serine-threonine kinase (BRAF) inhibitors"
+  },
+  {
+   "name": "dacarbazina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01AX Other alkylating agents"
+  },
+  {
+   "name": "dacomitinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EB Epidermal growth factor receptor (EGFR) tyrosine kinase inhibitors"
+  },
+  {
+   "name": "dactinomicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01DA Actinomycines"
+  },
+  {
+   "name": "danazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03XA Antigonadotropins and similar agents"
+  },
+  {
+   "name": "dapsona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D10AX Other anti-acne preparations for topical use; J04BA Drugs for treatment of lepra"
+  },
+  {
+   "name": "daptomicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J01XX Other antibacterials"
+  },
+  {
+   "name": "daratumumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FC CD38 (Clusters of Differentiation 38) inhibitors"
+  },
+  {
+   "name": "darifenacina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G04BD Drugs for urinary frequency and incontinence"
+  },
+  {
+   "name": "darolutamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BB Anti-androgens"
+  },
+  {
+   "name": "darunavir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AE Protease inhibitors"
+  },
+  {
+   "name": "dasatinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EA BCR-ABL tyrosine kinase inhibitors"
+  },
+  {
+   "name": "daunorrubicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01DB Anthracyclines and related substances"
+  },
+  {
+   "name": "decitabina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BC Pyrimidine analogues"
+  },
+  {
+   "name": "deferasirox",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V03AC Iron chelating agents"
+  },
+  {
+   "name": "degarelix",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BX Other hormone antagonists and related agents"
+  },
+  {
+   "name": "denosumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M05BX Other drugs affecting bone structure and mineralization"
+  },
+  {
+   "name": "desflurano",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N01AB Halogenated hydrocarbons"
+  },
+  {
+   "name": "desloratadina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AX Other antihistamines for systemic use"
+  },
+  {
+   "name": "desmopresina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01BA Vasopressin and analogues"
+  },
+  {
+   "name": "desogestrel",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03AC Progestogens"
+  },
+  {
+   "name": "desonida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D07AB Corticosteroids, moderately potent (group II); S01BA Corticosteroids, plain"
+  },
+  {
+   "name": "deucravacitinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AF Janus-associated kinase (JAK) inhibitors"
+  },
+  {
+   "name": "dexclorfeniramina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AB Substituted alkylamines"
+  },
+  {
+   "name": "dexmedetomidina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05CM Other hypnotics and sedatives"
+  },
+  {
+   "name": "dextran",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B05AA Blood substitutes and plasma protein fractions"
+  },
+  {
+   "name": "dextrometorfano",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R05DA Opium alkaloids and derivatives"
+  },
+  {
+   "name": "dextrosa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B05CX Other irrigating solutions; V04CA Tests for diabetes; V06DC Carbohydrates"
+  },
+  {
+   "name": "diatrizoico acido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V08AA Watersoluble, nephrotropic, high osmolar X-ray contrast media"
+  },
+  {
+   "name": "diazoxido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C02DA Thiazide derivatives; V03AH Drugs for treatment of hypoglycemia"
+  },
+  {
+   "name": "dibucaina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C05AD Local anesthetics; D04AB Anesthetics for topical use; N01BB Amides; S01HA Local anesthetics; S02DA Analgesics and anesthetics"
+  },
+  {
+   "name": "diciclomina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A03AA Synthetic anticholinergics, esters with tertiary amino group"
+  },
+  {
+   "name": "dienogest",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03DB Pregnadien derivatives"
+  },
+  {
+   "name": "dietilestilbestrol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03CB Synthetic estrogens, plain; G03CC Estrogens, combinations with other drugs; L02AA Estrogens"
+  },
+  {
+   "name": "difenhidramina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D04AA Antihistamines for topical use; R06AA Aminoalkyl ethers"
+  },
+  {
+   "name": "diflorasona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D07AC Corticosteroids, potent (group III)"
+  },
+  {
+   "name": "difluprednato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D07AC Corticosteroids, potent (group III); S01BA Corticosteroids, plain"
+  },
+  {
+   "name": "dihidroergocristina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C04AE Ergot alkaloids"
+  },
+  {
+   "name": "dihidroestreptomicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01AA Antibiotics"
+  },
+  {
+   "name": "dimenhidrinato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AA Aminoalkyl ethers"
+  },
+  {
+   "name": "dimeticona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "P03AX Other ectoparasiticides, incl. scabicides"
+  },
+  {
+   "name": "dinoprostona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G02AD Prostaglandins"
+  },
+  {
+   "name": "diosmina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C05CA Bioflavonoids"
+  },
+  {
+   "name": "diroximel fumarato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AX Other immunosuppressants"
+  },
+  {
+   "name": "disulfiram",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07BB Drugs used in alcohol dependence; P03AA Sulfur containing products"
+  },
+  {
+   "name": "dobutamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01CA Adrenergic and dopaminergic agents"
+  },
+  {
+   "name": "docetaxel",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01CD Taxanes"
+  },
+  {
+   "name": "dolutegravir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AJ Integrase inhibitors"
+  },
+  {
+   "name": "donepecilo",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06DA Anticholinesterases"
+  },
+  {
+   "name": "dopamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01CA Adrenergic and dopaminergic agents"
+  },
+  {
+   "name": "doravirina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AG Non-nucleoside reverse transcriptase inhibitors"
+  },
+  {
+   "name": "dorzolamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01EC Carbonic anhydrase inhibitors"
+  },
+  {
+   "name": "dostarlimab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FF PD-1/PD-L1 (Programmed cell death protein 1/death ligand 1) inhibitors"
+  },
+  {
+   "name": "doxorrubicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01DB Anthracyclines and related substances"
+  },
+  {
+   "name": "doxorrubicina liposomal",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01DB Anthracyclines and related substances"
+  },
+  {
+   "name": "drospirenona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03AC Progestogens"
+  },
+  {
+   "name": "dulaglutida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A10BJ Glucagon-like peptide-1 (GLP-1) analogues"
+  },
+  {
+   "name": "dupilumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AH Agents for dermatitis, excluding corticosteroids"
+  },
+  {
+   "name": "durvalumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FF PD-1/PD-L1 (Programmed cell death protein 1/death ligand 1) inhibitors"
+  },
+  {
+   "name": "dutasterida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G04CB Testosterone-5-alpha reductase inhibitors"
+  },
+  {
+   "name": "dydrogesterona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03DB Pregnadien derivatives"
+  },
+  {
+   "name": "ebastina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AX Other antihistamines for systemic use"
+  },
+  {
+   "name": "econazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AC Imidazole and triazole derivatives; G01AF Imidazole derivatives"
+  },
+  {
+   "name": "eculizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AJ Complement inhibitors"
+  },
+  {
+   "name": "edaravona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07XX Other nervous system drugs"
+  },
+  {
+   "name": "edoxaban",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B01AF Direct factor Xa inhibitors"
+  },
+  {
+   "name": "efavirenz",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AG Non-nucleoside reverse transcriptase inhibitors"
+  },
+  {
+   "name": "efedrina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01CA Adrenergic and dopaminergic agents; R01AA Sympathomimetics, plain; R01AB Sympathomimetics, combinations excl. corticosteroids; R03CA Alpha- and beta-adrenoreceptor agonists; S01FB Sympathomimetics excl. antiglaucoma preparations"
+  },
+  {
+   "name": "efinaconazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AC Imidazole and triazole derivatives"
+  },
+  {
+   "name": "eletriptan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02CC Selective serotonin (5HT1) agonists"
+  },
+  {
+   "name": "eliglustat",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AX Various alimentary tract and metabolism products"
+  },
+  {
+   "name": "elosulfase alfa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AB Enzymes"
+  },
+  {
+   "name": "eltrombopag",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BX Other systemic hemostatics"
+  },
+  {
+   "name": "emicizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BX Other systemic hemostatics"
+  },
+  {
+   "name": "emtricitabina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AF Nucleoside and nucleotide reverse transcriptase inhibitors"
+  },
+  {
+   "name": "encorafenib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EC B-Raf serine-threonine kinase (BRAF) inhibitors"
+  },
+  {
+   "name": "enfuvirtida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AX Other antivirals"
+  },
+  {
+   "name": "entacapona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N04BX Other dopaminergic agents"
+  },
+  {
+   "name": "entecavir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AF Nucleoside and nucleotide reverse transcriptase inhibitors"
+  },
+  {
+   "name": "entrectinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "enzalutamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BB Anti-androgens"
+  },
+  {
+   "name": "epcoritamab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FX Other monoclonal antibodies and antibody drug conjugates"
+  },
+  {
+   "name": "epinastina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AX Other antihistamines for systemic use; S01GX Other antiallergics"
+  },
+  {
+   "name": "epirrubicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01DB Anthracyclines and related substances"
+  },
+  {
+   "name": "eptacog alfa (activado)",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BD Blood coagulation factors"
+  },
+  {
+   "name": "erdafitinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EN Fibroblast growth factor receptor (FGFR) tyrosine kinase inhibitors"
+  },
+  {
+   "name": "erenumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02CD Calcitonin gene-related peptide (CGRP) antagonists"
+  },
+  {
+   "name": "ergocalciferol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A11CC Vitamin D and analogues"
+  },
+  {
+   "name": "ergonovina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G02AB Ergot alkaloids"
+  },
+  {
+   "name": "ergotamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02CA Ergot alkaloids"
+  },
+  {
+   "name": "eribulina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XX Other antineoplastic agents"
+  },
+  {
+   "name": "erlotinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EB Epidermal growth factor receptor (EGFR) tyrosine kinase inhibitors"
+  },
+  {
+   "name": "ertapenem",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J01DH Carbapenems"
+  },
+  {
+   "name": "esketamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N01AX Other general anesthetics; N06AX Other antidepressants"
+  },
+  {
+   "name": "eslicarbazepina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AF Carboxamide derivatives"
+  },
+  {
+   "name": "espesolimab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AC Interleukin inhibitors"
+  },
+  {
+   "name": "estiripentol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AX Other antiepileptics"
+  },
+  {
+   "name": "estreptomicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A07AA Antibiotics; J01GA Streptomycins"
+  },
+  {
+   "name": "estreptoquinasa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B01AD Enzymes"
+  },
+  {
+   "name": "eszopiclona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05CF Benzodiazepine related drugs"
+  },
+  {
+   "name": "etambutol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J04AK Other drugs for treatment of tuberculosis"
+  },
+  {
+   "name": "etanercept",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AB Tumor necrosis factor alpha (TNF-alpha) inhibitors"
+  },
+  {
+   "name": "etelcalcetida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H05BX Other anti-parathyroid agents"
+  },
+  {
+   "name": "etilefrina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01CA Adrenergic and dopaminergic agents"
+  },
+  {
+   "name": "etofenamato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M02AA Antiinflammatory preparations, non-steroids for topical use"
+  },
+  {
+   "name": "etomidato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N01AX Other general anesthetics"
+  },
+  {
+   "name": "etonogestrel",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03AC Progestogens"
+  },
+  {
+   "name": "etoposido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01CB Podophyllotoxin derivatives"
+  },
+  {
+   "name": "etosuximida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AD Succinimide derivatives"
+  },
+  {
+   "name": "etravirina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AG Non-nucleoside reverse transcriptase inhibitors"
+  },
+  {
+   "name": "everolimus",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EG Mammalian target of rapamycin (mTOR) kinase inhibitors; L04AH Mammalian target of rapamycin (mTOR) kinase inhibitors"
+  },
+  {
+   "name": "evolocumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C10AX Other lipid modifying agents"
+  },
+  {
+   "name": "exemestano",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BG Aromatase inhibitors"
+  },
+  {
+   "name": "exenatida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A10BJ Glucagon-like peptide-1 (GLP-1) analogues"
+  },
+  {
+   "name": "ezetimiba",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C10AX Other lipid modifying agents"
+  },
+  {
+   "name": "ezetimibe",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C10AX Other lipid modifying agents"
+  },
+  {
+   "name": "factor ix",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BD Blood coagulation factors"
+  },
+  {
+   "name": "factor ix recombinante",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BD Blood coagulation factors"
+  },
+  {
+   "name": "factor viii",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BD Blood coagulation factors"
+  },
+  {
+   "name": "fampridina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07XX Other nervous system drugs"
+  },
+  {
+   "name": "faricimab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01LA Antineovascularisation agents"
+  },
+  {
+   "name": "febuxostat",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M04AA Preparations inhibiting uric acid production"
+  },
+  {
+   "name": "fedratinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EJ Janus-associated kinase (JAK) inhibitors"
+  },
+  {
+   "name": "felbamato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AX Other antiepileptics"
+  },
+  {
+   "name": "fenazopiridina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G04BX Other urologicals"
+  },
+  {
+   "name": "fenilefrina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01CA Adrenergic and dopaminergic agents; C05AX Other agents for treatment of hemorrhoids and anal fissures for topical use; R01AA Sympathomimetics, plain; R01AB Sympathomimetics, combinations excl. corticosteroids; R01BA Sympathomimetics; S01FB Sympathomimetics excl. antiglaucoma preparations; S01GA Sympathomimetics used as decongestants"
+  },
+  {
+   "name": "feniramina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D04AA Antihistamines for topical use; R06AB Substituted alkylamines"
+  },
+  {
+   "name": "fenofibrato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C10AB Fibrates"
+  },
+  {
+   "name": "fenolftaleina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A06AB Contact laxatives"
+  },
+  {
+   "name": "fenoterol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G02CA Sympathomimetics, labour repressants; R03AC Selective beta-2-adrenoreceptor agonists; R03CC Selective beta-2-adrenoreceptor agonists"
+  },
+  {
+   "name": "fexofenadina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AX Other antihistamines for systemic use"
+  },
+  {
+   "name": "filgrastim",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L03AA Colony stimulating factors"
+  },
+  {
+   "name": "finasterida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AX Other dermatologicals; G04CB Testosterone-5-alpha reductase inhibitors"
+  },
+  {
+   "name": "finasteride",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AX Other dermatologicals; G04CB Testosterone-5-alpha reductase inhibitors"
+  },
+  {
+   "name": "fingolimod",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AE Sphingosine-1-phosphate (S1P) receptor modulators"
+  },
+  {
+   "name": "fitomenadiona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BA Vitamin K"
+  },
+  {
+   "name": "flecainida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01BC Antiarrhythmics, class Ic"
+  },
+  {
+   "name": "fludarabina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BB Purine analogues"
+  },
+  {
+   "name": "fludrocortisona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H02AA Mineralocorticoids"
+  },
+  {
+   "name": "flumazenil",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V03AB Antidotes"
+  },
+  {
+   "name": "flunarizina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07CA Antivertigo preparations"
+  },
+  {
+   "name": "fluoresceina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01JA Colouring agents"
+  },
+  {
+   "name": "fluorometolona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C05AA Corticosteroids; D07AB Corticosteroids, moderately potent (group II); D07XB Corticosteroids, moderately potent, other combinations; D10AA Corticosteroids, combinations for treatment of acne; S01BA Corticosteroids, plain; S01CB Corticosteroids/antiinfectives/mydriatics in combination"
+  },
+  {
+   "name": "fluorouracilo",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BC Pyrimidine analogues"
+  },
+  {
+   "name": "flutamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BB Anti-androgens"
+  },
+  {
+   "name": "folico acido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B03BB Folic acid and derivatives; V04CX Other diagnostic agents"
+  },
+  {
+   "name": "fondaparinux sodico",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B01AX Other antithrombotic agents"
+  },
+  {
+   "name": "fosamprenavir calcico",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AE Protease inhibitors"
+  },
+  {
+   "name": "foscarnet sodico",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AD Phosphonic acid derivatives"
+  },
+  {
+   "name": "fosfomicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J01XX Other antibacterials; S02AA Antiinfectives"
+  },
+  {
+   "name": "fostamatinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BX Other systemic hemostatics"
+  },
+  {
+   "name": "fostemsavir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AX Other antivirals"
+  },
+  {
+   "name": "fremanezumab-vfrm",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02CD Calcitonin gene-related peptide (CGRP) antagonists"
+  },
+  {
+   "name": "fruquintinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EK Vascular endothelial growth factor receptor (VEGFR) tyrosine kinase inhibitors"
+  },
+  {
+   "name": "fulvestrant",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BA Anti-estrogens"
+  },
+  {
+   "name": "furazolidona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G01AX Other antiinfectives and antiseptics"
+  },
+  {
+   "name": "gabapentin",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02BF Gabapentinoids"
+  },
+  {
+   "name": "gadobutrol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V08CA Paramagnetic contrast media"
+  },
+  {
+   "name": "galantamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06DA Anticholinesterases"
+  },
+  {
+   "name": "galsulfase",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AB Enzymes"
+  },
+  {
+   "name": "ganirelix",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01CC Anti-gonadotropin-releasing hormones"
+  },
+  {
+   "name": "gefitinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EB Epidermal growth factor receptor (EGFR) tyrosine kinase inhibitors"
+  },
+  {
+   "name": "gemcitabina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BC Pyrimidine analogues"
+  },
+  {
+   "name": "gemfibrozil",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C10AB Fibrates"
+  },
+  {
+   "name": "gemtuzumab ozogamicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FX Other monoclonal antibodies and antibody drug conjugates"
+  },
+  {
+   "name": "gilteritinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "glicerina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A06AG Enemas; A06AX Other drugs for constipation"
+  },
+  {
+   "name": "glucagon",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H04AA Glycogenolytic hormones"
+  },
+  {
+   "name": "glucosamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M01AX Other antiinflammatory and antirheumatic agents, non-steroids"
+  },
+  {
+   "name": "golimumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AB Tumor necrosis factor alpha (TNF-alpha) inhibitors"
+  },
+  {
+   "name": "goserelin",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02AE Gonadotropin releasing hormone analogues"
+  },
+  {
+   "name": "gramicidina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R02AB Antibiotics"
+  },
+  {
+   "name": "griseofulvina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AA Antibiotics; D01BA Antifungals for systemic use"
+  },
+  {
+   "name": "guaifenesina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R05CA Expectorants"
+  },
+  {
+   "name": "guselkumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AC Interleukin inhibitors"
+  },
+  {
+   "name": "hedera helix",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R05CA Expectorants"
+  },
+  {
+   "name": "hexetidina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A01AB Antiinfectives and antiseptics for local oral treatment; G01AX Other antiinfectives and antiseptics"
+  },
+  {
+   "name": "hexoprenalina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R03AC Selective beta-2-adrenoreceptor agonists; R03CC Selective beta-2-adrenoreceptor agonists"
+  },
+  {
+   "name": "hialuronidasa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B06AA Enzymes"
+  },
+  {
+   "name": "hidralazina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C02DB Hydrazinophthalazine derivatives"
+  },
+  {
+   "name": "hidroquinona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AX Other dermatologicals"
+  },
+  {
+   "name": "hidroxicloroquina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "P01BA Aminoquinolines"
+  },
+  {
+   "name": "hidroxido de aluminio",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A02AA Magnesium compounds; G04BX Other urologicals"
+  },
+  {
+   "name": "hidroxiprogesterona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03DA Pregnen (4) derivatives"
+  },
+  {
+   "name": "hidroxiurea",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XX Other antineoplastic agents"
+  },
+  {
+   "name": "hidroxizina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05BB Diphenylmethane derivatives"
+  },
+  {
+   "name": "hioscina butilbromuro",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A04AD Other antiemetics; N05CM Other hypnotics and sedatives; S01FA Anticholinergics"
+  },
+  {
+   "name": "homatropina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01FA Anticholinergics"
+  },
+  {
+   "name": "ibrutinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EL Bruton's tyrosine kinase (BTK) inhibitors"
+  },
+  {
+   "name": "icatibant",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B06AC Drugs used in hereditary angioedema"
+  },
+  {
+   "name": "idarrubicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01DB Anthracyclines and related substances"
+  },
+  {
+   "name": "idarucizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V03AB Antidotes"
+  },
+  {
+   "name": "idebenona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06BX Other psychostimulants and nootropics"
+  },
+  {
+   "name": "idelalisib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EM Phosphatidylinositol-3-kinase (Pi3K) inhibitors"
+  },
+  {
+   "name": "idursulfasa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AB Enzymes"
+  },
+  {
+   "name": "ifosfamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01AA Nitrogen mustard analogues"
+  },
+  {
+   "name": "imatinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EA BCR-ABL tyrosine kinase inhibitors"
+  },
+  {
+   "name": "imiglucerasa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AB Enzymes"
+  },
+  {
+   "name": "imiquimod",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D06BB Antivirals"
+  },
+  {
+   "name": "inclisiran",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C10AX Other lipid modifying agents"
+  },
+  {
+   "name": "indacaterol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R03AC Selective beta-2-adrenoreceptor agonists"
+  },
+  {
+   "name": "indinavir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AE Protease inhibitors"
+  },
+  {
+   "name": "infliximab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AB Tumor necrosis factor alpha (TNF-alpha) inhibitors"
+  },
+  {
+   "name": "inosina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D06BB Antivirals; G01AX Other antiinfectives and antiseptics; S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "inotuzumab ozogamicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FB CD22 (Clusters of Differentiation 22) inhibitors"
+  },
+  {
+   "name": "interferon beta 1(b)",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L03AB Interferons"
+  },
+  {
+   "name": "iodixanol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V08AB Watersoluble, nephrotropic, low osmolar X-ray contrast media"
+  },
+  {
+   "name": "iohexol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V08AB Watersoluble, nephrotropic, low osmolar X-ray contrast media"
+  },
+  {
+   "name": "ipilimumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FX Other monoclonal antibodies and antibody drug conjugates"
+  },
+  {
+   "name": "iptacopan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AJ Complement inhibitors"
+  },
+  {
+   "name": "irinotecan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01CE Topoisomerase 1 (TOP1) inhibitors"
+  },
+  {
+   "name": "irinotecan pegilado liposomal",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01CE Topoisomerase 1 (TOP1) inhibitors"
+  },
+  {
+   "name": "isatuximab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FC CD38 (Clusters of Differentiation 38) inhibitors"
+  },
+  {
+   "name": "isoconazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AC Imidazole and triazole derivatives; G01AF Imidazole derivatives"
+  },
+  {
+   "name": "isoflurano",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N01AB Halogenated hydrocarbons"
+  },
+  {
+   "name": "isoniazida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J04AC Hydrazides"
+  },
+  {
+   "name": "isoproterenol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01CA Adrenergic and dopaminergic agents; R03AB Non-selective beta-adrenoreceptor agonists; R03CB Non-selective beta-adrenoreceptor agonists"
+  },
+  {
+   "name": "isotretinoina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D10AD Retinoids for topical use in acne; D10BA Retinoids for treatment of acne"
+  },
+  {
+   "name": "isoxsuprina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C04AA 2-amino-1-phenylethanol derivatives"
+  },
+  {
+   "name": "ivabradina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01EB Other cardiac preparations"
+  },
+  {
+   "name": "ivermectina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AX Other dermatologicals; P02CF Avermectines"
+  },
+  {
+   "name": "ivosidenib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XM Isocitrate dehydrogenase (IDH) inhibitors"
+  },
+  {
+   "name": "ixabepilona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01DC Other cytotoxic antibiotics"
+  },
+  {
+   "name": "ixazomib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XG Proteasome inhibitors"
+  },
+  {
+   "name": "ixekizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AC Interleukin inhibitors"
+  },
+  {
+   "name": "ketamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N01AX Other general anesthetics"
+  },
+  {
+   "name": "ketotifeno",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AX Other antihistamines for systemic use; S01GX Other antiallergics"
+  },
+  {
+   "name": "lacosamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AX Other antiepileptics"
+  },
+  {
+   "name": "lactasa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A09AA Enzyme preparations"
+  },
+  {
+   "name": "lactulosa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A06AD Osmotically acting laxatives"
+  },
+  {
+   "name": "lamivudina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AF Nucleoside and nucleotide reverse transcriptase inhibitors"
+  },
+  {
+   "name": "lamotrigina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AX Other antiepileptics"
+  },
+  {
+   "name": "lanadelumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B06AC Drugs used in hereditary angioedema"
+  },
+  {
+   "name": "lanreotida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01CB Somatostatin and analogues"
+  },
+  {
+   "name": "lapatinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EH Human epidermal growth factor receptor 2 (HER2) tyrosine kinase inhibitors"
+  },
+  {
+   "name": "laronidasa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AB Enzymes"
+  },
+  {
+   "name": "larotrectinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "latanoprost",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01EE Prostaglandin analogues"
+  },
+  {
+   "name": "leflunomida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AK Dihydroorotate dehydrogenase (DHODH) inhibitors"
+  },
+  {
+   "name": "lenalidomida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AX Other immunosuppressants"
+  },
+  {
+   "name": "lenvatinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "letermovir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AX Other antivirals"
+  },
+  {
+   "name": "letrozol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BG Aromatase inhibitors"
+  },
+  {
+   "name": "leuprolide acetato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02AE Gonadotropin releasing hormone analogues"
+  },
+  {
+   "name": "leuprorelina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02AE Gonadotropin releasing hormone analogues"
+  },
+  {
+   "name": "levetiracetam",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AX Other antiepileptics"
+  },
+  {
+   "name": "levocetirizina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AE Piperazine derivatives"
+  },
+  {
+   "name": "levodopa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N04BA Dopa and dopa derivatives"
+  },
+  {
+   "name": "levomepromazina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05AA Phenothiazines with aliphatic side-chain"
+  },
+  {
+   "name": "levonorgestrel",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03AC Progestogens; G03AD Emergency contraceptives"
+  },
+  {
+   "name": "levosimendan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01CX Other cardiac stimulants"
+  },
+  {
+   "name": "lidocaina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01BB Antiarrhythmics, class Ib; C05AD Local anesthetics; D04AB Anesthetics for topical use; N01BB Amides; R02AD Anesthetics, local; S01HA Local anesthetics; S02DA Analgesics and anesthetics"
+  },
+  {
+   "name": "linaclotida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A06AX Other drugs for constipation"
+  },
+  {
+   "name": "linezolid",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J01XX Other antibacterials"
+  },
+  {
+   "name": "lipegfilgrastim",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L03AA Colony stimulating factors"
+  },
+  {
+   "name": "liraglutida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A10BJ Glucagon-like peptide-1 (GLP-1) analogues"
+  },
+  {
+   "name": "lixisenatida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A10BJ Glucagon-like peptide-1 (GLP-1) analogues"
+  },
+  {
+   "name": "lomustina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01AD Nitrosoureas"
+  },
+  {
+   "name": "loperamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A07DA Antipropulsives"
+  },
+  {
+   "name": "loratadina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AX Other antihistamines for systemic use"
+  },
+  {
+   "name": "lorlatinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01ED Anaplastic lymphoma kinase (ALK) inhibitors"
+  },
+  {
+   "name": "loteprednol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01BA Corticosteroids, plain"
+  },
+  {
+   "name": "lurasidona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05AE Indole derivatives"
+  },
+  {
+   "name": "luspatercept",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B03XA Other antianemic preparations"
+  },
+  {
+   "name": "lutropina alfa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03GA Gonadotropins"
+  },
+  {
+   "name": "macitentan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C02KX Antihypertensives for pulmonary arterial hypertension"
+  },
+  {
+   "name": "magaldrato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A02AD Combinations and complexes of aluminium, calcium and magnesium compounds"
+  },
+  {
+   "name": "magnesio carbonato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A02AA Magnesium compounds; A06AD Osmotically acting laxatives"
+  },
+  {
+   "name": "magnesio hidroxido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A02AA Magnesium compounds; G04BX Other urologicals"
+  },
+  {
+   "name": "manitol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A06AD Osmotically acting laxatives; B05BC Solutions producing osmotic diuresis; B05CX Other irrigating solutions; R05CB Mucolytics; V04CX Other diagnostic agents"
+  },
+  {
+   "name": "maraviroc",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AX Other antivirals"
+  },
+  {
+   "name": "maribavir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AX Other antivirals"
+  },
+  {
+   "name": "mavacamten",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01EB Other cardiac preparations"
+  },
+  {
+   "name": "mazindol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A08AA Centrally acting antiobesity products"
+  },
+  {
+   "name": "mebendazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "P02CA Benzimidazole derivatives"
+  },
+  {
+   "name": "mebeverina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A03AA Synthetic anticholinergics, esters with tertiary amino group"
+  },
+  {
+   "name": "meclozina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AE Piperazine derivatives"
+  },
+  {
+   "name": "medroxiprogesterona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03AC Progestogens; G03DA Pregnen (4) derivatives; L02AB Progestogens"
+  },
+  {
+   "name": "mefloquina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "P01BC Methanolquinolines"
+  },
+  {
+   "name": "megestrol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03AC Progestogens; G03DB Pregnadien derivatives; L02AB Progestogens"
+  },
+  {
+   "name": "melatonina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05CH Melatonin receptor agonists"
+  },
+  {
+   "name": "melfalan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01AA Nitrogen mustard analogues"
+  },
+  {
+   "name": "memantina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06DX Other anti-dementia drugs"
+  },
+  {
+   "name": "mepiramina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D04AA Antihistamines for topical use; R06AC Substituted ethylene diamines"
+  },
+  {
+   "name": "mercaptopurina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BB Purine analogues"
+  },
+  {
+   "name": "meropenem",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J01DH Carbapenems"
+  },
+  {
+   "name": "mesalazina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A07EC Aminosalicylic acid and similar agents"
+  },
+  {
+   "name": "mesna",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R05CB Mucolytics; V03AF Detoxifying agents for antineoplastic treatment"
+  },
+  {
+   "name": "metadona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07BC Drugs used in opioid dependence"
+  },
+  {
+   "name": "metaraminol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01CA Adrenergic and dopaminergic agents"
+  },
+  {
+   "name": "metildopa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C02AB Methyldopa"
+  },
+  {
+   "name": "metilfenidato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06BA Centrally acting sympathomimetics"
+  },
+  {
+   "name": "metotrexato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BA Folic acid analogues; L04AX Other immunosuppressants"
+  },
+  {
+   "name": "metoxaleno",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D05AD Psoralens for topical use; D05BA Psoralens for systemic use"
+  },
+  {
+   "name": "mianserina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06AX Other antidepressants"
+  },
+  {
+   "name": "micofenolico acido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AA Selective immunosuppressants"
+  },
+  {
+   "name": "miconazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A01AB Antiinfectives and antiseptics for local oral treatment; A07AC Imidazole derivatives; D01AC Imidazole and triazole derivatives; G01AF Imidazole derivatives; J02AB Imidazole derivatives; S02AA Antiinfectives"
+  },
+  {
+   "name": "midostaurina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "migalastat",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AX Various alimentary tract and metabolism products"
+  },
+  {
+   "name": "miglustat",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AX Various alimentary tract and metabolism products"
+  },
+  {
+   "name": "milrinona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01CE Phosphodiesterase inhibitors"
+  },
+  {
+   "name": "minoxidil",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C02DC Pyrimidine derivatives; D11AX Other dermatologicals"
+  },
+  {
+   "name": "mirabegron",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G04BD Drugs for urinary frequency and incontinence"
+  },
+  {
+   "name": "mirtazapina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06AX Other antidepressants"
+  },
+  {
+   "name": "misoprostol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A02BB Prostaglandins; G02AD Prostaglandins"
+  },
+  {
+   "name": "mitomicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01DC Other cytotoxic antibiotics"
+  },
+  {
+   "name": "mitotano",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XX Other antineoplastic agents"
+  },
+  {
+   "name": "mitoxantrona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01DB Anthracyclines and related substances"
+  },
+  {
+   "name": "modafinilo",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06BA Centrally acting sympathomimetics"
+  },
+  {
+   "name": "momelotinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EJ Janus-associated kinase (JAK) inhibitors"
+  },
+  {
+   "name": "mosunetuzumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FX Other monoclonal antibodies and antibody drug conjugates"
+  },
+  {
+   "name": "mupirocina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D06AX Other antibiotics for topical use; R01AX Other nasal preparations"
+  },
+  {
+   "name": "nabilona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A04AD Other antiemetics"
+  },
+  {
+   "name": "nafarelina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01CA Gonadotropin-releasing hormones"
+  },
+  {
+   "name": "nafazolina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R01AA Sympathomimetics, plain; R01AB Sympathomimetics, combinations excl. corticosteroids; S01GA Sympathomimetics used as decongestants"
+  },
+  {
+   "name": "nalbufina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02AF Morphinan derivatives"
+  },
+  {
+   "name": "naloxona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A06AH Peripheral opioid receptor antagonists; V03AB Antidotes"
+  },
+  {
+   "name": "naltrexona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07BB Drugs used in alcohol dependence"
+  },
+  {
+   "name": "nandrolona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A14AB Estren derivatives; S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "naratriptan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02CC Selective serotonin (5HT1) agonists"
+  },
+  {
+   "name": "natalizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AG Monoclonal antibodies"
+  },
+  {
+   "name": "neostigmina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07AA Anticholinesterases; S01EB Parasympathomimetics"
+  },
+  {
+   "name": "nepafenac",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01BC Antiinflammatory agents, non-steroids"
+  },
+  {
+   "name": "neratinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EH Human epidermal growth factor receptor 2 (HER2) tyrosine kinase inhibitors"
+  },
+  {
+   "name": "netarsudil",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01EX Other antiglaucoma preparations"
+  },
+  {
+   "name": "nevirapina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AG Non-nucleoside reverse transcriptase inhibitors"
+  },
+  {
+   "name": "nicotina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07BA Drugs used in nicotine dependence"
+  },
+  {
+   "name": "nilotinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EA BCR-ABL tyrosine kinase inhibitors"
+  },
+  {
+   "name": "nimesulida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M01AX Other antiinflammatory and antirheumatic agents, non-steroids; M02AA Antiinflammatory preparations, non-steroids for topical use"
+  },
+  {
+   "name": "nimotuzumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FB CD22 (Clusters of Differentiation 22) inhibitors"
+  },
+  {
+   "name": "nintedanib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "niraparib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XK Poly (ADP-ribose) polymerase (PARP) inhibitors"
+  },
+  {
+   "name": "nirsevimab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J06BD Antiviral monoclonal antibodies"
+  },
+  {
+   "name": "nistatina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A07AA Antibiotics; D01AA Antibiotics; G01AA Antibiotics"
+  },
+  {
+   "name": "nitazoxanida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "P01AX Other agents against amoebiasis and other protozoal diseases"
+  },
+  {
+   "name": "nitisinona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AX Various alimentary tract and metabolism products"
+  },
+  {
+   "name": "nitrofurazona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B05CA Antiinfectives; D08AF Nitrofuran derivatives; D09AA Medicated dressings with antiinfectives; P01CC Nitrofuran derivatives; S01AX Other antiinfectives; S02AA Antiinfectives"
+  },
+  {
+   "name": "nivolumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FF PD-1/PD-L1 (Programmed cell death protein 1/death ligand 1) inhibitors"
+  },
+  {
+   "name": "nomegestrol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03DB Pregnadien derivatives"
+  },
+  {
+   "name": "noretisterona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03AC Progestogens; G03DC Estren derivatives"
+  },
+  {
+   "name": "nusinersen",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M09AX Other drugs for disorders of the musculo-skeletal system"
+  },
+  {
+   "name": "obinutuzumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FA CD20 (Clusters of Differentiation 20) inhibitors"
+  },
+  {
+   "name": "ocrelizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AG Monoclonal antibodies"
+  },
+  {
+   "name": "octocog alfa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BD Blood coagulation factors"
+  },
+  {
+   "name": "octreotida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01CB Somatostatin and analogues"
+  },
+  {
+   "name": "ofatumumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FA CD20 (Clusters of Differentiation 20) inhibitors; L04AG Monoclonal antibodies"
+  },
+  {
+   "name": "olaparib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XK Poly (ADP-ribose) polymerase (PARP) inhibitors"
+  },
+  {
+   "name": "olipudasa alfa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AB Enzymes"
+  },
+  {
+   "name": "olodaterol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R03AC Selective beta-2-adrenoreceptor agonists"
+  },
+  {
+   "name": "olopatadina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R01AC Antiallergic agents, excl. corticosteroids; S01GX Other antiallergics"
+  },
+  {
+   "name": "omalizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R03DX Other systemic drugs for obstructive airway diseases"
+  },
+  {
+   "name": "onasemnogen abeparvovec",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M09AX Other drugs for disorders of the musculo-skeletal system"
+  },
+  {
+   "name": "orlistat",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A08AB Peripherally acting antiobesity products"
+  },
+  {
+   "name": "oseltamivir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AH Neuraminidase inhibitors"
+  },
+  {
+   "name": "osimertinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EB Epidermal growth factor receptor (EGFR) tyrosine kinase inhibitors"
+  },
+  {
+   "name": "oxaliplatino",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XA Platinum compounds"
+  },
+  {
+   "name": "oxatomida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R06AE Piperazine derivatives"
+  },
+  {
+   "name": "oxcarbazepina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AF Carboxamide derivatives"
+  },
+  {
+   "name": "oxeladina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R05DB Other cough suppressants"
+  },
+  {
+   "name": "oxibutinina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G04BD Drugs for urinary frequency and incontinence"
+  },
+  {
+   "name": "oximetazolina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AX Other dermatologicals; R01AA Sympathomimetics, plain; R01AB Sympathomimetics, combinations excl. corticosteroids; S01GA Sympathomimetics used as decongestants"
+  },
+  {
+   "name": "oxitocina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01BB Oxytocin and analogues"
+  },
+  {
+   "name": "oxitriptan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06AX Other antidepressants"
+  },
+  {
+   "name": "ozanimod",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AE Sphingosine-1-phosphate (S1P) receptor modulators"
+  },
+  {
+   "name": "paclitaxel",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01CD Taxanes"
+  },
+  {
+   "name": "palbociclib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EF Cyclin-dependent kinase (CDK) inhibitors"
+  },
+  {
+   "name": "palivizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J06BD Antiviral monoclonal antibodies"
+  },
+  {
+   "name": "pancuronio bromuro",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M03AC Other quaternary ammonium compounds"
+  },
+  {
+   "name": "panitumumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FE EGFR (Epidermal Growth Factor Receptor) inhibitors"
+  },
+  {
+   "name": "paricalcitol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H05BX Other anti-parathyroid agents"
+  },
+  {
+   "name": "pasireotida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01CB Somatostatin and analogues"
+  },
+  {
+   "name": "pazopanib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "pegcetacoplan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AJ Complement inhibitors; S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "pegfilgrastim",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L03AA Colony stimulating factors"
+  },
+  {
+   "name": "peginterferon beta-1a",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L03AB Interferons"
+  },
+  {
+   "name": "pegvisomant",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01AX Other anterior pituitary lobe hormones and analogues"
+  },
+  {
+   "name": "pembrolizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FF PD-1/PD-L1 (Programmed cell death protein 1/death ligand 1) inhibitors"
+  },
+  {
+   "name": "pemetrexed",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BA Folic acid analogues"
+  },
+  {
+   "name": "penicilamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M01CC Penicillamine and similar agents"
+  },
+  {
+   "name": "pentoxifilina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C04AD Purine derivatives"
+  },
+  {
+   "name": "pepsina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A09AA Enzyme preparations"
+  },
+  {
+   "name": "perampanel",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AX Other antiepileptics"
+  },
+  {
+   "name": "permetrina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "P03AC Pyrethrines, incl. synthetic compounds"
+  },
+  {
+   "name": "pertuzumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FD HER2 (Human Epidermal Growth Factor Receptor 2) inhibitors"
+  },
+  {
+   "name": "pilocarpina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07AX Other parasympathomimetics; S01EB Parasympathomimetics"
+  },
+  {
+   "name": "pimecrolimus",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AH Agents for dermatitis, excluding corticosteroids"
+  },
+  {
+   "name": "pinaverio bromuro",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A03AX Other drugs for functional gastrointestinal disorders"
+  },
+  {
+   "name": "piracetam",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06BX Other psychostimulants and nootropics"
+  },
+  {
+   "name": "pirazinamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J04AK Other drugs for treatment of tuberculosis"
+  },
+  {
+   "name": "pirfenidona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AX Other immunosuppressants"
+  },
+  {
+   "name": "piribedil",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N04BC Dopamine agonists"
+  },
+  {
+   "name": "piridostigmina bromuro",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07AA Anticholinesterases"
+  },
+  {
+   "name": "piridoxina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A11HA Other plain vitamin preparations"
+  },
+  {
+   "name": "pirimetamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "P01BD Diaminopyrimidines"
+  },
+  {
+   "name": "plerixafor",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L03AX Other immunostimulants"
+  },
+  {
+   "name": "podofilox",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D06BB Antivirals"
+  },
+  {
+   "name": "polatuzumab vedotina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FX Other monoclonal antibodies and antibody drug conjugates"
+  },
+  {
+   "name": "polidocanol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C05BB Sclerosing agents for local injection"
+  },
+  {
+   "name": "polimixina b",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A07AA Antibiotics; J01XB Polymyxins; S01AA Antibiotics; S02AA Antiinfectives; S03AA Antiinfectives"
+  },
+  {
+   "name": "pomalidomida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AX Other immunosuppressants"
+  },
+  {
+   "name": "ponatinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EA BCR-ABL tyrosine kinase inhibitors"
+  },
+  {
+   "name": "pralatrexato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BA Folic acid analogues"
+  },
+  {
+   "name": "pralidoxima",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V03AB Antidotes"
+  },
+  {
+   "name": "pramipexol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N04BC Dopamine agonists"
+  },
+  {
+   "name": "pramoxina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C05AD Local anesthetics; D04AB Anesthetics for topical use"
+  },
+  {
+   "name": "praziquantel",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "P02BA Quinoline derivatives and related substances"
+  },
+  {
+   "name": "pridinol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M03BX Other centrally acting agents"
+  },
+  {
+   "name": "prilocaina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N01BB Amides"
+  },
+  {
+   "name": "procaina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C05AD Local anesthetics; N01BA Esters of aminobenzoic acid; S01HA Local anesthetics"
+  },
+  {
+   "name": "procarbazina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XB Methylhydrazines"
+  },
+  {
+   "name": "progesterona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03DA Pregnen (4) derivatives"
+  },
+  {
+   "name": "prometazina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D04AA Antihistamines for topical use; R06AD Phenothiazine derivatives"
+  },
+  {
+   "name": "propafenona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01BC Antiarrhythmics, class Ic"
+  },
+  {
+   "name": "proparacaina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01HA Local anesthetics"
+  },
+  {
+   "name": "propericiazina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05AC Phenothiazines with piperidine structure"
+  },
+  {
+   "name": "propofol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N01AX Other general anesthetics"
+  },
+  {
+   "name": "protamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V03AB Antidotes"
+  },
+  {
+   "name": "prucaloprida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A06AX Other drugs for constipation"
+  },
+  {
+   "name": "quinidina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01BA Antiarrhythmics, class Ia"
+  },
+  {
+   "name": "quinina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "P01BC Methanolquinolines"
+  },
+  {
+   "name": "racecadotrilo",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A07XA Other antidiarrheals"
+  },
+  {
+   "name": "raloxifeno",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03XC Selective estrogen receptor modulators"
+  },
+  {
+   "name": "raltegravir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AJ Integrase inhibitors"
+  },
+  {
+   "name": "ramucirumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FG VEGF/VEGFR (Vascular Endothelial Growth Factor / -Receptor) inhibitors"
+  },
+  {
+   "name": "ranibizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01LA Antineovascularisation agents"
+  },
+  {
+   "name": "rasagilina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N04BD Monoamine oxidase B inhibitors"
+  },
+  {
+   "name": "rasburicasa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V03AF Detoxifying agents for antineoplastic treatment"
+  },
+  {
+   "name": "ravulizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AJ Complement inhibitors"
+  },
+  {
+   "name": "regorafenib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "relugolix",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BX Other hormone antagonists and related agents"
+  },
+  {
+   "name": "repaglinida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A10BX Other blood glucose lowering drugs, excl. insulins"
+  },
+  {
+   "name": "resorcina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D10AX Other anti-acne preparations for topical use; S01AX Other antiinfectives"
+  },
+  {
+   "name": "ribavirina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AP Antivirals for treatment of HCV infections"
+  },
+  {
+   "name": "ribociclib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EF Cyclin-dependent kinase (CDK) inhibitors"
+  },
+  {
+   "name": "riboflavina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A11HA Other plain vitamin preparations; S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "rifabutina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J04AB Antibiotics"
+  },
+  {
+   "name": "rifamicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A07AA Antibiotics; D06AX Other antibiotics for topical use; J04AB Antibiotics; S01AA Antibiotics; S02AA Antiinfectives"
+  },
+  {
+   "name": "rifampicina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J04AB Antibiotics"
+  },
+  {
+   "name": "rifaximina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A07AA Antibiotics; D06AX Other antibiotics for topical use"
+  },
+  {
+   "name": "rilmenidina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C02AC Imidazoline receptor agonists"
+  },
+  {
+   "name": "rilpivirina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AG Non-nucleoside reverse transcriptase inhibitors"
+  },
+  {
+   "name": "riluzol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07XX Other nervous system drugs"
+  },
+  {
+   "name": "rimegepant",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02CD Calcitonin gene-related peptide (CGRP) antagonists"
+  },
+  {
+   "name": "riociguat",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C02KX Antihypertensives for pulmonary arterial hypertension"
+  },
+  {
+   "name": "risankizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AC Interleukin inhibitors"
+  },
+  {
+   "name": "risdiplam",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M09AX Other drugs for disorders of the musculo-skeletal system"
+  },
+  {
+   "name": "ritonavir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AE Protease inhibitors"
+  },
+  {
+   "name": "rituximab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FA CD20 (Clusters of Differentiation 20) inhibitors"
+  },
+  {
+   "name": "rivastigmina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06DA Anticholinesterases"
+  },
+  {
+   "name": "rizatriptan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02CC Selective serotonin (5HT1) agonists"
+  },
+  {
+   "name": "roflumilast",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D05AX Other antipsoriatics for topical use; R03DX Other systemic drugs for obstructive airway diseases"
+  },
+  {
+   "name": "romiplostim",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BX Other systemic hemostatics"
+  },
+  {
+   "name": "romosozumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M05BX Other drugs affecting bone structure and mineralization"
+  },
+  {
+   "name": "ropinirol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N04BC Dopamine agonists"
+  },
+  {
+   "name": "ropivacaina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N01BB Amides"
+  },
+  {
+   "name": "rotigotina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N04BC Dopamine agonists"
+  },
+  {
+   "name": "rucaparib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XK Poly (ADP-ribose) polymerase (PARP) inhibitors"
+  },
+  {
+   "name": "rufinamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AF Carboxamide derivatives"
+  },
+  {
+   "name": "ruxolitinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AH Agents for dermatitis, excluding corticosteroids; L01EJ Janus-associated kinase (JAK) inhibitors"
+  },
+  {
+   "name": "salazosulfapiridina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A07EC Aminosalicylic acid and similar agents"
+  },
+  {
+   "name": "salicilico acido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AE Other antifungals for topical use; S01BC Antiinflammatory agents, non-steroids"
+  },
+  {
+   "name": "sapropterina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AX Various alimentary tract and metabolism products"
+  },
+  {
+   "name": "sarilumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AC Interleukin inhibitors"
+  },
+  {
+   "name": "satralizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AC Interleukin inhibitors"
+  },
+  {
+   "name": "secukinumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AC Interleukin inhibitors"
+  },
+  {
+   "name": "selegilina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N04BD Monoamine oxidase B inhibitors"
+  },
+  {
+   "name": "selumetinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EE Mitogen-activated protein kinase (MEK) inhibitors"
+  },
+  {
+   "name": "semaglutida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A10BJ Glucagon-like peptide-1 (GLP-1) analogues"
+  },
+  {
+   "name": "sertaconazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AC Imidazole and triazole derivatives; G01AF Imidazole derivatives"
+  },
+  {
+   "name": "sertindol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05AE Indole derivatives"
+  },
+  {
+   "name": "sevelamer",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V03AE Drugs for treatment of hyperkalemia and hyperphosphatemia"
+  },
+  {
+   "name": "sevoflurano",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N01AB Halogenated hydrocarbons"
+  },
+  {
+   "name": "silimarina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A05BA Liver therapy"
+  },
+  {
+   "name": "siponimod",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AE Sphingosine-1-phosphate (S1P) receptor modulators"
+  },
+  {
+   "name": "sirolimus",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EG Mammalian target of rapamycin (mTOR) kinase inhibitors; L04AH Mammalian target of rapamycin (mTOR) kinase inhibitors; S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "sofosbuvir",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AP Antivirals for treatment of HCV infections"
+  },
+  {
+   "name": "solifenacina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G04BD Drugs for urinary frequency and incontinence"
+  },
+  {
+   "name": "somapacitan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01AC Somatropin and somatropin agonists"
+  },
+  {
+   "name": "somatrogon",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01AC Somatropin and somatropin agonists"
+  },
+  {
+   "name": "somatropina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01AC Somatropin and somatropin agonists"
+  },
+  {
+   "name": "sonidegib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XJ Hedgehog pathway inhibitors"
+  },
+  {
+   "name": "sorafenib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "sorbitol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A06AD Osmotically acting laxatives; A06AG Enemas; B05CX Other irrigating solutions; V04CC Tests for bile duct patency"
+  },
+  {
+   "name": "sotatercept",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C02KX Antihypertensives for pulmonary arterial hypertension"
+  },
+  {
+   "name": "sotorasib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XX Other antineoplastic agents"
+  },
+  {
+   "name": "sucralfato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A02BX Other drugs for peptic ulcer and gastro-oesophageal reflux disease (GORD)"
+  },
+  {
+   "name": "sugammadex",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V03AB Antidotes"
+  },
+  {
+   "name": "sulbactam",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J01CG Beta-lactamase inhibitors"
+  },
+  {
+   "name": "sulbutiamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A11DA Vitamin B1, plain"
+  },
+  {
+   "name": "sulfacetamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D10AF Antiinfectives for treatment of acne; S01AB Sulfonamides"
+  },
+  {
+   "name": "sulfanilamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D06BA Sulfonamides; J01EB Short-acting sulfonamides"
+  },
+  {
+   "name": "sulfasalazina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A07EC Aminosalicylic acid and similar agents"
+  },
+  {
+   "name": "sulpirida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05AL Benzamides"
+  },
+  {
+   "name": "sultiamo",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AX Other antiepileptics"
+  },
+  {
+   "name": "sumatriptan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02CC Selective serotonin (5HT1) agonists"
+  },
+  {
+   "name": "sunitinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "tacrolimus",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D11AH Agents for dermatitis, excluding corticosteroids; L04AD Calcineurin inhibitors"
+  },
+  {
+   "name": "tafamidis",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07XX Other nervous system drugs"
+  },
+  {
+   "name": "tafamidis meglumina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07XX Other nervous system drugs"
+  },
+  {
+   "name": "tafasitamab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FX Other monoclonal antibodies and antibody drug conjugates"
+  },
+  {
+   "name": "tafluprost",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01EE Prostaglandin analogues"
+  },
+  {
+   "name": "talazoparib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XK Poly (ADP-ribose) polymerase (PARP) inhibitors"
+  },
+  {
+   "name": "talidomida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AX Other immunosuppressants"
+  },
+  {
+   "name": "tamoxifeno",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02BA Anti-estrogens"
+  },
+  {
+   "name": "teclistamab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FX Other monoclonal antibodies and antibody drug conjugates"
+  },
+  {
+   "name": "teduglutida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A16AX Various alimentary tract and metabolism products"
+  },
+  {
+   "name": "temozolomida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01AX Other alkylating agents"
+  },
+  {
+   "name": "tenecteplasa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B01AD Enzymes"
+  },
+  {
+   "name": "tenofovir disoproxil fumarato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AF Nucleoside and nucleotide reverse transcriptase inhibitors"
+  },
+  {
+   "name": "tepotinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EP Cellular-mesenchymal-epithelial transition factor (c-MET) kinase inhibitors; L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "terbinafina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AE Other antifungals for topical use; D01BA Antifungals for systemic use"
+  },
+  {
+   "name": "teriflunomida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AK Dihydroorotate dehydrogenase (DHODH) inhibitors"
+  },
+  {
+   "name": "teriparatida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H05AA Parathyroid hormones and analogues"
+  },
+  {
+   "name": "terlipresina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "H01BA Vasopressin and analogues"
+  },
+  {
+   "name": "testosterona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03BA 3-oxoandrosten (4) derivatives"
+  },
+  {
+   "name": "tetrabenazina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07XX Other nervous system drugs"
+  },
+  {
+   "name": "tetrahidrozolina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R01AA Sympathomimetics, plain; R01AB Sympathomimetics, combinations excl. corticosteroids; S01GA Sympathomimetics used as decongestants"
+  },
+  {
+   "name": "tezepelumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R03DX Other systemic drugs for obstructive airway diseases"
+  },
+  {
+   "name": "tiabendazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AC Imidazole and triazole derivatives; P02CA Benzimidazole derivatives"
+  },
+  {
+   "name": "tiamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A11DA Vitamin B1, plain"
+  },
+  {
+   "name": "tianeptina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06AX Other antidepressants"
+  },
+  {
+   "name": "tibolona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03CX Other estrogens"
+  },
+  {
+   "name": "tiocolchicosido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M03BX Other centrally acting agents"
+  },
+  {
+   "name": "tioconazol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AC Imidazole and triazole derivatives; G01AF Imidazole derivatives"
+  },
+  {
+   "name": "tioguanina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01BB Purine analogues"
+  },
+  {
+   "name": "tiopental",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N01AF Barbiturates, plain; N05CA Barbiturates, plain"
+  },
+  {
+   "name": "tioridazina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05AC Phenothiazines with piperidine structure"
+  },
+  {
+   "name": "tiotepa",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01AC Ethylene imines"
+  },
+  {
+   "name": "tirzepatida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A10BX Other blood glucose lowering drugs, excl. insulins"
+  },
+  {
+   "name": "tizanidina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M03BX Other centrally acting agents"
+  },
+  {
+   "name": "tocilizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AC Interleukin inhibitors"
+  },
+  {
+   "name": "tofacitinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AF Janus-associated kinase (JAK) inhibitors"
+  },
+  {
+   "name": "tolnaftato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D01AE Other antifungals for topical use"
+  },
+  {
+   "name": "tolterodina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G04BD Drugs for urinary frequency and incontinence"
+  },
+  {
+   "name": "tolvaptan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C03XA Vasopressin antagonists"
+  },
+  {
+   "name": "topiramato",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AX Other antiepileptics"
+  },
+  {
+   "name": "topotecan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01CE Topoisomerase 1 (TOP1) inhibitors"
+  },
+  {
+   "name": "trabectedina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01CX Other plant alkaloids and natural products"
+  },
+  {
+   "name": "trametinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EE Mitogen-activated protein kinase (MEK) inhibitors"
+  },
+  {
+   "name": "tranexamico acido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02AA Amino acids"
+  },
+  {
+   "name": "tranilcipromina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06AF Monoamine oxidase inhibitors, non-selective"
+  },
+  {
+   "name": "trastuzumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FD HER2 (Human Epidermal Growth Factor Receptor 2) inhibitors"
+  },
+  {
+   "name": "trastuzumab deruxtecan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FD HER2 (Human Epidermal Growth Factor Receptor 2) inhibitors"
+  },
+  {
+   "name": "travoprost",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01EE Prostaglandin analogues"
+  },
+  {
+   "name": "trazodona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06AX Other antidepressants"
+  },
+  {
+   "name": "tremelimumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01FX Other monoclonal antibodies and antibody drug conjugates"
+  },
+  {
+   "name": "tretinoina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D10AD Retinoids for topical use in acne; L01XF Retinoids for cancer treatment"
+  },
+  {
+   "name": "trifluoperazina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05AB Phenothiazines with piperazine structure"
+  },
+  {
+   "name": "trifluridina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01AD Antivirals"
+  },
+  {
+   "name": "trihexifenidilo",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N04AA Tertiary amines"
+  },
+  {
+   "name": "trimebutina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A03AA Synthetic anticholinergics, esters with tertiary amino group"
+  },
+  {
+   "name": "trimetazidina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01EB Other cardiac preparations"
+  },
+  {
+   "name": "trimetoprima",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J01EA Trimethoprim and derivatives"
+  },
+  {
+   "name": "triptorelina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L02AE Gonadotropin releasing hormone analogues"
+  },
+  {
+   "name": "trolamina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "D03AX Other cicatrizants"
+  },
+  {
+   "name": "trombina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B02BC Local hemostatics; B02BD Blood coagulation factors"
+  },
+  {
+   "name": "tropicamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01FA Anticholinergics"
+  },
+  {
+   "name": "trospio cloruro",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G04BD Drugs for urinary frequency and incontinence"
+  },
+  {
+   "name": "troxerutina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C05CA Bioflavonoids"
+  },
+  {
+   "name": "tucatinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EH Human epidermal growth factor receptor 2 (HER2) tyrosine kinase inhibitors"
+  },
+  {
+   "name": "ulipristal",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G03AD Emergency contraceptives; G03XB Progesterone receptor modulators"
+  },
+  {
+   "name": "upadacitinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AF Janus-associated kinase (JAK) inhibitors"
+  },
+  {
+   "name": "urea",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B05BC Solutions producing osmotic diuresis; D02AE Carbamide products"
+  },
+  {
+   "name": "ustekinumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AC Interleukin inhibitors"
+  },
+  {
+   "name": "valeriana",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05CM Other hypnotics and sedatives"
+  },
+  {
+   "name": "vandetanib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EX Other protein kinase inhibitors"
+  },
+  {
+   "name": "vardenafil",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G04BE Drugs used in erectile dysfunction"
+  },
+  {
+   "name": "vareniclina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N07BA Drugs used in nicotine dependence; S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "vecuronio",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M03AC Other quaternary ammonium compounds"
+  },
+  {
+   "name": "vedolizumab",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L04AG Monoclonal antibodies"
+  },
+  {
+   "name": "vemurafenib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EC B-Raf serine-threonine kinase (BRAF) inhibitors"
+  },
+  {
+   "name": "venetoclax",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XX Other antineoplastic agents"
+  },
+  {
+   "name": "vericiguat",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "C01DX Other vasodilators used in cardiac diseases"
+  },
+  {
+   "name": "vigabatrin",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AG Fatty acid derivatives"
+  },
+  {
+   "name": "vilazodona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06AX Other antidepressants"
+  },
+  {
+   "name": "vinblastina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01CA Vinca alkaloids and analogues"
+  },
+  {
+   "name": "vincristina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01CA Vinca alkaloids and analogues"
+  },
+  {
+   "name": "vinorelbina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01CA Vinca alkaloids and analogues"
+  },
+  {
+   "name": "vismodegib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XJ Hedgehog pathway inhibitors"
+  },
+  {
+   "name": "vitamina a",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A11CA Vitamin A, plain; D10AD Retinoids for topical use in acne; R01AX Other nasal preparations; S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "vitamina b12",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "B03BA Vitamin B12 (cyanocobalamin and analogues)"
+  },
+  {
+   "name": "vitamina b3",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A11HA Other plain vitamin preparations"
+  },
+  {
+   "name": "vitamina c",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "A11GA Ascorbic acid (vitamin C), plain; G01AD Organic acids; S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "voretigen neparvovec",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "S01XA Other ophthalmologicals"
+  },
+  {
+   "name": "vorinostat",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01XH Histone deacetylase (HDAC) inhibitors"
+  },
+  {
+   "name": "vortioxetina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N06AX Other antidepressants"
+  },
+  {
+   "name": "xilometazolina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "R01AA Sympathomimetics, plain; R01AB Sympathomimetics, combinations excl. corticosteroids; S01GA Sympathomimetics used as decongestants"
+  },
+  {
+   "name": "yobitridol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V08AB Watersoluble, nephrotropic, low osmolar X-ray contrast media"
+  },
+  {
+   "name": "yodoquinol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G01AC Quinoline derivatives"
+  },
+  {
+   "name": "yohimbina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "G04BE Drugs used in erectile dysfunction"
+  },
+  {
+   "name": "yopamidol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "V08AB Watersoluble, nephrotropic, low osmolar X-ray contrast media"
+  },
+  {
+   "name": "zanubrutinib",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "L01EL Bruton's tyrosine kinase (BTK) inhibitors"
+  },
+  {
+   "name": "zidovudina",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "J05AF Nucleoside and nucleotide reverse transcriptase inhibitors"
+  },
+  {
+   "name": "ziprasidona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05AE Indole derivatives"
+  },
+  {
+   "name": "zoledronico acido",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "M05BA Bisphosphonates"
+  },
+  {
+   "name": "zolmitriptan",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N02CC Selective serotonin (5HT1) agonists"
+  },
+  {
+   "name": "zolpidem",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05CF Benzodiazepine related drugs"
+  },
+  {
+   "name": "zonisamida",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N03AX Other antiepileptics"
+  },
+  {
+   "name": "zopiclona",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05CF Benzodiazepine related drugs"
+  },
+  {
+   "name": "zuclopentixol",
+   "reason": "CLASS_NOT_CROSSWALKED",
+   "detail": "N05AF Thioxanthene derivatives"
+  },
+  {
+   "name": "aceite de ricino",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"aceite de ricino\" ↮ RxNav \"Veneno de Abeja Aceite de Vibora\""
+  },
+  {
+   "name": "acetilsalicilico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"acetilsalicilico acido\" ↮ RxNav \"aspirin\""
+  },
+  {
+   "name": "alfa tocoferol",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"alfa tocoferol\" ↮ RxNav \"darbepoetin alfa\""
+  },
+  {
+   "name": "aminocaproico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"aminocaproico acido\" ↮ RxNav \"6-aminocaproic acid\""
+  },
+  {
+   "name": "amonio lactato",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"amonio lactato\" ↮ RxNav \"calcium lactate\""
+  },
+  {
+   "name": "anfotericina b",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"anfotericina b\" ↮ RxNav \"vitamin B12\""
+  },
+  {
+   "name": "anfotericina b liposomal",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"anfotericina b liposomal\" ↮ RxNav \"amphotericin B\""
+  },
+  {
+   "name": "azelaico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"azelaico acido\" ↮ RxNav \"Ácido azelaico\""
+  },
+  {
+   "name": "bencilo benzoato",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"bencilo benzoato\" ↮ RxNav \"benzoate\""
+  },
+  {
+   "name": "benzalconio cloruro",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"benzalconio cloruro\" ↮ RxNav \"benzalkonium\""
+  },
+  {
+   "name": "bilastina",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"bilastina\" ↮ RxNav \"glucose\""
+  },
+  {
+   "name": "cinc",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"cinc\" ↮ RxNav \"óxido de cinc\""
+  },
+  {
+   "name": "clavulanico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"clavulanico acido\" ↮ RxNav \"ácido clavulánico\""
+  },
+  {
+   "name": "clofedianol",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"clofedianol\" ↮ RxNav \"chlophedianol\""
+  },
+  {
+   "name": "clonixinato de lisina",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"clonixinato de lisina\" ↮ RxNav \"sangre de grado\""
+  },
+  {
+   "name": "colfoscerilo palmitato",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"colfoscerilo palmitato\" ↮ RxNav \"Palmitato de colfoscerilo\""
+  },
+  {
+   "name": "complejo b",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"complejo b\" ↮ RxNav \"vitamin B12\""
+  },
+  {
+   "name": "complejo vitaminico b",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"complejo vitaminico b\" ↮ RxNav \"vitamin B12\""
+  },
+  {
+   "name": "corifolitropina alfa",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"corifolitropina alfa\" ↮ RxNav \"darbepoetin alfa\""
+  },
+  {
+   "name": "dehidrocolico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"dehidrocolico acido\" ↮ RxNav \"iocetamic acid\""
+  },
+  {
+   "name": "desferroxamina",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"desferroxamina\" ↮ RxNav \"deferoxamine\""
+  },
+  {
+   "name": "dietilamina salicilato",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"dietilamina salicilato\" ↮ RxNav \"diethylamine salicylate\""
+  },
+  {
+   "name": "edetato calcico disodico",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"edetato calcico disodico\" ↮ RxNav \"ergocalciferol\""
+  },
+  {
+   "name": "espiramicina",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"espiramicina\" ↮ RxNav \"spiramycin\""
+  },
+  {
+   "name": "etidronico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"etidronico acido\" ↮ RxNav \"ácido etidrónico\""
+  },
+  {
+   "name": "fenofibrico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"fenofibrico acido\" ↮ RxNav \"iocetamic acid\""
+  },
+  {
+   "name": "fosfomicina trometamol",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"fosfomicina trometamol\" ↮ RxNav \"tromethamine\""
+  },
+  {
+   "name": "fusidico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"fusidico acido\" ↮ RxNav \"Acido fusidico\""
+  },
+  {
+   "name": "gadolinio dtpa",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"gadolinio dtpa\" ↮ RxNav \"DTPA\""
+  },
+  {
+   "name": "gangliosidos",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"gangliosidos\" ↮ RxNav \"IMMUNOGLOBULIN G1, ANTI-(GANGLIOSIDE GD2) (HUMAN-MUS MUSCULUS MONOCLONAL CH14.18 HEAVY CHAIN), DISULFIDE WITH HUMAN-MUS MUSCULUS MONOCLONAL CH14.18 LIGHT CHAIN, DIMER\""
+  },
+  {
+   "name": "glicopirrolato",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"glicopirrolato\" ↮ RxNav \"glycopyrronium\""
+  },
+  {
+   "name": "gonadotropina corionica humana",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"gonadotropina corionica humana\" ↮ RxNav \"chorionic gonadotropin\""
+  },
+  {
+   "name": "hidroxipropilmetilcelulosa",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"hidroxipropilmetilcelulosa\" ↮ RxNav \"hypromellose\""
+  },
+  {
+   "name": "hormona adrenocorticotropica hipofisaria",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"hormona adrenocorticotropica hipofisaria\" ↮ RxNav \"corticotropin\""
+  },
+  {
+   "name": "hormona foliculoestimulante",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"hormona foliculoestimulante\" ↮ RxNav \"parathyroid hormone\""
+  },
+  {
+   "name": "hormona liberadora de gonadotropina (gnrh)",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"hormona liberadora de gonadotropina (gnrh)\" ↮ RxNav \"gonadorelin\""
+  },
+  {
+   "name": "ibandronico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"ibandronico acido\" ↮ RxNav \"ácido ibandrónico\""
+  },
+  {
+   "name": "ipratropio bromuro",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"ipratropio bromuro\" ↮ RxNav \"bromuro de ipratropio\""
+  },
+  {
+   "name": "lactico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"lactico acido\" ↮ RxNav \"ácido láctico\""
+  },
+  {
+   "name": "leucovorina calcica",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"leucovorina calcica\" ↮ RxNav \"calcium carbimide\""
+  },
+  {
+   "name": "lisina clonixinato",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"lisina clonixinato\" ↮ RxNav \"clonixin\""
+  },
+  {
+   "name": "mefenamico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"mefenamico acido\" ↮ RxNav \"ácido mefenámico\""
+  },
+  {
+   "name": "metoxipolietilenglicol-epoetina beta",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"metoxipolietilenglicol-epoetina beta\" ↮ RxNav \"Epoetin beta\""
+  },
+  {
+   "name": "micofenolato mofetilo",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"micofenolato mofetilo\" ↮ RxNav \"Mycophenolate Mofetil\""
+  },
+  {
+   "name": "nicotinico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"nicotinico acido\" ↮ RxNav \"niacin\""
+  },
+  {
+   "name": "nitroprusiato sodico",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"nitroprusiato sodico\" ↮ RxNav \"Aurotiomalato sodico\""
+  },
+  {
+   "name": "ornitina aspartato",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"ornitina aspartato\" ↮ RxNav \"\""
+  },
+  {
+   "name": "otilonio bromuro",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"otilonio bromuro\" ↮ RxNav \"bromuro de ipratropio\""
+  },
+  {
+   "name": "peg asparaginasa",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"peg asparaginasa\" ↮ RxNav \"\""
+  },
+  {
+   "name": "plantago psyllium",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"plantago psyllium\" ↮ RxNav \"psyllium\""
+  },
+  {
+   "name": "plata nitrato",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"plata nitrato\" ↮ RxNav \"silver nitrate\""
+  },
+  {
+   "name": "poliestirenosulfonato calcico",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"poliestirenosulfonato calcico\" ↮ RxNav \"ergocalciferol\""
+  },
+  {
+   "name": "sales biliares",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"sales biliares\" ↮ RxNav \"\""
+  },
+  {
+   "name": "seudoefedrina",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"seudoefedrina\" ↮ RxNav \"dextromethorphan\""
+  },
+  {
+   "name": "sodio benzoato",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"sodio benzoato\" ↮ RxNav \"ganciclovir\""
+  },
+  {
+   "name": "sodio citrato",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"sodio citrato\" ↮ RxNav \"ganciclovir\""
+  },
+  {
+   "name": "sodio fluoruro",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"sodio fluoruro\" ↮ RxNav \"ganciclovir\""
+  },
+  {
+   "name": "sodio hialuronato",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"sodio hialuronato\" ↮ RxNav \"ganciclovir\""
+  },
+  {
+   "name": "sodio picosulfato",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"sodio picosulfato\" ↮ RxNav \"ganciclovir\""
+  },
+  {
+   "name": "somatotropina",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"somatotropina\" ↮ RxNav \"somatropin\""
+  },
+  {
+   "name": "subsalicilato de bismuto",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"subsalicilato de bismuto\" ↮ RxNav \"sangre de grado\""
+  },
+  {
+   "name": "succinilcolina",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"succinilcolina\" ↮ RxNav \"succinylcholine\""
+  },
+  {
+   "name": "sulfoguayacol",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"sulfoguayacol\" ↮ RxNav \"guaiacolsulfonate\""
+  },
+  {
+   "name": "timomodulina",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"timomodulina\" ↮ RxNav \"thymomodulin\""
+  },
+  {
+   "name": "toxoide difterico",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"toxoide difterico\" ↮ RxNav \"tetanus toxoid vaccine, inactivated\""
+  },
+  {
+   "name": "toxoide tetanico",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"toxoide tetanico\" ↮ RxNav \"tetanus toxoid vaccine, inactivated\""
+  },
+  {
+   "name": "triyodotironina",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"triyodotironina\" ↮ RxNav \"Triiodothyronine\""
+  },
+  {
+   "name": "undecilenico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"undecilenico acido\" ↮ RxNav \"undecylenate\""
+  },
+  {
+   "name": "ursodesoxicolico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"ursodesoxicolico acido\" ↮ RxNav \"iocetamic acid\""
+  },
+  {
+   "name": "vacuna contra la fiebre amarilla",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"vacuna contra la fiebre amarilla\" ↮ RxNav \"levonorgestrel\""
+  },
+  {
+   "name": "valproico acido",
+   "reason": "LOW_CONFIDENCE_MATCH",
+   "detail": "\"valproico acido\" ↮ RxNav \"ácido valproico\""
+  },
+  {
+   "name": "abobotulinumtoxina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "acexamico acido",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "acido valproico",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "albumina humana",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "alendronato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "arginina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "bario sulfato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "bepotastina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "calcio",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "calcio dobesilato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "cetrimida",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "cisteina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "clidinio",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "clorazepato dipotasico",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "cromo",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "cromoglicato disodico",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "cumarina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "dihidroergotoxina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "enfortumab vedotina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "escina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "fluocinolona",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "gaba",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "gadoxetato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "ginkgo biloba",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "hesperidina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "hierro",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "hierro fumarato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "hierro sulfato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "hiperico",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "histamina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "ibandronato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "icodextrina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "imipenem",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "inmunoglobulina humana",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "interferon gamma (1b)",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "isosorbida",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "magnesio citrato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "magnesio cloruro",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "magnesio oxido",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "magnesio valproato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "olmesartan medoxomil",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "onabotulinumtoxina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "orfenadrina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "pamidronato disodico",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "pancreatina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "pantenol",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "patiromero",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "pentamidina",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "potasio acetato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "potasio citrato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "potasio cloruro",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "potasio gluconato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "potasio yoduro",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "povidona yodada",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "proteasa",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "pygeum africanum",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "risedronato",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "rocuronio bromuro",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "sacituzumab govitecan",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "serenoa repens",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "simeticona",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "tioctico acido",
+   "reason": "NO_ATC"
+  },
+  {
+   "name": "agomelatina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "aminoacidos",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "azufre",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "butilhioscina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "carbetocina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "cerebrolisina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "condroitinsulfato",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "dapoxetina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "difenilhidantoina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "divalproato",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "eritropoyetina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "evogliptina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "hidrosmina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "hidroxicina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "hilano",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "irgasan",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "itoprida",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "lumiracoxib",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "metadoxina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "mifamurtida",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "propinoxato",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "racotumomab",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "rebamipida",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "roxadustat",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "rupatadina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "teneligliptina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "vacuna antihepatitis a",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "vacuna antimeningococica",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "vinflunina",
+   "reason": "NO_RXCUI"
+  },
+  {
+   "name": "carteolol",
+   "reason": "RENAL_EXCEPTION_NEEDS_CURATION",
+   "detail": "BETA_BLOCKER"
+  },
+  {
+   "name": "demeclociclina",
+   "reason": "RENAL_EXCEPTION_NEEDS_CURATION",
+   "detail": "TETRACYCLINE"
+  },
+  {
+   "name": "sotalol",
+   "reason": "RENAL_EXCEPTION_NEEDS_CURATION",
+   "detail": "BETA_BLOCKER"
+  }
+ ]
+}

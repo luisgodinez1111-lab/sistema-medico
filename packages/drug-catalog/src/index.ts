@@ -3,9 +3,12 @@
 // reactividad cruzada beta-lactámicos (una alergia a penicilina bloquea también cefalosporinas). Puro, sin PHI.
 // Subconjunto de demostración; el catálogo oficial (p. ej. RxNorm/COFEPRIS) se cargaría de la fuente autorizada.
 // Autoridad: PROD (seguridad de la prescripción / alertas de alergia), CAP-DRUG-ALLERGY-001.
-export type DrugEntry=Readonly<{ingredient:string;classes:readonly string[];r1?:string}>;
+import{INGESTED_DRUGS}from"./ingested-drugs";
+// `source`/`atc` solo los llevan las entradas INGERIDAS desde una fuente autoritativa (RxNorm/ATC): su procedencia
+// es un dato por fila, no un comentario. Las curadas a mano citan su fuente en el comentario de su lote.
+export type DrugEntry=Readonly<{ingredient:string;classes:readonly string[];r1?:string;source?:string;atc?:string}>;
 // clave = principio activo normalizado (lowercase, sin acentos). classes = grupos de alérgenos.
-const DRUGS:Record<string,DrugEntry>={
+const CURATED_DRUGS:Record<string,DrugEntry>={
  "amoxicilina":{ingredient:"amoxicilina",classes:["PENICILLIN","BETA_LACTAM"],r1:"AMINOBENZYL"},
  "ampicilina":{ingredient:"ampicilina",classes:["PENICILLIN","BETA_LACTAM"],r1:"AMINOBENZYL"},
  // «Penicilina» a secas es lo que el paciente refiere y NO dice de qué penicilina se trata: se marca como no
@@ -196,6 +199,12 @@ const DRUGS:Record<string,DrugEntry>={
  "litio":{ingredient:"litio",classes:["LITHIUM"]},
  "heparina":{ingredient:"heparina",classes:["ANTICOAGULANT","UFH"]},
 };
+// Catálogo EFECTIVO = curado ∪ ingerido. Las entradas INGERIDAS (generadas por scripts/ops/drug-ingest.mts desde
+// RxNorm/ATC vía RxNav, con procedencia por fila) SOLO entran si su clase ya tiene regla renal en el motor
+// (fail-closed: el generador descarta lo demás a un reporte de curación). El curado SIEMPRE gana ante un choque de
+// clave, así que la ingesta nunca puede degradar una entrada revisada a mano. Ampliar la cobertura = re-correr el
+// generador; la Fase 3 (escala vademécum) es ESTO, no teclear fármacos.
+const DRUGS:Record<string,DrugEntry>={...INGESTED_DRUGS,...CURATED_DRUGS};
 
 // EPIC AX — Interacciones farmacológicas por clase. Auditoría 2026-09-19 (C-17): existían DOS tablas que divergían (la
 // pestaña informativa detectaba sertralina + tramadol y la barrera que bloquea no). Ahora hay UNA sola fuente,
@@ -304,6 +313,10 @@ const RENAL_RULES_BY_CLASS:Record<string,RenalRule>={
  LITHIUM:{blockBelow:30,cautionBelow:60,note:"Litio con TFG<30: evitar (nefrotóxico, eliminación renal íntegra, margen estrecho); con 30–59 reducir dosis y guiar por litemia"},
  UFH:{noAdjustment:true,note:"Heparina no fraccionada: sin ajuste por TFG (guiar por TTPa/anti-Xa)"},
 };
+// Clases con regla renal = las ÚNICAS a las que la ingesta puede admitir un fármaco (si su clase no sabe de riñón,
+// admitirlo rompería el invariante renal). El generador y su test leen esto como contrato de admisibilidad.
+export const RENAL_RULE_CLASSES:readonly string[]=Object.keys(RENAL_RULES_BY_CLASS);
+export function classHasRenalRule(cls:string):boolean{return Object.prototype.hasOwnProperty.call(RENAL_RULES_BY_CLASS,cls);}
 // Auditoría 2026-09-19, anexo R03 (R03-28). En el momento de la auditoría la regla renal era por CLASE y solo existían
 // dos (biguanidas y AINE), así que 22 de los 27 principios activos devolvían `action:"OK"` —una afirmación POSITIVA de
 // seguridad— para cualquier TFG: espironolactona con TFG 20 → OK (hiperkalemia grave), enalapril con TFG 15 → OK,
@@ -945,7 +958,7 @@ export function catalogCoverage():CatalogCoverage{
  return{version:DRUG_CATALOG_VERSION,ingredients,interactionPairs:RICH_INTERACTIONS.length,interactionsReviewedAt:INTERACTIONS_REVIEWED_AT,
   renalRulesByIngredient:Object.keys(RENAL_RULES_BY_INGREDIENT).length,renalRulesByClass:Object.keys(RENAL_RULES_BY_CLASS).length,
   monitoringRules:Object.keys(MONITORING_BY_CLASS).length,factorRules:FACTOR_RULES.length,conditionRules:CONTRAINDICATIONS.length,
-  sourceNote:`Subconjunto curado de ${ingredients} principios activos de uso frecuente en atención primaria en México, con las fuentes citadas fila por fila. NO es un vademécum oficial: un fármaco fuera de este catálogo devuelve NOT_EVALUATED en todas las barreras (nunca «sin hallazgos»). Cargar RxNorm/COFEPRIS versionado es decisión del dueño del producto.`};
+  sourceNote:`Catálogo de ${ingredients} principios activos: un núcleo CURADO (uso frecuente en México, fuentes citadas fila por fila) ampliado por INGESTA automática desde RxNorm/ATC (vía RxNav de la NLM) con procedencia por fila, admitida solo donde la clase ya tiene reglas de seguridad. NO es un vademécum oficial: un fármaco fuera de este catálogo devuelve NOT_EVALUATED en todas las barreras (nunca «sin hallazgos»).`};
 }
 export function interactionRules():readonly DrugInteraction[]{return RICH_INTERACTIONS.flatMap(r=>{const s=barrierSeverity(r.severity);return s?[{classA:r.classA,classB:r.classB,severity:s,note:r.mechanism}]:[];});}
 export function richInteractionRules():readonly RichInteraction[]{return RICH_INTERACTIONS;}
