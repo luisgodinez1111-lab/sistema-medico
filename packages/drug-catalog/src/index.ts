@@ -98,6 +98,12 @@ const DRUGS:Record<string,DrugEntry>={
  "salbutamol":{ingredient:"salbutamol",classes:["SABA"]},
  "gabapentina":{ingredient:"gabapentina",classes:["GABAPENTINOID","CNS_DEPRESSANT"]},
  "pregabalina":{ingredient:"pregabalina",classes:["GABAPENTINOID","CNS_DEPRESSANT"]},
+ // Relevantes para el factor TABAQUISMO: estrógeno de los anticonceptivos combinados (riesgo trombótico sinérgico) y
+ // sustratos del CYP1A2 que el tabaco induce (niveles más bajos fumando; riesgo de toxicidad al dejar de fumar).
+ "etinilestradiol":{ingredient:"etinilestradiol",classes:["COMBINED_HORMONAL_CONTRACEPTIVE","ESTROGEN"]},
+ "teofilina":{ingredient:"teofilina",classes:["METHYLXANTHINE","CYP1A2_SUBSTRATE"]},
+ "clozapina":{ingredient:"clozapina",classes:["ANTIPSYCHOTIC","CYP1A2_SUBSTRATE"]},
+ "olanzapina":{ingredient:"olanzapina",classes:["ANTIPSYCHOTIC","CYP1A2_SUBSTRATE"]},
 };
 
 // EPIC AX — Interacciones farmacológicas por clase. Auditoría 2026-09-19 (C-17): existían DOS tablas que divergían (la
@@ -219,6 +225,10 @@ const RENAL_RULES_BY_INGREDIENT:Record<string,RenalRule>={
  acenocumarol:{noAdjustment:true,note:"Acenocumarol: sin ajuste renal (guiar por INR)"},
  metamizol:{cautionBelow:30,note:"Metamizol con TFG<30: evitar el uso prolongado"},
  clindamicina:{noAdjustment:true,note:"Clindamicina: sin ajuste por TFG (eliminación hepática)"},
+ etinilestradiol:{noAdjustment:true,note:"Etinilestradiol: sin ajuste por TFG (metabolismo hepático); el límite es el riesgo trombótico, no el renal"},
+ teofilina:{noAdjustment:true,note:"Teofilina: sin ajuste por TFG (metabolismo hepático CYP1A2); margen terapéutico estrecho: guiar por niveles séricos"},
+ clozapina:{noAdjustment:true,note:"Clozapina: sin ajuste por TFG (metabolismo hepático); vigilar hemograma (agranulocitosis) y niveles"},
+ olanzapina:{noAdjustment:true,note:"Olanzapina: sin ajuste por TFG (metabolismo hepático)"},
  azitromicina:{noAdjustment:true,note:"Azitromicina: sin ajuste por TFG"},
  claritromicina:{cautionBelow:30,note:"Claritromicina con TFG<30: reducir la dosis a la mitad"},
 };
@@ -560,16 +570,17 @@ function richPairFor(a:readonly string[],b:readonly string[]):RichInteraction|un
 // Factores del paciente (no farmacológicos) que modulan la seguridad de una clase. Código canónico + sinónimos.
 // Auditoría 2026-09-19, anexo R03 (R03-29): la LACTANCIA no existía como factor, y es una decisión de prescripción
 // distinta del embarazo (lo que pasa al recién nacido por la leche no es lo que atraviesa la placenta).
-export type PatientFactor="ALCOHOL"|"RENAL_IMPAIRMENT"|"HEPATIC_IMPAIRMENT"|"PREGNANCY"|"LACTATION"|"ELDERLY";
+export type PatientFactor="ALCOHOL"|"SMOKING"|"RENAL_IMPAIRMENT"|"HEPATIC_IMPAIRMENT"|"PREGNANCY"|"LACTATION"|"ELDERLY";
 const FACTOR_SYNONYMS:Record<PatientFactor,readonly string[]>={
  ALCOHOL:["alcohol","consumo de alcohol","etilismo","alcoholismo","alcohol activo"],
+ SMOKING:["tabaquismo","fumador","fuma","tabaco","nicotina","tabaquismo activo"],
  RENAL_IMPAIRMENT:["insuficiencia renal","enfermedad renal","erc","falla renal","renal","tfg baja"],
  HEPATIC_IMPAIRMENT:["insuficiencia hepatica","hepatopatia","enfermedad hepatica","cirrosis","hepatico"],
  PREGNANCY:["embarazo","gestacion","embarazada","gestante"],
  LACTATION:["lactancia","lactando","amamantando","seno materno","puerperio con lactancia"],
  ELDERLY:["adulto mayor","edad avanzada","anciano","geriatrico","mayor de 65"],
 };
-export const FACTOR_LABEL:Record<PatientFactor,string>={ALCOHOL:"Consumo de alcohol",RENAL_IMPAIRMENT:"Insuficiencia renal",HEPATIC_IMPAIRMENT:"Insuficiencia hepática",PREGNANCY:"Embarazo",LACTATION:"Lactancia",ELDERLY:"Adulto mayor"};
+export const FACTOR_LABEL:Record<PatientFactor,string>={ALCOHOL:"Consumo de alcohol",SMOKING:"Tabaquismo",RENAL_IMPAIRMENT:"Insuficiencia renal",HEPATIC_IMPAIRMENT:"Insuficiencia hepática",PREGNANCY:"Embarazo",LACTATION:"Lactancia",ELDERLY:"Adulto mayor"};
 export type FactorRule=Readonly<{factor:PatientFactor;drugClass:string;severity:InteractionSeverity;mechanism:string;recommendation:string}>;
 const FACTOR_RULES:readonly FactorRule[]=[
  {factor:"ALCOHOL",drugClass:"SSRI",severity:"MODERATE",mechanism:"Potenciación de la depresión del sistema nervioso central y aumento del riesgo de sangrado digestivo.",recommendation:"Aconsejar evitar el alcohol durante el tratamiento con el SSRI."},
@@ -579,6 +590,9 @@ const FACTOR_RULES:readonly FactorRule[]=[
  // Hepatotóxicos + alcohol (antecedente de alcoholismo / F10). El alcohol crónico depleta el glutatión e induce CYP2E1:
  {factor:"ALCOHOL",drugClass:"ANALGESIC_ANTIPYRETIC",severity:"MODERATE",mechanism:"El alcohol crónico induce el CYP2E1 y depleta el glutatión: el paracetamol puede ser hepatotóxico incluso a dosis terapéuticas.",recommendation:"Limitar el paracetamol (≤2 g/día) y evitarlo en consumo intenso/crónico de alcohol; vigilar transaminasas si se prolonga."},
  {factor:"ALCOHOL",drugClass:"STATIN",severity:"MODERATE",mechanism:"Riesgo aditivo de hepatotoxicidad: tanto la estatina como el alcohol pueden elevar las transaminasas.",recommendation:"Vigilar transaminasas al inicio y ante síntomas; aconsejar moderar/evitar el alcohol."},
+ // Tabaquismo (antecedente de tabaquismo / F17): riesgo trombótico con anticonceptivos combinados e inducción del CYP1A2.
+ {factor:"SMOKING",drugClass:"COMBINED_HORMONAL_CONTRACEPTIVE",severity:"MODERATE",mechanism:"Tabaquismo + anticonceptivo hormonal combinado: riesgo sinérgico de tromboembolismo venoso y arterial (infarto, ictus).",recommendation:"Preferir método solo-progestágeno o no hormonal. En fumadoras ≥35 años (o ≥15 cigarrillos/día) el combinado está contraindicado (OMS, categoría 4)."},
+ {factor:"SMOKING",drugClass:"CYP1A2_SUBSTRATE",severity:"MODERATE",mechanism:"El tabaco induce el CYP1A2 y acelera el metabolismo (teofilina, clozapina, olanzapina): niveles más bajos fumando. Al DEJAR de fumar los niveles suben y hay riesgo de toxicidad.",recommendation:"Monitorizar niveles/efecto; prever reajuste de dosis si el paciente deja de fumar (en especial teofilina y clozapina)."},
  {factor:"RENAL_IMPAIRMENT",drugClass:"BIGUANIDE",severity:"MODERATE",mechanism:"Disminución de la eliminación renal de metformina: acumulación y riesgo de acidosis láctica.",recommendation:"Ajustar dosis según TFGe; contraindicada si TFGe<30 mL/min."},
  {factor:"RENAL_IMPAIRMENT",drugClass:"NSAID",severity:"MINOR",mechanism:"Inhibición de prostaglandinas renales: reducción de la perfusión renal.",recommendation:"Usar la dosis mínima efectiva por el menor tiempo posible y vigilar la función renal."},
  {factor:"RENAL_IMPAIRMENT",drugClass:"ACE_INHIBITOR",severity:"MODERATE",mechanism:"Riesgo de deterioro de la función renal e hiperkalemia en enfermedad renal.",recommendation:"Vigilar potasio y creatinina; nefroprotector pero requiere monitoreo estrecho."},

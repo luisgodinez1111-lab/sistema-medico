@@ -35,8 +35,13 @@ describe("los factores del paciente se DERIVAN del expediente (R03-29)",()=>{
  it("el ALCOHOL también se deriva del HÁBITO (antecedentes), no solo del diagnóstico F10",()=>{
   expect(derivePatientFactors([],null,{alcoholismo:true})).toContain("ALCOHOL");
   expect(derivePatientFactors([],null,{alcoholismo:false})).not.toContain("ALCOHOL");
-  expect(derivePatientFactors([],null,{tabaquismo:true})).toEqual([]); // el tabaquismo no es (aún) un factor de barrera
   expect(derivePatientFactors([],null,undefined)).toEqual([]);
+ });
+ it("el TABAQUISMO (SMOKING) se deriva del hábito o del dx (F17 / Z72.0)",()=>{
+  expect(derivePatientFactors([],null,{tabaquismo:true})).toContain("SMOKING");
+  expect(derivePatientFactors(["F17.2"])).toContain("SMOKING");
+  expect(derivePatientFactors(["Z72.0"])).toContain("SMOKING");
+  expect(derivePatientFactors([],null,{tabaquismo:false})).not.toContain("SMOKING");
  });
 });
 
@@ -51,6 +56,21 @@ describe("alcohol (hábito o F10) + fármaco hepatotóxico: la barrera avisa al 
   const con=evaluatePrescriptionSafety({...base,drugCode:"atorvastatina-20",dose:"20mg",frequency:"QD",patientFactors:["ALCOHOL"]});
   expect(barrera(con,"interaction").status).toBe("CAUTION");
   const sin=evaluatePrescriptionSafety({...base,drugCode:"atorvastatina-20",dose:"20mg",frequency:"QD"});
+  expect(barrera(sin,"interaction").status).toBe("PASSED");
+ });
+});
+
+describe("tabaquismo (hábito o F17) como factor de barrera al prescribir",()=>{
+ it("anticonceptivo combinado con SMOKING -> CAUTION (riesgo trombótico; contraindicado ≥35 años)",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"etinilestradiol-30",dose:"1 tab",frequency:"QD",patientFactors:["SMOKING"]});
+  expect(barrera(e,"interaction").status).toBe("CAUTION");
+  expect(barrera(e,"interaction").detail).toMatch(/tromboemb|trombótic|≥35/i);
+ });
+ it("sustrato de CYP1A2 (teofilina) con SMOKING -> CAUTION (inducción enzimática); sin el factor, pasa",()=>{
+  const con=evaluatePrescriptionSafety({...base,drugCode:"teofilina-300",dose:"300mg",frequency:"c/12h",patientFactors:["SMOKING"]});
+  expect(barrera(con,"interaction").status).toBe("CAUTION");
+  expect(barrera(con,"interaction").detail).toMatch(/CYP1A2|dejar de fumar|niveles/i);
+  const sin=evaluatePrescriptionSafety({...base,drugCode:"teofilina-300",dose:"300mg",frequency:"c/12h"});
   expect(barrera(sin,"interaction").status).toBe("PASSED");
  });
 });
