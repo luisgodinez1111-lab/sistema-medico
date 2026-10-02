@@ -115,6 +115,12 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  const onRaas=activeClasses.has("ACE_INHIBITOR")||activeClasses.has("ARB");
  const onDiuretic=activeClasses.has("LOOP_DIURETIC")||activeClasses.has("THIAZIDE");
  if(onRaas&&onDiuretic&&activeClasses.has("NSAID"))inp.tripleWhammy=true;
+ // Riesgos de la medicación ACTIVA × estado del paciente (vigila lo ya activo; complementa la barrera de prescripción).
+ const egfrVal=inp.egfr?.egfr;const ar:{hyperkalemiaCombo?:boolean;metforminContraindicated?:boolean;nsaidInCkd?:boolean}={};
+ if(onRaas&&activeClasses.has("POTASSIUM_SPARING"))ar.hyperkalemiaCombo=true;
+ if(activeClasses.has("BIGUANIDE")&&egfrVal!==undefined&&egfrVal<30)ar.metforminContraindicated=true;
+ if(activeClasses.has("NSAID")&&egfrVal!==undefined&&egfrVal<60)ar.nsaidInCkd=true;
+ if(Object.keys(ar).length)inp.activeRisk=ar;
  // FA: contexto del anticoagulante activo para la brecha de anticoagulación.
  if(inp.cha2ds2vasc)inp.cha2ds2vasc={...inp.cha2ds2vasc,onAnticoagulant:activeClasses.has("ANTICOAGULANT")};
  const findings=assembleFindings(inp);

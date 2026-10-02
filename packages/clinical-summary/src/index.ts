@@ -23,6 +23,9 @@ export type SummaryInputs=Readonly<{
  antiplateletGap?:{indicated:boolean;onTherapy:boolean};
  // Combinación ACTIVA de riesgo (matriz de incompatibilidades LONGITUDINAL, distinta de la barrera al prescribir):
  tripleWhammy?:boolean; // IECA/ARA-II + diurético + AINE activos → riesgo de lesión renal aguda
+ // Riesgos de la medicación ACTIVA cruzada con el estado del paciente (la barrera de Rx solo actúa al recetar; esto
+ // vigila lo YA activo): hiperkalemia por doble bloqueo del potasio, metformina contraindicada por TFG, AINE en ERC.
+ activeRisk?:{hyperkalemiaCombo?:boolean;metforminContraindicated?:boolean;nsaidInCkd?:boolean};
  fib4?:{value:number;risk:"LOW"|"INDETERMINATE"|"HIGH"};
  bmi?:{category:string};
  overdueVaccines?:number;
@@ -71,6 +74,9 @@ export function assembleFindings(i:SummaryInputs):Finding[]{
  if(i.sglt2Gap?.indicated&&!i.sglt2Gap.onSglt2)f.push({domain:"cardiorrenal",severity:"INFO",summary:`${i.sglt2Gap.reason}: considere un iSGLT2 por su beneficio cardiorrenal independiente del control glucémico, vigilando TFG y riesgo de cetoacidosis (ADA; KDIGO).`});
  if(i.antiplateletGap?.indicated&&!i.antiplateletGap.onTherapy)f.push({domain:"antiagregación",severity:"INFO",summary:"Enfermedad cardiovascular aterosclerótica sin antiagregante ni anticoagulante activo: considere antiagregación en prevención secundaria salvo contraindicación (ACC/AHA)."});
  if(i.tripleWhammy)f.push({domain:"renal",severity:"WARNING",summary:`Combinación activa IECA/ARA-II + diurético + AINE ("triple whammy"): riesgo de lesión renal aguda — revise la necesidad del AINE y vigile la función renal (KDIGO; farmacovigilancia).`});
+ if(i.activeRisk?.hyperkalemiaCombo)f.push({domain:"electrolitos",severity:"WARNING",summary:"IECA/ARA-II + ahorrador de potasio activos: riesgo de hiperkalemia — vigile el potasio sérico (ACC/AHA; KDIGO)."});
+ if(i.activeRisk?.metforminContraindicated)f.push({domain:"renal",severity:"WARNING",summary:"Metformina activa con TFG<30: contraindicada por riesgo de acidosis láctica — suspender y reevaluar el antidiabético (ficha técnica FDA; KDIGO)."});
+ if(i.activeRisk?.nsaidInCkd)f.push({domain:"renal",severity:"WARNING",summary:"AINE activo con enfermedad renal (TFG<60): nefrotóxico — revise la necesidad y valore alternativas (KDIGO)."});
  if(i.fib4&&i.fib4.risk==="HIGH")f.push({domain:"hepático",severity:"WARNING",summary:`FIB-4 ${i.fib4.value} (alto): referir a hepatología`});
  if(i.bp){if(i.bp.stage==="CRISIS")f.push({domain:"presión",severity:"CRITICAL",summary:"Crisis hipertensiva: evaluación urgente"});
   else if(i.bp.stage==="HYPOTENSION_SEVERE")f.push({domain:"presión",severity:"CRITICAL",summary:"Hipotensión severa: evaluar perfusión de inmediato"}); // auditoría C-07

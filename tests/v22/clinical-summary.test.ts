@@ -105,4 +105,12 @@ describe("assembleFindings (prioriza por severidad)",()=>{
   expect(f[0]!.summary).toMatch(/triple whammy/);
   expect(assembleFindings({tripleWhammy:false})).toEqual([]);
  });
+ it("riesgos de la medicación ACTIVA × estado: hiperkalemia, metformina con TFG<30 y AINE en ERC -> WARNING c/u",()=>{
+  expect(assembleFindings({activeRisk:{hyperkalemiaCombo:true}})[0]).toMatchObject({domain:"electrolitos",severity:"WARNING"});
+  expect(assembleFindings({activeRisk:{metforminContraindicated:true}})[0]!.summary).toMatch(/Metformina activa con TFG<30/);
+  expect(assembleFindings({activeRisk:{nsaidInCkd:true}})[0]!.summary).toMatch(/AINE activo/);
+  const all=assembleFindings({activeRisk:{hyperkalemiaCombo:true,metforminContraindicated:true,nsaidInCkd:true}});
+  expect(all).toHaveLength(3);expect(all.every(x=>x.severity==="WARNING")).toBe(true);
+  expect(assembleFindings({activeRisk:{}})).toEqual([]);
+ });
 });
