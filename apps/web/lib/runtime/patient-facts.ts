@@ -9,6 +9,8 @@ import{withTenantTx}from"./connection";
 import{patientDemographics}from"./patients";
 import{latestAnalyteReading}from"./lab-facts";
 import{vitalVigente,vitalNoAnulada,lifecycleEventOnly}from"./read-model-joins";
+import{foldAntecedentes,type AntecedentesContent,type AntecedentesState}from"../../../../packages/antecedentes-fold/src";
+import{deterministicUuid}from"../../../../packages/canonical-json/src";
 
 // EPIC R — Gate de seguridad de medicación: sustancias con alergia ACTIVA del paciente (RLS-scoped).
 // Una alergia está activa si su último evento es RECORDED o REACTIVATED (no REFUTED/INACTIVATED).
@@ -166,6 +168,23 @@ export async function patientVitals(ctx:HttpTenantContext,patientId:string,limit
   await logPhiAccess(tx,ctx,{resourceType:"PATIENT_VITALS",resourceId:patientId,patientId});
   return rows.map(r=>{const o=r as Record<string,unknown>;return{
    at:o.at?new Date(String(o.at)).toISOString():"",vitalType:String(o.vital_type??""),value:String(o.value??""),unit:String(o.unit??"")};});
+ });
+}
+// MATRIZ FUNDACIONAL — Antecedentes (historia clínica basal) de UN paciente. Singleton: el id del agregado se deriva del
+// patientId, así que basta leer SU stream y plegarlo. Devuelve el contenido vigente (tras las enmiendas), el estado y la
+// versión; `recorded:false` si el paciente aún no tiene antecedentes capturados (para un estado vacío honesto en la UI).
+export type PatientAntecedentes=Readonly<{recorded:boolean;state:AntecedentesState|null;version:number;content:AntecedentesContent;updatedAt:string}>;
+export async function antecedentes(ctx:HttpTenantContext,patientId:string):Promise<PatientAntecedentes>{
+ const aggregateId=deterministicUuid(`antecedentes:${patientId}`);
+ return withTenantTx(ctx,async tx=>{
+  const rows=await tx`
+   select sequence, payload from clinical_events
+   where tenant_id=${ctx.tenantId} and aggregate_id=${aggregateId} and aggregate_type='Antecedentes'
+   order by sequence asc`;
+  await logPhiAccess(tx,ctx,{resourceType:"PATIENT_ANTECEDENTES",resourceId:aggregateId,patientId});
+  const events=rows.map(r=>{const o=r as Record<string,unknown>;return{sequence:Number(o.sequence),payload:(o.payload??{})as Record<string,unknown>};});
+  const f=foldAntecedentes(events);
+  return{recorded:f.exists,state:f.exists?f.state:null,version:f.version,content:f.content,updatedAt:f.updatedAt};
  });
 }
 // EPIC X/UI — Metas del plan de cuidados de UN paciente (vista Plan de cuidado). Por cada agregado CarePlan

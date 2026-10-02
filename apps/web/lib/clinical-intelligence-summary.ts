@@ -1,5 +1,5 @@
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
-import{patientDemographics,latestVitalsByType,activeProblemCodes,activeAllergySubstances,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccines,activeMedicationDrugCodes}from"./clinical-runtime";
+import{patientDemographics,latestVitalsByType,activeProblemCodes,activeAllergySubstances,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccines,activeMedicationDrugCodes,antecedentes}from"./clinical-runtime";
 import{verifiedValues,MAX_AGE_DAYS,COHERENCE_HOURS}from"./analyte-inputs";
 import{stageBloodPressure,parseBp}from"../../../packages/bp-staging/src";
 import{interpretINR}from"../../../packages/anticoagulation/src";
@@ -27,7 +27,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  // Auditoría 2026-09-19 (C-01, C-02): este panel usa el MISMO camino verificado que las calculadoras (unidad canónica,
  // plausibilidad, vigencia y coherencia de muestra). Antes leía "el último número" sin unidad ni fecha, de modo que el
  // panel podía afirmar un eGFR o un FIB-4 que la propia calculadora ya se negaba a calcular. Dato no utilizable => sin hallazgo.
- const[vitals,codes,openRes,openVit,vaccines,renal,glyc,liver,anticoag,activeDrugs]=await Promise.all([
+ const[vitals,codes,openRes,openVit,vaccines,renal,glyc,liver,anticoag,activeDrugs,ant]=await Promise.all([
   latestVitalsByType(ctx,patientId),
   activeProblemCodes(ctx,patientId),
   countOpenCriticalResults(ctx,patientId),
@@ -38,6 +38,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
   verifiedValues(ctx,patientId,["AST","ALT","PLATELETS"],MAX_AGE_DAYS.LIVER_PANEL,COHERENCE_HOURS.LIVER_PANEL),
   verifiedValues(ctx,patientId,["INR"],MAX_AGE_DAYS.ANTICOAGULATION),
   activeMedicationDrugCodes(ctx,patientId),
+  antecedentes(ctx,patientId), // hábitos (antecedentes no patológicos) para los recordatorios por guías
  ]);
  const inp:{-readonly[K in keyof SummaryInputs]:SummaryInputs[K]}={openCriticalResults:openRes,openCriticalVitals:openVit};
  // NEWS2
@@ -77,6 +78,19 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  // INR (contexto del anticoagulante activo)
  const inrV=anticoag?.["INR"];
  if(inrV!==undefined){const ir=interpretINR(inrV);if(ir)inp.inr={status:ir.status,onAnticoagulant:activeDrugs.some(dc=>resolveDrug(dc)?.classes.includes("ANTICOAGULANT"))};}
+ // Hábitos (antecedentes no patológicos): recordatorios de apoyo basados en guías. Las elegibilidades por edad/sexo se
+ // resuelven aquí (el agregador es puro). Con un booleano NO se asume elegibilidad de cribado que exige paquetes-año: se
+ // sugiere confirmarla. Solo si hay antecedentes capturados.
+ if(ant.recorded){
+  const hab=(ant.content as{noPatologicos?:{tabaquismo?:unknown;alcoholismo?:unknown;toxicomanias?:unknown}}).noPatologicos;
+  const tabaquismo=hab?.tabaquismo===true,alcoholismo=hab?.alcoholismo===true,toxicomanias=hab?.toxicomanias===true;
+  if(tabaquismo||alcoholismo||toxicomanias){
+   const cardiometabolic=has(codes,"I10")||has(codes,"E10","E11")||has(codes,"E78"); // HTA, diabetes, dislipidemia activas
+   inp.habits={tabaquismo,alcoholismo,toxicomanias,cardiometabolic,
+    aaaScreenEligible:tabaquismo&&sex==="MALE"&&age>=65&&age<=75,
+    lungCancerScreenAge:tabaquismo&&age>=50&&age<=80};
+  }
+ }
  const findings=assembleFindings(inp);
  return{registered:true,findings,summary:summarize(findings)};
 }

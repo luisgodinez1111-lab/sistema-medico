@@ -4,9 +4,9 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldMedication,assertMedicationTransition,assertMedicationAnnotation,type FoldedMedication,type MedAnnotationKind}from"../../../packages/medication-fold/src";
 import{type MedicationState}from"../../../packages/medication-domain/src";
-import{runClinicalCommand,runDerivedCommand,lookupReplay,readAggregateStream,activeAllergies,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
+import{runClinicalCommand,runDerivedCommand,lookupReplay,readAggregateStream,activeAllergies,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics,requireRegisteredPatient,antecedentes}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{derivePatientFactors}from"./patient-factors";
+import{derivePatientFactors,habitsOf}from"./patient-factors";
 import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid,replayStablePayload}from"./http-command";
 import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindications,resolveDrug,monitoringFor,checkRenalDosing}from"../../../packages/drug-catalog/src";
 import{validateMedicationOrder,normalizeRoute,checkDoseCeiling,checkPediatricDose,checkDurationLimit,durationToDays}from"../../../packages/medication-validation/src";
@@ -166,16 +166,16 @@ async function createMonitoringObligations(ctx:Parameters<typeof runClinicalComm
 // R03-26: la DURACIÓN forma parte de la orden a efectos de seguridad (ketorolaco máximo 5 días).
 type OrderFields=Readonly<{dose:string;route:string;frequency:string;duration?:string|undefined}>;
 async function evaluateSafetyFor(ctx:Parameters<typeof runClinicalCommand>[0],medicationId:string,folded:FoldedMedication,order:OrderFields,asOf:string){
- const[substances,activeDrugs,conditions,egfr,weightKg,demo]=await Promise.all([
+ const[substances,activeDrugs,conditions,egfr,weightKg,demo,ant]=await Promise.all([
   activeAllergies(ctx,folded.patientId),activeMedicationDrugCodes(ctx,folded.patientId,medicationId),activeProblemCodes(ctx,folded.patientId),
-  patientEgfr(ctx,folded.patientId),patientWeightKg(ctx,folded.patientId),patientDemographics(ctx,folded.patientId)]);
+  patientEgfr(ctx,folded.patientId),patientWeightKg(ctx,folded.patientId),patientDemographics(ctx,folded.patientId),antecedentes(ctx,folded.patientId)]);
  return evaluatePrescriptionSafety({drugCode:folded.drugCode,dose:order.dose,route:order.route,frequency:order.frequency,
   allergies:substances,activeDrugCodes:activeDrugs,activeConditionCodes:conditions,egfr,weightKg,
   ageYears:demo?.birthDate?ageInYears(demo.birthDate,asOf):undefined,
   // R03-26/R03-29: la duración de la orden y los factores del paciente (embarazo, lactancia, insuficiencia renal o
   // hepática, alcohol) DERIVADOS del expediente. Antes las reglas del embarazo no se activaban nunca en esta barrera.
   durationDays:durationToDays(order.duration),
-  patientFactors:derivePatientFactors(conditions,demo?.birthDate)});
+  patientFactors:derivePatientFactors(conditions,demo?.birthDate,habitsOf(ant))});
 }
 // Anulación (U-19) que irá al evento: null si no había bloqueo anulable; undefined si la petición NO es válida (enforceSafety
 // la rechazará antes de escribir, así que nunca llega a persistirse una anulación inválida).

@@ -1,8 +1,10 @@
 import{describe,it,expect}from"vitest";
+import fs from"node:fs";import path from"node:path";
 import{ClinicalError}from"../../packages/runtime-errors/src";
 import{foldHistory}from"../../packages/adaptive-history/src";
 import{foldAdmission}from"../../packages/admission-fold/src";
 import{foldAllergy}from"../../packages/allergy-fold/src";
+import{foldAntecedentes}from"../../packages/antecedentes-fold/src";
 import{foldAppointment}from"../../packages/appointment-fold/src";
 import{foldCarePlan}from"../../packages/careplan-fold/src";
 import{foldClaim}from"../../packages/claim-fold/src";
@@ -33,6 +35,7 @@ const FOLDS:ReadonlyArray<readonly[string,Fold]>=[
  ["adaptive-history",foldHistory as Fold],
  ["admission-fold",foldAdmission as Fold],
  ["allergy-fold",foldAllergy as Fold],
+ ["antecedentes-fold",foldAntecedentes as Fold],
  ["appointment-fold",foldAppointment as Fold],
  ["careplan-fold",foldCarePlan as Fold],
  ["claim-fold",foldClaim as Fold],
@@ -57,7 +60,18 @@ const FOLDS:ReadonlyArray<readonly[string,Fold]>=[
  ["vital-fold",foldVital as Fold],
  ["wound-fold",foldWound as Fold]];
 describe("génesis de los folds (lote 11, D4)",()=>{
- it("cubre los 26 folds con génesis heredada",()=>{expect(FOLDS.length).toBe(26);});
+ it("cubre los 27 folds con génesis heredada",()=>{expect(FOLDS.length).toBe(27);});
+ // La lista de arriba es a mano; esto impide que un fold NUEVO con génesis heredada quede fuera (así entró la matriz de
+ // antecedentes con la regla laxa): todo paquete cuyo kindOf decide la génesis por la secuencia 1 debe estar en FOLDS.
+ it("ningún fold con génesis heredada queda fuera de la lista",()=>{
+  const listed=new Set(FOLDS.map(([n])=>n));
+  const conGenesis=fs.readdirSync("packages").filter(d=>{
+   const f=path.join("packages",d,"src/index.ts");
+   return fs.existsSync(f)&&/\.sequence===1\b/.test(fs.readFileSync(f,"utf8"));
+  });
+  expect(conGenesis.length).toBeGreaterThanOrEqual(27);
+  expect(conGenesis.filter(d=>!listed.has(d)),"fold con génesis heredada sin cubrir").toEqual([]);
+ });
  for(const[name,fold]of FOLDS){
   it(`${name}: un kind ajeno en la secuencia 1 es INVARIANT_VIOLATION, no génesis`,()=>{
    const err=(()=>{try{fold([{sequence:1,payload:{kind:"FOREIGN_AGGREGATE_KIND"}}]);}catch(e){return e;}})();

@@ -33,6 +33,10 @@ export const PAYLOAD_SCHEMAS:Readonly<Record<string,z.ZodType>>={
  "Allergy::RECORDED":base("RECORDED").extend({patientId:uuid,substance:noVacio}).passthrough(),
  "Medication::PROPOSED":base("PROPOSED").extend({patientId:uuid,drugCode:noVacio,dose:noVacio,route:noVacio,frequency:noVacio}).passthrough(),
  "Immunization::DUE":base("DUE").extend({patientId:uuid,vaccineCode:noVacio}).passthrough(),
+ // Matriz fundacional de antecedentes (historia clínica basal). El guard fundamental: existe paciente y la matriz es un
+ // objeto; su forma estructurada la valida el handler (antecedentes-lifecycle). La enmienda exige motivo.
+ "Antecedentes::RECORDED":base("RECORDED").extend({patientId:uuid,content:z.object({}).passthrough()}).passthrough(),
+ "Antecedentes::AMENDED":base("AMENDED").extend({content:z.object({}).passthrough(),reason:noVacio}).passthrough(),
  // — Piezas médico-legales: lo que autoriza y lo que firma —
  "Consent::DRAFTED":base("DRAFTED").extend({patientId:uuid,scopeType:noVacio,documentRef:noVacio}).passthrough(),
  // La huella del documento es OPCIONAL al PRESENTAR (el lote 11a la exige al OTORGAR, y ahí se compara con la presentada):

@@ -11,7 +11,7 @@ import axe from"axe-core";
 // Cuerpos de los POST que emite la UI (para afirmar QUÉ se envía, no solo que "algo" se envió).
 // `gate` (revisión del porte c44dd6c, F4): retiene la respuesta de POST /vitals o de GET /patients/:id/vitals hasta que la prueba
 // la suelte, para cambiar de paciente con el guardado EN VUELO.
-const{posted,flags,gate}=vi.hoisted(()=>({posted:[] as {path:string;body:unknown;idem?:string;ifMatch?:number}[],flags:{hospital:false},gate:{vitalsPost:null as Promise<void>|null,vitalsHist:null as Promise<void>|null}}));
+const{posted,flags,gate}=vi.hoisted(()=>({posted:[] as {path:string;body:unknown;idem?:string;ifMatch?:number}[],flags:{hospital:false},gate:{vitalsPost:null as Promise<void>|null,vitalsHist:null as Promise<void>|null,antPost:null as Promise<void>|null,antRecorded:new Set<string>()}}));
 vi.mock("../../apps/web/lib/session-client",()=>({
  getStoredSession:()=>({sessionId:"testsession0001",expiresAt:Math.floor(Date.now()/1000)+3600,tokenType:"Bearer"}),
  logout:async()=>{},
@@ -22,6 +22,13 @@ vi.mock("../../apps/web/lib/session-client",()=>({
   if(init?.method==="POST")posted.push({path,body:init.body,...(init.idempotencyKey?{idem:init.idempotencyKey}:{}),...(init.ifMatch!==undefined?{ifMatch:init.ifMatch}:{})});
   if(path==="/api/v1/vitals"&&init?.method==="POST"&&gate.vitalsPost)await gate.vitalsPost;
   if(/\/api\/v1\/patients\/[^/]+\/vitals$/.test(path)&&gate.vitalsHist)await gate.vitalsHist;
+  // Matriz de antecedentes por paciente: el POST la captura (retenible con gate.antPost) y el GET devuelve la de ESE paciente.
+  {const m=/\/api\/v1\/patients\/([^/]+)\/antecedentes$/.exec(path);
+   if(m){const pid=decodeURIComponent(m[1]!);
+    if(init?.method==="POST"){if(gate.antPost)await gate.antPost;gate.antRecorded.add(pid);return{status:201,body:{version:1}};}
+    return{status:200,body:gate.antRecorded.has(pid)
+     ?{recorded:true,state:"RECORDED",version:1,content:{noPatologicos:{tabaquismo:true,alcoholismo:false,toxicomanias:false}},updatedAt:"2026-09-30T10:00:00.000Z"}
+     :{recorded:false,state:null,version:0,content:{},updatedAt:""}};}}
   if(path.includes("/api/v1/features"))return{status:200,body:{hospitalVerticals:flags.hospital}}; // verticales hospitalarias solo donde la prueba las pide
   if(path.includes("/api/v1/wounds"))return{status:201,body:{version:1}};
   if(path.includes("/api/v1/vitals")){
@@ -151,7 +158,7 @@ beforeAll(()=>{
  Element.prototype.scrollIntoView=()=>{};
 });
 afterEach(cleanup);
-afterEach(()=>{gate.vitalsPost=null;gate.vitalsHist=null;});
+afterEach(()=>{gate.vitalsPost=null;gate.vitalsHist=null;gate.antPost=null;gate.antRecorded.clear();});
 // jsdom comparte window.location entre tests del mismo archivo; el deep-link (?p=&v=) de un test contaminaría
 // al siguiente. Reseteamos la URL tras cada test (en producción cada carga tiene su propia URL).
 afterEach(()=>{try{window.history.replaceState(null,"","/");}catch{/* noop */}});
@@ -226,7 +233,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText("1. Motivo de consulta")).toBeTruthy();
  });
 
- it("vista Consulta (workspace clínico) con las 7 pestañas + formulario",async()=>{
+ it("vista Consulta (workspace clínico) con las 8 pestañas (incl. Antecedentes) + formulario",async()=>{
   render(<Workspace/>);
   await abrirConsulta();
   expect(screen.getByRole("heading",{name:"Consulta"})).toBeTruthy();
@@ -234,6 +241,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getAllByText("Signos vitales").length).toBeGreaterThan(0); // panel + acceso del sidebar
   expect(screen.getByText("Resumen clínico")).toBeTruthy();
   expect(screen.getByRole("button",{name:/Consulta actual/})).toBeTruthy(); // pestaña
+  expect(screen.getByRole("button",{name:/^Antecedentes$/})).toBeTruthy(); // nueva pestaña de antecedentes (historia basal)
   expect(screen.getAllByRole("button",{name:/Plan de cuidados/}).length).toBeGreaterThan(1); // sidebar + pestaña
   // pestañas por paciente cableadas (sin paciente en contexto: encabezado + estado vacío honesto).
   // "Resultados/Medicamentos/Seguimiento" existen en sidebar y como pestaña -> la pestaña es la última coincidencia.
@@ -507,9 +515,6 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
  it("vista Consulta: interrogatorio y exploración física son campos REALES que alimentan la nota clínica",async()=>{
   render(<Workspace/>);
   await abrirConsulta();
-  // antecedentes estructurables por categoría (Lote D §4.1)
-  fireEvent.click(screen.getByRole("button",{name:"+ Heredofamiliares"}));
-  expect((screen.getByPlaceholderText(/Antecedentes por categoría/) as HTMLTextAreaElement).value).toMatch(/HEREDOFAMILIARES:/);
   // secciones 4 y 5 ya no son colapsables decorativos: son textareas reales, con andamiaje estructurado (Lote D)
   fireEvent.click(screen.getByRole("button",{name:"Negativo por aparatos"}));
   expect((screen.getByPlaceholderText(/Interrogatorio por aparatos/) as HTMLTextAreaElement).value).toMatch(/Negado por aparatos/);
@@ -568,12 +573,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(plan.value.match(/FARMACOLÓGICO:/g)!.length).toBe(1);
  });
 
- it("vista Consulta: los antecedentes marcados se componen en la nota del encuentro",async()=>{
+ it("vista Consulta: los antecedentes NO se re-preguntan — son la matriz del expediente, read-only en la consulta",async()=>{
+  // Rediseño: la historia clínica basal (antecedentes/hábitos) se captura UNA vez en el expediente, no en cada consulta.
+  // La consulta ya no tiene checkboxes de antecedentes ni los serializa en la nota: solo los muestra y enlaza al expediente.
   render(<Workspace/>);
   await abrirConsulta();
-  fireEvent.click(screen.getByText("HTA")); // marca el antecedente (checkbox real)
-  fireEvent.click(screen.getByRole("button",{name:"Vista previa"})); // la nota compuesta muestra lo que se guardará
-  expect(await screen.findByText(/ANTECEDENTES RELEVANTES: HTA/)).toBeTruthy();
+  expect(screen.queryByText("HTA"),"la consulta ya no re-pregunta antecedentes con checkboxes").toBeNull();
+  expect(screen.queryByPlaceholderText(/Antecedentes por categoría/),"se eliminó el textarea de antecedentes de la consulta").toBeNull();
+  // En su lugar, un acceso para capturar/editar la matriz en el expediente del paciente.
+  expect(screen.getByRole("button",{name:/en el expediente/})).toBeTruthy();
+  // Y la nota del encuentro ya NO serializa antecedentes (viven en el expediente, no en la nota de la visita).
+  fireEvent.change(screen.getByPlaceholderText(/Motivo de la consulta/),{target:{value:"Cefalea tensional"}});
+  fireEvent.click(screen.getByRole("button",{name:"Vista previa"}));
+  expect(await screen.findByText(/MOTIVO DE CONSULTA: Cefalea tensional/)).toBeTruthy();
+  expect(screen.queryByText(/ANTECEDENTES RELEVANTES/),"la nota de la consulta ya no lleva antecedentes").toBeNull();
  });
 
  it("vista Alergias: registrar una alergia real desde el módulo (POST /allergies)",async()=>{
@@ -1376,6 +1389,28 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   fireEvent.click(secciones().getByRole("button",{name:"Tratamiento"}));
   expect(await screen.findByRole("button",{name:"Proponer medicación"})).toBeTruthy(); // de vuelta en la pestaña de la medicación
   await waitFor(()=>expect(screen.queryByRole("button",{name:"Prescribir"})).toBeNull());
+ });
+ // D11 en la matriz de antecedentes (merge de main): la captura retenida del paciente anterior, al volver, NO recarga SUS
+ // antecedentes sobre el paciente nuevo. Antes la recarga usaba el patientId del clic y el nuevo aparecía con la matriz ajena.
+ it("D11b — Antecedentes: la respuesta tardía de la captura del paciente anterior no pinta su matriz en el nuevo",async()=>{
+  let soltar!:()=>void;gate.antPost=new Promise<void>(ok=>{soltar=ok;});
+  render(<Workspace/>);
+  await toExpediente();
+  const secciones=()=>within(screen.getByRole("navigation",{name:"Secciones del expediente"}));
+  fireEvent.click(secciones().getByRole("button",{name:"Historia"}));
+  const seccion=()=>within(screen.getByRole("heading",{name:"Antecedentes"}).closest("section")!);
+  fireEvent.click(await seccion().findByRole("button",{name:"Capturar antecedentes"}));
+  const before=posted.length;
+  fireEvent.click(await seccion().findByRole("button",{name:"Capturar antecedentes"}));
+  await waitFor(()=>expect(posted.slice(before).some(p=>/\/patients\/p1\/antecedentes$/.test(p.path))).toBe(true));
+  fireEvent.change(await screen.findByLabelText(/ID de paciente|Identificador del paciente/),{target:{value:"22222222-2222-4222-8222-222222222222"}});
+  expect(await seccion().findByText(/aún no tiene antecedentes capturados/)).toBeTruthy();
+  soltar();await new Promise(r=>setTimeout(r,30));
+  await waitFor(()=>expect(gate.antRecorded.has("p1")).toBe(true)); // la captura de p1 sí se confirmó en el servidor…
+  await new Promise(r=>setTimeout(r,30));
+  expect(seccion().getByText(/aún no tiene antecedentes capturados/)).toBeTruthy(); // …pero la pantalla sigue siendo la del nuevo
+  expect(seccion().queryByRole("button",{name:"Editar"})).toBeNull();
+  expect(seccion().queryByText(/Antecedentes capturados\./)).toBeNull();
  });
  // Lote 11, hallazgo D11c: ningún dato de un evento permanente se inventa en el cliente; los pide el diálogo U-16.
  it("D11c — acciones: lote/sitio, firmante, códigos, referencia de pago y destino al alta se piden, no se inventan",async()=>{

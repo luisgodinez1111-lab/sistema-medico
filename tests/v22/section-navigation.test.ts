@@ -59,6 +59,8 @@ describe("navegación entre ventanas del expediente (WS1-15a)",()=>{
  });
  it("el destino que estaba roto ahora existe con su nombre real",()=>{
   // «Documentos» contra un título que dice «Documentos clínicos»: el defecto concreto que encontró este hallazgo.
+  // Tras el Lote B la ficha navega con goExpSection (activa la sub-pestaña «coordinación» ANTES del scroll), pero sigue
+  // apuntando al nombre REAL de la ventana — que es justo lo que este test protege.
   const src=fs.readFileSync(path.join(UI,"views/documentos.tsx"),"utf8");
   expect(src,"la ficha de Documentos debe navegar al nombre real de la ventana").toMatch(/(?:scrollToSection|goExpSection)\("Documentos clínicos"[,)]/);
   expect(anclas()).toContain("Documentos clínicos");

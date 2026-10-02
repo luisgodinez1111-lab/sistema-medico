@@ -5,20 +5,37 @@ import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
 import{WOUND_STAGES,WOUND_STAGE_LABEL}from"../../../../../packages/wound-fold/src";
-import{Check,ESI_FORM_EMPTY,unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,type ExpTab,type TrendKey}from"../shared";
+import{Check,ESI_FORM_EMPTY,unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,type ExpTab,type TrendKey,ANT_HEREDO,ANT_CRONICOS,type AntContent}from"../shared";
 import{searchIcd10}from"../../../../../packages/terminology/src";
 // R2B-019: el plazo de reevaluación es de CTAS, no de ESI (ESI no publica tiempos). La pantalla lo dice para que nadie lo
 // lea como un número del algoritmo ESI.
 const REASSESSMENT_SOURCE_SHORT="CTAS";
 import{useWorkspace}from"../context";
 export default function ExpView(){
- const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab}=useWorkspace();
+ const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab,setView,openConsulta,antSnap,antForm,setAntForm,antBusy,antMsg,antReason,setAntReason,antEditing,setAntEditing,saveAntecedentes}=useWorkspace();
  // Patient 360 (Lote B): la sub-vista activa decide qué secciones se montan. La pestaña "hospital" solo existe con
  // hospitalOn; si la URL trae ?s=hospital sin las verticales encendidas, caemos a "resumen" para no dejar la vista vacía.
  const activeTab:ExpTab=(expTab==="hospital"&&!hospitalOn)?"resumen":expTab;
  const inTab=(g:ExpTab)=>activeTab===g;
  // Navegación entre sub-vistas (pestañas y accesos rápidos del hero); opcionalmente enfoca una sección tras montar.
  const goTab=(g:ExpTab,section?:string)=>{setExpTab(g);if(section)requestAnimationFrame(()=>scrollToSection(section));else scrollTop();};
+
+ // Expediente accesible desde el menú: sin un paciente en foco no hay historia que mostrar. En vez de un cascarón vacío,
+ // se invita a elegir uno (honesto, sin datos ficticios). El expediente es longitudinal: siempre es de UN paciente.
+ if(!patientId)return <main className="mos-grid"><section className="span2" style={{...card,marginTop:24,padding:"44px 24px",maxWidth:560,marginLeft:"auto",marginRight:"auto"}}>
+  <div style={{textAlign:"center"}}>
+   <div style={{width:48,height:48,borderRadius:14,background:"#EEF3FB",color:P.blue,display:"grid",placeItems:"center",margin:"0 auto 14px"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 3h9l4 4v14H6zM15 3v4h4M9 13h6M9 17h4"/></svg></div>
+   <div style={{fontSize:18,fontWeight:800,letterSpacing:"-.01em"}}>Abre el expediente de un paciente</div>
+   <p style={{color:P.muted,fontSize:13.5,maxWidth:460,margin:"8px auto 20px",lineHeight:1.5}}>El expediente es la historia clínica longitudinal de un paciente concreto. Elige uno en Pacientes (o búscalo en la barra superior) y desde ahí podrás revisar su historia e iniciar una consulta.</p>
+   <button onClick={()=>{setView("pacientes");scrollTop();}} style={{...btn,display:"inline-block",padding:"10px 20px"}}>Ir a Pacientes →</button>
+  </div>
+  {/* Alternativa para abrir por ID (útil cuando el padrón no está disponible, p. ej. una dependencia caída): al fijar el
+      patientId se monta el expediente y, si la carga falla, el aviso honesto de error del layout se hace cargo. */}
+  <div style={{marginTop:24,paddingTop:18,borderTop:`1px solid ${LINE}`}}>
+   <label htmlFor="patient-id-input" style={lbl}>…o abre por ID de paciente</label>
+   <input aria-label="Identificador del paciente" id="patient-id-input" style={input} value={patientId} onChange={e=>selectPatientRaw(e.target.value,"")} placeholder="UUID del paciente"/>
+  </div>
+ </section></main>;
 
  return <>
   {/* PATIENT HEADER — contexto del paciente SIEMPRE visible (design-contract); componente del design system (K-09) */}
@@ -32,7 +49,10 @@ export default function ExpView(){
        </div>
      : <span style={{display:"inline-flex",alignItems:"center",gap:6,background:"#EAF7EF",color:P.greenOnPale,border:"1px solid #CDEBD8",borderRadius:999,padding:"4px 12px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>✓ Sin alertas de seguridad</span>
     )}
-   actions={<button style={{...ghost,padding:"7px 12px",fontSize:13,flex:"0 0 auto"}} onClick={reset}>+ Paciente anónimo</button>}/>
+   actions={<div style={{display:"flex",gap:8,alignItems:"center"}}>
+     <button style={{...btn,padding:"7px 14px",fontSize:13,flex:"0 0 auto"}} onClick={()=>openConsulta(patientId,patientName)}>Iniciar consulta →</button>
+     <button style={{...ghost,padding:"7px 12px",fontSize:13,flex:"0 0 auto"}} onClick={reset}>+ Paciente anónimo</button>
+    </div>}/>
   <main className="mos-grid">
   {/* PATIENT 360 (Lote B) — navegación por sub-vistas: el expediente deja de ser un scroll único de ~30 secciones */}
   <nav className="span2" aria-label="Secciones del expediente" style={{position:"sticky",top:0,zIndex:5,background:"#F4F7FB",display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",padding:"2px 0 10px",marginBottom:2,borderBottom:`1px solid ${LINE}`}}>
@@ -265,6 +285,111 @@ export default function ExpView(){
       <button style={{...ghost,padding:"6px 12px"}} onClick={()=>selectPatientRaw(p.patientId,p.name)}>{p.patientId===patientId?"Activo":"Seleccionar"}</button>
      </div>)}
    </div>}
+  </section>
+
+  {/* MATRIZ FUNDACIONAL — Antecedentes (historia clínica basal): se captura una vez (RECORDED) y se enmienda con motivo. */}
+  <section hidden={!inTab("historia")} className="span2" style={card}>
+   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
+    <div style={{minWidth:0}}>
+     <h2 {...anchor("Antecedentes")} style={{fontSize:18,margin:0}}>Antecedentes</h2>
+     <p style={{color:P.muted,fontSize:12,margin:"4px 0 0",maxWidth:620}}>Historia clínica basal del paciente: se captura una vez y se actualiza con motivo. La consulta la muestra y ya no la vuelve a preguntar.</p>
+    </div>
+    {!antEditing&&<div style={{display:"flex",gap:10,alignItems:"center",flex:"0 0 auto"}}>
+     {antSnap?.recorded&&antSnap.updatedAt&&<span style={{fontSize:11.5,color:P.muted}}>Actualizado {relTime(antSnap.updatedAt)}</span>}
+     <button onClick={()=>setAntEditing(true)} style={{...btn,padding:"7px 14px",fontSize:13}}>{antSnap?.recorded?"Editar":"Capturar antecedentes"}</button>
+    </div>}
+   </div>
+   {(()=>{
+    const sex=snap?.demographics.sex;const showGineco=sex==="FEMALE"||antForm.ginecoObstetricos?.aplica===true;
+    const hab=antForm.noPatologicos;const pat=antForm.patologicos;
+    const chip=(active:boolean,label:string,onClick:()=>void)=><button key={label} type="button" onClick={onClick} style={{border:`1px solid ${active?P.purple:LINE}`,background:active?"#EEEBFD":P.white,color:active?P.purple:P.ink,borderRadius:999,padding:"5px 12px",fontSize:12.5,fontWeight:active?700:500,cursor:"pointer",fontFamily:UI}}>{label}</button>;
+    const ta2:React.CSSProperties={...input,minHeight:52,resize:"vertical",width:"100%"};
+    const lbl2:React.CSSProperties={fontSize:12.5,fontWeight:700,color:P.ink,display:"block",margin:"2px 0 7px"};
+    const toggleHeredo=(flag:string)=>setAntForm(f=>{const cur=f.heredofamiliares?.flags??[];return{...f,heredofamiliares:{...f.heredofamiliares,flags:cur.includes(flag)?cur.filter(x=>x!==flag):[...cur,flag]}};});
+    const toggleCronico=(flag:string)=>setAntForm(f=>{const cur=f.patologicos?.cronicos??[];return{...f,patologicos:{...f.patologicos,cronicos:cur.includes(flag)?cur.filter(x=>x!==flag):[...cur,flag]}};});
+    const setHer=(p:Partial<NonNullable<AntContent["heredofamiliares"]>>)=>setAntForm(f=>({...f,heredofamiliares:{...f.heredofamiliares,...p}}));
+    const setPat=(p:Partial<NonNullable<AntContent["patologicos"]>>)=>setAntForm(f=>({...f,patologicos:{...f.patologicos,...p}}));
+    const setHab=(p:Partial<NonNullable<AntContent["noPatologicos"]>>)=>setAntForm(f=>({...f,noPatologicos:{...f.noPatologicos!,...p}}));
+    const setQx=(p:Partial<NonNullable<AntContent["quirurgicos"]>>)=>setAntForm(f=>({...f,quirurgicos:{...f.quirurgicos,...p}}));
+    const setGO=(p:Partial<NonNullable<AntContent["ginecoObstetricos"]>>)=>setAntForm(f=>({...f,ginecoObstetricos:{...f.ginecoObstetricos,...p}}));
+    const secBox:React.CSSProperties={border:`1px solid ${LINE}`,borderRadius:12,padding:"14px 16px",background:"#FCFDFF"};
+    const secTtl:React.CSSProperties={fontSize:13.5,fontWeight:800,margin:"0 0 10px"};
+
+    if(!antEditing){
+     if(!antSnap?.recorded)return <div style={{marginTop:16,padding:"18px 16px",borderRadius:12,background:"#f6f6fb",border:`1px dashed ${LINE}`,fontSize:13,color:P.muted}}>Este paciente aún no tiene antecedentes capturados. Pulsa «Capturar antecedentes» para registrar la historia clínica basal (heredofamiliares, patológicos, hábitos, quirúrgicos y gineco-obstétricos) una sola vez.</div>;
+     const yes=(b?:boolean)=>b?"Sí":"No";
+     const roItems:[string,React.ReactNode][]=[];
+     if(antForm.heredofamiliares?.flags?.length||antForm.heredofamiliares?.notas)roItems.push(["Heredofamiliares",<>{(antForm.heredofamiliares.flags??[]).join(", ")}{antForm.heredofamiliares.notas?` · ${antForm.heredofamiliares.notas}`:""}</>]);
+     if(pat?.cronicos?.length||pat?.cirugias||pat?.hospitalizaciones||pat?.transfusiones||pat?.notas)roItems.push(["Patológicos",<>{[(pat.cronicos??[]).join(", "),pat.cirugias?"cirugías":"",pat.hospitalizaciones?"hospitalizaciones":"",pat.transfusiones?"transfusiones":"",pat.notas].filter(Boolean).join(" · ")}</>]);
+     roItems.push(["Hábitos",<>Tabaquismo: {yes(hab?.tabaquismo)} · Alcoholismo: {yes(hab?.alcoholismo)} · Toxicomanías: {yes(hab?.toxicomanias)}{hab?.actividadFisica?` · Act. física: ${hab.actividadFisica}`:""}{hab?.alimentacion?` · Alimentación: ${hab.alimentacion}`:""}{hab?.notas?` · ${hab.notas}`:""}</>]);
+     if(antForm.quirurgicos?.notas)roItems.push(["Quirúrgicos",antForm.quirurgicos.notas]);
+     if(showGineco&&antForm.ginecoObstetricos?.notas)roItems.push(["Gineco-obstétricos",antForm.ginecoObstetricos.notas]);
+     // Recomendaciones del CDS que nacen de los hábitos (cesación, cribados por guías): el algoritmo lee los antecedentes.
+     const habitFindings=(snap?.findings??[]).filter(f=>f.domain==="tabaquismo"||f.domain==="alcohol"||f.domain==="adicciones");
+     return <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:9}}>
+      {roItems.map(([k,v])=><div key={k} style={{display:"flex",gap:12,fontSize:13,padding:"9px 11px",borderRadius:10,background:"#f7f8fc"}}><span style={{fontWeight:800,color:P.purpleOnPale,minWidth:140,flex:"0 0 auto"}}>{k}</span><span style={{minWidth:0,color:"#33383F"}}>{v}</span></div>)}
+      {habitFindings.length>0&&<div style={{borderTop:`1px solid ${LINE}`,paddingTop:12,marginTop:3}}>
+       <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Recomendaciones del sistema (por los hábitos)</div>
+       <div style={{display:"flex",flexDirection:"column",gap:8}}>{habitFindings.map((f,i)=>{const s=SEV[f.severity]??SEV.INFO;return <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"9px 11px",borderRadius:10,background:s.bg,border:`1px solid ${s.bd}`}}>
+        <span style={{background:"#fff",color:s.fg,border:`1px solid ${s.bd}`,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800,letterSpacing:".03em",whiteSpace:"nowrap",marginTop:1}}>{s.label}</span>
+        <span style={{fontSize:13,color:"#33383F",lineHeight:1.4}}>{f.summary}</span></div>;})}</div>
+       <div style={{fontSize:11,color:P.muted,marginTop:8}}>Apoyo determinista por guías. La decisión es del médico.</div>
+      </div>}
+     </div>;
+    }
+    // EDICIÓN de la matriz
+    return <div style={{marginTop:16,display:"grid",gap:14}}>
+     <div style={secBox}>
+      <div style={secTtl}>Antecedentes heredofamiliares</div>
+      <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{ANT_HEREDO.map(f=>chip((antForm.heredofamiliares?.flags??[]).includes(f),f,()=>toggleHeredo(f)))}</div>
+      <textarea style={{...ta2,marginTop:10}} aria-label="Notas heredofamiliares" placeholder="Detalle (parentesco, edad de diagnóstico…)" value={antForm.heredofamiliares?.notas??""} onChange={e=>setHer({notas:e.target.value.slice(0,2000)})}/>
+     </div>
+     <div style={secBox}>
+      <div style={secTtl}>Antecedentes personales patológicos</div>
+      <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{ANT_CRONICOS.map(f=>chip((pat?.cronicos??[]).includes(f),f,()=>toggleCronico(f)))}</div>
+      <div style={{display:"flex",gap:16,flexWrap:"wrap",margin:"12px 0 2px"}}>
+       <Check checked={!!pat?.cirugias} label="Cirugías previas" onChange={()=>setPat({cirugias:!pat?.cirugias})}/>
+       <Check checked={!!pat?.hospitalizaciones} label="Hospitalizaciones" onChange={()=>setPat({hospitalizaciones:!pat?.hospitalizaciones})}/>
+       <Check checked={!!pat?.transfusiones} label="Transfusiones" onChange={()=>setPat({transfusiones:!pat?.transfusiones})}/>
+      </div>
+      <textarea style={{...ta2,marginTop:10}} aria-label="Notas patológicas" placeholder="Enfermedades crónicas, tratamientos, fechas…" value={pat?.notas??""} onChange={e=>setPat({notas:e.target.value.slice(0,2000)})}/>
+     </div>
+     <div style={secBox}>
+      <div style={secTtl}>Antecedentes personales no patológicos (hábitos)</div>
+      <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+       <Check checked={!!hab?.tabaquismo} label="Tabaquismo" onChange={()=>setHab({tabaquismo:!hab?.tabaquismo})}/>
+       <Check checked={!!hab?.alcoholismo} label="Alcoholismo" onChange={()=>setHab({alcoholismo:!hab?.alcoholismo})}/>
+       <Check checked={!!hab?.toxicomanias} label="Toxicomanías" onChange={()=>setHab({toxicomanias:!hab?.toxicomanias})}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:12}}>
+       <div><label style={lbl2}>Actividad física</label><input style={input} aria-label="Actividad física" placeholder="p. ej. sedentario, 3×/sem" value={hab?.actividadFisica??""} onChange={e=>setHab({actividadFisica:e.target.value.slice(0,500)})}/></div>
+       <div><label style={lbl2}>Alimentación</label><input style={input} aria-label="Alimentación" placeholder="p. ej. balanceada, alta en grasas" value={hab?.alimentacion??""} onChange={e=>setHab({alimentacion:e.target.value.slice(0,500)})}/></div>
+      </div>
+      <textarea style={{...ta2,marginTop:10}} aria-label="Notas de hábitos" placeholder="Índice tabáquico, consumo, otras toxicomanías…" value={hab?.notas??""} onChange={e=>setHab({notas:e.target.value.slice(0,2000)})}/>
+     </div>
+     <div style={secBox}>
+      <div style={secTtl}>Antecedentes quirúrgicos</div>
+      <textarea style={ta2} aria-label="Antecedentes quirúrgicos" placeholder="Cirugías con fecha y motivo…" value={antForm.quirurgicos?.notas??""} onChange={e=>setQx({notas:e.target.value.slice(0,2000)})}/>
+     </div>
+     <div style={secBox}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+       <div style={secTtl}>Antecedentes gineco-obstétricos</div>
+       {sex!=="FEMALE"&&<Check checked={!!antForm.ginecoObstetricos?.aplica} label="Aplica a este paciente" onChange={()=>setGO({aplica:!antForm.ginecoObstetricos?.aplica})}/>}
+      </div>
+      {showGineco?<textarea style={ta2} aria-label="Antecedentes gineco-obstétricos" placeholder="Menarca, G/P/A/C, FUM, método de planificación, citología…" value={antForm.ginecoObstetricos?.notas??""} onChange={e=>setGO({notas:e.target.value.slice(0,2000)})}/>:<p style={{fontSize:12.5,color:P.muted,margin:0}}>No aplica. Marca «Aplica a este paciente» si corresponde.</p>}
+     </div>
+     {antSnap?.recorded&&<div style={secBox}>
+      <label style={lbl2}>Motivo de la actualización <span style={{color:P.redOnPale}}>*</span></label>
+      <input style={input} aria-label="Motivo de la actualización" placeholder="p. ej. el paciente dejó de fumar; nuevo diagnóstico" value={antReason} onChange={e=>setAntReason(e.target.value.slice(0,300))}/>
+      <p style={{fontSize:11.5,color:P.muted,margin:"6px 0 0"}}>El histórico no se sobrescribe: cada actualización queda en la auditoría con su motivo.</p>
+     </div>}
+     {antMsg&&<div role="status" style={{fontSize:12.5,fontWeight:600,color:antMsg.includes("No se")||antMsg.includes("Indica")||antMsg.includes("cambiaron")?P.amberOnPale:P.greenOnPale}}>{antMsg}</div>}
+     <div style={{display:"flex",gap:10}}>
+      <button disabled={antBusy} onClick={()=>void saveAntecedentes()} style={{...btn,opacity:antBusy?.6:1}}>{antBusy?"Guardando…":antSnap?.recorded?"Guardar cambios":"Capturar antecedentes"}</button>
+      <button disabled={antBusy} onClick={()=>setAntEditing(false)} style={{...ghost,padding:"9px 16px"}}>Cancelar</button>
+     </div>
+    </div>;
+   })()}
   </section>
 
   {/* TIMELINE DEL PACIENTE */}
