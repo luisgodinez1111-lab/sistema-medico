@@ -5,6 +5,8 @@
   "scripts": {
     "traceability:check": "tsx packages/clinical-safety/src/validate-registry.ts",
     "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:ui": "vitest run --project ui",
     "test:ledger": "tsx scripts/ci/test-ledger.mts",
     "typecheck": "tsc --noEmit",
     "test:safety": "vitest run tests/traceability",
