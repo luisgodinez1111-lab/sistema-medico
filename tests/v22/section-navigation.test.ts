@@ -30,7 +30,9 @@ function destinos():string[]{
  const out=new Set<string>();
  for(const p of vistas()){
   const src=fs.readFileSync(p,"utf8");
-  for(const m of src.matchAll(/scrollToSection\("([^"]*)"\)/g))if(m[1])out.add(m[1]!);
+  // Destinos literales: scrollToSection("X") y goExpSection("X",…) (éste activa la sub-pestaña correcta ANTES de hacer
+  // scroll — la navegación del expediente tras el Lote B pasó a este helper; ambos cuentan como destino navegable).
+  for(const m of src.matchAll(/(?:scrollToSection|goExpSection)\("([^"]*)"/g))if(m[1])out.add(m[1]!);
  }
  for(const it of [...SIDE_NAV,...TOOLS_NAV])if(it.h2)out.add(it.h2);
  // Las pestañas del expediente declaran su destino en el propio array.
@@ -49,8 +51,10 @@ describe("navegación entre ventanas del expediente (WS1-15a)",()=>{
  });
  it("el destino que estaba roto ahora existe con su nombre real",()=>{
   // «Documentos» contra un título que dice «Documentos clínicos»: el defecto concreto que encontró este hallazgo.
+  // Tras el Lote B la ficha navega con goExpSection (activa la sub-pestaña «coordinación» ANTES del scroll), pero sigue
+  // apuntando al nombre REAL de la ventana — que es justo lo que este test protege.
   const src=fs.readFileSync(path.join(UI,"views/documentos.tsx"),"utf8");
-  expect(src,"la ficha de Documentos debe navegar al nombre real de la ventana").toContain('scrollToSection("Documentos clínicos")');
+  expect(src,"la ficha de Documentos debe navegar al nombre real de la ventana").toContain('goExpSection("Documentos clínicos"');
   expect(anclas()).toContain("Documentos clínicos");
  });
  it("la navegación NO vuelve a buscar títulos por su texto en todo el DOM",()=>{

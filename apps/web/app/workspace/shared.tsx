@@ -342,6 +342,7 @@ export type NavGroup="Clínica"|"Registros del paciente"|"Coordinación"|"Análi
 export const SIDE_NAV:{label:string;h2:string;icon:string;group:NavGroup;badge?:BadgeKey;badgeColor?:"r"|"p"}[]=[
  {label:"Inicio",h2:"",icon:"home",group:"Clínica"},
  {label:"Pacientes",h2:"Paciente",icon:"people",group:"Clínica"},
+ {label:"Expediente",h2:"",icon:"record",group:"Clínica"},
  {label:"Consulta",h2:"Encuentro",icon:"steth",group:"Clínica"},
  {label:"Agenda",h2:"Agenda",icon:"cal",group:"Clínica",badge:"agenda",badgeColor:"p"},
  {label:"Problemas",h2:"Lista de problemas",icon:"clipboard",group:"Registros del paciente"},
@@ -386,6 +387,7 @@ export const ICONS:Record<string,string>={
  book:"M12 6C10 4.5 7 4 4 4v14c3 0 6 .5 8 2 2-1.5 5-2 8-2V4c-3 0-6 .5-8 2zM12 6v14",
  gear:"M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 007.5 19a1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1H3a2 2 0 110-4h.1A1.6 1.6 0 004.6 8.5a1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5V3a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1H21a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z",
  lock:"M6 11h12v9H6zM9 11V8a3 3 0 016 0v3",
+ record:"M6 3h9l4 4v14H6zM15 3v4h4M9 13h6M9 17h4M12 7V5M11 6h2",
 };
 export function NavIcon({k}:{k:string}){return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={ICONS[k]??ICONS.home}/></svg>;}
 // MEDIC OS — marca "M+" recreada en SVG (nítida/escalable/temeable). Reemplaza los logos SVG dispersos.

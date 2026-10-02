@@ -136,11 +136,14 @@ export default function PacientesView(){
         </div>
         <div style={{fontSize:13.5,fontWeight:800,margin:"18px 0 10px"}}>Acciones</div>
         <div style={{display:"flex",flexDirection:"column",gap:9}}>
-         <button onClick={()=>openConsulta(fp.patientId,fp.name)} style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Ver consulta</button>
+         {/* El flujo es expediente → consulta: abrir el expediente es la acción primaria; la consulta se inicia desde ahí
+             (o directo aquí). El paciente ya quedó en foco por selectRow, así que basta cambiar de vista. */}
+         <button onClick={()=>{setExpTab("resumen");setView("exp");scrollTop();}} style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"11px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Abrir expediente →</button>
          <div style={{display:"flex",gap:9}}>
+          <button onClick={()=>openConsulta(fp.patientId,fp.name)} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Iniciar consulta</button>
           <button onClick={()=>{setApptForm(f=>({...f,patientId:fp.patientId}));setApptNew(true);setAgendaDate(new Date().toISOString().slice(0,10));setView("agenda");scrollTop();}} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Agendar cita</button>
-          <button onClick={()=>void exportSelected(fp.patientId,fp.name)} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Exportar</button>
          </div>
+         <button onClick={()=>void exportSelected(fp.patientId,fp.name)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:UI}}>Exportar expediente</button>
         </div>
        </div>
       ):patTab==="historial"?(

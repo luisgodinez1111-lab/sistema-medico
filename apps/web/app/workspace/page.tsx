@@ -57,12 +57,12 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDIC <span className="os">OS</span></div><div className="mos-bsub">SALUD EN UN<br/>SOLO SISTEMA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {(()=>{let prevGroup="";const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado",Interconsultas:"interconsulta",Seguimiento:"seguimiento",["Facturación"]:"facturacion",Documentos:"documentos",Obligaciones:"obligaciones",["Clinical Intelligence"]:"clinicalIntel",Reportes:"reportes"};
+    {(()=>{let prevGroup="";const VMAP:Record<string,typeof view>={Inicio:"inicio",Pacientes:"pacientes",Expediente:"exp",Consulta:"consulta",Agenda:"agenda",Resultados:"resultados",Medicamentos:"medicamentos",["Órdenes"]:"ordenes",Alergias:"alergias",Problemas:"problemas",Vacunas:"vacunas",["Signos vitales"]:"signos",["Plan de cuidados"]:"planCuidado",Interconsultas:"interconsulta",Seguimiento:"seguimiento",["Facturación"]:"facturacion",Documentos:"documentos",Obligaciones:"obligaciones",["Clinical Intelligence"]:"clinicalIntel",Reportes:"reportes"};
      // Ley de Hick: la navegación se pinta por secciones; el encabezado del grupo aparece al cambiar de `group`.
      return SIDE_NAV.flatMap(it=>{const vTarget=VMAP[it.label];const on=vTarget?view===vTarget:(view==="exp"&&!!it.h2&&activeH2===it.h2);const n=it.badge?navCounts[it.badge]:0;const rows:React.ReactNode[]=[];
       if(it.group!==prevGroup){prevGroup=it.group;rows.push(<div key={"sec-"+it.group} className="mos-navsec" aria-hidden="true">{it.group}</div>);}
       rows.push(
-       <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){if(vTarget==="consulta")setConsultaPid(null);setView(vTarget);scrollTop();}else{goExpSection(it.h2,setView,setExpTab);}}}>
+       <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget){if(vTarget==="consulta")setConsultaPid(null);if(vTarget==="exp")setExpTab("resumen");setView(vTarget);scrollTop();}else{goExpSection(it.h2,setView,setExpTab);}}}>
         <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&(n===null||n>0)&&<span className={"mos-badge "+(n===null?"p":(it.badgeColor??"p"))} title={n===null?"Sin dato: no se pudo cargar el conteo":undefined}>{n===null?<><span aria-hidden="true">—</span><span className="mos-sr">sin dato</span></>:n}</span>}
        </button>);
       return rows;});})()}
