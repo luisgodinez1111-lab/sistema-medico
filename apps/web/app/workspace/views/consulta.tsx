@@ -2,11 +2,12 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "consulta" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {useEffect,useRef,useState} from "react";
-import{card,P,LINE,UI,act,scrollTop,goExpSection,mono,Skeleton,srOnly,relTime}from"../shared";
-import EncounterForm from"./_encounter";
+import{card,P,LINE,UI,act,scrollTop,Skeleton,srOnly}from"../shared";
 import{useWorkspace}from"../context";
+// Unificación Consulta⟷Expediente: esta vista es SOLO el despachador del día (agenda + iniciar consulta). Abrir una
+// consulta llama a openConsulta, que abre el EXPEDIENTE del paciente en la pestaña "Consulta" (ver model.tsx).
 export default function ConsultaView(){
- const{consultaPid,agenda,patientList,consultaNewPid,setApptNew,setAgendaDate,setView,setConsultaNewPid,openConsulta,patientName,snap,antSnap,setConsultaPid,setExpTab,enc,gaps,patientId,busy,setCPreview,cPreview,consultaAdvance,cMsg,setCMsg,composeNote,cForm,docDisplay,chartState,setChartReload,setCTab,cTab,consTabs,setCForm,clock,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdSel,setCOrdCat,setCOrdMsg,cOrdSel,createConsultaOrders,cOrdBusy,cOrdMsg,patientQuery,setPatientQuery,loadPatients,regName,setRegName,regDob,setRegDob,regSex,setRegSex,regExtra,setRegExtra,registerPatient,guardianFields,dupPanel,patMsg,regIsMinor}=useWorkspace();
+ const{consultaPid,agenda,patientList,setApptNew,setAgendaDate,setView,openConsulta,patientQuery,setPatientQuery,loadPatients,regName,setRegName,regDob,setRegDob,regSex,setRegSex,regExtra,setRegExtra,registerPatient,guardianFields,dupPanel,patMsg,regIsMinor,busy}=useWorkspace();
  const[newInline,setNewInline]=useState(false); // Lote C: alta de paciente inline dentro de Nueva consulta
  // Lote C: buscador incremental de paciente en Nueva consulta (server ?q=), con debounce; sustituye el <select> masivo.
  // BUGFIX (parpadeo): `loadPatients` NO está memoizada, así que cambia de identidad en cada render. Tenerla en las
@@ -92,95 +93,7 @@ export default function ConsultaView(){
      </div>
     </div>;
    }
-   // ===== VISTA CONSULTA (workspace clínico) — S4.png, pestaña "Consulta actual" =====
-   // Verdad clínica (auditoría 2026-09-19, U-01): SIN valores de maqueta. Lo que no se ha cargado se muestra
-   // como desconocido ("—"), nunca como una paciente inventada con alergias y problemas ficticios.
-   const pName=patientName||"";
-   const age:number|null=snap?.demographics.age??null;
-   const sexo=snap?.demographics.sex;
-   const sexoEs=sexo==="FEMALE"?"Femenino":sexo==="MALE"?"Masculino":"—";
-   const alN:number|null=snap?snap.allergies.length:null,prN:number|null=snap?snap.problems.length:null;
-   const initials=pName.trim()?pName.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase():"—";
-   const card2:React.CSSProperties={...card,marginTop:0};
-   const antp=(bg:string,fg:string,label:string,d:string)=>(<div style={{display:"flex",alignItems:"center",gap:7,borderRadius:10,padding:"8px 12px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap",background:bg,color:fg,cursor:"pointer"}} {...act(()=>{goExpSection(label==="Alergias"?"Alergias":label==="Problemas"?"Lista de problemas":label==="Medicamentos"?"Medicación":"Vacunas",setView,setExpTab);})}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg>{label}</div>);
-   const link:React.CSSProperties={color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"};
-   const CTABS:[typeof cTab,string][]=[["actual","Consulta actual"],["antecedentes","Antecedentes"],["resultados","Resultados"],["ordenes","Órdenes"],["medicamentos","Medicamentos"],["plan","Plan de cuidados"],["documentos","Documentos"],["seguimiento","Seguimiento"]];
-   return <div style={{padding:"20px clamp(20px,2.4vw,64px) 40px",maxWidth:2100,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
-     <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{width:34,height:34,borderRadius:9,border:`1px solid ${LINE}`,background:P.white,display:"grid",placeItems:"center",cursor:"pointer",color:P.muted}} title="Volver al panel de consultas" {...act(()=>setConsultaPid(null))}>←</span><div><div style={{display:"flex",alignItems:"center",gap:10}}><h1 style={{fontSize:27,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Consulta</h1></div><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Registro y gestión de la consulta médica</p></div></div>
-
-    </div>
-    <div style={{...card2,display:"flex",alignItems:"center",gap:18,padding:"16px 20px",marginTop:16,flexWrap:"wrap"}}>
-     <span style={{width:66,height:66,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontWeight:800,fontSize:22,flex:"0 0 auto"}}>{initials}</span>
-     <div style={{flex:1,minWidth:180}}><div><span style={{fontSize:21,fontWeight:800}}>{pName||"Sin paciente seleccionado"}</span>{snap?<span style={{background:"#E6F6EE",color:"#0F7A4D",borderRadius:999,padding:"3px 11px",fontSize:12,fontWeight:600,marginLeft:10}}>Paciente activo</span>:chartState==="error"?<span role="alert" style={{background:"#FDEEEE",color:P.redOnPale,borderRadius:999,padding:"3px 11px",fontSize:12,fontWeight:700,marginLeft:10}}>Expediente no disponible · <button onClick={()=>setChartReload(n=>n+1)} style={{border:0,background:"transparent",color:P.redOnPale,textDecoration:"underline",cursor:"pointer",font:"inherit",padding:0}}>Reintentar</button></span>:<span style={{background:"#EEF0F6",color:"#4A5568",borderRadius:999,padding:"3px 11px",fontSize:12,fontWeight:600,marginLeft:10}}>{chartState==="loading"?"Cargando expediente…":"Paciente sin registrar"}</span>}</div><div style={{fontSize:13,color:P.muted,marginTop:3}}>{age===null?"Edad —":`${age} años`} · {sexoEs}{snap?.demographics.birthDate?` · ${new Date(snap.demographics.birthDate).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})}`:""}</div><div style={{fontSize:13,color:P.muted}}>{snap?.demographics.curp?<>CURP: <span style={mono}>{snap.demographics.curp}</span></>:<>ID <span style={mono}>{patientId.slice(0,8)}</span></>}</div></div>
-     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,flex:"0 0 auto"}}>
-      {antp("#FDECEE",P.redOnPale,`Alergias (${alN??"—"})`,"M12 4l9 15.5H3zM12 10v4M12 17h.01")}
-      {antp("#EEEBFD",P.purpleOnPale,`Problemas (${prN??"—"})`,"M9 4h6v2H9zM7 5H6v16h12V5h-1")}
-      {antp("#E7F0FD",P.blueOnPale,"Medicamentos","M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z")}
-      {antp("#E6F6EE",P.greenOnPale,"Vacunas","M14 4l6 6M6 14l4 4M16.5 6.5l-10 10")}
-     </div>
-     <div style={{borderLeft:`1px solid ${LINE}`,paddingLeft:18,fontSize:12.5,color:P.muted}}>Última consulta<div style={{color:P.ink,marginTop:5}}>{docDisplay}</div><span style={link} {...act(()=>{goExpSection("Timeline del paciente",setView,setExpTab);})}>Ver historial →</span></div>
-    </div>
-    <div style={{display:"flex",gap:4,marginTop:16,borderBottom:`1px solid ${LINE}`,overflowX:"auto"}}>
-     {CTABS.map(([k,l])=><button key={k} onClick={()=>setCTab(k)} style={{padding:"12px 16px",fontSize:13.5,fontWeight:cTab===k?700:500,color:cTab===k?P.purple:P.muted,cursor:"pointer",borderBottom:cTab===k?`2px solid ${P.purple}`:"2px solid transparent",background:"transparent",border:"0",borderBottomWidth:2,fontFamily:UI,whiteSpace:"nowrap"}}>{l}</button>)}
-    </div>
-    {cTab!=="actual"?(
-     (()=>{
-      const cc:React.CSSProperties={...card2,marginTop:16,padding:0,overflow:"hidden"};
-      const tth:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"11px 14px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
-      const ttd:React.CSSProperties={padding:"10px 14px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
-      const pilr=(bg:string,fg:string,t:string)=><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:bg,color:fg}}>{t}</span>;
-      const fmtC=(iso:string)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
-      const head=(title:string,n:number,section:string,cta:string)=><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px"}}><div style={{fontSize:16,fontWeight:800}}>{title} ({n})</div><button style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:9,padding:"7px 12px",fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{goExpSection(section,setView,setExpTab);}}>{cta} →</button></div>;
-      const empty=(t:string)=><div style={{padding:"40px",textAlign:"center",color:P.muted,fontSize:13}}>{patientId?t:"Selecciona un paciente para ver esta información."}</div>;
-      // Skeleton mientras carga el snapshot del expediente (chartState==="loading"): reserva el layout de la pestaña.
-      if(chartState==="loading")return <div style={cc} role="status" aria-busy="true"><div style={{padding:"14px 16px"}}><Skeleton w={190} h={16}/></div>{Array.from({length:5}).map((_,i)=><div key={i} style={{display:"flex",gap:12,alignItems:"center",padding:"11px 16px",borderTop:`1px solid #F2F4F9`}}><Skeleton w={34} h={34} r={9}/><div style={{flex:1}}><Skeleton w="45%" h={13}/><Skeleton w="70%" h={11} style={{marginTop:5}}/></div><Skeleton w={70} h={18} r={99}/></div>)}<span style={srOnly}>Cargando expediente…</span></div>;
-      if(cTab==="resultados"){const rows=consTabs?.results??[];const est=(e:string):[string,string]=>e==="Hallazgos"?["#FDE7EA",P.redOnPale]:e==="En seguimiento"?["#EAF1FD",P.blueOnPale]:e==="En revisión"?["#FBF0DC",P.amberOnPale]:["#E6F6EE",P.greenOnPale];
-       return <div style={cc}>{head("Resultados del paciente",rows.length,"Resultados diagnósticos","Abrir en el expediente")}{rows.length?<div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={tth}>Analito</th><th style={tth}>Valor</th><th style={tth}>Fecha</th><th style={{...tth,textAlign:"right"}}>Estado</th></tr></thead><tbody>{rows.map((r,i)=>{const[bg,fg]=est(r.estado);return <tr key={i}><td style={{...ttd,fontWeight:600}}>{r.analyte}</td><td style={{...ttd,color:r.critical?"#D23651":P.ink,fontWeight:r.critical?700:400}}>{r.value}</td><td style={{...ttd,color:P.muted}}>{fmtC(r.receivedAt)}</td><td style={{...ttd,textAlign:"right"}}>{pilr(bg,fg,r.estado)}</td></tr>;})}</tbody></table></div>:empty("Sin resultados diagnósticos para este paciente.")}</div>;
-      }
-      if(cTab==="ordenes"){const rows=consTabs?.orders??[];const est=(s:string):[string,string]=>s==="Completada"?["#E6F6EE",P.greenOnPale]:s==="Enviada"?["#EAF1FD",P.blueOnPale]:s==="Cancelada"?["#EEF1F7",P.muted]:["#FBF0DC",P.amberOnPale];
-       return <div style={cc}>{head("Órdenes del paciente",rows.length,"Órdenes clínicas","Abrir en el expediente")}{rows.length?<div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={tth}>Estudio</th><th style={tth}>Tipo</th><th style={tth}>Fecha</th><th style={{...tth,textAlign:"right"}}>Estado</th></tr></thead><tbody>{rows.map((r,i)=>{const[bg,fg]=est(r.status);return <tr key={i}><td style={{...ttd,fontWeight:600}}>{r.detail}</td><td style={{...ttd,color:P.muted}}>{r.typeLabel}</td><td style={{...ttd,color:P.muted}}>{fmtC(r.createdAt)}</td><td style={{...ttd,textAlign:"right"}}>{pilr(bg,fg,r.status)}</td></tr>;})}</tbody></table></div>:empty("Sin órdenes de estudio para este paciente.")}</div>;
-      }
-      if(cTab==="medicamentos"){const rows=consTabs?.medications??[];
-       return <div style={cc}>{head("Medicamentos activos",rows.length,"Medicación","Abrir en el expediente")}{rows.length?<div style={{padding:"4px 16px 16px"}}>{rows.map((m,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"11px 0",borderBottom:i<rows.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:34,height:34,borderRadius:9,background:"#E6F6EE",color:P.green,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7z"/></svg></span><span style={{flex:1,fontSize:13.5,fontWeight:600,textTransform:"capitalize"}}>{m}</span>{pilr("#E6F6EE",P.greenOnPale,"Activo")}</div>)}</div>:empty(consTabs?"Sin medicamentos activos para este paciente.":"No evaluados: las pestañas de consulta no cargaron.")}</div>;
-      }
-      if(cTab==="plan"){const rows=consTabs?.planGoals??[];const done=(s:string)=>s==="Lograda";
-       return <div style={cc}>{head("Metas del plan de cuidado",rows.length,"Plan de cuidados","Abrir en el expediente")}{rows.length?<div style={{padding:"4px 16px 16px"}}>{rows.map((g,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"10px 0",borderBottom:i<rows.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:18,height:18,borderRadius:"50%",border:done(g.statusLabel)?"0":"1.8px solid #C7CCE0",background:done(g.statusLabel)?P.greenOnPale:"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:11,flex:"0 0 auto"}}>{done(g.statusLabel)?"✓":""}</span><span style={{flex:1,fontSize:13.5,color:done(g.statusLabel)?P.muted:P.ink,textDecoration:done(g.statusLabel)?"line-through":"none"}}>{g.goal}</span>{pilr("#EEEBFD",P.purple,g.statusLabel)}</div>)}</div>:empty("Sin metas de plan de cuidado para este paciente.")}</div>;
-      }
-      if(cTab==="documentos"){const rows=consTabs?.documents??[];
-       return <div style={cc}>{head("Documentos del paciente",rows.length,"Documentos clínicos","Abrir en el expediente")}{rows.length?<div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={tth}>Nombre</th><th style={tth}>Tipo</th><th style={{...tth,textAlign:"right"}}>Fecha</th></tr></thead><tbody>{rows.map((r,i)=><tr key={i}><td style={ttd}><span style={{display:"flex",alignItems:"center",gap:9}}><span style={{color:P.red}}>▤</span>{r.title}</span></td><td style={{...ttd,color:P.muted}}>{r.typeLabel}</td><td style={{...ttd,textAlign:"right",color:P.muted}}>{fmtC(r.createdAt)}</td></tr>)}</tbody></table></div>:empty("Sin documentos para este paciente.")}</div>;
-      }
-      if(cTab==="seguimiento"){const rows=consTabs?.obligations??[];
-       return <div style={cc}>{head("Tareas de seguimiento",rows.length,"Obligaciones de seguimiento","Abrir en el expediente")}{rows.length?<div style={{padding:"4px 16px 16px"}}>{rows.map((o,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"10px 0",borderBottom:i<rows.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:17,height:17,borderRadius:5,border:o.done?"0":"1.7px solid #C7CCE0",background:o.done?P.purple:"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:10,flex:"0 0 auto"}}>{o.done?"✓":""}</span><span style={{flex:1,fontSize:13.5,color:o.done?P.muted:P.ink,textDecoration:o.done?"line-through":"none"}}>{o.task}</span><span style={{fontSize:11.5,color:P.muted}}>📅 {fmtC(o.dueAt)}</span></div>)}</div>:empty("Sin tareas de seguimiento para este paciente.")}</div>;
-      }
-      if(cTab==="antecedentes"){
-       // Matriz fundacional READ-ONLY (se captura/edita en el expediente; aquí es contexto de la visita). Desde antSnap.
-       const c=antSnap?.content;const hab=c?.noPatologicos;const rows:[string,string][]=[];
-       if(antSnap?.recorded){
-        const her=[(c?.heredofamiliares?.flags??[]).join(", "),c?.heredofamiliares?.notas].filter(Boolean).join(" · ");if(her)rows.push(["Heredofamiliares",her]);
-        const pat=[(c?.patologicos?.cronicos??[]).join(", "),c?.patologicos?.cirugias?"cirugías":"",c?.patologicos?.hospitalizaciones?"hospitalizaciones":"",c?.patologicos?.transfusiones?"transfusiones":"",c?.patologicos?.notas].filter(Boolean).join(" · ");if(pat)rows.push(["Personales patológicos",pat]);
-        rows.push(["No patológicos (hábitos)",[`Tabaquismo: ${hab?.tabaquismo?"Sí":"No"}`,`Alcoholismo: ${hab?.alcoholismo?"Sí":"No"}`,`Toxicomanías: ${hab?.toxicomanias?"Sí":"No"}`,hab?.actividadFisica?`Act. física: ${hab.actividadFisica}`:"",hab?.alimentacion?`Alimentación: ${hab.alimentacion}`:"",hab?.notas??""].filter(Boolean).join(" · ")]);
-        if(c?.quirurgicos?.notas)rows.push(["Quirúrgicos",c.quirurgicos.notas]);
-        if(c?.ginecoObstetricos?.notas)rows.push(["Gineco-obstétricos",c.ginecoObstetricos.notas]);
-       }
-       // Recomendaciones del CDS que NACEN de los hábitos (cesación, cribados por guías): el algoritmo lee los antecedentes
-       // y las muestra aquí mismo, donde el médico ve los hábitos. Determinista, de apoyo (snap.findings ya calculado).
-       const habitFindings=(snap?.findings??[]).filter(f=>f.domain==="tabaquismo"||f.domain==="alcohol"||f.domain==="adicciones");
-       const sevColor=(s:string):[string,string,string]=>s==="CRITICAL"?["#FDE7EA",P.redOnPale,"CRÍTICO"]:s==="WARNING"?["#FBF0DC",P.amberOnPale,"ATENCIÓN"]:["#EAF1FD",P.blueOnPale,"INFO"];
-       return <div style={cc}>{head("Antecedentes (historia basal)",rows.length,"Antecedentes",antSnap?.recorded?"Editar en el expediente":"Capturar en el expediente")}{antSnap?.recorded
-        ?<div style={{padding:"4px 16px 16px",display:"flex",flexDirection:"column",gap:9}}>{rows.map(([k,v])=><div key={k} style={{display:"flex",gap:12,fontSize:13,padding:"9px 11px",borderRadius:10,background:"#f7f8fc"}}><span style={{fontWeight:800,color:P.purpleOnPale,minWidth:170,flex:"0 0 auto"}}>{k}</span><span style={{minWidth:0,color:"#33383F"}}>{v}</span></div>)}
-          {habitFindings.length>0&&<div style={{marginTop:8,borderTop:`1px solid ${LINE}`,paddingTop:12}}>
-           <div style={{fontSize:12.5,fontWeight:800,color:P.ink,marginBottom:8}}>Recomendaciones del sistema (por los hábitos)</div>
-           <div style={{display:"flex",flexDirection:"column",gap:7}}>{habitFindings.map((f,i)=>{const[bg,fg,lb]=sevColor(f.severity);return <div key={i} style={{display:"flex",gap:9,alignItems:"flex-start",padding:"9px 11px",borderRadius:10,background:bg}}><span style={{background:"#fff",color:fg,border:`1px solid ${fg}33`,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800,letterSpacing:".03em",whiteSpace:"nowrap",marginTop:1}}>{lb}</span><span style={{fontSize:12.5,color:"#33383F",lineHeight:1.45}}>{f.summary}</span></div>;})}</div>
-           <div style={{fontSize:11,color:P.muted,marginTop:8}}>Apoyo determinista por guías. La decisión es del médico.</div>
-          </div>}
-          {antSnap.updatedAt&&<div style={{fontSize:11.5,color:P.muted,marginTop:2}}>Actualizado {relTime(antSnap.updatedAt)}</div>}</div>
-        :empty("Sin antecedentes capturados. Captúralos una vez en el expediente del paciente.")}</div>;
-      }
-      return <div/>;
-     })()
-    ):(
-    <EncounterForm/>)}
-   </div>;
-  
+   // Unificación Consulta⟷Expediente: abrir una consulta ahora abre el EXPEDIENTE (openConsulta→exp, pestaña «Consulta»).
+   // Esta vista es SOLO el despachador del día (landing sin paciente): ya no hay pantalla-paciente gemela aquí.
+   return null;
 }

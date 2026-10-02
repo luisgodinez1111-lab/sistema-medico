@@ -51,8 +51,9 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 2/
   await abrirConsulta();
   fireEvent.change(screen.getByPlaceholderText("Motivo de la consulta…"),{target:{value:"Cefalea del paciente A"}});
   expect((screen.getByPlaceholderText("Motivo de la consulta…") as HTMLTextAreaElement|HTMLInputElement).value).toBe("Cefalea del paciente A");
-  // cambio a Carlos Mendoza (p2): volver al panel de consultas y abrir la suya
-  fireEvent.click(screen.getByTitle("Volver al panel de consultas"));
+  // cambio a Carlos Mendoza (p2): unificación — se vuelve al despachador por la puerta "Consulta" del menú lateral
+  // ([0] = la del sidebar; la pestaña "Consulta" del expediente comparte nombre) y se abre la suya.
+  fireEvent.click(screen.getAllByRole("button",{name:"Consulta"})[0]!);
   const input2=await screen.findByLabelText("Buscar paciente");
   fireEvent.change(input2,{target:{value:"Carlos"}});
   const openC=await screen.findByRole("button",{name:/Carlos Mendoza/},{timeout:2000});fireEvent.click(openC);

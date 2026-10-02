@@ -38,7 +38,7 @@ export default function OrdenesView(){
    const filtered=byTab.filter(o=>(!q||o.patientName.toLowerCase().includes(q)||o.detail.toLowerCase().includes(q))&&(!ordStatus||o.status===ordStatus));
    const kTot=ordReg?.total??0,kSol=items.filter(o=>o.status==="Solicitada").length,kEnv=items.filter(o=>o.status==="Enviada").length,kCom=items.filter(o=>o.status==="Completada").length,kCan=items.filter(o=>o.status==="Cancelada").length;
    const selected=items.find(o=>o.orderId===ordSel)??items[0]??null;
-   const openInRecord=(pid:string,name:string)=>openConsulta(pid,name,"ordenes");
+   const openInRecord=(pid:string,name:string)=>openConsulta(pid,name);
    const donutDefs:[string,string,string][]=[["LAB","Laboratorio",P.amberOnPale],["IMAGING","Imagenología",P.redOnPale],["PROCEDURE","Procedimiento",P.cyan],["REFERRAL","Interconsulta",P.purpleOnPale],["PATHOLOGY","Patología",P.muted]];
    const donut=donutDefs.map(([t,l,c])=>({t,l,c,n:items.filter(o=>o.orderType===t).length}));
    const donTot=donut.reduce((a,b)=>a+b.n,0)||1;

@@ -9,25 +9,22 @@ void render;void screen;void cleanup;void waitFor;void fireEvent;void within;voi
 installCockpitEnv();
 describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 5/6",()=>{
 
- it("vista Consulta (workspace clínico) con las 8 pestañas (incl. Antecedentes) + formulario",async()=>{
+ it("abrir una consulta abre el EXPEDIENTE en la pestaña «Consulta» (encuentro), no una pantalla gemela",async()=>{
   render(<Workspace/>);
   await abrirConsulta();
-  expect((await screen.findByRole("heading",{name:"Consulta"}))).toBeTruthy();
+  // Unificación Consulta⟷Expediente: ya no hay pantalla de consulta separada con 8 pestañas; abrir una consulta abre
+  // el expediente del paciente en la pestaña "Consulta" (el encuentro), con su formulario estructurado y su CDS.
   expect(screen.getByText("1. Motivo de consulta")).toBeTruthy();
-  expect(screen.getAllByText("Signos vitales").length).toBeGreaterThan(0); // panel + acceso del sidebar
   expect(screen.getByText("Resumen clínico")).toBeTruthy();
-  expect(screen.getByRole("button",{name:/Consulta actual/})).toBeTruthy(); // pestaña
-  expect(screen.getByRole("button",{name:/^Antecedentes$/})).toBeTruthy(); // nueva pestaña de antecedentes (historia basal)
-  expect(screen.getAllByRole("button",{name:/Plan de cuidados/}).length).toBeGreaterThan(1); // sidebar + pestaña
-  // pestañas por paciente cableadas (sin paciente en contexto: encabezado + estado vacío honesto).
-  // "Resultados/Medicamentos/Seguimiento" existen en sidebar y como pestaña -> la pestaña es la última coincidencia.
+  expect(screen.getAllByText("Signos vitales").length).toBeGreaterThan(0);
+  expect(screen.getByRole("button",{name:"Abrir encuentro"})).toBeTruthy(); // acción FSM del encuentro
   const lastTab=(name:RegExp)=>{const bs=screen.getAllByRole("button",{name});return bs[bs.length-1]!;};
-  fireEvent.click(lastTab(/^Resultados$/));
-  expect(await screen.findByText(/Resultados del paciente/)).toBeTruthy(); // espera a que el snapshot cargue (skeleton→contenido)
-  fireEvent.click(lastTab(/^Medicamentos$/));
-  expect(await screen.findByText(/Medicamentos activos/)).toBeTruthy();
-  fireEvent.click(lastTab(/^Seguimiento$/));
-  expect(await screen.findByText(/Tareas de seguimiento/)).toBeTruthy();
+  // Los antecedentes ya no son una pestaña de la consulta: viven en la pestaña "Historia" del expediente.
+  fireEvent.click(lastTab(/^Historia$/));
+  expect(await screen.findByRole("heading",{name:"Antecedentes"})).toBeTruthy();
+  // Y las secciones longitudinales viven en sus pestañas del expediente (Tratamiento → Medicación).
+  fireEvent.click(lastTab(/^Tratamiento$/));
+  expect(await screen.findByRole("heading",{name:"Medicación"})).toBeTruthy();
  });
 
  it("vista Pacientes: ficha con pestañas en sitio (Historial), Agendar cita y edición real (POST amendment)",async()=>{

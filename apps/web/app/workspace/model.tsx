@@ -317,7 +317,9 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const[consultaPid,setConsultaPid]=useState<string|null>(null); // paciente de la consulta abierta (null = panel de consultas)
  const[consultaNewPid,setConsultaNewPid]=useState(""); // selector "iniciar nueva consulta" en el panel
  // Abre el workspace de la consulta de un paciente (desde el panel, agenda, pacientes, etc.).
- const openConsulta=(pid:string,name:string,tab:typeof cTab="actual")=>{selectPatientRaw(pid,name);setConsultaPid(pid);setCTab(tab);setView("consulta");scrollTop();};
+ // Unificación Consulta⟷Expediente: abrir la consulta de un paciente ABRE SU EXPEDIENTE en la pestaña "Consulta"
+ // (el encuentro), no una pantalla gemela. Una sola pantalla; el encuentro al frente (primera pestaña), no oculto.
+ const openConsulta=(pid:string,name:string)=>{selectPatientRaw(pid,name);setView("exp");setExpTab("encuentro");scrollTop();};
  const[consTabs,setConsTabs]=useState<ConsTabs|null>(null); // pestañas por paciente de Consulta (cableado)
  const[resTab,setResTab]=useState<"resultados"|"solicitudes"|"seguimiento"|"referencia"|"alertas">("resultados");
  const[resReg,setResReg]=useState<ResultsRegistry|null>(null); // registro de resultados clínica-wide (cableado)
@@ -1559,8 +1561,9 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   selectPatientRaw(id,regName);setPatientList(l=>[{patientId:id,name:regName,status:"ACTIVE",birthDate:regDob,sexAtBirth:regSex,...(e.curp?{curp:e.curp}:{})},...(l??[])]);setRegName("");setRegDob("");setRegExtra({curp:"",phone:"",email:"",address:"",occupation:"",maritalStatus:""});setRegGuardian({name:"",relationship:"",phone:""});
   if(inline){setPatNew(false);setPatMsg(warn?"Paciente registrado. Es menor de edad y no tiene tutor registrado: añádelo desde Editar antes de recabar consentimientos.":"Paciente registrado.");}
   else if(warn)setError("Menor de edad sin tutor registrado: añade al tutor o representante legal antes de recabar consentimientos.");
-  // Lote C: alta desde Nueva consulta → abre de inmediato el expediente de consulta del paciente recién creado.
-  if(openInConsulta){setConsultaPid(id);setCTab("actual");setView("consulta");}
+  // Alta desde Nueva consulta → abre de inmediato el EXPEDIENTE del paciente recién creado en la pestaña "Consulta"
+  // (encuentro). selectPatientRaw ya fijó el paciente arriba. Unificación: no hay pantalla de consulta separada.
+  if(openInConsulta){setView("exp");setExpTab("encuentro");scrollTop();}
  });
  const guardianFields=(style:React.CSSProperties)=>regIsMinor?<div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:10,marginTop:10}}>
   <input style={style} value={regGuardian.name} onChange={e=>setRegGuardian(g=>({...g,name:e.target.value}))} placeholder="Tutor o representante legal (menor de edad)" aria-label="Nombre del tutor" />
@@ -1632,7 +1635,10 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   if(!patientList)return; // espera al padrón para tomar el nombre del paciente
   urlRestored.current=true;
   const found=patientList.find(x=>x.patientId===pid);
-  if(found){selectPatientRaw(pid,found.name);const KV=new Set(["inicio","pacientes","consulta","agenda","resultados","medicamentos","ordenes","alergias","problemas","vacunas","signos","planCuidado","interconsulta","seguimiento","facturacion","documentos","obligaciones","clinicalIntel","reportes","biblioteca","configuracion","exp"]);if(v&&KV.has(v))setView(v as typeof view);if(s&&(EXP_TAB_KEYS as string[]).includes(s))setExpTab(s as ExpTab);}
+  if(found){selectPatientRaw(pid,found.name);const KV=new Set(["inicio","pacientes","consulta","agenda","resultados","medicamentos","ordenes","alergias","problemas","vacunas","signos","planCuidado","interconsulta","seguimiento","facturacion","documentos","obligaciones","clinicalIntel","reportes","biblioteca","configuracion","exp"]);
+   // Unificación: un deep-link con paciente a ?v=consulta abre el EXPEDIENTE en la pestaña "Consulta" (encuentro).
+   const vEff=v==="consulta"?"exp":v;if(vEff&&KV.has(vEff))setView(vEff as typeof view);
+   if(s&&(EXP_TAB_KEYS as string[]).includes(s))setExpTab(s as ExpTab);else if(v==="consulta")setExpTab("encuentro");}
  },[patientList,ready,session]);
  useEffect(()=>{
   if(typeof window==="undefined"||!ready||!session)return;

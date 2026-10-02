@@ -588,14 +588,14 @@ export function scrollToSection(name:string){
 // sub-vistas navegables por flujo clínico. Cada sección se asigna a una de estas pestañas; la pestaña "hospital"
 // solo aparece con las verticales hospitalarias encendidas (hospitalOn). El estado vive en el modelo y se refleja
 // en la URL (?s=) para que el enlace sea compartible (deep-link).
-export type ExpTab="resumen"|"historia"|"diagnostico"|"tratamiento"|"coordinacion"|"hospital"|"admin";
+export type ExpTab="encuentro"|"resumen"|"historia"|"diagnostico"|"tratamiento"|"coordinacion"|"hospital"|"admin";
 // Mapa sección→sub-pestaña del expediente. Tras el Patient 360 (Lote B) cada sección vive en una sub-pestaña que se OCULTA
 // si no está activa; por eso navegar con solo scrollToSection aterriza en una sección vacía. Al ir a una sección hay que
 // ACTIVAR primero su sub-pestaña. Úsese con `goExpSection`.
 export const SECTION_EXP_TAB:Record<string,ExpTab>={
  "Seguimiento automático":"resumen","Seguridad y auditoría":"resumen","Portal del paciente":"resumen",
  "Panel del clínico":"admin","Paciente":"admin","Facturación":"admin",
- "Antecedentes":"historia","Timeline del paciente":"historia","Encuentro":"historia","Evolución longitudinal":"historia",
+ "Antecedentes":"historia","Timeline del paciente":"historia","Encuentro":"encuentro","Evolución longitudinal":"historia",
  ["Medicación"]:"tratamiento",["Prescripción segura"]:"tratamiento",["Órdenes clínicas"]:"tratamiento",Vacunas:"tratamiento",["Plan de cuidados"]:"tratamiento",
  ["Resultados diagnósticos"]:"diagnostico",Alergias:"diagnostico",["Lista de problemas"]:"diagnostico",["Signos vitales"]:"diagnostico",
  Interconsultas:"coordinacion",Agenda:"coordinacion",["Consentimiento informado"]:"coordinacion",["Documentos clínicos"]:"coordinacion",["Obligaciones de seguimiento"]:"coordinacion",
@@ -608,8 +608,11 @@ export function goExpSection(section:string,setView:(v:"exp")=>void,setExpTab:(t
  setTimeout(()=>scrollToSection(section),80);
 }
 export const EXP_TABS:{key:ExpTab,label:string,hint:string,hospital?:boolean}[]=[
+ // "Consulta" = el encuentro ACTIVO, primera pestaña: abrir la consulta de un paciente aterriza aquí (unificación
+ // Consulta⟷Expediente). Primero para que NO quede oculto — es la superficie de trabajo/decisión del médico.
+ {key:"encuentro",label:"Consulta",hint:"Encuentro actual: documentar, prescribir y firmar"},
  {key:"resumen",label:"Resumen",hint:"Vista principal, seguimiento, portal y auditoría"},
- {key:"historia",label:"Historia",hint:"Timeline, evolución y encuentro"},
+ {key:"historia",label:"Historia",hint:"Antecedentes, timeline y evolución"},
  {key:"diagnostico",label:"Diagnóstico",hint:"Problemas, alergias, resultados y signos vitales"},
  {key:"tratamiento",label:"Tratamiento",hint:"Medicación, prescripción segura, órdenes, plan y vacunas"},
  {key:"coordinacion",label:"Coordinación",hint:"Agenda, interconsultas, obligaciones, documentos y consentimiento"},

@@ -20,7 +20,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 3/
   const tareas=(await screen.findByRole("heading",{name:/Tareas clínicas prioritarias/})).closest("div")!.parentElement!;
   const task=within(tareas).getByText("Resultado crítico sin cerrar");
   fireEvent.click(task);
-  expect((await screen.findByRole("heading",{name:"Consulta"}))).toBeTruthy();
+  // Unificación: la tarea abre el EXPEDIENTE del paciente en la pestaña "Consulta" (encuentro) — no una pantalla separada.
+  expect(await screen.findByText("1. Motivo de consulta")).toBeTruthy();
  });
 
  it("vista Agenda (Lote F): Semana y Mes son vistas reales cableadas a datos, ya no 'Próximamente'",async()=>{
