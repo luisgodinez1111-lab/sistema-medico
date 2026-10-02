@@ -94,7 +94,8 @@ describe("lo que la pantalla no sabe (WS1-02) y lo que no puede inventar (WS1-01
   expect(fs.readFileSync(path.join(UI,"shared.tsx"),"utf8"),"falta la clase de texto para lector de pantalla").toContain(".mos-sr{position:absolute");
  });
  it("la consulta no afirma «sin recordatorios» cuando no los ha podido cargar",()=>{
-  const src=fs.readFileSync(path.join(UI,"views/consulta.tsx"),"utf8");
+  // El formulario de encuentro (con el panel de recordatorios) se unificó en _encounter.tsx, montado dentro del expediente.
+  const src=fs.readFileSync(path.join(UI,"views/_encounter.tsx"),"utf8");
   const i=src.indexOf("Recordatorios y obligaciones");
   const frag=src.slice(i,i+900);
   expect(frag,"debe comprobar el desconocido primero").toContain("gaps===null");

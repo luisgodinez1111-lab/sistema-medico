@@ -39,7 +39,8 @@ describe("una respuesta de red no es un tipo porque lo diga un `as` (R05b-25)",(
 describe("lo que pasa mientras la pantalla está ocupada o el dato viene mal (R05b-30, R05b-18, R05b-22)",()=>{
  it("una sugerencia CIE-10 no se puede pulsar mientras se está guardando",()=>{
   // Antes solo cambiaba el cursor: el `onClick` seguía activo y un doble clic añadía el problema dos veces.
-  const src=vista("consulta.tsx");
+  // El buscador CIE-10 del encuentro se unificó en _encounter.tsx (montado en el expediente).
+  const src=vista("_encounter.tsx");
   expect(src,"el manejador tiene que consultar el estado de guardado").toMatch(/act\(\(\)=>\{if\(cDxBusy\)return;/);
   expect(src,"y anunciarse como deshabilitado").toContain("aria-disabled={cDxBusy||undefined}");
  });
