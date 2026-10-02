@@ -6,11 +6,11 @@
 // endpoints (los flujos de seguridad del encuentro se preservan intactos).
 import{useState}from"react";
 import{searchIcd10}from"../../../../../packages/terminology/src";
-import{Check,card,P,LINE,UI,act,goExpSection,DX_LABEL,NavIcon}from"../shared";
+import{Check,card,P,LINE,UI,act,goExpSection,DX_LABEL,NavIcon,mono}from"../shared";
 import{useWorkspace}from"../context";
 
 export default function EncounterForm(){
- const{enc,snap,antSnap,clock,cForm,setCForm,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdCat,cOrdSel,setCOrdSel,setCOrdMsg,createConsultaOrders,cOrdBusy,cOrdMsg,patientId,setView,setExpTab,gaps}=useWorkspace();
+ const{enc,snap,antSnap,clock,cForm,setCForm,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdCat,cOrdSel,setCOrdSel,setCOrdMsg,createConsultaOrders,cOrdBusy,cOrdMsg,patientId,setView,setExpTab,gaps,busy,consultaAdvance,cPreview,setCPreview,composeNote,cMsg,setCMsg,docDisplay}=useWorkspace();
  const[dxType,setDxType]=useState<"PROBABLE"|"CONFIRMED"|"POSSIBLE">("PROBABLE"); // tipo de la impresión diagnóstica
  const V=snap?.vitals??{};
  const findings=snap?.findings??[];
@@ -22,8 +22,25 @@ export default function EncounterForm(){
  const link:React.CSSProperties={color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"};
  const sgo=(label:string,section:string)=><button onClick={()=>{goExpSection(section,setView,setExpTab);}} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"4px 10px",fontSize:12,fontWeight:600,color:P.purple,cursor:"pointer",whiteSpace:"nowrap",fontFamily:UI}}>{label}</button>;
  const rsum=(bg:string,fg:string,d:string,title:string,sub:string,right:React.ReactNode)=>(<div style={{display:"flex",gap:11,padding:"12px 0",borderTop:`1px solid #F1F3F9`,alignItems:"flex-start"}}><span style={{width:34,height:34,borderRadius:9,background:bg,color:fg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13.5}}>{title}</div><div style={{fontSize:12.5,color:P.muted}}>{sub}</div></div>{right}</div>);
+ // Controles del encuentro (estado + vista previa + acción FSM contextual) sobre el formulario estructurado. U-17:
+ // con pendientes críticos abiertos la firma se presenta BLOQUEADA (el servidor la rechazaría igual — Zero Lost Follow-Up).
+ const criticalOpen=(gaps??[]).filter(g=>g.priority==="HIGH"&&(g.code==="CRITICAL_RESULT_OPEN"||g.code==="VITAL_CRITICAL"||g.code==="FOLLOWUP_OPEN")).length;
+ const st=enc?.state;
+ const advLabel=!patientId?"Selecciona un paciente":!enc?"Abrir encuentro":st==="OPEN"?"Guardar valoración":st==="READY_TO_SIGN"?(criticalOpen?`Firma bloqueada: ${criticalOpen} pendiente(s) crítico(s)`:"Firmar consulta"):"✓ Consulta firmada";
+ const advDisabled=busy!==""||!patientId||st==="SIGNED"||(st==="READY_TO_SIGN"&&criticalOpen>0);
+ const advBg=st==="READY_TO_SIGN"?"linear-gradient(90deg,#16A66A,#12905c)":`linear-gradient(90deg,${P.purpleOnPale},#5B6BF0)`;
  // Rediseño: documentación clínica en UNA columna ancha (orden clínico) + contexto (resumen/IA/recordatorios) lateral sticky.
- return <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.75fr) minmax(300px,1fr)",gap:18,marginTop:16,alignItems:"start"}} className="mos-consulta">
+ return <>
+  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginTop:4}}>
+   <div style={{display:"flex",alignItems:"center",gap:10}}>{enc&&(()=>{const m=st==="SIGNED"?["#E6F6EE",P.greenOnPale,"Firmada"]:st==="READY_TO_SIGN"?["#FBF0DC",P.amberOnPale,"Lista para firmar"]:["#EAF1FD",P.blueOnPale,"Abierta"];return <span style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:m[0],color:m[1]}}>Encuentro · {m[2]}</span>;})()}</div>
+   <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+    <button onClick={()=>setCPreview(v=>!v)} style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:cPreview?"#EEEBFD":P.white,color:cPreview?P.purple:P.ink,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Vista previa</button>
+    <button onClick={consultaAdvance} disabled={advDisabled} style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:advDisabled?"#C7CCE0":advBg,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:advDisabled?"default":"pointer",fontFamily:UI}}>{busy==="cadv"?"Procesando…":advLabel}</button>
+   </div>
+  </div>
+  {cMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:st==="SIGNED"?"#F0FBF4":"#EEF6FF",border:`1px solid ${st==="SIGNED"?"#CDEBD8":"#CFE0F7"}`,borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:st==="SIGNED"?P.green:P.blue,fontWeight:700}}>{st==="SIGNED"?"✓":"ℹ"}</span><span style={{flex:1}}>{cMsg}{enc?.signatureDigest?<> Firma: <span style={mono}>{enc.signatureDigest.slice(0,24)}…</span></>:null}</span><button onClick={()=>setCMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+  {cPreview&&<div style={{...card,marginTop:14,padding:18}}><div style={{fontWeight:800,fontSize:15,marginBottom:10}}>Vista previa de la nota clínica</div><pre style={{whiteSpace:"pre-wrap",fontFamily:UI,fontSize:13,color:P.ink,margin:0,lineHeight:1.6}}>{composeNote()}{"\n\nPLAN DE MANEJO: "+(cForm.plan.trim()||"—")}</pre><div style={{fontSize:11.5,color:P.muted,marginTop:10}}>Así se guardará la valoración del encuentro al firmar. Médico: {docDisplay}.</div></div>}
+  <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.75fr) minmax(300px,1fr)",gap:18,marginTop:16,alignItems:"start"}} className="mos-consulta">
    <div style={{display:"flex",flexDirection:"column",gap:16,minWidth:0}}>
     <div style={sec}><h3 style={sect}>1. Motivo de consulta</h3><textarea style={ta} disabled={!!enc&&enc.state!=="OPEN"} aria-label="Motivo de consulta" value={cForm.motivo} onChange={e=>setCForm(f=>({...f,motivo:e.target.value.slice(0,500)}))} placeholder="Motivo de la consulta…"/><div style={cc}>{cForm.motivo.length}/500</div></div>
     <div style={sec}><h3 style={sect}>2. Historia de la enfermedad actual</h3><textarea style={{...ta,minHeight:90}} disabled={!!enc&&enc.state!=="OPEN"} aria-label="Historia de la enfermedad actual" value={cForm.historia} onChange={e=>setCForm(f=>({...f,historia:e.target.value.slice(0,2000)}))} placeholder="Padecimiento actual…"/><div style={cc}>{cForm.historia.length}/2000</div></div>
@@ -94,5 +111,6 @@ export default function EncounterForm(){
     <div style={{...sec,background:"linear-gradient(180deg,#FBFAFF,#fff)"}}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={{...sect,color:P.purple,display:"flex",alignItems:"center",gap:7}}><NavIcon k="brain"/>Clinical Intelligence (IA)</h3></div><div style={{fontSize:12,fontWeight:600,color:P.muted,marginBottom:8}}>Alertas deterministas para este caso:</div>{findings.length===0?<div style={{fontSize:12.5,lineHeight:1.5,padding:"5px 0",color:P.muted}}>Sin alertas deterministas para los datos registrados. Se recalculan al documentar signos, diagnósticos y medicación.</div>:findings.slice(0,4).map((f,i)=><div key={i} style={{fontSize:12.5,lineHeight:1.5,padding:"5px 0",display:"flex",gap:8}}>• {f.summary}</div>)}<div style={{fontSize:11,color:P.muted,background:"#F3F2FB",borderRadius:8,padding:"8px 10px",marginTop:8}}>La IA ofrece información de apoyo. La decisión final es del médico. (Determinista · sin IA generativa)</div></div>
     <div style={sec}><h3 style={{...sect,display:"flex",alignItems:"center",gap:8}}>Recordatorios y obligaciones {(gaps?.length??0)>0&&<span style={{background:P.redOnPale,color:"#fff",borderRadius:999,padding:"1px 7px",fontSize:11}}>{gaps!.length}</span>}</h3>{gaps===null?<div style={{fontSize:13,color:P.amberOnPale,padding:"9px 0"}}>No evaluados: los recordatorios del paciente no cargaron. Revíselos en el expediente antes de cerrar la consulta.</div>:gaps.length===0?<div style={{fontSize:13,color:P.muted,padding:"9px 0"}}>Sin recordatorios pendientes para este paciente.</div>:gaps!.slice(0,3).map((g,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",fontSize:13,borderTop:i?`1px solid #F1F3F9`:"0"}}><div style={{flex:1}}>{g.label}</div><span style={{background:"#FBF0DC",color:P.amberOnPale,borderRadius:999,padding:"2px 9px",fontSize:10.5,fontWeight:700}}>Pendiente</span></div>)}<div style={{textAlign:"right",marginTop:6}}><span style={link} {...act(()=>{goExpSection("Obligaciones de seguimiento",setView,setExpTab);})}>Ver todos →</span></div></div>
    </div>
-  </div>;
+  </div>
+ </>;
 }
