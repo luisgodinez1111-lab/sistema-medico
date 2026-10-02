@@ -27,7 +27,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  // Auditoría 2026-09-19 (C-01, C-02): este panel usa el MISMO camino verificado que las calculadoras (unidad canónica,
  // plausibilidad, vigencia y coherencia de muestra). Antes leía "el último número" sin unidad ni fecha, de modo que el
  // panel podía afirmar un eGFR o un FIB-4 que la propia calculadora ya se negaba a calcular. Dato no utilizable => sin hallazgo.
- const[vitals,codes,openRes,openVit,vaccines,renal,glyc,liver,anticoag,activeDrugs,ant]=await Promise.all([
+ const[vitals,codes,openRes,openVit,vaccines,renal,glyc,liver,anticoag,activeDrugs,ant,lipid]=await Promise.all([
   latestVitalsByType(ctx,patientId),
   activeProblemCodes(ctx,patientId),
   countOpenCriticalResults(ctx,patientId),
@@ -39,6 +39,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
   verifiedValues(ctx,patientId,["INR"],MAX_AGE_DAYS.ANTICOAGULATION),
   activeMedicationDrugCodes(ctx,patientId),
   antecedentes(ctx,patientId), // hábitos (antecedentes no patológicos) para los recordatorios por guías
+  verifiedValues(ctx,patientId,["LDL"],MAX_AGE_DAYS.GLYCEMIC_CONTROL), // LDL para la meta por riesgo (cardiometabólico)
  ]);
  const inp:{-readonly[K in keyof SummaryInputs]:SummaryInputs[K]}={openCriticalResults:openRes,openCriticalVitals:openVit};
  // NEWS2
@@ -123,6 +124,33 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  if(Object.keys(ar).length)inp.activeRisk=ar;
  // FA: contexto del anticoagulante activo para la brecha de anticoagulación.
  if(inp.cha2ds2vasc)inp.cha2ds2vasc={...inp.cha2ds2vasc,onAnticoagulant:activeClasses.has("ANTICOAGULANT")};
+ // — Escenarios priorizados: adulto mayor (Beers), embarazo, pediatría, lípidos por meta de riesgo —
+ if(age>=65){
+  const beers:string[]=[];
+  if(activeClasses.has("BENZODIAZEPINE"))beers.push("benzodiacepina");
+  if(activeClasses.has("NSAID"))beers.push("AINE");
+  if(activeClasses.has("TCA"))beers.push("antidepresivo tricíclico (anticolinérgico)");
+  if(activeClasses.has("SULFONYLUREA"))beers.push("sulfonilurea");
+  const poly=activeDrugs.length>=5;
+  if(beers.length||poly)inp.geriatric={beersActive:beers,polypharmacy:poly};
+ }
+ if(pregnant){
+  const terat:string[]=[];
+  if(activeClasses.has("ACE_INHIBITOR")||activeClasses.has("ARB"))terat.push("IECA/ARA-II");
+  if(activeClasses.has("STATIN"))terat.push("estatina");
+  if(activeClasses.has("VKA"))terat.push("warfarina/acenocumarol");
+  inp.pregnancyRisk={teratogensActive:terat,folateReminder:true};
+ }
+ if(age<16){
+  const reye=activeClasses.has("SALICYLATE");
+  const growthDataMissing=!vitals["WEIGHT"]||!vitals["HEIGHT"];
+  if(reye||growthDataMissing)inp.pediatricRisk={reyeAspirin:reye,growthDataMissing};
+ }
+ const ldlv=lipid?.["LDL"];
+ if(ldlv!==undefined){
+  if(ascvd&&ldlv>70)inp.ldlTarget={value:ldlv,target:70,riskLabel:"riesgo muy alto (enfermedad cardiovascular aterosclerótica)"};
+  else if(dm&&ldlv>100)inp.ldlTarget={value:ldlv,target:100,riskLabel:"riesgo alto (diabetes)"};
+ }
  const findings=assembleFindings(inp);
  return{registered:true,findings,summary:summarize(findings)};
 }

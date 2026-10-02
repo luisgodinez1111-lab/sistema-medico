@@ -26,6 +26,11 @@ export type SummaryInputs=Readonly<{
  // Riesgos de la medicación ACTIVA cruzada con el estado del paciente (la barrera de Rx solo actúa al recetar; esto
  // vigila lo YA activo): hiperkalemia por doble bloqueo del potasio, metformina contraindicada por TFG, AINE en ERC.
  activeRisk?:{hyperkalemiaCombo?:boolean;metforminContraindicated?:boolean;nsaidInCkd?:boolean};
+ // Escenarios priorizados por el dueño (Medicina General): adulto mayor (Beers), embarazo, pediatría, lípidos por meta.
+ geriatric?:{beersActive:readonly string[];polypharmacy:boolean};              // ≥65: fármacos inapropiados + polifarmacia
+ pregnancyRisk?:{teratogensActive:readonly string[];folateReminder:boolean};   // embarazo: teratógenos activos + ácido fólico
+ pediatricRisk?:{reyeAspirin:boolean;growthDataMissing:boolean};               // <16: salicilato/Reye + peso/talla faltantes
+ ldlTarget?:{value:number;target:number;riskLabel:string};                     // LDL por encima de la meta según riesgo
  fib4?:{value:number;risk:"LOW"|"INDETERMINATE"|"HIGH"};
  bmi?:{category:string};
  overdueVaccines?:number;
@@ -77,6 +82,19 @@ export function assembleFindings(i:SummaryInputs):Finding[]{
  if(i.activeRisk?.hyperkalemiaCombo)f.push({domain:"electrolitos",severity:"WARNING",summary:"IECA/ARA-II + ahorrador de potasio activos: riesgo de hiperkalemia — vigile el potasio sérico (ACC/AHA; KDIGO)."});
  if(i.activeRisk?.metforminContraindicated)f.push({domain:"renal",severity:"WARNING",summary:"Metformina activa con TFG<30: contraindicada por riesgo de acidosis láctica — suspender y reevaluar el antidiabético (ficha técnica FDA; KDIGO)."});
  if(i.activeRisk?.nsaidInCkd)f.push({domain:"renal",severity:"WARNING",summary:"AINE activo con enfermedad renal (TFG<60): nefrotóxico — revise la necesidad y valore alternativas (KDIGO)."});
+ if(i.geriatric){
+  if(i.geriatric.beersActive.length)f.push({domain:"geriatría",severity:"WARNING",summary:`Adulto mayor con fármaco(s) potencialmente inapropiado(s) (criterios Beers, AGS 2023): ${i.geriatric.beersActive.join(", ")} — revise riesgo/beneficio y alternativas más seguras.`});
+  if(i.geriatric.polypharmacy)f.push({domain:"geriatría",severity:"INFO",summary:"Polifarmacia (≥5 fármacos activos): considere conciliación de la medicación y deprescripción."});
+ }
+ if(i.pregnancyRisk){
+  if(i.pregnancyRisk.teratogensActive.length)f.push({domain:"embarazo",severity:"WARNING",summary:`Embarazo con fármaco(s) teratogénico(s) ACTIVO(s): ${i.pregnancyRisk.teratogensActive.join(", ")} — contraindicado(s): suspender y cambiar a una opción segura (ficha técnica; fetotoxicidad documentada).`});
+  if(i.pregnancyRisk.folateReminder)f.push({domain:"embarazo",severity:"INFO",summary:"Embarazo: confirme la suplementación con ácido fólico (prevención de defectos del tubo neural)."});
+ }
+ if(i.pediatricRisk){
+  if(i.pediatricRisk.reyeAspirin)f.push({domain:"pediatría",severity:"WARNING",summary:"Aspirina/salicilato en menor de 16 años: riesgo de síndrome de Reye — evitar salvo indicación específica (p. ej. enfermedad de Kawasaki)."});
+  if(i.pediatricRisk.growthDataMissing)f.push({domain:"pediatría",severity:"INFO",summary:"Pediatría sin peso/talla registrados: captúrelos para evaluar crecimiento (percentiles/Z de la OMS)."});
+ }
+ if(i.ldlTarget)f.push({domain:"lípidos",severity:"WARNING",summary:`LDL ${i.ldlTarget.value} mg/dL por encima de la meta (<${i.ldlTarget.target}) para ${i.ldlTarget.riskLabel}: intensifique el tratamiento hipolipemiante (ACC/AHA; ESC/EAS).`});
  if(i.fib4&&i.fib4.risk==="HIGH")f.push({domain:"hepático",severity:"WARNING",summary:`FIB-4 ${i.fib4.value} (alto): referir a hepatología`});
  if(i.bp){if(i.bp.stage==="CRISIS")f.push({domain:"presión",severity:"CRITICAL",summary:"Crisis hipertensiva: evaluación urgente"});
   else if(i.bp.stage==="HYPOTENSION_SEVERE")f.push({domain:"presión",severity:"CRITICAL",summary:"Hipotensión severa: evaluar perfusión de inmediato"}); // auditoría C-07

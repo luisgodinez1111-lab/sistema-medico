@@ -113,4 +113,25 @@ describe("assembleFindings (prioriza por severidad)",()=>{
   expect(all).toHaveLength(3);expect(all.every(x=>x.severity==="WARNING")).toBe(true);
   expect(assembleFindings({activeRisk:{}})).toEqual([]);
  });
+ // Escenarios priorizados por el dueño: adulto mayor (Beers), embarazo, pediatría, lípidos por meta.
+ it("adulto mayor (Beers): fármacos inapropiados activos -> WARNING; polifarmacia -> INFO",()=>{
+  const f=assembleFindings({geriatric:{beersActive:["benzodiacepina","AINE"],polypharmacy:true}});
+  expect(f.some(x=>x.domain==="geriatría"&&x.severity==="WARNING"&&/Beers/.test(x.summary))).toBe(true);
+  expect(f.some(x=>x.domain==="geriatría"&&x.severity==="INFO"&&/Polifarmacia/.test(x.summary))).toBe(true);
+  expect(assembleFindings({geriatric:{beersActive:[],polypharmacy:false}})).toEqual([]);
+ });
+ it("embarazo: teratógeno activo -> WARNING; recordatorio de ácido fólico -> INFO",()=>{
+  const f=assembleFindings({pregnancyRisk:{teratogensActive:["IECA/ARA-II","estatina"],folateReminder:true}});
+  expect(f.some(x=>x.domain==="embarazo"&&x.severity==="WARNING"&&/teratog/i.test(x.summary))).toBe(true);
+  expect(f.some(x=>x.domain==="embarazo"&&x.severity==="INFO"&&/ácido fólico/.test(x.summary))).toBe(true);
+ });
+ it("pediatría: salicilato en <16 -> WARNING (Reye); peso/talla faltantes -> INFO",()=>{
+  expect(assembleFindings({pediatricRisk:{reyeAspirin:true,growthDataMissing:false}})[0]).toMatchObject({domain:"pediatría",severity:"WARNING"});
+  expect(assembleFindings({pediatricRisk:{reyeAspirin:false,growthDataMissing:true}})[0]).toMatchObject({domain:"pediatría",severity:"INFO"});
+ });
+ it("lípidos por meta de riesgo: LDL por encima de la meta -> WARNING con la meta citada",()=>{
+  const f=assembleFindings({ldlTarget:{value:120,target:70,riskLabel:"riesgo muy alto (ASCVD)"}});
+  expect(f[0]).toMatchObject({domain:"lípidos",severity:"WARNING"});
+  expect(f[0]!.summary).toMatch(/<70/);
+ });
 });
