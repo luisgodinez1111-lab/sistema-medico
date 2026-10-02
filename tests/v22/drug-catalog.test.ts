@@ -106,6 +106,16 @@ describe("interacciones farmacológicas (EPIC AX)",()=>{
   expect(checkInteractions("valsartan-80",["espironolactona-25"]).severity).toBe("MAJOR"); // ARB + ahorrador de K
   expect(checkInteractions("venlafaxina-75",["fluoxetina-20"]).severity).toBe("MAJOR");     // doble serotoninérgico
  });
+ it("lote 2: nitrato+PDE5 y azol+estatina/anticoagulante y litio+AINE/IECA/tiazida son de alta severidad",()=>{
+  expect(checkInteractions("sildenafil-50",["isosorbide-20"]).found,"nitrato+PDE5").toBe(true);
+  expect(checkInteractions("fluconazol-150",["simvastatina-20"]).severity).toBe("MAJOR");
+  expect(checkInteractions("fluconazol-150",["warfarina-5"]).severity).toBe("MAJOR");
+  expect(checkInteractions("litio-300",["ibuprofeno-400"]).severity).toBe("MAJOR");
+  expect(checkInteractions("litio-300",["enalapril-10"]).severity).toBe("MAJOR");
+  expect(checkInteractions("litio-300",["hidroclorotiazida-25"]).severity).toBe("MAJOR");
+  expect(checkInteractions("carbamazepina-200",["etinilestradiol-30"]).severity).toBe("MAJOR"); // fallo anticonceptivo
+  expect(checkInteractions("gentamicina-240",["furosemida-40"]).severity).toBe("MODERATE");     // oto/nefrotoxicidad
+ });
 });
 describe("contraindicación fármaco–condición (EPIC AY)",()=>{
  it("AINE + ERC (N18.3) -> MAJOR (bloquea)",()=>{

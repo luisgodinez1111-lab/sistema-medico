@@ -14,9 +14,9 @@ describe("evaluador único de seguridad de prescripción",()=>{
   expect(st(e,"doseCeiling")).toBe("PASSED");expect(st(e,"renal")).toBe("PASSED");expect(st(e,"pediatricDose")).toBe("NOT_APPLICABLE");
  });
  it("fármaco FUERA de catálogo -> nada se da por seguro y exige confirmación expresa",()=>{
-  // El caso original era apixabán; entró al catálogo en el lote 11f (R03-23), así que la prueba usa otro fármaco
-  // realmente ausente. Lo que se verifica es la REGLA —fuera del catálogo nada se da por verificado—, no el nombre.
-  const e=evaluatePrescriptionSafety({...base,drugCode:"vancomicina",dose:"1g",frequency:"c/12h",egfr:15});
+  // El caso original era apixabán; entró al catálogo en el lote 11f (R03-23); vancomicina en el lote 2 de 2026. La prueba
+  // usa otro fármaco realmente ausente. Lo que se verifica es la REGLA —fuera del catálogo nada se da por verificado—, no el nombre.
+  const e=evaluatePrescriptionSafety({...base,drugCode:"cloranfenicol",dose:"500mg",frequency:"c/8h",egfr:15});
   expect(e.catalogResolved).toBe(false);expect(e.verdict).toBe("REVIEW");expect(e.requiresAcknowledgement).toBe(true);
   for(const id of["catalog","interaction","duplicate","contraindication","doseCeiling","renal"] as const)expect(st(e,id)).toBe("NOT_EVALUATED");
   expect(e.barriers.some(b=>b.status==="PASSED"&&b.id!=="order")).toBe(false); // ninguna barrera clínica "pasó"
@@ -56,7 +56,7 @@ describe("evaluador único de seguridad de prescripción",()=>{
   expect(st(e,"duplicate")).toBe("BLOCKED");
  });
  it("el resumen persistible no contiene PHI ni valores clínicos: solo id/estado/razón y la confirmación",()=>{
-  const e=evaluatePrescriptionSafety({...base,drugCode:"vancomicina"});
+  const e=evaluatePrescriptionSafety({...base,drugCode:"cloranfenicol"});
   const s=summarizeForEvent(e,{acknowledged:true,justification:"Indicación de cardiología, sin alternativa en catálogo"});
   expect(s.acknowledgedUnverified).toBe(true);expect(s.catalogResolved).toBe(false);
   expect(Object.keys(s.barriers[0]!).sort()).toEqual(expect.arrayContaining(["id","status"]));

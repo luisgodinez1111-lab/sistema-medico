@@ -58,6 +58,11 @@ describe("alcohol (hábito o F10) + fármaco hepatotóxico: la barrera avisa al 
   const sin=evaluatePrescriptionSafety({...base,drugCode:"atorvastatina-20",dose:"20mg",frequency:"QD"});
   expect(barrera(sin,"interaction").status).toBe("PASSED");
  });
+ it("metronidazol con ALCOHOL -> CAUTION (reacción tipo disulfiram)",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"metronidazol-500",dose:"500mg",frequency:"c/8h",patientFactors:["ALCOHOL"]});
+  expect(barrera(e,"interaction").status).toBe("CAUTION");
+  expect(barrera(e,"interaction").detail).toMatch(/disulfiram/i);
+ });
 });
 
 describe("tabaquismo (hábito o F17) como factor de barrera al prescribir",()=>{

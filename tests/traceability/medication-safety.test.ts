@@ -8,8 +8,8 @@ import{ClinicalError}from"../../packages/runtime-errors/src";
 const base:PrescriptionSafetyInput={drugCode:"ibuprofeno-400",dose:"400mg",route:"Oral",frequency:"c/8h",allergies:[],activeDrugCodes:[],activeConditionCodes:[],egfr:90,weightKg:70,ageYears:40};
 describe("INV-CORE-0009 — lo no evaluado nunca es seguro",()=>{
  it("fármaco fuera de catálogo: ninguna barrera dependiente queda PASSED, el veredicto no es CLEAR y se exige confirmación",()=>{
-  // Fármaco realmente ausente del catálogo (apixabán entró en el lote 11f): lo que se verifica es la regla, no el nombre.
-  const e=evaluatePrescriptionSafety({...base,drugCode:"vancomicina"});
+  // Fármaco realmente ausente del catálogo (apixabán entró en el lote 11f; vancomicina en el lote 2 de 2026): se verifica la regla, no el nombre.
+  const e=evaluatePrescriptionSafety({...base,drugCode:"cloranfenicol"});
   expect(e.verdict).not.toBe("CLEAR");expect(e.requiresAcknowledgement).toBe(true);
   for(const id of["interaction","duplicate","contraindication","doseCeiling","renal"])expect(e.barriers.find(b=>b.id===id)?.status).toBe("NOT_EVALUATED");
  });
