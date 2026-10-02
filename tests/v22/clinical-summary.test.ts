@@ -89,4 +89,20 @@ describe("assembleFindings (prioriza por severidad)",()=>{
   expect(assembleFindings({cha2ds2vasc:{score:5,risk:"HIGH",applicable:true,onAnticoagulant:false}})[0]).toMatchObject({domain:"anticoagulación",severity:"WARNING"});
   expect(assembleFindings({cha2ds2vasc:{score:5,risk:"HIGH",applicable:true,onAnticoagulant:true}})).toEqual([]);
  });
+ it("brecha de iSGLT2: indicada sin iSGLT2 activo -> INFO; con iSGLT2 activo -> sin hallazgo",()=>{
+  const gap=assembleFindings({sglt2Gap:{indicated:true,onSglt2:false,reason:"Diabetes tipo 2 con insuficiencia cardíaca"}});
+  expect(gap).toHaveLength(1);expect(gap[0]).toMatchObject({domain:"cardiorrenal",severity:"INFO"});
+  expect(gap[0]!.summary).toMatch(/iSGLT2/);
+  expect(assembleFindings({sglt2Gap:{indicated:true,onSglt2:true,reason:"x"}})).toEqual([]);
+ });
+ it("brecha de antiagregante en ASCVD: sin terapia -> INFO; con antiagregante/anticoagulante -> sin hallazgo",()=>{
+  expect(assembleFindings({antiplateletGap:{indicated:true,onTherapy:false}})[0]).toMatchObject({domain:"antiagregación",severity:"INFO"});
+  expect(assembleFindings({antiplateletGap:{indicated:true,onTherapy:true}})).toEqual([]);
+ });
+ it("«triple whammy» (IECA/ARA-II + diurético + AINE activos) -> WARNING renal por riesgo de LRA",()=>{
+  const f=assembleFindings({tripleWhammy:true});
+  expect(f).toHaveLength(1);expect(f[0]).toMatchObject({domain:"renal",severity:"WARNING"});
+  expect(f[0]!.summary).toMatch(/triple whammy/);
+  expect(assembleFindings({tripleWhammy:false})).toEqual([]);
+ });
 });

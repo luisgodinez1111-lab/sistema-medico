@@ -19,6 +19,10 @@ export type SummaryInputs=Readonly<{
  statinGap?:{indicated:boolean;onStatin:boolean;reason:string};
  reninAngiotensinGap?:{indicated:boolean;onTherapy:boolean;reason:string};
  diabetesMonitoringGap?:{dueHba1c:boolean};
+ sglt2Gap?:{indicated:boolean;onSglt2:boolean;reason:string};
+ antiplateletGap?:{indicated:boolean;onTherapy:boolean};
+ // Combinación ACTIVA de riesgo (matriz de incompatibilidades LONGITUDINAL, distinta de la barrera al prescribir):
+ tripleWhammy?:boolean; // IECA/ARA-II + diurético + AINE activos → riesgo de lesión renal aguda
  fib4?:{value:number;risk:"LOW"|"INDETERMINATE"|"HIGH"};
  bmi?:{category:string};
  overdueVaccines?:number;
@@ -64,6 +68,9 @@ export function assembleFindings(i:SummaryInputs):Finding[]{
  if(i.statinGap?.indicated&&!i.statinGap.onStatin)f.push({domain:"lípidos",severity:"WARNING",summary:`${i.statinGap.reason}: sin estatina activa — considere iniciar estatina salvo contraindicación (ACC/AHA 2018; ADA Standards of Care).`});
  if(i.reninAngiotensinGap?.indicated&&!i.reninAngiotensinGap.onTherapy)f.push({domain:"cardiorrenal",severity:"INFO",summary:`${i.reninAngiotensinGap.reason}: considere IECA/ARA-II por su efecto cardio/nefroprotector, vigilando potasio, creatinina y contraindicaciones (KDIGO; ACC/AHA).`});
  if(i.diabetesMonitoringGap?.dueHba1c)f.push({domain:"glucémico",severity:"INFO",summary:"Diabetes sin HbA1c vigente: solicite HbA1c para evaluar el control (ADA: cada 3–6 meses según estabilidad)."});
+ if(i.sglt2Gap?.indicated&&!i.sglt2Gap.onSglt2)f.push({domain:"cardiorrenal",severity:"INFO",summary:`${i.sglt2Gap.reason}: considere un iSGLT2 por su beneficio cardiorrenal independiente del control glucémico, vigilando TFG y riesgo de cetoacidosis (ADA; KDIGO).`});
+ if(i.antiplateletGap?.indicated&&!i.antiplateletGap.onTherapy)f.push({domain:"antiagregación",severity:"INFO",summary:"Enfermedad cardiovascular aterosclerótica sin antiagregante ni anticoagulante activo: considere antiagregación en prevención secundaria salvo contraindicación (ACC/AHA)."});
+ if(i.tripleWhammy)f.push({domain:"renal",severity:"WARNING",summary:`Combinación activa IECA/ARA-II + diurético + AINE ("triple whammy"): riesgo de lesión renal aguda — revise la necesidad del AINE y vigile la función renal (KDIGO; farmacovigilancia).`});
  if(i.fib4&&i.fib4.risk==="HIGH")f.push({domain:"hepático",severity:"WARNING",summary:`FIB-4 ${i.fib4.value} (alto): referir a hepatología`});
  if(i.bp){if(i.bp.stage==="CRISIS")f.push({domain:"presión",severity:"CRITICAL",summary:"Crisis hipertensiva: evaluación urgente"});
   else if(i.bp.stage==="HYPOTENSION_SEVERE")f.push({domain:"presión",severity:"CRITICAL",summary:"Hipotensión severa: evaluar perfusión de inmediato"}); // auditoría C-07

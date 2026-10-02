@@ -105,6 +105,16 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  if(!pregnant&&(hf||(dm&&ckd)))inp.reninAngiotensinGap={indicated:true,onTherapy:activeClasses.has("ACE_INHIBITOR")||activeClasses.has("ARB"),reason:hf?"Insuficiencia cardíaca":"Diabetes con TFG<60"};
  // Diabetes sin HbA1c vigente (no se pudo leer un valor dentro de la ventana): recordatorio de monitoreo.
  if(dm&&a1c===undefined)inp.diabetesMonitoringGap={dueHba1c:true};
+ // iSGLT2: DM TIPO 2 con insuficiencia cardíaca, ERC o ASCVD (beneficio cardiorrenal independiente de la glucemia).
+ // Solo si la TFG permite iniciar (≥20) o es desconocida; restringido a DM2 (E11) por el riesgo de cetoacidosis en DM1.
+ const t2dm=has(codes,"E11");const egfrOkForSglt2=inp.egfr===undefined||inp.egfr.egfr>=20;
+ if(t2dm&&egfrOkForSglt2&&(hf||ckd||ascvd))inp.sglt2Gap={indicated:true,onSglt2:activeClasses.has("SGLT2_INHIBITOR"),reason:hf?"Diabetes tipo 2 con insuficiencia cardíaca":ckd?"Diabetes tipo 2 con TFG<60":"Diabetes tipo 2 con enfermedad cardiovascular"};
+ // Antiagregante en ASCVD (prevención secundaria), salvo que ya esté antiagregado o anticoagulado.
+ if(ascvd)inp.antiplateletGap={indicated:true,onTherapy:activeClasses.has("ANTIPLATELET")||activeClasses.has("ANTICOAGULANT")};
+ // "Triple whammy": IECA/ARA-II + diurético + AINE ACTIVOS a la vez → riesgo de lesión renal aguda.
+ const onRaas=activeClasses.has("ACE_INHIBITOR")||activeClasses.has("ARB");
+ const onDiuretic=activeClasses.has("LOOP_DIURETIC")||activeClasses.has("THIAZIDE");
+ if(onRaas&&onDiuretic&&activeClasses.has("NSAID"))inp.tripleWhammy=true;
  // FA: contexto del anticoagulante activo para la brecha de anticoagulación.
  if(inp.cha2ds2vasc)inp.cha2ds2vasc={...inp.cha2ds2vasc,onAnticoagulant:activeClasses.has("ANTICOAGULANT")};
  const findings=assembleFindings(inp);
