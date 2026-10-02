@@ -12,7 +12,13 @@ export type SummaryInputs=Readonly<{
  news2?:{score:number;band:"LOW"|"MEDIUM"|"HIGH"|"INCOMPLETE"|"INSUFFICIENT";missing?:readonly string[];scored?:number};
  egfr?:{egfr:number;stage:string};
  glycemic?:{category:string;label:string};
- cha2ds2vasc?:{score:number;risk:"LOW"|"INTERMEDIATE"|"HIGH";applicable:boolean};
+ cha2ds2vasc?:{score:number;risk:"LOW"|"INTERMEDIATE"|"HIGH";applicable:boolean;onAnticoagulant?:boolean};
+ // Brechas de terapia dirigida por guías (care gaps): el caller cruza condición+edad+labs+medicación activa (por CLASE
+ // del catálogo) y aquí se enuncian como RECORDATORIOS de apoyo ("considere…"), nunca como mandato — el médico decide,
+ // vigilando contraindicaciones. Solo se emiten cuando la terapia está INDICADA y el paciente NO la tiene activa.
+ statinGap?:{indicated:boolean;onStatin:boolean;reason:string};
+ reninAngiotensinGap?:{indicated:boolean;onTherapy:boolean;reason:string};
+ diabetesMonitoringGap?:{dueHba1c:boolean};
  fib4?:{value:number;risk:"LOW"|"INDETERMINATE"|"HIGH"};
  bmi?:{category:string};
  overdueVaccines?:number;
@@ -52,7 +58,12 @@ export function assembleFindings(i:SummaryInputs):Finding[]{
  if(i.glycemic){if(i.glycemic.category==="POOR")f.push({domain:"glucémico",severity:"WARNING",summary:i.glycemic.label});
   else if(i.glycemic.category==="DIABETES_RANGE")f.push({domain:"glucémico",severity:"WARNING",summary:i.glycemic.label});
   else if(i.glycemic.category==="ABOVE_TARGET"||i.glycemic.category==="PREDIABETES")f.push({domain:"glucémico",severity:"INFO",summary:i.glycemic.label});}
- if(i.cha2ds2vasc&&i.cha2ds2vasc.applicable&&i.cha2ds2vasc.risk==="HIGH")f.push({domain:"anticoagulación",severity:"WARNING",summary:`CHA₂DS₂-VASc ${i.cha2ds2vasc.score} (alto): anticoagulación recomendada`});
+ // FA + riesgo alto SIN anticoagulación = brecha; si ya está anticoagulado no se avisa (no se repregunta lo ya resuelto).
+ if(i.cha2ds2vasc&&i.cha2ds2vasc.applicable&&i.cha2ds2vasc.risk==="HIGH"&&i.cha2ds2vasc.onAnticoagulant!==true)f.push({domain:"anticoagulación",severity:"WARNING",summary:`CHA₂DS₂-VASc ${i.cha2ds2vasc.score} (alto) en fibrilación auricular sin anticoagulación activa: considere anticoagular salvo contraindicación (ESC/AHA).`});
+ // — Brechas de terapia dirigida por guías (GDMT): recordatorios de apoyo, el médico decide —
+ if(i.statinGap?.indicated&&!i.statinGap.onStatin)f.push({domain:"lípidos",severity:"WARNING",summary:`${i.statinGap.reason}: sin estatina activa — considere iniciar estatina salvo contraindicación (ACC/AHA 2018; ADA Standards of Care).`});
+ if(i.reninAngiotensinGap?.indicated&&!i.reninAngiotensinGap.onTherapy)f.push({domain:"cardiorrenal",severity:"INFO",summary:`${i.reninAngiotensinGap.reason}: considere IECA/ARA-II por su efecto cardio/nefroprotector, vigilando potasio, creatinina y contraindicaciones (KDIGO; ACC/AHA).`});
+ if(i.diabetesMonitoringGap?.dueHba1c)f.push({domain:"glucémico",severity:"INFO",summary:"Diabetes sin HbA1c vigente: solicite HbA1c para evaluar el control (ADA: cada 3–6 meses según estabilidad)."});
  if(i.fib4&&i.fib4.risk==="HIGH")f.push({domain:"hepático",severity:"WARNING",summary:`FIB-4 ${i.fib4.value} (alto): referir a hepatología`});
  if(i.bp){if(i.bp.stage==="CRISIS")f.push({domain:"presión",severity:"CRITICAL",summary:"Crisis hipertensiva: evaluación urgente"});
   else if(i.bp.stage==="HYPOTENSION_SEVERE")f.push({domain:"presión",severity:"CRITICAL",summary:"Hipotensión severa: evaluar perfusión de inmediato"}); // auditoría C-07

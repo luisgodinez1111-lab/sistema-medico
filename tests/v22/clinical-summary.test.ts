@@ -66,4 +66,27 @@ describe("assembleFindings (prioriza por severidad)",()=>{
   expect(assembleFindings({habits:{tabaquismo:false,alcoholismo:false,toxicomanias:false}})).toEqual([]);
   expect(assembleFindings({})).toEqual([]);
  });
+ // BRECHAS DE TERAPIA DIRIGIDA POR GUÍAS (care gaps) — recordatorios de apoyo con fuente; el médico decide. Solo
+ // se emiten si la terapia está INDICADA y el paciente NO la tiene activa (no se repregunta lo ya resuelto).
+ it("brecha de estatina: indicada sin estatina activa -> WARNING; con estatina activa -> sin hallazgo",()=>{
+  const gap=assembleFindings({statinGap:{indicated:true,onStatin:false,reason:"Diabetes en 40–75 años"}});
+  expect(gap).toHaveLength(1);expect(gap[0]).toMatchObject({domain:"lípidos",severity:"WARNING"});
+  expect(gap[0]!.summary).toMatch(/estatina/);
+  expect(assembleFindings({statinGap:{indicated:true,onStatin:true,reason:"x"}})).toEqual([]);
+ });
+ it("brecha de IECA/ARA-II: indicada sin terapia -> INFO; con terapia activa -> sin hallazgo",()=>{
+  const gap=assembleFindings({reninAngiotensinGap:{indicated:true,onTherapy:false,reason:"Insuficiencia cardíaca"}});
+  expect(gap).toHaveLength(1);expect(gap[0]).toMatchObject({domain:"cardiorrenal",severity:"INFO"});
+  expect(gap[0]!.summary).toMatch(/IECA\/ARA-II/);
+  expect(assembleFindings({reninAngiotensinGap:{indicated:true,onTherapy:true,reason:"x"}})).toEqual([]);
+ });
+ it("diabetes sin HbA1c vigente -> recordatorio de monitoreo (INFO)",()=>{
+  const f=assembleFindings({diabetesMonitoringGap:{dueHba1c:true}});
+  expect(f).toHaveLength(1);expect(f[0]).toMatchObject({domain:"glucémico",severity:"INFO"});
+  expect(f[0]!.summary).toMatch(/HbA1c/);
+ });
+ it("FA de alto riesgo: avisa si NO está anticoagulado; NO repregunta si ya lo está",()=>{
+  expect(assembleFindings({cha2ds2vasc:{score:5,risk:"HIGH",applicable:true,onAnticoagulant:false}})[0]).toMatchObject({domain:"anticoagulación",severity:"WARNING"});
+  expect(assembleFindings({cha2ds2vasc:{score:5,risk:"HIGH",applicable:true,onAnticoagulant:true}})).toEqual([]);
+ });
 });

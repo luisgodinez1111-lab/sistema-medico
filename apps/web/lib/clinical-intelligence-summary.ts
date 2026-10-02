@@ -91,6 +91,22 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
     lungCancerScreenAge:tabaquismo&&age>=50&&age<=80};
   }
  }
+ // — Brechas de terapia dirigida por guías (GDMT): se cruzan condición+edad+TFG con las CLASES de la medicación ACTIVA
+ // (vía el catálogo de seguridad) para detectar terapia indicada y ausente. Determinista y con fuente; son recordatorios
+ // de apoyo ("considere…"), nunca mandato. "Activo en clase X" = el paciente ya toma un fármaco de esa clase.
+ const activeClasses=new Set<string>(activeDrugs.flatMap(dc=>resolveDrug(dc)?.classes??[]));
+ const dm=has(codes,"E10","E11");
+ const ascvd=has(codes,"I20","I21","I22","I24","I25","I63","I64","I70","I73","G45"); // cardiopatía isquémica, EVC, art. periférica
+ const pregnant=has(codes,"O","Z34","Z33","Z35","Z36"); // no sugerir IECA/ARA-II en embarazo (fetotóxicos)
+ // Estatina: ASCVD (prevención secundaria) o diabetes 40–75 años.
+ if(ascvd||(dm&&age>=40&&age<=75))inp.statinGap={indicated:true,onStatin:activeClasses.has("STATIN"),reason:ascvd?"Enfermedad cardiovascular aterosclerótica":"Diabetes en 40–75 años"};
+ // IECA/ARA-II: insuficiencia cardíaca o diabetes con TFG<60 (nefroprotección), fuera del embarazo.
+ const hf=has(codes,"I50");const ckd=inp.egfr!==undefined&&inp.egfr.egfr<60;
+ if(!pregnant&&(hf||(dm&&ckd)))inp.reninAngiotensinGap={indicated:true,onTherapy:activeClasses.has("ACE_INHIBITOR")||activeClasses.has("ARB"),reason:hf?"Insuficiencia cardíaca":"Diabetes con TFG<60"};
+ // Diabetes sin HbA1c vigente (no se pudo leer un valor dentro de la ventana): recordatorio de monitoreo.
+ if(dm&&a1c===undefined)inp.diabetesMonitoringGap={dueHba1c:true};
+ // FA: contexto del anticoagulante activo para la brecha de anticoagulación.
+ if(inp.cha2ds2vasc)inp.cha2ds2vasc={...inp.cha2ds2vasc,onAnticoagulant:activeClasses.has("ANTICOAGULANT")};
  const findings=assembleFindings(inp);
  return{registered:true,findings,summary:summarize(findings)};
 }
