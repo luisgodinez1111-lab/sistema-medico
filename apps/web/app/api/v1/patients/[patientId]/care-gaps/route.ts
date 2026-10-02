@@ -3,7 +3,7 @@ import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{computeCareGaps,computePreventiveGaps}from"../../../../../../../../packages/care-gaps/src";
 import{forecastImmunizations,forecastSummary}from"../../../../../../../../packages/immunization-schedule/src";
 import{ageInYears}from"../../../../../../../../packages/prescription-safety/src";
-import{readPatientTimeline,patientDemographics,activeProblemCodes,patientVitals,administeredVaccines,latestAnalyteReading}from"../../../../../../lib/clinical-runtime";
+import{readPatientTimeline,patientDemographics,activeProblemCodes,patientVitals,administeredVaccines,latestAnalyteReading,antecedentes}from"../../../../../../lib/clinical-runtime";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC AA — GET /api/v1/patients/:id/care-gaps  (worklist clínico basado en reglas, metadatos sin PHI)
@@ -20,14 +20,14 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const gaps=computeCareGaps(items);
   // Auditoría C-20: brechas de cuidado PREVENTIVO (lo que el paciente debería tener por condición y edad y no tiene).
   const asOf=new Date().toISOString();
-  const[demo,codes,vitals,vaccines,...labs]=await Promise.all([patientDemographics(tctx,patientId),activeProblemCodes(tctx,patientId),patientVitals(tctx,patientId,50),administeredVaccines(tctx,patientId),
+  const[demo,codes,vitals,vaccines,ant,...labs]=await Promise.all([patientDemographics(tctx,patientId),activeProblemCodes(tctx,patientId),patientVitals(tctx,patientId,50),administeredVaccines(tctx,patientId),antecedentes(tctx,patientId),
    ...["HBA1C","CREATININE","LDL","UACR","GLUCOSE"].map(a=>latestAnalyteReading(tctx,patientId,a))]);
   const lastAt:Record<string,string|undefined>={};
   ["HBA1C","CREATININE","LDL","UACR","GLUCOSE"].forEach((a,i)=>{lastAt[a]=labs[i]?.occurredAt;});
   const lastBp=vitals.find(v=>v.vitalType==="BP");lastAt["BP"]=lastBp?.at;
   const ageYears=demo?.birthDate?ageInYears(demo.birthDate,asOf):undefined;
   const overdueVaccines=demo?.birthDate?forecastSummary(forecastImmunizations(demo.birthDate,vaccines,asOf)).overdue:0;
-  const preventive=demo?.birthDate?computePreventiveGaps({ageYears,asOf,activeProblemCodes:codes,lastAt,overdueVaccines}):[];
+  const preventive=demo?.birthDate?computePreventiveGaps({ageYears,asOf,activeProblemCodes:codes,lastAt,overdueVaccines,antecedentes:{recorded:ant.recorded,...(ant.updatedAt?{updatedAt:ant.updatedAt}:{})}}):[];
   return NextResponse.json({patientId,gaps,preventive,note:demo?.birthDate?undefined:"Paciente sin fecha de nacimiento registrada: brechas preventivas no evaluadas"},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

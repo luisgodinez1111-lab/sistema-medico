@@ -63,8 +63,11 @@ export type PreventiveInputs=Readonly<{
  ageYears:number|undefined;asOf:string;activeProblemCodes:readonly string[];
  lastAt:Readonly<Record<string,string|undefined>>; // clave: HBA1C, CREATININE, LDL, UACR, BP, WEIGHT (ISO de la última determinación)
  overdueVaccines:number;
+ // Historia clínica basal (antecedentes): se captura una vez y se RE-VERIFICA cada 6 meses. Cerrar el lazo = que el
+ // vencimiento sea un pendiente del worklist (server), no solo un aviso en el punto de atención.
+ antecedentes?:{recorded:boolean;updatedAt?:string};
 }>;
-export type PreventiveGap=Readonly<{code:string;label:string;priority:GapPriority;domain:"diabetes"|"hipertension"|"prevencion"|"inmunizacion"}>;
+export type PreventiveGap=Readonly<{code:string;label:string;priority:GapPriority;domain:"diabetes"|"hipertension"|"prevencion"|"inmunizacion"|"historia"}>;
 const DAY=86_400_000;
 const has=(codes:readonly string[],...p:string[])=>codes.some(c=>{const u=c.trim().toUpperCase();return p.some(x=>u.startsWith(x));});
 function olderThanDays(iso:string|undefined,asOf:string,days:number):boolean{if(!iso)return true;const d=Date.parse(iso);return!Number.isFinite(d)||Date.parse(asOf)-d>days*DAY;}
@@ -82,5 +85,10 @@ export function computePreventiveGaps(i:PreventiveInputs):PreventiveGap[]{
  if(i.ageYears!==undefined&&i.ageYears>=40&&!dm&&!htn&&olderThanDays(i.lastAt["BP"],i.asOf,730))out.push({code:"BP_SCREENING_DUE",label:"Tamizaje: presión arterial sin registrar en 2 años",priority:"LOW",domain:"prevencion"});
  if(i.ageYears!==undefined&&i.ageYears>=45&&!dm&&olderThanDays(i.lastAt["GLUCOSE"],i.asOf,1095)&&olderThanDays(i.lastAt["HBA1C"],i.asOf,1095))out.push({code:"DM_SCREENING_DUE",label:"Tamizaje: glucosa o HbA1c sin registrar en 3 años (≥45 años)",priority:"LOW",domain:"prevencion"});
  if(i.overdueVaccines>0)out.push({code:"IMMUNIZATION_OVERDUE",label:`${i.overdueVaccines} dosis de vacuna vencida(s) según la cartilla`,priority:"MEDIUM",domain:"inmunizacion"});
+ // Historia clínica basal: sin capturar, o sin re-verificar en 6 meses (180 días desde la última actualización).
+ if(i.antecedentes){
+  if(!i.antecedentes.recorded)out.push({code:"HISTORY_NOT_RECORDED",label:"Historia clínica basal (antecedentes) sin capturar",priority:"LOW",domain:"historia"});
+  else if(olderThanDays(i.antecedentes.updatedAt,i.asOf,180))out.push({code:"HISTORY_REVERIFY_DUE",label:"Historia clínica basal sin verificar en los últimos 6 meses",priority:"LOW",domain:"historia"});
+ }
  return out.sort((a,b)=>RANK[a.priority]-RANK[b.priority]||a.code.localeCompare(b.code));
 }

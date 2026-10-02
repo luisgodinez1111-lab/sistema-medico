@@ -104,4 +104,14 @@ describe("brechas de cuidado preventivo (C-20)",()=>{
   expect(computePreventiveGaps({ageYears:25,asOf,activeProblemCodes:[],lastAt:{},overdueVaccines:0})).toEqual([]);
   expect(computePreventiveGaps({ageYears:25,asOf,activeProblemCodes:[],lastAt:{},overdueVaccines:2})[0]).toMatchObject({code:"IMMUNIZATION_OVERDUE",priority:"MEDIUM"});
  });
+ // Cerrar el lazo: la re-verificación de la historia clínica basal a 6 meses como pendiente del worklist (server).
+ it("historia clínica: sin capturar -> pendiente; vigente -> ninguno; sin verificar en 6 meses -> pendiente",()=>{
+  const base={ageYears:40,asOf,activeProblemCodes:[],lastAt:{},overdueVaccines:0} as const;
+  expect(computePreventiveGaps({...base,antecedentes:{recorded:false}}).map(x=>x.code)).toContain("HISTORY_NOT_RECORDED");
+  expect(computePreventiveGaps({...base,antecedentes:{recorded:true,updatedAt:daysAgo(30)}}).some(x=>x.domain==="historia")).toBe(false);
+  const due=computePreventiveGaps({...base,antecedentes:{recorded:true,updatedAt:daysAgo(200)}});
+  expect(due.find(x=>x.domain==="historia")).toMatchObject({code:"HISTORY_REVERIFY_DUE",priority:"LOW"});
+  // sin el dato de antecedentes no se inventa pendiente (retrocompatible)
+  expect(computePreventiveGaps(base).some(x=>x.domain==="historia")).toBe(false);
+ });
 });
