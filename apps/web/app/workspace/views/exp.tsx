@@ -323,8 +323,17 @@ export default function ExpView(){
      roItems.push(["Hábitos",<>Tabaquismo: {yes(hab?.tabaquismo)} · Alcoholismo: {yes(hab?.alcoholismo)} · Toxicomanías: {yes(hab?.toxicomanias)}{hab?.actividadFisica?` · Act. física: ${hab.actividadFisica}`:""}{hab?.alimentacion?` · Alimentación: ${hab.alimentacion}`:""}{hab?.notas?` · ${hab.notas}`:""}</>]);
      if(antForm.quirurgicos?.notas)roItems.push(["Quirúrgicos",antForm.quirurgicos.notas]);
      if(showGineco&&antForm.ginecoObstetricos?.notas)roItems.push(["Gineco-obstétricos",antForm.ginecoObstetricos.notas]);
+     // Recomendaciones del CDS que nacen de los hábitos (cesación, cribados por guías): el algoritmo lee los antecedentes.
+     const habitFindings=(snap?.findings??[]).filter(f=>f.domain==="tabaquismo"||f.domain==="alcohol"||f.domain==="adicciones");
      return <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:9}}>
       {roItems.map(([k,v])=><div key={k} style={{display:"flex",gap:12,fontSize:13,padding:"9px 11px",borderRadius:10,background:"#f7f8fc"}}><span style={{fontWeight:800,color:P.purpleOnPale,minWidth:140,flex:"0 0 auto"}}>{k}</span><span style={{minWidth:0,color:"#33383F"}}>{v}</span></div>)}
+      {habitFindings.length>0&&<div style={{borderTop:`1px solid ${LINE}`,paddingTop:12,marginTop:3}}>
+       <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Recomendaciones del sistema (por los hábitos)</div>
+       <div style={{display:"flex",flexDirection:"column",gap:8}}>{habitFindings.map((f,i)=>{const s=SEV[f.severity]??SEV.INFO;return <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"9px 11px",borderRadius:10,background:s.bg,border:`1px solid ${s.bd}`}}>
+        <span style={{background:"#fff",color:s.fg,border:`1px solid ${s.bd}`,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800,letterSpacing:".03em",whiteSpace:"nowrap",marginTop:1}}>{s.label}</span>
+        <span style={{fontSize:13,color:"#33383F",lineHeight:1.4}}>{f.summary}</span></div>;})}</div>
+       <div style={{fontSize:11,color:P.muted,marginTop:8}}>Apoyo determinista por guías. La decisión es del médico.</div>
+      </div>}
      </div>;
     }
     // EDICIÓN de la matriz

@@ -186,8 +186,18 @@ export default function ConsultaView(){
         if(c?.quirurgicos?.notas)rows.push(["Quirúrgicos",c.quirurgicos.notas]);
         if(c?.ginecoObstetricos?.notas)rows.push(["Gineco-obstétricos",c.ginecoObstetricos.notas]);
        }
+       // Recomendaciones del CDS que NACEN de los hábitos (cesación, cribados por guías): el algoritmo lee los antecedentes
+       // y las muestra aquí mismo, donde el médico ve los hábitos. Determinista, de apoyo (snap.findings ya calculado).
+       const habitFindings=(snap?.findings??[]).filter(f=>f.domain==="tabaquismo"||f.domain==="alcohol"||f.domain==="adicciones");
+       const sevColor=(s:string):[string,string,string]=>s==="CRITICAL"?["#FDE7EA",P.redOnPale,"CRÍTICO"]:s==="WARNING"?["#FBF0DC",P.amberOnPale,"ATENCIÓN"]:["#EAF1FD",P.blueOnPale,"INFO"];
        return <div style={cc}>{head("Antecedentes (historia basal)",rows.length,"Antecedentes",antSnap?.recorded?"Editar en el expediente":"Capturar en el expediente")}{antSnap?.recorded
-        ?<div style={{padding:"4px 16px 16px",display:"flex",flexDirection:"column",gap:9}}>{rows.map(([k,v])=><div key={k} style={{display:"flex",gap:12,fontSize:13,padding:"9px 11px",borderRadius:10,background:"#f7f8fc"}}><span style={{fontWeight:800,color:P.purpleOnPale,minWidth:170,flex:"0 0 auto"}}>{k}</span><span style={{minWidth:0,color:"#33383F"}}>{v}</span></div>)}{antSnap.updatedAt&&<div style={{fontSize:11.5,color:P.muted,marginTop:2}}>Actualizado {relTime(antSnap.updatedAt)}</div>}</div>
+        ?<div style={{padding:"4px 16px 16px",display:"flex",flexDirection:"column",gap:9}}>{rows.map(([k,v])=><div key={k} style={{display:"flex",gap:12,fontSize:13,padding:"9px 11px",borderRadius:10,background:"#f7f8fc"}}><span style={{fontWeight:800,color:P.purpleOnPale,minWidth:170,flex:"0 0 auto"}}>{k}</span><span style={{minWidth:0,color:"#33383F"}}>{v}</span></div>)}
+          {habitFindings.length>0&&<div style={{marginTop:8,borderTop:`1px solid ${LINE}`,paddingTop:12}}>
+           <div style={{fontSize:12.5,fontWeight:800,color:P.ink,marginBottom:8}}>Recomendaciones del sistema (por los hábitos)</div>
+           <div style={{display:"flex",flexDirection:"column",gap:7}}>{habitFindings.map((f,i)=>{const[bg,fg,lb]=sevColor(f.severity);return <div key={i} style={{display:"flex",gap:9,alignItems:"flex-start",padding:"9px 11px",borderRadius:10,background:bg}}><span style={{background:"#fff",color:fg,border:`1px solid ${fg}33`,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800,letterSpacing:".03em",whiteSpace:"nowrap",marginTop:1}}>{lb}</span><span style={{fontSize:12.5,color:"#33383F",lineHeight:1.45}}>{f.summary}</span></div>;})}</div>
+           <div style={{fontSize:11,color:P.muted,marginTop:8}}>Apoyo determinista por guías. La decisión es del médico.</div>
+          </div>}
+          {antSnap.updatedAt&&<div style={{fontSize:11.5,color:P.muted,marginTop:2}}>Actualizado {relTime(antSnap.updatedAt)}</div>}</div>
         :empty("Sin antecedentes capturados. Captúralos una vez en el expediente del paciente.")}</div>;
       }
       return <div/>;
