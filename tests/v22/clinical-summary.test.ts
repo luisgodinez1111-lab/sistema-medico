@@ -44,4 +44,26 @@ describe("assembleFindings (prioriza por severidad)",()=>{
   const f2=assembleFindings({openCriticalResults:1,egfr:{egfr:22,stage:"G4"},bmi:{category:"OBESITY_II"}});
   expect(summarize(f2)).toEqual({critical:1,warning:1,info:1,total:3});
  });
+ // HÁBITOS (antecedentes no patológicos) — recordatorios de apoyo basados en guías; el médico decide.
+ it("tabaquismo solo -> INFO de cesación; con riesgo cardiometabólico -> WARNING",()=>{
+  const solo=assembleFindings({habits:{tabaquismo:true,alcoholismo:false,toxicomanias:false}});
+  expect(solo).toHaveLength(1);expect(solo[0]).toMatchObject({domain:"tabaquismo",severity:"INFO"});
+  const conRiesgo=assembleFindings({habits:{tabaquismo:true,alcoholismo:false,toxicomanias:false,cardiometabolic:true}});
+  expect(conRiesgo[0]).toMatchObject({domain:"tabaquismo",severity:"WARNING"});
+ });
+ it("elegibilidades de cribado del fumador (AAA y cáncer de pulmón) se enuncian cuando el caller las marca",()=>{
+  const f=assembleFindings({habits:{tabaquismo:true,alcoholismo:false,toxicomanias:false,aaaScreenEligible:true,lungCancerScreenAge:true}});
+  expect(f.some(x=>/aneurisma de aorta abdominal/.test(x.summary))).toBe(true);
+  expect(f.some(x=>/cáncer de pulmón/.test(x.summary))).toBe(true);
+ });
+ it("alcohol y toxicomanías emiten su recordatorio de cribado/derivación (INFO)",()=>{
+  const al=assembleFindings({habits:{tabaquismo:false,alcoholismo:true,toxicomanias:false}});
+  expect(al).toHaveLength(1);expect(al[0]).toMatchObject({domain:"alcohol",severity:"INFO"});
+  const tx=assembleFindings({habits:{tabaquismo:false,alcoholismo:false,toxicomanias:true}});
+  expect(tx[0]).toMatchObject({domain:"adicciones",severity:"INFO"});
+ });
+ it("sin hábitos marcados -> ningún hallazgo de hábitos",()=>{
+  expect(assembleFindings({habits:{tabaquismo:false,alcoholismo:false,toxicomanias:false}})).toEqual([]);
+  expect(assembleFindings({})).toEqual([]);
+ });
 });
