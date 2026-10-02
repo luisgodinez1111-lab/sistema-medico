@@ -336,3 +336,31 @@ describe("purga de las filas de idempotencia caducadas (R06-F10, F15)",()=>{
   expect(src()).toContain("if(!existe.length)continue");
  });
 });
+
+// SNAPSHOTS DEL EVENT STORE — decisión de arquitectura (oct-2026): NO se usan. Las lecturas ya están MATERIALIZADAS por
+// índices: los agregados son pequeños (un encuentro = abrir→valorar→firmar; antecedentes = recorded+enmiendas), así que el
+// fold por agregado es un range scan sobre (tenant_id,aggregate_id,sequence); las lecturas cruzadas usan subconsultas
+// ORDER BY sequence DESC LIMIT 1 + índices de expresión por camino caliente (0019 S-08, 0025 R06). Un subsistema de
+// snapshots (tabla + invalidación en el camino de escritura + fold-desde-snapshot) sería estructura NO indispensable sobre
+// el kernel de seguridad, sin beneficio medido. Esta guarda sostiene esa decisión: si una migración dejara de declarar los
+// índices base, el fold-on-read volvería a escanear el tenant y "sin snapshots" dejaría de ser cierto EN SILENCIO.
+describe("read-path materializado por índices (sin snapshots): los índices base del event store no pueden desaparecer",()=>{
+ const core=()=>fs.readFileSync("db/migrations/0001_core.sql","utf8");
+ const m19=()=>fs.readFileSync("db/migrations/0019_event_store_read_indexes.sql","utf8");
+ it("0001: índice por agregado (tenant_id,aggregate_id,sequence) — el fold por agregado es un range scan, no un escaneo",()=>{
+  expect(core()).toContain("clinical_events_aggregate_idx");
+  expect(core()).toMatch(/clinical_events\s*\(\s*tenant_id\s*,\s*aggregate_id\s*,\s*sequence\s*\)/);
+ });
+ it("0019: índices de lectura por paciente, por tipo/kind y del primer evento (S-08)",()=>{
+  const s=m19();
+  expect(s).toContain("clinical_events_tenant_patient_idx");
+  expect(s).toContain("clinical_events_tenant_type_kind_idx");
+  expect(s).toContain("clinical_events_tenant_first_event_idx");
+  expect(s).toMatch(/where\s+sequence\s*=\s*1/i); // el del primer evento es parcial
+ });
+ it("0001 y 0019 están en el manifiesto de migraciones",()=>{
+  const man=JSON.parse(fs.readFileSync("db/migrations/manifest.json","utf8")) as {migrations:{file:string}[]}|{file:string}[];
+  const lista=Array.isArray(man)?man:man.migrations;
+  for(const f of ["0001_core","0019_event_store_read_indexes"])expect(lista.some(m=>m.file.includes(f)),f).toBe(true);
+ });
+});
