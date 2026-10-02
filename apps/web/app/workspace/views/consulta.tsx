@@ -3,7 +3,7 @@
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {useEffect,useRef,useState} from "react";
 import {searchIcd10} from "../../../../../packages/terminology/src";
-import{Check,card,P,LINE,UI,act,scrollTop,goExpSection,mono,DX_LABEL,NavIcon,Skeleton,srOnly}from"../shared";
+import{Check,card,P,LINE,UI,act,scrollTop,goExpSection,mono,DX_LABEL,NavIcon,Skeleton,srOnly,relTime}from"../shared";
 import{useWorkspace}from"../context";
 export default function ConsultaView(){
  const{consultaPid,agenda,patientList,consultaNewPid,setApptNew,setAgendaDate,setView,setConsultaNewPid,openConsulta,patientName,snap,antSnap,setConsultaPid,setExpTab,enc,gaps,patientId,busy,setCPreview,cPreview,consultaAdvance,cMsg,setCMsg,composeNote,cForm,docDisplay,chartState,setChartReload,setCTab,cTab,consTabs,setCForm,clock,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdSel,setCOrdCat,setCOrdMsg,cOrdSel,createConsultaOrders,cOrdBusy,cOrdMsg,patientQuery,setPatientQuery,loadPatients,regName,setRegName,regDob,setRegDob,regSex,setRegSex,regExtra,setRegExtra,registerPatient,guardianFields,dupPanel,patMsg,regIsMinor}=useWorkspace();
@@ -113,7 +113,7 @@ export default function ConsultaView(){
    const link:React.CSSProperties={color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"};
    // Botón real que abre la sección correspondiente del expediente (antes era un chip decorativo "+ Agregar" sin acción).
    const sgo=(label:string,section:string)=><button onClick={()=>{goExpSection(section,setView,setExpTab);}} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"4px 10px",fontSize:12,fontWeight:600,color:P.purple,cursor:"pointer",whiteSpace:"nowrap",fontFamily:UI}}>{label}</button>;
-   const CTABS:[typeof cTab,string][]=[["actual","Consulta actual"],["resultados","Resultados"],["ordenes","Órdenes"],["medicamentos","Medicamentos"],["plan","Plan de cuidados"],["documentos","Documentos"],["seguimiento","Seguimiento"]];
+   const CTABS:[typeof cTab,string][]=[["actual","Consulta actual"],["antecedentes","Antecedentes"],["resultados","Resultados"],["ordenes","Órdenes"],["medicamentos","Medicamentos"],["plan","Plan de cuidados"],["documentos","Documentos"],["seguimiento","Seguimiento"]];
    const rsum=(bg:string,fg:string,d:string,title:string,sub:string,right:React.ReactNode)=>(<div style={{display:"flex",gap:11,padding:"12px 0",borderTop:`1px solid #F1F3F9`,alignItems:"flex-start"}}><span style={{width:34,height:34,borderRadius:9,background:bg,color:fg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13.5}}>{title}</div><div style={{fontSize:12.5,color:P.muted}}>{sub}</div></div>{right}</div>);
    return <div style={{padding:"20px clamp(20px,2.4vw,64px) 40px",maxWidth:2100,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
@@ -175,6 +175,20 @@ export default function ConsultaView(){
       }
       if(cTab==="seguimiento"){const rows=consTabs?.obligations??[];
        return <div style={cc}>{head("Tareas de seguimiento",rows.length,"Obligaciones de seguimiento","Abrir en el expediente")}{rows.length?<div style={{padding:"4px 16px 16px"}}>{rows.map((o,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"10px 0",borderBottom:i<rows.length-1?`1px solid #F2F4F9`:"0"}}><span style={{width:17,height:17,borderRadius:5,border:o.done?"0":"1.7px solid #C7CCE0",background:o.done?P.purple:"transparent",color:"#fff",display:"grid",placeItems:"center",fontSize:10,flex:"0 0 auto"}}>{o.done?"✓":""}</span><span style={{flex:1,fontSize:13.5,color:o.done?P.muted:P.ink,textDecoration:o.done?"line-through":"none"}}>{o.task}</span><span style={{fontSize:11.5,color:P.muted}}>📅 {fmtC(o.dueAt)}</span></div>)}</div>:empty("Sin tareas de seguimiento para este paciente.")}</div>;
+      }
+      if(cTab==="antecedentes"){
+       // Matriz fundacional READ-ONLY (se captura/edita en el expediente; aquí es contexto de la visita). Desde antSnap.
+       const c=antSnap?.content;const hab=c?.noPatologicos;const rows:[string,string][]=[];
+       if(antSnap?.recorded){
+        const her=[(c?.heredofamiliares?.flags??[]).join(", "),c?.heredofamiliares?.notas].filter(Boolean).join(" · ");if(her)rows.push(["Heredofamiliares",her]);
+        const pat=[(c?.patologicos?.cronicos??[]).join(", "),c?.patologicos?.cirugias?"cirugías":"",c?.patologicos?.hospitalizaciones?"hospitalizaciones":"",c?.patologicos?.transfusiones?"transfusiones":"",c?.patologicos?.notas].filter(Boolean).join(" · ");if(pat)rows.push(["Personales patológicos",pat]);
+        rows.push(["No patológicos (hábitos)",[`Tabaquismo: ${hab?.tabaquismo?"Sí":"No"}`,`Alcoholismo: ${hab?.alcoholismo?"Sí":"No"}`,`Toxicomanías: ${hab?.toxicomanias?"Sí":"No"}`,hab?.actividadFisica?`Act. física: ${hab.actividadFisica}`:"",hab?.alimentacion?`Alimentación: ${hab.alimentacion}`:"",hab?.notas??""].filter(Boolean).join(" · ")]);
+        if(c?.quirurgicos?.notas)rows.push(["Quirúrgicos",c.quirurgicos.notas]);
+        if(c?.ginecoObstetricos?.notas)rows.push(["Gineco-obstétricos",c.ginecoObstetricos.notas]);
+       }
+       return <div style={cc}>{head("Antecedentes (historia basal)",rows.length,"Antecedentes",antSnap?.recorded?"Editar en el expediente":"Capturar en el expediente")}{antSnap?.recorded
+        ?<div style={{padding:"4px 16px 16px",display:"flex",flexDirection:"column",gap:9}}>{rows.map(([k,v])=><div key={k} style={{display:"flex",gap:12,fontSize:13,padding:"9px 11px",borderRadius:10,background:"#f7f8fc"}}><span style={{fontWeight:800,color:P.purpleOnPale,minWidth:170,flex:"0 0 auto"}}>{k}</span><span style={{minWidth:0,color:"#33383F"}}>{v}</span></div>)}{antSnap.updatedAt&&<div style={{fontSize:11.5,color:P.muted,marginTop:2}}>Actualizado {relTime(antSnap.updatedAt)}</div>}</div>
+        :empty("Sin antecedentes capturados. Captúralos una vez en el expediente del paciente.")}</div>;
       }
       return <div/>;
      })()

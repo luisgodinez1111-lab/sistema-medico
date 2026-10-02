@@ -210,7 +210,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(await screen.findByText("1. Motivo de consulta")).toBeTruthy();
  });
 
- it("vista Consulta (workspace clínico) con las 7 pestañas + formulario",async()=>{
+ it("vista Consulta (workspace clínico) con las 8 pestañas (incl. Antecedentes) + formulario",async()=>{
   render(<Workspace/>);
   await abrirConsulta();
   expect(screen.getByRole("heading",{name:"Consulta"})).toBeTruthy();
@@ -218,6 +218,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom)",()=>{
   expect(screen.getAllByText("Signos vitales").length).toBeGreaterThan(0); // panel + acceso del sidebar
   expect(screen.getByText("Resumen clínico")).toBeTruthy();
   expect(screen.getByRole("button",{name:/Consulta actual/})).toBeTruthy(); // pestaña
+  expect(screen.getByRole("button",{name:/^Antecedentes$/})).toBeTruthy(); // nueva pestaña de antecedentes (historia basal)
   expect(screen.getAllByRole("button",{name:/Plan de cuidados/}).length).toBeGreaterThan(1); // sidebar + pestaña
   // pestañas por paciente cableadas (sin paciente en contexto: encabezado + estado vacío honesto).
   // "Resultados/Medicamentos/Seguimiento" existen en sidebar y como pestaña -> la pestaña es la última coincidencia.

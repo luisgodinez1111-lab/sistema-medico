@@ -313,7 +313,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  };
  const[ordTab,setOrdTab]=useState<"todas"|"laboratorio"|"imagenologia"|"interconsultas"|"procedimientos"|"otros">("todas");
  const[selRow,setSelRow]=useState(0); // fila seleccionada en la lista de pacientes (panel de detalle)
- const[cTab,setCTab]=useState<"actual"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
+ const[cTab,setCTab]=useState<"actual"|"antecedentes"|"resultados"|"ordenes"|"medicamentos"|"plan"|"documentos"|"seguimiento">("actual");
  const[consultaPid,setConsultaPid]=useState<string|null>(null); // paciente de la consulta abierta (null = panel de consultas)
  const[consultaNewPid,setConsultaNewPid]=useState(""); // selector "iniciar nueva consulta" en el panel
  // Abre el workspace de la consulta de un paciente (desde el panel, agenda, pacientes, etc.).
