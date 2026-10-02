@@ -3,7 +3,7 @@
 // Entradas INGERIDAS desde RxNorm/RxClass (ATC) vía RxNav (NLM), con procedencia por fila. El nombre español (clave)
 // viene de las monografías reales del repo; la clase, del cruce ATC→interna (atc-crosswalk.ts) verificado contra el
 // nombre de clase de RxNav; admitidas solo si su clase tiene regla renal (fail-closed). Re-generar: pnpm drug:ingest.
-// NO se inventa farmacología. Generado: 2026-10-02. Admitidas: 105.
+// NO se inventa farmacología. Generado: 2026-10-02. Admitidas: 108.
 import type{DrugEntry}from"./index";
 export const INGESTED_DRUGS:Record<string,DrugEntry>={
  "alfuzosin":{ingredient:"alfuzosin",classes:["ALPHA_BLOCKER"],source:"RxNorm rxcui:17300 · ATC G04CA · RxNav 2026-10-02",atc:"G04CA"},
@@ -21,6 +21,7 @@ export const INGESTED_DRUGS:Record<string,DrugEntry>={
  "cefazolina":{ingredient:"cefazolina",classes:["BETA_LACTAM","CEPHALOSPORIN"],source:"RxNorm rxcui:2180 · ATC J01DB · RxNav 2026-10-02",atc:"J01DB"},
  "cefixima":{ingredient:"cefixima",classes:["BETA_LACTAM","CEPHALOSPORIN"],source:"RxNorm rxcui:25033 · ATC J01DD · RxNav 2026-10-02",atc:"J01DD"},
  "cefoxitina":{ingredient:"cefoxitina",classes:["BETA_LACTAM","CEPHALOSPORIN"],source:"RxNorm rxcui:2189 · ATC J01DC · RxNav 2026-10-02",atc:"J01DC"},
+ "ceftarolina fosamilo":{ingredient:"ceftarolina fosamilo",classes:["BETA_LACTAM","CEPHALOSPORIN"],source:"RxNorm rxcui:1040004 · ATC J01DI · RxNav 2026-10-02",atc:"J01DI"},
  "ceftazidima":{ingredient:"ceftazidima",classes:["BETA_LACTAM","CEPHALOSPORIN"],source:"RxNorm rxcui:2191 · ATC J01DD · RxNav 2026-10-02",atc:"J01DD"},
  "ceftibuteno":{ingredient:"ceftibuteno",classes:["BETA_LACTAM","CEPHALOSPORIN"],source:"RxNorm rxcui:20492 · ATC J01DD · RxNav 2026-10-02",atc:"J01DD"},
  "cilostazol":{ingredient:"cilostazol",classes:["ANTIPLATELET"],source:"RxNorm rxcui:21107 · ATC B01AC · RxNav 2026-10-02",atc:"B01AC"},
@@ -39,6 +40,7 @@ export const INGESTED_DRUGS:Record<string,DrugEntry>={
  "doxepina":{ingredient:"doxepina",classes:["TCA"],source:"RxNorm rxcui:3638 · ATC N06AA · RxNav 2026-10-02",atc:"N06AA"},
  "eplerenona":{ingredient:"eplerenona",classes:["POTASSIUM_SPARING"],source:"RxNorm rxcui:298869 · ATC C03DA · RxNav 2026-10-02",atc:"C03DA"},
  "epoprostenol":{ingredient:"epoprostenol",classes:["ANTIPLATELET"],source:"RxNorm rxcui:8814 · ATC B01AC · RxNav 2026-10-02",atc:"B01AC"},
+ "ertapenem":{ingredient:"ertapenem",classes:["CARBAPENEM"],source:"RxNorm rxcui:325642 · ATC J01DH · RxNav 2026-10-02",atc:"J01DH"},
  "ertugliflozina":{ingredient:"ertugliflozina",classes:["SGLT2_INHIBITOR"],source:"RxNorm rxcui:1992672 · ATC A10BK · RxNav 2026-10-02",atc:"A10BK"},
  "esmolol":{ingredient:"esmolol",classes:["BETA_BLOCKER"],source:"RxNorm rxcui:49737 · ATC C07AB · RxNav 2026-10-02",atc:"C07AB"},
  "estradiol":{ingredient:"estradiol",classes:["ESTROGEN"],source:"RxNorm rxcui:4083 · ATC G03CA · RxNav 2026-10-02",atc:"G03CA"},
@@ -63,6 +65,7 @@ export const INGESTED_DRUGS:Record<string,DrugEntry>={
  "lincomicina":{ingredient:"lincomicina",classes:["LINCOSAMIDE"],source:"RxNorm rxcui:6398 · ATC J01FF · RxNav 2026-10-02",atc:"J01FF"},
  "loxoprofeno":{ingredient:"loxoprofeno",classes:["NSAID"],source:"RxNorm rxcui:28908 · ATC M01AE · RxNav 2026-10-02",atc:"M01AE"},
  "meperidina":{ingredient:"meperidina",classes:["OPIOID"],source:"RxNorm rxcui:6754 · ATC N02AB · RxNav 2026-10-02",atc:"N02AB"},
+ "meropenem":{ingredient:"meropenem",classes:["CARBAPENEM"],source:"RxNorm rxcui:29561 · ATC J01DH · RxNav 2026-10-02",atc:"J01DH"},
  "minociclina":{ingredient:"minociclina",classes:["TETRACYCLINE"],source:"RxNorm rxcui:6980 · ATC J01AA · RxNav 2026-10-02",atc:"J01AA"},
  "mometasona":{ingredient:"mometasona",classes:["INHALED_CORTICOSTEROID"],source:"RxNorm rxcui:108118 · ATC R03BA · RxNav 2026-10-02",atc:"R03BA"},
  "mosaprida":{ingredient:"mosaprida",classes:["PROKINETIC"],source:"RxNorm rxcui:135091 · ATC A03FA · RxNav 2026-10-02",atc:"A03FA"},

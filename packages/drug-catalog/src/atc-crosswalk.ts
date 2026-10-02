@@ -55,6 +55,8 @@ export const ATC_CROSSWALK:readonly AtcCrosswalkEntry[]=[
  {atc:"J01DC",atcName:"Second-generation cephalosporins",internal:["CEPHALOSPORIN","BETA_LACTAM"]},
  {atc:"J01DD",atcName:"Third-generation cephalosporins",internal:["CEPHALOSPORIN","BETA_LACTAM"]},
  {atc:"J01DE",atcName:"Fourth-generation cephalosporins",internal:["CEPHALOSPORIN","BETA_LACTAM"]},
+ {atc:"J01DI",atcName:"Other cephalosporins and penems",internal:["CEPHALOSPORIN","BETA_LACTAM"]},
+ {atc:"J01DH",atcName:"Carbapenems",internal:["CARBAPENEM"]},
  {atc:"J01FA",atcName:"Macrolides",internal:["MACROLIDE"]},
  {atc:"J01FF",atcName:"Lincosamides",internal:["LINCOSAMIDE"]},
  {atc:"J01MA",atcName:"Fluoroquinolones",internal:["FLUOROQUINOLONE"]},

@@ -292,6 +292,9 @@ const RENAL_RULES_BY_CLASS:Record<string,RenalRule>={
  // Ampliación 2026 (lote 2) — más áreas terapéuticas (umbrales de ficha técnica/KDIGO, PENDIENTE de validación clínica).
  AMINOGLYCOSIDE:{cautionBelow:60,note:"Aminoglucósidos con TFG<60: nefro- y ototóxicos, de eliminación renal; dosis por peso ideal, intervalo ampliado y guiar por niveles"},
  GLYCOPEPTIDE:{cautionBelow:60,note:"Vancomicina con TFG<60: reducir dosis/alargar intervalo y guiar por niveles (nefrotoxicidad)"},
+ // CARBAPENEM es clase propia (NO se etiqueta BETA_LACTAM): la reactividad cruzada carbapenémico↔penicilina es <1 %, así
+ // que marcarlos como betalactámicos sobre-alertaría a un alérgico a penicilina. Umbral de ficha técnica (eliminación renal).
+ CARBAPENEM:{cautionBelow:50,note:"Carbapenémicos (meropenem, ertapenem, imipenem, doripenem): eliminación renal; ajustar dosis/intervalo con TFG<50. Imipenem: riesgo de convulsiones si no se ajusta (fichas técnicas / Sanford Guide)."},
  NITROIMIDAZOLE:{noAdjustment:true,note:"Metronidazol: sin ajuste por TFG (metabolismo hepático)"},
  NITROFURANTOIN:{blockBelow:45,note:"Nitrofurantoína con TFG<45: no alcanza concentración urinaria eficaz y acumula metabolitos tóxicos: evitar"},
  TETRACYCLINE:{noAdjustment:true,note:"Doxiciclina: sin ajuste por TFG; la tetraciclina clásica sí se evita en insuficiencia renal (ver ingrediente)"},

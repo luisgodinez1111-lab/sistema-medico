@@ -4,10 +4,10 @@
  "totalMonographs": 1217,
  "alreadyCurated": 168,
  "processed": 1049,
- "admitted": 105,
- "curationNeeded": 944,
+ "admitted": 108,
+ "curationNeeded": 941,
  "byReason": {
-  "CLASS_NOT_CROSSWALKED": 779,
+  "CLASS_NOT_CROSSWALKED": 776,
   "LOW_CONFIDENCE_MATCH": 71,
   "NO_RXCUI": 29,
   "RENAL_EXCEPTION_NEEDS_CURATION": 3,
@@ -683,11 +683,6 @@
    "name": "caspofungina acetato",
    "reason": "CLASS_NOT_CROSSWALKED",
    "detail": "J02AX Other antimycotics for systemic use"
-  },
-  {
-   "name": "ceftarolina fosamilo",
-   "reason": "CLASS_NOT_CROSSWALKED",
-   "detail": "J01DI Other cephalosporins and penems"
   },
   {
    "name": "certolizumab pegol",
@@ -1368,11 +1363,6 @@
    "name": "erlotinib",
    "reason": "CLASS_NOT_CROSSWALKED",
    "detail": "L01EB Epidermal growth factor receptor (EGFR) tyrosine kinase inhibitors"
-  },
-  {
-   "name": "ertapenem",
-   "reason": "CLASS_NOT_CROSSWALKED",
-   "detail": "J01DH Carbapenems"
   },
   {
    "name": "esketamina",
@@ -2333,11 +2323,6 @@
    "name": "mercaptopurina",
    "reason": "CLASS_NOT_CROSSWALKED",
    "detail": "L01BB Purine analogues"
-  },
-  {
-   "name": "meropenem",
-   "reason": "CLASS_NOT_CROSSWALKED",
-   "detail": "J01DH Carbapenems"
   },
   {
    "name": "mesalazina",
