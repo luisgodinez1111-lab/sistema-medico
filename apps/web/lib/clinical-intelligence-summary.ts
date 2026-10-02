@@ -8,6 +8,7 @@ import{computeEGFR,type Sex}from"../../../packages/renal-function/src";
 import{computeNEWS2,news2ScoredCount,NEWS2_MIN_SCORED_PARAMS}from"../../../packages/lab-reference/src";
 import{glycemicAssessment}from"../../../packages/glycemic/src";
 import{cha2ds2vasc}from"../../../packages/stroke-risk/src";
+import{hasBled}from"../../../packages/bleeding-risk/src";
 import{fib4}from"../../../packages/liver-fibrosis/src";
 import{bmiFromVitals}from"../../../packages/anthropometrics/src";
 import{forecastImmunizations,forecastSummary}from"../../../packages/immunization-schedule/src";
@@ -124,6 +125,27 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  if(Object.keys(ar).length)inp.activeRisk=ar;
  // FA: contexto del anticoagulante activo para la brecha de anticoagulación.
  if(inp.cha2ds2vasc)inp.cha2ds2vasc={...inp.cha2ds2vasc,onAnticoagulant:activeClasses.has("ANTICOAGULANT")};
+ // HAS-BLED — riesgo de SANGRADO para EQUILIBRAR la anticoagulación (Pisters 2010). Se calcula y muestra SOLO cuando es
+ // relevante: el paciente ya está anticoagulado O tiene indicación de anticoagular (FA con CHA₂DS₂-VASc alto). Cada
+ // componente es factual, de los datos disponibles; el INR lábil NO es evaluable sin TTR → se deja `undefined` (no se
+ // inventa el punto) y el score se reporta como MÍNIMO. El consumo de alcohol usa el hábito registrado como aproximación.
+ const onAnticoag=activeClasses.has("ANTICOAGULANT");
+ const anticoagIndicated=inp.cha2ds2vasc?.applicable===true&&inp.cha2ds2vasc.risk==="HIGH";
+ if(onAnticoag||anticoagIndicated){
+  const alcoholHabit=ant.recorded&&(ant.content as{noPatologicos?:{alcoholismo?:unknown}}).noPatologicos?.alcoholismo===true;
+  const hb=hasBled({
+   hypertensionUncontrolled:sbp!==undefined&&sbp>160,
+   abnormalRenal:(creat!==undefined&&creat>2.26)||(egfrVal!==undefined&&egfrVal<30)||has(codes,"N18.6","Z99.2"),
+   abnormalLiver:has(codes,"K70","K71","K72","K74","K76")||inp.fib4?.risk==="HIGH",
+   strokeHistory:has(codes,"I63","I64","G45"),
+   bleedingHistory:has(codes,"I60","I61","I62","K92","D62"), // hemorragia intracraneal/digestiva, anemia poshemorrágica
+   labileINR:undefined, // no evaluable sin TTR (tiempo en rango terapéutico)
+   elderly:age>65,
+   drugsAntiplateletOrNsaid:activeClasses.has("ANTIPLATELET")||activeClasses.has("NSAID"),
+   alcoholExcess:alcoholHabit===true,
+  });
+  inp.hasBled={score:hb.score,risk:hb.risk,show:true,minimum:hb.notAssessed.length>0};
+ }
  // — Escenarios priorizados: adulto mayor (Beers), embarazo, pediatría, lípidos por meta de riesgo —
  if(age>=65){
   const beers:string[]=[];

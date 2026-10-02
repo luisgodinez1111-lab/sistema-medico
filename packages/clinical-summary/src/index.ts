@@ -13,6 +13,10 @@ export type SummaryInputs=Readonly<{
  egfr?:{egfr:number;stage:string};
  glycemic?:{category:string;label:string};
  cha2ds2vasc?:{score:number;risk:"LOW"|"INTERMEDIATE"|"HIGH";applicable:boolean;onAnticoagulant?:boolean};
+ // HAS-BLED — riesgo de SANGRADO, para EQUILIBRAR la decisión de anticoagular (Pisters 2010). El caller lo marca
+ // `show` cuando es relevante (paciente ya anticoagulado O con indicación de anticoagular), y pasa el score/riesgo ya
+ // calculado. `minimum` es true si algún componente no fue evaluable (p. ej. INR lábil sin TTR): el score es un piso.
+ hasBled?:{score:number;risk:"LOW"|"MODERATE"|"HIGH";show:boolean;minimum:boolean};
  // Brechas de terapia dirigida por guías (care gaps): el caller cruza condición+edad+labs+medicación activa (por CLASE
  // del catálogo) y aquí se enuncian como RECORDATORIOS de apoyo ("considere…"), nunca como mandato — el médico decide,
  // vigilando contraindicaciones. Solo se emiten cuando la terapia está INDICADA y el paciente NO la tiene activa.
@@ -72,6 +76,13 @@ export function assembleFindings(i:SummaryInputs):Finding[]{
   else if(i.glycemic.category==="ABOVE_TARGET"||i.glycemic.category==="PREDIABETES")f.push({domain:"glucémico",severity:"INFO",summary:i.glycemic.label});}
  // FA + riesgo alto SIN anticoagulación = brecha; si ya está anticoagulado no se avisa (no se repregunta lo ya resuelto).
  if(i.cha2ds2vasc&&i.cha2ds2vasc.applicable&&i.cha2ds2vasc.risk==="HIGH"&&i.cha2ds2vasc.onAnticoagulant!==true)f.push({domain:"anticoagulación",severity:"WARNING",summary:`CHA₂DS₂-VASc ${i.cha2ds2vasc.score} (alto) en fibrilación auricular sin anticoagulación activa: considere anticoagular salvo contraindicación (ESC/AHA).`});
+ // Balance de la anticoagulación: junto al riesgo trombótico (CHA₂DS₂-VASc) se enuncia el riesgo de SANGRADO (HAS-BLED)
+ // para una decisión EQUILIBRADA, no unilateral. Un HAS-BLED alto NO contraindica anticoagular: obliga a corregir los
+ // factores modificables y vigilar de cerca (Pisters 2010). El caller decide `show` (relevante si ya anticoagulado o con
+ // indicación). `minimum` avisa que el score es un piso cuando un componente (p. ej. INR lábil) no pudo evaluarse.
+ if(i.hasBled?.show){const piso=i.hasBled.minimum?" (mínimo: hay componentes no evaluados, p. ej. INR lábil)":"";
+  if(i.hasBled.risk==="HIGH")f.push({domain:"anticoagulación",severity:"WARNING",summary:`Riesgo hemorrágico ALTO (HAS-BLED ${i.hasBled.score}${piso}): NO contraindica anticoagular — corrija los factores modificables (presión, antiagregantes/AINE, alcohol, INR) y vigile de cerca (Pisters 2010).`});
+  else f.push({domain:"anticoagulación",severity:"INFO",summary:`Riesgo hemorrágico ${i.hasBled.risk==="MODERATE"?"moderado":"bajo"} (HAS-BLED ${i.hasBled.score}${piso}): téngalo en el balance al decidir la anticoagulación (Pisters 2010).`});}
  // — Brechas de terapia dirigida por guías (GDMT): recordatorios de apoyo, el médico decide —
  if(i.statinGap?.indicated&&!i.statinGap.onStatin)f.push({domain:"lípidos",severity:"WARNING",summary:`${i.statinGap.reason}: sin estatina activa — considere iniciar estatina salvo contraindicación (ACC/AHA 2018; ADA Standards of Care).`});
  if(i.reninAngiotensinGap?.indicated&&!i.reninAngiotensinGap.onTherapy)f.push({domain:"cardiorrenal",severity:"INFO",summary:`${i.reninAngiotensinGap.reason}: considere IECA/ARA-II por su efecto cardio/nefroprotector, vigilando potasio, creatinina y contraindicaciones (KDIGO; ACC/AHA).`});

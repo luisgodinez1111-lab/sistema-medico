@@ -1,5 +1,6 @@
 import{describe,it,expect}from"vitest";
 import{assembleFindings,summarize}from"../../packages/clinical-summary/src";
+import{hasBled}from"../../packages/bleeding-risk/src";
 // EPIC BS — Resumen de inteligencia clínica determinista.
 describe("assembleFindings (prioriza por severidad)",()=>{
  it("resultado crítico sin cerrar -> CRITICAL",()=>{
@@ -133,5 +134,53 @@ describe("assembleFindings (prioriza por severidad)",()=>{
   const f=assembleFindings({ldlTarget:{value:120,target:70,riskLabel:"riesgo muy alto (ASCVD)"}});
   expect(f[0]).toMatchObject({domain:"lípidos",severity:"WARNING"});
   expect(f[0]!.summary).toMatch(/<70/);
+ });
+ // Balance de la anticoagulación: HAS-BLED (riesgo de sangrado) junto al CHA₂DS₂-VASc (riesgo trombótico).
+ it("HAS-BLED: no se muestra si no es relevante (show=false)",()=>{
+  expect(assembleFindings({hasBled:{score:4,risk:"HIGH",show:false,minimum:false}})).toEqual([]);
+ });
+ it("HAS-BLED alto -> WARNING que aclara que NO contraindica anticoagular",()=>{
+  const f=assembleFindings({hasBled:{score:3,risk:"HIGH",show:true,minimum:false}});
+  expect(f).toHaveLength(1);expect(f[0]).toMatchObject({domain:"anticoagulación",severity:"WARNING"});
+  expect(f[0]!.summary).toMatch(/HAS-BLED 3/);expect(f[0]!.summary).toMatch(/NO contraindica/);
+ });
+ it("HAS-BLED moderado/bajo -> INFO para el balance",()=>{
+  expect(assembleFindings({hasBled:{score:2,risk:"MODERATE",show:true,minimum:false}})[0]).toMatchObject({domain:"anticoagulación",severity:"INFO"});
+  expect(assembleFindings({hasBled:{score:0,risk:"LOW",show:true,minimum:false}})[0]!.summary).toMatch(/bajo/);
+ });
+ it("HAS-BLED con componentes no evaluados -> el texto marca que el score es mínimo",()=>{
+  expect(assembleFindings({hasBled:{score:2,risk:"MODERATE",show:true,minimum:true}})[0]!.summary).toMatch(/mínimo/);
+ });
+ it("balance completo: CHA₂DS₂-VASc alto + HAS-BLED se muestran JUNTOS (trombosis ↔ sangrado)",()=>{
+  const f=assembleFindings({cha2ds2vasc:{score:5,risk:"HIGH",applicable:true,onAnticoagulant:false},hasBled:{score:3,risk:"HIGH",show:true,minimum:false}});
+  const anticoag=f.filter(x=>x.domain==="anticoagulación");
+  expect(anticoag).toHaveLength(2);
+  expect(anticoag.some(x=>/CHA₂DS₂-VASc/.test(x.summary))).toBe(true);
+  expect(anticoag.some(x=>/HAS-BLED/.test(x.summary))).toBe(true);
+ });
+});
+// Calculador HAS-BLED puro (Pisters 2010): 1 punto por ítem, máx. 9; ≥3 = alto. INR lábil no evaluable se reporta aparte.
+describe("hasBled (riesgo de sangrado, Pisters 2010)",()=>{
+ const NONE={hypertensionUncontrolled:false,abnormalRenal:false,abnormalLiver:false,strokeHistory:false,bleedingHistory:false,elderly:false,drugsAntiplateletOrNsaid:false,alcoholExcess:false} as const;
+ it("sin factores (y sin evaluar INR) -> 0, bajo, con el INR lábil listado como no evaluado",()=>{
+  const r=hasBled({...NONE,labileINR:undefined});
+  expect(r).toMatchObject({score:0,risk:"LOW"});
+  expect(r.components).toEqual([]);
+  expect(r.notAssessed).toEqual(["INR lábil (TTR no disponible)"]);
+ });
+ it("cuenta 1 punto por cada componente presente",()=>{
+  const r=hasBled({hypertensionUncontrolled:true,abnormalRenal:true,abnormalLiver:true,strokeHistory:true,bleedingHistory:true,labileINR:true,elderly:true,drugsAntiplateletOrNsaid:true,alcoholExcess:true});
+  expect(r.score).toBe(9);expect(r.risk).toBe("HIGH");expect(r.notAssessed).toEqual([]);
+ });
+ it("umbrales: 0 bajo, 1–2 moderado, ≥3 alto",()=>{
+  expect(hasBled({...NONE,labileINR:false}).risk).toBe("LOW");
+  expect(hasBled({...NONE,labileINR:false,elderly:true}).risk).toBe("MODERATE");
+  expect(hasBled({...NONE,labileINR:false,elderly:true,hypertensionUncontrolled:true}).risk).toBe("MODERATE");
+  expect(hasBled({...NONE,labileINR:false,elderly:true,hypertensionUncontrolled:true,bleedingHistory:true}).risk).toBe("HIGH");
+ });
+ it("no inventa el punto de INR lábil cuando no es evaluable (score es un piso)",()=>{
+  const r=hasBled({...NONE,labileINR:undefined,elderly:true,hypertensionUncontrolled:true});
+  expect(r.score).toBe(2); // solo lo evaluado
+  expect(r.notAssessed.length).toBe(1);
  });
 });
