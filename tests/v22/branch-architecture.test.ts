@@ -101,3 +101,43 @@ describe("la navegación concuerda con la fuente única (SIDE_NAV + TOOLS_NAV)",
   expect(orders,`el orden de las secciones no sigue BRANCH_META: ${blocks.join(" → ")}`).toEqual([...orders].sort((a,b)=>a-b));
  });
 });
+
+// ARCHITECTURE FITNESS FUNCTION (arquitectura evolutiva) — mantiene la estructura MÍNIMA: las ramas clínicas no se
+// acoplan entre sí; solo pueden depender de `transversal` (el kernel compartido: identidad/perfil, facturación,
+// ajustes). Medido hoy: 3 imports cruzados, todos → physician-profile (transversal) = legítimo. Un import NUEVO de una
+// rama clínica a otra rompe el build y obliga a una decisión explícita (desacoplar o declarar la excepción).
+const CLINICAL=new Set<Branch>(["consultas","expedientes","laboratorios-diagnosticos"]);
+function lifecycleFiles():string[]{return fs.readdirSync(LIB).filter(f=>f.endsWith("-lifecycle.ts"));}
+function branchOfFile(file:string):Branch|undefined{
+ const s=fs.readFileSync(path.join(LIB,file),"utf8");
+ const m=s.match(/const AGG\s*=\s*"([^"]+)"/)??s.match(/aggregateType:\s*"([^"]+)"/);
+ return m?AGGREGATE_BRANCH[m[1]!]:undefined;
+}
+function lifecycleDeps(file:string):string[]{
+ const s=fs.readFileSync(path.join(LIB,file),"utf8");const files=new Set(lifecycleFiles());
+ return [...s.matchAll(/from"\.\/([a-z0-9-]+-lifecycle)"/g)].map(m=>m[1]!+".ts").filter(d=>files.has(d));
+}
+// Dependencias cruzadas entre ramas CLÍNICAS expresamente permitidas (hoy ninguna). Añadir aquí es una decisión visible.
+const ALLOWED_CROSS_CLINICAL:ReadonlySet<string>=new Set<string>([]);
+
+describe("fitness function de dependencias entre ramas (bounded contexts, arquitectura mínima)",()=>{
+ it("ninguna rama CLÍNICA importa el ciclo de vida de OTRA rama clínica (solo puede depender de transversal)",()=>{
+  const bad:string[]=[];
+  for(const f of lifecycleFiles()){
+   const bf=branchOfFile(f);if(!bf||!CLINICAL.has(bf))continue;
+   for(const dep of lifecycleDeps(f)){
+    const bd=branchOfFile(dep);
+    if(bd&&CLINICAL.has(bd)&&bd!==bf&&!ALLOWED_CROSS_CLINICAL.has(`${f}->${dep}`))bad.push(`${f} (${bf}) → ${dep} (${bd})`);
+   }
+  }
+  expect(bad,`acoplamiento cruzado entre ramas clínicas (desacopla vía transversal o declara la excepción): ${bad.join("; ")}`).toEqual([]);
+ });
+ it("transversal es el KERNEL compartido: no depende de una rama clínica (evita ciclos de dependencia)",()=>{
+  const bad:string[]=[];
+  for(const f of lifecycleFiles()){
+   if(branchOfFile(f)!=="transversal")continue;
+   for(const dep of lifecycleDeps(f)){const bd=branchOfFile(dep);if(bd&&CLINICAL.has(bd))bad.push(`${f} (transversal) → ${dep} (${bd})`);}
+  }
+  expect(bad,`el kernel transversal no debe depender de una rama clínica: ${bad.join("; ")}`).toEqual([]);
+ });
+});
