@@ -32,6 +32,27 @@ describe("los factores del paciente se DERIVAN del expediente (R03-29)",()=>{
   expect(derivePatientFactors([],new Date(Date.now()-70*365.25*86_400_000).toISOString().slice(0,10))).toContain("ELDERLY");
   expect(derivePatientFactors([],new Date(Date.now()-40*365.25*86_400_000).toISOString().slice(0,10))).not.toContain("ELDERLY");
  });
+ it("el ALCOHOL también se deriva del HÁBITO (antecedentes), no solo del diagnóstico F10",()=>{
+  expect(derivePatientFactors([],null,{alcoholismo:true})).toContain("ALCOHOL");
+  expect(derivePatientFactors([],null,{alcoholismo:false})).not.toContain("ALCOHOL");
+  expect(derivePatientFactors([],null,{tabaquismo:true})).toEqual([]); // el tabaquismo no es (aún) un factor de barrera
+  expect(derivePatientFactors([],null,undefined)).toEqual([]);
+ });
+});
+
+describe("alcohol (hábito o F10) + fármaco hepatotóxico: la barrera avisa al prescribir (CAUTION anulable)",()=>{
+ it("paracetamol con ALCOHOL -> CAUTION por hepatotoxicidad (glutatión/CYP2E1), no bloqueo",()=>{
+  const e=evaluatePrescriptionSafety({...base,drugCode:"paracetamol-500",patientFactors:["ALCOHOL"]});
+  expect(barrera(e,"interaction").status).toBe("CAUTION");
+  expect(barrera(e,"interaction").detail).toMatch(/hepatotóxic|glutatión|CYP2E1|paracetamol/i);
+  expect(e.verdict).not.toBe("BLOCK");
+ });
+ it("estatina con ALCOHOL -> CAUTION por hepatotoxicidad aditiva; sin el factor, pasa",()=>{
+  const con=evaluatePrescriptionSafety({...base,drugCode:"atorvastatina-20",dose:"20mg",frequency:"QD",patientFactors:["ALCOHOL"]});
+  expect(barrera(con,"interaction").status).toBe("CAUTION");
+  const sin=evaluatePrescriptionSafety({...base,drugCode:"atorvastatina-20",dose:"20mg",frequency:"QD"});
+  expect(barrera(sin,"interaction").status).toBe("PASSED");
+ });
 });
 
 describe("las reglas del embarazo y la lactancia por fin BLOQUEAN (R03-29)",()=>{
