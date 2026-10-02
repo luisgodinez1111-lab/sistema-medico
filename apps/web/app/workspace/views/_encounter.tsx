@@ -6,7 +6,7 @@
 // endpoints (los flujos de seguridad del encuentro se preservan intactos).
 import{useState}from"react";
 import{searchIcd10}from"../../../../../packages/terminology/src";
-import{Check,card,P,LINE,UI,act,goExpSection,DX_LABEL,NavIcon,mono}from"../shared";
+import{Check,card,P,LINE,UI,act,goExpSection,DX_LABEL,NavIcon,mono,isPediatricAge,antFreshness}from"../shared";
 import{useWorkspace}from"../context";
 
 export default function EncounterForm(){
@@ -47,17 +47,22 @@ export default function EncounterForm(){
     {/* 3. Antecedentes — READ-ONLY desde el expediente (se capturan UNA vez, no se re-preguntan en cada consulta). */}
     {(()=>{
      const c=antSnap?.content;const hab=c?.noPatologicos;const rows:[string,string][]=[];
+     const pediatric=isPediatricAge(snap?.demographics.age);const fresh=antFreshness(!!antSnap?.recorded,antSnap?.updatedAt);
      if(antSnap?.recorded){
       const her=[(c?.heredofamiliares?.flags??[]).join(", "),c?.heredofamiliares?.notas].filter(Boolean).join(" · ");if(her)rows.push(["Heredofamiliares",her]);
       const pat=[(c?.patologicos?.cronicos??[]).join(", "),c?.patologicos?.cirugias?"cirugías":"",c?.patologicos?.hospitalizaciones?"hospitalizaciones":"",c?.patologicos?.transfusiones?"transfusiones":"",c?.patologicos?.notas].filter(Boolean).join(" · ");if(pat)rows.push(["Patológicos",pat]);
       rows.push(["Hábitos",`Tabaquismo: ${hab?.tabaquismo?"Sí":"No"} · Alcoholismo: ${hab?.alcoholismo?"Sí":"No"} · Toxicomanías: ${hab?.toxicomanias?"Sí":"No"}`]);
-      if(c?.quirurgicos?.notas)rows.push(["Quirúrgicos",c.quirurgicos.notas]);
-      if(c?.ginecoObstetricos?.notas)rows.push(["Gineco-obstétricos",c.ginecoObstetricos.notas]);
+      if(!pediatric&&c?.quirurgicos?.notas)rows.push(["Quirúrgicos",c.quirurgicos.notas]);
+      if(!pediatric&&c?.ginecoObstetricos?.notas)rows.push(["Gineco-obstétricos",c.ginecoObstetricos.notas]);
+      if(pediatric)for(const[k,title]of [["prenatales","Prenatales"],["perinatales","Perinatales"],["alimentacion","Alimentación"],["desarrollo","Desarrollo"],["inmunizaciones","Inmunizaciones"]] as const){const s=c?.[k];if(s?.flags?.length||s?.notas)rows.push([title,[(s.flags??[]).join(", "),s.notas].filter(Boolean).join(" · ")]);}
      }
      return <div style={sec}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
        <h3 style={sect}>3. Antecedentes</h3>
-       <button onClick={()=>goExpSection("Antecedentes",setView,setExpTab)} style={{border:0,background:"transparent",color:P.purple,fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>{antSnap?.recorded?"Editar en el expediente →":"Capturar en el expediente →"}</button>
+       <div style={{display:"flex",alignItems:"center",gap:8}}>
+        {fresh.status==="DUE"&&<span role="status" title={`Última actualización hace ${fresh.days} días (> 6 meses)`} style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:"#FBF0DC",color:P.amberOnPale}}>⟳ Por verificar</span>}
+        <button onClick={()=>goExpSection("Antecedentes",setView,setExpTab)} style={{border:0,background:"transparent",color:P.purple,fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>{!antSnap?.recorded?"Capturar en el expediente →":fresh.status==="DUE"?"Verificar en el expediente →":"Editar en el expediente →"}</button>
+       </div>
       </div>
       <p style={{fontSize:11.5,color:P.muted,margin:"2px 0 10px"}}>Historia clínica basal (se registra una vez en el expediente, no en cada consulta).</p>
       {antSnap?.recorded

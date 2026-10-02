@@ -14971,6 +14971,103 @@
               "maxLength": 2000
              }
             }
+           },
+           "prenatales": {
+            "type": "object",
+            "properties": {
+             "flags": {
+              "maxItems": 40,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 80
+              }
+             },
+             "notas": {
+              "type": "string",
+              "maxLength": 2000
+             }
+            }
+           },
+           "perinatales": {
+            "type": "object",
+            "properties": {
+             "flags": {
+              "maxItems": 40,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 80
+              }
+             },
+             "notas": {
+              "type": "string",
+              "maxLength": 2000
+             }
+            }
+           },
+           "alimentacion": {
+            "type": "object",
+            "properties": {
+             "flags": {
+              "maxItems": 40,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 80
+              }
+             },
+             "notas": {
+              "type": "string",
+              "maxLength": 2000
+             }
+            }
+           },
+           "desarrollo": {
+            "type": "object",
+            "properties": {
+             "flags": {
+              "maxItems": 40,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 80
+              }
+             },
+             "notas": {
+              "type": "string",
+              "maxLength": 2000
+             }
+            }
+           },
+           "inmunizaciones": {
+            "type": "object",
+            "properties": {
+             "flags": {
+              "maxItems": 40,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 80
+              }
+             },
+             "notas": {
+              "type": "string",
+              "maxLength": 2000
+             }
+            }
+           },
+           "kind": {
+            "type": "string",
+            "enum": [
+             "ADULT",
+             "PEDIATRIC"
+            ]
            }
           },
           "additionalProperties": false
@@ -15366,6 +15463,103 @@
               "maxLength": 2000
              }
             }
+           },
+           "prenatales": {
+            "type": "object",
+            "properties": {
+             "flags": {
+              "maxItems": 40,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 80
+              }
+             },
+             "notas": {
+              "type": "string",
+              "maxLength": 2000
+             }
+            }
+           },
+           "perinatales": {
+            "type": "object",
+            "properties": {
+             "flags": {
+              "maxItems": 40,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 80
+              }
+             },
+             "notas": {
+              "type": "string",
+              "maxLength": 2000
+             }
+            }
+           },
+           "alimentacion": {
+            "type": "object",
+            "properties": {
+             "flags": {
+              "maxItems": 40,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 80
+              }
+             },
+             "notas": {
+              "type": "string",
+              "maxLength": 2000
+             }
+            }
+           },
+           "desarrollo": {
+            "type": "object",
+            "properties": {
+             "flags": {
+              "maxItems": 40,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 80
+              }
+             },
+             "notas": {
+              "type": "string",
+              "maxLength": 2000
+             }
+            }
+           },
+           "inmunizaciones": {
+            "type": "object",
+            "properties": {
+             "flags": {
+              "maxItems": 40,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 80
+              }
+             },
+             "notas": {
+              "type": "string",
+              "maxLength": 2000
+             }
+            }
+           },
+           "kind": {
+            "type": "string",
+            "enum": [
+             "ADULT",
+             "PEDIATRIC"
+            ]
            }
           },
           "additionalProperties": false

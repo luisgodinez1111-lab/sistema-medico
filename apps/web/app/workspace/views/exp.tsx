@@ -4,7 +4,7 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{Check,ESI_FORM_EMPTY,unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,ANT_HEREDO,ANT_CRONICOS,type AntContent,type ExpTab,type TrendKey}from"../shared";
+import{Check,ESI_FORM_EMPTY,unidadesDe,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,ANT_HEREDO,ANT_CRONICOS,ANT_PRENATAL,ANT_PERINATAL,ANT_ALIMENTACION,ANT_DESARROLLO,ANT_INMUNIZA,isPediatricAge,antFreshness,type AntContent,type ExpTab,type TrendKey}from"../shared";
 import{searchIcd10}from"../../../../../packages/terminology/src";
 // R2B-019: el plazo de reevaluación es de CTAS, no de ESI (ESI no publica tiempos). La pantalla lo dice para que nadie lo
 // lea como un número del algoritmo ESI.
@@ -294,13 +294,16 @@ export default function ExpView(){
      <h2 {...anchor("Antecedentes")} style={{fontSize:18,margin:0}}>Antecedentes</h2>
      <p style={{color:P.muted,fontSize:12,margin:"4px 0 0",maxWidth:620}}>Historia clínica basal del paciente: se captura una vez y se actualiza con motivo. La consulta la muestra y ya no la vuelve a preguntar.</p>
     </div>
-    {!antEditing&&<div style={{display:"flex",gap:10,alignItems:"center",flex:"0 0 auto"}}>
+    {!antEditing&&(()=>{const f=antFreshness(!!antSnap?.recorded,antSnap?.updatedAt);return <div style={{display:"flex",gap:10,alignItems:"center",flex:"0 0 auto"}}>
+     {f.status==="DUE"&&<span role="status" title={`Última actualización hace ${f.days} días (> 6 meses): reverifícalos`} style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:"#FBF0DC",color:P.amberOnPale}}>⟳ Por verificar</span>}
      {antSnap?.recorded&&antSnap.updatedAt&&<span style={{fontSize:11.5,color:P.muted}}>Actualizado {relTime(antSnap.updatedAt)}</span>}
-     <button onClick={()=>setAntEditing(true)} style={{...btn,padding:"7px 14px",fontSize:13}}>{antSnap?.recorded?"Editar":"Capturar antecedentes"}</button>
-    </div>}
+     <button onClick={()=>setAntEditing(true)} style={{...btn,padding:"7px 14px",fontSize:13}}>{!antSnap?.recorded?"Capturar antecedentes":f.status==="DUE"?"Verificar / actualizar":"Editar"}</button>
+    </div>;})()}
    </div>
    {(()=>{
-    const sex=snap?.demographics.sex;const showGineco=sex==="FEMALE"||antForm.ginecoObstetricos?.aplica===true;
+    const sex=snap?.demographics.sex;const age=snap?.demographics.age;const pediatric=isPediatricAge(age);
+    // Auto-selección del formato (historia clínica adulto vs. pediátrica) por la edad. En pediátrico no hay gineco-obstétricos.
+    const showGineco=!pediatric&&(sex==="FEMALE"||antForm.ginecoObstetricos?.aplica===true);
     const hab=antForm.noPatologicos;const pat=antForm.patologicos;
     const chip=(active:boolean,label:string,onClick:()=>void)=><button key={label} type="button" onClick={onClick} style={{border:`1px solid ${active?P.purple:LINE}`,background:active?"#EEEBFD":P.white,color:active?P.purple:P.ink,borderRadius:999,padding:"5px 12px",fontSize:12.5,fontWeight:active?700:500,cursor:"pointer",fontFamily:UI}}>{label}</button>;
     const ta2:React.CSSProperties={...input,minHeight:52,resize:"vertical",width:"100%"};
@@ -314,6 +317,13 @@ export default function ExpView(){
     const setGO=(p:Partial<NonNullable<AntContent["ginecoObstetricos"]>>)=>setAntForm(f=>({...f,ginecoObstetricos:{...f.ginecoObstetricos,...p}}));
     const secBox:React.CSSProperties={border:`1px solid ${LINE}`,borderRadius:12,padding:"14px 16px",background:"#FCFDFF"};
     const secTtl:React.CSSProperties={fontSize:13.5,fontWeight:800,margin:"0 0 10px"};
+    // Secciones PEDIÁTRICAS (formato II): mismo patrón que heredofamiliares (chips de catálogo + notas), genérico.
+    const PEDI_SECS=["prenatales","perinatales","alimentacion","desarrollo","inmunizaciones"] as const;type PediKey=typeof PEDI_SECS[number];
+    const setSec=(key:PediKey,p:{flags?:string[];notas?:string})=>setAntForm(f=>({...f,[key]:{...f[key],...p}}));
+    const toggleSecFlag=(key:PediKey,flag:string)=>setAntForm(f=>{const cur=f[key]?.flags??[];return{...f,[key]:{...f[key],flags:cur.includes(flag)?cur.filter(x=>x!==flag):[...cur,flag]}};});
+    const pediSec=(key:PediKey,title:string,catalog:readonly string[])=><div key={key} style={secBox}><div style={secTtl}>{title}</div><div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{catalog.map(fl=>chip((antForm[key]?.flags??[]).includes(fl),fl,()=>toggleSecFlag(key,fl)))}</div><textarea style={{...ta2,marginTop:10}} aria-label={title} placeholder="Detalle…" value={antForm[key]?.notas??""} onChange={e=>setSec(key,{notas:e.target.value.slice(0,2000)})}/></div>;
+    const PEDI_DEFS:[PediKey,string,readonly string[]][]=[["prenatales","Antecedentes prenatales",ANT_PRENATAL],["perinatales","Antecedentes perinatales",ANT_PERINATAL],["alimentacion","Alimentación",ANT_ALIMENTACION],["desarrollo","Crecimiento y desarrollo",ANT_DESARROLLO],["inmunizaciones","Inmunizaciones",ANT_INMUNIZA]];
+    const fmtBanner=<div style={{marginTop:14,display:"flex",alignItems:"center",gap:8,fontSize:12.5,color:P.muted,background:"#F4F7FB",border:`1px solid ${LINE}`,borderRadius:10,padding:"8px 12px",flexWrap:"wrap"}}><b style={{color:P.ink}}>Formato: {pediatric?"Pediátrico":"Adulto"}</b><span>· auto-seleccionado por la edad del paciente{typeof age==="number"?` (${age} años)`:" (edad no disponible)"}.</span></div>;
 
     if(!antEditing){
      if(!antSnap?.recorded)return <div style={{marginTop:16,padding:"18px 16px",borderRadius:12,background:"#f6f6fb",border:`1px dashed ${LINE}`,fontSize:13,color:P.muted}}>Este paciente aún no tiene antecedentes capturados. Pulsa «Capturar antecedentes» para registrar la historia clínica basal (heredofamiliares, patológicos, hábitos, quirúrgicos y gineco-obstétricos) una sola vez.</div>;
@@ -322,11 +332,13 @@ export default function ExpView(){
      if(antForm.heredofamiliares?.flags?.length||antForm.heredofamiliares?.notas)roItems.push(["Heredofamiliares",<>{(antForm.heredofamiliares.flags??[]).join(", ")}{antForm.heredofamiliares.notas?` · ${antForm.heredofamiliares.notas}`:""}</>]);
      if(pat?.cronicos?.length||pat?.cirugias||pat?.hospitalizaciones||pat?.transfusiones||pat?.notas)roItems.push(["Patológicos",<>{[(pat.cronicos??[]).join(", "),pat.cirugias?"cirugías":"",pat.hospitalizaciones?"hospitalizaciones":"",pat.transfusiones?"transfusiones":"",pat.notas].filter(Boolean).join(" · ")}</>]);
      roItems.push(["Hábitos",<>Tabaquismo: {yes(hab?.tabaquismo)} · Alcoholismo: {yes(hab?.alcoholismo)} · Toxicomanías: {yes(hab?.toxicomanias)}{hab?.actividadFisica?` · Act. física: ${hab.actividadFisica}`:""}{hab?.alimentacion?` · Alimentación: ${hab.alimentacion}`:""}{hab?.notas?` · ${hab.notas}`:""}</>]);
-     if(antForm.quirurgicos?.notas)roItems.push(["Quirúrgicos",antForm.quirurgicos.notas]);
+     if(!pediatric&&antForm.quirurgicos?.notas)roItems.push(["Quirúrgicos",antForm.quirurgicos.notas]);
      if(showGineco&&antForm.ginecoObstetricos?.notas)roItems.push(["Gineco-obstétricos",antForm.ginecoObstetricos.notas]);
+     if(pediatric)for(const[key,title]of PEDI_DEFS){const s=antForm[key];if(s?.flags?.length||s?.notas)roItems.push([title,[(s.flags??[]).join(", "),s.notas].filter(Boolean).join(" · ")]);}
      // Recomendaciones del CDS que nacen de los hábitos (cesación, cribados por guías): el algoritmo lee los antecedentes.
      const habitFindings=(snap?.findings??[]).filter(f=>f.domain==="tabaquismo"||f.domain==="alcohol"||f.domain==="adicciones");
      return <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:9}}>
+      {fmtBanner}
       {roItems.map(([k,v])=><div key={k} style={{display:"flex",gap:12,fontSize:13,padding:"9px 11px",borderRadius:10,background:"#f7f8fc"}}><span style={{fontWeight:800,color:P.purpleOnPale,minWidth:140,flex:"0 0 auto"}}>{k}</span><span style={{minWidth:0,color:"#33383F"}}>{v}</span></div>)}
       {habitFindings.length>0&&<div style={{borderTop:`1px solid ${LINE}`,paddingTop:12,marginTop:3}}>
        <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Recomendaciones del sistema (por los hábitos)</div>
@@ -339,6 +351,7 @@ export default function ExpView(){
     }
     // EDICIÓN de la matriz
     return <div style={{marginTop:16,display:"grid",gap:14}}>
+     {fmtBanner}
      <div style={secBox}>
       <div style={secTtl}>Antecedentes heredofamiliares</div>
       <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{ANT_HEREDO.map(f=>chip((antForm.heredofamiliares?.flags??[]).includes(f),f,()=>toggleHeredo(f)))}</div>
@@ -367,17 +380,21 @@ export default function ExpView(){
       </div>
       <textarea style={{...ta2,marginTop:10}} aria-label="Notas de hábitos" placeholder="Índice tabáquico, consumo, otras toxicomanías…" value={hab?.notas??""} onChange={e=>setHab({notas:e.target.value.slice(0,2000)})}/>
      </div>
-     <div style={secBox}>
-      <div style={secTtl}>Antecedentes quirúrgicos</div>
-      <textarea style={ta2} aria-label="Antecedentes quirúrgicos" placeholder="Cirugías con fecha y motivo…" value={antForm.quirurgicos?.notas??""} onChange={e=>setQx({notas:e.target.value.slice(0,2000)})}/>
-     </div>
-     <div style={secBox}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-       <div style={secTtl}>Antecedentes gineco-obstétricos</div>
-       {sex!=="FEMALE"&&<Check checked={!!antForm.ginecoObstetricos?.aplica} label="Aplica a este paciente" onChange={()=>setGO({aplica:!antForm.ginecoObstetricos?.aplica})}/>}
-      </div>
-      {showGineco?<textarea style={ta2} aria-label="Antecedentes gineco-obstétricos" placeholder="Menarca, G/P/A/C, FUM, método de planificación, citología…" value={antForm.ginecoObstetricos?.notas??""} onChange={e=>setGO({notas:e.target.value.slice(0,2000)})}/>:<p style={{fontSize:12.5,color:P.muted,margin:0}}>No aplica. Marca «Aplica a este paciente» si corresponde.</p>}
-     </div>
+     {pediatric
+      ?PEDI_DEFS.map(([key,title,cat])=>pediSec(key,title,cat))
+      :<>
+       <div style={secBox}>
+        <div style={secTtl}>Antecedentes quirúrgicos</div>
+        <textarea style={ta2} aria-label="Antecedentes quirúrgicos" placeholder="Cirugías con fecha y motivo…" value={antForm.quirurgicos?.notas??""} onChange={e=>setQx({notas:e.target.value.slice(0,2000)})}/>
+       </div>
+       <div style={secBox}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+         <div style={secTtl}>Antecedentes gineco-obstétricos</div>
+         {sex!=="FEMALE"&&<Check checked={!!antForm.ginecoObstetricos?.aplica} label="Aplica a este paciente" onChange={()=>setGO({aplica:!antForm.ginecoObstetricos?.aplica})}/>}
+        </div>
+        {showGineco?<textarea style={ta2} aria-label="Antecedentes gineco-obstétricos" placeholder="Menarca, G/P/A/C, FUM, método de planificación, citología…" value={antForm.ginecoObstetricos?.notas??""} onChange={e=>setGO({notas:e.target.value.slice(0,2000)})}/>:<p style={{fontSize:12.5,color:P.muted,margin:0}}>No aplica. Marca «Aplica a este paciente» si corresponde.</p>}
+       </div>
+      </>}
      {antSnap?.recorded&&<div style={secBox}>
       <label style={lbl2}>Motivo de la actualización <span style={{color:P.redOnPale}}>*</span></label>
       <input style={input} aria-label="Motivo de la actualización" placeholder="p. ej. el paciente dejó de fumar; nuevo diagnóstico" value={antReason} onChange={e=>setAntReason(e.target.value.slice(0,300))}/>

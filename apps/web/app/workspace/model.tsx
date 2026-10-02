@@ -8,7 +8,7 @@ import {canonicalUnitOf} from "../../../../packages/lab-reference/src";
 import {getStoredSession,apiRequest,apiUpload,apiDelete,apiDownload,type MedicalSession} from "../../lib/session-client";
 import {assertNoForbidden} from "../../../../packages/design-system/src";
 import {summarizePatient} from "../../../../packages/patient-summary/src";
-import{scrollTop,ESI_FORM_EMPTY,esiBody,type EsiForm,conForma,FORMA,composeDose,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type VitalsRegistry,type CarePlansRegistry,type ReferralsRegistry,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey,type ExpTab,EXP_TAB_KEYS,agendaWindow,type AntSnap,type AntContent,ANT_EMPTY}from"./shared";
+import{scrollTop,ESI_FORM_EMPTY,esiBody,type EsiForm,conForma,FORMA,composeDose,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type VitalsRegistry,type CarePlansRegistry,type ReferralsRegistry,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey,type ExpTab,EXP_TAB_KEYS,agendaWindow,type AntSnap,type AntContent,ANT_EMPTY,isPediatricAge}from"./shared";
 export function useWorkspaceModel(){
 
  const cspNonce=useNonce(); // S-04: los <style> propios declaran el nonce de la petición
@@ -600,6 +600,13 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   noPatologicos:{tabaquismo:h?.tabaquismo??false,alcoholismo:h?.alcoholismo??false,toxicomanias:h?.toxicomanias??false,actividadFisica:h?.actividadFisica??"",alimentacion:h?.alimentacion??"",notas:h?.notas??""},
   quirurgicos:{...ANT_EMPTY.quirurgicos,...x.quirurgicos},
   ginecoObstetricos:{...ANT_EMPTY.ginecoObstetricos,...x.ginecoObstetricos},
+  // Secciones pediátricas (formato II): round-trip igual que las de adulto.
+  prenatales:{...ANT_EMPTY.prenatales,...x.prenatales},
+  perinatales:{...ANT_EMPTY.perinatales,...x.perinatales},
+  alimentacion:{...ANT_EMPTY.alimentacion,...x.alimentacion},
+  desarrollo:{...ANT_EMPTY.desarrollo,...x.desarrollo},
+  inmunizaciones:{...ANT_EMPTY.inmunizaciones,...x.inmunizaciones},
+  ...(x.kind?{kind:x.kind}:{}),
  };};
  useEffect(()=>{
   if((view!=="exp"&&view!=="consulta")||!ready||!session||!patientId)return;
@@ -623,7 +630,8 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // motivo e If-Match). El histórico nunca se sobrescribe: cada guardado es un evento. 409 => recargar y reintentar.
  const saveAntecedentes=async()=>{
   if(!patientId||antBusy)return;
-  const content=antForm;const occurredAt=nowIso();
+  // El formato (adulto/pediátrico) se sella por la EDAD del paciente al guardar (auto-selección). No cambia la validación.
+  const content:AntContent={...antForm,kind:isPediatricAge(snap?.demographics.age)?"PEDIATRIC":"ADULT"};const occurredAt=nowIso();
   if(antSnap?.recorded&&!antReason.trim()){setAntMsg("Indica el motivo de la actualización (queda en la auditoría).");return;}
   setAntBusy(true);setAntMsg(null);
   try{

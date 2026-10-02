@@ -38,6 +38,15 @@ export const AntecedentesContentSchema=z.object({
  noPatologicos:Habitos.optional(), // hábitos/toxicomanías (no patológicos) — tabaquismo/alcoholismo/toxicomanías estructurados
  quirurgicos:Seccion.optional(),
  ginecoObstetricos:GinecoObstetricos.optional(),
+ // Formato PEDIÁTRICO (II del formato de historia clínica): se auto-selecciona por la edad del paciente. Las secciones
+ // compartidas (heredofamiliares/patológicos/no patológicos) sirven a ambos; éstas son propias de la historia pediátrica.
+ prenatales:Seccion.optional(),       // control prenatal, infecciones/medicamentos/complicaciones del embarazo
+ perinatales:Seccion.optional(),      // SDG, vía de nacimiento, APGAR, tamiz metabólico/auditivo, UCIN/ictericia
+ alimentacion:Seccion.optional(),     // lactancia (exclusiva/mixta/fórmula), ablactación, intolerancias
+ desarrollo:Seccion.optional(),       // crecimiento y desarrollo: hitos (sostén/sedestación/marcha/lenguaje/esfínteres)
+ inmunizaciones:Seccion.optional(),   // esquema para la edad (completo/incompleto/no comprobable), cartilla revisada
+ // `kind` registra el formato usado (derivado de la edad al capturar). No cambia la validación; documenta la selección.
+ kind:z.enum(["ADULT","PEDIATRIC"]).optional(),
 }).strict();
 
 export const RecordBody=z.object({content:AntecedentesContentSchema,occurredAt:z.string().datetime()});

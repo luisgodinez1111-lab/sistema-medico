@@ -184,18 +184,40 @@ export type Snap=Readonly<{demographics:{age:number;sex:string;birthDate:string;
 export const SEX_ES:Record<string,string>={FEMALE:"Femenino",MALE:"Masculino",INTERSEX:"Intersexual",UNKNOWN:"Sin especificar"};
 // MATRIZ FUNDACIONAL — antecedentes (historia clínica basal). Estructurados para alimentar el CDS/IA (hábitos como flags),
 // no texto estático. El contenido viaja tal cual al evento RECORDED/AMENDED; el backend valida la forma (antecedentes-lifecycle).
+type AntSec={flags?:string[];notas?:string};
 export type AntContent={
- heredofamiliares?:{flags?:string[];notas?:string};
+ heredofamiliares?:AntSec;
  patologicos?:{cronicos?:string[];cirugias?:boolean;hospitalizaciones?:boolean;transfusiones?:boolean;notas?:string};
  noPatologicos?:{tabaquismo:boolean;alcoholismo:boolean;toxicomanias:boolean;actividadFisica?:string;alimentacion?:string;notas?:string};
  quirurgicos?:{notas?:string};
  ginecoObstetricos?:{aplica?:boolean;notas?:string};
+ // Formato pediátrico (auto-seleccionado por edad): secciones propias de la historia clínica pediátrica.
+ prenatales?:AntSec;perinatales?:AntSec;alimentacion?:AntSec;desarrollo?:AntSec;inmunizaciones?:AntSec;
+ kind?:"ADULT"|"PEDIATRIC";
 };
 export type AntSnap=Readonly<{recorded:boolean;state:string|null;version:number;content:AntContent;updatedAt:string}>;
-export const ANT_EMPTY:AntContent={heredofamiliares:{flags:[],notas:""},patologicos:{cronicos:[],cirugias:false,hospitalizaciones:false,transfusiones:false,notas:""},noPatologicos:{tabaquismo:false,alcoholismo:false,toxicomanias:false,actividadFisica:"",alimentacion:"",notas:""},quirurgicos:{notas:""},ginecoObstetricos:{aplica:false,notas:""}};
+export const ANT_EMPTY:AntContent={heredofamiliares:{flags:[],notas:""},patologicos:{cronicos:[],cirugias:false,hospitalizaciones:false,transfusiones:false,notas:""},noPatologicos:{tabaquismo:false,alcoholismo:false,toxicomanias:false,actividadFisica:"",alimentacion:"",notas:""},quirurgicos:{notas:""},ginecoObstetricos:{aplica:false,notas:""},prenatales:{flags:[],notas:""},perinatales:{flags:[],notas:""},alimentacion:{flags:[],notas:""},desarrollo:{flags:[],notas:""},inmunizaciones:{flags:[],notas:""}};
 // Catálogos de los campos estructurados (marcables). Clínicos y amplios; las notas por sección cubren lo no listado.
 export const ANT_HEREDO=["Diabetes","Hipertensión","Cardiopatía","Cáncer","Enf. renal","Enf. tiroidea","Enf. mental","Asma/EPOC","Enf. autoinmune"];
 export const ANT_CRONICOS=["Diabetes","Hipertensión","Dislipidemia","Cardiopatía","ERC","EPOC/Asma","Hipotiroidismo","Cáncer","Epilepsia","Hepatopatía","VIH"];
+// Catálogos pediátricos (del formato II de la historia clínica). Son listas de verificación del formato, no datos inventados.
+export const ANT_PRENATAL=["Control prenatal","Sin control prenatal","Infección materna","Medicamentos/sustancias","Diabetes/HTA gestacional","Complicaciones"];
+export const ANT_PERINATAL=["A término","Pretérmino","Postérmino","Parto vaginal","Cesárea","Tamiz metabólico","Tamiz auditivo","UCIN/complicaciones","Ictericia/fototerapia"];
+export const ANT_ALIMENTACION=["Lactancia exclusiva","Lactancia mixta","Fórmula","Ablactación iniciada","Intolerancias/alergias alimentarias"];
+export const ANT_DESARROLLO=["Desarrollo acorde a la edad","Sostén cefálico","Sedestación","Marcha","Primeras palabras","Control de esfínteres","Rezago/regresión"];
+export const ANT_INMUNIZA=["Esquema completo para la edad","Esquema incompleto","No comprobable","Cartilla revisada","Reacciones a vacunas"];
+// Edad umbral para auto-seleccionar el formato pediátrico (historia clínica pediátrica < 18 años).
+export const PEDIATRIC_AGE_MAX=18;
+export const isPediatricAge=(age?:number|null):boolean=>typeof age==="number"&&age<PEDIATRIC_AGE_MAX;
+// Re-verificación de la historia clínica basal: vigente ≤ 6 meses desde la última actualización; después, "por verificar".
+export const ANT_REVERIFY_DAYS=180;
+export type AntFreshness="NEVER"|"CURRENT"|"DUE";
+export function antFreshness(recorded:boolean,updatedAt?:string):{status:AntFreshness;days:number|null}{
+ if(!recorded||!updatedAt)return{status:"NEVER",days:null};
+ const t=Date.parse(updatedAt);if(Number.isNaN(t))return{status:"CURRENT",days:null};
+ const days=Math.floor((Date.now()-t)/86_400_000);
+ return{status:days>ANT_REVERIFY_DAYS?"DUE":"CURRENT",days};
+}
 // Tiempo relativo compacto (panel de auditoría / actividad).
 export function relTime(iso:string):string{try{const d=Date.now()-new Date(iso).getTime();const m=Math.floor(d/60000);if(m<1)return "ahora";if(m<60)return `hace ${m} min`;const h=Math.floor(m/60);if(h<24)return `hace ${h} h`;const dd=Math.floor(h/24);return dd<30?`hace ${dd} d`:new Date(iso).toLocaleDateString("es-MX",{day:"2-digit",month:"short"});}catch{return "";}}
 // Panel 5 — clasificación del estado de un follow-up (por latestKind del agregado).
