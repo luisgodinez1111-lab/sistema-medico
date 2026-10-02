@@ -5,6 +5,12 @@ import{classifyLab,type LabStatus}from"../../lab-reference/src";
 
 function round1(n:number):number{return Math.round(n*10)/10;}
 
+// Identidad versionada de las derivaciones que devuelve /metabolic-panel (fuente única: la ruta la importa). Toda variación
+// observable de su salida (valor, estado, interpretación o advertencia) exige una versión nueva e inmutable (Companion #14:
+// un algoritmo no cambia en silencio). v3: la brecha BAJA ya corregida por albúmina deja de atribuirse a hipoalbuminemia (F7).
+// tests/v22/lab-derivations.test.ts ancla la huella de la salida de cada versión.
+export const METABOLIC_DERIVATIONS_ALGORITHM=Object.freeze({id:"METABOLIC-DERIVATIONS",version:"3"}as const);
+
 // ---- Brecha aniónica (anion gap) = Na − (Cl + HCO3). Alta (>12) sugiere acidosis metabólica de brecha
 // aumentada (cetoacidosis, uremia, lactato, tóxicos). Puro. ----
 export type AnionGapStatus="HIGH"|"NORMAL"|"LOW";
@@ -19,10 +25,22 @@ export function anionGap(sodium:number,chloride:number,bicarbonate:number,albumi
  const value=albuminCorrected?round1(raw+2.5*(4-albuminGdl)):raw;
  let status:AnionGapStatus,interpretation:string;
  if(value>12){status="HIGH";interpretation="Brecha aniónica elevada: acidosis metabólica de brecha aumentada (cetoacidosis, uremia, lactato, tóxicos)";}
- else if(value<8){status="LOW";interpretation="Brecha aniónica baja (hipoalbuminemia, paraproteínas)";}
+ // Revisión adversarial del lote 11 (F7): corregida por albúmina, una brecha baja ya NO se explica por hipoalbuminemia; las causas
+ // que quedan son otras (texto clínico pendiente de validación PROD, como el resto de interpretaciones de este paquete).
+ else if(value<8){status="LOW";interpretation=albuminCorrected
+  ?"Brecha aniónica baja pese a la corrección por albúmina (paraproteínas, hipercalcemia, litio o bromuro, o error de laboratorio)"
+  :"Brecha aniónica baja (hipoalbuminemia, paraproteínas)";}
  else{status="NORMAL";interpretation="Brecha aniónica normal";}
  if(albuminCorrected)interpretation+=` (corregida por albúmina ${albuminGdl} g/dL; cruda ${raw})`;else interpretation+=" (sin corregir por albúmina: una hipoalbuminemia la subestima)";
  return albuminCorrected?{value,status,interpretation,raw,albuminCorrected,albuminGdl:albuminGdl!}:{value,status,interpretation,raw,albuminCorrected};
+}
+// Hallazgo D9 del lote 11: la advertencia del panel se DERIVA de lo que realmente se calculó y vive aquí (fuente única), no en la
+// ruta. Tres estados explícitos (R03-05: el delta-delta se obtiene en /acid-base): corregida, SIN corregir, o sin brecha.
+export function anionGapCaveat(ag:Pick<AnionGapEx,"albuminCorrected">|undefined):string{
+ if(!ag)return"Sin brecha aniónica: faltan entradas coherentes.";
+ return ag.albuminCorrected
+  ?"Brecha aniónica corregida por albúmina (Figge). El delta-delta y la bifurcación brecha aumentada vs hiperclorémica se obtienen en /acid-base, que además interpreta la compensación."
+  :"Brecha aniónica SIN corregir por albúmina (no hay albúmina coherente con la misma extracción): una hipoalbuminemia la subestima. El delta-delta se obtiene en /acid-base.";
 }
 
 // ---- Sodio corregido por glucemia (EPIC BY). La hiperglucemia arrastra agua al intravascular y DILUYE el

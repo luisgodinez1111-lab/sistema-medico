@@ -1,25 +1,22 @@
 // Read-models del EXPEDIENTE: eventos por agregado, línea de tiempo, documento con su contenido, encuentro y
 // obligaciones que bloquean la firma. Aquí viven las lecturas que dejan constancia de acceso a PHI (R01-026).
 // Auditoría R01-001: extraído del god-module `clinical-runtime.ts`.
-import postgres,{type Sql,type TransactionSql}from"postgres";
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
+import{ClinicalError}from"../../../../packages/runtime-errors/src";
+import{isUuid}from"../../../../packages/tenant-context/src";
 import{signatureBlockReason,type SignatureBlockReason}from"../../../../packages/obligation-fold/src";
+import{RESULT_FOLLOW_UP_CLOSING_KINDS}from"../../../../packages/result-fold/src";
 import{logPhiAccess,patientAccessLog,type PhiAccessEntry,type PhiAccessAction,type PhiResourceType}from"../phi-access-log";
 import{withTenantTx}from"./connection";
 import{PAGE_LIMIT_MAX,Page,decodeCursor,encodeCursor}from"./pagination";
 import{OBLIGATION_STATUS}from"./patient-facts";
+import{vitalVigente,vitalNoAnulada,lifecycleEventOnly}from"./read-model-joins";
 
 // EPIC D — Replay idempotente previo a la validación de state-machine: si este Idempotency-Key
 // ya produjo ESTE comando exacto (mismo hash) y quedó COMPLETED, devuelve la respuesta guardada.
 // Así un reintento de una transición ya aplicada no choca con la SM (el estado ya avanzó).
-// Auditoría L-04/K-05 — Eventos de ANOTACIÓN por tipo de agregado: enriquecen el agregado sin cambiar su estado. Toda
-// consulta genérica que derive el estado del "último evento" debe ignorarlos; si no, corregir el teléfono de un paciente
-// fallecido lo mostraba ACTIVO, y modificar una dosis habría sacado la medicación de la lista de activas.
-// Alias fijo `c` (el de las subconsultas latest_kind). AMENDED es anotación SOLO en Patient (en VitalSign/Document es estado).
-export const lifecycleEventOnly=(tx:postgres.TransactionSql)=>tx`not (
-  (c.aggregate_type='Medication' and c.payload->>'kind' in ('MODIFIED','RECONCILED'))
-  or (c.aggregate_type='ClinicalProblem' and c.payload->>'kind' in ('EPISTEMIC_CHANGED','EVIDENCE_UPDATED'))
-  or (c.aggregate_type='Patient' and c.payload->>'kind'='AMENDED'))`;
+// Auditoría L-04/K-05 — `lifecycleEventOnly` (ignorar las ANOTACIONES al derivar el estado del «último evento») vive en
+// read-model-joins.ts desde el porte de D3, construido con las listas que declara cada fold.
 // EPIC N — Timeline del paciente: un item por agregado clínico del paciente, con tipo, último kind
 // (estado), versión y fechas. RLS-scoped. SIN PHI: solo metadatos, nunca el contenido clínico.
 export type TimelineItem=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;status:string;version:number;openedAt:string;lastAt:string}>;
@@ -75,9 +72,12 @@ export async function readPatientRecordRows(ctx:HttpTenantContext,patientId:stri
   return rows.map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),sequence:Number(x.sequence),kind:String(x.kind??""),occurredAt:String(x.occurred_at)}));
  });
 }
+// Un id que no es uuid (o con espacios, que isUuid recorta) nunca llega a la base: la columna es uuid y Postgres lanzaría 22P02 (500).
+const isAggregateId=(id:string):boolean=>isUuid(id)&&id===id.trim();
 // EPIC D — Lectura RLS-scoped del stream de eventos CON payload (para reconstruir estado).
 // El payload es contenido clínico (fuente de verdad, RLS-aislado); nunca se loguea.
 export async function readEncounterEvents(ctx:HttpTenantContext,encounterId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
+ if(!isAggregateId(encounterId))return []; // D8: defensa en profundidad, sin viajar a la base (22P02 -> 500)
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`select sequence,payload from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${encounterId} order by sequence`;
   return rows.map(r=>({sequence:Number(r.sequence),payload:(r.payload??{}) as Record<string,unknown>}));
@@ -86,14 +86,42 @@ export async function readEncounterEvents(ctx:HttpTenantContext,encounterId:stri
 // EPIC G — Lector genérico de eventos de un agregado (RLS-scoped, con payload).
 // Payload de UN evento por su id, acotado al agregado esperado (RLS-scoped). El id del evento es determinista respecto de
 // la llave de idempotencia (derivedUuid(key,"event")), así que esto responde: "¿esta llave ya produjo su evento, y con qué?".
-export async function readEventPayloadById(ctx:HttpTenantContext,eventId:string,aggregateId:string):Promise<Record<string,unknown>|undefined>{
+// Porte del hallazgo D6 — con su `sequence`: la versión que el comando original esperaba es `sequence - 1` (el replay de los
+// comandos con efectos en Blob reconstruye el comando exacto). Una sola consulta: readEventPayloadById la reutiliza.
+export async function readEventById(ctx:HttpTenantContext,eventId:string,aggregateId:string):Promise<{sequence:number;payload:Record<string,unknown>}|undefined>{
  return withTenantTx(ctx,async tx=>{
-  const rows=await tx`select payload from clinical_events where tenant_id=${ctx.tenantId} and id=${eventId} and aggregate_id=${aggregateId} limit 1`;
-  const p=rows[0]?.payload;return p&&typeof p==="object"?p as Record<string,unknown>:undefined;
+  const rows=await tx`select sequence,payload from clinical_events where tenant_id=${ctx.tenantId} and id=${eventId} and aggregate_id=${aggregateId} limit 1`;
+  const p=rows[0]?.payload;return p&&typeof p==="object"?{sequence:Number(rows[0]!.sequence),payload:p as Record<string,unknown>}:undefined;
  });
+}
+export async function readEventPayloadById(ctx:HttpTenantContext,eventId:string,aggregateId:string):Promise<Record<string,unknown>|undefined>{
+ return(await readEventById(ctx,eventId,aggregateId))?.payload;
 }
 export async function readAggregateEvents(ctx:HttpTenantContext,aggregateId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
  return readEncounterEvents(ctx,aggregateId);
+}
+// Porte del hallazgo D4 — génesis del stream: la secuencia 1 fija el tipo del agregado; un id cuya génesis es de otro tipo no
+// existe para quien pide este tipo.
+const genesisIs=(rows:ReadonlyArray<Record<string,unknown>>,aggregateType:string):boolean=>rows.length>0&&String(rows[0]!.aggregate_type)===aggregateType;
+// ¿Es este stream un agregado de `aggregateType`? Génesis de otro tipo (o vacío) -> false («no existe» para este tipo); génesis
+// propia pero stream que mezcla tipos (contaminado antes de la corrección del kernel) -> INVARIANT_VIOLATION explícito. Regla
+// ÚNICA de readAggregateStream y readEncounter: la lectura y la escritura del mismo id nunca discrepan.
+function isStreamOf(rows:ReadonlyArray<Record<string,unknown>>,aggregateType:string):boolean{
+ if(!genesisIs(rows,aggregateType))return false;
+ if(rows.some(r=>String(r.aggregate_type)!==aggregateType))throw new ClinicalError("INVARIANT_VIOLATION",`${aggregateType} stream mixes aggregate types`,{aggregateType});
+ return true;
+}
+// Porte del hallazgo D4 — stream de UN agregado de un TIPO dado; es la lectura de todo caso de uso cableado (las lecturas sin
+// tipo de arriba quedan solo para los módulos NOT_WIRED). Antes la lectura ignoraba `aggregate_type`: una transición de alergia
+// sobre el id de un paciente plegaba el stream del paciente y escribía en él (el paciente quedaba en 500 para siempre).
+//   · id no uuid, inexistente, o que pertenece a OTRO tipo de agregado -> [] (el caso de uso responde 404);
+//   · stream que mezcla tipos (contaminado antes de esta corrección) -> INVARIANT_VIOLATION explícito: nunca se pliega a medias.
+export async function readAggregateStream(ctx:HttpTenantContext,aggregateType:string,aggregateId:string):Promise<ReadonlyArray<{sequence:number;payload:Record<string,unknown>}>>{
+ if(!isAggregateId(aggregateId))return [];
+ const rows=await withTenantTx(ctx,async tx=>
+  tx`select sequence,aggregate_type,payload from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${aggregateId} order by sequence`) as ReadonlyArray<Record<string,unknown>>;
+ if(!isStreamOf(rows,aggregateType))return [];
+ return rows.map(r=>({sequence:Number(r.sequence),payload:(r.payload??{}) as Record<string,unknown>}));
 }
 // EPIC Z/UI — Repositorio de documentos: UN documento clínico con su CONTENIDO real, adenda (append-only) y
 // firma, plegando todos sus eventos (CREATED/FINALIZED/SIGNED/AMENDED) en orden. RLS-scoped. Nunca borra: cada
@@ -166,21 +194,22 @@ export async function countOpenCriticalResults(ctx:HttpTenantContext,patientId:s
      and r.payload->>'kind'='RECEIVED' and r.payload->>'patientId'=${patientId} and r.payload->>'critical'='true'
      and not exists(
       select 1 from clinical_events c
-      where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and c.payload->>'kind' in ('CLOSED','CORRECTED','ENTERED_IN_ERROR'))`; // C-02: un crítico corregido deja de bloquear · R03-10: un crítico ANULADO tampoco // C-02: un crítico corregido deja de bloquear; si la corrección sigue siendo crítica, bloquea el nuevo
+      where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and c.payload->>'kind' = any(${RESULT_FOLLOW_UP_CLOSING_KINDS}))`; // C-02: un crítico corregido deja de bloquear (si la corrección sigue siendo crítica, bloquea el nuevo) · R03-10: un crítico ANULADO tampoco · porte D5: la lista es la de result-fold, la misma que decide el derivado del replay
   return Number(rows[0]?.n??0);
  });
 }
-// EPIC AN + Zero Lost Follow-Up: cuenta signos vitales CRÍTICOS del paciente
-// que están en estado RECORDED o AMENDED (no corregidos) y no han sido abordados
-// (no existe obligación creada para ese vital). Bloquea firma del encuentro.
+// EPIC AN + Zero Lost Follow-Up: cuenta signos vitales del paciente cuyo valor VIGENTE (el de la última corrección) es
+// CRÍTICO, que no están anulados y no han sido abordados (no existe obligación creada para ese vital). Bloquea firma del
+// encuentro. Hallazgo D1: antes buscaba el paciente también en AMENDED (que no lo lleva), así que un vital corregido A
+// crítico no contaba, y un crítico anulado seguía contando; ahora usa la proyección del fold (`vitalVigente`).
 export async function countOpenCriticalVitals(ctx:HttpTenantContext,patientId:string):Promise<number>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select count(distinct r.aggregate_id)::int n
    from clinical_events r
-   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='VitalSign'
-     and r.payload->>'kind' in ('RECORDED','AMENDED')
-     and r.payload->>'patientId'=${patientId} and r.payload->>'critical'='true'
+   ${vitalVigente(tx)}
+   where r.tenant_id=${ctx.tenantId} and r.aggregate_type='VitalSign' and r.payload->>'kind'='RECORDED'
+     and r.payload->>'patientId'=${patientId} and ${vitalNoAnulada(tx)} and cur.payload->>'critical'='true'
      and not exists(
       select 1 from clinical_events c
       where c.tenant_id=${ctx.tenantId} and c.aggregate_type='ClinicalObligation'
@@ -189,13 +218,16 @@ export async function countOpenCriticalVitals(ctx:HttpTenantContext,patientId:st
  });
 }
 export type EncounterView=Readonly<{encounterId:string;version:number;events:ReadonlyArray<{sequence:number;type:string;occurredAt:string}>}>;
-// Lectura RLS-scoped del agregado (sin payload clínico: solo metadatos no-PHI).
+// Lectura RLS-scoped del agregado (sin payload clínico: solo metadatos no-PHI). Porte de la revisión de D4: un id que no es
+// uuid no llega a la base y un id cuya génesis NO es un encuentro es «no encontrado» (antes devolvía la vista de otro agregado).
 export async function readEncounter(ctx:HttpTenantContext,encounterId:string):Promise<EncounterView|null>{
+ if(!isAggregateId(encounterId))return null;
  return withTenantTx(ctx,async tx=>{
   const agg=await tx`select version from aggregate_versions where tenant_id=${ctx.tenantId} and aggregate_id=${encounterId}`;
   const head=agg[0];
   if(!head)return null;
   const events=await tx`select sequence,aggregate_type,occurred_at from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${encounterId} order by sequence`;
+  if(!isStreamOf(events,"Encounter"))return null; // stream contaminado -> INVARIANT_VIOLATION, como la escritura
   return{
    encounterId,
    version:Number(head.version),

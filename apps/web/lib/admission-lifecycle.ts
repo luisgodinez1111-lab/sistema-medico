@@ -3,7 +3,7 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldAdmission,assertAdmissionTransition,type FoldedAdmission,type AdmissionState}from"../../../packages/admission-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{aggregateLifecycle}from"./lifecycle-factory";

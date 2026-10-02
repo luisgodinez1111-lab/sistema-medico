@@ -9,7 +9,8 @@ const FACHADA="apps/web/lib/clinical-runtime.ts";
 // de god-module avisó de que patient-facts pasaba de 300 líneas. El guardián tenía razón: son dos responsabilidades.
 // R06-20: las piezas de SQL compartidas por los read-models salieron a  cuando el guardián avisó de
 // que  pasaba de 300 líneas. Otra vez tenía razón: los joins son una responsabilidad propia, con su medición.
-const DOMINIOS=["connection","command","pagination","patients","patient-facts","lab-facts","registries","read-model-joins","office","analytics","registry-summaries","records"];
+// Porte D10/SQL-2: el registro de resultados salió de `registries` a `results-registry` (registries estaba en 290 líneas).
+const DOMINIOS=["connection","command","pagination","patients","patient-facts","lab-facts","registries","results-registry","read-model-joins","office","analytics","registry-summaries","records"];
 const leer=(f:string):string=>fs.readFileSync(f,"utf8");
 const lineas=(f:string):number=>leer(f).split("\n").length;
 
@@ -39,7 +40,7 @@ describe("el runtime clínico está partido por dominio (R01-001)",()=>{
   }
  });
  it("todo read-model lee dentro de withTenantTx (el contexto de RLS no es opcional)",()=>{
-  for(const d of ["patients","patient-facts","registries","analytics","records"]){
+  for(const d of ["patients","patient-facts","registries","results-registry","analytics","records"]){
    const src=leer(`apps/web/lib/runtime/${d}.ts`);
    const consultas=(src.match(/await tx`/g)??[]).length;
    const aperturas=(src.match(/withTenantTx\(ctx,/g)??[]).length;

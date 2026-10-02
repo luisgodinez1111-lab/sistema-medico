@@ -13,7 +13,7 @@ export type FoldedImagingOrder=Readonly<{exists:boolean;state:ImagingOrderState;
 function kindOf(e:StoredImagingEvent):ImagingOrderEventKind{
  const k=e.payload["kind"];
  if(k==="CREATED"||k==="PLACED"||k==="ACQUIRED"||k==="REPORTED"||k==="VERIFIED"||k==="SIGNED"||k==="CANCELLED")return k;
- if(e.sequence===1)return "CREATED";
+ if(e.sequence===1&&k===undefined)return "CREATED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown imaging order event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<ImagingOrderEventKind,ImagingOrderState>={CREATED:"DRAFT",PLACED:"ORDERED",ACQUIRED:"ACQUIRED",REPORTED:"REPORTED",VERIFIED:"VERIFIED",SIGNED:"SIGNED",CANCELLED:"CANCELLED"};

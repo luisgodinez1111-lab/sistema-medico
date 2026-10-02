@@ -3,9 +3,9 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldPatient,assertPatientTransition,type FoldedPatient,type PatientStatus}from"../../../packages/patient-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,listPatients,clampLimit,findPatientDuplicate,patientDemographics,patientBirthDate}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream,listPatients,clampLimit,findPatientDuplicate,patientDemographics,patientBirthDate}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{validateCurp,normalizeCurp,normalizeName,isMinor,CURP_ISSUE_ES}from"../../../packages/mx-identity/src";
 // EPIC S — Registro de pacientes (agregado longitudinal): REGISTERED(ACTIVE) <-> INACTIVE; -> DECEASED.
 // El nombre es PHI: en payload (RLS) y en la respuesta al clínico autorizado; nunca en logs.
@@ -66,14 +66,14 @@ export async function handlePatientList(req:Request):Promise<Response>{
 async function loadForTransition(req:Request,patientId:string){
  const{claims,ctx}=resolveVerified(req);authzWrite(claims);
  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldPatient(await readAggregateEvents(ctx,patientId));
+ const folded=foldPatient(await readAggregateStream(ctx,AGG,patientId));
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Patient not found");
  return{ctx,idempotencyKey,expectedVersion,folded};
 }
 async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,patientId:string,folded:FoldedPatient,to:PatientStatus,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:patientId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
- if(!result){assertPatientTransition(folded.status,to);result=await runClinicalCommand(ctx,cmd);}
+ if(!result){assertReadVersion("Patient changed since last read",expectedVersion,folded.version);assertPatientTransition(folded.status,to);result=await runClinicalCommand(ctx,cmd);} // D7
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({patientId,status:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
@@ -130,7 +130,7 @@ export async function handlePatientAmend(req:Request,patientId:string):Promise<R
  try{
   const{claims,ctx}=resolveVerified(req);authzWrite(claims);
   const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
-  const folded=foldPatient(await readAggregateEvents(ctx,patientId));
+  const folded=foldPatient(await readAggregateStream(ctx,AGG,patientId));
   if(!folded.exists)throw new ClinicalError("NOT_FOUND","Patient not found");
   const b=await parseJson(req,AmendBody);
   // L-06: la CURP corregida se valida contra los datos VIGENTES (o los que se corrigen en la misma enmienda).

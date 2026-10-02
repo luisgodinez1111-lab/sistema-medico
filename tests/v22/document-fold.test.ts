@@ -1,5 +1,5 @@
 import{describe,it,expect}from"vitest";
-import{foldDocument,assertDocumentTransition}from"../../packages/document-fold/src";
+import{foldDocument,assertDocumentTransition,DOCUMENT_ANNOTATION_KINDS}from"../../packages/document-fold/src";
 import{ClinicalError}from"../../packages/runtime-errors/src";
 
 const created={sequence:1,payload:{kind:"CREATED",patientId:"p-1",docType:"PROGRESS_NOTE",title:"t",content:"nota clinica"}};
@@ -32,4 +32,17 @@ describe("document transition guard (EPIC I)",()=>{
   expect(err).toBeInstanceOf(ClinicalError);expect((err as ClinicalError).code).toBe("CONFLICT");
  });
  it("blocks signing a DRAFT directly (must finalize first)",()=>{expect(()=>assertDocumentTransition("DRAFT","SIGNED")).toThrow();});
+});
+// Hallazgo D3 (porte): adjuntar/quitar un archivo es una anotación (estado igual, versión +1); el documento sigue su ciclo.
+describe("anotaciones de adjuntos (D3)",()=>{
+ const created={sequence:1,payload:{kind:"CREATED",patientId:"p1",docType:"PROGRESS_NOTE",content:"x"}};
+ it("ATTACHED y ATTACHMENT_REMOVED no cambian el estado y avanzan la versión",()=>{
+  const f=foldDocument([created,{sequence:2,payload:{kind:"ATTACHED",attachmentId:"a1"}},{sequence:3,payload:{kind:"FINALIZED"}},{sequence:4,payload:{kind:"SIGNED"}},{sequence:5,payload:{kind:"ATTACHMENT_REMOVED",attachmentId:"a1"}}]);
+  expect([f.state,f.version]).toEqual(["SIGNED",5]);
+  expect(()=>assertDocumentTransition(f.state,"AMENDED")).not.toThrow();
+ });
+ it("el vocabulario de anotaciones es el que proyecta el SQL",()=>{expect([...DOCUMENT_ANNOTATION_KINDS]).toEqual(["ATTACHED","ATTACHMENT_REMOVED"]);});
+ it("un kind ajeno sigue siendo INVARIANT_VIOLATION (la anotación no abre la puerta a cualquier evento)",()=>{
+  expect(()=>foldDocument([created,{sequence:2,payload:{kind:"ATTACHMENT_EDITED"}}])).toThrow(/Unknown document event/);
+ });
 });

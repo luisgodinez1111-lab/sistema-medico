@@ -21,6 +21,40 @@ export async function runClinicalCommand(ctx:HttpTenantContext,command:ClinicalC
  assertPayloadSchema(command);
  const limit=await sharedAllow("write",`${ctx.tenantId}:${ctx.actorId}`);
  if(!limit.allowed)throw rateLimitedError(limit);
+ return commitCommand(ctx,command);
+}
+// Porte D5 — COMANDO DERIVADO (obligaciones de monitoreo de un fármaco, obligación URGENTE de un resultado crítico, cierre de
+// esa obligación): consecuencia obligatoria de un comando principal que YA se cobró al límite de tasa. Es idempotente por su
+// llave derivada (replay si ya se aplicó) y NO se cobra otra vez: antes, con el cubo del actor agotado entre ambos, el
+// principal quedaba confirmado y la obligación nunca se creaba (warfarina sin control de INR). Conserva la validación del
+// esquema (R06-19) y el preflight de sesión revocada (R01-014): un derivado de una sesión revocada sigue fallando. Los casos
+// de uso lo ejecutan también en el camino de replay del principal, así que un reintento IDÉNTICO reconcilia lo que un fallo
+// tras el commit principal dejó pendiente (no hay reconciliador del lado del servidor: eso sigue abierto).
+// Superficie: un actor puede disparar N derivados por cada comando principal cobrado, acotado por el número de reglas.
+export async function runDerivedCommand(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult>{
+ const replay=await lookupReplay(ctx,command)??await derivedAlreadyApplied(ctx,command);if(replay)return replay;
+ assertPayloadSchema(command);
+ return commitCommand(ctx,command);
+}
+// Revisión del porte D5 — el derivado se reconoce por IDENTIDAD, no por el hash del comando completo. Su payload lleva textos y
+// plazos que escribe el SERVIDOR (nota y prueba de la regla de monitoreo, dueInDays, ventanas de OBLIGATION_DUE_WINDOWS, nota
+// de la obligación urgente): si un despliegue los cambia dentro de las 24 h de vida de la llave, el hash del reintento ya no
+// coincide, lookupReplay no lo reconoce y el kernel respondía IDEMPOTENCY_CONFLICT, así que el reintento IDÉNTICO del
+// principal (ya confirmado, con su obligación ya creada) fallaba con 409. Aplicado = existe el evento de ESA llave
+// (id = derivedUuid(llave,"event")) en ESE agregado, del mismo tipo de agregado y con el mismo `kind`; entonces no se vuelve
+// a escribir nada. Sin ese evento, el kernel sigue decidiendo (una llave reutilizada para otra cosa sigue siendo conflicto).
+async function derivedAlreadyApplied(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult|null>{
+ const kind=(command.payload as{kind?:unknown}|null)?.kind;
+ if(typeof kind!=="string")return null;
+ return withTenantTx(ctx,async tx=>{
+  const ev=await tx`select 1 from clinical_events where tenant_id=${ctx.tenantId} and id=${command.eventId} and aggregate_id=${command.aggregateId} and aggregate_type=${command.aggregateType} and payload->>'kind'=${kind} limit 1`;
+  if(!ev.length)return null;
+  const r=await tx`select response_json from command_idempotency where tenant_id=${ctx.tenantId} and actor_id=${ctx.actorId} and key=${command.idempotencyKey} and status='COMPLETED'`;
+  return{replayed:true,response:r[0]?.response_json??null};
+ });
+}
+// Cuerpo común del commit (sin límite de tasa): SLI del flujo + kernel atómico con el preflight de sesión revocada.
+async function commitCommand(ctx:HttpTenantContext,command:ClinicalCommand):Promise<ClinicalCommandResult>{
  const span=sliSpan(flowForTopic(command.topic),"commit",command.correlationId);
  try{
   // R01-014: la sesión revocada se rechaza DENTRO de la transacción del comando (preflight del kernel): ni ventana entre

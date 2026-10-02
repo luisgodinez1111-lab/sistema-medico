@@ -16,7 +16,7 @@ export type FoldedAntecedentes=Readonly<{exists:boolean;state:AntecedentesState;
 function kindOf(e:StoredAntecedentesEvent):AntecedentesEventKind{
  const k=e.payload["kind"];
  if(k==="RECORDED"||k==="AMENDED")return k;
- if(e.sequence===1)return "RECORDED";
+ if(e.sequence===1&&k===undefined)return "RECORDED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown antecedentes event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<AntecedentesEventKind,AntecedentesState>={RECORDED:"RECORDED",AMENDED:"AMENDED"};

@@ -1,8 +1,8 @@
 import{NextResponse}from"next/server";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import type{HttpTenantContext}from"../../../packages/http-principal/src";
-import{buildCommand,requireMutationHeaders,resolveVerified}from"./http-command";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{assertReadVersion,buildCommand,requireMutationHeaders,resolveVerified}from"./http-command";
+import{runClinicalCommand,lookupReplay,readAggregateStream}from"./clinical-runtime";
 // Fábrica de ciclos de vida de agregado. NO es un handler de dominio: por eso NO se llama `*-lifecycle.ts`, nombre que en
 // este repositorio significa «handler cableado a una ruta» y que el guardián de huérfanos (tests/v22/not-wired-integrity)
 // exige que esté cableado o declarado NOT_WIRED.
@@ -18,6 +18,8 @@ import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runti
 //   · un agregado que no existe es 404, no un estado inicial silencioso;
 //   · el REPLAY se consulta antes de validar la transición: un reintento legítimo devuelve la respuesta original (200) en
 //     vez de chocar con la máquina de estados (409);
+//   · tras descartar el replay, If-Match debe ser la versión LEÍDA (hallazgo D7): la máquina de estados se evalúa sobre el
+//     mismo estado que el kernel exigirá; si no, 409 CONCURRENCY_CONFLICT {expected,actual} antes de cualquier regla;
 //   · la transición se valida contra la máquina formal del dominio, nunca contra un `if` suelto.
 //
 // Lo que cada dominio aporta es únicamente su vocabulario: cómo se plieguen sus eventos, qué máquina valida, cómo se
@@ -48,12 +50,12 @@ export function aggregateLifecycle<F extends FoldedAggregate<S>,S extends string
   const{claims,ctx}=resolveVerified(req);
   spec.authz(claims as LifecycleClaims);
   const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
-  const folded=spec.fold(await readAggregateEvents(ctx,aggregateId));
+  const folded=spec.fold(await readAggregateStream(ctx,spec.aggregateType,aggregateId));
   if(!folded.exists)throw new ClinicalError("NOT_FOUND",spec.notFound);
   return{ctx,idempotencyKey,expectedVersion,folded,claims:claims as LifecycleClaims};
  };
  /**
-  * Ejecuta la transición: replay → máquina de estados → comando atómico. `extra` añade campos a la respuesta (p. ej. una
+  * Ejecuta la transición: replay → versión leída (If-Match) → máquina de estados → comando atómico. `extra` añade campos a la respuesta (p. ej. una
   * huella de firma) y `precondition` corre DESPUÉS de descartar el replay y ANTES de escribir, para las comprobaciones
   * que solo aplican a una ejecución real.
   */
@@ -63,6 +65,7 @@ export function aggregateLifecycle<F extends FoldedAggregate<S>,S extends string
   const cmd=buildCommand({idempotencyKey,aggregateType:spec.aggregateType,aggregateId,expectedVersion,eventType,payload,occurredAt,topic});
   let result=await lookupReplay(ctx,cmd);
   if(!result){
+   assertReadVersion(`${spec.aggregateType} changed since last read`,expectedVersion,folded.version);
    spec.assertTransition(folded.state,to);
    if(precondition)await precondition();
    result=await runClinicalCommand(ctx,cmd);
@@ -79,7 +82,10 @@ export function aggregateLifecycle<F extends FoldedAggregate<S>,S extends string
   eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string,extra?:Record<string,unknown>):Promise<Response>=>{
   const cmd=buildCommand({idempotencyKey,aggregateType:spec.aggregateType,aggregateId,expectedVersion,eventType,payload,occurredAt,topic});
   let result=await lookupReplay(ctx,cmd);
-  if(!result)result=await runClinicalCommand(ctx,cmd);
+  if(!result){
+   assertReadVersion(`${spec.aggregateType} changed since last read`,expectedVersion,folded.version);
+   result=await runClinicalCommand(ctx,cmd);
+  }
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({[spec.idKey]:aggregateId,state:folded.state,version:r.version,auditHash:r.auditHash,replayed:result.replayed,...(extra??{})},
    {status:result.replayed?200:201});

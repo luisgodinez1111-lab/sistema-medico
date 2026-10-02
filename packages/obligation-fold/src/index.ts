@@ -10,7 +10,7 @@ export type FoldedObligation=Readonly<{exists:boolean;state:ObligationSt;version
 function kindOf(e:StoredObEvent):ObEventKind{
  const k=e.payload["kind"];
  if(k==="CREATED"||k==="STARTED"||k==="COMPLETED"||k==="CANCELLED")return k;
- if(e.sequence===1)return "CREATED";
+ if(e.sequence===1&&k===undefined)return "CREATED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown obligation event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<ObEventKind,ObligationSt>={CREATED:"OPEN",STARTED:"IN_PROGRESS",COMPLETED:"COMPLETED",CANCELLED:"CANCELLED"};

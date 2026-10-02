@@ -3,10 +3,10 @@ import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldVital,assertVitalTransition,type FoldedVital,type VitalState}from"../../../packages/vital-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream,patientDemographics,requireRegisteredPatient}from"./clinical-runtime";
 import{ageInYears}from"../../../packages/prescription-safety/src";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{classifyVital,normalizeVitalMeasure,type VitalStatus}from"../../../packages/lab-reference/src";
 // EPIC W — Ciclo de vida de una observación de signo vital: RECORDED -> {AMENDED, ENTERED_IN_ERROR}.
 // EPIC AN (profundidad): cada valor se interpreta contra rangos de referencia (NORMAL/ABNORMAL/CRITICAL).
@@ -44,14 +44,14 @@ export async function handleVitalRecord(req:Request):Promise<Response>{
 async function loadForTransition(req:Request,vitalId:string){
  const{claims,ctx}=resolveVerified(req);authz(claims);
  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldVital(await readAggregateEvents(ctx,vitalId));
+ const folded=foldVital(await readAggregateStream(ctx,AGG,vitalId));
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Vital sign not found");
  return{ctx,idempotencyKey,expectedVersion,folded};
 }
 async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,vitalId:string,folded:FoldedVital,to:VitalState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string,extra:Record<string,unknown>={}){
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:vitalId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
- if(!result){assertVitalTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
+ if(!result){assertReadVersion("Vital sign changed since last read",expectedVersion,folded.version);assertVitalTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);} // D7
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({vitalId,state:to,...extra,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }

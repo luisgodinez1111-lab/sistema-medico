@@ -2,7 +2,7 @@ import{NextResponse}from"next/server";
 import crypto from"node:crypto";
 import{z}from"zod";
 import{resolvePrincipal}from"../../../../../../packages/http-principal/src";
-import{readerFor,derivedUuid,principalFrom}from"../../../../lib/http-command";
+import{readerFor,derivedUuid,principalFrom,assertIdFormat}from"../../../../lib/http-command";
 import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../../../../packages/atomic-clinical-transaction-v3/src";
@@ -82,6 +82,8 @@ export async function GET(req:Request){
   authorize(principalFrom(claims),{scope:"encounter:read",purpose:"TREATMENT"});
   const encounterId=new URL(req.url).searchParams.get("encounterId");
   if(!encounterId)throw new ClinicalError("VALIDATION_ERROR","encounterId query parameter required");
+  // Contrato de main (R04-007): un id malformado es 400 VALIDATION_ERROR con la MISMA regla que `pathIds`, no 404.
+  assertIdFormat("encounterId",encounterId,"query");
   const view=await readEncounter(ctx,encounterId);
   if(!view)throw new ClinicalError("NOT_FOUND","Encounter not found");
   return NextResponse.json(view,{status:200});

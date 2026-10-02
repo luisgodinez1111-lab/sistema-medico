@@ -139,8 +139,12 @@ export default function Workspace(){
   {reasonAsk&&<div style={{position:"fixed",inset:0,background:"rgba(20,22,40,.55)",display:"grid",placeItems:"center",zIndex:1001,padding:16}}>
    <div role="dialog" aria-modal="true" aria-labelledby="reason-title" style={{background:"#fff",borderRadius:16,maxWidth:560,width:"100%",padding:"18px 22px",boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
     <b id="reason-title" style={{fontSize:16,color:"#1C1E33"}}>{reasonAsk.spec.__ask}</b>
-    <p style={{margin:"6px 0 10px",fontSize:12.5,color:"#4b4c5e"}}>Este texto queda en el expediente como el motivo registrado por el médico. Mínimo {reasonAsk.spec.min} caracteres.</p>
-    <textarea id="reason-text" aria-label={reasonAsk.spec.__ask} value={reasonText} onChange={e=>setReasonText(e.target.value)} rows={3} maxLength={1000} placeholder={reasonAsk.spec.placeholder??""} style={{...input,width:"100%",resize:"vertical"}} />
+    {/* D11c-F1/F5: el mismo diálogo pide motivos, lotes, firmantes, códigos y estadios; el texto no presupone que sea un «motivo».
+        Un dato de vocabulario cerrado (ASK_CHOICE) se elige, no se teclea. */}
+    <p style={{margin:"6px 0 10px",fontSize:12.5,color:"#4b4c5e"}}>Queda en el expediente tal como lo registra quien actúa.{reasonAsk.spec.choices?"":` Mínimo ${reasonAsk.spec.min} caracteres.`}</p>
+    {reasonAsk.spec.choices
+     ?<select id="reason-text" aria-label={reasonAsk.spec.__ask} value={reasonText} onChange={e=>setReasonText(e.target.value)} style={{...input,width:"100%"}}><option value="">Seleccione…</option>{reasonAsk.spec.choices.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}</select>
+     :<textarea id="reason-text" aria-label={reasonAsk.spec.__ask} value={reasonText} onChange={e=>setReasonText(e.target.value)} rows={3} maxLength={1000} placeholder={reasonAsk.spec.placeholder??""} style={{...input,width:"100%",resize:"vertical"}} />}
     <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:12}}>
      <Button variant="ghost" style={{padding:"10px 18px"}} onClick={()=>{const r=reasonAsk.resolve;setReasonAsk(null);r(null);}}>Cancelar</Button>
      <Button disabled={reasonText.trim().length<reasonAsk.spec.min} onClick={()=>{const r=reasonAsk.resolve;const v=reasonText.trim();setReasonAsk(null);r(v);}}>Registrar</Button>

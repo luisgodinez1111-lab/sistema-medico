@@ -1,5 +1,6 @@
 import{handleAllergyInactivation}from"../../../../../../lib/allergy-lifecycle";
 import{pathIds}from"../../../../../../lib/http-command";
+import{httpErrorResponse}from"../../../../../../lib/http-errors";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
-export async function POST(req:Request,ctx:{params:Promise<{allergyId:string}>}){const{allergyId}=await pathIds(ctx.params);return handleAllergyInactivation(req,allergyId);}
+export async function POST(req:Request,ctx:{params:Promise<{allergyId:string}>}){try{const{allergyId}=await pathIds(ctx.params);return await handleAllergyInactivation(req,allergyId);}catch(e){return httpErrorResponse(e);}}

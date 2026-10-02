@@ -10,14 +10,30 @@ import{ClinicalError}from"../../runtime-errors/src";
 // "corregir" con otro número, de modo que el dato erróneo seguía alimentando cálculos y alertas. Un resultado anulado
 // deja de existir para todo lector (calculadoras, series, delta check, gate de firma), pero su evento permanece en la
 // cadena: se anula, no se borra.
-export type ResultEventKind="RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED"|"CORRECTED"|"ENTERED_IN_ERROR";
+// SQL-2 (porte): las dos listas que parten ResultEventKind, declaradas aquí para que ninguna proyección las copie a mano.
+// Anotaciones: no cambian `state`. Ciclo de vida: las transiciones que sí lo cambian (las que lee el registro como estado;
+// antes tomaba el último evento de cualquier tipo y un resultado CERRADO y luego corregido volvía a «En revisión»).
+// Revisión del porte (d424bdc): las dos listas SON la definición de ResultEventKind, no un subconjunto que se le compara.
+// Antes el tipo se declaraba aparte y las listas solo se comprobaban con `satisfies` (que acepta un subconjunto): un kind
+// nuevo en el tipo y en `kindOf` que no entrara en ninguna lista compilaba, pasaba las pruebas y la SQL del registro lo
+// ignoraba en silencio al calcular el estado. Ahora el tipo, el reconocedor del fold y las proyecciones salen de aquí, y
+// el `switch` del fold es exhaustivo (`never`): un kind nuevo solo existe si se declara ciclo de vida o anotación.
+export const RESULT_ANNOTATION_KINDS=["CORRECTED","ENTERED_IN_ERROR"]as const;
+export const RESULT_LIFECYCLE_KINDS=["RECEIVED","VERIFIED","ACTIONED","CLOSED"]as const;
+export const RESULT_EVENT_KINDS=[...RESULT_LIFECYCLE_KINDS,...RESULT_ANNOTATION_KINDS]as const;
+export type ResultEventKind=typeof RESULT_EVENT_KINDS[number];
+const RESULT_EVENT_KIND_SET:ReadonlySet<string>=new Set(RESULT_EVENT_KINDS);
+// Porte D5 (REV-C): los eventos que TERMINAN el seguimiento de un resultado (cierre con evidencia, corrección que lo reemplaza,
+// anulación R03-10). Una sola regla para el gate de firma (countOpenCriticalResults la usa en SQL) y para el derivado del
+// replay (un reintento del laboratorio no reabre la obligación urgente de un crítico cuyo seguimiento ya terminó).
+export const RESULT_FOLLOW_UP_CLOSING_KINDS=["CLOSED","CORRECTED","ENTERED_IN_ERROR"]as const satisfies readonly ResultEventKind[];
 export type StoredResultEvent=Readonly<{sequence:number;payload:Record<string,unknown>}>;
 export type FoldedResult=Readonly<{exists:boolean;state:ResultState;version:number;patientId:string;critical:boolean;supersededBy:string|null;supersedes:string|null;enteredInError:boolean;errorReason:string|null}>;
 
 function kindOf(e:StoredResultEvent):ResultEventKind{
  const k=e.payload["kind"];
- if(k==="RECEIVED"||k==="VERIFIED"||k==="ACTIONED"||k==="CLOSED"||k==="CORRECTED"||k==="ENTERED_IN_ERROR")return k;
- if(e.sequence===1)return "RECEIVED";
+ if(typeof k==="string"&&RESULT_EVENT_KIND_SET.has(k))return k as ResultEventKind;
+ if(e.sequence===1&&k===undefined)return "RECEIVED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown result event at sequence ${e.sequence}`);
 }
 export function foldResult(events:readonly StoredResultEvent[]):FoldedResult{
@@ -25,16 +41,22 @@ export function foldResult(events:readonly StoredResultEvent[]):FoldedResult{
  const ordered=[...events].sort((a,b)=>a.sequence-b.sequence);
  let state:ResultState="EXPECTED",patientId="",critical=false,supersededBy:string|null=null,supersedes:string|null=null,enteredInError=false,errorReason:string|null=null;
  for(const e of ordered){
-  switch(kindOf(e)){
+  const kind=kindOf(e);
+  switch(kind){
    case"RECEIVED":state="RECEIVED";patientId=String(e.payload["patientId"]??"");critical=e.payload["critical"]===true;supersedes=typeof e.payload["supersedes"]==="string"?String(e.payload["supersedes"]):null;break;
    case"VERIFIED":state="VERIFIED";break;
    case"ACTIONED":state="ACTIONED";break; // acción requerida -> obligación abierta
    case"CLOSED":state="CLOSED";break;
    case"CORRECTED":supersededBy=String(e.payload["supersededBy"]??"");break; // anotación: el estado no cambia
    case"ENTERED_IN_ERROR":enteredInError=true;errorReason=String(e.payload["reason"]??"");break; // anotación: el dato deja de contar
+   default:{const sinCaso:never=kind;throw new ClinicalError("INVARIANT_VIOLATION",`Unhandled result event ${String(sinCaso)}`);}
   }
  }
  return{exists:true,state,version:ordered[ordered.length-1]!.sequence,patientId,critical,supersededBy,supersedes,enteredInError,errorReason};
+}
+// La misma regla sobre el fold: el resultado existe y ningún evento de RESULT_FOLLOW_UP_CLOSING_KINDS terminó su seguimiento.
+export function resultAwaitsFollowUp(f:FoldedResult):boolean{
+ return f.exists&&f.state!=="CLOSED"&&!f.supersededBy&&!f.enteredInError;
 }
 // Un resultado se corrige UNA vez (la corrección de una corrección se hace sobre el resultado vigente).
 export function assertResultCorrectable(f:FoldedResult){

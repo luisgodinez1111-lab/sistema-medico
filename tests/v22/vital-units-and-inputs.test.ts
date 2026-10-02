@@ -5,6 +5,7 @@ import{verifyVitalReadings,MAX_VITAL_AGE_HOURS,vitalLabel}from"../../apps/web/li
 import{bmiFromVitals,BMI_PLAUSIBLE,BMI_MIN_ADULT_AGE_YEARS}from"../../packages/anthropometrics/src";
 import{stageBloodPressure,parseBp}from"../../packages/bp-staging/src";
 import type{VitalReading}from"../../apps/web/lib/clinical-runtime";
+import{runtimeBlock}from"./_runtime-src";
 // Auditoría 2026-09-19, anexo R03 — R03-09 (el IMC infería la unidad por la magnitud del número), R03-11
 // (`latestVitalsByType` no devolvía unidad ni fecha, ignoraba las enmiendas y contaba las tomas anuladas) y
 // R03-16 (`bp-staging` estadificaba «80/120» como hipertensión estadio 2).
@@ -104,12 +105,35 @@ describe("guarda de entradas de signos vitales (R03-11)",()=>{
   for(const t of Object.keys(VITAL_UNITS))expect(vitalLabel(t),t).not.toBe(t);
  });
  it("la lectura del expediente excluye tomas anuladas y usa el último kind (guardián de la consulta SQL)",()=>{
+  // Hallazgo D1 (porte): la regla vive UNA vez en read-model-joins (`vitalVigente`/`vitalNoAnulada`) y la usan las tres
+  // lecturas que antes divergían del fold. El guardián sigue fijando lo mismo: el último evento manda, lo anulado se
+  // excluye (con el vocabulario del fold, no con un literal suelto) y el valor es el canónico de la última corrección.
+  const joins=fs.readFileSync("apps/web/lib/runtime/read-model-joins.ts","utf8");
+  const vigente=/export const vitalVigente=[\s\S]*?;\n/.exec(joins)?.[0]??"";
+  const noAnulada=/export const vitalNoAnulada=[\s\S]*?;\n/.exec(joins)?.[0]??"";
+  expect(vigente,"no se encontró vitalVigente").not.toBe("");
+  expect(vigente).toMatch(/order by c\.sequence desc limit 1\) l on true/);            // el ÚLTIMO evento del agregado manda
+  expect(vigente).toMatch(/payload \? 'value' order by v\.sequence desc limit 1\) cur on true/); // valor: último que lo aporta
+  expect(noAnulada).toContain("l.payload->>'kind'<>${VITAL_VOID_KIND}");
+  expect(joins).toMatch(/import\{VITAL_VOID_KIND\}from"[./]+packages\/vital-fold\/src"/);
   const src=fs.readFileSync("apps/web/lib/runtime/patient-facts.ts","utf8");
   const fn=/export async function latestVitalReadings[\s\S]*?\n}/.exec(src)?.[0]??"";
   expect(fn,"no se encontró latestVitalReadings").not.toBe("");
-  expect(fn).toContain("l.payload->>'kind'<>'ENTERED_IN_ERROR'");
-  expect(fn).toMatch(/order by c\.sequence desc limit 1/);          // el ÚLTIMO evento del agregado manda
-  expect(fn).toContain("coalesce(l.payload->>'canonicalValue'");    // la enmienda gana, en unidad canónica
+  expect(fn).toContain("${vitalVigente(tx)}");
+  expect(fn).toContain("${vitalNoAnulada(tx)}");
+  expect(fn).toContain("coalesce(cur.payload->>'canonicalValue'");    // la enmienda gana, en unidad canónica
+  // Y las otras dos lecturas de signos vitales (historial y gate de firma) usan la MISMA proyección (hallazgo D1).
+  for(const nombre of ["patientVitals","countOpenCriticalVitals"]){
+   const b=runtimeBlock(nombre);
+   expect(b,nombre).toContain("${vitalVigente(tx)}");
+   expect(b,nombre).toContain("${vitalNoAnulada(tx)}");
+   expect(b,`${nombre} no puede leer el valor ni la criticidad del RECORDED original`).not.toMatch(/\b[rv]\.payload->>'(value|canonicalValue|critical)'/);
+   expect(b,`${nombre} no puede buscar el paciente en AMENDED`).not.toMatch(/in \('RECORDED','AMENDED'\)/);
+  }
+  expect(runtimeBlock("patientVitals")).toContain("coalesce(cur.payload->>'canonicalValue'"); // R03-33: historial canónico
+  expect(runtimeBlock("countOpenCriticalVitals")).toContain("cur.payload->>'critical'='true'");
+  for(const f of ["patient-facts","vitals-registry","read-model-joins"])                          // una sola fuente de verdad
+   expect(fs.readFileSync(`apps/web/lib/runtime/${f}.ts`,"utf8"),`${f}: use VITAL_VOID_KIND`).not.toContain("'ENTERED_IN_ERROR'");
  });
  it("el ciclo de vida valida la unidad ANTES de clasificar y guarda el valor canónico",()=>{
   const src=fs.readFileSync("apps/web/lib/vital-lifecycle.ts","utf8");
@@ -185,7 +209,8 @@ describe("una sola implementación del IMC y de la presión (R03-33)",()=>{
   const src=fs.readFileSync("apps/web/lib/runtime/patient-facts.ts","utf8");
   const fn=/export async function patientVitals[\s\S]*?\n}/.exec(src)?.[0]??"";
   expect(fn).not.toBe("");
-  expect(fn).toContain("coalesce(v.payload->>'canonicalValue'");
-  expect(fn).toContain("coalesce(v.payload->>'canonicalUnit'");
+  // Hallazgo D1 (porte): el canónico es el de la observación VIGENTE (`cur`, la última corrección), no el del RECORDED.
+  expect(fn).toContain("coalesce(cur.payload->>'canonicalValue'");
+  expect(fn).toContain("coalesce(cur.payload->>'canonicalUnit'");
  });
 });

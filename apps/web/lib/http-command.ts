@@ -6,7 +6,8 @@ import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
 import{canonicalize,deterministicUuid}from"../../../packages/canonical-json/src";
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
-import{sessionSecret,readEventPayloadById}from"./clinical-runtime";
+import{sessionSecret,readEventPayloadById,readEventById,lookupReplay}from"./clinical-runtime";
+import{isKernelRejection}from"./http-errors";
 // EPIC D/G — Helpers compartidos por los verticales que escriben comandos clínicos vía HTTP.
 // Envelope determinista (idempotencia estilo Stripe) + concurrencia optimista vía If-Match.
 
@@ -27,6 +28,14 @@ export function requireMutationHeaders(req:Request){
  const expectedVersion=Number(ifMatch);
  if(!Number.isInteger(expectedVersion)||expectedVersion<0)throw new ClinicalError("VALIDATION_ERROR","If-Match must be a non-negative integer version");
  return{idempotencyKey,expectedVersion};
+}
+// Hallazgo D7 — CONCURRENCIA OPTIMISTA ESTRICTA, escrita una sola vez. La máquina de estados y las reglas de dominio se evalúan
+// sobre la versión que el servidor leyó; el kernel exige If-Match. Si difieren, las reglas se habrían evaluado sobre un estado
+// que no es el que el cliente vio: un If-Match desfasado respondía un CONFLICT de máquina de estados engañoso y, con un If-Match
+// ADELANTADO y un escritor concurrente, se persistía una transición ilegal (alergia INACTIVE -> REFUTED). Se llama SOLO en el
+// camino sin replay (tras `lookupReplay`: un reintento ya aplicado no se re-evalúa) y ANTES de cualquier regla.
+export function assertReadVersion(changed:string,expected:number,actual:number):void{
+ if(expected!==actual)throw new ClinicalError("CONCURRENCY_CONFLICT",changed,{expected,actual});
 }
 // EPIC L (hardening) — la sesión viaja en una cookie httpOnly; el header Authorization: Bearer
 // se mantiene como fallback (scripts/API). El nombre del cookie es único.
@@ -59,13 +68,19 @@ export function resolveVerified(req:Request){
 //
 // Se valida en el BORDE, donde el dato entra, y con el mismo `isUuid` que usa el esquema de payload: una sola definición
 // de qué es un UUID en todo el repositorio.
+// Regla ÚNICA de formato de un identificador que entra por HTTP (ruta o query): malformado -> 400 VALIDATION_ERROR, nunca 404
+// ni 500. `isUuid` recorta espacios (el esquema de payload los tolera); un id con espacios alrededor no se normaliza en
+// silencio: llegaría tal cual a la columna uuid (22P02 -> 500). Se rechaza (hallazgo D8).
+export function assertIdFormat(clave:string,valor:unknown,origen:"path"|"query"="path"):asserts valor is string{
+ if(typeof valor!=="string"||valor!==valor.trim()||!isUuid(valor))
+  throw new ClinicalError("VALIDATION_ERROR",`El identificador «${clave}» de la ${origen==="path"?"ruta":"consulta"} no es un UUID válido.`,origen==="path"?{pathParam:clave}:{queryParam:clave});
+}
 export async function pathIds<T extends Record<string,string>>(params:Promise<T>):Promise<T>{
  const p=await params;
  for(const[clave,valor]of Object.entries(p)){
   // Solo los parámetros que son identificadores de agregado. Un parámetro como `date` o `slug` no es un UUID.
   if(!/Id$/.test(clave))continue;
-  if(typeof valor!=="string"||!isUuid(valor))
-   throw new ClinicalError("VALIDATION_ERROR",`El identificador «${clave}» de la ruta no es un UUID válido.`,{pathParam:clave});
+  assertIdFormat(clave,valor);
  }
  return p;
 }
@@ -98,6 +113,56 @@ function stripUndefined<T>(v:T):T{
  if(Array.isArray(v))return v.map(stripUndefined) as unknown as T;
  if(v!==null&&typeof v==="object")return Object.fromEntries(Object.entries(v as Record<string,unknown>).filter(([,x])=>x!==undefined).map(([k,x])=>[k,stripUndefined(x)])) as T;
  return v;
+}
+// Porte del hallazgo D6 — REINTENTO de un comando con efectos externos (Blob), reconocido ANTES de tocarlos. Si esta llave ya
+// produjo su evento, se reconstruye el comando exacto que se ejecutó (versión = secuencia − 1, mismo payload y la misma hora,
+// que el payload guarda en `at`) y se devuelve la respuesta que el kernel guardó; si la llave se usó para otro comando,
+// IDEMPOTENCY_CONFLICT. Antes el reintento volvía a subir el archivo, el kernel lo rechazaba (la hora del servidor entra en el
+// hash) y la limpieza borraba el blob que el evento ya confirmado seguía citando; una retirada ya aplicada respondía 404.
+// Requisito: el payload no lleva claves `undefined` (JSONB no las guarda) y `occurredAt` es exactamente `payload[at]`.
+// `sequence` es la posición del evento de ESA llave en el stream: un efecto repetido en el reintento (p. ej. retirar imágenes)
+// se limita a lo que existía antes de ese evento, nunca a lo que se confirmó después.
+export type PriorCommand=Readonly<{payload:Record<string,unknown>;sequence:number;version:number;auditHash?:string}>;
+export async function priorCommand(ctx:HttpTenantContext,a:Readonly<{idempotencyKey:string;aggregateType:string;aggregateId:string;eventType:string;topic:string;at:string}>):Promise<PriorCommand|undefined>{
+ const prior=await readEventById(ctx,derivedUuid(a.idempotencyKey,"event"),a.aggregateId);
+ if(!prior)return undefined;
+ const cmd=buildCommand({idempotencyKey:a.idempotencyKey,aggregateType:a.aggregateType,aggregateId:a.aggregateId,expectedVersion:prior.sequence-1,eventType:a.eventType,payload:prior.payload,occurredAt:String(prior.payload[a.at]??""),topic:a.topic});
+ const replay=await lookupReplay(ctx,cmd);
+ if(!replay)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
+ const r=replay.response as{version:number;auditHash?:string};
+ return{payload:prior.payload,sequence:prior.sequence,version:r.version,...(r.auditHash!==undefined?{auditHash:r.auditHash}:{})};
+}
+// "Misma llave + petición distinta = conflicto" en el replay de un comando con efectos: `priorCommand` reconstruye el comando
+// desde el payload GUARDADO, así que la petición actual solo se compara aquí. Se pasan TODOS los campos que controla el cliente
+// (ya normalizados como se guardarían); si alguno difiere del evento original, IDEMPOTENCY_CONFLICT.
+export function assertSameRequest(stored:Record<string,unknown>,current:Readonly<Record<string,string|number>>):void{
+ for(const[k,v]of Object.entries(current))if(stored[k]!==v)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
+}
+// ¿Algún evento confirmado cita este blob? Solo el evento de ESTA llave podría (las rutas son únicas por intento). Si no se
+// puede comprobar, se responde que sí: un blob huérfano es preferible a un evento que cite un binario borrado.
+async function blobReferenced(ctx:HttpTenantContext,idempotencyKey:string,aggregateId:string,pathname:string):Promise<boolean>{
+ return readEventById(ctx,derivedUuid(idempotencyKey,"event"),aggregateId).then(e=>e?.payload["pathname"]===pathname,()=>true);
+}
+// Porte del hallazgo D6 — SUBIDA AL BLOB + EVENTO que la cita, en un solo sitio (adjuntos y perfil del médico). No depende de
+// @vercel/blob: subir y descartar los pasa el caso de uso.
+//  1) replay primero, antes de subir nada; 2) subida a una ruta ÚNICA por intento; 3) commit del evento;
+//  4) si el commit falla por un rechazo DEFINITIVO (ClinicalError que no sea DEPENDENCY_UNAVAILABLE, o un rechazo del kernel
+//     —`isKernelRejection`, las claves de KERNEL—) y ningún evento cita la ruta, se borra el binario de este intento; ante un
+//     error ambiguo (p. ej. la conexión cae durante el COMMIT) se conserva. PENDIENTE declarado: no existe aún un barrido que
+//     retire los binarios que ningún evento cita (commit ambiguo o proceso muerto entre la subida y el commit);
+//  5) si el rechazo se debe a que otro intento IDÉNTICO con la misma llave confirmó antes, se responde su replay (no un 409).
+const definiteRejection=(e:unknown)=>e instanceof ClinicalError?e.code!=="DEPENDENCY_UNAVAILABLE":isKernelRejection(e);
+const idempotencyRace=(e:unknown)=>e instanceof Error&&!(e instanceof ClinicalError)&&(e.message==="IDEMPOTENCY_CONFLICT"||e.message==="IDEMPOTENCY_IN_PROGRESS");
+export async function uploadThenCommit(ctx:HttpTenantContext,a:Readonly<{idempotencyKey:string;aggregateId:string;pathname:string;
+ replay:()=>Promise<Response|null>;upload:()=>Promise<unknown>;commit:()=>Promise<Response>;discard:()=>Promise<unknown>}>):Promise<Response>{
+ const first=await a.replay();if(first)return first;
+ await a.upload();
+ try{return await a.commit();}
+ catch(e){
+  if(definiteRejection(e)&&!(await blobReferenced(ctx,a.idempotencyKey,a.aggregateId,a.pathname)))await a.discard().catch(()=>{/* mejor esfuerzo */});
+  if(idempotencyRace(e)){const again=await a.replay();if(again)return again;}
+  throw e;
+ }
 }
 export async function parseJson<T>(req:Request,schema:z.ZodType<T>):Promise<T>{
  let raw:unknown;

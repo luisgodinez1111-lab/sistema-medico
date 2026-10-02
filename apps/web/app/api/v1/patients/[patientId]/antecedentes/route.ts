@@ -1,7 +1,7 @@
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{antecedentes}from"../../../../../../lib/clinical-runtime";
-import{toHttpError}from"../../../../../../lib/http-errors";
+import{toHttpError,httpErrorResponse}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 import{handleAntecedentesRecord}from"../../../../../../lib/antecedentes-lifecycle";
 // MATRIZ FUNDACIONAL — /api/v1/patients/:id/antecedentes
@@ -19,4 +19,4 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   return NextResponse.json(a,{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-export async function POST(req:Request,ctx:{params:Promise<{patientId:string}>}){const{patientId}=await pathIds(ctx.params);return handleAntecedentesRecord(req,patientId);}
+export async function POST(req:Request,ctx:{params:Promise<{patientId:string}>}){try{const{patientId}=await pathIds(ctx.params);return await handleAntecedentesRecord(req,patientId);}catch(e){return httpErrorResponse(e);}}

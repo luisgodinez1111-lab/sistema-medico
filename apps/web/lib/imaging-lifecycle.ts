@@ -7,7 +7,7 @@ import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldImagingOrder,assertImagingTransition,type FoldedImagingOrder,type ImagingOrderState}from"../../../packages/imaging-order/src";
 import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
+import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 // EPIC Q — Ciclo de vida de orden de imagen (Radiología/Imagen).
 // SM: DRAFT -> ORDERED -> ACQUIRED -> REPORTED -> VERIFIED -> SIGNED -> CANCELLED.
 // Physician Control: ordenar/adquirir/reportar/verificar/firmar exige médico.
@@ -49,7 +49,7 @@ async function loadForTransition(req:Request,orderId:string,requirePhysician=fal
 async function commit(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,orderId:string,folded:FoldedImagingOrder,to:ImagingOrderState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:orderId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
- if(!result){assertImagingTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
+ if(!result){assertReadVersion("Imaging order changed since last read",expectedVersion,folded.version);assertImagingTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);} // D7
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({orderId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }

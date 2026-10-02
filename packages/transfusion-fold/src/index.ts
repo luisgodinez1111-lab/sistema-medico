@@ -11,7 +11,7 @@ export type FoldedTransfusion=Readonly<{exists:boolean;state:TransfusionState;ve
 function kindOf(e:StoredTransfusionEvent):TransfusionEventKind{
  const k=e.payload["kind"];
  if(k==="ORDERED"||k==="CROSSMATCHED"||k==="STARTED"||k==="COMPLETED"||k==="REACTION"||k==="CANCELLED")return k;
- if(e.sequence===1)return "ORDERED";
+ if(e.sequence===1&&k===undefined)return "ORDERED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown transfusion event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<TransfusionEventKind,TransfusionState>={ORDERED:"ORDERED",CROSSMATCHED:"CROSSMATCHED",STARTED:"TRANSFUSING",COMPLETED:"COMPLETED",REACTION:"REACTION",CANCELLED:"CANCELLED"};

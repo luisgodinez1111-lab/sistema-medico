@@ -11,7 +11,13 @@ const STATUS:Record<ClinicalErrorCode,number>={
 const KERNEL:Record<string,ClinicalErrorCode>={
  CONCURRENCY_CONFLICT:"CONCURRENCY_CONFLICT",IDEMPOTENCY_CONFLICT:"IDEMPOTENCY_CONFLICT",
  IDEMPOTENCY_IN_PROGRESS:"CONFLICT",
+ AGGREGATE_TYPE_MISMATCH:"NOT_FOUND", // Porte D4: el id es de otro tipo de agregado; para este comando no existe
 };
+// Porte del hallazgo D6 — ¿es un RECHAZO del kernel (el comando no se confirmó, con certeza)? Fuente única: las claves de KERNEL.
+// Un `Error` plano con otro mensaje (p. ej. la conexión cae durante el COMMIT) es ambiguo: el evento pudo quedar confirmado.
+export function isKernelRejection(e:unknown):boolean{
+ return e instanceof Error&&!(e instanceof ClinicalError)&&Object.prototype.hasOwnProperty.call(KERNEL,e.message);
+}
 // Auditoría U-19: la UI necesita saber QUÉ barreras bloquean y cuáles admiten anulación para ofrecer el diálogo correcto
 // (no se puede inferir del texto). Lista cerrada por código y por clave: lo que no está aquí no sale.
 const EXPOSED_DETAILS:Partial<Record<ClinicalErrorCode,readonly string[]>>={
@@ -46,4 +52,11 @@ export function toHttpError(e:unknown):HttpError{
  const code=(e as{code?:unknown})?.code;
  console.error("[clinical] unexpected runtime error ->",detail,code?`(code=${String(code)})`:"");
  return{status:500,body:{error:{code:"INTERNAL",message:"Unexpected runtime error"}}};
+}
+// Hallazgo D8 — la respuesta HTTP de un fallo, para las rutas que validan sus ids con `pathIds` ANTES de delegar en el handler.
+// Sin ella, el VALIDATION_ERROR de un id malformado escapaba del route handler (que no tenía try) y Next respondía un 500 sin
+// cuerpo en vez del 400 declarado por R04-007.
+export function httpErrorResponse(e:unknown):Response{
+ const h=toHttpError(e);
+ return Response.json(h.body,{status:h.status});
 }

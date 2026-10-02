@@ -47,8 +47,13 @@ try{
  ok(pg.body.highestSeverityLabel==="Contraindicada","HIGHEST_CONTRAINDICADA");
 
  // 4) Conjunto seguro: Paracetamol solo -> sin hallazgos.
- const safe=await verify(phys,["paracetamol"],["alcohol"]);
+ // main 58ed375 añadió la regla ALCOHOL × ANALGESIC_ANTIPYRETIC (paracetamol hepatotóxico con alcohol crónico): con el factor
+ // alcohol el conjunto YA NO es limpio. El «solo» del comentario es literal: sin fármacos ni factores acompañantes.
+ const safe=await verify(phys,["paracetamol"]);
  ok(safe.body.findings.length===0&&safe.body.highestSeverity===null,"NO_INTERACTION_CLEAN");
+ // Y la regla nueva de main queda fijada: paracetamol + alcohol -> Moderada (no desaparece en silencio).
+ const etoh=await verify(phys,["paracetamol"],["alcohol"]);
+ ok(has(etoh.body.findings,"paracetamol","Consumo de alcohol","MODERATE"),"FACTOR_ALCOHOL_PARACETAMOL_MODERADA");
 
  // 5) Transparencia: fármaco desconocido se reporta como no resuelto, no crashea.
  const unk=await verify(phys,["medicamentox","ibuprofeno"],["factor raro"]);

@@ -12,7 +12,7 @@ export type FoldedAdmission=Readonly<{exists:boolean;state:AdmissionState;versio
 function kindOf(e:StoredAdmissionEvent):AdmissionEventKind{
  const k=e.payload["kind"];
  if(k==="ADMITTED"||k==="TRANSFERRED"||k==="DISCHARGED"||k==="CANCELLED")return k;
- if(e.sequence===1)return "ADMITTED";
+ if(e.sequence===1&&k===undefined)return "ADMITTED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown admission event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<AdmissionEventKind,AdmissionState>={ADMITTED:"ADMITTED",TRANSFERRED:"TRANSFERRED",DISCHARGED:"DISCHARGED",CANCELLED:"CANCELLED"};

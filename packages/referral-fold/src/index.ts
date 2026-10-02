@@ -11,7 +11,7 @@ export type FoldedReferral=Readonly<{exists:boolean;state:ReferralState;version:
 function kindOf(e:StoredReferralEvent):ReferralEventKind{
  const k=e.payload["kind"];
  if(k==="REQUESTED"||k==="ACCEPTED"||k==="DECLINED"||k==="COMPLETED"||k==="CANCELLED")return k;
- if(e.sequence===1)return "REQUESTED";
+ if(e.sequence===1&&k===undefined)return "REQUESTED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown referral event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<ReferralEventKind,ReferralState>={REQUESTED:"REQUESTED",ACCEPTED:"ACCEPTED",DECLINED:"DECLINED",COMPLETED:"COMPLETED",CANCELLED:"CANCELLED"};

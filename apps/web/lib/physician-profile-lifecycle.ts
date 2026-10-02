@@ -3,10 +3,10 @@ import crypto from"node:crypto";
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{put,del,get}from"@vercel/blob";
-import{runClinicalCommand,lookupReplay,readAggregateEvents}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{z}from"zod";
-import{buildCommand,principalFrom,resolveVerified,parseJson}from"./http-command";
+import{buildCommand,principalFrom,resolveVerified,parseJson,priorCommand,uploadThenCommit,assertSameRequest}from"./http-command";
 import{isValidCedula,type PrescriberIdentity}from"../../../packages/prescription-print/src";
 import{deterministicUuid}from"../../../packages/canonical-json/src";
 // EPIC S-CONFIG/FIRMA — Perfil del MÉDICO (firma y sello) sobre el kernel event-sourced. La firma/sello son
@@ -40,8 +40,8 @@ export type PhysicianCredentials=PrescriberIdentity&Readonly<{setAt:string}>;
 export type PhysicianProfileRead=Readonly<{signature:ProfileAsset|null;stamp:ProfileAsset|null;credentials:PhysicianCredentials|null;version:number}>;
 // Pliega los eventos del perfil: el último ASSET_SET por tipo gana; ASSET_REMOVED lo limpia; el último CREDENTIALS_SET gana.
 // version = nº eventos.
-async function foldProfile(ctx:Parameters<typeof readAggregateEvents>[0],aggId:string):Promise<PhysicianProfileRead>{
- const events=await readAggregateEvents(ctx,aggId);
+async function foldProfile(ctx:Parameters<typeof readAggregateStream>[0],aggId:string):Promise<PhysicianProfileRead>{
+ const events=await readAggregateStream(ctx,AGG,aggId);
  let signature:ProfileAsset|null=null,stamp:ProfileAsset|null=null,credentials:PhysicianCredentials|null=null;
  for(const e of events){const p=e.payload;const k=String(p.kind);
   if(k==="ASSET_SET"){const a:ProfileAsset={pathname:String(p.pathname??""),mime:String(p.mime??"image/png"),size:Number(p.size??0),contentHash:String(p.contentHash??""),setAt:String(p.setAt??"")};if(p.assetKind==="signature")signature=a;else if(p.assetKind==="stamp")stamp=a;}
@@ -53,7 +53,7 @@ async function foldProfile(ctx:Parameters<typeof readAggregateEvents>[0],aggId:s
  return{signature,stamp,credentials,version:events.length};
 }
 // Lectura de las credenciales del médico autenticado (null si nunca las registró). Para PRESCRIBE, firma y receta.
-export async function physicianCredentials(ctx:Parameters<typeof readAggregateEvents>[0],claims:{sub:string;tenantId:string}):Promise<PhysicianCredentials|null>{
+export async function physicianCredentials(ctx:Parameters<typeof readAggregateStream>[0],claims:{sub:string;tenantId:string}):Promise<PhysicianCredentials|null>{
  return(await foldProfile(ctx,profileId(claims as Claims))).credentials;
 }
 // Physician Control con identidad legal: sin cédula profesional registrada no se prescribe ni se firma (428, con `reason`
@@ -62,7 +62,7 @@ export function assertPhysicianCredentials(c:PhysicianCredentials|null):Physicia
  if(!c)throw new ClinicalError("PRECONDITION_REQUIRED","Cédula profesional no registrada: complete su perfil profesional (nombre, cédula e institución que expidió el título) antes de prescribir o firmar",{reason:"PHYSICIAN_CREDENTIALS_REQUIRED"});
  return c;
 }
-export async function requirePhysicianCredentials(ctx:Parameters<typeof readAggregateEvents>[0],claims:{sub:string;tenantId:string}):Promise<PhysicianCredentials>{
+export async function requirePhysicianCredentials(ctx:Parameters<typeof readAggregateStream>[0],claims:{sub:string;tenantId:string}):Promise<PhysicianCredentials>{
  return assertPhysicianCredentials(await physicianCredentials(ctx,claims));
 }
 const CEDULA_MSG="cédula profesional de 7 u 8 dígitos";
@@ -106,7 +106,8 @@ export async function handleProfileGet(req:Request):Promise<Response>{
 }
 
 // POST /api/v1/physician-profile/assets/:kind (multipart, campo "file") -> sube la imagen al Blob privado y
-// registra PROFILE_ASSET_SET (solo la referencia). Sube PRIMERO; si el commit falla, borra el blob (sin huérfanos).
+// registra PROFILE_ASSET_SET (solo la referencia). Replay, subida a ruta única y limpieza segura en `uploadThenCommit` (D6):
+// el binario de un intento solo se descarta ante un rechazo definitivo sin evento que lo cite.
 export async function handleProfileAssetUpload(req:Request,kind:string):Promise<Response>{
  try{
   if(!(ASSET_KINDS as readonly string[]).includes(kind))throw new ClinicalError("NOT_FOUND","Tipo de asset desconocido");
@@ -124,20 +125,30 @@ export async function handleProfileAssetUpload(req:Request,kind:string):Promise<
   if(bytes.byteLength>MAX_ASSET_BYTES)throw new ClinicalError("VALIDATION_ERROR",`Imagen demasiado grande (${bytes.byteLength} bytes; máx ${MAX_ASSET_BYTES})`);
   const contentHash=crypto.createHash("sha256").update(bytes).digest("hex");
   const aggId=profileId(c);
-  const pathname=`tenants/${c.tenantId}/physicians/${aggId}/${kind}.${EXT_BY_MIME[mime]??"png"}`;
+  // Porte del hallazgo D6: replay ANTES de tocar el Blob (misma llave y misma imagen -> la respuesta original; otra -> 409) y
+  // ruta ÚNICA por subida: antes era fija por tipo y MIME y la imagen nueva sobrescribía la vigente ANTES del commit.
+  const replay=async()=>{
+   const prior=await priorCommand(ctx,{idempotencyKey,aggregateType:AGG,aggregateId:aggId,eventType:"PROFILE_ASSET_SET",topic:"physician_profile.asset_set",at:"setAt"});
+   if(!prior)return null;
+   const p=prior.payload;assertSameRequest(p,{contentHash,assetKind:kind,mime});
+   return NextResponse.json({assetKind:kind,mime:p["mime"],size:p["size"],contentHash,version:prior.version,auditHash:prior.auditHash,replayed:true},{status:200});
+  };
+  const pathname=`tenants/${c.tenantId}/physicians/${aggId}/${kind}-${crypto.randomUUID()}.${EXT_BY_MIME[mime]??"png"}`;
   const setAt=new Date().toISOString();
   const profile=await foldProfile(ctx,aggId);
-  await put(pathname,Buffer.from(bytes),{access:"private",token:blobToken(),contentType:mime,addRandomSuffix:false,allowOverwrite:true});
-  try{
-   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:aggId,expectedVersion:profile.version,eventType:"PROFILE_ASSET_SET",payload:{kind:"ASSET_SET",assetKind:kind,pathname,mime,size:bytes.byteLength,contentHash,authorId:c.sub,setAt},occurredAt:setAt,topic:"physician_profile.asset_set"});
-   let result=await lookupReplay(ctx,cmd);
-   if(!result)result=await runClinicalCommand(ctx,cmd);
-   const r=result.response as{version:number;auditHash?:string};
-   return NextResponse.json({assetKind:kind,mime,size:bytes.byteLength,contentHash,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
-  }catch(commitErr){
-   await del(pathname,{token:blobToken()}).catch(()=>{/* mejor esfuerzo */});
-   throw commitErr;
-  }
+  const replaced=assetOf(profile,kind as AssetKind)?.pathname;
+  return await uploadThenCommit(ctx,{idempotencyKey,aggregateId:aggId,pathname,replay,
+   upload:()=>put(pathname,Buffer.from(bytes),{access:"private",token:blobToken(),contentType:mime,addRandomSuffix:false,allowOverwrite:false}),
+   discard:()=>del(pathname,{token:blobToken()}),
+   commit:async()=>{
+    const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:aggId,expectedVersion:profile.version,eventType:"PROFILE_ASSET_SET",payload:{kind:"ASSET_SET",assetKind:kind,pathname,mime,size:bytes.byteLength,contentHash,authorId:c.sub,setAt},occurredAt:setAt,topic:"physician_profile.asset_set"});
+    const result=await runClinicalCommand(ctx,cmd);
+    // La imagen REEMPLAZADA se retira del almacén DESPUÉS del evento (mejor esfuerzo), como antes la sustituía la ruta fija; un
+    // reemplazo que no se confirma (p. ej. CONCURRENCY_CONFLICT) no toca la vigente.
+    if(replaced&&replaced!==pathname)await del(replaced,{token:blobToken()}).catch(()=>{/* ya pudo no existir */});
+    const r=result.response as{version:number;auditHash?:string};
+    return NextResponse.json({assetKind:kind,mime,size:bytes.byteLength,contentHash,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+   }});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
@@ -156,7 +167,17 @@ export async function handleProfileAssetDownload(req:Request,kind:string):Promis
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 
-// DELETE /api/v1/physician-profile/assets/:kind -> quita la imagen (borra el blob + registra ASSET_REMOVED).
+// DELETE /api/v1/physician-profile/assets/:kind -> quita la imagen (registra ASSET_REMOVED y borra del almacén las de ese tipo
+// confirmadas ANTES de esa retirada: con rutas únicas por subida (D6) cada reemplazo deja su propia ruta; las del otro tipo no se
+// tocan). Límite por secuencia: una subida confirmada DESPUÉS (un reintento tardío de la retirada, o una subida que entra entre
+// el commit y esta lectura) es la imagen vigente y nunca se borra; y por construcción nunca se borra la ruta que el perfil cita.
+async function deleteAssetImages(ctx:Parameters<typeof readAggregateStream>[0],aggId:string,kind:string,removalSequence:number):Promise<void>{
+ const events=await readAggregateStream(ctx,AGG,aggId);
+ let cited:string|undefined;
+ for(const e of events){const p=e.payload;if(p["assetKind"]!==kind)continue;if(p["kind"]==="ASSET_SET")cited=String(p["pathname"]??"");else if(p["kind"]==="ASSET_REMOVED")cited=undefined;}
+ const paths=events.filter(e=>e.sequence<removalSequence&&e.payload["kind"]==="ASSET_SET"&&e.payload["assetKind"]===kind).map(e=>String(e.payload["pathname"]??"")).filter(p=>p!==""&&p!==cited);
+ for(const p of new Set(paths))await del(p,{token:blobToken()}).catch(()=>{/* ya pudo no existir */});
+}
 export async function handleProfileAssetRemove(req:Request,kind:string):Promise<Response>{
  try{
   if(!(ASSET_KINDS as readonly string[]).includes(kind))throw new ClinicalError("NOT_FOUND","Tipo de asset desconocido");
@@ -165,15 +186,21 @@ export async function handleProfileAssetRemove(req:Request,kind:string):Promise<
   const idempotencyKey=req.headers.get("idempotency-key");
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const aggId=profileId(c);
+  // Porte del hallazgo D6: un reintento de una retirada ya aplicada responde la original (antes: 404, el asset ya no figuraba).
+  const prior=await priorCommand(ctx,{idempotencyKey,aggregateType:AGG,aggregateId:aggId,eventType:"PROFILE_ASSET_REMOVED",topic:"physician_profile.asset_removed",at:"removedAt"});
+  if(prior){
+   if(prior.payload["assetKind"]!==kind)throw new ClinicalError("IDEMPOTENCY_CONFLICT","Idempotency-Key reused with a different request");
+   await deleteAssetImages(ctx,aggId,kind,prior.sequence); // el reintento repite el borrado (idempotente) por si falló tras el evento
+   return NextResponse.json({assetKind:kind,removed:true,version:prior.version,replayed:true},{status:200});
+  }
   const profile=await foldProfile(ctx,aggId);
   const asset=assetOf(profile,kind as AssetKind);
   if(!asset)throw new ClinicalError("NOT_FOUND","Asset no encontrado");
   const removedAt=new Date().toISOString();
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:aggId,expectedVersion:profile.version,eventType:"PROFILE_ASSET_REMOVED",payload:{kind:"ASSET_REMOVED",assetKind:kind,authorId:c.sub,removedAt},occurredAt:removedAt,topic:"physician_profile.asset_removed"});
-  let result=await lookupReplay(ctx,cmd);
-  if(!result)result=await runClinicalCommand(ctx,cmd);
-  await del(asset.pathname,{token:blobToken()}).catch(()=>{/* ya pudo no existir */});
+  const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number};
+  await deleteAssetImages(ctx,aggId,kind,r.version); // la retirada es el evento nº version: la vigente y TODAS las anteriores de ese tipo
   return NextResponse.json({assetKind:kind,removed:true,version:r.version,replayed:result.replayed},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

@@ -10,7 +10,7 @@ export type FoldedAllergy=Readonly<{exists:boolean;state:AllergyState;version:nu
 function kindOf(e:StoredAllergyEvent):AllergyEventKind{
  const k=e.payload["kind"];
  if(k==="RECORDED"||k==="REFUTED"||k==="INACTIVATED"||k==="REACTIVATED")return k;
- if(e.sequence===1)return "RECORDED";
+ if(e.sequence===1&&k===undefined)return "RECORDED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown allergy event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<AllergyEventKind,AllergyState>={RECORDED:"ACTIVE",REFUTED:"REFUTED",INACTIVATED:"INACTIVE",REACTIVATED:"ACTIVE"};

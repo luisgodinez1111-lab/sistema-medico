@@ -4,7 +4,7 @@ import{verifyBedside,type BloodProduct}from"../../../packages/transfusion-safety
 import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldTransfusion,assertTransfusionTransition,type FoldedTransfusion,type TransfusionState}from"../../../packages/transfusion-fold/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,requireRegisteredPatient}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream,requireRegisteredPatient}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson}from"./http-command";
 import{aggregateLifecycle}from"./lifecycle-factory";
@@ -57,7 +57,7 @@ export const CrossmatchBody=z.object({
 });
 export async function handleTransfusionCrossmatch(req:Request,transfusionId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,transfusionId);const b=await parseJson(req,CrossmatchBody);
-  const producto=(await readAggregateEvents(ctx,transfusionId)).find(e=>e.payload["kind"]==="ORDERED")?.payload["bloodProduct"];
+  const producto=(await readAggregateStream(ctx,AGG,transfusionId)).find(e=>e.payload["kind"]==="ORDERED")?.payload["bloodProduct"];
   const check=verifyBedside({recipient:b.recipient,unit:b.unit,product:String(producto??"PRBC") as BloodProduct,unitId:b.unitId,verifiedBy:b.verifiedBy});
   if(!check.ok)throw new ClinicalError("VALIDATION_ERROR",`Verificación al pie de cama NO superada: ${check.blockers.join(" · ")}`,{blockers:check.blockers,compatibility:check.compatibility});
   return await commit(ctx,idempotencyKey,expectedVersion,transfusionId,folded,"CROSSMATCHED","TRANSFUSION_CROSSMATCHED",
@@ -71,7 +71,7 @@ export async function handleTransfusionStart(req:Request,transfusionId:string):P
   // R2B-017: la verificación que respalda el inicio se cita en el evento. Sin evento de pruebas cruzadas no se llega aquí
   // (la máquina de estados lo impide), pero que el inicio DIGA con qué unidad y qué verificación arrancó es lo que permite
   // reconstruir después qué se transfundió a quién.
-  const xm=(await readAggregateEvents(ctx,transfusionId)).find(e=>e.payload["kind"]==="CROSSMATCHED")?.payload;
+  const xm=(await readAggregateStream(ctx,AGG,transfusionId)).find(e=>e.payload["kind"]==="CROSSMATCHED")?.payload;
   if(!xm?.["unitId"])throw new ClinicalError("CONFLICT","No se puede iniciar: la verificación al pie de cama no consta en el expediente",{reason:"BEDSIDE_CHECK_MISSING"});
   return await commit(ctx,idempotencyKey,expectedVersion,transfusionId,folded,"TRANSFUSING","TRANSFUSION_STARTED",
    {kind:"STARTED",unitId:xm["unitId"],verifiedBy:xm["verifiedBy"]},b.occurredAt,"transfusion.started");

@@ -3,10 +3,9 @@ import{isValidRfc}from"../../../packages/mx-identity/src";
 import{isValidCedula}from"../../../packages/prescription-print/src";
 import{z}from"zod";
 import{authorize}from"../../../packages/runtime-auth/src";
-import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{runClinicalCommand,officeSettings}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,resolveVerified,parseJson,requireMutationHeaders}from"./http-command";
+import{assertReadVersion,buildCommand,principalFrom,resolveVerified,parseJson,requireMutationHeaders}from"./http-command";
 // EPIC S-CONFIG — Ajustes del consultorio (singleton por tenant, NO PHI, sin paciente), sobre el mismo kernel
 // event-sourced. Un unico agregado OfficeSettings por tenant (aggregateId constante; RLS separa por tenant).
 // El estado actual se reconstruye del ultimo evento OFFICE_SETTINGS_UPDATED; version = nº de eventos (If-Match).
@@ -93,7 +92,7 @@ export async function handleOfficeSettingsUpdate(req:Request):Promise<Response>{
   const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
   const b=await parseJson(req,UpdateBody);
   const cur=await officeSettings(ctx);
-  if(cur.version!==expectedVersion)throw new ClinicalError("CONCURRENCY_CONFLICT","Settings changed since last read",{expected:expectedVersion,actual:cur.version});
+  assertReadVersion("Settings changed since last read",expectedVersion,cur.version);
   // Merge: los escalares y el horario se reemplazan por lo recibido; los MÓDULOS se fusionan en profundidad
   // (un PUT parcial de módulos preserva los no enviados). schedule llega completo desde la UI.
   const curModules=(cur.settings.modules as Record<string,boolean>|undefined)??{};

@@ -6,9 +6,9 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
 import{foldEncounter,assertTransition}from"../../../packages/encounter-fold/src";
-import{runClinicalCommand,lookupReplay,readEncounterEvents,blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,sessionSecret}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,readAggregateStream,blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,sessionSecret}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
-import{readerFor,replayStablePayload,derivedUuid}from"./http-command";
+import{assertReadVersion,readerFor,replayStablePayload,derivedUuid}from"./http-command";
 import{physicianCredentials,assertPhysicianCredentials}from"./physician-profile-lifecycle";
 import{signedPayload}from"./clinical-signature";
 // EPIC D — Ciclo de vida del encuentro sobre el kernel probado: assess (OPEN->READY_TO_SIGN)
@@ -53,11 +53,11 @@ async function build(req:Request,encounterId:string){
  // Physician Control: solo un médico con propósito de tratamiento escribe en el encuentro.
  authorize(principalFrom(claims),{role:"PHYSICIAN",scope:"encounter:write",purpose:"TREATMENT"});
  const{idempotencyKey,expectedVersion}=requireHeaders(req);
- const events=await readEncounterEvents(ctx,encounterId);
+ const events=await readAggregateStream(ctx,"Encounter",encounterId);
  const folded=foldEncounter(events);
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Encounter not found");
- // La concurrencia optimista la impone el kernel (expectedVersion en aggregate_versions);
- // no se valida la versión aquí para no bloquear el replay idempotente de una transición.
+ // La versión (If-Match) NO se valida aquí, para no bloquear el replay idempotente de una transición: cada handler la valida con
+ // `assertReadVersion` DESPUÉS de consultar el replay y ANTES de la máquina de estados (hallazgo D7).
  return{requestId,claims,ctx,idempotencyKey,expectedVersion,folded};
 }
 function baseCommand(idempotencyKey:string,encounterId:string,expectedVersion:number,eventType:string,payload:unknown,occurredAt:string,topic:string):ClinicalCommand{
@@ -79,6 +79,7 @@ export async function handleAssessment(req:Request,encounterId:string):Promise<R
   if(!result){
    // Auditoría L-03: mientras la nota NO esté firmada el médico puede CORREGIRLA (nuevo evento ASSESSED, nueva versión). Antes
    // la re-valoración era ilegal, así que un cambio hecho tras "guardar" no tenía forma de llegar a lo que se firmaba.
+   assertReadVersion("Encounter changed since last read",expectedVersion,folded.version); // D7
    if(folded.status!=="READY_TO_SIGN")assertTransition(folded.status,"READY_TO_SIGN");
    result=await runClinicalCommand(ctx,cmd);
   }
@@ -110,7 +111,7 @@ export async function handleSignature(req:Request,encounterId:string):Promise<Re
   let result=await lookupReplay(ctx,cmd);
   if(!result){
    // Orden de precondiciones: versión -> transición -> contenido -> lazo cerrado.
-   if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Encounter changed since last read",{expected:expectedVersion,actual:folded.version});
+   assertReadVersion("Encounter changed since last read",expectedVersion,folded.version);
    assertTransition(folded.status,"SIGNED");
    if(parsed.data.contentHash!==contentHash)throw new ClinicalError("CONFLICT","El contenido en pantalla no coincide con la valoración guardada (SIGNED_CONTENT_MISMATCH). Guarde la valoración de nuevo y revise el texto antes de firmar.");
    assertPhysicianCredentials(cred); // L-05: sin cédula registrada no hay firma (428)

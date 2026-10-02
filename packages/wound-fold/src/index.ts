@@ -4,6 +4,11 @@ import{ClinicalError}from"../../runtime-errors/src";
 // El estadio vigente es el de la última valoración. Autoridad: PROD (cuidado de heridas / calidad, UPP), CAP-WOUND-001.
 // location/stage son datos clínicos: viven en payload bajo RLS, nunca en logs.
 export type WoundState="OPEN"|"HEALED"|"ESCALATED";
+// Vocabulario ÚNICO de estadios (NPIAP): lo validan el servidor al documentar y re-valorar, y lo ofrece la interfaz
+// (selector al documentar y opciones del diálogo al re-valorar). Hallazgo D11c-F5: antes estaba triplicado.
+export const WOUND_STAGES=["STAGE_1","STAGE_2","STAGE_3","STAGE_4","UNSTAGEABLE","DTI"]as const;
+export type WoundStage=typeof WOUND_STAGES[number];
+export const WOUND_STAGE_LABEL:Readonly<Record<WoundStage,string>>={STAGE_1:"Estadio 1",STAGE_2:"Estadio 2",STAGE_3:"Estadio 3",STAGE_4:"Estadio 4",UNSTAGEABLE:"No estadiable",DTI:"LTP profunda"};
 export type WoundEventKind="DOCUMENTED"|"REASSESSED"|"HEALED"|"ESCALATED";
 export type StoredWoundEvent=Readonly<{sequence:number;payload:Record<string,unknown>}>;
 export type FoldedWound=Readonly<{exists:boolean;state:WoundState;version:number;patientId:string;location:string;stage:string}>;
@@ -11,7 +16,7 @@ export type FoldedWound=Readonly<{exists:boolean;state:WoundState;version:number
 function kindOf(e:StoredWoundEvent):WoundEventKind{
  const k=e.payload["kind"];
  if(k==="DOCUMENTED"||k==="REASSESSED"||k==="HEALED"||k==="ESCALATED")return k;
- if(e.sequence===1)return "DOCUMENTED";
+ if(e.sequence===1&&k===undefined)return "DOCUMENTED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown wound event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<WoundEventKind,WoundState>={DOCUMENTED:"OPEN",REASSESSED:"OPEN",HEALED:"HEALED",ESCALATED:"ESCALATED"};

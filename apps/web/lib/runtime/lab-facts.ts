@@ -4,6 +4,7 @@
 import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{normalizeLabValue}from"../../../../packages/lab-reference/src";
 import{withTenantTx}from"./connection";
+import{resultSuperseded}from"./read-model-joins";
 
 // Auditoría 2026-09-19, anexo R03 (R03-10 y vector F09) — `latestResultValueForAnalyte` SE RETIRÓ.
 // Devolvía el último valor como número desnudo (sin unidad, sin fecha, sin estado) y era la fuente de eGFR, MELD, FIB-4,
@@ -24,7 +25,7 @@ export async function latestAnalyteReading(ctx:HttpTenantContext,patientId:strin
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
      and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
      and r.aggregate_id::text<>${excludeResultId??""}
-     and not exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+     and not ${resultSuperseded(tx,ctx.tenantId,tx`r.aggregate_id`)} -- C-02: corregido -> se lee el nuevo
      and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=r.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR') -- R03-10: anulado -> no existe para ningún lector
    order by r.occurred_at desc, r.sequence desc limit 1`;
   const o=rows[0] as Record<string,unknown>|undefined;if(!o)return undefined;
@@ -55,7 +56,7 @@ export async function analyteSeries(ctx:HttpTenantContext,patientId:string,analy
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='DiagnosticResult' and r.payload->>'kind'='RECEIVED'
      and r.payload->>'patientId'=${patientId} and upper(r.payload->>'analyte')=upper(${analyte})
-     and not exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text) -- C-02: corregido -> se lee el nuevo
+     and not ${resultSuperseded(tx,ctx.tenantId,tx`r.aggregate_id`)} -- C-02: corregido -> se lee el nuevo
      and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=r.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR') -- R03-10: anulado -> no existe para ningún lector
    order by r.occurred_at desc, r.sequence desc
    limit ${Math.max(1,Math.min(limit,ANALYTE_SERIES_MAX_POINTS))}`;

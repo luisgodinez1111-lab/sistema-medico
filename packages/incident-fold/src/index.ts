@@ -11,7 +11,7 @@ export type FoldedIncident=Readonly<{exists:boolean;state:IncidentState;version:
 function kindOf(e:StoredIncidentEvent):IncidentEventKind{
  const k=e.payload["kind"];
  if(k==="REPORTED"||k==="REVIEW_STARTED"||k==="ESCALATED"||k==="RESOLVED")return k;
- if(e.sequence===1)return "REPORTED";
+ if(e.sequence===1&&k===undefined)return "REPORTED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown incident event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<IncidentEventKind,IncidentState>={REPORTED:"REPORTED",REVIEW_STARTED:"UNDER_REVIEW",ESCALATED:"ESCALATED",RESOLVED:"RESOLVED"};

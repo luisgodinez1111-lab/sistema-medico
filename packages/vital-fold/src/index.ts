@@ -7,11 +7,15 @@ export type VitalState="RECORDED"|"AMENDED"|"ENTERED_IN_ERROR";
 export type VitalEventKind="RECORDED"|"AMENDED"|"ENTERED_IN_ERROR";
 export type StoredVitalEvent=Readonly<{sequence:number;payload:Record<string,unknown>}>;
 export type FoldedVital=Readonly<{exists:boolean;state:VitalState;version:number;patientId:string;vitalType:string;value:string;unit:string}>;
+// Vocabulario compartido con las proyecciones SQL (apps/web/lib/runtime/read-model-joins.ts `vitalVigente`/`vitalNoAnulada`):
+// el evento que ANULA la observación (terminal: la observación no existe clínicamente) y la regla del valor vigente —el del
+// último evento que lo aporta—, para que el fold y los read models no vuelvan a divergir (hallazgo D1).
+export const VITAL_VOID_KIND="ENTERED_IN_ERROR" satisfies VitalEventKind;
 
 function kindOf(e:StoredVitalEvent):VitalEventKind{
  const k=e.payload["kind"];
  if(k==="RECORDED"||k==="AMENDED"||k==="ENTERED_IN_ERROR")return k;
- if(e.sequence===1)return "RECORDED";
+ if(e.sequence===1&&k===undefined)return "RECORDED"; // génesis heredada SIN discriminador; un `kind` ajeno no es génesis (porte D4)
  throw new ClinicalError("INVARIANT_VIOLATION",`Unknown vital event at sequence ${e.sequence}`);
 }
 const KIND_TO_STATE:Record<VitalEventKind,VitalState>={RECORDED:"RECORDED",AMENDED:"AMENDED",ENTERED_IN_ERROR:"ENTERED_IN_ERROR"};

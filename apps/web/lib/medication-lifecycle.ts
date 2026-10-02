@@ -4,10 +4,10 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldMedication,assertMedicationTransition,assertMedicationAnnotation,type FoldedMedication,type MedAnnotationKind}from"../../../packages/medication-fold/src";
 import{type MedicationState}from"../../../packages/medication-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,activeAllergies,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics,requireRegisteredPatient,antecedentes}from"./clinical-runtime";
+import{runClinicalCommand,runDerivedCommand,lookupReplay,readAggregateStream,activeAllergies,activeMedicationDrugCodes,activeProblemCodes,latestVitalsByType,patientEgfr,patientDemographics,requireRegisteredPatient,antecedentes}from"./clinical-runtime";
 import{toHttpError}from"./http-errors";
 import{derivePatientFactors,habitsOf}from"./patient-factors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid,replayStablePayload}from"./http-command";
+import{assertReadVersion,buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,derivedUuid,replayStablePayload}from"./http-command";
 import{checkDrugAllergy,checkDuplicateTherapy,checkInteractions,checkContraindications,resolveDrug,monitoringFor,checkRenalDosing}from"../../../packages/drug-catalog/src";
 import{validateMedicationOrder,normalizeRoute,checkDoseCeiling,checkPediatricDose,checkDurationLimit,durationToDays}from"../../../packages/medication-validation/src";
 import{physicianCredentials,requirePhysicianCredentials}from"./physician-profile-lifecycle";
@@ -82,14 +82,15 @@ async function loadForTransition(req:Request,medicationId:string,requirePhysicia
  // Physician Control: prescribir/activar/suspender exige médico; scope medication:write.
  authorize(principalFrom(c),requirePhysician?{role:"PHYSICIAN",scope:"medication:write",purpose:"TREATMENT"}:{scope:"medication:write",purpose:"TREATMENT"});
  const{idempotencyKey,expectedVersion}=requireMutationHeaders(req);
- const folded=foldMedication(await readAggregateEvents(ctx,medicationId));
+ const folded=foldMedication(await readAggregateStream(ctx,AGG,medicationId));
  if(!folded.exists)throw new ClinicalError("NOT_FOUND","Medication not found");
  return{claims:c,ctx,idempotencyKey,expectedVersion,folded};
 }
 async function commitTransition(ctx:Parameters<typeof runClinicalCommand>[0],idempotencyKey:string,expectedVersion:number,medicationId:string,folded:FoldedMedication,to:MedicationState,eventType:string,payload:Record<string,unknown>,occurredAt:string,topic:string){
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
- if(!result){assertMedicationTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
+ // D7: tras el replay, If-Match debe ser la versión leída ANTES de la máquina de estados (STOPPED -> HELD con If-Match adelantado).
+ if(!result){assertReadVersion("Medication changed since last read",expectedVersion,folded.version);assertMedicationTransition(folded.state,to);result=await runClinicalCommand(ctx,cmd);}
  const r=result.response as{version:number;auditHash?:string};
  return NextResponse.json({medicationId,state:to,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
 }
@@ -99,7 +100,7 @@ async function commitAnnotation(ctx:Parameters<typeof runClinicalCommand>[0],ide
  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType,payload,occurredAt,topic});
  let result=await lookupReplay(ctx,cmd);
  if(!result){
-  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
+  assertReadVersion("Medication changed since last read",expectedVersion,folded.version);
   assertMedicationAnnotation(folded.state,kind);guard?.();
   result=await runClinicalCommand(ctx,cmd);
  }
@@ -127,7 +128,10 @@ export const PrescribeBody=z.object({occurredAt:z.string().datetime(),acknowledg
 const DAY_MS=86_400_000;
 // EPIC BA — Crea automáticamente las obligaciones de monitoreo del fármaco al prescribir (Zero-Lost-Follow-Up).
 // Idempotente: ids/keys derivados de la key de la prescripción + slot; un reintento reconstruye lo mismo.
-// Cada obligación es su propia transacción (no atómica con la prescripción); un reintento la reconcilia.
+// Cada obligación es su propia transacción (no atómica con la prescripción). Porte D5: corre también en el REPLAY de la
+// prescripción y con runDerivedCommand (no vuelve a cobrar el límite de tasa), así que un reintento IDÉNTICO reconcilia lo que
+// un fallo tras el commit principal dejó pendiente. No hay reconciliador del lado del servidor ligado al outbox: sin reintento,
+// la obligación sigue faltando (Zero-Lost-Follow-Up no queda cerrado del todo).
 async function createMonitoringObligations(ctx:Parameters<typeof runClinicalCommand>[0],baseIdemKey:string,patientId:string,ownerId:string,drugCode:string,occurredAt:string):Promise<void>{
  // Auditoría R02a-MED-01: `monitoringFor` devuelve [] para un fármaco FUERA del catálogo, así que prescribirlo creaba
  // CERO obligaciones de monitoreo… en silencio. Para el médico, «ninguna obligación» se lee como «este fármaco no
@@ -145,8 +149,7 @@ async function createMonitoringObligations(ctx:Parameters<typeof runClinicalComm
     note:`El fármaco «${drugCode}» no está en el catálogo: el sistema no pudo derivar ninguna obligación de monitoreo. Defina qué vigilar y con qué periodicidad.`,
     sourceDrugCode:drugCode},
    occurredAt,topic:"obligation.created"});
-  let r=await lookupReplay(ctx,cmd);
-  if(!r)r=await runClinicalCommand(ctx,cmd);
+  await runDerivedCommand(ctx,cmd);
   return;
  }
  for(let i=0;i<rules.length;i++){
@@ -155,8 +158,7 @@ async function createMonitoringObligations(ctx:Parameters<typeof runClinicalComm
   const obligationId=derivedUuid(baseIdemKey,`monitor-agg-${i}`);
   const dueAt=new Date(new Date(occurredAt).getTime()+rule.dueInDays*DAY_MS).toISOString();
   const cmd=buildCommand({idempotencyKey:idem,aggregateType:"ClinicalObligation",aggregateId:obligationId,expectedVersion:0,eventType:"OBLIGATION_CREATED",payload:{kind:"CREATED",patientId,ownerId,dueAt,obligationKind:rule.kind,test:rule.test,note:rule.note,sourceMedicationDrug:drugCode},occurredAt,topic:"obligation.created"});
-  let r=await lookupReplay(ctx,cmd);
-  if(!r)r=await runClinicalCommand(ctx,cmd);
+  await runDerivedCommand(ctx,cmd);
  }
 }
 // Evaluación de barreras COMPARTIDA por PRESCRIBE y MODIFY: mismos datos del paciente, mismo evaluador puro. La propia
@@ -229,14 +231,15 @@ export async function handleMedicationPrescription(req:Request,medicationId:stri
   if(!result){
    // Orden de precondiciones: PRIMERO la versión. No se le pide al médico que confirme y justifique una prescripción
    // sobre una vista obsoleta del expediente: con If-Match desfasado responde 409 y el cliente debe releer.
-   if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
+   assertReadVersion("Medication changed since last read",expectedVersion,folded.version);
    assertMedicationTransition(folded.state,"PRESCRIBED");
    await requirePhysicianCredentials(ctx,claims); // L-05: sin cédula registrada no hay prescripción (428)
    enforceSafety(safety,"prescribe",acknowledged,b.unverifiedJustification,override);
    // EXEC-0014 / EPIC BA: al prescribir, crear las obligaciones de monitoreo del fármaco (INR, creatinina/TFG, potasio...).
    result=await runClinicalCommand(ctx,cmd);
-   await createMonitoringObligations(ctx,idempotencyKey,folded.patientId,claims.sub,folded.drugCode,b.occurredAt);
   }
+  // Porte D5: fuera del `if`: también en el replay (idempotente por sus llaves derivadas de la Idempotency-Key).
+  await createMonitoringObligations(ctx,idempotencyKey,folded.patientId,claims.sub,folded.drugCode,b.occurredAt);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({medicationId,state:"PRESCRIBED",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
@@ -272,7 +275,7 @@ export async function handleMedicationResume(req:Request,medicationId:string):Pr
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:medicationId,expectedVersion,eventType:"MEDICATION_RESUMED",payload,occurredAt:b.occurredAt,topic:"medication.resumed"});
   let result=await lookupReplay(ctx,cmd);
   if(!result){
-   if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Medication changed since last read",{expected:expectedVersion,actual:folded.version});
+   assertReadVersion("Medication changed since last read",expectedVersion,folded.version);
    assertMedicationTransition(folded.state,"ACTIVE");
    if(folded.state!=="HELD")throw new ClinicalError("CONFLICT",`Illegal medication transition ${folded.state} -> ACTIVE (resume requires HELD)`,{from:folded.state});
    enforceSafety(safety,"resume",acknowledged,b.unverifiedJustification,override);

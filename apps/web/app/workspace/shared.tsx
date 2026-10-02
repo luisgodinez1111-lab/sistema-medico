@@ -9,6 +9,8 @@ import{ageInYears}from"../../../../packages/prescription-safety/src";
 import{goalFor,INDIVIDUALIZATION_NOTICE}from"../../../../packages/care-goals/src";
 // Solo el FORMATO del UUID (módulo sin dependencias de Node: el bundle del cliente no puede traer node:crypto).
 import {uuidFromDigest} from "../../../../packages/canonical-json/src/uuid";
+import {apiRequest} from "../../lib/session-client";
+import {WOUND_STAGES,WOUND_STAGE_LABEL} from "../../../../packages/wound-fold/src";
 // R05b-08: la paleta se declara junto a los imports porque las tablas de color de este módulo ya la usan.
 export const P=primitive.color,S=primitive.space,UI=typography.family.ui;
 
@@ -139,7 +141,7 @@ export type DocItem=Readonly<{documentId:string;title:string;docType:string;type
 export type DocsSnap=Readonly<{items:DocItem[];total:number;byType:Record<string,number>;chips:{clinical:number;consents:number;studies:number}}>;
 export type DocAttachment={attachmentId:string;filename:string;mime:string;size:number;pathname:string;contentHash:string;authorId:string;attachedAt:string};
 export type DocDetail=Readonly<{documentId:string;patientId:string;title:string;docType:string;typeLabel:string;content:string;state:string;statusLabel:string;version:number;createdAt:string;addenda:{addendum:string;authorId:string;at:string}[];signature:{authorId:string;contentHash:string;signatureDigest:string;signedAt:string}|null;attachments:DocAttachment[]}>;
-export type ResultItem=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;critical:boolean;status:string;interpretation:string;tipo:string;estado:string;lifecycle:string;receivedAt:string}>;
+export type ResultItem=Readonly<{resultId:string;patientId:string;patientName:string;analyte:string;value:string;critical:boolean;status:string;interpretation:string;tipo:string;estado:string;lifecycle:string;superseded:boolean;receivedAt:string}>;
 export type ResultsRegistry=Readonly<{items:ResultItem[];total:number;abnormal:number;enSeguimiento:number;pendientes:number}>;
 export type ConsTabs=Readonly<{results:{analyte:string;value:string;estado:string;critical:boolean;receivedAt:string}[];orders:{typeLabel:string;detail:string;status:string;createdAt:string}[];medications:string[];planGoals:{goal:string;statusLabel:string}[];documents:{title:string;typeLabel:string;createdAt:string}[];obligations:{task:string;dueAt:string;statusLabel:string;done:boolean}[]}>;
 export type RegObItem=Readonly<{obligationId:string;name:string;category:string;periodicity:string;dueDate:string|null;estado:string;daysUntil:number|null}>;
@@ -150,7 +152,7 @@ export const CFG_MODULES=["Pacientes","Agenda","Consulta","Resultados","Órdenes
 export const CFG_SCHEDULE:ScheduleRow[]=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"].map(day=>day==="Domingo"?{day,open:false,from:"",to:""}:day==="Sábado"?{day,open:true,from:"08:00",to:"13:00"}:{day,open:true,from:"08:00",to:"15:00"});
 export type CiFinding=Readonly<{domain:string;severity:string;summary:string}>;
 export type CiSnap=Readonly<{registered:boolean;problems?:string[];allergies?:string[];labs?:{hba1c?:number;egfr?:number};findings?:CiFinding[];demographics?:{age:number;sex:string}}>;
-export type ReportsSnap=Readonly<{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;description:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;label:string;count:number;pct:number}[];topProcedures:{detail:string;count:number;pct:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[];appointmentsTotal:number;appointmentsByType:{type:string;label:string;count:number;pct:number}[];qualityIndicators:{key:string;label:string;numerator:number;denominator:number;pct:number;target:number;direction:"higher"|"lower";met:boolean;computable:boolean;note:string}[]}>;
+export type ReportsSnap=Readonly<{patientsAttended:number;income:number;diagnosesTotal:number;topDiagnoses:{code:string;description:string;count:number;pct:number}[];ordersTotal:number;ordersByType:{type:string;label:string;count:number;pct:number}[];topProcedures:{detail:string;count:number;pct:number}[];resultsTotal:number;immunizationsApplied:number;encountersTotal:number;encountersSigned:number;encountersByDay:{date:string;count:number;pct:number}[];prescriptionsTotal:number;topMedications:{drugCode:string;count:number;pct:number}[];appointmentsTotal:number;appointmentsByType:{type:string;label:string;count:number;pct:number}[];qualityIndicators:{key:string;label:string;numerator:number;denominator:number;excluded:number;pct:number;target:number;direction:"higher"|"lower";met:boolean;computable:boolean;note:string}[]}>;
 export const TYPE_LABEL:Record<string,string>={Encounter:"Encuentro",ClinicalOrder:"Orden",Medication:"Medicación",DiagnosticResult:"Resultado",ClinicalDocument:"Documento",ClinicalObligation:"Obligación",ClinicalProblem:"Problema",Allergy:"Alergia",Referral:"Interconsulta",Appointment:"Cita",Immunization:"Vacuna",VitalSign:"Signo vital",CarePlan:"Plan de cuidados",Claim:"Facturación",Consent:"Consentimiento",Admission:"Internamiento",Specimen:"Muestra",Incident:"Incidente",Triage:"Triage",Wound:"Herida/UPP",Transfusion:"Transfusión",Surgery:"Cirugía",Dialysis:"Diálisis",Preventive:"Cuidado preventivo"};
 // Hero de consulta — etiqueta clínica corta desde el código CIE-10 (chips de diagnóstico).
 //
@@ -762,9 +764,68 @@ export function errMsg(r:{status:number;body:Record<string,unknown>}):string{con
  return `${r.status} ${e?.code??""} ${e?.message??""}`.trim();}
 // Auditoría 2026-09-19 (U-16) — los "motivos" del registro inmutable NO son literales del código. Cada transición que lleva
 // un motivo/evidencia/desenlace lo marca con ASK(...) y el diálogo se lo pide al médico antes de enviar; sin texto, no se envía.
-export type Ask=Readonly<{__ask:string;min:number;placeholder?:string}>;
+// Hallazgo D11c (lote 11) y su revisión (F1/F2/F5): el lote y el sitio de la vacuna, el firmante del consentimiento y su rol, los
+// códigos y la referencia de pago de la factura, el destino al alta, el estadio re-valorado de una herida y la resolución de un
+// incidente se marcan con ASK/ASK_CHOICE y los escribe quien actúa; nada de eso se inventa en el cliente. `resolveAsks` resuelve
+// también los ASK dentro de un arreglo (p. ej. `codes`) y TODA acción genérica pasa por él antes de enviar (`postAction`).
+// PENDIENTE (declarado, no resuelto aquí): la nota «Resuelto» de un problema, el responsable (`ownerId`) y el vencimiento
+// (`dueAt`) de la obligación manual siguen siendo del cliente; el otorgamiento de un consentimiento bajo CON-01 exige además la
+// huella del documento presentado y el artefacto firmado (o el testigo), que esta tabla no puede pedir con honestidad.
+// Un dato de vocabulario cerrado (p. ej. el estadio de una herida) se pide con ASK_CHOICE: el diálogo ofrece solo esas opciones.
+// Reacción de una alergia que el médico no especificó: se registra como desconocida de forma EXPLÍCITA (el servidor la exige).
+export const REACTION_UNSPECIFIED="No especificada";
+export type AskChoice=Readonly<{value:string;label:string}>;
+export type Ask=Readonly<{__ask:string;min:number;placeholder?:string;choices?:readonly AskChoice[]}>;
 export const ASK=(label:string,min=5,placeholder?:string):Ask=>({__ask:label,min,...(placeholder?{placeholder}:{})});
+export const ASK_CHOICE=(label:string,choices:readonly AskChoice[]):Ask=>({__ask:label,min:1,choices});
 export const isAsk=(v:unknown):v is Ask=>!!v&&typeof v==="object"&&typeof(v as{__ask?:unknown}).__ask==="string";
+// Hallazgo D11a del lote 11 — CAPTURA de signos vitales: una sola implementación para Consulta y Signos vitales. Una captura tiene
+// id y hora FIJOS mientras dura; cada vital deriva su vitalId y su Idempotency-Key de la captura y de su tipo (U-09), así que un
+// reintento tras una respuesta perdida se repite idempotentemente y solo se crea lo que faltaba. El resultado distingue guardados,
+// rechazados (con el motivo del servidor) y críticos: nunca se anuncia éxito si el servidor rechazó algo.
+// Revisión (F3/F6): la captura RECUERDA qué lectura guardó de cada tipo, con su vitalId y su versión, y si fue crítica. Lo ya
+// guardado no se reenvía, y una lectura DISTINTA de un tipo ya guardado no se crea como segunda observación del mismo momento:
+// es una CORRECCIÓN de ese vital. Revisión del porte (c44dd6c): antes se bloqueaba y se remitía a un «Enmendar» del historial
+// que la Consulta y Signos vitales no tienen (su historial no lleva ids); ahora la propia captura enmienda el vital guardado
+// (POST /vitals/:id/amendment, If-Match de su versión) con el motivo que escribe el médico (`askCorrection`, diálogo U-16); sin
+// motivo no se envía y se dice. La captura termina cuando todo se guarda, al limpiar el formulario, al cambiar de paciente o a
+// los VITAL_CAPTURE_TTL_MIN minutos (una toma nueva lleva su propia hora). Los críticos se informan SIEMPRE.
+export const VITAL_CAPTURE_TTL_MIN=15;
+type SavedVital=Readonly<{reading:string;critical:string|null;vitalId:string;version:number}>;
+export type VitalCapture=Readonly<{id:string;at:string;saved:Readonly<Record<string,SavedVital>>}>;
+export const newVitalCapture=():VitalCapture=>({id:uuid(),at:nowIso(),saved:{}});
+export const liveVitalCapture=(c:VitalCapture|null,now=Date.now()):VitalCapture=>c&&now-Date.parse(c.at)<VITAL_CAPTURE_TTL_MIN*60_000?c:newVitalCapture();
+export type VitalSubmitResult=Readonly<{capture:VitalCapture;saved:string[];failed:string[];critical:string[]}>;
+// Pide al médico un dato (aquí, el motivo de una corrección); null = canceló. En el cockpit es `askReason` del modelo.
+export type AskText=(ask:Ask)=>Promise<string|null>;
+const criticalOf=(vt:string,val:string,body:Record<string,unknown>)=>String(body["status"]??"")==="CRITICAL"?`${vt} ${val}: ${String(body["interpretation"]??"crítico")}`:null;
+export async function submitVitals(capture:VitalCapture,patientId:string,toSave:readonly(readonly[string,string,string])[],askCorrection:AskText):Promise<VitalSubmitResult>{
+ const saved:string[]=[],failed:string[]=[];const done:Record<string,SavedVital>={...capture.saved};
+ for(const[vt,val,u]of toSave){
+  const reading=`${val} ${u}`;const prev=done[vt];
+  if(prev?.reading===reading){saved.push(vt);continue;}
+  // Una lectura DISTINTA de un tipo ya guardado en la toma es una corrección: enmienda de ESE vital, con el motivo del médico.
+  const reason=prev?await askCorrection(ASK(`Motivo de la corrección de ${vt}: ${prev.reading} → ${reading}`,5,"p. ej. error de captura, lectura repetida con el equipo calibrado")):null;
+  if(prev&&reason===null){failed.push(`${vt}: en esta toma ya se guardó ${prev.reading}; la corrección a ${reading} no se envió porque enmendar exige el motivo`);continue;}
+  const vitalId=prev?.vitalId??derivedClientUuid(`${capture.id}:${vt}`);
+  // Llaves estables: la del alta, por captura y tipo; la de la enmienda, además por la versión enmendada. Un reintento tras una
+  // respuesta perdida se repite idempotentemente en ambos casos.
+  const r=prev?await apiRequest(`/api/v1/vitals/${vitalId}/amendment`,{method:"POST",body:{value:val,unit:u,reason,occurredAt:nowIso()},ifMatch:prev.version,idempotencyKey:derivedClientUuid(`${capture.id}:${vt}:amend:${prev.version}`)})
+   :await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId,patientId,vitalType:vt,value:val,unit:u,occurredAt:capture.at},idempotencyKey:derivedClientUuid(`${capture.id}:${vt}:idem`)});
+  if(r.status>=400){failed.push(`${vt}: ${errMsg(r)}`);continue;}
+  saved.push(vt);
+  done[vt]={reading,critical:criticalOf(vt,val,r.body),vitalId,version:Number(r.body["version"]??(prev?prev.version+1:1))};
+ }
+ const critical=Object.values(done).flatMap(v=>v.critical?[v.critical]:[]);
+ return{capture:{...capture,saved:done},saved,failed,critical};
+}
+// Mensaje de una toma de signos (única redacción para ambas vistas): guardados, rechazados y críticos juntos (F6: un crítico
+// guardado nunca se calla por un rechazo).
+export function vitalSubmitMessage(r:VitalSubmitResult):string{
+ const crit=r.critical.length?` ⚠ ${r.critical.length} crítico(s): ${r.critical.join("; ")}. Un vital crítico sin atender bloquea la firma.`:"";
+ if(r.failed.length)return`Guardados: ${r.saved.length?r.saved.join(", "):"ninguno"}. NO guardados: ${r.failed.join(" · ")}.${crit} Corrija los no guardados y vuelva a guardar: lo ya guardado no se duplica.`;
+ return`Signos vitales guardados ✓${crit}`;
+}
 // Siguiente transición de una medicación (label, ruta, cuerpo, estado destino).
 export function medNext(m:Med):{label:string;path:string;body:Record<string,unknown>;to:MedState}|null{
  if(m.state==="PROPOSED")return{label:"Prescribir",path:`/api/v1/medications/${m.id}/prescription`,body:{occurredAt:nowIso()},to:"PRESCRIBED"};
@@ -825,7 +886,7 @@ export function tfNext(t:Tf):{label:string;path:string;body:Record<string,unknow
 }
 export function wnActions(w:{id:string;state:WnSt}):{label:string;path:string;body:Record<string,unknown>;to:WnSt}[]{
  const base=`/api/v1/wounds/${w.id}`;
- if(w.state==="OPEN")return[{label:"Re-valorar (peor)",path:base+"/reassessment",body:{stage:"STAGE_3",occurredAt:nowIso()},to:"OPEN"},{label:"Cicatrizada",path:base+"/healing",body:{occurredAt:nowIso()},to:"HEALED"},{label:"Escalar",path:base+"/escalation",body:{reason:ASK("Descripción del deterioro",5),occurredAt:nowIso()},to:"ESCALATED"}];
+ if(w.state==="OPEN")return[{label:"Re-valorar",path:base+"/reassessment",body:{stage:ASK_CHOICE("Estadio de la herida en esta valoración",WOUND_STAGES.map(v=>({value:v,label:WOUND_STAGE_LABEL[v]}))),occurredAt:nowIso()},to:"OPEN"},{label:"Cicatrizada",path:base+"/healing",body:{occurredAt:nowIso()},to:"HEALED"},{label:"Escalar",path:base+"/escalation",body:{reason:ASK("Descripción del deterioro",5),occurredAt:nowIso()},to:"ESCALATED"}];
  return[];
 }
 // Auditoría R02b (R2B-019, lote 16): estos botones decían «Clasificar ESI-2» y «Re-clasificar ESI-1» y enviaban el literal
@@ -859,7 +920,7 @@ export function esiBody(f:EsiForm):Record<string,unknown>{
  return body;
 }
 export function incActions(i:{id:string;state:IncSt}):{label:string;path:string;body:Record<string,unknown>;to:IncSt}[]{
- const base=`/api/v1/incidents/${i.id}`;const resolve={label:"Resolver",path:base+"/resolution",body:{resolution:"CAPA implementada",occurredAt:nowIso()},to:"RESOLVED" as IncSt};
+ const base=`/api/v1/incidents/${i.id}`;const resolve={label:"Resolver",path:base+"/resolution",body:{resolution:ASK("Resolución del incidente (acción correctiva o preventiva aplicada)",5),occurredAt:nowIso()},to:"RESOLVED" as IncSt};
  if(i.state==="REPORTED")return[{label:"Revisar",path:base+"/review",body:{occurredAt:nowIso()},to:"UNDER_REVIEW"},resolve];
  if(i.state==="UNDER_REVIEW")return[{label:"Escalar",path:base+"/escalation",body:{reason:ASK("Motivo de la escalada",5),occurredAt:nowIso()},to:"ESCALATED"},resolve];
  if(i.state==="ESCALATED")return[resolve];
@@ -873,21 +934,21 @@ export function spNext(s:Sp):{label:string;path:string;body:Record<string,unknow
 }
 export function admActions(a:{id:string;state:AdmSt}):{label:string;path:string;body:Record<string,unknown>;to:AdmSt}[]{
  const base=`/api/v1/admissions/${a.id}`;
- if(a.state==="ADMITTED"||a.state==="TRANSFERRED")return[{label:"Trasladar a UCI",path:base+"/transfer",body:{unit:"ICU",occurredAt:nowIso()},to:"TRANSFERRED"},{label:"Dar de alta",path:base+"/discharge",body:{disposition:"Alta a domicilio",occurredAt:nowIso()},to:"DISCHARGED"},{label:"Cancelar",path:base+"/cancellation",body:{reason:ASK("Motivo de la cancelación de la admisión",5),occurredAt:nowIso()},to:"CANCELLED"}];
+ if(a.state==="ADMITTED"||a.state==="TRANSFERRED")return[{label:"Trasladar a UCI",path:base+"/transfer",body:{unit:"ICU",occurredAt:nowIso()},to:"TRANSFERRED"},{label:"Dar de alta",path:base+"/discharge",body:{disposition:ASK("Destino al alta",3,"p. ej. domicilio, traslado a otra unidad"),occurredAt:nowIso()},to:"DISCHARGED"},{label:"Cancelar",path:base+"/cancellation",body:{reason:ASK("Motivo de la cancelación de la admisión",5),occurredAt:nowIso()},to:"CANCELLED"}];
  return[];
 }
 export function csActions(c:{id:string;state:CsSt}):{label:string;path:string;body:Record<string,unknown>;to:CsSt}[]{
  const base=`/api/v1/consents/${c.id}`;const w={occurredAt:nowIso()};
  if(c.state==="DRAFTED")return[{label:"Presentar",path:base+"/presentation",body:w,to:"PRESENTED"}];
- if(c.state==="PRESENTED")return[{label:"Otorgar",path:base+"/grant",body:{signerName:"Paciente/Tutor",occurredAt:nowIso()},to:"GRANTED"},{label:"Rechazar",path:base+"/decline",body:{reason:ASK("Motivo del rechazo",5),occurredAt:nowIso()},to:"DECLINED"}];
+ if(c.state==="PRESENTED")return[{label:"Otorga el paciente",path:base+"/grant",body:{signerRole:"PATIENT",signerName:ASK("Nombre completo del paciente que firma el consentimiento",3),occurredAt:nowIso()},to:"GRANTED"},{label:"Otorga el tutor",path:base+"/grant",body:{signerRole:"GUARDIAN",signerName:ASK("Nombre completo del tutor o representante legal que firma",3),occurredAt:nowIso()},to:"GRANTED"},{label:"Rechazar",path:base+"/decline",body:{reason:ASK("Motivo del rechazo",5),occurredAt:nowIso()},to:"DECLINED"}];
  if(c.state==="GRANTED")return[{label:"Revocar",path:base+"/revocation",body:{reason:ASK("Motivo de la revocación",5),occurredAt:nowIso()},to:"REVOKED"}];
  return[];
 }
 export function clmActions(c:{id:string;state:ClmSt}):{label:string;path:string;body:Record<string,unknown>;to:ClmSt}[]{
  const base=`/api/v1/claims/${c.id}`;const w={occurredAt:nowIso()};const voidAct={label:"Anular",path:base+"/void",body:{reason:ASK("Motivo de la anulación",5),occurredAt:nowIso()},to:"VOIDED" as ClmSt};
- if(c.state==="DRAFT")return[{label:"Codificar",path:base+"/coding",body:{codes:["99213"],occurredAt:nowIso()},to:"CODED"},voidAct];
+ if(c.state==="DRAFT")return[{label:"Codificar",path:base+"/coding",body:{codes:[ASK("Código CIE-10 del diagnóstico facturado",3,"p. ej. E11.9")],occurredAt:nowIso()},to:"CODED"},voidAct];
  if(c.state==="CODED")return[{label:"Enviar",path:base+"/submission",body:w,to:"SUBMITTED"},voidAct];
- if(c.state==="SUBMITTED")return[{label:"Pagada",path:base+"/payment",body:{reference:"EOB-"+Date.now(),occurredAt:nowIso()},to:"PAID"},{label:"Rechazada",path:base+"/rejection",body:{reason:ASK("Motivo del rechazo del pagador",5),occurredAt:nowIso()},to:"REJECTED"}];
+ if(c.state==="SUBMITTED")return[{label:"Pagada",path:base+"/payment",body:{reference:ASK("Referencia del pago (folio o EOB del pagador)",3),occurredAt:nowIso()},to:"PAID"},{label:"Rechazada",path:base+"/rejection",body:{reason:ASK("Motivo del rechazo del pagador",5),occurredAt:nowIso()},to:"REJECTED"}];
  if(c.state==="REJECTED")return[{label:"Reenviar",path:base+"/submission",body:w,to:"SUBMITTED"},voidAct];
  return[];
 }
@@ -898,15 +959,17 @@ export function cpActions(c:{id:string;state:CpSt}):{label:string;path:string;bo
  if(c.state==="ON_HOLD")return[{label:"Reanudar",path:base+"/resumption",body:w,to:"ACTIVE"},{label:"Cancelar",path:base+"/cancellation",body:{reason:ASK("Motivo",5),occurredAt:nowIso()},to:"CANCELLED"}];
  return[];
 }
+// Revisión del porte (c44dd6c): «Enmendar» pide el valor CORREGIDO (antes reenviaba el valor ya guardado y solo pedía el motivo,
+// así que no corregía nada).
 export function vitActions(v:{id:string;state:VitSt;value:string;unit:string}):{label:string;path:string;body:Record<string,unknown>;to:VitSt}[]{
  const base=`/api/v1/vitals/${v.id}`;
- if(v.state==="RECORDED"||v.state==="AMENDED")return[{label:"Enmendar",path:base+"/amendment",body:{value:v.value,unit:v.unit,reason:ASK("Motivo de la corrección",5),occurredAt:nowIso()},to:"AMENDED"},{label:"Marcar error",path:base+"/error-mark",body:{reason:ASK("Motivo de marcar el registro como error",5),occurredAt:nowIso()},to:"ENTERED_IN_ERROR"}];
+ if(v.state==="RECORDED"||v.state==="AMENDED")return[{label:"Enmendar",path:base+"/amendment",body:{value:ASK(`Valor corregido (${v.unit}); registrado: ${v.value}`,1),unit:v.unit,reason:ASK("Motivo de la corrección",5),occurredAt:nowIso()},to:"AMENDED"},{label:"Marcar error",path:base+"/error-mark",body:{reason:ASK("Motivo de marcar el registro como error",5),occurredAt:nowIso()},to:"ENTERED_IN_ERROR"}];
  return[];
 }
 export function immActions(i:{id:string;state:ImmSt}):{label:string;path:string;body:Record<string,unknown>;to:ImmSt}[]{
  const base=`/api/v1/immunizations/${i.id}`;
- if(i.state==="DUE")return[{label:"Aplicar",path:base+"/administration",body:{lot:"L-2026-A",site:"deltoides izq",occurredAt:nowIso()},to:"ADMINISTERED"},{label:"Rechazar",path:base+"/refusal",body:{reason:ASK("Motivo del rechazo (paciente/tutor)",5),occurredAt:nowIso()},to:"REFUSED"}];
- if(i.state==="ADMINISTERED")return[{label:"Evento adverso",path:base+"/adverse-event",body:{reaction:ASK("Descripción de la reacción transfusional",10),occurredAt:nowIso()},to:"ADVERSE_EVENT"}];
+ if(i.state==="DUE")return[{label:"Aplicar",path:base+"/administration",body:{lot:ASK("Lote de la vacuna aplicada (tal como figura en el frasco)",2),site:ASK("Sitio de aplicación",3,"p. ej. deltoides izquierdo"),occurredAt:nowIso()},to:"ADMINISTERED"},{label:"Rechazar",path:base+"/refusal",body:{reason:ASK("Motivo del rechazo (paciente/tutor)",5),occurredAt:nowIso()},to:"REFUSED"}];
+ if(i.state==="ADMINISTERED")return[{label:"Evento adverso",path:base+"/adverse-event",body:{reaction:ASK("Descripción del evento adverso tras la vacunación",10),occurredAt:nowIso()},to:"ADVERSE_EVENT"}];
  return[];
 }
 export function obNext(o:Ob):{label:string;path:string;body:Record<string,unknown>;to:ObSt}|null{
