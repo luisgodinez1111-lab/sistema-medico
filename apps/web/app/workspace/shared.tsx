@@ -348,36 +348,45 @@ export const content:React.CSSProperties={maxWidth:1140,margin:"0 auto",padding:
 // Sidebar del expediente (diseño exacto S1.png): navegación primaria con íconos + badges en tiempo real.
 // h2:"" => volver arriba (Inicio). badge: clave del conteo real; badgeColor rojo=urgente, morado=informativo.
 export type BadgeKey="agenda"|"resultados"|"seguimiento"|"obligaciones";
-// Ley de Hick (refactor UI/UX pro-max): la navegación NO es una lista plana de 19 opciones equivalentes. Se agrupa en
-// secciones con encabezado para reducir el coste de decisión del médico. `group` marca la sección; el orden del array es el
-// orden de render, y el encabezado se pinta al cambiar de grupo (ver page.tsx). Biblioteca y Configuración viven aparte, en
-// TOOLS_NAV (HERRAMIENTAS).
-export type NavGroup="Clínica"|"Registros del paciente"|"Coordinación"|"Análisis";
-export const SIDE_NAV:{label:string;h2:string;icon:string;group:NavGroup;badge?:BadgeKey;badgeColor?:"r"|"p"}[]=[
- {label:"Inicio",h2:"",icon:"home",group:"Clínica"},
- {label:"Pacientes",h2:"Paciente",icon:"people",group:"Clínica"},
- {label:"Expediente",h2:"",icon:"record",group:"Clínica"},
- {label:"Consulta",h2:"Encuentro",icon:"steth",group:"Clínica"},
- {label:"Agenda",h2:"Agenda",icon:"cal",group:"Clínica",badge:"agenda",badgeColor:"p"},
- {label:"Problemas",h2:"Lista de problemas",icon:"clipboard",group:"Registros del paciente"},
- {label:"Alergias",h2:"Alergias",icon:"warning",group:"Registros del paciente"},
- {label:"Medicamentos",h2:"Medicación",icon:"pill",group:"Registros del paciente"},
- {label:"Vacunas",h2:"Vacunas",icon:"syringe",group:"Registros del paciente"},
- {label:"Signos vitales",h2:"Signos vitales",icon:"activity",group:"Registros del paciente"},
- {label:"Resultados",h2:"Resultados diagnósticos",icon:"flask",group:"Registros del paciente",badge:"resultados",badgeColor:"r"},
- {label:"Órdenes",h2:"Órdenes clínicas",icon:"orders",group:"Registros del paciente"},
- {label:"Plan de cuidados",h2:"Plan de cuidados",icon:"target",group:"Registros del paciente"},
- {label:"Interconsultas",h2:"Interconsultas",icon:"people",group:"Coordinación"},
- {label:"Seguimiento",h2:"Seguimiento automático",icon:"chart",group:"Coordinación",badge:"seguimiento",badgeColor:"p"},
- {label:"Documentos",h2:"Documentos clínicos",icon:"folder",group:"Coordinación"},
- {label:"Obligaciones",h2:"Obligaciones de seguimiento",icon:"checkbox",group:"Coordinación",badge:"obligaciones",badgeColor:"r"},
- {label:"Facturación",h2:"Facturación",icon:"card",group:"Coordinación"},
- {label:"Clinical Intelligence",h2:"",icon:"brain",group:"Análisis"},
- {label:"Reportes",h2:"Evolución longitudinal",icon:"barchart",group:"Análisis"},
+// Centralización en 3 ramas (decisión del dueño): la navegación ya NO declara su propia taxonomía de secciones.
+// La rama de cada vista vive en UNA sola fuente —`packages/clinical-domains` (VIEW_BRANCH)— y el guard de CI
+// (`tests/v22/branch-architecture.test.ts`) exige que SIDE_NAV/TOOLS_NAV concuerden con ella. Cada ítem solo
+// declara su `view`; la sección (Consultas/Expedientes/Laboratorios y Diagnósticos/Sistema) se deriva de la rama
+// de esa vista, y el encabezado se pinta al cambiar de rama (ver page.tsx). El orden del array es el orden de
+// render: los ítems de una misma rama van CONTIGUOS (el guard lo verifica). `home:true` = la portada (Inicio),
+// que se pinta arriba, sin encabezado de sección. Biblioteca y Configuración viven aparte, en TOOLS_NAV.
+export type{Branch} from"../../../../packages/clinical-domains/src";
+export{BRANCH_LABEL,VIEW_BRANCH,BRANCH_META,branchOfView} from"../../../../packages/clinical-domains/src";
+export type NavItem={label:string;h2:string;icon:string;view:string;home?:boolean;badge?:BadgeKey;badgeColor?:"r"|"p"};
+export const SIDE_NAV:NavItem[]=[
+ {label:"Inicio",h2:"",icon:"home",view:"inicio",home:true},
+ // Consultas — el ciclo de la visita.
+ {label:"Consulta",h2:"Encuentro",icon:"steth",view:"consulta"},
+ {label:"Agenda",h2:"Agenda",icon:"cal",view:"agenda",badge:"agenda",badgeColor:"p"},
+ {label:"Interconsultas",h2:"Interconsultas",icon:"people",view:"interconsulta"},
+ {label:"Seguimiento",h2:"Seguimiento automático",icon:"chart",view:"seguimiento",badge:"seguimiento",badgeColor:"p"},
+ // Expedientes — el registro longitudinal del paciente.
+ {label:"Pacientes",h2:"Paciente",icon:"people",view:"pacientes"},
+ {label:"Expediente",h2:"",icon:"record",view:"exp"},
+ {label:"Problemas",h2:"Lista de problemas",icon:"clipboard",view:"problemas"},
+ {label:"Alergias",h2:"Alergias",icon:"warning",view:"alergias"},
+ {label:"Medicamentos",h2:"Medicación",icon:"pill",view:"medicamentos"},
+ {label:"Vacunas",h2:"Vacunas",icon:"syringe",view:"vacunas"},
+ {label:"Signos vitales",h2:"Signos vitales",icon:"activity",view:"signos"},
+ {label:"Plan de cuidados",h2:"Plan de cuidados",icon:"target",view:"planCuidado"},
+ {label:"Documentos",h2:"Documentos clínicos",icon:"folder",view:"documentos"},
+ // Laboratorios y Diagnósticos — estudios, órdenes y soporte a la decisión.
+ {label:"Resultados",h2:"Resultados diagnósticos",icon:"flask",view:"resultados",badge:"resultados",badgeColor:"r"},
+ {label:"Órdenes",h2:"Órdenes clínicas",icon:"orders",view:"ordenes"},
+ {label:"Clinical Intelligence",h2:"",icon:"brain",view:"clinicalIntel"},
+ // Sistema (transversal) — cruza las tres ramas.
+ {label:"Facturación",h2:"Facturación",icon:"card",view:"facturacion"},
+ {label:"Obligaciones",h2:"Obligaciones de seguimiento",icon:"checkbox",view:"obligaciones",badge:"obligaciones",badgeColor:"r"},
+ {label:"Reportes",h2:"Evolución longitudinal",icon:"barchart",view:"reportes"},
 ];
-export const TOOLS_NAV:{label:string;h2:string;icon:string}[]=[
- {label:"Biblioteca clínica",h2:"",icon:"book"},
- {label:"Configuración",h2:"",icon:"gear"},
+export const TOOLS_NAV:{label:string;h2:string;icon:string;view:string}[]=[
+ {label:"Biblioteca clínica",h2:"",icon:"book",view:"biblioteca"},
+ {label:"Configuración",h2:"",icon:"gear",view:"configuracion"},
 ];
 export const ICONS:Record<string,string>={
  home:"M4 11l8-6 8 6M6 10v9h12v-9",
