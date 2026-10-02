@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-09-15T19:10:30.461Z",
+  "generatedAt": "2026-10-02T05:57:56.730Z",
   "results": [
     {
       "gate": "RG-002",
       "value": 0,
       "target": 0,
       "status": "PASS",
-      "detail": "C4/C5 registry invariant coverage"
+      "detail": "C4/C5 registry invariant coverage (tests declarados, existentes y fijados por sha256)"
     },
     {
       "gate": "RG-003",
       "value": 0,
       "target": 0,
       "status": "PASS",
-      "detail": "Registry invariant→TEST coverage"
+      "detail": "Registry invariant→TEST coverage (todo el registro, no solo C4/C5)"
     },
     {
       "gate": "RG-006",
@@ -38,9 +38,9 @@
     },
     {
       "gate": "RG-013",
-      "value": 5,
+      "value": 0,
       "target": 0,
-      "status": "BLOCKED",
+      "status": "PASS",
       "detail": "Test source integrity + authority binding"
     },
     {
@@ -66,9 +66,9 @@
     },
     {
       "gate": "RG-012",
-      "value": "NOT_RUN",
+      "value": "PASS",
       "target": "PASS",
-      "status": "BLOCKED",
+      "status": "PASS",
       "detail": "Reproducible full safety test execution"
     }
   ]

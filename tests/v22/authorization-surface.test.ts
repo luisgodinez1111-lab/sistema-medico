@@ -17,6 +17,7 @@ const RAIZ="apps/web/app/api";
  */
 const EXCEPCIONES:Readonly<Record<string,string>>={
  "health/route.ts":"Sonda de vida: no abre sesión, no consulta la base y devuelve solo {status, service, at}. Un health check que exigiera sesión no sirve como health check.",
+ "health/ready/route.ts":"Sonda de readiness (SRE): no abre sesión —es una sonda de infraestructura para el balanceador—. Toca la base solo con `select 1` acotado en el tiempo, que no lee ninguna tabla bajo RLS ni expone PHI; devuelve solo {status, dependencies}.",
  "v1/features/route.ts":"Capacidades que la UI necesita para decidir qué pinta. Exige sesión válida (resolveVerified) pero no scope clínico, porque no toca datos de pacientes.",
 };
 function rutas():string[]{

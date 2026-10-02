@@ -37,7 +37,9 @@ type Sink=(e:SliEvent)=>void;
 const sinks:Sink[]=[];
 // Suscribe un consumidor de SLIs (métricas/backends). Devuelve un des-suscriptor.
 export function onSli(sink:Sink):()=>void{sinks.push(sink);return()=>{const i=sinks.indexOf(sink);if(i>=0)sinks.splice(i,1);};}
-function defaultEmit(e:SliEvent):void{if(process.env.OBSERVABILITY_EMIT==="1")process.stdout.write(JSON.stringify({kind:"sli",...e})+"\n");}
+// Fallback a stdout SOLO si nadie registró un sink: cuando el runtime conecta un consumidor estructurado
+// (packages/logger), ese sink se vuelve el canal y defaultEmit se aparta para no duplicar cada línea.
+function defaultEmit(e:SliEvent):void{if(sinks.length>0)return;if(process.env.OBSERVABILITY_EMIT==="1")process.stdout.write(JSON.stringify({kind:"sli",...e})+"\n");}
 export function emitSli(e:SliEvent):void{
  assertSliPhiFree(e as unknown as Record<string,unknown>);
  defaultEmit(e);

@@ -21,10 +21,21 @@ const PROTECTED_PAGE=/^\/(workspace)(\/|$)/;
 // F10: «ningún endpoint expone la versión de API en la respuesta (solo en el path /v1/)». El path se puede reescribir en
 // un proxy; la cabecera viene del servidor que respondió de verdad.
 const API_VERSION="v1";
+// DevSecOps — cabeceras de seguridad del borde, en TODA respuesta (páginas y API), junto al CSP/nonce que ya se
+// fija. HSTS fuerza HTTPS; nosniff corta el MIME-sniffing; no-referrer no filtra la URL del expediente a terceros;
+// Permissions-Policy apaga APIs del navegador que la app no usa; X-Frame-Options:DENY evita el clickjacking.
+function conSeguridad<T extends Response>(res:T):T{
+ res.headers.set("Strict-Transport-Security","max-age=63072000; includeSubDomains; preload");
+ res.headers.set("X-Content-Type-Options","nosniff");
+ res.headers.set("Referrer-Policy","no-referrer");
+ res.headers.set("X-Frame-Options","DENY");
+ res.headers.set("Permissions-Policy","camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()");
+ return res;
+}
 function conCorrelacion<T extends Response>(res:T,requestId:string):T{
  res.headers.set("X-Request-Id",requestId);
  res.headers.set("X-Medos-Api-Version",API_VERSION);
- return res;
+ return conSeguridad(res);
 }
 function nonceFor():string{const b=new Uint8Array(16);crypto.getRandomValues(b);return btoa(String.fromCharCode(...b));}
 export function middleware(req:NextRequest){
@@ -39,12 +50,12 @@ export function middleware(req:NextRequest){
    // Se preserva la ruta COMPLETA (pathname + query) para que un deep-link del expediente (?v=exp&p=…&s=…) sobreviva al
    // rebote al login y se restaure tras autenticar; sin esto el enlace compartido caía en /workspace pelón (sin paciente).
    const to=req.nextUrl.clone();to.pathname="/login";to.search=`?next=${encodeURIComponent(path+req.nextUrl.search)}`;
-   return NextResponse.redirect(to);
+   return conSeguridad(NextResponse.redirect(to));
   }
   const nonce=nonceFor();const csp=contentSecurityPolicy(process.env,nonce);
   const headers=new Headers(req.headers);headers.set("x-nonce",nonce);headers.set("content-security-policy",csp);
   const res=NextResponse.next({request:{headers}});res.headers.set("Content-Security-Policy",csp);
-  return res;
+  return conSeguridad(res);
  }
  // El identificador de correlación: se respeta el del cliente si lo manda, y si no se genera uno.
  const requestId=req.headers.get("x-request-id")??crypto.randomUUID();

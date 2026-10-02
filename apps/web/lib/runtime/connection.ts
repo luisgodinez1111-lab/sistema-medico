@@ -10,6 +10,8 @@ import{type HttpTenantContext}from"../../../../packages/http-principal/src";
 import{directEndpoint}from"../../../../packages/pg-endpoint/src";
 import{ClinicalError}from"../../../../packages/runtime-errors/src";
 import{sliSpan,flowForTopic,type SliFlow}from"../../../../packages/observability/src";
+import{CircuitBreaker}from"../../../../packages/resilience/src";
+import{runWithDbResilience}from"./db-resilience";
 import{assertSessionNotRevoked,revokeSession}from"../session-revocation";
 import{logPhiAccess,patientAccessLog,type PhiAccessEntry,type PhiAccessAction,type PhiResourceType}from"../phi-access-log";
 
@@ -49,22 +51,20 @@ const isPoolExhausted=(e:unknown):boolean=>{
  if(err?.code&&POOL_EXHAUSTED.has(err.code))return /too many|connection|slot|starting up|shutdown/i.test(err.message??"")||err.code!=="XX000";
  return /too many clients|too many connections|connection terminated|connection ended|ECONNRESET|ETIMEDOUT/i.test(err?.message??"");
 };
-const wait=(ms:number)=>new Promise<void>(r=>setTimeout(r,ms));
+// SRE: un circuit breaker por instancia alrededor de la dependencia de conexión. Tras 5 fallos de CONEXIÓN
+// seguidos (no de dominio: ver db-resilience) abre 30 s y responde rápido DEPENDENCY_UNAVAILABLE en vez de
+// seguir reintentando contra una base caída — fail-fast que libera las pocas conexiones del endpoint directo.
+const dbBreaker=new CircuitBreaker(5,30_000);
 // Reintenta SOLO fallos de conexión (la transacción no llegó a abrirse o se cortó el socket): ni un comando a medias ni
-// un error de dominio se reintentan nunca aquí.
+// un error de dominio se reintentan nunca aquí. La lógica (reintento + breaker, PHI-free) vive aislada y probada en
+// db-resilience.ts; aquí solo se le pasan la clasificación de fallo y la telemetría SLI de este runtime.
 async function withConnectionRetry<T>(flow:SliFlow,correlationId:string,run:()=>Promise<T>):Promise<T>{
- const backoffMs=[120,360];
- for(let attempt=0;;attempt++){
-  try{return await run();}
-  catch(e){
-   if(!isPoolExhausted(e))throw e;
-   const code=(e as{code?:string}).code??"POOL_EXHAUSTED";
-   // El SLI solo lleva el código del error y el número de intento: nada de PHI (allowlist de packages/observability).
-   sliSpan(flow,`db_pool_retry_${attempt}`,correlationId).end("error",{code});
-   if(attempt>=backoffMs.length)throw new ClinicalError("DEPENDENCY_UNAVAILABLE","La base de datos no aceptó la conexión (límite de conexiones alcanzado)");
-   await wait(backoffMs[attempt]!);
-  }
- }
+ return runWithDbResilience(dbBreaker,run,{
+  isConnectionFailure:isPoolExhausted,
+  // El SLI solo lleva el código del error y el número de intento: nada de PHI (allowlist de packages/observability).
+  onConnRetry:(attempt,code)=>sliSpan(flow,`db_pool_retry_${attempt}`,correlationId).end("error",{code}),
+  onCircuitOpen:()=>sliSpan(flow,"db_circuit_open",correlationId).end("error",{code:"CIRCUIT_OPEN"}),
+ });
 }
 // Auditoría R01-002: los 41 read-models repetían la misma línea de `set_config` tras abrir la transacción. Un solo helper
 // fija el contexto de RLS (tenant, actor, propósito, correlación) y ejecuta el cuerpo; si alguien añade un read-model

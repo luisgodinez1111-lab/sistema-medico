@@ -8,6 +8,10 @@ import{sliSpan,flowForTopic,type SliFlow}from"../../../../packages/observability
 import{sharedAllow,rateLimitedError}from"../rate-limit-shared";
 import{assertSessionNotRevoked,revokeSession}from"../session-revocation";
 import{getSql,withTenantTx}from"./connection";
+import{logEvent,ensureObservabilitySink}from"./log";
+
+// Conecta el consumidor estructurado de SLIs una sola vez (al cargar el pipeline de comandos).
+ensureObservabilitySink();
 
 export type ClinicalCommandResult=Readonly<{replayed:boolean;response:unknown}>;
 // Ejecuta un comando clínico atómico bajo RLS real: la conexión ya asumió el rol runtime
@@ -29,7 +33,11 @@ export async function runClinicalCommand(ctx:HttpTenantContext,command:ClinicalC
   span.end("success",{tenantId:ctx.tenantId});
   return r;
  }catch(e){
-  span.end("error",{code:(e as{code?:string}).code??"ERROR",tenantId:ctx.tenantId});
+  const code=(e as{code?:string}).code??"ERROR";
+  span.end("error",{code,tenantId:ctx.tenantId});
+  // Un comando fallido deja ahora un log de error CORRELACIONADO (sin PHI: solo topic y código del fallo),
+  // que antes no existía — solo se emitía el SLI. Permite atar el reporte del médico a la traza del servidor.
+  logEvent("error","command_failed",command.correlationId,{topic:command.topic,code});
   throw e;
  }
 }

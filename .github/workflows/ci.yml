@@ -30,8 +30,13 @@ jobs:
         run: pnpm typecheck && pnpm typecheck:web
       - name: Suite de tests
         run: pnpm test
+      - name: Build de producción (lo que se despliega en Vercel debe compilar en CI, no solo en el deploy)
+        run: pnpm build:web
       - name: Gates de autoridad (trazabilidad + admisión de release)
         run: pnpm traceability:check && pnpm release:check && pnpm openapi:check && pnpm capability:check
+      - name: Auditoría de dependencias (reporte; se endurece a gate cuando la línea base esté limpia)
+        run: pnpm audit --audit-level=high --prod
+        continue-on-error: true
   live-smoke:
     name: regresión en vivo contra Postgres desechable
     runs-on: ubuntu-latest

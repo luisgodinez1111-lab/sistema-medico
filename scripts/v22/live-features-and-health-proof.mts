@@ -11,6 +11,7 @@ const{signSession}=await import("../../packages/session/src");
 const{ensurePatientIn}=await import("./_patient.mts");
 const feat=await import("../../apps/web/app/api/v1/features/route");
 const health=await import("../../apps/web/app/api/health/route");
+const ready=await import("../../apps/web/app/api/health/ready/route");
 const dz=await import("../../apps/web/app/api/v1/dialysis-sessions/route");
 const dzCancel=await import("../../apps/web/app/api/v1/dialysis-sessions/[dialysisId]/cancellation/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
@@ -24,6 +25,12 @@ try{
  const h=await health.GET();const hb=await h.json() as {status?:string;service?:string};
  ok(h.status===200&&hb.status==="ALIVE","HEALTH_ALIVE_200");
  ok(!JSON.stringify(hb).match(/patient|curp|nombre/i),"HEALTH_NO_PHI");
+
+ // === /api/health/ready — readiness profundo: con la base DESECHABLE arriba, READY 200, dependencia UP y sin PHI ===
+ const rd=await ready.GET();const rdb=await rd.json() as {status?:string;dependencies?:{name:string;status:string}[]};
+ ok(rd.status===200&&rdb.status==="READY","READY_200_WITH_DB");
+ ok(Array.isArray(rdb.dependencies)&&rdb.dependencies.some(d=>d.name==="database"&&d.status==="UP"),"READY_DB_UP");
+ ok(!JSON.stringify(rdb).match(/patient|curp|nombre/i),"READY_NO_PHI");
 
  // === /api/v1/features — exige sesión: la configuración del consultorio no se revela a un anónimo ===
  let r=await feat.GET(new Request("http://l/",{headers:H()}));
