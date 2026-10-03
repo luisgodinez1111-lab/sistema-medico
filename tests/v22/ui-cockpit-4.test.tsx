@@ -14,7 +14,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 4/
   // se abre eligiendo paciente → expediente → pestaña «Consulta», donde aparece el formulario (1. Motivo de consulta).
   render(<Workspace/>);
   await abrirConsulta();
-  expect(await screen.findByText("1. Motivo de consulta")).toBeTruthy();
+  expect(await screen.findByText("Motivo de consulta")).toBeTruthy();
  });
 
  it("vista Pacientes: lista real, la búsqueda filtra, y seleccionar abre el EXPEDIENTE directo (una puerta)",async()=>{

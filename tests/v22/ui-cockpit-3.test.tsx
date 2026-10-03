@@ -21,7 +21,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 3/
   const task=within(tareas).getByText("Resultado crítico sin cerrar");
   fireEvent.click(task);
   // Unificación: la tarea abre el EXPEDIENTE del paciente en la pestaña "Consulta" (encuentro) — no una pantalla separada.
-  expect(await screen.findByText("1. Motivo de consulta")).toBeTruthy();
+  expect(await screen.findByText("Motivo de consulta")).toBeTruthy();
  });
 
  it("vista Agenda (Lote F): Semana y Mes son vistas reales cableadas a datos, ya no 'Próximamente'",async()=>{

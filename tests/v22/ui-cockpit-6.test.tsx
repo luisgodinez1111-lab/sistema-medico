@@ -67,7 +67,9 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 6/
  it("vista Consulta: interrogatorio y exploración física son campos REALES que alimentan la nota clínica",async()=>{
   render(<Workspace/>);
   await abrirConsulta();
-  // secciones 4 y 5 ya no son colapsables decorativos: son textareas reales, con andamiaje estructurado (Lote D)
+  // Rediseño SOAP: el interrogatorio por aparatos arranca COLAPSADO (poco usado); se expande con su toggle. Sigue siendo
+  // un textarea REAL con andamiaje estructurado que alimenta la nota.
+  fireEvent.click(screen.getByRole("button",{name:/Interrogatorio por aparatos y sistemas/}));
   fireEvent.click(screen.getByRole("button",{name:"Negativo por aparatos"}));
   expect((screen.getByPlaceholderText(/Interrogatorio por aparatos/) as HTMLTextAreaElement).value).toMatch(/Negado por aparatos/);
   fireEvent.change(screen.getByPlaceholderText(/Interrogatorio por aparatos/),{target:{value:"Cardiopulmonar sin alteraciones"}});

@@ -1,9 +1,11 @@
 "use client";
-// FORMULARIO DE DOCUMENTACIÓN DEL ENCUENTRO (SOAP estructurado + signos/dx/órdenes/plan + resumen/CDS lateral).
-// Unificación Consulta⟷Expediente: es la ÚNICA pieza propia de la Consulta; se extrae aquí para montarla DENTRO del
-// expediente, de modo que "abrir la consulta" sea abrir el expediente en modo encuentro — sin una pantalla gemela.
-// Extraído verbatim de consulta.tsx (pestaña "Consulta actual"); lee TODO del contexto, sin cambiar la lógica ni los
-// endpoints (los flujos de seguridad del encuentro se preservan intactos).
+// ENCUENTRO — flujo de consulta SOAP en UNA pantalla, ordenado para jornadas largas (decisión del dueño "Una pantalla
+// SOAP, ordenada"). Estructura clínica canónica: S·Subjetivo → O·Objetivo → A·Análisis → P·Plan. Diseño:
+//   · barra de acción FIJA abajo (estado + vista previa + Guardar/Firmar siempre a la mano, sin volver arriba);
+//   · lo poco usado COLAPSADO por defecto (interrogatorio por aparatos, valoración hepática Child-Pugh) → menos scroll;
+//   · diagnóstico en UN solo lugar (se eliminó la sección "Impresión diagnóstica" que solo duplicaba la lista);
+//   · signos vitales DENTRO de Objetivo (antes estaban sueltos entre medias).
+// Reutiliza TODOS los handlers/endpoints del contexto sin cambiar su lógica ni los flujos de seguridad del encuentro.
 import{useState}from"react";
 import{searchIcd10}from"../../../../../packages/terminology/src";
 import{Check,card,P,LINE,UI,act,goExpSection,DX_LABEL,NavIcon,mono,isPediatricAge,antFreshness}from"../shared";
@@ -12,8 +14,12 @@ import{useWorkspace}from"../context";
 export default function EncounterForm(){
  const{enc,snap,consTabs,antSnap,clock,cForm,setCForm,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdCat,cOrdSel,setCOrdSel,setCOrdMsg,createConsultaOrders,cOrdBusy,cOrdMsg,patientId,setView,setExpTab,gaps,busy,consultaAdvance,cPreview,setCPreview,composeNote,cMsg,setCMsg,docDisplay}=useWorkspace();
  const[dxType,setDxType]=useState<"PROBABLE"|"CONFIRMED"|"POSSIBLE">("PROBABLE"); // tipo de la impresión diagnóstica
+ // Lo poco usado arranca COLAPSADO; si el borrador ya trae contenido, se muestra abierto (no se esconde lo escrito).
+ const[showInterrog,setShowInterrog]=useState(()=>!!cForm.interrog.trim());
+ const[showHepatic,setShowHepatic]=useState(()=>!!(cForm.ascites||cForm.encef));
  const V=snap?.vitals??{};
  const findings=snap?.findings??[];
+ const dis=!!enc&&enc.state!=="OPEN"; // tras firmar/listo, los campos del borrador no se editan
  const card2:React.CSSProperties={...card,marginTop:0};
  const sec:React.CSSProperties={...card2,padding:18};
  const sect:React.CSSProperties={fontSize:15,fontWeight:700,margin:"0 0 12px"};
@@ -22,29 +28,40 @@ export default function EncounterForm(){
  const link:React.CSSProperties={color:P.blue,fontSize:13,fontWeight:600,cursor:"pointer"};
  const sgo=(label:string,section:string)=><button onClick={()=>{goExpSection(section,setView,setExpTab);}} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"4px 10px",fontSize:12,fontWeight:600,color:P.purple,cursor:"pointer",whiteSpace:"nowrap",fontFamily:UI}}>{label}</button>;
  const rsum=(bg:string,fg:string,d:string,title:string,sub:string,right:React.ReactNode)=>(<div style={{display:"flex",gap:11,padding:"12px 0",borderTop:`1px solid #F1F3F9`,alignItems:"flex-start"}}><span style={{width:34,height:34,borderRadius:9,background:bg,color:fg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={d}/></svg></span><div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13.5}}>{title}</div><div style={{fontSize:12.5,color:P.muted}}>{sub}</div></div>{right}</div>);
- // Controles del encuentro (estado + vista previa + acción FSM contextual) sobre el formulario estructurado. U-17:
- // con pendientes críticos abiertos la firma se presenta BLOQUEADA (el servidor la rechazaría igual — Zero Lost Follow-Up).
+ // Encabezado de paso SOAP: letra + título, para que el orden clínico se lea de un vistazo.
+ const soap=(letra:string,titulo:string,sub?:string)=><div style={{display:"flex",alignItems:"center",gap:11,margin:"4px 2px 2px"}}><span style={{width:30,height:30,borderRadius:9,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",fontWeight:800,fontSize:14,flex:"0 0 auto"}}>{letra}</span><div><div style={{fontSize:16,fontWeight:800,letterSpacing:"-.01em"}}>{titulo}</div>{sub&&<div style={{fontSize:11.5,color:P.muted}}>{sub}</div>}</div></div>;
+ const toggle=(label:string,open:boolean,onClick:()=>void)=><button onClick={onClick} aria-expanded={open} style={{display:"inline-flex",alignItems:"center",gap:7,border:`1px dashed ${LINE}`,background:open?"#F7F6FE":P.white,color:P.purple,borderRadius:9,padding:"8px 12px",fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:UI}}><span style={{transition:"transform .15s",transform:open?"rotate(90deg)":"none"}}>▸</span>{label}</button>;
+ const chip=(hi:boolean):React.CSSProperties=>({border:`1px solid ${hi?P.purple:LINE}`,background:hi?"#F1EFFE":P.white,color:P.purple,borderRadius:999,padding:"4px 11px",fontSize:11.5,fontWeight:600,cursor:dis?"default":"pointer",fontFamily:UI,opacity:dis?.5:1});
+ const addLine=(field:"interrog"|"explor"|"plan",txt:string,asLine:boolean)=>setCForm(f=>{if(asLine&&new RegExp("(^|\\n)"+txt.split(":")[0]+":").test(f[field]))return f;const sep=f[field].trim()?"\n":"";return{...f,[field]:(f[field]+sep+txt).slice(0,2000)};});
+ // Controles del encuentro (estado + acción FSM contextual). U-17: con pendientes críticos abiertos la firma se presenta
+ // BLOQUEADA (el servidor la rechazaría igual — Zero Lost Follow-Up).
  const criticalOpen=(gaps??[]).filter(g=>g.priority==="HIGH"&&(g.code==="CRITICAL_RESULT_OPEN"||g.code==="VITAL_CRITICAL"||g.code==="FOLLOWUP_OPEN")).length;
  const st=enc?.state;
  const advLabel=!patientId?"Selecciona un paciente":!enc?"Abrir encuentro":st==="OPEN"?"Guardar valoración":st==="READY_TO_SIGN"?(criticalOpen?`Firma bloqueada: ${criticalOpen} pendiente(s) crítico(s)`:"Firmar consulta"):"✓ Consulta firmada";
  const advDisabled=busy!==""||!patientId||st==="SIGNED"||(st==="READY_TO_SIGN"&&criticalOpen>0);
  const advBg=st==="READY_TO_SIGN"?"linear-gradient(90deg,#16A66A,#12905c)":`linear-gradient(90deg,${P.purpleOnPale},#5B6BF0)`;
- // Rediseño: documentación clínica en UNA columna ancha (orden clínico) + contexto (resumen/IA/recordatorios) lateral sticky.
+ const estadoChip=enc&&(()=>{const m=st==="SIGNED"?["#E6F6EE",P.greenOnPale,"Firmada"]:st==="READY_TO_SIGN"?["#FBF0DC",P.amberOnPale,"Lista para firmar"]:["#EAF1FD",P.blueOnPale,"Abierta"];return <span style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:m[0],color:m[1],whiteSpace:"nowrap"}}>Encuentro · {m[2]}</span>;})();
+
  return <>
-  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginTop:4}}>
-   <div style={{display:"flex",alignItems:"center",gap:10}}>{enc&&(()=>{const m=st==="SIGNED"?["#E6F6EE",P.greenOnPale,"Firmada"]:st==="READY_TO_SIGN"?["#FBF0DC",P.amberOnPale,"Lista para firmar"]:["#EAF1FD",P.blueOnPale,"Abierta"];return <span style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:m[0],color:m[1]}}>Encuentro · {m[2]}</span>;})()}</div>
-   <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-    <button onClick={()=>setCPreview(v=>!v)} style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:cPreview?"#EEEBFD":P.white,color:cPreview?P.purple:P.ink,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Vista previa</button>
-    <button onClick={consultaAdvance} disabled={advDisabled} style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:advDisabled?"#C7CCE0":advBg,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:advDisabled?"default":"pointer",fontFamily:UI}}>{busy==="cadv"?"Procesando…":advLabel}</button>
-   </div>
-  </div>
-  {cMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:st==="SIGNED"?"#F0FBF4":"#EEF6FF",border:`1px solid ${st==="SIGNED"?"#CDEBD8":"#CFE0F7"}`,borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:st==="SIGNED"?P.green:P.blue,fontWeight:700}}>{st==="SIGNED"?"✓":"ℹ"}</span><span style={{flex:1}}>{cMsg}{enc?.signatureDigest?<> Firma: <span style={mono}>{enc.signatureDigest.slice(0,24)}…</span></>:null}</span><button onClick={()=>setCMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+  {cMsg&&<div style={{marginTop:10,display:"flex",alignItems:"center",gap:10,background:st==="SIGNED"?"#F0FBF4":"#EEF6FF",border:`1px solid ${st==="SIGNED"?"#CDEBD8":"#CFE0F7"}`,borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:st==="SIGNED"?P.green:P.blue,fontWeight:700}}>{st==="SIGNED"?"✓":"ℹ"}</span><span style={{flex:1}}>{cMsg}{enc?.signatureDigest?<> Firma: <span style={mono}>{enc.signatureDigest.slice(0,24)}…</span></>:null}</span><button onClick={()=>setCMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
   {cPreview&&<div style={{...card,marginTop:14,padding:18}}><div style={{fontWeight:800,fontSize:15,marginBottom:10}}>Vista previa de la nota clínica</div><pre style={{whiteSpace:"pre-wrap",fontFamily:UI,fontSize:13,color:P.ink,margin:0,lineHeight:1.6}}>{composeNote()}{"\n\nPLAN DE MANEJO: "+(cForm.plan.trim()||"—")}</pre><div style={{fontSize:11.5,color:P.muted,marginTop:10}}>Así se guardará la valoración del encuentro al firmar. Médico: {docDisplay}.</div></div>}
-  <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.75fr) minmax(300px,1fr)",gap:18,marginTop:16,alignItems:"start"}} className="mos-consulta">
-   <div style={{display:"flex",flexDirection:"column",gap:16,minWidth:0}}>
-    <div style={sec}><h3 style={sect}>1. Motivo de consulta</h3><textarea style={ta} disabled={!!enc&&enc.state!=="OPEN"} aria-label="Motivo de consulta" value={cForm.motivo} onChange={e=>setCForm(f=>({...f,motivo:e.target.value.slice(0,500)}))} placeholder="Motivo de la consulta…"/><div style={cc}>{cForm.motivo.length}/500</div></div>
-    <div style={sec}><h3 style={sect}>2. Historia de la enfermedad actual</h3><textarea style={{...ta,minHeight:90}} disabled={!!enc&&enc.state!=="OPEN"} aria-label="Historia de la enfermedad actual" value={cForm.historia} onChange={e=>setCForm(f=>({...f,historia:e.target.value.slice(0,2000)}))} placeholder="Padecimiento actual…"/><div style={cc}>{cForm.historia.length}/2000</div></div>
-    {/* 3. Antecedentes — READ-ONLY desde el expediente (se capturan UNA vez, no se re-preguntan en cada consulta). */}
+
+  <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.75fr) minmax(300px,1fr)",gap:18,marginTop:14,alignItems:"start",paddingBottom:72}} className="mos-consulta">
+   <div style={{display:"flex",flexDirection:"column",gap:14,minWidth:0}}>
+
+    {/* ═══ S · SUBJETIVO ═══ */}
+    {soap("S","Subjetivo","Lo que refiere el paciente")}
+    <div style={sec}><h3 style={sect}>Motivo de consulta</h3><textarea style={ta} disabled={dis} aria-label="Motivo de consulta" value={cForm.motivo} onChange={e=>setCForm(f=>({...f,motivo:e.target.value.slice(0,500)}))} placeholder="Motivo de la consulta…"/><div style={cc}>{cForm.motivo.length}/500</div></div>
+    <div style={sec}><h3 style={sect}>Padecimiento actual</h3><textarea style={{...ta,minHeight:90}} disabled={dis} aria-label="Historia de la enfermedad actual" value={cForm.historia} onChange={e=>setCForm(f=>({...f,historia:e.target.value.slice(0,2000)}))} placeholder="Historia de la enfermedad actual…"/><div style={cc}>{cForm.historia.length}/2000</div></div>
+    {/* Interrogatorio por aparatos — COLAPSADO: solo se usa a fondo en primera vez; el control de 3 min no lo necesita. */}
+    <div style={sec}>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>{toggle("Interrogatorio por aparatos y sistemas",showInterrog,()=>setShowInterrog(v=>!v))}{!showInterrog&&cForm.interrog.trim()&&<span style={{fontSize:11.5,color:P.muted}}>· con contenido</span>}</div>
+     {showInterrog&&<div style={{marginTop:12}}>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}><button disabled={dis} onClick={()=>addLine("interrog","Negado por aparatos y sistemas, salvo lo referido en el padecimiento actual.",false)} style={chip(true)}>Negativo por aparatos</button>{["GENERAL","CARDIOVASCULAR","RESPIRATORIO","DIGESTIVO","GENITOURINARIO","NEUROLÓGICO","MUSCULOESQUELÉTICO","PIEL"].map(tag=><button key={tag} disabled={dis} onClick={()=>addLine("interrog",tag+": ",true)} style={chip(false)}>+ {tag.charAt(0)+tag.slice(1).toLowerCase()}</button>)}</div>
+      <textarea style={{...ta,minHeight:90}} disabled={dis} aria-label="Interrogatorio por aparatos y sistemas" value={cForm.interrog} onChange={e=>setCForm(f=>({...f,interrog:e.target.value.slice(0,2000)}))} placeholder="Interrogatorio por aparatos y sistemas… usa los botones para estructurar o marcar negativo por aparatos."/><div style={cc}>{cForm.interrog.length}/2000</div>
+     </div>}
+    </div>
+    {/* Antecedentes — READ-ONLY desde el expediente (se capturan una vez, no se re-preguntan). */}
     {(()=>{
      const c=antSnap?.content;const hab=c?.noPatologicos;const rows:[string,string][]=[];
      const pediatric=isPediatricAge(snap?.demographics.age);const fresh=antFreshness(!!antSnap?.recorded,antSnap?.updatedAt);
@@ -58,43 +75,43 @@ export default function EncounterForm(){
      }
      return <div style={sec}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-       <h3 style={sect}>3. Antecedentes</h3>
+       <h3 style={{...sect,margin:0}}>Antecedentes <span style={{fontSize:11.5,fontWeight:500,color:P.muted}}>(basales, del expediente)</span></h3>
        <div style={{display:"flex",alignItems:"center",gap:8}}>
         {fresh.status==="DUE"&&<span role="status" title={`Última actualización hace ${fresh.days} días (> 6 meses)`} style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:"#FBF0DC",color:P.amberOnPale}}>⟳ Por verificar</span>}
         <button onClick={()=>goExpSection("Antecedentes",setView,setExpTab)} style={{border:0,background:"transparent",color:P.purple,fontWeight:700,fontSize:12.5,cursor:"pointer",fontFamily:UI}}>{!antSnap?.recorded?"Capturar en el expediente →":fresh.status==="DUE"?"Verificar en el expediente →":"Editar en el expediente →"}</button>
        </div>
       </div>
-      <p style={{fontSize:11.5,color:P.muted,margin:"2px 0 10px"}}>Historia clínica basal (se registra una vez en el expediente, no en cada consulta).</p>
       {antSnap?.recorded
-       ? <div style={{display:"flex",flexDirection:"column",gap:7}}>{rows.map(([k,v])=><div key={k} style={{display:"flex",gap:10,fontSize:12.5,padding:"7px 10px",borderRadius:9,background:"#f7f8fc"}}><span style={{fontWeight:800,color:P.purpleOnPale,minWidth:120,flex:"0 0 auto"}}>{k}</span><span style={{minWidth:0,color:"#33383F"}}>{v}</span></div>)}</div>
-       : <div style={{fontSize:12.5,color:P.muted,padding:"10px 12px",borderRadius:9,background:"#f6f6fb",border:`1px dashed ${LINE}`}}>Sin antecedentes capturados para este paciente. Captúralos una vez en el expediente.</div>}
+       ? <div style={{display:"flex",flexDirection:"column",gap:7,marginTop:10}}>{rows.map(([k,v])=><div key={k} style={{display:"flex",gap:10,fontSize:12.5,padding:"7px 10px",borderRadius:9,background:"#f7f8fc"}}><span style={{fontWeight:800,color:P.purpleOnPale,minWidth:120,flex:"0 0 auto"}}>{k}</span><span style={{minWidth:0,color:"#33383F"}}>{v}</span></div>)}</div>
+       : <div style={{fontSize:12.5,color:P.muted,padding:"10px 12px",borderRadius:9,background:"#f6f6fb",border:`1px dashed ${LINE}`,marginTop:10}}>Sin antecedentes capturados. Captúralos una vez en el expediente.</div>}
      </div>;
     })()}
-    <div style={sec}><h3 style={sect}>4. Interrogatorio por aparatos y sistemas</h3>
-     {(()=>{const dis=!!enc&&enc.state!=="OPEN";const chip=(hi:boolean):React.CSSProperties=>({border:`1px solid ${hi?P.purple:LINE}`,background:hi?"#F1EFFE":P.white,color:P.purple,borderRadius:999,padding:"4px 11px",fontSize:11.5,fontWeight:600,cursor:dis?"default":"pointer",fontFamily:UI,opacity:dis?.5:1});const add=(txt:string,asLine:boolean)=>setCForm(f=>{if(asLine&&new RegExp("(^|\\n)"+txt.split(":")[0]+":").test(f.interrog))return f;const sep=f.interrog.trim()?"\n":"";return{...f,interrog:(f.interrog+sep+txt).slice(0,2000)};});return <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}><button disabled={dis} onClick={()=>add("Negado por aparatos y sistemas, salvo lo referido en el padecimiento actual.",false)} style={chip(true)}>Negativo por aparatos</button>{["GENERAL","CARDIOVASCULAR","RESPIRATORIO","DIGESTIVO","GENITOURINARIO","NEUROLÓGICO","MUSCULOESQUELÉTICO","PIEL"].map(tag=><button key={tag} disabled={dis} onClick={()=>add(tag+": ",true)} style={chip(false)}>+ {tag.charAt(0)+tag.slice(1).toLowerCase()}</button>)}</div>;})()}
-     <textarea style={{...ta,minHeight:90}} disabled={!!enc&&enc.state!=="OPEN"} aria-label="Interrogatorio por aparatos y sistemas" value={cForm.interrog} onChange={e=>setCForm(f=>({...f,interrog:e.target.value.slice(0,2000)}))} placeholder="Interrogatorio por aparatos y sistemas… usa los botones para estructurar o marcar negativo por aparatos."/><div style={cc}>{cForm.interrog.length}/2000</div></div>
-    <div style={sec}><h3 style={sect}>5. Exploración física</h3>
-     {(()=>{const dis=!!enc&&enc.state!=="OPEN";const chip=(hi:boolean):React.CSSProperties=>({border:`1px solid ${hi?P.purple:LINE}`,background:hi?"#F1EFFE":P.white,color:P.purple,borderRadius:999,padding:"4px 11px",fontSize:11.5,fontWeight:600,cursor:dis?"default":"pointer",fontFamily:UI,opacity:dis?.5:1});const add=(txt:string,asLine:boolean)=>setCForm(f=>{if(asLine&&new RegExp("(^|\\n)"+txt.split(":")[0]+":").test(f.explor))return f;const sep=f.explor.trim()?"\n":"";return{...f,explor:(f.explor+sep+txt).slice(0,2000)};});return <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}><button disabled={dis} onClick={()=>add("Sin alteraciones aparentes salvo lo descrito; paciente estable, consciente y orientado.",false)} style={chip(true)}>Sin alteraciones</button>{["GENERAL","CABEZA Y CUELLO","CARDIOPULMONAR","ABDOMEN","NEUROLÓGICO","EXTREMIDADES","PIEL"].map(tag=><button key={tag} disabled={dis} onClick={()=>add(tag+": ",true)} style={chip(false)}>+ {tag.charAt(0)+tag.slice(1).toLowerCase()}</button>)}</div>;})()}
-     <textarea style={{...ta,minHeight:90}} disabled={!!enc&&enc.state!=="OPEN"} aria-label="Exploración física" value={cForm.explor} onChange={e=>setCForm(f=>({...f,explor:e.target.value.slice(0,2000)}))} placeholder="Exploración física por regiones… usa los botones para estructurar o marcar sin alteraciones."/><div style={cc}>{cForm.explor.length}/2000</div>
-     {/* Valoración hepática graduada: los dos ejes CLÍNICOS del Child-Pugh (ascitis/encefalopatía) que el laboratorio no aporta.
-         Al graduarlos, el CDS calcula la clase de Child-Pugh EXACTA; si se dejan "sin valorar" usa la estimación de piso. */}
-     <div style={{marginTop:14,borderTop:`1px solid #F1F3F9`,paddingTop:12}}>
-      <div style={{fontSize:12.5,fontWeight:700,marginBottom:4}}>Valoración hepática (Child-Pugh)</div>
-      <p style={{fontSize:11.5,color:P.muted,margin:"0 0 10px"}}>Gradúa ascitis y encefalopatía si hay hepatopatía: completan el Child-Pugh exacto (los laboratorios aportan bilirrubina, albúmina e INR).</p>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-       {([["ascites","Ascitis",[["1","Ninguna"],["2","Leve / controlada"],["3","Moderada / a tensión"]]],["encef","Encefalopatía",[["1","Ninguna"],["2","Grado I–II"],["3","Grado III–IV"]]]] as const).map(([k,label,opts])=>
-        <div key={k}><label htmlFor={`cp-${k}`} style={{fontSize:11.5,color:P.muted,display:"block",marginBottom:5,fontWeight:600}}>{label}</label>
-         <select id={`cp-${k}`} disabled={!!enc&&enc.state!=="OPEN"} value={cForm[k]} onChange={e=>setCForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 10px",fontSize:13,fontFamily:UI,color:P.ink,background:P.white,boxSizing:"border-box"}}>
-          <option value="">Sin valorar</option>{opts.map(([v,l])=><option key={v} value={v}>{v} — {l}</option>)}
-         </select></div>)}
-      </div>
-     </div></div>
-    <div style={card2}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 18px 8px",fontSize:15,fontWeight:700}}>6. Impresión diagnóstica<span style={{fontSize:11.5,fontWeight:600,color:P.muted}}>Se gestiona en «Diagnósticos / Problemas» →</span></div><div style={{padding:"0 18px 18px",display:"flex",gap:10,flexWrap:"wrap"}}>{(snap?.problems??[]).length===0?<span style={{fontSize:12.5,color:P.muted}}>Sin diagnósticos registrados. Añádelos en el panel «Diagnósticos / Problemas».</span>:(snap?.problems??[]).slice(0,6).map(c=><span key={c} style={{display:"inline-flex",alignItems:"center",gap:8,background:"#F3F5FA",border:`1px solid ${LINE}`,borderRadius:9,padding:"6px 11px",fontSize:12.5,fontWeight:600}}>{c} {DX_LABEL(c)}</span>)}</div></div>
-    <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Signos vitales</h3><span style={{fontSize:12,color:P.muted}}>{clock.toLocaleDateString("es-MX",{day:"numeric",month:"short"})} · {clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"})}</span></div>
+
+    {/* ═══ O · OBJETIVO ═══ */}
+    {soap("O","Objetivo","Signos y exploración")}
+    <div style={sec}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={sect}>Signos vitales</h3><span style={{fontSize:12,color:P.muted}}>{clock.toLocaleDateString("es-MX",{day:"numeric",month:"short"})} · {clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"})}</span></div>
      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10}}>{([["TA","ta",V["BP"]??"120/80","mmHg"],["FC","fc",V["HR"]??"72","lpm"],["FR","fr",V["RESP"]??"16","rpm"],["Temp.","temp",V["TEMP"]??"36.5","°C"],["SpO₂","spo2",V["SPO2"]??"98","%"]] as const).map(([l,k,ph,u])=><div key={l}><label htmlFor={`cvit-${k}`} style={{fontSize:11.5,color:P.muted,display:"block",marginBottom:5,fontWeight:600}}>{l}</label><input id={`cvit-${k}`} aria-label={`${l} (${u})`} value={cVit[k]} onChange={e=>setCVit(s=>({...s,[k]:e.target.value}))} placeholder={ph} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 6px",fontSize:15,fontWeight:700,textAlign:"center",fontFamily:UI,boxSizing:"border-box",color:P.ink}}/><div style={{fontSize:10.5,color:P.muted,textAlign:"center",marginTop:3}}>{u}</div></div>)}</div>
      <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12,flexWrap:"wrap"}}><button onClick={()=>void saveConsultaVitals()} disabled={cVitBusy} style={{border:0,background:cVitBusy?"#C7CCE0":P.purple,color:"#fff",borderRadius:9,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:cVitBusy?"default":"pointer",fontFamily:UI}}>{cVitBusy?"Guardando…":"Guardar signos vitales"}</button><span style={link} {...act(()=>{if(patientId){setExpTab("signos");}})}>Ver historial →</span></div>
      {cVitMsg&&<div style={{marginTop:10,fontSize:12.5,color:cVitMsg.includes("⚠")?"#B3261E":cVitMsg.includes("✓")?P.greenOnPale:P.muted,fontWeight:600}}>{cVitMsg}</div>}
     </div>
+    <div style={sec}><h3 style={sect}>Exploración física</h3>
+     <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}><button disabled={dis} onClick={()=>addLine("explor","Sin alteraciones aparentes salvo lo descrito; paciente estable, consciente y orientado.",false)} style={chip(true)}>Sin alteraciones</button>{["GENERAL","CABEZA Y CUELLO","CARDIOPULMONAR","ABDOMEN","NEUROLÓGICO","EXTREMIDADES","PIEL"].map(tag=><button key={tag} disabled={dis} onClick={()=>addLine("explor",tag+": ",true)} style={chip(false)}>+ {tag.charAt(0)+tag.slice(1).toLowerCase()}</button>)}</div>
+     <textarea style={{...ta,minHeight:90}} disabled={dis} aria-label="Exploración física" value={cForm.explor} onChange={e=>setCForm(f=>({...f,explor:e.target.value.slice(0,2000)}))} placeholder="Exploración física por regiones… usa los botones para estructurar o marcar sin alteraciones."/><div style={cc}>{cForm.explor.length}/2000</div>
+     {/* Valoración hepática Child-Pugh — COLAPSADA: niche (solo hepatopatía). Al graduar ascitis/encefalopatía el CDS calcula la clase exacta. */}
+     <div style={{marginTop:12,borderTop:`1px solid #F1F3F9`,paddingTop:12}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>{toggle("Valoración hepática (Child-Pugh)",showHepatic,()=>setShowHepatic(v=>!v))}{!showHepatic&&(cForm.ascites||cForm.encef)&&<span style={{fontSize:11.5,color:P.muted}}>· graduada</span>}</div>
+      {showHepatic&&<><p style={{fontSize:11.5,color:P.muted,margin:"10px 0"}}>Gradúa ascitis y encefalopatía si hay hepatopatía: completan el Child-Pugh exacto (los laboratorios aportan bilirrubina, albúmina e INR).</p>
+       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+       {([["ascites","Ascitis",[["1","Ninguna"],["2","Leve / controlada"],["3","Moderada / a tensión"]]],["encef","Encefalopatía",[["1","Ninguna"],["2","Grado I–II"],["3","Grado III–IV"]]]] as const).map(([k,label,opts])=>
+        <div key={k}><label htmlFor={`cp-${k}`} style={{fontSize:11.5,color:P.muted,display:"block",marginBottom:5,fontWeight:600}}>{label}</label>
+         <select id={`cp-${k}`} disabled={dis} value={cForm[k]} onChange={e=>setCForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 10px",fontSize:13,fontFamily:UI,color:P.ink,background:P.white,boxSizing:"border-box"}}>
+          <option value="">Sin valorar</option>{opts.map(([v,l])=><option key={v} value={v}>{v} — {l}</option>)}
+         </select></div>)}
+       </div></>}
+     </div></div>
+
+    {/* ═══ A · ANÁLISIS ═══ (diagnósticos en UN solo lugar — se eliminó la sección duplicada "Impresión diagnóstica") */}
+    {soap("A","Análisis","Impresión diagnóstica")}
     <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Diagnósticos / Problemas</h3><span style={link} {...act(()=>setExpTab("problemas"))}>Ver historial →</span></div>
      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,flexWrap:"wrap"}}><span style={{fontSize:12,color:P.muted,fontWeight:600}}>Tipo:</span>{([["PROBABLE","Presuntivo"],["CONFIRMED","Confirmado"],["POSSIBLE","Diferencial"]] as ["PROBABLE"|"CONFIRMED"|"POSSIBLE",string][]).map(([v,l])=>{const on=dxType===v;return <button key={v} onClick={()=>setDxType(v)} style={{border:`1px solid ${on?P.purple:LINE}`,background:on?"#F1EFFE":P.white,color:on?P.purple:P.muted,borderRadius:999,padding:"5px 13px",fontSize:12,fontWeight:on?700:500,cursor:"pointer",fontFamily:UI}}>{l}</button>;})}<span style={{fontSize:11,color:P.muted}}>· se aplica al diagnóstico que agregues</span></div>
      <div style={{position:"relative"}}>
@@ -102,23 +119,28 @@ export default function EncounterForm(){
       {cDxQuery.trim().length>=2&&(()=>{const res=searchIcd10(cDxQuery.trim(),10);return <div style={{position:"absolute",left:0,right:0,top:"calc(100% + 4px)",background:P.white,border:`1px solid ${LINE}`,borderRadius:10,boxShadow:"0 8px 24px #1a1d2914",zIndex:20,overflow:"hidden"}}>{res.length?res.map(e=><div key={e.code} {...act(()=>{if(cDxBusy)return;void addConsultaProblem(e.code,dxType);})} aria-disabled={cDxBusy||undefined} style={{display:"flex",gap:8,padding:"9px 12px",fontSize:12.5,opacity:cDxBusy?.55:1,cursor:cDxBusy?"default":"pointer",borderBottom:`1px solid #F4F6FB`,alignItems:"baseline"}}><b style={{color:P.purple,flex:"0 0 auto"}}>{e.code}</b><span style={{color:P.ink}}>{e.description}</span></div>):<div style={{padding:"10px 12px",fontSize:12.5,color:P.muted}}>Sin coincidencias en el catálogo CIE-10.</div>}</div>;})()}
      </div>
      {cDxMsg&&<div style={{marginTop:10,fontSize:12.5,color:cDxMsg.includes("✓")?P.greenOnPale:P.muted,fontWeight:600}}>{cDxMsg}</div>}
-     <div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>{(snap?.problems??[]).slice(0,4).map((c,i)=><span key={c} style={{display:"inline-flex",alignItems:"center",gap:8,background:"#F3F5FA",border:`1px solid ${LINE}`,borderRadius:9,padding:"6px 11px",fontSize:12.5,fontWeight:600}}>{c} {DX_LABEL(c)}{i===0&&<span style={{background:"#EEEBFD",color:P.purpleOnPale,borderRadius:6,padding:"1px 7px",fontSize:10.5,fontWeight:700}}>Principal</span>}</span>)}{(snap?.problems??[]).length===0&&<span style={{fontSize:12.5,color:P.muted}}>Sin problemas activos. Busca un CIE-10 para agregar.</span>}</div>
+     <div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>{(snap?.problems??[]).slice(0,6).map((c,i)=><span key={c} style={{display:"inline-flex",alignItems:"center",gap:8,background:"#F3F5FA",border:`1px solid ${LINE}`,borderRadius:9,padding:"6px 11px",fontSize:12.5,fontWeight:600}}>{c} {DX_LABEL(c)}{i===0&&<span style={{background:"#EEEBFD",color:P.purpleOnPale,borderRadius:6,padding:"1px 7px",fontSize:10.5,fontWeight:700}}>Principal</span>}</span>)}{(snap?.problems??[]).length===0&&<span style={{fontSize:12.5,color:P.muted}}>Sin problemas activos. Busca un CIE-10 para agregar.</span>}</div>
     </div>
+
+    {/* ═══ P · PLAN ═══ */}
+    {soap("P","Plan","Órdenes, tratamiento y seguimiento")}
     {(()=>{
      const CORD:[typeof cOrdCat,string,string[]][]=[["LAB","Laboratorio",["Biometría hemática completa","Química sanguínea (6 elementos)","Perfil lipídico","Examen general de orina","Proteína C reactiva","Exudado faríngeo (cultivo)"]],["IMAGING","Imagen",["Radiografía de tórax PA","Ultrasonido abdominal","Tomografía simple de cráneo","Mastografía"]],["PROCEDURE","Procedimiento",["Electrocardiograma","Espirometría","Prueba de esfuerzo"]],["REFERRAL","Interconsulta",["Cardiología","Endocrinología","Nefrología","Oftalmología"]]];
      const studies=CORD.find(c=>c[0]===cOrdCat)?.[2]??[];
-     const toggle=(o:string)=>setCOrdSel(s=>s.includes(o)?s.filter(x=>x!==o):[...s,o]);
-     return <div style={sec}><h3 style={sect}>Órdenes clínicas</h3>
+     const tg=(o:string)=>setCOrdSel(s=>s.includes(o)?s.filter(x=>x!==o):[...s,o]);
+     return <div style={sec}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={sect}>Órdenes clínicas</h3><span style={link} {...act(()=>setExpTab("medicacion"))}>Medicación →</span></div>
       <div style={{display:"flex",gap:16,borderBottom:`1px solid ${LINE}`,fontSize:13}}>{CORD.map(([k,l])=><span key={k} {...act(()=>{setCOrdCat(k);setCOrdSel([]);setCOrdMsg(null);})} style={{paddingBottom:8,color:cOrdCat===k?P.purple:P.muted,fontWeight:cOrdCat===k?700:400,borderBottom:cOrdCat===k?`2px solid ${P.purple}`:"0",cursor:"pointer"}}>{l}</span>)}</div>
-      <div style={{marginTop:12}}>{studies.map(o=>{const on=cOrdSel.includes(o);return <Check key={o} checked={on} label={o} onChange={()=>toggle(o)} size={17}/>;})}</div>
+      <div style={{marginTop:12}}>{studies.map(o=>{const on=cOrdSel.includes(o);return <Check key={o} checked={on} label={o} onChange={()=>tg(o)} size={17}/>;})}</div>
       <div style={{display:"flex",gap:10,alignItems:"center",marginTop:8,flexWrap:"wrap"}}><button onClick={()=>void createConsultaOrders()} disabled={cOrdBusy||cOrdSel.length===0} style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:(cOrdBusy||cOrdSel.length===0)?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:(cOrdBusy||cOrdSel.length===0)?"default":"pointer",fontFamily:UI}}>{cOrdBusy?"Creando…":`Crear ${cOrdSel.length||""} orden${cOrdSel.length===1?"":"es"}`.replace("  "," ")}</button><span style={link} {...act(()=>setView("ordenes"))}>Abrir en Órdenes →</span></div>
       {cOrdMsg&&<div style={{marginTop:10,fontSize:12.5,color:cOrdMsg.includes("✓")?P.greenOnPale:P.muted,fontWeight:600}}>{cOrdMsg}</div>}
      </div>;
     })()}
     <div style={sec}><h3 style={sect}>Plan de manejo</h3>
-     {(()=>{const dis=!!enc&&enc.state!=="OPEN";return <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>{["FARMACOLÓGICO","NO FARMACOLÓGICO","ESTUDIOS","INTERCONSULTA","SEGUIMIENTO","SIGNOS DE ALARMA"].map(tag=><button key={tag} disabled={dis} onClick={()=>setCForm(f=>{if(new RegExp("(^|\\n)"+tag+":").test(f.plan))return f;const sep=f.plan.trim()?"\n":"";return{...f,plan:f.plan+sep+tag+": "};})} style={{border:`1px solid ${LINE}`,background:P.white,color:P.purple,borderRadius:999,padding:"4px 11px",fontSize:11.5,fontWeight:600,cursor:dis?"default":"pointer",fontFamily:UI,opacity:dis?.5:1}}>+ {tag.charAt(0)+tag.slice(1).toLowerCase()}</button>)}</div>;})()}
-     <textarea style={{...ta,minHeight:120}} disabled={!!enc&&enc.state!=="OPEN"} aria-label="Plan y tratamiento" value={cForm.plan} onChange={e=>setCForm(f=>({...f,plan:e.target.value}))} placeholder="Plan de manejo… usa los botones para estructurar por secciones (farmacológico, estudios, seguimiento, signos de alarma…)."/></div>
+     <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>{["FARMACOLÓGICO","NO FARMACOLÓGICO","ESTUDIOS","INTERCONSULTA","SEGUIMIENTO","SIGNOS DE ALARMA"].map(tag=><button key={tag} disabled={dis} onClick={()=>setCForm(f=>{if(new RegExp("(^|\\n)"+tag+":").test(f.plan))return f;const sep=f.plan.trim()?"\n":"";return{...f,plan:f.plan+sep+tag+": "};})} style={chip(false)}>+ {tag.charAt(0)+tag.slice(1).toLowerCase()}</button>)}</div>
+     <textarea style={{...ta,minHeight:120}} disabled={dis} aria-label="Plan y tratamiento" value={cForm.plan} onChange={e=>setCForm(f=>({...f,plan:e.target.value}))} placeholder="Plan de manejo… usa los botones para estructurar por secciones (farmacológico, estudios, seguimiento, signos de alarma…)."/></div>
    </div>
+
+   {/* Contexto lateral (sticky): resumen del expediente, CDS y recordatorios. */}
    <div className="mos-consulta-side" style={{display:"flex",flexDirection:"column",gap:16,position:"sticky",top:12,alignSelf:"start"}}>
     <div style={sec}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={sect}>Resumen clínico</h3><span style={{fontSize:11.5,color:P.muted}}>Derivado del expediente</span></div>
      {rsum("#FDECEE",P.redOnPale,"M12 4l9 15.5H3zM12 10v4M12 17h.01","Alergias",!snap?"No evaluadas: expediente no cargado":snap.allergies.length?snap.allergies.join(", "):"Sin alergias documentadas",<span style={{background:"#FDE7EA",color:P.redOnPale,borderRadius:999,padding:"2px 9px",fontSize:10.5,fontWeight:700}}>{snap?.allergies.length?"Alta":"—"}</span>)}
@@ -129,6 +151,13 @@ export default function EncounterForm(){
     <div style={{...sec,background:"linear-gradient(180deg,#FBFAFF,#fff)"}}><div style={{display:"flex",justifyContent:"space-between"}}><h3 style={{...sect,color:P.purple,display:"flex",alignItems:"center",gap:7}}><NavIcon k="brain"/>Clinical Intelligence (IA)</h3></div><div style={{fontSize:12,fontWeight:600,color:P.muted,marginBottom:8}}>Alertas deterministas para este caso:</div>{findings.length===0?<div style={{fontSize:12.5,lineHeight:1.5,padding:"5px 0",color:P.muted}}>Sin alertas deterministas para los datos registrados. Se recalculan al documentar signos, diagnósticos y medicación.</div>:findings.slice(0,4).map((f,i)=><div key={i} style={{fontSize:12.5,lineHeight:1.5,padding:"5px 0",display:"flex",gap:8}}>• {f.summary}</div>)}<div style={{fontSize:11,color:P.muted,background:"#F3F2FB",borderRadius:8,padding:"8px 10px",marginTop:8}}>La IA ofrece información de apoyo. La decisión final es del médico. (Determinista · sin IA generativa)</div></div>
     <div style={sec}><h3 style={{...sect,display:"flex",alignItems:"center",gap:8}}>Recordatorios y obligaciones {(gaps?.length??0)>0&&<span style={{background:P.redOnPale,color:"#fff",borderRadius:999,padding:"1px 7px",fontSize:11}}>{gaps!.length}</span>}</h3>{gaps===null?<div style={{fontSize:13,color:P.amberOnPale,padding:"9px 0"}}>No evaluados: los recordatorios del paciente no cargaron. Revíselos en el expediente antes de cerrar la consulta.</div>:gaps.length===0?<div style={{fontSize:13,color:P.muted,padding:"9px 0"}}>Sin recordatorios pendientes para este paciente.</div>:gaps!.slice(0,3).map((g,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 0",fontSize:13,borderTop:i?`1px solid #F1F3F9`:"0"}}><div style={{flex:1}}>{g.label}</div><span style={{background:"#FBF0DC",color:P.amberOnPale,borderRadius:999,padding:"2px 9px",fontSize:10.5,fontWeight:700}}>Pendiente</span></div>)}<div style={{textAlign:"right",marginTop:6}}><span style={link} {...act(()=>{goExpSection("Obligaciones de seguimiento",setView,setExpTab);})}>Ver todos →</span></div></div>
    </div>
+  </div>
+
+  {/* BARRA DE ACCIÓN FIJA (abajo): estado + vista previa + Guardar/Firmar siempre a la mano en una consulta larga. */}
+  <div style={{position:"sticky",bottom:0,zIndex:7,marginTop:4,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",justifyContent:"flex-end",padding:"12px 16px",background:"rgba(252,252,255,.92)",backdropFilter:"blur(6px)",borderTop:`1px solid ${LINE}`,borderRadius:"12px 12px 0 0",boxShadow:"0 -6px 18px rgba(16,42,86,.06)"}}>
+   {estadoChip}<span style={{flex:1}}/>
+   <button onClick={()=>setCPreview(v=>!v)} style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:cPreview?"#EEEBFD":P.white,color:cPreview?P.purple:P.ink,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Vista previa</button>
+   <button onClick={consultaAdvance} disabled={advDisabled} style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:advDisabled?"#C7CCE0":advBg,color:"#fff",borderRadius:10,padding:"10px 20px",fontWeight:700,fontSize:13.5,cursor:advDisabled?"default":"pointer",fontFamily:UI}}>{busy==="cadv"?"Procesando…":advLabel}</button>
   </div>
  </>;
 }

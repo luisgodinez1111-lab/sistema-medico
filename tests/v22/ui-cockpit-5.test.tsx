@@ -14,7 +14,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 5/
   await abrirConsulta();
   // Unificación Consulta⟷Expediente: ya no hay pantalla de consulta separada con 8 pestañas; abrir una consulta abre
   // el expediente del paciente en la pestaña "Consulta" (el encuentro), con su formulario estructurado y su CDS.
-  expect(screen.getByText("1. Motivo de consulta")).toBeTruthy();
+  expect(screen.getByText("Motivo de consulta")).toBeTruthy();
   expect(screen.getByText("Resumen clínico")).toBeTruthy();
   expect(screen.getAllByText("Signos vitales").length).toBeGreaterThan(0);
   expect(screen.getByRole("button",{name:"Abrir encuentro"})).toBeTruthy(); // acción FSM del encuentro
