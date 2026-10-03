@@ -8,8 +8,8 @@ import{Alert,Button,Card}from"../../../../packages/design-system/src";
 import{useWorkspaceModel,deriveHeader}from"./model";
 import{WorkspaceProvider,useWorkspace}from"./context";
 import dynamic from"next/dynamic";
-// Carga diferida por vista (K-09): las 18 vistas no esenciales viajan en su propio chunk y se cargan al navegar; solo
-// Inicio, Pacientes, Consulta y Expediente forman parte de la carga inicial. Sin SSR: la página exige sesión en el cliente.
+// Carga diferida por vista (K-09): las vistas no esenciales viajan en su propio chunk y se cargan al navegar; solo
+// Inicio, Pacientes y Expediente forman parte de la carga inicial. Sin SSR: la página exige sesión en el cliente.
 const lazyView=(load:()=>Promise<{default:React.ComponentType}>)=>dynamic(load,{ssr:false,loading:()=><p role="status" style={{padding:24,color:P.muted}}>Cargando la vista…</p>});
 const AgendaView=lazyView(()=>import("./views/agenda"));
 const ResultadosView=lazyView(()=>import("./views/resultados"));
@@ -25,13 +25,12 @@ const ConfiguracionView=lazyView(()=>import("./views/configuracion"));
 
 import InicioView from"./views/inicio";
 import PacientesView from"./views/pacientes";
-import ConsultaView from"./views/consulta";
 import ExpView from"./views/exp";
-const VIEWS:Record<string,React.ComponentType>={inicio:InicioView,pacientes:PacientesView,consulta:ConsultaView,agenda:AgendaView,resultados:ResultadosView,medicamentos:MedicamentosView,ordenes:OrdenesView,interconsulta:InterconsultaView,seguimiento:SeguimientoView,facturacion:FacturacionView,obligaciones:ObligacionesView,reportes:ReportesView,biblioteca:BibliotecaView,configuracion:ConfiguracionView};
+const VIEWS:Record<string,React.ComponentType>={inicio:InicioView,pacientes:PacientesView,agenda:AgendaView,resultados:ResultadosView,medicamentos:MedicamentosView,ordenes:OrdenesView,interconsulta:InterconsultaView,seguimiento:SeguimientoView,facturacion:FacturacionView,obligaciones:ObligacionesView,reportes:ReportesView,biblioteca:BibliotecaView,configuracion:ConfiguracionView};
 function ViewSwitch(){const{view}=useWorkspace();const V=VIEWS[view]??ExpView;return <V/>;}
 export default function Workspace(){
  const m=useWorkspaceModel();
- const{ready,session,cspNonce,sideCollapsed,view,setConsultaPid,setView,setExpTab,setDocMenu,docMenu,setSideCollapsed,topSearch,setTopSearch,loadPatients,setTopMenu,topMenu,chartState,setChartReload,signAsk,signErr,signBusy,setSignAsk,setSignErr,confirmSign,reasonAsk,reasonText,setReasonText,setReasonAsk,amendAsk,amendText,setAmendText,setAmendAsk,busy,confirmAmend}=m;
+ const{ready,session,cspNonce,sideCollapsed,view,setView,setExpTab,setDocMenu,docMenu,setSideCollapsed,topSearch,setTopSearch,loadPatients,setTopMenu,topMenu,chartState,setChartReload,signAsk,signErr,signBusy,setSignAsk,setSignErr,confirmSign,reasonAsk,reasonText,setReasonText,setReasonAsk,amendAsk,amendText,setAmendText,setAmendAsk,busy,confirmAmend}=m;
 
  if(!ready)return <main style={wrap}><p>Cargando…</p></main>;
  if(!session)return <main style={wrap}>
@@ -60,7 +59,7 @@ export default function Workspace(){
       if(it.home){if(group)prevGroup=group;}
       else if(group&&group!==prevGroup){prevGroup=group;rows.push(<div key={"sec-"+group} className="mos-navsec" aria-hidden="true">{NAV_GROUP_META[group].label}</div>);}
       rows.push(
-       <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget==="consulta")setConsultaPid(null);if(vTarget==="exp")setExpTab("resumen");setView(vTarget);scrollTop();}}>
+       <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget==="exp")setExpTab("resumen");setView(vTarget);scrollTop();}}>
         <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&(n===null||n>0)&&<span className={"mos-badge "+(n===null?"p":(it.badgeColor??"p"))} title={n===null?"Sin dato: no se pudo cargar el conteo":undefined}>{n===null?<><span aria-hidden="true">—</span><span className="mos-sr">sin dato</span></>:n}</span>}
        </button>);
       return rows;});})()}

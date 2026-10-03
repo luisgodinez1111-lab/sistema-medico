@@ -151,8 +151,9 @@ export const noSeriousAxe=async(node:Element,label:string)=>{
  expect(serious,`${label} — violaciones serias: ${JSON.stringify(serious)}`).toEqual([]);
 };
 
-// Consulta ahora abre un PANEL de consultas; el workspace clínico se abre eligiendo un paciente e "Abrir consulta".
-export const abrirConsulta=async()=>{fireEvent.click(screen.getByRole("button",{name:"Consulta"}));const input=await screen.findByLabelText("Buscar paciente");fireEvent.change(input,{target:{value:"Ana"}});const open=await screen.findByRole("button",{name:/Ana López García/},{timeout:2000});fireEvent.click(open);};
+// "Consulta" ya no es una puerta del menú: el encuentro es el acto DENTRO del expediente (su pestaña "Consulta", key
+// "encuentro"). Para abrir el encuentro se elige paciente, se entra al expediente y se activa esa pestaña.
+export const abrirConsulta=async()=>{await toExpediente();fireEvent.click(await screen.findByRole("button",{name:"Consulta"}));};
 
 // Al montar, el workspace abre la vista Inicio. Al EXPEDIENTE (la base completa del paciente) se llega eligiendo un
 // paciente y pulsando "Ver expediente →". Los módulos per-paciente ya no son vistas sueltas: viven como submenús del

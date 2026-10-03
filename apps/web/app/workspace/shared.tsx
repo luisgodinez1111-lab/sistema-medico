@@ -398,7 +398,8 @@ export const SIDE_NAV:NavItem[]=[
  {label:"Inicio",h2:"",icon:"home",view:"inicio",home:true},
  // Operación · Hoy — el trabajo del día de TODA la clínica: citas, bandeja clínica, interconsultas y pendientes de
  // resultados/órdenes. Orientado a tareas y tiempo, no a un paciente concreto. (Cruza las ramas Consultas y Labs.)
- {label:"Consulta",h2:"Encuentro",icon:"steth",view:"consulta",group:"operacion"},
+ // "Consulta" ya NO es una puerta: el encuentro es el acto DENTRO del expediente (openConsulta→exp pestaña "encuentro").
+ // La consulta sin cita (walk-in) se inicia desde Pacientes (buscar/registrar → "Iniciar consulta").
  {label:"Agenda",h2:"Agenda",icon:"cal",view:"agenda",group:"operacion",badge:"agenda",badgeColor:"p"},
  {label:"Interconsultas",h2:"Interconsultas",icon:"people",view:"interconsulta",group:"operacion"},
  {label:"Seguimiento",h2:"Seguimiento automático",icon:"chart",view:"seguimiento",group:"operacion",badge:"seguimiento",badgeColor:"p"},

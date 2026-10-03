@@ -95,7 +95,7 @@ export default function InicioView(){
       </div>
       <div style={cardP}><div style={h2row}><h2 style={h2s}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={P.purple} strokeWidth="1.9" aria-hidden><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones rápidas</h2></div>
        <div style={{padding:8}}>
-        {qa("Nueva consulta","M12 5v14M5 12h14",()=>{setConsultaPid(null);setView("consulta");})}
+        {qa("Nueva consulta","M12 5v14M5 12h14",()=>setView("pacientes"))}
         {qa("Registrar resultado","M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3",()=>setView("resultados"))}
         {qa("Crear orden clínica","M8 4h8v3H8zM6 5H5v16h14V5h-1M8 12h8M8 16h5",()=>{setView("ordenes");setOrdNew(true);})}
         {qa("Prescribir medicamento","M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7zM7 8l6 6",()=>setView("medicamentos"))}

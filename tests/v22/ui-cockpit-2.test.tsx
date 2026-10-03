@@ -51,12 +51,12 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 2/
   await abrirConsulta();
   fireEvent.change(screen.getByPlaceholderText("Motivo de la consulta…"),{target:{value:"Cefalea del paciente A"}});
   expect((screen.getByPlaceholderText("Motivo de la consulta…") as HTMLTextAreaElement|HTMLInputElement).value).toBe("Cefalea del paciente A");
-  // cambio a Carlos Mendoza (p2): unificación — se vuelve al despachador por la puerta "Consulta" del menú lateral
-  // ([0] = la del sidebar; la pestaña "Consulta" del expediente comparte nombre) y se abre la suya.
-  fireEvent.click(screen.getAllByRole("button",{name:"Consulta"})[0]!);
-  const input2=await screen.findByLabelText("Buscar paciente");
-  fireEvent.change(input2,{target:{value:"Carlos"}});
-  const openC=await screen.findByRole("button",{name:/Carlos Mendoza/},{timeout:2000});fireEvent.click(openC);
+  // cambio a Carlos Mendoza (p2): el encuentro vive en el expediente; se cambia de paciente desde Pacientes e
+  // "Iniciar consulta" en su ficha. El borrador del paciente A no debe sobrevivir al cambio.
+  fireEvent.click(screen.getByRole("button",{name:"Pacientes"}));
+  fireEvent.change(await screen.findByLabelText("Buscar paciente"),{target:{value:"Carlos"}});
+  fireEvent.click((await screen.findAllByText("Carlos Mendoza"))[0]!);
+  fireEvent.click(await screen.findByRole("button",{name:"Iniciar consulta"}));
   expect((screen.getByPlaceholderText("Motivo de la consulta…") as HTMLTextAreaElement|HTMLInputElement).value).toBe("");
   expect(screen.queryByText(/Cefalea del paciente A/)).toBeNull();
  });

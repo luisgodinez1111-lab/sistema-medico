@@ -9,16 +9,11 @@ void render;void screen;void cleanup;void waitFor;void fireEvent;void within;voi
 installCockpitEnv();
 describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 4/6",()=>{
 
- it("vista Consulta: es un PANEL (citas de hoy + iniciar nueva consulta), no abre el último px directo",async()=>{
+ it("el encuentro es el acto DENTRO del expediente (su pestaña «Consulta»), no un despachador suelto",async()=>{
+  // El despachador «Consulta» se eliminó: ya no es una puerta del menú (lo garantiza branch-architecture). El encuentro
+  // se abre eligiendo paciente → expediente → pestaña «Consulta», donde aparece el formulario (1. Motivo de consulta).
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
-  // panel del día, NO el workspace de un paciente
-  expect((await screen.findByRole("heading",{name:"Consultas"}))).toBeTruthy();
-  expect(await screen.findByText("Iniciar nueva consulta")).toBeTruthy();
-  expect(screen.getAllByText(/Citas de hoy/).length).toBeGreaterThan(0);
-  expect(screen.queryByText("1. Motivo de consulta")).toBeNull(); // aún no hay consulta abierta
-  // abrir la consulta de una cita del día -> entra al workspace del paciente
-  fireEvent.click(screen.getAllByRole("button",{name:"Abrir"})[0]!);
+  await abrirConsulta();
   expect(await screen.findByText("1. Motivo de consulta")).toBeTruthy();
  });
 

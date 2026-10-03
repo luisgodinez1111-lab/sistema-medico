@@ -36,21 +36,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 3/
   fireEvent.click(screen.getByText("Vista mensual"));
   expect(await screen.findByText("Resumen del mes")).toBeTruthy();
  });
- it("Nueva consulta (Lote C): buscador incremental + alta de paciente inline que abre la consulta",async()=>{
+ it("Nueva consulta (walk-in): alta de paciente inline en Pacientes que abre la consulta",async()=>{
+  // El despachador se eliminó: el flujo walk-in (registrar un paciente sin cita e iniciar su consulta) vive en Pacientes.
   render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Consulta"}));
-  // buscador incremental (no dropdown): teclear muestra resultados clicables
-  const input=await screen.findByLabelText("Buscar paciente");
-  fireEvent.change(input,{target:{value:"Ana"}});
-  expect(await screen.findByRole("button",{name:/Ana López García/},{timeout:2000})).toBeTruthy();
-  // alta inline: abrir el formulario, capturar nombre + fecha de nacimiento, registrar y abrir la consulta
-  fireEvent.click(screen.getByRole("button",{name:/Registrar paciente nuevo/}));
-  fireEvent.change(screen.getByLabelText("Nombre del paciente nuevo"),{target:{value:"Nuevo Paciente Prueba"}});
+  fireEvent.click(screen.getByRole("button",{name:"Pacientes"}));
+  // el buscador de pacientes en vivo está presente
+  expect(await screen.findByLabelText("Buscar paciente")).toBeTruthy();
+  // alta inline: abrir el formulario, capturar nombre + fecha de nacimiento, registrar e iniciar la consulta
+  fireEvent.click(screen.getByRole("button",{name:"Nuevo paciente"}));
+  fireEvent.change(await screen.findByLabelText("Nombre completo"),{target:{value:"Nuevo Paciente Prueba"}});
   fireEvent.change(screen.getByLabelText("Fecha de nacimiento"),{target:{value:"1985-05-05"}});
-  fireEvent.click(screen.getByRole("button",{name:/Registrar y abrir consulta/}));
-  // se abre el workspace de consulta del paciente recién creado
+  fireEvent.click(screen.getByRole("button",{name:/Registrar e iniciar consulta/}));
+  // se abre el encuentro del paciente recién creado (dentro del expediente)
   expect(await screen.findByPlaceholderText("Motivo de la consulta…",{},{timeout:2000})).toBeTruthy();
-  // deep-link (Lote B): al seleccionar/abrir un paciente, la URL refleja ?p=&v=
+  // deep-link (Lote B): al abrir un paciente, la URL refleja ?p=
   await waitFor(()=>expect(window.location.search).toMatch(/[?&]p=/),{timeout:2000});
  });
 

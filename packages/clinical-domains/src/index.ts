@@ -48,8 +48,9 @@ export const AGGREGATE_BRANCH:Record<string,Branch>={
 // Clave = el id de `view` del union de `apps/web/app/workspace/model.tsx`. La navegación (SIDE_NAV/TOOLS_NAV)
 // deriva de aquí la sección de cada ítem; el guard exige igualdad exacta con el union de vistas.
 export const VIEW_BRANCH:Record<string,Branch>={
- // Consultas
- consulta:"consultas",agenda:"consultas",interconsulta:"consultas",seguimiento:"consultas",
+ // Consultas — "consulta" (el despachador del día) se eliminó: el encuentro es el acto DENTRO del expediente (vista `exp`,
+ // pestaña "encuentro"); la consulta sin cita se inicia desde Pacientes. La rama sigue cubierta por agenda/interconsulta/seguimiento.
+ agenda:"consultas",interconsulta:"consultas",seguimiento:"consultas",
  // Expedientes — el expediente es la base COMPLETA del paciente: los módulos per-paciente (problemas, alergias, vacunas,
  // signos, plan, documentos, clinical intelligence) viven como SUBMENÚS del expediente (vista `exp`), no como vistas
  // sueltas del menú. Medicamentos permanece como catálogo/herramienta de nivel-sistema.

@@ -105,7 +105,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const[docMenu,setDocMenu]=useState(false);
  // (Fase 2 — híbrido) Los módulos per-paciente (problemas/alergias/vacunas/signos/planCuidado/documentos/clinicalIntel)
  // dejaron de ser vistas de nivel-sistema: viven como submenús del Expediente. El menú lateral queda transversal.
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"interconsulta"|"seguimiento"|"facturacion"|"obligaciones"|"reportes"|"biblioteca"|"configuracion"|"exp">("inicio");
+ const[view,setView]=useState<"inicio"|"pacientes"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"interconsulta"|"seguimiento"|"facturacion"|"obligaciones"|"reportes"|"biblioteca"|"configuracion"|"exp">("inicio");
  // Patient 360 (Lote B): sub-vista activa dentro del expediente (?s= en la URL cuando view==="exp").
  const[expTab,setExpTab]=useState<ExpTab>("resumen");
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
@@ -471,7 +471,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  },[view,patSelId,ready,session]);
  // Agenda del día real (vistas Agenda e Inicio).
  useEffect(()=>{
-  if((view!=="agenda"&&view!=="inicio"&&view!=="consulta")||!ready||!session)return;
+  if((view!=="agenda"&&view!=="inicio")||!ready||!session)return;
   // Inicio y consulta miran solo el día de hoy; la Agenda respeta la vista (día/lista=1 día, semana/mes=rango).
   const qs=view==="agenda"?agendaWindow(agendaView,agendaDate):`date=${new Date().toISOString().slice(0,10)}`;
   let cancelled=false;const ac=new AbortController();
@@ -522,7 +522,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   ...(x.kind?{kind:x.kind}:{}),
  };};
  useEffect(()=>{
-  if((view!=="exp"&&view!=="consulta")||!ready||!session||!patientId)return;
+  if((view!=="exp")||!ready||!session||!patientId)return;
   let cancelled=false;const ac=new AbortController();
   setAntSnap(null);setAntEditing(false);setAntMsg(null);setAntReason("");setAntForm(ANT_EMPTY);
   (async()=>{
@@ -691,7 +691,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // mostraba NADA de lo que el paciente ya toma —su lista de medicamentos solo se llenaba con lo prescrito en esa sesión—,
  // mientras que sus alergias y problemas sí se ven en la cabecera. Prescribir sin ver la medicación vigente es el riesgo.
  useEffect(()=>{
-  if((view!=="consulta"&&view!=="exp"&&view!=="pacientes")||!ready||!session||!patientId){setConsTabs(null);return;}
+  if((view!=="exp"&&view!=="pacientes")||!ready||!session||!patientId){setConsTabs(null);return;}
   let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
@@ -1518,7 +1518,8 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  useEffect(()=>{
   if(urlRestored.current||!ready||!session)return;
   const params=new URLSearchParams(urlInit.current);const pid=params.get("p");const v=params.get("v");const s=params.get("s");
-  const KV=new Set(["inicio","pacientes","consulta","agenda","resultados","medicamentos","ordenes","interconsulta","seguimiento","facturacion","obligaciones","reportes","biblioteca","configuracion","exp"]);
+  // "consulta" ya no es una vista; el deep-link retro `?v=consulta` se remapea abajo a exp+pestaña "encuentro".
+  const KV=new Set(["inicio","pacientes","agenda","resultados","medicamentos","ordenes","interconsulta","seguimiento","facturacion","obligaciones","reportes","biblioteca","configuracion","exp"]);
   // Retro (Fase 2): los enlaces viejos a módulos per-paciente ahora abren el Expediente en su submenú correspondiente.
   const MOVED:Record<string,ExpTab>={problemas:"problemas",alergias:"alergias",vacunas:"vacunas",signos:"signos",planCuidado:"plan",documentos:"documentos",clinicalIntel:"intel"};
   const movedTab=v?MOVED[v]:undefined;
