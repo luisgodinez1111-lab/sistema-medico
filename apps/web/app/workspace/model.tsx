@@ -1636,14 +1636,17 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  useEffect(()=>{
   if(urlRestored.current||!ready||!session)return;
   const params=new URLSearchParams(urlInit.current);const pid=params.get("p");const v=params.get("v");const s=params.get("s");
-  if(!pid){urlRestored.current=true;return;}
-  if(!patientList)return; // espera al padrón para tomar el nombre del paciente
+  const KV=new Set(["inicio","pacientes","consulta","agenda","resultados","medicamentos","ordenes","alergias","problemas","vacunas","signos","planCuidado","interconsulta","seguimiento","facturacion","documentos","obligaciones","clinicalIntel","reportes","biblioteca","configuracion","exp"]);
+  // La VISTA del deep-link se restaura SIEMPRE, haya o no paciente: un enlace compartible a una vista de nivel-sistema
+  // (reportes, facturación, obligaciones…) debe abrir esa vista, no caer en inicio. Unificación: ?v=consulta abre el
+  // expediente en la pestaña "Consulta" (encuentro).
+  const vEff=v==="consulta"?"exp":v;if(vEff&&KV.has(vEff))setView(vEff as typeof view);
+  const applyExpTab=()=>{if(s&&(EXP_TAB_KEYS as string[]).includes(s))setExpTab(s as ExpTab);else if(v==="consulta")setExpTab("encuentro");};
+  if(!pid){applyExpTab();urlRestored.current=true;return;}
+  if(!patientList)return; // con paciente: espera al padrón para tomar su nombre
   urlRestored.current=true;
   const found=patientList.find(x=>x.patientId===pid);
-  if(found){selectPatientRaw(pid,found.name);const KV=new Set(["inicio","pacientes","consulta","agenda","resultados","medicamentos","ordenes","alergias","problemas","vacunas","signos","planCuidado","interconsulta","seguimiento","facturacion","documentos","obligaciones","clinicalIntel","reportes","biblioteca","configuracion","exp"]);
-   // Unificación: un deep-link con paciente a ?v=consulta abre el EXPEDIENTE en la pestaña "Consulta" (encuentro).
-   const vEff=v==="consulta"?"exp":v;if(vEff&&KV.has(vEff))setView(vEff as typeof view);
-   if(s&&(EXP_TAB_KEYS as string[]).includes(s))setExpTab(s as ExpTab);else if(v==="consulta")setExpTab("encuentro");}
+  if(found){selectPatientRaw(pid,found.name);applyExpTab();}
  },[patientList,ready,session]);
  useEffect(()=>{
   if(typeof window==="undefined"||!ready||!session)return;
