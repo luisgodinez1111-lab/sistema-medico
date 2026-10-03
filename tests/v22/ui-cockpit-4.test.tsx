@@ -17,22 +17,22 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 4/
   expect(await screen.findByText("1. Motivo de consulta")).toBeTruthy();
  });
 
- it("vista Pacientes: lista real, búsqueda filtra, y la ficha es contextual (sólo al seleccionar)",async()=>{
+ it("vista Pacientes: lista real, la búsqueda filtra, y seleccionar abre el EXPEDIENTE directo (una puerta)",async()=>{
+  // Fusión Pacientes⟷Expediente: "Pacientes" es el estado sin-paciente del Expediente (la lista). Ya no hay ficha-preview:
+  // seleccionar un paciente abre su expediente directamente (su pestaña Resumen es la ficha).
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Pacientes"}));
   expect((await screen.findByRole("heading",{name:"Pacientes"}))).toBeTruthy();
   expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0);
   expect(screen.getAllByText("Carlos Mendoza").length).toBeGreaterThan(0);
-  // la ficha NO existe hasta seleccionar (sin botón Editar todavía)
-  expect(screen.queryByRole("button",{name:"Editar"})).toBeNull();
   // la búsqueda filtra en vivo
   fireEvent.change(screen.getByPlaceholderText(/Buscar por nombre o CURP/),{target:{value:"Carlos"}});
   expect(screen.queryByText("Ana López García")).toBeNull();
   fireEvent.click(screen.getByText("Limpiar filtros"));
-  // seleccionar el paciente abre su FICHA contextual (nombre + Editar + pestañas)
+  // seleccionar el paciente abre su EXPEDIENTE (encabezado del paciente + submenús del expediente)
   fireEvent.click((await screen.findAllByText("Ana López García"))[0]!);
-  expect(await screen.findByRole("button",{name:"Editar"})).toBeTruthy();
-  expect(screen.getByText("Información general")).toBeTruthy();
+  expect(await screen.findByRole("button",{name:/Iniciar consulta/})).toBeTruthy();
+  expect(screen.getByRole("button",{name:"Resumen"})).toBeTruthy();
  });
 
  it("Pacientes: «Registrar e iniciar consulta» crea el paciente y abre su consulta",async()=>{

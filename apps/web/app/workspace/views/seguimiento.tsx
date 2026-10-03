@@ -47,7 +47,7 @@ export default function SeguimientoView(){
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={clip}/><path d="M9 13l2 2 4-4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Seguimiento</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Da seguimiento continuo a la evolución clínica de tus pacientes.</p></div></div>
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-      <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 16px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>patientId?openConsulta(patientId,patientName):setView("pacientes")}>+ Nuevo seguimiento</button>
+      <button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 16px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>patientId?openConsulta(patientId,patientName):setView("exp")}>+ Nuevo seguimiento</button>
      </div>
     </div>
     <div style={{...card2,marginTop:16,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>

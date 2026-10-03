@@ -11,8 +11,9 @@ import{searchIcd10}from"../../../../../packages/terminology/src";
 const REASSESSMENT_SOURCE_SHORT="CTAS";
 import{useWorkspace}from"../context";
 import EncounterForm from"./_encounter";
+import PacientesView from"./pacientes";
 export default function ExpView(){
- const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab,setView,openConsulta,antSnap,antForm,setAntForm,antBusy,antMsg,antReason,setAntReason,antEditing,setAntEditing,saveAntecedentes}=useWorkspace();
+ const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab,setView,openConsulta,antSnap,antForm,setAntForm,antBusy,antMsg,antReason,setAntReason,antEditing,setAntEditing,saveAntecedentes,openEdit,patEdit,setPatEdit,editForm,setEditForm,amendPatient,editBusy,patMsg,setPatMsg}=useWorkspace();
  // Patient 360 (Lote B): la sub-vista activa decide qué secciones se montan. La pestaña "hospital" solo existe con
  // hospitalOn; si la URL trae ?s=hospital sin las verticales encendidas, caemos a "resumen" para no dejar la vista vacía.
  const activeTab:ExpTab=(expTab==="hospital"&&!hospitalOn)?"resumen":expTab;
@@ -20,22 +21,10 @@ export default function ExpView(){
  // Navegación entre sub-vistas (pestañas y accesos rápidos del hero); opcionalmente enfoca una sección tras montar.
  const goTab=(g:ExpTab,section?:string)=>{setExpTab(g);if(section)requestAnimationFrame(()=>scrollToSection(section));else scrollTop();};
 
- // Expediente accesible desde el menú: sin un paciente en foco no hay historia que mostrar. En vez de un cascarón vacío,
- // se invita a elegir uno (honesto, sin datos ficticios). El expediente es longitudinal: siempre es de UN paciente.
- if(!patientId)return <main className="mos-grid"><section className="span2" style={{...card,marginTop:24,padding:"44px 24px",maxWidth:560,marginLeft:"auto",marginRight:"auto"}}>
-  <div style={{textAlign:"center"}}>
-   <div style={{width:48,height:48,borderRadius:14,background:"#EEF3FB",color:P.blue,display:"grid",placeItems:"center",margin:"0 auto 14px"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 3h9l4 4v14H6zM15 3v4h4M9 13h6M9 17h4"/></svg></div>
-   <div style={{fontSize:18,fontWeight:800,letterSpacing:"-.01em"}}>Abre el expediente de un paciente</div>
-   <p style={{color:P.muted,fontSize:13.5,maxWidth:460,margin:"8px auto 20px",lineHeight:1.5}}>El expediente es la historia clínica longitudinal de un paciente concreto. Elige uno en Pacientes (o búscalo en la barra superior) y desde ahí podrás revisar su historia e iniciar una consulta.</p>
-   <button onClick={()=>{setView("pacientes");scrollTop();}} style={{...btn,display:"inline-block",padding:"10px 20px"}}>Ir a Pacientes →</button>
-  </div>
-  {/* Alternativa para abrir por ID (útil cuando el padrón no está disponible, p. ej. una dependencia caída): al fijar el
-      patientId se monta el expediente y, si la carga falla, el aviso honesto de error del layout se hace cargo. */}
-  <div style={{marginTop:24,paddingTop:18,borderTop:`1px solid ${LINE}`}}>
-   <label htmlFor="patient-id-input" style={lbl}>…o abre por ID de paciente</label>
-   <input aria-label="Identificador del paciente" id="patient-id-input" style={input} value={patientId} onChange={e=>setPatientId(e.target.value)} placeholder="UUID del paciente"/>
-  </div>
- </section></main>;
+ // Fusión Pacientes⟷Expediente: el expediente es longitudinal (siempre de UN paciente). Sin paciente en foco, esta
+ // misma vista ES la lista de Pacientes (buscar/registrar); seleccionar uno fija patientId y abajo se monta su expediente.
+ // Una sola puerta: "Pacientes → Expediente". (El menú lateral "Pacientes" apunta a esta vista y limpia el paciente.)
+ if(!patientId)return <PacientesView/>;
 
  return <>
   {/* PATIENT HEADER — contexto del paciente SIEMPRE visible (design-contract); componente del design system (K-09) */}
@@ -258,6 +247,31 @@ export default function ExpView(){
   <section hidden={!inTab("admin")} style={card}>
    <h2 {...anchor("Paciente")} style={{fontSize:18,margin:0}}>Paciente</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Registra un paciente o selecciónalo de la lista. El chart de abajo es del paciente activo.</p>
+   {/* Edición de datos del paciente ACTIVO (vive aquí tras la fusión Pacientes⟷Expediente; antes estaba en la ficha). */}
+   {patientId&&<div style={{marginTop:12,padding:14,border:`1px solid ${LINE}`,borderRadius:12,background:"#FBFBFE"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+     <div style={{fontSize:13.5,fontWeight:800}}>Datos del paciente activo{patientName?` · ${patientName}`:""}</div>
+     {!patEdit&&<button onClick={()=>openEdit(patientId)} style={{...ghost,padding:"7px 12px",fontSize:13}}>Editar datos</button>}
+    </div>
+    {patMsg&&<div style={{marginTop:10,display:"flex",alignItems:"center",gap:10,background:patMsg.includes("✓")?"#F0FBF4":"#EEF6FF",border:`1px solid ${patMsg.includes("✓")?"#CDEBD8":"#CFE0F7"}`,borderRadius:9,padding:"8px 12px",fontSize:13}}><span style={{color:patMsg.includes("✓")?P.green:P.blue,fontWeight:700}}>{patMsg.includes("✓")?"✓":"ℹ"}</span><span style={{flex:1}}>{patMsg}</span><button onClick={()=>setPatMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+    {patEdit&&<div style={{marginTop:12,display:"flex",flexDirection:"column",gap:10}}>
+     <div><label style={lbl}>Nombre completo</label><input aria-label="Editar nombre completo" style={input} value={editForm.name} onChange={e=>setEditForm({...editForm,name:e.target.value})}/></div>
+     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <div><label style={lbl}>Fecha de nacimiento</label><input aria-label="Editar fecha de nacimiento" type="date" style={input} value={editForm.birthDate} onChange={e=>setEditForm({...editForm,birthDate:e.target.value})}/></div>
+      <div><label style={lbl}>Sexo</label><select aria-label="Editar sexo del paciente" style={input} value={editForm.sexAtBirth} onChange={e=>setEditForm({...editForm,sexAtBirth:e.target.value})}><option value="FEMALE">Femenino</option><option value="MALE">Masculino</option><option value="INTERSEX">Intersexual</option><option value="UNKNOWN">Sin especificar</option></select></div>
+     </div>
+     <div><label style={lbl}>CURP</label><input aria-label="Editar CURP" style={input} value={editForm.curp} onChange={e=>setEditForm({...editForm,curp:e.target.value.toUpperCase()})}/></div>
+     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <div><label style={lbl}>Teléfono</label><input aria-label="Editar teléfono" style={input} value={editForm.phone} onChange={e=>setEditForm({...editForm,phone:e.target.value})}/></div>
+      <div><label style={lbl}>Correo</label><input aria-label="Editar correo electrónico" style={input} value={editForm.email} onChange={e=>setEditForm({...editForm,email:e.target.value})}/></div>
+     </div>
+     <div><label style={lbl}>Dirección</label><input aria-label="Editar dirección" style={input} value={editForm.address} onChange={e=>setEditForm({...editForm,address:e.target.value})}/></div>
+     <div style={{display:"flex",gap:10}}>
+      <button onClick={()=>void amendPatient(patientId)} disabled={editBusy||!editForm.name.trim()} style={{...btn,padding:"9px 18px",opacity:(editBusy||!editForm.name.trim())?.6:1}}>{editBusy?"Guardando…":"Guardar cambios"}</button>
+      <button onClick={()=>setPatEdit(false)} style={{...ghost,padding:"9px 16px"}}>Cancelar</button>
+     </div>
+    </div>}
+   </div>}
    <div style={{display:"grid",gridTemplateColumns:"1fr 160px 150px auto",gap:10,marginTop:12,alignItems:"center"}}>
     <input aria-label="Nombre completo" style={input} value={regName} onChange={e=>setRegName(e.target.value)} placeholder="Nombre completo" />
     <input aria-label="Fecha de nacimiento" style={input} type="date" value={regDob} onChange={e=>setRegDob(e.target.value)} />

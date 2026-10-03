@@ -24,13 +24,13 @@ const BibliotecaView=lazyView(()=>import("./views/biblioteca"));
 const ConfiguracionView=lazyView(()=>import("./views/configuracion"));
 
 import InicioView from"./views/inicio";
-import PacientesView from"./views/pacientes";
 import ExpView from"./views/exp";
-const VIEWS:Record<string,React.ComponentType>={inicio:InicioView,pacientes:PacientesView,agenda:AgendaView,resultados:ResultadosView,medicamentos:MedicamentosView,ordenes:OrdenesView,interconsulta:InterconsultaView,seguimiento:SeguimientoView,facturacion:FacturacionView,obligaciones:ObligacionesView,reportes:ReportesView,biblioteca:BibliotecaView,configuracion:ConfiguracionView};
+// Tras la fusión Pacientes⟷Expediente, la lista de pacientes es el estado "sin paciente" de ExpView (no hay vista aparte).
+const VIEWS:Record<string,React.ComponentType>={inicio:InicioView,agenda:AgendaView,resultados:ResultadosView,medicamentos:MedicamentosView,ordenes:OrdenesView,interconsulta:InterconsultaView,seguimiento:SeguimientoView,facturacion:FacturacionView,obligaciones:ObligacionesView,reportes:ReportesView,biblioteca:BibliotecaView,configuracion:ConfiguracionView};
 function ViewSwitch(){const{view}=useWorkspace();const V=VIEWS[view]??ExpView;return <V/>;}
 export default function Workspace(){
  const m=useWorkspaceModel();
- const{ready,session,cspNonce,sideCollapsed,view,setView,setExpTab,setDocMenu,docMenu,setSideCollapsed,topSearch,setTopSearch,loadPatients,setTopMenu,topMenu,chartState,setChartReload,signAsk,signErr,signBusy,setSignAsk,setSignErr,confirmSign,reasonAsk,reasonText,setReasonText,setReasonAsk,amendAsk,amendText,setAmendText,setAmendAsk,busy,confirmAmend}=m;
+ const{ready,session,cspNonce,sideCollapsed,view,setView,setExpTab,reset,setDocMenu,docMenu,setSideCollapsed,topSearch,setTopSearch,loadPatients,setTopMenu,topMenu,chartState,setChartReload,signAsk,signErr,signBusy,setSignAsk,setSignErr,confirmSign,reasonAsk,reasonText,setReasonText,setReasonAsk,amendAsk,amendText,setAmendText,setAmendAsk,busy,confirmAmend}=m;
 
  if(!ready)return <main style={wrap}><p>Cargando…</p></main>;
  if(!session)return <main style={wrap}>
@@ -59,7 +59,7 @@ export default function Workspace(){
       if(it.home){if(group)prevGroup=group;}
       else if(group&&group!==prevGroup){prevGroup=group;rows.push(<div key={"sec-"+group} className="mos-navsec" aria-hidden="true">{NAV_GROUP_META[group].label}</div>);}
       rows.push(
-       <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget==="exp")setExpTab("resumen");setView(vTarget);scrollTop();}}>
+       <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget==="exp"){reset();setExpTab("resumen");}setView(vTarget);scrollTop();}}>
         <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&(n===null||n>0)&&<span className={"mos-badge "+(n===null?"p":(it.badgeColor??"p"))} title={n===null?"Sin dato: no se pudo cargar el conteo":undefined}>{n===null?<><span aria-hidden="true">—</span><span className="mos-sr">sin dato</span></>:n}</span>}
        </button>);
       return rows;});})()}
@@ -91,7 +91,7 @@ export default function Workspace(){
    <header style={appbar}>
     <div className="mos-topsearch" style={{maxWidth:640}}>
      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8a90ae" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg>
-     <input placeholder="Buscar paciente por nombre, CURP, teléfono o expediente…" value={topSearch} onChange={e=>setTopSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){setView("exp");loadPatients();scrollToSection("Paciente");}}}/>
+     <input placeholder="Buscar paciente por nombre, CURP, teléfono o expediente…" value={topSearch} onChange={e=>setTopSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){reset();setView("exp");loadPatients();scrollTop();}}}/>
      <span style={{fontSize:11,background:"#E7EAF2",borderRadius:5,padding:"2px 6px",color:P.muted,fontWeight:600,flex:"0 0 auto"}}>⌘ K</span>
     </div>
     <div style={{display:"flex",alignItems:"center",gap:16,flex:"0 0 auto",marginLeft:"auto"}}>

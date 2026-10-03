@@ -36,7 +36,9 @@ describe("desconocido vs confirmado vacío en los indicadores clínicos (R05a-F0
     if(!GUARDA.test(ctx))sinGuarda.push(`${p.slice(DIR.length+1)} → ${m[1]!.slice(0,52)}`);
    }
   }
-  expect(total,"no se encontraron afirmaciones de ausencia: ¿cambió el texto de la UI?").toBeGreaterThanOrEqual(12);
+  // (Fusión Pacientes⟷Expediente) Bajó el conteo al retirar la ficha-preview de Pacientes, que repetía varias
+  // afirmaciones de ausencia ya presentes en el expediente. La invariante dura es la de abajo: ninguna sin su guarda.
+  expect(total,"no se encontraron afirmaciones de ausencia: ¿cambió el texto de la UI?").toBeGreaterThanOrEqual(8);
   expect(sinGuarda,"afirma una ausencia clínica sin saber si el dato cargó").toEqual([]);
  });
  it("el portal del PACIENTE no dice «sin medicamentos» cuando la carga falló",()=>{

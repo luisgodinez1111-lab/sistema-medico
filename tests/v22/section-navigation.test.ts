@@ -53,11 +53,12 @@ describe("navegación entre ventanas del expediente (WS1-15a)",()=>{
  });
  it("el destino Documentos del expediente existe con su nombre real y su submenú",()=>{
   // «Documentos» contra un título que dice «Documentos clínicos»: el defecto histórico. Hoy Documentos es un submenú del
-  // expediente: la ficha lo abre con setExpTab("documentos") y el nombre REAL de la sección/ancla se conserva.
+  // expediente, con su nombre REAL conservado en la sección/ancla y mapeado a su sub-pestaña en SECTION_EXP_TAB.
+  // (Tras la fusión Pacientes⟷Expediente la ficha-preview se retiró; el submenú se navega desde el propio expediente.)
   expect(anclas(),"la sección conserva su nombre real").toContain("Documentos clínicos");
   expect(SECTION_EXP_TAB["Documentos clínicos"],"su ancla cae en el submenú Documentos").toBe("documentos");
-  const fich=fs.readFileSync(path.join(UI,"views/pacientes.tsx"),"utf8");
-  expect(fich,"la ficha de Pacientes abre el submenú Documentos del expediente").toContain('setExpTab("documentos")');
+  const exp=fs.readFileSync(EXP,"utf8");
+  expect(exp,"el submenú Documentos es una sub-pestaña del expediente").toContain('inTab("documentos")');
  });
  it("la navegación NO vuelve a buscar títulos por su texto en todo el DOM",()=>{
   const src=fs.readFileSync(path.join(UI,"shared.tsx"),"utf8");

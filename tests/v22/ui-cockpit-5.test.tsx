@@ -27,25 +27,17 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 5/
   expect(await screen.findByRole("heading",{name:"Medicación"})).toBeTruthy();
  });
 
- it("vista Pacientes: ficha con pestañas en sitio (Historial), Agendar cita y edición real (POST amendment)",async()=>{
+ it("Expediente › Administración › Paciente: edición real de datos del paciente (POST amendment)",async()=>{
+  // Fusión Pacientes⟷Expediente: seleccionar un paciente abre su expediente directamente (sin ficha-preview). La edición
+  // de datos del paciente vive ahora en el submenú Administración del expediente y sigue siendo real (POST amendment).
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Pacientes"}));
-  fireEvent.click((await screen.findAllByText("Ana López García"))[0]!); // abre la ficha
-  await screen.findByRole("button",{name:"Editar"});
-  // pestaña Historial se despliega EN LA MISMA ficha (no navega)
-  fireEvent.click(screen.getByText("Historial"));
-  expect(screen.getByText(/Historial del expediente/)).toBeTruthy();
-  expect((await screen.findByRole("heading",{name:"Pacientes"}))).toBeTruthy(); // sigue en Pacientes (no abrió otra vista)
-  fireEvent.click(screen.getByText("Resumen")); // volver a Resumen
-  // Editar → formulario con datos reales → guardar (POST amendment)
-  fireEvent.click(screen.getByRole("button",{name:"Editar"}));
-  expect(screen.getByText("Editar ficha del paciente")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button",{name:"Guardar cambios"}));
+  fireEvent.click((await screen.findAllByText("Ana López García"))[0]!); // abre el EXPEDIENTE del paciente
+  fireEvent.click(await screen.findByRole("button",{name:"Administración"}));
+  fireEvent.click(await screen.findByRole("button",{name:"Editar datos"}));
+  // formulario con datos reales → guardar (POST amendment)
+  fireEvent.click(await screen.findByRole("button",{name:"Guardar cambios"}));
   expect(await screen.findByText(/Ficha del paciente actualizada/)).toBeTruthy();
-  // Agendar cita desde la ficha interconecta con Agenda
-  fireEvent.click(screen.getByRole("button",{name:"Agendar cita"}));
-  expect(await screen.findByRole("heading",{name:"Agenda"})).toBeTruthy();
-  expect(screen.getByText(/Nueva cita ·/)).toBeTruthy();
  });
 
  // Auditoría U-16: un motivo clínico lo escribe el médico; nada se envía con un literal del código.

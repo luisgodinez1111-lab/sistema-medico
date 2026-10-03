@@ -11,8 +11,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 1/
  it("shell: sidebar índigo con navegación primaria (transversal) + herramientas + buscador global + perfil del médico",async()=>{
   render(<Workspace/>);
   expect(screen.getByRole("button",{name:/Inicio/})).toBeTruthy();
+  // Fusión Pacientes⟷Expediente: UNA sola puerta "Pacientes" (abre la lista y, al elegir, el expediente). Ya no hay ítem "Expediente".
   expect(screen.getByRole("button",{name:/Pacientes/})).toBeTruthy();
-  expect(screen.getByRole("button",{name:/Expediente/})).toBeTruthy(); // el expediente es la puerta a los módulos del paciente
   expect(screen.getByRole("button",{name:"Reportes"})).toBeTruthy();
   expect(screen.getByRole("button",{name:/Configuración/})).toBeTruthy();   // sección HERRAMIENTAS
   expect(screen.getByRole("button",{name:/Contraer menú/})).toBeTruthy();    // colapsar

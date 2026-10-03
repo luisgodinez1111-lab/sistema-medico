@@ -405,10 +405,10 @@ export const SIDE_NAV:NavItem[]=[
  {label:"Seguimiento",h2:"Seguimiento automático",icon:"chart",view:"seguimiento",group:"operacion",badge:"seguimiento",badgeColor:"p"},
  {label:"Resultados",h2:"Resultados diagnósticos",icon:"flask",view:"resultados",group:"operacion",badge:"resultados",badgeColor:"r"},
  {label:"Órdenes",h2:"Órdenes clínicas",icon:"orders",view:"ordenes",group:"operacion"},
- // Paciente — el EXPEDIENTE es la base completa del paciente: entrar a él abre sus módulos (problemas, alergias,
- // signos, medicación, resultados, órdenes, vacunas, plan, documentos, clinical intelligence) como submenús paciente-scoped.
- {label:"Pacientes",h2:"Paciente",icon:"people",view:"pacientes",group:"paciente"},
- {label:"Expediente",h2:"",icon:"record",view:"exp",group:"paciente"},
+ // Paciente — UNA sola puerta: "Pacientes" abre la vista del paciente (`exp`). Sin paciente en foco muestra la LISTA de
+ // pacientes (buscar/registrar); al seleccionar uno, su EXPEDIENTE completo (módulos como submenús paciente-scoped).
+ // Clic en el menú limpia el paciente para volver a la lista (ver page.tsx). Ya no hay ítem "Expediente" separado.
+ {label:"Pacientes",h2:"Paciente",icon:"people",view:"exp",group:"paciente"},
  // Catálogo y gestión — herramientas y administración del consultorio. "Obligaciones del consultorio" es cumplimiento
  // REGULATORIO (SAT/COFEPRIS/laboral), NO el seguimiento clínico del paciente (ese vive en "Seguimiento"): se renombra
  // y se ubica aquí para que deje de parecer un duplicado de la bandeja clínica.

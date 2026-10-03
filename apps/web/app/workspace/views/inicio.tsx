@@ -5,7 +5,10 @@
 import{card,P,UI,scrollToSection,LINE,act,NavIcon,Skeleton,srOnly}from"../shared";
 import{useWorkspace}from"../context";
 export default function InicioView(){
- const{clock,patientList,panel,notifCount,setView,setExpTab,openConsulta,agenda,docDisplay,setMedTab,setConsultaPid,setOrdNew,setApptNew}=useWorkspace();
+ const{clock,patientList,panel,notifCount,setView,setExpTab,openConsulta,agenda,docDisplay,setMedTab,reset,setOrdNew,setApptNew}=useWorkspace();
+ // Fusión Pacientes⟷Expediente: ir a la LISTA de pacientes = limpiar el paciente activo y abrir la vista del expediente
+ // (que sin paciente ES la lista). `reset()` deja patientId vacío; `exp` muestra entonces la lista de pacientes.
+ const irAPacientes=()=>{reset();setView("exp");};
 
    // ===== DASHBOARD INICIO (consultorio) — S2.png =====
    const fecha=clock.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).replace(/^\w/,c=>c.toUpperCase());
@@ -95,7 +98,7 @@ export default function InicioView(){
       </div>
       <div style={cardP}><div style={h2row}><h2 style={h2s}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={P.purple} strokeWidth="1.9" aria-hidden><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones rápidas</h2></div>
        <div style={{padding:8}}>
-        {qa("Nueva consulta","M12 5v14M5 12h14",()=>setView("pacientes"))}
+        {qa("Nueva consulta","M12 5v14M5 12h14",()=>irAPacientes())}
         {qa("Registrar resultado","M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3",()=>setView("resultados"))}
         {qa("Crear orden clínica","M8 4h8v3H8zM6 5H5v16h14V5h-1M8 12h8M8 16h5",()=>{setView("ordenes");setOrdNew(true);})}
         {qa("Prescribir medicamento","M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7zM7 8l6 6",()=>setView("medicamentos"))}
@@ -108,11 +111,11 @@ export default function InicioView(){
     </div>
     {/* Pacientes recientes | recursos */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 320px",gap:16,marginTop:16,alignItems:"start"}} className="mos-low">
-     <div style={cardP}><div style={h2row}><h2 style={h2s}>Pacientes recientes</h2><span style={link} {...act(()=>setView("pacientes"))}>Ver todas →</span></div>
+     <div style={cardP}><div style={h2row}><h2 style={h2s}>Pacientes recientes</h2><span style={link} {...act(()=>irAPacientes())}>Ver todas →</span></div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
        <thead><tr>{["Nombre","Edad","Última consulta","Motivo","Estado"].map(h=><th key={h} style={{textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"8px 18px",borderBottom:`1px solid ${LINE}`}}>{h}</th>)}</tr></thead>
        <tbody>{patientList===null?[0,1,2,3].map(i=><tr key={`sk${i}`} aria-hidden><td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`}}><div style={{display:"flex",alignItems:"center",gap:10}}><Skeleton w={30} h={30} r={99}/><Skeleton w={140} h={13}/></div></td><td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`}}><Skeleton w={36} h={12}/></td><td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`}}><Skeleton w={80} h={12}/></td><td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`}}><Skeleton w={90} h={12}/></td><td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`}}><Skeleton w={56} h={18} r={99}/></td></tr>):(!usingRealPts?<tr><td colSpan={6} style={{padding:"22px 14px",textAlign:"center",color:P.muted,fontSize:13}}>Aún no hay pacientes registrados.</td></tr>:null)}{realPts.map((p,i)=>{const[stl,sbg,sfg]=stEs(p.status);const d=p as{name:string;status:string;age?:string;last?:string;motivo?:string;patientId?:string};return <tr key={i}>
-        <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13}}><span style={{display:"flex",alignItems:"center",gap:10,fontWeight:600,cursor:"pointer"}} {...act(()=>d.patientId?openPatientCtx(d.patientId,p.name):setView("pacientes"))}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700}}>{initials(p.name)}</span>{p.name}</span></td>
+        <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13}}><span style={{display:"flex",alignItems:"center",gap:10,fontWeight:600,cursor:"pointer"}} {...act(()=>d.patientId?openPatientCtx(d.patientId,p.name):irAPacientes())}><span style={{width:30,height:30,borderRadius:"50%",background:"#EAE9FB",color:P.purple,display:"grid",placeItems:"center",fontSize:11,fontWeight:700}}>{initials(p.name)}</span>{p.name}</span></td>
         <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13,color:P.muted}}>{d.age??"—"}</td>
         <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13,color:P.muted}}>{d.last??"—"}</td>
         <td style={{padding:"11px 18px",borderBottom:`1px solid #F4F6FB`,fontSize:13}}>{d.motivo??"—"}</td>

@@ -105,7 +105,9 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const[docMenu,setDocMenu]=useState(false);
  // (Fase 2 — híbrido) Los módulos per-paciente (problemas/alergias/vacunas/signos/planCuidado/documentos/clinicalIntel)
  // dejaron de ser vistas de nivel-sistema: viven como submenús del Expediente. El menú lateral queda transversal.
- const[view,setView]=useState<"inicio"|"pacientes"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"interconsulta"|"seguimiento"|"facturacion"|"obligaciones"|"reportes"|"biblioteca"|"configuracion"|"exp">("inicio");
+ // Fusión Pacientes⟷Expediente: "pacientes" ya no es una vista propia. El Expediente (`exp`) ES la vista del paciente:
+ // sin paciente muestra la LISTA de pacientes; con paciente, su expediente. El deep-link `?v=pacientes` se remapea a exp.
+ const[view,setView]=useState<"inicio"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"interconsulta"|"seguimiento"|"facturacion"|"obligaciones"|"reportes"|"biblioteca"|"configuracion"|"exp">("inicio");
  // Patient 360 (Lote B): sub-vista activa dentro del expediente (?s= en la URL cuando view==="exp").
  const[expTab,setExpTab]=useState<ExpTab>("resumen");
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
@@ -462,13 +464,14 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
 
  // Reloj en vivo del dashboard (hora del consultorio).
  useEffect(()=>{const id=setInterval(()=>setClock(new Date()),1000*30);return()=>clearInterval(id);},[]);
- // Ficha de Pacientes: al seleccionar un paciente, carga sus documentos (para la pestaña Documentos/Notas de la ficha).
+ // Expediente: al abrir un paciente, carga sus documentos (para el submenú Documentos del expediente). Tras la fusión
+ // Pacientes⟷Expediente la vista es `exp` y el paciente activo es `patientId` (antes se cargaba en la ficha de Pacientes).
  useEffect(()=>{
-  if(view!=="pacientes"||!patSelId||!ready||!session)return;
+  if(view!=="exp"||!patientId||!ready||!session)return;
   let cancelled=false;const ac=new AbortController();
-  (async()=>{try{const r=await apiRequest(`/api/v1/patients/${patSelId}/documents`,{method:"GET",signal:ac.signal});if(!cancelled&&r.status===200)setDocsSnap(conForma<DocsSnap>(r.body,FORMA.docsSnap));}catch{/* documentos no disponibles */}})();
+  (async()=>{try{const r=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET",signal:ac.signal});if(!cancelled&&r.status===200)setDocsSnap(conForma<DocsSnap>(r.body,FORMA.docsSnap));}catch{/* documentos no disponibles */}})();
   return()=>{cancelled=true;ac.abort();};
- },[view,patSelId,ready,session]);
+ },[view,patientId,ready,session]);
  // Agenda del día real (vistas Agenda e Inicio).
  useEffect(()=>{
   if((view!=="agenda"&&view!=="inicio")||!ready||!session)return;
@@ -691,7 +694,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // mostraba NADA de lo que el paciente ya toma —su lista de medicamentos solo se llenaba con lo prescrito en esa sesión—,
  // mientras que sus alergias y problemas sí se ven en la cabecera. Prescribir sin ver la medicación vigente es el riesgo.
  useEffect(()=>{
-  if((view!=="exp"&&view!=="pacientes")||!ready||!session||!patientId){setConsTabs(null);return;}
+  if((view!=="exp")||!ready||!session||!patientId){setConsTabs(null);return;}
   let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{
@@ -1518,15 +1521,16 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  useEffect(()=>{
   if(urlRestored.current||!ready||!session)return;
   const params=new URLSearchParams(urlInit.current);const pid=params.get("p");const v=params.get("v");const s=params.get("s");
-  // "consulta" ya no es una vista; el deep-link retro `?v=consulta` se remapea abajo a exp+pestaña "encuentro".
-  const KV=new Set(["inicio","pacientes","agenda","resultados","medicamentos","ordenes","interconsulta","seguimiento","facturacion","obligaciones","reportes","biblioteca","configuracion","exp"]);
+  // "consulta" y "pacientes" ya no son vistas: el deep-link retro `?v=consulta`→exp+pestaña "encuentro" y `?v=pacientes`→exp
+  // (sin ?p= muestra la lista; con ?p= abre el expediente de ese paciente). Se remapean abajo.
+  const KV=new Set(["inicio","agenda","resultados","medicamentos","ordenes","interconsulta","seguimiento","facturacion","obligaciones","reportes","biblioteca","configuracion","exp"]);
   // Retro (Fase 2): los enlaces viejos a módulos per-paciente ahora abren el Expediente en su submenú correspondiente.
   const MOVED:Record<string,ExpTab>={problemas:"problemas",alergias:"alergias",vacunas:"vacunas",signos:"signos",planCuidado:"plan",documentos:"documentos",clinicalIntel:"intel"};
   const movedTab=v?MOVED[v]:undefined;
   // La VISTA del deep-link se restaura SIEMPRE, haya o no paciente: un enlace compartible a una vista de nivel-sistema
   // (reportes, facturación, obligaciones…) debe abrir esa vista, no caer en inicio. Unificación: ?v=consulta y los módulos
   // movidos abren el Expediente en la sub-pestaña correcta.
-  const vEff=(v==="consulta"||movedTab)?"exp":v;if(vEff&&KV.has(vEff))setView(vEff as typeof view);
+  const vEff=(v==="consulta"||v==="pacientes"||movedTab)?"exp":v;if(vEff&&KV.has(vEff))setView(vEff as typeof view);
   const applyExpTab=()=>{if(movedTab)setExpTab(movedTab);else if(s&&(EXP_TAB_KEYS as string[]).includes(s))setExpTab(s as ExpTab);else if(v==="consulta")setExpTab("encuentro");};
   if(!pid){applyExpTab();urlRestored.current=true;return;}
   if(!patientList)return; // con paciente: espera al padrón para tomar su nombre

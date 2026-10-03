@@ -46,10 +46,10 @@ describe("expediente crudo: qué lista cada ventana (WS1-14)",()=>{
  });
  it("el expediente crudo carga de verdad esas pestañas (si no, la ventana mentiría siempre)",()=>{
   const src=fs.readFileSync(MODELO,"utf8");
-  // El efecto de consultation-tabs debe alcanzar al expediente crudo (exp) — y también a la ficha de Pacientes, que
-  // muestra inline la medicación y los resultados reales del paciente. La invariante sigue siendo: exp está cubierto.
-  // (La vista "consulta" se eliminó: el encuentro es el acto dentro del expediente, así que ya no figura en la condición.)
-  const m=/if\(\(view!=="exp"&&view!=="pacientes"\)\|\|!ready\|\|!session\|\|!patientId\)\{setConsTabs\(null\);return;\}/.exec(src);
+  // El efecto de consultation-tabs debe alcanzar al expediente (exp), que muestra inline la medicación y los resultados
+  // reales del paciente. Tras la fusión Pacientes⟷Expediente, la lista de pacientes ES el estado sin-paciente de exp, así
+  // que la condición se reduce a `view!=="exp"` (ni "consulta" ni "pacientes" son ya vistas aparte).
+  const m=/if\(\(view!=="exp"\)\|\|!ready\|\|!session\|\|!patientId\)\{setConsTabs\(null\);return;\}/.exec(src);
   expect(m,"el efecto de consultation-tabs debe alcanzar también al expediente crudo").not.toBeNull();
  });
  it("esos estados siguen sin poblarse por GET: la nota no es cosmética, describe lo que pasa",()=>{

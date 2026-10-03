@@ -51,12 +51,12 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 2/
   await abrirConsulta();
   fireEvent.change(screen.getByPlaceholderText("Motivo de la consulta…"),{target:{value:"Cefalea del paciente A"}});
   expect((screen.getByPlaceholderText("Motivo de la consulta…") as HTMLTextAreaElement|HTMLInputElement).value).toBe("Cefalea del paciente A");
-  // cambio a Carlos Mendoza (p2): el encuentro vive en el expediente; se cambia de paciente desde Pacientes e
-  // "Iniciar consulta" en su ficha. El borrador del paciente A no debe sobrevivir al cambio.
+  // cambio a Carlos Mendoza (p2): "Pacientes" vuelve a la lista (limpia el paciente), se elige a Carlos (abre su
+  // expediente) y se inicia su consulta desde el encabezado. El borrador del paciente A no debe sobrevivir al cambio.
   fireEvent.click(screen.getByRole("button",{name:"Pacientes"}));
   fireEvent.change(await screen.findByLabelText("Buscar paciente"),{target:{value:"Carlos"}});
   fireEvent.click((await screen.findAllByText("Carlos Mendoza"))[0]!);
-  fireEvent.click(await screen.findByRole("button",{name:"Iniciar consulta"}));
+  fireEvent.click(await screen.findByRole("button",{name:/Iniciar consulta/}));
   expect((screen.getByPlaceholderText("Motivo de la consulta…") as HTMLTextAreaElement|HTMLInputElement).value).toBe("");
   expect(screen.queryByText(/Cefalea del paciente A/)).toBeNull();
  });

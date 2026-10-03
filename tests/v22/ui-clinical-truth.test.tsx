@@ -23,9 +23,9 @@ describe("verdad clínica con el backend caído",()=>{
  });
  it("un fallo del backend se anuncia como fallo (role=alert), no como 'sin hallazgos'",async()=>{
   render(<Workspace/>);
-  // U-12: sin paciente no se carga nada. Con el backend caído no hay lista: se entra al expediente (puerta directa del menú)
-  // y se teclea el ID del paciente manualmente.
-  fireEvent.click(screen.getByRole("button",{name:"Expediente"}));
+  // U-12: sin paciente no se carga nada. Con el backend caído no hay padrón: se entra a "Pacientes" (la lista, estado
+  // sin-paciente del expediente) y se usa el fallback "Abrir por ID de paciente" para teclear el ID manualmente.
+  fireEvent.click(screen.getByRole("button",{name:"Pacientes"}));
   fireEvent.change(await screen.findByLabelText(/ID de paciente/),{target:{value:"11111111-1111-4111-8111-111111111111"}});
   const alert=await screen.findByText(/No se pudo cargar el expediente/,{}, {timeout:4000});
   expect(alert.closest('[role="alert"]')).not.toBeNull();

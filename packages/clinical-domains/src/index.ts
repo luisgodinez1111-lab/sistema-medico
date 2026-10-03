@@ -52,9 +52,10 @@ export const VIEW_BRANCH:Record<string,Branch>={
  // pestaña "encuentro"); la consulta sin cita se inicia desde Pacientes. La rama sigue cubierta por agenda/interconsulta/seguimiento.
  agenda:"consultas",interconsulta:"consultas",seguimiento:"consultas",
  // Expedientes — el expediente es la base COMPLETA del paciente: los módulos per-paciente (problemas, alergias, vacunas,
- // signos, plan, documentos, clinical intelligence) viven como SUBMENÚS del expediente (vista `exp`), no como vistas
- // sueltas del menú. Medicamentos permanece como catálogo/herramienta de nivel-sistema.
- pacientes:"expedientes",exp:"expedientes",medicamentos:"expedientes",
+ // signos, plan, documentos, clinical intelligence) viven como SUBMENÚS del expediente (vista `exp`). Tras la fusión
+ // Pacientes⟷Expediente, `exp` ES también la lista de pacientes (estado sin-paciente): no hay vista `pacientes` aparte.
+ // Medicamentos permanece como catálogo/herramienta de nivel-sistema.
+ exp:"expedientes",medicamentos:"expedientes",
  // Laboratorios y Diagnósticos — registros clínica-wide (todos los pacientes) que sí tienen sentido transversal.
  resultados:"laboratorios-diagnosticos",ordenes:"laboratorios-diagnosticos",
  // Transversal (Sistema)
