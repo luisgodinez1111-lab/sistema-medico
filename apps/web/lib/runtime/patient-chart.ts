@@ -17,8 +17,8 @@ import{withTenantTx}from"./connection";
 import{ultimaTransicion,versionDelAgregado}from"./read-model-joins";
 
 // Filas con la forma EXACTA que consumen los módulos del expediente (apps/web/app/workspace/shared.tsx): id+label+state+version.
-export type ChartRow=Readonly<{id:string;label:string;state:string;version:number;problemLabel?:string}>;// problemLabel: POMR, el problema enlazado (medicación/órdenes)
-export type ChartVital=Readonly<{id:string;vitalType:string;value:string;unit:string;state:string;version:number;vstatus:string;interp:string}>;
+export type ChartRow=Readonly<{id:string;label:string;state:string;version:number;problemLabel?:string;encounterId?:string}>;// problemLabel: POMR; encounterId: acto en que se creó
+export type ChartVital=Readonly<{id:string;vitalType:string;value:string;unit:string;state:string;version:number;vstatus:string;interp:string;encounterId?:string}>;
 export type ChartResult=Readonly<{id:string;label:string;critical:boolean;state:string;version:number}>;
 export type PatientChart=Readonly<{
  problems:ChartRow[];allergies:ChartRow[];medications:ChartRow[];vitals:ChartVital[];
@@ -47,13 +47,14 @@ export async function patientChart(ctx:HttpTenantContext,patientId:string):Promi
     where p.tenant_id=${t} and p.aggregate_type='ClinicalProblem' and p.payload->>'kind'='ADDED'
       and p.aggregate_id=(a.payload->>'problemId')::uuid limit 1) prob on true`;
   const problemLabelOf=(o:Record<string,unknown>)=>{const c=str(o,"pcode"),d=str(o,"pdesc");const l=[c,d].filter(Boolean).join(" · ");return l||undefined;};
+  const encSpread=(o:Record<string,unknown>)=>{const e=str(o,"encounter_id");return e?{encounterId:e}:{};};// acto (encuentro) en que se creó la fila
   // PROBLEMAS — base PROBLEM_ADDED; estado por última transición de ciclo de vida.
   const problems=(await tx`
-   select a.aggregate_id as id, a.payload->>'code' as code, a.payload->>'description' as description, lk.kind as last_kind, vr.version as version
+   select a.aggregate_id as id, a.payload->>'code' as code, a.payload->>'description' as description, a.payload->>'encounterId' as encounter_id, lk.kind as last_kind, vr.version as version
    from clinical_events a ${ultimaTransicion(tx,t,Object.keys(PROB))} ${versionDelAgregado(tx,t)}
    where a.tenant_id=${t} and a.aggregate_type='ClinicalProblem' and a.payload->>'kind'='ADDED' and a.payload->>'patientId'=${patientId}
    order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const code=str(o,"code"),desc=str(o,"description");
-   return{id:str(o,"id"),label:[code,desc].filter(Boolean).join(" · ")||code||desc||"Problema",state:PROB[str(o,"last_kind")||"ADDED"]??"ACTIVE",version:Number(o.version??1)};});
+   return{id:str(o,"id"),label:[code,desc].filter(Boolean).join(" · ")||code||desc||"Problema",state:PROB[str(o,"last_kind")||"ADDED"]??"ACTIVE",version:Number(o.version??1),...encSpread(o)};});
   // ALERGIAS — base ALLERGY_RECORDED.
   const allergies=(await tx`
    select a.aggregate_id as id, a.payload->>'substance' as substance, a.payload->>'reaction' as reaction, lk.kind as last_kind, vr.version as version
@@ -63,11 +64,11 @@ export async function patientChart(ctx:HttpTenantContext,patientId:string):Promi
    return{id:str(o,"id"),label:reac?`${sub} — ${reac}`:(sub||"Alergia"),state:ALG[str(o,"last_kind")||"RECORDED"]??"ACTIVE",version:Number(o.version??1)};});
   // MEDICACIÓN — base MEDICATION_PROPOSED; nombre legible del catálogo (resolveDrug), no el código crudo.
   const medications=(await tx`
-   select a.aggregate_id as id, a.payload->>'drugCode' as drug, a.payload->>'dose' as dose, lk.kind as last_kind, vr.version as version, prob.pcode as pcode, prob.pdesc as pdesc
+   select a.aggregate_id as id, a.payload->>'drugCode' as drug, a.payload->>'dose' as dose, a.payload->>'encounterId' as encounter_id, lk.kind as last_kind, vr.version as version, prob.pcode as pcode, prob.pdesc as pdesc
    from clinical_events a ${ultimaTransicion(tx,t,Object.keys(MED))} ${versionDelAgregado(tx,t)} ${probLink}
    where a.tenant_id=${t} and a.aggregate_type='Medication' and a.payload->>'kind'='PROPOSED' and a.payload->>'patientId'=${patientId}
    order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const code=str(o,"drug");const name=resolveDrug(code)?.ingredient??code;const dose=str(o,"dose");const pl=problemLabelOf(o);
-   return{id:str(o,"id"),label:[name,dose].filter(Boolean).join(" "),state:MED[str(o,"last_kind")||"PROPOSED"]??"PROPOSED",version:Number(o.version??1),...(pl?{problemLabel:pl}:{})};});
+   return{id:str(o,"id"),label:[name,dose].filter(Boolean).join(" "),state:MED[str(o,"last_kind")||"PROPOSED"]??"PROPOSED",version:Number(o.version??1),...(pl?{problemLabel:pl}:{}),...encSpread(o)};});
   // VACUNAS — base IMMUNIZATION_DUE; nombre legible del esquema.
   const immunizations=(await tx`
    select a.aggregate_id as id, a.payload->>'vaccineCode' as vaccine, a.payload->>'dose' as dose, lk.kind as last_kind, vr.version as version
@@ -77,11 +78,11 @@ export async function patientChart(ctx:HttpTenantContext,patientId:string):Promi
    return{id:str(o,"id"),label:dose?`${vaccineLabel(vac)} · dosis ${dose}`:vaccineLabel(vac),state:IMM[str(o,"last_kind")||"DUE"]??"DUE",version:Number(o.version??1)};});
   // ÓRDENES — base ORDER_CREATED.
   const orders=(await tx`
-   select a.aggregate_id as id, a.payload->>'orderType' as order_type, a.payload->>'detail' as detail, lk.kind as last_kind, vr.version as version, prob.pcode as pcode, prob.pdesc as pdesc
+   select a.aggregate_id as id, a.payload->>'orderType' as order_type, a.payload->>'detail' as detail, a.payload->>'encounterId' as encounter_id, lk.kind as last_kind, vr.version as version, prob.pcode as pcode, prob.pdesc as pdesc
    from clinical_events a ${ultimaTransicion(tx,t,Object.keys(ORD))} ${versionDelAgregado(tx,t)} ${probLink}
    where a.tenant_id=${t} and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=${patientId}
    order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const ot=str(o,"order_type"),det=str(o,"detail");const pl=problemLabelOf(o);
-   return{id:str(o,"id"),label:det?`${ot}: ${det}`:(ot||"Orden"),state:ORD[str(o,"last_kind")||"CREATED"]??"DRAFT",version:Number(o.version??1),...(pl?{problemLabel:pl}:{})};});
+   return{id:str(o,"id"),label:det?`${ot}: ${det}`:(ot||"Orden"),state:ORD[str(o,"last_kind")||"CREATED"]??"DRAFT",version:Number(o.version??1),...(pl?{problemLabel:pl}:{}),...encSpread(o)};});
   // RESULTADOS — base DIAGNOSTIC_RESULT RECEIVED; se excluyen los anulados (ENTERED_IN_ERROR alguna vez).
   const results=(await tx`
    select a.aggregate_id as id, a.payload->>'analyte' as analyte, a.payload->>'value' as value, a.payload->>'critical' as critical, lk.kind as last_kind, vr.version as version
@@ -92,7 +93,7 @@ export async function patientChart(ctx:HttpTenantContext,patientId:string):Promi
    return{id:str(o,"id"),label:val?`${an}: ${val}`:(an||"Resultado"),critical:String(o.critical)==="true",state:RES[str(o,"last_kind")||"RECEIVED"]??"RECEIVED",version:Number(o.version??1)};});
   // SIGNOS VITALES — base VITAL_RECORDED; valor VIGENTE (último RECORDED/AMENDED); se excluyen los capturados por error.
   const vitals=(await tx`
-   select a.aggregate_id as id, a.payload->>'vitalType' as vital_type,
+   select a.aggregate_id as id, a.payload->>'vitalType' as vital_type, a.payload->>'encounterId' as encounter_id,
      coalesce(cur.value,a.payload->>'value') as value, coalesce(cur.unit,a.payload->>'unit') as unit,
      coalesce(cur.status,a.payload->>'status') as vstatus, coalesce(cur.interp,a.payload->>'interpretation') as interp,
      lk.kind as last_kind, vr.version as version
@@ -103,7 +104,7 @@ export async function patientChart(ctx:HttpTenantContext,patientId:string):Promi
    left join lateral (select 1 as eie from clinical_events v where v.tenant_id=${t} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR' limit 1) er on true
    where a.tenant_id=${t} and a.aggregate_type='VitalSign' and a.payload->>'kind'='RECORDED' and a.payload->>'patientId'=${patientId} and er.eie is null
    order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;
-   return{id:str(o,"id"),vitalType:str(o,"vital_type"),value:str(o,"value"),unit:str(o,"unit"),state:VIT[str(o,"last_kind")||"RECORDED"]??"RECORDED",version:Number(o.version??1),vstatus:str(o,"vstatus"),interp:str(o,"interp")};});
+   return{id:str(o,"id"),vitalType:str(o,"vital_type"),value:str(o,"value"),unit:str(o,"unit"),state:VIT[str(o,"last_kind")||"RECORDED"]??"RECORDED",version:Number(o.version??1),vstatus:str(o,"vstatus"),interp:str(o,"interp"),...encSpread(o)};});
   return{problems,allergies,medications,vitals,immunizations,orders,results};
  });
 }

@@ -21,7 +21,9 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
 // "resuelto" se registran con sus transiciones propias desde la UI.
 export const CreateBody=z.object({problemId:z.string().uuid(),patientId:z.string().uuid(),code:z.string().min(1),description:z.string().optional(),
  problemType:z.enum(["ACUTE","CHRONIC","RECURRENT"]).optional(),severity:z.enum(["MILD","MODERATE","SEVERE"]).optional(),
- onsetDate:z.string().regex(/^\d{4}-\d{2}-\d{2}$/,"onsetDate must be YYYY-MM-DD").optional(),notes:z.string().max(2000).optional(),epistemic:z.enum(["POSSIBLE","PROBABLE","CONFIRMED","REFUTED","HISTORICAL","RESOLVED"]).default("POSSIBLE"),evidenceFor:z.array(z.string()).default([]),evidenceAgainst:z.array(z.string()).default([]),confidence:z.number().min(0).max(100).default(50),source:z.enum(["CLINICIAN_VERIFIED","PATIENT_REPORTED","IMPORTED","AI_EXTRACTED"]).default("CLINICIAN_VERIFIED"),occurredAt:z.string().datetime()});
+ onsetDate:z.string().regex(/^\d{4}-\d{2}-\d{2}$/,"onsetDate must be YYYY-MM-DD").optional(),notes:z.string().max(2000).optional(),epistemic:z.enum(["POSSIBLE","PROBABLE","CONFIRMED","REFUTED","HISTORICAL","RESOLVED"]).default("POSSIBLE"),evidenceFor:z.array(z.string()).default([]),evidenceAgainst:z.array(z.string()).default([]),confidence:z.number().min(0).max(100).default(50),source:z.enum(["CLINICIAN_VERIFIED","PATIENT_REPORTED","IMPORTED","AI_EXTRACTED"]).default("CLINICIAN_VERIFIED"),
+ /** Contexto del ACTO: el encuentro en que se añadió el problema. Aditivo/opcional (reconstruir "la visita"). */
+ encounterId:z.string().uuid().optional(),occurredAt:z.string().datetime()});
 export async function handleProblemCreate(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -32,7 +34,7 @@ export async function handleProblemCreate(req:Request):Promise<Response>{
   const entry=lookupIcd10(b.code);
   if(!entry)throw new ClinicalError("VALIDATION_ERROR","Código CIE-10 no válido o no reconocido",{code:b.code});
   const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.problemId,expectedVersion:0,eventType:"PROBLEM_ADDED",payload:{kind:"ADDED",patientId:b.patientId,code:normalizeIcd10(b.code),description:entry.description,codeSystem:"CIE-10 OMS",category:entry.category,epistemic:b.epistemic,evidenceFor:b.evidenceFor,evidenceAgainst:b.evidenceAgainst,confidence:b.confidence,source:b.source,
-  ...(b.problemType?{problemType:b.problemType}:{}),...(b.severity?{severity:b.severity}:{}),...(b.onsetDate?{onsetDate:b.onsetDate}:{}),...(b.notes?{notes:b.notes}:{}),...(b.description?{clinicianDescription:b.description}:{})},occurredAt:b.occurredAt,topic:"problem.added"});
+  ...(b.problemType?{problemType:b.problemType}:{}),...(b.severity?{severity:b.severity}:{}),...(b.onsetDate?{onsetDate:b.onsetDate}:{}),...(b.notes?{notes:b.notes}:{}),...(b.description?{clinicianDescription:b.description}:{}),...(b.encounterId?{encounterId:b.encounterId}:{})},occurredAt:b.occurredAt,topic:"problem.added"});
   const result=await runClinicalCommand(ctx,cmd);const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({problemId:b.problemId,state:"ACTIVE",code:normalizeIcd10(b.code),description:entry.description,codeSystem:"ICD-10",epistemic:b.epistemic,evidenceFor:b.evidenceFor,evidenceAgainst:b.evidenceAgainst,confidence:b.confidence,source:b.source,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}

@@ -17,7 +17,7 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
  authorize(principalFrom(claims),{scope:"vital:write",purpose:"TREATMENT"});
 }
 
-export const RecordBody=z.object({vitalId:z.string().uuid(),patientId:z.string().uuid(),vitalType:z.enum(["BP","HR","TEMP","SPO2","WEIGHT","HEIGHT","RESP"]),value:z.string().min(1),unit:z.string().min(1),occurredAt:z.string().datetime()});
+export const RecordBody=z.object({vitalId:z.string().uuid(),patientId:z.string().uuid(),vitalType:z.enum(["BP","HR","TEMP","SPO2","WEIGHT","HEIGHT","RESP"]),value:z.string().min(1),unit:z.string().min(1),encounterId:z.string().uuid().optional(),occurredAt:z.string().datetime()});
 export async function handleVitalRecord(req:Request):Promise<Response>{
  try{
   const{claims,ctx}=resolveVerified(req);authz(claims);
@@ -34,7 +34,7 @@ export async function handleVitalRecord(req:Request):Promise<Response>{
   const demo=await patientDemographics(ctx,b.patientId);
   const ageYears=demo?.birthDate?ageInYears(demo.birthDate,b.occurredAt):undefined;
   const a=classifyVital(b.vitalType,m.canonicalValue,{ageYears});
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.vitalId,expectedVersion:0,eventType:"VITAL_RECORDED",payload:{kind:"RECORDED",patientId:b.patientId,vitalType:b.vitalType,value:b.value,unit:b.unit,canonicalValue:m.canonicalValue,canonicalUnit:m.canonicalUnit,status:a.status,critical:a.critical,interpretation:a.interpretation,...(ageYears!==undefined?{ageYearsAtRecording:ageYears}:{}),...(a.ageBand?{ageBand:a.ageBand}:{})},occurredAt:b.occurredAt,topic:"vital.recorded"});
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.vitalId,expectedVersion:0,eventType:"VITAL_RECORDED",payload:{kind:"RECORDED",patientId:b.patientId,vitalType:b.vitalType,value:b.value,unit:b.unit,canonicalValue:m.canonicalValue,canonicalUnit:m.canonicalUnit,status:a.status,critical:a.critical,interpretation:a.interpretation,...(ageYears!==undefined?{ageYearsAtRecording:ageYears}:{}),...(a.ageBand?{ageBand:a.ageBand}:{}),...(b.encounterId?{encounterId:b.encounterId}:{})},occurredAt:b.occurredAt,topic:"vital.recorded"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({vitalId:b.vitalId,state:"RECORDED",status:a.status,critical:a.critical,interpretation:a.interpretation,canonicalValue:m.canonicalValue,canonicalUnit:m.canonicalUnit,version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});

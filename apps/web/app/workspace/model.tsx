@@ -865,13 +865,13 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
    const marks:string[]=[];const saved:string[]=[];const failed:string[]=[];
    for(const[vt,val,u]of toSave){
     const key=`${submission}:${vt}`;const vitalId=derivedClientUuid(key);
-    const r=await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId,patientId,vitalType:vt,value:val,unit:u,occurredAt:at},idempotencyKey:derivedClientUuid(key+":idem")});
+    const r=await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId,patientId,vitalType:vt,value:val,unit:u,...(enc?.id?{encounterId:enc.id}:{}),occurredAt:at},idempotencyKey:derivedClientUuid(key+":idem")});
     if(r.status>=400){failed.push(`${vt}: ${errMsg(r)}`);continue;}
     saved.push(vt);
     if(String(r.body["status"]??"")==="CRITICAL")marks.push(`${vt} ${val}: ${String(r.body["interpretation"]??"crítico")}`);
    }
    if(failed.length){setCVitMsg(`Guardados: ${saved.length?saved.join(", "):"ninguno"}. NO guardados: ${failed.join(" · ")}. Corrija y vuelva a guardar: los ya guardados no se duplicarán.`);return;}
-   cVitSubmission.current=null;
+   cVitSubmission.current=null;setChartReload(n=>n+1);// refresca el expediente vivo + el "Resumen del acto"
    setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});
    setCVitMsg(marks.length?`Guardados. ⚠ ${marks.length} signo(s) crítico(s) — ${marks.join("; ")}. Un vital crítico sin atender bloquea la firma.`:"Signos vitales guardados en el expediente ✓");
   }catch(e){setCVitMsg(userMessage(e));}finally{setCVitBusy(false);}
@@ -899,7 +899,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
    for(const detail of cOrdSel){
     const key=`${submission}:${patientId}:${cOrdCat}:${detail}`; // el paciente entra en la llave: un lote no puede replicarse sobre otro paciente
 
-    const r=await apiRequest("/api/v1/orders",{method:"POST",body:{orderId:derivedClientUuid(key),patientId,orderType:cOrdCat,detail,occurredAt:at},idempotencyKey:derivedClientUuid(key+":idem")});
+    const r=await apiRequest("/api/v1/orders",{method:"POST",body:{orderId:derivedClientUuid(key),patientId,orderType:cOrdCat,detail,...(enc?.id?{encounterId:enc.id}:{}),occurredAt:at},idempotencyKey:derivedClientUuid(key+":idem")});
     if(r.status>=400){fallidas.push(`${detail}: ${errMsg(r)}`);continue;}
     creadas.push(detail);
    }
@@ -907,7 +907,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
     setCOrdMsg(`Creadas: ${creadas.length?creadas.join(", "):"ninguna"}. NO creadas: ${fallidas.join(" · ")}. Corrija y vuelva a pulsar: las ya creadas no se duplicarán.`);
     return; // la captura NO se cierra: el reintento reutiliza los mismos ids
    }
-   cOrdSubmission.current=null; // lote completo: el siguiente es una captura nueva
+   cOrdSubmission.current=null;setChartReload(x=>x+1); // lote completo; refresca el expediente vivo + el "Resumen del acto"
    const n=creadas.length;setCOrdSel([]);setCOrdMsg(`${n} orden(es) creada(s) y registrada(s) en el expediente ✓`);
   }catch(e){setCOrdMsg(userMessage(e));}finally{setCOrdBusy(false);}
  };
@@ -1001,19 +1001,19 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   if(!patientId){setCDxMsg("Selecciona un paciente.");return;}
   setCDxBusy(true);setCDxMsg(null);
   try{
-   const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:uuid(),patientId,code,epistemic,occurredAt:nowIso()}});
+   const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:uuid(),patientId,code,epistemic,...(enc?.id?{encounterId:enc.id}:{}),occurredAt:nowIso()}});
    if(r.status>=400){setCDxMsg(errMsg(r));return;}
    const epLbl:Record<string,string>={PROBABLE:"presuntivo",CONFIRMED:"confirmado",POSSIBLE:"diferencial"};
-   setCDxQuery("");setCDxMsg(`Diagnóstico ${code} agregado (${epLbl[epistemic]??"presuntivo"}) ✓`);
+   setCDxQuery("");setCDxMsg(`Diagnóstico ${code} agregado (${epLbl[epistemic]??"presuntivo"}) ✓`);setChartReload(n=>n+1);// refresca problemas del expediente vivo + el "Resumen del acto"
    try{const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET"});if(sp.status<400&&sp.body["registered"])setSnap(conForma<Snap>(sp.body,FORMA.snap));}catch{/* refresco best-effort del snapshot */}
   }catch(e){setCDxMsg(userMessage(e));}finally{setCDxBusy(false);}
  };
  const proposeMed=()=>call("med-new",async()=>{
   const id=uuid();const probLbl=medProblem?problems.find(p=>p.id===medProblem)?.label:undefined;
-  const r=await apiRequest("/api/v1/medications",{method:"POST",body:{medicationId:id,patientId,drugCode:drug,dose,route,frequency:freq,...(medProblem?{problemId:medProblem}:{}),occurredAt:nowIso()}});
+  const r=await apiRequest("/api/v1/medications",{method:"POST",body:{medicationId:id,patientId,drugCode:drug,dose,route,frequency:freq,...(medProblem?{problemId:medProblem}:{}),...(enc?.id?{encounterId:enc.id}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setMeds(ms=>[...ms,{id,label:`${drug} ${dose} ${route} ${freq}`,state:"PROPOSED",version:Number(r.body["version"]??1),...(probLbl?{problemLabel:probLbl}:{})}]);
-  setDrug("");setDoseAmt("");setFreq("");setMedProblem("");
+  setMeds(ms=>[...ms,{id,label:`${drug} ${dose} ${route} ${freq}`,state:"PROPOSED",version:Number(r.body["version"]??1),...(probLbl?{problemLabel:probLbl}:{}),...(enc?.id?{encounterId:enc.id}:{})}]);
+  setDrug("");setDoseAmt("");setFreq("");setMedProblem("");setChartReload(n=>n+1);
  });
  const advanceMed=(m:Med)=>call("med-"+m.id,async()=>{
   const n=medNext(m);if(!n)return;
@@ -1117,9 +1117,9 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  });
  const createOrder=()=>call("ord-new",async()=>{
   const id=uuid();const probLbl=ordProblem?problems.find(p=>p.id===ordProblem)?.label:undefined;
-  const r=await apiRequest("/api/v1/orders",{method:"POST",body:{orderId:id,patientId,orderType,detail:orderDetail,...(ordProblem?{problemId:ordProblem}:{}),occurredAt:nowIso()}});
+  const r=await apiRequest("/api/v1/orders",{method:"POST",body:{orderId:id,patientId,orderType,detail:orderDetail,...(ordProblem?{problemId:ordProblem}:{}),...(enc?.id?{encounterId:enc.id}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setOrders(os=>[...os,{id,label:`${orderType}: ${orderDetail}`,state:"DRAFT",version:Number(r.body["version"]??1),...(probLbl?{problemLabel:probLbl}:{})}]);setOrderDetail("");setOrdProblem("");
+  setOrders(os=>[...os,{id,label:`${orderType}: ${orderDetail}`,state:"DRAFT",version:Number(r.body["version"]??1),...(probLbl?{problemLabel:probLbl}:{}),...(enc?.id?{encounterId:enc.id}:{})}]);setOrderDetail("");setOrdProblem("");setChartReload(n=>n+1);
  });
  const advanceOrder=(o:Order)=>call("ord-"+o.id,async()=>{
   const n=orderNext(o);if(!n)return;
@@ -1335,9 +1335,9 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   setPlans(ps=>ps.map(x=>x.id===c.id?{...x,state:act.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const createVital=()=>call("vit-new",async()=>{
-  const id=uuid();const r=await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId:id,patientId,vitalType:vitType,value:vitValue,unit:vitUnit,occurredAt:nowIso()}});
+  const id=uuid();const r=await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId:id,patientId,vitalType:vitType,value:vitValue,unit:vitUnit,...(enc?.id?{encounterId:enc.id}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setVitals(vs=>[...vs,{id,vitalType:vitType,value:vitValue,unit:vitUnit,state:"RECORDED",version:Number(r.body["version"]??1),vstatus:String(r.body["status"]??""),interp:String(r.body["interpretation"]??"")}]);setVitValue("");
+  setVitals(vs=>[...vs,{id,vitalType:vitType,value:vitValue,unit:vitUnit,state:"RECORDED",version:Number(r.body["version"]??1),vstatus:String(r.body["status"]??""),interp:String(r.body["interpretation"]??""),...(enc?.id?{encounterId:enc.id}:{})}]);setVitValue("");setChartReload(n=>n+1);
  });
  const doVitAction=(v:Vit,act:{path:string;body:Record<string,unknown>;to:VitSt})=>call("vit-"+v.id,async()=>{
   const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:v.version});
@@ -1365,10 +1365,10 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   setAllergies(as=>as.map(x=>x.id===a.id?{...x,state:act.to,version:Number(r.body["version"]??x.version+1)}:x));
  });
  const createProblem=()=>call("pb-new",async()=>{
-  const id=uuid();const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:id,patientId,code:probCode,occurredAt:nowIso()}});
+  const id=uuid();const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:id,patientId,code:probCode,...(enc?.id?{encounterId:enc.id}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
   const desc=String(r.body["description"]??probCode);const code=String(r.body["code"]??probCode);
-  setProblems(ps=>[...ps,{id,label:`${desc} (${code})`,state:"ACTIVE",version:Number(r.body["version"]??1)}]);setProbCode("");setProbDesc("");
+  setProblems(ps=>[...ps,{id,label:`${desc} (${code})`,state:"ACTIVE",version:Number(r.body["version"]??1),...(enc?.id?{encounterId:enc.id}:{})}]);setProbCode("");setProbDesc("");setChartReload(n=>n+1);
  });
  const doProblemAction=(p:Prob,a:{path:string;body:Record<string,unknown>;to:ProbSt})=>call("pb-"+p.id,async()=>{
   const r=await apiRequest(a.path,{method:"POST",body:a.body,ifMatch:p.version});

@@ -22,23 +22,24 @@ const result:{status:string;checks:string[];error?:string}={status:"PASS",checks
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
 async function reg(t:string,p:string,y:number,sex:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:`Prueba ${p.slice(0,8)}`,birthDate:birth(y),sexAtBirth:sex,occurredAt:at()})}));}
 async function res(t:string,p:string,a:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,unit:canonicalUnitOf(a)??"mg/dL",occurredAt:at()})}));}
-async function dx(t:string,p:string,c:string,id:string=crypto.randomUUID()){await prob.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({problemId:id,patientId:p,code:c,occurredAt:at()})}));return id;}
-async function med(t:string,p:string,drugCode:string,problemId?:string){await medR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:crypto.randomUUID(),patientId:p,drugCode,dose:"500 mg",route:"oral",frequency:"c/8h",...(problemId?{problemId}:{}),occurredAt:at()})}));}
-async function order(t:string,p:string,detail:string,problemId?:string){await ordR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({orderId:crypto.randomUUID(),patientId:p,orderType:"LAB",detail,...(problemId?{problemId}:{}),occurredAt:at()})}));}
+async function dx(t:string,p:string,c:string,id:string=crypto.randomUUID(),enc?:string){await prob.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({problemId:id,patientId:p,code:c,...(enc?{encounterId:enc}:{}),occurredAt:at()})}));return id;}
+async function med(t:string,p:string,drugCode:string,problemId?:string,enc?:string){await medR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:crypto.randomUUID(),patientId:p,drugCode,dose:"500 mg",route:"oral",frequency:"c/8h",...(problemId?{problemId}:{}),...(enc?{encounterId:enc}:{}),occurredAt:at()})}));}
+async function order(t:string,p:string,detail:string,problemId?:string,enc?:string){await ordR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({orderId:crypto.randomUUID(),patientId:p,orderType:"LAB",detail,...(problemId?{problemId}:{}),...(enc?{encounterId:enc}:{}),occurredAt:at()})}));}
 async function allergy(t:string,p:string,s:string){await alR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({allergyId:crypto.randomUUID(),patientId:p,substance:s,severity:"MODERATE",reaction:"rash",occurredAt:at()})}));}
 async function get(t:string,p:string){const r=await chartR.GET(new Request("http://l/",{headers:H(t)}),PP(p));return{status:r.status,body:await r.json()};}
 const hasVersion=(a:Array<{version?:unknown}>)=>a.every(x=>typeof x.version==="number"&&(x.version as number)>=1);
 try{
  const phys=tok();
  const p=crypto.randomUUID();await reg(phys,p,54,"FEMALE");
- const dm=crypto.randomUUID();await dx(phys,p,"E11.9",dm); // captura el id del problema DM para enlazar
+ const ENC=crypto.randomUUID(); // contexto del acto: la "visita" en que se documenta DM + su med + su orden
+ const dm=crypto.randomUUID();await dx(phys,p,"E11.9",dm,ENC); // captura el id del problema DM para enlazar
  for(const c of["I10","N18.3"])await dx(phys,p,c);
  await res(phys,p,"CREATININE","1.3");
  await res(phys,p,"HBA1C","7.1");
  await allergy(phys,p,"penicilina");
- // POMR: una medicación y una orden ENLAZADAS al problema DM (E11.9); otra orden sin enlazar.
- await med(phys,p,"metformina",dm);
- await order(phys,p,"HbA1c de control",dm);
+ // POMR: una medicación y una orden ENLAZADAS al problema DM (E11.9) y al ACTO (ENC); otra orden sin enlazar.
+ await med(phys,p,"metformina",dm,ENC);
+ await order(phys,p,"HbA1c de control",dm,ENC);
  await order(phys,p,"Perfil de lípidos");
  const g=await get(phys,p);
  ok(g.status===200,"CHART_200");
@@ -58,6 +59,10 @@ try{
  ok(g.body.orders.length===2&&hasVersion(g.body.orders),"ORDERS_2");
  ok(g.body.orders.some((o:{problemLabel?:unknown})=>String(o.problemLabel??"").includes("E11.9")),"ORDER_LINKED_PROBLEM");
  ok(g.body.orders.some((o:{problemLabel?:unknown})=>!o.problemLabel),"ORDER_UNLINKED_OK");
+ // CONTEXTO DEL ACTO: el problema DM, su medicación y su orden comparten el MISMO encounterId → "la visita" es reconstruible.
+ ok(g.body.problems.find((x:{label:string;encounterId?:string})=>x.label.includes("E11.9"))?.encounterId===ENC,"PROBLEM_ACT_CONTEXT");
+ ok(g.body.medications[0].encounterId===ENC,"MED_ACT_CONTEXT");
+ ok(g.body.orders.filter((o:{encounterId?:string})=>o.encounterId===ENC).length===1,"ORDER_ACT_CONTEXT");
  // Aislamiento: otro paciente no ve esta historia.
  const p2=crypto.randomUUID();await reg(phys,p2,30,"MALE");const g2=await get(phys,p2);
  ok(g2.body.problems.length===0&&g2.body.allergies.length===0,"OTHER_PATIENT_EMPTY");

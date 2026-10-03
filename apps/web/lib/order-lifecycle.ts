@@ -29,6 +29,9 @@ export const CreateBody=z.object({orderId:z.string().uuid(),patientId:z.string()
  /** POMR (expediente orientado a problemas): el problema clínico (ClinicalProblem.aggregateId) CONTRA el que se solicita el
   * estudio. Aditivo y opcional (no rompe la FSM ni las órdenes existentes); permite reconstruir "qué se pidió para qué dx". */
  problemId:z.string().uuid().optional(),
+ /** Contexto del ACTO: el encuentro (Encounter.aggregateId) en que se creó. Aditivo/opcional; reconstruye "la visita del
+  * 3-oct" como unidad (qué se ordenó en ella) y es base de la facturación por acto. */
+ encounterId:z.string().uuid().optional(),
  /** Vencimiento explícito; si no se declara se deriva de la prioridad al COLOCAR la orden. */
  dueAt:z.string().datetime().optional(),
  occurredAt:z.string().datetime()});
@@ -39,7 +42,7 @@ export async function handleOrderCreate(req:Request):Promise<Response>{
   if(!idempotencyKey)throw new ClinicalError("PRECONDITION_REQUIRED","Idempotency-Key header required");
   const b=await parseJson(req,CreateBody);
   await requireRegisteredPatient(ctx,b.patientId); // L-07: el paciente debe existir en el tenant
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.orderId,expectedVersion:0,eventType:"ORDER_CREATED",payload:{kind:"CREATED",patientId:b.patientId,orderType:b.orderType,detail:b.detail,...(b.problemId?{problemId:b.problemId}:{}),...(b.priority?{priority:b.priority}:{}),...(b.dueAt?{dueAt:b.dueAt}:{})},occurredAt:b.occurredAt,topic:"order.created"});
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.orderId,expectedVersion:0,eventType:"ORDER_CREATED",payload:{kind:"CREATED",patientId:b.patientId,orderType:b.orderType,detail:b.detail,...(b.problemId?{problemId:b.problemId}:{}),...(b.encounterId?{encounterId:b.encounterId}:{}),...(b.priority?{priority:b.priority}:{}),...(b.dueAt?{dueAt:b.dueAt}:{})},occurredAt:b.occurredAt,topic:"order.created"});
   const result=await runClinicalCommand(ctx,cmd);
   const r=result.response as{version:number;auditHash?:string};
   return NextResponse.json({orderId:b.orderId,state:"DRAFT",version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});

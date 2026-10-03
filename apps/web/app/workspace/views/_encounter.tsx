@@ -12,7 +12,15 @@ import{Check,card,P,LINE,UI,act,goExpSection,scrollTop,DX_LABEL,NavIcon,mono,isP
 import{useWorkspace}from"../context";
 
 export default function EncounterForm(){
- const{enc,snap,consTabs,antSnap,clock,cForm,setCForm,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdCat,cOrdSel,setCOrdSel,setCOrdMsg,createConsultaOrders,cOrdBusy,cOrdMsg,patientId,setView,setExpTab,gaps,busy,consultaAdvance,cPreview,setCPreview,composeNote,cMsg,setCMsg,docDisplay,reset}=useWorkspace();
+ const{enc,snap,consTabs,antSnap,clock,cForm,setCForm,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdCat,cOrdSel,setCOrdSel,setCOrdMsg,createConsultaOrders,cOrdBusy,cOrdMsg,patientId,setView,setExpTab,gaps,busy,consultaAdvance,cPreview,setCPreview,composeNote,cMsg,setCMsg,docDisplay,reset,problems,orders,meds,vitals}=useWorkspace();
+ // "El acto" = lo documentado EN ESTE encuentro: las filas del expediente vivo cuyo encounterId es el de la consulta
+ // abierta. Permite reconstruir "la visita" como unidad y que la firma selle un acto coherente. Si no hay encuentro, vacío.
+ const actId=enc?.id;
+ const actProblems=actId?problems.filter(p=>p.encounterId===actId):[];
+ const actOrders=actId?orders.filter(o=>o.encounterId===actId):[];
+ const actMeds=actId?meds.filter(m=>m.encounterId===actId):[];
+ const actVitals=actId?vitals.filter(v=>v.encounterId===actId):[];
+ const actTotal=actProblems.length+actOrders.length+actMeds.length+actVitals.length;
  const[dxType,setDxType]=useState<"PROBABLE"|"CONFIRMED"|"POSSIBLE">("PROBABLE"); // tipo de la impresión diagnóstica
  // Lo poco usado arranca COLAPSADO; si el borrador ya trae contenido, se muestra abierto (no se esconde lo escrito).
  const[showInterrog,setShowInterrog]=useState(()=>!!cForm.interrog.trim());
@@ -145,6 +153,14 @@ export default function EncounterForm(){
 
    {/* Contexto lateral (sticky): resumen del expediente, CDS y recordatorios. */}
    <div className="mos-consulta-side" style={{display:"flex",flexDirection:"column",gap:16,position:"sticky",top:12,alignSelf:"start"}}>
+    {/* RESUMEN DEL ACTO — lo documentado EN esta consulta (encounterId), para que la visita se lea como unidad y la firma selle un acto coherente. */}
+    {enc&&<div style={{...sec,borderColor:st==="SIGNED"?"#CDEBD8":"#CFE0F7"}}>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={{...sect,margin:0}}>Resumen del acto</h3><span style={{fontSize:11.5,color:P.muted}}>{st==="SIGNED"?"Firmado":"Esta consulta"}</span></div>
+     {actTotal===0
+      ? <div style={{fontSize:12.5,color:P.muted,marginTop:8}}>Aún no documentas nada en esta consulta. Lo que agregues (problemas, signos, órdenes, recetas) queda ligado a esta visita.</div>
+      : <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:10}}>{([["Problemas",actProblems.map(x=>x.label)],["Signos",actVitals.map(x=>`${x.vitalType} ${x.value}${x.unit}`)],["Órdenes",actOrders.map(x=>x.label)],["Recetas",actMeds.map(x=>x.label)]] as [string,string[]][]).filter(([,xs])=>xs.length).map(([k,xs])=><div key={k}><div style={{display:"flex",justifyContent:"space-between",fontSize:12.5}}><span style={{fontWeight:700}}>{k}</span><span style={{color:P.purple,fontWeight:700}}>{xs.length}</span></div><div style={{color:P.muted,fontSize:11.5}}>{xs.slice(0,4).join(" · ")}{xs.length>4?` +${xs.length-4}`:""}</div></div>)}</div>}
+     <div style={{fontSize:11,color:P.muted,marginTop:10}}>{st==="SIGNED"?"Acto sellado con la firma de esta consulta.":"Al firmar se sella este acto como la visita de hoy."}</div>
+    </div>}
     <div style={sec}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><h3 style={sect}>Resumen clínico</h3><span style={{fontSize:11.5,color:P.muted}}>Derivado del expediente</span></div>
      {rsum("#FDECEE",P.redOnPale,"M12 4l9 15.5H3zM12 10v4M12 17h.01","Alergias",!snap?"No evaluadas: expediente no cargado":snap.allergies.length?snap.allergies.join(", "):"Sin alergias documentadas",<span style={{background:"#FDE7EA",color:P.redOnPale,borderRadius:999,padding:"2px 9px",fontSize:10.5,fontWeight:700}}>{snap?.allergies.length?"Alta":"—"}</span>)}
      {rsum("#EEEBFD",P.purpleOnPale,"M9 4h6v2H9zM7 5H6v16h12V5h-1",`Problemas activos`,snap?.problems.length?snap.problems.map(DX_LABEL).slice(0,3).join(", "):"Sin problemas activos",sgo("Abrir →","Lista de problemas"))}
