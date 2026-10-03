@@ -336,7 +336,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const[ordForm,setOrdForm]=useState<{patientId:string;orderType:string;detail:string}>({patientId:"",orderType:"LAB",detail:""});
  const[ordQuery,setOrdQuery]=useState(""); // búsqueda por paciente/estudio en la vista Órdenes
  const[ordStatus,setOrdStatus]=useState(""); // filtro por estado ("":todos)
- const[cForm,setCForm]=useState({motivo:"",historia:"",interrog:"",explor:"",plan:""}); // borrador de la consulta actual
+ const[cForm,setCForm]=useState({motivo:"",historia:"",interrog:"",explor:"",plan:"",ascites:"",encef:""}); // borrador de la consulta actual (ascites/encef: grado Child-Pugh 1–3, "" = no valorado)
  const[cPreview,setCPreview]=useState(false); // vista previa de la nota compuesta (Consulta)
  const[cMsg,setCMsg]=useState<string|null>(null); // aviso del flujo de encuentro (Consulta)
  const[cVit,setCVit]=useState({ta:"",fc:"",fr:"",temp:"",spo2:""}); // signos vitales de la Consulta
@@ -411,7 +411,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   catch(e){
    const rule=e instanceof Error?e.message:String(e);uiForbidden.current=rule;console.error("[workspace] estado prohibido corregido:",rule);
    if(rule.includes("PATIENT_B_DATA")){setTl(null);setGaps(null);setSnap(null);setTrends(null);setCpSnap(null);setVitHist(null);setRefCtx(null);setDocsSnap(null);setCiSnap(null);setDocDetail(null);}
-   if(rule.includes("OLD_DRAFT_SUBMITTABLE")){setCForm({motivo:"",historia:"",interrog:"",explor:"",plan:""});draftOwner.current=patientId;}
+   if(rule.includes("OLD_DRAFT_SUBMITTABLE")){setCForm({motivo:"",historia:"",interrog:"",explor:"",plan:"",ascites:"",encef:""});draftOwner.current=patientId;}
    if(rule.includes("TENANT_INVALID")||rule.includes("UNAUTHORIZED")){window.location.replace("/login");} // sesión inválida: fuera del espacio clínico
    if(rule.includes("DEGRADED_DEPENDENCY")){setGaps(null);} // un fallo de carga nunca se presenta como "sin pendientes"
   }
@@ -906,10 +906,15 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   // y se enmiendan allí). La consulta los muestra read-only; no los re-pregunta ni los serializa aquí.
   if(cForm.interrog.trim())parts.push(`INTERROGATORIO POR APARATOS Y SISTEMAS: ${cForm.interrog.trim()}`);
   if(cForm.explor.trim())parts.push(`EXPLORACIÓN FÍSICA: ${cForm.explor.trim()}`);
+  // Valoración hepática graduada (Child-Pugh): queda también en el texto de la nota firmada, además de estructurada.
+  const hg=["","ninguna","leve/controlada","moderada/tensa"],he=["","ninguna","grado I–II","grado III–IV"];
+  if(cForm.ascites&&cForm.encef)parts.push(`VALORACIÓN HEPÁTICA (Child-Pugh): ascitis ${hg[Number(cForm.ascites)]} (grado ${cForm.ascites}); encefalopatía ${he[Number(cForm.encef)]} (grado ${cForm.encef}).`);
   const dx=(snap?.problems??[]).slice(0,4).map(c=>`${c} ${DX_LABEL(c)}`).join("; ");
   if(dx)parts.push(`IMPRESIÓN DIAGNÓSTICA: ${dx}`);
   return parts.join("\n")||"Consulta registrada.";
  }
+ // Payload estructurado de la valoración hepática (dos ejes clínicos del Child-Pugh) cuando el médico graduó AMBOS.
+ const hepaticFromForm=()=>cForm.ascites&&cForm.encef?{ascites:Number(cForm.ascites),encephalopathy:Number(cForm.encef)}:undefined;
  // Acción CONTEXTUAL del encuentro desde la Consulta: abre -> guarda valoración -> firma (FSM real, con gate de firma).
  const consultaAdvance=()=>call("cadv",async()=>{
   setCMsg(null);
@@ -922,7 +927,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   if(enc.state==="OPEN"){
    const assessmentText=composeNote();const planText=cForm.plan.trim()||"Plan pendiente de detallar.";
    setAssessment(assessmentText);setPlan(planText);
-   const r=await apiRequest(`/api/v1/encounters/${enc.id}/assessment`,{method:"POST",body:{assessment:assessmentText,plan:planText,occurredAt:nowIso()},ifMatch:enc.version});
+   const r=await apiRequest(`/api/v1/encounters/${enc.id}/assessment`,{method:"POST",body:{assessment:assessmentText,plan:planText,...(hepaticFromForm()?{hepatic:hepaticFromForm()}:{}),occurredAt:nowIso()},ifMatch:enc.version});
    if(r.status>=400){setCMsg(errMsg(r));return;}
    setEnc({...enc,state:"READY_TO_SIGN",version:Number(r.body["version"]??enc.version+1)});setCMsg("Valoración guardada. Lista para firmar.");return;
   }
@@ -931,7 +936,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
    // antes de firmar; así lo que se firma nunca es una versión anterior a la que el médico tiene delante.
    let a=assessment,pl=plan;const nowA=composeNote(),nowP=cForm.plan.trim()||"Plan pendiente de detallar.";
    if(nowA!==a||nowP!==pl){
-    const r=await apiRequest(`/api/v1/encounters/${enc.id}/assessment`,{method:"POST",body:{assessment:nowA,plan:nowP,occurredAt:nowIso()},ifMatch:enc.version});
+    const r=await apiRequest(`/api/v1/encounters/${enc.id}/assessment`,{method:"POST",body:{assessment:nowA,plan:nowP,...(hepaticFromForm()?{hepatic:hepaticFromForm()}:{}),occurredAt:nowIso()},ifMatch:enc.version});
     if(r.status>=400){setCMsg(errMsg(r));return;}
     a=nowA;pl=nowP;setAssessment(a);setPlan(pl);setEnc({...enc,version:Number(r.body["version"]??enc.version+1)});
     setCMsg("Los cambios del formulario se guardaron en la valoración. Revise el texto y confirme la firma.");
@@ -1484,7 +1489,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // Auditoría U-05/U-17: cambiar de paciente borra TODO lo del anterior —también el borrador de la consulta, los vitales sin
  // guardar y las pestañas cargadas— y anota a quién pertenece el borrador nuevo (draftOwner) para que el guardia de estados
  // prohibidos pueda comprobarlo. Las respuestas tardías del paciente anterior se descartan por el flag `cancelled` de cada efecto.
- function selectPatientRaw(id:string,name:string){cVitSubmission.current=null;cOrdSubmission.current=null;draftOwner.current=id;setCForm({motivo:"",historia:"",interrog:"",explor:"",plan:""});setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});setCPreview(false);setCMsg(null);setCVitMsg(null);setSnap(null);setTrends(null);setConsTabs(null);setFuSnap(null);setRxCheck(null);setCpSnap(null);setAntSnap(null);setAntForm(ANT_EMPTY);setAntEditing(false);setAntReason("");setAntMsg(null);setVitHist(null);setRefCtx(null);setDocsSnap(null);setCiSnap(null);setDocDetail(null);setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
+ function selectPatientRaw(id:string,name:string){cVitSubmission.current=null;cOrdSubmission.current=null;draftOwner.current=id;setCForm({motivo:"",historia:"",interrog:"",explor:"",plan:"",ascites:"",encef:""});setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});setCPreview(false);setCMsg(null);setCVitMsg(null);setSnap(null);setTrends(null);setConsTabs(null);setFuSnap(null);setRxCheck(null);setCpSnap(null);setAntSnap(null);setAntForm(ANT_EMPTY);setAntEditing(false);setAntReason("");setAntMsg(null);setVitHist(null);setRefCtx(null);setDocsSnap(null);setCiSnap(null);setDocDetail(null);setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
  const loadPatients=(q=patientQuery)=>call("pt-list",async()=>{
   const r=await apiRequest(`/api/v1/patients?limit=200${q.trim()?`&q=${encodeURIComponent(q.trim())}`:""}`,{method:"GET"});
   if(r.status>=400){setError(errMsg(r));return;}

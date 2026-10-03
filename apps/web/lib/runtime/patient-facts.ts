@@ -184,6 +184,29 @@ export async function antecedentes(ctx:HttpTenantContext,patientId:string):Promi
   return{recorded:f.exists,state:f.exists?f.state:null,version:f.version,content:f.content,updatedAt:f.updatedAt};
  });
 }
+// Última VALORACIÓN HEPÁTICA estructurada del paciente: los grados de ascitis y encefalopatía (1–3) que el médico capturó
+// en la valoración más reciente de cualquiera de sus encuentros. Son los dos ejes clínicos que el laboratorio no aporta y
+// que el Child-Pugh necesita; con ellos el CDS calcula la clase EXACTA en vez de la estimación de piso. `undefined` si en
+// ningún encuentro se han graduado (entonces el CDS mantiene el piso derivado de la lista de problemas). RLS-scoped.
+export type HepaticAssessment=Readonly<{ascites:1|2|3;encephalopathy:1|2|3;at:string}>;
+export async function latestHepaticAssessment(ctx:HttpTenantContext,patientId:string):Promise<HepaticAssessment|undefined>{
+ return withTenantTx(ctx,async tx=>{
+  // El evento ASSESSED no lleva patientId; los encuentros del paciente se identifican por su evento OPENED.
+  const rows=await tx`
+   select a.payload->'hepatic' as hepatic, a.occurred_at as at
+   from clinical_events a
+   where a.tenant_id=${ctx.tenantId} and a.aggregate_type='Encounter' and a.payload->>'kind'='ASSESSED' and a.payload ? 'hepatic'
+     and a.aggregate_id in (select o.aggregate_id from clinical_events o where o.tenant_id=${ctx.tenantId} and o.aggregate_type='Encounter' and o.payload->>'kind'='OPENED' and o.payload->>'patientId'=${patientId})
+   order by a.occurred_at desc, a.sequence desc
+   limit 1`;
+  await logPhiAccess(tx,ctx,{resourceType:"PATIENT_TIMELINE",resourceId:patientId,patientId});
+  const o=rows[0] as{hepatic?:unknown}|undefined;if(!o?.hepatic||typeof o.hepatic!=="object")return undefined;
+  const h=o.hepatic as{ascites?:unknown;encephalopathy?:unknown};
+  const g=(v:unknown):1|2|3|undefined=>v===1||v===2||v===3?v:undefined;
+  const asc=g(h.ascites),enc=g(h.encephalopathy);if(asc===undefined||enc===undefined)return undefined;
+  return{ascites:asc,encephalopathy:enc,at:new Date(String((rows[0] as{at:unknown}).at)).toISOString()};
+ });
+}
 // EPIC X/UI — Metas del plan de cuidados de UN paciente (vista Plan de cuidado). Por cada agregado CarePlan
 // toma el evento base CAREPLAN_PROPOSED (categoría/meta) y su ESTADO por la última transición
 // (PROPOSED/ACTIVATED/RESUMED->ACTIVE, ON_HOLD, ACHIEVED, CANCELLED). RLS-scoped.

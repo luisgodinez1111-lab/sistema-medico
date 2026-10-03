@@ -182,6 +182,11 @@ describe("assembleFindings (prioriza por severidad)",()=>{
   expect(b[0]!.summary).toMatch(/Child-Pugh B/);expect(b[0]!.summary).toMatch(/PISO/);expect(b[0]!.summary).toMatch(/gradúelas/);
   expect(assembleFindings({childPugh:{score:5,childClass:"A",floor:false,ascitesPresent:false,encephalopathyPresent:false}})[0]).toMatchObject({domain:"hepático",severity:"INFO"});
  });
+ it("Child-Pugh EXACTO (grados valorados, floor:false) NO lleva la nota de piso",()=>{
+  const f=assembleFindings({childPugh:{score:9,childClass:"B",floor:false,ascitesPresent:true,encephalopathyPresent:true}});
+  expect(f[0]).toMatchObject({domain:"hepático",severity:"WARNING"});
+  expect(f[0]!.summary).not.toMatch(/PISO/);expect(f[0]!.summary).not.toMatch(/gradúe/);
+ });
 });
 // Calculador HAS-BLED puro (Pisters 2010): 1 punto por ítem, máx. 9; ≥3 = alto. INR lábil no evaluable se reporta aparte.
 describe("hasBled (riesgo de sangrado, Pisters 2010)",()=>{

@@ -37,9 +37,15 @@ const CLINICAL_TEXT_MAX=20_000; // ~6 páginas por campo: por encima de eso es u
 // El mínimo es «no vacío tras recortar», no una longitud clínica: cuánto texto constituye una valoración suficiente es
 // criterio del médico (y la UI puede exigir más), no algo que deba decidir el validador del borde HTTP. Lo que sí es un
 // defecto y aquí se corta: que " " pasara como valoración de una nota que después se firma.
+// Valoración hepática ESTRUCTURADA opcional: los dos ejes CLÍNICOS graduados del Child-Pugh (ascitis y encefalopatía, 1–3)
+// que el laboratorio no puede aportar y que el médico valora en la exploración. Se persisten junto a la valoración del
+// encuentro (van también en el texto de la nota vía composeNote, así quedan en el registro firmado) y el CDS los lee para
+// calcular el Child-Pugh EXACTO en lugar de la estimación de piso. Grados 1–3; ausentes = no valorados (no se inventan).
+const HepaticGrade=z.number().int().min(1).max(3);
 const AssessBody=z.object({
  assessment:z.string().trim().min(1,"La valoración no puede estar vacía").max(CLINICAL_TEXT_MAX),
  plan:z.string().trim().min(1,"El plan no puede estar vacío").max(CLINICAL_TEXT_MAX),
+ hepatic:z.object({ascites:HepaticGrade,encephalopathy:HepaticGrade}).optional(),
  occurredAt:z.string().datetime(),
 });
 // Auditoría L-03 — `contentHash`: huella (sha256 hex de `${assessment}\n${plan}`) del texto QUE EL MÉDICO TIENE EN PANTALLA al
@@ -74,7 +80,7 @@ export async function handleAssessment(req:Request,encounterId:string):Promise<R
   const{idempotencyKey,expectedVersion,ctx,folded}=await build(req,encounterId);
   const parsed=AssessBody.safeParse(await req.json().catch(()=>{throw new ClinicalError("VALIDATION_ERROR","Body must be valid JSON");}));
   if(!parsed.success)throw new ClinicalError("VALIDATION_ERROR","Invalid assessment payload",{issues:parsed.error.issues.length});
-  const cmd=baseCommand(idempotencyKey,encounterId,expectedVersion,"ENCOUNTER_ASSESSED",{kind:"ASSESSED",assessment:parsed.data.assessment,plan:parsed.data.plan},parsed.data.occurredAt,"encounter.assessed");
+  const cmd=baseCommand(idempotencyKey,encounterId,expectedVersion,"ENCOUNTER_ASSESSED",{kind:"ASSESSED",assessment:parsed.data.assessment,plan:parsed.data.plan,...(parsed.data.hepatic?{hepatic:parsed.data.hepatic}:{})},parsed.data.occurredAt,"encounter.assessed");
   let result=await lookupReplay(ctx,cmd);
   if(!result){
    // Auditoría L-03: mientras la nota NO esté firmada el médico puede CORREGIRLA (nuevo evento ASSESSED, nueva versión). Antes

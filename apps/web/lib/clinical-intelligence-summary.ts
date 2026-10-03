@@ -1,5 +1,5 @@
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
-import{patientDemographics,latestVitalsByType,activeProblemCodes,activeAllergySubstances,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccines,activeMedicationDrugCodes,antecedentes,analyteSeries}from"./clinical-runtime";
+import{patientDemographics,latestVitalsByType,activeProblemCodes,activeAllergySubstances,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccines,activeMedicationDrugCodes,antecedentes,analyteSeries,latestHepaticAssessment}from"./clinical-runtime";
 import{verifiedValues,MAX_AGE_DAYS,COHERENCE_HOURS}from"./analyte-inputs";
 import{stageBloodPressure,parseBp}from"../../../packages/bp-staging/src";
 import{interpretINR,timeInTherapeuticRange,INR_TARGETS}from"../../../packages/anticoagulation/src";
@@ -30,7 +30,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  // Auditoría 2026-09-19 (C-01, C-02): este panel usa el MISMO camino verificado que las calculadoras (unidad canónica,
  // plausibilidad, vigencia y coherencia de muestra). Antes leía "el último número" sin unidad ni fecha, de modo que el
  // panel podía afirmar un eGFR o un FIB-4 que la propia calculadora ya se negaba a calcular. Dato no utilizable => sin hallazgo.
- const[vitals,codes,openRes,openVit,vaccines,renal,glyc,liver,anticoag,activeDrugs,ant,lipid,inrSeries,meldLabs,cpLabs,biliOnly]=await Promise.all([
+ const[vitals,codes,openRes,openVit,vaccines,renal,glyc,liver,anticoag,activeDrugs,ant,lipid,inrSeries,meldLabs,cpLabs,biliOnly,hepAssess]=await Promise.all([
   latestVitalsByType(ctx,patientId),
   activeProblemCodes(ctx,patientId),
   countOpenCriticalResults(ctx,patientId),
@@ -47,6 +47,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
   verifiedValues(ctx,patientId,["BILIRUBIN","INR","CREATININE"],MAX_AGE_DAYS.MELD,COHERENCE_HOURS.MELD), // MELD (conjunto coherente)
   verifiedValues(ctx,patientId,["BILIRUBIN","ALBUMIN","INR"],MAX_AGE_DAYS.LIVER_PANEL,COHERENCE_HOURS.LIVER_PANEL), // Child-Pugh (labs)
   verifiedValues(ctx,patientId,["BILIRUBIN"],MAX_AGE_DAYS.LIVER_PANEL), // bilirrubina para objetivar la función hepática en HAS-BLED
+  latestHepaticAssessment(ctx,patientId), // ascitis/encefalopatía graduadas por el médico -> Child-Pugh exacto (no piso)
  ]);
  const inp:{-readonly[K in keyof SummaryInputs]:SummaryInputs[K]}={openCriticalResults:openRes,openCriticalVitals:openVit};
  // NEWS2
@@ -84,9 +85,13 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  // captura estructuradas: se derivan de la lista de problemas como PRESENTE/ausente (presente→grado 2, el piso; ausente→1)
  // y el resultado se marca como PISO (`floor`) para que el médico lo gradúe. Nunca se inventa el grado.
  if(chronicLiver&&cpLabs){
-  const ascitesPresent=has(codes,"R18");const encephalopathyPresent=has(codes,"K72","K70.4");
-  const cp=childPugh({bilirubin:cpLabs["BILIRUBIN"]!,albumin:cpLabs["ALBUMIN"]!,inr:cpLabs["INR"]!,ascites:ascitesPresent?2:1,encephalopathy:encephalopathyPresent?2:1});
-  if(cp)inp.childPugh={score:cp.score,childClass:cp.childClass,floor:true,ascitesPresent,encephalopathyPresent};
+  // Si el médico GRADUÓ ascitis/encefalopatía en la valoración del encuentro, se usan esos grados → clase EXACTA (floor:false).
+  // Si no, se derivan de la lista de problemas (presente→2, el piso; ausente→1) y el resultado se marca como PISO a graduar.
+  const graded=hepAssess!==undefined;
+  const ascitesGrade=graded?hepAssess.ascites:(has(codes,"R18")?2:1);
+  const encephalopathyGrade=graded?hepAssess.encephalopathy:(has(codes,"K72","K70.4")?2:1);
+  const cp=childPugh({bilirubin:cpLabs["BILIRUBIN"]!,albumin:cpLabs["ALBUMIN"]!,inr:cpLabs["INR"]!,ascites:ascitesGrade,encephalopathy:encephalopathyGrade});
+  if(cp)inp.childPugh={score:cp.score,childClass:cp.childClass,floor:!graded,ascitesPresent:ascitesGrade>1,encephalopathyPresent:encephalopathyGrade>1};
  }
  // IMC
  const b=bmiFromVitals({value:vitals["WEIGHT"]},{value:vitals["HEIGHT"]}); // C-21: implementación única (unidad de talla inferida: latestVitalsByType no la trae)
