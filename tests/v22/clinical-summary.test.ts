@@ -1,6 +1,7 @@
 import{describe,it,expect}from"vitest";
 import{assembleFindings,summarize}from"../../packages/clinical-summary/src";
 import{hasBled}from"../../packages/bleeding-risk/src";
+import{timeInTherapeuticRange}from"../../packages/anticoagulation/src";
 // EPIC BS — Resumen de inteligencia clínica determinista.
 describe("assembleFindings (prioriza por severidad)",()=>{
  it("resultado crítico sin cerrar -> CRITICAL",()=>{
@@ -158,6 +159,15 @@ describe("assembleFindings (prioriza por severidad)",()=>{
   expect(anticoag.some(x=>/CHA₂DS₂-VASc/.test(x.summary))).toBe(true);
   expect(anticoag.some(x=>/HAS-BLED/.test(x.summary))).toBe(true);
  });
+ // TTR (tiempo en rango terapéutico): calidad del control del VKA.
+ it("TTR bajo -> WARNING de control inestable con el porcentaje; TTR aceptable -> INFO",()=>{
+  const lab=assembleFindings({ttr:{pct:45,points:6,labile:true,thresholdPct:60}});
+  expect(lab[0]).toMatchObject({domain:"anticoagulación",severity:"WARNING"});
+  expect(lab[0]!.summary).toMatch(/45%/);expect(lab[0]!.summary).toMatch(/ACOD/);
+  const ok=assembleFindings({ttr:{pct:78,points:8,labile:false,thresholdPct:60}});
+  expect(ok[0]).toMatchObject({domain:"anticoagulación",severity:"INFO"});
+  expect(ok[0]!.summary).toMatch(/78%/);
+ });
 });
 // Calculador HAS-BLED puro (Pisters 2010): 1 punto por ítem, máx. 9; ≥3 = alto. INR lábil no evaluable se reporta aparte.
 describe("hasBled (riesgo de sangrado, Pisters 2010)",()=>{
@@ -182,5 +192,25 @@ describe("hasBled (riesgo de sangrado, Pisters 2010)",()=>{
   const r=hasBled({...NONE,labileINR:undefined,elderly:true,hypertensionUncontrolled:true});
   expect(r.score).toBe(2); // solo lo evaluado
   expect(r.notAssessed.length).toBe(1);
+ });
+});
+// TTR por el método de Rosendaal (Thromb Haemost 1993): fracción del tiempo con el INR interpolado dentro del rango.
+describe("timeInTherapeuticRange (Rosendaal 1993)",()=>{
+ const day=(n:number)=>new Date(Date.UTC(2026,0,1+n)).toISOString();
+ it("no calculable con <2 determinaciones ni con periodo demasiado corto -> undefined (no inventa %)",()=>{
+  expect(timeInTherapeuticRange({readings:[{value:2.5,at:day(0)}]})).toBeUndefined();
+  expect(timeInTherapeuticRange({readings:[{value:2.5,at:day(0)},{value:2.6,at:day(5)}]})).toBeUndefined(); // 5 días < 28
+ });
+ it("todos los INR dentro de 2.0–3.0 durante el periodo -> TTR 100%, no lábil",()=>{
+  const r=timeInTherapeuticRange({readings:[{value:2.5,at:day(0)},{value:2.4,at:day(30)},{value:2.6,at:day(60)}]});
+  expect(r).toBeDefined();expect(r!.ttrPct).toBe(100);expect(r!.labile).toBe(false);expect(r!.points).toBe(3);
+ });
+ it("interpolación lineal: de 2.0 a 4.0 en 40 días, la mitad del tramo queda sobre 3.0 -> 50% y es lábil (<60%)",()=>{
+  const r=timeInTherapeuticRange({readings:[{value:2.0,at:day(0)},{value:4.0,at:day(40)}]});
+  expect(r!.ttrPct).toBe(50);expect(r!.labile).toBe(true);expect(r!.method).toBe("Rosendaal");
+ });
+ it("respeta el rango de válvula mecánica (2.5–3.5)",()=>{
+  const r=timeInTherapeuticRange({readings:[{value:3.0,at:day(0)},{value:3.0,at:day(40)}],target:{low:2.5,high:3.5}});
+  expect(r!.ttrPct).toBe(100);
  });
 });

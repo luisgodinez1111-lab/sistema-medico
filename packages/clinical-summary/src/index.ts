@@ -17,6 +17,9 @@ export type SummaryInputs=Readonly<{
  // `show` cuando es relevante (paciente ya anticoagulado O con indicación de anticoagular), y pasa el score/riesgo ya
  // calculado. `minimum` es true si algún componente no fue evaluable (p. ej. INR lábil sin TTR): el score es un piso.
  hasBled?:{score:number;risk:"LOW"|"MODERATE"|"HIGH";show:boolean;minimum:boolean};
+ // Calidad del control de la anticoagulación con VKA: tiempo en rango terapéutico (TTR, método Rosendaal). Solo cuando el
+ // paciente está con antagonista de vitamina K y hay serie de INR suficiente para calcularlo.
+ ttr?:{pct:number;points:number;labile:boolean;thresholdPct:number};
  // Brechas de terapia dirigida por guías (care gaps): el caller cruza condición+edad+labs+medicación activa (por CLASE
  // del catálogo) y aquí se enuncian como RECORDATORIOS de apoyo ("considere…"), nunca como mandato — el médico decide,
  // vigilando contraindicaciones. Solo se emiten cuando la terapia está INDICADA y el paciente NO la tiene activa.
@@ -83,6 +86,13 @@ export function assembleFindings(i:SummaryInputs):Finding[]{
  if(i.hasBled?.show){const piso=i.hasBled.minimum?" (mínimo: hay componentes no evaluados, p. ej. INR lábil)":"";
   if(i.hasBled.risk==="HIGH")f.push({domain:"anticoagulación",severity:"WARNING",summary:`Riesgo hemorrágico ALTO (HAS-BLED ${i.hasBled.score}${piso}): NO contraindica anticoagular — corrija los factores modificables (presión, antiagregantes/AINE, alcohol, INR) y vigile de cerca (Pisters 2010).`});
   else f.push({domain:"anticoagulación",severity:"INFO",summary:`Riesgo hemorrágico ${i.hasBled.risk==="MODERATE"?"moderado":"bajo"} (HAS-BLED ${i.hasBled.score}${piso}): téngalo en el balance al decidir la anticoagulación (Pisters 2010).`});}
+ // Calidad del control con VKA: un TTR bajo (método Rosendaal) indica anticoagulación inestable → más riesgo trombótico Y
+ // hemorrágico; obliga a revisar adherencia, interacciones y dieta, o a valorar un ACOD (Rosendaal 1993; ESC 2024 busca
+ // TTR >70%). También es el componente "INR lábil" del HAS-BLED, que así deja de ser no evaluable.
+ if(i.ttr){
+  if(i.ttr.labile)f.push({domain:"anticoagulación",severity:"WARNING",summary:`Control de la anticoagulación INESTABLE: tiempo en rango terapéutico ${i.ttr.pct}% (<${i.ttr.thresholdPct}%, ${i.ttr.points} determinaciones de INR): revise adherencia, interacciones y dieta, o valore cambiar a un ACOD (Rosendaal; ESC 2024 busca >70%).`});
+  else f.push({domain:"anticoagulación",severity:"INFO",summary:`Control de la anticoagulación aceptable: tiempo en rango terapéutico ${i.ttr.pct}% (${i.ttr.points} determinaciones de INR; objetivo ESC 2024 >70%).`});
+ }
  // — Brechas de terapia dirigida por guías (GDMT): recordatorios de apoyo, el médico decide —
  if(i.statinGap?.indicated&&!i.statinGap.onStatin)f.push({domain:"lípidos",severity:"WARNING",summary:`${i.statinGap.reason}: sin estatina activa — considere iniciar estatina salvo contraindicación (ACC/AHA 2018; ADA Standards of Care).`});
  if(i.reninAngiotensinGap?.indicated&&!i.reninAngiotensinGap.onTherapy)f.push({domain:"cardiorrenal",severity:"INFO",summary:`${i.reninAngiotensinGap.reason}: considere IECA/ARA-II por su efecto cardio/nefroprotector, vigilando potasio, creatinina y contraindicaciones (KDIGO; ACC/AHA).`});

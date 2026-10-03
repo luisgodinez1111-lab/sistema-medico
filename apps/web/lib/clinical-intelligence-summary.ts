@@ -1,8 +1,8 @@
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
-import{patientDemographics,latestVitalsByType,activeProblemCodes,activeAllergySubstances,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccines,activeMedicationDrugCodes,antecedentes}from"./clinical-runtime";
+import{patientDemographics,latestVitalsByType,activeProblemCodes,activeAllergySubstances,countOpenCriticalResults,countOpenCriticalVitals,administeredVaccines,activeMedicationDrugCodes,antecedentes,analyteSeries}from"./clinical-runtime";
 import{verifiedValues,MAX_AGE_DAYS,COHERENCE_HOURS}from"./analyte-inputs";
 import{stageBloodPressure,parseBp}from"../../../packages/bp-staging/src";
-import{interpretINR}from"../../../packages/anticoagulation/src";
+import{interpretINR,timeInTherapeuticRange,INR_TARGETS}from"../../../packages/anticoagulation/src";
 import{resolveDrug}from"../../../packages/drug-catalog/src";
 import{computeEGFR,type Sex}from"../../../packages/renal-function/src";
 import{computeNEWS2,news2ScoredCount,NEWS2_MIN_SCORED_PARAMS}from"../../../packages/lab-reference/src";
@@ -28,7 +28,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  // Auditoría 2026-09-19 (C-01, C-02): este panel usa el MISMO camino verificado que las calculadoras (unidad canónica,
  // plausibilidad, vigencia y coherencia de muestra). Antes leía "el último número" sin unidad ni fecha, de modo que el
  // panel podía afirmar un eGFR o un FIB-4 que la propia calculadora ya se negaba a calcular. Dato no utilizable => sin hallazgo.
- const[vitals,codes,openRes,openVit,vaccines,renal,glyc,liver,anticoag,activeDrugs,ant,lipid]=await Promise.all([
+ const[vitals,codes,openRes,openVit,vaccines,renal,glyc,liver,anticoag,activeDrugs,ant,lipid,inrSeries]=await Promise.all([
   latestVitalsByType(ctx,patientId),
   activeProblemCodes(ctx,patientId),
   countOpenCriticalResults(ctx,patientId),
@@ -41,6 +41,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
   activeMedicationDrugCodes(ctx,patientId),
   antecedentes(ctx,patientId), // hábitos (antecedentes no patológicos) para los recordatorios por guías
   verifiedValues(ctx,patientId,["LDL"],MAX_AGE_DAYS.GLYCEMIC_CONTROL), // LDL para la meta por riesgo (cardiometabólico)
+  analyteSeries(ctx,patientId,"INR"), // serie para el TTR (calidad del control de la anticoagulación con VKA)
  ]);
  const inp:{-readonly[K in keyof SummaryInputs]:SummaryInputs[K]}={openCriticalResults:openRes,openCriticalVitals:openVit};
  // NEWS2
@@ -80,6 +81,13 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  // INR (contexto del anticoagulante activo)
  const inrV=anticoag?.["INR"];
  if(inrV!==undefined){const ir=interpretINR(inrV);if(ir)inp.inr={status:ir.status,onAnticoagulant:activeDrugs.some(dc=>resolveDrug(dc)?.classes.includes("ANTICOAGULANT"))};}
+ // TTR (tiempo en rango terapéutico, Rosendaal) — calidad del control de la anticoagulación con ANTAGONISTA DE VITAMINA K.
+ // Solo con VKA activo (el INR no monitoriza a los ACOD) y serie de INR suficiente; de lo contrario queda sin calcular.
+ const onVka=activeDrugs.some(dc=>resolveDrug(dc)?.classes.includes("VKA"));
+ // Rango objetivo según la indicación: válvula mecánica 2.5–3.5 (Z95.2/Z95.4), resto 2.0–3.0.
+ const inrTarget=has(codes,"Z95.2","Z95.4")?INR_TARGETS.MECHANICAL_VALVE:INR_TARGETS.AF_OR_VTE;
+ const ttr=onVka?timeInTherapeuticRange({readings:inrSeries,target:inrTarget}):undefined;
+ if(ttr)inp.ttr={pct:ttr.ttrPct,points:ttr.points,labile:ttr.labile,thresholdPct:ttr.labileThresholdPct};
  // Hábitos (antecedentes no patológicos): recordatorios de apoyo basados en guías. Las elegibilidades por edad/sexo se
  // resuelven aquí (el agregador es puro). Con un booleano NO se asume elegibilidad de cribado que exige paquetes-año: se
  // sugiere confirmarla. Solo si hay antecedentes capturados.
@@ -139,7 +147,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
    abnormalLiver:has(codes,"K70","K71","K72","K74","K76")||inp.fib4?.risk==="HIGH",
    strokeHistory:has(codes,"I63","I64","G45"),
    bleedingHistory:has(codes,"I60","I61","I62","K92","D62"), // hemorragia intracraneal/digestiva, anemia poshemorrágica
-   labileINR:undefined, // no evaluable sin TTR (tiempo en rango terapéutico)
+   labileINR:ttr?ttr.labile:undefined, // del TTR (Rosendaal) si es calculable; si no, sin puntuar (score mínimo)
    elderly:age>65,
    drugsAntiplateletOrNsaid:activeClasses.has("ANTIPLATELET")||activeClasses.has("NSAID"),
    alcoholExcess:alcoholHabit===true,

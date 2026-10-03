@@ -55,3 +55,44 @@ export function interpretINR(inr:number,target:InrTarget|InrOptions={low:2.0,hig
  }
  return{inr,status,target:rango,applicable:true,targetSource,interpretation,...(action?{action}:{})};
 }
+
+// EPIC BU (ampliación) — TIEMPO EN RANGO TERAPÉUTICO (TTR) por el método de ROSENDAAL (Rosendaal FR et al., Thromb
+// Haemost 1993;69:236-239). Es la medida estándar de la CALIDAD del control de la anticoagulación con antagonistas de
+// vitamina K: interpola linealmente el INR entre determinaciones consecutivas y calcula la fracción del tiempo dentro del
+// rango objetivo. Sostiene el componente "INR lábil" de HAS-BLED (que de otro modo no es evaluable). Puro, sin PHI.
+//
+// HONESTIDAD: no es calculable con una sola determinación, ni con un periodo demasiado corto para ser significativo. En
+// esos casos devuelve `undefined` (NO se inventa un porcentaje), y el llamador deja "INR lábil" sin puntuar, no en 0.
+export type TtrReading=Readonly<{value:number;at:string}>;
+export type TtrInputs=Readonly<{readings:readonly TtrReading[];target?:InrTarget;minPoints?:number;minSpanDays?:number;labileThresholdPct?:number}>;
+export type TtrResult=Readonly<{ttrPct:number;daysInRange:number;totalDays:number;points:number;labile:boolean;target:InrTarget;labileThresholdPct:number;method:"Rosendaal"}>;
+const DAY_MS=86_400_000;
+export function timeInTherapeuticRange(i:TtrInputs):TtrResult|undefined{
+ const target=i.target??INR_TARGETS.AF_OR_VTE;
+ const minPoints=i.minPoints??2;const minSpanDays=i.minSpanDays??28;
+ // HAS-BLED (Pisters 2010): "INR lábil" = tiempo en rango terapéutico bajo, p. ej. <60%.
+ const labileThresholdPct=i.labileThresholdPct??60;
+ // Puntos válidos (INR finito y positivo), ordenados por fecha ascendente, con fechas válidas.
+ const pts=i.readings
+  .map(r=>({v:r.value,t:Date.parse(r.at)}))
+  .filter(p=>Number.isFinite(p.v)&&p.v>0&&Number.isFinite(p.t))
+  .sort((a,b)=>a.t-b.t);
+ if(pts.length<minPoints)return undefined;
+ const totalDays=(pts[pts.length-1]!.t-pts[0]!.t)/DAY_MS;
+ if(!(totalDays>=minSpanDays))return undefined; // periodo demasiado corto: no es significativo
+ let daysInRange=0;
+ for(let k=0;k<pts.length-1;k++){
+  const a=pts[k]!,b=pts[k+1]!;const D=(b.t-a.t)/DAY_MS;
+  if(D<=0)continue;
+  if(a.v===b.v){if(a.v>=target.low&&a.v<=target.high)daysInRange+=D;continue;}
+  // INR(t)=a.v+m*t para t∈[0,D]. El tramo en rango es la intersección de [0,D] con {t: INR(t)∈[low,high]}.
+  const m=(b.v-a.v)/D;
+  const tLow=(target.low-a.v)/m, tHigh=(target.high-a.v)/m; // cruces con los umbrales
+  const lo=Math.min(tLow,tHigh), hi=Math.max(tLow,tHigh);   // orden según el signo de la pendiente
+  const inRange=Math.max(0,Math.min(D,hi)-Math.max(0,lo));
+  daysInRange+=inRange;
+ }
+ const ttrPct=totalDays>0?(daysInRange/totalDays)*100:0;
+ return{ttrPct:Math.round(ttrPct*10)/10,daysInRange:Math.round(daysInRange*10)/10,totalDays:Math.round(totalDays*10)/10,
+  points:pts.length,labile:ttrPct<labileThresholdPct,target,labileThresholdPct,method:"Rosendaal"};
+}
