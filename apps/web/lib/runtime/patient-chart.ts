@@ -17,7 +17,7 @@ import{withTenantTx}from"./connection";
 import{ultimaTransicion,versionDelAgregado}from"./read-model-joins";
 
 // Filas con la forma EXACTA que consumen los módulos del expediente (apps/web/app/workspace/shared.tsx): id+label+state+version.
-export type ChartRow=Readonly<{id:string;label:string;state:string;version:number}>;
+export type ChartRow=Readonly<{id:string;label:string;state:string;version:number;problemLabel?:string}>;// problemLabel: POMR, el problema enlazado (medicación/órdenes)
 export type ChartVital=Readonly<{id:string;vitalType:string;value:string;unit:string;state:string;version:number;vstatus:string;interp:string}>;
 export type ChartResult=Readonly<{id:string;label:string;critical:boolean;state:string;version:number}>;
 export type PatientChart=Readonly<{
@@ -41,6 +41,12 @@ const str=(o:Record<string,unknown>,k:string)=>o[k]==null?"":String(o[k]);
 export async function patientChart(ctx:HttpTenantContext,patientId:string):Promise<PatientChart>{
  return withTenantTx(ctx,async tx=>{
   const t=ctx.tenantId;
+  // POMR: etiqueta del problema enlazado (medicación/órdenes traen `problemId`). LATERAL por fila; si no hay problemId
+  // (o el problema no existe), devuelve null y no se enlaza. problemId viene validado como uuid del write-side.
+  const probLink=tx`left join lateral (select p.payload->>'code' as pcode, p.payload->>'description' as pdesc from clinical_events p
+    where p.tenant_id=${t} and p.aggregate_type='ClinicalProblem' and p.payload->>'kind'='ADDED'
+      and p.aggregate_id=(a.payload->>'problemId')::uuid limit 1) prob on true`;
+  const problemLabelOf=(o:Record<string,unknown>)=>{const c=str(o,"pcode"),d=str(o,"pdesc");const l=[c,d].filter(Boolean).join(" · ");return l||undefined;};
   // PROBLEMAS — base PROBLEM_ADDED; estado por última transición de ciclo de vida.
   const problems=(await tx`
    select a.aggregate_id as id, a.payload->>'code' as code, a.payload->>'description' as description, lk.kind as last_kind, vr.version as version
@@ -57,11 +63,11 @@ export async function patientChart(ctx:HttpTenantContext,patientId:string):Promi
    return{id:str(o,"id"),label:reac?`${sub} — ${reac}`:(sub||"Alergia"),state:ALG[str(o,"last_kind")||"RECORDED"]??"ACTIVE",version:Number(o.version??1)};});
   // MEDICACIÓN — base MEDICATION_PROPOSED; nombre legible del catálogo (resolveDrug), no el código crudo.
   const medications=(await tx`
-   select a.aggregate_id as id, a.payload->>'drugCode' as drug, a.payload->>'dose' as dose, lk.kind as last_kind, vr.version as version
-   from clinical_events a ${ultimaTransicion(tx,t,Object.keys(MED))} ${versionDelAgregado(tx,t)}
+   select a.aggregate_id as id, a.payload->>'drugCode' as drug, a.payload->>'dose' as dose, lk.kind as last_kind, vr.version as version, prob.pcode as pcode, prob.pdesc as pdesc
+   from clinical_events a ${ultimaTransicion(tx,t,Object.keys(MED))} ${versionDelAgregado(tx,t)} ${probLink}
    where a.tenant_id=${t} and a.aggregate_type='Medication' and a.payload->>'kind'='PROPOSED' and a.payload->>'patientId'=${patientId}
-   order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const code=str(o,"drug");const name=resolveDrug(code)?.ingredient??code;const dose=str(o,"dose");
-   return{id:str(o,"id"),label:[name,dose].filter(Boolean).join(" "),state:MED[str(o,"last_kind")||"PROPOSED"]??"PROPOSED",version:Number(o.version??1)};});
+   order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const code=str(o,"drug");const name=resolveDrug(code)?.ingredient??code;const dose=str(o,"dose");const pl=problemLabelOf(o);
+   return{id:str(o,"id"),label:[name,dose].filter(Boolean).join(" "),state:MED[str(o,"last_kind")||"PROPOSED"]??"PROPOSED",version:Number(o.version??1),...(pl?{problemLabel:pl}:{})};});
   // VACUNAS — base IMMUNIZATION_DUE; nombre legible del esquema.
   const immunizations=(await tx`
    select a.aggregate_id as id, a.payload->>'vaccineCode' as vaccine, a.payload->>'dose' as dose, lk.kind as last_kind, vr.version as version
@@ -71,11 +77,11 @@ export async function patientChart(ctx:HttpTenantContext,patientId:string):Promi
    return{id:str(o,"id"),label:dose?`${vaccineLabel(vac)} · dosis ${dose}`:vaccineLabel(vac),state:IMM[str(o,"last_kind")||"DUE"]??"DUE",version:Number(o.version??1)};});
   // ÓRDENES — base ORDER_CREATED.
   const orders=(await tx`
-   select a.aggregate_id as id, a.payload->>'orderType' as order_type, a.payload->>'detail' as detail, lk.kind as last_kind, vr.version as version
-   from clinical_events a ${ultimaTransicion(tx,t,Object.keys(ORD))} ${versionDelAgregado(tx,t)}
+   select a.aggregate_id as id, a.payload->>'orderType' as order_type, a.payload->>'detail' as detail, lk.kind as last_kind, vr.version as version, prob.pcode as pcode, prob.pdesc as pdesc
+   from clinical_events a ${ultimaTransicion(tx,t,Object.keys(ORD))} ${versionDelAgregado(tx,t)} ${probLink}
    where a.tenant_id=${t} and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=${patientId}
-   order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const ot=str(o,"order_type"),det=str(o,"detail");
-   return{id:str(o,"id"),label:det?`${ot}: ${det}`:(ot||"Orden"),state:ORD[str(o,"last_kind")||"CREATED"]??"DRAFT",version:Number(o.version??1)};});
+   order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const ot=str(o,"order_type"),det=str(o,"detail");const pl=problemLabelOf(o);
+   return{id:str(o,"id"),label:det?`${ot}: ${det}`:(ot||"Orden"),state:ORD[str(o,"last_kind")||"CREATED"]??"DRAFT",version:Number(o.version??1),...(pl?{problemLabel:pl}:{})};});
   // RESULTADOS — base DIAGNOSTIC_RESULT RECEIVED; se excluyen los anulados (ENTERED_IN_ERROR alguna vez).
   const results=(await tx`
    select a.aggregate_id as id, a.payload->>'analyte' as analyte, a.payload->>'value' as value, a.payload->>'critical' as critical, lk.kind as last_kind, vr.version as version

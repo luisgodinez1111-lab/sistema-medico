@@ -27,7 +27,9 @@ async function patientWeightKg(ctx:Parameters<typeof runClinicalCommand>[0],pati
  if(raw===undefined)return undefined;const n=Number(String(raw).trim());return Number.isFinite(n)?n:undefined;
 }
 
-export const ProposeBody=z.object({medicationId:z.string().uuid(),patientId:z.string().uuid(),drugCode:z.string().min(1),indication:z.string().optional(),dose:z.string().min(1),route:z.string().min(1),frequency:z.string().min(1),duration:z.string().optional(),calculatedDose:z.string().optional(),occurredAt:z.string().datetime()});
+// POMR: `problemId` referencia el ClinicalProblem (aggregateId) que el fármaco trata — aditivo/opcional, complementa el
+// texto libre `indication` (no lo reemplaza) y habilita "medicación por problema" y la reconciliación por diagnóstico.
+export const ProposeBody=z.object({medicationId:z.string().uuid(),patientId:z.string().uuid(),drugCode:z.string().min(1),indication:z.string().optional(),problemId:z.string().uuid().optional(),dose:z.string().min(1),route:z.string().min(1),frequency:z.string().min(1),duration:z.string().optional(),calculatedDose:z.string().optional(),occurredAt:z.string().datetime()});
 // PROPOSE = creación. Cualquier clínico/IA con scope medication:propose (no exige médico).
 export async function handleMedicationProposal(req:Request):Promise<Response>{
  try{
@@ -63,7 +65,7 @@ export async function handleMedicationProposal(req:Request):Promise<Response>{
    // borrador de una consulta en la que el peso se toma un minuto después.
    if(pd.weightRequired)noVerificado.push("pediatricDose:WEIGHT_REQUIRED");
    if(pd.checked&&pd.exceeded)throw new ClinicalError("SAFETY_BLOCKED",`Dosis pediátrica excede el máximo de ${ing}: ${pd.computedMgPerKgPerDay}mg/kg/día > ${pd.maxMgPerKgPerDay}mg/kg/día (peso ${pd.weightKg}kg). Recalcule por peso.`,{computedMgPerKgPerDay:pd.computedMgPerKgPerDay,maxMgPerKgPerDay:pd.maxMgPerKgPerDay,weightKg:pd.weightKg});}
-  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.medicationId,expectedVersion:0,eventType:"MEDICATION_PROPOSED",payload:{kind:"PROPOSED",patientId:b.patientId,drugCode:b.drugCode,indication:b.indication,dose:b.dose,route:normalizeRoute(b.route),frequency:b.frequency,duration:b.duration,calculatedDose:b.calculatedDose,
+  const cmd=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:b.medicationId,expectedVersion:0,eventType:"MEDICATION_PROPOSED",payload:{kind:"PROPOSED",patientId:b.patientId,drugCode:b.drugCode,indication:b.indication,...(b.problemId?{problemId:b.problemId}:{}),dose:b.dose,route:normalizeRoute(b.route),frequency:b.frequency,duration:b.duration,calculatedDose:b.calculatedDose,
    // R02a-MED-01: constancia explícita de lo que NO se verificó en la propuesta (fármaco fuera del catálogo).
    ...(noVerificado.length?{safety:{catalogResolved:false,notEvaluated:noVerificado}}:{})},occurredAt:b.occurredAt,topic:"medication.proposed"});
   const result=await runClinicalCommand(ctx,cmd);

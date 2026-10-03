@@ -19,13 +19,13 @@ export const P=primitive.color,S=primitive.space,UI=typography.family.ui;
 export type EncState="OPEN"|"READY_TO_SIGN"|"SIGNED";
 export type Encounter=Readonly<{id:string;state:EncState;version:number;signatureDigest?:string}>;
 export type MedState="PROPOSED"|"PRESCRIBED"|"ACTIVE"|"STOPPED";
-export type Med=Readonly<{id:string;label:string;state:MedState;version:number}>;
+export type Med=Readonly<{id:string;label:string;state:MedState;version:number;problemLabel?:string}>;// POMR: problema que trata
 export type ResState="RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";
 export type Result=Readonly<{id:string;label:string;critical:boolean;state:ResState;version:number}>;
 export type DocState="DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED";
 export type Doc=Readonly<{id:string;label:string;state:DocState;version:number}>;
 export type OrderSt="DRAFT"|"ORDERED"|"FULFILLED"|"CANCELLED";
-export type Order=Readonly<{id:string;label:string;state:OrderSt;version:number}>;
+export type Order=Readonly<{id:string;label:string;state:OrderSt;version:number;problemLabel?:string}>;// POMR: problema contra el que se pide
 export type ObSt="OPEN"|"IN_PROGRESS"|"COMPLETED"|"CANCELLED";
 export type Ob=Readonly<{id:string;label:string;state:ObSt;version:number}>;
 export type ProbSt="ACTIVE"|"RESOLVED"|"CHRONIC"|"ENTERED_IN_ERROR";
