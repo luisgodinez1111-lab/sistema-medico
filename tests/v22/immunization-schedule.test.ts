@@ -1,6 +1,16 @@
 import{describe,it,expect}from"vitest";
-import{ageInMonths,forecastImmunizations,forecastSummary,forecast}from"../../packages/immunization-schedule/src";
+import{ageInMonths,forecastImmunizations,forecastSummary,forecast,vaccineLabel}from"../../packages/immunization-schedule/src";
 // EPIC BK — Pronóstico de vacunación por edad (cartilla México).
+describe("vaccineLabel (nombre legible, del esquema, sin dosis)",()=>{
+ it("devuelve el nombre base sin el sufijo de dosis",()=>{
+  expect(vaccineLabel("HEPB")).toBe("Hepatitis B");
+  expect(vaccineLabel("hepb")).toBe("Hepatitis B"); // normaliza mayúsculas
+  expect(vaccineLabel("SRP")).toBe("SRP");
+ });
+ it("un código desconocido se devuelve tal cual (no inventa)",()=>{
+  expect(vaccineLabel("ZZZ")).toBe("ZZZ");
+ });
+});
 describe("ageInMonths",()=>{
  it("calcula meses de calendario ajustando por día",()=>{
   expect(ageInMonths("2024-01-15","2026-01-15")).toBe(24);

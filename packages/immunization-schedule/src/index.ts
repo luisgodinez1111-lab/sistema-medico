@@ -176,6 +176,10 @@ export function forecastSummary(doses:readonly ForecastDose[]){
 // sistema AVISA (no bloquea) y exige que el médico lo confirme, salvo que la alergia registrada sea GRAVE.
 export const VACCINE_CODES:readonly string[]=[...new Set(SCHEDULE.map(e=>e.code))];
 export const isVaccineCode=(code:string):boolean=>VACCINE_CODES.includes(code.trim().toUpperCase());
+// Nombre BASE legible por código (sin el sufijo de dosis): derivado del propio esquema, no inventado. Se usa para mostrar
+// las vacunas aplicadas del paciente con su nombre, no con el código crudo. Un código sin entrada devuelve el código tal cual.
+const VACCINE_LABEL_BY_CODE:ReadonlyMap<string,string>=(()=>{const m=new Map<string,string>();for(const e of SCHEDULE){if(!m.has(e.code))m.set(e.code,e.label.replace(/\s*\([^)]*\)\s*$/,"").trim());}return m;})();
+export const vaccineLabel=(code:string):string=>VACCINE_LABEL_BY_CODE.get(code.trim().toUpperCase())??code;
 /** Componentes con relevancia alérgica por código de vacuna (para cruzar con las alergias registradas del paciente). */
 export const VACCINE_COMPONENTS:Readonly<Record<string,readonly string[]>>={
  BCG:["neomicina"],

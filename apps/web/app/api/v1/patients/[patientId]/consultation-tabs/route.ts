@@ -1,7 +1,8 @@
 import{NextResponse}from"next/server";
 import{authorize}from"../../../../../../../../packages/runtime-auth/src";
 import{resolveDrug}from"../../../../../../../../packages/drug-catalog/src";
-import{resultsRegistry,ordersRegistry,activeMedicationDrugCodes,carePlanGoals,patientDocuments,patientObligations,type VitalPoint}from"../../../../../../lib/clinical-runtime";
+import{resultsRegistry,ordersRegistry,activeMedicationDrugCodes,carePlanGoals,patientDocuments,patientObligations,administeredVaccines,type VitalPoint}from"../../../../../../lib/clinical-runtime";
+import{vaccineLabel}from"../../../../../../../../packages/immunization-schedule/src";
 import{toHttpError}from"../../../../../../lib/http-errors";
 import{resolveVerified,principalFrom,pathIds}from"../../../../../../lib/http-command";
 // EPIC K/UI — GET /api/v1/patients/:id/consultation-tabs  (vista Consulta, pestañas por paciente)
@@ -19,20 +20,23 @@ export async function GET(req:Request,ctx:{params:Promise<{patientId:string}>}){
   const{patientId}=await pathIds(ctx.params);
   const{claims,ctx:tctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
-  const[results0,orders0,medCodes,goals,docs,obls]=await Promise.all([
+  const[results0,orders0,medCodes,goals,docs,obls,vacs]=await Promise.all([
    resultsRegistry(tctx,{patientId}), // R06-20: el filtro por paciente viaja en el SQL (antes se leían los de toda la clínica)
    ordersRegistry(tctx,{patientId}),
    activeMedicationDrugCodes(tctx,patientId),
    carePlanGoals(tctx,patientId),
    patientDocuments(tctx,patientId),
    patientObligations(tctx,patientId),
+   administeredVaccines(tctx,patientId), // vacunas aplicadas del paciente (reader existente), con su nombre legible
   ]);
   const results=results0.items.map(r=>{const estado=r.critical||ABNORMAL.has(r.status.toUpperCase())?"Hallazgos":r.lifecycle==="ACTIONED"?"En seguimiento":r.lifecycle==="RECEIVED"?"En revisión":"Normal";
    return{analyte:r.analyte,value:r.value,estado,critical:r.critical,receivedAt:r.receivedAt};});
   const orders=orders0.items.map(o=>({typeLabel:OTYPE[o.orderType]??"Otro",detail:o.detail,status:o.status,createdAt:o.createdAt}));
   const medications=[...new Set(medCodes.map(c=>{const dd=resolveDrug(c);return dd?dd.ingredient:c;}))];
+  // Vacunas aplicadas, más recientes primero, con nombre legible del esquema (no el código crudo).
+  const vaccines=[...vacs].sort((a,b)=>(b.occurredAt??"").localeCompare(a.occurredAt??"")).map(v=>({label:vaccineLabel(v.code),at:v.occurredAt}));
   return NextResponse.json({
-   results,orders,medications,
+   results,orders,medications,vaccines,
    planGoals:goals.map(g=>({goal:g.goal,statusLabel:GOAL_ES[g.status]??"Propuesta"})),
    documents:docs.map(d=>({title:d.title,typeLabel:DOC_ES[d.docType]??"Otro",createdAt:d.createdAt})),
    obligations:obls.map(o=>({task:o.task,dueAt:o.dueAt,statusLabel:OBL_ES[o.status]??"Pendiente",done:o.status==="COMPLETED"})),
