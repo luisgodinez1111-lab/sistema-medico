@@ -43,31 +43,21 @@ beforeAll(()=>{
 });
 afterEach(cleanup);
 
-describe("cambio de paciente en Signos vitales (WS1-04)",()=>{
- it("el historial del paciente anterior NO sobrevive bajo la cabecera del nuevo",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));
-  // Paciente 1: su historial carga y se pinta.
-  const opcion=await screen.findByRole("option",{name:"Ana López García"},{timeout:4000});
-  const selector=opcion.closest("select")!;
-  fireEvent.change(selector,{target:{value:"p1"}});
-  await waitFor(()=>expect(screen.getAllByText(/128\/84/).length).toBeGreaterThan(0),{timeout:4000});
-  // Paciente 2: su GET responde 404 (no tiene historial). Lo del paciente 1 tiene que desaparecer YA, no «cuando llegue».
-  fireEvent.change(selector,{target:{value:"p2"}});
-  expect(screen.queryByText(/128\/84/),"el historial del paciente anterior sigue en pantalla con el paciente nuevo").toBeNull();
-  // Y sigue sin aparecer después de que su carga termine en 404.
-  await waitFor(()=>expect(screen.queryByText(/128\/84/)).toBeNull(),{timeout:2000});
+// (Fase 2) La vista suelta de Signos vitales y su estado `vitHist` se retiraron (Signos es ahora un submenú del
+// Expediente, paciente-scoped vía `snap`). El invariante WS1-04 —nada del paciente anterior bajo la cabecera del nuevo—
+// sigue garantizado estructuralmente: (1) `selectPatientRaw` limpia DE INMEDIATO los snapshots por-paciente; (2) el efecto
+// de carga del snapshot vuelve a poner `snap=null` al cambiar `patientId`; (3) el guard `PATIENT_B_DATA` descarta cualquier
+// dato que haya quedado de otro paciente. Este guard de fuente fija esas tres defensas.
+describe("cambio de paciente (WS1-04): el invariante lo sostienen selectPatientRaw + snapshot + guard PATIENT_B_DATA",()=>{
+ it("selectPatientRaw limpia los snapshots por-paciente al cambiar de paciente",async()=>{
+  const fs=await import("node:fs");const src=fs.readFileSync("apps/web/app/workspace/model.tsx","utf8");
+  const sel=src.slice(src.indexOf("function selectPatientRaw"),src.indexOf("function selectPatientRaw")+1400);
+  for(const clr of ["setSnap(null)","setVitHist(null)","setCpSnap(null)","setDocsSnap(null)","setCiSnap(null)"])
+   expect(sel,`selectPatientRaw debe limpiar ${clr}`).toContain(clr);
  });
- it("volver al primer paciente vuelve a cargar lo suyo",async()=>{
-  // Limpiar no puede significar perder el dato: al volver, su historial se pide otra vez.
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));
-  const opcion=await screen.findByRole("option",{name:"Ana López García"},{timeout:4000});
-  const selector=opcion.closest("select")!;
-  fireEvent.change(selector,{target:{value:"p1"}});
-  await waitFor(()=>expect(screen.getAllByText(/128\/84/).length).toBeGreaterThan(0),{timeout:4000});
-  fireEvent.change(selector,{target:{value:"p2"}});
-  fireEvent.change(selector,{target:{value:"p1"}});
-  await waitFor(()=>expect(screen.getAllByText(/128\/84/).length).toBeGreaterThan(0),{timeout:4000});
+ it("el guard de estado prohibido descarta datos del paciente B bajo el contexto del paciente A",async()=>{
+  const fs=await import("node:fs");const src=fs.readFileSync("apps/web/app/workspace/model.tsx","utf8");
+  expect(src).toContain("PATIENT_B_DATA");
+  expect(src).toMatch(/PATIENT_B_DATA[\s\S]*?setSnap\(null\)/); // al detectarlo, limpia el snapshot
  });
 });

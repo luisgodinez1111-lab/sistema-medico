@@ -128,23 +128,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 4/
   expect(screen.getAllByText("HIGH").length).toBeGreaterThan(0);               // prioridad del gap
  });
 
- it("vista Alergias (S-ALERGIAS): registro clínica-wide cableado a GET /api/v1/allergies — KPIs, tabla, detalle y gráficas",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Alergias"}));
-  expect((await screen.findByRole("heading",{name:"Alergias"}))).toBeTruthy();
-  // tabla + detalle materializados desde el endpoint (mock): el nombre aparece en fila y en el panel de detalle
-  expect((await screen.findAllByText("Ana López García",{},{timeout:2500})).length).toBeGreaterThan(0);
-  expect(screen.getByText("Detalle de la alergia")).toBeTruthy();
-  expect(screen.getAllByText("Grave").length).toBeGreaterThan(0);           // gravedad en TEXTO (no solo color)
-  expect(screen.getByText(/Alergias por tipo de alérgeno/)).toBeTruthy();   // gráfica de tipo
-  expect(screen.getByText(/Alergias por gravedad/)).toBeTruthy();           // gráfica de gravedad
-  expect(screen.getByText("Recomendaciones")).toBeTruthy();
-  // auditoría: el detalle abre el expediente (acción real) y se eliminaron los controles muertos
-  expect(screen.getByText(/Ver en el expediente/)).toBeTruthy();
-  expect(screen.queryByText("Exportar listado")).toBeNull();
-  expect(screen.queryByText("Accesos rápidos")).toBeNull();
-  expect(screen.queryByText("Registro rápido")).toBeNull();
- });
+ // (Fase 2) El registro clínica-wide de Alergias se retiró del menú; Alergias es ahora un submenú del Expediente
+ // (paciente-scoped). El alta por /allergies la cubren los live-proofs del backend y la sección del expediente (a11y en ui-cockpit-3).
 
  it("El expediente se navega por submenús de MÓDULO; la Medicación vive en su propio submenú, no en Resumen",async()=>{
   render(<Workspace/>);

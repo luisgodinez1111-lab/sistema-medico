@@ -50,11 +50,12 @@ export const AGGREGATE_BRANCH:Record<string,Branch>={
 export const VIEW_BRANCH:Record<string,Branch>={
  // Consultas
  consulta:"consultas",agenda:"consultas",interconsulta:"consultas",seguimiento:"consultas",
- // Expedientes
- pacientes:"expedientes",exp:"expedientes",problemas:"expedientes",alergias:"expedientes",medicamentos:"expedientes",
- vacunas:"expedientes",signos:"expedientes",planCuidado:"expedientes",documentos:"expedientes",
- // Laboratorios y Diagnósticos
- resultados:"laboratorios-diagnosticos",ordenes:"laboratorios-diagnosticos",clinicalIntel:"laboratorios-diagnosticos",
+ // Expedientes — el expediente es la base COMPLETA del paciente: los módulos per-paciente (problemas, alergias, vacunas,
+ // signos, plan, documentos, clinical intelligence) viven como SUBMENÚS del expediente (vista `exp`), no como vistas
+ // sueltas del menú. Medicamentos permanece como catálogo/herramienta de nivel-sistema.
+ pacientes:"expedientes",exp:"expedientes",medicamentos:"expedientes",
+ // Laboratorios y Diagnósticos — registros clínica-wide (todos los pacientes) que sí tienen sentido transversal.
+ resultados:"laboratorios-diagnosticos",ordenes:"laboratorios-diagnosticos",
  // Transversal (Sistema)
  inicio:"transversal",facturacion:"transversal",obligaciones:"transversal",reportes:"transversal",
  biblioteca:"transversal",configuracion:"transversal",

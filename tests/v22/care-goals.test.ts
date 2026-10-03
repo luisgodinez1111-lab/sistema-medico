@@ -10,7 +10,9 @@ import{CARE_GOALS,goalFor,INDIVIDUALIZATION_NOTICE}from"../../packages/care-goal
 // un anciano frágil, con hipoglucemias graves previas, comorbilidad avanzada o esperanza de vida limitada: ahí el control
 // estricto AUMENTA el riesgo de hipoglucemia grave. Mostrar «Meta < 7 %» en la pantalla de ese paciente empuja a una
 // conducta que puede dañarlo.
-const VISTA="apps/web/app/workspace/views/planCuidado.tsx";
+// (Fase 2) El Plan de cuidados es ahora un submenú del Expediente; su sección es un form de meta LIBRE (el médico la
+// escribe), sin presentar metas universales como hecho.
+const VISTA="apps/web/app/workspace/views/exp.tsx";
 
 describe("metas del plan de cuidado (R05a-F01)",()=>{
  it("cada meta declara fuente, población e individualización",()=>{
@@ -46,12 +48,13 @@ describe("metas del plan de cuidado (R05a-F01)",()=>{
   expect(goalFor("IMC")!.meetsDefault!(18.4),"el IMC tiene cota INFERIOR: el bajo peso no está «en meta»").toBe(false);
   expect(goalFor("Presión arterial")!.meetsDefault!(129)).toBe(true);
  });
- it("la vista ya NO escribe las metas y muestra el aviso de individualización",()=>{
+ it("la sección del expediente NO presenta metas universales como hecho (la meta la escribe el médico)",()=>{
   const src=fs.readFileSync(VISTA,"utf8");
+  // La sección Plan del expediente usa un campo de meta LIBRE: no vuelve a escribir una meta universal como afirmación.
   for(const literal of ['"Meta < 7%"','"Meta < 130/80"','"Meta < 25"'])
-   expect(src.includes(literal),`la vista volvió a escribir la meta a mano: ${literal}`).toBe(false);
-  expect(src,"la vista debe leer las metas del módulo con fuente").toContain("goalFor");
-  expect(src,"y mostrar que la meta del paciente la fija su médico").toContain("INDIVIDUALIZATION_NOTICE");
+   expect(src.includes(literal),`la sección presenta una meta universal como hecho: ${literal}`).toBe(false);
+  // El módulo care-goals (con fuente, población e individualización) sigue disponible y probado arriba; su nota deja claro
+  // que la meta del paciente la fija su médico.
   expect(INDIVIDUALIZATION_NOTICE).toMatch(/su médico|su medico/i);
  });
 });

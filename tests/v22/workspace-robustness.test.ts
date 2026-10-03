@@ -15,7 +15,10 @@ describe("una respuesta de red no es un tipo porque lo diga un `as` (R05b-25)",(
   const src=modelo();
   for(const t of ["Snap","Trends","VitalHistory","CarePlanSnap","RefContext","FollowUpSnap","CiSnap","ConsTabs","DocsSnap"])
    expect(src.includes(`as unknown as ${t}`),`${t} sigue entrando al estado con un cast ciego`).toBe(false);
-  expect((src.match(/conForma</g)??[]).length,"deben quedar las comprobaciones de forma").toBeGreaterThanOrEqual(11);
+  // (Fase 2) Bajó el número de comprobaciones al retirar los loaders de las vistas sueltas (VitalHistory/CarePlanSnap/CiSnap
+  // vivían en esas vistas; sus módulos están ahora en el Expediente, alimentados por snap/consTabs). Las que quedan siguen
+  // comprobando forma antes de entrar al estado.
+  expect((src.match(/conForma</g)??[]).length,"deben quedar las comprobaciones de forma").toBeGreaterThanOrEqual(8);
  });
  it("una respuesta con otra forma se trata como «no cargó», no se pinta a medias",()=>{
   expect(conForma<{a:number}>({a:1},["a"])).toEqual({a:1});
@@ -51,7 +54,8 @@ describe("lo que pasa mientras la pantalla está ocupada o el dato viene mal (R0
   expect(src).toMatch(/no mostrados/);
  });
  it("una serie con valores no finitos no se dibuja como si fuera plana",()=>{
-  for(const f of ["signos.tsx","seguimiento.tsx"]){
+  // (Fase 2) La vista suelta de Signos se retiró; su sparkline vivía ahí. Seguimiento conserva el mismo criterio robusto.
+  for(const f of ["seguimiento.tsx"]){
    const src=vista(f);
    const i=src.indexOf("const spark=");
    expect(i,`${f}: no se encontró spark`).toBeGreaterThan(-1);

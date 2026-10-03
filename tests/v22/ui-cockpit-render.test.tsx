@@ -8,11 +8,12 @@ import{installCockpitEnv,noSeriousAxe,abrirConsulta,elegirPaciente,toExpediente}
 void render;void screen;void cleanup;void waitFor;void fireEvent;void within;void expect;void Workspace;void posted;void noSeriousAxe;void abrirConsulta;void elegirPaciente;void toExpediente;
 installCockpitEnv();
 describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 1/6",()=>{
- it("shell: sidebar índigo con navegación primaria (19 accesos + herramientas) + buscador global + perfil del médico",async()=>{
+ it("shell: sidebar índigo con navegación primaria (transversal) + herramientas + buscador global + perfil del médico",async()=>{
   render(<Workspace/>);
   expect(screen.getByRole("button",{name:/Inicio/})).toBeTruthy();
   expect(screen.getByRole("button",{name:/Pacientes/})).toBeTruthy();
-  expect(screen.getByRole("button",{name:"Clinical Intelligence"})).toBeTruthy();
+  expect(screen.getByRole("button",{name:/Expediente/})).toBeTruthy(); // el expediente es la puerta a los módulos del paciente
+  expect(screen.getByRole("button",{name:"Reportes"})).toBeTruthy();
   expect(screen.getByRole("button",{name:/Configuración/})).toBeTruthy();   // sección HERRAMIENTAS
   expect(screen.getByRole("button",{name:/Contraer menú/})).toBeTruthy();    // colapsar
   expect(screen.getAllByText(/Médico tratante/).length).toBeGreaterThan(0);  // perfil del médico (fallback)
@@ -66,17 +67,9 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 1/
   expect(await screen.findByText(/guardados en el expediente/i)).toBeTruthy();
  });
 
- it("vista Vacunas: registrar una vacuna real desde el módulo (POST /immunizations)",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Vacunas"}));
-  fireEvent.click(await screen.findByRole("button",{name:"+ Registrar vacuna"}));
-  expect(screen.getByText(/Sin lote se registra/)).toBeTruthy(); // panel abierto
-  await screen.findByRole("option",{name:"Ana López García"});
-  fireEvent.change(screen.getAllByRole("combobox")[0]!,{target:{value:"p1"}}); // paciente
-  fireEvent.click(screen.getByRole("button",{name:"Influenza"}));              // vacuna (chip)
-  fireEvent.click(screen.getByRole("button",{name:"Registrar vacuna"}));       // sin lote -> pendiente
-  expect(await screen.findByText(/Vacuna registrada/)).toBeTruthy();
- });
+ // (Fase 2) El registro clínica-wide de Vacunas se retiró del menú; Vacunas es ahora un submenú del Expediente
+ // (paciente-scoped, createImmunization). El alta por el endpoint /immunizations la cubren los live-proofs del backend y
+ // la sección de Vacunas del expediente (barrida por a11y en ui-cockpit-3).
 
  it("vista Resultados: registrar un resultado real (POST /results, interpretación derivada)",async()=>{
   render(<Workspace/>);
@@ -121,30 +114,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 1/
   expect(screen.queryByText(/Exportar reporte/)).toBeNull();
  });
 
- it("vista Signos vitales (S-SIGNOS): form + últimos registros + tendencias + referencia + alertas deterministas",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));
-  expect(await screen.findByRole("heading",{name:"Signos vitales"})).toBeTruthy();
-  expect(screen.getByText("Registrar signos vitales")).toBeTruthy();          // título del form
-  expect(screen.getByPlaceholderText("36.5")).toBeTruthy();                    // campo temperatura
-  expect(screen.getByText(/Últimos registros/)).toBeTruthy();
-  // el historial ya NO muestra datos de ejemplo (fila representativa eliminada)
-  expect(screen.queryByText("120/80")).toBeNull();                            // sin fila ficticia
-  expect(screen.getByText("Tendencias")).toBeTruthy();
-  expect(screen.getByText(/Referencia de valores normales/)).toBeTruthy();
-  expect(screen.getByText("Alertas clínicas")).toBeTruthy();
-  expect(screen.getByRole("button",{name:/Guardar signos vitales/})).toBeTruthy();
-  // auditoría: se registra con hora actual y se eliminaron controles/campos muertos
-  expect(screen.getByText(/Se registra con la fecha y hora actuales/)).toBeTruthy();
-  expect(screen.queryByText("Acciones rápidas")).toBeNull();
-  expect(screen.queryByText("Plantilla rápida")).toBeNull();
-  expect(screen.queryByText("Estado general")).toBeNull();                    // campo no persistido, eliminado
-  // Lote E — registro POBLACIONAL clínica-wide cableado a GET /api/v1/vitals (lectura vigente por paciente)
-  expect((await screen.findAllByText("Signos vitales · Toda la clínica")).length).toBeGreaterThan(0);
-  expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0); // lectura de otro paciente
-  expect(screen.getByText("180/110")).toBeTruthy();
-  expect(screen.getAllByText("Crítico").length).toBeGreaterThan(0);           // estado derivado del valor
- });
+ // (Fase 2) La vista suelta de Signos vitales (panel del paciente + registro «Toda la clínica») se retiró: Signos es ahora
+ // un submenú del Expediente (paciente-scoped). Su captura/tendencias se barren por a11y en ui-cockpit-3.
 
  it("accesibilidad (Lote L): las vistas principales del sidebar no tienen violaciones axe serias/críticas",async()=>{
   render(<Workspace/>);
@@ -154,7 +125,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 1/
    fireEvent.click(btn);
    await screen.findByRole("heading",{level:1},{timeout:2500}); // espera a que la vista (lazy) monte su h1
   };
-  for(const v of ["Inicio","Pacientes","Agenda","Alergias","Problemas","Vacunas","Signos vitales","Plan de cuidados","Interconsultas","Seguimiento","Configuración"]){
+  for(const v of ["Inicio","Pacientes","Agenda","Interconsultas","Seguimiento","Medicamentos","Resultados","Órdenes","Facturación","Obligaciones","Reportes","Configuración"]){
    await nav(v);
    await noSeriousAxe(document.body,v);
   }

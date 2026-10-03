@@ -79,7 +79,9 @@ describe("cancelación de peticiones en vuelo (R05a-F06)",()=>{
  it("TODO efecto que lee datos crea su AbortController y aborta en la limpieza",()=>{
   // La invariante estructural: un efecto de auto-carga nuevo sin cancelación vuelve a acumular peticiones en vuelo.
   const conLectura=efectos().filter(e=>/apiRequest\([^)]*\{method:"GET"/.test(e));
-  expect(conLectura.length,"no se encontraron efectos de auto-carga: ¿cambió la forma del modelo?").toBeGreaterThanOrEqual(18);
+  // (Fase 2) Bajó el número de efectos de auto-carga al retirar las vistas sueltas per-paciente (sus módulos viven en el
+  // Expediente, alimentados por snap/consTabs). El invariante que importa es el de abajo: ninguno sin cancelar.
+  expect(conLectura.length,"no se encontraron efectos de auto-carga: ¿cambió la forma del modelo?").toBeGreaterThanOrEqual(8);
   const sinCancelacion=conLectura.filter(e=>!/new AbortController\(\)/.test(e)||!/ac\.abort\(\)/.test(e));
   expect(sinCancelacion.map(e=>e.split("\n")[0]),"efecto que lee datos sin cancelar la petición al limpiar").toEqual([]);
  });

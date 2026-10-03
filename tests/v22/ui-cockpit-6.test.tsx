@@ -80,19 +80,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 6/
   expect(screen.queryByText("+ Añadir")).toBeNull();
  });
 
- it("vista Alergias: registrar una alergia real desde el módulo (POST /allergies)",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Alergias"}));
-  fireEvent.click(await screen.findByRole("button",{name:"+ Nueva alergia"}));
-  expect(screen.getByText("Nueva alergia")).toBeTruthy();
-  // esperar a que la lista de pacientes cargue (opción del selector) y elegir paciente + sustancia + reacción
-  await screen.findByRole("option",{name:"Ana López García"});
-  fireEvent.change(screen.getAllByRole("combobox")[0]!,{target:{value:"p1"}});
-  fireEvent.change(screen.getByPlaceholderText(/Penicilina, Mariscos/),{target:{value:"Penicilina"}});
-  fireEvent.click(screen.getByRole("button",{name:"Urticaria"}));
-  fireEvent.click(screen.getByRole("button",{name:"Registrar alergia"}));
-  expect(await screen.findByText(/Alergia registrada/)).toBeTruthy();
- });
+ // (Fase 2) Alergias es ahora un submenú del Expediente (paciente-scoped, createAllergy). El alta por /allergies la cubren
+ // los live-proofs del backend y la sección de Alergias del expediente.
 
  it("vista Interconsultas (Lote G): destinatario/prioridad/tipo viajan al POST + directorio y registro poblacional",async()=>{
   render(<Workspace/>);
@@ -128,42 +117,9 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 6/
   expect(sec.textContent).toMatch(/solo lectura/i); // espejo read-only (Physician Control)
  });
 
- it("vista Clinical Intelligence (S-CLINICALINTEL): apoyo determinista real; IA generativa (R6) marcada como no disponible",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Clinical Intelligence"}));
-  expect(await screen.findByRole("heading",{name:"Clinical Intelligence"})).toBeTruthy();
-  expect(screen.getByText("Apoyo clínico determinista")).toBeTruthy();          // panel determinista real
-  expect(screen.getAllByText(/Alertas clínicas/).length).toBeGreaterThan(0);
-  expect(screen.getByText(/Calculadoras clínicas/)).toBeTruthy();
-  expect(screen.getAllByText(/en pausa intencional/).length).toBeGreaterThan(0); // nota de gobernanza honesta
-  // auditoría: se eliminó la IA generativa simulada (chat, diferencial probabilístico) y controles muertos
-  expect(screen.queryByText(/Asistente clínico con IA/)).toBeNull();
-  expect(screen.queryByText("GPT Clínico")).toBeNull();
-  expect(screen.queryByText(/Diagnóstico diferencial \(IA\)/)).toBeNull();
-  expect(screen.queryByText(/Configuración de IA/)).toBeNull();
- });
-
- it("vista Plan de cuidado (S-PLANCUIDADO): secciones reales del snapshot (problemas, objetivos, métricas) sin maqueta",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Plan de cuidados"}));
-  expect((await screen.findByRole("heading",{name:"Plan de cuidado"}))).toBeTruthy();
-  // las 3 tarjetas reales derivadas del snapshot compuesto (GET /care-plans)
-  expect(screen.getByText(/Diagnósticos \/ Problemas asociados/)).toBeTruthy();
-  expect(screen.getByText("Objetivos del plan")).toBeTruthy();
-  expect(screen.getByText("Metas y métricas")).toBeTruthy();
-  expect(screen.getByRole("button",{name:/Nueva meta/})).toBeTruthy();                 // creador real (POST /care-plans)
-  // auditoría: se eliminaron las secciones/controles hardcodeados sin fuente real
-  expect(screen.queryByText("Intervenciones y recomendaciones")).toBeNull();
-  expect(screen.queryByText("Cronograma de seguimiento")).toBeNull();
-  expect(screen.queryByText("Educación para el paciente")).toBeNull();
-  expect(screen.queryByText("Documentos relacionados")).toBeNull();
-  expect(screen.queryByText("Imprimir plan")).toBeNull();
-  // Lote E — registro POBLACIONAL clínica-wide cableado a GET /api/v1/care-plans
-  expect((await screen.findAllByText("Plan de cuidado · Toda la clínica")).length).toBeGreaterThan(0);
-  expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0); // plan de otro paciente
-  expect(screen.getByText("HbA1c < 7% en 3 meses")).toBeTruthy();
-  expect(screen.getAllByText("En pausa").length).toBeGreaterThan(0);                 // estado por última transición
- });
+ // (Fase 2) Clinical Intelligence y Plan de cuidados son ahora submenús del Expediente (paciente-scoped). El panel de CI del
+ // expediente reusa snap.findings + la nota de gobernanza R6; ambos submenús se barren por a11y en ui-cockpit-3. Los
+ // registros POBLACIONALES de planes se retiraron del menú (el worklist poblacional vive en Seguimiento).
 
  it("accesibilidad: los paneles de presentación no tienen violaciones axe serias/críticas",async()=>{
   render(<Workspace/>);

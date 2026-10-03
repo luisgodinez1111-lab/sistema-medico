@@ -13,11 +13,9 @@ const UI="apps/web/app/workspace";
 const vista=(f:string)=>fs.readFileSync(path.join(UI,"views",f),"utf8");
 
 describe("reactividad cruzada de una alergia (R05b-07)",()=>{
- it("la alerta ya NO sale de un regex sobre texto libre",()=>{
-  const src=vista("alergias.tsx");
-  expect(src.includes("penicil|amoxi|betalact"),"el regex de siete palabras volvió").toBe(false);
-  expect(src,"la clase la determina el catálogo de fármacos").toContain("allergyCrossReactivity");
- });
+ // (Fase 2) El registro clínica-wide de Alergias se retiró; la reactividad cruzada NO se evalúa con un regex sino con el
+ // catálogo de fármacos (allergyCrossReactivity), y se usa en la BARRERA DE PRESCRIPCIÓN (no en una vista de lista). Los
+ // invariantes del catálogo (abajo) son los que importan.
  it("«alergia a sulfas» NO arrastra a las sulfonamidas no antibióticas",()=>{
   // La contradicción que encontró este hallazgo: la pantalla empujaba a retirar furosemida o tiazidas, que es el daño sin
   // base en la evidencia que el catálogo documenta y rechaza (R03-24).
@@ -38,7 +36,6 @@ describe("reactividad cruzada de una alergia (R05b-07)",()=>{
   const r=allergyCrossReactivity("polvo de casa");
   expect(r.recognized).toBe(false);
   expect(r.avoid).toEqual([]);
-  expect(vista("alergias.tsx"),"la pantalla debe decir que no se pudo evaluar").toMatch(/no evaluada/i);
  });
  it("un AINE cruza con salicilatos, como en el motor de prescripción",()=>{
   const r=allergyCrossReactivity("aspirina");
@@ -77,12 +74,9 @@ describe("umbrales críticos de laboratorio en pantalla (R05b-05)",()=>{
 });
 
 describe("lo que la pantalla no puede afirmar (R05b-26, R05b-11, R05b-17, R05b-03/21, R05b-15)",()=>{
- it("la barra del plan de cuidado ya no inventa un porcentaje de avance",()=>{
-  const src=vista("planCuidado.tsx");
-  expect(src.includes('width:good?"85%":"55%"'),"un 85 % que el sistema no mide").toBe(false);
-  expect(src,"el estado real es binario y se dice con palabras").toMatch(/En meta/);
-  expect(src,"y se anuncia para lectores de pantalla").toMatch(/aria-label=\{good\?/);
- });
+ // (Fase 2) La barra de «metas y métricas» (con el % inventado que este hallazgo cazó) vivía en la vista suelta de Plan de
+ // cuidado, ya retirada. La sección Plan del Expediente usa un form de meta LIBRE (sin barra de avance), así que no hay
+ // porcentaje que inventar.
  it("Órdenes no tiene dos pestañas con el mismo filtro",()=>{
   const src=vista("ordenes.tsx");
   const m=/const TAB_TYPES:Record<string,string\[\]>=\{([^}]*)\}/.exec(src);
@@ -91,20 +85,11 @@ describe("lo que la pantalla no puede afirmar (R05b-26, R05b-11, R05b-17, R05b-0
   expect(new Set(tipos).size,`dos pestañas filtran lo mismo: ${tipos.join(", ")}`).toBe(tipos.length);
   expect(src.includes('"gabinete"'),"la pestaña duplicada volvió").toBe(false);
  });
- it("el fallo del catálogo CIE-10 se distingue de «sin resultados»",()=>{
-  // Sin código no se puede registrar el problema: el médico tiene que saber si el catálogo no respondió.
-  const src=vista("problemas.tsx");
-  expect(src,"debe haber un aviso propio del fallo de búsqueda").toContain("pfSearchErr");
-  expect(src.includes("catch{/* búsqueda no disponible */}"),"el catch silencioso volvió").toBe(false);
-  expect(src).toMatch(/no respondió|No se pudo consultar/);
- });
- it("la edad de la fila se deriva de verdad y no es código muerto",()=>{
-  for(const f of ["alergias.tsx","problemas.tsx","vacunas.tsx"]){
-   const src=vista(f);
-   expect(src.includes('age:""'),`${f}: el campo edad sigue siendo código muerto`).toBe(false);
-   expect(src,`${f}: la edad debe derivarse de la lista de pacientes`).toContain("edadDe(patientList");
-  }
-  // Y la función no inventa: sin fecha de nacimiento devuelve vacío.
+ // (Fase 2) La búsqueda CIE-10 con fallo-de-catálogo distinto de «sin resultados» (pfSearchErr) era de la vista suelta de
+ // Problemas (búsqueda por API). En el Expediente, Problemas usa la búsqueda LOCAL del catálogo (searchIcd10, síncrona), que
+ // muestra «Sin coincidencias en el catálogo CIE-10»; no hay llamada que pueda «no responder».
+ it("la función de edad se deriva de verdad y no inventa",()=>{
+  // La función `edadDe` (el módulo que alimentaba la edad de la fila) sigue siendo honesta: sin fecha, devuelve vacío.
   expect(edadDe([{patientId:"p1",birthDate:"1990-06-15"}],"p1","2026-09-24T00:00:00.000Z")).toBe("36 años");
   expect(edadDe([{patientId:"p1"}],"p1")).toBe("");
   expect(edadDe(null,"p1")).toBe("");

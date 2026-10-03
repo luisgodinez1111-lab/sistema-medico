@@ -15,17 +15,10 @@ const AgendaView=lazyView(()=>import("./views/agenda"));
 const ResultadosView=lazyView(()=>import("./views/resultados"));
 const MedicamentosView=lazyView(()=>import("./views/medicamentos"));
 const OrdenesView=lazyView(()=>import("./views/ordenes"));
-const AlergiasView=lazyView(()=>import("./views/alergias"));
-const ProblemasView=lazyView(()=>import("./views/problemas"));
-const VacunasView=lazyView(()=>import("./views/vacunas"));
-const SignosView=lazyView(()=>import("./views/signos"));
-const PlanCuidadoView=lazyView(()=>import("./views/planCuidado"));
 const InterconsultaView=lazyView(()=>import("./views/interconsulta"));
 const SeguimientoView=lazyView(()=>import("./views/seguimiento"));
 const FacturacionView=lazyView(()=>import("./views/facturacion"));
-const DocumentosView=lazyView(()=>import("./views/documentos"));
 const ObligacionesView=lazyView(()=>import("./views/obligaciones"));
-const ClinicalIntelView=lazyView(()=>import("./views/clinicalIntel"));
 const ReportesView=lazyView(()=>import("./views/reportes"));
 const BibliotecaView=lazyView(()=>import("./views/biblioteca"));
 const ConfiguracionView=lazyView(()=>import("./views/configuracion"));
@@ -34,7 +27,7 @@ import InicioView from"./views/inicio";
 import PacientesView from"./views/pacientes";
 import ConsultaView from"./views/consulta";
 import ExpView from"./views/exp";
-const VIEWS:Record<string,React.ComponentType>={inicio:InicioView,pacientes:PacientesView,consulta:ConsultaView,agenda:AgendaView,resultados:ResultadosView,medicamentos:MedicamentosView,ordenes:OrdenesView,alergias:AlergiasView,problemas:ProblemasView,vacunas:VacunasView,signos:SignosView,planCuidado:PlanCuidadoView,interconsulta:InterconsultaView,seguimiento:SeguimientoView,facturacion:FacturacionView,documentos:DocumentosView,obligaciones:ObligacionesView,clinicalIntel:ClinicalIntelView,reportes:ReportesView,biblioteca:BibliotecaView,configuracion:ConfiguracionView};
+const VIEWS:Record<string,React.ComponentType>={inicio:InicioView,pacientes:PacientesView,consulta:ConsultaView,agenda:AgendaView,resultados:ResultadosView,medicamentos:MedicamentosView,ordenes:OrdenesView,interconsulta:InterconsultaView,seguimiento:SeguimientoView,facturacion:FacturacionView,obligaciones:ObligacionesView,reportes:ReportesView,biblioteca:BibliotecaView,configuracion:ConfiguracionView};
 function ViewSwitch(){const{view}=useWorkspace();const V=VIEWS[view]??ExpView;return <V/>;}
 export default function Workspace(){
  const m=useWorkspaceModel();

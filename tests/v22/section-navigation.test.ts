@@ -1,6 +1,6 @@
 import{describe,it,expect}from"vitest";
 import fs from"node:fs";import path from"node:path";
-import{sectionId,SIDE_NAV,TOOLS_NAV}from"../../apps/web/app/workspace/shared";
+import{sectionId,SIDE_NAV,TOOLS_NAV,SECTION_EXP_TAB}from"../../apps/web/app/workspace/shared";
 // Auditoría 2026-09-19, anexo R05a (WS1-15a) — la navegación entre ventanas del expediente, por ANCLA y comprobada.
 //
 // EL HALLAZGO: `scrollToSection` buscaba un `<h2>` por `textContent` exacto en TODO el documento. Dos fallos: al cambiar el
@@ -46,16 +46,18 @@ describe("navegación entre ventanas del expediente (WS1-15a)",()=>{
  it("TODO destino navegable tiene su ancla en el expediente",()=>{
   // La invariante que faltaba: un destino sin ancla es un botón que no hace nada, y no se nota hasta usarlo.
   const d=destinos(),a=new Set(anclas());
-  expect(d.length,"no se encontraron destinos: ¿cambió la navegación?").toBeGreaterThanOrEqual(15);
+  // (Fase 2) Bajó el número de destinos al consolidar los módulos en el Expediente; la invariante que importa es la de
+  // abajo: ningún destino navegable sin ancla.
+  expect(d.length,"no se encontraron destinos: ¿cambió la navegación?").toBeGreaterThanOrEqual(10);
   expect(d.filter(x=>!a.has(x)),"destino de navegación sin ancla en el expediente").toEqual([]);
  });
- it("el destino que estaba roto ahora existe con su nombre real",()=>{
-  // «Documentos» contra un título que dice «Documentos clínicos»: el defecto concreto que encontró este hallazgo.
-  // Tras el Lote B la ficha navega con goExpSection (activa la sub-pestaña «coordinación» ANTES del scroll), pero sigue
-  // apuntando al nombre REAL de la ventana — que es justo lo que este test protege.
-  const src=fs.readFileSync(path.join(UI,"views/documentos.tsx"),"utf8");
-  expect(src,"la ficha de Documentos debe navegar al nombre real de la ventana").toContain('goExpSection("Documentos clínicos"');
-  expect(anclas()).toContain("Documentos clínicos");
+ it("el destino Documentos del expediente existe con su nombre real y su submenú",()=>{
+  // «Documentos» contra un título que dice «Documentos clínicos»: el defecto histórico. Hoy Documentos es un submenú del
+  // expediente: la ficha lo abre con setExpTab("documentos") y el nombre REAL de la sección/ancla se conserva.
+  expect(anclas(),"la sección conserva su nombre real").toContain("Documentos clínicos");
+  expect(SECTION_EXP_TAB["Documentos clínicos"],"su ancla cae en el submenú Documentos").toBe("documentos");
+  const fich=fs.readFileSync(path.join(UI,"views/pacientes.tsx"),"utf8");
+  expect(fich,"la ficha de Pacientes abre el submenú Documentos del expediente").toContain('setExpTab("documentos")');
  });
  it("la navegación NO vuelve a buscar títulos por su texto en todo el DOM",()=>{
   const src=fs.readFileSync(path.join(UI,"shared.tsx"),"utf8");

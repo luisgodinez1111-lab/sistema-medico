@@ -66,15 +66,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 3/
   expect(await screen.findByText(/agregado \(confirmado\)/i)).toBeTruthy();
  });
 
- it("vista Documentos: crear un documento clínico real (POST /documents)",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Documentos"}));await elegirPaciente();
-  fireEvent.click(screen.getByRole("button",{name:"+ Nuevo documento"}));
-  fireEvent.change(screen.getByPlaceholderText(/Nota de evolución 19/),{target:{value:"Nota de evolución"}});
-  fireEvent.change(screen.getByPlaceholderText("Contenido del documento…"),{target:{value:"Paciente estable, continúa tratamiento."}});
-  fireEvent.click(screen.getByRole("button",{name:"Crear documento"}));
-  expect(await screen.findByText(/Documento creado/)).toBeTruthy();
- });
+ // (Fase 2) Documentos es ahora un submenú del Expediente (paciente-scoped, createDoc). El alta por /documents la cubren
+ // los live-proofs del backend y la sección de Documentos del expediente.
 
  it("vista Expediente (Lote H): «Exportar expediente» descarga un archivo real y muestra un resumen honesto",async()=>{
   const createObjSpy=vi.fn(()=>"blob:mock");
@@ -176,42 +169,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 3/
   expect(screen.queryByText("Datos fiscales")).toBeNull();
  });
 
- it("vista Problemas (S-PROBLEMAS): registro clínica-wide cableado a GET /api/v1/problems + navegación a form y plantillas",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Problemas"}));
-  expect(await screen.findByRole("heading",{name:"Problemas"})).toBeTruthy();
-  expect((await screen.findAllByText("Ana López García",{},{timeout:2500})).length).toBeGreaterThan(0); // fila + detalle
-  expect(screen.getByText("Detalle del problema")).toBeTruthy();
-  expect(screen.getAllByText("En seguimiento").length).toBeGreaterThan(0); // estado en TEXTO
-  expect(screen.getByText(/Problemas por categoría/)).toBeTruthy();
-  expect(screen.getByText("Estado de problemas")).toBeTruthy();
-  expect(screen.getByText("Pacientes con más problemas")).toBeTruthy();
-  // auditoría: el detalle abre el expediente (acción real) y se eliminaron los controles muertos
-  expect(screen.getByText(/Ver en el expediente/)).toBeTruthy();
-  expect(screen.queryByText("Exportar listado")).toBeNull();
-  expect(screen.queryByText("Accesos rápidos")).toBeNull();
-  // navegación a "Nuevo problema" (form cableado a CIE-10)
-  fireEvent.click(screen.getByRole("button",{name:/Nuevo problema/}));
-  expect((await screen.findByRole("heading",{name:"Nuevo problema"}))).toBeTruthy();
-  expect(screen.getByText("1. Información del problema")).toBeTruthy();
-  expect(screen.getByRole("button",{name:/Guardar problema/})).toBeTruthy();
-  // Lote E — dead-UI del formulario eliminado (directiva: cero controles muertos)
-  expect(screen.queryByText("Prioridad")).toBeNull();
-  expect(screen.queryByText(/Etiquetas \/ Palabras clave/)).toBeNull();
-  fireEvent.click(screen.getByRole("button",{name:"← Volver"}));
-  // navegación a Plantillas
-  fireEvent.click(screen.getByRole("button",{name:/Plantillas/}));
-  expect((await screen.findByRole("heading",{name:"Plantillas de problemas"}))).toBeTruthy();
-  expect(screen.getAllByText("Diabetes mellitus tipo 2").length).toBeGreaterThan(0);
-  // Lote E — botones muertos eliminados + búsqueda de plantillas REAL (filtra el catálogo)
-  expect(screen.queryByText("+ Nueva plantilla")).toBeNull();
-  expect(screen.queryByText(/Importar\/Exportar/)).toBeNull();
-  expect(screen.queryByText(/Editar plantilla/)).toBeNull();
-  const tplSearch=screen.getByPlaceholderText(/Buscar plantilla por nombre/);
-  fireEvent.change(tplSearch,{target:{value:"asma"}});
-  expect(screen.getAllByText("Asma").length).toBeGreaterThan(0);
-  expect(screen.queryByText("Diabetes mellitus tipo 2")).toBeNull();
- });
+ // (Fase 2) El registro clínica-wide de Problemas (tabla multipaciente + plantillas) se retiró del menú; Problemas es ahora
+ // un submenú del Expediente (paciente-scoped, createProblem con búsqueda CIE-10). El alta la cubren los live-proofs.
 
  // Ampliación del sweep: los SUBMENÚS por módulo del expediente (el Expediente es la base completa del paciente). Se barre
  // cada submenú además del Resumen; cada uno es un módulo paciente-scoped.

@@ -154,11 +154,12 @@ export const noSeriousAxe=async(node:Element,label:string)=>{
 // Consulta ahora abre un PANEL de consultas; el workspace clínico se abre eligiendo un paciente e "Abrir consulta".
 export const abrirConsulta=async()=>{fireEvent.click(screen.getByRole("button",{name:"Consulta"}));const input=await screen.findByLabelText("Buscar paciente");fireEvent.change(input,{target:{value:"Ana"}});const open=await screen.findByRole("button",{name:/Ana López García/},{timeout:2000});fireEvent.click(open);};
 
-// Al montar, el workspace abre la vista Inicio (dashboard del consultorio). Para probar los paneles del
-// EXPEDIENTE, cambiamos a esa vista pulsando un acceso del sidebar (p.ej. "Pacientes").
-// Todos los accesos del sidebar son ahora vistas de nivel-sistema; al expediente crudo (cockpit) se llega
-// con el botón "Ver expediente →" de la barra del paciente de un módulo (aquí: Signos vitales).
+// Al montar, el workspace abre la vista Inicio. Al EXPEDIENTE (la base completa del paciente) se llega eligiendo un
+// paciente y pulsando "Ver expediente →". Los módulos per-paciente ya no son vistas sueltas: viven como submenús del
+// expediente. Para elegir paciente usamos el selector global que renderiza la vista "Seguimiento".
 // U-12: ya no hay paciente por defecto (antes un UUID aleatorio disparaba cargas a un paciente inexistente): se elige uno.
 export const elegirPaciente=async()=>{const opt=await screen.findByRole("option",{name:"Ana López García"});fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});};
-export const toExpediente=async()=>{fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));await elegirPaciente();fireEvent.click(screen.getByRole("button",{name:/Ver expediente/}));};
+// Seguimiento es la vista superviviente que renderiza el selector GLOBAL de paciente (patientSelector) y "Ver expediente →".
+// Su botón del sidebar lleva badge, así que se localiza por regex.
+export const toExpediente=async()=>{fireEvent.click(screen.getAllByRole("button",{name:/^Seguimiento/})[0]!);await elegirPaciente();fireEvent.click(screen.getByRole("button",{name:/Ver expediente/}));};
 

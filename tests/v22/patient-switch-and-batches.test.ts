@@ -49,12 +49,18 @@ describe("cambio de paciente: nada del anterior sobrevive (WS1-04)",()=>{
  });
  it("cada efecto por paciente vacía ANTES de cargar, no solo al cambiar por el selector",()=>{
   // `patientId` también cambia por caminos que no pasan por `selectPatientRaw`; el vaciado en el propio efecto lo cubre.
+  // (Fase 2) Los módulos per-paciente que eran vistas sueltas (signos/planCuidado/documentos/clinicalIntel) viven ahora en
+  // el Expediente, alimentados por `snap`; su vaciado-antes-de-cargar lo hace el efecto del snapshot (setSnap(null) al
+  // cambiar patientId, verificado abajo). Aquí queda la interconsulta, cuyo efecto propio sigue vaciando su contexto.
   const src=modelo();
-  for(const[vista,setter]of [["signos","setVitHist"],["planCuidado","setCpSnap"],["interconsulta","setRefCtx"],["documentos","setDocsSnap"],["clinicalIntel","setCiSnap"]] as const){
+  for(const[vista,setter]of [["interconsulta","setRefCtx"]] as const){
    const i=src.indexOf(`if(view!=="${vista}"||!ready||!session||!patientId)return;`);
    expect(i,`no se encontró el efecto de ${vista}`).toBeGreaterThan(-1);
    expect(src.slice(i,i+400),`${vista}: no vacía ${setter} antes de cargar`).toContain(`${setter}(null)`);
   }
+  // El efecto del snapshot del paciente vacía `snap` (y tl/gaps/trends) ANTES de cargar, cubriendo a los módulos movidos.
+  const snapEff=src.indexOf('setTl(null);setGaps(null);setSnap(null);setTrends(null);setChartState("loading");');
+  expect(snapEff,"el efecto del snapshot debe vaciar snap antes de cargar").toBeGreaterThan(-1);
  });
 });
 

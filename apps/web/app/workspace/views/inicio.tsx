@@ -5,7 +5,7 @@
 import{card,P,UI,scrollToSection,LINE,act,NavIcon,Skeleton,srOnly}from"../shared";
 import{useWorkspace}from"../context";
 export default function InicioView(){
- const{clock,patientList,panel,notifCount,setView,openConsulta,agenda,docDisplay,setMedTab,setConsultaPid,setOrdNew,setApptNew}=useWorkspace();
+ const{clock,patientList,panel,notifCount,setView,setExpTab,openConsulta,agenda,docDisplay,setMedTab,setConsultaPid,setOrdNew,setApptNew}=useWorkspace();
 
    // ===== DASHBOARD INICIO (consultorio) — S2.png =====
    const fecha=clock.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).replace(/^\w/,c=>c.toUpperCase());
@@ -90,7 +90,7 @@ export default function InicioView(){
       <div style={cardP}><div style={h2row}><h2 style={{...h2s,color:P.purple}}><NavIcon k="brain"/>Clinical Intelligence (IA)</h2></div>
        <div style={{padding:"4px 18px 16px"}}>
         <div style={{fontSize:13,color:P.muted,lineHeight:1.45,padding:"6px 0 12px"}}>El tablero poblacional por cohorte (tamizajes pendientes, control glucémico, posibles duplicidades) se conecta al <b>motor determinista</b> de Clinical Intelligence; a nivel de consultorio aún no está cableado. Abre el módulo para las herramientas ya disponibles.</div>
-        <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI,width:"100%",marginTop:10}} onClick={()=>setView("clinicalIntel")}>Ver Clinical Intelligence →</button>
+        <button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI,width:"100%",marginTop:10}} onClick={()=>{setView("exp");setExpTab("intel");}}>Ver Clinical Intelligence →</button>
        </div>
       </div>
       <div style={cardP}><div style={h2row}><h2 style={h2s}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={P.purple} strokeWidth="1.9" aria-hidden><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Acciones rápidas</h2></div>
@@ -100,7 +100,7 @@ export default function InicioView(){
         {qa("Crear orden clínica","M8 4h8v3H8zM6 5H5v16h14V5h-1M8 12h8M8 16h5",()=>{setView("ordenes");setOrdNew(true);})}
         {qa("Prescribir medicamento","M10.5 4.5l9 9a5 5 0 01-7 7l-9-9a5 5 0 017-7zM7 8l6 6",()=>setView("medicamentos"))}
         {qa("Agendar cita","M4 6h16v14H4zM8 3v4M16 3v4",()=>{setView("agenda");setApptNew(true);})}
-        {qa("Subir documento","M12 16V4m0 0l-4 4m4-4l4 4M4 20h16",()=>setView("documentos"))}
+        {qa("Subir documento","M12 16V4m0 0l-4 4m4-4l4 4M4 20h16",()=>{setView("exp");setExpTab("documentos");})}
         {qa("Solicitar interconsulta","M8 11a3 3 0 100-6 3 3 0 000 6zM2 20a6 6 0 0112 0M16 4.5a3 3 0 010 6M22 20a6 6 0 00-5-5.9",()=>setView("interconsulta"))}
        </div>
       </div>

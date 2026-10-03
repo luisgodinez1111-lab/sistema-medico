@@ -387,20 +387,15 @@ export const SIDE_NAV:NavItem[]=[
  {label:"Agenda",h2:"Agenda",icon:"cal",view:"agenda",badge:"agenda",badgeColor:"p"},
  {label:"Interconsultas",h2:"Interconsultas",icon:"people",view:"interconsulta"},
  {label:"Seguimiento",h2:"Seguimiento automático",icon:"chart",view:"seguimiento",badge:"seguimiento",badgeColor:"p"},
- // Expedientes — el registro longitudinal del paciente.
+ // Expedientes — el EXPEDIENTE es la base completa del paciente: entrar a él abre sus módulos (problemas, alergias,
+ // signos, medicación, resultados, órdenes, vacunas, plan, documentos, clinical intelligence) como submenús paciente-scoped.
+ // Por eso esos módulos ya no son ítems sueltos del menú. Medicamentos permanece como catálogo/herramienta.
  {label:"Pacientes",h2:"Paciente",icon:"people",view:"pacientes"},
  {label:"Expediente",h2:"",icon:"record",view:"exp"},
- {label:"Problemas",h2:"Lista de problemas",icon:"clipboard",view:"problemas"},
- {label:"Alergias",h2:"Alergias",icon:"warning",view:"alergias"},
  {label:"Medicamentos",h2:"Medicación",icon:"pill",view:"medicamentos"},
- {label:"Vacunas",h2:"Vacunas",icon:"syringe",view:"vacunas"},
- {label:"Signos vitales",h2:"Signos vitales",icon:"activity",view:"signos"},
- {label:"Plan de cuidados",h2:"Plan de cuidados",icon:"target",view:"planCuidado"},
- {label:"Documentos",h2:"Documentos clínicos",icon:"folder",view:"documentos"},
- // Laboratorios y Diagnósticos — estudios, órdenes y soporte a la decisión.
+ // Laboratorios y Diagnósticos — registros clínica-wide (todos los pacientes) que sí tienen sentido transversal.
  {label:"Resultados",h2:"Resultados diagnósticos",icon:"flask",view:"resultados",badge:"resultados",badgeColor:"r"},
  {label:"Órdenes",h2:"Órdenes clínicas",icon:"orders",view:"ordenes"},
- {label:"Clinical Intelligence",h2:"",icon:"brain",view:"clinicalIntel"},
  // Sistema (transversal) — cruza las tres ramas.
  {label:"Facturación",h2:"Facturación",icon:"card",view:"facturacion"},
  {label:"Obligaciones",h2:"Obligaciones de seguimiento",icon:"checkbox",view:"obligaciones",badge:"obligaciones",badgeColor:"r"},

@@ -71,24 +71,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 2/
   expect(await screen.findByText(/registrada\(s\) en el expediente/i)).toBeTruthy();
  });
 
- it("vista Plan de cuidado: agregar una meta real al plan del paciente (POST /care-plans)",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Plan de cuidados"}));await elegirPaciente();
-  fireEvent.click(screen.getByRole("button",{name:"+ Nueva meta"}));
-  fireEvent.change(screen.getByPlaceholderText(/HbA1c < 7%/),{target:{value:"Bajar 5% de peso en 3 meses"}});
-  fireEvent.click(screen.getByRole("button",{name:"Agregar meta"}));
-  expect(await screen.findByText(/Meta agregada al plan/)).toBeTruthy();
- });
-
- it("vista Signos vitales: registrar signos vitales reales al paciente elegido (POST /vitals)",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Signos vitales"}));
-  const opt=await screen.findByRole("option",{name:"Ana López García"});
-  fireEvent.change(opt.closest("select")!,{target:{value:"p1"}}); // selector de paciente (selectPatientRaw)
-  fireEvent.change(screen.getByPlaceholderText("72"),{target:{value:"78"}}); // frecuencia cardíaca
-  fireEvent.click(screen.getByRole("button",{name:/Guardar signos vitales/}));
-  expect(await screen.findByText(/Signos vitales guardados/)).toBeTruthy();
- });
+ // (Fase 2) Plan de cuidados y Signos vitales son ahora submenús del Expediente (paciente-scoped: addCarePlanGoal/createPlan,
+ // createVital). Sus altas por /care-plans y /vitals las cubren los live-proofs del backend y las secciones del expediente.
 
  it("vista Resultados (S7): registro clínica-wide cableado a GET /api/v1/results — KPIs + lista con estado-UI",async()=>{
   render(<Workspace/>);
@@ -122,43 +106,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 2/
   expect(screen.getByText(/Alertas de resultados/)).toBeTruthy();
  });
 
- it("vista Documentos (S-DOCUMENTOS): carpetas + tabla de documentos + vista previa + acciones",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Documentos"}));
-  expect((await screen.findByRole("heading",{name:"Documentos"}))).toBeTruthy();
-  expect(screen.getByText("Carpetas")).toBeTruthy();
-  expect(screen.getByText("Todos los documentos")).toBeTruthy();               // carpeta real (filtra la tabla)
-  expect(screen.getByText("Documentos clínicos")).toBeTruthy();                 // chip real
-  expect(screen.getByText("Detalle del documento")).toBeTruthy();              // panel de detalle real
-  expect(screen.getByText(/Acciones rápidas/)).toBeTruthy();
-  expect(screen.getByText("Generar desde plantilla")).toBeTruthy();            // cableado a genDoc (POST /documents)
-  // adjuntos reales (Vercel Blob privado): tipos y límite reflejan el backend, no valores inventados
-  expect(screen.getByText(/25 MB/)).toBeTruthy();                              // límite real del backend
-  expect(screen.getByText(/Vercel Blob/)).toBeTruthy();                        // almacenamiento real declarado
-  // auditoría: se eliminó la vista previa de PDF inventada, los controles muertos y tipos no soportados
-  expect(screen.queryByText("LABORATORIOS DEL NORTE")).toBeNull();
-  expect(screen.queryByText(/Carga masiva/)).toBeNull();
-  expect(screen.queryByText("Subido por")).toBeNull();
-  expect(screen.queryByText("DICOM")).toBeNull();                              // tipo no soportado por el backend: eliminado
- });
-
- it("vista Vacunas (S-VACUNAS): registro clínica-wide cableado a GET /api/v1/immunizations — KPIs, tabla, detalle y cobertura",async()=>{
-  render(<Workspace/>);
-  fireEvent.click(screen.getByRole("button",{name:"Vacunas"}));
-  expect((await screen.findByRole("heading",{name:"Vacunas"}))).toBeTruthy();
-  expect((await screen.findAllByText("Ana López García",{},{timeout:2500})).length).toBeGreaterThan(0); // fila + detalle
-  expect(screen.getByText("Detalle de la vacuna")).toBeTruthy();
-  expect(screen.getAllByText("Completa").length).toBeGreaterThan(0);           // estado en TEXTO
-  expect(screen.getAllByText("Pendiente").length).toBeGreaterThan(0);
-  expect(screen.getByText(/Dosis por vacuna/)).toBeTruthy();                  // donut real (byVaccine)
-  expect(screen.getByText("Estado de vacunación")).toBeTruthy();             // barras reales
-  expect(screen.getAllByText(/Dosis pendientes/).length).toBeGreaterThan(0);  // lista real de pendientes
-  // auditoría: acción real de navegación + eliminación de secciones/controles ficticios
-  expect(screen.getByText(/Ver en el expediente/)).toBeTruthy();
-  expect(screen.queryByText("Acciones rápidas")).toBeNull();
-  expect(screen.queryByText("Exportar listado")).toBeNull();
-  expect(screen.queryByText(/Esquemas por edad \(cobertura\)/)).toBeNull();
- });
+ // (Fase 2) Documentos y Vacunas son ahora submenús del Expediente (paciente-scoped). Sus registros clínica-wide se
+ // retiraron del menú; el alta/listado por /documents e /immunizations la cubren los live-proofs y las secciones del expediente.
 
  // Ampliación del sweep (refactor UI/UX pro-max): el barrido «Lote L» cubría 11 vistas; aquí se barren las de MÓDULO
  // restantes cableadas al sidebar, que antes no pasaban por axe. Un defecto serio aquí es un defecto que el médico usa a diario.
@@ -170,7 +119,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 2/
    fireEvent.click(btn);
    await screen.findByRole("heading",{level:1},{timeout:2500});
   };
-  for(const v of ["Resultados","Medicamentos","Órdenes","Facturación","Documentos","Obligaciones","Clinical Intelligence","Reportes","Biblioteca clínica"]){
+  for(const v of ["Resultados","Medicamentos","Órdenes","Facturación","Obligaciones","Reportes","Biblioteca clínica"]){
    await nav(v);
    await noSeriousAxe(document.body,v);
   }

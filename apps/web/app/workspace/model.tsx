@@ -103,7 +103,9 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const[topSearch,setTopSearch]=useState("");
  const[sideCollapsed,setSideCollapsed]=useState(false);
  const[docMenu,setDocMenu]=useState(false);
- const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"alergias"|"problemas"|"vacunas"|"signos"|"planCuidado"|"interconsulta"|"seguimiento"|"facturacion"|"documentos"|"obligaciones"|"clinicalIntel"|"reportes"|"biblioteca"|"configuracion"|"exp">("inicio"); // vistas de nivel-sistema + exp(expediente crudo)
+ // (Fase 2 — híbrido) Los módulos per-paciente (problemas/alergias/vacunas/signos/planCuidado/documentos/clinicalIntel)
+ // dejaron de ser vistas de nivel-sistema: viven como submenús del Expediente. El menú lateral queda transversal.
+ const[view,setView]=useState<"inicio"|"pacientes"|"consulta"|"agenda"|"resultados"|"medicamentos"|"ordenes"|"interconsulta"|"seguimiento"|"facturacion"|"obligaciones"|"reportes"|"biblioteca"|"configuracion"|"exp">("inicio");
  // Patient 360 (Lote B): sub-vista activa dentro del expediente (?s= en la URL cuando view==="exp").
  const[expTab,setExpTab]=useState<ExpTab>("resumen");
  const[medTab,setMedTab]=useState<"catalogo"|"plantillas"|"rapidas"|"interacciones"|"alertas"|"reportes">("catalogo");
@@ -498,100 +500,9 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   return()=>{cancelled=true;ac.abort();};
  },[view,ready,session]);
 
- // Auto-carga del registro de alergias (vista Alergias) — GET clínica-wide con conteos por gravedad/tipo.
- useEffect(()=>{
-  if(view!=="alergias"||!ready||!session)return;
-  let cancelled=false;const ac=new AbortController();
-  (async()=>{
-   try{
-    const r=await apiRequest("/api/v1/allergies",{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setAlergReg(r.body as unknown as AllergyRegistry);
-   }catch{/* registro no disponible */}
-  })();
-  return()=>{cancelled=true;ac.abort();};
- },[view,ready,session]);
-
- // Auto-carga del registro de problemas (vista Problemas › lista) — GET clínica-wide con conteos.
- useEffect(()=>{
-  if(view!=="problemas"||probScreen!=="lista"||!ready||!session)return;
-  let cancelled=false;const ac=new AbortController();
-  (async()=>{
-   try{
-    const r=await apiRequest("/api/v1/problems",{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setProbReg(r.body as unknown as ProblemRegistry);
-   }catch{/* registro no disponible */}
-  })();
-  return()=>{cancelled=true;ac.abort();};
- },[view,probScreen,ready,session]);
-
- // Auto-carga del registro de vacunas (vista Vacunas) — GET clínica-wide con conteos y cobertura.
- useEffect(()=>{
-  if(view!=="vacunas"||!ready||!session)return;
-  let cancelled=false;const ac=new AbortController();
-  (async()=>{
-   try{
-    const r=await apiRequest("/api/v1/immunizations",{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setImmReg(r.body as unknown as ImmRegistry);
-   }catch{/* registro no disponible */}
-  })();
-  return()=>{cancelled=true;ac.abort();};
- },[view,ready,session]);
-
- // Auto-carga del registro POBLACIONAL de signos vitales (vista Signos vitales › «Toda la clínica») — GET clínica-wide.
- useEffect(()=>{
-  if(view!=="signos"||!ready||!session)return;
-  let cancelled=false;const ac=new AbortController();
-  (async()=>{
-   try{
-    const r=await apiRequest("/api/v1/vitals",{method:"GET",signal:ac.signal});
-    if(cancelled)return;
-    if(r.status<400){setVitReg(r.body as unknown as VitalsRegistry);setVitRegErr(false);}else setVitRegErr(true);
-   }catch{if(!cancelled)setVitRegErr(true);}
-  })();
-  return()=>{cancelled=true;ac.abort();};
- },[view,ready,session]);
-
- // Auto-carga del historial de signos vitales del paciente en contexto (vista Signos vitales).
- useEffect(()=>{
-  if(view!=="signos"||!ready||!session||!patientId)return;
-  let cancelled=false;const ac=new AbortController();
-  setVitHist(null); // R05a/WS1-04: nunca datos del paciente anterior bajo la cabecera del nuevo
-  (async()=>{
-   try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/vitals`,{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setVitHist(conForma<VitalHistory>(r.body,FORMA.vitHist));
-   }catch{/* historial no disponible */}
-  })();
-  return()=>{cancelled=true;ac.abort();};
- },[view,ready,session,patientId]);
-
- // Auto-carga del registro POBLACIONAL de planes de cuidado (vista Plan de cuidado › «Toda la clínica») — GET clínica-wide.
- useEffect(()=>{
-  if(view!=="planCuidado"||!ready||!session)return;
-  let cancelled=false;const ac=new AbortController();
-  (async()=>{
-   try{
-    const r=await apiRequest("/api/v1/care-plans",{method:"GET",signal:ac.signal});
-    if(cancelled)return;
-    if(r.status<400){setCpReg(r.body as unknown as CarePlansRegistry);setCpRegErr(false);}else setCpRegErr(true);
-   }catch{if(!cancelled)setCpRegErr(true);}
-  })();
-  return()=>{cancelled=true;ac.abort();};
- },[view,ready,session]);
-
- // Auto-carga del snapshot del Plan de cuidado del paciente en contexto.
- useEffect(()=>{
-  if(view!=="planCuidado"||!ready||!session||!patientId)return;
-  let cancelled=false;const ac=new AbortController();
-  setCpSnap(null); // R05a/WS1-04: nunca datos del paciente anterior bajo la cabecera del nuevo
-  (async()=>{
-   try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/care-plan`,{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setCpSnap(conForma<CarePlanSnap>(r.body,FORMA.cpSnap));
-   }catch{/* snapshot no disponible */}
-  })();
-  return()=>{cancelled=true;ac.abort();};
- },[view,ready,session,patientId]);
+ // (Fase 2 — híbrido) Los registros clínica-wide y snapshots por-paciente de Alergias/Problemas/Vacunas/Signos/Plan de
+ // cuidado alimentaban SOLO sus vistas sueltas del menú lateral, que se retiraron: esos módulos ahora viven dentro del
+ // Expediente (paciente-scoped vía snap/consTabs). Sus loaders se eliminan con las vistas.
 
  // MATRIZ FUNDACIONAL — auto-carga de los antecedentes del paciente. El expediente los edita; la consulta los muestra
  // read-only (y por eso ya no los re-pregunta). RLS-scoped; nunca datos del paciente anterior bajo la cabecera del nuevo.
@@ -705,26 +616,8 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   return()=>{cancelled=true;ac.abort();};
  },[view,ready,session]);
 
- // Auto-carga de documentos del paciente en contexto (vista Documentos).
- useEffect(()=>{
-  if(view!=="documentos"||!ready||!session||!patientId)return;
-  let cancelled=false;const ac=new AbortController();
-  setDocsSnap(null); // R05a/WS1-04: nunca datos del paciente anterior bajo la cabecera del nuevo
-  (async()=>{
-   try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setDocsSnap(conForma<DocsSnap>(r.body,FORMA.docsSnap));
-   }catch{/* lista no disponible */}
-  })();
-  return()=>{cancelled=true;ac.abort();};
- },[view,ready,session,patientId]);
-
- // Al cargar la lista de documentos, precarga el contenido REAL del primero (repositorio GET /documents/:id).
- useEffect(()=>{
-  if(view!=="documentos")return;const first=docsSnap?.items?.[0];
-  if(first&&docDetail?.documentId!==first.documentId)void loadDoc(first.documentId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
- },[view,docsSnap]);
+ // (Fase 2 — híbrido) Documentos es ahora un submenú del Expediente; la ficha de Pacientes carga `docsSnap` por su cuenta
+ // (efecto por `patSelId`). El loader de la vista suelta se elimina con la vista.
 
  // Auto-carga de las obligaciones regulatorias del consultorio (vista Obligaciones) — nivel tenant, sin paciente.
  useEffect(()=>{
@@ -739,19 +632,8 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   return()=>{cancelled=true;ac.abort();};
  },[view,ready,session]);
 
- // Auto-carga del snapshot para Clinical Intelligence (alertas deterministas + contexto). R6 IA generativa en pausa.
- useEffect(()=>{
-  if(view!=="clinicalIntel"||!ready||!session||!patientId)return;
-  let cancelled=false;const ac=new AbortController();
-  setCiSnap(null); // R05a/WS1-04: nunca datos del paciente anterior bajo la cabecera del nuevo
-  (async()=>{
-   try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status===200)setCiSnap(conForma<CiSnap>(r.body,FORMA.ciSnap));
-   }catch{/* snapshot no disponible */}
-  })();
-  return()=>{cancelled=true;ac.abort();};
- },[view,ready,session,patientId]);
+ // (Fase 2 — híbrido) Clinical Intelligence es ahora un submenú del Expediente (reusa snap.findings del hero); su loader
+ // dedicado (ciSnap) se elimina con la vista suelta.
 
  // Auto-carga de los ajustes del consultorio (vista Configuración) — GET singleton por tenant + versión.
  useEffect(()=>{
@@ -1636,12 +1518,15 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  useEffect(()=>{
   if(urlRestored.current||!ready||!session)return;
   const params=new URLSearchParams(urlInit.current);const pid=params.get("p");const v=params.get("v");const s=params.get("s");
-  const KV=new Set(["inicio","pacientes","consulta","agenda","resultados","medicamentos","ordenes","alergias","problemas","vacunas","signos","planCuidado","interconsulta","seguimiento","facturacion","documentos","obligaciones","clinicalIntel","reportes","biblioteca","configuracion","exp"]);
+  const KV=new Set(["inicio","pacientes","consulta","agenda","resultados","medicamentos","ordenes","interconsulta","seguimiento","facturacion","obligaciones","reportes","biblioteca","configuracion","exp"]);
+  // Retro (Fase 2): los enlaces viejos a módulos per-paciente ahora abren el Expediente en su submenú correspondiente.
+  const MOVED:Record<string,ExpTab>={problemas:"problemas",alergias:"alergias",vacunas:"vacunas",signos:"signos",planCuidado:"plan",documentos:"documentos",clinicalIntel:"intel"};
+  const movedTab=v?MOVED[v]:undefined;
   // La VISTA del deep-link se restaura SIEMPRE, haya o no paciente: un enlace compartible a una vista de nivel-sistema
-  // (reportes, facturación, obligaciones…) debe abrir esa vista, no caer en inicio. Unificación: ?v=consulta abre el
-  // expediente en la pestaña "Consulta" (encuentro).
-  const vEff=v==="consulta"?"exp":v;if(vEff&&KV.has(vEff))setView(vEff as typeof view);
-  const applyExpTab=()=>{if(s&&(EXP_TAB_KEYS as string[]).includes(s))setExpTab(s as ExpTab);else if(v==="consulta")setExpTab("encuentro");};
+  // (reportes, facturación, obligaciones…) debe abrir esa vista, no caer en inicio. Unificación: ?v=consulta y los módulos
+  // movidos abren el Expediente en la sub-pestaña correcta.
+  const vEff=(v==="consulta"||movedTab)?"exp":v;if(vEff&&KV.has(vEff))setView(vEff as typeof view);
+  const applyExpTab=()=>{if(movedTab)setExpTab(movedTab);else if(s&&(EXP_TAB_KEYS as string[]).includes(s))setExpTab(s as ExpTab);else if(v==="consulta")setExpTab("encuentro");};
   if(!pid){applyExpTab();urlRestored.current=true;return;}
   if(!patientList)return; // con paciente: espera al padrón para tomar su nombre
   urlRestored.current=true;
