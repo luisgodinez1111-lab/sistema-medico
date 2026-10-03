@@ -447,7 +447,7 @@ export default function ExpView(){
   </section>
 
   {/* ENCUENTRO */}
-  <section hidden={!inTab("encuentro")} style={card}>
+  <section hidden={!inTab("encuentro")} className="span2" style={card}>
    {/* Unificación Consulta⟷Expediente: el encuentro ES el formulario de la consulta y vive en su PROPIA pestaña
        ("Consulta", la primera) para no quedar oculto — abrir la consulta de un paciente aterriza aquí. El `<h2 anchor>`
        se conserva para la navegación entre secciones; los controles (abrir/guardar/firmar) viven en EncounterForm. */}
