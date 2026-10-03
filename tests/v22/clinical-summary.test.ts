@@ -2,6 +2,7 @@ import{describe,it,expect}from"vitest";
 import{assembleFindings,summarize}from"../../packages/clinical-summary/src";
 import{hasBled}from"../../packages/bleeding-risk/src";
 import{timeInTherapeuticRange}from"../../packages/anticoagulation/src";
+import{childPugh}from"../../packages/child-pugh/src";
 // EPIC BS — Resumen de inteligencia clínica determinista.
 describe("assembleFindings (prioriza por severidad)",()=>{
  it("resultado crítico sin cerrar -> CRITICAL",()=>{
@@ -168,6 +169,19 @@ describe("assembleFindings (prioriza por severidad)",()=>{
   expect(ok[0]).toMatchObject({domain:"anticoagulación",severity:"INFO"});
   expect(ok[0]!.summary).toMatch(/78%/);
  });
+ // Hepatopatía avanzada: MELD (gravedad) y Child-Pugh (clase).
+ it("MELD alto -> WARNING hepático con mortalidad citada y aclaración de que NO es asignación de trasplante",()=>{
+  const f=assembleFindings({meld:{score:25,risk:"HIGH",version:"MELD-2001",mortalityPct:19.6}});
+  expect(f[0]).toMatchObject({domain:"hepático",severity:"WARNING"});
+  expect(f[0]!.summary).toMatch(/MELD 25/);expect(f[0]!.summary).toMatch(/19\.6%/);expect(f[0]!.summary).toMatch(/NO asignación de trasplante/);
+  expect(assembleFindings({meld:{score:12,risk:"MODERATE",version:"MELD-2001",mortalityPct:6}})[0]).toMatchObject({domain:"hepático",severity:"INFO"});
+ });
+ it("Child-Pugh B/C -> WARNING; A -> INFO; con floor dice que hay que graduar ascitis/encefalopatía",()=>{
+  const b=assembleFindings({childPugh:{score:8,childClass:"B",floor:true,ascitesPresent:true,encephalopathyPresent:false}});
+  expect(b[0]).toMatchObject({domain:"hepático",severity:"WARNING"});
+  expect(b[0]!.summary).toMatch(/Child-Pugh B/);expect(b[0]!.summary).toMatch(/PISO/);expect(b[0]!.summary).toMatch(/gradúelas/);
+  expect(assembleFindings({childPugh:{score:5,childClass:"A",floor:false,ascitesPresent:false,encephalopathyPresent:false}})[0]).toMatchObject({domain:"hepático",severity:"INFO"});
+ });
 });
 // Calculador HAS-BLED puro (Pisters 2010): 1 punto por ítem, máx. 9; ≥3 = alto. INR lábil no evaluable se reporta aparte.
 describe("hasBled (riesgo de sangrado, Pisters 2010)",()=>{
@@ -212,5 +226,24 @@ describe("timeInTherapeuticRange (Rosendaal 1993)",()=>{
  it("respeta el rango de válvula mecánica (2.5–3.5)",()=>{
   const r=timeInTherapeuticRange({readings:[{value:3.0,at:day(0)},{value:3.0,at:day(40)}],target:{low:2.5,high:3.5}});
   expect(r!.ttrPct).toBe(100);
+ });
+});
+// Child-Pugh-Turcotte (Pugh 1973): labs + ascitis + encefalopatía graduadas.
+describe("childPugh (Pugh 1973)",()=>{
+ it("todo normal + sin ascitis/encefalopatía -> 5 puntos, clase A",()=>{
+  const r=childPugh({bilirubin:1,albumin:4,inr:1.1,ascites:1,encephalopathy:1})!;
+  expect(r.score).toBe(5);expect(r.childClass).toBe("A");
+ });
+ it("umbrales de clase: B en 7–9, C en 10–15",()=>{
+  // bili 2.5(2) + alb 3.0(2) + inr 1.1(1) + ascitis 2 + enceph 1 = 8 -> B
+  expect(childPugh({bilirubin:2.5,albumin:3.0,inr:1.1,ascites:2,encephalopathy:1})!.childClass).toBe("B");
+  // bili 4(3) + alb 2.5(3) + inr 2.5(3) + ascitis 3 + enceph 3 = 15 -> C
+  const c=childPugh({bilirubin:4,albumin:2.5,inr:2.5,ascites:3,encephalopathy:3})!;
+  expect(c.score).toBe(15);expect(c.childClass).toBe("C");
+ });
+ it("NO es calculable sin los dos ejes clínicos (grado inválido) ni con labs inválidos -> undefined",()=>{
+  // @ts-expect-error grado fuera de 1..3
+  expect(childPugh({bilirubin:1,albumin:4,inr:1.1,ascites:0,encephalopathy:1})).toBeUndefined();
+  expect(childPugh({bilirubin:NaN,albumin:4,inr:1.1,ascites:1,encephalopathy:1})).toBeUndefined();
  });
 });

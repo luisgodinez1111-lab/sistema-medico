@@ -10,6 +10,8 @@ import{glycemicAssessment}from"../../../packages/glycemic/src";
 import{cha2ds2vasc}from"../../../packages/stroke-risk/src";
 import{hasBled}from"../../../packages/bleeding-risk/src";
 import{fib4}from"../../../packages/liver-fibrosis/src";
+import{meldScore}from"../../../packages/meld/src";
+import{childPugh}from"../../../packages/child-pugh/src";
 import{bmiFromVitals}from"../../../packages/anthropometrics/src";
 import{forecastImmunizations,forecastSummary}from"../../../packages/immunization-schedule/src";
 import{assembleFindings,summarize,type SummaryInputs,type Finding}from"../../../packages/clinical-summary/src";
@@ -28,7 +30,7 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  // Auditoría 2026-09-19 (C-01, C-02): este panel usa el MISMO camino verificado que las calculadoras (unidad canónica,
  // plausibilidad, vigencia y coherencia de muestra). Antes leía "el último número" sin unidad ni fecha, de modo que el
  // panel podía afirmar un eGFR o un FIB-4 que la propia calculadora ya se negaba a calcular. Dato no utilizable => sin hallazgo.
- const[vitals,codes,openRes,openVit,vaccines,renal,glyc,liver,anticoag,activeDrugs,ant,lipid,inrSeries]=await Promise.all([
+ const[vitals,codes,openRes,openVit,vaccines,renal,glyc,liver,anticoag,activeDrugs,ant,lipid,inrSeries,meldLabs,cpLabs,biliOnly]=await Promise.all([
   latestVitalsByType(ctx,patientId),
   activeProblemCodes(ctx,patientId),
   countOpenCriticalResults(ctx,patientId),
@@ -42,6 +44,9 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
   antecedentes(ctx,patientId), // hábitos (antecedentes no patológicos) para los recordatorios por guías
   verifiedValues(ctx,patientId,["LDL"],MAX_AGE_DAYS.GLYCEMIC_CONTROL), // LDL para la meta por riesgo (cardiometabólico)
   analyteSeries(ctx,patientId,"INR"), // serie para el TTR (calidad del control de la anticoagulación con VKA)
+  verifiedValues(ctx,patientId,["BILIRUBIN","INR","CREATININE"],MAX_AGE_DAYS.MELD,COHERENCE_HOURS.MELD), // MELD (conjunto coherente)
+  verifiedValues(ctx,patientId,["BILIRUBIN","ALBUMIN","INR"],MAX_AGE_DAYS.LIVER_PANEL,COHERENCE_HOURS.LIVER_PANEL), // Child-Pugh (labs)
+  verifiedValues(ctx,patientId,["BILIRUBIN"],MAX_AGE_DAYS.LIVER_PANEL), // bilirrubina para objetivar la función hepática en HAS-BLED
  ]);
  const inp:{-readonly[K in keyof SummaryInputs]:SummaryInputs[K]}={openCriticalResults:openRes,openCriticalVitals:openVit};
  // NEWS2
@@ -70,6 +75,19 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  if(cv)inp.cha2ds2vasc={score:cv.score,risk:cv.risk,applicable:has(codes,"I48")};
  // FIB-4
  if(liver){const fr=fib4(age,liver["AST"]!,liver["ALT"]!,liver["PLATELETS"]!);if(fr)inp.fib4={value:fr.value,risk:fr.risk};}
+ // Hepatopatía crónica/avanzada: MELD (gravedad, solo laboratorio) y Child-Pugh (requiere ejes clínicos).
+ const chronicLiver=has(codes,"K70","K71","K72","K73","K74","B18")||inp.fib4?.risk==="HIGH";
+ // MELD clásico (UNOS 2002): conjunto coherente bilirrubina+INR+creatinina. El MELD-Na/3.0 de ASIGNACIÓN de trasplante
+ // vive en la ruta /meld, no en el panel. Solo se calcula ante hepatopatía crónica (no en cualquier bilirrubina alta aguda).
+ if(chronicLiver&&meldLabs){const m=meldScore(meldLabs["BILIRUBIN"]!,meldLabs["INR"]!,meldLabs["CREATININE"]!);if(m)inp.meld={score:m.score,risk:m.risk,version:m.version,mortalityPct:m.mortality90dPct};}
+ // Child-Pugh: labs (bilirrubina+albúmina+INR) + ASCITIS y ENCEFALOPATÍA, que son clínicas y graduadas. El sistema no las
+ // captura estructuradas: se derivan de la lista de problemas como PRESENTE/ausente (presente→grado 2, el piso; ausente→1)
+ // y el resultado se marca como PISO (`floor`) para que el médico lo gradúe. Nunca se inventa el grado.
+ if(chronicLiver&&cpLabs){
+  const ascitesPresent=has(codes,"R18");const encephalopathyPresent=has(codes,"K72","K70.4");
+  const cp=childPugh({bilirubin:cpLabs["BILIRUBIN"]!,albumin:cpLabs["ALBUMIN"]!,inr:cpLabs["INR"]!,ascites:ascitesPresent?2:1,encephalopathy:encephalopathyPresent?2:1});
+  if(cp)inp.childPugh={score:cp.score,childClass:cp.childClass,floor:true,ascitesPresent,encephalopathyPresent};
+ }
  // IMC
  const b=bmiFromVitals({value:vitals["WEIGHT"]},{value:vitals["HEIGHT"]}); // C-21: implementación única (unidad de talla inferida: latestVitalsByType no la trae)
  if(b)inp.bmi={category:b.category};
@@ -144,7 +162,8 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
   const hb=hasBled({
    hypertensionUncontrolled:sbp!==undefined&&sbp>160,
    abnormalRenal:(creat!==undefined&&creat>2.26)||(egfrVal!==undefined&&egfrVal<30)||has(codes,"N18.6","Z99.2"),
-   abnormalLiver:has(codes,"K70","K71","K72","K74","K76")||inp.fib4?.risk==="HIGH",
+   // HAS-BLED "función hepática alterada" = cirrosis o bilirrubina >2× el LSN (≈2.4 mg/dL) o hepatopatía avanzada (MELD alto).
+   abnormalLiver:has(codes,"K70","K71","K72","K74","K76")||inp.fib4?.risk==="HIGH"||(biliOnly?.["BILIRUBIN"]!==undefined&&biliOnly["BILIRUBIN"]>2.4)||inp.meld?.risk==="HIGH"||inp.meld?.risk==="VERY_HIGH",
    strokeHistory:has(codes,"I63","I64","G45"),
    bleedingHistory:has(codes,"I60","I61","I62","K92","D62"), // hemorragia intracraneal/digestiva, anemia poshemorrágica
    labileINR:ttr?ttr.labile:undefined, // del TTR (Rosendaal) si es calculable; si no, sin puntuar (score mínimo)

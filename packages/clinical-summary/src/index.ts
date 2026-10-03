@@ -39,6 +39,11 @@ export type SummaryInputs=Readonly<{
  pediatricRisk?:{reyeAspirin:boolean;growthDataMissing:boolean};               // <16: salicilato/Reye + peso/talla faltantes
  ldlTarget?:{value:number;target:number;riskLabel:string};                     // LDL por encima de la meta según riesgo
  fib4?:{value:number;risk:"LOW"|"INDETERMINATE"|"HIGH"};
+ // Hepatopatía avanzada. MELD: gravedad/mortalidad, solo laboratorio → computable. Child-Pugh: requiere ascitis y
+ // encefalopatía (clínicas); cuando se derivan de la lista de problemas (presente/ausente, sin grado) el resultado es un
+ // PISO (`floor`) que el médico debe graduar — nunca un valor cerrado inventado.
+ meld?:{score:number;risk:"LOW"|"MODERATE"|"HIGH"|"VERY_HIGH";version:string;mortalityPct:number};
+ childPugh?:{score:number;childClass:"A"|"B"|"C";floor:boolean;ascitesPresent:boolean;encephalopathyPresent:boolean};
  bmi?:{category:string};
  overdueVaccines?:number;
  bp?:{stage:string};
@@ -117,6 +122,18 @@ export function assembleFindings(i:SummaryInputs):Finding[]{
  }
  if(i.ldlTarget)f.push({domain:"lípidos",severity:"WARNING",summary:`LDL ${i.ldlTarget.value} mg/dL por encima de la meta (<${i.ldlTarget.target}) para ${i.ldlTarget.riskLabel}: intensifique el tratamiento hipolipemiante (ACC/AHA; ESC/EAS).`});
  if(i.fib4&&i.fib4.risk==="HIGH")f.push({domain:"hepático",severity:"WARNING",summary:`FIB-4 ${i.fib4.value} (alto): referir a hepatología`});
+ // MELD — gravedad de la hepatopatía avanzada (bilirrubina+INR+creatinina). Pronóstico, NO asignación de trasplante.
+ if(i.meld){
+  if(i.meld.risk==="HIGH"||i.meld.risk==="VERY_HIGH")f.push({domain:"hepático",severity:"WARNING",summary:`MELD ${i.meld.score} (${i.meld.risk==="VERY_HIGH"?"muy alto":"alto"}): hepatopatía avanzada — ~${i.meld.mortalityPct}% de mortalidad a 3 meses (Wiesner 2003); evalúe derivación a hepatología. Pronóstico, NO asignación de trasplante.`});
+  else f.push({domain:"hepático",severity:"INFO",summary:`MELD ${i.meld.score} (${i.meld.risk==="MODERATE"?"moderado":"bajo"}): seguimiento de la hepatopatía (pronóstico; NO asignación de trasplante).`});
+ }
+ // Child-Pugh — clase de la hepatopatía crónica. Si ascitis/encefalopatía se derivaron de la lista de problemas (floor),
+ // se dice explícitamente que es un PISO a graduar en la exploración (nunca una clase cerrada sin el dato clínico).
+ if(i.childPugh){
+  const cp=i.childPugh;const nota=cp.floor?` — estimación de PISO: ascitis ${cp.ascitesPresent?"documentada":"no documentada"} y encefalopatía ${cp.encephalopathyPresent?"documentada":"no documentada"} sin graduar; gradúelas en la exploración para precisar la clase (puede ser mayor)`:"";
+  if(cp.childClass==="B"||cp.childClass==="C")f.push({domain:"hepático",severity:"WARNING",summary:`Child-Pugh ${cp.childClass} (${cp.score} puntos): descompensación — ajuste fármacos de metabolismo hepático y extreme la cautela perioperatoria (Pugh 1973)${nota}.`});
+  else f.push({domain:"hepático",severity:"INFO",summary:`Child-Pugh ${cp.childClass} (${cp.score} puntos): hepatopatía compensada (Pugh 1973)${nota}.`});
+ }
  if(i.bp){if(i.bp.stage==="CRISIS")f.push({domain:"presión",severity:"CRITICAL",summary:"Crisis hipertensiva: evaluación urgente"});
   else if(i.bp.stage==="HYPOTENSION_SEVERE")f.push({domain:"presión",severity:"CRITICAL",summary:"Hipotensión severa: evaluar perfusión de inmediato"}); // auditoría C-07
   else if(i.bp.stage==="HYPOTENSION")f.push({domain:"presión",severity:"WARNING",summary:"Hipotensión: correlacionar con síntomas, volemia y fármacos"});
