@@ -10,7 +10,7 @@ export default function PacientesView(){
  // visible; el contacto y los datos socio-demográficos (teléfono, correo, dirección, ocupación, estado civil) se despliegan
  // bajo demanda, y se muestran de entrada si el paciente YA tiene alguno (editar un dato existente nunca queda oculto).
  const[moreEdit,setMoreEdit]=useState(false);
- const{patientList,topSearch,patStatus,patSex,setPatSelId,selectPatientRaw,setPatTab,setPatEdit,setPatMsg,patSelId,patientId,snap,docsSnap,setPatNew,patNew,patMsg,regName,setRegName,regDob,setRegDob,regSex,setRegSex,regExtra,setRegExtra,guardianFields,dupPanel,registerPatient,busy,gaps,setTopSearch,setPatStatus,setPatSex,patEdit,openEdit,patTab,editForm,setEditForm,amendPatient,editBusy,setView,setExpTab,openConsulta,setApptForm,setApptNew,setAgendaDate,tl,setDocNew}=useWorkspace();
+ const{patientList,topSearch,patStatus,patSex,setPatSelId,selectPatientRaw,setPatTab,setPatEdit,setPatMsg,patSelId,patientId,snap,consTabs,docsSnap,setPatNew,patNew,patMsg,regName,setRegName,regDob,setRegDob,regSex,setRegSex,regExtra,setRegExtra,guardianFields,dupPanel,registerPatient,busy,gaps,setTopSearch,setPatStatus,setPatSex,patEdit,openEdit,patTab,editForm,setEditForm,amendPatient,editBusy,setView,setExpTab,openConsulta,setApptForm,setApptNew,setAgendaDate,tl,setDocNew}=useWorkspace();
 
    // ===== VISTA PACIENTES — lista real + FICHA contextual (sólo al seleccionar) con pestañas en sitio y edición real =====
    const ageOf=(bd?:string):number|null=>{if(!bd)return null;const b=new Date(bd),n=new Date();let y=n.getFullYear()-b.getFullYear();if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))y--;return y;};
@@ -128,12 +128,29 @@ export default function PacientesView(){
         <div style={{fontSize:13.5,fontWeight:800,margin:"0 0 10px"}}>Información general</div>
         {[["Fecha de nacimiento",sd?.birthDate?`${fmtDate(sd.birthDate)}${fAge!=null?` (${fAge} años)`:""}`:(fAge!=null?`${fAge} años`:"—")],["Sexo",sexEs(fp.sexAtBirth)],["CURP",fp.curp||"—"],["Teléfono",sd?.phone||"—"],["Correo",sd?.email||"—"],["Dirección",sd?.address||"—"],["Ocupación",sd?.occupation||"—"],["Estado civil",sd?.maritalStatus||"—"]].map(([k,v])=><div key={k} style={{display:"flex",fontSize:13,padding:"5px 0",borderBottom:"1px solid #F6F7FB"}}><span style={dk}>{k}</span><span style={{fontWeight:500}}>{v}</span></div>)}
         {!fresh&&<div style={{fontSize:11.5,color:P.muted,marginTop:8}}>Cargando datos del paciente…</div>}
+        {/* Signos y laboratorios REALES del paciente (del snapshot clínico), no placeholders. */}
+        {fresh&&snap&&(()=>{
+         const vt=snap.vitals,lb=snap.labs;
+         const tiles=([["Presión",vt["BP"],"mmHg"],["FC",vt["HR"],"lpm"],["Temp",vt["TEMP"],"°C"],["SpO₂",vt["SPO2"],"%"],["Glucosa",lb.glucose,"mg/dL"],["HbA1c",lb.hba1c,"%"],["eGFR",lb.egfr,"mL/min"],["LDL",lb.ldl,"mg/dL"]] as [string,string|number|undefined,string][]).filter(t=>t[1]!==undefined&&t[1]!=="");
+         return <>
+          <div style={{fontSize:13.5,fontWeight:800,margin:"18px 0 10px"}}>Signos y laboratorios</div>
+          {tiles.length?<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>{tiles.map(([lab,val,u])=><div key={lab} style={{border:`1px solid ${LINE}`,borderRadius:10,padding:"8px 10px"}}><div style={{fontSize:11,color:P.muted}}>{lab}</div><div style={{fontSize:16,fontWeight:800,color:P.ink}}>{val} <span style={{fontSize:11,fontWeight:600,color:P.muted}}>{u}</span></div></div>)}</div>
+           :<div style={{fontSize:12.5,color:P.muted}}>Sin signos ni laboratorios recientes registrados para este paciente.</div>}
+         </>;
+        })()}
         <div style={{fontSize:13.5,fontWeight:800,margin:"18px 0 10px"}}>Antecedentes relevantes</div>
         <div style={{display:"flex",flexDirection:"column",gap:9}}>
          <div style={{display:"flex",gap:10,padding:"9px 11px",borderRadius:10,background:"#FDECEE"}}><span style={{color:P.redOnPale,fontWeight:800,fontSize:12,minWidth:78}}>Alergias</span><span style={{fontSize:12.5,color:"#7a1f2b"}}>{sd&&snap?.allergies.length?snap.allergies.join(", "):"Sin alergias conocidas"}</span></div>
          <div style={{display:"flex",gap:10,padding:"9px 11px",borderRadius:10,background:"#EEEBFD"}}><span style={{color:P.purpleOnPale,fontWeight:800,fontSize:12,minWidth:78}}>Problemas</span><span style={{fontSize:12.5,color:"#3a2f7a"}}>{sd&&snap?.problems.length?snap.problems.map(DX_LABEL).slice(0,4).join(", "):"Sin problemas activos"}</span></div>
-         <div style={{display:"flex",gap:8}}>{([["Medicamentos","Medicación"],["Vacunas","Vacunas"]] as const).map(([l,h2])=><button key={l} onClick={()=>{goExpSection(h2,setView,setExpTab);}} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px",fontSize:12.5,fontWeight:600,color:P.ink,cursor:"pointer",fontFamily:UI}}>{l} →</button>)}</div>
+         {/* Medicación VIGENTE real del paciente (consultation-tabs); distingue "no cargó" de "no toma nada". */}
+         <div style={{display:"flex",gap:10,padding:"9px 11px",borderRadius:10,background:"#E6F6EE"}}><span style={{color:P.greenOnPale,fontWeight:800,fontSize:12,minWidth:78}}>Medicación</span><span style={{fontSize:12.5,color:"#1f5c3a"}}>{!fresh?"Cargando…":consTabs===null?"No cargó":(consTabs?.medications?.length??0)>0?consTabs.medications.join(", "):"Sin medicamentos activos"}</span></div>
+         <div style={{display:"flex",gap:8}}>{([["Ver medicación","Medicación"],["Ver vacunas","Vacunas"]] as const).map(([l,h2])=><button key={l} onClick={()=>{goExpSection(h2,setView,setExpTab);}} style={{flex:1,border:`1px solid ${LINE}`,background:P.white,borderRadius:9,padding:"9px",fontSize:12.5,fontWeight:600,color:P.ink,cursor:"pointer",fontFamily:UI}}>{l} →</button>)}</div>
         </div>
+        {/* Alertas clínicas deterministas (CDS) REALES para este paciente. */}
+        {fresh&&snap&&snap.findings.length>0&&<>
+         <div style={{fontSize:13.5,fontWeight:800,margin:"18px 0 10px"}}>Alertas clínicas</div>
+         <div style={{display:"flex",flexDirection:"column",gap:7}}>{snap.findings.slice(0,5).map((f,i)=>{const[bg,fg,lab]=f.severity==="CRITICAL"?["#FDECEE",P.redOnPale,"CRÍTICO"]:f.severity==="WARNING"?["#FFF7EC","#A15C00","ALERTA"]:["#EAF1FD",P.blueOnPale,"INFO"];return <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",padding:"8px 10px",borderRadius:9,background:bg}}><span style={{background:P.white,color:fg,borderRadius:6,padding:"1px 6px",fontSize:9.5,fontWeight:800,whiteSpace:"nowrap",marginTop:1}}>{lab}</span><span style={{fontSize:12,color:"#33383F",lineHeight:1.4}}>{f.summary}</span></div>;})}{snap.findings.length>5&&<div style={{fontSize:11,color:P.muted}}>+{snap.findings.length-5} alerta(s) más en Clinical Intelligence.</div>}</div>
+        </>}
         <div style={{fontSize:13.5,fontWeight:800,margin:"18px 0 10px"}}>Acciones</div>
         <div style={{display:"flex",flexDirection:"column",gap:9}}>
          {/* El flujo es expediente → consulta: abrir el expediente es la acción primaria; la consulta se inicia desde ahí

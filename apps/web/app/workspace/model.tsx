@@ -809,7 +809,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // mostraba NADA de lo que el paciente ya toma —su lista de medicamentos solo se llenaba con lo prescrito en esa sesión—,
  // mientras que sus alergias y problemas sí se ven en la cabecera. Prescribir sin ver la medicación vigente es el riesgo.
  useEffect(()=>{
-  if((view!=="consulta"&&view!=="exp")||!ready||!session||!patientId){setConsTabs(null);return;}
+  if((view!=="consulta"&&view!=="exp"&&view!=="pacientes")||!ready||!session||!patientId){setConsTabs(null);return;}
   let cancelled=false;const ac=new AbortController();
   (async()=>{
    try{

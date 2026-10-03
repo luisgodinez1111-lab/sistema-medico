@@ -558,6 +558,19 @@ export default function ExpView(){
     <span style={{fontSize:12,color:P.muted}}>La criticidad se deriva del valor.</span>
     <button style={btn} disabled={busy!==""} onClick={receiveResult}>{busy==="res-new"?"Registrando…":"Registrar resultado"}</button>
    </div>
+   {/* RESULTADOS REALES del paciente (expediente) — distintos de los registrados en esta sesión (lista de abajo, con sus
+       transiciones). Antes esta pantalla solo mostraba lo creado en la sesión; los resultados ya almacenados no se veían. */}
+   <div style={{marginTop:16,border:`1px solid ${LINE}`,borderRadius:12,padding:"12px 14px",background:"#FCFDFF"}}>
+    <div style={{fontSize:12.5,fontWeight:700,color:P.muted,marginBottom:consTabs?.results?.length?8:0}}>Resultados del paciente (expediente)</div>
+    {consTabs===null
+     ?<div style={{fontSize:13,color:P.amberOnPale}}>No evaluados: los resultados del paciente no cargaron.</div>
+     :consTabs.results.length===0
+      ?<div style={{fontSize:13,color:P.muted}}>Sin resultados registrados en el expediente.</div>
+      :<div style={{display:"flex",flexDirection:"column",gap:0}}>{consTabs.results.slice(0,12).map((r,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"8px 0",borderTop:i?"1px solid #F1F3F9":"0"}}>
+        <div style={{minWidth:0}}><span style={{fontWeight:700,fontSize:13}}>{r.analyte}</span> <span style={{fontSize:13,color:P.ink}}>{r.value}</span>{r.critical&&<span style={{marginLeft:8,background:"#FDECEE",color:P.redOnPale,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800}}>CRÍTICO</span>}</div>
+        <div style={{display:"flex",gap:8,alignItems:"center",flex:"0 0 auto"}}><span style={{fontSize:11.5,color:P.muted}}>{r.estado}</span><span style={{fontSize:11,color:P.muted}}>{r.receivedAt?new Date(r.receivedAt).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"}):""}</span></div>
+       </div>)}{consTabs.results.length>12&&<div style={{fontSize:11.5,color:P.muted,paddingTop:8}}>+{consTabs.results.length-12} resultado(s) más en el expediente.</div>}</div>}
+   </div>
    {results.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {results.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {results.map(res=>{const n=resNext(res);return <div key={res.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
