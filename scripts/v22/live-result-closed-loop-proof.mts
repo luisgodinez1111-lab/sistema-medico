@@ -9,7 +9,7 @@ const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{resolveVerified}=await import("../../apps/web/lib/http-command");
 const{readAggregateEvents}=await import("../../apps/web/lib/clinical-runtime");
-const{criticalObligationId}=await import("../../apps/web/lib/result-lifecycle");
+const{criticalObligationId,abnormalObligationId}=await import("../../apps/web/lib/result-lifecycle");
 const{foldObligation}=await import("../../packages/obligation-fold/src");
 const open=await import("../../apps/web/app/api/v1/encounters/route");
 const assess=await import("../../apps/web/app/api/v1/encounters/[encounterId]/assessment/route");
@@ -137,6 +137,21 @@ try{
  await rAction.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({ownerId:crypto.randomUUID(),dueAt:"2026-03-10T00:00:00.000Z",occurredAt:ISO})}),RP(unseen));
  await rClose.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"3"}),body:JSON.stringify({evidence:"Hiperkalemia tratada; control 4.8",occurredAt:ISO})}),RP(unseen));
  r=await sign4();b4=await r.json();ok(r.status===201&&b4.status==="SIGNED","SIGN_AFTER_CRITICAL_CLOSED_201");
+
+ // === F) CIERRE DEL LOOP para resultados ANORMALES (no críticos): también generan seguimiento, pero ROUTINE y SIN bloquear
+ //        la firma. Antes solo el crítico creaba obligación; un resultado anormal accionable quedaba sin rastro. GLUCOSE 250
+ //        mg/dL es ABNORMAL (rango [40,70,200,500]) pero no crítico. La decisión la toma la función pura resultToObligation.
+ const enc5=crypto.randomUUID(),pat5=crypto.randomUUID(),ares=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat5);
+ await open.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:enc5,patientId:pat5,occurredAt:ISO})}));
+ await assess.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({assessment:"a",plan:"p",occurredAt:ISO})}),EP(enc5));
+ r=await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:ares,patientId:pat5,orderId:crypto.randomUUID(),analyte:"GLUCOSE",value:"250",unit:"mg/dL",occurredAt:ISO})}));
+ ok(r.status===201&&(await r.json()).status==="ABNORMAL","ABNORMAL_RESULT_RECEIVED_201");
+ // 1) el resultado anormal crea UNA obligación ROUTINE (no urgente), con responsable, enlazada al resultado.
+ const abEv=(await readAggregateEvents(octx,abnormalObligationId(ares)))[0]?.payload as{priority?:string;obligationKind?:string;sourceResultId?:string;ownerId?:string}|undefined;
+ ok(abEv?.priority==="ROUTINE"&&abEv.obligationKind==="ABNORMAL_RESULT_FOLLOWUP"&&abEv.sourceResultId===ares&&abEv.ownerId===octx.actorId,"ABNORMAL_RESULT_CREATES_ROUTINE_OBLIGATION");
+ // 2) y NO bloquea la firma del encuentro (el gate solo cuenta URGENT/crítico): seguimiento rastreado, no urgencia inventada.
+ r=await sign.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:ISO,contentHash:HASH_AP})}),EP(enc5));
+ ok(r.status===201&&(await r.json()).status==="SIGNED","ABNORMAL_RESULT_DOES_NOT_BLOCK_SIGN_201");
 
  // === D) Aislamiento cross-tenant sobre el resultado ===
  const physB=tok(TENANT_B,["PHYSICIAN"]);await registerPhysicianCredentials(physB);

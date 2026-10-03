@@ -38,8 +38,9 @@ describe("anulación de un resultado (R03-10)",()=>{
   const src=fs.readFileSync("apps/web/lib/result-lifecycle.ts","utf8");
   expect(src).toMatch(/ErrorMarkBody=z\.object\(\{reason:z\.string\(\)\.trim\(\)\.min\(10/);
   expect(src).toContain("RESULT_ENTERED_IN_ERROR");
-  // Un resultado anulado no puede dejar un pendiente abierto por haber sido crítico.
-  expect(src).toMatch(/completeCriticalResultObligation\(ctx,resultId,`resultado anulado/);
+  // Un resultado anulado no puede dejar un pendiente abierto por haber sido crítico (ni anormal): el cierre completa la
+  // obligación de seguimiento derivada, sea cual sea su prioridad.
+  expect(src).toMatch(/completeResultFollowUpObligation\(ctx,resultId,`resultado anulado/);
  });
  it("la ruta existe y está declarada en el inventario de la API",()=>{
   expect(fs.existsSync("apps/web/app/api/v1/results/[resultId]/error-mark/route.ts")).toBe(true);
