@@ -379,27 +379,42 @@ export type BadgeKey="agenda"|"resultados"|"seguimiento"|"obligaciones";
 // que se pinta arriba, sin encabezado de sección. Biblioteca y Configuración viven aparte, en TOOLS_NAV.
 export type{Branch} from"../../../../packages/clinical-domains/src";
 export{BRANCH_LABEL,VIEW_BRANCH,BRANCH_META,branchOfView} from"../../../../packages/clinical-domains/src";
-export type NavItem={label:string;h2:string;icon:string;view:string;home?:boolean;badge?:BadgeKey;badgeColor?:"r"|"p"};
+
+// ── Grupos del menú lateral (CAPA DE PRESENTACIÓN) ─────────────────────────────────────────────────────────
+// Decisión del dueño ("Dos mundos + bandeja"): el menú se organiza por dos EJES que antes estaban revueltos en una
+// lista plana —lo OPERATIVO del día de toda la clínica vs. el EXPEDIENTE del paciente— más catálogo/gestión. Esto es
+// PRESENTACIÓN, deliberadamente SEPARADA de la taxonomía de dominio (`packages/clinical-domains`, las 3 ramas +
+// Sistema), que sigue clasificando agregados y rutas sin tocarse: un grupo de menú cruza varias ramas a propósito
+// (p. ej. "Operación" junta Consultas y Laboratorios). El guard (`branch-architecture.test.ts`) verifica AMBAS cosas:
+// que el dominio siga coherente y que el menú esté agrupado por estos `NavGroup` de forma contigua y en orden.
+export type NavGroup="operacion"|"paciente"|"gestion";
+export const NAV_GROUP_META:Record<NavGroup,{label:string;order:number}>={
+ operacion:{label:"Operación · Hoy",order:1},
+ paciente:{label:"Paciente",order:2},
+ gestion:{label:"Catálogo y gestión",order:3},
+};
+export type NavItem={label:string;h2:string;icon:string;view:string;home?:boolean;group?:NavGroup;badge?:BadgeKey;badgeColor?:"r"|"p"};
 export const SIDE_NAV:NavItem[]=[
  {label:"Inicio",h2:"",icon:"home",view:"inicio",home:true},
- // Consultas — el ciclo de la visita.
- {label:"Consulta",h2:"Encuentro",icon:"steth",view:"consulta"},
- {label:"Agenda",h2:"Agenda",icon:"cal",view:"agenda",badge:"agenda",badgeColor:"p"},
- {label:"Interconsultas",h2:"Interconsultas",icon:"people",view:"interconsulta"},
- {label:"Seguimiento",h2:"Seguimiento automático",icon:"chart",view:"seguimiento",badge:"seguimiento",badgeColor:"p"},
- // Expedientes — el EXPEDIENTE es la base completa del paciente: entrar a él abre sus módulos (problemas, alergias,
+ // Operación · Hoy — el trabajo del día de TODA la clínica: citas, bandeja clínica, interconsultas y pendientes de
+ // resultados/órdenes. Orientado a tareas y tiempo, no a un paciente concreto. (Cruza las ramas Consultas y Labs.)
+ {label:"Consulta",h2:"Encuentro",icon:"steth",view:"consulta",group:"operacion"},
+ {label:"Agenda",h2:"Agenda",icon:"cal",view:"agenda",group:"operacion",badge:"agenda",badgeColor:"p"},
+ {label:"Interconsultas",h2:"Interconsultas",icon:"people",view:"interconsulta",group:"operacion"},
+ {label:"Seguimiento",h2:"Seguimiento automático",icon:"chart",view:"seguimiento",group:"operacion",badge:"seguimiento",badgeColor:"p"},
+ {label:"Resultados",h2:"Resultados diagnósticos",icon:"flask",view:"resultados",group:"operacion",badge:"resultados",badgeColor:"r"},
+ {label:"Órdenes",h2:"Órdenes clínicas",icon:"orders",view:"ordenes",group:"operacion"},
+ // Paciente — el EXPEDIENTE es la base completa del paciente: entrar a él abre sus módulos (problemas, alergias,
  // signos, medicación, resultados, órdenes, vacunas, plan, documentos, clinical intelligence) como submenús paciente-scoped.
- // Por eso esos módulos ya no son ítems sueltos del menú. Medicamentos permanece como catálogo/herramienta.
- {label:"Pacientes",h2:"Paciente",icon:"people",view:"pacientes"},
- {label:"Expediente",h2:"",icon:"record",view:"exp"},
- {label:"Medicamentos",h2:"Medicación",icon:"pill",view:"medicamentos"},
- // Laboratorios y Diagnósticos — registros clínica-wide (todos los pacientes) que sí tienen sentido transversal.
- {label:"Resultados",h2:"Resultados diagnósticos",icon:"flask",view:"resultados",badge:"resultados",badgeColor:"r"},
- {label:"Órdenes",h2:"Órdenes clínicas",icon:"orders",view:"ordenes"},
- // Sistema (transversal) — cruza las tres ramas.
- {label:"Facturación",h2:"Facturación",icon:"card",view:"facturacion"},
- {label:"Obligaciones",h2:"Obligaciones de seguimiento",icon:"checkbox",view:"obligaciones",badge:"obligaciones",badgeColor:"r"},
- {label:"Reportes",h2:"Evolución longitudinal",icon:"barchart",view:"reportes"},
+ {label:"Pacientes",h2:"Paciente",icon:"people",view:"pacientes",group:"paciente"},
+ {label:"Expediente",h2:"",icon:"record",view:"exp",group:"paciente"},
+ // Catálogo y gestión — herramientas y administración del consultorio. "Obligaciones del consultorio" es cumplimiento
+ // REGULATORIO (SAT/COFEPRIS/laboral), NO el seguimiento clínico del paciente (ese vive en "Seguimiento"): se renombra
+ // y se ubica aquí para que deje de parecer un duplicado de la bandeja clínica.
+ {label:"Medicamentos",h2:"Medicación",icon:"pill",view:"medicamentos",group:"gestion"},
+ {label:"Reportes",h2:"Evolución longitudinal",icon:"barchart",view:"reportes",group:"gestion"},
+ {label:"Facturación",h2:"Facturación",icon:"card",view:"facturacion",group:"gestion"},
+ {label:"Obligaciones del consultorio",h2:"Obligaciones de seguimiento",icon:"checkbox",view:"obligaciones",group:"gestion",badge:"obligaciones",badgeColor:"r"},
 ];
 export const TOOLS_NAV:{label:string;h2:string;icon:string;view:string}[]=[
  {label:"Biblioteca clínica",h2:"",icon:"book",view:"biblioteca"},

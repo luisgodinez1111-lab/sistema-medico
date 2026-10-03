@@ -3,7 +3,7 @@
 // handlers viven en ./model (useWorkspaceModel, mismo orden de hooks), los helpers en ./shared y cada vista en ./views/*.
 // Este fichero conserva los retornos tempranos, el layout (barra, rail, encabezado del paciente) y el conmutador de vistas.
 import {logout as sessionLogout} from "../../lib/session-client";
-import{RAIL_CSS,SIDE_NAV,scrollToSection,scrollTop,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap,BrandMark,BrandLockup,VIEW_BRANCH,BRANCH_LABEL}from"./shared";
+import{RAIL_CSS,SIDE_NAV,scrollToSection,scrollTop,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap,BrandMark,BrandLockup,NAV_GROUP_META}from"./shared";
 import{Alert,Button,Card}from"../../../../packages/design-system/src";
 import{useWorkspaceModel,deriveHeader}from"./model";
 import{WorkspaceProvider,useWorkspace}from"./context";
@@ -50,14 +50,15 @@ export default function Workspace(){
     <div><div className="mos-bname">MEDIC <span className="os">OS</span></div><div className="mos-bsub">SALUD EN UN<br/>SOLO SISTEMA</div></div>
    </div>
    <nav className="mos-nav" aria-label="Navegación del expediente">
-    {(()=>{let prevBranch="";
-     // Centralización en 3 ramas: el encabezado de sección (Consultas/Expedientes/Laboratorios y Diagnósticos/
-     // Sistema) se DERIVA de la rama de cada vista (VIEW_BRANCH, fuente única) y se pinta al cambiar de rama.
+    {(()=>{let prevGroup="";
+     // Menú por GRUPOS de presentación (Operación · Hoy / Paciente / Catálogo y gestión): el encabezado de sección se
+     // DERIVA del `group` de cada ítem (NAV_GROUP_META, capa de presentación) y se pinta al cambiar de grupo. Esta
+     // agrupación es deliberadamente distinta de la taxonomía de dominio (3 ramas); el guard verifica ambas.
      // La portada (home:true) va arriba sin encabezado. Ley de Hick: secciones para bajar el coste de decisión.
      return SIDE_NAV.flatMap(it=>{const vTarget=it.view as typeof view;const on=view===vTarget;const n=it.badge?navCounts[it.badge]:0;const rows:React.ReactNode[]=[];
-      const branch=VIEW_BRANCH[it.view];
-      if(it.home){if(branch)prevBranch=branch;}
-      else if(branch&&branch!==prevBranch){prevBranch=branch;rows.push(<div key={"sec-"+branch} className="mos-navsec" aria-hidden="true">{BRANCH_LABEL[branch]}</div>);}
+      const group=it.group;
+      if(it.home){if(group)prevGroup=group;}
+      else if(group&&group!==prevGroup){prevGroup=group;rows.push(<div key={"sec-"+group} className="mos-navsec" aria-hidden="true">{NAV_GROUP_META[group].label}</div>);}
       rows.push(
        <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget==="consulta")setConsultaPid(null);if(vTarget==="exp")setExpTab("resumen");setView(vTarget);scrollTop();}}>
         <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&(n===null||n>0)&&<span className={"mos-badge "+(n===null?"p":(it.badgeColor??"p"))} title={n===null?"Sin dato: no se pudo cargar el conteo":undefined}>{n===null?<><span aria-hidden="true">—</span><span className="mos-sr">sin dato</span></>:n}</span>}

@@ -1,7 +1,7 @@
 import{describe,it,expect}from"vitest";
 import fs from"node:fs";import path from"node:path";
-import{BRANCHES,AGGREGATE_BRANCH,VIEW_BRANCH,ROUTE_BRANCH,BRANCH_META,type Branch}from"../../packages/clinical-domains/src";
-import{SIDE_NAV,TOOLS_NAV}from"../../apps/web/app/workspace/shared";
+import{BRANCHES,AGGREGATE_BRANCH,VIEW_BRANCH,ROUTE_BRANCH,type Branch}from"../../packages/clinical-domains/src";
+import{SIDE_NAV,TOOLS_NAV,NAV_GROUP_META,type NavGroup}from"../../apps/web/app/workspace/shared";
 // GUARD DE ARQUITECTURA — las 3 ramas (Consultas / Expedientes / Laboratorios y Diagnósticos) + Sistema son
 // ESTRUCTURA VERIFICADA, no una convención. `packages/clinical-domains` es la FUENTE ÚNICA de a qué rama
 // pertenece cada agregado, vista y grupo de rutas; este test falla si el repo y ese mapa se separan: un agregado
@@ -89,16 +89,23 @@ describe("la navegación concuerda con la fuente única (SIDE_NAV + TOOLS_NAV)",
   expect(dup,`vistas duplicadas en la navegación: ${dup.join(", ")}`).toEqual([]);
  });
 
- it("los ítems de SIDE_NAV van agrupados por rama y en el orden de BRANCH_META (ninguna rama se parte en dos bloques)",()=>{
-  // La portada (home) va arriba sin sección; el resto se pinta por bloques contiguos de rama.
-  const seq=SIDE_NAV.filter(i=>!i.home).map(i=>VIEW_BRANCH[i.view]!);
-  const blocks:Branch[]=[];
-  for(const b of seq)if(blocks[blocks.length-1]!==b)blocks.push(b);
-  // Cada rama debe aparecer como UN solo bloque (sin repetirse → sin partirse).
-  expect(blocks.length,`una rama se parte en bloques no contiguos: ${blocks.join(" → ")}`).toBe(new Set(blocks).size);
-  // Y los bloques respetan el orden declarado en BRANCH_META.
-  const orders=blocks.map(b=>BRANCH_META[b].order);
-  expect(orders,`el orden de las secciones no sigue BRANCH_META: ${blocks.join(" → ")}`).toEqual([...orders].sort((a,b)=>a-b));
+ // El menú se agrupa por GRUPO DE PRESENTACIÓN (Operación/Paciente/Gestión), capa deliberadamente separada de la
+ // taxonomía de dominio: un grupo cruza varias ramas a propósito. El guard verifica que la agrupación del menú sea
+ // coherente (todo ítem con grupo, bloques contiguos, en el orden de NAV_GROUP_META), sin exigir ya contigüidad por rama.
+ it("cada ítem de SIDE_NAV (salvo la portada) declara su grupo de menú",()=>{
+  const sinGrupo=SIDE_NAV.filter(i=>!i.home&&!i.group).map(i=>i.view);
+  expect(sinGrupo,`ítems de SIDE_NAV sin grupo: ${sinGrupo.join(", ")}`).toEqual([]);
+ });
+ it("los ítems de SIDE_NAV van agrupados por grupo y en el orden de NAV_GROUP_META (ningún grupo se parte en dos bloques)",()=>{
+  // La portada (home) va arriba sin sección; el resto se pinta por bloques contiguos de grupo.
+  const seq=SIDE_NAV.filter(i=>!i.home).map(i=>i.group!);
+  const blocks:NavGroup[]=[];
+  for(const g of seq)if(blocks[blocks.length-1]!==g)blocks.push(g);
+  // Cada grupo debe aparecer como UN solo bloque (sin repetirse → sin partirse).
+  expect(blocks.length,`un grupo de menú se parte en bloques no contiguos: ${blocks.join(" → ")}`).toBe(new Set(blocks).size);
+  // Y los bloques respetan el orden declarado en NAV_GROUP_META.
+  const orders=blocks.map(g=>NAV_GROUP_META[g].order);
+  expect(orders,`el orden de las secciones del menú no sigue NAV_GROUP_META: ${blocks.join(" → ")}`).toEqual([...orders].sort((a,b)=>a-b));
  });
 });
 
