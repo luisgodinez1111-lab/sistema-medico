@@ -99,6 +99,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 1/
   render(<Workspace/>);
   await toExpediente();
   await screen.findByText(/Vista principal/,{},{timeout:2500}); // el hero prueba que la auto-carga (timeline incluido) completó
+  fireEvent.click(screen.getByRole("button",{name:"Administración"})); // Seguridad y auditoría vive ahora en el submenú Administración
   const sec=(await screen.findByRole("heading",{name:"Seguridad y auditoría"})).closest("section")!;
   expect(sec.textContent).toMatch(/Estado del sistema/);
   expect(sec.textContent).toMatch(/Actividad reciente/);

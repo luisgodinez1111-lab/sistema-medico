@@ -70,7 +70,7 @@ export default function ExpView(){
      <div style={{fontSize:11.5,color:P.muted,marginTop:2}}>{sub||" "}</div>
     </div>);
    // [etiqueta, sub-vista destino, sección a enfocar] — accesos rápidos que navegan a la pestaña correspondiente.
-   const tabs:[string,ExpTab,string?][]=[["Resumen","resumen"],["Historia","historia","Timeline del paciente"],["Medicamentos","tratamiento","Medicación"],["Resultados","diagnostico","Resultados diagnósticos"],["Problemas","diagnostico","Lista de problemas"],["Plan","tratamiento","Plan de cuidados"],["Seguimiento","coordinacion","Obligaciones de seguimiento"]];
+   const tabs:[string,ExpTab,string?][]=[["Resumen","resumen"],["Historia","historia","Timeline del paciente"],["Medicamentos","medicacion","Medicación"],["Resultados","resultados","Resultados diagnósticos"],["Problemas","problemas","Lista de problemas"],["Plan","plan","Plan de cuidados"],["Seguimiento","coordinacion","Obligaciones de seguimiento"]];
    return <section className="span2" style={{...card,marginTop:0,padding:0,overflow:"hidden"}}>
     <div style={{padding:"18px 22px",borderBottom:`1px solid ${LINE}`,background:"linear-gradient(180deg,#FBFCFE,#fff)"}}>
      <div style={{fontSize:17,fontWeight:800,letterSpacing:"-.01em"}}>Vista principal · Durante la consulta</div>
@@ -167,7 +167,7 @@ export default function ExpView(){
   </section>
 
   {/* SEGURIDAD Y AUDITORÍA (panel 7) — estado del sistema + actividad desde la cadena de auditoría */}
-  <section hidden={!inTab("resumen")} className="span2" style={card}>
+  <section hidden={!inTab("admin")} className="span2" style={card}>
    <div><h2 {...anchor("Seguridad y auditoría")} style={{fontSize:18,margin:0}}>Seguridad y auditoría</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Confianza por diseño. Cada acción clínica queda registrada.</p></div>
    <div className="mos-rx-grid">
     <div style={{background:"linear-gradient(160deg,#0C2148,#15346B)",borderRadius:14,padding:"16px 18px",color:"#EAF0FA"}}>
@@ -187,7 +187,7 @@ export default function ExpView(){
   </section>
 
   {/* PORTAL DEL PACIENTE (panel 6) — vista previa (solo lectura) del app del paciente, desde datos reales */}
-  <section hidden={!inTab("resumen")} style={card}>
+  <section hidden={!inTab("admin")} style={card}>
    <div><h2 {...anchor("Portal del paciente")} style={{fontSize:18,margin:0}}>Portal del paciente</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Informado. Involucrado. Vista previa (solo lectura) de lo que ve el paciente en su app.</p></div>
    {(()=>{
     const t=tl??[];
@@ -456,7 +456,7 @@ export default function ExpView(){
   </section>
 
   {/* MEDICACIÓN */}
-  <section hidden={!inTab("tratamiento")} style={card}>
+  <section hidden={!inTab("medicacion")} style={card}>
    <h2 {...anchor("Medicación")} style={{fontSize:18,margin:0}}>Medicación</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Proponer una medicación no exige ser médico; sólo un médico puede prescribirla (Physician Control).</p>
    <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 90px 1fr",gap:10,marginTop:12}}>
@@ -498,7 +498,7 @@ export default function ExpView(){
   </section>
 
   {/* PRESCRIPCIÓN SEGURA (panel 3) — dry-run de las barreras antes de prescribir */}
-  <section hidden={!inTab("tratamiento")} className="span2" style={card}>
+  <section hidden={!inTab("medicacion")} className="span2" style={card}>
    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
     <div><h2 {...anchor("Prescripción segura")} style={{fontSize:18,margin:0}}>Prescripción segura</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Verifica antes de prescribir. Previene errores, protege al paciente. Determinista, sin IA generativa.</p></div>
     {snap?.labs.egfr!==undefined&&<span style={{fontSize:12,color:P.muted}}>eGFR paciente: <b>{snap?.labs.egfr} mL/min</b>{snap?.labs.egfrStage?` · categoría ${snap.labs.egfrStage} (una creatinina: no confirma ERC)`:""}</span>}
@@ -548,7 +548,7 @@ export default function ExpView(){
   </section>
 
   {/* RESULTADOS DIAGNÓSTICOS */}
-  <section hidden={!inTab("diagnostico")} style={card}>
+  <section hidden={!inTab("resultados")} style={card}>
    <h2 {...anchor("Resultados diagnósticos")} style={{fontSize:18,margin:0}}>Resultados diagnósticos</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Closed-loop: un resultado <b>crítico</b> que requirió acción y no se ha cerrado <b>bloquea la firma</b> del encuentro (Zero Lost Follow-Up).</p>
    <div style={{display:"flex",gap:10,marginTop:12,alignItems:"center",flexWrap:"wrap"}}>
@@ -583,6 +583,18 @@ export default function ExpView(){
    </div>}
   </section>
 
+  {/* CLINICAL INTELLIGENCE — apoyo a la decisión DETERMINISTA del paciente (reusa snap.findings, igual que el hero). */}
+  <section hidden={!inTab("intel")} className="span2" style={card}>
+   <div><h2 {...anchor("Clinical Intelligence")} style={{fontSize:18,margin:0}}>Clinical Intelligence</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Apoyo a la decisión DETERMINISTA del paciente: alertas por reglas y calculadoras del motor CDS. Sin IA generativa (R6 en pausa).</p></div>
+   {!snap?<div style={{marginTop:14,fontSize:13,color:P.muted}}>Expediente no cargado para este paciente.</div>
+    :snap.findings.length?<div style={{marginTop:14,display:"flex",flexDirection:"column",gap:8}}>{snap.findings.map((f,i)=>{const s=SEV[f.severity]??SEV.INFO;return <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"10px 12px",borderRadius:10,background:s.bg,border:`1px solid ${s.bd}`}}>
+     <span style={{background:"#fff",color:s.fg,border:`1px solid ${s.bd}`,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800,letterSpacing:".03em",whiteSpace:"nowrap",marginTop:1}}>{s.label}</span>
+     <span style={{fontSize:13,color:"#33383F",lineHeight:1.45}}>{f.summary}</span>
+    </div>;})}</div>
+    :<div style={{marginTop:14,fontSize:13,color:P.greenOnPale,fontWeight:600}}>✓ Sin alertas deterministas para los datos registrados.</div>}
+   <div style={{marginTop:14,fontSize:11.5,color:P.muted,background:"#F3F2FB",borderRadius:8,padding:"10px 12px"}}>Apoyo a la decisión; la decisión final es del médico. El diagnóstico diferencial probabilístico requiere IA generativa (R6), en pausa intencional en este sistema.</div>
+  </section>
+
   {/* EVOLUCIÓN LONGITUDINAL (panel 4) */}
   <section hidden={!inTab("historia")} className="span2" style={card}>
    <div><h2 {...anchor("Evolución longitudinal")} style={{fontSize:18,margin:0}}>Evolución longitudinal</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Tendencias que cuentan la historia completa. Valores medidos, sin proyección.</p></div>
@@ -607,7 +619,7 @@ export default function ExpView(){
   </section>
 
   {/* ALERGIAS */}
-  <section hidden={!inTab("diagnostico")} style={card}>
+  <section hidden={!inTab("alergias")} style={card}>
    <h2 {...anchor("Alergias")} style={{fontSize:18,margin:0}}>Alergias</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Una alergia <b>activa</b> bloquea la prescripción de un fármaco que la contenga (gate de seguridad).</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 150px 1fr",gap:10,marginTop:12}}>
@@ -626,7 +638,7 @@ export default function ExpView(){
   </section>
 
   {/* LISTA DE PROBLEMAS */}
-  <section hidden={!inTab("diagnostico")} style={card}>
+  <section hidden={!inTab("problemas")} style={card}>
    <h2 {...anchor("Lista de problemas")} style={{fontSize:18,margin:0}}>Lista de problemas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Diagnósticos codificados en <b>CIE-10</b> (validados contra el catálogo; la descripción es canónica). PROD-011 + interoperabilidad NOM-024.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginTop:12}}>
@@ -649,7 +661,7 @@ export default function ExpView(){
   </section>
 
   {/* ÓRDENES CLÍNICAS */}
-  <section hidden={!inTab("tratamiento")} style={card}>
+  <section hidden={!inTab("ordenes")} style={card}>
    <h2 {...anchor("Órdenes clínicas")} style={{fontSize:18,margin:0}}>Órdenes clínicas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Lab, imagen, patología, procedimiento o referencia. Colocar/cumplir una orden exige médico.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
@@ -721,7 +733,7 @@ export default function ExpView(){
   </section>
 
   {/* VACUNAS / CARTILLA */}
-  <section hidden={!inTab("tratamiento")} style={card}>
+  <section hidden={!inTab("vacunas")} style={card}>
    <h2 {...anchor("Vacunas")} style={{fontSize:18,margin:0}}>Vacunas</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cartilla longitudinal: indicar → aplicar (o rechazar); tras aplicar puede registrarse un evento adverso (farmacovigilancia). Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",gap:10,marginTop:12}}>
@@ -742,7 +754,7 @@ export default function ExpView(){
   </section>
 
   {/* SIGNOS VITALES */}
-  <section hidden={!inTab("diagnostico")} style={card}>
+  <section hidden={!inTab("signos")} style={card}>
    <h2 {...anchor("Signos vitales")} style={{fontSize:18,margin:0}}>Signos vitales</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Observaciones append-only: el valor histórico nunca se sobrescribe; cada corrección es una enmienda con motivo. Se puede marcar una toma como capturada por error.</p>
    <div style={{display:"grid",gridTemplateColumns:"150px 1fr 120px",gap:10,marginTop:12}}>
@@ -771,7 +783,7 @@ export default function ExpView(){
   </section>
 
   {/* PLAN DE CUIDADOS / METAS */}
-  <section hidden={!inTab("tratamiento")} style={card}>
+  <section hidden={!inTab("plan")} style={card}>
    <h2 {...anchor("Plan de cuidados")} style={{fontSize:18,margin:0}}>Plan de cuidados</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Metas longitudinales de crónicos: proponer → activar → lograr, con pausa/reanudación. Agregado con máquina de estados y aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:10,marginTop:12}}>
@@ -1059,7 +1071,7 @@ export default function ExpView(){
   </section>}
 
   {/* DOCUMENTOS CLÍNICOS */}
-  <section hidden={!inTab("coordinacion")} style={card}>
+  <section hidden={!inTab("documentos")} style={card}>
    <h2 {...anchor("Documentos clínicos")} style={{fontSize:18,margin:0}}>Documentos clínicos</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>La firma produce un snapshot reproducible e inmutable; toda corrección posterior es un addendum append-only (PROD-014-R022).</p>
    <div style={{display:"grid",gridTemplateColumns:"1fr 200px",gap:10,marginTop:12}}>

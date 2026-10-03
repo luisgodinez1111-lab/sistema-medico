@@ -117,6 +117,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 6/
  it("panel 6 (Portal del paciente): saludo + features no construidas marcadas 'Próximamente' (verdad clínica)",async()=>{
   render(<Workspace/>);
   await toExpediente();
+  await screen.findByText(/Vista principal/,{},{timeout:2500});
+  fireEvent.click(screen.getByRole("button",{name:"Administración"})); // Portal del paciente vive ahora en el submenú Administración
   const h=await screen.findByRole("heading",{name:"Portal del paciente"},{timeout:2500});
   const sec=h.closest("section")!;
   expect(sec.textContent).toMatch(/Hola,/);
@@ -166,10 +168,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 6/
  it("accesibilidad: los paneles de presentación no tienen violaciones axe serias/críticas",async()=>{
   render(<Workspace/>);
   await toExpediente();
-  const seg=(await screen.findByRole("heading",{name:"Seguimiento automático"},{timeout:2500})).closest("section")!;
+  const seg=(await screen.findByRole("heading",{name:"Seguimiento automático"},{timeout:2500})).closest("section")!; // submenú Resumen
+  await noSeriousAxe(seg,"Seguimiento");
+  fireEvent.click(screen.getByRole("button",{name:"Administración"})); // Portal y Auditoría viven ahora en Administración
   const por=(await screen.findByRole("heading",{name:"Portal del paciente"})).closest("section")!;
   const aud=(await screen.findByRole("heading",{name:"Seguridad y auditoría"})).closest("section")!;
-  await noSeriousAxe(seg,"Seguimiento");
   await noSeriousAxe(por,"Portal");
   await noSeriousAxe(aud,"Auditoría");
  });

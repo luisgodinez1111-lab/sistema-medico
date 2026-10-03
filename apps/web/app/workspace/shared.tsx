@@ -588,18 +588,29 @@ export function scrollToSection(name:string){
 // sub-vistas navegables por flujo clínico. Cada sección se asigna a una de estas pestañas; la pestaña "hospital"
 // solo aparece con las verticales hospitalarias encendidas (hospitalOn). El estado vive en el modelo y se refleja
 // en la URL (?s=) para que el enlace sea compartible (deep-link).
-export type ExpTab="encuentro"|"resumen"|"historia"|"diagnostico"|"tratamiento"|"coordinacion"|"hospital"|"admin";
+// El Expediente es la BASE COMPLETA del paciente: sus sub-pestañas son los MÓDULOS del paciente (no "fases" vagas), cada
+// uno paciente-scoped. Al entrar a un paciente se abren como submenús del expediente (decisión del dueño: híbrido).
+export type ExpTab="resumen"|"encuentro"|"historia"|"problemas"|"alergias"|"medicacion"|"signos"|"resultados"|"ordenes"|"vacunas"|"plan"|"documentos"|"intel"|"coordinacion"|"hospital"|"admin";
 // Mapa sección→sub-pestaña del expediente. Tras el Patient 360 (Lote B) cada sección vive en una sub-pestaña que se OCULTA
 // si no está activa; por eso navegar con solo scrollToSection aterriza en una sección vacía. Al ir a una sección hay que
 // ACTIVAR primero su sub-pestaña. Úsese con `goExpSection`.
 export const SECTION_EXP_TAB:Record<string,ExpTab>={
- "Seguimiento automático":"resumen","Seguridad y auditoría":"resumen","Portal del paciente":"resumen",
- "Panel del clínico":"admin","Paciente":"admin","Facturación":"admin",
- "Antecedentes":"historia","Timeline del paciente":"historia","Encuentro":"encuentro","Evolución longitudinal":"historia",
- ["Medicación"]:"tratamiento",["Prescripción segura"]:"tratamiento",["Órdenes clínicas"]:"tratamiento",Vacunas:"tratamiento",["Plan de cuidados"]:"tratamiento",
- ["Resultados diagnósticos"]:"diagnostico",Alergias:"diagnostico",["Lista de problemas"]:"diagnostico",["Signos vitales"]:"diagnostico",
- Interconsultas:"coordinacion",Agenda:"coordinacion",["Consentimiento informado"]:"coordinacion",["Documentos clínicos"]:"coordinacion",["Obligaciones de seguimiento"]:"coordinacion",
+ "Seguimiento automático":"resumen",
+ "Encuentro":"encuentro",
+ "Antecedentes":"historia","Timeline del paciente":"historia","Evolución longitudinal":"historia",
+ ["Lista de problemas"]:"problemas",
+ Alergias:"alergias",
+ ["Medicación"]:"medicacion",["Prescripción segura"]:"medicacion",
+ ["Signos vitales"]:"signos",
+ ["Resultados diagnósticos"]:"resultados",
+ ["Órdenes clínicas"]:"ordenes",
+ Vacunas:"vacunas",
+ ["Plan de cuidados"]:"plan",
+ ["Documentos clínicos"]:"documentos",
+ ["Clinical Intelligence"]:"intel",
+ Interconsultas:"coordinacion",Agenda:"coordinacion",["Consentimiento informado"]:"coordinacion",["Obligaciones de seguimiento"]:"coordinacion",
  Internamiento:"hospital",["Muestras de laboratorio"]:"hospital",["Incidentes de seguridad"]:"hospital",Triage:"hospital",
+ "Panel del clínico":"admin","Paciente":"admin","Facturación":"admin","Seguridad y auditoría":"admin","Portal del paciente":"admin",
 };
 /** Abre una sección del expediente activando su sub-pestaña y luego haciendo scroll (evita aterrizar en una sección oculta). */
 export function goExpSection(section:string,setView:(v:"exp")=>void,setExpTab:(t:ExpTab)=>void):void{
@@ -607,17 +618,26 @@ export function goExpSection(section:string,setView:(v:"exp")=>void,setExpTab:(t
  // Espera a que la sub-pestaña (y la vista lazy) monten su contenido antes de desplazarse.
  setTimeout(()=>scrollToSection(section),80);
 }
+// Submenús del Expediente = los MÓDULOS del paciente, en orden clínico. "Resumen" es la entrada (default expTab="resumen");
+// "Consulta" (el encuentro activo) va segunda — abrir la consulta aterriza ahí vía openConsulta. El resto son los módulos
+// que el médico reconoce del menú lateral, ahora paciente-scoped dentro del expediente.
 export const EXP_TABS:{key:ExpTab,label:string,hint:string,hospital?:boolean}[]=[
- // "Consulta" = el encuentro ACTIVO, primera pestaña: abrir la consulta de un paciente aterriza aquí (unificación
- // Consulta⟷Expediente). Primero para que NO quede oculto — es la superficie de trabajo/decisión del médico.
+ {key:"resumen",label:"Resumen",hint:"Vista principal del paciente durante la consulta"},
  {key:"encuentro",label:"Consulta",hint:"Encuentro actual: documentar, prescribir y firmar"},
- {key:"resumen",label:"Resumen",hint:"Vista principal, seguimiento, portal y auditoría"},
- {key:"historia",label:"Historia",hint:"Antecedentes, timeline y evolución"},
- {key:"diagnostico",label:"Diagnóstico",hint:"Problemas, alergias, resultados y signos vitales"},
- {key:"tratamiento",label:"Tratamiento",hint:"Medicación, prescripción segura, órdenes, plan y vacunas"},
- {key:"coordinacion",label:"Coordinación",hint:"Agenda, interconsultas, obligaciones, documentos y consentimiento"},
+ {key:"historia",label:"Historia clínica",hint:"Antecedentes, línea de tiempo y evolución longitudinal"},
+ {key:"problemas",label:"Problemas",hint:"Lista de problemas y diagnósticos del paciente"},
+ {key:"alergias",label:"Alergias",hint:"Alergias y reacciones del paciente"},
+ {key:"medicacion",label:"Medicación",hint:"Medicación vigente y prescripción segura"},
+ {key:"signos",label:"Signos vitales",hint:"Registro y tendencia de signos vitales"},
+ {key:"resultados",label:"Resultados",hint:"Resultados diagnósticos (closed-loop de críticos)"},
+ {key:"ordenes",label:"Órdenes",hint:"Órdenes de laboratorio, imagen y procedimientos"},
+ {key:"vacunas",label:"Vacunas",hint:"Esquema de vacunación del paciente"},
+ {key:"plan",label:"Plan de cuidados",hint:"Metas y plan de cuidado del paciente"},
+ {key:"documentos",label:"Documentos",hint:"Documentos clínicos del paciente"},
+ {key:"intel",label:"Clinical Intelligence",hint:"Alertas deterministas y apoyo a la decisión"},
+ {key:"coordinacion",label:"Coordinación",hint:"Interconsultas, agenda, obligaciones y consentimiento"},
  {key:"hospital",label:"Hospital",hint:"Internamiento y verticales hospitalarias",hospital:true},
- {key:"admin",label:"Administración",hint:"Paciente, panel del clínico y facturación"},
+ {key:"admin",label:"Administración",hint:"Paciente, panel del clínico, facturación, auditoría y portal"},
 ];
 export const EXP_TAB_KEYS:ExpTab[]=EXP_TABS.map(t=>t.key);
 // Lote F — ventana de consulta de la agenda según la vista. Día/lista consultan un solo día (?date=); semana y mes

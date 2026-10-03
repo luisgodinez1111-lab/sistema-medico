@@ -146,17 +146,17 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 4/
   expect(screen.queryByText("Registro rápido")).toBeNull();
  });
 
- it("Patient 360 (Lote B): el expediente se navega por sub-vistas; la Medicación vive en Tratamiento, no en Resumen",async()=>{
+ it("El expediente se navega por submenús de MÓDULO; la Medicación vive en su propio submenú, no en Resumen",async()=>{
   render(<Workspace/>);
   await toExpediente();
-  // Al abrir el expediente, la sub-vista por defecto es "Resumen": está el hero, NO el formulario de Medicación.
+  // Al abrir el expediente, el submenú por defecto es "Resumen": está el hero, NO el formulario de Medicación.
   await screen.findByText(/Vista principal/,{},{timeout:2500});
-  expect(screen.queryByRole("button",{name:"Proponer medicación"})).toBeNull(); // oculto en otra sub-vista
-  // Al cambiar a "Tratamiento", aparece la Medicación y se oculta el panel de Resumen (Portal del paciente).
-  fireEvent.click(screen.getByRole("button",{name:"Tratamiento"}));
+  expect(screen.queryByRole("button",{name:"Proponer medicación"})).toBeNull(); // oculto en otro submenú
+  // Al cambiar al submenú "Medicación", aparece el formulario y se oculta el panel de Resumen (Portal del paciente, ahora en Administración).
+  fireEvent.click(screen.getByRole("button",{name:"Medicación"}));
   expect(await screen.findByRole("button",{name:"Proponer medicación"})).toBeTruthy();
   expect(screen.queryByRole("heading",{name:"Portal del paciente"})).toBeNull();
-  // La sub-vista se refleja en la URL (?s=) para que el enlace sea compartible.
-  expect(window.location.search).toContain("s=tratamiento");
+  // El submenú se refleja en la URL (?s=) para que el enlace sea compartible.
+  expect(window.location.search).toContain("s=medicacion");
  });
 });

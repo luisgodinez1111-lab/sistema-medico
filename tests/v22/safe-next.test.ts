@@ -10,7 +10,7 @@ describe("safeNext — destino post-login del deep-link",()=>{
   expect(safeNext(dl)).toBe(dl);
  });
  it("decodifica un next codificado (como lo manda el middleware)",()=>{
-  const dl="/workspace?v=exp&p=abc&s=tratamiento";
+  const dl="/workspace?v=exp&p=abc&s=medicacion";
   expect(safeNext(encodeURIComponent(dl))).toBe(dl);
  });
  it("cae a /workspace cuando no hay next",()=>{
