@@ -472,6 +472,23 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   (async()=>{try{const r=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET",signal:ac.signal});if(!cancelled&&r.status===200)setDocsSnap(conForma<DocsSnap>(r.body,FORMA.docsSnap));}catch{/* documentos no disponibles */}})();
   return()=>{cancelled=true;ac.abort();};
  },[view,patientId,ready,session]);
+ // EXPEDIENTE VIVO: al abrir un paciente, HIDRATA sus módulos (problemas, alergias, medicación, signos, vacunas, órdenes,
+ // resultados) con su historia REAL vía GET /patients/:id/chart. Antes estos arrays arrancaban en [] y solo se llenaban con
+ // lo creado en la sesión, así que un paciente con años de historia salía vacío. Cada fila trae su `version` (If-Match), por
+ // lo que lo hidratado NO es solo lectura: se puede transicionar. Los creates siguen añadiendo de forma optimista encima.
+ type ChartResp=Readonly<{problems:Prob[];allergies:Al[];medications:Med[];vitals:Vit[];immunizations:Imm[];orders:Order[];results:Result[]}>;
+ useEffect(()=>{
+  if(view!=="exp"||!patientId||!ready||!session)return;
+  let cancelled=false;const ac=new AbortController();
+  (async()=>{try{
+   const r=await apiRequest(`/api/v1/patients/${patientId}/chart`,{method:"GET",signal:ac.signal});
+   if(cancelled||r.status!==200)return;
+   const c=conForma<ChartResp>(r.body,FORMA.chart);if(!c)return;
+   // Reemplaza las listas por la historia real del paciente (no append: es la carga inicial del expediente).
+   setProblems(c.problems);setAllergies(c.allergies);setMeds(c.medications);setVitals(c.vitals);setImms(c.immunizations);setOrders(c.orders);setResults(c.results);
+  }catch{/* expediente no disponible: los módulos quedan como estaban; el aviso de error del layout cubre el fallo de carga */}})();
+  return()=>{cancelled=true;ac.abort();};
+ },[view,patientId,ready,session,chartReload]);
  // Agenda del día real (vistas Agenda e Inicio).
  useEffect(()=>{
   if((view!=="agenda"&&view!=="inicio")||!ready||!session)return;

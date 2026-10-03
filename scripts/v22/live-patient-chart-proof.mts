@@ -1,0 +1,53 @@
+// EXPEDIENTE VIVO — evidencia física: GET /patients/:id/chart hidrata los módulos del expediente con la historia REAL del
+// paciente (problemas, alergias, resultados…), cada fila con su VERSIÓN (para que la UI pueda transicionar lo leído).
+// Antes el front arrancaba estos módulos en [] y solo mostraba lo creado en la sesión. vs base desechable con RLS.
+import crypto from"node:crypto";
+import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=process.env.SESSION_SIGNING_SECRET;
+const{signSession}=await import("../../packages/session/src");
+const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
+const patR=await import("../../apps/web/app/api/v1/patients/route");
+const resR=await import("../../apps/web/app/api/v1/results/route");
+const prob=await import("../../apps/web/app/api/v1/problems/route");
+const alR=await import("../../apps/web/app/api/v1/allergies/route");
+const chartR=await import("../../apps/web/app/api/v1/patients/[patientId]/chart/route");
+const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
+function tok(scopes=["patient:write","patient:read","result:write","problem:write","allergy:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
+function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
+const PP=(id:string)=>({params:Promise.resolve({patientId:id})});
+let ts=Date.parse("2026-09-14T09:00:00.000Z");const at=()=>new Date(ts+=60000).toISOString();const idem=()=>crypto.randomUUID();
+const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
+async function reg(t:string,p:string,y:number,sex:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:`Prueba ${p.slice(0,8)}`,birthDate:birth(y),sexAtBirth:sex,occurredAt:at()})}));}
+async function res(t:string,p:string,a:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:p,orderId:crypto.randomUUID(),analyte:a,value:v,unit:canonicalUnitOf(a)??"mg/dL",occurredAt:at()})}));}
+async function dx(t:string,p:string,c:string){await prob.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({problemId:crypto.randomUUID(),patientId:p,code:c,occurredAt:at()})}));}
+async function allergy(t:string,p:string,s:string){await alR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({allergyId:crypto.randomUUID(),patientId:p,substance:s,severity:"MODERATE",reaction:"rash",occurredAt:at()})}));}
+async function get(t:string,p:string){const r=await chartR.GET(new Request("http://l/",{headers:H(t)}),PP(p));return{status:r.status,body:await r.json()};}
+const hasVersion=(a:Array<{version?:unknown}>)=>a.every(x=>typeof x.version==="number"&&(x.version as number)>=1);
+try{
+ const phys=tok();
+ const p=crypto.randomUUID();await reg(phys,p,54,"FEMALE");
+ for(const c of["E11.9","I10","N18.3"])await dx(phys,p,c);
+ await res(phys,p,"CREATININE","1.3");
+ await res(phys,p,"HBA1C","7.1");
+ await allergy(phys,p,"penicilina");
+ const g=await get(phys,p);
+ ok(g.status===200,"CHART_200");
+ // El expediente llega HIDRATADO con la historia real (no vacío), y cada fila trae su versión (If-Match).
+ ok(Array.isArray(g.body.problems)&&g.body.problems.length===3,"PROBLEMS_3");
+ ok(g.body.problems.every((x:{id?:unknown;label?:unknown;state?:unknown})=>!!x.id&&!!x.label&&!!x.state),"PROBLEM_SHAPE");
+ ok(hasVersion(g.body.problems),"PROBLEM_VERSION");
+ ok(Array.isArray(g.body.allergies)&&g.body.allergies.length===1,"ALLERGIES_1");
+ ok(String(g.body.allergies[0].label).toLowerCase().includes("penicilina"),"ALLERGY_LABEL");
+ ok(hasVersion(g.body.allergies),"ALLERGY_VERSION");
+ ok(Array.isArray(g.body.results)&&g.body.results.length===2,"RESULTS_2");
+ ok(hasVersion(g.body.results),"RESULT_VERSION");
+ // Los módulos sin datos llegan como arrays vacíos (no undefined): la UI distingue "sin historia" de "no cargó".
+ for(const k of["medications","vitals","immunizations","orders"])ok(Array.isArray(g.body[k]),`${k.toUpperCase()}_ARRAY`);
+ // Aislamiento: otro paciente no ve esta historia.
+ const p2=crypto.randomUUID();await reg(phys,p2,30,"MALE");const g2=await get(phys,p2);
+ ok(g2.body.problems.length===0&&g2.body.allergies.length===0,"OTHER_PATIENT_EMPTY");
+ // Sin scope de lectura -> 403.
+ const noScope=tok(["result:write"]);const g3=await get(noScope,p);ok(g3.status===403,"MISSING_SCOPE_403");
+}catch(e){result.status="FAIL";result.error=String(e);}
+console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

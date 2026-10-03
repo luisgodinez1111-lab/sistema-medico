@@ -528,6 +528,7 @@ export function conForma<T>(body:unknown,claves:readonly string[]):T|null{
 /** Claves que cada snapshot tiene que traer para que su vista pueda pintarlo sin inventar. */
 export const FORMA={
  snap:["demographics","problems","allergies","vitals","labs","findings"],
+ chart:["problems","allergies","medications","vitals","immunizations","orders","results"], // expediente VIVO: módulos hidratados por paciente
  trends:["series","latest"],
  consTabs:["results","orders","medications","vaccines","planGoals","documents","obligations"],
  vitHist:["records","series","count"],

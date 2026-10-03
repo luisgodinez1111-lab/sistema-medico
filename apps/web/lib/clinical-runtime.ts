@@ -20,6 +20,8 @@ export{findPatientDuplicate,listPatients,patientBirthDate,patientDemographics,re
 export{activeAllergies,activeAllergySubstances,activeMedicationDrugCodes,activeProblemCodes,administeredVaccineCodes,administeredVaccines,antecedentes,carePlanGoals,latestHepaticAssessment,latestVitalReadings,latestVitalsByType,patientDocuments,patientEgfr,patientObligations,patientVitals}from"./runtime/patient-facts";
 export{analyteSeries,latestAnalyteReading}from"./runtime/lab-facts";
 export{agendaForDate,allergyRegistry,claimsRegistry,immunizationRegistry,ordersRegistry,problemRegistry,resultsRegistry,vitalsRegistry,carePlanRegistry,referralsRegistry,overdueOrders}from"./runtime/registries";
+export{patientChart}from"./runtime/patient-chart";// expediente VIVO: hidrata todos los módulos por paciente (con versión para If-Match)
+export type{PatientChart,ChartRow,ChartVital,ChartResult}from"./runtime/patient-chart";
 export{officeSettings,regulatoryObligations}from"./runtime/office";
 export{appointmentOutcomes,appointmentsByType,encounterAnalytics,medicationsPrescribed,resultsSummary,claimsIncome,reportAggregates,HBA1C_CONTROL_THRESHOLD}from"./runtime/analytics";
 export{registrySummary,topPatientsOfRegistry}from"./runtime/registry-summaries";
