@@ -8,11 +8,11 @@
 // Reutiliza TODOS los handlers/endpoints del contexto sin cambiar su lógica ni los flujos de seguridad del encuentro.
 import{useState}from"react";
 import{searchIcd10}from"../../../../../packages/terminology/src";
-import{Check,card,P,LINE,UI,act,goExpSection,DX_LABEL,NavIcon,mono,isPediatricAge,antFreshness}from"../shared";
+import{Check,card,P,LINE,UI,act,goExpSection,scrollTop,DX_LABEL,NavIcon,mono,isPediatricAge,antFreshness}from"../shared";
 import{useWorkspace}from"../context";
 
 export default function EncounterForm(){
- const{enc,snap,consTabs,antSnap,clock,cForm,setCForm,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdCat,cOrdSel,setCOrdSel,setCOrdMsg,createConsultaOrders,cOrdBusy,cOrdMsg,patientId,setView,setExpTab,gaps,busy,consultaAdvance,cPreview,setCPreview,composeNote,cMsg,setCMsg,docDisplay}=useWorkspace();
+ const{enc,snap,consTabs,antSnap,clock,cForm,setCForm,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdCat,cOrdSel,setCOrdSel,setCOrdMsg,createConsultaOrders,cOrdBusy,cOrdMsg,patientId,setView,setExpTab,gaps,busy,consultaAdvance,cPreview,setCPreview,composeNote,cMsg,setCMsg,docDisplay,reset}=useWorkspace();
  const[dxType,setDxType]=useState<"PROBABLE"|"CONFIRMED"|"POSSIBLE">("PROBABLE"); // tipo de la impresión diagnóstica
  // Lo poco usado arranca COLAPSADO; si el borrador ya trae contenido, se muestra abierto (no se esconde lo escrito).
  const[showInterrog,setShowInterrog]=useState(()=>!!cForm.interrog.trim());
@@ -40,6 +40,9 @@ export default function EncounterForm(){
  const advLabel=!patientId?"Selecciona un paciente":!enc?"Abrir encuentro":st==="OPEN"?"Guardar valoración":st==="READY_TO_SIGN"?(criticalOpen?`Firma bloqueada: ${criticalOpen} pendiente(s) crítico(s)`:"Firmar consulta"):"✓ Consulta firmada";
  const advDisabled=busy!==""||!patientId||st==="SIGNED"||(st==="READY_TO_SIGN"&&criticalOpen>0);
  const advBg=st==="READY_TO_SIGN"?"linear-gradient(90deg,#16A66A,#12905c)":`linear-gradient(90deg,${P.purpleOnPale},#5B6BF0)`;
+ // Throughput de jornada larga: al firmar, encadenar con el SIGUIENTE paciente sin rodeos — se limpia el paciente actual
+ // y se vuelve a la Agenda del día (sala de espera / próximas citas), desde donde se abre al siguiente con un clic.
+ const nextPatient=()=>{reset();setView("agenda");scrollTop();};
  const estadoChip=enc&&(()=>{const m=st==="SIGNED"?["#E6F6EE",P.greenOnPale,"Firmada"]:st==="READY_TO_SIGN"?["#FBF0DC",P.amberOnPale,"Lista para firmar"]:["#EAF1FD",P.blueOnPale,"Abierta"];return <span style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:m[0],color:m[1],whiteSpace:"nowrap"}}>Encuentro · {m[2]}</span>;})();
 
  return <>
@@ -157,7 +160,10 @@ export default function EncounterForm(){
   <div style={{position:"sticky",bottom:0,zIndex:7,marginTop:4,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",justifyContent:"flex-end",padding:"12px 16px",background:"rgba(252,252,255,.92)",backdropFilter:"blur(6px)",borderTop:`1px solid ${LINE}`,borderRadius:"12px 12px 0 0",boxShadow:"0 -6px 18px rgba(16,42,86,.06)"}}>
    {estadoChip}<span style={{flex:1}}/>
    <button onClick={()=>setCPreview(v=>!v)} style={{display:"inline-flex",alignItems:"center",gap:8,border:`1px solid ${LINE}`,background:cPreview?"#EEEBFD":P.white,color:cPreview?P.purple:P.ink,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Vista previa</button>
-   <button onClick={consultaAdvance} disabled={advDisabled} style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:advDisabled?"#C7CCE0":advBg,color:"#fff",borderRadius:10,padding:"10px 20px",fontWeight:700,fontSize:13.5,cursor:advDisabled?"default":"pointer",fontFamily:UI}}>{busy==="cadv"?"Procesando…":advLabel}</button>
+   {st==="SIGNED"
+    /* Firmada: la acción deja de ser "firmar" y pasa a ser "siguiente paciente" — así una jornada de 30 consultas encadena sin volver al menú. */
+    ? <button onClick={nextPatient} style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:"linear-gradient(90deg,#16A66A,#12905c)",color:"#fff",borderRadius:10,padding:"10px 20px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>✓ Firmada · Siguiente paciente →</button>
+    : <button onClick={consultaAdvance} disabled={advDisabled} style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:advDisabled?"#C7CCE0":advBg,color:"#fff",borderRadius:10,padding:"10px 20px",fontWeight:700,fontSize:13.5,cursor:advDisabled?"default":"pointer",fontFamily:UI}}>{busy==="cadv"?"Procesando…":advLabel}</button>}
   </div>
  </>;
 }
