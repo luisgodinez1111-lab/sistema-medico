@@ -538,6 +538,15 @@ export const FORMA={
  ciSnap:["registered"], // su contenido es opcional por diseño; lo que no puede faltar es si el paciente está registrado
  docsSnap:["items","total"],
 }as const;
+// Banner de carga fallida con "Reintentar" — mismo criterio que Agenda/Reportes: una sección que no cargó NO se deja en
+// "Cargando…" perpetuo; se dice que falló (no asumir vacío) y se ofrece reintentar. Usado por las vistas clínica-wide.
+export function cargaFallida(onRetry:()=>void):React.ReactElement{
+ return <div role="alert" style={{display:"flex",alignItems:"center",gap:12,margin:"14px 0",padding:"12px 16px",borderRadius:12,background:"#FDECEE",border:"1px solid #F6CDD3",fontSize:13.5}}>
+  <span style={{color:P.redOnPale,fontWeight:700,flex:"0 0 auto"}}>⚠</span>
+  <span style={{flex:1}}>No se pudo cargar esta sección. No asumas que está vacía: reintenta o revisa la conexión.</span>
+  <button onClick={onRetry} style={{border:`1px solid ${P.redOnPale}`,background:P.white,color:P.redOnPale,borderRadius:9,padding:"7px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI,flex:"0 0 auto"}}>Reintentar</button>
+ </div>;
+}
 // Auditoría 2026-09-19, anexo R05b (R05b-03 y R05b-21) — LA EDAD DE LA FILA, derivada de verdad.
 //
 // El campo `age` de las filas de Alergias, Problemas y Vacunas se construía SIEMPRE como cadena vacía: código muerto en

@@ -2,10 +2,10 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "facturacion" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {apiRequest} from "../../../lib/session-client";
-import{card,P,LINE,UI,act,Skeleton,type ClaimsRegistry}from"../shared";
+import{card,P,LINE,UI,act,Skeleton,cargaFallida,type ClaimsRegistry}from"../shared";
 import{useWorkspace}from"../context";
 export default function FacturacionView(){
- const{cfgSettings,claimsReg,nfConcepts,setNfConcepts,nfPatientId,patientId,setNfMsg,setNfBusy,setClaimsReg,setNfPatientId,patientList,patientName,nfMsg,nfBusy}=useWorkspace();
+ const{cfgSettings,claimsReg,nfConcepts,setNfConcepts,nfPatientId,patientId,setNfMsg,setNfBusy,setClaimsReg,setNfPatientId,patientList,patientName,nfMsg,nfBusy,loadErr,retryLoad}=useWorkspace();
 
    // ===== MÓDULO FACTURACIÓN (S-FACTURACION) — registro clínica-wide cableado a GET /claims; emisión -> POST /claims =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -38,6 +38,7 @@ export default function FacturacionView(){
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
    const stepN=(n:number)=><span style={{width:20,height:20,borderRadius:"50%",background:P.purple,color:"#fff",display:"grid",placeItems:"center",fontSize:11,fontWeight:700,flex:"0 0 auto"}}>{n}</span>;
    return <div style={{padding:"18px 24px 40px"}}>
+    {loadErr.claims&&!claimsReg&&cargaFallida(()=>retryLoad("claims"))}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M9 3h6a1 1 0 011 1v1h1a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h1V4a1 1 0 011-1zM9 12h6M9 16h4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Facturación</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Emite facturas, controla pagos y administra tus ingresos.</p></div></div>
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setNfConcepts([{desc:"Consulta médica",qty:1,price:500}]);setNfPatientId("");setNfMsg("");}}>+ Nueva factura</button></div>

@@ -2,10 +2,10 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "resultados" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
-import{card,P,LINE,UI,scrollToSection,goExpSection,act,Skeleton}from"../shared";
+import{card,P,LINE,UI,scrollToSection,goExpSection,act,Skeleton,cargaFallida}from"../shared";
 import{useWorkspace}from"../context";
 export default function ResultadosView(){
- const{resReg,resQ,resTypeF,resEstadoF,resSel,setResNew,setResMsg2,resNew,setView,setExpTab,setResTab,resTab,resMsg2,resForm,setResForm,patientList,createResult,resBusy2,setResSel,setResQ,setResTypeF,setResEstadoF,ordReg}=useWorkspace();
+ const{resReg,resQ,resTypeF,resEstadoF,resSel,setResNew,setResMsg2,resNew,setView,setExpTab,setResTab,resTab,resMsg2,resForm,setResForm,patientList,createResult,resBusy2,setResSel,setResQ,setResTypeF,setResEstadoF,ordReg,loadErr,retryLoad}=useWorkspace();
 
    // ===== MÓDULO RESULTADOS — S7 (5 pestañas) =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -26,6 +26,7 @@ export default function ResultadosView(){
    const ricoPath:Record<string,string>={flask:"M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3",clip:"M9 4h6v2H9zM7 5H6v16h12V5h-1M8 11h8M8 15h6",img:"M3 5h18v14H3zM3 15l5-5 4 4 3-3 6 6"};
    const pill=(bg:string,fg:string,t:string)=><span style={{fontSize:10.5,fontWeight:700,borderRadius:999,padding:"2px 9px",background:bg,color:fg}}>{t}</span>;
    return <div style={{padding:"18px 24px 40px"}}>
+    {loadErr.res&&!resReg&&cargaFallida(()=>retryLoad("res"))}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Resultados</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Consulta, analiza y da seguimiento a estudios de laboratorio, imagenología y otros resultados.</p></div></div>
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 16px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setResNew(v=>!v);setResMsg2(null);}}>{resNew?"Cerrar":"+ Registrar resultado"}</button><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>setView("ordenes")}>Solicitar estudio</button></div>

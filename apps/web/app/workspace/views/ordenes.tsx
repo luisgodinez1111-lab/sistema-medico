@@ -2,10 +2,10 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "ordenes" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{scrollTop,card,P,LINE,UI,act,actRow,Skeleton}from"../shared";
+import{scrollTop,card,P,LINE,UI,act,actRow,Skeleton,cargaFallida}from"../shared";
 import{useWorkspace}from"../context";
 export default function OrdenesView(){
- const{ordReg,ordTab,ordQuery,ordStatus,ordSel,openConsulta,reloadOrders,setOrdMsg,setOrdNew,ordNew,setOrdTab,ordMsg,ordForm,setOrdForm,patientList,submitOrder,ordBusy,setOrdQuery,setOrdStatus,docDisplay,setOrdSel,orderTransition}=useWorkspace();
+ const{ordReg,ordTab,ordQuery,ordStatus,ordSel,openConsulta,reloadOrders,setOrdMsg,setOrdNew,ordNew,setOrdTab,ordMsg,ordForm,setOrdForm,patientList,submitOrder,ordBusy,setOrdQuery,setOrdStatus,docDisplay,setOrdSel,orderTransition,loadErr,retryLoad}=useWorkspace();
 
    // ===== MÓDULO ÓRDENES — cableado REAL de punta a punta (crear + ciclo de vida + navegación) =====
    // Fuente única: ordersRegistry (GET /api/v1/orders). Acciones: POST create / placement / fulfillment / cancellation.
@@ -50,6 +50,7 @@ export default function OrdenesView(){
     return[["Orden creada","Solicitud registrada en el expediente",true],["Enviada al laboratorio",s==="Enviada"||s==="Completada"?"Estudio en proceso":"Pendiente de envío",s==="Enviada"||s==="Completada"],["Resultado / cumplida",s==="Completada"?"Orden completada":"Se notificará al registrar el resultado",s==="Completada"]];
    };
    return <div style={{padding:"18px 24px 40px"}}>
+    {loadErr.ord&&!ordReg&&cargaFallida(()=>retryLoad("ord"))}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M7 3h10v18H7zM10 8h4M10 12h4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Órdenes</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Solicita, envía y da seguimiento a estudios de laboratorio, imagenología, gabinete e interconsultas. Cada orden se registra en el expediente y avanza por su ciclo de vida.</p></div></div>
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={async()=>{setOrdMsg("Actualizando…");await reloadOrders();setOrdMsg(null);}}>↻ Actualizar</button><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setOrdNew(v=>!v);setOrdMsg(null);}}>{ordNew?"Cerrar":"+ Nueva orden"}</button></div>

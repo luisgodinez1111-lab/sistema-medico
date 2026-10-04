@@ -2,10 +2,10 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "seguimiento" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{card,LINE,P,UI,Skeleton}from"../shared";
+import{card,LINE,P,UI,Skeleton,cargaFallida}from"../shared";
 import{useWorkspace}from"../context";
 export default function SeguimientoView(){
- const{fuSnap,setView,openConsulta,patientName,patientSelector,patientId,panel,patientList,selectPatientRaw}=useWorkspace();
+ const{fuSnap,setView,openConsulta,patientName,patientSelector,patientId,panel,patientList,selectPatientRaw,loadErr,retryLoad}=useWorkspace();
 
    // ===== MÓDULO SEGUIMIENTO (S-SEGUIMIENTO) — snapshot compuesto cableado a GET /patients/:id/follow-up =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -44,6 +44,7 @@ export default function SeguimientoView(){
    const tasks=fuSnap?.tasks??[];
    const chipCard=(c:string,d:string,n:number,l:string)=><div style={{...card2,padding:"10px 14px",display:"flex",alignItems:"center",gap:9}}><span style={{width:32,height:32,borderRadius:9,background:c+"22",color:c,display:"grid",placeItems:"center"}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={d}/></svg></span><div><div style={{fontSize:15,fontWeight:800,lineHeight:1}}>{n}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div></div>;
    return <div style={{padding:"18px 24px 40px"}}>
+    {patientId&&loadErr.fu&&!fuSnap&&cargaFallida(()=>retryLoad("fu"))}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d={clip}/><path d="M9 13l2 2 4-4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Seguimiento</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Da seguimiento continuo a la evolución clínica de tus pacientes.</p></div></div>
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>

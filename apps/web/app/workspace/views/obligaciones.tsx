@@ -2,10 +2,10 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "obligaciones" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{card,LINE,P,UI,Skeleton}from"../shared";
+import{card,LINE,P,UI,Skeleton,cargaFallida}from"../shared";
 import{useWorkspace}from"../context";
 export default function ObligacionesView(){
- const{regObSnap,oblTab,setOblNew,setOblMsg,oblNew,oblMsg,oblForm,setOblForm,createRegObligation,oblBusy,setOblTab}=useWorkspace();
+ const{regObSnap,oblTab,setOblNew,setOblMsg,oblNew,oblMsg,oblForm,setOblForm,createRegObligation,oblBusy,setOblTab,loadErr,retryLoad}=useWorkspace();
 
    // ===== MÓDULO OBLIGACIONES (S-OBLIGACIONES) — obligaciones regulatorias del consultorio cableadas a GET /regulatory-obligations =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -27,6 +27,7 @@ export default function ObligacionesView(){
    const OBL_TABS:[typeof oblTab,string][]=[["todas","Todas"],["fiscales","Fiscales (SAT)"],["salud","Salud (COFEPRIS)"],["laborales","Laborales"],["proteccion","Protección civil"],["administrativas","Administrativas"],["otros","Otros"]];
    const fileIco="M6 2h9l5 5v15H6zM14 2v6h6";
    return <div style={{padding:"18px 24px 40px"}}>
+    {loadErr.obl&&!regObSnap&&cargaFallida(()=>retryLoad("obl"))}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div style={{display:"flex",alignItems:"flex-start",gap:14}}><span style={{width:46,height:46,borderRadius:12,background:"#EEEBFD",color:P.purple,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><path d="M5 5h14v14H5zM9 12l2 2 4-4"/></svg></span><div><h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Obligaciones</h1><p style={{color:P.muted,fontSize:13.5,margin:"4px 0 0"}}>Cumple y da seguimiento a las obligaciones legales, fiscales y normativas de tu consultorio.</p></div></div>
      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button style={{border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setOblNew(v=>!v);setOblMsg(null);}}>{oblNew?"Cerrar":"+ Agregar obligación"}</button></div>
