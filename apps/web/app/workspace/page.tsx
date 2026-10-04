@@ -34,6 +34,10 @@ export default function Workspace(){
  const{ready,session,cspNonce,sideCollapsed,view,setView,setExpTab,reset,setDocMenu,docMenu,setSideCollapsed,topSearch,setTopSearch,loadPatients,setTopMenu,topMenu,chartState,setChartReload,signAsk,signErr,signBusy,setSignAsk,setSignErr,confirmSign,reasonAsk,reasonText,setReasonText,setReasonAsk,amendAsk,amendText,setAmendText,setAmendAsk,busy,confirmAmend,cfgSettings}=m;
  // S-CONFIG aplicado: sub-pestaña inicial del expediente según la preferencia del consultorio (prefRecordView).
  const defaultExpTab=EXP_TAB_FOR_PREF[cfgSettings?.prefRecordView as string]??"resumen";
+ // S-CONFIG «Apariencia»: el color principal (acento, var --c-accent) y el tamaño de fuente (zoom del contenido) se aplican
+ // de verdad. El acento solo se acepta si es un hex válido (los swatches lo son); si no, cae al púrpura del tema.
+ const accent=/^#[0-9a-fA-F]{6}$/.test(cfgSettings?.color??"")?cfgSettings!.color:null;
+ const appStyle=accent?({"--c-accent":accent} as React.CSSProperties):undefined;
  // Focus-trap de los modales de firma/motivo/enmienda (WCAG 2.4.3/2.1.2): el teclado circula dentro mientras están abiertos.
  const signTrap=useFocusTrap<HTMLDivElement>(!!signAsk);
  const reasonTrap=useFocusTrap<HTMLDivElement>(!!reasonAsk);
@@ -59,7 +63,7 @@ export default function Workspace(){
  const d=deriveHeader({...m,session});
  const{navCounts,docInitials,docDisplay,docRole,notifCount}=d;
  const bag={...m,...d};
- return <WorkspaceProvider value={bag}><div className="mos-app" data-theme={cfgSettings?.theme==="Oscuro"?"dark":"light"}>
+ return <WorkspaceProvider value={bag}><div className="mos-app" data-theme={cfgSettings?.theme==="Oscuro"?"dark":"light"} data-fontsize={cfgSettings?.fontSize==="Grande"?"grande":"normal"} style={appStyle}>
   <style nonce={cspNonce}>{RAIL_CSS}</style>
   {/* SIDEBAR OSCURO — navegación primaria del expediente (slider a un lado) */}
   <aside className={"mos-side"+(sideCollapsed?" col":"")}>

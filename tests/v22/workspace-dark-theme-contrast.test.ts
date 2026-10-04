@@ -47,3 +47,16 @@ describe("contraste del tema oscuro del workspace (WCAG AA 4.5:1)",()=>{
   }
  });
 });
+// S-CONFIG «Color principal»: el acento (var --c-accent) pinta botones sólidos con TEXTO BLANCO. Cada swatch ofrecido en
+// Configuración debe tener ≥ AA 4.5:1 contra blanco, o un acento elegible dejaría botones ilegibles. Se leen del propio
+// código de la vista para que no puedan divergir del test.
+describe("contraste del color de acento (texto blanco sobre el acento)",()=>{
+ const cfg=fs.readFileSync("apps/web/app/workspace/views/configuracion.tsx","utf8");
+ const m=cfg.match(/Color principal<\/div><div style=\{\{display:"flex",gap:8\}\}>\{\[([^\]]+)\]/);
+ const swatches=(m?.[1]??"").split(",").map(s=>s.trim().replace(/^["']|["']$/g,"")).filter(h=>/^#[0-9A-Fa-f]{6}$/.test(h));
+ it("hay swatches de acento y todos son hex",()=>{expect(swatches.length,"no se hallaron swatches de color").toBeGreaterThanOrEqual(5);});
+ it("texto blanco sobre cada acento cumple AA 4.5:1",()=>{
+  const malos=swatches.filter(h=>contraste("#FFFFFF",h)<AA).map(h=>`${h} = ${contraste("#FFFFFF",h).toFixed(2)}:1`);
+  expect(malos,"acentos con texto blanco por debajo de AA").toEqual([]);
+ });
+});

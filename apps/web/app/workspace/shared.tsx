@@ -17,7 +17,11 @@ import {uuidFromDigest} from "../../../../packages/canonical-json/src/uuid";
 // del paquete NO se toca: sus guards de contraste lo validan contra blanco/lienzo; esto es una capa de presentación local.
 const pc=primitive.color;
 export const P={
- navy:`var(--c-navy,${pc.navy})`,blue:`var(--c-blue,${pc.blue})`,purple:`var(--c-purple,${pc.purple})`,
+ navy:`var(--c-navy,${pc.navy})`,blue:`var(--c-blue,${pc.blue})`,
+ // El PÚRPURA de marca es el ACENTO configurable: lo gobierna `--c-accent` (lo fija page.tsx desde cfgSettings.color), con
+ // respaldo al púrpura del tema. Los swatches de «Color principal» son todos AA-oscuros, así que el texto blanco de los
+ // botones sigue legible con cualquier acento. (El púrpura de CHIP es `purpleOnPale`/`purplePale`, aparte: no cambia.)
+ purple:`var(--c-accent,var(--c-purple,${pc.purple}))`,
  cyan:`var(--c-cyan,${pc.cyan})`,green:`var(--c-green,${pc.green})`,amber:`var(--c-amber,${pc.amber})`,
  red:`var(--c-red,${pc.red})`,canvas:`var(--c-canvas,${pc.canvas})`,ink:`var(--c-ink,${pc.ink})`,
  muted:`var(--c-muted,${pc.muted})`,white:`var(--c-surface,${pc.white})`,
@@ -843,6 +847,9 @@ export const RAIL_CSS=`
 .mos-collapse{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:8px;padding:12px;border-radius:12px;background:#ffffff0a;border:1px solid #ffffff14;color:#9095CB;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .mos-collapse:hover{background:#ffffff12;color:#fff}
 .mos-body{flex:1;min-width:0;display:flex;flex-direction:column}
+/* S-CONFIG «Tamaño de fuente»: el workspace usa tamaños en px (no rem), así que «Grande» escala el CONTENIDO con zoom (el
+   sidebar se mantiene). zoom refluye el layout a diferencia de transform, por lo que no recorta ni desalinea. */
+.mos-app[data-fontsize="grande"] .mos-body{zoom:1.12}
 .mos-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start;padding:20px clamp(20px,2.4vw,64px) 52px;max-width:2100px;margin:0 auto;width:100%;box-sizing:border-box}
 .mos-consulta{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(300px,1fr);gap:18px}
 @media(max-width:1120px){.mos-consulta{grid-template-columns:1fr!important}.mos-consulta-side{position:static!important}}
