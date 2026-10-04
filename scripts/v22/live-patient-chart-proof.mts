@@ -13,8 +13,13 @@ const alR=await import("../../apps/web/app/api/v1/allergies/route");
 const medR=await import("../../apps/web/app/api/v1/medications/route");
 const ordR=await import("../../apps/web/app/api/v1/orders/route");
 const chartR=await import("../../apps/web/app/api/v1/patients/[patientId]/chart/route");
+const oblR=await import("../../apps/web/app/api/v1/obligations/route");
+const refR=await import("../../apps/web/app/api/v1/referrals/route");
+const apptR=await import("../../apps/web/app/api/v1/appointments/route");
+const consR=await import("../../apps/web/app/api/v1/consents/route");
+const cplR=await import("../../apps/web/app/api/v1/care-plans/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
-function tok(scopes=["patient:write","patient:read","result:write","problem:write","allergy:write","medication:propose","order:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
+function tok(scopes=["patient:write","patient:read","result:write","problem:write","allergy:write","medication:propose","order:write","obligation:write","referral:write","appointment:write","consent:write","careplan:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const PP=(id:string)=>({params:Promise.resolve({patientId:id})});
 let ts=Date.parse("2026-09-14T09:00:00.000Z");const at=()=>new Date(ts+=60000).toISOString();const idem=()=>crypto.randomUUID();
@@ -41,6 +46,13 @@ try{
  await med(phys,p,"metformina",dm,ENC);
  await order(phys,p,"HbA1c de control",dm,ENC);
  await order(phys,p,"Perfil de lípidos");
+ // Coordinación + Plan — un agregado de cada tipo para el paciente, para comprobar que el chart los HIDRATA (antes salían
+ // vacíos: islas, y una obligación que bloquea la firma no tenía fila accionable).
+ await oblR.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({obligationId:crypto.randomUUID(),patientId:p,ownerId:crypto.randomUUID(),dueAt:at(),kind:"CRITICAL_RESULT_REVIEW",priority:"URGENT",occurredAt:at()})}));
+ await refR.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({referralId:crypto.randomUUID(),patientId:p,specialty:"Cardiología",reason:"Soplo",occurredAt:at()})}));
+ await apptR.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({appointmentId:crypto.randomUUID(),patientId:p,startAt:at(),reason:"Control DM2",occurredAt:at()})}));
+ await consR.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({consentId:crypto.randomUUID(),patientId:p,scopeType:"PROCEDURE",documentRef:"consent-doc-1",occurredAt:at()})}));
+ await cplR.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({carePlanId:crypto.randomUUID(),patientId:p,category:"DIABETES",goal:"HbA1c < 7% en 3 meses",occurredAt:at()})}));
  const g=await get(phys,p);
  ok(g.status===200,"CHART_200");
  // El expediente llega HIDRATADO con la historia real (no vacío), y cada fila trae su versión (If-Match).
@@ -63,9 +75,18 @@ try{
  ok(g.body.problems.find((x:{label:string;encounterId?:string})=>x.label.includes("E11.9"))?.encounterId===ENC,"PROBLEM_ACT_CONTEXT");
  ok(g.body.medications[0].encounterId===ENC,"MED_ACT_CONTEXT");
  ok(g.body.orders.filter((o:{encounterId?:string})=>o.encounterId===ENC).length===1,"ORDER_ACT_CONTEXT");
+ // Coordinación + Plan HIDRATADOS con forma accionable (id/label/state) y versión (If-Match para transicionar).
+ // Interconsultas/citas/consentimientos/plan: exactamente 1 (el que creamos). Obligaciones: ≥1 — además de la nuestra,
+ // los resultados ANORMALES (p.ej. HbA1c 7.1) auto-crean su obligación de seguimiento, así que puede haber más.
+ for(const[k,st,exact] of [["referrals","REQUESTED",true],["appointments","SCHEDULED",true],["consents","DRAFTED",true],["carePlans","PROPOSED",true],["obligations","OPEN",false]] as [string,string,boolean][]){
+  const arr=g.body[k] as Array<{id?:unknown;label?:unknown;state?:unknown;version?:unknown}>;
+  ok(Array.isArray(arr)&&(exact?arr.length===1:arr.length>=1),`${k.toUpperCase()}_${exact?"1":"GE1"}`);
+  ok(arr.every(x=>!!x.id&&!!x.label&&!!x.state)&&arr.some(x=>x.state===st),`${k.toUpperCase()}_SHAPE`);
+  ok(hasVersion(arr),`${k.toUpperCase()}_VERSION`);
+ }
  // Aislamiento: otro paciente no ve esta historia.
  const p2=crypto.randomUUID();await reg(phys,p2,30,"MALE");const g2=await get(phys,p2);
- ok(g2.body.problems.length===0&&g2.body.allergies.length===0,"OTHER_PATIENT_EMPTY");
+ ok(g2.body.problems.length===0&&g2.body.allergies.length===0&&g2.body.obligations.length===0&&g2.body.carePlans.length===0,"OTHER_PATIENT_EMPTY");
  // Sin scope de lectura -> 403.
  const noScope=tok(["result:write"]);const g3=await get(noScope,p);ok(g3.status===403,"MISSING_SCOPE_403");
 }catch(e){result.status="FAIL";result.error=String(e);}

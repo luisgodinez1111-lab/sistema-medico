@@ -23,6 +23,8 @@ export type ChartResult=Readonly<{id:string;label:string;critical:boolean;state:
 export type PatientChart=Readonly<{
  problems:ChartRow[];allergies:ChartRow[];medications:ChartRow[];vitals:ChartVital[];
  immunizations:ChartRow[];orders:ChartRow[];results:ChartResult[];
+ // Coordinación + Plan (hidratados para que el expediente no sea islas y las obligaciones que bloquean la firma sean accionables):
+ obligations:ChartRow[];referrals:ChartRow[];appointments:ChartRow[];consents:ChartRow[];carePlans:ChartRow[];
 }>;
 
 // Mapas kind→ESTADO del frontend (no el del registry clínica-wide, que usa otro vocabulario). El último kind de ciclo de
@@ -34,6 +36,14 @@ const IMM:Record<string,string>={DUE:"DUE",ADMINISTERED:"ADMINISTERED",REFUSED:"
 const ORD:Record<string,string>={CREATED:"DRAFT",PLACED:"ORDERED",FULFILLED:"FULFILLED",CANCELLED:"CANCELLED"};
 const RES:Record<string,string>={RECEIVED:"RECEIVED",VERIFIED:"VERIFIED",ACTIONED:"ACTIONED",CLOSED:"CLOSED"};
 const VIT:Record<string,string>={RECORDED:"RECORDED",AMENDED:"AMENDED",ENTERED_IN_ERROR:"ENTERED_IN_ERROR"};
+// Módulos de Coordinación + Plan del expediente (antes NO se hidrataban: arrancaban vacíos para un paciente que regresaba,
+// y una obligación de seguimiento que bloqueaba la firma no tenía fila accionable — callejón sin salida). Mismo patrón que
+// arriba: último kind => estado de la UI, versión = nº de eventos (If-Match para poder TRANSICIONAR lo leído).
+const OBL:Record<string,string>={CREATED:"OPEN",STARTED:"IN_PROGRESS",COMPLETED:"COMPLETED",CANCELLED:"CANCELLED"};
+const REF:Record<string,string>={REQUESTED:"REQUESTED",ACCEPTED:"ACCEPTED",DECLINED:"DECLINED",COMPLETED:"COMPLETED",CANCELLED:"CANCELLED"};
+const APPT:Record<string,string>={SCHEDULED:"SCHEDULED",CHECKED_IN:"CHECKED_IN",COMPLETED:"COMPLETED",CANCELLED:"CANCELLED",NO_SHOW:"NO_SHOW"};
+const CONS:Record<string,string>={DRAFTED:"DRAFTED",PRESENTED:"PRESENTED",GRANTED:"GRANTED",DECLINED:"DECLINED",REVOKED:"REVOKED"};
+const CPL:Record<string,string>={PROPOSED:"PROPOSED",ACTIVATED:"ACTIVE",HELD:"ON_HOLD",RESUMED:"ACTIVE",ACHIEVED:"ACHIEVED",CANCELLED:"CANCELLED"};
 
 const str=(o:Record<string,unknown>,k:string)=>o[k]==null?"":String(o[k]);
 
@@ -109,6 +119,43 @@ export async function patientChart(ctx:HttpTenantContext,patientId:string):Promi
    where a.tenant_id=${t} and a.aggregate_type='VitalSign' and a.payload->>'kind'='RECORDED' and a.payload->>'patientId'=${patientId} and er.eie is null
    order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;
    return{id:str(o,"id"),vitalType:str(o,"vital_type"),value:str(o,"value"),unit:str(o,"unit"),state:VIT[str(o,"last_kind")||"RECORDED"]??"RECORDED",version:Number(o.version??1),vstatus:str(o,"vstatus"),interp:str(o,"interp"),...encSpread(o)};});
-  return{problems,allergies,medications,vitals,immunizations,orders,results};
+  // OBLIGACIONES DE SEGUIMIENTO — base OBLIGATION_CREATED. Sin esto, una obligación que BLOQUEA la firma no tenía fila
+  // accionable en el expediente (dead-end). El label es su tipo (obligationKind); el estado, la última transición.
+  const obligations=(await tx`
+   select a.aggregate_id as id, a.payload->>'obligationKind' as label, lk.kind as last_kind, vr.version as version
+   from clinical_events a ${ultimaTransicion(tx,t,Object.keys(OBL))} ${versionDelAgregado(tx,t)}
+   where a.tenant_id=${t} and a.aggregate_type='ClinicalObligation' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=${patientId}
+   order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;
+   return{id:str(o,"id"),label:str(o,"label")||"Obligación de seguimiento",state:OBL[str(o,"last_kind")||"CREATED"]??"OPEN",version:Number(o.version??1)};});
+  // INTERCONSULTAS — base REFERRAL_REQUESTED. label = especialidad + motivo.
+  const referrals=(await tx`
+   select a.aggregate_id as id, a.payload->>'specialty' as specialty, a.payload->>'reason' as reason, lk.kind as last_kind, vr.version as version
+   from clinical_events a ${ultimaTransicion(tx,t,Object.keys(REF))} ${versionDelAgregado(tx,t)}
+   where a.tenant_id=${t} and a.aggregate_type='Referral' and a.payload->>'kind'='REQUESTED' and a.payload->>'patientId'=${patientId}
+   order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const sp=str(o,"specialty"),re=str(o,"reason");
+   return{id:str(o,"id"),label:sp?(re?`${sp}: ${re}`:sp):(re||"Interconsulta"),state:REF[str(o,"last_kind")||"REQUESTED"]??"REQUESTED",version:Number(o.version??1)};});
+  // CITAS — base APPOINTMENT_SCHEDULED. label = motivo + fecha.
+  const appointments=(await tx`
+   select a.aggregate_id as id, a.payload->>'reason' as reason, a.payload->>'startAt' as start_at, lk.kind as last_kind, vr.version as version
+   from clinical_events a ${ultimaTransicion(tx,t,Object.keys(APPT))} ${versionDelAgregado(tx,t)}
+   where a.tenant_id=${t} and a.aggregate_type='Appointment' and a.payload->>'kind'='SCHEDULED' and a.payload->>'patientId'=${patientId}
+   order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const re=str(o,"reason"),at=str(o,"start_at");
+   const when=at?new Date(at).toLocaleString("es-MX",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"";
+   return{id:str(o,"id"),label:re?(when?`${re} · ${when}`:re):(when||"Cita"),state:APPT[str(o,"last_kind")||"SCHEDULED"]??"SCHEDULED",version:Number(o.version??1)};});
+  // CONSENTIMIENTOS — base CONSENT_DRAFTED. label = tipo/alcance.
+  const consents=(await tx`
+   select a.aggregate_id as id, a.payload->>'scopeType' as scope, lk.kind as last_kind, vr.version as version
+   from clinical_events a ${ultimaTransicion(tx,t,Object.keys(CONS))} ${versionDelAgregado(tx,t)}
+   where a.tenant_id=${t} and a.aggregate_type='Consent' and a.payload->>'kind'='DRAFTED' and a.payload->>'patientId'=${patientId}
+   order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;
+   return{id:str(o,"id"),label:str(o,"scope")||"Consentimiento",state:CONS[str(o,"last_kind")||"DRAFTED"]??"DRAFTED",version:Number(o.version??1)};});
+  // PLAN DE CUIDADOS — base CAREPLAN_PROPOSED. label = categoría + meta.
+  const carePlans=(await tx`
+   select a.aggregate_id as id, a.payload->>'category' as category, a.payload->>'goal' as goal, lk.kind as last_kind, vr.version as version
+   from clinical_events a ${ultimaTransicion(tx,t,Object.keys(CPL))} ${versionDelAgregado(tx,t)}
+   where a.tenant_id=${t} and a.aggregate_type='CarePlan' and a.payload->>'kind'='PROPOSED' and a.payload->>'patientId'=${patientId}
+   order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const cat=str(o,"category"),goal=str(o,"goal");
+   return{id:str(o,"id"),label:cat?(goal?`${cat}: ${goal}`:cat):(goal||"Plan de cuidados"),state:CPL[str(o,"last_kind")||"PROPOSED"]??"PROPOSED",version:Number(o.version??1)};});
+  return{problems,allergies,medications,vitals,immunizations,orders,results,obligations,referrals,appointments,consents,carePlans};
  });
 }

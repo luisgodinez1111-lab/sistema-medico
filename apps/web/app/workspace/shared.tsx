@@ -563,7 +563,7 @@ export function conForma<T>(body:unknown,claves:readonly string[]):T|null{
 /** Claves que cada snapshot tiene que traer para que su vista pueda pintarlo sin inventar. */
 export const FORMA={
  snap:["demographics","problems","allergies","vitals","labs","findings"],
- chart:["problems","allergies","medications","vitals","immunizations","orders","results"], // expediente VIVO: módulos hidratados por paciente
+ chart:["problems","allergies","medications","vitals","immunizations","orders","results","obligations","referrals","appointments","consents","carePlans"], // expediente VIVO: módulos clínicos + Coordinación/Plan hidratados por paciente
  trends:["series","latest"],
  consTabs:["results","orders","medications","vaccines","planGoals","documents","obligations"],
  vitHist:["records","series","count"],
@@ -670,7 +670,9 @@ export function Check({checked,label,onChange,disabled,size=16}:{checked:boolean
   {label}
  </label>;
 }
-export const SOLO_ESTA_PANTALLA="Lista lo que se registre aquí. El historial completo del paciente está en su módulo del menú.";
+// Estado VACÍO de un módulo del expediente. Tras hidratar el expediente vivo, cada módulo YA muestra la historia real del
+// paciente (no solo lo de la sesión): un módulo vacío significa que no hay nada registrado todavía, no que falte cargar.
+export const SOLO_ESTA_PANTALLA="Sin registros para este paciente. Lo que agregues aquí quedará en su expediente.";
 // a11y (WCAG 2.3.3 «Animación desde interacciones»): si el usuario pidió movimiento reducido en su sistema, el scroll
 // programático deja de ser suave (el media query CSS no afecta al `behavior:"smooth"` de JS, hay que consultarlo aquí).
 export const prefersReducedMotion=():boolean=>typeof window!=="undefined"&&!!window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;

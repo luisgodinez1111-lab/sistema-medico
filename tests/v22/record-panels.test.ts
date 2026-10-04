@@ -23,7 +23,10 @@ describe("expediente crudo: qué lista cada ventana (WS1-14)",()=>{
   const src=exp();
   const sinNota=LOCALES.filter(v=>!new RegExp(`\\{${v}\\.length===0&&`).test(src));
   expect(sinNota,"ventana que se queda en blanco sin declarar qué lista").toEqual([]);
-  expect(SOLO_ESTA_PANTALLA,"la nota debe decir dónde está el historial completo").toMatch(/historial completo/i);
+  // Tras hidratar el expediente vivo, el módulo YA muestra la historia real del paciente; un módulo vacío significa "sin
+  // registros", no "ve a otro módulo". La nota del estado vacío debe decir eso y NO mandar a un "módulo del menú" inexistente.
+  expect(SOLO_ESTA_PANTALLA,"el estado vacío debe hablar de registros del paciente").toMatch(/registros/i);
+  expect(SOLO_ESTA_PANTALLA,"ya no debe mandar a un módulo del menú inexistente").not.toMatch(/módulo del menú/i);
  });
  it("la medicación VIGENTE del paciente se muestra donde se prescribe",()=>{
   const src=exp();

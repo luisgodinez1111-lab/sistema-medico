@@ -486,7 +486,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // resultados) con su historia REAL vía GET /patients/:id/chart. Antes estos arrays arrancaban en [] y solo se llenaban con
  // lo creado en la sesión, así que un paciente con años de historia salía vacío. Cada fila trae su `version` (If-Match), por
  // lo que lo hidratado NO es solo lectura: se puede transicionar. Los creates siguen añadiendo de forma optimista encima.
- type ChartResp=Readonly<{problems:Prob[];allergies:Al[];medications:Med[];vitals:Vit[];immunizations:Imm[];orders:Order[];results:Result[]}>;
+ type ChartResp=Readonly<{problems:Prob[];allergies:Al[];medications:Med[];vitals:Vit[];immunizations:Imm[];orders:Order[];results:Result[];obligations:Ob[];referrals:Ref[];appointments:Appt[];consents:Cs[];carePlans:Cp[]}>;
  useEffect(()=>{
   if(view!=="exp"||!patientId||!ready||!session)return;
   let cancelled=false;const ac=new AbortController();
@@ -496,6 +496,8 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
    const c=conForma<ChartResp>(r.body,FORMA.chart);if(!c)return;
    // Reemplaza las listas por la historia real del paciente (no append: es la carga inicial del expediente).
    setProblems(c.problems);setAllergies(c.allergies);setMeds(c.medications);setVitals(c.vitals);setImms(c.immunizations);setOrders(c.orders);setResults(c.results);
+   // Coordinación + Plan (antes arrancaban vacíos → islas; una obligación que bloquea la firma no tenía fila accionable).
+   setObligations(c.obligations);setReferrals(c.referrals);setAppts(c.appointments);setConsents(c.consents);setPlans(c.carePlans);
   }catch{/* expediente no disponible: los módulos quedan como estaban; el aviso de error del layout cubre el fallo de carga */}})();
   return()=>{cancelled=true;ac.abort();};
  },[view,patientId,ready,session,chartReload]);
