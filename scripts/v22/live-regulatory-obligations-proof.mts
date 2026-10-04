@@ -83,6 +83,18 @@ try{
   // Una obligación inexistente es 404, no un estado inicial silencioso.
   r=await roComply.POST(new Request("http://l/",B(1,{evidenceRef:"X-1"})),PP(crypto.randomUUID()));
   ok(r.status===404,"UNKNOWN_OBLIGATION_404:"+r.status);
+
+  // CONTRATO DE LA UI (botones Cumplir/Renovar): el GET expone por fila el estado del CICLO, la VERSIÓN (If-Match),
+  // la EVIDENCIA y la fecha de cumplimiento. Sin esto la vista no sabría qué fila está abierta ni con qué versión escribir.
+  const uiOb=await create(phys,"Licencia sanitaria (vigencia)","Salud (COFEPRIS)","ANUAL","2026-08-01");
+  await roComply.POST(new Request("http://l/",B(1,{evidenceRef:"LIC-SAN-2026-7788"})),PP(uiOb.id));
+  const L3=await list(phys);
+  type UiRow={name:string;lifecycleState:string;version:number;evidenceRef:string|null;compliedAt:string|null};
+  const uiFila=(L3.body as{items:UiRow[]}).items.find(i=>i.name==="Licencia sanitaria (vigencia)");
+  ok(uiFila?.lifecycleState==="COMPLIED","UI_LIFECYCLE_STATE_COMPLIED:"+String(uiFila?.lifecycleState));
+  ok(typeof uiFila?.version==="number"&&uiFila.version>=2,"UI_VERSION_IS_NUMBER:"+String(uiFila?.version));
+  ok(uiFila?.evidenceRef==="LIC-SAN-2026-7788","UI_EVIDENCE_REF_SURFACED:"+String(uiFila?.evidenceRef));
+  ok(typeof uiFila?.compliedAt==="string"&&uiFila.compliedAt.length>0,"UI_COMPLIED_AT_SURFACED");
  }
 
  // sin scope -> 403

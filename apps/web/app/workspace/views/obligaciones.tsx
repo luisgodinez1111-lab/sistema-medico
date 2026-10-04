@@ -2,18 +2,18 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "obligaciones" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{card,LINE,P,UI,Skeleton,cargaFallida}from"../shared";
+import{card,LINE,P,UI,Skeleton,cargaFallida,type RegObItem}from"../shared";
 import{useWorkspace}from"../context";
 export default function ObligacionesView(){
- const{regObSnap,oblTab,setOblNew,setOblMsg,oblNew,oblMsg,oblForm,setOblForm,createRegObligation,oblBusy,setOblTab,loadErr,retryLoad}=useWorkspace();
+ const{regObSnap,oblTab,setOblNew,setOblMsg,oblNew,oblMsg,oblForm,setOblForm,createRegObligation,oblBusy,setOblTab,loadErr,retryLoad,renewRegObligation,complyRegObligation,oblComply,setOblComply,oblEvidence,setOblEvidence}=useWorkspace();
 
    // ===== MÓDULO OBLIGACIONES (S-OBLIGACIONES) — obligaciones regulatorias del consultorio cableadas a GET /regulatory-obligations =====
    const card2:React.CSSProperties={...card,marginTop:0};
    const selSty:React.CSSProperties={width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"9px 11px",fontSize:13,background:P.white,fontFamily:UI,color:P.ink};
    const fmtD=(iso:string|null)=>{if(!iso)return"—";const d=new Date(iso);return isNaN(d.getTime())?"—":d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"});};
    const oblLoaded=!!regObSnap;
-   type ORow={name:string;category:string;periodicity:string;date:string;estado:string};
-   const allRows:ORow[]=(regObSnap?.items??[]).map(it=>({name:it.name,category:it.category,periodicity:it.periodicity,date:fmtD(it.dueDate),estado:it.estado}));
+   type ORow={name:string;category:string;periodicity:string;date:string;estado:string;it:RegObItem};
+   const allRows:ORow[]=(regObSnap?.items??[]).map(it=>({name:it.name,category:it.category,periodicity:it.periodicity,date:fmtD(it.dueDate),estado:it.estado,it}));
    const CATMAP:Record<string,string>={fiscales:"Fiscal (SAT)",salud:"Salud (COFEPRIS)",laborales:"Laboral",proteccion:"Protección civil",administrativas:"Administrativa",otros:"Otros"};
    const rows=allRows.filter(r=>oblTab==="todas"||r.category===CATMAP[oblTab]);
    const total=regObSnap?.total??0;
@@ -24,6 +24,8 @@ export default function ObligacionesView(){
    const kico=(bg:string,fg:string,d:string)=><span style={{width:48,height:48,borderRadius:"50%",background:bg,display:"grid",placeItems:"center",flex:"0 0 auto"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={fg} strokeWidth="1.8" aria-hidden><path d={d}/></svg></span>;
    const th:React.CSSProperties={textAlign:"left",fontSize:11.5,color:P.muted,fontWeight:600,padding:"11px 12px",borderBottom:`1px solid ${LINE}`,whiteSpace:"nowrap"};
    const tdc:React.CSSProperties={padding:"10px 12px",borderBottom:`1px solid #F2F4F9`,fontSize:12.5,whiteSpace:"nowrap"};
+   // Botones de acción de la fila: Cumplir (abre modal de evidencia) y Renovar (fija el próximo vencimiento). Acción→evento.
+   const actBtn=(primary:boolean):React.CSSProperties=>({border:primary?0:`1px solid ${LINE}`,background:primary?P.purple:P.white,color:primary?"#fff":P.ink,borderRadius:8,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:oblBusy?"default":"pointer",fontFamily:UI,opacity:oblBusy?.6:1});
    const OBL_TABS:[typeof oblTab,string][]=[["todas","Todas"],["fiscales","Fiscales (SAT)"],["salud","Salud (COFEPRIS)"],["laborales","Laborales"],["proteccion","Protección civil"],["administrativas","Administrativas"],["otros","Otros"]];
    const fileIco="M6 2h9l5 5v15H6zM14 2v6h6";
    return <div style={{padding:"18px 24px 40px"}}>
@@ -59,9 +61,11 @@ export default function ObligacionesView(){
      <div style={{...card2,padding:0,overflow:"hidden"}}>
       <div style={{padding:"14px 16px",fontSize:16,fontWeight:800}}>Obligaciones ({rows.length})</div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
-       <thead><tr><th style={th}>Nombre</th><th style={th}>Categoría</th><th style={th}>Periodicidad</th><th style={th}>Próxima fecha</th><th style={{...th,textAlign:"right"}}>Estado</th></tr></thead>
-       <tbody>{rows.map((r,i)=>{const c=r.estado==="Vencida"?P.red:r.estado==="Próxima"?P.amber:P.green;return <tr key={i}><td style={tdc}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{color:c,flex:"0 0 auto"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={fileIco}/></svg></span><span style={{fontWeight:600,color:P.ink}}>{r.name}</span></div></td><td style={{...tdc,color:P.muted}}>{r.category}</td><td style={{...tdc,color:P.muted}}>{r.periodicity}</td><td style={{...tdc,color:P.muted}}>{r.date}</td><td style={{...tdc,textAlign:"right"}}><span style={estSty(r.estado)}>{r.estado}</span></td></tr>;})}
-       {rows.length===0&&(!oblLoaded?Array.from({length:6}).map((_,i)=><tr key={"sk"+i} aria-hidden><td style={tdc}><div style={{display:"flex",alignItems:"center",gap:9}}><Skeleton w={16} h={16} r={4}/><Skeleton w={"60%"} h={12}/></div></td><td style={tdc}><Skeleton w={"70%"} h={12}/></td><td style={tdc}><Skeleton w={64} h={12}/></td><td style={tdc}><Skeleton w={80} h={12}/></td><td style={{...tdc,textAlign:"right"}}><Skeleton w={72} h={20} r={8} style={{marginLeft:"auto"}}/></td></tr>):<tr><td colSpan={5} style={{...tdc,textAlign:"center",color:P.muted,padding:"30px"}}>{allRows.length===0?"Sin obligaciones registradas. Usa «+ Agregar obligación».":"Sin obligaciones en esta categoría."}</td></tr>)}
+       <thead><tr><th style={th}>Nombre</th><th style={th}>Categoría</th><th style={th}>Periodicidad</th><th style={th}>Próxima fecha</th><th style={{...th,textAlign:"right"}}>Estado</th><th style={th}>Cumplimiento</th><th style={{...th,textAlign:"right"}}>Acciones</th></tr></thead>
+       <tbody>{rows.map((r,i)=>{const c=r.estado==="Vencida"?P.red:r.estado==="Próxima"?P.amber:P.green;const it=r.it;const complied=it.lifecycleState==="COMPLIED";const waived=it.lifecycleState==="WAIVED";return <tr key={it.obligationId||i}><td style={tdc}><div style={{display:"flex",alignItems:"center",gap:9}}><span style={{color:c,flex:"0 0 auto"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={fileIco}/></svg></span><span style={{fontWeight:600,color:P.ink}}>{r.name}</span></div></td><td style={{...tdc,color:P.muted}}>{r.category}</td><td style={{...tdc,color:P.muted}}>{r.periodicity}</td><td style={{...tdc,color:P.muted}}>{r.date}</td><td style={{...tdc,textAlign:"right"}}><span style={estSty(r.estado)}>{r.estado}</span></td>
+        <td style={{...tdc,color:P.muted,whiteSpace:"normal",maxWidth:200}}>{complied?<span title={it.evidenceRef??""}><span style={{color:P.green,fontWeight:700}}>Cumplida ✓</span>{it.compliedAt?<span style={{display:"block",fontSize:11}}>{fmtD(it.compliedAt)}{it.evidenceRef?` · ${it.evidenceRef}`:""}</span>:null}</span>:waived?<span style={{color:P.muted}}>Exenta</span>:<span style={{color:P.muted}}>Pendiente</span>}</td>
+        <td style={{...tdc,textAlign:"right"}}><div style={{display:"inline-flex",gap:8,justifyContent:"flex-end"}}>{!complied&&!waived&&<button disabled={oblBusy} onClick={()=>{setOblComply(it);setOblEvidence("");setOblMsg(null);}} style={actBtn(true)}>Cumplir</button>}<button disabled={oblBusy} onClick={()=>void renewRegObligation(it)} style={actBtn(false)}>Renovar</button></div></td></tr>;})}
+       {rows.length===0&&(!oblLoaded?Array.from({length:6}).map((_,i)=><tr key={"sk"+i} aria-hidden><td style={tdc}><div style={{display:"flex",alignItems:"center",gap:9}}><Skeleton w={16} h={16} r={4}/><Skeleton w={"60%"} h={12}/></div></td><td style={tdc}><Skeleton w={"70%"} h={12}/></td><td style={tdc}><Skeleton w={64} h={12}/></td><td style={tdc}><Skeleton w={80} h={12}/></td><td style={{...tdc,textAlign:"right"}}><Skeleton w={72} h={20} r={8} style={{marginLeft:"auto"}}/></td><td style={tdc}><Skeleton w={72} h={12}/></td><td style={{...tdc,textAlign:"right"}}><Skeleton w={120} h={26} r={8} style={{marginLeft:"auto"}}/></td></tr>):<tr><td colSpan={7} style={{...tdc,textAlign:"center",color:P.muted,padding:"30px"}}>{allRows.length===0?"Sin obligaciones registradas. Usa «+ Agregar obligación».":"Sin obligaciones en esta categoría."}</td></tr>)}
        </tbody></table></div>
       {rows.length>0&&<div style={{padding:"13px 16px",fontSize:13,color:P.muted}}>Mostrando {rows.length} de {total} obligación(es)</div>}
      </div>
@@ -69,6 +73,20 @@ export default function ObligacionesView(){
     <div style={{marginTop:16}} className="mos-obl2">
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8,marginBottom:12}}>▨ Cumplimiento por categoría</div>{compliance.length===0?<div style={{fontSize:12.5,color:P.muted}}>Sin obligaciones registradas para calcular cumplimiento.</div>:compliance.map(([l,n],i)=>{const c=n>=80?P.greenOnPale:n>=50?P.amberOnPale:P.redOnPale;return <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}><span style={{width:130,fontSize:12,color:P.ink}}>{l}</span><div style={{flex:1,height:7,borderRadius:6,background:"#EEF1F7",overflow:"hidden"}}><div style={{height:"100%",width:`${n}%`,background:c,borderRadius:6}}/></div><span style={{fontSize:12,fontWeight:700,width:36,textAlign:"right"}}>{n}%</span></div>;})}</div>
     </div>
+    {oblComply&&<div role="dialog" aria-modal="true" aria-label="Marcar obligación como cumplida" style={{position:"fixed",inset:0,background:"rgba(16,20,38,.44)",display:"grid",placeItems:"center",zIndex:60,padding:16}} onClick={()=>{if(!oblBusy){setOblComply(null);setOblEvidence("");}}}>
+     <div onClick={e=>e.stopPropagation()} style={{...card2,width:"min(520px,100%)",padding:22}}>
+      <div style={{fontSize:18,fontWeight:800,letterSpacing:"-.01em"}}>Marcar cumplida</div>
+      <div style={{fontSize:13.5,color:P.muted,margin:"6px 0 2px"}}>{oblComply.name}</div>
+      <div style={{fontSize:12,color:P.muted,marginBottom:14}}>{oblComply.category} · {oblComply.periodicity}</div>
+      <label style={{fontSize:12,fontWeight:700,color:P.muted,display:"block",marginBottom:6}} htmlFor="obl-evidence">Evidencia de cumplimiento <span style={{color:P.red}}>*</span></label>
+      <textarea id="obl-evidence" aria-label="Evidencia de cumplimiento (folio, acuse o documento)" value={oblEvidence} onChange={e=>setOblEvidence(e.target.value)} placeholder="Folio, acuse o referencia del documento que acredita el cumplimiento (ej. acuse SAT 24A-00123, póliza COFEPRIS…)" rows={3} style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:9,padding:"10px 11px",fontSize:13,fontFamily:UI,color:P.ink,resize:"vertical",boxSizing:"border-box"}}/>
+      <div style={{fontSize:11.5,color:P.muted,marginTop:8}}>El cumplimiento se registra como evento firmado del consultorio; la evidencia queda ligada a la obligación y es obligatoria.</div>
+      <div style={{display:"flex",gap:10,marginTop:18,justifyContent:"flex-end"}}>
+       <button disabled={oblBusy} onClick={()=>{setOblComply(null);setOblEvidence("");}} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 18px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}}>Cancelar</button>
+       <button disabled={oblBusy||oblEvidence.trim().length<3} onClick={()=>void complyRegObligation(oblEvidence)} style={{border:0,background:(oblBusy||oblEvidence.trim().length<3)?"#C7CCE0":P.green,color:"#fff",borderRadius:10,padding:"10px 20px",fontWeight:700,fontSize:13.5,cursor:(oblBusy||oblEvidence.trim().length<3)?"default":"pointer",fontFamily:UI}}>{oblBusy?"Registrando…":"Registrar cumplimiento"}</button>
+      </div>
+     </div>
+    </div>}
    </div>;
   
 }

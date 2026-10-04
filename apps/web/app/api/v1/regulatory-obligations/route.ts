@@ -37,7 +37,8 @@ export async function GET(req:Request){
   const now=new Date();
   const rows=await regulatoryObligations(ctx);
   const items=rows.map(r=>{const estado=computeStatus(r.dueDate,now);const days=r.dueDate?Math.floor((new Date(r.dueDate).getTime()-now.getTime())/86400000):null;
-   return{obligationId:r.obligationId,name:r.name,category:r.category,periodicity:r.periodicity,dueDate:r.dueDate,estado,daysUntil:days};});
+   // Estado del ciclo + versión (If-Match) + evidencia: la UI puede CUMPLIR/RENOVAR (acción→evento), no solo leer.
+   return{obligationId:r.obligationId,name:r.name,category:r.category,periodicity:r.periodicity,dueDate:r.dueDate,estado,daysUntil:days,lifecycleState:r.lifecycleState,version:r.version,evidenceRef:r.evidenceRef,compliedAt:r.compliedAt};});
   const total=items.length;
   const alDia=items.filter(i=>i.estado==="Al día"||i.estado==="Vigente").length;
   const proximas=items.filter(i=>i.estado==="Próxima").length;

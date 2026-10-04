@@ -14,7 +14,9 @@ import{withTenantTx}from"./connection";
 export type RegulatoryObligationRow=Readonly<{obligationId:string;name:string;category:string;periodicity:string;
  dueDate:string|null;createdAt:string;
  /** R2B-024: estado del ciclo (abierta, cumplida, exenta) y la evidencia con la que se declaró cumplida. */
- lifecycleState:"OPEN"|"COMPLIED"|"WAIVED";evidenceRef:string|null;compliedAt:string|null}>;
+ lifecycleState:"OPEN"|"COMPLIED"|"WAIVED";evidenceRef:string|null;compliedAt:string|null;
+ /** nº de eventos del agregado = la «versión» para la concurrencia optimista (If-Match) de cumplir/renovar. */
+ version:number}>;
 /**
  * Auditoría R02b (R2B-024, lote 20) — LA FECHA VIGENTE ES LA DE LA ÚLTIMA RENOVACIÓN, no la del alta.
  *
@@ -49,7 +51,8 @@ export async function regulatoryObligations(ctx:HttpTenantContext,limit=REGULATO
    select a.aggregate_id, a.payload->>'name' as name, a.payload->>'category' as category,
      a.payload->>'periodicity' as periodicity,
      coalesce(r.due_date, a.payload->>'dueDate') as due_date,
-     a.occurred_at as created_at, c.evidence_ref, c.occurred_at as complied_at, e.kind as last_kind
+     a.occurred_at as created_at, c.evidence_ref, c.occurred_at as complied_at, e.kind as last_kind,
+     (select count(*)::int from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id) as version
    from clinical_events a
    left join ultimo r on r.aggregate_id=a.aggregate_id and r.kind='RENEWED' and r.rn=1
    left join ultimo c on c.aggregate_id=a.aggregate_id and c.kind='COMPLIED' and c.rn=1
@@ -67,7 +70,8 @@ export async function regulatoryObligations(ctx:HttpTenantContext,limit=REGULATO
    createdAt:o.created_at?new Date(String(o.created_at)).toISOString():"",
    lifecycleState:lifecycleState as "OPEN"|"COMPLIED"|"WAIVED",
    evidenceRef:o.evidence_ref?String(o.evidence_ref):null,
-   compliedAt:o.complied_at?new Date(String(o.complied_at)).toISOString():null};});
+   compliedAt:o.complied_at?new Date(String(o.complied_at)).toISOString():null,
+   version:Number(o.version??1)};});
  });
 }
 // EPIC S-CONFIG — Ajustes del consultorio (singleton por tenant, no PHI). Mismo kernel event-sourced:
