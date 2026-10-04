@@ -124,6 +124,26 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 6/
  // expediente reusa snap.findings + la nota de gobernanza R6; ambos submenús se barren por a11y en ui-cockpit-3. Los
  // registros POBLACIONALES de planes se retiraron del menú (el worklist poblacional vive en Seguimiento).
 
+ it("submenú Documentos: el repositorio persistente abre el documento con su contenido, firma y ADJUNTOS reales (ver/adjuntar/quitar)",async()=>{
+  render(<Workspace/>);
+  await toExpediente();
+  await screen.findByText(/Vista principal/,{},{timeout:2500});
+  fireEvent.click(screen.getByRole("button",{name:"Documentos"})); // submenú del expediente
+  // repositorio PERSISTENTE (read-model docsSnap), no solo lo creado en la sesión
+  expect(await screen.findByText("Repositorio del paciente")).toBeTruthy();
+  const abrir=await screen.findByRole("button",{name:"Abrir"},{timeout:2500}); // fila del documento real
+  fireEvent.click(abrir);
+  // detalle vivo cableado a GET /documents/:id: contenido + firma + adjunto REAL con sus acciones
+  expect(await screen.findByText("Paciente estable. Continúa tratamiento.")).toBeTruthy();
+  expect(screen.getByText("laboratorio.pdf")).toBeTruthy();
+  expect(screen.getByRole("button",{name:"+ Adjuntar archivo"})).toBeTruthy();
+  expect(screen.getByRole("button",{name:"Ver"})).toBeTruthy();
+  // quitar borra el blob privado: es de DOS PASOS (pide confirmación), nunca un clic suelto
+  fireEvent.click(screen.getByRole("button",{name:"Quitar"}));
+  expect(screen.getByRole("button",{name:"Sí, quitar"})).toBeTruthy();
+  expect(screen.getByRole("button",{name:"Cancelar"})).toBeTruthy();
+ });
+
  it("accesibilidad: los paneles de presentación no tienen violaciones axe serias/críticas",async()=>{
   render(<Workspace/>);
   await toExpediente();

@@ -200,6 +200,9 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const[docsSnap,setDocsSnap]=useState<DocsSnap|null>(null);
  const[docDetail,setDocDetail]=useState<DocDetail|null>(null);const[docDetBusy,setDocDetBusy]=useState(false);
  const loadDoc=async(id:string)=>{setDocDetBusy(true);setDocDetail(null);try{const r=await apiRequest(`/api/v1/documents/${id}`,{method:"GET"});if(r.status===200)setDocDetail(r.body as unknown as DocDetail);}catch{/* documento no disponible */}finally{setDocDetBusy(false);}};
+ // Recarga el repositorio persistente del paciente (read-model) tras crear/firmar/enmendar un documento, para que el submenú
+ // Documentos refleje al instante lo que quedó almacenado (no solo lo creado en la sesión).
+ const reloadDocs=async()=>{if(!patientId)return;const g=await apiRequest(`/api/v1/patients/${patientId}/documents`,{method:"GET"});if(g.status===200)setDocsSnap(conForma<DocsSnap>(g.body,FORMA.docsSnap));};
  // Adjuntos binarios (PHI) en Vercel Blob privado: subir (multipart), ver (descarga por la Function) y quitar.
  const attInputRef=useRef<HTMLInputElement|null>(null);
  const[attBusy,setAttBusy]=useState(false);const[attMsg,setAttMsg]=useState<string|null>(null);
@@ -812,6 +815,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
     const r=await apiRequest(`/api/v1/documents/${d.id}/signature`,{method:"POST",body:{occurredAt:nowIso(),contentHash:signAsk.hash},ifMatch:d.version});
     if(r.status>=400){setSignErr(errMsg(r));return;}
     setDocs(ds=>ds.map(x=>x.id===d.id?{...x,state:"SIGNED",version:Number(r.body["version"]??d.version+1)}:x));
+    void reloadDocs();
    }
    setSignAsk(null);
   }catch(e){setSignErr(userMessage(e));}finally{setSignBusy(false);}
@@ -1135,7 +1139,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   const id=uuid();const r=await apiRequest("/api/v1/documents",{method:"POST",body:{documentId:id,patientId,docType,title:docTitle||"Documento",content:docContent,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
   setDocs(ds=>[...ds,{id,label:`${docTitle||"Documento"} (${docType})`,state:"DRAFT",version:Number(r.body["version"]??1)}]);
-  setDocTitle("");setDocContent("");
+  setDocTitle("");setDocContent("");void reloadDocs();
  });
  const advanceDoc=(d:Doc)=>{
   if(d.state==="FINALIZED"){void askSignDocument(d);return;}          // firmar: siempre con revisión del contenido persistido
@@ -1145,13 +1149,13 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const confirmAmend=()=>{const d=amendAsk;if(!d||amendText.trim().length<10)return;return call("doc-"+d.id,async()=>{
   const r=await apiRequest(`/api/v1/documents/${d.id}/amendment`,{method:"POST",body:{addendum:amendText.trim(),occurredAt:nowIso()},ifMatch:d.version});
   if(r.status>=400){setError(errMsg(r));return;}
-  setDocs(ds=>ds.map(x=>x.id===d.id?{...x,state:"AMENDED",version:Number(r.body["version"]??d.version+1)}:x));setAmendAsk(null);setAmendText("");
+  setDocs(ds=>ds.map(x=>x.id===d.id?{...x,state:"AMENDED",version:Number(r.body["version"]??d.version+1)}:x));setAmendAsk(null);setAmendText("");void reloadDocs();
  });};
  const advanceDocNow=(d:Doc)=>call("doc-"+d.id,async()=>{
   const n=docNext(d);if(!n)return;
   const r=await apiRequest(n.path,{method:"POST",body:n.body,ifMatch:d.version});
   if(r.status>=400){setError(errMsg(r));return;}
-  setDocs(ds=>ds.map(x=>x.id===d.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));
+  setDocs(ds=>ds.map(x=>x.id===d.id?{...x,state:n.to,version:Number(r.body["version"]??x.version+1)}:x));void reloadDocs();
  });
  const createOrder=()=>call("ord-new",async()=>{
   const id=uuid();const probLbl=ordProblem?problems.find(p=>p.id===ordProblem)?.label:undefined;

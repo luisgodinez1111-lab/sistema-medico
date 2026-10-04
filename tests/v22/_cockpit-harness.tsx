@@ -38,6 +38,8 @@ export function makeSessionClientMock(posted:{path:string;body:unknown}[]){
     return{status:201,body:{version:2}};
    }
    if(path.includes("/api/v1/medications"))return{status:201,body:{version:1}}; // proponer/activar/suspender (U-16)
+   // Repositorio persistente del paciente (submenú Documentos del expediente): lista para el read-model docsSnap.
+   if(path.match(/\/api\/v1\/patients\/[^/]+\/documents$/))return{status:200,body:{items:[{documentId:"dc1",title:"Nota de evolución",docType:"PROGRESS_NOTE",typeLabel:"Nota médica",status:"SIGNED",statusLabel:"Firmado",createdAt:"2026-09-17T00:00:00Z",actorId:"u1"}],total:1,byType:{["Nota médica"]:1},chips:{clinical:1,consents:0,studies:0}}};
    if(path.match(/\/api\/v1\/documents\/[^/]+$/))return{status:200,body:{documentId:"dc1",patientId:"p1",title:"Nota de evolución",docType:"PROGRESS_NOTE",typeLabel:"Nota médica",content:"Paciente estable. Continúa tratamiento.",state:"SIGNED",statusLabel:"Firmado",version:3,createdAt:"2026-09-17T00:00:00Z",addenda:[],signature:{authorId:"u1",contentHash:"a".repeat(64),signatureDigest:"b".repeat(64),signedAt:"2026-09-17T01:00:00Z"},attachments:[{attachmentId:"at1",filename:"laboratorio.pdf",mime:"application/pdf",size:23456,pathname:"tenants/t/documents/dc1/at1.pdf",contentHash:"c".repeat(64),authorId:"u1",attachedAt:"2026-09-17T02:00:00Z"}]}};
    if(path.includes("/api/v1/documents"))return{status:201,body:{version:1}};
    if(path.includes("/api/v1/referrals")){
