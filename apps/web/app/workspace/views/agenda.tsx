@@ -15,8 +15,10 @@ export default function AgendaView(){
    const todayStr=new Date().toISOString().slice(0,10);const isTodaySel=agendaDate===todayStr;
    const fechaLarga=`${dow[selDate.getDay()]!.replace(/^\w/,c=>c.toUpperCase())}, ${dd} de ${meses[mm]} de ${yy}`;
    const firstDow=new Date(yy,mm,1).getDay();const daysInM=new Date(yy,mm+1,0).getDate();
-   const nowTop=48+((Math.max(7,Math.min(18,clock.getHours()+clock.getMinutes()/60))-7)*56);
-   const horaAhora=clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}).toLowerCase();
+   // La rejilla del día ubica las citas por hora UTC (ver tHM/getUTCHours y el alta "Hora (UTC)"); la línea de "ahora" debe
+   // usar la MISMA referencia o caería desfasada ~6 h respecto a las citas. Se marca UTC para que la hora sea honesta.
+   const nowTop=48+((Math.max(7,Math.min(18,clock.getUTCHours()+clock.getUTCMinutes()/60))-7)*56);
+   const horaAhora=clock.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit",timeZone:"UTC"}).toLowerCase()+" UTC";
    const setDay=(iso:string)=>{setAgendaDate(iso);setApptSel(null);setApptNew(false);};
    const shiftDay=(delta:number)=>{const d=new Date(agendaDate+"T12:00:00");d.setDate(d.getDate()+delta);setDay(d.toISOString().slice(0,10));};
    const shiftMonth=(delta:number)=>{const d=new Date(agendaDate+"T12:00:00");d.setMonth(d.getMonth()+delta);setDay(d.toISOString().slice(0,10));};
@@ -67,7 +69,7 @@ export default function AgendaView(){
     <div>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
       <div><h1 style={{fontSize:29,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Agenda</h1><p style={{color:P.muted,fontSize:13.5,margin:"5px 0 0"}}>Administra tus citas: navega por fecha, registra llegada, completa o cancela, y agenda nuevas —todo en vivo.</p></div>
-      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{void reloadAgenda();setApptMsg("Agenda actualizada.");}}>↻ Actualizar</button><button style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setApptNew(v=>!v);setApptMsg(null);}}>{apptNew?"Cerrar":"+ Nueva cita"}</button></div>
+      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}><button style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"10px 16px",fontWeight:600,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={async()=>{setApptMsg("Actualizando…");await reloadAgenda();setApptMsg(null);}}>↻ Actualizar</button><button style={{display:"inline-flex",alignItems:"center",gap:8,border:0,background:P.purple,color:"#fff",borderRadius:10,padding:"10px 18px",fontWeight:700,fontSize:13.5,cursor:"pointer",fontFamily:UI}} onClick={()=>{setApptNew(v=>!v);setApptMsg(null);}}>{apptNew?"Cerrar":"+ Nueva cita"}</button></div>
      </div>
      <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>{VPILLS.map(([k,l])=>{const on=agendaView===k;return <span key={k} {...act(()=>setAgendaView(k))} style={{border:`1px solid ${on?P.purple:LINE}`,background:on?P.purple:P.white,color:on?"#fff":P.muted,borderRadius:10,padding:"9px 15px",fontSize:13.5,fontWeight:600,cursor:"pointer"}}>{l}</span>;})}</div>
      {apptMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:"#EEF6FF",border:"1px solid #CFE0F7",borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:P.blue,fontWeight:700}}>ℹ</span><span style={{flex:1}}>{apptMsg}</span><button onClick={()=>setApptMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}

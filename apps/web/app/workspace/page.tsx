@@ -3,7 +3,7 @@
 // handlers viven en ./model (useWorkspaceModel, mismo orden de hooks), los helpers en ./shared y cada vista en ./views/*.
 // Este fichero conserva los retornos tempranos, el layout (barra, rail, encabezado del paciente) y el conmutador de vistas.
 import {logout as sessionLogout} from "../../lib/session-client";
-import{RAIL_CSS,SIDE_NAV,scrollToSection,scrollTop,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap,BrandMark,BrandLockup,NAV_GROUP_META}from"./shared";
+import{RAIL_CSS,SIDE_NAV,scrollTop,goExpSection,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap,BrandMark,BrandLockup,NAV_GROUP_META}from"./shared";
 import{Alert,Button,Card}from"../../../../packages/design-system/src";
 import{useWorkspaceModel,deriveHeader}from"./model";
 import{WorkspaceProvider,useWorkspace}from"./context";
@@ -76,8 +76,8 @@ export default function Workspace(){
     <div className="info" style={{minWidth:0}}><div className="nm">{docDisplay}</div><div className="rl">{docRole}</div></div>
     <span style={{marginLeft:"auto",color:"#8A8FC6",transform:docMenu?"rotate(180deg)":"none",transition:"transform .15s"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9l6 6 6-6"/></svg></span>
     {docMenu&&<div className="mos-docmenu" onClick={e=>e.stopPropagation()}>
-     <button onClick={()=>{setDocMenu(false);}}><NavIcon k="gear"/>Configuración</button>
-     <button onClick={()=>{setDocMenu(false);scrollToSection("Seguridad y auditoría");}}><NavIcon k="lock"/>Seguridad y auditoría</button>
+     <button onClick={()=>{setDocMenu(false);setView("configuracion");scrollTop();}}><NavIcon k="gear"/>Configuración</button>
+     <button onClick={()=>{setDocMenu(false);goExpSection("Seguridad y auditoría",setView,setExpTab);}}><NavIcon k="lock"/>Seguridad y auditoría</button>
      <button onClick={async()=>{await sessionLogout();location.href="/login";}} style={{color:"#F0919E"}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M16 17l5-5-5-5M21 12H9M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/></svg>Cerrar sesión</button>
     </div>}
    </div>
@@ -91,11 +91,11 @@ export default function Workspace(){
    <header style={appbar}>
     <div className="mos-topsearch" style={{maxWidth:640}}>
      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8a90ae" strokeWidth="1.9" aria-hidden><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg>
-     <input placeholder="Buscar paciente por nombre, CURP, teléfono o expediente…" value={topSearch} onChange={e=>setTopSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){reset();setView("exp");loadPatients();scrollTop();}}}/>
+     <input placeholder="Buscar paciente por nombre, CURP, teléfono o expediente…" value={topSearch} onChange={e=>setTopSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){reset();setView("exp");loadPatients(topSearch);scrollTop();}}}/>
      <span style={{fontSize:11,background:"#E7EAF2",borderRadius:5,padding:"2px 6px",color:P.muted,fontWeight:600,flex:"0 0 auto"}}>⌘ K</span>
     </div>
     <div style={{display:"flex",alignItems:"center",gap:16,flex:"0 0 auto",marginLeft:"auto"}}>
-     <button title="Notificaciones" aria-label="Notificaciones" onClick={()=>{setView("exp");scrollToSection("Seguridad y auditoría");}} style={{position:"relative",background:"transparent",border:0,cursor:"pointer",color:P.muted,padding:2,display:"grid",placeItems:"center"}}>
+     <button title="Pendientes del consultorio" aria-label="Pendientes del consultorio" onClick={()=>{setView("seguimiento");scrollTop();}} style={{position:"relative",background:"transparent",border:0,cursor:"pointer",color:P.muted,padding:2,display:"grid",placeItems:"center"}}>
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 004 0"/></svg>
       {(notifCount===null||notifCount>0)&&<span title={notifCount===null?"Sin dato: no se pudo cargar el conteo de pendientes":undefined} style={{position:"absolute",top:-3,right:-3,minWidth:16,height:16,borderRadius:999,background:P.redOnPale,color:"#fff",fontSize:9.5,fontWeight:800,display:"grid",placeItems:"center",padding:"0 3px"}}>{notifCount===null?<><span aria-hidden="true">—</span><span className="mos-sr">sin dato</span></>:notifCount}</span>}
      </button>
@@ -106,7 +106,7 @@ export default function Workspace(){
        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a90ae" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M6 9l6 6 6-6"/></svg>
       </button>
       {topMenu&&<div style={{position:"absolute",top:"calc(100% + 8px)",right:0,minWidth:200,background:"#fff",border:`1px solid ${LINE}`,borderRadius:12,boxShadow:"0 12px 32px rgba(16,42,86,.14)",padding:6,zIndex:40}} onClick={e=>e.stopPropagation()}>
-       <button onClick={()=>setTopMenu(false)} style={{display:"flex",alignItems:"center",gap:9,width:"100%",textAlign:"left",background:"transparent",border:0,color:P.ink,fontSize:13.5,fontFamily:UI,padding:"9px 11px",borderRadius:9,cursor:"pointer"}}><NavIcon k="gear"/>Configuración</button>
+       <button onClick={()=>{setTopMenu(false);setView("configuracion");scrollTop();}} style={{display:"flex",alignItems:"center",gap:9,width:"100%",textAlign:"left",background:"transparent",border:0,color:P.ink,fontSize:13.5,fontFamily:UI,padding:"9px 11px",borderRadius:9,cursor:"pointer"}}><NavIcon k="gear"/>Configuración</button>
        <button onClick={async()=>{await sessionLogout();location.href="/login";}} style={{display:"flex",alignItems:"center",gap:9,width:"100%",textAlign:"left",background:"transparent",border:0,color:P.redOnPale,fontSize:13.5,fontFamily:UI,padding:"9px 11px",borderRadius:9,cursor:"pointer"}}>Cerrar sesión</button>
       </div>}
      </div>

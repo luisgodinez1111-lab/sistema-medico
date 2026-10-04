@@ -1074,17 +1074,17 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  });
  const sendRx=()=>call("rxsend",async()=>{
   const id=uuid();
-  const r=await apiRequest("/api/v1/medications",{method:"POST",body:{medicationId:id,patientId,drugCode:rxDrug,dose:rxDose,route:rxRoute,frequency:rxFreq,occurredAt:nowIso()}});
+  const r=await apiRequest("/api/v1/medications",{method:"POST",body:{medicationId:id,patientId,drugCode:rxDrug,dose:rxDose,route:rxRoute,frequency:rxFreq,...(enc?.id?{encounterId:enc.id}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setMeds(ms=>[{id,label:`${rxDrug} ${rxDose}`.trim(),state:"PROPOSED",version:Number(r.body["version"]??0)},...ms]);
-  setRxCheck(null);setRxMsg("✓ Prescripción registrada como PROPOSED. Gestiona su ciclo (prescribir → activar) en el módulo Medicación.");
+  setMeds(ms=>[{id,label:`${rxDrug} ${rxDose}`.trim(),state:"PROPOSED",version:Number(r.body["version"]??0),...(enc?.id?{encounterId:enc.id}:{})},...ms]);
+  setRxCheck(null);setChartReload(n=>n+1);setRxMsg("✓ Prescripción registrada como PROPOSED. Gestiona su ciclo (prescribir → activar) en el módulo Medicación.");
  });
  const receiveResult=()=>call("res-new",async()=>{
   if(!resQuick.value.trim()){setError("Capture el valor del resultado.");return;}
   const id=uuid();const r=await apiRequest("/api/v1/results",{method:"POST",body:{resultId:id,patientId,orderId:uuid(),analyte:resQuick.analyte,value:resQuick.value.trim(),...(resQuick.unit?{unit:resQuick.unit}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
   setResults(rs=>[...rs,{id,label:`${resQuick.analyte} ${resQuick.value.trim()} ${resQuick.unit}`.trim(),critical:r.body["critical"]===true,state:"RECEIVED",version:Number(r.body["version"]??1)}]);
-  setResQuick(q=>({...q,value:""}));
+  setResQuick(q=>({...q,value:""}));setChartReload(n=>n+1);// refresca el expediente vivo (resultados + CDS)
  });
  const advanceResult=(res:Result)=>call("res-"+res.id,async()=>{
   const n=resNext(res);if(!n)return;

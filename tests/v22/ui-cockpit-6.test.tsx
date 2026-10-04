@@ -96,6 +96,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 6/
   // destinatario REAL (antes el input era decorativo) + motivo
   fireEvent.change(screen.getByPlaceholderText(/Nombre del especialista/),{target:{value:"Dr. Nuevo"}});
   fireEvent.change(screen.getByPlaceholderText(/Describe el motivo/),{target:{value:"Valoración por endocrinología"}});
+  fireEvent.change(screen.getByLabelText("Resumen clínico"),{target:{value:"DM2 descontrolada, HbA1c 9.1, en metformina"}}); // obligatorio: el especialista lo necesita
   fireEvent.click(screen.getByRole("button",{name:/Enviar interconsulta/}));
   expect(await screen.findByText(/Interconsulta enviada/)).toBeTruthy();
   // auditoría: el destinatario, la prioridad y el tipo YA NO se descartan en la UI
