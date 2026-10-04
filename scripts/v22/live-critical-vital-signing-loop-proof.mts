@@ -14,6 +14,7 @@ const obl=await import("../../apps/web/app/api/v1/obligations/route");
 const vAmend=await import("../../apps/web/app/api/v1/vitals/[vitalId]/amendment/route");
 const vErr=await import("../../apps/web/app/api/v1/vitals/[vitalId]/error-mark/route");
 const oblCancel=await import("../../apps/web/app/api/v1/obligations/[obligationId]/cancellation/route");
+const oblComplete=await import("../../apps/web/app/api/v1/obligations/[obligationId]/completion/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(scopes=["encounter:write","encounter:read","vital:write","obligation:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
@@ -32,11 +33,18 @@ try{
  r=await assess.POST(B(phys,1,{assessment:"Dx",plan:"Plan"}),EP(enc));ok(r.status===201&&(await r.json()).status==="READY_TO_SIGN","ENCOUNTER_READY");
  // 3) firmar -> BLOQUEADO por el vital crítico sin atender (Zero Lost Follow-Up)
  r=await sign.POST(B(phys,2,SIGN),EP(enc));ok(r.status===403&&(await r.json()).error.code==="SAFETY_BLOCKED","SIGN_BLOCKED_BY_CRITICAL_VITAL_403");
- // 4) atender el vital: obligación de seguimiento ligada (sourceVitalId=vid)
- r=await obl.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({obligationId:crypto.randomUUID(),patientId:pat,ownerId:crypto.randomUUID(),dueAt:new Date(Date.now()+86_400_000).toISOString()/* fecha RELATIVA: una fecha fija acaba venciendo y el gate (L-01) la bloquea */,kind:"CRITICAL_VITAL_FOLLOWUP",sourceVitalId:vid,occurredAt:ISO})}));
- ok(r.status===201,"FOLLOWUP_OBLIGATION_CREATED");
- // 5) firmar de nuevo -> DESBLOQUEADO
- r=await sign.POST(B(phys,2,SIGN),EP(enc));const s=await r.json();ok(r.status===201&&s.status==="SIGNED","SIGN_UNBLOCKED_AFTER_FOLLOWUP_201");
+ // 4) atender el vital crítico: DECISIÓN DEL DUEÑO — a un vital CRÍTICO solo lo releva un seguimiento URGENTE; un recordatorio
+ //    de rutina ya no basta (antes CUALQUIER obligación abierta lo vaciaba, y ROUTINE no bloquea → se firmaba sobre la crisis).
+ //    Crear la URGENTE releva el gate del vital, pero la propia obligación urgente ABIERTA bloquea la firma hasta resolverse.
+ const oblU=crypto.randomUUID();const OPU={params:Promise.resolve({obligationId:oblU})};
+ r=await obl.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({obligationId:oblU,patientId:pat,ownerId:crypto.randomUUID(),dueAt:new Date(Date.now()+86_400_000).toISOString()/* fecha RELATIVA: una fecha fija acaba venciendo y el gate (L-01) la bloquea */,kind:"CRITICAL_VITAL_FOLLOWUP",priority:"URGENT",sourceVitalId:vid,occurredAt:ISO})}));
+ ok(r.status===201,"URGENT_FOLLOWUP_OBLIGATION_CREATED");
+ // 5) firmar -> AÚN BLOQUEADO: la obligación urgente abierta es, ella misma, un pendiente crítico (Zero Lost Follow-Up).
+ r=await sign.POST(B(phys,2,SIGN),EP(enc));ok(r.status===403,"SIGN_STILL_BLOCKED_BY_OPEN_URGENT_FOLLOWUP_403");
+ // 5b) resolver la obligación URGENTE con evidencia -> AHORA sí se desbloquea (el vital ya no cuenta y la urgente dejó de bloquear).
+ r=await oblComplete.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({evidence:"paciente contactado, antihipertensivo IV y en observación con TA 150/95",occurredAt:ISO})}),OPU);
+ ok(r.status===201||r.status===200,"URGENT_FOLLOWUP_COMPLETED");
+ r=await sign.POST(B(phys,2,SIGN),EP(enc));const s=await r.json();ok(r.status===201&&s.status==="SIGNED","SIGN_UNBLOCKED_AFTER_URGENT_FOLLOWUP_RESOLVED_201");
  // 6) control: otro paciente con vital crítico y SIN obligación sigue bloqueado
  const pat2=crypto.randomUUID();await ensurePatientIn(TA,pat2); /* L-07 */const enc2=crypto.randomUUID();
  await vt.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:pat2,vitalType:"SPO2",value:"85",unit:"%",occurredAt:ISO})}));
@@ -55,12 +63,13 @@ try{
  // === Auditoría multi-agente (gate de firma) — tres cierres de hueco en countOpenCriticalVitals ===
  const VP=(id:string)=>({params:Promise.resolve({vitalId:id})});const OP=(id:string)=>({params:Promise.resolve({obligationId:id})});
 
- // 8) Una obligación de seguimiento CANCELADA ya no "limpia" el vital crítico: crear y cancelar NO debe vaciar el gate.
+ // 8) Una obligación de seguimiento URGENTE CANCELADA ya no "limpia" el vital crítico: crear y cancelar NO debe vaciar el gate
+ //    (URGENTE para que el relevo SERÍA posible de no cancelarse; cancelada, el vital vuelve a contar).
  const pat8=crypto.randomUUID();await ensurePatientIn(TA,pat8);const vid8=crypto.randomUUID(),enc8=crypto.randomUUID(),obl8=crypto.randomUUID();
  await vt.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:vid8,patientId:pat8,vitalType:"BP",value:"190/125",unit:"mmHg",occurredAt:ISO})}));
  await open.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:enc8,patientId:pat8,occurredAt:ISO})}));
  await assess.POST(B(phys,1,{assessment:"Dx",plan:"Plan"}),EP(enc8));
- await obl.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({obligationId:obl8,patientId:pat8,ownerId:crypto.randomUUID(),dueAt:new Date(Date.now()+86_400_000).toISOString(),kind:"CRITICAL_VITAL_FOLLOWUP",sourceVitalId:vid8,occurredAt:ISO})}));
+ await obl.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({obligationId:obl8,patientId:pat8,ownerId:crypto.randomUUID(),dueAt:new Date(Date.now()+86_400_000).toISOString(),kind:"CRITICAL_VITAL_FOLLOWUP",priority:"URGENT",sourceVitalId:vid8,occurredAt:ISO})}));
  await oblCancel.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({reason:"creada por error, se cancela",occurredAt:ISO})}),OP(obl8));
  r=await sign.POST(B(phys,2,SIGN),EP(enc8));ok(r.status===403&&(await r.json()).error.code==="SAFETY_BLOCKED","CANCELLED_FOLLOWUP_DOES_NOT_CLEAR_CRITICAL_VITAL_403");
 
@@ -81,5 +90,14 @@ try{
  r=await sign.POST(B(phys,2,SIGN),EP(enc10));ok(r.status===403,"ERROR_CASE_BLOCKED_BEFORE");
  await vErr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({reason:"captura equivocada: era de otro paciente",occurredAt:ISO})}),VP(vid10));
  r=await sign.POST(B(phys,2,SIGN),EP(enc10));ok(r.status===201&&(await r.json()).status==="SIGNED","ENTERED_IN_ERROR_UNBLOCKS_SIGN_201");
+
+ // 11) DECISIÓN DEL DUEÑO (vital crítico ⇒ seguimiento URGENTE): un seguimiento ROUTINE del vital —NO vencido— NO lo releva.
+ //     El seguimiento de rutina ni vacía el gate del vital ni bloquea por sí mismo; sin él sería una firma sobre la crisis.
+ const pat11=crypto.randomUUID();await ensurePatientIn(TA,pat11);const vid11=crypto.randomUUID(),enc11=crypto.randomUUID();
+ await vt.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:vid11,patientId:pat11,vitalType:"BP",value:"190/125",unit:"mmHg",occurredAt:ISO})}));
+ await open.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:enc11,patientId:pat11,occurredAt:ISO})}));
+ await assess.POST(B(phys,1,{assessment:"Dx",plan:"Plan"}),EP(enc11));
+ await obl.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({obligationId:crypto.randomUUID(),patientId:pat11,ownerId:crypto.randomUUID(),dueAt:new Date(Date.now()+86_400_000).toISOString(),kind:"CRITICAL_VITAL_FOLLOWUP",priority:"ROUTINE",sourceVitalId:vid11,occurredAt:ISO})}));
+ r=await sign.POST(B(phys,2,SIGN),EP(enc11));const b11=await r.json();ok(r.status===403&&/vital/i.test(b11.error.message),"ROUTINE_FOLLOWUP_DOES_NOT_CLEAR_CRITICAL_VITAL_403");
 }catch(e){result.status="FAIL";result.error=String(e);}
 console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);

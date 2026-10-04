@@ -249,7 +249,9 @@ function matches(w: RangeWhen | undefined, ctx: LabContext): { ok: boolean; miss
   const missing: string[] = [];
   if (w.sex !== undefined) { if (ctx.sex === undefined) { missing.push("sexo"); return { ok: false, missing }; } if (ctx.sex !== w.sex) return { ok: false, missing }; }
   if (w.pregnant !== undefined) { if (ctx.pregnant !== w.pregnant) return { ok: false, missing }; }
-  if (w.fasting !== undefined) { if (ctx.fasting !== w.fasting) return { ok: false, missing }; }
+  // Ayuno: si la fila lo exige y NO se declaró, se marca "ayuno" como contexto faltante (como sexo/edad) y se cae al estrato
+  // por defecto (aleatoria) — honesto: la pantalla dice que no se sabe el ayuno. Declarado-pero-distinto no es "faltante".
+  if (w.fasting !== undefined) { if (ctx.fasting === undefined) { missing.push("ayuno"); return { ok: false, missing }; } if (ctx.fasting !== w.fasting) return { ok: false, missing }; }
   if (w.ageMaxYears !== undefined) { if (ctx.ageYears === undefined) { missing.push("edad"); return { ok: false, missing }; } if (!(ctx.ageYears < w.ageMaxYears)) return { ok: false, missing }; }
   if (w.ageMinYears !== undefined) { if (ctx.ageYears === undefined) { missing.push("edad"); return { ok: false, missing }; } if (!(ctx.ageYears >= w.ageMinYears)) return { ok: false, missing }; }
   return { ok: true, missing };
@@ -280,7 +282,13 @@ export function classifyLab(analyte: string, value: string, unit?: string, ctx: 
   // estructurado: repetirlo en la frase de cada resultado la vuelve ruido y se deja de leer.
   const suf = row.stratum !== ADULT ? ` [${row.stratum}]` : "";
   const extra = { stratum: row.stratum, source: row.source, ...(row.missing.length ? { contextMissing: row.missing } : {}) };
-  if ((cl > 0 && v < cl) || v > ch) return { status: "CRITICAL", critical: true, interpretation: `${label} críticamente ${v > ch ? "alto" : "bajo"}${suf}`, ...extra };
+  // Auditoría M4-bis (decisión del dueño): los BORDES CRÍTICOS son INCLUSIVOS (`<=`/`>=`). El valor de pánico ES el umbral de
+  // alarma, no una frontera abierta: una troponina EXACTAMENTE en 0.04 ng/mL (percentil 99, ah==ch) o un potasio en 6.5 mEq/L
+  // deben leerse CRÍTICOS, no quedar del lado sano por un `>` estricto. Los bordes ANORMALES siguen ESTRICTOS a propósito:
+  // `abnormalHigh`/`abnormalLow` son el tope del rango NORMAL (inclusivo), así que un potasio en 5.1 mEq/L (tope normal) sigue
+  // siendo NORMAL. Los centinelas de "sin umbral alto" (albúmina 99, PO2 999) son fisiológicamente imposibles y además fuera
+  // del rango plausible, que `normalizeLabValue` ya rechazó antes de llegar aquí: `v>=ch` nunca se dispara para ellos.
+  if ((cl > 0 && v <= cl) || v >= ch) return { status: "CRITICAL", critical: true, interpretation: `${label} críticamente ${v >= ch ? "alto" : "bajo"}${suf}`, ...extra };
   if ((al > 0 && v < al) || v > ah) return { status: "ABNORMAL", critical: false, interpretation: `${label} ${v > ah ? "alto" : "bajo"}${suf}`, ...extra };
   return { status: "NORMAL", critical: false, interpretation: `${label} normal${suf}`, ...extra };
 }

@@ -25,6 +25,7 @@ const enc=await import("../../apps/web/app/api/v1/encounters/route");
 const assess=await import("../../apps/web/app/api/v1/encounters/[encounterId]/assessment/route");
 const sign=await import("../../apps/web/app/api/v1/encounters/[encounterId]/signature/route");
 const obl=await import("../../apps/web/app/api/v1/obligations/route");
+const oblComplete=await import("../../apps/web/app/api/v1/obligations/[obligationId]/completion/route");
 const exp=await import("../../apps/web/app/api/v1/patients/[patientId]/export/route");
 const TA=crypto.randomUUID(),TB=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 const SCOPES=["patient:write","patient:read","allergy:write","problem:write","medication:propose","medication:write","order:write","result:write","encounter:read","encounter:write","vital:write","obligation:write","record:export"];
@@ -87,9 +88,14 @@ try{
  r=await sign.POST(POST(phys,SIGN,2),P("encounterId",encId));b=await r.json();
  ok(r.status===403&&/signo\(s\) vital\(es\) crítico/.test(b.error.message),"SIGN_BLOCKED_BY_CRITICAL_VITAL_403");
 
- // 8) OBLIGACIÓN de seguimiento ligada al vital (cierra el lazo) → FIRMAR el contenido visible
- r=await obl.POST(POST(phys,{obligationId:crypto.randomUUID(),patientId:pat,ownerId:crypto.randomUUID(),dueAt:new Date(Date.now()+86_400_000).toISOString(),kind:"CRITICAL_VITAL_FOLLOWUP",sourceVitalId:vid,occurredAt:ISO}));
- ok(r.status===201,"FOLLOWUP_OBLIGATION_201");
+ // 8) OBLIGACIÓN de seguimiento URGENTE ligada al vital (decisión del dueño: a un vital CRÍTICO solo lo releva un seguimiento
+ //    URGENTE) → la urgente abierta sigue bloqueando → RESOLVERLA con evidencia cierra el lazo → FIRMAR el contenido visible.
+ const oblVid=crypto.randomUUID();
+ r=await obl.POST(POST(phys,{obligationId:oblVid,patientId:pat,ownerId:crypto.randomUUID(),dueAt:new Date(Date.now()+86_400_000).toISOString(),kind:"CRITICAL_VITAL_FOLLOWUP",priority:"URGENT",sourceVitalId:vid,occurredAt:ISO}));
+ ok(r.status===201,"URGENT_FOLLOWUP_OBLIGATION_201");
+ r=await sign.POST(POST(phys,SIGN,2),P("encounterId",encId));ok(r.status===403,"SIGN_STILL_BLOCKED_BY_OPEN_URGENT_201");
+ r=await oblComplete.POST(POST(phys,{evidence:"paciente contactado, antihipertensivo IV y en observación con TA 150/95",occurredAt:ISO},1),P("obligationId",oblVid));
+ ok(r.status===201||r.status===200,"URGENT_FOLLOWUP_COMPLETED");
  r=await sign.POST(POST(phys,SIGN,2),P("encounterId",encId));const s=await r.json();
  ok(r.status===201&&s.status==="SIGNED"&&s.contentHash===SIGN.contentHash,"ENCOUNTER_SIGNED_201");
 

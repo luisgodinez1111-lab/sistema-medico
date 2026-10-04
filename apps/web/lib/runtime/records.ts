@@ -185,8 +185,13 @@ export async function countOpenCriticalResults(ctx:HttpTenantContext,patientId:s
 // seguimiento ligada (sourceVitalId) cuyo estado actual NO sea CANCELADO. Antes bastaba que EXISTIERA un evento CREATED de
 // obligación —aunque luego se CANCELARA— para dejar de contar: crear y cancelar vaciaba el gate. Y se contaba por cualquier
 // evento crítico sin mirar el vigente, así que un crítico enmendado a normal o anulado bloqueaba para siempre.
-// NOTA (decisión de política pendiente del dueño): hoy una obligación ROUTINE abierta también releva a un vital crítico; si
-// se quisiera exigir seguimiento URGENTE para críticos, se añadiría el filtro de prioridad aquí.
+// DECISIÓN DEL DUEÑO (resuelta): a un vital CRÍTICO solo lo releva una obligación de seguimiento URGENTE. Antes bastaba
+// CUALQUIER obligación abierta no-cancelada —y la prioridad por defecto al crear una obligación es ROUTINE—, así que un vital
+// crítico (p. ej. crisis hipertensiva) quedaba relevado de ESTE gate por un simple recordatorio de rutina, y como
+// `blockingObligations` solo bloquea URGENT/vencidas, una ROUTINE no vencida tampoco lo frenaba: se podía firmar con la crisis
+// sin atender. Ahora el relevo exige prioridad URGENT en el evento CREATED de la obligación ligada (sourceVitalId) y que su
+// estado vigente no sea CANCELLED. Consecuencia buscada: mientras esa URGENT siga abierta, `blockingObligations` también la
+// cuenta (URGENT), así que el vital crítico sigue bloqueando la firma hasta que el seguimiento urgente se complete o cancele.
 export async function countOpenCriticalVitals(ctx:HttpTenantContext,patientId:string):Promise<number>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
@@ -199,7 +204,7 @@ export async function countOpenCriticalVitals(ctx:HttpTenantContext,patientId:st
      and not exists(
       select 1 from clinical_events o
       where o.tenant_id=${ctx.tenantId} and o.aggregate_type='ClinicalObligation' and o.payload->>'kind'='CREATED'
-        and o.payload->>'sourceVitalId'=r.aggregate_id::text
+        and o.payload->>'sourceVitalId'=r.aggregate_id::text and o.payload->>'priority'='URGENT'
         and coalesce((select ol.payload->>'kind' from clinical_events ol where ol.tenant_id=${ctx.tenantId} and ol.aggregate_id=o.aggregate_id order by ol.sequence desc limit 1),'CREATED')<>'CANCELLED')`;
   return Number(rows[0]?.n??0);
  });

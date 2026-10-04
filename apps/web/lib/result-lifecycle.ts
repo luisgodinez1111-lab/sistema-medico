@@ -28,7 +28,10 @@ function authz(claims:{sub:string;tenantId:string;roles:readonly string[];scopes
 // OBLIGATORIA al RECIBIR y al CORREGIR: sin unidad se responde 400 y el valor no entra al expediente. `specimenId` sigue
 // opcional (no todo resultado nace de una muestra registrada) y `unitAssumed` se conserva en el fold para los resultados
 // históricos que se registraron sin ella.
-export const ReceiveBody=z.object({resultId:z.string().uuid(),patientId:z.string().uuid(),orderId:z.string().uuid(),analyte:z.string().min(1).max(60),value:z.string().min(1).max(60),unit:z.string().trim().min(1,"La unidad es obligatoria: sin ella el valor no se puede interpretar").max(24),specimenId:z.string().uuid().optional(),occurredAt:z.string().datetime()});
+// `fasting` OPCIONAL (decisión del dueño): declara si la muestra se tomó EN AYUNO. Decide el estrato de analitos cuyo corte
+// cambia con el ayuno (glucosa: ≥126 en ayuno es diabetes vs ≥200 aleatoria). Si NO se declara, se usa el corte aleatoria
+// (más conservador para evitar falsos positivos posprandiales) y se marca "ayuno" en contextMissing — no se asume ayuno.
+export const ReceiveBody=z.object({resultId:z.string().uuid(),patientId:z.string().uuid(),orderId:z.string().uuid(),analyte:z.string().min(1).max(60),value:z.string().min(1).max(60),unit:z.string().trim().min(1,"La unidad es obligatoria: sin ella el valor no se puede interpretar").max(24),specimenId:z.string().uuid().optional(),fasting:z.boolean().optional(),occurredAt:z.string().datetime()});
 // RECEIVE = creación del agregado (expectedVersion 0). Idempotencia la maneja el kernel.
 // EPIC AQ: si se envía analyte+value, el flag `critical` se DERIVA del valor real
 // (valores de pánico), no se confía en el booleano del cliente.
@@ -54,7 +57,7 @@ export async function handleResultReceived(req:Request):Promise<Response>{
   return await commitReceived(ctx,idempotencyKey,b,stable);
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-type ReceiveInput=Readonly<{resultId:string;patientId:string;orderId:string;analyte:string;value:string;unit?:string|undefined;specimenId?:string|undefined;occurredAt:string}>;
+type ReceiveInput=Readonly<{resultId:string;patientId:string;orderId:string;analyte:string;value:string;unit?:string|undefined;specimenId?:string|undefined;fasting?:boolean|undefined;occurredAt:string}>;
 // Interpretación de un resultado recibido (unidad, plausibilidad, crítico, Δ vs previo). Compartida por RECEIVE y CORRECTION.
 // `priorExclude`: resultado que NO cuenta como "valor previo" del Δ (el propio; en una corrección, el original que se reemplaza).
 async function interpretForReceive(ctx:Parameters<typeof runClinicalCommand>[0],b:ReceiveInput,extra:Record<string,unknown>={},priorExclude:string=b.resultId):Promise<Record<string,unknown>>{
@@ -70,7 +73,7 @@ async function interpretForReceive(ctx:Parameters<typeof runClinicalCommand>[0],
   const demoLab=await patientDemographics(ctx,b.patientId);
   const sexLab=demoLab?.sexAtBirth==="FEMALE"||demoLab?.sexAtBirth==="MALE"?demoLab.sexAtBirth:undefined;
   const ageLab=demoLab?.birthDate?ageInYears(demoLab.birthDate,b.occurredAt):undefined;
-  const assessment=classifyLab(b.analyte,b.value,b.unit,{...(sexLab?{sex:sexLab}:{}),...(ageLab!==undefined?{ageYears:ageLab}:{})});
+  const assessment=classifyLab(b.analyte,b.value,b.unit,{...(sexLab?{sex:sexLab}:{}),...(ageLab!==undefined?{ageYears:ageLab}:{}),...(b.fasting!==undefined?{fasting:b.fasting}:{})});
   // EPIC BB (profundidad): delta check longitudinal — comparar con el valor previo del mismo analito.
   // Una variación crítica (p. ej. creatinina que se duplica, Hb -2 g/dL) ELEVA el resultado a `critical`
   // aunque el valor absoluto no sea de pánico -> participa del gate de firma (Zero Lost Follow-Up).
@@ -91,6 +94,7 @@ async function interpretForReceive(ctx:Parameters<typeof runClinicalCommand>[0],
   const payload:Record<string,unknown>={kind:"RECEIVED",patientId:b.patientId,orderId:b.orderId,orderLinked:foldOrder(await readAggregateEvents(ctx,b.orderId)).exists,critical,status:delta.flagged?"CRITICAL":assessment.status,interpretation,analyte:b.analyte,value:b.value};
   if(norm.ok){payload["unit"]=b.unit?.trim()||null;payload["canonicalValue"]=norm.canonicalValue;payload["canonicalUnit"]=norm.canonicalUnit;payload["unitAssumed"]=norm.unitAssumed;}
   if(b.specimenId)payload["specimenId"]=b.specimenId;
+  if(b.fasting!==undefined)payload["fasting"]=b.fasting; // se persiste el ayuno declarado: parte del dato clínico y del estrato con que se juzgó
   if(delta.flagged){payload["deltaFlagged"]=true;payload["deltaSeverity"]=delta.severity;payload["deltaChangeAbs"]=delta.changeAbs;payload["deltaChangePct"]=delta.changePct;payload["priorValue"]=prior;}
   return{...payload,...extra};
 }
@@ -125,7 +129,7 @@ export async function handleResultCorrection(req:Request,resultId:string):Promis
   const b=await parseJson(req,CorrectionBody);
   const original=(await readAggregateEvents(ctx,resultId)).find(e=>e.payload["kind"]==="RECEIVED")?.payload??{};
   const analyte=String(original["analyte"]??"");if(!analyte)throw new ClinicalError("CONFLICT","El resultado original no tiene analito: no se puede corregir");
-  const input:ReceiveInput={resultId:b.correctedResultId,patientId:folded.patientId,orderId:String(original["orderId"]??resultId),analyte,value:b.value,...(b.unit!==undefined?{unit:b.unit}:{}),...(typeof original["specimenId"]==="string"?{specimenId:String(original["specimenId"])}:{}),occurredAt:b.occurredAt};
+  const input:ReceiveInput={resultId:b.correctedResultId,patientId:folded.patientId,orderId:String(original["orderId"]??resultId),analyte,value:b.value,...(b.unit!==undefined?{unit:b.unit}:{}),...(typeof original["specimenId"]==="string"?{specimenId:String(original["specimenId"])}:{}),...(typeof original["fasting"]==="boolean"?{fasting:original["fasting"] as boolean}:{}),occurredAt:b.occurredAt};
   // El payload del resultado corregido lleva valores DERIVADOS por el servidor (Δ, unidad canónica): se estabiliza por
   // `replayStablePayload` para que un reintento no lo recalcule distinto. El leg que lo escribe DEBE usar el mismo `eventId`
   // que esa función lee (derivado de `crKey`), o el reintento no reencontraría el payload persistido. El Δ NO se mide contra

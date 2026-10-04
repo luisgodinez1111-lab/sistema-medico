@@ -18,6 +18,15 @@ describe("classifyLab (rangos de referencia / valores de pánico)",()=>{
   expect(classifyLab("TROPONIN","0.02").status).toBe("NORMAL");
   expect(classifyLab("TROPONIN","0.5").critical).toBe(true);
  });
+ it("bordes CRÍTICOS inclusivos (decisión del dueño): el valor de pánico EXACTO ya es crítico; los ANORMALES siguen estrictos",()=>{
+  // El umbral de alarma ES crítico, no una frontera abierta (`>=`/`<=` en los bordes críticos).
+  expect(classifyLab("TROPONIN","0.04","ng/mL")).toMatchObject({status:"CRITICAL",critical:true}); // percentil 99 EXACTO (antes NORMAL)
+  expect(classifyLab("TROPONIN","0.039","ng/mL").status).toBe("NORMAL");                            // justo por debajo del umbral
+  expect(classifyLab("POTASSIUM","6.5","mEq/L")).toMatchObject({status:"CRITICAL",critical:true});  // criticalHigh EXACTO
+  expect(classifyLab("POTASSIUM","2.5","mEq/L")).toMatchObject({status:"CRITICAL",critical:true});  // criticalLow EXACTO
+  // CONTRAEJEMPLO protegido: el tope del rango NORMAL (abnormalHigh) sigue ESTRICTO -> K⁺ 5.1 es NORMAL, nunca anormal.
+  expect(classifyLab("POTASSIUM","5.1","mEq/L").status).toBe("NORMAL");
+ });
  it("analitos nuevos: calcio, bicarbonato, pH, lactato, BNP, ALT",()=>{
   expect(classifyLab("CALCIUM","14").critical).toBe(true);        // hipercalcemia severa
   expect(classifyLab("CALCIUM","5.5").critical).toBe(true);       // hipocalcemia severa
@@ -234,10 +243,13 @@ describe("rangos estratificados de laboratorio (R03-14)",()=>{
   expect(classifyLab("HBA1C","5.9").status).toBe("ABNORMAL"); // prediabetes también es un hallazgo
  });
  it("la glucosa en AYUNO usa el umbral de ayuno (≥126), no el de aleatoria (200)",()=>{
-  expect(classifyLab("GLUCOSE","150",undefined,{fasting:true}).status).toBe("ABNORMAL");
+  const enAyuno=classifyLab("GLUCOSE","150",undefined,{fasting:true});
+  expect(enAyuno.status).toBe("ABNORMAL");
+  expect(enAyuno.contextMissing??[]).not.toContain("ayuno"); // declarado: el ayuno no falta
   const sinDeclarar=classifyLab("GLUCOSE","150");
   expect(sinDeclarar.status).toBe("NORMAL");
   expect(sinDeclarar.stratum).toMatch(/sin declarar ayuno/); // el criterio aplicado queda a la vista
+  expect(sinDeclarar.contextMissing).toContain("ayuno");      // decisión del dueño: se MARCA el ayuno faltante, no se asume
  });
  it("el recién nacido tiene su propio umbral de glucosa (47 mg/dL, AAP)",()=>{
   // Matiz sobre el anexo: decía que «un neonato con glucosa 45 sale NORMAL». No era exacto —con el rango de adulto
