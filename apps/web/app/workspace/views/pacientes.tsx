@@ -53,8 +53,8 @@ export default function PacientesView(){
       {guardianFields(inp)}{dupPanel(true)}
       <div style={{display:"flex",gap:10,marginTop:16,flexWrap:"wrap"}}>
        {/* Flujo clínico natural: registrar al paciente y abrir de inmediato su consulta (registerPatient con openInConsulta). */}
-       <button onClick={()=>registerPatient(true,false,true)} disabled={busy==="pt-reg"||!regName.trim()} style={{border:0,background:(busy==="pt-reg"||!regName.trim())?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(busy==="pt-reg"||!regName.trim())?"default":"pointer",fontFamily:UI}}>{busy==="pt-reg"?"Registrando…":"Registrar e iniciar consulta"}</button>
-       <button onClick={()=>registerPatient(true)} disabled={busy==="pt-reg"||!regName.trim()} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:(busy==="pt-reg"||!regName.trim())?"default":"pointer",opacity:(busy==="pt-reg"||!regName.trim())?.6:1,fontFamily:UI}}>Solo registrar</button>
+       <button onClick={()=>registerPatient(true,false,true)} disabled={busy==="pt-reg"||!regName.trim()||!regDob} style={{border:0,background:(busy==="pt-reg"||!regName.trim()||!regDob)?"#C7CCE0":P.purple,color:"#fff",borderRadius:10,padding:"11px 20px",fontWeight:700,fontSize:14,cursor:(busy==="pt-reg"||!regName.trim()||!regDob)?"default":"pointer",fontFamily:UI}}>{busy==="pt-reg"?"Registrando…":"Registrar e iniciar consulta"}</button>
+       <button onClick={()=>registerPatient(true)} disabled={busy==="pt-reg"||!regName.trim()||!regDob} style={{border:`1px solid ${P.purple}`,background:P.white,color:P.purple,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:(busy==="pt-reg"||!regName.trim()||!regDob)?"default":"pointer",opacity:(busy==="pt-reg"||!regName.trim()||!regDob)?.6:1,fontFamily:UI}}>Solo registrar</button>
        <button onClick={()=>setPatNew(false)} style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:10,padding:"11px 18px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:UI}}>Cancelar</button></div>
      </div>}
      <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:14,marginTop:18}} className="mos-kpis">
@@ -90,7 +90,7 @@ export default function PacientesView(){
          expediente; si la carga falla, el aviso honesto de error del layout se hace cargo (lo prueba ui-clinical-truth). */}
      <div style={{marginTop:14,padding:"12px 14px",border:`1px dashed ${LINE}`,borderRadius:12,background:"#FBFBFE",maxWidth:460}}>
       <label htmlFor="patient-id-input" style={{fontSize:12,fontWeight:700,color:P.muted,display:"block",marginBottom:6}}>¿El padrón no carga? Abre el expediente por ID de paciente</label>
-      <input id="patient-id-input" aria-label="ID de paciente" defaultValue="" onChange={e=>{const v=e.target.value.trim();if(v){selectPatientRaw(v,"");setPatientId(v);setExpTab("resumen");}}} placeholder="UUID del paciente" style={{...inp,maxWidth:360}}/>
+      <input id="patient-id-input" aria-label="ID de paciente" defaultValue="" onChange={e=>{const v=e.target.value.trim();if(/^[0-9a-f-]{36}$/i.test(v)){selectPatientRaw(v,"");setPatientId(v);setExpTab("resumen");}}} placeholder="UUID del paciente" style={{...inp,maxWidth:360}}/>
      </div>
     </div>
    </div>;

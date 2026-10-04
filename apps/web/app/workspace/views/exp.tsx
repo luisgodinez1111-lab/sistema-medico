@@ -43,7 +43,7 @@ export default function ExpView(){
     )}
    actions={<div style={{display:"flex",gap:8,alignItems:"center"}}>
      <button style={{...btn,padding:"7px 14px",fontSize:13,flex:"0 0 auto"}} onClick={()=>openConsulta(patientId,patientName)}>Iniciar consulta →</button>
-     <button style={{...ghost,padding:"7px 12px",fontSize:13,flex:"0 0 auto"}} onClick={reset}>+ Paciente anónimo</button>
+     <button style={{...ghost,padding:"7px 12px",fontSize:13,flex:"0 0 auto"}} onClick={reset} title="Dejar de ver este paciente y volver a la lista">Cerrar paciente</button>
     </div>}/>
   <main className="mos-grid">
   {/* PATIENT 360 (Lote B) — navegación por sub-vistas: el expediente deja de ser un scroll único de ~30 secciones */}

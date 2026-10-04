@@ -3,6 +3,7 @@
 // handlers viven en ./model (useWorkspaceModel, mismo orden de hooks), los helpers en ./shared y cada vista en ./views/*.
 // Este fichero conserva los retornos tempranos, el layout (barra, rail, encabezado del paciente) y el conmutador de vistas.
 import {logout as sessionLogout} from "../../lib/session-client";
+import {useEffect} from "react";
 import{RAIL_CSS,SIDE_NAV,scrollTop,goExpSection,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap,BrandMark,BrandLockup,NAV_GROUP_META}from"./shared";
 import{Alert,Button,Card}from"../../../../packages/design-system/src";
 import{useWorkspaceModel,deriveHeader}from"./model";
@@ -31,6 +32,18 @@ function ViewSwitch(){const{view}=useWorkspace();const V=VIEWS[view]??ExpView;re
 export default function Workspace(){
  const m=useWorkspaceModel();
  const{ready,session,cspNonce,sideCollapsed,view,setView,setExpTab,reset,setDocMenu,docMenu,setSideCollapsed,topSearch,setTopSearch,loadPatients,setTopMenu,topMenu,chartState,setChartReload,signAsk,signErr,signBusy,setSignAsk,setSignErr,confirmSign,reasonAsk,reasonText,setReasonText,setReasonAsk,amendAsk,amendText,setAmendText,setAmendAsk,busy,confirmAmend}=m;
+
+ // Tecla Escape cierra el overlay abierto (patrón de SO: ningún modal/menú atrapa al usuario sin salida de teclado). Los
+ // modales de firma/motivo/enmienda se cancelan (el de motivo resuelve su promesa con null); los menús se repliegan.
+ useEffect(()=>{
+  const onKey=(e:KeyboardEvent)=>{if(e.key!=="Escape")return;
+   if(signAsk){setSignAsk(null);setSignErr("");}
+   else if(reasonAsk){const r=reasonAsk.resolve;setReasonAsk(null);r(null);}
+   else if(amendAsk){setAmendAsk(null);setAmendText("");}
+   else if(docMenu)setDocMenu(false);
+   else if(topMenu)setTopMenu(false);};
+  window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey);
+ },[signAsk,reasonAsk,amendAsk,docMenu,topMenu,setSignAsk,setSignErr,setReasonAsk,setAmendAsk,setAmendText,setDocMenu,setTopMenu]);
 
  if(!ready)return <main style={wrap}><p>Cargando…</p></main>;
  if(!session)return <main style={wrap}>

@@ -18,7 +18,7 @@ export default function BibliotecaView(){
    const FEAT:Feat[]=[
     {badge:"GPC",bc:P.purple,title:"Diabetes mellitus tipo 2",sub:"Guía de práctica clínica",desc:"Diagnóstico, tratamiento y seguimiento del paciente con DM2.",src:"CENETEC"},
     {badge:"Protocolo",bc:P.blue,title:"Manejo de la hipertensión arterial",sub:"Guía de práctica clínica",desc:"Abordaje integral y metas de control.",src:"CENETEC"},
-    {badge:"Calculadora",bc:P.greenOnPale,title:"Dosis pediátricas",sub:"Herramienta interactiva",desc:"Cálculo de dosis por peso, edad y medicamento.",src:"Motor CDS"},
+    {badge:"Calculadora",bc:P.greenOnPale,title:"Dosis pediátricas",sub:"Ficha de referencia",desc:"Cálculo de dosis por peso, edad y medicamento.",src:"Motor CDS"},
     {badge:"Escala",bc:P.red,title:"Escala de Glasgow",sub:"Valoración neurológica",desc:"Evaluación del estado de conciencia en adultos y pediátricos.",src:"Referencia internacional"},
    ];
    const badgeSty=(c:string):React.CSSProperties=>({background:c+"22",color:c,borderRadius:8,padding:"3px 10px",fontSize:11.5,fontWeight:700});
