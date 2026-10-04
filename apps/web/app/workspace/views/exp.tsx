@@ -420,7 +420,7 @@ export default function ExpView(){
       <input style={input} aria-label="Motivo de la actualización" placeholder="p. ej. el paciente dejó de fumar; nuevo diagnóstico" value={antReason} onChange={e=>setAntReason(e.target.value.slice(0,300))}/>
       <p style={{fontSize:11.5,color:P.muted,margin:"6px 0 0"}}>El histórico no se sobrescribe: cada actualización queda en la auditoría con su motivo.</p>
      </div>}
-     {antMsg&&<div role="status" style={{fontSize:12.5,fontWeight:600,color:antMsg.includes("No se")||antMsg.includes("Indica")||antMsg.includes("cambiaron")?P.amberOnPale:P.greenOnPale}}>{antMsg}</div>}
+     {antMsg&&<div role="status" style={{fontSize:12.5,fontWeight:600,color:antMsg.includes("✓")?P.greenOnPale:P.amberOnPale}}>{antMsg}</div>}
      <div style={{display:"flex",gap:10}}>
       <button disabled={antBusy} onClick={()=>void saveAntecedentes()} style={{...btn,opacity:antBusy?.6:1}}>{antBusy?"Guardando…":antSnap?.recorded?"Guardar cambios":"Capturar antecedentes"}</button>
       <button disabled={antBusy} onClick={()=>setAntEditing(false)} style={{...ghost,padding:"9px 16px"}}>Cancelar</button>

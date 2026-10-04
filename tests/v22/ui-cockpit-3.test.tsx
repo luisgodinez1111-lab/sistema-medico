@@ -161,9 +161,9 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 3/
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Facturación"}));
   expect((await screen.findByRole("heading",{name:"Facturación"}))).toBeTruthy();
-  expect(screen.getByText("Facturas emitidas")).toBeTruthy();                    // KPI
+  expect(screen.getByText("Cargos registrados")).toBeTruthy();                   // KPI (no "facturas": no emite CFDI)
   expect((await screen.findAllByText("Ana López García")).length).toBeGreaterThan(0); // fila (real) + wizard
-  expect(screen.getByText("Nueva factura")).toBeTruthy();                        // creador real
+  expect(screen.getByText("Nuevo cargo")).toBeTruthy();                          // creador real
   expect(screen.getByText("Conceptos")).toBeTruthy();
   expect(screen.getByRole("button",{name:/Registrar cargo/})).toBeTruthy();
   // auditoría: se eliminaron gráficas/controles hardcodeados o muertos

@@ -4,7 +4,7 @@
 // Este fichero conserva los retornos tempranos, el layout (barra, rail, encabezado del paciente) y el conmutador de vistas.
 import {logout as sessionLogout} from "../../lib/session-client";
 import {useEffect} from "react";
-import{RAIL_CSS,SIDE_NAV,scrollTop,goExpSection,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap,BrandMark,BrandLockup,NAV_GROUP_META,moduleEnabled,EXP_TAB_FOR_PREF}from"./shared";
+import{RAIL_CSS,SIDE_NAV,scrollTop,goExpSection,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap,BrandMark,BrandLockup,NAV_GROUP_META,moduleEnabled,EXP_TAB_FOR_PREF,useFocusTrap}from"./shared";
 import{Alert,Button,Card}from"../../../../packages/design-system/src";
 import{useWorkspaceModel,deriveHeader}from"./model";
 import{WorkspaceProvider,useWorkspace}from"./context";
@@ -34,6 +34,10 @@ export default function Workspace(){
  const{ready,session,cspNonce,sideCollapsed,view,setView,setExpTab,reset,setDocMenu,docMenu,setSideCollapsed,topSearch,setTopSearch,loadPatients,setTopMenu,topMenu,chartState,setChartReload,signAsk,signErr,signBusy,setSignAsk,setSignErr,confirmSign,reasonAsk,reasonText,setReasonText,setReasonAsk,amendAsk,amendText,setAmendText,setAmendAsk,busy,confirmAmend,cfgSettings}=m;
  // S-CONFIG aplicado: sub-pestaña inicial del expediente según la preferencia del consultorio (prefRecordView).
  const defaultExpTab=EXP_TAB_FOR_PREF[cfgSettings?.prefRecordView as string]??"resumen";
+ // Focus-trap de los modales de firma/motivo/enmienda (WCAG 2.4.3/2.1.2): el teclado circula dentro mientras están abiertos.
+ const signTrap=useFocusTrap<HTMLDivElement>(!!signAsk);
+ const reasonTrap=useFocusTrap<HTMLDivElement>(!!reasonAsk);
+ const amendTrap=useFocusTrap<HTMLDivElement>(!!amendAsk);
 
  // Tecla Escape cierra el overlay abierto (patrón de SO: ningún modal/menú atrapa al usuario sin salida de teclado). Los
  // modales de firma/motivo/enmienda se cancelan (el de motivo resuelve su promesa con null); los menús se repliegan.
@@ -138,7 +142,7 @@ export default function Workspace(){
   {<ViewSwitch/>}
   </div>
   {signAsk&&<div style={{position:"fixed",inset:0,background:"rgba(20,22,40,.55)",display:"grid",placeItems:"center",zIndex:1000,padding:16}}>
-   <div role="alertdialog" aria-modal="true" aria-labelledby="sign-title" aria-describedby="sign-desc" style={{background:"#fff",borderRadius:16,maxWidth:720,width:"100%",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+   <div ref={signTrap} tabIndex={-1} role="alertdialog" aria-modal="true" aria-labelledby="sign-title" aria-describedby="sign-desc" style={{background:"#fff",borderRadius:16,maxWidth:720,width:"100%",maxHeight:"88vh",display:"flex",flexDirection:"column",boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
     <div style={{padding:"18px 22px 10px"}}>
      <b id="sign-title" style={{fontSize:17,color:"#1C1E33"}}>Confirmar firma — {signAsk.title}</b>
      <p id="sign-desc" style={{margin:"6px 0 0",fontSize:13,color:"#4b4c5e"}}>Este es el texto <b>guardado</b> que quedará firmado. Una vez firmado es <b>inmutable</b>: cualquier corrección posterior será una enmienda que se añade, nunca un reemplazo. La fecha y hora de la firma las pone el servidor.</p>
@@ -153,7 +157,7 @@ export default function Workspace(){
    </div>
   </div>}
   {reasonAsk&&<div style={{position:"fixed",inset:0,background:"rgba(20,22,40,.55)",display:"grid",placeItems:"center",zIndex:1001,padding:16}}>
-   <div role="dialog" aria-modal="true" aria-labelledby="reason-title" style={{background:"#fff",borderRadius:16,maxWidth:560,width:"100%",padding:"18px 22px",boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+   <div ref={reasonTrap} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="reason-title" style={{background:"#fff",borderRadius:16,maxWidth:560,width:"100%",padding:"18px 22px",boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
     <b id="reason-title" style={{fontSize:16,color:"#1C1E33"}}>{reasonAsk.spec.__ask}</b>
     <p style={{margin:"6px 0 10px",fontSize:12.5,color:"#4b4c5e"}}>Este texto queda en el expediente como el motivo registrado por el médico. Mínimo {reasonAsk.spec.min} caracteres.</p>
     <textarea id="reason-text" aria-label={reasonAsk.spec.__ask} value={reasonText} onChange={e=>setReasonText(e.target.value)} rows={3} maxLength={1000} placeholder={reasonAsk.spec.placeholder??""} style={{...input,width:"100%",resize:"vertical"}} />
@@ -164,7 +168,7 @@ export default function Workspace(){
    </div>
   </div>}
   {amendAsk&&<div style={{position:"fixed",inset:0,background:"rgba(20,22,40,.55)",display:"grid",placeItems:"center",zIndex:1000,padding:16}}>
-   <div role="dialog" aria-modal="true" aria-labelledby="amend-title" style={{background:"#fff",borderRadius:16,maxWidth:600,width:"100%",padding:"18px 22px",boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
+   <div ref={amendTrap} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="amend-title" style={{background:"#fff",borderRadius:16,maxWidth:600,width:"100%",padding:"18px 22px",boxShadow:"0 24px 60px rgba(0,0,0,.3)"}}>
     <b id="amend-title" style={{fontSize:17,color:"#1C1E33"}}>Enmienda — {amendAsk.label}</b>
     <p style={{margin:"6px 0 10px",fontSize:13,color:"#4b4c5e"}}>La enmienda se <b>añade</b> al documento firmado; el contenido original no se modifica.</p>
     <label htmlFor="amend-text" style={{display:"block",fontSize:12,fontWeight:700,color:"#4b4c5e",marginBottom:4}}>Texto de la enmienda (mínimo 10 caracteres)</label>

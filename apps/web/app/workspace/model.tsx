@@ -580,11 +580,11 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   try{
    if(!antSnap?.recorded){
     const r=await apiRequest(`/api/v1/patients/${patientId}/antecedentes`,{method:"POST",body:{content,occurredAt}});
-    if(r.status<300){setAntMsg("Antecedentes capturados.");setAntEditing(false);await reloadAntecedentes();}
+    if(r.status<300){setAntMsg("Antecedentes capturados ✓");setAntEditing(false);await reloadAntecedentes();}
     else setAntMsg(userMessage(r.body)??"No se pudieron capturar los antecedentes.");
    }else{
     const r=await apiRequest(`/api/v1/patients/${patientId}/antecedentes/amendment`,{method:"POST",body:{content,reason:antReason.trim(),occurredAt},ifMatch:antSnap.version});
-    if(r.status<300){setAntMsg("Antecedentes actualizados.");setAntEditing(false);setAntReason("");await reloadAntecedentes();}
+    if(r.status<300){setAntMsg("Antecedentes actualizados ✓");setAntEditing(false);setAntReason("");await reloadAntecedentes();}
     else if(r.status===409){setAntMsg("Los antecedentes cambiaron en otra sesión; se recargaron. Revisa y guarda de nuevo.");await reloadAntecedentes();}
     else setAntMsg(userMessage(r.body)??"No se pudieron actualizar los antecedentes.");
    }

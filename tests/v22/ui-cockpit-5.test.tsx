@@ -96,14 +96,14 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 5/
   expect(screen.queryByText(/ANTECEDENTES RELEVANTES/),"la nota de la consulta ya no lleva antecedentes").toBeNull();
  });
 
- it("vista Facturación: emitir una factura real al paciente elegido (POST /claims)",async()=>{
+ it("vista Facturación: registrar un cargo real al paciente elegido (POST /claims)",async()=>{
   render(<Workspace/>);
   fireEvent.click(screen.getByRole("button",{name:"Facturación"}));
-  // elegir el paciente al que se factura (selector real cableado a la lista de pacientes)
+  // elegir el paciente al que se registra el cargo (selector real cableado a la lista de pacientes)
   const opt=await screen.findByRole("option",{name:"Ana López García"});
   fireEvent.change(opt.closest("select")!,{target:{value:"p1"}});
   fireEvent.click(screen.getByRole("button",{name:/Registrar cargo/}));
-  expect(await screen.findByText(/Factura emitida/)).toBeTruthy();
+  expect(await screen.findByText(/Cargo registrado/)).toBeTruthy();
  });
 
  it("panel 5 (Seguimiento automático): tabs + estado en TEXTO, no solo color",async()=>{

@@ -2,6 +2,7 @@
 // de módulo del workspace, exportados para las vistas. Los estilos base (`btn`, `ghost`, `card`, `input`, `stateBadge`,
 // `patientBar`, `LINE`) son adaptadores sobre el design system (packages/design-system/src/components.tsx): la paleta y la
 // anatomía viven allí; aquí solo se conservan los nombres que usan las vistas.
+import{useRef,useEffect}from"react";
 import {primitive,typography,LINE as DS_LINE,buttonStyle,cardStyle,inputStyle,badgeStyle,toneOfState,patientHeaderStyle} from "../../../../packages/design-system/src";
 import{lookupIcd10}from"../../../../packages/terminology/src";
 import{VITAL_UNITS}from"../../../../packages/lab-reference/src";
@@ -699,6 +700,30 @@ export function agendaWindow(view:string,dateStr:string):string{
 }
 // ── SKELETONS (refactor UI/UX pro-max) ────────────────────────────────────────────────────────────────────────────
 // Fundamento transversal: TODA ventana muestra skeletons antes de que lleguen los datos del backend. Reservan el espacio
+// Focus-trap de modales (WCAG 2.4.3 orden de foco + 2.1.2 sin trampa de teclado): mientras el modal está abierto, el foco
+// arranca dentro, Tab/Shift+Tab circulan SOLO entre sus controles, y al cerrar el foco vuelve a donde estaba (el disparador).
+// El cierre con Escape lo maneja el handler global de page.tsx; aquí solo se contiene el recorrido. `active` = modal abierto.
+const FOCUSABLE_SEL='a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+export function useFocusTrap<T extends HTMLElement>(active:boolean){
+ const ref=useRef<T|null>(null);
+ useEffect(()=>{
+  if(!active)return;
+  const node=ref.current;if(!node)return;
+  const prev=(typeof document!=="undefined"?document.activeElement:null) as HTMLElement|null;
+  const focusables=()=>Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE_SEL)).filter(el=>el.getAttribute("aria-hidden")!=="true");
+  const inicial=focusables()[0];(inicial??node).focus();
+  const onKey=(e:KeyboardEvent)=>{
+   if(e.key!=="Tab")return;
+   const f=focusables();if(f.length===0){e.preventDefault();return;}
+   const primero=f[0]!,ultimo=f[f.length-1]!;
+   if(e.shiftKey&&document.activeElement===primero){e.preventDefault();ultimo.focus();}
+   else if(!e.shiftKey&&document.activeElement===ultimo){e.preventDefault();primero.focus();}
+  };
+  node.addEventListener("keydown",onKey);
+  return()=>{node.removeEventListener("keydown",onKey);if(prev&&typeof prev.focus==="function")prev.focus();};
+ },[active]);
+ return ref;
+}
 // (evitan CLS), usan design tokens, animan solo si el usuario no pidió reducir movimiento (WCAG 2.3.3 / prefers-reduced-
 // motion), y NO se anuncian al lector de pantalla (aria-hidden); el estado "cargando" lo comunica el contenedor <Loading>.
 export function Skeleton({w="100%",h=14,r=primitive.radius.sm,style}:{w?:number|string;h?:number|string;r?:number;style?:React.CSSProperties}){

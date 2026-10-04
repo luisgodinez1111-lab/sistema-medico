@@ -2,10 +2,11 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "obligaciones" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{card,LINE,P,UI,Skeleton,cargaFallida,type RegObItem}from"../shared";
+import{card,LINE,P,UI,Skeleton,cargaFallida,useFocusTrap,type RegObItem}from"../shared";
 import{useWorkspace}from"../context";
 export default function ObligacionesView(){
  const{regObSnap,oblTab,setOblNew,setOblMsg,oblNew,oblMsg,oblForm,setOblForm,createRegObligation,oblBusy,setOblTab,loadErr,retryLoad,renewRegObligation,complyRegObligation,oblComply,setOblComply,oblEvidence,setOblEvidence}=useWorkspace();
+ const complyTrap=useFocusTrap<HTMLDivElement>(!!oblComply); // focus-trap del modal «marcar cumplida» (WCAG 2.4.3/2.1.2)
 
    // ===== MÓDULO OBLIGACIONES (S-OBLIGACIONES) — obligaciones regulatorias del consultorio cableadas a GET /regulatory-obligations =====
    const card2:React.CSSProperties={...card,marginTop:0};
@@ -74,7 +75,7 @@ export default function ObligacionesView(){
      <div style={{...card2,padding:16}}><div style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:8,marginBottom:12}}>▨ Cumplimiento por categoría</div>{compliance.length===0?<div style={{fontSize:12.5,color:P.muted}}>Sin obligaciones registradas para calcular cumplimiento.</div>:compliance.map(([l,n],i)=>{const c=n>=80?P.greenOnPale:n>=50?P.amberOnPale:P.redOnPale;return <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}><span style={{width:130,fontSize:12,color:P.ink}}>{l}</span><div style={{flex:1,height:7,borderRadius:6,background:"#EEF1F7",overflow:"hidden"}}><div style={{height:"100%",width:`${n}%`,background:c,borderRadius:6}}/></div><span style={{fontSize:12,fontWeight:700,width:36,textAlign:"right"}}>{n}%</span></div>;})}</div>
     </div>
     {oblComply&&<div role="dialog" aria-modal="true" aria-label="Marcar obligación como cumplida" style={{position:"fixed",inset:0,background:"rgba(16,20,38,.44)",display:"grid",placeItems:"center",zIndex:60,padding:16}} onClick={()=>{if(!oblBusy){setOblComply(null);setOblEvidence("");}}}>
-     <div onClick={e=>e.stopPropagation()} style={{...card2,width:"min(520px,100%)",padding:22}}>
+     <div ref={complyTrap} tabIndex={-1} onClick={e=>e.stopPropagation()} style={{...card2,width:"min(520px,100%)",padding:22}}>
       <div style={{fontSize:18,fontWeight:800,letterSpacing:"-.01em"}}>Marcar cumplida</div>
       <div style={{fontSize:13.5,color:P.muted,margin:"6px 0 2px"}}>{oblComply.name}</div>
       <div style={{fontSize:12,color:P.muted,marginBottom:14}}>{oblComply.category} · {oblComply.periodicity}</div>
