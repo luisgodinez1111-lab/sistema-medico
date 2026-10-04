@@ -42,7 +42,7 @@ export default function ExpView(){
         {summary.openResults>0&&safetyChip(summary.openResults,"result. abiertos","warn")}
         {summary.openObligations>0&&safetyChip(summary.openObligations,"obligaciones","warn")}
        </div>
-     : <span style={{display:"inline-flex",alignItems:"center",gap:6,background:"#EAF7EF",color:P.greenOnPale,border:"1px solid #CDEBD8",borderRadius:999,padding:"4px 12px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>✓ Sin alertas de seguridad</span>
+     : <span style={{display:"inline-flex",alignItems:"center",gap:6,background:"var(--c-green-bg)",color:P.greenOnPale,border:"1px solid var(--c-green-bd)",borderRadius:999,padding:"4px 12px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>✓ Sin alertas de seguridad</span>
     )}
    actions={<div style={{display:"flex",gap:8,alignItems:"center"}}>
      <button style={{...btn,padding:"7px 14px",fontSize:13,flex:"0 0 auto"}} onClick={()=>openConsulta(patientId,patientName)}>Iniciar consulta →</button>
@@ -50,8 +50,8 @@ export default function ExpView(){
     </div>}/>
   <main className="mos-grid">
   {/* PATIENT 360 (Lote B) — navegación por sub-vistas: el expediente deja de ser un scroll único de ~30 secciones */}
-  <nav className="span2" aria-label="Secciones del expediente" style={{position:"sticky",top:0,zIndex:5,background:"#F4F7FB",display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",padding:"2px 0 10px",marginBottom:2,borderBottom:`1px solid ${LINE}`}}>
-   {EXP_TABS.filter(t=>!t.hospital||hospitalOn).map(t=>{const on=activeTab===t.key;return <button key={t.key} type="button" onClick={()=>goTab(t.key)} aria-current={on?"page":undefined} title={t.hint} style={{background:on?"#E7EEFB":"transparent",color:on?P.blue:P.muted,border:`1px solid ${on?"#CFE0F7":LINE}`,borderRadius:999,padding:"7px 16px",fontSize:13.5,fontWeight:on?700:600,fontFamily:UI,cursor:"pointer"}}>{t.label}</button>;})}
+  <nav className="span2" aria-label="Secciones del expediente" style={{position:"sticky",top:0,zIndex:5,background:"var(--c-wash)",display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",padding:"2px 0 10px",marginBottom:2,borderBottom:`1px solid ${LINE}`}}>
+   {EXP_TABS.filter(t=>!t.hospital||hospitalOn).map(t=>{const on=activeTab===t.key;return <button key={t.key} type="button" onClick={()=>goTab(t.key)} aria-current={on?"page":undefined} title={t.hint} style={{background:on?"var(--c-blue-bg)":"transparent",color:on?P.blue:P.muted,border:`1px solid ${on?"var(--c-blue-bd)":LINE}`,borderRadius:999,padding:"7px 16px",fontSize:13.5,fontWeight:on?700:600,fontFamily:UI,cursor:"pointer"}}>{t.label}</button>;})}
   </nav>
   {/* HERO — Vista principal · Durante la consulta (panel 1, snapshot determinista) */}
   {inTab("resumen")&&snap&&(()=>{
@@ -59,26 +59,26 @@ export default function ExpView(){
    const dx=[...new Set(snap.problems.map(DX_LABEL))].slice(0,6);
    const bp=snap.vitals["BP"],hr=snap.vitals["HR"];
    const vcard=(label:string,value:string|number|undefined,unit:string,sub:string,warn?:boolean)=>(
-    <div style={{minWidth:0,background:"#fff",border:`1px solid ${warn?"#F0DBB8":LINE}`,borderRadius:14,padding:"14px 16px"}}>
+    <div style={{minWidth:0,background:"var(--c-surface)",border:`1px solid ${warn?"var(--c-amber-bd)":LINE}`,borderRadius:14,padding:"14px 16px"}}>
      <div style={{fontSize:12,color:P.muted,marginBottom:4}}>{label}</div>
-     <div style={{fontSize:24,fontWeight:800,letterSpacing:"-.01em",color:warn?"#A15C00":P.ink}}>{value??"—"} <span style={{fontSize:13,fontWeight:600,color:P.muted}}>{value!==undefined?unit:""}</span></div>
+     <div style={{fontSize:24,fontWeight:800,letterSpacing:"-.01em",color:warn?"var(--c-amber-fg)":P.ink}}>{value??"—"} <span style={{fontSize:13,fontWeight:600,color:P.muted}}>{value!==undefined?unit:""}</span></div>
      <div style={{fontSize:11.5,color:P.muted,marginTop:2}}>{sub||" "}</div>
     </div>);
    // [etiqueta, sub-vista destino, sección a enfocar] — accesos rápidos que navegan a la pestaña correspondiente.
    const tabs:[string,ExpTab,string?][]=[["Resumen","resumen"],["Historia","historia","Timeline del paciente"],["Medicamentos","medicacion","Medicación"],["Resultados","resultados","Resultados diagnósticos"],["Problemas","problemas","Lista de problemas"],["Plan","plan","Plan de cuidados"],["Seguimiento","coordinacion","Obligaciones de seguimiento"]];
    return <section className="span2" style={{...card,marginTop:0,padding:0,overflow:"hidden"}}>
-    <div style={{padding:"18px 22px",borderBottom:`1px solid ${LINE}`,background:"linear-gradient(180deg,#FBFCFE,#fff)"}}>
+    <div style={{padding:"18px 22px",borderBottom:`1px solid ${LINE}`,background:"linear-gradient(180deg,var(--c-wash2),#fff)"}}>
      <div style={{fontSize:17,fontWeight:800,letterSpacing:"-.01em"}}>Vista principal · Durante la consulta</div>
      <div style={{fontSize:12.5,color:P.muted,marginTop:2}}>Toda la información crítica, en el momento correcto.</div>
     </div>
     <div className="mos-hero-grid">
      <div style={{padding:22,borderRight:`1px solid ${LINE}`}}>
       <div style={{display:"flex",gap:14,alignItems:"center"}}>
-       <span style={{width:52,height:52,borderRadius:"50%",background:"#E7EEFB",color:P.blue,display:"grid",placeItems:"center",fontWeight:800,fontSize:18,flex:"0 0 auto"}}>{(patientName||"P").trim().slice(0,2).toUpperCase()}</span>
+       <span style={{width:52,height:52,borderRadius:"50%",background:"var(--c-blue-bg)",color:P.blue,display:"grid",placeItems:"center",fontWeight:800,fontSize:18,flex:"0 0 auto"}}>{(patientName||"P").trim().slice(0,2).toUpperCase()}</span>
        <div style={{minWidth:0}}>
         <div style={{fontSize:19,fontWeight:800}}>{patientName||"Paciente"}</div>
         <div style={{fontSize:13,color:P.muted}}>{d.age} años · {SEX_ES[d.sex]??d.sex} · ID <span style={mono}>{patientId.slice(0,8)}</span></div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>{dx.length?dx.map(x=><span key={x} style={{background:"#EEF3FB",color:P.blueOnPale,border:"1px solid #D3E0F5",borderRadius:8,padding:"2px 9px",fontSize:12,fontWeight:600}}>{x}</span>):<span style={{fontSize:12,color:P.muted}}>Sin diagnósticos activos</span>}</div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>{dx.length?dx.map(x=><span key={x} style={{background:"var(--c-blue-bg)",color:P.blueOnPale,border:"1px solid var(--c-blue-bd)",borderRadius:8,padding:"2px 9px",fontSize:12,fontWeight:600}}>{x}</span>):<span style={{fontSize:12,color:P.muted}}>Sin diagnósticos activos</span>}</div>
        </div>
       </div>
       <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:16,borderBottom:`1px solid ${LINE}`}}>
@@ -94,7 +94,7 @@ export default function ExpView(){
       <div style={{fontSize:13,fontWeight:700,margin:"18px 0 8px"}}>Problemas activos</div>
       {snap.problems.length?<div style={{display:"flex",flexDirection:"column",gap:6}}>{snap.problems.slice(0,6).map(c=><div key={c} style={{display:"flex",alignItems:"center",gap:10,fontSize:13.5}}><span style={{width:7,height:7,borderRadius:"50%",background:P.blue,flex:"0 0 auto"}}/>{DX_LABEL(c)} <span style={mono}>{c}</span></div>)}</div>:<div style={{fontSize:13,color:P.muted}}>Sin problemas activos.</div>}
      </div>
-     <div style={{padding:22,display:"flex",flexDirection:"column",gap:18,background:"#FCFDFF"}}>
+     <div style={{padding:22,display:"flex",flexDirection:"column",gap:18,background:"var(--c-wash2)"}}>
       <div>
        <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Alergias y seguridad</div>
        <AllergyBanner allergies={snap.allergies}/>
@@ -103,8 +103,8 @@ export default function ExpView(){
        <div style={{fontSize:13,fontWeight:700,marginBottom:2}}>Alertas y sugerencias</div>
        <div style={{fontSize:11.5,color:P.muted,marginBottom:10}}>Reglas + guías · determinista, sin IA generativa</div>
        {snap.findings.length?<div style={{display:"flex",flexDirection:"column",gap:8}}>{snap.findings.slice(0,6).map((f,i)=>{const s=SEV[f.severity]??SEV.INFO;return <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"9px 11px",borderRadius:10,background:s.bg,border:`1px solid ${s.bd}`}}>
-        <span style={{background:"#fff",color:s.fg,border:`1px solid ${s.bd}`,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800,letterSpacing:".03em",whiteSpace:"nowrap",marginTop:1}}>{s.label}</span>
-        <span style={{fontSize:13,color:"#33383F",lineHeight:1.4}}>{f.summary}</span>
+        <span style={{background:"var(--c-surface)",color:s.fg,border:`1px solid ${s.bd}`,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800,letterSpacing:".03em",whiteSpace:"nowrap",marginTop:1}}>{s.label}</span>
+        <span style={{fontSize:13,color:"var(--c-ink)",lineHeight:1.4}}>{f.summary}</span>
        </div>;})}{snap.findings.length>6&&<div style={{fontSize:11.5,fontWeight:700,color:P.amberOnPale}}>+{snap.findings.length-6} hallazgo(s) más no mostrados aquí: ábralos en Clinical Intelligence.</div>}</div>:<div style={{fontSize:13,color:P.greenOnPale,fontWeight:600}}>✓ Sin alertas clínicas.</div>}
       </div>
      </div>
@@ -114,16 +114,16 @@ export default function ExpView(){
   {/* HERO skeleton — SOLO mientras el snapshot está cargando (chartState==="loading"); si ya cargó sin snapshot
       (paciente sin expediente registrado) se muestra el estado vacío honesto de abajo, nunca un skeleton perpetuo. */}
   {inTab("resumen")&&patientId&&!snap&&chartState==="loading"&&<section className="span2" aria-hidden style={{...card,marginTop:0,padding:0,overflow:"hidden"}}>
-   <div style={{padding:"18px 22px",borderBottom:`1px solid ${LINE}`,background:"linear-gradient(180deg,#FBFCFE,#fff)"}}><Skeleton w={260} h={16}/><Skeleton w={200} h={11} style={{marginTop:6}}/></div>
+   <div style={{padding:"18px 22px",borderBottom:`1px solid ${LINE}`,background:"linear-gradient(180deg,var(--c-wash2),#fff)"}}><Skeleton w={260} h={16}/><Skeleton w={200} h={11} style={{marginTop:6}}/></div>
    <div className="mos-hero-grid">
     <div style={{padding:22,borderRight:`1px solid ${LINE}`}}>
      <div style={{display:"flex",gap:14,alignItems:"center"}}><Skeleton w={52} h={52} r={26}/><div style={{flex:1}}><Skeleton w={"55%"} h={17}/><Skeleton w={"70%"} h={12} style={{marginTop:6}}/><div style={{display:"flex",gap:6,marginTop:8}}>{Array.from({length:3}).map((_,i)=><Skeleton key={i} w={70} h={20} r={8}/>)}</div></div></div>
      <Skeleton w={140} h={12} style={{margin:"18px 0 10px"}}/>
-     <div className="mos-vitals">{Array.from({length:4}).map((_,i)=><div key={i} style={{background:"#fff",border:`1px solid ${LINE}`,borderRadius:14,padding:"14px 16px"}}><Skeleton w={"60%"} h={11}/><Skeleton w={80} h={22} style={{marginTop:6}}/><Skeleton w={"50%"} h={10} style={{marginTop:6}}/></div>)}</div>
+     <div className="mos-vitals">{Array.from({length:4}).map((_,i)=><div key={i} style={{background:"var(--c-surface)",border:`1px solid ${LINE}`,borderRadius:14,padding:"14px 16px"}}><Skeleton w={"60%"} h={11}/><Skeleton w={80} h={22} style={{marginTop:6}}/><Skeleton w={"50%"} h={10} style={{marginTop:6}}/></div>)}</div>
      <Skeleton w={120} h={12} style={{margin:"18px 0 8px"}}/>
      <div style={{display:"flex",flexDirection:"column",gap:8}}>{Array.from({length:3}).map((_,i)=><Skeleton key={i} w={`${70-i*10}%`} h={13}/>)}</div>
     </div>
-    <div style={{padding:22,display:"flex",flexDirection:"column",gap:18,background:"#FCFDFF"}}>
+    <div style={{padding:22,display:"flex",flexDirection:"column",gap:18,background:"var(--c-wash2)"}}>
      <div><Skeleton w={150} h={12} style={{marginBottom:8}}/><Skeleton w={"100%"} h={44} r={10}/></div>
      <div style={{borderTop:`1px solid ${LINE}`,paddingTop:16}}><Skeleton w={160} h={12} style={{marginBottom:10}}/>{Array.from({length:3}).map((_,i)=><Skeleton key={i} w={"100%"} h={40} r={10} style={{marginBottom:8}}/>)}</div>
     </div>
@@ -147,7 +147,7 @@ export default function ExpView(){
     const counts={pend:all.filter(x=>x.status==="pend").length,prog:all.filter(x=>x.status==="prog").length,done:all.filter(x=>x.status==="done").length,all:all.length};
     const shown=followTab==="all"?all:all.filter(x=>x.status===followTab);
     const tabs:[typeof followTab,string,number][]=[["pend","Pendientes",counts.pend],["prog","Programados",counts.prog],["done","Completados",counts.done],["all","Todos",counts.all]];
-    const sb=(s:string)=>s==="pend"?{bg:"#FFF4E5",fg:P.amberOnPale,t:"Pendiente"}:s==="prog"?{bg:"#EAF3FF",fg:"#1F5FB0",t:"Programado"}:{bg:"#EAF7EF",fg:P.greenOnPale,t:"Completado"};
+    const sb=(s:string)=>s==="pend"?{bg:"var(--c-amber-bg)",fg:P.amberOnPale,t:"Pendiente"}:s==="prog"?{bg:"var(--c-blue-bg)",fg:"var(--c-blue-fg)",t:"Programado"}:{bg:"var(--c-green-bg)",fg:P.greenOnPale,t:"Completado"};
     return <>
      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:12,borderBottom:`1px solid ${LINE}`}}>
       {tabs.map(([k,l,n])=><button key={k} onClick={()=>setFollowTab(k)} style={{background:"transparent",border:0,borderBottom:followTab===k?`2px solid ${P.blue}`:"2px solid transparent",color:followTab===k?P.blue:P.muted,fontWeight:followTab===k?700:500,fontSize:13,fontFamily:UI,padding:"7px 10px",cursor:"pointer"}}>{l} {n>0&&<span style={{fontVariantNumeric:"tabular-nums"}}>({n})</span>}</button>)}
@@ -155,8 +155,8 @@ export default function ExpView(){
      {shown.length?<div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{shown.slice(0,8).map((x,i)=>{const s=sb(x.status);const stripe=x.status==="pend"?"#C87B12":x.status==="prog"?"#1769E0":P.greenOnPale;return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"10px 12px 10px 14px",border:`1px solid ${LINE}`,borderLeft:`3px solid ${stripe}`,borderRadius:10}}>
       <div style={{minWidth:0}}><div style={{fontSize:13.5,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{x.label}</div><div style={{fontSize:11.5,color:P.muted}}>{x.at?relTime(x.at):"seguimiento clínico"}</div></div>
       <span style={{background:s.bg,color:s.fg,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999,whiteSpace:"nowrap"}}>{s.t}</span>
-     </div>;})}</div>:<div style={{marginTop:12,padding:"12px 14px",borderRadius:12,background:"#f4faf6",border:"1px solid #d6ecdd",fontSize:13,color:P.greenOnPale}}>✓ Sin seguimientos {followTab==="pend"?"pendientes":followTab==="prog"?"programados":followTab==="done"?"completados":"registrados"}.</div>}
-     <div style={{display:"flex",alignItems:"center",gap:8,marginTop:14,padding:"10px 14px",borderRadius:12,background:"#EAF7EF",border:"1px solid #CDEBD8",fontSize:12.5,color:P.greenOnPale,fontWeight:600}}>✓ Seguimiento activo — el sistema mantiene owner, estado y cierre de cada obligación (Zero-Lost-Follow-Up).</div>
+     </div>;})}</div>:<div style={{marginTop:12,padding:"12px 14px",borderRadius:12,background:"var(--c-green-bg)",border:"1px solid var(--c-green-bg)",fontSize:13,color:P.greenOnPale}}>✓ Sin seguimientos {followTab==="pend"?"pendientes":followTab==="prog"?"programados":followTab==="done"?"completados":"registrados"}.</div>}
+     <div style={{display:"flex",alignItems:"center",gap:8,marginTop:14,padding:"10px 14px",borderRadius:12,background:"var(--c-green-bg)",border:"1px solid var(--c-green-bd)",fontSize:12.5,color:P.greenOnPale,fontWeight:600}}>✓ Seguimiento activo — el sistema mantiene owner, estado y cierre de cada obligación (Zero-Lost-Follow-Up).</div>
     </>;
    })()}
   </section>
@@ -165,16 +165,16 @@ export default function ExpView(){
   <section hidden={!inTab("admin")} className="span2" style={card}>
    <div><h2 {...anchor("Seguridad y auditoría")} style={{fontSize:18,margin:0}}>Seguridad y auditoría</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Confianza por diseño. Cada acción clínica queda registrada.</p></div>
    <div className="mos-rx-grid">
-    <div style={{background:"linear-gradient(160deg,#0C2148,#15346B)",borderRadius:14,padding:"16px 18px",color:"#EAF0FA"}}>
+    <div style={{background:"linear-gradient(160deg,#0C2148,var(--c-blue-fg))",borderRadius:14,padding:"16px 18px",color:"var(--c-blue-bg)"}}>
      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><span style={{width:22,height:22,borderRadius:"50%",background:P.greenOnPale,display:"grid",placeItems:"center",fontSize:13}}>✓</span><b style={{fontSize:14}}>Estado del sistema</b></div>
      {[["Cifrado de datos","En tránsito (HTTPS); en reposo, por el proveedor de base de datos"],["Control de acceso","Por rol y scope, con aislamiento por consultorio (RLS forzado)"],["Auditoría","Cadena de hash inmutable de cada comando clínico, verificable (pnpm audit:verify)"],["Recuperabilidad","Registro de eventos append-only; el cliente reintenta con la misma clave de idempotencia"],["Normativa","NOM-004 / NOM-024 / LFPDPPP: en proceso; sin certificación (ver registro normativo del proyecto)"]].map(([t,d])=><div key={t} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"7px 0",borderTop:"1px solid #ffffff14"}}>
-      <span style={{color:"#5FD08C",marginTop:1,flex:"0 0 auto"}}>●</span><div><div style={{fontSize:13,fontWeight:600,color:"#fff"}}>{t}</div><div style={{fontSize:11.5,color:"#9DB2D4"}}>{d}</div></div>
+      <span style={{color:"#5FD08C",marginTop:1,flex:"0 0 auto"}}>●</span><div><div style={{fontSize:13,fontWeight:600,color:"#fff"}}>{t}</div><div style={{fontSize:11.5,color:"var(--c-blue-bd)"}}>{d}</div></div>
      </div>)}
     </div>
     <div>
      <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Actividad reciente</div>
      {tl&&tl.length?<div style={{display:"flex",flexDirection:"column",gap:2}}>{tl.slice(0,7).map((t,i)=><div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 0",borderBottom:i<6?`1px solid ${LINE}`:"0"}}>
-      <span style={{width:26,height:26,borderRadius:8,background:"#EEF3FB",color:P.blue,display:"grid",placeItems:"center",fontSize:11,fontWeight:800,flex:"0 0 auto"}}>{(TYPE_LABEL[t.aggregateType]??t.aggregateType).slice(0,1)}</span>
+      <span style={{width:26,height:26,borderRadius:8,background:"var(--c-blue-bg)",color:P.blue,display:"grid",placeItems:"center",fontSize:11,fontWeight:800,flex:"0 0 auto"}}>{(TYPE_LABEL[t.aggregateType]??t.aggregateType).slice(0,1)}</span>
       <div style={{minWidth:0,flex:1}}><div style={{fontSize:13,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{TYPE_LABEL[t.aggregateType]??t.aggregateType} · <span style={{color:P.muted,fontWeight:500}}>{t.latestKind}</span></div><div style={{fontSize:11.5,color:P.muted}}>{relTime(t.lastAt)}</div></div>
      </div>)}</div>:<div style={{fontSize:13,color:P.muted,padding:"12px 0"}}>Sin actividad registrada para este paciente todavía.</div>}
     </div>
@@ -193,12 +193,12 @@ export default function ExpView(){
     const followN=(gaps?.length??0)+t.filter(x=>x.aggregateType==="ClinicalObligation"&&followState(x.latestKind)==="pend").length;
     const first=(patientName||"Paciente").trim().split(/\s+/)[0];
     const row=(icon:React.ReactNode,title:string,sub:string,badge?:number,soon?:boolean)=>(
-     <div style={{display:"flex",alignItems:"center",gap:11,padding:"11px 13px",background:"#fff",borderBottom:`1px solid ${LINE}`}}>
-      <span style={{width:30,height:30,borderRadius:9,background:soon?"#F1F4F9":"#E7EEFB",color:soon?P.muted:P.blue,display:"grid",placeItems:"center",flex:"0 0 auto"}}>{icon}</span>
+     <div style={{display:"flex",alignItems:"center",gap:11,padding:"11px 13px",background:"var(--c-surface)",borderBottom:`1px solid ${LINE}`}}>
+      <span style={{width:30,height:30,borderRadius:9,background:soon?"var(--c-wash)":"var(--c-blue-bg)",color:soon?P.muted:P.blue,display:"grid",placeItems:"center",flex:"0 0 auto"}}>{icon}</span>
       <div style={{minWidth:0,flex:1}}><div style={{fontSize:12.5,fontWeight:700}}>{title}</div><div style={{fontSize:10.5,color:P.muted,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{sub}</div></div>
-      {soon?<span style={{fontSize:9,fontWeight:700,color:P.muted,background:"#F1F4F9",borderRadius:999,padding:"2px 7px",flex:"0 0 auto"}}>Próximamente</span>
+      {soon?<span style={{fontSize:9,fontWeight:700,color:P.muted,background:"var(--c-wash)",borderRadius:999,padding:"2px 7px",flex:"0 0 auto"}}>Próximamente</span>
        :badge!==undefined&&badge>0?<span style={{fontSize:10,fontWeight:800,color:"#fff",background:P.redOnPale,borderRadius:999,minWidth:17,height:17,display:"grid",placeItems:"center",padding:"0 4px",flex:"0 0 auto"}}>{badge}</span>
-       :<span style={{color:"#C3CAD6",flex:"0 0 auto"}}>›</span>}
+       :<span style={{color:"var(--c-blue-bd)",flex:"0 0 auto"}}>›</span>}
      </div>);
     const pIcon=(d:string)=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d}/></svg>;
     return <div className="mos-phone">
@@ -240,9 +240,9 @@ export default function ExpView(){
    </div>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Pendientes clínicos accionables de TODO el panel (todos los pacientes del tenant), priorizados. Inteligencia por reglas, sin IA.</p>
    {panel&&<div style={{marginTop:12}}>
-    {panel.gaps.length===0?<div style={{padding:"10px 14px",borderRadius:12,background:"#f4faf6",border:"1px solid #d6ecdd",fontSize:13,color:P.greenOnPale}}>✓ Sin pendientes accionables en el panel.</div>
+    {panel.gaps.length===0?<div style={{padding:"10px 14px",borderRadius:12,background:"var(--c-green-bg)",border:"1px solid var(--c-green-bg)",fontSize:13,color:P.greenOnPale}}>✓ Sin pendientes accionables en el panel.</div>
      :<div><div style={{fontSize:12,color:P.muted,marginBottom:8}}>{panel.gaps.length} pendientes · {panel.patientCount} pacientes</div>
-     <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:280,overflowY:"auto"}}>{panel.gaps.map(g=>{const col=g.priority==="HIGH"?["#fdeaea",P.redOnPale]:g.priority==="MEDIUM"?["#fff4e5",P.amberOnPale]:["#eef0ff","#3f3aa0"];return <div key={g.patientId+g.aggregateId+g.code} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"8px 12px",border:"1px solid #eceafb",borderRadius:10}}>
+     <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:280,overflowY:"auto"}}>{panel.gaps.map(g=>{const col=g.priority==="HIGH"?["var(--c-red-bg)",P.redOnPale]:g.priority==="MEDIUM"?["var(--c-amber-bg)",P.amberOnPale]:["var(--c-blue-bg)","var(--c-purple-fg)"];return <div key={g.patientId+g.aggregateId+g.code} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"8px 12px",border:"1px solid var(--c-line)",borderRadius:10}}>
       <div style={{minWidth:0}}><span style={{...mono,marginRight:8}}>{g.patientId.slice(0,8)}</span><span style={{fontSize:13}}>{g.label}</span></div>
       <div style={{display:"flex",gap:8,alignItems:"center",whiteSpace:"nowrap"}}><span style={{display:"inline-block",background:col[0],color:col[1],fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{g.priority}</span><button style={{...ghost,padding:"5px 10px",fontSize:12}} onClick={()=>selectPatientRaw(g.patientId,"")}>Abrir</button></div>
      </div>;})}</div></div>}
@@ -254,12 +254,12 @@ export default function ExpView(){
    <h2 {...anchor("Paciente")} style={{fontSize:18,margin:0}}>Paciente</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Registra un paciente o selecciónalo de la lista. El chart de abajo es del paciente activo.</p>
    {/* Edición de datos del paciente ACTIVO (vive aquí tras la fusión Pacientes⟷Expediente; antes estaba en la ficha). */}
-   {patientId&&<div style={{marginTop:12,padding:14,border:`1px solid ${LINE}`,borderRadius:12,background:"#FBFBFE"}}>
+   {patientId&&<div style={{marginTop:12,padding:14,border:`1px solid ${LINE}`,borderRadius:12,background:"var(--c-wash2)"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
      <div style={{fontSize:13.5,fontWeight:800}}>Datos del paciente activo{patientName?` · ${patientName}`:""}</div>
      {!patEdit&&<button onClick={()=>openEdit(patientId)} style={{...ghost,padding:"7px 12px",fontSize:13}}>Editar datos</button>}
     </div>
-    {patMsg&&<div style={{marginTop:10,display:"flex",alignItems:"center",gap:10,background:patMsg.includes("✓")?"#F0FBF4":"#EEF6FF",border:`1px solid ${patMsg.includes("✓")?"#CDEBD8":"#CFE0F7"}`,borderRadius:9,padding:"8px 12px",fontSize:13}}><span style={{color:patMsg.includes("✓")?P.green:P.blue,fontWeight:700}}>{patMsg.includes("✓")?"✓":"ℹ"}</span><span style={{flex:1}}>{patMsg}</span><button onClick={()=>setPatMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+    {patMsg&&<div style={{marginTop:10,display:"flex",alignItems:"center",gap:10,background:patMsg.includes("✓")?"var(--c-green-bg)":"var(--c-blue-bg)",border:`1px solid ${patMsg.includes("✓")?"var(--c-green-bd)":"var(--c-blue-bd)"}`,borderRadius:9,padding:"8px 12px",fontSize:13}}><span style={{color:patMsg.includes("✓")?P.green:P.blue,fontWeight:700}}>{patMsg.includes("✓")?"✓":"ℹ"}</span><span style={{flex:1}}>{patMsg}</span><button onClick={()=>setPatMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
     {patEdit&&<div style={{marginTop:12,display:"flex",flexDirection:"column",gap:10}}>
      <div><label style={lbl}>Nombre completo</label><input aria-label="Editar nombre completo" style={input} value={editForm.name} onChange={e=>setEditForm({...editForm,name:e.target.value})}/></div>
      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -300,7 +300,7 @@ export default function ExpView(){
    </div>
    {patientList&&<div style={{marginTop:12,display:"flex",flexDirection:"column",gap:6,maxHeight:220,overflowY:"auto"}}>
     {patientList.length===0?<p style={{color:P.muted,fontSize:13}}>No hay pacientes registrados en este tenant.</p>
-     :patientList.map(p=><div key={p.patientId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",border:"1px solid #eceafb",borderRadius:10,background:p.patientId===patientId?"#f4f3fb":"white"}}>
+     :patientList.map(p=><div key={p.patientId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",border:"1px solid var(--c-line)",borderRadius:10,background:p.patientId===patientId?"var(--c-purple-bg)":"white"}}>
       <div><b style={{fontSize:14}}>{p.name}</b> <span style={stateBadge(p.status==="ACTIVE"?"ACTIVE":p.status==="INACTIVE"?"INACTIVE":"CANCELLED")}>{p.status}</span></div>
       <button style={{...ghost,padding:"6px 12px"}} onClick={()=>selectPatientRaw(p.patientId,p.name)}>{p.patientId===patientId?"Activo":"Seleccionar"}</button>
      </div>)}
@@ -315,7 +315,7 @@ export default function ExpView(){
      <p style={{color:P.muted,fontSize:12,margin:"4px 0 0",maxWidth:620}}>Historia clínica basal del paciente: se captura una vez y se actualiza con motivo. La consulta la muestra y ya no la vuelve a preguntar.</p>
     </div>
     {!antEditing&&(()=>{const f=antFreshness(!!antSnap?.recorded,antSnap?.updatedAt);return <div style={{display:"flex",gap:10,alignItems:"center",flex:"0 0 auto"}}>
-     {f.status==="DUE"&&<span role="status" title={`Última actualización hace ${f.days} días (> 6 meses): reverifícalos`} style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:"#FBF0DC",color:P.amberOnPale}}>⟳ Por verificar</span>}
+     {f.status==="DUE"&&<span role="status" title={`Última actualización hace ${f.days} días (> 6 meses): reverifícalos`} style={{fontSize:11,fontWeight:700,borderRadius:999,padding:"3px 10px",background:"var(--c-amber-bg)",color:P.amberOnPale}}>⟳ Por verificar</span>}
      {antSnap?.recorded&&antSnap.updatedAt&&<span style={{fontSize:11.5,color:P.muted}}>Actualizado {relTime(antSnap.updatedAt)}</span>}
      <button onClick={()=>setAntEditing(true)} style={{...btn,padding:"7px 14px",fontSize:13}}>{!antSnap?.recorded?"Capturar antecedentes":f.status==="DUE"?"Verificar / actualizar":"Editar"}</button>
     </div>;})()}
@@ -325,7 +325,7 @@ export default function ExpView(){
     // Auto-selección del formato (historia clínica adulto vs. pediátrica) por la edad. En pediátrico no hay gineco-obstétricos.
     const showGineco=!pediatric&&(sex==="FEMALE"||antForm.ginecoObstetricos?.aplica===true);
     const hab=antForm.noPatologicos;const pat=antForm.patologicos;
-    const chip=(active:boolean,label:string,onClick:()=>void)=><button key={label} type="button" onClick={onClick} style={{border:`1px solid ${active?P.purple:LINE}`,background:active?"#EEEBFD":P.white,color:active?P.purple:P.ink,borderRadius:999,padding:"5px 12px",fontSize:12.5,fontWeight:active?700:500,cursor:"pointer",fontFamily:UI}}>{label}</button>;
+    const chip=(active:boolean,label:string,onClick:()=>void)=><button key={label} type="button" onClick={onClick} style={{border:`1px solid ${active?P.purple:LINE}`,background:active?"var(--c-purple-bg)":P.white,color:active?P.purple:P.ink,borderRadius:999,padding:"5px 12px",fontSize:12.5,fontWeight:active?700:500,cursor:"pointer",fontFamily:UI}}>{label}</button>;
     const ta2:React.CSSProperties={...input,minHeight:52,resize:"vertical",width:"100%"};
     const lbl2:React.CSSProperties={fontSize:12.5,fontWeight:700,color:P.ink,display:"block",margin:"2px 0 7px"};
     const toggleHeredo=(flag:string)=>setAntForm(f=>{const cur=f.heredofamiliares?.flags??[];return{...f,heredofamiliares:{...f.heredofamiliares,flags:cur.includes(flag)?cur.filter(x=>x!==flag):[...cur,flag]}};});
@@ -335,7 +335,7 @@ export default function ExpView(){
     const setHab=(p:Partial<NonNullable<AntContent["noPatologicos"]>>)=>setAntForm(f=>({...f,noPatologicos:{...f.noPatologicos!,...p}}));
     const setQx=(p:Partial<NonNullable<AntContent["quirurgicos"]>>)=>setAntForm(f=>({...f,quirurgicos:{...f.quirurgicos,...p}}));
     const setGO=(p:Partial<NonNullable<AntContent["ginecoObstetricos"]>>)=>setAntForm(f=>({...f,ginecoObstetricos:{...f.ginecoObstetricos,...p}}));
-    const secBox:React.CSSProperties={border:`1px solid ${LINE}`,borderRadius:12,padding:"14px 16px",background:"#FCFDFF"};
+    const secBox:React.CSSProperties={border:`1px solid ${LINE}`,borderRadius:12,padding:"14px 16px",background:"var(--c-wash2)"};
     const secTtl:React.CSSProperties={fontSize:13.5,fontWeight:800,margin:"0 0 10px"};
     // Secciones PEDIÁTRICAS (formato II): mismo patrón que heredofamiliares (chips de catálogo + notas), genérico.
     const PEDI_SECS=["prenatales","perinatales","alimentacion","desarrollo","inmunizaciones"] as const;type PediKey=typeof PEDI_SECS[number];
@@ -343,10 +343,10 @@ export default function ExpView(){
     const toggleSecFlag=(key:PediKey,flag:string)=>setAntForm(f=>{const cur=f[key]?.flags??[];return{...f,[key]:{...f[key],flags:cur.includes(flag)?cur.filter(x=>x!==flag):[...cur,flag]}};});
     const pediSec=(key:PediKey,title:string,catalog:readonly string[])=><div key={key} style={secBox}><div style={secTtl}>{title}</div><div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{catalog.map(fl=>chip((antForm[key]?.flags??[]).includes(fl),fl,()=>toggleSecFlag(key,fl)))}</div><textarea style={{...ta2,marginTop:10}} aria-label={title} placeholder="Detalle…" value={antForm[key]?.notas??""} onChange={e=>setSec(key,{notas:e.target.value.slice(0,2000)})}/></div>;
     const PEDI_DEFS:[PediKey,string,readonly string[]][]=[["prenatales","Antecedentes prenatales",ANT_PRENATAL],["perinatales","Antecedentes perinatales",ANT_PERINATAL],["alimentacion","Alimentación",ANT_ALIMENTACION],["desarrollo","Crecimiento y desarrollo",ANT_DESARROLLO],["inmunizaciones","Inmunizaciones",ANT_INMUNIZA]];
-    const fmtBanner=<div style={{marginTop:14,display:"flex",alignItems:"center",gap:8,fontSize:12.5,color:P.muted,background:"#F4F7FB",border:`1px solid ${LINE}`,borderRadius:10,padding:"8px 12px",flexWrap:"wrap"}}><b style={{color:P.ink}}>Formato: {pediatric?"Pediátrico":"Adulto"}</b><span>· auto-seleccionado por la edad del paciente{typeof age==="number"?` (${age} años)`:" (edad no disponible)"}.</span></div>;
+    const fmtBanner=<div style={{marginTop:14,display:"flex",alignItems:"center",gap:8,fontSize:12.5,color:P.muted,background:"var(--c-wash)",border:`1px solid ${LINE}`,borderRadius:10,padding:"8px 12px",flexWrap:"wrap"}}><b style={{color:P.ink}}>Formato: {pediatric?"Pediátrico":"Adulto"}</b><span>· auto-seleccionado por la edad del paciente{typeof age==="number"?` (${age} años)`:" (edad no disponible)"}.</span></div>;
 
     if(!antEditing){
-     if(!antSnap?.recorded)return <div style={{marginTop:16,padding:"18px 16px",borderRadius:12,background:"#f6f6fb",border:`1px dashed ${LINE}`,fontSize:13,color:P.muted}}>Este paciente aún no tiene antecedentes capturados. Pulsa «Capturar antecedentes» para registrar la historia clínica basal (heredofamiliares, patológicos, hábitos, quirúrgicos y gineco-obstétricos) una sola vez.</div>;
+     if(!antSnap?.recorded)return <div style={{marginTop:16,padding:"18px 16px",borderRadius:12,background:"var(--c-wash)",border:`1px dashed ${LINE}`,fontSize:13,color:P.muted}}>Este paciente aún no tiene antecedentes capturados. Pulsa «Capturar antecedentes» para registrar la historia clínica basal (heredofamiliares, patológicos, hábitos, quirúrgicos y gineco-obstétricos) una sola vez.</div>;
      const yes=(b?:boolean)=>b?"Sí":"No";
      const roItems:[string,React.ReactNode][]=[];
      if(antForm.heredofamiliares?.flags?.length||antForm.heredofamiliares?.notas)roItems.push(["Heredofamiliares",<>{(antForm.heredofamiliares.flags??[]).join(", ")}{antForm.heredofamiliares.notas?` · ${antForm.heredofamiliares.notas}`:""}</>]);
@@ -359,12 +359,12 @@ export default function ExpView(){
      const habitFindings=(snap?.findings??[]).filter(f=>f.domain==="tabaquismo"||f.domain==="alcohol"||f.domain==="adicciones");
      return <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:9}}>
       {fmtBanner}
-      {roItems.map(([k,v])=><div key={k} style={{display:"flex",gap:12,fontSize:13,padding:"9px 11px",borderRadius:10,background:"#f7f8fc"}}><span style={{fontWeight:800,color:P.purpleOnPale,minWidth:140,flex:"0 0 auto"}}>{k}</span><span style={{minWidth:0,color:"#33383F"}}>{v}</span></div>)}
+      {roItems.map(([k,v])=><div key={k} style={{display:"flex",gap:12,fontSize:13,padding:"9px 11px",borderRadius:10,background:"var(--c-wash)"}}><span style={{fontWeight:800,color:P.purpleOnPale,minWidth:140,flex:"0 0 auto"}}>{k}</span><span style={{minWidth:0,color:"var(--c-ink)"}}>{v}</span></div>)}
       {habitFindings.length>0&&<div style={{borderTop:`1px solid ${LINE}`,paddingTop:12,marginTop:3}}>
        <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Recomendaciones del sistema (por los hábitos)</div>
        <div style={{display:"flex",flexDirection:"column",gap:8}}>{habitFindings.map((f,i)=>{const s=SEV[f.severity]??SEV.INFO;return <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"9px 11px",borderRadius:10,background:s.bg,border:`1px solid ${s.bd}`}}>
-        <span style={{background:"#fff",color:s.fg,border:`1px solid ${s.bd}`,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800,letterSpacing:".03em",whiteSpace:"nowrap",marginTop:1}}>{s.label}</span>
-        <span style={{fontSize:13,color:"#33383F",lineHeight:1.4}}>{f.summary}</span></div>;})}</div>
+        <span style={{background:"var(--c-surface)",color:s.fg,border:`1px solid ${s.bd}`,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800,letterSpacing:".03em",whiteSpace:"nowrap",marginTop:1}}>{s.label}</span>
+        <span style={{fontSize:13,color:"var(--c-ink)",lineHeight:1.4}}>{f.summary}</span></div>;})}</div>
        <div style={{fontSize:11,color:P.muted,marginTop:8}}>Apoyo determinista por guías. La decisión es del médico.</div>
       </div>}
      </div>;
@@ -439,27 +439,27 @@ export default function ExpView(){
     </div>
    </div>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Vista longitudinal de los items clínicos de este paciente (metadatos, sin contenido).</p>
-   {exportInfo&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:12,background:"#f4f3fb",border:"1px solid #e0ddf3",fontSize:12}}>
-    <b style={{color:"#3f3aa0"}}>Expediente exportado — archivo .json descargado</b> · {exportInfo.aggregateCount} agregados · {exportInfo.eventCount} eventos<br/>
+   {exportInfo&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:12,background:"var(--c-purple-bg)",border:"1px solid var(--c-purple-bd)",fontSize:12}}>
+    <b style={{color:"var(--c-purple-fg)"}}>Expediente exportado — archivo .json descargado</b> · {exportInfo.aggregateCount} agregados · {exportInfo.eventCount} eventos<br/>
     <span style={{color:P.muted}}>Manifiesto reproducible (índice de agregados y eventos + hash); no es el formato de intercambio NOM-024 ni incluye el contenido con datos personales.</span><br/>
     <span style={{color:P.muted}}>hash reproducible del contenido: </span><span style={mono}>{exportInfo.contentHash}</span>
    </div>}
-   {busy==="tl"?<div aria-hidden style={{marginTop:14}}><div style={{display:"flex",gap:10,flexWrap:"wrap"}}>{Array.from({length:7}).map((_,i)=><div key={i} style={{flex:"1 1 90px",minWidth:90,padding:"10px 8px",borderRadius:12,background:"#f6f6fb",border:"1px solid #eceafb",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><Skeleton w={30} h={20}/><Skeleton w={"70%"} h={10}/></div>)}</div><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:16}}>{Array.from({length:4}).map((_,i)=><Skeleton key={i} w={"100%"} h={38} r={10}/>)}</div></div>
+   {busy==="tl"?<div aria-hidden style={{marginTop:14}}><div style={{display:"flex",gap:10,flexWrap:"wrap"}}>{Array.from({length:7}).map((_,i)=><div key={i} style={{flex:"1 1 90px",minWidth:90,padding:"10px 8px",borderRadius:12,background:"var(--c-wash)",border:"1px solid var(--c-line)",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><Skeleton w={30} h={20}/><Skeleton w={"70%"} h={10}/></div>)}</div><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:16}}>{Array.from({length:4}).map((_,i)=><Skeleton key={i} w={"100%"} h={38} r={10}/>)}</div></div>
     :tl===null?<p style={{color:P.muted,fontSize:13,marginTop:12}}>Pulsa “Actualizar” para cargar el historial de este paciente.</p>
     :tl.length===0?<p style={{color:P.muted,fontSize:13,marginTop:12}}>Sin items registrados para este paciente todavía.</p>
     :<div>
-     {(()=>{const s=summarizePatient(tl);const stat=(n:number,l:string,warn=false)=>(<div style={{flex:"1 1 90px",minWidth:90,textAlign:"center",padding:"10px 8px",borderRadius:12,background:warn&&n>0?"#fff4e5":"#f6f6fb",border:"1px solid #eceafb"}}><div style={{fontSize:22,fontWeight:800,color:warn&&n>0?"#a15c00":"#3f3aa0"}}>{n}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div>);
+     {(()=>{const s=summarizePatient(tl);const stat=(n:number,l:string,warn=false)=>(<div style={{flex:"1 1 90px",minWidth:90,textAlign:"center",padding:"10px 8px",borderRadius:12,background:warn&&n>0?"var(--c-amber-bg)":"var(--c-wash)",border:"1px solid var(--c-line)"}}><div style={{fontSize:22,fontWeight:800,color:warn&&n>0?"var(--c-amber-fg)":"var(--c-purple-fg)"}}>{n}</div><div style={{fontSize:11,color:P.muted}}>{l}</div></div>);
       return <div style={{display:"flex",gap:10,marginTop:14,flexWrap:"wrap"}}>{stat(s.activeAllergies,"Alergias activas",true)}{stat(s.activeProblems,"Problemas activos")}{stat(s.signedEncounters,"Encuentros firmados")}{stat(s.activeMedications,"Medicación activa")}{stat(s.openResults,"Resultados abiertos",true)}{stat(s.openOrders,"Órdenes pendientes")}{stat(s.openObligations,"Obligaciones abiertas",true)}{stat(s.openReferrals,"Interconsultas abiertas")}{stat(s.upcomingAppointments,"Citas próximas")}{stat(s.pendingImmunizations,"Vacunas pendientes",true)}{stat(s.activeCarePlans,"Metas activas")}{stat(s.openClaims,"Facturas abiertas")}{stat(s.grantedConsents,"Consentimientos vigentes")}{stat(s.activeAdmissions,"Internamientos activos",true)}</div>;})()}
-     {gaps&&gaps.length>0&&<div style={{marginTop:16,padding:14,borderRadius:12,background:"#fbf7f2",border:"1px solid #f0e2cf"}}>
+     {gaps&&gaps.length>0&&<div style={{marginTop:16,padding:14,borderRadius:12,background:"var(--c-amber-bg)",border:"1px solid var(--c-amber-bg)"}}>
       <div style={{fontSize:13,fontWeight:700,color:P.amberOnPale,marginBottom:8}}>⚑ Pendientes clínicos (care gaps) · {gaps.length}</div>
-      <div style={{display:"flex",flexDirection:"column",gap:6}}>{gaps.map(g=>{const col=g.priority==="HIGH"?["#fdeaea",P.redOnPale]:g.priority==="MEDIUM"?["#fff4e5",P.amberOnPale]:["#eef0ff","#3f3aa0"];return <div key={g.aggregateId+g.code} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"8px 12px",background:"white",border:"1px solid #eceafb",borderRadius:10}}>
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>{gaps.map(g=>{const col=g.priority==="HIGH"?["var(--c-red-bg)",P.redOnPale]:g.priority==="MEDIUM"?["var(--c-amber-bg)",P.amberOnPale]:["var(--c-blue-bg)","var(--c-purple-fg)"];return <div key={g.aggregateId+g.code} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"8px 12px",background:"white",border:"1px solid var(--c-line)",borderRadius:10}}>
        <span style={{fontSize:13}}>{g.label}</span>
        <span style={{display:"inline-block",background:col[0],color:col[1],fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999,whiteSpace:"nowrap"}}>{g.priority}</span>
       </div>;})}</div>
      </div>}
-     {gaps&&gaps.length===0&&<div style={{marginTop:16,padding:"10px 14px",borderRadius:12,background:"#f4faf6",border:"1px solid #d6ecdd",fontSize:13,color:P.greenOnPale}}>✓ Sin pendientes clínicos accionables para este paciente.</div>}
+     {gaps&&gaps.length===0&&<div style={{marginTop:16,padding:"10px 14px",borderRadius:12,background:"var(--c-green-bg)",border:"1px solid var(--c-green-bg)",fontSize:13,color:P.greenOnPale}}>✓ Sin pendientes clínicos accionables para este paciente.</div>}
      <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:8}}>
-     {tl.map(x=><div key={x.aggregateId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",border:"1px solid #eceafb",borderRadius:10}}>
+     {tl.map(x=><div key={x.aggregateId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",border:"1px solid var(--c-line)",borderRadius:10}}>
       <div><b style={{fontSize:14}}>{TYPE_LABEL[x.aggregateType]??x.aggregateType}</b> <span style={{...mono,marginLeft:6}}>{x.aggregateId.slice(0,8)}</span></div>
       <div style={{display:"flex",gap:10,alignItems:"center"}}><span style={stateBadge(x.latestKind)}>{x.latestKind}</span><span style={{fontSize:12,color:P.muted}}>v{x.version}</span></div>
      </div>)}
@@ -497,18 +497,18 @@ export default function ExpView(){
        Esta ventana solo mostraba lo prescrito en la sesión: abrir el expediente de alguien con cinco fármacos activos y
        prescribir un sexto se hacía A CIEGAS, aunque sus alergias y problemas sí se vean en la cabecera. Se distingue
        «no cargó» de «no toma nada», como exige R05a-F08: afirmar que no toma nada sin saberlo autoriza a prescribir. */}
-   <div style={{marginTop:16,border:`1px solid ${LINE}`,borderRadius:12,padding:"12px 14px",background:"#FCFDFF"}}>
+   <div style={{marginTop:16,border:`1px solid ${LINE}`,borderRadius:12,padding:"12px 14px",background:"var(--c-wash2)"}}>
     <div style={{fontSize:12.5,fontWeight:700,color:P.muted,marginBottom:consTabs?.medications?.length?8:0}}>Medicación vigente del paciente</div>
     {consTabs===null
      ?<div style={{fontSize:13,color:P.amberOnPale}}>No evaluada: la medicación del paciente no cargó. Confírmela con el paciente antes de prescribir.</div>
      :consTabs.medications.length===0
       ?<div style={{fontSize:13,color:P.muted}}>Sin medicamentos activos registrados en el expediente.</div>
-      :<div style={{display:"flex",flexWrap:"wrap",gap:8}}>{consTabs.medications.map((m,i)=><span key={i} style={{background:"#E6F6EE",color:P.greenOnPale,border:"1px solid #BFE6D2",borderRadius:8,padding:"4px 10px",fontSize:12.5,fontWeight:600}}>{m}</span>)}</div>}
+      :<div style={{display:"flex",flexWrap:"wrap",gap:8}}>{consTabs.medications.map((m,i)=><span key={i} style={{background:"var(--c-green-bg)",color:P.greenOnPale,border:"1px solid var(--c-green-bd)",borderRadius:8,padding:"4px 10px",fontSize:12.5,fontWeight:600}}>{m}</span>)}</div>}
    </div>
 
    {meds.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {meds.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {meds.map(m=>{const n=medNext(m);return <div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {meds.map(m=>{const n=medNext(m);return <div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{m.label}</b><div style={{fontSize:12,color:P.muted}}>v{m.version}{m.problemLabel?<> · <span style={{color:P.purple,fontWeight:600}}>↳ {m.problemLabel}</span></>:null}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(m.state)}>{m.state}</span>
@@ -536,13 +536,13 @@ export default function ExpView(){
     <input aria-label="Frecuencia" style={input} value={rxFreq} onChange={e=>{setRxFreq(e.target.value);setRxCheck(null);}} placeholder="Frecuencia (c/12h)" />
     <button style={btn} disabled={busy!==""||!rxDrug||!rxDose||!rxFreq} onClick={verifyRx}>{busy==="rxcheck"?"Verificando…":"Verificar"}</button>
    </div>
-   {rxMsg&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:12,background:"#EAF7EF",border:"1px solid #CDEBD8",color:P.greenOnPale,fontSize:13,fontWeight:600}}>{rxMsg}</div>}
+   {rxMsg&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:12,background:"var(--c-green-bg)",border:"1px solid var(--c-green-bd)",color:P.greenOnPale,fontSize:13,fontWeight:600}}>{rxMsg}</div>}
    {rxCheck&&(()=>{
     const v=rxCheck.verdict;
-    const vm=v==="OK"?{bg:"#EAF7EF",bd:"#CDEBD8",fg:P.greenOnPale,txt:(rxCheck.notCovered?.length??0)>0?"Sin conflictos en lo evaluado — hay barreras sin regla en el catálogo (en gris)":"Verificación superada — todas las barreras evaluadas"}:v==="WARN"?{bg:"#FFF7EC",bd:"#F0DBB8",fg:P.amberOnPale,txt:rxCheck.requiresAcknowledgement?"Verificación INCOMPLETA — hay barreras que no se pudieron evaluar; al prescribir deberás confirmarlo":"Requiere criterio clínico — revisa las advertencias"}:{bg:"#FDEEEE",bd:"#F3C9C9",fg:P.redOnPale,txt:(rxCheck.blockedHard?.length??0)>0?"Prescripción bloqueada — no anulable: corrige la dosis o la orden":"Prescripción bloqueada — solo anulable al prescribir, con justificación clínica que queda en el expediente"};
+    const vm=v==="OK"?{bg:"var(--c-green-bg)",bd:"var(--c-green-bd)",fg:P.greenOnPale,txt:(rxCheck.notCovered?.length??0)>0?"Sin conflictos en lo evaluado — hay barreras sin regla en el catálogo (en gris)":"Verificación superada — todas las barreras evaluadas"}:v==="WARN"?{bg:"var(--c-amber-bg)",bd:"var(--c-amber-bd)",fg:P.amberOnPale,txt:rxCheck.requiresAcknowledgement?"Verificación INCOMPLETA — hay barreras que no se pudieron evaluar; al prescribir deberás confirmarlo":"Requiere criterio clínico — revisa las advertencias"}:{bg:"var(--c-red-bg)",bd:"var(--c-red-bd)",fg:P.redOnPale,txt:(rxCheck.blockedHard?.length??0)>0?"Prescripción bloqueada — no anulable: corrige la dosis o la orden":"Prescripción bloqueada — solo anulable al prescribir, con justificación clínica que queda en el expediente"};
     const hardBlock=(rxCheck.blockedHard?.length??0)>0;
     const unev=(s:string)=>s==="NOT_EVALUATED"||s==="NOT_COVERED"||s==="NA";
-    const ic=(s:string)=>s==="OK"?"✓":s==="WARN"?"⚠":s==="NA"?"–":unev(s)?"?":"✕";const icc=(s:string)=>s==="OK"?P.greenOnPale:s==="WARN"?"#A15C00":unev(s)?"#5F6B7A":P.redOnPale;
+    const ic=(s:string)=>s==="OK"?"✓":s==="WARN"?"⚠":s==="NA"?"–":unev(s)?"?":"✕";const icc=(s:string)=>s==="OK"?P.greenOnPale:s==="WARN"?"var(--c-amber-fg)":unev(s)?"#5F6B7A":P.redOnPale;
     return <div style={{marginTop:14}}>
      <div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",borderRadius:12,background:vm.bg,border:`1px solid ${vm.bd}`,color:vm.fg,fontWeight:700,fontSize:14,flexWrap:"wrap"}}>
       <span style={{fontSize:16}}>{ic(v)}</span>{vm.txt}
@@ -553,12 +553,12 @@ export default function ExpView(){
        <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Barreras de seguridad</div>
        <div style={{display:"flex",flexDirection:"column",gap:7}}>{rxCheck.checks.map(c=><div key={c.id} style={{display:"flex",gap:9,alignItems:"flex-start",fontSize:13}}>
         <span style={{color:icc(c.status),fontWeight:800,flex:"0 0 auto",width:14}}>{ic(c.status)}</span>
-        <span><b style={{fontWeight:600}}>{c.label}</b><span style={{color:P.muted}}> — {c.detail}</span>{c.status==="BLOCK"&&<span style={{marginLeft:6,fontSize:11,fontWeight:700,color:c.overridable?"#A15C00":P.redOnPale}}>{c.overridable?"anulable con justificación":"no anulable"}</span>}</span>
+        <span><b style={{fontWeight:600}}>{c.label}</b><span style={{color:P.muted}}> — {c.detail}</span>{c.status==="BLOCK"&&<span style={{marginLeft:6,fontSize:11,fontWeight:700,color:c.overridable?"var(--c-amber-fg)":P.redOnPale}}>{c.overridable?"anulable con justificación":"no anulable"}</span>}</span>
        </div>)}</div>
       </div>
       <div>
        <div style={{fontSize:13,fontWeight:700,marginBottom:8}}>Monitorización / advertencias</div>
-       {rxCheck.monitoring.length?<div style={{display:"flex",flexDirection:"column",gap:6}}>{rxCheck.monitoring.map((m,i)=><div key={i} style={{fontSize:12.5,color:"#7a3b34"}}>• {m.test}: {m.note} <span style={{color:P.muted}}>(en {m.dueInDays} d)</span></div>)}</div>:<div style={{fontSize:12.5,color:P.muted}}>Sin monitorización específica.</div>}
+       {rxCheck.monitoring.length?<div style={{display:"flex",flexDirection:"column",gap:6}}>{rxCheck.monitoring.map((m,i)=><div key={i} style={{fontSize:12.5,color:"var(--c-red-fg)"}}>• {m.test}: {m.note} <span style={{color:P.muted}}>(en {m.dueInDays} d)</span></div>)}</div>:<div style={{fontSize:12.5,color:P.muted}}>Sin monitorización específica.</div>}
        {rxCheck.indications&&<div style={{marginTop:12}}><div style={{fontSize:12,fontWeight:700,color:P.muted}}>Indicaciones para el paciente</div><div style={{fontSize:13,marginTop:2}}>{rxCheck.indications}</div></div>}
       </div>
      </div>
@@ -583,20 +583,20 @@ export default function ExpView(){
    </div>
    {/* RESULTADOS REALES del paciente (expediente) — distintos de los registrados en esta sesión (lista de abajo, con sus
        transiciones). Antes esta pantalla solo mostraba lo creado en la sesión; los resultados ya almacenados no se veían. */}
-   <div style={{marginTop:16,border:`1px solid ${LINE}`,borderRadius:12,padding:"12px 14px",background:"#FCFDFF"}}>
+   <div style={{marginTop:16,border:`1px solid ${LINE}`,borderRadius:12,padding:"12px 14px",background:"var(--c-wash2)"}}>
     <div style={{fontSize:12.5,fontWeight:700,color:P.muted,marginBottom:consTabs?.results?.length?8:0}}>Resultados del paciente (expediente)</div>
     {consTabs===null
      ?<div style={{fontSize:13,color:P.amberOnPale}}>No evaluados: los resultados del paciente no cargaron.</div>
      :consTabs.results.length===0
       ?<div style={{fontSize:13,color:P.muted}}>Sin resultados registrados en el expediente.</div>
-      :<div style={{display:"flex",flexDirection:"column",gap:0}}>{consTabs.results.slice(0,12).map((r,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"8px 0",borderTop:i?"1px solid #F1F3F9":"0"}}>
-        <div style={{minWidth:0}}><span style={{fontWeight:700,fontSize:13}}>{r.analyte}</span> <span style={{fontSize:13,color:P.ink}}>{r.value}</span>{r.critical&&<span style={{marginLeft:8,background:"#FDECEE",color:P.redOnPale,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800}}>CRÍTICO</span>}</div>
+      :<div style={{display:"flex",flexDirection:"column",gap:0}}>{consTabs.results.slice(0,12).map((r,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"8px 0",borderTop:i?"1px solid var(--c-wash)":"0"}}>
+        <div style={{minWidth:0}}><span style={{fontWeight:700,fontSize:13}}>{r.analyte}</span> <span style={{fontSize:13,color:P.ink}}>{r.value}</span>{r.critical&&<span style={{marginLeft:8,background:"var(--c-red-bg)",color:P.redOnPale,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800}}>CRÍTICO</span>}</div>
         <div style={{display:"flex",gap:8,alignItems:"center",flex:"0 0 auto"}}><span style={{fontSize:11.5,color:P.muted}}>{r.estado}</span><span style={{fontSize:11,color:P.muted}}>{r.receivedAt?new Date(r.receivedAt).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"}):""}</span></div>
        </div>)}{consTabs.results.length>12&&<div style={{fontSize:11.5,color:P.muted,paddingTop:8}}>+{consTabs.results.length-12} resultado(s) más en el expediente.</div>}</div>}
    </div>
    {results.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {results.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {results.map(res=>{const n=resNext(res);return <div key={res.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {results.map(res=>{const n=resNext(res);return <div key={res.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{res.label}{res.critical&&<span style={{...stateBadge("ACTIONED"),marginLeft:8,fontSize:11}}>CRÍTICO</span>}</b><div style={{fontSize:12,color:P.muted}}>v{res.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(res.state)}>{res.state}</span>
@@ -611,25 +611,25 @@ export default function ExpView(){
    <div><h2 {...anchor("Clinical Intelligence")} style={{fontSize:18,margin:0}}>Clinical Intelligence</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Apoyo a la decisión DETERMINISTA del paciente: alertas por reglas y calculadoras del motor CDS. Sin IA generativa (R6 en pausa).</p></div>
    {!snap?<div style={{marginTop:14,fontSize:13,color:P.muted}}>Expediente no cargado para este paciente.</div>
     :snap.findings.length?<div style={{marginTop:14,display:"flex",flexDirection:"column",gap:8}}>{snap.findings.map((f,i)=>{const s=SEV[f.severity]??SEV.INFO;return <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"10px 12px",borderRadius:10,background:s.bg,border:`1px solid ${s.bd}`}}>
-     <span style={{background:"#fff",color:s.fg,border:`1px solid ${s.bd}`,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800,letterSpacing:".03em",whiteSpace:"nowrap",marginTop:1}}>{s.label}</span>
-     <span style={{fontSize:13,color:"#33383F",lineHeight:1.45}}>{f.summary}</span>
+     <span style={{background:"var(--c-surface)",color:s.fg,border:`1px solid ${s.bd}`,borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:800,letterSpacing:".03em",whiteSpace:"nowrap",marginTop:1}}>{s.label}</span>
+     <span style={{fontSize:13,color:"var(--c-ink)",lineHeight:1.45}}>{f.summary}</span>
     </div>;})}</div>
     :<div style={{marginTop:14,fontSize:13,color:P.greenOnPale,fontWeight:600}}>✓ Sin alertas deterministas para los datos registrados.</div>}
-   <div style={{marginTop:14,fontSize:11.5,color:P.muted,background:"#F3F2FB",borderRadius:8,padding:"10px 12px"}}>Apoyo a la decisión; la decisión final es del médico. El diagnóstico diferencial probabilístico requiere IA generativa (R6), en pausa intencional en este sistema.</div>
+   <div style={{marginTop:14,fontSize:11.5,color:P.muted,background:"var(--c-purple-bg)",borderRadius:8,padding:"10px 12px"}}>Apoyo a la decisión; la decisión final es del médico. El diagnóstico diferencial probabilístico requiere IA generativa (R6), en pausa intencional en este sistema.</div>
   </section>
 
   {/* EVOLUCIÓN LONGITUDINAL (panel 4) */}
   <section hidden={!inTab("historia")} className="span2" style={card}>
    <div><h2 {...anchor("Evolución longitudinal")} style={{fontSize:18,margin:0}}>Evolución longitudinal</h2><p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Tendencias que cuentan la historia completa. Valores medidos, sin proyección.</p></div>
    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:12}}>
-    {(["HBA1C","GLUCOSE","LDL","CREATININE"] as TrendKey[]).map(k=><button key={k} onClick={()=>setTrendKey(k)} style={{background:trendKey===k?"#E7EEFB":"transparent",color:trendKey===k?P.blue:P.muted,border:`1px solid ${trendKey===k?"#CFE0F7":LINE}`,borderRadius:999,padding:"6px 14px",fontSize:13,fontWeight:trendKey===k?700:500,fontFamily:UI,cursor:"pointer"}}>{CHART[k].label}</button>)}
+    {(["HBA1C","GLUCOSE","LDL","CREATININE"] as TrendKey[]).map(k=><button key={k} onClick={()=>setTrendKey(k)} style={{background:trendKey===k?"var(--c-blue-bg)":"transparent",color:trendKey===k?P.blue:P.muted,border:`1px solid ${trendKey===k?"var(--c-blue-bd)":LINE}`,borderRadius:999,padding:"6px 14px",fontSize:13,fontWeight:trendKey===k?700:500,fontFamily:UI,cursor:"pointer"}}>{CHART[k].label}</button>)}
    </div>
-   <div style={{marginTop:14,border:`1px solid ${LINE}`,borderRadius:14,padding:"14px 16px",background:"#fff"}}>
+   <div style={{marginTop:14,border:`1px solid ${LINE}`,borderRadius:14,padding:"14px 16px",background:"var(--c-surface)"}}>
     <div style={{fontSize:13,fontWeight:700,marginBottom:6}}>{CHART[trendKey].label} <span style={{color:P.muted,fontWeight:500}}>({CHART[trendKey].unit})</span></div>
     {trends?trendChart(trends.series[trendKey]??[],trendKey):<div style={{padding:"28px 0",textAlign:"center",color:P.muted,fontSize:13}}>Selecciona un paciente para ver sus tendencias.</div>}
    </div>
    {trends&&(()=>{
-    const rc=(label:string,v:number|null,unit:string,warn:boolean)=>(<div style={{minWidth:0,background:"#fff",border:`1px solid ${warn?"#F0DBB8":LINE}`,borderRadius:14,padding:"14px 16px"}}><div style={{fontSize:12,color:P.muted,marginBottom:4}}>{label}</div><div style={{fontSize:22,fontWeight:800,color:warn?"#A15C00":P.ink}}>{v??"—"} <span style={{fontSize:12,fontWeight:600,color:P.muted}}>{v!==null?unit:""}</span></div></div>);
+    const rc=(label:string,v:number|null,unit:string,warn:boolean)=>(<div style={{minWidth:0,background:"var(--c-surface)",border:`1px solid ${warn?"var(--c-amber-bd)":LINE}`,borderRadius:14,padding:"14px 16px"}}><div style={{fontSize:12,color:P.muted,marginBottom:4}}>{label}</div><div style={{fontSize:22,fontWeight:800,color:warn?"var(--c-amber-fg)":P.ink}}>{v??"—"} <span style={{fontSize:12,fontWeight:600,color:P.muted}}>{v!==null?unit:""}</span></div></div>);
     const L=trends.latest;
     return <><div style={{fontSize:13,fontWeight:700,margin:"18px 0 10px"}}>Otros resultados relevantes</div>
      <div className="mos-vitals">
@@ -653,7 +653,7 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!alSub} onClick={createAllergy}>{busy==="al-new"?"Registrando…":"Registrar alergia"}</button></div>
    {allergies.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {allergies.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {allergies.map(a=><div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {allergies.map(a=><div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{a.label}</b><div style={{fontSize:12,color:P.muted}}>v{a.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={stateBadge(a.state)}>{a.state}</span>{alActions(a).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>doAllergyAction(a,act)}>{busy==="al-"+a.id?"…":act.label}</button>)}</div>
     </div>)}
@@ -676,7 +676,7 @@ export default function ExpView(){
    </datalist>
    {problems.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {problems.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {problems.map(p=><div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {problems.map(p=><div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{p.label}</b><div style={{fontSize:12,color:P.muted}}>v{p.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={stateBadge(p.state)}>{p.state}</span>{probActions(p).map(a=><button key={a.label} style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>doProblemAction(p,a)}>{busy==="pb-"+p.id?"…":a.label}</button>)}</div>
     </div>)}
@@ -699,7 +699,7 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!orderDetail} onClick={createOrder}>{busy==="ord-new"?"Creando…":"Crear orden"}</button></div>
    {orders.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {orders.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {orders.map(o=>{const n=orderNext(o);return <div key={o.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {orders.map(o=>{const n=orderNext(o);return <div key={o.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:P.muted}}>v{o.version}{o.problemLabel?<> · <span style={{color:P.purple,fontWeight:600}}>↳ {o.problemLabel}</span></>:null}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(o.state)}>{o.state}</span>
@@ -720,12 +720,12 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!refSpecialty||!refReason} onClick={createReferral}>{busy==="ref-new"?"Solicitando…":"Solicitar interconsulta"}</button></div>
    {referrals.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {referrals.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {referrals.map(rr=>{const n=referralNext(rr);const closable=rr.state==="REQUESTED"||rr.state==="ACCEPTED";return <div key={rr.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {referrals.map(rr=>{const n=referralNext(rr);const closable=rr.state==="REQUESTED"||rr.state==="ACCEPTED";return <div key={rr.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{rr.label}</b><div style={{fontSize:12,color:P.muted}}>v{rr.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(rr.state)}>{rr.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceReferral(rr)}>{busy==="ref-"+rr.id?"…":n.label}</button>}
-      {closable&&<button style={{...ghost,padding:"7px 12px",color:P.amberOnPale,borderColor:"#f0d9b8"}} disabled={busy!==""} onClick={()=>cancelReferral(rr)}>{rr.state==="REQUESTED"?"Declinar":"Cancelar"}</button>}
+      {closable&&<button style={{...ghost,padding:"7px 12px",color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}} disabled={busy!==""} onClick={()=>cancelReferral(rr)}>{rr.state==="REQUESTED"?"Declinar":"Cancelar"}</button>}
      </div>
     </div>;})}
    </div>}
@@ -746,13 +746,13 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!apptReason} onClick={createAppointment}>{busy==="apt-new"?"Agendando…":"Agendar cita"}</button></div>
    {appts.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {appts.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {appts.map(a=>{const n=apptNext(a);const open=a.state==="SCHEDULED"||a.state==="CHECKED_IN";return <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {appts.map(a=>{const n=apptNext(a);const open=a.state==="SCHEDULED"||a.state==="CHECKED_IN";return <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{a.label}</b><div style={{fontSize:12,color:P.muted}}>v{a.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(a.state)}>{a.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceAppt(a)}>{busy==="apt-"+a.id?"…":n.label}</button>}
-      {a.state==="SCHEDULED"&&<button style={{...ghost,padding:"7px 12px",color:P.amberOnPale,borderColor:"#f0d9b8"}} disabled={busy!==""} onClick={()=>closeAppt(a,"noshow")}>No-show</button>}
-      {open&&<button style={{...ghost,padding:"7px 12px",color:P.amberOnPale,borderColor:"#f0d9b8"}} disabled={busy!==""} onClick={()=>closeAppt(a,"cancel")}>Cancelar</button>}
+      {a.state==="SCHEDULED"&&<button style={{...ghost,padding:"7px 12px",color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}} disabled={busy!==""} onClick={()=>closeAppt(a,"noshow")}>No-show</button>}
+      {open&&<button style={{...ghost,padding:"7px 12px",color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}} disabled={busy!==""} onClick={()=>closeAppt(a,"cancel")}>Cancelar</button>}
      </div>
     </div>;})}
    </div>}
@@ -769,11 +769,11 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!immCode} onClick={createImmunization}>{busy==="imm-new"?"Indicando…":"Indicar vacuna"}</button></div>
    {imms.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {imms.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {imms.map(i=><div key={i.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {imms.map(i=><div key={i.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{i.label}</b><div style={{fontSize:12,color:P.muted}}>v{i.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(i.state)}>{i.state}</span>
-      {immActions(i).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ADVERSE_EVENT"||act.to==="REFUSED"?{color:P.amberOnPale,borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doImmAction(i,act)}>{busy==="imm-"+i.id?"…":act.label}</button>)}
+      {immActions(i).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ADVERSE_EVENT"||act.to==="REFUSED"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doImmAction(i,act)}>{busy==="imm-"+i.id?"…":act.label}</button>)}
      </div>
     </div>)}
    </div>}
@@ -798,11 +798,11 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!vitValue} onClick={createVital}>{busy==="vit-new"?"Registrando…":"Registrar signo vital"}</button></div>
    {vitals.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {vitals.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {vitals.map(v=><div key={v.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{v.vitalType}: {v.value} {v.unit}</b>{v.vstatus&&v.vstatus!=="UNKNOWN"&&<span style={{...(v.vstatus==="CRITICAL"?{background:"#fdeaea",color:P.redOnPale}:v.vstatus==="ABNORMAL"?{background:"#fff4e5",color:P.amberOnPale}:{background:"#e8f7ee",color:P.greenOnPale}),marginLeft:8,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{v.interp}</span>}<div style={{fontSize:12,color:P.muted}}>v{v.version}</div></div>
+    {vitals.map(v=><div key={v.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
+     <div><b style={{fontSize:14}}>{v.vitalType}: {v.value} {v.unit}</b>{v.vstatus&&v.vstatus!=="UNKNOWN"&&<span style={{...(v.vstatus==="CRITICAL"?{background:"var(--c-red-bg)",color:P.redOnPale}:v.vstatus==="ABNORMAL"?{background:"var(--c-amber-bg)",color:P.amberOnPale}:{background:"var(--c-green-bg)",color:P.greenOnPale}),marginLeft:8,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{v.interp}</span>}<div style={{fontSize:12,color:P.muted}}>v{v.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(v.state)}>{v.state}</span>
-      {vitActions(v).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ENTERED_IN_ERROR"?{color:P.amberOnPale,borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doVitAction(v,act)}>{busy==="vit-"+v.id?"…":act.label}</button>)}
+      {vitActions(v).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ENTERED_IN_ERROR"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doVitAction(v,act)}>{busy==="vit-"+v.id?"…":act.label}</button>)}
      </div>
     </div>)}
    </div>}
@@ -821,11 +821,11 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!planGoal} onClick={createPlan}>{busy==="cp-new"?"Proponiendo…":"Proponer meta"}</button></div>
    {plans.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {plans.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {plans.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {plans.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>v{c.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(c.state)}>{c.state}</span>
-      {cpActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="CANCELLED"?{color:P.amberOnPale,borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doPlanAction(c,act)}>{busy==="cp-"+c.id?"…":act.label}</button>)}
+      {cpActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="CANCELLED"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doPlanAction(c,act)}>{busy==="cp-"+c.id?"…":act.label}</button>)}
      </div>
     </div>)}
    </div>}
@@ -842,11 +842,11 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!clmAmount} onClick={createClaim}>{busy==="clm-new"?"Creando…":"Crear reclamación"}</button></div>
    {claims.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {claims.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {claims.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {claims.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>v{c.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(c.state)}>{c.state}</span>
-      {clmActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="VOIDED"||act.to==="REJECTED"?{color:P.amberOnPale,borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doClaimAction(c,act)}>{busy==="clm-"+c.id?"…":act.label}</button>)}
+      {clmActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="VOIDED"||act.to==="REJECTED"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doClaimAction(c,act)}>{busy==="clm-"+c.id?"…":act.label}</button>)}
      </div>
     </div>)}
    </div>}
@@ -865,11 +865,11 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!csRef} onClick={createConsent}>{busy==="cs-new"?"Redactando…":"Redactar consentimiento"}</button></div>
    {consents.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {consents.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {consents.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {consents.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>v{c.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(c.state)}>{c.state}</span>
-      {csActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="DECLINED"||act.to==="REVOKED"?{color:P.amberOnPale,borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doConsentAction(c,act)}>{busy==="cs-"+c.id?"…":act.label}</button>)}
+      {csActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="DECLINED"||act.to==="REVOKED"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doConsentAction(c,act)}>{busy==="cs-"+c.id?"…":act.label}</button>)}
      </div>
     </div>)}
    </div>}
@@ -888,11 +888,11 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!admReason} onClick={createAdmission}>{busy==="adm-new"?"Admitiendo…":"Admitir paciente"}</button></div>
    {adms.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {adms.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {adms.map(a=><div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {adms.map(a=><div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>Unidad: {a.unit}</b><div style={{fontSize:12,color:P.muted}}>v{a.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(a.state)}>{a.state}</span>
-      {admActions(a).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="CANCELLED"?{color:P.amberOnPale,borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doAdmAction(a,act)}>{busy==="adm-"+a.id?"…":act.label}</button>)}
+      {admActions(a).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="CANCELLED"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doAdmAction(a,act)}>{busy==="adm-"+a.id?"…":act.label}</button>)}
      </div>
     </div>)}
    </div>}
@@ -910,12 +910,12 @@ export default function ExpView(){
    </div>
    {specs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {specs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {specs.map(s=>{const n=spNext(s);const open=s.state!=="RESULTED"&&s.state!=="REJECTED";return <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {specs.map(s=>{const n=spNext(s);const open=s.state!=="RESULTED"&&s.state!=="REJECTED";return <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{s.specimenType}</b><div style={{fontSize:12,color:P.muted}}>v{s.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(s.state)}>{s.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceSpecimen(s)}>{busy==="sp-"+s.id?"…":n.label}</button>}
-      {open&&<button style={{...ghost,padding:"7px 12px",color:P.amberOnPale,borderColor:"#f0d9b8"}} disabled={busy!==""} onClick={()=>rejectSpecimen(s)}>Rechazar</button>}
+      {open&&<button style={{...ghost,padding:"7px 12px",color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}} disabled={busy!==""} onClick={()=>rejectSpecimen(s)}>Rechazar</button>}
      </div>
     </div>;})}
    </div>}
@@ -935,11 +935,11 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!incDesc} onClick={createIncident}>{busy==="inc-new"?"Reportando…":"Reportar incidente"}</button></div>
    {incs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {incs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {incs.map(i=><div key={i.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {incs.map(i=><div key={i.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div style={{minWidth:0}}><b style={{fontSize:14}}>{i.label}</b><div style={{fontSize:12,color:P.muted}}>v{i.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(i.state)}>{i.state}</span>
-      {incActions(i).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ESCALATED"?{color:P.amberOnPale,borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doIncAction(i,act)}>{busy==="inc-"+i.id?"…":act.label}</button>)}
+      {incActions(i).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ESCALATED"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doIncAction(i,act)}>{busy==="inc-"+i.id?"…":act.label}</button>)}
      </div>
     </div>)}
    </div>}
@@ -955,7 +955,7 @@ export default function ExpView(){
    </div>
    {triages.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {triages.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {triages.map(t=><div key={t.id} style={{padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {triages.map(t=><div key={t.id} style={{padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
       <div style={{minWidth:0}}>
        <b style={{fontSize:14}}>{t.chiefComplaint}{t.acuity>0&&<span style={{...stateBadge(t.acuity<=2?"ESCALATED":"TRIAGED"),marginLeft:8,fontSize:11}}>ESI-{t.acuity}</span>}</b>
@@ -973,7 +973,7 @@ export default function ExpView(){
        {(t.state==="IN_TRIAGE"||t.state==="TRIAGED")&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""}
         onClick={()=>{setTrEsiFor(trEsiFor===t.id?null:t.id);setTrEsi(ESI_FORM_EMPTY);setTrEsiMsg(null);}}>
         {trEsiFor===t.id?"Cancelar":t.state==="TRIAGED"?"Re-clasificar":"Clasificar (ESI)"}</button>}
-       {trActions(t).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="LWBS"?{color:P.amberOnPale,borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doTriageAction(t,act)}>{busy==="tr-"+t.id?"…":act.label}</button>)}
+       {trActions(t).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="LWBS"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doTriageAction(t,act)}>{busy==="tr-"+t.id?"…":act.label}</button>)}
       </div>
      </div>
      {/* Formulario de los discriminadores. El nivel NO está aquí: es una consecuencia que calcula el servidor con el
@@ -993,7 +993,7 @@ export default function ExpView(){
        <label style={{fontSize:12,color:P.muted}}>SpO₂ (%)<input aria-label="Saturación de oxígeno (SpO2)" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.spo2} onChange={e=>setTrEsi({...trEsi,spo2:e.target.value})} placeholder="—" /></label>
       </div>
       <div style={{fontSize:11.5,color:P.muted}}>Un signo vital vacío es «no se midió», no «normal»: el algoritmo lo reporta como faltante en vez de asumirlo.</div>
-      {trEsiMsg&&<div role="alert" style={{padding:"10px 12px",border:"1px solid #F0DBB8",background:"#FFF4E5",color:P.amberOnPale,borderRadius:10,fontSize:12.5,fontWeight:600}}>{trEsiMsg}</div>}
+      {trEsiMsg&&<div role="alert" style={{padding:"10px 12px",border:"1px solid var(--c-amber-bd)",background:"var(--c-amber-bg)",color:P.amberOnPale,borderRadius:10,fontSize:12.5,fontWeight:600}}>{trEsiMsg}</div>}
       <div><button style={btn} disabled={busy!==""} onClick={()=>classifyTriage(t)}>{busy==="tr-"+t.id?"Calculando…":"Calcular y registrar nivel"}</button></div>
      </div>}
     </div>)}
@@ -1015,11 +1015,11 @@ export default function ExpView(){
    </div>
    {wounds.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {wounds.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {wounds.map(w=><div key={w.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {wounds.map(w=><div key={w.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div style={{minWidth:0}}><b style={{fontSize:14}}>{w.location} · {w.stage}</b><div style={{fontSize:12,color:P.muted}}>v{w.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(w.state)}>{w.state}</span>
-      {wnActions(w).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ESCALATED"?{color:P.amberOnPale,borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doWoundAction(w,act)}>{busy==="wn-"+w.id?"…":act.label}</button>)}
+      {wnActions(w).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ESCALATED"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doWoundAction(w,act)}>{busy==="wn-"+w.id?"…":act.label}</button>)}
      </div>
     </div>)}
    </div>}
@@ -1038,12 +1038,12 @@ export default function ExpView(){
    </div>
    {transfs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {transfs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {transfs.map(t=>{const n=tfNext(t);return <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {transfs.map(t=>{const n=tfNext(t);return <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div style={{minWidth:0}}><b style={{fontSize:14}}>{t.product} · {t.units} U</b><div style={{fontSize:12,color:P.muted}}>v{t.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(t.state)}>{t.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceTransfusion(t)}>{busy==="tf-"+t.id?"…":n.label}</button>}
-      {t.state==="TRANSFUSING"&&<button style={{...ghost,padding:"7px 12px",color:P.redOnPale,borderColor:"#f0c9c9"}} disabled={busy!==""} onClick={()=>transfusionReaction(t)}>Reacción</button>}
+      {t.state==="TRANSFUSING"&&<button style={{...ghost,padding:"7px 12px",color:P.redOnPale,borderColor:"var(--c-red-bd)"}} disabled={busy!==""} onClick={()=>transfusionReaction(t)}>Reacción</button>}
      </div>
     </div>;})}
    </div>}
@@ -1060,12 +1060,12 @@ export default function ExpView(){
    </div>
    {surgs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {surgs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {surgs.map(s=>{const n=sgNext(s);const open=s.state==="SCHEDULED"||s.state==="TIMED_OUT";return <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {surgs.map(s=>{const n=sgNext(s);const open=s.state==="SCHEDULED"||s.state==="TIMED_OUT";return <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div style={{minWidth:0}}><b style={{fontSize:14}}>{s.procedure}</b><div style={{fontSize:12,color:P.muted}}>v{s.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(s.state)}>{s.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceSurgery(s)}>{busy==="sg-"+s.id?"…":n.label}</button>}
-      {open&&<button style={{...ghost,padding:"7px 12px",color:P.amberOnPale,borderColor:"#f0d9b8"}} disabled={busy!==""} onClick={()=>cancelSurgery(s)}>Cancelar</button>}
+      {open&&<button style={{...ghost,padding:"7px 12px",color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}} disabled={busy!==""} onClick={()=>cancelSurgery(s)}>Cancelar</button>}
      </div>
     </div>;})}
    </div>}
@@ -1086,11 +1086,11 @@ export default function ExpView(){
    </div>
    {dialz.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {dialz.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {dialz.map(d=><div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {dialz.map(d=><div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div style={{minWidth:0}}><b style={{fontSize:14}}>{d.modality}</b><div style={{fontSize:12,color:P.muted}}>v{d.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(d.state)}>{d.state}</span>
-      {dzActions(d).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="INTERRUPTED"||act.to==="NO_SHOW"?{color:P.amberOnPale,borderColor:"#f0d9b8"}:{})}} disabled={busy!==""} onClick={()=>doDialysisAction(d,act)}>{busy==="dz-"+d.id?"…":act.label}</button>)}
+      {dzActions(d).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="INTERRUPTED"||act.to==="NO_SHOW"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doDialysisAction(d,act)}>{busy==="dz-"+d.id?"…":act.label}</button>)}
      </div>
     </div>)}
    </div>}
@@ -1111,7 +1111,7 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!docContent} onClick={createDoc}>{busy==="doc-new"?"Creando…":"Crear documento"}</button></div>
    {docs.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {docs.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {docs.map(d=>{const n=docNext(d);return <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {docs.map(d=>{const n=docNext(d);return <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{d.label}</b><div style={{fontSize:12,color:P.muted}}>v{d.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(d.state)}>{d.state}</span>
@@ -1124,10 +1124,10 @@ export default function ExpView(){
    <div style={{marginTop:22,borderTop:`1px solid ${LINE}`,paddingTop:18}}>
     <h3 style={{fontSize:15,margin:0}}>Repositorio del paciente</h3>
     <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Todos los documentos del expediente. Abre uno para leer su contenido y su firma, y para adjuntar estudios (PDF o imagen) en el almacenamiento privado del consultorio.</p>
-    {docsSnap&&docsSnap.total>0&&<div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:10}}>{Object.entries(docsSnap.byType).map(([t,n])=><span key={t} style={{background:"#F1F4FB",color:P.muted,border:`1px solid ${LINE}`,borderRadius:999,padding:"3px 10px",fontSize:11.5}}>{t} · {n}</span>)}</div>}
+    {docsSnap&&docsSnap.total>0&&<div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:10}}>{Object.entries(docsSnap.byType).map(([t,n])=><span key={t} style={{background:"var(--c-blue-bg)",color:P.muted,border:`1px solid ${LINE}`,borderRadius:999,padding:"3px 10px",fontSize:11.5}}>{t} · {n}</span>)}</div>}
     {!docsSnap&&<div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>{Array.from({length:3}).map((_,i)=><Skeleton key={i} h={44} r={12}/>)}</div>}
     {docsSnap&&docsSnap.total===0&&<div style={{marginTop:12,fontSize:12,color:P.muted}}>Este paciente aún no tiene documentos en el repositorio. Crea uno arriba; al guardarlo aparecerá aquí.</div>}
-    {docsSnap&&docsSnap.total>0&&<div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>{docsSnap.items.map(it=>{const active=docDetail?.documentId===it.documentId;return <div key={it.documentId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"11px 14px",border:`1px solid ${active?"#CFE0F7":"#eceafb"}`,background:active?"#F6F9FE":"#fff",borderRadius:12}}>
+    {docsSnap&&docsSnap.total>0&&<div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>{docsSnap.items.map(it=>{const active=docDetail?.documentId===it.documentId;return <div key={it.documentId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"11px 14px",border:`1px solid ${active?"var(--c-blue-bd)":"var(--c-line)"}`,background:active?"#F6F9FE":"#fff",borderRadius:12}}>
      <div style={{minWidth:0}}><b style={{fontSize:13.5}}>{it.title}</b><div style={{fontSize:11.5,color:P.muted}}>{it.typeLabel} · {it.statusLabel} · {new Date(it.createdAt).toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"})}</div></div>
      <button style={{...ghost,padding:"7px 14px",flex:"0 0 auto"}} disabled={docDetBusy} onClick={()=>{setAttConfirm(null);void loadDoc(it.documentId);}}>{docDetBusy&&active?"…":"Abrir"}</button>
     </div>;})}</div>}
@@ -1135,12 +1135,12 @@ export default function ExpView(){
 
    {/* DETALLE del documento + ADJUNTOS (ver/subir/quitar). El binario va al Blob privado; al stream de eventos solo la referencia. */}
    {docDetBusy&&!docDetail&&<div style={{marginTop:14}}><Skeleton h={120} r={12}/></div>}
-   {docDetail&&<div style={{marginTop:14,border:`1px solid ${LINE}`,borderRadius:14,padding:16,background:"#fff"}}>
+   {docDetail&&<div style={{marginTop:14,border:`1px solid ${LINE}`,borderRadius:14,padding:16,background:"var(--c-surface)"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10,flexWrap:"wrap"}}>
      <div style={{minWidth:0}}><b style={{fontSize:15}}>{docDetail.title}</b><div style={{fontSize:12,color:P.muted,marginTop:2}}>{docDetail.typeLabel} · v{docDetail.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={stateBadge(docDetail.state)}>{docDetail.statusLabel}</span><button style={{...ghost,padding:"6px 12px"}} onClick={()=>{setDocDetail(null);setAttConfirm(null);}}>Cerrar</button></div>
     </div>
-    <div style={{marginTop:12,whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.5,background:"#FAFBFE",border:`1px solid ${LINE}`,borderRadius:10,padding:"12px 14px"}}>{docDetail.content||<span style={{color:P.muted}}>Sin contenido.</span>}</div>
+    <div style={{marginTop:12,whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.5,background:"var(--c-wash2)",border:`1px solid ${LINE}`,borderRadius:10,padding:"12px 14px"}}>{docDetail.content||<span style={{color:P.muted}}>Sin contenido.</span>}</div>
     {docDetail.addenda.length>0&&<div style={{marginTop:12}}><div style={{fontSize:12,fontWeight:700,color:P.muted}}>Addenda (append-only)</div>{docDetail.addenda.map((a,i)=><div key={i} style={{marginTop:6,fontSize:12.5,borderLeft:`2px solid ${LINE}`,paddingLeft:10}}>{a.addendum}<div style={{fontSize:11,color:P.muted}}>{new Date(a.at).toLocaleString("es-MX")}</div></div>)}</div>}
     {docDetail.signature&&<div style={{marginTop:12,fontSize:11.5,color:P.muted}}>Firmado el {new Date(docDetail.signature.signedAt).toLocaleString("es-MX")} · hash <span style={mono}>{docDetail.signature.signatureDigest.slice(0,16)}…</span></div>}
     <div style={{marginTop:16,borderTop:`1px solid ${LINE}`,paddingTop:14}}>
@@ -1154,12 +1154,12 @@ export default function ExpView(){
      <div style={{fontSize:11,color:P.muted,marginTop:4}}>PDF o imagen (PNG, JPG, WEBP, GIF, TIFF), máx. 25 MB. Se guarda en el almacenamiento privado del consultorio; nunca en una URL pública.</div>
      {attMsg&&<div style={{marginTop:8,fontSize:12,color:attMsg.includes("✓")?P.greenOnPale:P.redOnPale}}>{attMsg}</div>}
      {docDetail.attachments.length===0&&<div style={{marginTop:10,fontSize:12,color:P.muted}}>Sin archivos adjuntos. Usa «Adjuntar archivo» para subir un estudio o una constancia.</div>}
-     {docDetail.attachments.length>0&&<div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>{docDetail.attachments.map(a=><div key={a.attachmentId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"10px 12px",border:"1px solid #eceafb",borderRadius:10}}>
+     {docDetail.attachments.length>0&&<div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>{docDetail.attachments.map(a=><div key={a.attachmentId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"10px 12px",border:"1px solid var(--c-line)",borderRadius:10}}>
       <div style={{minWidth:0}}><span style={{fontSize:13}}>{a.filename}</span><div style={{fontSize:11,color:P.muted}}>{a.mime} · {fmtBytes(a.size)} · {new Date(a.attachedAt).toLocaleDateString("es-MX")}</div></div>
       <div style={{display:"flex",gap:8,alignItems:"center",flex:"0 0 auto"}}>
        <button style={{...ghost,padding:"6px 12px"}} onClick={()=>void viewAttachment(a)}>Ver</button>
        {attConfirm===a.attachmentId
-        ? <><button style={{...ghost,padding:"6px 12px",color:P.redOnPale,borderColor:"#f0c7c7"}} disabled={attBusy} onClick={async()=>{await removeAttachment(a);setAttConfirm(null);}}>Sí, quitar</button><button style={{...ghost,padding:"6px 12px"}} onClick={()=>setAttConfirm(null)}>Cancelar</button></>
+        ? <><button style={{...ghost,padding:"6px 12px",color:P.redOnPale,borderColor:"var(--c-red-bd)"}} disabled={attBusy} onClick={async()=>{await removeAttachment(a);setAttConfirm(null);}}>Sí, quitar</button><button style={{...ghost,padding:"6px 12px"}} onClick={()=>setAttConfirm(null)}>Cancelar</button></>
         : <button style={{...ghost,padding:"6px 12px"}} disabled={attBusy} onClick={()=>setAttConfirm(a.attachmentId)}>Quitar</button>}
       </div>
      </div>)}</div>}
@@ -1177,7 +1177,7 @@ export default function ExpView(){
    </div>
    {obligations.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {obligations.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {obligations.map(o=>{const n=obNext(o);return <div key={o.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid #eceafb",borderRadius:12}}>
+    {obligations.map(o=>{const n=obNext(o);return <div key={o.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
      <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:P.muted}}>v{o.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}><span style={stateBadge(o.state)}>{o.state}</span>{n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceObligation(o)}>{busy==="ob-"+o.id?"…":n.label}</button>}</div>
     </div>;})}
@@ -1187,36 +1187,36 @@ export default function ExpView(){
   {/* Auditoría R05a-F07: anular una factura y revocar un consentimiento se disparaban con UN clic. No son reversibles: el
       registro es de solo-añadir, así que lo único posible después es anotar encima. Mismo patrón de diálogo que el bloqueo
       de seguridad, incluido `role="alertdialog"` para que un lector de pantalla lo anuncie como lo que es. */}
-  {pendingIrreversible&&<div className="span2" role="alertdialog" aria-labelledby="irrev-title" data-testid="confirm-irreversible" style={{...card,borderColor:"#f0d9b8",background:"#FFF8EC"}}>
+  {pendingIrreversible&&<div className="span2" role="alertdialog" aria-labelledby="irrev-title" data-testid="confirm-irreversible" style={{...card,borderColor:"var(--c-amber-bd)",background:"var(--c-amber-bg)"}}>
    <b id="irrev-title" style={{color:P.amberOnPale}}>Acción irreversible — {pendingIrreversible.what}</b>
-   <p style={{margin:"6px 0 0",color:"#7a5a1f",wordBreak:"break-word"}}>{pendingIrreversible.detail}</p>
+   <p style={{margin:"6px 0 0",color:"var(--c-amber-fg)",wordBreak:"break-word"}}>{pendingIrreversible.detail}</p>
    <div style={{display:"flex",gap:10,marginTop:10,justifyContent:"flex-end"}}>
     <button style={{...ghost,padding:"9px 16px"}} data-testid="cancel-irreversible" onClick={cancelIrreversible}>Cancelar</button>
     <button style={{...btn,background:P.amberOnPale}} data-testid="accept-irreversible" disabled={busy!==""} onClick={confirmIrreversible}>{pendingIrreversible.what}</button>
    </div>
   </div>}
-  {overrideMed&&<div className="span2" role="alertdialog" aria-labelledby="override-title" style={{...card,borderColor:"#F3C9C9",background:"#FDEEEE"}}>
+  {overrideMed&&<div className="span2" role="alertdialog" aria-labelledby="override-title" style={{...card,borderColor:"var(--c-red-bd)",background:"var(--c-red-bg)"}}>
    <b id="override-title" style={{color:P.redOnPale}}>Bloqueo de seguridad — {overrideMed.med.label}</b>
-   <p style={{margin:"6px 0 0",color:"#7a3b34",wordBreak:"break-word"}}>{overrideMed.message}</p>
-   <ul style={{margin:"8px 0 0",paddingLeft:18,color:"#7a3b34",fontSize:13}}>{overrideMed.barriers.map(b=><li key={b}>Vas a anular: <b>{BARRIER_LABEL[b]??b}</b></li>)}</ul>
-   <label htmlFor="override-why" style={{display:"block",margin:"10px 0 4px",fontSize:12,fontWeight:700,color:"#7a3b34"}}>Justificación clínica de la anulación (queda en el expediente con tu identidad; mínimo 20 caracteres)</label>
+   <p style={{margin:"6px 0 0",color:"var(--c-red-fg)",wordBreak:"break-word"}}>{overrideMed.message}</p>
+   <ul style={{margin:"8px 0 0",paddingLeft:18,color:"var(--c-red-fg)",fontSize:13}}>{overrideMed.barriers.map(b=><li key={b}>Vas a anular: <b>{BARRIER_LABEL[b]??b}</b></li>)}</ul>
+   <label htmlFor="override-why" style={{display:"block",margin:"10px 0 4px",fontSize:12,fontWeight:700,color:"var(--c-red-fg)"}}>Justificación clínica de la anulación (queda en el expediente con tu identidad; mínimo 20 caracteres)</label>
    <textarea id="override-why" aria-label="Motivo de la anulación" value={overrideWhy} onChange={e=>setOverrideWhy(e.target.value)} rows={2} maxLength={1000} style={{...input,width:"100%",resize:"vertical"}} />
    <div style={{display:"flex",gap:10,marginTop:10,justifyContent:"flex-end"}}>
     <button style={{...ghost,padding:"9px 16px"}} onClick={()=>{setOverrideMed(null);setOverrideWhy("");}}>Cancelar</button>
     <button style={{...btn,background:P.redOnPale,opacity:overrideWhy.trim().length<20?.5:1}} disabled={busy!==""||overrideWhy.trim().length<20} onClick={confirmOverrideMed}>Anular el bloqueo bajo mi responsabilidad</button>
    </div>
   </div>}
-  {ackMed&&<div className="span2" role="alertdialog" aria-labelledby="ack-title" style={{...card,borderColor:"#F0DBB8",background:"#FFF7EC"}}>
-   <b id="ack-title" style={{color:"#8A4B00"}}>Verificación automática incompleta — {ackMed.med.label}</b>
-   <p style={{margin:"6px 0 0",color:"#5A3A0A",wordBreak:"break-word"}}>{ackMed.message}</p>
-   <label htmlFor="ack-why" style={{display:"block",margin:"10px 0 4px",fontSize:12,fontWeight:700,color:"#5A3A0A"}}>Justificación clínica (queda en el expediente, mínimo 10 caracteres)</label>
+  {ackMed&&<div className="span2" role="alertdialog" aria-labelledby="ack-title" style={{...card,borderColor:"var(--c-amber-bd)",background:"var(--c-amber-bg)"}}>
+   <b id="ack-title" style={{color:"var(--c-amber-fg)"}}>Verificación automática incompleta — {ackMed.med.label}</b>
+   <p style={{margin:"6px 0 0",color:"var(--c-amber-fg)",wordBreak:"break-word"}}>{ackMed.message}</p>
+   <label htmlFor="ack-why" style={{display:"block",margin:"10px 0 4px",fontSize:12,fontWeight:700,color:"var(--c-amber-fg)"}}>Justificación clínica (queda en el expediente, mínimo 10 caracteres)</label>
    <textarea id="ack-why" aria-label="Motivo del reconocimiento" value={ackWhy} onChange={e=>setAckWhy(e.target.value)} rows={2} maxLength={500} style={{...input,width:"100%",resize:"vertical"}} />
    <div style={{display:"flex",gap:10,marginTop:10,justifyContent:"flex-end"}}>
     <button style={{...ghost,padding:"9px 16px"}} onClick={()=>{setAckMed(null);setAckWhy("");}}>Cancelar</button>
     <button style={{...btn,opacity:ackWhy.trim().length<10?.5:1}} disabled={busy!==""||ackWhy.trim().length<10} onClick={confirmAckMed}>Prescribir bajo mi criterio clínico</button>
    </div>
   </div>}
-  {error&&<div className="span2" style={{...card,borderColor:"#f0c6c0",background:"#fdf3f2"}}><b style={{color:"#c0392b"}}>Error</b><p style={{margin:"6px 0 0",color:"#7a3b34",wordBreak:"break-word"}}>{error}</p>{error.includes("SAFETY_BLOCKED")&&<p style={{margin:"6px 0 0",fontSize:12,color:P.amberOnPale}}>💡 ¿Hay un resultado crítico sin cerrar para este paciente? Ciérralo abajo y vuelve a firmar.</p>}</div>}
+  {error&&<div className="span2" style={{...card,borderColor:"var(--c-red-bd)",background:"var(--c-red-bg)"}}><b style={{color:"var(--c-red-fg)"}}>Error</b><p style={{margin:"6px 0 0",color:"var(--c-red-fg)",wordBreak:"break-word"}}>{error}</p>{error.includes("SAFETY_BLOCKED")&&<p style={{margin:"6px 0 0",fontSize:12,color:P.amberOnPale}}>💡 ¿Hay un resultado crítico sin cerrar para este paciente? Ciérralo abajo y vuelve a firmar.</p>}</div>}
   </main>
   </>;
 

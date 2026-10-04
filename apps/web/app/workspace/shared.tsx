@@ -11,7 +11,24 @@ import{goalFor,INDIVIDUALIZATION_NOTICE}from"../../../../packages/care-goals/src
 // Solo el FORMATO del UUID (módulo sin dependencias de Node: el bundle del cliente no puede traer node:crypto).
 import {uuidFromDigest} from "../../../../packages/canonical-json/src/uuid";
 // R05b-08: la paleta se declara junto a los imports porque las tablas de color de este módulo ya la usan.
-export const P=primitive.color,S=primitive.space,UI=typography.family.ui;
+// TEMA CLARO/OSCURO — la paleta del workspace se cablea a variables CSS (definidas en RAIL_CSS sobre `.mos-app`, y
+// sobreescritas en `.mos-app[data-theme="dark"]`). El FALLBACK de cada var es el hex del design system, así que el tema
+// claro queda idéntico a antes y cualquier render fuera de `.mos-app` (SSR, snapshots) sigue en claro. `primitive.color`
+// del paquete NO se toca: sus guards de contraste lo validan contra blanco/lienzo; esto es una capa de presentación local.
+const pc=primitive.color;
+export const P={
+ navy:`var(--c-navy,${pc.navy})`,blue:`var(--c-blue,${pc.blue})`,purple:`var(--c-purple,${pc.purple})`,
+ cyan:`var(--c-cyan,${pc.cyan})`,green:`var(--c-green,${pc.green})`,amber:`var(--c-amber,${pc.amber})`,
+ red:`var(--c-red,${pc.red})`,canvas:`var(--c-canvas,${pc.canvas})`,ink:`var(--c-ink,${pc.ink})`,
+ muted:`var(--c-muted,${pc.muted})`,white:`var(--c-surface,${pc.white})`,
+ greenOnPale:`var(--c-green-fg,${pc.greenOnPale})`,purpleOnPale:`var(--c-purple-fg,${pc.purpleOnPale})`,
+ blueOnPale:`var(--c-blue-fg,${pc.blueOnPale})`,redOnPale:`var(--c-red-fg,${pc.redOnPale})`,
+ amberOnPale:`var(--c-amber-fg,${pc.amberOnPale})`,
+ greenPale:`var(--c-green-bg,${pc.greenPale})`,amberPale:`var(--c-amber-bg,${pc.amberPale})`,
+ bluePale:`var(--c-blue-bg,${pc.bluePale})`,purplePale:`var(--c-purple-bg,${pc.purplePale})`,
+ redPale:`var(--c-red-bg,${pc.redPale})`,
+} as const;
+export const S=primitive.space,UI=typography.family.ui;
 
 // EPIC K — Espacio de trabajo clínico. Consume los endpoints ya probados con la sesión autenticada.
 // Módulos: encuentro (abrir->valorar->firmar) y medicación (proponer->prescribir->activar->suspender),
@@ -327,27 +344,27 @@ export function trendChart(series:Series,key:TrendKey){
  const goal=cfg.goal?goalFor(cfg.goal):undefined;
  return <>
  <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",maxWidth:W}} role="img" aria-label={`Tendencia de ${cfg.label}`}>
-  {cfg.target!==undefined&&bandaTop<bandaBot&&<rect x={padL} y={bandaTop} width={W-padL-padR} height={bandaBot-bandaTop} fill="#EAF7EF"/>}
-  {yticks.map((t,i)=><g key={i}><line x1={padL} y1={y(t)} x2={W-padR} y2={y(t)} stroke="#EEF1F6"/><text x={padL-6} y={y(t)+3} textAnchor="end" fontSize="10" fill="#8a8b9a">{fmtN(t)}</text></g>)}
-  {cfg.target!==undefined&&<><line x1={padL} y1={y(cfg.target)} x2={W-padR} y2={y(cfg.target)} stroke={P.greenOnPale} strokeDasharray="4 3" strokeWidth="1.2"/><text x={padL+6} y={y(cfg.target)-4} textAnchor="start" fontSize="10" fontWeight="600" fill={P.greenOnPale}>{cfg.targetLabel}</text></>}
-  {cfg.targetLow!==undefined&&y(cfg.targetLow)<cb&&<line x1={padL} y1={y(cfg.targetLow)} x2={W-padR} y2={y(cfg.targetLow)} stroke={P.greenOnPale} strokeDasharray="4 3" strokeWidth="1.2"/>}
-  <path d={area} fill={`${P.blueOnPale}14`}/>
-  <path d={line} fill="none" stroke={P.blueOnPale} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round"/>
-  {series.map((p,i)=>{const last=i===series.length-1;return <g key={i}><circle cx={x(i)} cy={y(p.value)} r={last?4.5:3.2} fill="#fff" stroke={P.blueOnPale} strokeWidth={last?2.4:1.8}/><text x={x(i)} y={y(p.value)-9} textAnchor="middle" fontSize="10" fontWeight={last?700:600} fill={last?"#14213D":"#5F6B7A"}>{fmtN(p.value)}</text></g>;})}
-  {xIdx.map(i=>{const s=series[i];return s?<text key={i} x={x(i)} y={H-14} textAnchor="middle" fontSize="10" fill="#8a8b9a">{fmt(s.at)}</text>:null;})}
+  {cfg.target!==undefined&&bandaTop<bandaBot&&<rect x={padL} y={bandaTop} width={W-padL-padR} height={bandaBot-bandaTop} style={{fill:"var(--c-green-bg)"}}/>}
+  {yticks.map((t,i)=><g key={i}><line x1={padL} y1={y(t)} x2={W-padR} y2={y(t)} style={{stroke:"var(--c-line)"}}/><text x={padL-6} y={y(t)+3} textAnchor="end" fontSize="10" style={{fill:"var(--c-muted)"}}>{fmtN(t)}</text></g>)}
+  {cfg.target!==undefined&&<><line x1={padL} y1={y(cfg.target)} x2={W-padR} y2={y(cfg.target)} strokeDasharray="4 3" strokeWidth="1.2" style={{stroke:P.greenOnPale}}/><text x={padL+6} y={y(cfg.target)-4} textAnchor="start" fontSize="10" fontWeight="600" style={{fill:P.greenOnPale}}>{cfg.targetLabel}</text></>}
+  {cfg.targetLow!==undefined&&y(cfg.targetLow)<cb&&<line x1={padL} y1={y(cfg.targetLow)} x2={W-padR} y2={y(cfg.targetLow)} strokeDasharray="4 3" strokeWidth="1.2" style={{stroke:P.greenOnPale}}/>}
+  <path d={area} style={{fill:P.blueOnPale,fillOpacity:0.08}}/>
+  <path d={line} fill="none" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" style={{stroke:P.blueOnPale}}/>
+  {series.map((p,i)=>{const last=i===series.length-1;return <g key={i}><circle cx={x(i)} cy={y(p.value)} r={last?4.5:3.2} strokeWidth={last?2.4:1.8} style={{fill:"var(--c-surface)",stroke:P.blueOnPale}}/><text x={x(i)} y={y(p.value)-9} textAnchor="middle" fontSize="10" fontWeight={last?700:600} style={{fill:last?"var(--c-ink)":"var(--c-muted)"}}>{fmtN(p.value)}</text></g>;})}
+  {xIdx.map(i=>{const s=series[i];return s?<text key={i} x={x(i)} y={H-14} textAnchor="middle" fontSize="10" style={{fill:"var(--c-muted)"}}>{fmt(s.at)}</text>:null;})}
  </svg>
  {/* R05a/WS1-09: la meta nunca se presenta sola. Debajo del gráfico van la población en la que aplica y el aviso de que
      la meta del paciente la fija su médico; si la métrica no tiene meta universal (LDL), se dice de qué depende. */}
  {goal&&<div style={{fontSize:11.5,color:P.muted,marginTop:2,lineHeight:1.45}}>
-  <strong style={{color:"#3C4658",fontWeight:600}}>{goal.defaultTarget}</strong> · {goal.appliesTo} {INDIVIDUALIZATION_NOTICE}
+  <strong style={{color:"var(--c-ink)",fontWeight:600}}>{goal.defaultTarget}</strong> · {goal.appliesTo} {INDIVIDUALIZATION_NOTICE}
  </div>}
  </>;
 }
 // Severidad de hallazgo -> etiqueta + color del panel "Alertas y sugerencias".
 export const SEV:Record<"CRITICAL"|"WARNING"|"INFO",{label:string;bg:string;fg:string;bd:string}>={
- CRITICAL:{label:"ALTA",bg:"#FDEAEA",fg:P.redOnPale,bd:"#F3C9C9"},
- WARNING:{label:"IMPORTANTE",bg:"#FFF4E5",fg:P.amberOnPale,bd:"#F0DBB8"},
- INFO:{label:"SUGERENCIA",bg:"#EEF3FB",fg:P.blueOnPale,bd:"#D3E0F5"}};
+ CRITICAL:{label:"ALTA",bg:"var(--c-red-bg)",fg:P.redOnPale,bd:"var(--c-red-bd)"},
+ WARNING:{label:"IMPORTANTE",bg:"var(--c-amber-bg)",fg:P.amberOnPale,bd:"var(--c-amber-bd)"},
+ INFO:{label:"SUGERENCIA",bg:"var(--c-blue-bg)",fg:P.blueOnPale,bd:"var(--c-blue-bd)"}};
 export function alActions(a:{id:string;state:AlSt}):{label:string;path:string;body:Record<string,unknown>;to:AlSt}[]{
  const now=new Date().toISOString();const base=`/api/v1/allergies/${a.id}`;
  if(a.state==="ACTIVE")return[{label:"Refutar",path:base+"/refutation",body:{occurredAt:now},to:"REFUTED"},{label:"Inactivar",path:base+"/inactivation",body:{occurredAt:now},to:"INACTIVE"}];
@@ -363,7 +380,7 @@ export function probActions(p:{id:string;state:ProbSt}):{label:string;path:strin
 }
 
 // Tokens del design-system (único origen de verdad). El app-shell y las tarjetas se derivan de aquí.
-export const LINE=DS_LINE;
+export const LINE=`var(--c-line,${DS_LINE})`;
 export const shell:React.CSSProperties={minHeight:"100vh",background:P.canvas,fontFamily:UI,color:P.ink};
 export const appbar:React.CSSProperties={position:"sticky",top:0,zIndex:30,background:P.white,borderBottom:`1px solid ${LINE}`,padding:"11px 22px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"};
 export const patientBar:React.CSSProperties=patientHeaderStyle;
@@ -555,7 +572,7 @@ export const FORMA={
 // Banner de carga fallida con "Reintentar" — mismo criterio que Agenda/Reportes: una sección que no cargó NO se deja en
 // "Cargando…" perpetuo; se dice que falló (no asumir vacío) y se ofrece reintentar. Usado por las vistas clínica-wide.
 export function cargaFallida(onRetry:()=>void):React.ReactElement{
- return <div role="alert" style={{display:"flex",alignItems:"center",gap:12,margin:"14px 0",padding:"12px 16px",borderRadius:12,background:"#FDECEE",border:"1px solid #F6CDD3",fontSize:13.5}}>
+ return <div role="alert" style={{display:"flex",alignItems:"center",gap:12,margin:"14px 0",padding:"12px 16px",borderRadius:12,background:"var(--c-red-bg)",border:"1px solid var(--c-red-bd)",fontSize:13.5}}>
   <span style={{color:P.redOnPale,fontWeight:700,flex:"0 0 auto"}}>⚠</span>
   <span style={{flex:1}}>No se pudo cargar esta sección. No asumas que está vacía: reintenta o revisa la conexión.</span>
   <button onClick={onRetry} style={{border:`1px solid ${P.redOnPale}`,background:P.white,color:P.redOnPale,borderRadius:9,padding:"7px 14px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:UI,flex:"0 0 auto"}}>Reintentar</button>
@@ -603,7 +620,7 @@ export function unidadesDe(vitalType:string):string[]{
 export function Check({checked,label,onChange,disabled,size=16}:{checked:boolean;label:string;onChange:()=>void;disabled?:boolean;size?:number}){
  return <label className="mos-check" style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:disabled?"default":"pointer",opacity:disabled?.6:1}}>
   <input type="checkbox" checked={checked} disabled={disabled} onChange={onChange} style={{width:size,height:size}}/>
-  <span aria-hidden="true" style={{width:size,height:size,borderRadius:4,border:checked?"0":"1.6px solid #C7CCE0",background:checked?P.purple:"transparent",display:"grid",placeItems:"center",color:P.white,fontSize:10,flex:"0 0 auto"}}>{checked?"✓":""}</span>
+  <span aria-hidden="true" style={{width:size,height:size,borderRadius:4,border:checked?"0":"1.6px solid var(--c-disabled)",background:checked?P.purple:"transparent",display:"grid",placeItems:"center",color:P.white,fontSize:10,flex:"0 0 auto"}}>{checked?"✓":""}</span>
   {label}
  </label>;
 }
@@ -752,7 +769,30 @@ export const RAIL_CSS=`
 /* App-shell: expediente como cockpit (sidebar oscuro + body + rejilla de ventanas) */
 /* Tipografía ÚNICA en todo el sistema (refactor UI/UX): una sola familia por token, aplicada en el root y HEREDADA por los
    controles nativos (button/input/select/textarea traen su propia fuente del navegador si no se les fuerza a heredar). */
-.mos-app{display:flex;min-height:100vh;background:#F4F7FB;font-family:${UI};font-size:14px;line-height:1.45;color:#14213D;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+/* TEMA CLARO/OSCURO — variables de color del workspace. Valores por defecto = CLARO (idénticos a los hex anteriores); el
+   bloque data-theme=dark de abajo solo sobreescribe las variables. El sidebar es oscuro en ambos temas (no usa estas
+   vars). P y LINE (shared.tsx) y los estilos de las vistas leen estas variables; el tema CLARO es byte-idéntico a antes. */
+.mos-app{
+ --c-navy:#102A56;--c-blue:#1769E0;--c-purple:#6757E8;--c-cyan:#0B7A93;--c-green:#137A50;--c-amber:#9E5F0A;--c-red:#C9364A;
+ --c-canvas:#F4F7FB;--c-ink:#14213D;--c-muted:#5F6B7A;--c-surface:#FFFFFF;--c-line:#E4E9F2;--c-wash:#F6F7FB;--c-wash2:#FBFCFE;--c-disabled:#C7CCE0;
+ --c-green-fg:#137A50;--c-purple-fg:#6253DC;--c-blue-fg:#1665D7;--c-red-fg:#C33448;--c-amber-fg:#995C0A;
+ --c-green-bg:#E6F6EE;--c-amber-bg:#FBF0DC;--c-blue-bg:#EAF1FD;--c-purple-bg:#EEEBFD;--c-red-bg:#FDECEE;
+ --c-green-bd:#CDEBD8;--c-amber-bd:#F0DBB8;--c-blue-bd:#CFE0F7;--c-purple-bd:#E6E0FB;--c-red-bd:#F3C9C9;
+}
+.mos-app[data-theme="dark"]{
+ --c-navy:#AEB7CC;--c-blue:#5AA2FF;--c-purple:#6E5CF5;--c-cyan:#45C6DF;--c-green:#4FC98D;--c-amber:#E0A341;--c-red:#F26D7D;
+ --c-canvas:#10131A;--c-ink:#E7EAF0;--c-muted:#9AA3B4;--c-surface:#1A1F29;--c-line:#2C3340;--c-wash:#161A22;--c-wash2:#1E232E;--c-disabled:#3A4150;
+ --c-green-fg:#5FD39A;--c-purple-fg:#B9ADFF;--c-blue-fg:#79B4FF;--c-red-fg:#FF8A98;--c-amber-fg:#E6B45E;
+ --c-green-bg:#13301F;--c-amber-bg:#332411;--c-blue-bg:#152A42;--c-purple-bg:#241F3C;--c-red-bg:#361A1F;
+ --c-green-bd:#1E4A30;--c-amber-bd:#4A3A18;--c-blue-bd:#244567;--c-purple-bd:#38305C;--c-red-bd:#4A2930;
+}
+/* PatientHeader es del design system (colores claros hardcodeados, siempre visible). No retematizamos el paquete, así que
+   en oscuro se sobreescribe con !important (gana a los estilos inline) anclado a su aria-label estable; solo el bloque de
+   IDENTIDAD de la izquierda — los chips de estado de la derecha ya vienen con color del workspace y no se tocan. */
+.mos-app[data-theme="dark"] section[aria-label="Paciente activo"]{background:var(--c-surface)!important;border-bottom-color:var(--c-line)!important}
+.mos-app[data-theme="dark"] section[aria-label="Paciente activo"]>div:first-child div{color:var(--c-ink)!important}
+.mos-app[data-theme="dark"] section[aria-label="Paciente activo"]>div:first-child span{background:var(--c-blue-bg)!important;color:var(--c-blue-fg)!important}
+.mos-app{display:flex;min-height:100vh;background:var(--c-canvas);font-family:${UI};font-size:14px;line-height:1.45;color:var(--c-ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .mos-app button,.mos-app input,.mos-app select,.mos-app textarea{font-family:inherit}
 .mos-side{position:sticky;top:0;align-self:flex-start;height:100vh;flex:0 0 264px;width:264px;background:linear-gradient(177deg,#26235C 0%,#201D4A 45%,#1A1740 100%);color:#EAEBFA;display:flex;flex-direction:column;padding:18px 14px 14px;overflow:hidden;transition:width .18s ease,flex-basis .18s ease}
 .mos-side::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#7B6BF6,#4E8DF5);box-shadow:0 0 24px 3px #6a5bf580}
@@ -815,15 +855,15 @@ export const RAIL_CSS=`
 .mos-rx-form{display:grid;grid-template-columns:1fr 130px 120px 150px auto;gap:8px;margin-top:12px;align-items:center}
 .mos-rx-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-top:14px}
 @media(max-width:760px){.mos-rx-form{grid-template-columns:1fr 1fr}.mos-rx-grid{grid-template-columns:1fr}}
-@media(max-width:760px){.mos-hero-grid{grid-template-columns:1fr}.mos-hero-grid>div:first-child{border-right:0!important;border-bottom:1px solid #E4E9F2}}
+@media(max-width:760px){.mos-hero-grid{grid-template-columns:1fr}.mos-hero-grid>div:first-child{border-right:0!important;border-bottom:1px solid var(--c-line)}}
 @media(max-width:1000px){.mos-side{display:none}.mos-grid{grid-template-columns:1fr}}
-.mos-topsearch{flex:1;max-width:440px;display:flex;align-items:center;gap:8px;background:#F1F4F9;border:1px solid #E4E9F2;border-radius:10px;padding:8px 12px}
-.mos-topsearch input{flex:1;border:0;background:transparent;outline:none;font-size:13.5px;font-family:inherit;color:#14213D}
+.mos-topsearch{flex:1;max-width:440px;display:flex;align-items:center;gap:8px;background:var(--c-wash);border:1px solid var(--c-line);border-radius:10px;padding:8px 12px}
+.mos-topsearch input{flex:1;border:0;background:transparent;outline:none;font-size:13.5px;font-family:inherit;color:var(--c-ink)}
 @media(max-width:1180px){.mos-mid{grid-template-columns:1fr 1fr!important}.mos-low2{grid-template-columns:1fr 1fr!important}}
 @media(max-width:900px){.mos-kpis{grid-template-columns:1fr 1fr!important}.mos-banners{grid-template-columns:1fr!important}.mos-mid{grid-template-columns:1fr!important}.mos-low{grid-template-columns:1fr!important}.mos-low2{grid-template-columns:1fr!important}}
 @media(max-width:1150px){.mos-detail{display:none!important}}
 @media(max-width:1100px){.mos-ag{grid-template-columns:1fr!important}}
-@media(max-width:1150px){.mos-res{grid-template-columns:1fr!important}.mos-res .mos-detail{display:block!important;border-left:0!important;border-top:1px solid #E4E9F2}}
+@media(max-width:1150px){.mos-res{grid-template-columns:1fr!important}.mos-res .mos-detail{display:block!important;border-left:0!important;border-top:1px solid var(--c-line)}}
 @media(max-width:1250px){.mos-res3{grid-template-columns:1fr 1fr!important}.mos-res3 .mos-detail{grid-column:1 / -1}}
 @media(max-width:820px){.mos-res3{grid-template-columns:1fr!important}}
 @media(max-width:760px){.mos-med2{grid-template-columns:1fr!important}}
@@ -831,16 +871,16 @@ export const RAIL_CSS=`
 @media(max-width:820px){.mos-ord3{grid-template-columns:1fr!important}}
 .mos-phone{width:270px;max-width:100%;margin:14px auto 0;border-radius:30px;background:#0C2148;padding:9px;box-shadow:0 18px 44px rgba(16,42,86,.22)}
 .mos-phone .screen{background:#F4F7FB;border-radius:23px;overflow:hidden}
-.mos-pnav{display:flex;justify-content:space-around;align-items:center;padding:9px 4px;background:#fff;border-top:1px solid #E4E9F2}
-.mos-pnav div{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9.5px;color:#8a8b9a}
+.mos-pnav{display:flex;justify-content:space-around;align-items:center;padding:9px 4px;background:var(--c-surface);border-top:1px solid var(--c-line)}
+.mos-pnav div{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9.5px;color:var(--c-muted)}
 `;
 export const wrap:React.CSSProperties={maxWidth:1080,margin:"0 auto",padding:S[8],minHeight:"100vh",background:P.canvas,fontFamily:UI,color:P.ink};
 export const card:React.CSSProperties=cardStyle;
 export const btn:React.CSSProperties=buttonStyle.primary;
 export const ghost:React.CSSProperties=buttonStyle.ghost;
 export const input:React.CSSProperties=inputStyle;
-export const mono:React.CSSProperties={fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,background:"#EEF3FB",color:"#33507D",padding:"2px 6px",borderRadius:6};
-export const lbl:React.CSSProperties={fontSize:13,fontWeight:600,color:"#3C4658",display:"block",margin:"12px 0 6px"};
+export const mono:React.CSSProperties={fontFamily:"ui-monospace,Menlo,monospace",fontSize:12,background:"var(--c-blue-bg)",color:"var(--c-blue-fg)",padding:"2px 6px",borderRadius:6};
+export const lbl:React.CSSProperties={fontSize:13,fontWeight:600,color:"var(--c-ink)",display:"block",margin:"12px 0 6px"};
 export const stateBadge=(s:string):React.CSSProperties=>badgeStyle(toneOfState(s));
 // Auditoría R05a-F04: `in7days()` era la fecha límite de TODO seguimiento —incluido un potasio crítico— decidida en el
 // navegador. Ya no existe: el plazo de un seguimiento lo deriva el servidor de la severidad y el tipo (obligation-domain).

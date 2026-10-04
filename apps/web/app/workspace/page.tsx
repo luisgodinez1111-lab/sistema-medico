@@ -59,7 +59,7 @@ export default function Workspace(){
  const d=deriveHeader({...m,session});
  const{navCounts,docInitials,docDisplay,docRole,notifCount}=d;
  const bag={...m,...d};
- return <WorkspaceProvider value={bag}><div className="mos-app">
+ return <WorkspaceProvider value={bag}><div className="mos-app" data-theme={cfgSettings?.theme==="Oscuro"?"dark":"light"}>
   <style nonce={cspNonce}>{RAIL_CSS}</style>
   {/* SIDEBAR OSCURO — navegación primaria del expediente (slider a un lado) */}
   <aside className={"mos-side"+(sideCollapsed?" col":"")}>
