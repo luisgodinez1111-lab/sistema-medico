@@ -25,8 +25,8 @@ This file does not create a fifth master.
 ## Working method
 Work one vertical clinical slice at a time. Before code: inspect existing repository, identify requirement IDs, clinical job, P0-P8 priorities, epistemic classes, authority, states, hazards, controls, invariants, forbidden states, connections, failure points, responsive behavior, accessibility and tests. Reuse canonical components. Execute tests. Render canonical viewports. Inspect evidence. Repair defects. Gate. Only then proceed.
 
-## First reference slice
-GUX-001: Critical Result -> Obligation -> Sign Block -> exact blocker -> authoritative resolution -> readiness refresh -> Sign -> audit/timeline.
+## Golden loop (reference)
+Critical Result -> Obligation -> Sign Block -> exact blocker -> authoritative resolution -> readiness refresh -> Sign -> audit/timeline. Originally prototyped as the standalone slice GUX-001 (since retired); the loop now lives in the real patient chart / encounter flow, not a demo route.
 
 ## Stop conditions
 Stop and report BLOCKED for: clinically consequential unspecified behavior; weakened tenant isolation; audit bypass; destructive migration without authority; irreversible AI action; unresolved C5 authority; false-success semantics; patient-context contamination; or spec conflict.

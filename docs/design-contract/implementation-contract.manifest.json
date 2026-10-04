@@ -5,5 +5,5 @@
   "designAuthority": "Clinical Experience & Design System v3.2",
   "evidenceLaw": "SOURCE != EXECUTED_MODEL != EXECUTED_RUNTIME != HUMAN_APPROVED",
   "defaultGate": "PENDING_EVIDENCE",
-  "firstGoldenLoop": "GUX-001"
+  "firstGoldenLoop": "realized-in-workspace: resultado crítico → bloqueo de firma → resolución con evidencia → readiness → firma → auditoría (el prototipo GUX-001 se retiró; el loop vive hoy en el expediente real)"
 }

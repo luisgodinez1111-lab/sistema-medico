@@ -3,12 +3,12 @@
 **Generado automáticamente** por `scripts/v22/build-c5-dossier.mts`. NO es autoridad: es el paquete de evidencia
 para que un revisor humano C5 acepte (o rechace) cada capacidad reconciliada. La aceptación se registra firmando la tabla al final.
 
-- Capacidades reconciliadas: **151**
-- Estado de evidencia: **NO RESPALDADA ❌ (312 problemas)**
+- Capacidades reconciliadas: **150**
+- Estado de evidencia: **NO RESPALDADA ❌ (310 problemas)**
   - Libro de pruebas unitarias: **AUSENTE** — sin él no se puede afirmar que la evidencia se haya ejecutado
   - Libro de pruebas en vivo: **AUSENTE**
-- Cobertura declarada: **151 capacidades reconciliadas**. El registro de capacidades del repositorio tiene más (ver `pnpm capability:check`); las que no aparecen aquí NO están respaldadas por este dossier y no pueden presentarse como aceptadas.
-- Pendiente de aceptación humana C5: **117**
+- Cobertura declarada: **150 capacidades reconciliadas**. El registro de capacidades del repositorio tiene más (ver `pnpm capability:check`); las que no aparecen aquí NO están respaldadas por este dossier y no pueden presentarse como aceptadas.
+- Pendiente de aceptación humana C5: **116**
 - Sin evidencia EJECUTABLE propia (evidencia en prosa): **53**
 
 ## ⚠ Capacidades SIN evidencia ejecutable propia
@@ -217,8 +217,6 @@ respaldadas por una ejecución, y el revisor humano C5 tiene que decidirlas mira
 - CAP-AI-EVAL-HARNESS-001: evidencia citada tests/v22/ai-eval-suite.test.ts — sin libro en el libro de ejecución
 - CAP-COMORBIDITY-CHARLSON-001: evidencia citada tests/v22/comorbidity.test.ts — sin libro en el libro de ejecución
 - CAP-COMORBIDITY-CHARLSON-001: prueba en vivo scripts/v22/live-charlson-proof.mts — sin libro en el libro de ejecución
-- CAP-UI-GUX-001-001: evidencia citada tests/v22/ui-sign-gate.test.ts — sin libro en el libro de ejecución
-- CAP-UI-GUX-001-001: evidencia citada tests/v22/ui-gux-001-render.test.tsx — sin libro en el libro de ejecución
 - CAP-CONSULTATION-SNAPSHOT-001: evidencia citada scripts/v22/live-consultation-snapshot-proof.mts — sin libro en el libro de ejecución
 - CAP-CONSULTATION-SNAPSHOT-001: prueba en vivo scripts/v22/live-consultation-snapshot-proof.mts — sin libro en el libro de ejecución
 - CAP-TRENDS-LONGITUDINAL-001: evidencia citada scripts/v22/live-trends-proof.mts — sin libro en el libro de ejecución
@@ -1162,13 +1160,6 @@ respaldadas por una ejecución, y el revisor humano C5 tiene que decidirlas mira
 - Prueba en vivo: `scripts/v22/live-charlson-proof.mts` — SIN LIBRO
 - Decisión propuesta: APPROVED_WITH_EVIDENCE
 
-### CAP-UI-GUX-001-001 — UI GUX-001 (Golden UX Loop) + integración del Design System
-- Epic: CE
-- Invariantes: 6
-- Tests: `tests/v22/ui-sign-gate.test.ts` — SIN LIBRO; `tests/v22/ui-gux-001-render.test.tsx` — SIN LIBRO
-- Prueba en vivo: —
-- Decisión propuesta: APPROVED_WITH_EVIDENCE
-
 ### CAP-CONSULTATION-SNAPSHOT-001 — Snapshot de consulta (panel 1: Vista principal – Durante la consulta)
 - Epic: CF
 - Invariantes: 4
@@ -1452,7 +1443,7 @@ respaldadas por una ejecución, y el revisor humano C5 tiene que decidirlas mira
 ## Firma de aceptación C5 (humana)
 
 > Las decisiones «APPROVED_WITH_EVIDENCE» de la sección anterior son **propuestas generadas por un agente**, no aceptaciones.
-> Capacidades con firma humana registrada en este dossier: **0 de 151**. Mientras esta tabla esté vacía,
+> Capacidades con firma humana registrada en este dossier: **0 de 150**. Mientras esta tabla esté vacía,
 > ninguna capacidad C5 está aceptada, y así lo declara ADR-0300 entre las condiciones de decisión del dueño.
 
 | Capacidad | Decisión C5 (ACEPTA/RECHAZA) | Revisor | Fecha | Notas |
@@ -1533,7 +1524,6 @@ respaldadas por una ejecución, y el revisor humano C5 tiene que decidirlas mira
 | CAP-AI-COPILOT-GATEWAY-001 | | | | |
 | CAP-AI-EVAL-HARNESS-001 | | | | |
 | CAP-COMORBIDITY-CHARLSON-001 | | | | |
-| CAP-UI-GUX-001-001 | | | | |
 | CAP-CONSULTATION-SNAPSHOT-001 | | | | |
 | CAP-TRENDS-LONGITUDINAL-001 | | | | |
 | CAP-PRESCRIPTION-CHECK-001 | | | | |

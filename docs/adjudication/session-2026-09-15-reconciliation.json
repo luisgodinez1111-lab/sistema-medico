@@ -2008,36 +2008,6 @@
       "runtime_evidence_note": "PASS 9/9 (COMPUTED_200, SCORE_7_SEVERE, AGE_AND_COMORBIDITY_SPLIT, RENAL_WEIGHT_2, HAS_SURVIVAL_ESTIMATE, SCORE_0_LOW, DIABETES_SIMPLE_1, UNREGISTERED_404, MISSING_SCOPE_403). En el smoke de CI (live-regression)."
     },
     {
-      "id": "CAP-UI-GUX-001-001",
-      "name": "UI GUX-001 (Golden UX Loop) + integración del Design System",
-      "risk": "C5",
-      "eng_authority_note": "EJE E (UI/UX) — primer slice del AI Design Implementation Contract (subordinado al Design System v3.2). Materializa GUX-001 (resultado crítico -> bloqueo de firma -> resolución con evidencia -> readiness -> firma -> auditoría) como componente canónico (máquina de estados) sobre el backend Zero-Lost-Follow-Up ya construido. Integra el contrato como autoridad (docs/design-contract/).",
-      "invariants": [
-        "Los componentes canónicos son máquinas de estado (ui-sign-gate), no fragmentos visuales",
-        "Estado codificado en forma+ícono+texto (no solo color); patient context P0/P1/P2 siempre visible",
-        "Estados prohibidos vigilados en runtime (CRITICAL_OPEN+SIGN_READY, DRAFT+SIGNED_STYLE, UNKNOWN_COMMIT_STATE+SUCCESS)",
-        "Pendiente != éxito: la firma solo se confirma tras la respuesta autoritativa del servidor",
-        "Reconocer != resolver; el cierre exige evidencia. Gate del slice honesto: PENDING_EVIDENCE (falta viewports/axe/C5)",
-        "Render verificado en jsdom + @testing-library/react + axe (estructural); contraste visual WCAG y viewports siguen pendientes (browser real)"
-      ],
-      "implementation": [
-        "docs/design-contract/ (autoridad de diseño integrada: tokens, contratos, estados prohibidos, fixtures, manifiesto)",
-        "packages/design-system (tokens + assertNoForbidden)",
-        "packages/ui-sign-gate (máquina de estados pura)",
-        "apps/web/app/workspace/gux-001/page.tsx (componente React con test IDs)",
-        "docs/design-contract/evidence/GUX-001.md (reporte de evidencia)"
-      ],
-      "tests": [
-        "tests/v22/ui-sign-gate.test.ts",
-        "tests/v22/ui-gux-001-render.test.tsx"
-      ],
-      "runtime_evidence": "tests/v22/ui-sign-gate.test.ts",
-      "epic": "CE",
-      "proposed_review_decision": "APPROVED_WITH_EVIDENCE",
-      "requires_human_c5_acceptance": true,
-      "runtime_evidence_note": "PASS 8/8 (BLOCKED sin firma, resolver exige evidencia, reconocer!=resolver, flujo completo BLOCKED->RESOLVING->READY->SIGNING->SIGNED, pending!=success, guard de estados prohibidos, ningún estado alcanzable viola el guard). Corre en CI (test:all). Artifact: https://claude.ai/artifact/E9mepsSyENL2pBghVL58wY. + render en jsdom: tests/v22/ui-gux-001-render.test.tsx PASS 7/7 (patient context visible, estado en texto no-solo-color, sin firma con crítico abierto, resolver-sin-evidencia bloqueado, reconocer!=resolver, axe sin violaciones serias). Gate del slice: PENDING_EVIDENCE (contraste visual WCAG + viewports + C5 humano pendientes)."
-    },
-    {
       "id": "CAP-CONSULTATION-SNAPSHOT-001",
       "name": "Snapshot de consulta (panel 1: Vista principal – Durante la consulta)",
       "risk": "C5",

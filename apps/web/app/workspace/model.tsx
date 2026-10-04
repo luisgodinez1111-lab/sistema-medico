@@ -403,7 +403,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   setSession(s);setReady(true); // U-12: sin paciente hasta que el médico elija uno (antes: UUID aleatorio => 4 peticiones a un paciente inexistente)
  },[]);
  // Auditoría U-17 — el contrato de estados PROHIBIDOS del design system (packages/design-system) se aplica en el workspace
- // REAL, no solo en el prototipo gux-001. Se calcula el conjunto de estados activos a partir del estado de la UI y, si una
+ // REAL (antes también en el prototipo gux-001, ya retirado). Se calcula el conjunto de estados activos a partir del estado de la UI y, si una
  // combinación prohibida llegara a darse, se corrige (borrando lo que sobra) y se registra en consola: nunca se pinta.
  const uiForbidden=useRef<string|null>(null);
  useEffect(()=>{

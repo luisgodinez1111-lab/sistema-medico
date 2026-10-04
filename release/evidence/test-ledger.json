@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-09-25T05:47:07.968Z",
-  "files": 263,
-  "totalTests": 1500,
+  "files": 261,
+  "totalTests": 1485,
   "failedTests": 0,
   "results": [
     {
@@ -1145,11 +1145,6 @@
       "tests": 49
     },
     {
-      "file": "tests/v22/ui-gux-001-render.test.tsx",
-      "status": "PASS",
-      "tests": 7
-    },
-    {
       "file": "tests/v22/ui-interaction-failure.test.tsx",
       "status": "PASS",
       "tests": 2
@@ -1163,11 +1158,6 @@
       "file": "tests/v22/ui-request-cancellation.test.tsx",
       "status": "PASS",
       "tests": 3
-    },
-    {
-      "file": "tests/v22/ui-sign-gate.test.ts",
-      "status": "PASS",
-      "tests": 8
     },
     {
       "file": "tests/v22/unknown-vs-empty.test.ts",
