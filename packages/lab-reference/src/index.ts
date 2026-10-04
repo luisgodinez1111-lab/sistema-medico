@@ -500,6 +500,36 @@ export function normalizeVitalMeasure(vitalType: string, value: string, unit: st
   return { ok: true, canonicalValue, canonicalUnit: spec.canonical, converted: c !== n };
 }
 
+// Conversión SOLO-DISPLAY de un signo vital a la unidad preferida del consultorio (Métrico/Imperial). NO toca el dato
+// almacenado ni la clasificación (esos usan el canónico del evento): es presentación. Se apoya en `normalizeVitalMeasure`
+// para ir al canónico (una sola matemática, ya probada) y de ahí a la unidad destino. Solo PESO/TALLA/TEMPERATURA cambian;
+// el resto (BP/HR/RESP/SpO₂) y cualquier valor que no se pueda normalizar se devuelven TAL CUAL (nunca se inventa un valor).
+const DISPLAY_TARGET: Readonly<Record<string, { metric: string; imperial: string }>> = {
+  WEIGHT: { metric: "kg", imperial: "lb" },
+  HEIGHT: { metric: "cm", imperial: "in" },
+  TEMP: { metric: "°C", imperial: "°F" },
+};
+export function vitalForDisplay(vitalType: string, value: string, unit: string | null | undefined, imperial: boolean): { value: string; unit: string } {
+  const t = (vitalType ?? "").trim().toUpperCase();
+  const asIs = { value: String(value ?? ""), unit: (unit ?? "").trim() };
+  const map = DISPLAY_TARGET[t];
+  if (!map) return asIs; // tipo sin conversión de sistema (BP, HR, RESP, SpO₂…)
+  const target = imperial ? map.imperial : map.metric;
+  const norm = normalizeVitalMeasure(t, asIs.value, unit); // -> canónico (kg / cm / °C), con su validación
+  if (!norm.ok) return asIs; // no numérico / unidad desconocida: se muestra tal cual, no se inventa
+  const canon = Number(norm.canonicalValue);
+  if (!Number.isFinite(canon)) return asIs;
+  const spec = VITAL_UNITS[t]!;
+  let out: number;
+  if (t === "TEMP") out = target === "°F" ? (canon * 9) / 5 + 32 : canon;
+  else {
+    const tl = target.toLowerCase();
+    if (tl === spec.canonical.toLowerCase()) out = canon; // destino = canónico (métrico): sin dividir
+    else { const f = spec.accepted[tl]; if (f === undefined || f === 0) return asIs; out = canon / f; }
+  }
+  return { value: String(Math.round(out * 10) / 10), unit: target };
+}
+
 // Bandas por edad para FC y FR (latidos / respiraciones por minuto): [críticoBajo, anormalBajo, anormalAlto, críticoAlto].
 type Band = Readonly<{ label: string; hr: readonly [number, number, number, number]; resp: readonly [number, number, number, number] }>;
 const AGE_BANDS: readonly (Band & { maxAge: number })[] = [

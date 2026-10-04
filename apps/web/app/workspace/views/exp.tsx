@@ -2,7 +2,7 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "exp" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
-import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf} from "../../../../../packages/lab-reference/src";
+import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf,vitalForDisplay} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
 import{Check,ESI_FORM_EMPTY,unidadesDe,defaultUnitFor,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,ANT_HEREDO,ANT_CRONICOS,ANT_PRENATAL,ANT_PERINATAL,ANT_ALIMENTACION,ANT_DESARROLLO,ANT_INMUNIZA,isPediatricAge,antFreshness,type AntContent,type ExpTab,type TrendKey}from"../shared";
 import{searchIcd10}from"../../../../../packages/terminology/src";
@@ -799,7 +799,7 @@ export default function ExpView(){
    {vitals.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {vitals.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {vitals.map(v=><div key={v.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{v.vitalType}: {v.value} {v.unit}</b>{v.vstatus&&v.vstatus!=="UNKNOWN"&&<span style={{...(v.vstatus==="CRITICAL"?{background:"var(--c-red-bg)",color:P.redOnPale}:v.vstatus==="ABNORMAL"?{background:"var(--c-amber-bg)",color:P.amberOnPale}:{background:"var(--c-green-bg)",color:P.greenOnPale}),marginLeft:8,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{v.interp}</span>}<div style={{fontSize:12,color:P.muted}}>v{v.version}</div></div>
+     <div>{(()=>{const d=vitalForDisplay(v.vitalType,v.value,v.unit,/imperial/i.test(cfgSettings?.prefUnits??""));return <b style={{fontSize:14}}>{v.vitalType}: {d.value} {d.unit}</b>;})()}{v.vstatus&&v.vstatus!=="UNKNOWN"&&<span style={{...(v.vstatus==="CRITICAL"?{background:"var(--c-red-bg)",color:P.redOnPale}:v.vstatus==="ABNORMAL"?{background:"var(--c-amber-bg)",color:P.amberOnPale}:{background:"var(--c-green-bg)",color:P.greenOnPale}),marginLeft:8,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{v.interp}</span>}<div style={{fontSize:12,color:P.muted}}>v{v.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(v.state)}>{v.state}</span>
       {vitActions(v).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ENTERED_IN_ERROR"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doVitAction(v,act)}>{busy==="vit-"+v.id?"…":act.label}</button>)}
