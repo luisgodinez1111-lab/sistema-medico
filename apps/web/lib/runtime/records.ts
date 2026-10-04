@@ -170,21 +170,37 @@ export async function countOpenCriticalResults(ctx:HttpTenantContext,patientId:s
   return Number(rows[0]?.n??0);
  });
 }
-// EPIC AN + Zero Lost Follow-Up: cuenta signos vitales CRÍTICOS del paciente
-// que están en estado RECORDED o AMENDED (no corregidos) y no han sido abordados
-// (no existe obligación creada para ese vital). Bloquea firma del encuentro.
+// EPIC AN + Zero Lost Follow-Up: cuenta signos vitales CRÍTICOS del paciente sin seguimiento adecuado. Bloquea la firma.
+//
+// Auditoría multi-agente (gate de firma). Esta función tenía DOS defectos simétricos:
+//  · SUB-bloqueo (fuga de seguridad): se "limpiaba" en cuanto existía CUALQUIER obligación con ese sourceVitalId —aunque
+//    fuera ROUTINE, o estuviera CANCELADA—. Como `blockingObligations` solo bloquea URGENT/vencidas, un vital crítico con
+//    una obligación ROUTINE (o cancelada) no lo bloqueaba NINGÚN gate: se podía firmar con una crisis hipertensiva sin atender.
+//  · SOBRE-bloqueo: contaba por CUALQUIER evento RECORDED/AMENDED con critical='true', sin mirar el VIGENTE; un crítico
+//    enmendado a normal, o ANULADO (ENTERED_IN_ERROR), seguía bloqueando para siempre (incoherente con countOpenCriticalResults).
+//
+// Criterio corregido (mejoras INEQUÍVOCAS, simétricas a countOpenCriticalResults; no cambian la política de "una obligación
+// de seguimiento abierta releva al vital", que es diseño Zero-Lost-Follow-Up): un vital crítico bloquea MIENTRAS su lectura
+// VIGENTE (última RECORDED/AMENDED) siga siendo crítica, NO esté anulado (ENTERED_IN_ERROR), y NO tenga una obligación de
+// seguimiento ligada (sourceVitalId) cuyo estado actual NO sea CANCELADO. Antes bastaba que EXISTIERA un evento CREATED de
+// obligación —aunque luego se CANCELARA— para dejar de contar: crear y cancelar vaciaba el gate. Y se contaba por cualquier
+// evento crítico sin mirar el vigente, así que un crítico enmendado a normal o anulado bloqueaba para siempre.
+// NOTA (decisión de política pendiente del dueño): hoy una obligación ROUTINE abierta también releva a un vital crítico; si
+// se quisiera exigir seguimiento URGENTE para críticos, se añadiría el filtro de prioridad aquí.
 export async function countOpenCriticalVitals(ctx:HttpTenantContext,patientId:string):Promise<number>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select count(distinct r.aggregate_id)::int n
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.aggregate_type='VitalSign'
-     and r.payload->>'kind' in ('RECORDED','AMENDED')
-     and r.payload->>'patientId'=${patientId} and r.payload->>'critical'='true'
+     and r.payload->>'kind'='RECORDED' and r.payload->>'patientId'=${patientId}
+     and (select v.payload->>'critical' from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=r.aggregate_id and v.payload->>'kind' in ('RECORDED','AMENDED') order by v.sequence desc limit 1)='true'
+     and not exists(select 1 from clinical_events e where e.tenant_id=${ctx.tenantId} and e.aggregate_id=r.aggregate_id and e.payload->>'kind'='ENTERED_IN_ERROR')
      and not exists(
-      select 1 from clinical_events c
-      where c.tenant_id=${ctx.tenantId} and c.aggregate_type='ClinicalObligation'
-        and c.payload->>'sourceVitalId'=r.aggregate_id::text and c.payload->>'kind'='CREATED')`;
+      select 1 from clinical_events o
+      where o.tenant_id=${ctx.tenantId} and o.aggregate_type='ClinicalObligation' and o.payload->>'kind'='CREATED'
+        and o.payload->>'sourceVitalId'=r.aggregate_id::text
+        and coalesce((select ol.payload->>'kind' from clinical_events ol where ol.tenant_id=${ctx.tenantId} and ol.aggregate_id=o.aggregate_id order by ol.sequence desc limit 1),'CREATED')<>'CANCELLED')`;
   return Number(rows[0]?.n??0);
  });
 }
