@@ -4,6 +4,9 @@
 //   · las calculadoras y la serie leen solo el vigente (4.2); el gate de firma deja de contar el crítico corregido y la
 //     obligación urgente derivada (C-20) se completa con la razón; el reintento idempotente no duplica;
 //   · un resultado ya corregido no se corrige otra vez (409); sin razón -> 400.
+//   · AUDITORÍA M4: la corrección escribe sus DOS hechos (resultado corregido + anotación del original) en UNA transacción
+//     atómica (comando multi-agregado): si un leg falla el chequeo optimista, la transacción entera revierte y no queda
+//     estado parcial —se prueba forzando un conflicto en el segundo leg y comprobando que el primero NO se escribió.
 import crypto from"node:crypto";
 import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatientIn}=await import("./_patient.mts");
@@ -51,6 +54,24 @@ try{
  // segunda corrección del mismo original -> 409
  r=await correction.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({correctedResultId:crypto.randomUUID(),value:"4.0",unit:"mEq/L",reason:"Otra corrección",occurredAt:at()})}),RP(r1));
  ok(r.status===409,"ALREADY_SUPERSEDED_409");
+
+ // ---- AUDITORÍA M4: ATOMICIDAD del comando multi-agregado. La corrección escribe DOS hechos en una transacción (resultado
+ // corregido + anotación del original). Se prueba el primitivo directamente: dos legs donde el SEGUNDO lleva una versión
+ // obsoleta (conflicto optimista); la transacción ENTERA revierte y el PRIMER leg —un RESULT_RECEIVED por lo demás válido—
+ // NO queda escrito. Antes, con dos comandos independientes, el primero ya estaba persistido cuando fallaba el segundo. ----
+ {
+  const{executeAtomicMultiCommand}=await import("../../packages/atomic-clinical-transaction-v3/src");
+  const{buildMultiCommand}=await import("../../apps/web/lib/http-command");
+  const{getSql}=await import("../../apps/web/lib/clinical-runtime");
+  const good=crypto.randomUUID();
+  const multi=buildMultiCommand({idempotencyKey:idem(),occurredAt:at(),legs:[
+   {aggregateType:"DiagnosticResult",aggregateId:good,expectedVersion:0,eventType:"RESULT_RECEIVED",payload:{kind:"RECEIVED",patientId:pat,orderId:crypto.randomUUID(),analyte:"SODIUM",value:"140",status:"NORMAL",critical:false,interpretation:"x"},topic:"result.received"},
+   {aggregateType:"DiagnosticResult",aggregateId:crypto.randomUUID(),expectedVersion:9,eventType:"RESULT_CORRECTED",payload:{kind:"CORRECTED",supersededBy:good,reason:"forzar conflicto optimista en el segundo leg"},topic:"result.corrected"},
+  ]});
+  let threw=false;try{await executeAtomicMultiCommand(getSql(),ctx,multi);}catch{threw=true;}
+  ok(threw,"MULTI_SECOND_LEG_CONFLICT_THROWS");
+  ok((await readAggregateEvents(ctx,good)).length===0,"MULTI_ATOMIC_ROLLBACK_FIRST_LEG_NOT_WRITTEN");
+ }
 
  // ---- R03-10: ANULACIÓN PURA. Antes solo existía la corrección, que exige un valor nuevo: un resultado capturado en el
  // paciente equivocado no se podía retirar del expediente, solo "corregir" con otro número. ----

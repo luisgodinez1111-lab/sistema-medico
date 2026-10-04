@@ -4,10 +4,10 @@ import{authorize}from"../../../packages/runtime-auth/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
 import{foldResult,assertResultTransition,assertResultCorrectable,assertResultVoidable,type FoldedResult}from"../../../packages/result-fold/src";
 import{type ResultState}from"../../../packages/order-result-domain/src";
-import{runClinicalCommand,lookupReplay,readAggregateEvents,latestAnalyteReading,requireRegisteredPatient,patientDemographics}from"./clinical-runtime";
+import{runClinicalCommand,lookupReplay,runAtomicMultiCommand,lookupMultiReplay,readAggregateEvents,latestAnalyteReading,requireRegisteredPatient,patientDemographics}from"./clinical-runtime";
 import{ageInYears}from"../../../packages/prescription-safety/src";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload,derivedUuid}from"./http-command";
+import{buildCommand,buildMultiCommand,principalFrom,requireMutationHeaders,resolveVerified,parseJson,replayStablePayload,derivedUuid}from"./http-command";
 import{foldObligation}from"../../../packages/obligation-fold/src";
 import{decideDueAt,dueAtFrom,dueAtPayload,dueWindowFor,OBLIGATION_DUE_WINDOWS,PRIORITY_DUE_WINDOWS,type DueWindow}from"../../../packages/obligation-domain/src";
 import{resultToObligation}from"../../../packages/result-obligation-link/src";// cierre del loop: decide si un resultado accionable genera obligación de seguimiento y con qué prioridad
@@ -123,27 +123,45 @@ export async function handleResultCorrection(req:Request,resultId:string):Promis
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,resultId);
   const b=await parseJson(req,CorrectionBody);
-  // Reintento idempotente: la anotación ya persistida responde igual (antes de cualquier precondición, como en el resto de handlers).
-  const annotation=buildCommand({idempotencyKey,aggregateType:AGG,aggregateId:resultId,expectedVersion,eventType:"RESULT_CORRECTED",payload:{kind:"CORRECTED",supersededBy:b.correctedResultId,reason:b.reason},occurredAt:b.occurredAt,topic:"result.corrected"});
-  const replayed=await lookupReplay(ctx,annotation);
-  if(replayed){const r=replayed.response as{version:number;auditHash?:string};return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,version:r.version,auditHash:r.auditHash,replayed:true},{status:200});}
-  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Result changed since last read",{expected:expectedVersion,actual:folded.version});
-  assertResultCorrectable(folded);
   const original=(await readAggregateEvents(ctx,resultId)).find(e=>e.payload["kind"]==="RECEIVED")?.payload??{};
   const analyte=String(original["analyte"]??"");if(!analyte)throw new ClinicalError("CONFLICT","El resultado original no tiene analito: no se puede corregir");
   const input:ReceiveInput={resultId:b.correctedResultId,patientId:folded.patientId,orderId:String(original["orderId"]??resultId),analyte,value:b.value,...(b.unit!==undefined?{unit:b.unit}:{}),...(typeof original["specimenId"]==="string"?{specimenId:String(original["specimenId"])}:{}),occurredAt:b.occurredAt};
-  // 1) el resultado corregido, con `supersedes`: es lo que leen las calculadoras aunque la anotación (2) fallara.
-  const payload=await interpretForReceive(ctx,input,{supersedes:resultId,correctionReason:b.reason},resultId); // el Δ no se mide contra el valor que se corrige
-  const stable=await replayStablePayload(ctx,derivedUuid(idempotencyKey,"corrected-result"),b.correctedResultId,b,()=>payload);
-  const created=await commitReceived(ctx,derivedUuid(idempotencyKey,"corrected-result"),input,stable);
-  if(created.status>=400)return created;
-  // 2) anotación en el original + cierre de su obligación derivada (si la había).
-  const result=await runClinicalCommand(ctx,annotation);
+  // El payload del resultado corregido lleva valores DERIVADOS por el servidor (Δ, unidad canónica): se estabiliza por
+  // `replayStablePayload` para que un reintento no lo recalcule distinto. El leg que lo escribe DEBE usar el mismo `eventId`
+  // que esa función lee (derivado de `crKey`), o el reintento no reencontraría el payload persistido. El Δ NO se mide contra
+  // el valor que se corrige (priorExclude = original).
+  const crKey=derivedUuid(idempotencyKey,"corrected-result");
+  const payload=await interpretForReceive(ctx,input,{supersedes:resultId,correctionReason:b.reason},resultId);
+  const stable=await replayStablePayload(ctx,crKey,b.correctedResultId,b,()=>payload);
+  // AUDITORÍA M4 — ATOMICIDAD. El resultado corregido (agregado NUEVO, `supersedes`) y la anotación del original
+  // (`supersededBy`) entran en UNA transacción: o los dos hechos, o ninguno. Antes eran dos comandos con dos llaves y, si el
+  // proceso moría entre uno y otro sin que el cliente reintentara, quedaba un estado parcial PERMANENTE. Las obligaciones
+  // derivadas (crear la del corregido si es accionable, cerrar la del original) siguen siendo efectos idempotentes y
+  // fail-safe POSTERIORES al commit atómico —igual que en la recepción normal y el cierre—, no parte de la invariante M4.
+  const multi=buildMultiCommand({idempotencyKey,occurredAt:b.occurredAt,legs:[
+   {aggregateType:AGG,aggregateId:b.correctedResultId,expectedVersion:0,eventType:"RESULT_RECEIVED",payload:stable,topic:"result.received",eventId:derivedUuid(crKey,"event"),outboxId:derivedUuid(crKey,"outbox")},
+   {aggregateType:AGG,aggregateId:resultId,expectedVersion,eventType:"RESULT_CORRECTED",payload:{kind:"CORRECTED",supersededBy:b.correctedResultId,reason:b.reason},topic:"result.corrected"},
+  ]});
+  // Reintento idempotente ANTES de cualquier precondición (como en el resto de handlers): el payload estable hace que el
+  // hash del multi-comando sea idéntico en el reintento, así se detecta el replay sin volver a escribir.
+  const replayed=await lookupMultiReplay(ctx,multi);
+  if(replayed){return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,version:legVersion(replayed.response,resultId),auditHash:(replayed.response as{auditHash?:string}).auditHash,replayed:true},{status:200});}
+  if(expectedVersion!==folded.version)throw new ClinicalError("CONCURRENCY_CONFLICT","Result changed since last read",{expected:expectedVersion,actual:folded.version});
+  assertResultCorrectable(folded);
+  const result=await runAtomicMultiCommand(ctx,multi);
+  // Efectos derivados (solo en el commit fresco, nunca en replay —que ya retornó): obligación del corregido si es
+  // accionable (misma regla que la recepción normal) y cierre de la del original con la razón de la corrección.
+  const st=String(stable["status"]??"");const abnormal=st==="ABNORMAL"||st==="HIGH"||st==="LOW"||st==="PANIC";const criticalResult=stable["critical"]===true;
+  if(resultToObligation({resultId:b.correctedResultId,patientId:folded.patientId,requiresAction:criticalResult||abnormal,critical:criticalResult,ownerId:ctx.actorId,dueAt:b.occurredAt}))
+   await createResultFollowUpObligation(ctx,b.correctedResultId,folded.patientId,ctx.actorId,String(stable["analyte"]??analyte),b.occurredAt,criticalResult);
   await completeResultFollowUpObligation(ctx,resultId,`resultado corregido (${b.reason})`,b.occurredAt);
-  const r=result.response as{version:number;auditHash?:string};
-  const c=await created.json() as Record<string,unknown>;
-  return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,corrected:{resultId:b.correctedResultId,critical:c["critical"],status:c["status"],interpretation:c["interpretation"]},version:r.version,auditHash:r.auditHash,replayed:result.replayed},{status:result.replayed?200:201});
+  return NextResponse.json({resultId,state:folded.state,supersededBy:b.correctedResultId,corrected:{resultId:b.correctedResultId,critical:stable["critical"]===true,status:stable["status"],interpretation:stable["interpretation"]},version:legVersion(result.response,resultId),auditHash:(result.response as{auditHash?:string}).auditHash,replayed:result.replayed},{status:201});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+}
+// Versión que un agregado alcanzó en la respuesta de un comando multi-agregado (sus `legs` llevan {aggregateId,version}).
+function legVersion(resp:unknown,aggregateId:string):number{
+ const legs=(resp as{legs?:ReadonlyArray<{aggregateId:string;version:number}>}).legs??[];
+ return legs.find(l=>l.aggregateId===aggregateId)?.version??0;
 }
 
 // Auditoría 2026-09-19, anexo R03 (R03-10) — ANULACIÓN de un resultado.

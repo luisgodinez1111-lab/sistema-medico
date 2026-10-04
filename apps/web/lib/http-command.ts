@@ -3,7 +3,8 @@ import{isUuid}from"../../../packages/tenant-context/src";
 import{type z}from"zod";
 import{resolvePrincipal}from"../../../packages/http-principal/src";
 import{ClinicalError}from"../../../packages/runtime-errors/src";
-import{type ClinicalCommand}from"../../../packages/atomic-clinical-transaction-v3/src";
+import{type ClinicalCommand,type ClinicalMultiCommand,type ClinicalLeg}from"../../../packages/atomic-clinical-transaction-v3/src";
+export type{ClinicalMultiCommand,ClinicalLeg};
 import{canonicalize,deterministicUuid}from"../../../packages/canonical-json/src";
 import{type HttpTenantContext}from"../../../packages/http-principal/src";
 import{sessionSecret,readEventPayloadById}from"./clinical-runtime";
@@ -68,6 +69,22 @@ export async function pathIds<T extends Record<string,string>>(params:Promise<T>
    throw new ClinicalError("VALIDATION_ERROR",`El identificador «${clave}» de la ruta no es un UUID válido.`,{pathParam:clave});
  }
  return p;
+}
+// Construye un ClinicalMultiCommand determinista (auditoría M4): varios eventos en UNA transacción bajo UNA llave. Los ids
+// del envelope (commandId, auditId, correlationId) derivan de la llave; los de CADA leg (eventId, outboxId) derivan además
+// del agregado del leg, así son distintos entre legs y estables ante reintentos. El orden de los legs es el de escritura.
+// `eventId`/`outboxId` por leg: si no se dan, se derivan de (llave, agregado) —distintos entre legs, estables ante
+// reintentos—. Se permiten EXPLÍCITOS cuando el payload del leg se estabilizó con `replayStablePayload`, que lee el evento
+// persistido por un `eventId` concreto: el leg DEBE escribir con ese mismo id para que el reintento reencuentre su payload.
+export function buildMultiCommand(a:{idempotencyKey:string;occurredAt:string;legs:ReadonlyArray<{aggregateType:string;aggregateId:string;expectedVersion:number;eventType:string;payload:unknown;topic:string;eventId?:string;outboxId?:string}>}):ClinicalMultiCommand{
+ return{
+  commandId:derivedUuid(a.idempotencyKey,"command"),idempotencyKey:a.idempotencyKey,
+  auditId:derivedUuid(a.idempotencyKey,"audit"),correlationId:derivedUuid(a.idempotencyKey,"correlation"),occurredAt:a.occurredAt,
+  legs:a.legs.map((l):ClinicalLeg=>({
+   aggregateId:l.aggregateId,aggregateType:l.aggregateType,expectedVersion:l.expectedVersion,eventType:l.eventType,payload:l.payload,
+   eventId:l.eventId??derivedUuid(a.idempotencyKey,`event:${l.aggregateId}`),outboxId:l.outboxId??derivedUuid(a.idempotencyKey,`outbox:${l.aggregateId}`),topic:l.topic,
+  })),
+ };
 }
 // Construye un ClinicalCommand determinista para un agregado dado.
 export function buildCommand(a:{idempotencyKey:string;aggregateType:string;aggregateId:string;expectedVersion:number;eventType:string;payload:unknown;occurredAt:string;topic:string}):ClinicalCommand{
