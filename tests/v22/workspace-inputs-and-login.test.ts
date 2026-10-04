@@ -41,7 +41,10 @@ describe("captura estructurada de signos vitales (R05c-19)",()=>{
   const src=vista("exp.tsx");
   expect(src.includes('value={vitUnit} onChange={e=>setVitUnit(e.target.value)} placeholder="Unidad"'),"la unidad volvió a ser texto libre").toBe(false);
   expect(src,"debe ofrecer solo las unidades del tipo").toContain("unidadesDe(vitType)");
-  expect(src,"y al cambiar de tipo, la unidad salta a la canónica").toMatch(/setVitUnit\(unidadesDe\(e\.target\.value\)\[0\]/);
+  // Al cambiar de tipo, la unidad salta a la PREFERIDA del catálogo según el sistema de unidades del consultorio
+  // (canónica en Métrico; lb/in/°F en Imperial) — nunca texto libre. La elige `defaultUnitFor`, que solo devuelve claves
+  // aceptadas por el servidor (ver tests/v22/workspace-units-default.test.ts).
+  expect(src,"y al cambiar de tipo, la unidad salta a la preferida del catálogo").toMatch(/setVitUnit\(defaultUnitFor\(e\.target\.value,cfgSettings\.prefUnits\)\)/);
  });
  it("cada tipo ofrece su unidad canónica primero, y ninguna unidad de otro tipo",()=>{
   // El defecto: nada impedía «Peso: 120/80 mmHg», y ese dato alimenta las tendencias, el IMC y el gate de vital crítico.

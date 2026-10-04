@@ -874,7 +874,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   if(cVit.ta.trim())toSave.push(["BP",cVit.ta.trim(),"mmHg"]);
   if(cVit.fc.trim())toSave.push(["HR",cVit.fc.trim(),"lpm"]);
   if(cVit.fr.trim())toSave.push(["RESP",cVit.fr.trim(),"rpm"]);
-  if(cVit.temp.trim())toSave.push(["TEMP",cVit.temp.trim(),"°C"]);
+  if(cVit.temp.trim())toSave.push(["TEMP",cVit.temp.trim(),/imperial/i.test(cfgSettings.prefUnits)?"°F":"°C"]);
   if(cVit.spo2.trim())toSave.push(["SPO2",cVit.spo2.trim(),"%"]);
   if(!toSave.length){setCVitMsg("Captura al menos un signo vital.");return;}
   setCVitBusy(true);setCVitMsg(null);

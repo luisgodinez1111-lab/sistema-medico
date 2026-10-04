@@ -621,6 +621,18 @@ export function unidadesDe(vitalType:string):string[]{
  const resto=Object.keys(spec.accepted).filter(u=>u.toLowerCase()!==canon.toLowerCase()&&u.length<=12);
  return[canon,...resto];
 }
+// S-CONFIG «Sistema de unidades» (prefUnits): unidad POR DEFECTO al CAPTURAR un signo (peso/talla/temperatura). Es solo
+// presentación/captura: el valor se guarda con su unidad MÁS el canónico (el servidor convierte) y TODO cálculo clínico
+// (IMC, dosis…) usa el canónico. Con «Imperial» se preselecciona lb/in/°F si el tipo las admite; si no, la canónica. Los
+// tipos sin conversión (BP/HR/RESP/SpO₂) siempre devuelven su canónica.
+export function defaultUnitFor(vitalType:string,prefUnits:string|undefined):string{
+ const units=unidadesDe(vitalType);const t=vitalType.trim().toUpperCase();
+ if(/imperial/i.test(prefUnits??"")){
+  const imp:Record<string,string[]>={WEIGHT:["lb","lbs","libras"],HEIGHT:["in","inch","inches","pulgadas"],TEMP:["°f","f","fahrenheit"]};
+  for(const u of imp[t]??[])if(units.includes(u))return u;
+ }
+ return units[0]??""; // métrico / por defecto: la unidad canónica
+}
 export function Check({checked,label,onChange,disabled,size=16}:{checked:boolean;label:string;onChange:()=>void;disabled?:boolean;size?:number}){
  return <label className="mos-check" style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:disabled?"default":"pointer",opacity:disabled?.6:1}}>
   <input type="checkbox" checked={checked} disabled={disabled} onChange={onChange} style={{width:size,height:size}}/>

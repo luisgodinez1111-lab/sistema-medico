@@ -72,7 +72,7 @@ export default function ConfiguracionView(){
       {/* Honestidad (auditoría iOS): estas preferencias se GUARDAN pero su aplicación en la interfaz aún está en desarrollo.
           Se retiraron los controles que insinuaban desactivar seguridad clínica (alertas/interacciones en tiempo real y
           "calculadora de dosis: solo adultos"): el motor de seguridad SIEMPRE evalúa; nunca es opcional. */}
-      <div style={{fontSize:11.5,color:P.muted,marginTop:10,lineHeight:1.5,background:"var(--c-wash)",borderRadius:9,padding:"8px 11px"}}>La <b>vista por defecto del expediente</b> ya se aplica: define con qué submenú se abre un paciente. El sistema de unidades y la plantilla de nota se guardan como ajuste pero aún no cambian la interfaz. Las alertas clínicas y de interacciones del CDS <b>siempre</b> se muestran: no se pueden desactivar.</div>
+      <div style={{fontSize:11.5,color:P.muted,marginTop:10,lineHeight:1.5,background:"var(--c-wash)",borderRadius:9,padding:"8px 11px"}}>La <b>vista por defecto del expediente</b> ya se aplica (define con qué submenú se abre un paciente) y el <b>sistema de unidades</b> también: con «Imperial» los signos de peso, talla y temperatura se capturan por defecto en lb, in y °F. El valor se almacena con su unidad y en la unidad canónica (el servidor convierte); los cálculos clínicos (IMC, dosis) siempre usan el valor canónico. La plantilla de nota aún no cambia la interfaz. Las alertas clínicas y de interacciones del CDS <b>siempre</b> se muestran: no se pueden desactivar.</div>
      </div>
      <div style={{...card2,padding:18}}>{sec("M8 2v4M16 2v4M4 8h16M5 6h14v14H5z","Configuraciones regionales")}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
