@@ -212,7 +212,10 @@ export async function handleResultAction(req:Request,resultId:string):Promise<Re
 }
 
 // CLOSURE = cierre con evidencia (resuelve la obligación -> desbloquea la firma).
-export const CloseBody=z.object({evidence:z.string().min(1),occurredAt:z.string().datetime()});
+// El cierre de un resultado CRÍTICO es el punto donde se afirma «contacté y traté al paciente»: la evidencia debe ser
+// sustantiva, no un carácter. Se exige trimmed ≥10 (mismo listón que la anulación de resultado y lo que pide la UI),
+// para que Zero-Lost-Follow-Up no se satisfaga con «.» o un espacio en blanco.
+export const CloseBody=z.object({evidence:z.string().trim().min(10,"La evidencia del cierre debe describir qué se hizo, cuándo y con qué resultado (mín. 10 caracteres)"),occurredAt:z.string().datetime()});
 // R05a-F04: las 24 h ya no se escriben aquí; son el techo DECLARADO de CRITICAL_RESULT_REVIEW (packages/obligation-domain).
 // Se conserva el nombre porque la evidencia en vivo y el gate de firma lo citan.
 export const CRITICAL_RESULT_DUE_HOURS=OBLIGATION_DUE_WINDOWS["CRITICAL_RESULT_REVIEW"]!.maxHours;

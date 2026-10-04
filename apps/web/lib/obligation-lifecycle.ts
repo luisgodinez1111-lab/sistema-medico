@@ -58,7 +58,9 @@ export async function handleObligationProgress(req:Request,obligationId:string):
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 // Completar EXIGE evidencia (constancia del seguimiento realizado).
-export const CompleteBody=z.object({evidence:z.string().min(1),occurredAt:z.string().datetime()});
+// Completar una obligación de seguimiento cierra el lazo Zero-Lost-Follow-Up: la evidencia debe constar de verdad (trimmed
+// ≥10), no «.». Mismo listón que el cierre de resultado crítico y la anulación; un carácter no es constancia.
+export const CompleteBody=z.object({evidence:z.string().trim().min(10,"La evidencia debe describir qué se hizo para cerrar la obligación (mín. 10 caracteres)"),occurredAt:z.string().datetime()});
 export async function handleObligationCompletion(req:Request,obligationId:string):Promise<Response>{
  try{const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,obligationId);const b=await parseJson(req,CompleteBody);
   return await commit(ctx,idempotencyKey,expectedVersion,obligationId,folded,"COMPLETED","OBLIGATION_COMPLETED",{kind:"COMPLETED",evidence:b.evidence},b.occurredAt,"obligation.completed");

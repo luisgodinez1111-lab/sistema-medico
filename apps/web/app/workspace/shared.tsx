@@ -40,7 +40,7 @@ export const S=primitive.space,UI=typography.family.ui;
 
 export type EncState="OPEN"|"READY_TO_SIGN"|"SIGNED";
 export type Encounter=Readonly<{id:string;state:EncState;version:number;signatureDigest?:string}>;
-export type MedState="PROPOSED"|"PRESCRIBED"|"ACTIVE"|"STOPPED";
+export type MedState="PROPOSED"|"PRESCRIBED"|"ACTIVE"|"HELD"|"STOPPED";
 export type Med=Readonly<{id:string;label:string;state:MedState;version:number;problemLabel?:string;encounterId?:string}>;// POMR: problema que trata · acto en que se propuso
 export type ResState="RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";
 export type Result=Readonly<{id:string;label:string;critical:boolean;state:ResState;version:number}>;
@@ -977,6 +977,10 @@ export function medNext(m:Med):{label:string;path:string;body:Record<string,unkn
  if(m.state==="PROPOSED")return{label:"Prescribir",path:`/api/v1/medications/${m.id}/prescription`,body:{occurredAt:nowIso()},to:"PRESCRIBED"};
  if(m.state==="PRESCRIBED")return{label:"Activar",path:`/api/v1/medications/${m.id}/activation`,body:{occurredAt:nowIso()},to:"ACTIVE"};
  if(m.state==="ACTIVE")return{label:"Suspender",path:`/api/v1/medications/${m.id}/discontinuation`,body:{reason:ASK("Motivo de la suspensión del medicamento",5,"p. ej. efecto adverso, fin del tratamiento, cambio de esquema"),occurredAt:nowIso()},to:"STOPPED"};
+ // HELD (pausa temporal) es un estado REAL del dominio (hold/resumption en el backend). Antes el chart lo mostraba como
+ // ACTIVE —un fármaco pausado se veía idéntico a uno vigente—; ahora se muestra como HELD y se puede Reanudar (pasa por el
+ // mismo motor de seguridad que cualquier transición, vía advanceMed).
+ if(m.state==="HELD")return{label:"Reanudar",path:`/api/v1/medications/${m.id}/resumption`,body:{occurredAt:nowIso()},to:"ACTIVE"};
  return null;
 }
 // Siguiente transición de un resultado diagnóstico (closed-loop de seguimiento).

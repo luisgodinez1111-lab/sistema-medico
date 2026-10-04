@@ -12708,7 +12708,7 @@
         "properties": {
          "evidence": {
           "type": "string",
-          "minLength": 1
+          "minLength": 10
          },
          "occurredAt": {
           "type": "string",
@@ -23627,7 +23627,7 @@
         "properties": {
          "evidence": {
           "type": "string",
-          "minLength": 1
+          "minLength": 10
          },
          "occurredAt": {
           "type": "string",

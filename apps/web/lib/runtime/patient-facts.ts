@@ -154,11 +154,17 @@ export async function patientVitals(ctx:HttpTenantContext,patientId:string,limit
   const rows=await tx`
    -- R03-09/R03-33: el historial muestra el valor CANÓNICO (el mismo con el que se calcula). Antes devolvía el crudo, así
    -- que una toma capturada en libras se mostraba como «154» junto a un IMC calculado con 69.9 kg: dos cifras del mismo dato.
+   -- Además, por cada toma se usa su valor VIGENTE (última RECORDED/AMENDED) y se EXCLUYEN las anuladas (ENTERED_IN_ERROR),
+   -- igual que patient-chart: sin esto una FR corregida 45→15 se graficaba como 45, y una toma marcada por error (incluso el
+   -- valor de otro paciente) aparecía en la tendencia de éste. Dato retractado presentado como vigente.
    select v.occurred_at as at, v.payload->>'vitalType' as vital_type,
-     coalesce(v.payload->>'canonicalValue',v.payload->>'value') as value,
-     coalesce(v.payload->>'canonicalUnit',v.payload->>'unit') as unit
+     coalesce(cur.value,v.payload->>'canonicalValue',v.payload->>'value') as value,
+     coalesce(cur.unit,v.payload->>'canonicalUnit',v.payload->>'unit') as unit
    from clinical_events v
+   left join lateral (select coalesce(e.payload->>'canonicalValue',e.payload->>'value') as value, coalesce(e.payload->>'canonicalUnit',e.payload->>'unit') as unit
+     from clinical_events e where e.tenant_id=${ctx.tenantId} and e.aggregate_id=v.aggregate_id and e.payload->>'kind' in ('RECORDED','AMENDED') order by e.sequence desc limit 1) cur on true
    where v.tenant_id=${ctx.tenantId} and v.aggregate_type='VitalSign' and v.payload->>'kind'='RECORDED' and v.payload->>'patientId'=${patientId}
+     and not exists(select 1 from clinical_events x where x.tenant_id=${ctx.tenantId} and x.aggregate_id=v.aggregate_id and x.payload->>'kind'='ENTERED_IN_ERROR')
    order by v.occurred_at desc
    limit ${limit}`;
   // R01-026: constancia de acceso de lectura a PHI (en la misma transacción que la consulta).

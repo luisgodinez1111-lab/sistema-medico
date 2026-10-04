@@ -181,11 +181,15 @@ describe("una sola implementación del IMC y de la presión (R03-33)",()=>{
    expect(src,`${r} parsea la presión a mano`).not.toMatch(/\\d\{2,3\}\)\s*\\s\*\\\//);
   }
  });
- it("el historial de signos vitales muestra el valor CANÓNICO, el mismo con el que se calcula",()=>{
+ it("el historial de signos vitales muestra el valor CANÓNICO VIGENTE y excluye las tomas anuladas",()=>{
   const src=fs.readFileSync("apps/web/lib/runtime/patient-facts.ts","utf8");
   const fn=/export async function patientVitals[\s\S]*?\n}/.exec(src)?.[0]??"";
   expect(fn).not.toBe("");
-  expect(fn).toContain("coalesce(v.payload->>'canonicalValue'");
-  expect(fn).toContain("coalesce(v.payload->>'canonicalUnit'");
+  // Valor canónico y, por toma, el VIGENTE (última RECORDED/AMENDED) — no el crudo ni el original tras una enmienda.
+  expect(fn).toContain("canonicalValue");
+  expect(fn).toContain("canonicalUnit");
+  expect(fn,"usa el valor vigente (última RECORDED/AMENDED) por toma").toMatch(/kind.{0,6}in \('RECORDED','AMENDED'\)/);
+  // Las tomas marcadas por error no se grafican (dato retractado — podría ser de otro paciente).
+  expect(fn,"excluye las tomas ENTERED_IN_ERROR").toContain("ENTERED_IN_ERROR");
  });
 });

@@ -51,7 +51,8 @@ try{
  // SM ilegal: saltar verificación no es válido (otra semilla)
  const res2=crypto.randomUUID();
  await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:res2,patientId:await freshPatient(TENANT_A),orderId:crypto.randomUUID(),analyte:"GLUCOSE",value:"100",unit:"mg/dL",occurredAt:ISO})}));
- r=await rClose.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({evidence:"x",occurredAt:ISO})}),RP(res2));
+ // Evidencia válida (≥10) para que el rechazo venga de la TRANSICIÓN ilegal (RECEIVED→CLOSED sin pasar por ACTIONED), no de la validación del cuerpo.
+ r=await rClose.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({evidence:"intento de cierre en estado ilegal",occurredAt:ISO})}),RP(res2));
  ok(r.status===409,"RESULT_ILLEGAL_SKIP_409");
 
  // === B) EL LOOP: un resultado crítico abierto BLOQUEA la firma; cerrarlo la DESBLOQUEA ===

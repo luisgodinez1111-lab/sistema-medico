@@ -29,7 +29,7 @@ export type PatientChart=Readonly<{
 // vida ES el estado del agregado (ADR-0240 §2: las anotaciones no cambian el estado y se excluyen de `kinds`).
 const PROB:Record<string,string>={ADDED:"ACTIVE",REACTIVATED:"ACTIVE",MARKED_CHRONIC:"CHRONIC",RESOLVED:"RESOLVED",ENTERED_IN_ERROR:"ENTERED_IN_ERROR"};
 const ALG:Record<string,string>={RECORDED:"ACTIVE",REACTIVATED:"ACTIVE",REFUTED:"REFUTED",INACTIVATED:"INACTIVE"};
-const MED:Record<string,string>={PROPOSED:"PROPOSED",PRESCRIBED:"PRESCRIBED",ACTIVATED:"ACTIVE",RESUMED:"ACTIVE",HELD:"ACTIVE",STOPPED:"STOPPED",CANCELLED:"STOPPED"};
+const MED:Record<string,string>={PROPOSED:"PROPOSED",PRESCRIBED:"PRESCRIBED",ACTIVATED:"ACTIVE",RESUMED:"ACTIVE",HELD:"HELD",STOPPED:"STOPPED",CANCELLED:"STOPPED"};
 const IMM:Record<string,string>={DUE:"DUE",ADMINISTERED:"ADMINISTERED",REFUSED:"REFUSED",ADVERSE_EVENT:"ADVERSE_EVENT"};
 const ORD:Record<string,string>={CREATED:"DRAFT",PLACED:"ORDERED",FULFILLED:"FULFILLED",CANCELLED:"CANCELLED"};
 const RES:Record<string,string>={RECEIVED:"RECEIVED",VERIFIED:"VERIFIED",ACTIONED:"ACTIONED",CLOSED:"CLOSED"};
@@ -83,12 +83,16 @@ export async function patientChart(ctx:HttpTenantContext,patientId:string):Promi
    where a.tenant_id=${t} and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED' and a.payload->>'patientId'=${patientId}
    order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const ot=str(o,"order_type"),det=str(o,"detail");const pl=problemLabelOf(o);
    return{id:str(o,"id"),label:det?`${ot}: ${det}`:(ot||"Orden"),state:ORD[str(o,"last_kind")||"CREATED"]??"DRAFT",version:Number(o.version??1),...(pl?{problemLabel:pl}:{}),...encSpread(o)};});
-  // RESULTADOS — base DIAGNOSTIC_RESULT RECEIVED; se excluyen los anulados (ENTERED_IN_ERROR alguna vez).
+  // RESULTADOS — base DIAGNOSTIC_RESULT RECEIVED. Se excluyen (igual que TODOS los demás lectores de laboratorio —
+  // lab-facts.latestAnalyteReading/analyteSeries y records.countOpenCriticalResults): los ANULADOS (ENTERED_IN_ERROR) y los
+  // CORREGIDOS, es decir los superados por un resultado nuevo con `supersedes` (C-02). Sin esto el chart mostraba el valor
+  // viejo —con su flag `critical` retractado— como vigente y duplicado, contradiciendo la corrección que lo desmintió.
   const results=(await tx`
    select a.aggregate_id as id, a.payload->>'analyte' as analyte, a.payload->>'value' as value, a.payload->>'critical' as critical, lk.kind as last_kind, vr.version as version
    from clinical_events a ${ultimaTransicion(tx,t,Object.keys(RES))} ${versionDelAgregado(tx,t)}
    left join lateral (select 1 as anulado from clinical_events v where v.tenant_id=${t} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR' limit 1) anul on true
    where a.tenant_id=${t} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED' and a.payload->>'patientId'=${patientId} and anul.anulado is null
+     and not exists(select 1 from clinical_events s where s.tenant_id=${t} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=a.aggregate_id::text)
    order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const an=str(o,"analyte"),val=str(o,"value");
    return{id:str(o,"id"),label:val?`${an}: ${val}`:(an||"Resultado"),critical:String(o.critical)==="true",state:RES[str(o,"last_kind")||"RECEIVED"]??"RECEIVED",version:Number(o.version??1)};});
   // SIGNOS VITALES — base VITAL_RECORDED; valor VIGENTE (último RECORDED/AMENDED); se excluyen los capturados por error.
