@@ -4,9 +4,12 @@
 
 import{card,LINE,P,UI,Skeleton,cargaFallida,useFocusTrap,type RegObItem}from"../shared";
 import{useWorkspace}from"../context";
+import{useEffect}from"react";
 export default function ObligacionesView(){
  const{regObSnap,oblTab,setOblNew,setOblMsg,oblNew,oblMsg,oblForm,setOblForm,createRegObligation,oblBusy,setOblTab,loadErr,retryLoad,renewRegObligation,complyRegObligation,oblComply,setOblComply,oblEvidence,setOblEvidence}=useWorkspace();
  const complyTrap=useFocusTrap<HTMLDivElement>(!!oblComply); // focus-trap del modal «marcar cumplida» (WCAG 2.4.3/2.1.2)
+ // Escape cierra el modal de evidencia (consistente con los modales de firma/motivo/enmienda), salvo mientras guarda.
+ useEffect(()=>{if(!oblComply)return;const onKey=(e:KeyboardEvent)=>{if(e.key==="Escape"&&!oblBusy){setOblComply(null);setOblEvidence("");}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey);},[oblComply,oblBusy,setOblComply,setOblEvidence]);
 
    // ===== MÓDULO OBLIGACIONES (S-OBLIGACIONES) — obligaciones regulatorias del consultorio cableadas a GET /regulatory-obligations =====
    const card2:React.CSSProperties={...card,marginTop:0};

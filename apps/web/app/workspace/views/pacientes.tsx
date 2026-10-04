@@ -1,10 +1,10 @@
 "use client";
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "pacientes" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
-import{card,P,LINE,UI,actRow,scrollTop,Skeleton}from"../shared";
+import{card,P,LINE,UI,actRow,scrollTop,Skeleton,cargaFallida}from"../shared";
 import{useWorkspace}from"../context";
 export default function PacientesView(){
- const{patientList,topSearch,patStatus,patSex,selectPatientRaw,setPatMsg,setPatNew,patNew,patMsg,regName,setRegName,regDob,setRegDob,regSex,setRegSex,regExtra,setRegExtra,guardianFields,dupPanel,registerPatient,busy,setTopSearch,setPatStatus,setPatSex,setExpTab,setPatientId}=useWorkspace();
+ const{patientList,topSearch,patStatus,patSex,selectPatientRaw,setPatMsg,setPatNew,patNew,patMsg,regName,setRegName,regDob,setRegDob,regSex,setRegSex,regExtra,setRegExtra,guardianFields,dupPanel,registerPatient,busy,setTopSearch,setPatStatus,setPatSex,setExpTab,setPatientId,loadErr,retryLoad}=useWorkspace();
 
    // ===== VISTA PACIENTES — lista real (+ alta). Es el estado "sin paciente" del Expediente: seleccionar abre el
    // expediente del paciente directamente (su pestaña Resumen es la ficha). La edición de datos vive en Expediente ›
@@ -16,7 +16,8 @@ export default function PacientesView(){
    type Row={patientId:string;name:string;status:string;age:number|null;sexo:string;curp:string};
    const real=(patientList??[]).map(p=>({patientId:p.patientId,name:p.name,status:p.status,age:ageOf(p.birthDate),sexo:sexAbbr(p.sexAtBirth),curp:p.curp||"—"}));
    // Solo pacientes REALES del tenant. Sin filas de ejemplo (evita clics inertes): si no hay, estado vacío honesto.
-   const loading=patientList===null;const allRows:Row[]=real;
+   // Si la carga FALLÓ (loadErr.patients) no se deja el skeleton girando: se muestra el banner de error con «Reintentar».
+   const loading=patientList===null&&!loadErr.patients;const allRows:Row[]=real;
    const total=allRows.length;const activos=allRows.filter(r=>r.status==="ACTIVE").length;
    const q=topSearch.trim().toLowerCase();
    const rows=allRows.filter(r=>(!q||r.name.toLowerCase().includes(q)||r.curp.toLowerCase().includes(q))&&(!patStatus||r.status===patStatus)&&(!patSex||r.sexo===patSex));
@@ -42,6 +43,7 @@ export default function PacientesView(){
       </div>
      </div>
      {patMsg&&<div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,background:patMsg.includes("✓")?"var(--c-green-bg)":"var(--c-blue-bg)",border:`1px solid ${patMsg.includes("✓")?"var(--c-green-bd)":"var(--c-blue-bd)"}`,borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:patMsg.includes("✓")?P.green:P.blue,fontWeight:700}}>{patMsg.includes("✓")?"✓":"ℹ"}</span><span style={{flex:1}}>{patMsg}</span><button onClick={()=>setPatMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
+     {loadErr.patients&&patientList===null&&<div style={{marginTop:14}}>{cargaFallida(()=>retryLoad("patients"))}</div>}
      {patNew&&<div style={{...card,marginTop:14,padding:18}}>
       <div style={{fontWeight:800,fontSize:16,marginBottom:14}}>Nuevo paciente</div>
       <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:14}} className="mos-med2">

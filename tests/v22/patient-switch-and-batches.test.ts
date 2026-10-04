@@ -53,8 +53,10 @@ describe("cambio de paciente: nada del anterior sobrevive (WS1-04)",()=>{
   // el Expediente, alimentados por `snap`; su vaciado-antes-de-cargar lo hace el efecto del snapshot (setSnap(null) al
   // cambiar patientId, verificado abajo). Aquí queda la interconsulta, cuyo efecto propio sigue vaciando su contexto.
   const src=modelo();
+  // El efecto de interconsulta carga el contexto del paciente EFECTIVO (`icPat` = selector icPatientId o el foco), por eso
+  // su guarda es `!icPat` y no `!patientId`: así, al elegir otro paciente en el selector, vacía y recarga (sin fuga de PHI).
   for(const[vista,setter]of [["interconsulta","setRefCtx"]] as const){
-   const i=src.indexOf(`if(view!=="${vista}"||!ready||!session||!patientId)return;`);
+   const i=src.indexOf(`if(view!=="${vista}"||!ready||!session||!icPat)return;`);
    expect(i,`no se encontró el efecto de ${vista}`).toBeGreaterThan(-1);
    expect(src.slice(i,i+400),`${vista}: no vacía ${setter} antes de cargar`).toContain(`${setter}(null)`);
   }

@@ -10,13 +10,28 @@ import{searchIcd10}from"../../../../../packages/terminology/src";
 // lea como un número del algoritmo ESI.
 const REASSESSMENT_SOURCE_SHORT="CTAS";
 import{useWorkspace}from"../context";
-import{useState}from"react";
+import{useState,useEffect}from"react";
+import{useFocusTrap}from"../shared";
 import EncounterForm from"./_encounter";
 import PacientesView from"./pacientes";
 export default function ExpView(){
  const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab,setView,openConsulta,antSnap,antForm,setAntForm,antBusy,antMsg,antReason,setAntReason,antEditing,setAntEditing,saveAntecedentes,openEdit,patEdit,setPatEdit,editForm,setEditForm,amendPatient,editBusy,patMsg,setPatMsg,medProblem,setMedProblem,ordProblem,setOrdProblem,docsSnap,docDetail,docDetBusy,loadDoc,setDocDetail,attInputRef,attBusy,attMsg,ATT_MIME,onPickAttachment,viewAttachment,removeAttachment,fmtBytes}=useWorkspace();
  // Confirmación de dos pasos para quitar un adjunto (UI efímera; quitar borra el blob privado, acción registrada en bitácora).
  const[attConfirm,setAttConfirm]=useState<string|null>(null);
+ // Diálogos de seguridad (anular bloqueo de Rx / reconocer verificación incompleta / acción irreversible): focus-trap y
+ // cierre con Escape, como los modales de firma. Antes se pintaban como tarjetas sueltas al final del grid (podían quedar
+ // bajo el pliegue, sin foco y sin salida por teclado) — justo las decisiones más sensibles.
+ const irrevTrap=useFocusTrap<HTMLDivElement>(!!pendingIrreversible);
+ const overrideTrap=useFocusTrap<HTMLDivElement>(!!overrideMed);
+ const ackTrap=useFocusTrap<HTMLDivElement>(!!ackMed);
+ useEffect(()=>{
+  if(!pendingIrreversible&&!overrideMed&&!ackMed)return;
+  const onKey=(e:KeyboardEvent)=>{if(e.key!=="Escape")return;
+   if(pendingIrreversible)cancelIrreversible();
+   else if(overrideMed){setOverrideMed(null);setOverrideWhy("");}
+   else if(ackMed){setAckMed(null);setAckWhy("");}};
+  window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey);
+ },[pendingIrreversible,overrideMed,ackMed,cancelIrreversible,setOverrideMed,setOverrideWhy,setAckMed,setAckWhy]);
  // POMR: problemas ACTIVOS del paciente, para enlazar medicación/órdenes "contra qué diagnóstico". Se derivan del
  // expediente vivo (lista `problems` ya hidratada); si no hay ninguno, el selector no aparece (no se inventa un vínculo).
  const problemasActivos=problems.filter(p=>p.state==="ACTIVE"||p.state==="CHRONIC");
@@ -1187,15 +1202,15 @@ export default function ExpView(){
   {/* Auditoría R05a-F07: anular una factura y revocar un consentimiento se disparaban con UN clic. No son reversibles: el
       registro es de solo-añadir, así que lo único posible después es anotar encima. Mismo patrón de diálogo que el bloqueo
       de seguridad, incluido `role="alertdialog"` para que un lector de pantalla lo anuncie como lo que es. */}
-  {pendingIrreversible&&<div className="span2" role="alertdialog" aria-labelledby="irrev-title" data-testid="confirm-irreversible" style={{...card,borderColor:"var(--c-amber-bd)",background:"var(--c-amber-bg)"}}>
+  {pendingIrreversible&&<div style={{position:"fixed",inset:0,background:"rgba(20,22,40,.55)",display:"grid",placeItems:"center",zIndex:1000,padding:16}}><div ref={irrevTrap} tabIndex={-1} className="span2" role="alertdialog" aria-labelledby="irrev-title" data-testid="confirm-irreversible" style={{...card,maxWidth:560,width:"100%",borderColor:"var(--c-amber-bd)",background:"var(--c-amber-bg)"}}>
    <b id="irrev-title" style={{color:P.amberOnPale}}>Acción irreversible — {pendingIrreversible.what}</b>
    <p style={{margin:"6px 0 0",color:"var(--c-amber-fg)",wordBreak:"break-word"}}>{pendingIrreversible.detail}</p>
    <div style={{display:"flex",gap:10,marginTop:10,justifyContent:"flex-end"}}>
     <button style={{...ghost,padding:"9px 16px"}} data-testid="cancel-irreversible" onClick={cancelIrreversible}>Cancelar</button>
     <button style={{...btn,background:P.amberOnPale}} data-testid="accept-irreversible" disabled={busy!==""} onClick={confirmIrreversible}>{pendingIrreversible.what}</button>
    </div>
-  </div>}
-  {overrideMed&&<div className="span2" role="alertdialog" aria-labelledby="override-title" style={{...card,borderColor:"var(--c-red-bd)",background:"var(--c-red-bg)"}}>
+  </div></div>}
+  {overrideMed&&<div style={{position:"fixed",inset:0,background:"rgba(20,22,40,.55)",display:"grid",placeItems:"center",zIndex:1000,padding:16}}><div ref={overrideTrap} tabIndex={-1} className="span2" role="alertdialog" aria-labelledby="override-title" style={{...card,maxWidth:560,width:"100%",borderColor:"var(--c-red-bd)",background:"var(--c-red-bg)"}}>
    <b id="override-title" style={{color:P.redOnPale}}>Bloqueo de seguridad — {overrideMed.med.label}</b>
    <p style={{margin:"6px 0 0",color:"var(--c-red-fg)",wordBreak:"break-word"}}>{overrideMed.message}</p>
    <ul style={{margin:"8px 0 0",paddingLeft:18,color:"var(--c-red-fg)",fontSize:13}}>{overrideMed.barriers.map(b=><li key={b}>Vas a anular: <b>{BARRIER_LABEL[b]??b}</b></li>)}</ul>
@@ -1205,8 +1220,8 @@ export default function ExpView(){
     <button style={{...ghost,padding:"9px 16px"}} onClick={()=>{setOverrideMed(null);setOverrideWhy("");}}>Cancelar</button>
     <button style={{...btn,background:P.redOnPale,opacity:overrideWhy.trim().length<20?.5:1}} disabled={busy!==""||overrideWhy.trim().length<20} onClick={confirmOverrideMed}>Anular el bloqueo bajo mi responsabilidad</button>
    </div>
-  </div>}
-  {ackMed&&<div className="span2" role="alertdialog" aria-labelledby="ack-title" style={{...card,borderColor:"var(--c-amber-bd)",background:"var(--c-amber-bg)"}}>
+  </div></div>}
+  {ackMed&&<div style={{position:"fixed",inset:0,background:"rgba(20,22,40,.55)",display:"grid",placeItems:"center",zIndex:1000,padding:16}}><div ref={ackTrap} tabIndex={-1} className="span2" role="alertdialog" aria-labelledby="ack-title" style={{...card,maxWidth:560,width:"100%",borderColor:"var(--c-amber-bd)",background:"var(--c-amber-bg)"}}>
    <b id="ack-title" style={{color:"var(--c-amber-fg)"}}>Verificación automática incompleta — {ackMed.med.label}</b>
    <p style={{margin:"6px 0 0",color:"var(--c-amber-fg)",wordBreak:"break-word"}}>{ackMed.message}</p>
    <label htmlFor="ack-why" style={{display:"block",margin:"10px 0 4px",fontSize:12,fontWeight:700,color:"var(--c-amber-fg)"}}>Justificación clínica (queda en el expediente, mínimo 10 caracteres)</label>
@@ -1215,7 +1230,7 @@ export default function ExpView(){
     <button style={{...ghost,padding:"9px 16px"}} onClick={()=>{setAckMed(null);setAckWhy("");}}>Cancelar</button>
     <button style={{...btn,opacity:ackWhy.trim().length<10?.5:1}} disabled={busy!==""||ackWhy.trim().length<10} onClick={confirmAckMed}>Prescribir bajo mi criterio clínico</button>
    </div>
-  </div>}
+  </div></div>}
   {error&&<div className="span2" style={{...card,borderColor:"var(--c-red-bd)",background:"var(--c-red-bg)"}}><b style={{color:"var(--c-red-fg)"}}>Error</b><p style={{margin:"6px 0 0",color:"var(--c-red-fg)",wordBreak:"break-word"}}>{error}</p>{error.includes("SAFETY_BLOCKED")&&<p style={{margin:"6px 0 0",fontSize:12,color:P.amberOnPale}}>💡 ¿Hay un resultado crítico sin cerrar para este paciente? Ciérralo abajo y vuelve a firmar.</p>}</div>}
   </main>
   </>;

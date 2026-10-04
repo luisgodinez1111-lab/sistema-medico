@@ -2,10 +2,10 @@
 // GENERADO por scripts/refactor/split-workspace.mts (K-09): vista "inicio" del workspace, extraída de page.tsx sin cambios
 // en su JSX ni en su lógica. Toma del contexto solo lo que usa.
 
-import{card,P,UI,scrollToSection,LINE,act,NavIcon,Skeleton,srOnly}from"../shared";
+import{card,P,UI,scrollToSection,LINE,act,NavIcon,Skeleton,srOnly,cargaFallida}from"../shared";
 import{useWorkspace}from"../context";
 export default function InicioView(){
- const{clock,patientList,panel,notifCount,setView,setExpTab,openConsulta,agenda,docDisplay,setMedTab,reset,setOrdNew,setApptNew}=useWorkspace();
+ const{clock,patientList,panel,notifCount,setView,setExpTab,openConsulta,agenda,docDisplay,setMedTab,reset,setOrdNew,setApptNew,loadErr,retryLoad}=useWorkspace();
  // Fusión Pacientes⟷Expediente: ir a la LISTA de pacientes = limpiar el paciente activo y abrir la vista del expediente
  // (que sin paciente ES la lista). `reset()` deja patientId vacío; `exp` muestra entonces la lista de pacientes.
  const irAPacientes=()=>{reset();setView("exp");};
@@ -42,6 +42,7 @@ export default function InicioView(){
    const openPatientCtx=(pid:string,name:string)=>{if(pid){openConsulta(pid,name);}else{go("Panel del clínico");}};
    const citasHoy=agenda?.appointments.length??0;const atendidasHoy=agenda?.counts.atendidas??0;
    return <div style={{padding:"22px 26px 40px",maxWidth:1400,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+    {(loadErr.panel&&!panel)||(loadErr.patients&&patientList===null)?<div style={{marginBottom:14}}>{cargaFallida(()=>{retryLoad("panel");retryLoad("patients");})}</div>:null}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
      <div><h1 style={{fontSize:30,fontWeight:800,margin:0,letterSpacing:"-.02em"}}>Inicio</h1><p style={{color:P.muted,fontSize:14.5,margin:"6px 0 0"}}>Bienvenido, <b style={{color:P.ink}}>{docDisplay}</b>. Aquí tienes el resumen de hoy.</p></div>
      <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>

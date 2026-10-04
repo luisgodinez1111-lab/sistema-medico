@@ -520,17 +520,20 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   if(!ready||!session)return;
   let cancelled=false;const ac=new AbortController();
   (async()=>{
+   // Auditoría: antes estos dos `catch` eran silenciosos y, si fallaban, `panel`/`patientList` quedaban en null para
+   // siempre -> skeleton perpetuo en Inicio y Pacientes, sin aviso ni reintento. Ahora marcan `loadErr` (panel/patients),
+   // que las vistas muestran con «Reintentar» (igual que el resto de registros). `reloadTick` re-dispara el efecto.
    try{
     const r=await apiRequest("/api/v1/worklist",{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status<400)setPanel({gaps:(r.body["gaps"] as PanelGap[])??[],patientCount:Number(r.body["patientCount"]??0)});
-   }catch{/* worklist no disponible */}
+    if(!cancelled){if(r.status<400){setPanel({gaps:(r.body["gaps"] as PanelGap[])??[],patientCount:Number(r.body["patientCount"]??0)});setLoadErr(e=>({...e,panel:false}));}else setLoadErr(e=>({...e,panel:true}));}
+   }catch{if(!cancelled)setLoadErr(e=>({...e,panel:true}));}
    try{
     const r=await apiRequest("/api/v1/patients?limit=200",{method:"GET",signal:ac.signal});
-    if(!cancelled&&r.status<400){setPatientList((r.body["patients"] as{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version?:number}[])??[]);setPatientTotal(typeof r.body["total"]==="number"?r.body["total"]:null);setPatientMore(!!r.body["nextCursor"]);}
-   }catch{/* lista no disponible */}
+    if(!cancelled){if(r.status<400){setPatientList((r.body["patients"] as{patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version?:number}[])??[]);setPatientTotal(typeof r.body["total"]==="number"?r.body["total"]:null);setPatientMore(!!r.body["nextCursor"]);setLoadErr(e=>({...e,patients:false}));}else setLoadErr(e=>({...e,patients:true}));}
+   }catch{if(!cancelled)setLoadErr(e=>({...e,patients:true}));}
   })();
   return()=>{cancelled=true;ac.abort();};
- },[view,ready,session]);
+ },[view,ready,session,reloadTick]);
 
  // (Fase 2 — híbrido) Los registros clínica-wide y snapshots por-paciente de Alergias/Problemas/Vacunas/Signos/Plan de
  // cuidado alimentaban SOLO sus vistas sueltas del menú lateral, que se retiraron: esos módulos ahora viven dentro del
@@ -609,18 +612,22 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  },[view,ready,session]);
 
  // Auto-carga del contexto para Nueva interconsulta (panel derecho: alergias/medicamentos/problemas/labs/vitales).
+ // SEGURIDAD/PHI: el contexto es el del paciente EFECTIVO de la interconsulta (el del selector, icPatientId, o el del foco).
+ // Antes solo reaccionaba a `patientId`: al elegir otro paciente en el selector, el panel seguía mostrando —y el resumen se
+ // redactaba con— los datos del paciente anterior, y la interconsulta se enviaba para el nuevo con contexto cruzado.
+ const icPat=icPatientId||patientId;
  useEffect(()=>{
-  if(view!=="interconsulta"||!ready||!session||!patientId)return;
+  if(view!=="interconsulta"||!ready||!session||!icPat)return;
   let cancelled=false;const ac=new AbortController();
   setRefCtx(null); // R05a/WS1-04: nunca datos del paciente anterior bajo la cabecera del nuevo
   (async()=>{
    try{
-    const r=await apiRequest(`/api/v1/patients/${patientId}/referral-context`,{method:"GET",signal:ac.signal});
+    const r=await apiRequest(`/api/v1/patients/${icPat}/referral-context`,{method:"GET",signal:ac.signal});
     if(!cancelled&&r.status===200)setRefCtx(conForma<RefContext>(r.body,FORMA.refCtx));
    }catch{/* contexto no disponible */}
   })();
   return()=>{cancelled=true;ac.abort();};
- },[view,ready,session,patientId]);
+ },[view,ready,session,icPat]);
 
  // Auto-carga del snapshot de Seguimiento (tareas + tendencia de vitales + indicadores clave).
  useEffect(()=>{
@@ -1429,12 +1436,17 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // Auditoría U-05/U-17: cambiar de paciente borra TODO lo del anterior —también el borrador de la consulta, los vitales sin
  // guardar y las pestañas cargadas— y anota a quién pertenece el borrador nuevo (draftOwner) para que el guardia de estados
  // prohibidos pueda comprobarlo. Las respuestas tardías del paciente anterior se descartan por el flag `cancelled` de cada efecto.
- function selectPatientRaw(id:string,name:string){cVitSubmission.current=null;cOrdSubmission.current=null;draftOwner.current=id;setCForm({motivo:"",historia:"",interrog:"",explor:"",plan:"",ascites:"",encef:""});setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});setCPreview(false);setCMsg(null);setCVitMsg(null);setSnap(null);setTrends(null);setConsTabs(null);setFuSnap(null);setRxCheck(null);setCpSnap(null);setAntSnap(null);setAntForm(ANT_EMPTY);setAntEditing(false);setAntReason("");setAntMsg(null);setVitHist(null);setRefCtx(null);setDocsSnap(null);setCiSnap(null);setDocDetail(null);setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
+ // Limpia TAMBIÉN el borrador de "Prescripción segura" y el de órdenes/dx de la consulta (setRx*/setCOrd*/setCDx*): un
+ // fármaco/estudio tecleado para el paciente A no debe quedar en pantalla al abrir al B (riesgo de prescribir por inercia).
+ // (Se deja en UNA sola línea a propósito: el guard WS1-04 extrae el cuerpo de esta función hasta el primer salto de línea.)
+ function selectPatientRaw(id:string,name:string){cVitSubmission.current=null;cOrdSubmission.current=null;draftOwner.current=id;setCForm({motivo:"",historia:"",interrog:"",explor:"",plan:"",ascites:"",encef:""});setCVit({ta:"",fc:"",fr:"",temp:"",spo2:""});setCPreview(false);setCMsg(null);setCVitMsg(null);setRxDrug("");setRxDoseAmt("");setRxDoseUnit("mg");setRxRoute("Oral");setRxFreq("");setRxMsg("");setCOrdSel([]);setCOrdCat("LAB");setCOrdMsg(null);setCDxQuery("");setCDxMsg(null);setSnap(null);setTrends(null);setConsTabs(null);setFuSnap(null);setRxCheck(null);setCpSnap(null);setAntSnap(null);setAntForm(ANT_EMPTY);setAntEditing(false);setAntReason("");setAntMsg(null);setVitHist(null);setRefCtx(null);setDocsSnap(null);setCiSnap(null);setDocDetail(null);setPatientId(id);setPatientName(name);setEnc(null);setAssessment("");setPlan("");setMeds([]);setResults([]);setDocs([]);setOrders([]);setObligations([]);setProblems([]);setAllergies([]);setReferrals([]);setAppts([]);setImms([]);setVitals([]);setPlans([]);setClaims([]);setConsents([]);setAdms([]);setSpecs([]);setIncs([]);setTriages([]);setWounds([]);setTransfs([]);setSurgs([]);setDialz([]);setTl(null);setGaps(null);setExportInfo(null);setError("");}
  const loadPatients=(q=patientQuery)=>call("pt-list",async()=>{
   const r=await apiRequest(`/api/v1/patients?limit=200${q.trim()?`&q=${encodeURIComponent(q.trim())}`:""}`,{method:"GET"});
-  if(r.status>=400){setError(errMsg(r));return;}
+  // Una búsqueda fallida debe AVISAR (antes el error de `call` no se pintaba en la lista de pacientes y parecía "sin
+  // coincidencias"): se marca `loadErr.patients`, que PacientesView muestra con «Reintentar», además del mensaje de error.
+  if(r.status>=400){setError(errMsg(r));setLoadErr(e=>({...e,patients:true}));return;}
   setPatientList((r.body["patients"] as {patientId:string;name:string;status:string;birthDate?:string;sexAtBirth?:string;curp?:string;version?:number}[])??[]);
-  setPatientTotal(typeof r.body["total"]==="number"?r.body["total"]:null);setPatientMore(!!r.body["nextCursor"]);
+  setPatientTotal(typeof r.body["total"]==="number"?r.body["total"]:null);setPatientMore(!!r.body["nextCursor"]);setLoadErr(e=>({...e,patients:false}));
  });
  // ===== Acciones REALES de la vista Órdenes (crear + transiciones del ciclo de vida) =====
  const reloadOrders=async()=>{const r=await apiRequest("/api/v1/orders",{method:"GET"});if(r.status===200)setOrdReg(r.body as unknown as typeof ordReg);};
