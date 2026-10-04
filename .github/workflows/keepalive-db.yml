@@ -1,0 +1,54 @@
+# Keep-alive de la base de datos (Neon serverless, plan Hobby de Vercel).
+#
+# POR QUÉ: Neon en plan gratuito se AUTO-SUSPENDE tras ~5 min de inactividad. La primera visita después de eso ve un
+# 503 pasajero mientras la BD despierta (confirmado contra /api/health/ready: 503 database:DOWN en frío -> 200 UP al
+# segundo intento, ~125 ms de latencia en frío vs 2-3 ms en caliente). Este workflow la mantiene despierta.
+#
+# POR QUÉ NO UN CRON NATIVO DE VERCEL: en el plan Hobby los Cron Jobs de Vercel están limitados a UNA VEZ AL DÍA
+# (y declarar un cron sub-diario en vercel.json hace FALLAR el deploy). Un ping diario no evita la suspensión de 5 min.
+# GitHub Actions programado SÍ puede hacerlo y, como el repo es PÚBLICO, los minutos de Actions son gratis.
+#
+# COBERTURA: GitHub solo permite un mínimo de cada 5 min en `schedule`, justo el borde del autosuspend. Para no quedar
+# al filo, cada corrida hace DOS pings espaciados ~2.5 min, de modo que el hueco máximo entre pings sea ~2.5 min < 5 min.
+# Es BEST-EFFORT: GitHub puede retrasar o espaciar las corridas programadas bajo carga, así que puede colarse algún
+# cold-start ocasional. Para eliminarlo del todo haría falta desactivar el autosuspend (Neon de pago) o Vercel Pro (cron */4).
+#
+# Sin secretos (la URL de readiness es pública) y sin actions de terceros (solo `curl` del runner): nada que fijar por SHA.
+name: keepalive-db
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # cada 5 min (mínimo que admite GitHub Actions)
+  workflow_dispatch: {}       # permite dispararlo a mano desde la pestaña Actions
+concurrency:
+  group: keepalive-db
+  cancel-in-progress: false   # una corrida en curso es la que está despertando la BD: que termine
+permissions:
+  contents: read
+jobs:
+  ping:
+    name: ping readiness (despierta Neon)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Despertar la BD con dos pings espaciados
+        env:
+          URL: https://sistema-medico-web.vercel.app/api/health/ready
+        run: |
+          set -u
+          # Imprime el log en stderr (para que SÍ se vea en la corrida) y devuelve solo el código HTTP por stdout.
+          ping() {
+            local n="$1" code
+            code=$(curl -sS -o /tmp/resp -w '%{http_code}' --max-time 25 "$URL" || echo 000)
+            echo "ping $n -> HTTP $code :: $(cat /tmp/resp 2>/dev/null || true)" >&2
+            echo "$code"
+          }
+          c1=$(ping 1)
+          sleep 150
+          c2=$(ping 2)
+          # Falla SOLO si el endpoint quedó inalcanzable en AMBOS intentos (app caída), no por un 503 de cold-start.
+          if [ "$c1" = "000" ] && [ "$c2" = "000" ]; then
+            echo "::error::readiness inalcanzable en ambos intentos (la app no respondió)"; exit 1
+          fi
+          # Aviso suave si tras despertar sigue sin estar READY (no corta la corrida, para no generar ruido de notificaciones).
+          if [ "$c2" != "200" ]; then echo "::warning::readiness no devolvió 200 tras despertar (HTTP $c2)"; fi
+          echo "keep-alive OK"
