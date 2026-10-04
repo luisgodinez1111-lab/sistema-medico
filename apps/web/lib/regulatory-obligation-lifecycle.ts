@@ -7,7 +7,7 @@ import{requireMutationHeaders}from"./http-command";
 import{PERIODICITIES,nextDueDate,obligationTemplate,OBLIGATION_CATALOG,assertObligationTransition,
  type ObligationState}from"../../../packages/regulatory-obligations/src";
 import{toHttpError}from"./http-errors";
-import{buildCommand,principalFrom,resolveVerified,parseJson}from"./http-command";
+import{buildCommand,principalFrom,resolveVerified,parseJson,replayStablePayload}from"./http-command";
 // EPIC AC — Obligaciones REGULATORIAS del consultorio (fiscales SAT, salud COFEPRIS, laborales, protección civil,
 // administrativas). Dominio administrativo a nivel TENANT (no PHI, sin paciente), sobre el mismo kernel event-sourced.
 // El estado (Al día / Próxima / Vencida / Vigente) NO se almacena: se COMPUTA de la fecha límite (determinista).
@@ -123,10 +123,15 @@ export async function handleRegulatoryObligationRenew(req:Request,obligationId:s
   const nueva=b.dueDate??derivada;
   if(!nueva)throw new ClinicalError("VALIDATION_ERROR",
    "Esta obligación no tiene periodicidad ni fecha previa que permitan derivar el próximo vencimiento: hay que declararla.");
+  // Idempotencia ESTABLE (auditoría L-02/L-04): cuando la fecha se DERIVA de la periodicidad, un reintento la recalcularía
+  // sobre el stream YA renovado —`plegada.dueDate` avanzó un periodo— y respondería una fecha un periodo más lejana que la
+  // persistida. `replayStablePayload` reutiliza el payload del primer evento (misma llave), así el reintento devuelve la
+  // fecha que de verdad se guardó. La respuesta se arma desde ese payload estable, no desde el `nueva` recién derivado.
+  const payload=await replayStablePayload(ctx,idempotencyKey,obligationId,b,
+   ()=>({kind:"RENEWED",dueDate:nueva,derivedFromPeriodicity:b.dueDate===undefined}));
   return await escribir(ctx,idempotencyKey,expectedVersion,obligationId,plegada.state,"OPEN",
-   "REGULATORY_OBLIGATION_RENEWED",
-   {kind:"RENEWED",dueDate:nueva,derivedFromPeriodicity:b.dueDate===undefined},
-   b.occurredAt,"regulatory_obligation.renewed",{dueDate:nueva,derivedFromPeriodicity:b.dueDate===undefined});
+   "REGULATORY_OBLIGATION_RENEWED",payload,
+   b.occurredAt,"regulatory_obligation.renewed",{dueDate:String(payload["dueDate"]),derivedFromPeriodicity:payload["derivedFromPeriodicity"]===true});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
 /** Catálogo expuesto para que la pantalla ofrezca obligaciones con nombre en vez de solo categorías. */

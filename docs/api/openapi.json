@@ -4,7 +4,7 @@
   "title": "Medical OS — API clínica",
   "version": "0.0.0",
   "description": "Generada desde el inventario real de rutas (pnpm openapi:generate). Sesión: cookie httpOnly medos_session o Authorization: Bearer. Toda respuesta de la API lleva Cache-Control: no-store.",
-  "x-bodies-with-schema": 125
+  "x-bodies-with-schema": 127
  },
  "servers": [
   {
@@ -9053,15 +9053,54 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/encounters/[encounterId]/assessment/route.ts",
-    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "assessment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000
+         },
+         "plan": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000
+         },
+         "hepatic": {
+          "type": "object",
+          "properties": {
+           "ascites": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+           },
+           "encephalopathy": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+           }
+          },
+          "required": [
+           "ascites",
+           "encephalopathy"
+          ]
+         },
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         }
+        },
+        "required": [
+         "assessment",
+         "plan",
+         "occurredAt"
+        ]
        }
       }
      }
@@ -9204,15 +9243,28 @@
      }
     ],
     "x-handler": "apps/web/app/api/v1/encounters/[encounterId]/signature/route.ts",
-    "x-body-validation": "validado en la ruta o multipart: sin esquema JSON exportable",
+    "x-body-validation": "zod en el handler; esquema JSON derivado con z.toJSONSchema (apps/web/lib/api-body-registry.ts)",
     "requestBody": {
      "required": true,
      "content": {
       "application/json": {
        "schema": {
         "type": "object",
-        "additionalProperties": true,
-        "description": "Validado en el handler; campos comunes: occurredAt (ISO 8601 UTC)"
+        "properties": {
+         "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+         },
+         "contentHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+         }
+        },
+        "required": [
+         "occurredAt",
+         "contentHash"
+        ]
        }
       }
      }

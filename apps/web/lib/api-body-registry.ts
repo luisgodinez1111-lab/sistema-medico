@@ -12,6 +12,7 @@ import{CodeBody as claim__CodeBody,DraftBody as claim__DraftBody,ReasonBody as c
 import{DraftBody as consent__DraftBody,GrantBody as consent__GrantBody,ReasonBody as consent__ReasonBody,WhenBody as consent__WhenBody}from"./consent-lifecycle";
 import{CompleteBody as dialysis__CompleteBody,InterruptBody as dialysis__InterruptBody,ReasonBody as dialysis__ReasonBody,ScheduleBody as dialysis__ScheduleBody,StartBody as dialysis__StartBody,WhenBody as dialysis__WhenBody}from"./dialysis-lifecycle";
 import{AmendBody as document__AmendBody,CreateBody as document__CreateBody,SignBody as document__SignBody,WhenBody as document__WhenBody}from"./document-lifecycle";
+import{AssessBody as encounter__AssessBody,SignBody as encounter__SignBody}from"./encounter-lifecycle";
 import{AdminBody as immunization__AdminBody,AdverseBody as immunization__AdverseBody,DueBody as immunization__DueBody,ReasonBody as immunization__ReasonBody}from"./immunization-lifecycle";
 import{ReasonBody as incident__ReasonBody,ReportBody as incident__ReportBody,ResolveBody as incident__ResolveBody,WhenBody as incident__WhenBody}from"./incident-lifecycle";
 import{HoldBody as medication__HoldBody,ModifyBody as medication__ModifyBody,PrescribeBody as medication__PrescribeBody,ProposeBody as medication__ProposeBody,ResumeBody as medication__ResumeBody,StopBody as medication__StopBody,WhenBody as medication__WhenBody}from"./medication-lifecycle";
@@ -76,6 +77,8 @@ export const API_BODY_SCHEMAS:Readonly<Record<string,ZodType>>={
  "POST /api/v1/documents/{documentId}/amendment":document__AmendBody,
  "POST /api/v1/documents/{documentId}/finalization":document__WhenBody,
  "POST /api/v1/documents/{documentId}/signature":document__SignBody,
+ "POST /api/v1/encounters/{encounterId}/assessment":encounter__AssessBody,
+ "POST /api/v1/encounters/{encounterId}/signature":encounter__SignBody,
  "POST /api/v1/immunizations":immunization__DueBody,
  "POST /api/v1/immunizations/{immunizationId}/administration":immunization__AdminBody,
  "POST /api/v1/immunizations/{immunizationId}/adverse-event":immunization__AdverseBody,

@@ -84,7 +84,10 @@ async function interpretForReceive(ctx:Parameters<typeof runClinicalCommand>[0],
    ?deltaCheck(b.analyte,prior,current,{priorAt:previo!.occurredAt,newAt:b.occurredAt})
    :{flagged:false,severity:"NONE" as const,changeAbs:0,changePct:0,note:""};
   const critical=assessment.critical||delta.flagged;
-  const interpretation=delta.flagged?`${assessment.interpretation} · Δ crítico vs previo (${prior}→${b.value}): ${delta.note}`:assessment.interpretation;
+  // El Δ se calculó `prior`→`current` (AMBOS en unidad canónica); el mensaje muestra ESE mismo par. Antes mostraba el valor
+  // CRUDO del nuevo (`b.value`): si venía en otra unidad (p. ej. glucosa en mmol/L → mg/dL canónico) la flecha mezclaba
+  // unidades («90→7») y parecía un desplome que el Δ real no vio. `current` = valor canónico nuevo, coherente con `prior`.
+  const interpretation=delta.flagged?`${assessment.interpretation} · Δ crítico vs previo (${prior}→${current}): ${delta.note}`:assessment.interpretation;
   const payload:Record<string,unknown>={kind:"RECEIVED",patientId:b.patientId,orderId:b.orderId,orderLinked:foldOrder(await readAggregateEvents(ctx,b.orderId)).exists,critical,status:delta.flagged?"CRITICAL":assessment.status,interpretation,analyte:b.analyte,value:b.value};
   if(norm.ok){payload["unit"]=b.unit?.trim()||null;payload["canonicalValue"]=norm.canonicalValue;payload["canonicalUnit"]=norm.canonicalUnit;payload["unitAssumed"]=norm.unitAssumed;}
   if(b.specimenId)payload["specimenId"]=b.specimenId;
