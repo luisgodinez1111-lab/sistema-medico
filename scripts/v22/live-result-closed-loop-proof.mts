@@ -143,9 +143,13 @@ try{
  //        la firma. Antes solo el crítico creaba obligación; un resultado anormal accionable quedaba sin rastro. GLUCOSE 250
  //        mg/dL es ABNORMAL (rango [40,70,200,500]) pero no crítico. La decisión la toma la función pura resultToObligation.
  const enc5=crypto.randomUUID(),pat5=crypto.randomUUID(),ares=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat5);
+ // El resultado anormal se recibe AHORA (no en la fecha fija del resto del proof): su obligación ROUTINE derivada vence a
+ // ~una semana, así que con un `occurredAt` de hace meses ya estaría VENCIDA y bloquearía como OVERDUE —que es justo lo que
+ // NO queremos probar aquí—. Con fecha reciente el seguimiento de rutina sigue vigente y, por ser ROUTINE, no bloquea.
+ const reciente=new Date().toISOString();
  await open.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({encounterId:enc5,patientId:pat5,occurredAt:ISO})}));
  await assess.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({assessment:"a",plan:"p",occurredAt:ISO})}),EP(enc5));
- r=await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:ares,patientId:pat5,orderId:crypto.randomUUID(),analyte:"GLUCOSE",value:"250",unit:"mg/dL",occurredAt:ISO})}));
+ r=await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:ares,patientId:pat5,orderId:crypto.randomUUID(),analyte:"GLUCOSE",value:"250",unit:"mg/dL",occurredAt:reciente})}));
  ok(r.status===201&&(await r.json()).status==="ABNORMAL","ABNORMAL_RESULT_RECEIVED_201");
  // 1) el resultado anormal crea UNA obligación ROUTINE (no urgente), con responsable, enlazada al resultado.
  const abEv=(await readAggregateEvents(octx,abnormalObligationId(ares)))[0]?.payload as{priority?:string;obligationKind?:string;sourceResultId?:string;ownerId?:string}|undefined;

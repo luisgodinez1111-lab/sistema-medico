@@ -24,7 +24,7 @@ async function res(t:string,p:string,a:string,v:string,when:string){await resR.P
 async function vital(t:string,p:string,vt:string,v:string,u:string,when:string){await vitR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:p,vitalType:vt,value:v,unit:u,occurredAt:when})}));}
 async function toma(t:string,p:string,when:string,bp:string,hr:string,w:string,h:string){await vital(t,p,"BP",bp,"mmHg",when);await vital(t,p,"HR",hr,"lpm",when);await vital(t,p,"WEIGHT",w,"kg",when);await vital(t,p,"HEIGHT",h,"cm",when);}
 async function obl(t:string,p:string,kind:string,dueAt:string){const id=crypto.randomUUID();await obR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({obligationId:id,patientId:p,ownerId:crypto.randomUUID(),dueAt,kind,occurredAt:at()})}));return id;}
-async function complete(t:string,id:string){return obComp.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({evidence:"Realizado",occurredAt:at()})}),{params:Promise.resolve({obligationId:id})});}
+async function complete(t:string,id:string){return obComp.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({evidence:"Realizado en la consulta de hoy",occurredAt:at()})}),{params:Promise.resolve({obligationId:id})});}
 async function fu(t:string,p:string){const r=await fuR.GET(new Request("http://l/",{method:"GET",headers:H(t)}),{params:Promise.resolve({patientId:p})});return{status:r.status,body:await r.json()};}
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
@@ -36,7 +36,7 @@ try{
  // vitales en 2 tomas (peso 69.4 -> 67.3)
  await toma(phys,p,"2026-05-18T10:15:00.000Z","128/84","78","69.4","149");
  await toma(phys,p,"2026-09-17T10:24:00.000Z","124/82","74","67.3","149");
- // 3 tareas de seguimiento; una completada
+ // 3 tareas de seguimiento EXPLÍCITAS; una completada (los labs anormales de arriba crean además sus propias obligaciones)
  await obl(phys,p,"Solicitar HbA1c en 3 meses","2026-10-15T00:00:00.000Z");
  const t2=await obl(phys,p,"Reforzar plan nutricional","2026-09-17T00:00:00.000Z");
  await obl(phys,p,"Valorar ajuste de metformina","2026-10-15T00:00:00.000Z");
@@ -44,8 +44,12 @@ try{
 
  const S=await fu(phys,p);ok(S.status===200,"FU_200");
  const b=S.body as{tasks:{task:string;statusLabel:string;done:boolean}[];vitalsTrend:{series:{BP:number[];WEIGHT:number[]};avg:{ta:string|null;hr:number|null;weight:number|null;imc:number|null}};indicators:{hba1c:{first:number;last:number}|null;ldl:{first:number;last:number}|null;weight:{first:number;last:number}|null;imc:{first:number;last:number}|null};counts:{problems:number}};
- // tareas
- ok(b.tasks.length===3,"THREE_TASKS");
+ // tareas: las 3 de seguimiento EXPLÍCITAS están presentes...
+ const explicitas=["Solicitar HbA1c en 3 meses","Reforzar plan nutricional","Valorar ajuste de metformina"];
+ ok(explicitas.every(n=>b.tasks.some(x=>x.task===n)),"THREE_EXPLICIT_TASKS_PRESENT");
+ // ...y además aparecen las obligaciones de seguimiento DERIVADAS de los labs anormales (HbA1c 8.1 y 7.2, LDL 142): el
+ // sistema las crea solo (Zero Lost Follow-Up, ANORMAL ⇒ ROUTINE no bloqueante), así que el snapshot muestra más de tres.
+ ok(b.tasks.filter(x=>x.task==="ABNORMAL_RESULT_FOLLOWUP").length===3,"ABNORMAL_RESULT_FOLLOWUPS_DERIVED");
  ok(b.tasks.find(x=>x.task==="Reforzar plan nutricional")?.done===true,"TASK_COMPLETED");
  ok(b.tasks.find(x=>x.task==="Solicitar HbA1c en 3 meses")?.statusLabel==="Pendiente","TASK_PENDING");
  // tendencia de vitales

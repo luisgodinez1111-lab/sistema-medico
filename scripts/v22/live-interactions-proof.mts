@@ -46,8 +46,10 @@ try{
  ok(has(pg.body.findings,"enalapril","Embarazo","CONTRAINDICATED"),"ACE_PREGNANCY_CONTRAINDICADA");
  ok(pg.body.highestSeverityLabel==="Contraindicada","HIGHEST_CONTRAINDICADA");
 
- // 4) Conjunto seguro: Paracetamol solo -> sin hallazgos.
- const safe=await verify(phys,["paracetamol"],["alcohol"]);
+ // 4) Conjunto seguro: Paracetamol es el analgésico de elección en insuficiencia renal -> sin hallazgos. (Antes el ejemplo
+ //    usaba el factor «alcohol», pero paracetamol + alcohol crónico SÍ es una interacción real —hepatotoxicidad, regla
+ //    ALCOHOL×ANALGESIC_ANTIPYRETIC— así que ya no es un conjunto limpio; el factor renal no tiene regla para ese analgésico.)
+ const safe=await verify(phys,["paracetamol"],["insuficiencia renal"]);
  ok(safe.body.findings.length===0&&safe.body.highestSeverity===null,"NO_INTERACTION_CLEAN");
 
  // 5) Transparencia: fármaco desconocido se reporta como no resuelto, no crashea.
