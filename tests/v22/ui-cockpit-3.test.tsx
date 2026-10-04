@@ -114,8 +114,14 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 3/
   expect(hIn.value).toBe("09:30");
   const modSwitch=screen.getByRole("switch",{name:"Módulo Facturación"});         // toggle FUNCIONAL (role switch)
   expect(modSwitch.getAttribute("aria-checked")).toBe("true");
+  expect(screen.getByRole("button",{name:"Facturación"})).toBeTruthy();           // visible en el menú lateral de inicio
   fireEvent.click(modSwitch);
   expect(modSwitch.getAttribute("aria-checked")).toBe("false");
+  // S-CONFIG «Módulos activos» APLICADO DE VERDAD: desactivar el módulo lo OCULTA del menú lateral de inmediato
+  await waitFor(()=>expect(screen.queryByRole("button",{name:"Facturación"})).toBeNull());
+  fireEvent.click(modSwitch);                                                     // reactivar -> reaparece en el menú
+  expect(modSwitch.getAttribute("aria-checked")).toBe("true");
+  await waitFor(()=>expect(screen.getByRole("button",{name:"Facturación"})).toBeTruthy());
   // Pestaña «Identidad profesional»: cédula (L-05) con validación real + aviso honesto si falta
   fireEvent.click(screen.getByRole("button",{name:"Identidad profesional"}));
   expect((await screen.findAllByText("Identidad profesional")).length).toBeGreaterThan(0); // pestaña + sección

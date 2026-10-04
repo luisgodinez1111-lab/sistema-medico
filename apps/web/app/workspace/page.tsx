@@ -4,7 +4,7 @@
 // Este fichero conserva los retornos tempranos, el layout (barra, rail, encabezado del paciente) y el conmutador de vistas.
 import {logout as sessionLogout} from "../../lib/session-client";
 import {useEffect} from "react";
-import{RAIL_CSS,SIDE_NAV,scrollTop,goExpSection,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap,BrandMark,BrandLockup,NAV_GROUP_META}from"./shared";
+import{RAIL_CSS,SIDE_NAV,scrollTop,goExpSection,NavIcon,TOOLS_NAV,appbar,P,UI,LINE,btn,input,wrap,BrandMark,BrandLockup,NAV_GROUP_META,moduleEnabled,EXP_TAB_FOR_PREF}from"./shared";
 import{Alert,Button,Card}from"../../../../packages/design-system/src";
 import{useWorkspaceModel,deriveHeader}from"./model";
 import{WorkspaceProvider,useWorkspace}from"./context";
@@ -31,7 +31,9 @@ const VIEWS:Record<string,React.ComponentType>={inicio:InicioView,agenda:AgendaV
 function ViewSwitch(){const{view}=useWorkspace();const V=VIEWS[view]??ExpView;return <V/>;}
 export default function Workspace(){
  const m=useWorkspaceModel();
- const{ready,session,cspNonce,sideCollapsed,view,setView,setExpTab,reset,setDocMenu,docMenu,setSideCollapsed,topSearch,setTopSearch,loadPatients,setTopMenu,topMenu,chartState,setChartReload,signAsk,signErr,signBusy,setSignAsk,setSignErr,confirmSign,reasonAsk,reasonText,setReasonText,setReasonAsk,amendAsk,amendText,setAmendText,setAmendAsk,busy,confirmAmend}=m;
+ const{ready,session,cspNonce,sideCollapsed,view,setView,setExpTab,reset,setDocMenu,docMenu,setSideCollapsed,topSearch,setTopSearch,loadPatients,setTopMenu,topMenu,chartState,setChartReload,signAsk,signErr,signBusy,setSignAsk,setSignErr,confirmSign,reasonAsk,reasonText,setReasonText,setReasonAsk,amendAsk,amendText,setAmendText,setAmendAsk,busy,confirmAmend,cfgSettings}=m;
+ // S-CONFIG aplicado: sub-pestaña inicial del expediente según la preferencia del consultorio (prefRecordView).
+ const defaultExpTab=EXP_TAB_FOR_PREF[cfgSettings?.prefRecordView as string]??"resumen";
 
  // Tecla Escape cierra el overlay abierto (patrón de SO: ningún modal/menú atrapa al usuario sin salida de teclado). Los
  // modales de firma/motivo/enmienda se cancelan (el de motivo resuelve su promesa con null); los menús se repliegan.
@@ -67,19 +69,23 @@ export default function Workspace(){
      // DERIVA del `group` de cada ítem (NAV_GROUP_META, capa de presentación) y se pinta al cambiar de grupo. Esta
      // agrupación es deliberadamente distinta de la taxonomía de dominio (3 ramas); el guard verifica ambas.
      // La portada (home:true) va arriba sin encabezado. Ley de Hick: secciones para bajar el coste de decisión.
-     return SIDE_NAV.flatMap(it=>{const vTarget=it.view as typeof view;const on=view===vTarget;const n=it.badge?navCounts[it.badge]:0;const rows:React.ReactNode[]=[];
+     // S-CONFIG «Módulos activos» aplicado: se ocultan del menú los módulos desactivados por el consultorio. La vista ACTIVA
+     // nunca se oculta (para no dejar al usuario sin referencia de dónde está), e Inicio/Medicamentos/Configuración son
+     // siempre visibles. Los encabezados de grupo se derivan de los ítems YA visibles (un grupo vacío no deja encabezado huérfano).
+     const visibles=SIDE_NAV.filter(it=>it.home||view===it.view||moduleEnabled(cfgSettings?.modules,it.view));
+     return visibles.flatMap(it=>{const vTarget=it.view as typeof view;const on=view===vTarget;const n=it.badge?navCounts[it.badge]:0;const rows:React.ReactNode[]=[];
       const group=it.group;
       if(it.home){if(group)prevGroup=group;}
       else if(group&&group!==prevGroup){prevGroup=group;rows.push(<div key={"sec-"+group} className="mos-navsec" aria-hidden="true">{NAV_GROUP_META[group].label}</div>);}
       rows.push(
-       <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget==="exp"){reset();setExpTab("resumen");}setView(vTarget);scrollTop();}}>
+       <button key={it.label} className={"mos-navi"+(on?" active":"")} aria-current={on?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(vTarget==="exp"){reset();setExpTab(defaultExpTab);}setView(vTarget);scrollTop();}}>
         <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>{it.badge&&(n===null||n>0)&&<span className={"mos-badge "+(n===null?"p":(it.badgeColor??"p"))} title={n===null?"Sin dato: no se pudo cargar el conteo":undefined}>{n===null?<><span aria-hidden="true">—</span><span className="mos-sr">sin dato</span></>:n}</span>}
        </button>);
       return rows;});})()}
    </nav>
    <div className="mos-divider"/>
    <div className="mos-toolslbl">HERRAMIENTAS</div>
-   {TOOLS_NAV.map(it=>(
+   {TOOLS_NAV.filter(it=>view===it.view||moduleEnabled(cfgSettings?.modules,it.view)).map(it=>(
     <button key={it.label} className={"mos-navi"+((it.label==="Biblioteca clínica"&&view==="biblioteca")||(it.label==="Configuración"&&view==="configuracion")?" active":"")} aria-current={(it.label==="Biblioteca clínica"&&view==="biblioteca")||(it.label==="Configuración"&&view==="configuracion")?"true":undefined} title={sideCollapsed?it.label:undefined} onClick={()=>{if(it.label==="Configuración"){setView("configuracion");scrollTop();}else if(it.label==="Biblioteca clínica"){setView("biblioteca");scrollTop();}}}>
      <NavIcon k={it.icon}/><span className="lbl">{it.label}</span>
     </button>))}

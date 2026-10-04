@@ -421,6 +421,19 @@ export const TOOLS_NAV:{label:string;h2:string;icon:string;view:string}[]=[
  {label:"Biblioteca clínica",h2:"",icon:"book",view:"biblioteca"},
  {label:"Configuración",h2:"",icon:"gear",view:"configuracion"},
 ];
+// S-CONFIG «Módulos activos» aplicado DE VERDAD: qué módulo de Configuración gobierna la visibilidad de cada vista del
+// menú. Una vista ausente de este mapa NO se puede ocultar — Inicio, Medicamentos y Configuración quedan siempre visibles
+// (la última es la vía de regreso para reactivar módulos; sin ella el consultorio podría dejarse sin salida).
+export const MODULE_FOR_VIEW:Record<string,string>={
+ agenda:"Agenda",interconsulta:"Interconsultas",seguimiento:"Seguimiento",resultados:"Resultados",
+ ordenes:"Órdenes",exp:"Pacientes",reportes:"Reportes",facturacion:"Facturación",
+ obligaciones:"Obligaciones",biblioteca:"Biblioteca clínica",
+};
+// ¿La vista está habilitada por la preferencia de módulos del consultorio? Sin preferencia, o módulo no listado => visible.
+export function moduleEnabled(modules:Record<string,boolean>|undefined,view:string):boolean{
+ const label=MODULE_FOR_VIEW[view];
+ return !label||modules?.[label]!==false;
+}
 export const ICONS:Record<string,string>={
  home:"M4 11l8-6 8 6M6 10v9h12v-9",
  people:"M8 11a3 3 0 100-6 3 3 0 000 6zM2 20a6 6 0 0112 0M16 4.5a3 3 0 010 6M22 20a6 6 0 00-5-5.9",
@@ -612,6 +625,11 @@ export function scrollToSection(name:string){
 // El Expediente es la BASE COMPLETA del paciente: sus sub-pestañas son los MÓDULOS del paciente (no "fases" vagas), cada
 // uno paciente-scoped. Al entrar a un paciente se abren como submenús del expediente (decisión del dueño: híbrido).
 export type ExpTab="resumen"|"encuentro"|"historia"|"problemas"|"alergias"|"medicacion"|"signos"|"resultados"|"ordenes"|"vacunas"|"plan"|"documentos"|"intel"|"coordinacion"|"hospital"|"admin";
+// S-CONFIG «Vista por defecto del expediente» (preferencia prefRecordView) aplicada DE VERDAD: sub-pestaña con la que se
+// abre un paciente desde el menú Pacientes. Un valor desconocido cae a "resumen".
+export const EXP_TAB_FOR_PREF:Record<string,ExpTab>={
+ ["Resumen clínico"]:"resumen",["Cronología"]:"historia",["Lista de problemas"]:"problemas",
+};
 // Mapa sección→sub-pestaña del expediente. Tras el Patient 360 (Lote B) cada sección vive en una sub-pestaña que se OCULTA
 // si no está activa; por eso navegar con solo scrollToSection aterriza en una sección vacía. Al ir a una sección hay que
 // ACTIVAR primero su sub-pestaña. Úsese con `goExpSection`.

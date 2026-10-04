@@ -72,7 +72,7 @@ export default function ConfiguracionView(){
       {/* Honestidad (auditoría iOS): estas preferencias se GUARDAN pero su aplicación en la interfaz aún está en desarrollo.
           Se retiraron los controles que insinuaban desactivar seguridad clínica (alertas/interacciones en tiempo real y
           "calculadora de dosis: solo adultos"): el motor de seguridad SIEMPRE evalúa; nunca es opcional. */}
-      <div style={{fontSize:11.5,color:P.muted,marginTop:10,lineHeight:1.5,background:"#F6F7FB",borderRadius:9,padding:"8px 11px"}}>Estas preferencias se guardan como ajuste del consultorio; su aplicación en la interfaz está en desarrollo. Las alertas clínicas y de interacciones del CDS <b>siempre</b> se muestran: no se pueden desactivar.</div>
+      <div style={{fontSize:11.5,color:P.muted,marginTop:10,lineHeight:1.5,background:"#F6F7FB",borderRadius:9,padding:"8px 11px"}}>La <b>vista por defecto del expediente</b> ya se aplica: define con qué submenú se abre un paciente. El sistema de unidades y la plantilla de nota se guardan como ajuste pero aún no cambian la interfaz. Las alertas clínicas y de interacciones del CDS <b>siempre</b> se muestran: no se pueden desactivar.</div>
      </div>
      <div style={{...card2,padding:18}}>{sec("M8 2v4M16 2v4M4 8h16M5 6h14v14H5z","Configuraciones regionales")}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -100,7 +100,7 @@ export default function ConfiguracionView(){
      </div>
      <div style={{...card2,padding:18}}>{sec("M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z","Módulos activos")}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"2px 24px"}}>{CFG_MODULES.map(m=>{const active=cfgSettings.modules[m]!==false;return <div key={m} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid #F6F7FB`}}><span style={{display:"flex",alignItems:"center",gap:9,fontSize:13,color:active?P.ink:P.muted}}><span style={{color:active?P.purple:"#C7CCE0"}}>▤</span>{m}</span>{togBtn(active,()=>toggleModule(m),`Módulo ${m}`)}</div>;})}</div>
-      <div style={{fontSize:11.5,color:P.muted,marginTop:12,lineHeight:1.5,background:"#F6F7FB",borderRadius:9,padding:"8px 11px"}}>La preferencia de módulos se guarda a nivel del consultorio; la ocultación en el menú lateral está en desarrollo (hoy no cambia la navegación).</div>
+      <div style={{fontSize:11.5,color:P.muted,marginTop:12,lineHeight:1.5,background:"#F6F7FB",borderRadius:9,padding:"8px 11px"}}>Los módulos que desactives se <b>ocultan del menú lateral de inmediato</b>; «Guardar cambios» hace que la preferencia persista tras recargar. Inicio, Medicamentos y Configuración quedan siempre visibles para no dejar al consultorio sin salida, y la vista que estés usando no se oculta hasta que navegues fuera.</div>
      </div>
      {guardarCard}
     </div>}
