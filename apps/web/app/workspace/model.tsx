@@ -8,7 +8,7 @@ import {canonicalUnitOf} from "../../../../packages/lab-reference/src";
 import {getStoredSession,apiRequest,apiUpload,apiDelete,apiDownload,type MedicalSession} from "../../lib/session-client";
 import {assertNoForbidden} from "../../../../packages/design-system/src";
 import {summarizePatient} from "../../../../packages/patient-summary/src";
-import{scrollTop,ESI_FORM_EMPTY,esiBody,type EsiForm,conForma,FORMA,composeDose,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type VitalsRegistry,type CarePlansRegistry,type ReferralsRegistry,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type RegObItem,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey,type ExpTab,EXP_TAB_KEYS,agendaWindow,type AntSnap,type AntContent,ANT_EMPTY,isPediatricAge}from"./shared";
+import{scrollTop,ESI_FORM_EMPTY,esiBody,type EsiForm,conForma,FORMA,composeDose,composeClinicalNote,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type VitalsRegistry,type CarePlansRegistry,type ReferralsRegistry,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type RegObItem,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey,type ExpTab,EXP_TAB_KEYS,agendaWindow,type AntSnap,type AntContent,ANT_EMPTY,isPediatricAge}from"./shared";
 export function useWorkspaceModel(){
 
  const cspNonce=useNonce(); // S-04: los <style> propios declaran el nonce de la petición
@@ -822,19 +822,11 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  };
  // Compone la nota clínica del encuentro (valoración) a partir del formulario estructurado de la Consulta.
  function composeNote():string{
-  const parts:string[]=[];
-  if(cForm.motivo.trim())parts.push(`MOTIVO DE CONSULTA: ${cForm.motivo.trim()}`);
-  if(cForm.historia.trim())parts.push(`HISTORIA DE LA ENFERMEDAD ACTUAL: ${cForm.historia.trim()}`);
   // Los ANTECEDENTES ya no viven en la nota de cada consulta: son la matriz fundacional del expediente (se capturan una vez
-  // y se enmiendan allí). La consulta los muestra read-only; no los re-pregunta ni los serializa aquí.
-  if(cForm.interrog.trim())parts.push(`INTERROGATORIO POR APARATOS Y SISTEMAS: ${cForm.interrog.trim()}`);
-  if(cForm.explor.trim())parts.push(`EXPLORACIÓN FÍSICA: ${cForm.explor.trim()}`);
-  // Valoración hepática graduada (Child-Pugh): queda también en el texto de la nota firmada, además de estructurada.
-  const hg=["","ninguna","leve/controlada","moderada/tensa"],he=["","ninguna","grado I–II","grado III–IV"];
-  if(cForm.ascites&&cForm.encef)parts.push(`VALORACIÓN HEPÁTICA (Child-Pugh): ascitis ${hg[Number(cForm.ascites)]} (grado ${cForm.ascites}); encefalopatía ${he[Number(cForm.encef)]} (grado ${cForm.encef}).`);
+  // y se enmiendan allí). La impresión diagnóstica se compone del snapshot del paciente. El FORMATO (SOAP / evolución /
+  // procedimiento) lo da `composeClinicalNote` según la plantilla del consultorio, sin inventar secciones (ver shared.tsx).
   const dx=(snap?.problems??[]).slice(0,4).map(c=>`${c} ${DX_LABEL(c)}`).join("; ");
-  if(dx)parts.push(`IMPRESIÓN DIAGNÓSTICA: ${dx}`);
-  return parts.join("\n")||"Consulta registrada.";
+  return composeClinicalNote(cfgSettings?.prefNoteTemplate??"",{motivo:cForm.motivo.trim(),historia:cForm.historia.trim(),interrog:cForm.interrog.trim(),explor:cForm.explor.trim(),ascites:cForm.ascites,encef:cForm.encef,dx});
  }
  // Payload estructurado de la valoración hepática (dos ejes clínicos del Child-Pugh) cuando el médico graduó AMBOS.
  const hepaticFromForm=()=>cForm.ascites&&cForm.encef?{ascites:Number(cForm.ascites),encephalopathy:Number(cForm.encef)}:undefined;

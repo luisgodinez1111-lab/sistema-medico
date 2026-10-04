@@ -633,6 +633,36 @@ export function defaultUnitFor(vitalType:string,prefUnits:string|undefined):stri
  }
  return units[0]??""; // métrico / por defecto: la unidad canónica
 }
+// S-CONFIG «Plantilla de nota» (prefNoteTemplate): da FORMATO a la nota clínica a partir de los MISMOS campos que el médico
+// capturó — nunca inventa secciones (si no hay campo de procedimiento, no se fabrica uno). Solo cambia encabezados/orden:
+//  · «Consulta general (SOAP)» (por defecto): encabezados descriptivos (MOTIVO/HISTORIA/INTERROGATORIO/EXPLORACIÓN/…).
+//  · «Nota de evolución»: formato S/O/A compacto (el Plan va en su propio campo). Mismo contenido, encabezados S/O/A.
+//  · «Nota de procedimiento»: idéntica a la descriptiva pero titulada; el detalle del procedimiento lo aporta el texto libre
+//    del médico (exploración/plan), no una sección inventada.
+// El `dx` (impresión diagnóstica) llega ya compuesto desde el modelo (usa el snapshot del paciente).
+export type NoteFields=Readonly<{motivo:string;historia:string;interrog:string;explor:string;ascites:string;encef:string;dx:string}>;
+export function composeClinicalNote(template:string,f:NoteFields):string{
+ const hg=["","ninguna","leve/controlada","moderada/tensa"],he=["","ninguna","grado I–II","grado III–IV"];
+ const hep=(f.ascites&&f.encef)?`ascitis ${hg[Number(f.ascites)]} (grado ${f.ascites}); encefalopatía ${he[Number(f.encef)]} (grado ${f.encef}).`:"";
+ if(/evoluci/i.test(template)){
+  const parts:string[]=[];
+  const s=[f.motivo,f.historia,f.interrog].filter(Boolean).join(" ");
+  const o=[f.explor,hep].filter(Boolean).join(" ");
+  if(s)parts.push(`S (subjetivo): ${s}`);
+  if(o)parts.push(`O (objetivo): ${o}`);
+  if(f.dx)parts.push(`A (análisis): ${f.dx}`);
+  return parts.join("\n")||"Nota de evolución registrada.";
+ }
+ const parts:string[]=[];
+ if(/procedimiento/i.test(template))parts.push("NOTA DE PROCEDIMIENTO");
+ if(f.motivo)parts.push(`MOTIVO DE CONSULTA: ${f.motivo}`);
+ if(f.historia)parts.push(`HISTORIA DE LA ENFERMEDAD ACTUAL: ${f.historia}`);
+ if(f.interrog)parts.push(`INTERROGATORIO POR APARATOS Y SISTEMAS: ${f.interrog}`);
+ if(f.explor)parts.push(`EXPLORACIÓN FÍSICA: ${f.explor}`);
+ if(hep)parts.push(`VALORACIÓN HEPÁTICA (Child-Pugh): ${hep}`);
+ if(f.dx)parts.push(`IMPRESIÓN DIAGNÓSTICA: ${f.dx}`);
+ return parts.join("\n")||"Consulta registrada.";
+}
 export function Check({checked,label,onChange,disabled,size=16}:{checked:boolean;label:string;onChange:()=>void;disabled?:boolean;size?:number}){
  return <label className="mos-check" style={{display:"flex",alignItems:"center",gap:8,fontSize:13,padding:"5px 0",cursor:disabled?"default":"pointer",opacity:disabled?.6:1}}>
   <input type="checkbox" checked={checked} disabled={disabled} onChange={onChange} style={{width:size,height:size}}/>
