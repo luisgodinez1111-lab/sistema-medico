@@ -52,7 +52,7 @@ const MAX_DAILY_MG:Record<string,number>={
  paracetamol:4000,acetaminofen:4000,
  amoxicilina:3000,dicloxacilina:4000,cefalexina:4000,cefuroxima:1000,sulfametoxazol:3200,clindamicina:1800,azitromicina:500,
  metformina:2550,enalapril:40,lisinopril:80,losartan:100,espironolactona:100,rivaroxaban:20,
- sertralina:200,fluoxetina:80,citalopram:40,tramadol:400,
+ sertralina:200,fluoxetina:80,citalopram:40,escitalopram:20,tramadol:400,
 };
 export const NO_CEILING:ReadonlySet<string>=new Set(["warfarina","acenocumarol","ampicilina","ceftriaxona","penicilina"]);
 

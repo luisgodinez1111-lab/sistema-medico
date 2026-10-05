@@ -46,6 +46,12 @@ describe("tope de dosis máxima diaria — dose ceiling (EPIC AZ)",()=>{
   expect(checkDoseCeiling("ibuprofeno","2 tab","c/8h").checked).toBe(false);
   expect(checkDoseCeiling("fármaco-desconocido","500mg","c/8h").checked).toBe(false);
  });
+ it("escitalopram: el tope geriátrico YA aplica (auditoría Lote 2 — antes era regla muerta por falta de base)",()=>{
+  // Antes `escitalopram` no tenía base en MAX_DAILY_MG, así que effectiveCeiling devolvía undefined y el tope por edad
+  // {fromAge:65,max:10} nunca se alcanzaba: 15 mg/día en un mayor de 65 pasaba como "sin tope conocido".
+  expect(checkDoseCeiling("escitalopram","15mg","c/24h",undefined,{ageYears:40})).toMatchObject({checked:true,exceeded:false,maxMgPerDay:20});
+  expect(checkDoseCeiling("escitalopram","15mg","c/24h",undefined,{ageYears:70})).toMatchObject({checked:true,exceeded:true,maxMgPerDay:10});
+ });
 });
 describe("dosis pediátrica por peso — mg/kg/día (EPIC BD)",()=>{
  it("niño de 10kg: paracetamol 300mg c/6h = 120mg/kg/día EXCEDE 75",()=>{

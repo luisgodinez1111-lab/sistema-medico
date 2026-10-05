@@ -68,6 +68,15 @@ describe("duplicación terapéutica (EPIC AW)",()=>{
   expect(checkDuplicateTherapy("ibuprofeno-400",["ibuprofeno-400"]).duplicate).toBe(false);
   expect(checkDuplicateTherapy("ibuprofeno-400",[]).duplicate).toBe(false);
  });
+ it("duplicidad SOLO por clase TERAPÉUTICA, no por propiedad/alérgeno (auditoría Lote 2 — falsos bloqueos)",()=>{
+  // Falso bloqueo corregido: comparten SULFONAMIDE_NON_ANTIBIOTIC (agrupación de alérgeno), no una clase terapéutica.
+  expect(checkDuplicateTherapy("glibenclamida-5",["furosemida-40"]).duplicate).toBe(false);
+  // Falso bloqueo corregido: dos QT-prolongadores no son "duplicidad" (su riesgo aditivo vive en las interacciones).
+  expect(checkDuplicateTherapy("citalopram-20",["ondansetron-8"]).duplicate).toBe(false);
+  // Pero dos ISRS SÍ son duplicidad, y la clase compartida reportada es la TERAPÉUTICA (SSRI), no la propiedad (QT/serotonina).
+  const r=checkDuplicateTherapy("citalopram-20",["escitalopram-10"]);
+  expect(r.duplicate).toBe(true);expect(r.sharedClass).toBe("SSRI");
+ });
 });
 import{checkInteractions}from"../../packages/drug-catalog/src";
 describe("interacciones farmacológicas (EPIC AX)",()=>{
@@ -115,6 +124,23 @@ describe("interacciones farmacológicas (EPIC AX)",()=>{
   expect(checkInteractions("litio-300",["hidroclorotiazida-25"]).severity).toBe("MAJOR");
   expect(checkInteractions("carbamazepina-200",["etinilestradiol-30"]).severity).toBe("MAJOR"); // fallo anticonceptivo
   expect(checkInteractions("gentamicina-240",["furosemida-40"]).severity).toBe("MODERATE");     // oto/nefrotoxicidad
+ });
+ it("auditoría E2E lote 2: pares de libro que antes salían 'Sin interacciones' (fallo-abierto) y aditivos recolocados",()=>{
+  // Fallo-abierto corregido: ambos fármacos ESTÁN en el catálogo y la tabla no tenía la regla.
+  expect(checkInteractions("amiodarona-200",["warfarina-5"]).severity,"amiodarona+VKA").toBe("MAJOR");
+  expect(checkInteractions("amiodarona-200",["digoxina-0.25"]).severity,"amiodarona+digoxina").toBe("MAJOR");
+  expect(checkInteractions("litio-300",["losartan-50"]).severity,"litio+ARA-II").toBe("MAJOR"); // antes solo IECA
+  // La sedación aditiva que antes se marcaba (mal) como DUPLICIDAD ahora es una INTERACCIÓN MODERATE.
+  expect(checkInteractions("clonazepam-2",["gabapentina-300"]).severity,"depresores del SNC aditivos").toBe("MODERATE");
+  // Y la prolongación QT aditiva (citalopram+ondansetrón), que ya no es "duplicidad", se detecta como interacción MAYOR.
+  expect(checkInteractions("citalopram-20",["ondansetron-8"]).severity,"QT aditivo").toBe("MAJOR");
+ });
+ it("auditoría E2E lote 2: teratógenos frecuentes activan la barrera fármaco-factor en embarazo",()=>{
+  const preg=(code:string)=>checkInteractions(code,[],["PREGNANCY"] as const).factorHits??[];
+  expect(preg("carbamazepina-200").some(h=>h.factor==="PREGNANCY"),"antiepiléptico").toBe(true);
+  expect(preg("litio-300").some(h=>h.factor==="PREGNANCY"),"litio").toBe(true);
+  expect(preg("metimazol-5").some(h=>h.factor==="PREGNANCY"),"antitiroideo").toBe(true);
+  expect(preg("doxiciclina-100").some(h=>h.factor==="PREGNANCY"),"tetraciclina").toBe(true);
  });
 });
 describe("contraindicación fármaco–condición (EPIC AY)",()=>{

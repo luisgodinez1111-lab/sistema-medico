@@ -649,8 +649,27 @@ export function checkDrugAllergy(drugCode:string,allergies:readonly(string|Aller
  return worst??{blocked:false,caution:false,classEvaluated:!!drug};
 }
 
-// EPIC AW — Duplicación terapéutica: ¿el fármaco a prescribir comparte CLASE con alguno ya activo?
-// (p. ej. dos AINE, dos beta-lactámicos, dos IECA). Reutiliza el catálogo de clases. Puro, sin PHI.
+// EPIC AW — Duplicación terapéutica: ¿el fármaco a prescribir comparte CLASE TERAPÉUTICA con alguno ya activo?
+// (p. ej. dos AINE, dos IECA, dos sulfonilureas). Reutiliza el catálogo de clases. Puro, sin PHI.
+//
+// Auditoría Lote 2 — FALSOS BLOQUEOS. Cada fármaco declara, además de su clase terapéutica, etiquetas de PROPIEDAD/mecanismo
+// (QT_PROLONGING, SEROTONERGIC, CNS_DEPRESSANT…), de alérgeno/químicas (SULFONAMIDE*, PYRAZOLONE) y farmacocinéticas
+// (CYP1A2_SUBSTRATE, ENZYME_INDUCER) que usan las reglas de interacción y de alergia, NO para clasificar terapéuticamente.
+// Compararlas como "duplicidad" producía bloqueos FALSOS clínicamente absurdos: glibenclamida (sulfonilurea) + furosemida
+// (diurético de asa) compartían SULFONAMIDE_NON_ANTIBIOTIC; citalopram + ondansetrón compartían QT_PROLONGING. Eso es fatiga
+// de alerta que acaba enmascarando los bloqueos verdaderos. La duplicidad se evalúa SOLO contra clases terapéuticas; el
+// riesgo PD aditivo real de esas propiedades (QT, serotonina, sedación) vive donde corresponde: en las interacciones.
+// NOTA: BETA_LACTAM se mantiene DELIBERADAMENTE fuera de esta lista — que dos beta-lactámicos cuenten como duplicidad es una
+// decisión de política con test propio (drug-catalog.test.ts); si el dueño quiere relajarla (penicilina+cefalosporina se
+// combinan a veces), es una decisión clínica aparte, no un bug.
+const DUPLICATE_IGNORED_CLASSES:ReadonlySet<string>=new Set([
+ "QT_PROLONGING","SEROTONERGIC","CNS_DEPRESSANT",   // propiedad farmacodinámica (su riesgo aditivo es una INTERACCIÓN, no duplicidad)
+ "CYP1A2_SUBSTRATE","ENZYME_INDUCER",               // propiedad farmacocinética
+ "PYRAZOLONE",                                       // subgrupo químico / alérgeno (la clase terapéutica es ANALGESIC_ANTIPYRETIC/NSAID)
+ "SULFONAMIDE","SULFONAMIDE_ANTIBIOTIC","SULFONAMIDE_NON_ANTIBIOTIC", // agrupación de alérgeno sulfa (no clase terapéutica)
+ "SALICYLATE","COX2_SELECTIVE",                      // subgrupo de la clase NSAID/ANTIPLATELET, que sí se evalúa
+ "ESTROGEN",                                         // propiedad usada por la regla de tabaquismo; la clase es COMBINED_HORMONAL_CONTRACEPTIVE
+]);
 export type DuplicateTherapy=Readonly<{duplicate:boolean;evaluated:boolean;conflictDrug?:string;sharedClass?:string}>;
 export function checkDuplicateTherapy(newDrugCode:string,activeDrugCodes:readonly string[]):DuplicateTherapy{
  const nd=resolveDrug(newDrugCode);if(!nd)return{duplicate:false,evaluated:false};
@@ -659,7 +678,7 @@ export function checkDuplicateTherapy(newDrugCode:string,activeDrugCodes:readonl
   if(norm(active)===norm(newDrugCode))continue; // no se compara consigo mismo
   const ad=resolveDrug(active);if(!ad)continue;
   if(ad.ingredient===nIng)return{duplicate:true,evaluated:true,conflictDrug:active,sharedClass:nd.classes[0]??nIng}; // mismo principio activo
-  const shared=ad.classes.find(cl=>ndClasses.has(cl));
+  const shared=ad.classes.find(cl=>ndClasses.has(cl)&&!DUPLICATE_IGNORED_CLASSES.has(cl));
   if(shared)return{duplicate:true,evaluated:true,conflictDrug:active,sharedClass:shared};
  }
  return{duplicate:false,evaluated:true};
@@ -747,6 +766,11 @@ const RICH_INTERACTIONS:readonly RichInteraction[]=[
  {classA:"ENZYME_INDUCER",classB:"ANTICOAGULANT",severity:"MODERATE",mechanism:"Los inductores enzimáticos aceleran el metabolismo de la warfarina: reducción del INR y riesgo trombótico (y rebote al suspenderlos).",recommendation:"Controlar el INR al iniciar y al suspender el inductor y ajustar la dosis.",source:"Interacción inductor-warfarina documentada (fichas técnicas)",reviewedAt:INTERACTIONS_REVIEWED_AT},
  {classA:"AMINOGLYCOSIDE",classB:"LOOP_DIURETIC",severity:"MODERATE",mechanism:"Oto- y nefrotoxicidad aditivas (el diurético de asa potencia la ototoxicidad del aminoglucósido).",recommendation:"Evitar la combinación; si es necesaria, vigilar función renal, audición y niveles del aminoglucósido.",source:"Fichas técnicas; toxicidad aditiva documentada",reviewedAt:INTERACTIONS_REVIEWED_AT},
  {classA:"AMINOGLYCOSIDE",classB:"GLYCOPEPTIDE",severity:"MODERATE",mechanism:"Nefrotoxicidad aditiva (aminoglucósido + vancomicina).",recommendation:"Vigilar función renal y niveles de ambos; evitar la combinación si hay alternativa.",source:"Fichas técnicas; nefrotoxicidad aditiva documentada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ // Auditoría Lote 2 — pares de libro entre fármacos AMBOS en el catálogo que devolvían "Sin interacciones" (fallo-abierto).
+ {classA:"ANTIARRHYTHMIC",classB:"ANTICOAGULANT",severity:"MAJOR",mechanism:"La amiodarona inhibe el CYP2C9 (y el CYP3A4) y potencia marcadamente a los antagonistas de la vitamina K: elevación del INR y hemorragia; el efecto persiste semanas por su vida media larga.",recommendation:"Reducir la dosis de warfarina/acenocumarol ~30–50 % al iniciar amiodarona y controlar el INR a los 3–5 días y durante semanas.",source:"Sanoski CA & Bauman JL, Chest 2002;121:19-23; ficha técnica de amiodarona (FDA)",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"ANTIARRHYTHMIC",classB:"DIGITALIS",severity:"MAJOR",mechanism:"La amiodarona reduce el aclaramiento de la digoxina y eleva su concentración ~70 %: intoxicación digitálica (náusea, alteraciones visuales, arritmias, bloqueo).",recommendation:"Reducir la dosis de digoxina ~50 % al iniciar amiodarona y vigilar digoxinemia, potasio y ECG.",source:"Ficha técnica de digoxina (FDA); interacción amiodarona-digoxina documentada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"LITHIUM",classB:"ARB",severity:"MAJOR",mechanism:"Los ARA-II reducen la excreción renal de litio (mismo mecanismo que los IECA): aumento de la litemia e intoxicación (margen terapéutico estrecho).",recommendation:"Vigilar litemia al iniciar/ajustar; considerar reducir la dosis de litio.",source:"Ficha técnica de litio; interacción ARA-II/IECA-litio documentada",reviewedAt:INTERACTIONS_REVIEWED_AT},
+ {classA:"CNS_DEPRESSANT",classB:"CNS_DEPRESSANT",severity:"MODERATE",mechanism:"Depresión aditiva del SNC entre depresores centrales (benzodiacepinas, gabapentinoides, opioides, barbitúricos): sedación, deterioro cognitivo, caídas y, en dosis altas o con opioides, depresión respiratoria.",recommendation:"Evitar combinar depresores del SNC; si es imprescindible, la mínima dosis y duración, y advertir del riesgo de sedación/caídas. (Benzodiacepina+opioide tiene su propia regla MAYOR.)",source:"FDA Drug Safety Communication 2019 (gabapentinoides + depresores del SNC); criterios de Beers",reviewedAt:INTERACTIONS_REVIEWED_AT},
 ];
 function richPairFor(a:readonly string[],b:readonly string[]):RichInteraction|undefined{
  const sa=new Set(a),sb=new Set(b);let best:RichInteraction|undefined;
@@ -801,6 +825,11 @@ const FACTOR_RULES:readonly FactorRule[]=[
  {factor:"PREGNANCY",drugClass:"FLUOROQUINOLONE",severity:"MAJOR",mechanism:"Toxicidad sobre el cartílago en modelos animales; alternativas más seguras disponibles.",recommendation:"Preferir betalactámico o nitrofurantoína según el foco; reservar para cuando no haya alternativa."},
  {factor:"PREGNANCY",drugClass:"BENZODIAZEPINE",severity:"MAJOR",mechanism:"Uso sostenido cerca del término: síndrome de abstinencia neonatal y síndrome del lactante hipotónico.",recommendation:"Evitar el uso crónico; si es imprescindible, la dosis mínima y avisar a neonatología."},
  {factor:"PREGNANCY",drugClass:"THIAZIDE",severity:"MODERATE",mechanism:"Reducción del volumen plasmático materno y alteraciones electrolíticas neonatales.",recommendation:"Preferir alfametildopa, labetalol o nifedipino como antihipertensivos en el embarazo."},
+ // Auditoría Lote 2 — teratógenos frecuentes cuyas clases están en el catálogo pero no activaban ninguna barrera fármaco-factor.
+ {factor:"PREGNANCY",drugClass:"ANTIEPILEPTIC",severity:"MAJOR",mechanism:"Los antiepilépticos (carbamazepina, fenitoína, valproato, fenobarbital) son teratógenos: defectos del tubo neural, cardíacos, faciales y síndrome fetal por anticonvulsivantes; el valproato es el de mayor riesgo (NTD y déficit cognitivo).",recommendation:"No suspender bruscamente (riesgo de estado epiléptico): planificar con neurología la monoterapia de menor riesgo a dosis mínima y suplementar folato; evitar valproato en edad fértil."},
+ {factor:"PREGNANCY",drugClass:"LITHIUM",severity:"MAJOR",mechanism:"Exposición en el primer trimestre: malformación cardíaca (anomalía de Ebstein) y otras cardiopatías del tracto de salida.",recommendation:"Valorar con psiquiatría el riesgo-beneficio; si se mantiene, litemia estrecha y ecocardiograma fetal. No suspender sin plan por el riesgo de recaída."},
+ {factor:"PREGNANCY",drugClass:"ANTITHYROID",severity:"MAJOR",mechanism:"Metimazol/carbimazol en el primer trimestre: embriopatía (aplasia cutis, atresia de coanas/esófago).",recommendation:"Preferir propiltiouracilo en el primer trimestre (ATA 2017) y cambiar a metimazol después; usar la mínima dosis que controle el hipertiroidismo."},
+ {factor:"PREGNANCY",drugClass:"TETRACYCLINE",severity:"CONTRAINDICATED",mechanism:"A partir de la semana ~15: depósito en dientes y huesos fetales (tinción dental permanente, inhibición del crecimiento óseo) y hepatotoxicidad materna.",recommendation:"Contraindicada en el embarazo; elegir un antibiótico seguro según el foco (p. ej. betalactámico)."},
  // Auditoría R03-29 — LACTANCIA: lo que pasa a la leche no es lo que atraviesa la placenta, así que son reglas propias.
  {factor:"LACTATION",drugClass:"OPIOID",severity:"CONTRAINDICATED",mechanism:"Codeína y tramadol: metabolizadores rápidos de CYP2D6 concentran morfina/O-desmetiltramadol en la leche; hay muertes neonatales descritas.",recommendation:"Contraindicados durante la lactancia (FDA 2017). Usar paracetamol o ibuprofeno."},
  {factor:"LACTATION",drugClass:"ANTIARRHYTHMIC",severity:"MAJOR",mechanism:"Amiodarona: vida media de semanas y alto contenido de yodo; se acumula en la leche y bloquea la tiroides del lactante.",recommendation:"Evitar durante la lactancia; si es imprescindible, suspender la lactancia y vigilar la tiroides del lactante."},

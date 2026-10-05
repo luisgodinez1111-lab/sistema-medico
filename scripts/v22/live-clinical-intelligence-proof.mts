@@ -68,6 +68,14 @@ try{
   ok(det2.length===1&&/NEWS2 \d+\+/.test(det2[0]!.summary),"NEWS2_PARTIAL_SCORE_MARKED:"+(det2[0]?.summary??""));
   ok(/\[4 de 7 parámetros\]/.test(det2[0]!.summary),"NEWS2_PARTIAL_SCORE_SAYS_HOW_MANY:"+det2[0]!.summary);
  }
+ // Auditoría Lote 2 — la estatina NO se sugiere en EMBARAZO (es teratógena/contraindicada): el mismo motor que la marca
+ // contraindicada no puede a la vez recomendar iniciarla. Discriminante: diabética de 50a; fuera del embarazo SÍ se sugiere.
+ const dmNoEmb=crypto.randomUUID();await reg(phys,dmNoEmb,50,"FEMALE");await dx(phys,dmNoEmb,"E11");
+ g=await get(phys,dmNoEmb);
+ ok((g.body.findings as {summary:string}[]).some(x=>/estatina/i.test(x.summary)),"STATIN_SUGGESTED_WHEN_NOT_PREGNANT");
+ const dmEmb=crypto.randomUUID();await reg(phys,dmEmb,50,"FEMALE");await dx(phys,dmEmb,"E11");await dx(phys,dmEmb,"Z34");
+ g=await get(phys,dmEmb);
+ ok(!(g.body.findings as {summary:string}[]).some(x=>/estatina|hipolipemiante/i.test(x.summary)),"STATIN_SUPPRESSED_IN_PREGNANCY");
  // no registrado -> 404
  g=await get(phys,crypto.randomUUID());ok(g.status===404,"UNREGISTERED_404");
  // sin scope -> 403

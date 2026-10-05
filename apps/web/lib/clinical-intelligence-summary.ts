@@ -131,8 +131,9 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
  const dm=has(codes,"E10","E11");
  const ascvd=has(codes,"I20","I21","I22","I24","I25","I63","I64","I70","I73","G45"); // cardiopatía isquémica, EVC, art. periférica
  const pregnant=has(codes,"O","Z34","Z33","Z35","Z36"); // no sugerir IECA/ARA-II en embarazo (fetotóxicos)
- // Estatina: ASCVD (prevención secundaria) o diabetes 40–75 años.
- if(ascvd||(dm&&age>=40&&age<=75))inp.statinGap={indicated:true,onStatin:activeClasses.has("STATIN"),reason:ascvd?"Enfermedad cardiovascular aterosclerótica":"Diabetes en 40–75 años"};
+ // Estatina: ASCVD (prevención secundaria) o diabetes 40–75 años. NO en embarazo: la estatina es teratógena/contraindicada,
+ // así que sugerir iniciarla contradeciría al propio motor (FACTOR_RULES PREGNANCY×STATIN). Misma guarda que IECA/ARA-II.
+ if(!pregnant&&(ascvd||(dm&&age>=40&&age<=75)))inp.statinGap={indicated:true,onStatin:activeClasses.has("STATIN"),reason:ascvd?"Enfermedad cardiovascular aterosclerótica":"Diabetes en 40–75 años"};
  // IECA/ARA-II: insuficiencia cardíaca o diabetes con TFG<60 (nefroprotección), fuera del embarazo.
  const hf=has(codes,"I50");const ckd=inp.egfr!==undefined&&inp.egfr.egfr<60;
  if(!pregnant&&(hf||(dm&&ckd)))inp.reninAngiotensinGap={indicated:true,onTherapy:activeClasses.has("ACE_INHIBITOR")||activeClasses.has("ARB"),reason:hf?"Insuficiencia cardíaca":"Diabetes con TFG<60"};
@@ -193,6 +194,11 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
   if(activeClasses.has("ACE_INHIBITOR")||activeClasses.has("ARB"))terat.push("IECA/ARA-II");
   if(activeClasses.has("STATIN"))terat.push("estatina");
   if(activeClasses.has("VKA"))terat.push("warfarina/acenocumarol");
+  // Auditoría Lote 2: la lista del panel longitudinal se alinea con FACTOR_RULES PREGNANCY (antes era más estrecha).
+  if(activeClasses.has("ANTIEPILEPTIC"))terat.push("antiepiléptico");
+  if(activeClasses.has("LITHIUM"))terat.push("litio");
+  if(activeClasses.has("ANTITHYROID"))terat.push("antitiroideo (metimazol)");
+  if(activeClasses.has("TETRACYCLINE"))terat.push("tetraciclina");
   inp.pregnancyRisk={teratogensActive:terat,folateReminder:true};
  }
  if(age<16){
@@ -200,8 +206,9 @@ export async function gatherClinicalIntelligence(ctx:HttpTenantContext,patientId
   const growthDataMissing=!vitals["WEIGHT"]||!vitals["HEIGHT"];
   if(reye||growthDataMissing)inp.pediatricRisk={reyeAspirin:reye,growthDataMissing};
  }
+ // Meta de LDL (intensificar hipolipemiante): NO en embarazo — la intensificación pasa por la estatina, contraindicada.
  const ldlv=lipid?.["LDL"];
- if(ldlv!==undefined){
+ if(ldlv!==undefined&&!pregnant){
   if(ascvd&&ldlv>70)inp.ldlTarget={value:ldlv,target:70,riskLabel:"riesgo muy alto (enfermedad cardiovascular aterosclerótica)"};
   else if(dm&&ldlv>100)inp.ldlTarget={value:ldlv,target:100,riskLabel:"riesgo alto (diabetes)"};
  }
