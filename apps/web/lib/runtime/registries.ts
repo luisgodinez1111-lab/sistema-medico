@@ -11,7 +11,7 @@ import{withTenantTx}from"./connection";
 // Auditoría R06-20: las piezas de SQL compartidas (filtro por paciente y los LATERAL de transición, nombre y versión)
 // viven en su propio módulo, con la medición que decidió el diseño. Salieron de aquí cuando el guardián de god-module
 // avisó de que este fichero pasaba de 300 líneas: tenía razón, son dos responsabilidades.
-import{type RegistryQuery,porPaciente,nombreDePaciente,ultimaTransicion,versionDelAgregado,despuesDelCursor,paginaOrdenada}from"./read-model-joins";
+import{type RegistryQuery,porPaciente,nombreDePaciente,ultimaTransicion,versionDelAgregado,despuesDelCursor,paginaOrdenada,anuladoLat,supersedidoLat}from"./read-model-joins";
 import{type Page,armarPagina,cuentaDe,limiteDe,decodeCursor}from"./pagination";
 export type{RegistryQuery};
 
@@ -175,7 +175,14 @@ const RES_LIFECYCLE:Record<string,"RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED">={RE
 export async function resultsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Promise<Page<ResultRow>&{total:number}>{
  const limit=limiteDe(q),after=decodeCursor(q?.cursor,2);
  return withTenantTx(ctx,async tx=>{
-  const cuenta=await tx`select count(*)::int as n from clinical_events a where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED' ${porPaciente(tx,q)}`;
+  // El total cuenta lo MISMO que la lista: ni anulados (ENTERED_IN_ERROR) ni corregidos (supersedidos por un RECEIVED con
+  // supersedes). Antes contaba ambos y el total quedaba > nº de filas mostradas; además un resultado corregido —con su flag
+  // critical retractado— reaparecía como vigente en el registro poblacional. Anti-unión por LATERAL (guardarraíl R06-20: en
+  // registries no puede haber subconsulta correlacionada por fila en el SELECT), igual que la lista de abajo.
+  const cuenta=await tx`select count(*)::int as n from clinical_events a
+     ${anuladoLat(tx,ctx.tenantId)} ${supersedidoLat(tx,ctx.tenantId)}
+     where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
+     and anul.anulado is null and sup.superseded is null ${porPaciente(tx,q)}`;
   const rows=await tx`
    select a.occurred_at as cursor_at, a.aggregate_id, a.payload->>'patientId' as pid, a.payload->>'analyte' as analyte, a.payload->>'value' as value,
      a.payload->>'critical' as critical, a.payload->>'status' as status, a.payload->>'interpretation' as interpretation, a.occurred_at as received_at,
@@ -192,16 +199,13 @@ export async function resultsRegistry(ctx:HttpTenantContext,q?:RegistryQuery):Pr
      where o.tenant_id=${ctx.tenantId} and o.aggregate_type='ClinicalOrder'
        and o.aggregate_id=(a.payload->>'orderId')::uuid and o.payload->>'kind'='CREATED'
      limit 1) ord on true
-   -- R03-10: un resultado ANULADO (paciente equivocado, muestra mal identificada) no aparece en el registro clínico.
-   -- El criterio es «anulado ALGUNA VEZ», no «su última transición es ENTERED_IN_ERROR»: una anotación posterior no
-   -- resucita un resultado anulado. Antes era un NOT EXISTS correlacionado por fila; ahora es una anti-unión que se
-   -- resuelve una vez, con la misma semántica.
-   left join lateral (select 1 as anulado from clinical_events v
-              where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR'
-              limit 1) anul on true
+   -- Retractados fuera (anti-uniones LATERAL de read-model-joins): un resultado ANULADO (ENTERED_IN_ERROR, p. ej. paciente
+   -- equivocado) o CORREGIDO (superado por un RECEIVED nuevo con supersedes, C-02) no es vigente y no aparece en el registro.
+   -- Criterio «alguna vez», no «última transición»: una anotación posterior no resucita un resultado retractado.
+   ${anuladoLat(tx,ctx.tenantId)} ${supersedidoLat(tx,ctx.tenantId)}
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
      ${porPaciente(tx,q)}
-     and anul.anulado is null
+     and anul.anulado is null and sup.superseded is null
      ${despuesDelCursor(tx,after)}
    ${paginaOrdenada(tx,limit)}`;
   return{...armarPagina(rows,limit,r=>{const o=r as Record<string,unknown>;return{

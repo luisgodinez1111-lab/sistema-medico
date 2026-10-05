@@ -55,7 +55,12 @@ export async function readTenantOpenAggregates(ctx:HttpTenantContext):Promise<Re
      (select payload->>'kind' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id and ${lifecycleEventOnly(tx)} order by sequence desc limit 1) as latest_kind,
      (select payload->>'status' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_status
    from clinical_events r
-   where r.tenant_id=${ctx.tenantId} and r.sequence=1 and r.payload->>'patientId' is not null`;
+   where r.tenant_id=${ctx.tenantId} and r.sequence=1 and r.payload->>'patientId' is not null
+     -- Coherencia de lectores: un resultado ANULADO (ENTERED_IN_ERROR) o CORREGIDO (supersedido) no es un pendiente vivo
+     -- del worklist. Sin esto generaba un gap como si siguiera abierto. Solo aplica a DiagnosticResult; el resto no cambia.
+     and not (r.aggregate_type='DiagnosticResult' and (
+       exists(select 1 from clinical_events e where e.tenant_id=${ctx.tenantId} and e.aggregate_id=r.aggregate_id and e.payload->>'kind'='ENTERED_IN_ERROR')
+       or exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text)))`;
   return rows.map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),patientId:String(x.patient_id),latestKind:String(x.latest_kind??""),status:String(x.latest_status??"")}));
  });
 }

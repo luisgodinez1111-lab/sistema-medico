@@ -52,9 +52,12 @@ export async function patientChart(ctx:HttpTenantContext,patientId:string):Promi
  return withTenantTx(ctx,async tx=>{
   const t=ctx.tenantId;
   // POMR: etiqueta del problema enlazado (medicación/órdenes traen `problemId`). LATERAL por fila; si no hay problemId
-  // (o el problema no existe), devuelve null y no se enlaza. problemId viene validado como uuid del write-side.
+  // (o el problema no existe), devuelve null y no se enlaza. problemId viene validado como uuid del write-side, pero eso NO
+  // garantiza que sea un problema de ESTE paciente: sin acotar por `patientId`, una med/orden que referenciara el problemId
+  // de otro paciente del mismo tenant mostraría aquí el CIE-10 ajeno (fuga cross-paciente de la etiqueta diagnóstica).
   const probLink=tx`left join lateral (select p.payload->>'code' as pcode, p.payload->>'description' as pdesc from clinical_events p
     where p.tenant_id=${t} and p.aggregate_type='ClinicalProblem' and p.payload->>'kind'='ADDED'
+      and p.payload->>'patientId'=${patientId}
       and p.aggregate_id=(a.payload->>'problemId')::uuid limit 1) prob on true`;
   const problemLabelOf=(o:Record<string,unknown>)=>{const c=str(o,"pcode"),d=str(o,"pdesc");const l=[c,d].filter(Boolean).join(" · ");return l||undefined;};
   const encSpread=(o:Record<string,unknown>)=>{const e=str(o,"encounter_id");return e?{encounterId:e}:{};};// acto (encuentro) en que se creó la fila

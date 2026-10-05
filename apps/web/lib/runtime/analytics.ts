@@ -40,8 +40,10 @@ export async function resultsSummary(ctx:HttpTenantContext,w?:ReportWindow):Prom
    left join ${transicionesPorAgregado(tx,ctx.tenantId,"DiagnosticResult")} lk
      on lk.aggregate_id=a.aggregate_id and lk.rn=1
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED' ${enVentana(tx,w)}
-     -- Mismo criterio que el registro: un resultado anulado no cuenta (R03-10).
-     and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR')`;
+     -- Mismo criterio que el registro: un resultado anulado no cuenta (R03-10)...
+     and not exists(select 1 from clinical_events v where v.tenant_id=${ctx.tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR')
+     -- ...ni un resultado CORREGIDO (C-02): contaria el valor viejo, con su flag critical retractado, como hallazgo vigente.
+     and not exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=a.aggregate_id::text)`;
   const o=(rows[0]??{}) as Record<string,unknown>;
   return{total:Number(o.total??0),abnormal:Number(o.abnormal??0),enSeguimiento:Number(o.en_seguimiento??0),pendientes:Number(o.pendientes??0)};
  });
@@ -124,10 +126,14 @@ export async function reportAggregates(ctx:HttpTenantContext,w?:ReportWindow):Pr
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='ClinicalOrder' and a.payload->>'kind'='CREATED' ${enVentana(tx,w)}
      and a.payload->>'orderType'='PROCEDURE' and coalesce(a.payload->>'detail','')<>''
    group by 1 order by 2 desc, 1 asc`;
-  // HbA1c: total y cuántas por debajo del umbral. El valor es texto en el payload; se limpia igual que en la lista.
+  // HbA1c: total y cuántas por debajo del umbral. El valor es texto libre en el payload. Auditoría R2B-021 (misma lección que
+  // `claimsIncome`): `regexp_replace(...,'[^0-9.]','')` LIMPIA el ruido pero NO garantiza un número — «7.0.1» o «.» sobreviven
+  // y el `::numeric` LANZABA, devolviendo 500 en TODO el tablero de reportes por una sola fila histórica mal formada. Se
+  // castea solo si el valor limpio tiene forma de un único número; si no, no cuenta como «en control» (no rompe el tablero).
+  const HBA1C_NUM=tx`nullif(regexp_replace(a.payload->>'value','[^0-9.]','','g'),'')`;
   const a1c=await tx`
    select count(*)::int as total,
-     count(*) filter (where nullif(regexp_replace(a.payload->>'value','[^0-9.]','','g'),'')::numeric < ${HBA1C_CONTROL_THRESHOLD})::int as en_control
+     count(*) filter (where ${HBA1C_NUM} ~ '^[0-9]+(\.[0-9]+)?$' and (${HBA1C_NUM})::numeric < ${HBA1C_CONTROL_THRESHOLD})::int as en_control
    from clinical_events a
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='DiagnosticResult' and a.payload->>'kind'='RECEIVED'
      and upper(a.payload->>'analyte')='HBA1C' ${enVentana(tx,w)}

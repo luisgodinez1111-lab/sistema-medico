@@ -13,14 +13,14 @@ const{ensurePatientIn}=await import("./_patient.mts");
 const SECRET=process.env.SESSION_SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{resolveVerified}=await import("../../apps/web/lib/http-command");
-const{readAggregateEvents,latestAnalyteReading,analyteSeries,countOpenCriticalResults}=await import("../../apps/web/lib/clinical-runtime");
+const{readAggregateEvents,latestAnalyteReading,analyteSeries,countOpenCriticalResults,readTenantOpenAggregates}=await import("../../apps/web/lib/clinical-runtime");
 const{criticalObligationId}=await import("../../apps/web/lib/result-lifecycle");
 const{foldResult}=await import("../../packages/result-fold/src");
 const{foldObligation}=await import("../../packages/obligation-fold/src");
 const results=await import("../../apps/web/app/api/v1/results/route");
 const correction=await import("../../apps/web/app/api/v1/results/[resultId]/correction/route");
 const errorMark=await import("../../apps/web/app/api/v1/results/[resultId]/error-mark/route");
-const{resultsRegistry}=await import("../../apps/web/lib/clinical-runtime");
+const{resultsRegistry,resultsSummary}=await import("../../apps/web/lib/clinical-runtime");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 const phys=signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes:["result:write","result:read","patient:read"],purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);
 const H=(x:Record<string,string>={})=>({"content-type":"application/json",authorization:"Bearer "+phys,...x});
@@ -47,6 +47,16 @@ try{
  ok((await latestAnalyteReading(ctx,pat,"POTASSIUM"))?.value===4.2,"CALCULATORS_READ_CORRECTED_VALUE");
  ok((await analyteSeries(ctx,pat,"POTASSIUM")).map(p=>p.value).join()==="4.2","SERIES_EXCLUDES_SUPERSEDED");
  ok(await countOpenCriticalResults(ctx,pat)===0,"SIGN_GATE_NO_LONGER_COUNTS_CORRECTED_CRITICAL");
+ // Coherencia de lectores (auditoría Lote 1): el registro poblacional "Toda la clínica" y su KPI tampoco resucitan el
+ // original corregido — antes solo excluían ENTERED_IN_ERROR, así que el K 7.0 crítico reaparecía vigente y duplicado.
+ const regItems=(await resultsRegistry(ctx)).items;
+ ok(!regItems.some(x=>x.resultId===r1)&&regItems.some(x=>x.resultId===r2&&x.critical===false),"CORRECTED_ORIGINAL_NOT_IN_REGISTRY");
+ const summ=await resultsSummary(ctx);
+ ok(summ.total===1&&summ.abnormal===0,"CORRECTED_NOT_COUNTED_IN_SUMMARY");
+ // El worklist poblacional (readTenantOpenAggregates) tampoco debe listar el resultado corregido como agregado "abierto"
+ // (si además estuvo ACTIONED, generaría un gap crítico fantasma); el corregido vigente (r2) sí es una fila legítima.
+ const openAggs=await readTenantOpenAggregates(ctx);
+ ok(!openAggs.some(x=>x.aggregateId===r1)&&openAggs.some(x=>x.aggregateId===r2),"CORRECTED_ORIGINAL_NOT_IN_WORKLIST_AGGREGATES");
  ok(foldObligation(await readAggregateEvents(ctx,criticalObligationId(r1))).state==="COMPLETED","DERIVED_OBLIGATION_COMPLETED_WITH_REASON");
  // reintento idempotente -> 200 replayed, sin eventos nuevos
  r=await correction.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":key,"if-match":"1"}),body}),RP(r1));
@@ -95,6 +105,7 @@ try{
  ok(await countOpenCriticalResults(ctx,pat2)===0,"VOIDED_CRITICAL_NO_LONGER_BLOCKS");
  // R06-20: el registro devuelve una página (items + cursor + total) en lugar de todas las filas del tenant.
  ok(!(await resultsRegistry(ctx)).items.some(x=>x.resultId===r3),"VOIDED_NOT_IN_REGISTRY");
+ ok(!(await readTenantOpenAggregates(ctx)).some(x=>x.aggregateId===r3),"VOIDED_NOT_IN_WORKLIST_AGGREGATES");
  ok((await readAggregateEvents(ctx,r3)).length===2,"VOID_EVENT_PERSISTS_IN_CHAIN");
  ok(foldObligation(await readAggregateEvents(ctx,criticalObligationId(r3))).state==="COMPLETED","VOID_COMPLETES_DERIVED_OBLIGATION");
  // reintento idempotente y segunda anulación

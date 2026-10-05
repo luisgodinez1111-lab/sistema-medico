@@ -66,6 +66,22 @@ export const versionDelAgregado=(tx:Tx,tenantId:string)=>tx`left join lateral (
   select count(*)::int as version from clinical_events v
   where v.tenant_id=${tenantId} and v.aggregate_id=a.aggregate_id) vr on true`;
 
+/**
+ * Anti-uniones para resultados RETRACTADOS. Un resultado anulado (ENTERED_IN_ERROR) o corregido (superado por un RECEIVED
+ * nuevo con `supersedes`) NO es vigente y no debe reaparecer en registros/KPI/worklist. Se resuelven como LATERAL (igual que
+ * el resto de atributos por fila; ADR R06-20: en `registries.ts` no puede haber subconsulta correlacionada en el SELECT).
+ * Vigente = `anul.anulado is null and sup.superseded is null`. Alias `a` = evento base (RECEIVED). Criterio de anulado:
+ * «alguna vez», no «última transición» — una anotación posterior no resucita un resultado retractado.
+ */
+export const anuladoLat=(tx:Tx,tenantId:string)=>tx`left join lateral (
+  select 1 as anulado from clinical_events v
+  where v.tenant_id=${tenantId} and v.aggregate_id=a.aggregate_id and v.payload->>'kind'='ENTERED_IN_ERROR'
+  limit 1) anul on true`;
+export const supersedidoLat=(tx:Tx,tenantId:string)=>tx`left join lateral (
+  select 1 as superseded from clinical_events s
+  where s.tenant_id=${tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=a.aggregate_id::text
+  limit 1) sup on true`;
+
 // Los tres LATERAL que traen VARIAS columnas de un mismo evento (ADMINISTERED de la vacuna, PAID de la factura, los
 // atributos de la orden) se escriben explícitos en su registro. Se consideró un helper genérico con la lista de columnas
 // como texto, y se descartó: habría exigido interpolar SQL crudo con `unsafe`, y en este repositorio no se abre esa puerta

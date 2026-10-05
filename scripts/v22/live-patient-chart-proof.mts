@@ -84,6 +84,17 @@ try{
   ok(arr.every(x=>!!x.id&&!!x.label&&!!x.state)&&arr.some(x=>x.state===st),`${k.toUpperCase()}_SHAPE`);
   ok(hasVersion(arr),`${k.toUpperCase()}_VERSION`);
  }
+ // FUGA CROSS-PACIENTE de la etiqueta diagnóstica (auditoría Lote 1): una med de un paciente que referencia el problemId de
+ // OTRO paciente del MISMO tenant no debe mostrar su CIE-10. El write-side acepta `problemId` sin validar pertenencia (solo
+ // formato uuid), así que la barrera está en el read-model: `probLink` ahora acota por patientId. Antes el chart de A pintaba
+ // el diagnóstico de B como etiqueta de la med de A.
+ const pA=crypto.randomUUID(),pB=crypto.randomUUID();
+ await reg(phys,pA,50,"MALE");await reg(phys,pB,50,"FEMALE");
+ const probB=await dx(phys,pB,"C50.9"); // problema DISTINTIVO de B (no existe en A)
+ await med(phys,pA,"metformina",probB); // med de A que referencia el problema de B (problemId ajeno)
+ const gA=await get(phys,pA);
+ ok(gA.body.medications.length===1,"XP_MED_PRESENT");
+ ok(!String(gA.body.medications[0].problemLabel??"").includes("C50.9"),"XP_NO_CROSS_PATIENT_PROBLEM_LABEL");
  // Aislamiento: otro paciente no ve esta historia.
  const p2=crypto.randomUUID();await reg(phys,p2,30,"MALE");const g2=await get(phys,p2);
  ok(g2.body.problems.length===0&&g2.body.allergies.length===0&&g2.body.obligations.length===0&&g2.body.carePlans.length===0,"OTHER_PATIENT_EMPTY");

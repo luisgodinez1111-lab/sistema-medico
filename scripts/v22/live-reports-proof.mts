@@ -128,6 +128,15 @@ try{
  ok(qi("glycemic_control")?.met===true,"QI_GLYCEMIC_MET"); // 75 >= meta 70
  ok(qi("closed_records")?.denominator===3&&qi("closed_records")?.computable===true,"QI_CLOSED_COMPUTABLE"); // 3 consultas abiertas, 0 firmadas
 
+ // Auditoría Lote 1 (R2B-021 aplicada a HbA1c): un valor HISTÓRICO malformado NO debe tumbar el tablero. Antes el cast
+ // `::numeric` del indicador «HbA1c en control» LANZABA y /reports devolvía 500 para TODO el tenant por una sola fila mala.
+ // El resultado se acepta como no-numérico (cualitativo) en la captura, igual que una fila histórica previa a la validación.
+ await a1c(phys,p2,"7.0.1");
+ const Rmal=await reports(phys);
+ ok(Rmal.status===200,"HBA1C_MALFORMADO_NO_TUMBA_REPORTES");
+ const qimal=(Rmal.body as typeof b).qualityIndicators.find(x=>x.key==="glycemic_control");
+ ok(qimal?.numerator===3,"HBA1C_MALFORMADO_NO_CUENTA_EN_CONTROL"); // los 3 en control siguen siendo 3; el malformado no suma
+
  // sin scope -> 403
  const noScope=await reports(tok(["patient:read"]));
  ok(noScope.status===403,"MISSING_SCOPE_403");
