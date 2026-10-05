@@ -66,6 +66,20 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 1/
   fireEvent.click(screen.getByRole("button",{name:"Guardar signos vitales"}));
   expect(await screen.findByText(/guardados en el expediente/i)).toBeTruthy();
  });
+ it("vista Consulta: la PRIMERA captura abre el encuentro y liga el signo al ACTO (encounterId) — auditoría E2E lote 3",async()=>{
+  const base=posted.length;
+  render(<Workspace/>);
+  await abrirConsulta(); // NO se abre el encuentro a mano: la captura debe abrirlo perezosamente
+  fireEvent.change(screen.getByPlaceholderText("120/80"),{target:{value:"128/82"}});
+  fireEvent.click(screen.getByRole("button",{name:"Guardar signos vitales"}));
+  await screen.findByText(/guardados en el expediente/i);
+  const mine=posted.slice(base);
+  const encPost=mine.find(p=>p.path.endsWith("/api/v1/encounters"));
+  expect(encPost,"la primera captura abrió el encuentro (no quedó huérfana)").toBeTruthy();
+  const encId=(encPost!.body as{encounterId:string}).encounterId;
+  const vitPost=mine.find(p=>p.path.includes("/api/v1/vitals")&&(p.body as{vitalId?:string}).vitalId);
+  expect((vitPost!.body as{encounterId?:string}).encounterId,"el signo queda ligado al acto").toBe(encId);
+ });
 
  // (Fase 2) El registro clínica-wide de Vacunas se retiró del menú; Vacunas es ahora un submenú del Expediente
  // (paciente-scoped, createImmunization). El alta por el endpoint /immunizations la cubren los live-proofs del backend y

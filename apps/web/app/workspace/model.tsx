@@ -447,7 +447,11 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   if(!patientId||!ready||!session)return;
   let cancelled=false;const ac=new AbortController();
   // Cambio de paciente: se borra DE INMEDIATO lo del paciente anterior (nunca datos de A bajo la identidad de B; U-05).
-  setTl(null);setGaps(null);setSnap(null);setTrends(null);setChartState("loading");
+  // Auditoría E2E lote 3 — STALE-WHILE-REVALIDATE: SOLO se blanquea cuando cambia el PACIENTE. En una RECARGA del mismo
+  // paciente (chartReload, tras documentar un signo/dx/orden) se conserva lo mostrado mientras se revalida: antes cada
+  // captura blanqueaba snap/gaps y el CDS parpadeaba a "sin alertas"/"no evaluados" y el gate de firma se veía desbloqueado
+  // un instante (percepción peligrosa de "todo despejado" justo tras documentar). `dataOwner` ya marca de quién son los datos.
+  if(dataOwner.current!==patientId){setTl(null);setGaps(null);setSnap(null);setTrends(null);setChartState("loading");}
   const t=setTimeout(async()=>{
    // 404 = paciente sin datos/sin registrar (legítimo). Cualquier otro >=400 o excepción = NO SE SABE => "error".
    let failed=false;const known=(s:number)=>{if(s>=400&&s!==404)failed=true;return s<400;};
@@ -790,6 +794,18 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   const id=uuid();const r=await apiRequest("/api/v1/encounters",{method:"POST",body:{encounterId:id,patientId,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}setEnc({id,state:"OPEN",version:Number(r.body["version"]??1)});
  });
+ // Auditoría E2E lote 3 — EL ACTO COMO UNIDAD. La PRIMERA captura clínica de la consulta (signo vital, diagnóstico, orden)
+ // abre el encuentro de forma PEREZOSA si aún no existe, para que quede LIGADA al acto (encounterId) en vez de huérfana —
+ // antes esos controles disparaban su POST con `enc===null` y lo capturado antes de "Guardar valoración" no formaba parte de
+ // la visita ni del sello de la firma. NO se auto-abre al ENTRAR a la consulta (eso crearía encuentros OPEN vacíos de quien
+ // solo revisa). Mejor esfuerzo: si la apertura falla, la captura procede igual (el dato clínico no se pierde), sin ligar.
+ async function ensureEncounterId():Promise<string|undefined>{
+  if(enc)return enc.id;
+  if(!patientId)return undefined;
+  const id=uuid();const r=await apiRequest("/api/v1/encounters",{method:"POST",body:{encounterId:id,patientId,occurredAt:nowIso()}});
+  if(r.status>=400)return undefined;
+  setEnc({id,state:"OPEN",version:Number(r.body["version"]??1)});return id;
+ }
  const saveAssessment=()=>call("assess",async()=>{if(!enc)return;
   const r=await apiRequest(`/api/v1/encounters/${enc.id}/assessment`,{method:"POST",body:{assessment,plan,occurredAt:nowIso()},ifMatch:enc.version});
   if(r.status>=400){setError(errMsg(r));return;}setEnc({...enc,state:"READY_TO_SIGN",version:Number(r.body["version"]??enc.version+1)});
@@ -883,11 +899,12 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   // y de su tipo, así que si falla a la mitad y el médico reintenta, los ya guardados se REPITEN idempotentemente (200) y solo
   // se crean los que faltaban: sin duplicados y sin pérdidas silenciosas. El id se conserva hasta que TODO se guarda.
   const submission=cVitSubmission.current??(cVitSubmission.current=uuid());
+  const encId=await ensureEncounterId(); // liga los signos al acto (abre el encuentro si es la primera captura)
   try{
    const marks:string[]=[];const saved:string[]=[];const failed:string[]=[];
    for(const[vt,val,u]of toSave){
     const key=`${submission}:${vt}`;const vitalId=derivedClientUuid(key);
-    const r=await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId,patientId,vitalType:vt,value:val,unit:u,...(enc?.id?{encounterId:enc.id}:{}),occurredAt:at},idempotencyKey:derivedClientUuid(key+":idem")});
+    const r=await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId,patientId,vitalType:vt,value:val,unit:u,...(encId?{encounterId:encId}:{}),occurredAt:at},idempotencyKey:derivedClientUuid(key+":idem")});
     if(r.status>=400){failed.push(`${vt}: ${errMsg(r)}`);continue;}
     saved.push(vt);
     if(String(r.body["status"]??"")==="CRITICAL")marks.push(`${vt} ${val}: ${String(r.body["interpretation"]??"crítico")}`);
@@ -916,12 +933,13 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   setCOrdBusy(true);setCOrdMsg(null);
   const at=nowIso();
   const submission=cOrdSubmission.current??(cOrdSubmission.current=uuid());
+  const encId=await ensureEncounterId(); // liga las órdenes al acto (abre el encuentro si es la primera captura)
   try{
    const creadas:string[]=[];const fallidas:string[]=[];
    for(const detail of cOrdSel){
     const key=`${submission}:${patientId}:${cOrdCat}:${detail}`; // el paciente entra en la llave: un lote no puede replicarse sobre otro paciente
 
-    const r=await apiRequest("/api/v1/orders",{method:"POST",body:{orderId:derivedClientUuid(key),patientId,orderType:cOrdCat,detail,...(enc?.id?{encounterId:enc.id}:{}),occurredAt:at},idempotencyKey:derivedClientUuid(key+":idem")});
+    const r=await apiRequest("/api/v1/orders",{method:"POST",body:{orderId:derivedClientUuid(key),patientId,orderType:cOrdCat,detail,...(encId?{encounterId:encId}:{}),occurredAt:at},idempotencyKey:derivedClientUuid(key+":idem")});
     if(r.status>=400){fallidas.push(`${detail}: ${errMsg(r)}`);continue;}
     creadas.push(detail);
    }
@@ -1044,11 +1062,13 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   if(!patientId){setCDxMsg("Selecciona un paciente.");return;}
   setCDxBusy(true);setCDxMsg(null);
   try{
-   const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:uuid(),patientId,code,epistemic,...(enc?.id?{encounterId:enc.id}:{}),occurredAt:nowIso()}});
+   const encId=await ensureEncounterId(); // liga el diagnóstico al acto (abre el encuentro si es la primera captura)
+   const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:uuid(),patientId,code,epistemic,...(encId?{encounterId:encId}:{}),occurredAt:nowIso()}});
    if(r.status>=400){setCDxMsg(errMsg(r));return;}
    const epLbl:Record<string,string>={PROBABLE:"presuntivo",CONFIRMED:"confirmado",POSSIBLE:"diferencial"};
-   setCDxQuery("");setCDxMsg(`Diagnóstico ${code} agregado (${epLbl[epistemic]??"presuntivo"}) ✓`);setChartReload(n=>n+1);// refresca problemas del expediente vivo + el "Resumen del acto"
-   try{const sp=await apiRequest(`/api/v1/patients/${patientId}/consultation-snapshot`,{method:"GET"});if(sp.status<400&&sp.body["registered"])setSnap(conForma<Snap>(sp.body,FORMA.snap));}catch{/* refresco best-effort del snapshot */}
+   // Un solo refresco del expediente vivo (que recarga el snapshot sin blanquear, stale-while-revalidate). Antes había
+   // además un GET de consultation-snapshot inline: doble fetch y doble blanqueo. El efecto del snapshot ya lo cubre.
+   setCDxQuery("");setCDxMsg(`Diagnóstico ${code} agregado (${epLbl[epistemic]??"presuntivo"}) ✓`);setChartReload(n=>n+1);
   }catch(e){setCDxMsg(userMessage(e));}finally{setCDxBusy(false);}
  };
  const proposeMed=()=>call("med-new",async()=>{
