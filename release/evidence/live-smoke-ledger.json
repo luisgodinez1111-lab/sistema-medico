@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-25T23:19:50.272Z",
+  "generatedAt": "2026-10-05T20:56:03.944Z",
   "target": "local-ephemeral",
-  "total": 115,
+  "total": 118,
   "results": [
     {
       "proof": "scripts/v22/live-aa-gradient-proof.mts",
@@ -40,6 +40,11 @@
     },
     {
       "proof": "scripts/v22/live-allergy-registry-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-antecedentes-lifecycle-proof.mts",
       "status": "PASS",
       "exitCode": 0
     },
@@ -110,6 +115,11 @@
     },
     {
       "proof": "scripts/v22/live-claims-registry-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-clinical-cutoffs-proof.mts",
       "status": "PASS",
       "exitCode": 0
     },
@@ -359,6 +369,11 @@
       "exitCode": 0
     },
     {
+      "proof": "scripts/v22/live-patient-chart-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
       "proof": "scripts/v22/live-patient-demographics-proof.mts",
       "status": "PASS",
       "exitCode": 0
@@ -583,8 +598,8 @@
     {
       "gate": "scripts/ci/live-smoke.mts",
       "status": "PASS",
-      "passed": 115,
-      "total": 115
+      "passed": 118,
+      "total": 118
     }
   ]
 }

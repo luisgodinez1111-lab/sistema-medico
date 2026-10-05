@@ -62,7 +62,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 1/
   render(<Workspace/>);
   await abrirConsulta();
   // capturar la TA en la grilla de signos vitales y guardar
-  fireEvent.change(screen.getByPlaceholderText("120/80"),{target:{value:"128/82"}});
+  // Auditoría R07 (05-oct-2026): la TA se busca por su ETIQUETA, no por el placeholder.
+  // El placeholder de ese campo es `V["BP"] ?? "120/80"`: por diseño muestra la ÚLTIMA TA conocida como pista, así que deja
+  // de ser «120/80» en cuanto existe una previa. Tres tests se enganchaban a él y fallaban al correr el proyecto de UI
+  // completo —pasaban en aislamiento—, lo que convertía el verde de la suite en una función de qué más se hubiera ejecutado.
+  fireEvent.change(screen.getByLabelText("TA (mmHg)"),{target:{value:"128/82"}});
   fireEvent.click(screen.getByRole("button",{name:"Guardar signos vitales"}));
   expect(await screen.findByText(/guardados en el expediente/i)).toBeTruthy();
  });
@@ -70,7 +74,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 1/
   const base=posted.length;
   render(<Workspace/>);
   await abrirConsulta(); // NO se abre el encuentro a mano: la captura debe abrirlo perezosamente
-  fireEvent.change(screen.getByPlaceholderText("120/80"),{target:{value:"128/82"}});
+  fireEvent.change(screen.getByLabelText("TA (mmHg)"),{target:{value:"128/82"}});
   fireEvent.click(screen.getByRole("button",{name:"Guardar signos vitales"}));
   await screen.findByText(/guardados en el expediente/i);
   const mine=posted.slice(base);
