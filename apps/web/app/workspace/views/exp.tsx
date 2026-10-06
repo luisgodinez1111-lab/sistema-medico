@@ -4,7 +4,7 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf,vitalForDisplay} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{Check,ESI_FORM_EMPTY,unidadesDe,defaultUnitFor,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,ANT_HEREDO,ANT_CRONICOS,ANT_PRENATAL,ANT_PERINATAL,ANT_ALIMENTACION,ANT_DESARROLLO,ANT_INMUNIZA,isPediatricAge,antFreshness,type AntContent,type ExpTab,type TrendKey}from"../shared";
+import{Check,ESI_FORM_EMPTY,esiListo,unidadesDe,defaultUnitFor,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,ANT_HEREDO,ANT_CRONICOS,ANT_PRENATAL,ANT_PERINATAL,ANT_ALIMENTACION,ANT_DESARROLLO,ANT_INMUNIZA,isPediatricAge,antFreshness,type AntContent,type ExpTab,type TrendKey}from"../shared";
 import{searchIcd10}from"../../../../../packages/terminology/src";
 // R2B-019: el plazo de reevaluación es de CTAS, no de ESI (ESI no publica tiempos). La pantalla lo dice para que nadie lo
 // lea como un número del algoritmo ESI.
@@ -15,7 +15,7 @@ import{useFocusTrap}from"../shared";
 import EncounterForm from"./_encounter";
 import PacientesView from"./pacientes";
 export default function ExpView(){
- const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab,setView,openConsulta,antSnap,antForm,setAntForm,antBusy,antMsg,antReason,setAntReason,antEditing,setAntEditing,saveAntecedentes,openEdit,patEdit,setPatEdit,editForm,setEditForm,amendPatient,editBusy,patMsg,setPatMsg,medProblem,setMedProblem,ordProblem,setOrdProblem,docsSnap,docDetail,docDetBusy,loadDoc,setDocDetail,attInputRef,attBusy,attMsg,ATT_MIME,onPickAttachment,viewAttachment,removeAttachment,fmtBytes}=useWorkspace();
+ const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,safetyUnknown,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab,setView,openConsulta,antSnap,antForm,setAntForm,antBusy,antMsg,antReason,setAntReason,antEditing,setAntEditing,saveAntecedentes,openEdit,patEdit,setPatEdit,editForm,setEditForm,amendPatient,editBusy,patMsg,setPatMsg,medProblem,setMedProblem,ordProblem,setOrdProblem,docsSnap,docDetail,docDetBusy,loadDoc,setDocDetail,attInputRef,attBusy,attMsg,ATT_MIME,onPickAttachment,viewAttachment,removeAttachment,fmtBytes}=useWorkspace();
  // Confirmación de dos pasos para quitar un adjunto (UI efímera; quitar borra el blob privado, acción registrada en bitácora).
  const[attConfirm,setAttConfirm]=useState<string|null>(null);
  // Diálogos de seguridad (anular bloqueo de Rx / reconocer verificación incompleta / acción irreversible): focus-trap y
@@ -52,12 +52,18 @@ export default function ExpView(){
   <PatientHeader name={patientName} patientId={patientId}
    status={summary&&(anyAlert
      ? <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-        {highGaps>0&&safetyChip(highGaps,"críticos","crit",alertGlyph)}
+        {(highGaps??0)>0&&safetyChip(highGaps as number,"críticos","crit",alertGlyph)}
         {summary.activeAllergies>0&&safetyChip(summary.activeAllergies,"alergias","warn")}
         {summary.openResults>0&&safetyChip(summary.openResults,"result. abiertos","warn")}
         {summary.openObligations>0&&safetyChip(summary.openObligations,"obligaciones","warn")}
        </div>
-     : <span style={{display:"inline-flex",alignItems:"center",gap:6,background:"var(--c-green-bg)",color:P.greenOnPale,border:"1px solid var(--c-green-bd)",borderRadius:999,padding:"4px 12px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>✓ Sin alertas de seguridad</span>
+     /* Auditoría clínica multiespecialidad (06-oct-2026) — EL CHIP VERDE SOLO SE PINTA CUANDO EL SISTEMA SABE.
+        Antes `highGaps` colapsaba a 0 si la consulta de pendientes fallaba, y entonces esta rama afirmaba «✓ Sin alertas de
+        seguridad» precisamente cuando no se podía comprobar. Un médico lo lee como «este paciente está despejado». La misma
+        lección estaba ya aprendida para las insignias del menú (WS1-02) y no se había aplicado aquí, que es donde se lee. */
+     : safetyUnknown
+       ? <span role="status" style={{display:"inline-flex",alignItems:"center",gap:6,background:"#FFF4E5",color:P.amberOnPale,border:"1px solid #F0DBB8",borderRadius:999,padding:"4px 12px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>No se pudo comprobar la seguridad del paciente</span>
+       : <span style={{display:"inline-flex",alignItems:"center",gap:6,background:"var(--c-green-bg)",color:P.greenOnPale,border:"1px solid var(--c-green-bd)",borderRadius:999,padding:"4px 12px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>✓ Sin alertas de seguridad</span>
     )}
    actions={<div style={{display:"flex",gap:8,alignItems:"center"}}>
      <button style={{...btn,padding:"7px 14px",fontSize:13,flex:"0 0 auto"}} onClick={()=>openConsulta(patientId,patientName)}>Iniciar consulta →</button>
@@ -937,7 +943,10 @@ export default function ExpView(){
   </section>}
 
   {/* INCIDENTES / SEGURIDAD DEL PACIENTE */}
-  <section hidden={!inTab("hospital")} style={card}>
+  {/* Auditoría de arquitectura (06-oct-2026): esta sección era la ÚNICA de las ocho hospitalarias sin su guarda
+      `hospitalOn&&`. Se montaba siempre y vivía en una pestaña que no se renderiza sin la bandera: código instanciado e
+      INALCANZABLE para siempre, con su estado vivo. */}
+  {hospitalOn&&<section hidden={!inTab("hospital")} style={card}>
    <h2 {...anchor("Incidentes de seguridad")} style={{fontSize:18,margin:0}}>Incidentes de seguridad</h2>
    <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Reporte de eventos adversos (farmacovigilancia): reportar → revisar → escalar/resolver. Un incidente abierto aparece como pendiente HIGH en care gaps. Aislamiento por tenant.</p>
    <div style={{display:"grid",gridTemplateColumns:"200px 150px 1fr",gap:10,marginTop:12}}>
@@ -958,7 +967,7 @@ export default function ExpView(){
      </div>
     </div>)}
    </div>}
-  </section>
+  </section>}
 
   {/* TRIAGE / CLASIFICACIÓN DE ACUIDAD */}
   {hospitalOn&&<section hidden={!inTab("hospital")} style={card}>
@@ -1002,14 +1011,22 @@ export default function ExpView(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
        <label style={{fontSize:12,color:P.muted}}>Dolor (0-10)<input aria-label="Escala de dolor" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.painScore} onChange={e=>setTrEsi({...trEsi,painScore:e.target.value})} placeholder="—" /></label>
        <label style={{fontSize:12,color:P.muted}}>C · Recursos previstos<input aria-label="Recursos previstos" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.predictedResources} onChange={e=>setTrEsi({...trEsi,predictedResources:e.target.value})} /></label>
-       <label style={{fontSize:12,color:P.muted}}>Edad (meses)<input aria-label="Edad en meses" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.ageMonths} onChange={e=>setTrEsi({...trEsi,ageMonths:e.target.value})} /></label>
        <label style={{fontSize:12,color:P.muted}}>FC<input aria-label="Frecuencia cardíaca" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.heartRate} onChange={e=>setTrEsi({...trEsi,heartRate:e.target.value})} placeholder="—" /></label>
        <label style={{fontSize:12,color:P.muted}}>FR<input aria-label="Frecuencia respiratoria" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.respiratoryRate} onChange={e=>setTrEsi({...trEsi,respiratoryRate:e.target.value})} placeholder="—" /></label>
        <label style={{fontSize:12,color:P.muted}}>SpO₂ (%)<input aria-label="Saturación de oxígeno (SpO2)" style={{...input,marginTop:4}} inputMode="numeric" value={trEsi.spo2} onChange={e=>setTrEsi({...trEsi,spo2:e.target.value})} placeholder="—" /></label>
       </div>
-      <div style={{fontSize:11.5,color:P.muted}}>Un signo vital vacío es «no se midió», no «normal»: el algoritmo lo reporta como faltante en vez de asumirlo.</div>
+      {/* Auditoría clínica multiespecialidad (06-oct-2026): la EDAD ya la sabe el sistema y los umbrales del punto D dependen
+          de ella. Antes se teclaba en meses y, vacía, valía 0 — umbrales de recién nacido aplicados a un adulto. Se deriva. */}
+      <div style={{fontSize:11.5,color:P.muted}}>
+       Edad tomada del expediente: <b style={{color:P.ink}}>{snap?.demographics.age!==undefined?`${snap.demographics.age} años`:"sin fecha de nacimiento registrada"}</b>
+       {" "}— los umbrales de signos vitales del punto D dependen de ella.
+      </div>
+      <div style={{fontSize:11.5,color:P.muted}}>Un signo vital vacío es «no se midió», no «normal»: el algoritmo lo reporta como faltante en vez de asumirlo. Los <b style={{color:P.ink}}>recursos previstos</b> son obligatorios: sin ellos no se clasifica.</div>
       {trEsiMsg&&<div role="alert" style={{padding:"10px 12px",border:"1px solid var(--c-amber-bd)",background:"var(--c-amber-bg)",color:P.amberOnPale,borderRadius:10,fontSize:12.5,fontWeight:600}}>{trEsiMsg}</div>}
-      <div><button style={btn} disabled={busy!==""} onClick={()=>classifyTriage(t)}>{busy==="tr-"+t.id?"Calculando…":"Calcular y registrar nivel"}</button></div>
+      {/* Un triage a medias no se registra: sin recursos previstos, o sin edad en el expediente, el botón no se ofrece. */}
+      <div><button style={btn} disabled={busy!==""||!esiListo(trEsi,snap?.demographics.age)} onClick={()=>classifyTriage(t)}>{busy==="tr-"+t.id?"Calculando…":"Calcular y registrar nivel"}</button>
+       {!esiListo(trEsi,snap?.demographics.age)&&<div style={{fontSize:11.5,color:P.amberOnPale,marginTop:6,fontWeight:600}}>Falta declarar los recursos previstos{snap?.demographics.age===undefined?"; además el paciente no tiene fecha de nacimiento registrada":""}.</div>}
+      </div>
      </div>}
     </div>)}
    </div>}

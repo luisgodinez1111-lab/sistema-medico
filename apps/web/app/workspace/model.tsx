@@ -1304,7 +1304,11 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  // clasificar que parece clasificado.
  const classifyTriage=(t:Tr)=>call("tr-"+t.id,async()=>{
   setTrEsiMsg(null);
-  const r=await apiRequest(`/api/v1/triage/${t.id}/assessment`,{method:"POST",body:esiBody(trEsi),ifMatch:t.version});
+  // La edad viene del EXPEDIENTE, no del formulario (ver `esiBody`): un campo de edad vacío valía 0 meses y aplicaba los
+  // umbrales de recién nacido a un adulto. Si falta lo obligatorio, `esiBody` devuelve null y no se envía nada.
+  const cuerpo=esiBody(trEsi,snap?.demographics.age);
+  if(!cuerpo){setTrEsiMsg("Falta declarar los recursos previstos (y el paciente necesita fecha de nacimiento registrada): sin eso no se puede clasificar.");return;}
+  const r=await apiRequest(`/api/v1/triage/${t.id}/assessment`,{method:"POST",body:cuerpo,ifMatch:t.version});
   if(r.status>=400){setTrEsiMsg(errMsg(r));return;}
   const nivel=Number(r.body["acuity"]??0);
   setTriages(ts=>ts.map(x=>x.id===t.id?{...x,state:"TRIAGED",acuity:Number.isFinite(nivel)&&nivel>0?nivel:x.acuity,
@@ -1644,12 +1648,23 @@ export function deriveHeader(m:Omit<WorkspaceModel,"session">&{session:MedicalSe
 
  // Contexto de seguridad del paciente (P0/P1) para el patient header — SIEMPRE visible.
  const summary=tl?summarizePatient(tl):null;
- const highGaps=gaps?gaps.filter(g=>g.priority==="HIGH").length:0;
+// Auditoría clínica multiespecialidad (06-oct-2026) — UN PENDIENTE DESCONOCIDO NO ES CERO PENDIENTES.
+ //
+ // Esto era `gaps?…:0`, así que cuando la consulta de pendientes FALLABA (`gaps` en null) el contador valía 0 y la cabecera
+ // del paciente pintaba el chip verde «✓ Sin alertas de seguridad»: la pantalla afirmaba que el paciente está despejado
+ // precisamente cuando el sistema no lo sabía. La misma lección ya estaba aprendida tres líneas más abajo para las insignias
+ // del menú (WS1-02, «un contador sin dato no es un cero») y NO se había aplicado al chip de la cabecera ni al botón de
+ // firma, que son los dos sitios donde un médico la lee.
+ //
+ // `null` significa NO SE SABE y viaja como tal hasta la pantalla.
+ const highGaps:number|null=gaps===null?null:gaps.filter(g=>g.priority==="HIGH").length;
  const safetyChip=(n:number,label:string,tone:"crit"|"warn",icon?:React.ReactNode)=>{
   const c=tone==="crit"?{bg:"#FDEAEA",fg:P.redOnPale,bd:"#F3C9C9"}:{bg:"#FFF4E5",fg:P.amberOnPale,bd:"#F0DBB8"};
   return <span style={{display:"inline-flex",alignItems:"center",gap:6,background:c.bg,color:c.fg,border:`1px solid ${c.bd}`,borderRadius:999,padding:"4px 11px",fontSize:12.5,fontWeight:600,whiteSpace:"nowrap"}}>{icon}<b style={{fontSize:13,fontVariantNumeric:"tabular-nums"}}>{n}</b>{label}</span>;
  };
- const anyAlert=!!summary&&(highGaps>0||summary.activeAllergies>0||summary.openResults>0||summary.openObligations>0);
+ // Hay alerta si algo conocido es mayor que cero. Y `safetyUnknown` es distinto: no se pudo comprobar, y eso también se dice.
+ const anyAlert=!!summary&&((highGaps??0)>0||summary.activeAllergies>0||summary.openResults>0||summary.openObligations>0);
+ const safetyUnknown=highGaps===null;
  // Badges del sidebar en tiempo real (conteos del paciente activo, desde datos ya cargados).
  // Auditoría 2026-09-19, anexo R05a (WS1-02) — UN CONTADOR SIN DATO NO ES UN CERO.
  // Los cuatro contadores del menú colapsaban a 0 cuando su fuente era desconocida (`tl`/`gaps` en null por carga o por
@@ -1669,8 +1684,8 @@ export function deriveHeader(m:Omit<WorkspaceModel,"session">&{session:MedicalSe
  // Notificaciones (campana): pendientes críticos reales del consultorio (worklist HIGH) o del paciente.
  // WS1-02: la campana sin dato tampoco es un cero. Si la worklist no cargó y no hay contexto de paciente, es desconocido.
  const notifCount:number|null=(panel===null&&!(view==="exp"&&summary))?null
-  :(panel?panel.gaps.filter(g=>g.priority==="HIGH").length:0)+(view==="exp"?highGaps+((summary?.openResults)??0):0);
+  :(panel?panel.gaps.filter(g=>g.priority==="HIGH").length:0)+(view==="exp"?(highGaps??0)+((summary?.openResults)??0):0);
  const alertGlyph=<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 3.5l9 15.5H3l9-15.5z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M12 10v4M12 16.5v.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"/></svg>;
- return{summary,highGaps,safetyChip,anyAlert,navCounts,docName,docRole,docInitials,docDisplay,notifCount,alertGlyph};
+ return{summary,highGaps,safetyChip,anyAlert,safetyUnknown,navCounts,docName,docRole,docInitials,docDisplay,notifCount,alertGlyph};
 }
 export type WorkspaceBag=WorkspaceModel&ReturnType<typeof deriveHeader>;

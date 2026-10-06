@@ -714,7 +714,11 @@ export const SECTION_EXP_TAB:Record<string,ExpTab>={
  ["Documentos clínicos"]:"documentos",
  ["Clinical Intelligence"]:"intel",
  Interconsultas:"coordinacion",Agenda:"coordinacion",["Consentimiento informado"]:"coordinacion",["Obligaciones de seguimiento"]:"coordinacion",
+ // Auditoría de arquitectura de información (06-oct-2026): faltaban CUATRO secciones hospitalarias en este mapa, así que
+ // `goExpSection` no activaba su pestaña y el enlace hacía scroll hasta un elemento con `display:none`. Un enlace que no
+ // falla pero tampoco lleva a ninguna parte es peor que un enlace roto: no hay nada que reportar.
  Internamiento:"hospital",["Muestras de laboratorio"]:"hospital",["Incidentes de seguridad"]:"hospital",Triage:"hospital",
+ ["Cuidado de heridas"]:"hospital",Transfusiones:"hospital",["Cirugía"]:"hospital",["Diálisis"]:"hospital",
  "Panel del clínico":"admin","Paciente":"admin","Facturación":"admin","Seguridad y auditoría":"admin","Portal del paciente":"admin",
 };
 /** Abre una sección del expediente activando su sub-pestaña y luego haciendo scroll (evita aterrizar en una sección oculta). */
@@ -1056,21 +1060,44 @@ export function trActions(t:{id:string;state:TrSt}):{label:string;path:string;bo
 /** Discriminadores del algoritmo ESI que la pantalla recoge. El nivel NO está aquí: lo deriva el servidor. */
 export type EsiForm=Readonly<{requiresLifeSavingIntervention:boolean;highRiskSituation:boolean;
  newConfusionLethargyDisorientation:boolean;severeDistress:boolean;painScore:string;predictedResources:string;
- ageMonths:string;heartRate:string;respiratoryRate:string;spo2:string}>;
+ heartRate:string;respiratoryRate:string;spo2:string}>;
 export const ESI_FORM_EMPTY:EsiForm={requiresLifeSavingIntervention:false,highRiskSituation:false,
- newConfusionLethargyDisorientation:false,severeDistress:false,painScore:"",predictedResources:"2",
- ageMonths:"",heartRate:"",respiratoryRate:"",spo2:""};
-/** Convierte el formulario al cuerpo de la petición. Los numéricos vacíos se OMITEN: vacío es «no se midió», no cero. */
-export function esiBody(f:EsiForm):Record<string,unknown>{
+ newConfusionLethargyDisorientation:false,severeDistress:false,painScore:"",predictedResources:"",
+ heartRate:"",respiratoryRate:"",spo2:""};
+/**
+ * Auditoría clínica multiespecialidad (06-oct-2026, urgencias) — DOS CAMPOS VACÍOS DECIDÍAN EL NIVEL DE TRIAGE.
+ *
+ * Esta función hacía `ageMonths:n(f.ageMonths)??0` y `predictedResources:n(f.predictedResources)??0`, una línea debajo de un
+ * comentario que decía «vacío es no se midió, no cero». La regla se aplicó a dolor, FC, FR y SpO₂ —y NO a los dos campos que
+ * fijan el nivel—:
+ *
+ *   · `ageMonths` vacío ⇒ 0 meses ⇒ `dangerZoneFor(0)` aplica los umbrales de RECIÉN NACIDO (FC>180, FR>50), así que un
+ *     adulto con FC 130 NO disparaba el punto D del algoritmo. El caso que el punto D existe para detectar.
+ *   · `predictedResources` vacío ⇒ 0 recursos ⇒ **ESI-5**, el nivel MENOS urgente del algoritmo.
+ *
+ * La corrección no es un valor por omisión mejor: es quitar las dos fuentes de error.
+ *   1. La EDAD YA LA SABE EL SISTEMA (`snap.demographics.age`). Teclearla en meses era pedirle al clínico un dato derivable y
+ *      darle la oportunidad de equivocarse: ahora se deriva y el formulario ni la pregunta.
+ *   2. Los RECURSOS PREVISTOS son juicio clínico y no tienen valor por omisión posible: sin ellos esta función devuelve
+ *      `null` y la pantalla no deja enviar. Un triage a medias no se registra.
+ */
+export function esiBody(f:EsiForm,ageYears:number|undefined):Record<string,unknown>|null{
  const n=(v:string):number|undefined=>{const x=Number(v.trim());return v.trim()===""||Number.isNaN(x)?undefined:Math.round(x);};
+ const recursos=n(f.predictedResources);
+ if(recursos===undefined)return null;              // juicio clínico ausente: no se clasifica
+ if(ageYears===undefined||!Number.isFinite(ageYears))return null; // sin edad no hay tabla de zona de peligro aplicable
  const body:Record<string,unknown>={requiresLifeSavingIntervention:f.requiresLifeSavingIntervention,
   highRiskSituation:f.highRiskSituation,newConfusionLethargyDisorientation:f.newConfusionLethargyDisorientation,
-  severeDistress:f.severeDistress,predictedResources:n(f.predictedResources)??0,ageMonths:n(f.ageMonths)??0,
+  severeDistress:f.severeDistress,predictedResources:recursos,
+  // Los umbrales del punto D son por tramos de edad en MESES; la edad del paciente viene en años.
+  ageMonths:Math.max(0,Math.round(ageYears*12)),
   occurredAt:nowIso()};
  for(const[k,v]of[["painScore",n(f.painScore)],["heartRate",n(f.heartRate)],["respiratoryRate",n(f.respiratoryRate)],["spo2",n(f.spo2)]] as const)
   if(v!==undefined)body[k]=v;
  return body;
 }
+/** ¿Está el formulario completo para clasificar? La pantalla lo usa para no ofrecer un envío que se rechazaría. */
+export const esiListo=(f:EsiForm,ageYears:number|undefined):boolean=>esiBody(f,ageYears)!==null;
 export function incActions(i:{id:string;state:IncSt}):{label:string;path:string;body:Record<string,unknown>;to:IncSt}[]{
  const base=`/api/v1/incidents/${i.id}`;const resolve={label:"Resolver",path:base+"/resolution",body:{resolution:"CAPA implementada",occurredAt:nowIso()},to:"RESOLVED" as IncSt};
  if(i.state==="REPORTED")return[{label:"Revisar",path:base+"/review",body:{occurredAt:nowIso()},to:"UNDER_REVIEW"},resolve];
@@ -1118,8 +1145,19 @@ export function vitActions(v:{id:string;state:VitSt;value:string;unit:string}):{
 }
 export function immActions(i:{id:string;state:ImmSt}):{label:string;path:string;body:Record<string,unknown>;to:ImmSt}[]{
  const base=`/api/v1/immunizations/${i.id}`;
- if(i.state==="DUE")return[{label:"Aplicar",path:base+"/administration",body:{lot:"L-2026-A",site:"deltoides izq",occurredAt:nowIso()},to:"ADMINISTERED"},{label:"Rechazar",path:base+"/refusal",body:{reason:ASK("Motivo del rechazo (paciente/tutor)",5),occurredAt:nowIso()},to:"REFUSED"}];
- if(i.state==="ADMINISTERED")return[{label:"Evento adverso",path:base+"/adverse-event",body:{reaction:ASK("Descripción de la reacción transfusional",10),occurredAt:nowIso()},to:"ADVERSE_EVENT"}];
+ // Auditoría clínica multiespecialidad (06-oct-2026, pediatría) — EL LOTE DE LA VACUNA ESTABA FABRICADO.
+ //
+ // Este botón enviaba `lot:"L-2026-A"` y `site:"deltoides izq"` como LITERALES FIJOS. El servidor exige los dos campos, así
+ // que el esquema se cumplía y el guardarraíl de cuerpos no podía verlo: lo que estaba mal no era la forma, era el CONTENIDO.
+ // Es el mismo defecto que el antivirus inventado de R2B-011 —una afirmación falsa escrita en un registro append-only—, y
+ // aquí el dato falsificado es el que la farmacovigilancia necesita para rastrear un lote defectuoso. Además «deltoides
+ // izquierdo» es el sitio equivocado en un lactante (va en el vasto lateral), de modo que el literal era a la vez falso y
+ // clínicamente incorrecto para la población que más se vacuna.
+ //
+ // Ahora los dos se PREGUNTAN. Y el evento adverso deja de pedir «la reacción transfusional»: era una copia del módulo de
+ // transfusiones en el de vacunas.
+ if(i.state==="DUE")return[{label:"Aplicar",path:base+"/administration",body:{lot:ASK("Número de lote de la vacuna (viene en el frasco)",3,"la farmacovigilancia lo necesita para rastrear un lote defectuoso"),site:ASK("Sitio de aplicación",4,"p. ej. vasto lateral derecho en lactantes, deltoides en mayores"),occurredAt:nowIso()},to:"ADMINISTERED"},{label:"Rechazar",path:base+"/refusal",body:{reason:ASK("Motivo del rechazo (paciente/tutor)",5),occurredAt:nowIso()},to:"REFUSED"}];
+ if(i.state==="ADMINISTERED")return[{label:"Evento adverso",path:base+"/adverse-event",body:{reaction:ASK("Descripción de la reacción posvacunal (ESAVI)",10,"qué ocurrió, cuánto tardó en aparecer y cómo se resolvió"),occurredAt:nowIso()},to:"ADVERSE_EVENT"}];
  return[];
 }
 export function obNext(o:Ob):{label:string;path:string;body:Record<string,unknown>;to:ObSt}|null{
