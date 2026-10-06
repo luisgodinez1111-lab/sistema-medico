@@ -4,7 +4,7 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf,vitalForDisplay} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{Check,ESI_FORM_EMPTY,esiListo,unidadesDe,defaultUnitFor,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,fechaHora,fechaCorta,fechaFila,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,ANT_HEREDO,ANT_CRONICOS,ANT_PRENATAL,ANT_PERINATAL,ANT_ALIMENTACION,ANT_DESARROLLO,ANT_INMUNIZA,isPediatricAge,antFreshness,type AntContent,type ExpTab,type TrendKey}from"../shared";
+import{Check,ESI_FORM_EMPTY,esiListo,unidadesDe,defaultUnitFor,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,fechaHora,fechaCorta,fechaFila,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,CS_METHODS,EXP_TABS,ANT_HEREDO,ANT_CRONICOS,ANT_PRENATAL,ANT_PERINATAL,ANT_ALIMENTACION,ANT_DESARROLLO,ANT_INMUNIZA,isPediatricAge,antFreshness,type AntContent,type ExpTab,type TrendKey}from"../shared";
 import{searchIcd10}from"../../../../../packages/terminology/src";
 // R2B-019: el plazo de reevaluación es de CTAS, no de ESI (ESI no publica tiempos). La pantalla lo dice para que nadie lo
 // lea como un número del algoritmo ESI.
@@ -15,7 +15,7 @@ import{useFocusTrap}from"../shared";
 import EncounterForm from"./_encounter";
 import PacientesView from"./pacientes";
 export default function ExpView(){
- const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,safetyUnknown,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,encList,encNote,encMsg,openEncounterNote,closeEncounterNote,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab,setView,openConsulta,antSnap,antForm,setAntForm,antBusy,antMsg,antReason,setAntReason,antEditing,setAntEditing,saveAntecedentes,openEdit,patEdit,setPatEdit,editForm,setEditForm,amendPatient,editBusy,patMsg,setPatMsg,medProblem,setMedProblem,ordProblem,setOrdProblem,docsSnap,docDetail,docDetBusy,loadDoc,setDocDetail,attInputRef,attBusy,attMsg,ATT_MIME,onPickAttachment,viewAttachment,removeAttachment,fmtBytes}=useWorkspace();
+ const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,safetyUnknown,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,encList,encNote,encMsg,openEncounterNote,closeEncounterNote,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,vitAmend,vitAmendForm,setVitAmendForm,openVitAmend,closeVitAmend,submitVitAmend,vitAmendMsg,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,csPresent,setCsPresent,openCsPresent,closeCsPresent,submitCsPresent,csGrant,csGrantForm,setCsGrantForm,openCsGrant,closeCsGrant,submitCsGrant,csMsg,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab,setView,openConsulta,antSnap,antForm,setAntForm,antBusy,antMsg,antReason,setAntReason,antEditing,setAntEditing,saveAntecedentes,openEdit,patEdit,setPatEdit,editForm,setEditForm,amendPatient,editBusy,patMsg,setPatMsg,medProblem,setMedProblem,ordProblem,setOrdProblem,docsSnap,docDetail,docDetBusy,loadDoc,setDocDetail,attInputRef,attBusy,attMsg,ATT_MIME,onPickAttachment,viewAttachment,removeAttachment,fmtBytes}=useWorkspace();
  // Confirmación de dos pasos para quitar un adjunto (UI efímera; quitar borra el blob privado, acción registrada en bitácora).
  const[attConfirm,setAttConfirm]=useState<string|null>(null);
  // Diálogos de seguridad (anular bloqueo de Rx / reconocer verificación incompleta / acción irreversible): focus-trap y
@@ -893,12 +893,47 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!vitValue} onClick={createVital}>{busy==="vit-new"?"Registrando…":"Registrar signo vital"}</button></div>
    {vitals.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {vitals.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {vitals.map(v=><div key={v.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div>{(()=>{const d=vitalForDisplay(v.vitalType,v.value,v.unit,/imperial/i.test(cfgSettings?.prefUnits??""));return <b style={{fontSize:14}}>{v.vitalType}: {d.value} {d.unit}</b>;})()}{v.vstatus&&v.vstatus!=="UNKNOWN"&&<span style={{...(v.vstatus==="CRITICAL"?{background:"var(--c-red-bg)",color:P.redOnPale}:v.vstatus==="ABNORMAL"?{background:"var(--c-amber-bg)",color:P.amberOnPale}:{background:"var(--c-green-bg)",color:P.greenOnPale}),marginLeft:8,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{v.interp}</span>}<div style={{fontSize:12,color:P.muted}}>{fechaFila(v)} · v{v.version}</div></div>
-     <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-      <span style={stateBadge(v.state)}>{v.state}</span>
-      {vitActions(v).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ENTERED_IN_ERROR"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doVitAction(v,act)}>{busy==="vit-"+v.id?"…":act.label}</button>)}
+    {vitals.map(v=><div key={v.id} style={{border:"1px solid var(--c-line)",borderRadius:12,overflow:"hidden"}}>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px"}}>
+      <div>{(()=>{const d=vitalForDisplay(v.vitalType,v.value,v.unit,/imperial/i.test(cfgSettings?.prefUnits??""));return <b style={{fontSize:14}}>{v.vitalType}: {d.value} {d.unit}</b>;})()}{v.vstatus&&v.vstatus!=="UNKNOWN"&&<span style={{...(v.vstatus==="CRITICAL"?{background:"var(--c-red-bg)",color:P.redOnPale}:v.vstatus==="ABNORMAL"?{background:"var(--c-amber-bg)",color:P.amberOnPale}:{background:"var(--c-green-bg)",color:P.greenOnPale}),marginLeft:8,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{v.interp}</span>}<div style={{fontSize:12,color:P.muted}}>{fechaFila(v)} · v{v.version}</div></div>
+      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+       <span style={stateBadge(v.state)}>{v.state}</span>
+       {/* Auditoría clínica multiespecialidad (06-oct-2026): «Enmendar» reenviaba el MISMO valor y solo preguntaba el
+           motivo — una corrección que no corregía, escrita en un registro de solo-añadir. Ahora abre el formulario. */}
+       {(v.state==="RECORDED"||v.state==="AMENDED")&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} aria-expanded={vitAmend?.id===v.id}
+        onClick={()=>vitAmend?.id===v.id?closeVitAmend():openVitAmend(v)}>{vitAmend?.id===v.id?"Cancelar":"Enmendar"}</button>}
+       {vitActions(v).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ENTERED_IN_ERROR"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doVitAction(v,act)}>{busy==="vit-"+v.id?"…":act.label}</button>)}
+      </div>
      </div>
+     {vitAmend?.id===v.id&&<div style={{padding:"12px 14px",borderTop:"1px solid var(--c-line)",background:"var(--c-wash)"}}>
+      <p style={{fontSize:12,color:P.muted,margin:"0 0 10px"}}>
+       Corrige el valor registrado. El valor anterior <b>no se borra</b>: queda en el expediente con la enmienda y su motivo, como exige un registro clínico.
+      </p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10}}>
+       <div>
+        <label style={lbl} htmlFor={"amd-val-"+v.id}>Valor corregido <span style={{color:P.redOnPale}}>*</span></label>
+        <input id={"amd-val-"+v.id} style={input} aria-label="Valor corregido" value={vitAmendForm.value}
+         onChange={e=>setVitAmendForm(f=>({...f,value:e.target.value.slice(0,40)}))}/>
+       </div>
+       <div>
+        <label style={lbl} htmlFor={"amd-uni-"+v.id}>Unidad <span style={{color:P.redOnPale}}>*</span></label>
+        <select id={"amd-uni-"+v.id} style={input} aria-label="Unidad del valor corregido" value={vitAmendForm.unit}
+         onChange={e=>setVitAmendForm(f=>({...f,unit:e.target.value}))}>
+         {(unidadesDe(v.vitalType).length>0?unidadesDe(v.vitalType):[v.unit]).map(u=><option key={u} value={u}>{u}</option>)}
+        </select>
+       </div>
+      </div>
+      <div style={{marginTop:10}}>
+       <label style={lbl} htmlFor={"amd-why-"+v.id}>Motivo de la corrección <span style={{color:P.redOnPale}}>*</span></label>
+       <input id={"amd-why-"+v.id} style={input} aria-label="Motivo de la corrección" placeholder="p. ej. error de transcripción; se recapturó con otro equipo"
+        value={vitAmendForm.reason} onChange={e=>setVitAmendForm(f=>({...f,reason:e.target.value.slice(0,300)}))}/>
+      </div>
+      {vitAmendMsg&&<div role="alert" style={{marginTop:10,fontSize:12.5,fontWeight:600,color:P.redOnPale}}>{vitAmendMsg}</div>}
+      <div style={{display:"flex",gap:10,marginTop:12}}>
+       <button style={btn} disabled={busy!==""} onClick={submitVitAmend}>{busy==="vit-amend"?"Enmendando…":"Guardar la enmienda"}</button>
+       <button style={{...ghost,padding:"9px 16px"}} disabled={busy!==""} onClick={closeVitAmend}>Cancelar</button>
+      </div>
+     </div>}
     </div>)}
    </div>}
   </section>
@@ -960,12 +995,95 @@ export default function ExpView(){
    <div style={{marginTop:10}}><button style={btn} disabled={busy!==""||!csRef} onClick={createConsent}>{busy==="cs-new"?"Redactando…":"Redactar consentimiento"}</button></div>
    {consents.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {consents.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {consents.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(c)} · v{c.version}</div></div>
+    {consents.map(c=><div key={c.id} style={{border:"1px solid var(--c-line)",borderRadius:12,overflow:"hidden"}}>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px"}}>
+     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(c)} · v{c.version}
+      {c.documentRef?<> · documento <span style={mono}>{c.documentRef}</span></>:null}
+      {c.state!=="DRAFTED"&&(c.documentHash
+       ?<> · huella <span style={mono}>{c.documentHash.slice(0,12)}…</span></>
+       :<> · <span style={{color:P.amberOnPale,fontWeight:700}}>presentado SIN huella del documento</span></>)}
+     </div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(c.state)}>{c.state}</span>
+      {/* Auditoría clínica multiespecialidad (06-oct-2026): «Otorgar» enviaba `signerName:"Paciente/Tutor"` —un nombre
+          inventado— y el servidor respondía 400 siempre, porque exige la huella del documento presentado y el método.
+          Presentar y otorgar pasan a formulario: lo que la ley y el servidor exigen, se pregunta. */}
+      {c.state==="DRAFTED"&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} aria-expanded={csPresent?.consent.id===c.id}
+       onClick={()=>csPresent?.consent.id===c.id?closeCsPresent():openCsPresent(c)}>{csPresent?.consent.id===c.id?"Cancelar":"Presentar"}</button>}
+      {c.state==="PRESENTED"&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} aria-expanded={csGrant?.id===c.id}
+       onClick={()=>csGrant?.id===c.id?closeCsGrant():openCsGrant(c)}>{csGrant?.id===c.id?"Cancelar":"Otorgar"}</button>}
       {csActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="DECLINED"||act.to==="REVOKED"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doConsentAction(c,act)}>{busy==="cs-"+c.id?"…":act.label}</button>)}
      </div>
+     </div>
+     {/* PRESENTAR: se registra la huella sha256 del texto EXACTO que el paciente lee. Es la huella que el otorgamiento
+         compara; si el documento cambia entre que se muestra y se firma, el servidor responde 409. Sin ella no se puede
+         demostrar después QUÉ consintió el paciente, que es el valor entero del consentimiento informado. */}
+     {csPresent?.consent.id===c.id&&<div style={{padding:"12px 14px",borderTop:"1px solid var(--c-line)",background:"var(--c-wash)"}}>
+      <label style={lbl} htmlFor={"cs-txt-"+c.id}>Texto del consentimiento que se le muestra al paciente <span style={{color:P.redOnPale}}>*</span></label>
+      <textarea id={"cs-txt-"+c.id} aria-label="Texto del consentimiento presentado" rows={6}
+       style={{width:"100%",border:`1px solid ${LINE}`,borderRadius:11,padding:"10px 12px",fontSize:13,fontFamily:UI,boxSizing:"border-box",resize:"vertical"}}
+       value={csPresent.texto} onChange={e=>setCsPresent(p=>p?{...p,texto:e.target.value.slice(0,20000)}:p)}
+       placeholder="Pega aquí el texto íntegro del consentimiento: riesgos, alternativas, procedimiento…"/>
+      <p style={{fontSize:11.5,color:P.muted,margin:"6px 0 0"}}>
+       De este texto se calcula la huella SHA-256 que queda en el expediente. No se guarda el texto: se guarda su huella, y con ella cualquier cambio posterior es detectable.
+      </p>
+      {csMsg&&<div role="alert" style={{marginTop:10,fontSize:12.5,fontWeight:600,color:P.redOnPale}}>{csMsg}</div>}
+      <div style={{display:"flex",gap:10,marginTop:12}}>
+       <button style={btn} disabled={busy!==""} onClick={submitCsPresent}>{busy==="cs-present"?"Presentando…":"Registrar la presentación"}</button>
+       <button style={{...ghost,padding:"9px 16px"}} disabled={busy!==""} onClick={closeCsPresent}>Cancelar</button>
+      </div>
+     </div>}
+     {/* OTORGAR: lo que la ley exige y el servidor comprueba — quién firma, en qué calidad, con qué método, y según el
+         método el artefacto firmado o el testigo. La identidad NO se verifica contra ningún registro oficial y así se dice. */}
+     {csGrant?.id===c.id&&<div style={{padding:"12px 14px",borderTop:"1px solid var(--c-line)",background:"var(--c-wash)"}}>
+      {!c.documentHash&&<div role="alert" style={{marginBottom:12,padding:"9px 13px",borderRadius:10,background:"var(--c-amber-bg)",fontSize:12.5,color:P.amberOnPale,fontWeight:600}}>
+       Este consentimiento se presentó sin registrar la huella del documento, así que no hay nada que firmar. Vuelve a presentarlo con el texto que se le muestra al paciente.
+      </div>}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
+       <div>
+        <label style={lbl} htmlFor={"cs-nom-"+c.id}>Nombre de quien firma <span style={{color:P.redOnPale}}>*</span></label>
+        <input id={"cs-nom-"+c.id} style={input} aria-label="Nombre de quien firma" placeholder="Nombre completo, como aparece en su identificación"
+         value={csGrantForm.signerName} onChange={e=>setCsGrantForm(f=>({...f,signerName:e.target.value.slice(0,160)}))}/>
+       </div>
+       <div>
+        <label style={lbl} htmlFor={"cs-cal-"+c.id}>En calidad de</label>
+        <select id={"cs-cal-"+c.id} style={input} aria-label="Calidad de quien firma" value={csGrantForm.signerRole}
+         onChange={e=>setCsGrantForm(f=>({...f,signerRole:e.target.value as "PATIENT"|"GUARDIAN"}))}>
+         <option value="PATIENT">El propio paciente</option>
+         <option value="GUARDIAN">Tutor o representante legal</option>
+        </select>
+       </div>
+       <div>
+        <label style={lbl} htmlFor={"cs-met-"+c.id}>Cómo se recabó <span style={{color:P.redOnPale}}>*</span></label>
+        <select id={"cs-met-"+c.id} style={input} aria-label="Método con que se recabó el consentimiento" value={csGrantForm.method}
+         onChange={e=>setCsGrantForm(f=>({...f,method:e.target.value as typeof f.method}))}>
+         {CS_METHODS.map(m=><option key={m.v} value={m.v}>{m.label}</option>)}
+        </select>
+       </div>
+      </div>
+      {(()=>{const spec=CS_METHODS.find(m=>m.v===csGrantForm.method);
+       return spec?.artefacto
+        ?<div style={{marginTop:10}}>
+          <label style={lbl} htmlFor={"cs-art-"+c.id}>Archivo firmado <span style={{color:P.redOnPale}}>*</span></label>
+          <input id={"cs-art-"+c.id} style={input} aria-label="Referencia del archivo firmado" placeholder="Referencia del escaneo o del archivo de firma en Documentos"
+           value={csGrantForm.signatureArtifactRef} onChange={e=>setCsGrantForm(f=>({...f,signatureArtifactRef:e.target.value.slice(0,500)}))}/>
+          <p style={{fontSize:11.5,color:P.muted,margin:"6px 0 0"}}>Una firma, autógrafa o electrónica, sin el archivo que la contiene no se puede acreditar: por eso es obligatorio.</p>
+         </div>
+        :<div style={{marginTop:10}}>
+          <label style={lbl} htmlFor={"cs-tes-"+c.id}>Nombre del testigo <span style={{color:P.redOnPale}}>*</span></label>
+          <input id={"cs-tes-"+c.id} style={input} aria-label="Nombre del testigo" placeholder="Quién presenció el consentimiento verbal"
+           value={csGrantForm.witnessName} onChange={e=>setCsGrantForm(f=>({...f,witnessName:e.target.value.slice(0,160)}))}/>
+          <p style={{fontSize:11.5,color:P.muted,margin:"6px 0 0"}}>Un consentimiento verbal sin testigo no es admisible.</p>
+         </div>;})()}
+      <p style={{fontSize:11.5,color:P.muted,margin:"10px 0 0"}}>
+       La identidad de quien firma <b>no</b> se verifica contra ningún registro oficial: queda anotada como declarada, no como verificada.
+      </p>
+      {csMsg&&<div role="alert" style={{marginTop:10,fontSize:12.5,fontWeight:600,color:P.redOnPale}}>{csMsg}</div>}
+      <div style={{display:"flex",gap:10,marginTop:12}}>
+       <button style={btn} disabled={busy!==""} onClick={submitCsGrant}>{busy==="cs-grant"?"Otorgando…":"Registrar el otorgamiento"}</button>
+       <button style={{...ghost,padding:"9px 16px"}} disabled={busy!==""} onClick={closeCsGrant}>Cancelar</button>
+      </div>
+     </div>}
     </div>)}
    </div>}
   </section>

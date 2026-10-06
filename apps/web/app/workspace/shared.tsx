@@ -85,7 +85,9 @@ export type Cp=Readonly<{id:string;label:string;state:CpSt;version:number}>&Fech
 export type ClmSt="DRAFT"|"CODED"|"SUBMITTED"|"PAID"|"REJECTED"|"VOIDED";
 export type Clm=Readonly<{id:string;label:string;state:ClmSt;version:number}>;
 export type CsSt="DRAFTED"|"PRESENTED"|"GRANTED"|"DECLINED"|"REVOKED";
-export type Cs=Readonly<{id:string;label:string;state:CsSt;version:number}>&Fechado;
+// `documentRef` dice QUÉ documento es y `documentHash` es la huella con que se presentó: la exige el otorgamiento y la
+// compara (CON-01). Opcionales porque un consentimiento en borrador todavía no tiene huella.
+export type Cs=Readonly<{id:string;label:string;state:CsSt;version:number;documentRef?:string;documentHash?:string}>&Fechado;
 export type AdmSt="ADMITTED"|"TRANSFERRED"|"DISCHARGED"|"CANCELLED";
 export type Adm=Readonly<{id:string;unit:string;state:AdmSt;version:number}>;
 export type SpSt="COLLECTED"|"IN_TRANSIT"|"RECEIVED"|"RESULTED"|"REJECTED";
@@ -1178,12 +1180,49 @@ export function admActions(a:{id:string;state:AdmSt}):{label:string;path:string;
  if(a.state==="ADMITTED"||a.state==="TRANSFERRED")return[{label:"Trasladar a UCI",path:base+"/transfer",body:{unit:"ICU",occurredAt:nowIso()},to:"TRANSFERRED"},{label:"Dar de alta",path:base+"/discharge",body:{disposition:"Alta a domicilio",occurredAt:nowIso()},to:"DISCHARGED"},{label:"Cancelar",path:base+"/cancellation",body:{reason:ASK("Motivo de la cancelación de la admisión",5),occurredAt:nowIso()},to:"CANCELLED"}];
  return[];
 }
+// Auditoría clínica multiespecialidad (06-oct-2026) — «OTORGAR» DEVOLVÍA 400 EN LA CARA DEL MÉDICO.
+//
+// Este botón enviaba `{signerName:"Paciente/Tutor"}`: un nombre LITERAL, inventado, y nada más. El servidor (CON-01) exige
+// además la huella sha256 del documento que se presentó y el método con que se recabó —y, según el método, el artefacto
+// firmado o el nombre del testigo—, así que respondía 400 VALIDATION_ERROR siempre. El consentimiento informado es la
+// pieza médico-legal que autoriza un procedimiento (LGS art. 81, NOM-004 numeral 10.1): el único botón para otorgarlo
+// estaba muerto, y encima habría escrito «Paciente/Tutor» como firmante si hubiera funcionado.
+//
+// «Otorgar» sale de aquí y pasa a formulario. «Presentar» también: al presentar se registra la huella del documento que
+// el paciente ve, y es esa huella la que el otorgamiento compara (si no coincide, 409 — el documento cambió entre que se
+// mostró y se firmó, que es precisamente lo que la comprobación existe para detectar).
 export function csActions(c:{id:string;state:CsSt}):{label:string;path:string;body:Record<string,unknown>;to:CsSt}[]{
- const base=`/api/v1/consents/${c.id}`;const w={occurredAt:nowIso()};
- if(c.state==="DRAFTED")return[{label:"Presentar",path:base+"/presentation",body:w,to:"PRESENTED"}];
- if(c.state==="PRESENTED")return[{label:"Otorgar",path:base+"/grant",body:{signerName:"Paciente/Tutor",occurredAt:nowIso()},to:"GRANTED"},{label:"Rechazar",path:base+"/decline",body:{reason:ASK("Motivo del rechazo",5),occurredAt:nowIso()},to:"DECLINED"}];
+ const base=`/api/v1/consents/${c.id}`;
+ if(c.state==="PRESENTED")return[{label:"Rechazar",path:base+"/decline",body:{reason:ASK("Motivo del rechazo",5),occurredAt:nowIso()},to:"DECLINED"}];
  if(c.state==="GRANTED")return[{label:"Revocar",path:base+"/revocation",body:{reason:ASK("Motivo de la revocación",5),occurredAt:nowIso()},to:"REVOKED"}];
  return[];
+}
+/** Modalidades con que se puede recabar un consentimiento. Mismo vocabulario que `CONSENT_METHODS` del servidor. */
+export const CS_METHODS=[
+ {v:"WET_SIGNATURE",label:"Firma autógrafa (papel escaneado)",artefacto:true},
+ {v:"ELECTRONIC_SIGNATURE",label:"Firma electrónica (en pantalla)",artefacto:true},
+ {v:"VERBAL_WITNESSED",label:"Verbal con testigo",artefacto:false},
+] as const;
+export type CsMethod=typeof CS_METHODS[number]["v"];
+/** Formulario de OTORGAMIENTO. `documentHash` no se teclea: lo calcula la pantalla del texto presentado, o viene del registro. */
+export type CsGrantForm=Readonly<{signerName:string;signerRole:"PATIENT"|"GUARDIAN";method:CsMethod;signatureArtifactRef:string;witnessName:string}>;
+export const CS_GRANT_EMPTY:CsGrantForm={signerName:"",signerRole:"PATIENT",method:"WET_SIGNATURE",signatureArtifactRef:"",witnessName:""};
+/**
+ * Cuerpo del otorgamiento, o `null` si falta algo que el servidor exige. Replica las reglas del handler en la pantalla
+ * para no mandar un 400 conocido: una firma (autógrafa o electrónica) exige el artefacto firmado; la verbal exige testigo.
+ * No es duplicar la validación por gusto: el servidor sigue siendo la autoridad, pero el médico merece saberlo ANTES.
+ */
+export function csGrantBody(f:CsGrantForm,documentHash:string):Record<string,unknown>|null{
+ const signerName=f.signerName.trim();
+ if(!signerName)return null;
+ if(!/^[0-9a-f]{64}$/.test(documentHash))return null; // sin el documento presentado no hay nada que firmar
+ const spec=CS_METHODS.find(m=>m.v===f.method);
+ if(!spec)return null;
+ const art=f.signatureArtifactRef.trim(),wit=f.witnessName.trim();
+ if(spec.artefacto&&!art)return null;
+ if(!spec.artefacto&&!wit)return null;
+ return{signerName,signerRole:f.signerRole,documentHash,method:f.method,
+  ...(art?{signatureArtifactRef:art}:{}),...(wit?{witnessName:wit}:{}),occurredAt:nowIso()};
 }
 export function clmActions(c:{id:string;state:ClmSt}):{label:string;path:string;body:Record<string,unknown>;to:ClmSt}[]{
  const base=`/api/v1/claims/${c.id}`;const w={occurredAt:nowIso()};const voidAct={label:"Anular",path:base+"/void",body:{reason:ASK("Motivo de la anulación",5),occurredAt:nowIso()},to:"VOIDED" as ClmSt};
@@ -1200,10 +1239,33 @@ export function cpActions(c:{id:string;state:CpSt}):{label:string;path:string;bo
  if(c.state==="ON_HOLD")return[{label:"Reanudar",path:base+"/resumption",body:w,to:"ACTIVE"},{label:"Cancelar",path:base+"/cancellation",body:{reason:ASK("Motivo",5),occurredAt:nowIso()},to:"CANCELLED"}];
  return[];
 }
-export function vitActions(v:{id:string;state:VitSt;value:string;unit:string}):{label:string;path:string;body:Record<string,unknown>;to:VitSt}[]{
+// Auditoría clínica multiespecialidad (06-oct-2026) — LA ENMIENDA NO CORREGÍA NADA.
+//
+// Este botón enviaba `{value:v.value, unit:v.unit, reason:ASK(...)}`: el MISMO valor que ya estaba registrado, y solo
+// preguntaba el motivo. El esquema del servidor se cumplía —de ahí que ningún guardarraíl de cuerpos lo viera— pero el
+// resultado era un evento `VITAL_AMENDED` que decía «corregido» sin corregir nada: queda en el expediente, append-only,
+// una enmienda que no enmienda. Para un registro clínico-legal eso es peor que no poder enmendar.
+//
+// Una enmienda de signo vital es el valor CORREGIDO, su unidad y el motivo. El valor nuevo no se puede adivinar: se
+// pregunta, como el algoritmo ESI del triage. `vitActions` deja de construir ese cuerpo y la pantalla monta el formulario;
+// «Marcar error» se queda aquí porque su único dato ES el motivo.
+export function vitActions(v:{id:string;state:VitSt}):{label:string;path:string;body:Record<string,unknown>;to:VitSt}[]{
  const base=`/api/v1/vitals/${v.id}`;
- if(v.state==="RECORDED"||v.state==="AMENDED")return[{label:"Enmendar",path:base+"/amendment",body:{value:v.value,unit:v.unit,reason:ASK("Motivo de la corrección",5),occurredAt:nowIso()},to:"AMENDED"},{label:"Marcar error",path:base+"/error-mark",body:{reason:ASK("Motivo de marcar el registro como error",5),occurredAt:nowIso()},to:"ENTERED_IN_ERROR"}];
+ if(v.state==="RECORDED"||v.state==="AMENDED")return[{label:"Marcar error",path:base+"/error-mark",body:{reason:ASK("Motivo de marcar el registro como error",5),occurredAt:nowIso()},to:"ENTERED_IN_ERROR"}];
  return[];
+}
+/** Formulario de ENMIENDA de un signo vital: el valor corregido, su unidad y el motivo de la corrección. */
+export type VitAmendForm=Readonly<{value:string;unit:string;reason:string}>;
+export const VIT_AMEND_EMPTY:VitAmendForm={value:"",unit:"",reason:""};
+/**
+ * Cuerpo de la enmienda, o `null` si no está completa. Devuelve `null` también cuando el valor NO ha cambiado: una
+ * enmienda que repite el valor registrado no es una corrección, y dejarla pasar es exactamente el defecto que se corrige.
+ */
+export function vitAmendBody(f:VitAmendForm,original:{value:string;unit:string}):Record<string,unknown>|null{
+ const value=f.value.trim(),unit=f.unit.trim(),reason=f.reason.trim();
+ if(!value||!unit||reason.length<5)return null;
+ if(value===original.value.trim()&&unit===original.unit.trim())return null;
+ return{value,unit,reason,occurredAt:nowIso()};
 }
 export function immActions(i:{id:string;state:ImmSt}):{label:string;path:string;body:Record<string,unknown>;to:ImmSt}[]{
  const base=`/api/v1/immunizations/${i.id}`;

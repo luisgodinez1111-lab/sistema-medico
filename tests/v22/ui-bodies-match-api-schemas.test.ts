@@ -67,9 +67,18 @@ const ROTOS_CONOCIDOS:readonly{boton:string;ruta:RegExp;falta:string;origen:stri
  {boton:"Iniciar",ruta:/dialysis-sessions\/\{[^}]+\}\/start/,falta:"peso pre-diálisis",origen:"lote 19 (R2B-020)",vivo:false},
  {boton:"Completar",ruta:/dialysis-sessions\/\{[^}]+\}\/completion/,falta:"peso post y duración real",origen:"lote 19 (R2B-020)",vivo:false},
  {boton:"Interrumpir",ruta:/dialysis-sessions\/\{[^}]+\}\/interruption/,falta:"la causa estructurada",origen:"lote 19 (R2B-020)",vivo:false},
- {boton:"Otorgar",ruta:/consents\/\{[^}]+\}\/grant/,falta:"huella sha256 del documento presentado y método de otorgamiento",origen:"anterior a esta campaña",vivo:true},
- {boton:"Enmendar",ruta:/vitals\/\{[^}]+\}\/amendment/,falta:"el valor corregido y su unidad (hoy solo pregunta el motivo)",origen:"anterior a esta campaña",vivo:true},
 ];
+// ARREGLADOS el 06-oct-2026, y por eso ya NO están en la lista de arriba:
+//  · «Otorgar» del consentimiento — enviaba `signerName:"Paciente/Tutor"` (un nombre inventado) y el servidor respondía
+//    400 siempre, porque exige la huella sha256 del documento presentado y el método con que se recabó. Ahora «Presentar»
+//    registra la huella del texto que el paciente lee y «Otorgar» tiene formulario: firmante, calidad, método y —según el
+//    método— el archivo firmado o el testigo. Los dos salen de `csActions`, igual que el ESI salió de `trActions`.
+//  · «Enmendar» de signos vitales — reenviaba el MISMO valor registrado y solo preguntaba el motivo: el esquema se cumplía
+//    (de ahí que este guardarraíl no lo viera: lo que estaba mal era el contenido, no la forma) pero escribía en un
+//    registro de solo-añadir una corrección que no corregía nada. Ahora pide el valor corregido y su unidad, y RECHAZA en
+//    la propia pantalla una enmienda cuyo valor no cambia.
+// Lo que queda son los SEIS de las verticales hospitalarias, tras bandera: no alcanzables hoy, y cada uno necesita el
+// formulario clínico de su barrera (los 9 ítems del Time Out, los grupos del crossmatch, los pesos de la diálisis).
 const esConocido=(clave:string,boton:string):boolean=>
  ROTOS_CONOCIDOS.some(r=>r.boton===boton&&r.ruta.test(clave));
 
@@ -101,9 +110,9 @@ const CONSTRUCTORES:readonly{nombre:string;acciones:()=>readonly{label:string;pa
 ];
 
 describe("la deuda de botones rotos está acotada y nombrada",()=>{
- it("son OCHO, dos de ellos alcanzables hoy, y cada uno dice qué le falta y de dónde viene",()=>{
-  expect(ROTOS_CONOCIDOS.length,"si la lista crece, alguien rompió otro botón sin arreglarlo").toBe(8);
-  expect(ROTOS_CONOCIDOS.filter(r=>r.vivo).length,"los vivos son el consentimiento y la enmienda de signos vitales").toBe(2);
+ it("son SEIS, ninguno alcanzable hoy, y cada uno dice qué le falta y de dónde viene",()=>{
+  expect(ROTOS_CONOCIDOS.length,"si la lista crece, alguien rompió otro botón sin arreglarlo").toBe(6);
+  expect(ROTOS_CONOCIDOS.filter(r=>r.vivo).length,"no queda ninguno alcanzable: los seis están tras la bandera hospitalaria").toBe(0);
   for(const r of ROTOS_CONOCIDOS){
    expect(r.falta.length,`${r.boton}: sin decir qué falta, la entrada no sirve`).toBeGreaterThan(15);
    expect(r.origen.length,`${r.boton}: sin origen no hay a quién preguntar`).toBeGreaterThan(5);

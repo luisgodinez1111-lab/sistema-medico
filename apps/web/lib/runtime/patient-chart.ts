@@ -28,12 +28,14 @@ import{ultimaTransicion,versionDelAgregado}from"./read-model-joins";
 // Cadena vacía = la base no devolvió fecha; los formateadores de la UI lo DICEN («sin fecha»), no dejan un hueco.
 export type ChartRow=Readonly<{id:string;label:string;state:string;version:number;createdAt:string;at:string;problemLabel?:string;encounterId?:string}>;// problemLabel: POMR; encounterId: acto en que se creó
 export type ChartVital=Readonly<{id:string;vitalType:string;value:string;unit:string;state:string;version:number;createdAt:string;at:string;vstatus:string;interp:string;encounterId?:string}>;
+/** Fila de CONSENTIMIENTO: además de lo común, qué documento es y la huella con que se presentó (la exige el otorgamiento). */
+export type ChartConsent=ChartRow&Readonly<{documentRef?:string;documentHash?:string}>;
 export type ChartResult=Readonly<{id:string;label:string;critical:boolean;state:string;version:number;createdAt:string;at:string}>;
 export type PatientChart=Readonly<{
  problems:ChartRow[];allergies:ChartRow[];medications:ChartRow[];vitals:ChartVital[];
  immunizations:ChartRow[];orders:ChartRow[];results:ChartResult[];
  // Coordinación + Plan (hidratados para que el expediente no sea islas y las obligaciones que bloquean la firma sean accionables):
- obligations:ChartRow[];referrals:ChartRow[];appointments:ChartRow[];consents:ChartRow[];carePlans:ChartRow[];
+ obligations:ChartRow[];referrals:ChartRow[];appointments:ChartRow[];consents:ChartConsent[];carePlans:ChartRow[];
 }>;
 
 // Mapas kind→ESTADO del frontend (no el del registry clínica-wide, que usa otro vocabulario). El último kind de ciclo de
@@ -159,12 +161,26 @@ export async function patientChart(ctx:HttpTenantContext,patientId:string):Promi
    const when=at?new Date(at).toLocaleString("es-MX",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"";
    return{id:str(o,"id"),label:re?(when?`${re} · ${when}`:re):(when||"Cita"),state:APPT[str(o,"last_kind")||"SCHEDULED"]??"SCHEDULED",version:Number(o.version??1),...fechas(o)};});
   // CONSENTIMIENTOS — base CONSENT_DRAFTED. label = tipo/alcance.
+  //
+  // Auditoría clínica multiespecialidad (06-oct-2026) — `documentRef` y `documentHash`. El otorgamiento (CON-01) exige la
+  // huella sha256 del documento que se PRESENTÓ al paciente y la compara con la registrada: si no coincide, 409. La
+  // pantalla no tenía forma de conocer ninguna de las dos cosas, así que su botón «Otorgar» enviaba `signerName` a secas y
+  // el servidor respondía 400 — un botón muerto en la cara del médico. `documentRef` dice QUÉ documento es y
+  // `documentHash` es la huella que el otorgamiento reutiliza. Un LATERAL por fila, sobre un conjunto ya acotado al paciente.
   const consents=(await tx`
-   select a.aggregate_id as id, a.payload->>'scopeType' as scope, lk.kind as last_kind, vr.version as version, vr.created_at as created_at, lk.at as last_at
+   select a.aggregate_id as id, a.payload->>'scopeType' as scope, a.payload->>'documentRef' as document_ref,
+     pres.document_hash as document_hash,
+     lk.kind as last_kind, vr.version as version, vr.created_at as created_at, lk.at as last_at
    from clinical_events a ${ultimaTransicion(tx,t,Object.keys(CONS))} ${versionDelAgregado(tx,t)}
+   left join lateral (
+    select p.payload->>'documentHash' as document_hash from clinical_events p
+    where p.tenant_id=${t} and p.aggregate_id=a.aggregate_id and p.payload->>'kind'='PRESENTED'
+      and p.payload->>'documentHash' is not null
+    order by p.sequence desc limit 1) pres on true
    where a.tenant_id=${t} and a.aggregate_type='Consent' and a.payload->>'kind'='DRAFTED' and a.payload->>'patientId'=${patientId}
-   order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;
-   return{id:str(o,"id"),label:str(o,"scope")||"Consentimiento",state:CONS[str(o,"last_kind")||"DRAFTED"]??"DRAFTED",version:Number(o.version??1),...fechas(o)};});
+   order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const ref=str(o,"document_ref"),hash=str(o,"document_hash");
+   return{id:str(o,"id"),label:str(o,"scope")||"Consentimiento",state:CONS[str(o,"last_kind")||"DRAFTED"]??"DRAFTED",version:Number(o.version??1),...fechas(o),
+    ...(ref?{documentRef:ref}:{}),...(hash?{documentHash:hash}:{})};});
   // PLAN DE CUIDADOS — base CAREPLAN_PROPOSED. label = categoría + meta.
   const carePlans=(await tx`
    select a.aggregate_id as id, a.payload->>'category' as category, a.payload->>'goal' as goal, lk.kind as last_kind, vr.version as version, vr.created_at as created_at, lk.at as last_at

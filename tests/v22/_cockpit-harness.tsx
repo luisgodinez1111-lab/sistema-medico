@@ -139,6 +139,9 @@ export function makeSessionClientMock(posted:{path:string;body:unknown}[]){
    // donde va la fecha. Un dato clínico sin fecha no se puede valorar, y sin este mock no había forma de probarlo.
    // `createdAt` ≠ `at` en la medicación suspendida (se prescribió en marzo, se suspendió en septiembre) y coinciden en la
    // alergia, que nadie tocó: son los dos casos que la pantalla distingue.
+   if(/\/consents\/[^/]+\/presentation$/.test(path))return{status:201,body:{state:"PRESENTED",version:2}};
+   if(/\/consents\/[^/]+\/grant$/.test(path))return{status:201,body:{state:"GRANTED",version:3}};
+   if(/\/vitals\/[^/]+\/amendment$/.test(path))return{status:201,body:{state:"AMENDED",version:2,status:"NORMAL",interpretation:"Frecuencia cardíaca normal"}};
    if(path.includes("/chart"))return{status:200,body:{
     problems:[{id:"pb1",label:"Diabetes mellitus tipo 2 (E11.9)",state:"CHRONIC",version:2,createdAt:"2019-03-12T16:00:00.000Z",at:"2019-03-12T16:00:00.000Z"}],
     allergies:[{id:"al1",label:"penicilina — exantema",state:"ACTIVE",version:1,createdAt:"2017-07-04T15:30:00.000Z",at:"2017-07-04T15:30:00.000Z"}],
@@ -150,7 +153,7 @@ export function makeSessionClientMock(posted:{path:string;body:unknown}[]){
     obligations:[{id:"ob1",label:"Control de HbA1c",state:"OPEN",version:1,createdAt:"2026-09-25T14:20:00.000Z",at:"2026-09-25T14:20:00.000Z"}],
     referrals:[{id:"rf9",label:"Nefrología: ERC G3a",state:"REQUESTED",version:1,createdAt:"2026-09-18T15:45:00.000Z",at:"2026-09-18T15:45:00.000Z"}],
     appointments:[{id:"ap9",label:"Control · 2026-12-18",state:"SCHEDULED",version:1,createdAt:"2026-09-18T15:50:00.000Z",at:"2026-09-18T15:50:00.000Z"}],
-    consents:[{id:"cs9",label:"PROCEDURE",state:"GRANTED",version:2,createdAt:"2026-09-18T15:35:00.000Z",at:"2026-09-18T15:36:00.000Z"}],
+    consents:[{id:"cs9",label:"PROCEDURE",state:"PRESENTED",version:2,createdAt:"2026-09-18T15:35:00.000Z",at:"2026-09-18T15:36:00.000Z",documentRef:"CI-2026-0042",documentHash:"a".repeat(64)},{id:"cs8",label:"ANESTHESIA",state:"PRESENTED",version:2,createdAt:"2026-09-18T15:37:00.000Z",at:"2026-09-18T15:38:00.000Z",documentRef:"CI-2026-0043"},{id:"cs7",label:"DATA_SHARING",state:"DRAFTED",version:1,createdAt:"2026-09-18T15:39:00.000Z",at:"2026-09-18T15:39:00.000Z",documentRef:"CI-2026-0044"}],
     carePlans:[{id:"cp9",label:"DIABETES: HbA1c <7 %",state:"ACTIVE",version:2,createdAt:"2026-03-02T16:15:00.000Z",at:"2026-09-18T15:48:00.000Z"}],
    }};
    if(path.includes("/care-gaps"))return{status:200,body:{gaps:[{aggregateType:"Immunization",aggregateId:"g1",code:"FLU",label:"Vacuna influenza pendiente",priority:"HIGH"}]}};
