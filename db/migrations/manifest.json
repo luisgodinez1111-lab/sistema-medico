@@ -116,6 +116,10 @@
     {
       "file": "0029_tenants_registry_and_outbox_worker.sql",
       "sha256": "02e15038a3972ab12d8de7bf224430a7b7737b453e54698f8788e4d8c4c03d14"
+    },
+    {
+      "file": "0030_tenant_foreign_keys.sql",
+      "sha256": "4700da8ecfcc12be1122e2169d3a3f26958e90763df4a180ddcd2277b8ea98e3"
     }
   ]
 }

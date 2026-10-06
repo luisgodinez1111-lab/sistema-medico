@@ -31,6 +31,14 @@ export function assertClinicalPayload(c:Pick<ClinicalCommand,"aggregateType"|"ev
 }
 export async function executeAtomicClinicalCommand(sql:Sql,ctx:TenantContext,c:ClinicalCommand,preflight?:(tx:TransactionSql)=>Promise<void>){assertTenantContext(ctx);assertClinicalPayload(c);return sql.begin(async(tx:TransactionSql)=>{
  await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  // Auditoría R06-06 (migración 0030): el tenant se REGISTRA antes de la PRIMERA escritura de la transacción.
+  //
+  // El `tenant_id` lo asigna el IdP (claim de la sesión), así que un consultorio nuevo tiene sesión válida sin tener fila en
+  // `tenants`; con las 33 claves foráneas activas, su primera escritura sería rechazada. Va aquí y no más abajo porque el
+  // kernel escribe antes en `command_idempotency` y `aggregate_versions`, que también referencian: ponerlo junto al INSERT de
+  // `clinical_events` lo dejaba después de dos escrituras que ya fallaban. Lo descubrieron las pruebas en vivo, no la lectura.
+  // `ON CONFLICT DO NOTHING`: de la segunda escritura en adelante no hace nada.
+  await tx`insert into tenants(id,name) values(${ctx.tenantId},'') on conflict (id) do nothing`;
  if(preflight)await preflight(tx);
  const h=crypto.createHash("sha256").update(canonicalize(c)).digest("hex");
  const claim=await tx`insert into command_idempotency(tenant_id,actor_id,key,request_hash,status,expires_at) values(${ctx.tenantId},${ctx.actorId},${c.idempotencyKey},${h},'IN_PROGRESS',now()+interval '24 hours') on conflict do nothing returning key`;
@@ -71,6 +79,14 @@ export async function executeAtomicMultiCommand(sql:Sql,ctx:TenantContext,c:Clin
  const ids=new Set(c.legs.map(l=>l.aggregateId));if(ids.size!==c.legs.length)throw new ClinicalError("INVARIANT_VIOLATION","Un comando multi-agregado no puede tocar el mismo agregado dos veces en la misma transacción",{});
  return sql.begin(async(tx:TransactionSql)=>{
   await tx`select set_config('app.tenant_id',${ctx.tenantId},true),set_config('app.actor_id',${ctx.actorId},true),set_config('app.purpose',${ctx.purpose},true),set_config('app.request_id',${ctx.requestId},true)`;
+  // Auditoría R06-06 (migración 0030): el tenant se REGISTRA antes de la PRIMERA escritura de la transacción.
+  //
+  // El `tenant_id` lo asigna el IdP (claim de la sesión), así que un consultorio nuevo tiene sesión válida sin tener fila en
+  // `tenants`; con las 33 claves foráneas activas, su primera escritura sería rechazada. Va aquí y no más abajo porque el
+  // kernel escribe antes en `command_idempotency` y `aggregate_versions`, que también referencian: ponerlo junto al INSERT de
+  // `clinical_events` lo dejaba después de dos escrituras que ya fallaban. Lo descubrieron las pruebas en vivo, no la lectura.
+  // `ON CONFLICT DO NOTHING`: de la segunda escritura en adelante no hace nada.
+  await tx`insert into tenants(id,name) values(${ctx.tenantId},'') on conflict (id) do nothing`;
   if(preflight)await preflight(tx);
   const h=crypto.createHash("sha256").update(canonicalize(c)).digest("hex");
   const claim=await tx`insert into command_idempotency(tenant_id,actor_id,key,request_hash,status,expires_at) values(${ctx.tenantId},${ctx.actorId},${c.idempotencyKey},${h},'IN_PROGRESS',now()+interval '24 hours') on conflict do nothing returning key`;

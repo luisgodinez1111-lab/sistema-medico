@@ -52,7 +52,12 @@ describe("la comprobación está cableada en las dos puertas (R01-014)",()=>{
  });
  it("toda escritura la comprueba DENTRO de la transacción del comando (preflight del kernel)",()=>{
   expect(runtime).toContain("executeAtomicClinicalCommand(getSql(),ctx,command,tx=>assertSessionNotRevoked(tx,ctx.sessionId))");
-  const kernel=fs.readFileSync("packages/atomic-clinical-transaction-v3/src/index.ts","utf8");
+  // Los COMENTARIOS se retiran antes de medir el orden. Sin esto, el guardarraíl compara posiciones de TEXTO, no de código:
+  // el 05-oct-2026 falló porque un comentario que explica por qué el registro del tenant va al inicio de la transacción
+  // menciona `command_idempotency`, y ese `indexOf` lo encontró antes que el código. Un guardarraíl que se rompe cuando
+  // alguien documenta el porqué acaba obligando a no documentarlo.
+  const kernel=fs.readFileSync("packages/atomic-clinical-transaction-v3/src/index.ts","utf8")
+   .split("\n").filter(l=>!l.trimStart().startsWith("//")).join("\n");
   // el hook corre tras fijar el contexto y ANTES de tocar idempotencia/agregados
   const orden=[kernel.indexOf("set_config('app.tenant_id'"),kernel.indexOf("if(preflight)await preflight(tx)"),kernel.indexOf("command_idempotency")];
   expect(orden[0]).toBeGreaterThan(-1);expect(orden[1]).toBeGreaterThan(orden[0]!);expect(orden[2]).toBeGreaterThan(orden[1]!);

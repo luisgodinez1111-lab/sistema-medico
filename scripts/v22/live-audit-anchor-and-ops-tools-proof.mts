@@ -38,6 +38,12 @@ const filas=async()=>await owner`select sequence::int as sequence,id,tenant_id,p
  from audit_chain_v3 where tenant_id=${TA} order by sequence` as unknown as ReadonlyArray<Record<string,unknown>>;
 
 try{
+ // R06-06 (migración 0030): `audit_chain_v3` y `audit_chain_heads` referencian ahora `tenants`, así que el tenant de esta
+ // prueba se REGISTRA antes de anotar. Es lo que la clave foránea existe para imponer: no puede haber una entrada de
+ // auditoría de un consultorio que no esté dado de alta. El kernel lo registra en su primera escritura; aquí se llama a la
+ // función de la cadena directamente, saltándose el kernel.
+ await owner`insert into tenants(id,name) values(${TA},'Tenant de prueba de auditoría') on conflict (id) do nothing`;
+
  // 1) LA SERIALIZACIÓN jsonb DE POSTGRESQL, reproducida en Node y comprobada contra el motor. Si esto no coincidiera, la
  //    verificación independiente sería imposible y habría que decirlo en vez de fingirla.
  for(const v of [

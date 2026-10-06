@@ -44,6 +44,11 @@ async function comoTenant<T>(tenantId:string,fn:(tx:postgres.TransactionSql)=>Pr
 try{
  // El usuario conector debe pertenecer al rol para poder asumirlo.
  await owner.unsafe(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.roleid JOIN pg_roles g ON g.oid=m.member WHERE r.rolname='${READER_ROLE}' AND g.rolname=current_user) THEN EXECUTE format('GRANT ${READER_ROLE} TO %I',current_user); END IF; END $$;`);
+ // R06-06 (migración 0030): las 33 tablas con `tenant_id` referencian ahora `tenants`, así que los dos tenants sintéticos
+ // de esta prueba se REGISTRAN antes de insertar. No es un parche para que pase: es exactamente lo que la clave foránea
+ // existe para imponer —no puede haber una fila de un consultorio que no esté dado de alta— y la prueba lo cumple como
+ // cualquier otro escritor. El kernel lo hace solo en su primera escritura; aquí se inserta directo, saltándoselo.
+ await owner`insert into tenants(id,name) values(${A},'RLS prueba A'),(${B},'RLS prueba B') on conflict (id) do nothing`;
  const rol=await sql`select current_user as u,(select rolbypassrls from pg_roles where rolname=current_user) as bypass`;
  ok(String(rol[0]!.u)===READER_ROLE&&rol[0]!.bypass===false,`CONNECTED_AS_READER_ROLE_WITHOUT_BYPASSRLS:${rol[0]!.u}`);
  // 1) Inventario: TODA tabla con RLS tiene al menos una política. Con RLS y sin política la tabla no es «segura»: es
