@@ -78,7 +78,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 3/
   try{
    render(<Workspace/>);
    await toExpediente();
-   fireEvent.click(screen.getByRole("button",{name:"Historia clínica"})); // el botón de export vive en el Timeline (submenú Historia clínica)
+   fireEvent.click(screen.getByRole("button",{name:"Expediente"})); // el botón de export vive en el Timeline, dentro de Expediente (submenú Historia clínica)
    fireEvent.click(await screen.findByRole("button",{name:/Exportar expediente/}));
    expect(await screen.findByText(/archivo \.json descargado/)).toBeTruthy();
    expect(createObjSpy).toHaveBeenCalled();  // se generó el Blob del archivo
@@ -184,7 +184,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 3/
   await toExpediente();
   await screen.findByText(/Vista principal/,{},{timeout:2500}); // Resumen montado
   const secciones=screen.getByRole("navigation",{name:"Secciones del expediente"});
-  for(const t of ["Consulta","Historia clínica","Problemas","Alergias","Medicación","Signos vitales","Resultados","Órdenes","Vacunas","Plan de cuidados","Documentos","Clinical Intelligence","Coordinación","Administración"]){
+  for(const t of ["Consulta","Expediente","Plan","Administración","Resumen"]){ // cinco pestañas, no dieciséis (06-oct-2026)
    const tab=within(secciones).getByRole("button",{name:t});
    fireEvent.click(tab);
    await noSeriousAxe(document.body,`Expediente · ${t}`);

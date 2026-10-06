@@ -65,7 +65,10 @@ describe("coherencia — el matcher del middleware, la lista y el árbol de ruta
   const src=fs.readFileSync(path.resolve("apps/web/app/workspace/views/exp.tsx"),"utf8");
   for(const marker of["INTERNAMIENTO / HOSPITALIZACIÓN","MUESTRAS / CADENA DE CUSTODIA","TRIAGE / CLASIFICACIÓN DE ACUIDAD","HERIDAS / LESIONES POR PRESIÓN","TRANSFUSIONES","CIRUGÍA / QUIRÓFANO","DIÁLISIS"]){
    const i=src.indexOf(`{/* ${marker} */}`);expect(i,marker).toBeGreaterThan(-1);
-   expect(src.slice(i,i+120).replace(/\s+/g,""),marker).toContain("*/}{hospitalOn&&<section");
+   // Tras consolidar dieciséis pestañas en cinco (06-oct-2026) estas secciones viven en «Expediente» y su montaje
+   // exige DOS condiciones: la pestaña activa Y la bandera. La propiedad que este guardarraíl protege —sin bandera no
+   // se pinta— sigue intacta y es más estricta; lo que cambia es que la bandera ya no es la única guarda.
+   expect(src.slice(i,i+160).replace(/\s+/g,""),marker).toContain('*/}{inTab("expediente")&&hospitalOn&&<section');
   }
   expect(fs.readFileSync(path.resolve("apps/web/app/workspace/model.tsx"),"utf8")).toMatch(/hospitalOn,setHospitalOn\]=useState(?:<boolean>)?\(false\)/); // estado inicial apagado
  });

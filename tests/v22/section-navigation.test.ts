@@ -1,6 +1,6 @@
 import{describe,it,expect}from"vitest";
 import fs from"node:fs";import path from"node:path";
-import{sectionId,SIDE_NAV,TOOLS_NAV,SECTION_EXP_TAB}from"../../apps/web/app/workspace/shared";
+import{sectionId,SIDE_NAV,TOOLS_NAV,SECTION_EXP_TAB,EXP_TABS,EXP_TAB_KEYS,EXP_TAB_LEGACY,EXP_TAB_SECTIONS}from"../../apps/web/app/workspace/shared";
 // Auditoría 2026-09-19, anexo R05a (WS1-15a) — la navegación entre ventanas del expediente, por ANCLA y comprobada.
 //
 // EL HALLAZGO: `scrollToSection` buscaba un `<h2>` por `textContent` exacto en TODO el documento. Dos fallos: al cambiar el
@@ -56,9 +56,14 @@ describe("navegación entre ventanas del expediente (WS1-15a)",()=>{
   // expediente, con su nombre REAL conservado en la sección/ancla y mapeado a su sub-pestaña en SECTION_EXP_TAB.
   // (Tras la fusión Pacientes⟷Expediente la ficha-preview se retiró; el submenú se navega desde el propio expediente.)
   expect(anclas(),"la sección conserva su nombre real").toContain("Documentos clínicos");
-  expect(SECTION_EXP_TAB["Documentos clínicos"],"su ancla cae en el submenú Documentos").toBe("documentos");
+  // Tras consolidar dieciséis pestañas en cinco (06-oct-2026), «Documentos clínicos» vive en la pestaña «Plan» —lo que
+  // sigue: documentos, consentimiento, interconsultas, agenda y obligaciones—. Lo que este test protege es que el ancla
+  // conserve su NOMBRE REAL y que su pestaña esté mapeada; cuál sea la pestaña es una decisión de arquitectura de
+  // información, y el defecto histórico era el desajuste entre el enlace y el título, no el nombre del submenú.
+  expect(SECTION_EXP_TAB["Documentos clínicos"],"su ancla cae en la pestaña que la contiene").toBe("plan");
   const exp=fs.readFileSync(EXP,"utf8");
-  expect(exp,"el submenú Documentos es una sub-pestaña del expediente").toContain('inTab("documentos")');
+  expect(exp,"la sección se MONTA según la pestaña, no se oculta con hidden").toContain('inTab("plan")');
+  expect(exp,"ninguna sección queda oculta con hidden: se montan o no existen").not.toContain("hidden={!inTab(");
  });
  it("la navegación NO vuelve a buscar títulos por su texto en todo el DOM",()=>{
   const src=fs.readFileSync(path.join(UI,"shared.tsx"),"utf8");
@@ -82,5 +87,45 @@ describe("navegación entre ventanas del expediente (WS1-15a)",()=>{
   // Dos nombres distintos no pueden colapsar en el mismo id: el scroll iría a la ventana equivocada.
   const ids=anclas().map(sectionId);
   expect(new Set(ids).size,"dos ventanas comparten identificador").toBe(ids.length);
+ });
+
+ // Auditoría clínica multiespecialidad (06-oct-2026) — CINCO PESTAÑAS, Y NINGUNA SECCIÓN OCULTA.
+ //
+ // EL HALLAZGO, en palabras del dueño: «hay muchas ventanas, con poco funcionamiento; todo está en menús dentro de
+ // submenús». Era literal: dieciséis pestañas para treinta y cuatro secciones, ONCE de ellas con una sola sección dentro.
+ // Ver problemas, alergias y medicación de un paciente costaba tres clics en tres ventanas, cuando un médico los lee
+ // juntos o no los lee. Y «Hospital» tenía ocho secciones que con la bandera apagada —su estado normal— no mostraban
+ // nada: una ventana vacía en el menú.
+ it("son CINCO pestañas y cada una agrupa trabajo, no tipos de dato",()=>{
+  expect(EXP_TABS.length,"si vuelven a crecer, alguien añadió una ventana en vez de una sección").toBe(5);
+  expect(EXP_TAB_KEYS).toEqual(["resumen","encuentro","expediente","plan","admin"]);
+  // Ninguna pestaña con UNA sola sección: eso era el defecto. «Consulta» es la excepción declarada —su única sección es
+  // el encuentro entero, un formulario SOAP de cientos de líneas, no una lista.
+  for(const t of EXP_TAB_KEYS){
+   const n=EXP_TAB_SECTIONS[t].length;
+   expect(n,`la pestaña ${t} no tiene secciones`).toBeGreaterThan(0);
+   if(t!=="encuentro")expect(n,`la pestaña ${t} tiene una sola sección: es una ventana, no una agrupación`).toBeGreaterThan(1);
+  }
+  // Las treinta y cuatro secciones siguen existiendo: consolidar no es borrar.
+  expect(Object.keys(SECTION_EXP_TAB).length).toBe(34);
+  expect(EXP_TAB_KEYS.reduce((n,t)=>n+EXP_TAB_SECTIONS[t].length,0)).toBe(34);
+ });
+ it("ninguna sección se oculta con `hidden`: se monta o no existe",()=>{
+  const exp=fs.readFileSync(EXP,"utf8");
+  // `hidden` dejaba las treinta y cuatro secciones en el DOM a la vez: una búsqueda del navegador encontraba el mismo
+  // dato dos veces y un lector de pantalla recorría secciones que el médico no está viendo.
+  expect(exp,"vuelve el `hidden`: la sección de otra pestaña no debe existir en el DOM").not.toContain("hidden={!inTab(");
+  const montajes=(exp.match(/\{inTab\("[a-z]+"\)&&/g)??[]).length;
+  expect(montajes,"cada sección se monta con su condición de pestaña").toBeGreaterThanOrEqual(34);
+ });
+ it("los enlaces guardados a las dieciséis pestañas viejas siguen llevando a donde está el dato",()=>{
+  // Un enlace que no falla pero tampoco lleva a ninguna parte es peor que uno roto: el médico cree que llegó.
+  for(const[viejo,nuevo] of Object.entries(EXP_TAB_LEGACY)){
+   expect(EXP_TAB_KEYS,`${viejo} apunta a una pestaña que no existe`).toContain(nuevo);
+   expect(EXP_TAB_KEYS,`${viejo} sigue siendo una pestaña: el mapa de legado sobra`).not.toContain(viejo);
+  }
+  // Las once pestañas retiradas están TODAS en el mapa: si alguien retira otra sin añadirla aquí, su enlace muere.
+  for(const viejo of ["historia","problemas","alergias","medicacion","signos","resultados","ordenes","vacunas","hospital","documentos","coordinacion","intel"])
+   expect(EXP_TAB_LEGACY[viejo],`${viejo} no tiene destino: su enlace quedaría en la pestaña por omisión`).toBeDefined();
  });
 });

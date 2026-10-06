@@ -128,7 +128,8 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 6/
   render(<Workspace/>);
   await toExpediente();
   await screen.findByText(/Vista principal/,{},{timeout:2500});
-  fireEvent.click(screen.getByRole("button",{name:"Documentos"})); // submenú del expediente
+  // «Plan» es a la vez pestaña y acceso rápido del hero: se acota a la barra de pestañas.
+  fireEvent.click(within(screen.getByRole("navigation",{name:"Secciones del expediente"})).getByRole("button",{name:"Plan"}));
   // repositorio PERSISTENTE (read-model docsSnap), no solo lo creado en la sesión
   expect(await screen.findByText("Repositorio del paciente")).toBeTruthy();
   const abrir=await screen.findByRole("button",{name:"Abrir"},{timeout:2500}); // fila del documento real
@@ -140,8 +141,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 6/
   expect(screen.getByRole("button",{name:"Ver"})).toBeTruthy();
   // quitar borra el blob privado: es de DOS PASOS (pide confirmación), nunca un clic suelto
   fireEvent.click(screen.getByRole("button",{name:"Quitar"}));
-  expect(screen.getByRole("button",{name:"Sí, quitar"})).toBeTruthy();
-  expect(screen.getByRole("button",{name:"Cancelar"})).toBeTruthy();
+  const confirmar=screen.getByRole("button",{name:"Sí, quitar"});
+  expect(confirmar).toBeTruthy();
+  // El «Cancelar» de ESTA confirmación, no cualquiera: la pestaña «Plan» monta documentos, consentimiento, interconsultas,
+  // agenda y obligaciones juntos (cinco pestañas en vez de dieciséis), así que hay varios «Cancelar» en pantalla.
+  expect(within(confirmar.parentElement!).getByRole("button",{name:"Cancelar"})).toBeTruthy();
  });
 
  it("accesibilidad: los paneles de presentación no tienen violaciones axe serias/críticas",async()=>{

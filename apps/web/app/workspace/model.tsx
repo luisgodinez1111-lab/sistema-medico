@@ -8,7 +8,7 @@ import {canonicalUnitOf} from "../../../../packages/lab-reference/src";
 import {getStoredSession,apiRequest,apiUpload,apiDelete,apiDownload,type MedicalSession} from "../../lib/session-client";
 import {assertNoForbidden} from "../../../../packages/design-system/src";
 import {summarizePatient} from "../../../../packages/patient-summary/src";
-import{scrollTop,ESI_FORM_EMPTY,esiBody,type EsiForm,conForma,FORMA,composeDose,composeClinicalNote,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,ahora,CS_GRANT_EMPTY,CS_METHODS,csGrantBody,type CsGrantForm,VIT_AMEND_EMPTY,vitAmendBody,type VitAmendForm,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type EncounterListItem,type EncounterNoteView,type EncounterSigner,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type VitalsRegistry,type CarePlansRegistry,type ReferralsRegistry,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type RegObItem,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey,type ExpTab,EXP_TAB_KEYS,agendaWindow,type AntSnap,type AntContent,ANT_EMPTY,isPediatricAge}from"./shared";
+import{scrollTop,ESI_FORM_EMPTY,esiBody,type EsiForm,conForma,FORMA,composeDose,composeClinicalNote,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,ahora,CS_GRANT_EMPTY,CS_METHODS,csGrantBody,type CsGrantForm,VIT_AMEND_EMPTY,vitAmendBody,type VitAmendForm,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type EncounterListItem,type EncounterNoteView,type EncounterSigner,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type VitalsRegistry,type CarePlansRegistry,type ReferralsRegistry,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type RegObItem,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey,type ExpTab,EXP_TAB_KEYS,EXP_TAB_LEGACY,agendaWindow,type AntSnap,type AntContent,ANT_EMPTY,isPediatricAge}from"./shared";
 export function useWorkspaceModel(){
 
  const cspNonce=useNonce(); // S-04: los <style> propios declaran el nonce de la petición
@@ -1712,13 +1712,22 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   // (sin ?p= muestra la lista; con ?p= abre el expediente de ese paciente). Se remapean abajo.
   const KV=new Set(["inicio","agenda","resultados","medicamentos","ordenes","interconsulta","seguimiento","facturacion","obligaciones","reportes","biblioteca","configuracion","exp"]);
   // Retro (Fase 2): los enlaces viejos a módulos per-paciente ahora abren el Expediente en su submenú correspondiente.
-  const MOVED:Record<string,ExpTab>={problemas:"problemas",alergias:"alergias",vacunas:"vacunas",signos:"signos",planCuidado:"plan",documentos:"documentos",clinicalIntel:"intel"};
+  // Tras la consolidación a cinco pestañas (06-oct-2026) estos nombres de vista apuntan a la pestaña que los absorbió.
+  const MOVED:Record<string,ExpTab>={problemas:"expediente",alergias:"expediente",vacunas:"expediente",signos:"expediente",
+   planCuidado:"plan",documentos:"plan",clinicalIntel:"resumen"};
   const movedTab=v?MOVED[v]:undefined;
   // La VISTA del deep-link se restaura SIEMPRE, haya o no paciente: un enlace compartible a una vista de nivel-sistema
   // (reportes, facturación, obligaciones…) debe abrir esa vista, no caer en inicio. Unificación: ?v=consulta y los módulos
   // movidos abren el Expediente en la sub-pestaña correcta.
   const vEff=(v==="consulta"||v==="pacientes"||movedTab)?"exp":v;if(vEff&&KV.has(vEff))setView(vEff as typeof view);
-  const applyExpTab=()=>{if(movedTab)setExpTab(movedTab);else if(s&&(EXP_TAB_KEYS as string[]).includes(s))setExpTab(s as ExpTab);else if(v==="consulta")setExpTab("encuentro");};
+  // `?s=` acepta las cinco claves actuales Y las dieciséis antiguas: un marcador del propio médico a `?s=alergias` sigue
+  // abriendo donde ahora viven las alergias. Sin esto el enlace no fallaría: se quedaría en la pestaña por omisión, que es
+  // peor —el médico cree que llegó.
+  const applyExpTab=()=>{const legado=s?EXP_TAB_LEGACY[s]:undefined;
+   if(movedTab)setExpTab(movedTab);
+   else if(s&&(EXP_TAB_KEYS as string[]).includes(s))setExpTab(s as ExpTab);
+   else if(legado)setExpTab(legado);
+   else if(v==="consulta")setExpTab("encuentro");};
   if(!pid){applyExpTab();urlRestored.current=true;return;}
   if(!patientList)return; // con paciente: espera al padrón para tomar su nombre
   urlRestored.current=true;

@@ -132,11 +132,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 4/
   // Al abrir el expediente, el submenú por defecto es "Resumen": está el hero, NO el formulario de Medicación.
   await screen.findByText(/Vista principal/,{},{timeout:2500});
   expect(screen.queryByRole("button",{name:"Proponer medicación"})).toBeNull(); // oculto en otro submenú
-  // Al cambiar al submenú "Medicación", aparece el formulario y se oculta el panel de Resumen (Portal del paciente, ahora en Administración).
-  fireEvent.click(screen.getByRole("button",{name:"Medicación"}));
+  // Al cambiar a «Expediente», aparece el formulario de medicación y se desmonta el panel de Resumen (Portal del paciente vive en Administración).
+  fireEvent.click(screen.getByRole("button",{name:"Expediente"}));
   expect(await screen.findByRole("button",{name:"Proponer medicación"})).toBeTruthy();
   expect(screen.queryByRole("heading",{name:"Portal del paciente"})).toBeNull();
   // El submenú se refleja en la URL (?s=) para que el enlace sea compartible.
-  expect(window.location.search).toContain("s=medicacion");
+  expect(window.location.search).toContain("s=expediente"); // tras la consolidación, la medicación vive en «Expediente»
  });
 });

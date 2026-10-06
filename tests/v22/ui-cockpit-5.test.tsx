@@ -19,11 +19,11 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 5/
   expect(screen.getAllByText("Signos vitales").length).toBeGreaterThan(0);
   expect(screen.getByRole("button",{name:"Abrir encuentro"})).toBeTruthy(); // acción FSM del encuentro
   const lastTab=(name:RegExp)=>{const bs=screen.getAllByRole("button",{name});return bs[bs.length-1]!;};
-  // Los antecedentes ya no son una pestaña de la consulta: viven en el submenú "Historia clínica" del expediente.
-  fireEvent.click(lastTab(/^Historia clínica$/));
+  // Los antecedentes ya no son una pestaña de la consulta: viven en «Expediente», con el resto de los hechos clínicos.
+  // Tras consolidar dieciséis pestañas en cinco (06-oct-2026), antecedentes y medicación están en la MISMA pestaña: ese
+  // era el punto —un médico los lee juntos, no en dos ventanas.
+  fireEvent.click(lastTab(/^Expediente$/));
   expect(await screen.findByRole("heading",{name:"Antecedentes"})).toBeTruthy();
-  // Y cada módulo vive en su propio submenú del expediente (Medicación → formulario de Medicación).
-  fireEvent.click(lastTab(/^Medicación$/));
   expect(await screen.findByRole("heading",{name:"Medicación"})).toBeTruthy();
  });
 
@@ -45,7 +45,7 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 5/
   render(<Workspace/>);
   await toExpediente();
   // La Medicación y la Prescripción segura viven en el submenú "Medicación" del expediente.
-  fireEvent.click(screen.getByRole("button",{name:"Medicación"}));
+  fireEvent.click(screen.getByRole("button",{name:"Expediente"}));
   // proponer -> prescribir -> activar (mocks 201) para llegar a un medicamento ACTIVO
   const form=within((await screen.findByRole("button",{name:"Proponer medicación"})).closest("section")!);
   fireEvent.change(form.getByPlaceholderText(/Fármaco \(ej\./),{target:{value:"ibuprofeno-400"}});

@@ -22,7 +22,7 @@ describe("Lector de la nota clínica: las consultas pasadas se leen (auditoría 
  it("Historia clínica: lista las consultas del paciente CON SU FECHA, la más reciente primero",async()=>{
   render(<Workspace/>);
   await toExpediente();
-  fireEvent.click(await screen.findByRole("button",{name:/^Historia clínica/}));
+  fireEvent.click(await screen.findByRole("button",{name:"Expediente"}));
   const sec=(await screen.findByRole("heading",{name:"Consultas de este paciente"})).closest("section")!;
   // La FECHA ABSOLUTA, que es lo que el expediente no tenía en ninguna parte (imprimía «v3» en su lugar).
   expect(await within(sec).findByText("18 sep 2026, 09:20")).toBeTruthy();
@@ -40,7 +40,7 @@ describe("Lector de la nota clínica: las consultas pasadas se leen (auditoría 
  it("un clic abre la nota: la valoración y el plan salen ÍNTEGROS, con su firmante y sus enmiendas",async()=>{
   render(<Workspace/>);
   await toExpediente();
-  fireEvent.click(await screen.findByRole("button",{name:/^Historia clínica/}));
+  fireEvent.click(await screen.findByRole("button",{name:"Expediente"}));
   const sec=(await screen.findByRole("heading",{name:"Consultas de este paciente"})).closest("section")!;
   await within(sec).findByText("18 sep 2026, 09:20"); // el índice llega tras el debounce del efecto del paciente
   // UN clic, desde la fila misma: el defecto que se corrige es «todo está en menús dentro de submenús».
@@ -64,7 +64,7 @@ describe("Lector de la nota clínica: las consultas pasadas se leen (auditoría 
  it("una consulta abierta y sin documentar lo DICE, no inventa contenido ni se presenta como nota",async()=>{
   render(<Workspace/>);
   await toExpediente();
-  fireEvent.click(await screen.findByRole("button",{name:/^Historia clínica/}));
+  fireEvent.click(await screen.findByRole("button",{name:"Expediente"}));
   const sec=(await screen.findByRole("heading",{name:"Consultas de este paciente"})).closest("section")!;
   await within(sec).findByText("2 jun 2026, 03:05");
   fireEvent.click(within(sec).getAllByRole("button",{expanded:false})[1]!);
@@ -100,18 +100,18 @@ describe("Lector de la nota clínica: las consultas pasadas se leen (auditoría 
   render(<Workspace/>);
   await toExpediente();
   // Alergias: un dato que nadie ha tocado desde 2017 — una sola fecha, la del registro.
-  fireEvent.click(await screen.findByRole("button",{name:/^Alergias/}));
+  fireEvent.click(await screen.findByRole("button",{name:"Expediente"}));
   const alg=(await screen.findByRole("heading",{name:"Alergias"})).closest("section")!;
   const fAlg=await within(alg).findByText(/4 jul 2017/);
   expect(fAlg.textContent).toContain("v1");
   expect(fAlg.textContent).not.toContain("act."); // no cambió: no se inventa una actualización
   // Medicación: prescrita en marzo, suspendida en septiembre — las DOS fechas, porque las dos deciden.
-  fireEvent.click(screen.getByRole("button",{name:/^Medicación/}));
+  fireEvent.click(screen.getByRole("button",{name:"Expediente"}));
   const med=(await screen.findByRole("heading",{name:"Medicación"})).closest("section")!;
   const fMed=await within(med).findByText(/2 mar 2026 · act\. 18 sep 2026/);
   expect(fMed.textContent).toContain("v4");
   // Problemas: la fecha del diagnóstico, que es lo que fecha la cronicidad.
-  fireEvent.click(screen.getByRole("button",{name:/^Problemas/}));
+  fireEvent.click(screen.getByRole("button",{name:"Expediente"}));
   const prob=(await screen.findByRole("heading",{name:"Lista de problemas"})).closest("section")!;
   expect(await within(prob).findByText(/12 mar 2019/)).toBeTruthy();
  });
@@ -124,7 +124,7 @@ describe("Lector de la nota clínica: las consultas pasadas se leen (auditoría 
  it("una fila creada en esta sesión sobrevive a la hidratación del expediente, y no se duplica la del servidor",async()=>{
   render(<Workspace/>);
   await toExpediente();
-  fireEvent.click(await screen.findByRole("button",{name:/^Alergias/}));
+  fireEvent.click(await screen.findByRole("button",{name:"Expediente"}));
   const alg=(await screen.findByRole("heading",{name:"Alergias"})).closest("section")!;
   await within(alg).findByText(/4 jul 2017/); // la del servidor ya está hidratada
   fireEvent.change(within(alg).getByPlaceholderText(/sustancia/i),{target:{value:"sulfas"}});
@@ -136,10 +136,36 @@ describe("Lector de la nota clínica: las consultas pasadas se leen (auditoría 
   expect(within(alg).getAllByText(/penicilina — exantema/).length).toBe(1);
  });
 
+ // Auditoría clínica multiespecialidad (06-oct-2026) — CINCO PESTAÑAS, Y EL ÍNDICE QUE LAS HACE NAVEGABLES.
+ //
+ // Dieciséis pestañas para treinta y cuatro secciones, once de ellas con una sección dentro. Al consolidar, «Expediente»
+ // reúne veinte: el índice es lo que hace que estén a un clic en vez de a un scroll a ciegas, y lo que distingue
+ // «agrupadas» de «enterradas».
+ it("las secciones de una pestaña se montan juntas y el índice lleva a cada una",async()=>{
+  render(<Workspace/>);
+  await toExpediente();
+  const barra=screen.getByRole("navigation",{name:"Secciones del expediente"});
+  expect(within(barra).getAllByRole("button").length,"cinco pestañas, no dieciséis").toBe(5);
+  fireEvent.click(within(barra).getByRole("button",{name:"Expediente"}));
+  // Problemas, alergias y medicación en la MISMA pantalla: antes eran tres ventanas y tres clics.
+  expect(await screen.findByRole("heading",{name:"Lista de problemas"})).toBeTruthy();
+  expect(screen.getByRole("heading",{name:"Alergias"})).toBeTruthy();
+  expect(screen.getByRole("heading",{name:"Medicación"})).toBeTruthy();
+  expect(screen.getByRole("heading",{name:"Signos vitales"})).toBeTruthy();
+  expect(screen.getByRole("heading",{name:"Consultas de este paciente"})).toBeTruthy();
+  // El índice de la pestaña activa nombra sus secciones, así que ninguna queda «no oculta pero tampoco encontrable».
+  const indice=screen.getByRole("navigation",{name:/^Secciones de Expediente$/});
+  for(const sec of ["Lista de problemas","Alergias","Medicación","Signos vitales","Consultas de este paciente"])
+   expect(within(indice).getByRole("button",{name:sec}),`el índice no ofrece «${sec}»`).toBeTruthy();
+  // Y lo de otra pestaña NO está en el DOM: se desmonta, no se oculta. Antes las treinta y cuatro convivían.
+  expect(screen.queryByRole("heading",{name:"Plan de cuidados"})).toBeNull();
+  expect(screen.queryByRole("heading",{name:"Portal del paciente"})).toBeNull();
+ });
+
  it("accesibilidad: el lector de la nota no tiene violaciones axe serias o críticas",async()=>{
   const{container}=render(<Workspace/>);
   await toExpediente();
-  fireEvent.click(await screen.findByRole("button",{name:/^Historia clínica/}));
+  fireEvent.click(await screen.findByRole("button",{name:"Expediente"}));
   const sec=(await screen.findByRole("heading",{name:"Consultas de este paciente"})).closest("section")!;
   await within(sec).findByText("18 sep 2026, 09:20");
   fireEvent.click(within(sec).getAllByRole("button",{expanded:false})[0]!);

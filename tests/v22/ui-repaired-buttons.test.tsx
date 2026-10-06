@@ -20,7 +20,7 @@ installCockpitEnv();
 // el formulario existe, que pide lo que la ley exige y que la pantalla lo dice cuando falta algo, en vez de mandar un 400.
 describe("Los botones reparados: el formulario pide lo que el servidor exige (auditoría clínica 06-oct-2026)",()=>{
 
- const irA=async(pestania:RegExp,titulo:string)=>{
+ const irA=async(pestania:string,titulo:string)=>{
   await toExpediente();
   fireEvent.click(await screen.findByRole("button",{name:pestania}));
   return(await screen.findByRole("heading",{name:titulo})).closest("section")!;
@@ -28,7 +28,7 @@ describe("Los botones reparados: el formulario pide lo que el servidor exige (au
 
  it("Consentimiento: «Otorgar» abre el formulario con firmante, calidad y método — ya no manda un nombre inventado",async()=>{
   render(<Workspace/>);
-  const sec=await irA(/^Coordinación/,"Consentimiento informado");
+  const sec=await irA("Plan","Consentimiento informado");
   // La fila dice QUÉ documento es y que tiene huella: sin eso no hay nada que firmar.
   const fila=(await within(sec).findByText("PROCEDURE")).closest("div")!.parentElement!.parentElement!;
   expect(fila.textContent).toContain("CI-2026-0042");
@@ -57,7 +57,7 @@ describe("Los botones reparados: el formulario pide lo que el servidor exige (au
 
  it("Consentimiento verbal: exige testigo en vez de archivo, porque un verbal sin testigo no es admisible",async()=>{
   render(<Workspace/>);
-  const sec=await irA(/^Coordinación/,"Consentimiento informado");
+  const sec=await irA("Plan","Consentimiento informado");
   const fila=(await within(sec).findByText("PROCEDURE")).closest("div")!.parentElement!.parentElement!;
   fireEvent.click(within(fila).getByRole("button",{name:"Otorgar"}));
   fireEvent.change(await within(sec).findByLabelText("Nombre de quien firma"),{target:{value:"Ana López García"}});
@@ -70,7 +70,7 @@ describe("Los botones reparados: el formulario pide lo que el servidor exige (au
 
  it("Consentimiento presentado SIN huella: la pantalla lo avisa en vez de dejar firmar algo que no se puede acreditar",async()=>{
   render(<Workspace/>);
-  const sec=await irA(/^Coordinación/,"Consentimiento informado");
+  const sec=await irA("Plan","Consentimiento informado");
   const fila=(await within(sec).findByText("ANESTHESIA")).closest("div")!.parentElement!.parentElement!;
   expect(fila.textContent,"la propia fila declara que falta la huella").toContain("presentado SIN huella del documento");
   fireEvent.click(within(fila).getByRole("button",{name:"Otorgar"}));
@@ -79,7 +79,7 @@ describe("Los botones reparados: el formulario pide lo que el servidor exige (au
 
  it("Presentar: se calcula la huella del texto que el paciente lee, no se guarda el texto",async()=>{
   render(<Workspace/>);
-  const sec=await irA(/^Coordinación/,"Consentimiento informado");
+  const sec=await irA("Plan","Consentimiento informado");
   // El consentimiento en BORRADOR del expediente: es el estado en que se puede presentar.
   const fila=(await within(sec).findByText("DATA_SHARING")).closest("div")!.parentElement!.parentElement!;
   fireEvent.click(within(fila).getByRole("button",{name:"Presentar"}));
@@ -93,7 +93,7 @@ describe("Los botones reparados: el formulario pide lo que el servidor exige (au
 
  it("Signos vitales: «Enmendar» pide el valor CORREGIDO y rechaza una enmienda que no cambia nada",async()=>{
   render(<Workspace/>);
-  const sec=await irA(/^Signos vitales/,"Signos vitales");
+  const sec=await irA("Expediente","Signos vitales");
   const fila=(await within(sec).findByText(/128\/78/)).closest("div")!.parentElement!.parentElement!;
   fireEvent.click(within(fila).getByRole("button",{name:"Enmendar"}));
   // El valor viene PRECARGADO con el registrado: se corrige sobre lo que hay, no sobre un campo en blanco.
@@ -118,11 +118,11 @@ describe("Los botones reparados: el formulario pide lo que el servidor exige (au
 
  it("accesibilidad: los dos formularios nuevos no tienen violaciones axe serias o críticas",async()=>{
   const{container}=render(<Workspace/>);
-  const sec=await irA(/^Coordinación/,"Consentimiento informado");
+  const sec=await irA("Plan","Consentimiento informado");
   const fila=(await within(sec).findByText("PROCEDURE")).closest("div")!.parentElement!.parentElement!;
   fireEvent.click(within(fila).getByRole("button",{name:"Otorgar"}));
   await within(sec).findByLabelText("Nombre de quien firma");
-  fireEvent.click(screen.getByRole("button",{name:/^Signos vitales/}));
+  fireEvent.click(screen.getByRole("button",{name:"Expediente"}));
   const vit=(await screen.findByRole("heading",{name:"Signos vitales"})).closest("section")!;
   const fv=(await within(vit).findByText(/128\/78/)).closest("div")!.parentElement!.parentElement!;
   fireEvent.click(within(fv).getByRole("button",{name:"Enmendar"}));
