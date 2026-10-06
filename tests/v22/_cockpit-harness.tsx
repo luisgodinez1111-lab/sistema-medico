@@ -133,6 +133,26 @@ export function makeSessionClientMock(posted:{path:string;body:unknown}[]){
     vitals:{BP:"128/78",HR:"72"},labs:{hba1c:7.1,creatinine:1.3,glucose:112,ldl:98,egfr:48,egfrStage:"G3a"},
     findings:[{domain:"renal",severity:"WARNING",summary:"ERC G3a (TFG 48): vigilar dosis renales"},{domain:"glucémico",severity:"INFO",summary:"HbA1c por encima del objetivo <7%"}]}};
    if(path.includes("/trends"))return{status:200,body:{series:{HBA1C:[{value:8.2,at:"2024-01-15T00:00:00Z"},{value:7.1,at:"2024-06-15T00:00:00Z"}],GLUCOSE:[],LDL:[],CREATININE:[]},latest:{LDL:98,CREATININE:1.3,UACR:45,EGFR:48}}};
+   // Auditoría clínica multiespecialidad (06-oct-2026) — EL EXPEDIENTE VIVO, CON FECHAS.
+   // Hasta hoy el harness no mockeaba `/chart`, así que las pruebas de UI solo veían filas creadas en la propia sesión y
+   // ninguna fila HIDRATADA del servidor. Es justo donde vivía el defecto: las filas imprimían `v{version}` en el lugar
+   // donde va la fecha. Un dato clínico sin fecha no se puede valorar, y sin este mock no había forma de probarlo.
+   // `createdAt` ≠ `at` en la medicación suspendida (se prescribió en marzo, se suspendió en septiembre) y coinciden en la
+   // alergia, que nadie tocó: son los dos casos que la pantalla distingue.
+   if(path.includes("/chart"))return{status:200,body:{
+    problems:[{id:"pb1",label:"Diabetes mellitus tipo 2 (E11.9)",state:"CHRONIC",version:2,createdAt:"2019-03-12T16:00:00.000Z",at:"2019-03-12T16:00:00.000Z"}],
+    allergies:[{id:"al1",label:"penicilina — exantema",state:"ACTIVE",version:1,createdAt:"2017-07-04T15:30:00.000Z",at:"2017-07-04T15:30:00.000Z"}],
+    medications:[{id:"md1",label:"metformina 850 mg",state:"STOPPED",version:4,createdAt:"2026-03-02T16:10:00.000Z",at:"2026-09-18T15:40:00.000Z"}],
+    vitals:[{id:"vt1",vitalType:"BP",value:"128/78",unit:"mmHg",state:"RECORDED",version:1,vstatus:"NORMAL",interp:"",createdAt:"2026-09-18T15:25:00.000Z",at:"2026-09-18T15:25:00.000Z"}],
+    immunizations:[{id:"im1",label:"Influenza · dosis 1",state:"DUE",version:1,createdAt:"2026-09-01T14:00:00.000Z",at:"2026-09-01T14:00:00.000Z"}],
+    orders:[{id:"or1",label:"LAB: HbA1c",state:"FULFILLED",version:3,createdAt:"2026-09-18T15:30:00.000Z",at:"2026-09-25T14:00:00.000Z"}],
+    results:[{id:"rs1",label:"HBA1C: 8.2",critical:false,state:"VERIFIED",version:2,createdAt:"2026-09-25T14:05:00.000Z",at:"2026-09-25T14:20:00.000Z"}],
+    obligations:[{id:"ob1",label:"Control de HbA1c",state:"OPEN",version:1,createdAt:"2026-09-25T14:20:00.000Z",at:"2026-09-25T14:20:00.000Z"}],
+    referrals:[{id:"rf9",label:"Nefrología: ERC G3a",state:"REQUESTED",version:1,createdAt:"2026-09-18T15:45:00.000Z",at:"2026-09-18T15:45:00.000Z"}],
+    appointments:[{id:"ap9",label:"Control · 2026-12-18",state:"SCHEDULED",version:1,createdAt:"2026-09-18T15:50:00.000Z",at:"2026-09-18T15:50:00.000Z"}],
+    consents:[{id:"cs9",label:"PROCEDURE",state:"GRANTED",version:2,createdAt:"2026-09-18T15:35:00.000Z",at:"2026-09-18T15:36:00.000Z"}],
+    carePlans:[{id:"cp9",label:"DIABETES: HbA1c <7 %",state:"ACTIVE",version:2,createdAt:"2026-03-02T16:15:00.000Z",at:"2026-09-18T15:48:00.000Z"}],
+   }};
    if(path.includes("/care-gaps"))return{status:200,body:{gaps:[{aggregateType:"Immunization",aggregateId:"g1",code:"FLU",label:"Vacuna influenza pendiente",priority:"HIGH"}]}};
    if(path.includes("/timeline"))return{status:200,body:{items:[
     {aggregateType:"Encounter",aggregateId:"e1",latestKind:"SIGNED",version:3,lastAt:new Date(Date.now()-720000).toISOString()},

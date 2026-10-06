@@ -18,8 +18,9 @@ const refR=await import("../../apps/web/app/api/v1/referrals/route");
 const apptR=await import("../../apps/web/app/api/v1/appointments/route");
 const consR=await import("../../apps/web/app/api/v1/consents/route");
 const cplR=await import("../../apps/web/app/api/v1/care-plans/route");
+const resoR=await import("../../apps/web/app/api/v1/problems/[problemId]/resolution/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
-function tok(scopes=["patient:write","patient:read","result:write","problem:write","allergy:write","medication:propose","order:write","obligation:write","referral:write","appointment:write","consent:write","careplan:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
+function tok(scopes=["patient:write","patient:read","result:write","problem:write","problem:resolve","allergy:write","medication:propose","order:write","obligation:write","referral:write","appointment:write","consent:write","careplan:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const PP=(id:string)=>({params:Promise.resolve({patientId:id})});
 let ts=Date.parse("2026-09-14T09:00:00.000Z");const at=()=>new Date(ts+=60000).toISOString();const idem=()=>crypto.randomUUID();
@@ -95,6 +96,34 @@ try{
  const gA=await get(phys,pA);
  ok(gA.body.medications.length===1,"XP_MED_PRESENT");
  ok(!String(gA.body.medications[0].problemLabel??"").includes("C50.9"),"XP_NO_CROSS_PATIENT_PROBLEM_LABEL");
+ // Auditoría clínica multiespecialidad (06-oct-2026) — LAS FECHAS, CONTRA LA BASE.
+ //
+ // Las filas del expediente imprimían `v{version}` en el sitio donde iba la fecha. Ocho especialistas coincidieron en que un
+ // dato clínico sin fecha no se puede valorar: «alergia a penicilina» sin el año, o «metformina» sin saber desde cuándo.
+ // Aquí se comprueba que las dos fechas LLEGAN DE LA BASE y que significan lo que dicen, no que el tipo las declare.
+ const conFechas=(arr:Array<Record<string,unknown>>)=>arr.length>0&&arr.every(x=>
+  typeof x["createdAt"]==="string"&&!Number.isNaN(Date.parse(String(x["createdAt"])))&&
+  typeof x["at"]==="string"&&!Number.isNaN(Date.parse(String(x["at"]))));
+ // `conFechas` exige que el módulo TENGA filas: comprobar `every` sobre un array vacío pasa siempre y no mide nada —es la
+ // forma de guardarraíl que esta auditoría lleva meses encontrando. Se listan los módulos que ESTE escenario puebla; los que
+ // no (signos vitales y vacunas, que este guion no crea) se miden en sus propias pruebas en vivo.
+ for(const k of ["problems","allergies","medications","orders","results","referrals","appointments","consents","carePlans","obligations"])
+  ok(conFechas(g.body[k] as Array<Record<string,unknown>>),`FECHAS_${k.toUpperCase()}`);
+ // `createdAt` es el NACIMIENTO del dato y `at` su último cambio: para un dato que nadie tocó coinciden.
+ const alg=(g.body.allergies as Array<Record<string,string>>)[0]!;
+ ok(alg["createdAt"]===alg["at"],"ALERGIA_INTACTA_MISMA_FECHA");
+ // Y para uno que SÍ cambió, `at` es posterior: se resuelve un problema y su última fecha avanza sin mover la de alta.
+ const probDm=(g.body.problems as Array<Record<string,string>>).find(x=>x["label"]?.includes("E11.9"))!;
+ const resuelto=await resoR.POST(new Request("http://l/",{method:"POST",
+  headers:H(phys,{"idempotency-key":idem(),"if-match":String(probDm["version"])}),
+  body:JSON.stringify({note:"Cuadro resuelto",occurredAt:at()})}),{params:Promise.resolve({problemId:probDm["id"]!})});
+ ok(resuelto.status===201,`PROBLEMA_RESUELTO_${resuelto.status}`);
+ const g4=await get(phys,p);
+ const probDm2=(g4.body.problems as Array<Record<string,string>>).find(x=>x["id"]===probDm["id"])!;
+ ok(probDm2["createdAt"]===probDm["createdAt"],"LA_FECHA_DE_ALTA_NO_SE_MUEVE");
+ ok(Date.parse(probDm2["at"]!)>=Date.parse(probDm2["createdAt"]!),"LA_FECHA_DE_CAMBIO_AVANZA");
+ ok(probDm2["at"]!==probDm2["createdAt"],"SON_DOS_FECHAS_DISTINTAS_CUANDO_EL_DATO_CAMBIO");
+
  // Aislamiento: otro paciente no ve esta historia.
  const p2=crypto.randomUUID();await reg(phys,p2,30,"MALE");const g2=await get(phys,p2);
  ok(g2.body.problems.length===0&&g2.body.allergies.length===0&&g2.body.obligations.length===0&&g2.body.carePlans.length===0,"OTHER_PATIENT_EMPTY");

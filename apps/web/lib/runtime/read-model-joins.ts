@@ -56,14 +56,25 @@ export const nombreDePaciente=(tx:Tx,tenantId:string)=>tx`left join lateral (
  * un evento de ANOTACIÓN no puede convertirse en el estado del agregado (ADR-0240 §2). Sin `kinds`, la última de todas.
  */
 export const ultimaTransicion=(tx:Tx,tenantId:string,kinds?:readonly string[])=>tx`left join lateral (
-  select payload->>'kind' as kind from clinical_events c
+  select payload->>'kind' as kind, c.occurred_at as at from clinical_events c
   where c.tenant_id=${tenantId} and c.aggregate_id=a.aggregate_id
     ${kinds?tx`and c.payload->>'kind' = any(${kinds})`:tx``}
   order by c.sequence desc limit 1) lk on true`;
 
-/** Número de eventos del agregado: la «versión» que publican los registros (concurrencia optimista de la UI). */
+/**
+ * Número de eventos del agregado: la «versión» que publican los registros (concurrencia optimista de la UI), y la fecha en
+ * que el agregado NACIÓ.
+ *
+ * Auditoría clínica multiespecialidad (06-oct-2026) — `created_at` se añade aquí, no en una consulta nueva. Las filas del
+ * expediente imprimían `v{version}` en el lugar donde iba la fecha, y ocho especialistas coincidieron en que un dato
+ * clínico sin fecha no es un dato clínico: «alergia a penicilina» sin el año no se puede valorar. Este LATERAL ya recorre
+ * todos los eventos del agregado para contarlos, así que el `min(occurred_at)` sale del mismo escaneo: coste cero y una
+ * sola fuente de verdad para las dos cosas. `lk.at` (en `ultimaTransicion`) da la otra fecha que importa: cuándo cambió
+ * por última vez. Son distintas y las dos se usan — cuándo se registró una alergia y cuándo se suspendió un fármaco no
+ * son la misma pregunta.
+ */
 export const versionDelAgregado=(tx:Tx,tenantId:string)=>tx`left join lateral (
-  select count(*)::int as version from clinical_events v
+  select count(*)::int as version, min(v.occurred_at) as created_at from clinical_events v
   where v.tenant_id=${tenantId} and v.aggregate_id=a.aggregate_id) vr on true`;
 
 /**

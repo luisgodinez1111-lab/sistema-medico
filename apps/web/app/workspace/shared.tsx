@@ -38,36 +38,54 @@ export const S=primitive.space,UI=typography.family.ui;
 // Módulos: encuentro (abrir->valorar->firmar) y medicación (proponer->prescribir->activar->suspender),
 // ambos para el mismo paciente, con concurrencia optimista (If-Match).
 
+// Auditoría clínica multiespecialidad (06-oct-2026) — TODA FILA DEL EXPEDIENTE LLEVA SU FECHA.
+//
+// Las filas del expediente imprimían `v{version}` en el sitio donde iba la fecha. Ocho especialistas coincidieron: un dato
+// clínico sin fecha no es un dato clínico. «Alergia a penicilina» sin el año no se puede valorar; «metformina suspendida»
+// sin saber cuándo no permite decidir si se reintroduce. Son dos fechas distintas y las dos se usan:
+//   · `createdAt` — cuándo NACIÓ el dato (se registró la alergia, se prescribió, se pidió el estudio).
+//   · `at`        — cuándo CAMBIÓ por última vez (se suspendió, se resolvió, se cumplió).
+// Se declara como tipo propio y se INTERSECA en las doce filas, en vez de repetir dos campos doce veces: así ninguna fila
+// nueva puede nacer sin fecha, porque el compilador no la deja.
+export type Fechado=Readonly<{createdAt:string;at:string}>;
+// QUÉ FILAS QUEDAN FUERA Y POR QUÉ. `Doc` y `Clm` (documentos y facturación del expediente) NO los hidrata
+// `patientChart`: sus listas solo contienen lo creado en la sesión y se vacían al cambiar de paciente. Ponerles la fecha
+// del navegador mostraría un dato que desaparece en la siguiente carga, que es peor que la ausencia declarada. Lo mismo
+// vale para los ocho módulos hospitalarios (internamiento, muestras, incidentes, triage, heridas, transfusiones, cirugía,
+// diálisis), que tampoco están en el read-model. Cuando se hidraten, intersecar `Fechado` es el único cambio necesario.
+/** Fechas de una fila recién creada en esta sesión: el reloj del navegador, que el servidor sustituye por el suyo en la
+ *  siguiente hidratación del expediente. Se muestra el día, así que un desfase de segundos no es observable. */
+export const ahora=():Fechado=>{const t=new Date().toISOString();return{createdAt:t,at:t};};
 export type EncState="OPEN"|"READY_TO_SIGN"|"SIGNED";
 export type Encounter=Readonly<{id:string;state:EncState;version:number;signatureDigest?:string}>;
 export type MedState="PROPOSED"|"PRESCRIBED"|"ACTIVE"|"HELD"|"STOPPED";
-export type Med=Readonly<{id:string;label:string;state:MedState;version:number;problemLabel?:string;encounterId?:string}>;// POMR: problema que trata · acto en que se propuso
+export type Med=Readonly<{id:string;label:string;state:MedState;version:number;problemLabel?:string;encounterId?:string}>&Fechado;// POMR: problema que trata · acto en que se propuso
 export type ResState="RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";
-export type Result=Readonly<{id:string;label:string;critical:boolean;state:ResState;version:number}>;
+export type Result=Readonly<{id:string;label:string;critical:boolean;state:ResState;version:number}>&Fechado;
 export type DocState="DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED";
 export type Doc=Readonly<{id:string;label:string;state:DocState;version:number}>;
 export type OrderSt="DRAFT"|"ORDERED"|"FULFILLED"|"CANCELLED";
-export type Order=Readonly<{id:string;label:string;state:OrderSt;version:number;problemLabel?:string;encounterId?:string}>;// POMR: problema contra el que se pide · acto en que se creó
+export type Order=Readonly<{id:string;label:string;state:OrderSt;version:number;problemLabel?:string;encounterId?:string}>&Fechado;// POMR: problema contra el que se pide · acto en que se creó
 export type ObSt="OPEN"|"IN_PROGRESS"|"COMPLETED"|"CANCELLED";
-export type Ob=Readonly<{id:string;label:string;state:ObSt;version:number}>;
+export type Ob=Readonly<{id:string;label:string;state:ObSt;version:number}>&Fechado;
 export type ProbSt="ACTIVE"|"RESOLVED"|"CHRONIC"|"ENTERED_IN_ERROR";
-export type Prob=Readonly<{id:string;label:string;state:ProbSt;version:number;encounterId?:string}>;// encounterId: acto en que se añadió
+export type Prob=Readonly<{id:string;label:string;state:ProbSt;version:number;encounterId?:string}>&Fechado;// encounterId: acto en que se añadió
 export type AlSt="ACTIVE"|"REFUTED"|"INACTIVE";
-export type Al=Readonly<{id:string;label:string;state:AlSt;version:number}>;
+export type Al=Readonly<{id:string;label:string;state:AlSt;version:number}>&Fechado;
 export type RefSt="REQUESTED"|"ACCEPTED"|"DECLINED"|"COMPLETED"|"CANCELLED";
-export type Ref=Readonly<{id:string;label:string;state:RefSt;version:number}>;
+export type Ref=Readonly<{id:string;label:string;state:RefSt;version:number}>&Fechado;
 export type ApptSt="SCHEDULED"|"CHECKED_IN"|"COMPLETED"|"CANCELLED"|"NO_SHOW";
-export type Appt=Readonly<{id:string;label:string;state:ApptSt;version:number}>;
+export type Appt=Readonly<{id:string;label:string;state:ApptSt;version:number}>&Fechado;
 export type ImmSt="DUE"|"ADMINISTERED"|"REFUSED"|"ADVERSE_EVENT";
-export type Imm=Readonly<{id:string;label:string;state:ImmSt;version:number}>;
+export type Imm=Readonly<{id:string;label:string;state:ImmSt;version:number}>&Fechado;
 export type VitSt="RECORDED"|"AMENDED"|"ENTERED_IN_ERROR";
-export type Vit=Readonly<{id:string;vitalType:string;value:string;unit:string;state:VitSt;version:number;vstatus?:string;interp?:string;encounterId?:string}>;
+export type Vit=Readonly<{id:string;vitalType:string;value:string;unit:string;state:VitSt;version:number;vstatus?:string;interp?:string;encounterId?:string}>&Fechado;
 export type CpSt="PROPOSED"|"ACTIVE"|"ON_HOLD"|"ACHIEVED"|"CANCELLED";
-export type Cp=Readonly<{id:string;label:string;state:CpSt;version:number}>;
+export type Cp=Readonly<{id:string;label:string;state:CpSt;version:number}>&Fechado;
 export type ClmSt="DRAFT"|"CODED"|"SUBMITTED"|"PAID"|"REJECTED"|"VOIDED";
 export type Clm=Readonly<{id:string;label:string;state:ClmSt;version:number}>;
 export type CsSt="DRAFTED"|"PRESENTED"|"GRANTED"|"DECLINED"|"REVOKED";
-export type Cs=Readonly<{id:string;label:string;state:CsSt;version:number}>;
+export type Cs=Readonly<{id:string;label:string;state:CsSt;version:number}>&Fechado;
 export type AdmSt="ADMITTED"|"TRANSFERRED"|"DISCHARGED"|"CANCELLED";
 export type Adm=Readonly<{id:string;unit:string;state:AdmSt;version:number}>;
 export type SpSt="COLLECTED"|"IN_TRANSIT"|"RECEIVED"|"RESULTED"|"REJECTED";
@@ -271,6 +289,18 @@ function partes(iso:string):{d:number;m:string;y:number;hh:string;mm:string}|nul
 }
 /** Fecha absoluta con hora, para encabezados de nota y listados de consultas: «6 oct 2026, 14:32». */
 export function fechaHora(iso:string):string{const p=partes(iso);return p===null?"fecha ilegible":`${p.d} ${p.m} ${p.y}, ${p.hh}:${p.mm}`;}
+/**
+ * La fecha de UNA fila del expediente, como la lee un médico: cuándo entró el dato y, si cambió otro día, cuándo cambió.
+ *
+ * Por qué las dos y no una: «metformina 850 mg» con la fecha de alta dice cuánto lleva el paciente con el fármaco —el dato
+ * que decide si la dosis está establecida o es reciente—; con la fecha del último cambio dice cuándo se suspendió. Las dos
+ * preguntas se hacen en la misma lista. Cuando coinciden (el caso normal: un dato que nadie tocó) se imprime una sola, para
+ * no llenar la fila de ruido.
+ */
+export function fechaFila(f:{createdAt:string;at:string}):string{
+ const nacio=fechaCorta(f.createdAt),cambio=fechaCorta(f.at);
+ return nacio===cambio?nacio:`${nacio} · act. ${cambio}`;
+}
 /** Fecha absoluta sin hora, para las filas del expediente donde la hora no aporta: «6 oct 2026». */
 export function fechaCorta(iso:string):string{const p=partes(iso);return p===null?"sin fecha":`${p.d} ${p.m} ${p.y}`;}
 export function relTime(iso:string):string{try{const d=Date.now()-new Date(iso).getTime();const m=Math.floor(d/60000);if(m<1)return "ahora";if(m<60)return `hace ${m} min`;const h=Math.floor(m/60);if(h<24)return `hace ${h} h`;const dd=Math.floor(h/24);return dd<30?`hace ${dd} d`:new Date(iso).toLocaleDateString("es-MX",{day:"2-digit",month:"short"});}catch{return "";}}

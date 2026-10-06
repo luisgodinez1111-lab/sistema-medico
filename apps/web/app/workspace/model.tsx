@@ -8,7 +8,7 @@ import {canonicalUnitOf} from "../../../../packages/lab-reference/src";
 import {getStoredSession,apiRequest,apiUpload,apiDelete,apiDownload,type MedicalSession} from "../../lib/session-client";
 import {assertNoForbidden} from "../../../../packages/design-system/src";
 import {summarizePatient} from "../../../../packages/patient-summary/src";
-import{scrollTop,ESI_FORM_EMPTY,esiBody,type EsiForm,conForma,FORMA,composeDose,composeClinicalNote,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type EncounterListItem,type EncounterNoteView,type EncounterSigner,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type VitalsRegistry,type CarePlansRegistry,type ReferralsRegistry,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type RegObItem,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey,type ExpTab,EXP_TAB_KEYS,agendaWindow,type AntSnap,type AntContent,ANT_EMPTY,isPediatricAge}from"./shared";
+import{scrollTop,ESI_FORM_EMPTY,esiBody,type EsiForm,conForma,FORMA,composeDose,composeClinicalNote,isAsk,errMsg,userMessage,CFG_SCHEDULE,CFG_MODULES,LINE,UI,P,uuid,nowIso,DX_LABEL,derivedClientUuid,medNext,blockDetails,BARRIER_LABEL,resNext,docNext,orderNext,referralNext,ASK,ahora,proximaCitaIso,apptNext,sgNext,tfNext,spNext,obNext,ghost,btn,type Encounter,type Med,type Result,type Doc,type Order,type Al,type Prob,type Ob,type Ref,type Appt,type Imm,type Vit,type Cp,type Clm,type Cs,type Adm,type Sp,type Inc,type Tr,type Wn,type Tf,type Sg,type Dz,type TL,type EncounterListItem,type EncounterNoteView,type EncounterSigner,type Gap,type PanelGap,type Snap,type RxCheck,type Ask,type Trends,type TrendKey,type IxResult,type AllergyRegistry,type ProblemRegistry,type IcdEntry,type ImmRegistry,type VitalHistory,type VitalsRegistry,type CarePlansRegistry,type ReferralsRegistry,type CarePlanSnap,type RefContext,type FollowUpSnap,type ClaimsRegistry,type DocsSnap,type DocDetail,type DocAttachment,type Credentials,type RegObSnap,type RegObItem,type CiSnap,type ReportsSnap,type OfficeSettings,type ConsTabs,type ResultsRegistry,type AgendaAppt,type RefSt,type ApptSt,type DzSt,type WnSt,type TrSt,type IncSt,type AdmSt,type CsSt,type ClmSt,type CpSt,type VitSt,type ImmSt,type AlSt,type ProbSt,type BadgeKey,type ExpTab,EXP_TAB_KEYS,agendaWindow,type AntSnap,type AntContent,ANT_EMPTY,isPediatricAge}from"./shared";
 export function useWorkspaceModel(){
 
  const cspNonce=useNonce(); // S-04: los <style> propios declaran el nonce de la petición
@@ -510,10 +510,19 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
    const r=await apiRequest(`/api/v1/patients/${patientId}/chart`,{method:"GET",signal:ac.signal});
    if(cancelled||r.status!==200)return;
    const c=conForma<ChartResp>(r.body,FORMA.chart);if(!c)return;
-   // Reemplaza las listas por la historia real del paciente (no append: es la carga inicial del expediente).
-   setProblems(c.problems);setAllergies(c.allergies);setMeds(c.medications);setVitals(c.vitals);setImms(c.immunizations);setOrders(c.orders);setResults(c.results);
+   // FUSIÓN POR ID, no reemplazo (06-oct-2026). Hasta hoy esto hacía `setMeds(c.medications)`: la respuesta del servidor
+   // sustituía la lista entera, con el argumento de que es la carga inicial del expediente. El argumento falla cuando la
+   // carga NO es la primera cosa que ocurre: si el médico documenta algo en los segundos que tarda la respuesta, la fila
+   // que acababa de crear DESAPARECE de la pantalla hasta la siguiente recarga —y lo que desaparece en un expediente se
+   // vuelve a teclear—. La fusión resuelve las dos cosas a la vez: el servidor manda sobre las filas que conoce (nada de
+   // duplicados, que es lo que el reemplazo evitaba) y las creadas en esta sesión que aún no están indexadas sobreviven.
+   const fundir=<T extends{id:string}>(delServidor:readonly T[])=>(locales:readonly T[]):T[]=>{
+    const ids=new Set(delServidor.map(x=>x.id));
+    return [...delServidor,...locales.filter(x=>!ids.has(x.id))];
+   };
+   setProblems(fundir(c.problems));setAllergies(fundir(c.allergies));setMeds(fundir(c.medications));setVitals(fundir(c.vitals));setImms(fundir(c.immunizations));setOrders(fundir(c.orders));setResults(fundir(c.results));
    // Coordinación + Plan (antes arrancaban vacíos → islas; una obligación que bloquea la firma no tenía fila accionable).
-   setObligations(c.obligations);setReferrals(c.referrals);setAppts(c.appointments);setConsents(c.consents);setPlans(c.carePlans);
+   setObligations(fundir(c.obligations));setReferrals(fundir(c.referrals));setAppts(fundir(c.appointments));setConsents(fundir(c.consents));setPlans(fundir(c.carePlans));
   }catch{/* expediente no disponible: los módulos quedan como estaban; el aviso de error del layout cubre el fallo de carga */}})();
   return()=>{cancelled=true;ac.abort();};
  },[view,patientId,ready,session,chartReload]);
@@ -1087,7 +1096,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   const id=uuid();const probLbl=medProblem?problems.find(p=>p.id===medProblem)?.label:undefined;
   const r=await apiRequest("/api/v1/medications",{method:"POST",body:{medicationId:id,patientId,drugCode:drug,dose,route,frequency:freq,...(medProblem?{problemId:medProblem}:{}),...(enc?.id?{encounterId:enc.id}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setMeds(ms=>[...ms,{id,label:`${drug} ${dose} ${route} ${freq}`,state:"PROPOSED",version:Number(r.body["version"]??1),...(probLbl?{problemLabel:probLbl}:{}),...(enc?.id?{encounterId:enc.id}:{})}]);
+  setMeds(ms=>[...ms,{id,label:`${drug} ${dose} ${route} ${freq}`,state:"PROPOSED",version:Number(r.body["version"]??1),...ahora(),...(probLbl?{problemLabel:probLbl}:{}),...(enc?.id?{encounterId:enc.id}:{})}]);
   setDrug("");setDoseAmt("");setFreq("");setMedProblem("");setChartReload(n=>n+1);
  });
  const advanceMed=(m:Med)=>call("med-"+m.id,async()=>{
@@ -1151,14 +1160,14 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   const id=uuid();
   const r=await apiRequest("/api/v1/medications",{method:"POST",body:{medicationId:id,patientId,drugCode:rxDrug,dose:rxDose,route:rxRoute,frequency:rxFreq,...(enc?.id?{encounterId:enc.id}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setMeds(ms=>[{id,label:`${rxDrug} ${rxDose}`.trim(),state:"PROPOSED",version:Number(r.body["version"]??0),...(enc?.id?{encounterId:enc.id}:{})},...ms]);
+  setMeds(ms=>[{id,label:`${rxDrug} ${rxDose}`.trim(),state:"PROPOSED",version:Number(r.body["version"]??0),...ahora(),...(enc?.id?{encounterId:enc.id}:{})},...ms]);
   setRxCheck(null);setChartReload(n=>n+1);setRxMsg("✓ Prescripción registrada como PROPOSED. Gestiona su ciclo (prescribir → activar) en el módulo Medicación.");
  });
  const receiveResult=()=>call("res-new",async()=>{
   if(!resQuick.value.trim()){setError("Capture el valor del resultado.");return;}
   const id=uuid();const r=await apiRequest("/api/v1/results",{method:"POST",body:{resultId:id,patientId,orderId:uuid(),analyte:resQuick.analyte,value:resQuick.value.trim(),...(resQuick.unit?{unit:resQuick.unit}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setResults(rs=>[...rs,{id,label:`${resQuick.analyte} ${resQuick.value.trim()} ${resQuick.unit}`.trim(),critical:r.body["critical"]===true,state:"RECEIVED",version:Number(r.body["version"]??1)}]);
+  setResults(rs=>[...rs,{id,label:`${resQuick.analyte} ${resQuick.value.trim()} ${resQuick.unit}`.trim(),critical:r.body["critical"]===true,state:"RECEIVED",version:Number(r.body["version"]??1),...ahora()}]);
   setResQuick(q=>({...q,value:""}));setChartReload(n=>n+1);// refresca el expediente vivo (resultados + CDS)
  });
  const advanceResult=(res:Result)=>call("res-"+res.id,async()=>{
@@ -1194,7 +1203,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   const id=uuid();const probLbl=ordProblem?problems.find(p=>p.id===ordProblem)?.label:undefined;
   const r=await apiRequest("/api/v1/orders",{method:"POST",body:{orderId:id,patientId,orderType,detail:orderDetail,...(ordProblem?{problemId:ordProblem}:{}),...(enc?.id?{encounterId:enc.id}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setOrders(os=>[...os,{id,label:`${orderType}: ${orderDetail}`,state:"DRAFT",version:Number(r.body["version"]??1),...(probLbl?{problemLabel:probLbl}:{}),...(enc?.id?{encounterId:enc.id}:{})}]);setOrderDetail("");setOrdProblem("");setChartReload(n=>n+1);
+  setOrders(os=>[...os,{id,label:`${orderType}: ${orderDetail}`,state:"DRAFT",version:Number(r.body["version"]??1),...ahora(),...(probLbl?{problemLabel:probLbl}:{}),...(enc?.id?{encounterId:enc.id}:{})}]);setOrderDetail("");setOrdProblem("");setChartReload(n=>n+1);
  });
  const advanceOrder=(o:Order)=>call("ord-"+o.id,async()=>{
   const n=orderNext(o);if(!n)return;
@@ -1206,7 +1215,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const createReferral=()=>call("ref-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/referrals",{method:"POST",body:{referralId:id,patientId,specialty:refSpecialty,reason:refReason,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setReferrals(rs=>[...rs,{id,label:`${refSpecialty}: ${refReason}`,state:"REQUESTED",version:Number(r.body["version"]??1)}]);setRefSpecialty("");setRefReason("");
+  setReferrals(rs=>[...rs,{id,label:`${refSpecialty}: ${refReason}`,state:"REQUESTED",version:Number(r.body["version"]??1),...ahora()}]);setRefSpecialty("");setRefReason("");
  });
  const advanceReferral=(rr:Ref)=>call("ref-"+rr.id,async()=>{
   const n=referralNext(rr);if(!n)return;
@@ -1227,7 +1236,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   const id=uuid();const startIso=apptStart?new Date(apptStart).toISOString():proximaCitaIso();
   const r=await apiRequest("/api/v1/appointments",{method:"POST",body:{appointmentId:id,patientId,startAt:startIso,reason:apptReason,consultorio:apptCons,apptType,endAt:new Date(new Date(startIso).getTime()+30*60000).toISOString(),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setAppts(as=>[...as,{id,label:`${new Date(startIso).toLocaleString()} · ${apptReason}`,state:"SCHEDULED",version:Number(r.body["version"]??1)}]);setApptStart("");setApptReason("");
+  setAppts(as=>[...as,{id,label:`${new Date(startIso).toLocaleString()} · ${apptReason}`,state:"SCHEDULED",version:Number(r.body["version"]??1),...ahora()}]);setApptStart("");setApptReason("");
  });
  const advanceAppt=(a:Appt)=>call("apt-"+a.id,async()=>{
   const n=apptNext(a);if(!n)return;
@@ -1369,7 +1378,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const createConsent=()=>call("cs-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/consents",{method:"POST",body:{consentId:id,patientId,scopeType:csType,documentRef:csRef,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setConsents(cs=>[...cs,{id,label:`${csType} · ${csRef}`,state:"DRAFTED",version:Number(r.body["version"]??1)}]);setCsRef("");
+  setConsents(cs=>[...cs,{id,label:`${csType} · ${csRef}`,state:"DRAFTED",version:Number(r.body["version"]??1),...ahora()}]);setCsRef("");
  });
  const doConsentActionNow=(c:Cs,act:{path:string;body:Record<string,unknown>;to:CsSt})=>call("cs-"+c.id,async()=>{
   const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:c.version});
@@ -1406,7 +1415,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const createPlan=()=>call("cp-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/care-plans",{method:"POST",body:{carePlanId:id,patientId,category:planCat,goal:planGoal,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setPlans(ps=>[...ps,{id,label:`${planCat} · ${planGoal}`,state:"PROPOSED",version:Number(r.body["version"]??1)}]);setPlanGoal("");
+  setPlans(ps=>[...ps,{id,label:`${planCat} · ${planGoal}`,state:"PROPOSED",version:Number(r.body["version"]??1),...ahora()}]);setPlanGoal("");
  });
  const doPlanAction=(c:Cp,act:{path:string;body:Record<string,unknown>;to:CpSt})=>call("cp-"+c.id,async()=>{
   const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:c.version});
@@ -1416,7 +1425,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const createVital=()=>call("vit-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/vitals",{method:"POST",body:{vitalId:id,patientId,vitalType:vitType,value:vitValue,unit:vitUnit,...(enc?.id?{encounterId:enc.id}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setVitals(vs=>[...vs,{id,vitalType:vitType,value:vitValue,unit:vitUnit,state:"RECORDED",version:Number(r.body["version"]??1),vstatus:String(r.body["status"]??""),interp:String(r.body["interpretation"]??""),...(enc?.id?{encounterId:enc.id}:{})}]);setVitValue("");setChartReload(n=>n+1);
+  setVitals(vs=>[...vs,{id,vitalType:vitType,value:vitValue,unit:vitUnit,state:"RECORDED",version:Number(r.body["version"]??1),...ahora(),vstatus:String(r.body["status"]??""),interp:String(r.body["interpretation"]??""),...(enc?.id?{encounterId:enc.id}:{})}]);setVitValue("");setChartReload(n=>n+1);
  });
  const doVitAction=(v:Vit,act:{path:string;body:Record<string,unknown>;to:VitSt})=>call("vit-"+v.id,async()=>{
   const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:v.version});
@@ -1426,7 +1435,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const createImmunization=()=>call("imm-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/immunizations",{method:"POST",body:{immunizationId:id,patientId,vaccineCode:immCode,dose:immDose,occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setImms(is=>[...is,{id,label:`${immCode} · dosis ${immDose}`,state:"DUE",version:Number(r.body["version"]??1)}]);setImmCode("");
+  setImms(is=>[...is,{id,label:`${immCode} · dosis ${immDose}`,state:"DUE",version:Number(r.body["version"]??1),...ahora()}]);setImmCode("");
  });
  const doImmAction=(i:Imm,act:{path:string;body:Record<string,unknown>;to:ImmSt})=>call("imm-"+i.id,async()=>{
   const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:i.version});
@@ -1436,7 +1445,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
  const createAllergy=()=>call("al-new",async()=>{
   const id=uuid();const r=await apiRequest("/api/v1/allergies",{method:"POST",body:{allergyId:id,patientId,substance:alSub,severity:alSev,reaction:alReac||"—",occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
-  setAllergies(as=>[...as,{id,label:`${alSub} (${alSev})`,state:"ACTIVE",version:Number(r.body["version"]??1)}]);setAlSub("");setAlReac("");
+  setAllergies(as=>[...as,{id,label:`${alSub} (${alSev})`,state:"ACTIVE",version:Number(r.body["version"]??1),...ahora()}]);setAlSub("");setAlReac("");
  });
  const doAllergyAction=(a:Al,act:{path:string;body:Record<string,unknown>;to:AlSt})=>call("al-"+a.id,async()=>{
   const r=await apiRequest(act.path,{method:"POST",body:act.body,ifMatch:a.version});
@@ -1447,7 +1456,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   const id=uuid();const r=await apiRequest("/api/v1/problems",{method:"POST",body:{problemId:id,patientId,code:probCode,...(enc?.id?{encounterId:enc.id}:{}),occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
   const desc=String(r.body["description"]??probCode);const code=String(r.body["code"]??probCode);
-  setProblems(ps=>[...ps,{id,label:`${desc} (${code})`,state:"ACTIVE",version:Number(r.body["version"]??1),...(enc?.id?{encounterId:enc.id}:{})}]);setProbCode("");setProbDesc("");setChartReload(n=>n+1);
+  setProblems(ps=>[...ps,{id,label:`${desc} (${code})`,state:"ACTIVE",version:Number(r.body["version"]??1),...ahora(),...(enc?.id?{encounterId:enc.id}:{})}]);setProbCode("");setProbDesc("");setChartReload(n=>n+1);
  });
  const doProblemAction=(p:Prob,a:{path:string;body:Record<string,unknown>;to:ProbSt})=>call("pb-"+p.id,async()=>{
   const r=await apiRequest(a.path,{method:"POST",body:a.body,ifMatch:p.version});
@@ -1460,7 +1469,7 @@ const TRANSICIONES_IRREVERSIBLES:ReadonlySet<string>=new Set(["VOIDED","REVOKED"
   const id=uuid();const r=await apiRequest("/api/v1/obligations",{method:"POST",body:{obligationId:id,patientId,ownerId:uuid(),kind:obKind||"FOLLOWUP",occurredAt:nowIso()}});
   if(r.status>=400){setError(errMsg(r));return;}
   const vence=typeof r.body["dueAt"]==="string"?` · vence ${new Date(String(r.body["dueAt"])).toLocaleDateString()}`:"";
-  setObligations(os=>[...os,{id,label:`${obKind||"Seguimiento"}${vence}`,state:"OPEN",version:Number(r.body["version"]??1)}]);setObKind("");
+  setObligations(os=>[...os,{id,label:`${obKind||"Seguimiento"}${vence}`,state:"OPEN",version:Number(r.body["version"]??1),...ahora()}]);setObKind("");
  });
  const advanceObligation=(o:Ob)=>call("ob-"+o.id,async()=>{
   const n=obNext(o);if(!n)return;

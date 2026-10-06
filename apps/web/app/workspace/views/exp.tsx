@@ -4,7 +4,7 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf,vitalForDisplay} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{Check,ESI_FORM_EMPTY,esiListo,unidadesDe,defaultUnitFor,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,fechaHora,fechaCorta,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,ANT_HEREDO,ANT_CRONICOS,ANT_PRENATAL,ANT_PERINATAL,ANT_ALIMENTACION,ANT_DESARROLLO,ANT_INMUNIZA,isPediatricAge,antFreshness,type AntContent,type ExpTab,type TrendKey}from"../shared";
+import{Check,ESI_FORM_EMPTY,esiListo,unidadesDe,defaultUnitFor,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,fechaHora,fechaCorta,fechaFila,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,ANT_HEREDO,ANT_CRONICOS,ANT_PRENATAL,ANT_PERINATAL,ANT_ALIMENTACION,ANT_DESARROLLO,ANT_INMUNIZA,isPediatricAge,antFreshness,type AntContent,type ExpTab,type TrendKey}from"../shared";
 import{searchIcd10}from"../../../../../packages/terminology/src";
 // R2B-019: el plazo de reevaluación es de CTAS, no de ESI (ESI no publica tiempos). La pantalla lo dice para que nadie lo
 // lea como un número del algoritmo ESI.
@@ -556,7 +556,7 @@ export default function ExpView(){
      <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:8}}>
      {tl.map(x=><div key={x.aggregateId} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",border:"1px solid var(--c-line)",borderRadius:10}}>
       <div><b style={{fontSize:14}}>{TYPE_LABEL[x.aggregateType]??x.aggregateType}</b> <span style={{...mono,marginLeft:6}}>{x.aggregateId.slice(0,8)}</span></div>
-      <div style={{display:"flex",gap:10,alignItems:"center"}}><span style={stateBadge(x.latestKind)}>{x.latestKind}</span><span style={{fontSize:12,color:P.muted}}>v{x.version}</span></div>
+      <div style={{display:"flex",gap:10,alignItems:"center"}}><span style={stateBadge(x.latestKind)}>{x.latestKind}</span><span style={{fontSize:12,color:P.muted,fontVariantNumeric:"tabular-nums"}}>{fechaCorta(x.lastAt)} · v{x.version}</span></div>
      </div>)}
     </div></div>}
   </section>
@@ -604,7 +604,7 @@ export default function ExpView(){
    {meds.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {meds.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {meds.map(m=>{const n=medNext(m);return <div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{m.label}</b><div style={{fontSize:12,color:P.muted}}>v{m.version}{m.problemLabel?<> · <span style={{color:P.purple,fontWeight:600}}>↳ {m.problemLabel}</span></>:null}</div></div>
+     <div><b style={{fontSize:14}}>{m.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(m)} · v{m.version}{m.problemLabel?<> · <span style={{color:P.purple,fontWeight:600}}>↳ {m.problemLabel}</span></>:null}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(m.state)}>{m.state}</span>
       {(m.state==="PRESCRIBED"||m.state==="ACTIVE")&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>printPrescription([m.id])} title="Receta con los datos legales (cédula, institución, domicilio)">Imprimir receta</button>}
@@ -692,7 +692,7 @@ export default function ExpView(){
    {results.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {results.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {results.map(res=>{const n=resNext(res);return <div key={res.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{res.label}{res.critical&&<span style={{...stateBadge("ACTIONED"),marginLeft:8,fontSize:11}}>CRÍTICO</span>}</b><div style={{fontSize:12,color:P.muted}}>v{res.version}</div></div>
+     <div><b style={{fontSize:14}}>{res.label}{res.critical&&<span style={{...stateBadge("ACTIONED"),marginLeft:8,fontSize:11}}>CRÍTICO</span>}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(res)} · v{res.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(res.state)}>{res.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceResult(res)}>{busy==="res-"+res.id?"…":n.label}</button>}
@@ -749,7 +749,7 @@ export default function ExpView(){
    {allergies.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {allergies.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {allergies.map(a=><div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{a.label}</b><div style={{fontSize:12,color:P.muted}}>v{a.version}</div></div>
+     <div><b style={{fontSize:14}}>{a.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(a)} · v{a.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={stateBadge(a.state)}>{a.state}</span>{alActions(a).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>doAllergyAction(a,act)}>{busy==="al-"+a.id?"…":act.label}</button>)}</div>
     </div>)}
    </div>}
@@ -772,7 +772,7 @@ export default function ExpView(){
    {problems.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {problems.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {problems.map(p=><div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{p.label}</b><div style={{fontSize:12,color:P.muted}}>v{p.version}</div></div>
+     <div><b style={{fontSize:14}}>{p.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(p)} · v{p.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center"}}><span style={stateBadge(p.state)}>{p.state}</span>{probActions(p).map(a=><button key={a.label} style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>doProblemAction(p,a)}>{busy==="pb-"+p.id?"…":a.label}</button>)}</div>
     </div>)}
    </div>}
@@ -795,7 +795,7 @@ export default function ExpView(){
    {orders.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {orders.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {orders.map(o=>{const n=orderNext(o);return <div key={o.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:P.muted}}>v{o.version}{o.problemLabel?<> · <span style={{color:P.purple,fontWeight:600}}>↳ {o.problemLabel}</span></>:null}</div></div>
+     <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(o)} · v{o.version}{o.problemLabel?<> · <span style={{color:P.purple,fontWeight:600}}>↳ {o.problemLabel}</span></>:null}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(o.state)}>{o.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceOrder(o)}>{busy==="ord-"+o.id?"…":n.label}</button>}
@@ -816,7 +816,7 @@ export default function ExpView(){
    {referrals.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {referrals.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {referrals.map(rr=>{const n=referralNext(rr);const closable=rr.state==="REQUESTED"||rr.state==="ACCEPTED";return <div key={rr.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{rr.label}</b><div style={{fontSize:12,color:P.muted}}>v{rr.version}</div></div>
+     <div><b style={{fontSize:14}}>{rr.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(rr)} · v{rr.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}>
       <span style={stateBadge(rr.state)}>{rr.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceReferral(rr)}>{busy==="ref-"+rr.id?"…":n.label}</button>}
@@ -842,7 +842,7 @@ export default function ExpView(){
    {appts.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {appts.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {appts.map(a=>{const n=apptNext(a);const open=a.state==="SCHEDULED"||a.state==="CHECKED_IN";return <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{a.label}</b><div style={{fontSize:12,color:P.muted}}>v{a.version}</div></div>
+     <div><b style={{fontSize:14}}>{a.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(a)} · v{a.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(a.state)}>{a.state}</span>
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceAppt(a)}>{busy==="apt-"+a.id?"…":n.label}</button>}
@@ -865,7 +865,7 @@ export default function ExpView(){
    {imms.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {imms.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {imms.map(i=><div key={i.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{i.label}</b><div style={{fontSize:12,color:P.muted}}>v{i.version}</div></div>
+     <div><b style={{fontSize:14}}>{i.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(i)} · v{i.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(i.state)}>{i.state}</span>
       {immActions(i).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ADVERSE_EVENT"||act.to==="REFUSED"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doImmAction(i,act)}>{busy==="imm-"+i.id?"…":act.label}</button>)}
@@ -894,7 +894,7 @@ export default function ExpView(){
    {vitals.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {vitals.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {vitals.map(v=><div key={v.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div>{(()=>{const d=vitalForDisplay(v.vitalType,v.value,v.unit,/imperial/i.test(cfgSettings?.prefUnits??""));return <b style={{fontSize:14}}>{v.vitalType}: {d.value} {d.unit}</b>;})()}{v.vstatus&&v.vstatus!=="UNKNOWN"&&<span style={{...(v.vstatus==="CRITICAL"?{background:"var(--c-red-bg)",color:P.redOnPale}:v.vstatus==="ABNORMAL"?{background:"var(--c-amber-bg)",color:P.amberOnPale}:{background:"var(--c-green-bg)",color:P.greenOnPale}),marginLeft:8,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{v.interp}</span>}<div style={{fontSize:12,color:P.muted}}>v{v.version}</div></div>
+     <div>{(()=>{const d=vitalForDisplay(v.vitalType,v.value,v.unit,/imperial/i.test(cfgSettings?.prefUnits??""));return <b style={{fontSize:14}}>{v.vitalType}: {d.value} {d.unit}</b>;})()}{v.vstatus&&v.vstatus!=="UNKNOWN"&&<span style={{...(v.vstatus==="CRITICAL"?{background:"var(--c-red-bg)",color:P.redOnPale}:v.vstatus==="ABNORMAL"?{background:"var(--c-amber-bg)",color:P.amberOnPale}:{background:"var(--c-green-bg)",color:P.greenOnPale}),marginLeft:8,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999}}>{v.interp}</span>}<div style={{fontSize:12,color:P.muted}}>{fechaFila(v)} · v{v.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(v.state)}>{v.state}</span>
       {vitActions(v).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="ENTERED_IN_ERROR"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doVitAction(v,act)}>{busy==="vit-"+v.id?"…":act.label}</button>)}
@@ -917,7 +917,7 @@ export default function ExpView(){
    {plans.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {plans.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {plans.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>v{c.version}</div></div>
+     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(c)} · v{c.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(c.state)}>{c.state}</span>
       {cpActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="CANCELLED"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doPlanAction(c,act)}>{busy==="cp-"+c.id?"…":act.label}</button>)}
@@ -961,7 +961,7 @@ export default function ExpView(){
    {consents.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {consents.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {consents.map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>v{c.version}</div></div>
+     <div><b style={{fontSize:14}}>{c.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(c)} · v{c.version}</div></div>
      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(c.state)}>{c.state}</span>
       {csActions(c).map(act=><button key={act.label} style={{...ghost,padding:"7px 12px",...(act.to==="DECLINED"||act.to==="REVOKED"?{color:P.amberOnPale,borderColor:"var(--c-amber-bd)"}:{})}} disabled={busy!==""} onClick={()=>doConsentAction(c,act)}>{busy==="cs-"+c.id?"…":act.label}</button>)}
@@ -1284,7 +1284,7 @@ export default function ExpView(){
    {obligations.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {obligations.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
     {obligations.map(o=>{const n=obNext(o);return <div key={o.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:P.muted}}>v{o.version}</div></div>
+     <div><b style={{fontSize:14}}>{o.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(o)} · v{o.version}</div></div>
      <div style={{display:"flex",gap:10,alignItems:"center"}}><span style={stateBadge(o.state)}>{o.state}</span>{n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceObligation(o)}>{busy==="ob-"+o.id?"…":n.label}</button>}</div>
     </div>;})}
    </div>}

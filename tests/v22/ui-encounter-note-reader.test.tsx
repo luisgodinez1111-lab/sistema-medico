@@ -89,6 +89,53 @@ describe("Lector de la nota clínica: las consultas pasadas se leen (auditoría 
   expect(within(tarjeta).queryByText("2 jun 2026, 03:05")).toBeNull();
  });
 
+ // Auditoría clínica multiespecialidad (06-oct-2026) — LA FECHA EN TODAS LAS FILAS.
+ //
+ // Las filas del expediente imprimían `v{version}` en el sitio donde iba la fecha: «metformina 850 mg · v4». Ocho
+ // especialistas coincidieron en que eso no es un dato clínico. Lo que esta prueba fija es que la fecha ESTÁ donde el
+ // médico la busca, y que las dos fechas que el read-model trae se distinguen: un dato que nadie tocó muestra una sola
+ // fecha; uno que cambió muestra el alta y la actualización, porque «desde cuándo toma metformina» y «cuándo se le
+ // suspendió» son dos preguntas distintas que se hacen sobre la misma fila.
+ it("las filas del expediente llevan su FECHA, no solo el número de versión",async()=>{
+  render(<Workspace/>);
+  await toExpediente();
+  // Alergias: un dato que nadie ha tocado desde 2017 — una sola fecha, la del registro.
+  fireEvent.click(await screen.findByRole("button",{name:/^Alergias/}));
+  const alg=(await screen.findByRole("heading",{name:"Alergias"})).closest("section")!;
+  const fAlg=await within(alg).findByText(/4 jul 2017/);
+  expect(fAlg.textContent).toContain("v1");
+  expect(fAlg.textContent).not.toContain("act."); // no cambió: no se inventa una actualización
+  // Medicación: prescrita en marzo, suspendida en septiembre — las DOS fechas, porque las dos deciden.
+  fireEvent.click(screen.getByRole("button",{name:/^Medicación/}));
+  const med=(await screen.findByRole("heading",{name:"Medicación"})).closest("section")!;
+  const fMed=await within(med).findByText(/2 mar 2026 · act\. 18 sep 2026/);
+  expect(fMed.textContent).toContain("v4");
+  // Problemas: la fecha del diagnóstico, que es lo que fecha la cronicidad.
+  fireEvent.click(screen.getByRole("button",{name:/^Problemas/}));
+  const prob=(await screen.findByRole("heading",{name:"Lista de problemas"})).closest("section")!;
+  expect(await within(prob).findByText(/12 mar 2019/)).toBeTruthy();
+ });
+
+ // Defecto que destapó el mock del expediente vivo (06-oct-2026). La hidratación hacía `setMeds(c.medications)`: la
+ // respuesta del servidor sustituía la lista entera. Si el médico documentaba algo en los segundos que tarda la respuesta,
+ // su fila DESAPARECÍA de la pantalla hasta la siguiente recarga — y lo que desaparece en un expediente se vuelve a
+ // teclear. Ahora se funde por id: el servidor manda sobre lo que conoce, lo de esta sesión sobrevive. Sin esta prueba el
+ // defecto solo rompía un test de medicación con un mensaje que no decía por qué.
+ it("una fila creada en esta sesión sobrevive a la hidratación del expediente, y no se duplica la del servidor",async()=>{
+  render(<Workspace/>);
+  await toExpediente();
+  fireEvent.click(await screen.findByRole("button",{name:/^Alergias/}));
+  const alg=(await screen.findByRole("heading",{name:"Alergias"})).closest("section")!;
+  await within(alg).findByText(/4 jul 2017/); // la del servidor ya está hidratada
+  fireEvent.change(within(alg).getByPlaceholderText(/sustancia/i),{target:{value:"sulfas"}});
+  fireEvent.click(within(alg).getByRole("button",{name:/Registrar alergia/}));
+  // Las DOS: la hidratada del servidor y la que se acaba de crear.
+  expect(await within(alg).findByText(/sulfas/)).toBeTruthy();
+  expect(within(alg).getByText(/penicilina — exantema/)).toBeTruthy();
+  // Y la del servidor aparece UNA vez: fundir no es concatenar.
+  expect(within(alg).getAllByText(/penicilina — exantema/).length).toBe(1);
+ });
+
  it("accesibilidad: el lector de la nota no tiene violaciones axe serias o críticas",async()=>{
   const{container}=render(<Workspace/>);
   await toExpediente();
