@@ -31,6 +31,18 @@ describe("verdad clínica con el backend caído",()=>{
   expect(alert.closest('[role="alert"]')).not.toBeNull();
   expect(screen.getByRole("button",{name:"Reintentar"})).toBeTruthy();
  });
+ // Auditoría clínica multiespecialidad (06-oct-2026) — el lector de la nota, bajo el mismo criterio de verdad.
+ // «Primera consulta registrada de este paciente» es una AFIRMACIÓN DE AUSENCIA. Con el índice caído no se sabe si el
+ // paciente tiene diez consultas o ninguna, y afirmar que no tiene es el patrón que esta auditoría persigue desde el
+ // primer día: pantallas que niegan sin saber. Mientras el índice no responda, la pantalla no dice nada.
+ it("el lector de la nota NO afirma «primera consulta» cuando el índice de consultas falló",async()=>{
+  render(<Workspace/>);
+  fireEvent.click(screen.getByRole("button",{name:"Pacientes"}));
+  fireEvent.change(await screen.findByLabelText(/ID de paciente/),{target:{value:"11111111-1111-4111-8111-111111111111"}});
+  await screen.findByText(/No se pudo cargar el expediente/,{}, {timeout:4000});
+  expect(screen.queryByText(/Primera consulta registrada de este paciente/)).toBeNull();
+  expect(screen.queryByText(/Última visita/)).toBeNull();
+ });
  // La vista Consulta exige un paciente elegido (inalcanzable con el backend caído), así que su invariante se
  // fija como guarda de REGRESIÓN sobre el fuente: los valores de maqueta que la auditoría encontró no pueden volver.
  it("guarda de regresión: el workspace no contiene identidades ni valores clínicos de maqueta como valor por defecto",async()=>{

@@ -8,11 +8,11 @@
 // Reutiliza TODOS los handlers/endpoints del contexto sin cambiar su lógica ni los flujos de seguridad del encuentro.
 import{useState}from"react";
 import{searchIcd10}from"../../../../../packages/terminology/src";
-import{Check,card,P,LINE,UI,act,goExpSection,scrollTop,DX_LABEL,NavIcon,mono,isPediatricAge,antFreshness}from"../shared";
+import{Check,card,P,LINE,UI,act,goExpSection,scrollTop,DX_LABEL,NavIcon,mono,isPediatricAge,antFreshness,fechaHora}from"../shared";
 import{useWorkspace}from"../context";
 
 export default function EncounterForm(){
- const{enc,snap,consTabs,antSnap,clock,cForm,setCForm,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdCat,cOrdSel,setCOrdSel,setCOrdMsg,createConsultaOrders,cOrdBusy,cOrdMsg,patientId,setView,setExpTab,gaps,busy,consultaAdvance,cPreview,setCPreview,composeNote,cMsg,setCMsg,docDisplay,reset,problems,orders,meds,vitals,cfgSettings}=useWorkspace();
+ const{enc,snap,consTabs,antSnap,clock,cForm,setCForm,cVit,setCVit,saveConsultaVitals,cVitBusy,cVitMsg,cDxQuery,setCDxQuery,setCDxMsg,addConsultaProblem,cDxBusy,cDxMsg,cOrdCat,setCOrdCat,cOrdSel,setCOrdSel,setCOrdMsg,createConsultaOrders,cOrdBusy,cOrdMsg,patientId,setView,setExpTab,gaps,busy,consultaAdvance,cPreview,setCPreview,composeNote,cMsg,setCMsg,docDisplay,encList,encNote,encMsg,openEncounterNote,closeEncounterNote,reset,problems,orders,meds,vitals,cfgSettings}=useWorkspace();
  // S-CONFIG «Sistema de unidades»: la temperatura de la Consulta se captura en °F si el consultorio usa Imperial (el valor
  // se guarda con su unidad + el canónico; la clasificación/cálculos usan el canónico). El resto de signos no cambia de unidad.
  const tempUnit=/imperial/i.test(cfgSettings?.prefUnits??"")?"°F":"°C";
@@ -60,6 +60,60 @@ export default function EncounterForm(){
  return <>
   {cMsg&&<div style={{marginTop:10,display:"flex",alignItems:"center",gap:10,background:st==="SIGNED"?"var(--c-green-bg)":"var(--c-blue-bg)",border:`1px solid ${st==="SIGNED"?"var(--c-green-bd)":"var(--c-blue-bd)"}`,borderRadius:10,padding:"10px 14px",fontSize:13}}><span style={{color:st==="SIGNED"?P.green:P.blue,fontWeight:700}}>{st==="SIGNED"?"✓":"ℹ"}</span><span style={{flex:1}}>{cMsg}{enc?.signatureDigest?<> Firma: <span style={mono}>{enc.signatureDigest.slice(0,24)}…</span></>:null}</span><button onClick={()=>setCMsg(null)} style={{border:0,background:"transparent",color:P.muted,cursor:"pointer",fontFamily:UI,fontSize:14}}>×</button></div>}
   {cPreview&&<div style={{...card,marginTop:14,padding:18}}><div style={{fontWeight:800,fontSize:15,marginBottom:10}}>Vista previa de la nota clínica</div><pre style={{whiteSpace:"pre-wrap",fontFamily:UI,fontSize:13,color:P.ink,margin:0,lineHeight:1.6}}>{composeNote()}{"\n\nPLAN DE MANEJO: "+(cForm.plan.trim()||"—")}</pre><div style={{fontSize:11.5,color:P.muted,marginTop:10}}>Así se guardará la valoración del encuentro al firmar. Médico: {docDisplay}.</div></div>}
+
+  {/* ÚLTIMA VISITA — Auditoría clínica multiespecialidad (06-oct-2026).
+      El médico escribe la consulta de hoy SIN poder ver lo que escribió la vez anterior: la nota firmada no era legible por
+      ninguna ruta. Esto la pone donde se necesita, arriba del SOAP, antes de teclear nada.
+      Se carga a UN clic y no automáticamente: leer la nota es un acceso a PHI que queda registrado con nombre y propósito, y
+      registrar lecturas que nadie pidió convierte la bitácora en ruido. El índice (fecha, firmante) no es PHI y sí se ve ya. */}
+  {(()=>{
+   const previas=(encList??[]).filter(c=>c.encounterId!==enc?.id);
+   const ultima=previas[0];
+   if(encList===null)return null; // aún cargando el índice del paciente: no se afirma «primera consulta» sin saberlo
+   if(!ultima)return <div style={{marginTop:14,padding:"11px 15px",borderRadius:11,border:`1px solid ${LINE}`,background:"var(--c-wash)",fontSize:13,color:P.muted}}>
+    Primera consulta registrada de este paciente: no hay nota anterior que consultar.
+   </div>;
+   const abierta=encNote?.encounterId===ultima.encounterId;
+   const cargando=busy==="note-"+ultima.encounterId;
+   return <div style={{marginTop:14,borderRadius:11,border:`1px solid ${LINE}`,background:"var(--c-wash)",overflow:"hidden"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,padding:"11px 15px",flexWrap:"wrap"}}>
+     <span style={{fontSize:13}}>
+      <b>Última visita</b> · <span style={{fontVariantNumeric:"tabular-nums"}}>{fechaHora(ultima.openedAt)}</span>
+      <span style={{color:P.muted}}>{ultima.signedAt!==null?" · firmada":" · sin firmar"}{ultima.hasNote?"":" · sin nota escrita"}</span>
+      {previas.length>1&&<span style={{color:P.muted}}> · {previas.length} consultas previas</span>}
+     </span>
+     <span style={{display:"flex",gap:8,alignItems:"center"}}>
+      <button type="button" disabled={busy!==""&&!cargando} aria-expanded={abierta}
+       onClick={()=>abierta?closeEncounterNote():void openEncounterNote(ultima.encounterId)}
+       style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"5px 12px",fontSize:12.5,fontWeight:600,color:P.purple,cursor:busy!==""&&!cargando?"default":"pointer",fontFamily:UI}}>
+       {cargando?"Abriendo…":abierta?"Cerrar la nota":"Leer la nota anterior"}
+      </button>
+      {previas.length>1&&<button type="button" onClick={()=>{goExpSection("Consultas de este paciente",setView,setExpTab);}}
+       style={{border:`1px solid ${LINE}`,background:P.white,borderRadius:8,padding:"5px 12px",fontSize:12.5,fontWeight:600,color:P.purple,cursor:"pointer",fontFamily:UI}}>
+       Ver las {previas.length} consultas
+      </button>}
+     </span>
+    </div>
+    {encMsg&&<div role="alert" style={{padding:"9px 15px",borderTop:`1px solid ${LINE}`,fontSize:12.5,color:P.redOnPale,background:"var(--c-red-bg)"}}>{encMsg}</div>}
+    {abierta&&encNote&&<div style={{padding:"12px 15px 15px",borderTop:`1px solid ${LINE}`,background:P.white}}>
+     {encNote.assessment===null&&encNote.plan===null
+      ?<p style={{fontSize:13,color:P.muted,margin:0}}>Esa consulta se abrió pero no se documentó: no hay valoración ni plan que leer.</p>
+      :<>
+       <div style={{fontSize:11.5,textTransform:"uppercase",letterSpacing:".04em",color:P.muted,marginBottom:4}}>Valoración de la visita anterior</div>
+       <p style={{fontSize:13.5,lineHeight:1.55,margin:0,whiteSpace:"pre-wrap",maxWidth:"72ch",color:P.ink}}>{encNote.assessment??"— no se escribió valoración —"}</p>
+       <div style={{fontSize:11.5,textTransform:"uppercase",letterSpacing:".04em",color:P.muted,margin:"14px 0 4px"}}>Plan que se dejó</div>
+       <p style={{fontSize:13.5,lineHeight:1.55,margin:0,whiteSpace:"pre-wrap",maxWidth:"72ch",color:P.ink}}>{encNote.plan??"— no se escribió plan —"}</p>
+      </>}
+     {encNote.amendments.length>0&&<p style={{fontSize:12.5,color:P.amberOnPale,margin:"12px 0 0",fontWeight:600}}>Esa nota tiene {encNote.amendments.length} {encNote.amendments.length===1?"enmienda":"enmiendas"} posterior{encNote.amendments.length===1?"":"es"} a la firma; se leen completas en Historia.</p>}
+     <p style={{fontSize:11.5,color:P.muted,margin:"12px 0 0"}}>
+      {encNote.signedAt!==null
+       ?<>Firmada el <span style={{fontVariantNumeric:"tabular-nums"}}>{fechaHora(encNote.signedAt)}</span>{encNote.signer?.fullName?` por ${encNote.signer.fullName}`:""}{encNote.signer?.cedulaProfesional?` · cédula ${encNote.signer.cedulaProfesional}`:""}.</>
+       :<span style={{color:P.amberOnPale,fontWeight:600}}>Esa consulta no se firmó: es un borrador.</span>}
+      {" "}Esta lectura queda registrada en la bitácora de accesos.
+     </p>
+    </div>}
+   </div>;
+  })()}
 
   <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.75fr) minmax(300px,1fr)",gap:18,marginTop:14,alignItems:"start",paddingBottom:72}} className="mos-consulta">
    <div style={{display:"flex",flexDirection:"column",gap:14,minWidth:0}}>

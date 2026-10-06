@@ -14,10 +14,19 @@ import{cpus}from"node:os";
 // `vitest run` ejecuta AMBOS proyectos (misma cobertura); `test:unit`/`test:ui` corren uno. El transform JSX automático
 // (como Next) se declara en cada proyecto para que .ts y .tsx se compilen igual.
 const JSX={jsx:"automatic" as const,jsxImportSource:"react"};
+// ZONA HORARIA FIJA EN LAS PRUEBAS (06-oct-2026). Al añadir las fechas al expediente apareció que las pruebas corrían con
+// la zona de la máquina: la misma aserción sobre «18 sep 2026, 15:20» pasaba en CI (UTC) y fallaba en un portátil de
+// Chihuahua (UTC-6), porque la pantalla muestra la hora LOCAL DEL CONSULTORIO, que es la correcta para un expediente.
+// Se fija la zona del despliegue (México) para que una prueba de fecha mida el formato y no el husillo del que la corre.
+// Se declara en `test.env` (vitest lo aplica en cada worker ANTES de cargar los módulos) y también en este proceso, que es
+// el que resuelve la configuración: con solo una de las dos, hilos y forks no coincidían.
+const TZ_PRUEBAS="America/Mexico_City";
+process.env["TZ"]=TZ_PRUEBAS;
 const CORES=Math.max(2,cpus().length);
 export default defineConfig({
  esbuild:JSX,
  test:{
+  env:{TZ:TZ_PRUEBAS},
   projects:[
    {
     extends:true,

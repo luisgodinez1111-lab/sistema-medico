@@ -52,6 +52,22 @@ export function makeSessionClientMock(posted:{path:string;body:unknown}[]){
    }
    if(path.includes("/assessment"))return{status:201,body:{version:2}};
    if(path.includes("/signature"))return{status:201,body:{version:3,signatureDigest:"a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"}};
+   // Auditoría clínica multiespecialidad (06-oct-2026) — EL LECTOR DE LA NOTA.
+   // El índice de consultas del paciente (metadatos con fecha) y la nota de una consulta (la valoración y el plan que se
+   // firmaron). Van ANTES de la regla genérica de `/api/v1/encounters`, que si no se los comería devolviendo 201.
+   if(/\/api\/v1\/patients\/[^/]+\/encounters$/.test(path))return{status:200,body:{patientId:"p1",total:2,items:[
+    {encounterId:"e1",status:"SIGNED",version:3,openedAt:"2026-09-18T15:20:00.000Z",lastAt:"2026-09-18T15:52:00.000Z",signedAt:"2026-09-18T15:52:00.000Z",hasNote:true},
+    {encounterId:"e0",status:"OPENED",version:1,openedAt:"2026-06-02T09:05:00.000Z",lastAt:"2026-06-02T09:05:00.000Z",signedAt:null,hasNote:false},
+   ]}};
+   if(/\/api\/v1\/encounters\/e1\/note$/.test(path))return{status:200,body:{encounterId:"e1",patientId:"p1",status:"SIGNED",version:3,
+    openedAt:"2026-09-18T15:20:00.000Z",
+    assessment:"DM2 descontrolada: HbA1c 8.2 %. ERC G3a estable, TFG 48.",
+    plan:"Subir metformina a 850 mg c/12 h. HbA1c y creatinina en 3 meses.",
+    signedAt:"2026-09-18T15:52:00.000Z",signatureDigest:"d1g3st0deprueba0000",contentHash:"c0ntenthash0deprueba",
+    signer:{fullName:"Dra. Laura Hernández",cedulaProfesional:"7654321",specialty:"Medicina Interna"},
+    amendments:[{at:"2026-09-19T11:00:00.000Z",text:"Se corrige la TFG: 46, no 48.",reason:"Error de transcripción del laboratorio"}]}};
+   if(/\/api\/v1\/encounters\/e0\/note$/.test(path))return{status:200,body:{encounterId:"e0",patientId:"p1",status:"OPENED",version:1,
+    openedAt:"2026-06-02T09:05:00.000Z",assessment:null,plan:null,signedAt:null,signatureDigest:null,contentHash:null,signer:null,amendments:[]}};
    if(path.includes("/api/v1/encounters"))return{status:201,body:{version:1}};
    if(path.includes("/api/v1/orders"))return{status:200,body:{
     items:[

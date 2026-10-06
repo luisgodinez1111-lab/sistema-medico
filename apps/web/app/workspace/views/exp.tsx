@@ -4,7 +4,7 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf,vitalForDisplay} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{Check,ESI_FORM_EMPTY,esiListo,unidadesDe,defaultUnitFor,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,ANT_HEREDO,ANT_CRONICOS,ANT_PRENATAL,ANT_PERINATAL,ANT_ALIMENTACION,ANT_DESARROLLO,ANT_INMUNIZA,isPediatricAge,antFreshness,type AntContent,type ExpTab,type TrendKey}from"../shared";
+import{Check,ESI_FORM_EMPTY,esiListo,unidadesDe,defaultUnitFor,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,fechaHora,fechaCorta,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,EXP_TABS,ANT_HEREDO,ANT_CRONICOS,ANT_PRENATAL,ANT_PERINATAL,ANT_ALIMENTACION,ANT_DESARROLLO,ANT_INMUNIZA,isPediatricAge,antFreshness,type AntContent,type ExpTab,type TrendKey}from"../shared";
 import{searchIcd10}from"../../../../../packages/terminology/src";
 // R2B-019: el plazo de reevaluación es de CTAS, no de ESI (ESI no publica tiempos). La pantalla lo dice para que nadie lo
 // lea como un número del algoritmo ESI.
@@ -15,7 +15,7 @@ import{useFocusTrap}from"../shared";
 import EncounterForm from"./_encounter";
 import PacientesView from"./pacientes";
 export default function ExpView(){
- const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,safetyUnknown,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab,setView,openConsulta,antSnap,antForm,setAntForm,antBusy,antMsg,antReason,setAntReason,antEditing,setAntEditing,saveAntecedentes,openEdit,patEdit,setPatEdit,editForm,setEditForm,amendPatient,editBusy,patMsg,setPatMsg,medProblem,setMedProblem,ordProblem,setOrdProblem,docsSnap,docDetail,docDetBusy,loadDoc,setDocDetail,attInputRef,attBusy,attMsg,ATT_MIME,onPickAttachment,viewAttachment,removeAttachment,fmtBytes}=useWorkspace();
+ const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,safetyUnknown,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,encList,encNote,encMsg,openEncounterNote,closeEncounterNote,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab,setView,openConsulta,antSnap,antForm,setAntForm,antBusy,antMsg,antReason,setAntReason,antEditing,setAntEditing,saveAntecedentes,openEdit,patEdit,setPatEdit,editForm,setEditForm,amendPatient,editBusy,patMsg,setPatMsg,medProblem,setMedProblem,ordProblem,setOrdProblem,docsSnap,docDetail,docDetBusy,loadDoc,setDocDetail,attInputRef,attBusy,attMsg,ATT_MIME,onPickAttachment,viewAttachment,removeAttachment,fmtBytes}=useWorkspace();
  // Confirmación de dos pasos para quitar un adjunto (UI efímera; quitar borra el blob privado, acción registrada en bitácora).
  const[attConfirm,setAttConfirm]=useState<string|null>(null);
  // Diálogos de seguridad (anular bloqueo de Rx / reconocer verificación incompleta / acción irreversible): focus-trap y
@@ -448,6 +448,80 @@ export default function ExpView(){
      </div>
     </div>;
    })()}
+  </section>
+
+  {/* CONSULTAS DE ESTE PACIENTE — la nota firmada, legible */}
+  {/* Auditoría clínica multiespecialidad (06-oct-2026). Hallazgo nº1, el que cuatro especialistas pusieron por delante de
+      todo lo demás: la valoración y el plan que el médico escribe y FIRMA no se podían volver a leer por ninguna ruta de la
+      aplicación. El expediente mostraba que una consulta existía («Encounter · v3») y nada de lo que decía.
+      Va ANTES del timeline a propósito: el timeline declara en su propia leyenda que trae «metadatos, sin contenido», y lo
+      primero que un médico necesita al abrir un expediente es lo que se dijo la última vez.
+      La nota se despliega EN LA LISTA, no en un modal: así se puede saltar de una consulta a otra sin cerrar nada, que es
+      exactamente lo que se hace al comparar dos visitas. */}
+  <section hidden={!inTab("historia")} style={card}>
+   <h2 {...anchor("Consultas de este paciente")} style={{fontSize:18,margin:0}}>Consultas de este paciente</h2>
+   <p style={{color:P.muted,fontSize:12,margin:"4px 0 0"}}>Cada consulta abre su nota: la valoración y el plan que se firmaron, con su fecha y su firmante.</p>
+   {encMsg&&<div role="alert" style={{marginTop:12,padding:"9px 13px",borderRadius:10,background:"var(--c-red-bg)",border:"1px solid var(--c-red-bg)",fontSize:12.5,color:P.redOnPale}}>{encMsg}</div>}
+   {encList===null?<div style={{marginTop:14,display:"flex",flexDirection:"column",gap:8}}>{Array.from({length:3}).map((_,i)=><Skeleton key={i} w={"100%"} h={54} r={10}/>)}</div>
+    :encList.length===0?<p style={{color:P.muted,fontSize:13,marginTop:14}}>Este paciente todavía no tiene consultas registradas. La primera se crea desde <b>Consulta</b>.</p>
+    :<div style={{marginTop:14,display:"flex",flexDirection:"column",gap:8}}>
+     {encList.map((c,i)=>{
+      const abierta=encNote?.encounterId===c.encounterId;
+      const cargando=busy==="note-"+c.encounterId;
+      const firmada=c.signedAt!==null;
+      return <div key={c.encounterId} style={{border:"1px solid var(--c-line)",borderRadius:10,overflow:"hidden",background:abierta?"var(--c-wash)":"transparent"}}>
+       <button type="button" aria-expanded={abierta} disabled={busy!==""&&!cargando}
+        onClick={()=>abierta?closeEncounterNote():void openEncounterNote(c.encounterId)}
+        style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,padding:"11px 14px",
+         background:"transparent",border:"none",textAlign:"left",cursor:busy!==""&&!cargando?"default":"pointer",font:"inherit"}}>
+        <span>
+         <span style={{fontSize:14,fontWeight:700,fontVariantNumeric:"tabular-nums"}}>{fechaHora(c.openedAt)}</span>
+         {i===0&&<span style={{marginLeft:8,fontSize:11,fontWeight:700,color:P.muted}}>· más reciente</span>}
+         <span style={{display:"block",fontSize:12,color:P.muted,marginTop:2}}>
+          {firmada?`Firmada ${fechaCorta(c.signedAt as string)}`:"Abierta, sin firmar"}
+          {c.hasNote?"":" · sin nota escrita"}
+          {" · "}{c.version} {c.version===1?"evento":"eventos"}
+         </span>
+        </span>
+        <span style={{display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
+         <span style={stateBadge(firmada?"SIGNED":"OPENED")}>{firmada?"FIRMADA":"ABIERTA"}</span>
+         <span style={{fontSize:12,fontWeight:700,color:"var(--c-purple-fg)"}}>{cargando?"Abriendo…":abierta?"Cerrar":"Leer la nota"}</span>
+        </span>
+       </button>
+       {abierta&&encNote&&<div style={{padding:"4px 14px 14px",borderTop:"1px solid var(--c-line)"}}>
+        {encNote.assessment===null&&encNote.plan===null
+         ?<p style={{fontSize:13,color:P.muted,margin:"10px 0 0"}}>Esta consulta se abrió pero no se documentó: no hay valoración ni plan que leer.</p>
+         :<>
+          <h3 style={{fontSize:12.5,textTransform:"uppercase",letterSpacing:".04em",color:P.muted,margin:"12px 0 4px"}}>Valoración</h3>
+          <p style={{fontSize:14,lineHeight:1.55,margin:0,whiteSpace:"pre-wrap",maxWidth:"72ch"}}>{encNote.assessment??"— no se escribió valoración —"}</p>
+          <h3 style={{fontSize:12.5,textTransform:"uppercase",letterSpacing:".04em",color:P.muted,margin:"16px 0 4px"}}>Plan</h3>
+          <p style={{fontSize:14,lineHeight:1.55,margin:0,whiteSpace:"pre-wrap",maxWidth:"72ch"}}>{encNote.plan??"— no se escribió plan —"}</p>
+         </>}
+        {encNote.amendments.length>0&&<div style={{marginTop:16}}>
+         <h3 style={{fontSize:12.5,textTransform:"uppercase",letterSpacing:".04em",color:P.amberOnPale,margin:"0 0 6px"}}>Enmiendas posteriores a la firma · {encNote.amendments.length}</h3>
+         <div style={{display:"flex",flexDirection:"column",gap:6}}>{encNote.amendments.map((a,k)=><div key={k} style={{padding:"8px 12px",borderRadius:9,background:"var(--c-amber-bg)",fontSize:13}}>
+          <span style={{fontWeight:700,fontVariantNumeric:"tabular-nums"}}>{fechaHora(a.at)}</span>
+          <span style={{display:"block",marginTop:3,whiteSpace:"pre-wrap"}}>{a.text}</span>
+          <span style={{display:"block",marginTop:3,color:P.amberOnPale,fontSize:12}}>Motivo: {a.reason}</span>
+         </div>)}</div>
+        </div>}
+        <div style={{marginTop:16,paddingTop:12,borderTop:"1px solid var(--c-line)",fontSize:12,color:P.muted,display:"flex",flexDirection:"column",gap:3}}>
+         {encNote.signedAt!==null
+          ?<>
+            <span>Firmada el <b style={{color:P.ink,fontVariantNumeric:"tabular-nums"}}>{fechaHora(encNote.signedAt)}</b>
+             {encNote.signer?.fullName?<> por <b style={{color:P.ink}}>{encNote.signer.fullName}</b></>:<> · <span style={{color:P.amberOnPale,fontWeight:700}}>firmante sin identificar en el sello</span></>}
+             {encNote.signer?.cedulaProfesional?<> · cédula {encNote.signer.cedulaProfesional}</>:null}
+             {encNote.signer?.specialty?<> · {encNote.signer.specialty}</>:null}
+            </span>
+            {encNote.contentHash&&<span>Huella del contenido firmado: <span style={mono}>{encNote.contentHash.slice(0,16)}…</span></span>}
+           </>
+          :<span style={{color:P.amberOnPale,fontWeight:700}}>Sin firmar: es un borrador y no tiene valor legal como nota médica.</span>}
+         <span>Abierta el <span style={{fontVariantNumeric:"tabular-nums"}}>{fechaHora(encNote.openedAt)}</span> · esta lectura queda registrada en la bitácora de accesos al expediente.</span>
+        </div>
+       </div>}
+      </div>;
+     })}
+    </div>}
   </section>
 
   {/* TIMELINE DEL PACIENTE */}

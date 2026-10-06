@@ -12,7 +12,8 @@
 //   runtime/patient-facts.ts  hechos clínicos de un paciente (barreras, calculadoras, seguimiento)
 //   runtime/registries.ts     tableros por estado de toda la clínica
 //   runtime/analytics.ts      analítica agregada
-//   runtime/records.ts        expediente: eventos, timeline, documento, encuentro, obligaciones bloqueantes
+//   runtime/records.ts        expediente: eventos, timeline, documento, obligaciones bloqueantes
+//   runtime/encounters.ts     la consulta: qué consultas hubo y qué dice la nota de cada una
 export{getSql,readPatientAccessLog,recordPhiAccess,revokeCurrentSession,sessionSecret,withTenantTx}from"./runtime/connection";
 export{lookupReplay,runClinicalCommand,runAtomicMultiCommand,lookupMultiReplay}from"./runtime/command";
 export{PAGE_LIMIT_DEFAULT,PAGE_LIMIT_MAX,clampLimit,decodeCursor,encodeCursor}from"./runtime/pagination";
@@ -28,7 +29,8 @@ export{registrySummary,topPatientsOfRegistry}from"./runtime/registry-summaries";
 export type{ResultsSummary,ClaimsIncome,ReportAggregates,ReportWindow}from"./runtime/analytics";
 export type{RegistrySummary,RegistrySummarySpec,TopPatientRow}from"./runtime/registry-summaries";
 export type{RegistryQuery}from"./runtime/read-model-joins";
-export{blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,countUnresolvedCriticalObligations,documentDetail,readAggregateEvents,readEncounter,readEncounterEvents,readEventPayloadById,readPatientRecordRows,readPatientTimeline,readTenantOpenAggregates}from"./runtime/records";
+export{blockingObligations,countOpenCriticalResults,countOpenCriticalVitals,countUnresolvedCriticalObligations,documentDetail,readAggregateEvents,readEncounterEvents,readEventPayloadById,readPatientRecordRows,readPatientTimeline,readTenantOpenAggregates}from"./runtime/records";
+export{listPatientEncounters,readEncounter,readEncounterNote}from"./runtime/encounters";
 export type{ClinicalCommandResult}from"./runtime/command";
 export type{Page}from"./runtime/pagination";
 export type{PatientDemographics,PatientDuplicate,PatientGuardian,PatientListQuery,PatientRow}from"./runtime/patients";
@@ -37,4 +39,5 @@ export type{AnalyteReading}from"./runtime/lab-facts";
 export type{AgendaAppt,AllergyRow,ClaimRow,ImmunizationRow,OrderRow,ProblemRow,ResultRow,OverdueOrderRow}from"./runtime/registries";
 export type{OfficeSettingsRead,RegulatoryObligationRow}from"./runtime/office";
 export type{AppointmentOutcomes,AppointmentTypeRow,EncounterAnalytics,PrescribedDrugRow}from"./runtime/analytics";
-export type{BlockingObligation,DocAddendum,DocAttachment,DocSignature,DocumentDetail,EncounterView,PanelRowData,RecordRow,TimelineItem}from"./runtime/records";
+export type{BlockingObligation,DocAddendum,DocAttachment,DocSignature,DocumentDetail,PanelRowData,RecordRow,TimelineItem}from"./runtime/records";
+export type{EncounterListItem,EncounterNote,EncounterView}from"./runtime/encounters";

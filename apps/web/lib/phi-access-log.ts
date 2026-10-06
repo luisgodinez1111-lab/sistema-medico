@@ -15,6 +15,7 @@ export type PhiResourceType=
  |"PATIENT_TIMELINE"    // línea de tiempo longitudinal
  |"PATIENT_VITALS"      // serie de signos vitales
  |"PATIENT_ANTECEDENTES"// matriz fundacional de antecedentes (historia clínica basal)
+ |"ENCOUNTER_NOTE"      // nota de una consulta (valoración y plan): el contenido que el médico firmó
  |"CLINICAL_DOCUMENT"   // contenido de un documento clínico
  |"PRESCRIPTION"        // receta (impresión / PDF)
  |"RECORD_EXPORT";      // exportación del expediente

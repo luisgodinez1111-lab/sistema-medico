@@ -214,18 +214,3 @@ export async function countOpenCriticalVitals(ctx:HttpTenantContext,patientId:st
   return Number(rows[0]?.n??0);
  });
 }
-export type EncounterView=Readonly<{encounterId:string;version:number;events:ReadonlyArray<{sequence:number;type:string;occurredAt:string}>}>;
-// Lectura RLS-scoped del agregado (sin payload clínico: solo metadatos no-PHI).
-export async function readEncounter(ctx:HttpTenantContext,encounterId:string):Promise<EncounterView|null>{
- return withTenantTx(ctx,async tx=>{
-  const agg=await tx`select version from aggregate_versions where tenant_id=${ctx.tenantId} and aggregate_id=${encounterId}`;
-  const head=agg[0];
-  if(!head)return null;
-  const events=await tx`select sequence,aggregate_type,occurred_at from clinical_events where tenant_id=${ctx.tenantId} and aggregate_id=${encounterId} order by sequence`;
-  return{
-   encounterId,
-   version:Number(head.version),
-   events:events.map(e=>({sequence:Number(e.sequence),type:String(e.aggregate_type),occurredAt:String(e.occurred_at)})),
-  };
- });
-}

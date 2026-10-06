@@ -85,6 +85,18 @@ export type Sg=Readonly<{id:string;procedure:string;state:SgSt;version:number}>;
 export type DzSt="SCHEDULED"|"IN_SESSION"|"INTERRUPTED"|"COMPLETED"|"CANCELLED"|"NO_SHOW";
 export type Dz=Readonly<{id:string;modality:string;state:DzSt;version:number}>;
 export type TL=Readonly<{aggregateType:string;aggregateId:string;latestKind:string;version:number;lastAt:string}>;
+// Auditoría clínica multiespecialidad (06-oct-2026) — LAS CONSULTAS PASADAS.
+//
+// `TL` (el timeline) declara en la propia pantalla que trae «metadatos, sin contenido»: dice que un Encounter existe y su
+// versión, pero no su fecha legible ni una palabra de lo que el médico escribió. Estos dos tipos son lo que la pantalla sí
+// puede leer. Reflejan `EncounterListItem` y `EncounterNote` de `lib/runtime/records.ts`; se redeclaran aquí porque este
+// módulo es cliente y no puede importar del runtime de servidor, y los nombres de campo se mantienen idénticos a propósito:
+// dos vocabularios para el mismo dato es lo que convierte un renombre en un error silencioso.
+export type EncounterListItem=Readonly<{encounterId:string;status:string;version:number;openedAt:string;lastAt:string;signedAt:string|null;hasNote:boolean}>;
+export type EncounterSigner=Readonly<{fullName?:string;cedulaProfesional?:string;institution?:string;specialty?:string}>;
+export type EncounterNoteView=Readonly<{encounterId:string;patientId:string;status:string;version:number;openedAt:string;
+ assessment:string|null;plan:string|null;signedAt:string|null;signatureDigest:string|null;contentHash:string|null;
+ signer:EncounterSigner|null;amendments:ReadonlyArray<{at:string;text:string;reason:string}>}>;
 export type Gap=Readonly<{aggregateType:string;aggregateId:string;code:string;label:string;priority:"HIGH"|"MEDIUM"|"LOW"}>;
 export type PanelGap=Gap&Readonly<{patientId:string}>;
 export type IxSev="CONTRAINDICATED"|"MAJOR"|"MODERATE"|"MINOR";
@@ -241,6 +253,26 @@ export function antFreshness(recorded:boolean,updatedAt?:string):{status:AntFres
  return{status:days>ANT_REVERIFY_DAYS?"DUE":"CURRENT",days};
 }
 // Tiempo relativo compacto (panel de auditoría / actividad).
+// Auditoría clínica multiespecialidad (06-oct-2026) — LA FECHA, QUE NO ESTABA EN NINGUNA PARTE.
+//
+// Las filas del expediente imprimían `v{version}` donde debía ir la fecha: ocho especialistas coincidieron en que un dato
+// clínico sin fecha no es un dato clínico. `relTime` ya existía y sirve para el matiz («hace 3 d»), pero NO sustituye a la
+// fecha absoluta: «hace 3 d» no se puede citar en un expediente ni comparar entre dos anotaciones.
+//
+// Si la fecha no se puede leer se DICE, no se devuelve cadena vacía: una fecha ausente que se imprime como hueco es
+// indistinguible de un diseño sin fecha, y es justamente el defecto que se está corrigiendo.
+const MESES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"] as const;
+function partes(iso:string):{d:number;m:string;y:number;hh:string;mm:string}|null{
+ const t=new Date(iso).getTime();
+ if(!Number.isFinite(t))return null;
+ const x=new Date(t),m=MESES[x.getMonth()];
+ if(m===undefined)return null; // noUncheckedIndexedAccess: getMonth() siempre da 0-11, pero el tipo no lo sabe
+ return{d:x.getDate(),m,y:x.getFullYear(),hh:String(x.getHours()).padStart(2,"0"),mm:String(x.getMinutes()).padStart(2,"0")};
+}
+/** Fecha absoluta con hora, para encabezados de nota y listados de consultas: «6 oct 2026, 14:32». */
+export function fechaHora(iso:string):string{const p=partes(iso);return p===null?"fecha ilegible":`${p.d} ${p.m} ${p.y}, ${p.hh}:${p.mm}`;}
+/** Fecha absoluta sin hora, para las filas del expediente donde la hora no aporta: «6 oct 2026». */
+export function fechaCorta(iso:string):string{const p=partes(iso);return p===null?"sin fecha":`${p.d} ${p.m} ${p.y}`;}
 export function relTime(iso:string):string{try{const d=Date.now()-new Date(iso).getTime();const m=Math.floor(d/60000);if(m<1)return "ahora";if(m<60)return `hace ${m} min`;const h=Math.floor(m/60);if(h<24)return `hace ${h} h`;const dd=Math.floor(h/24);return dd<30?`hace ${dd} d`:new Date(iso).toLocaleDateString("es-MX",{day:"2-digit",month:"short"});}catch{return "";}}
 // Panel 5 — clasificación del estado de un follow-up (por latestKind del agregado).
 export const FOLLOW_TYPES=new Set(["ClinicalObligation","Referral","Appointment","Immunization","CarePlan"]);
@@ -702,7 +734,7 @@ export const EXP_TAB_FOR_PREF:Record<string,ExpTab>={
 export const SECTION_EXP_TAB:Record<string,ExpTab>={
  "Seguimiento automático":"resumen",
  "Encuentro":"encuentro",
- "Antecedentes":"historia","Timeline del paciente":"historia","Evolución longitudinal":"historia",
+ "Antecedentes":"historia","Consultas de este paciente":"historia","Timeline del paciente":"historia","Evolución longitudinal":"historia",
  ["Lista de problemas"]:"problemas",
  Alergias:"alergias",
  ["Medicación"]:"medicacion",["Prescripción segura"]:"medicacion",
