@@ -94,7 +94,26 @@ export default function LoginPage(){
   let nextTarget=safeNext(params.get("next"));
   // Cliente LISTO de inmediato: el constructor NO hace el checkSession con iframe del factory
   // (que se cuelga hasta el timeout con cookies de terceros bloqueadas). La puerta no espera.
-  const c=new Auth0Client({domain,clientId,authorizationParams:{redirect_uri:window.location.origin+"/login",audience},cacheLocation:"memory"});
+  // Auditoría 2026-09-19, anexo R05c (R05c-29) — `cacheLocation:"memory"` SIN `useRefreshTokens` ES DELIBERADO.
+ //
+ // El hallazgo observa que `getTokenSilently()` se llama sin tokens de refresco, lo que obliga al flujo de iframe con cookies
+ // de terceros —bloqueado por omisión en Safari y en retirada en Chrome—. Es cierto, y aun así la configuración se mantiene,
+ // por tres razones que conviene dejar escritas para que nadie la «arregle» a peor:
+ //
+ //  1. LA PERSISTENCIA NO DEPENDE DEL IdP. Esta aplicación no usa el token del IdP para operar: lo CANJEA una vez por su
+ //     propia sesión (`exchangeForSession` → `storeSession`), que es la que persiste. El chequeo silencioso solo sirve para
+ //     evitar un clic cuando ya hay SSO activo y la sesión propia no existe; si falla, se muestra la puerta de entrada, que
+ //     es una degradación correcta y visible, no una pérdida de función.
+ //  2. ACTIVAR `useRefreshTokens` CON `cacheLocation:"localstorage"` —la combinación que de verdad sobrevive a una recarga—
+ //     dejaría un token de refresco legible por cualquier XSS. En una aplicación con PHI ese intercambio es malo: se cambia
+ //     un clic de conveniencia por una credencial de larga vida al alcance de un script inyectado.
+ //  3. ACTIVARLO CON `cacheLocation:"memory"` no arregla el caso que el hallazgo describe —tras una recarga la memoria está
+ //     vacía igual— y solo ayudaría a renovar el token DENTRO de una sesión viva, algo que este flujo no necesita porque usa
+ //     el token del IdP una sola vez.
+ //
+ // Lo que sí se corrigió: que el fallo del chequeo silencioso no se tragara. El `.catch(()=>null)` deja la puerta visible en
+ // vez de quedarse esperando, y los errores del IdP se traducen a un mensaje con `mensajeDeError`.
+ const c=new Auth0Client({domain,clientId,authorizationParams:{redirect_uri:window.location.origin+"/login",audience},cacheLocation:"memory"});
   setClient(c);
   if(urlErr){
    setDetail(mensajeDeError(urlErr));

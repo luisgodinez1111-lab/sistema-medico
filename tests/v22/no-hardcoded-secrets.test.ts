@@ -64,3 +64,28 @@ describe("secretos de firma fuera del código (R11-07)",()=>{
   }
  });
 });
+
+// Auditoría 2026-09-19, anexo R05c (R05c-29) — EL TOKEN DEL IdP NO SE PERSISTE DONDE UN XSS LO PUEDA LEER.
+//
+// El hallazgo señalaba `getTokenSilently()` sin `useRefreshTokens`. Medido el 05-oct-2026: es deliberado y la razón está
+// escrita en `login/page.tsx`. Lo que este guardarraíl impide es el «arreglo» que lo empeoraría: activar los tokens de
+// refresco con `cacheLocation:"localstorage"` dejaría una credencial de larga vida legible por cualquier script inyectado,
+// en una aplicación con PHI. Si alguien decide ese cambio, tendrá que hacerlo a la vista y retirando este test.
+describe("el cliente de identidad no guarda credenciales en almacenamiento del navegador (R05c-29)",()=>{
+ const login=fs.readFileSync("apps/web/app/login/page.tsx","utf8");
+ // El comentario que explica la decisión NOMBRA la combinación mala para advertir contra ella, así que el escaneo se hace
+ // sobre el código sin comentarios. Un guardarraíl que se caza con su propia explicación obliga a no documentar el porqué.
+ const codigo=login.split("\n").filter(l=>!l.trimStart().startsWith("//")).join("\n");
+ it("la caché de tokens del IdP es en MEMORIA",()=>{
+  expect(codigo).toMatch(/cacheLocation:"memory"/);
+  expect(codigo,"localstorage dejaría el token de refresco al alcance de un XSS").not.toMatch(/cacheLocation:"localstorage"/);
+ });
+ it("y el compromiso está declarado donde se toma la decisión, no solo en un rastreador",()=>{
+  expect(login).toMatch(/R05c-29/);
+  expect(login).toMatch(/XSS/);
+ });
+ it("el fallo del chequeo silencioso deja la puerta visible en vez de tragarse",()=>{
+  // Sin esto, un Safari que bloquea cookies de terceros dejaría la pantalla colgada en «verificando».
+  expect(login).toMatch(/getTokenSilently\([^)]*\)\.catch\(\(\)=>null\)/);
+ });
+});
