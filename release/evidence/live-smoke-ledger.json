@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-07T00:19:27.691Z",
+  "generatedAt": "2026-10-07T00:28:09.502Z",
   "target": "local-ephemeral",
-  "total": 121,
+  "total": 122,
   "results": [
     {
       "proof": "scripts/v22/live-aa-gradient-proof.mts",
@@ -145,6 +145,11 @@
     },
     {
       "proof": "scripts/v22/live-consultation-tabs-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "proof": "scripts/v22/live-critical-imaging-obligation-proof.mts",
       "status": "PASS",
       "exitCode": 0
     },
@@ -613,8 +618,8 @@
     {
       "gate": "scripts/ci/live-smoke.mts",
       "status": "PASS",
-      "passed": 121,
-      "total": 121
+      "passed": 122,
+      "total": 122
     }
   ]
 }

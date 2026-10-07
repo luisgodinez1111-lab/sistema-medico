@@ -8,7 +8,9 @@ import{ClinicalError}from"../../runtime-errors/src";
 export type ImagingOrderState="DRAFT"|"ORDERED"|"ACQUIRED"|"REPORTED"|"VERIFIED"|"SIGNED"|"CANCELLED";
 export type ImagingOrderEventKind="CREATED"|"PLACED"|"ACQUIRED"|"REPORTED"|"VERIFIED"|"SIGNED"|"CANCELLED";
 export type StoredImagingEvent=Readonly<{sequence:number;payload:Record<string,unknown>}>;
-export type FoldedImagingOrder=Readonly<{exists:boolean;state:ImagingOrderState;version:number;patientId:string;modality:string}>;
+// R02a-IMG-01: `bodyPart` entra al fold. La obligación de un hallazgo crítico tiene que decir QUÉ estudio lo tuvo —«TC de
+// cráneo», no «un estudio»—, y el handler no puede inventarlo: lo lleva el evento de alta y hay que plegarlo.
+export type FoldedImagingOrder=Readonly<{exists:boolean;state:ImagingOrderState;version:number;patientId:string;modality:string;bodyPart:string}>;
 
 function kindOf(e:StoredImagingEvent):ImagingOrderEventKind{
  const k=e.payload["kind"];
@@ -18,14 +20,14 @@ function kindOf(e:StoredImagingEvent):ImagingOrderEventKind{
 }
 const KIND_TO_STATE:Record<ImagingOrderEventKind,ImagingOrderState>={CREATED:"DRAFT",PLACED:"ORDERED",ACQUIRED:"ACQUIRED",REPORTED:"REPORTED",VERIFIED:"VERIFIED",SIGNED:"SIGNED",CANCELLED:"CANCELLED"};
 export function foldImagingOrder(events:readonly StoredImagingEvent[]):FoldedImagingOrder{
- if(events.length===0)return{exists:false,state:"DRAFT",version:0,patientId:"",modality:""};
+ if(events.length===0)return{exists:false,state:"DRAFT",version:0,patientId:"",modality:"",bodyPart:""};
  const ordered=[...events].sort((a,b)=>a.sequence-b.sequence);
- let state:ImagingOrderState="DRAFT",patientId="",modality="";
+ let state:ImagingOrderState="DRAFT",patientId="",modality="",bodyPart="";
  for(const e of ordered){
   state=KIND_TO_STATE[kindOf(e)];
-  if(kindOf(e)==="CREATED"){patientId=String(e.payload["patientId"]??"");modality=String(e.payload["modality"]??"");}
+  if(kindOf(e)==="CREATED"){patientId=String(e.payload["patientId"]??"");modality=String(e.payload["modality"]??"");bodyPart=String(e.payload["bodyPart"]??"");}
  }
- return{exists:true,state,version:ordered[ordered.length-1]!.sequence,patientId,modality};
+ return{exists:true,state,version:ordered[ordered.length-1]!.sequence,patientId,modality,bodyPart};
 }
 const ALLOWED:Partial<Record<ImagingOrderState,readonly ImagingOrderState[]>>={
  DRAFT:["ORDERED","CANCELLED"],ORDERED:["ACQUIRED","CANCELLED"],ACQUIRED:["REPORTED","CANCELLED"],

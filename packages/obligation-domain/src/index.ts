@@ -52,6 +52,18 @@ export const PRIORITY_DUE_WINDOWS:Readonly<Record<FollowUpPriority,DueWindow>>={
 export const OBLIGATION_DUE_WINDOWS:Readonly<Record<string,DueWindow>>={
  CRITICAL_RESULT_REVIEW:{priority:"URGENT",defaultHours:24,maxHours:24,
   basis:"Un valor de pánico exige contactar al paciente y actuar el mismo día. Es el plazo que ya aplicaba `createCriticalResultObligation` al recibir el resultado: declarándolo aquí, la obligación urgente y el evento del propio resultado dejan de poder decir fechas distintas para el MISMO resultado crítico, que es el defecto que encontró esta auditoría."},
+ // Auditoría 2026-09-19, anexo R02a (R02a-IMG-01) — HALLAZGO CRÍTICO DE IMAGEN.
+ //
+ // Un resultado de laboratorio crítico creaba su obligación urgente desde el primer día; un hallazgo crítico de IMAGEN no
+ // creaba nada. Un neumotórax a tensión o una hemorragia intracraneal se reportaban en el informe y, si nadie leía ese
+ // informe, no quedaba ningún pendiente que lo persiguiera: un agujero de Zero-Lost-Follow-Up en una vertical entera.
+ //
+ // Mismo plazo que el valor de pánico de laboratorio, y por la misma razón: un hallazgo que exige acción inmediata no
+ // puede esperar más que el día en que se encontró. Se declara aparte en vez de reutilizar la clave del laboratorio
+ // porque el origen importa —el gate de firma y la bitácora distinguen de qué vino el pendiente— y porque el techo de un
+ // hallazgo de imagen podría divergir del de un analito sin que nadie lo note si compartieran la entrada.
+ CRITICAL_IMAGING_REVIEW:{priority:"URGENT",defaultHours:24,maxHours:24,
+  basis:"Un hallazgo de imagen que exige acción inmediata (neumotórax, hemorragia, perforación) se trata el mismo día. Mismo plazo que el valor de pánico de laboratorio (CRITICAL_RESULT_REVIEW): la urgencia la define la consecuencia clínica, no la técnica con que se detectó."},
  MONITORING_UNDEFINED:{priority:"HIGH",defaultHours:24*7,maxHours:null,
   basis:"Definir qué vigilar en un fármaco fuera del catálogo no es una emergencia, pero tampoco puede quedarse abierto: 7 días es el plazo que ya aplicaba `createMonitoringObligations`, ahora declarado en un solo lugar en vez de escrito dentro del ciclo de vida de la medicación. Sin techo porque la obligación la crea el servidor con su propio plazo; el techo no tendría a quién recortar."},
 };
