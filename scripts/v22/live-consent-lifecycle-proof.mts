@@ -1,6 +1,6 @@
 // EPIC Z — Evidencia física del consentimiento informado (redactar/presentar/otorgar/rechazar/revocar) contra Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -20,7 +20,7 @@ const PP=(id:string)=>({params:Promise.resolve({consentId:id})});const ISO="2026
 const TEXTO="Consentimiento informado para el procedimiento X. Riesgos, alternativas y derecho a revocar.";
 const HASH=crypto.createHash("sha256").update(TEXTO).digest("hex");
 const FIRMA={documentHash:HASH,method:"ELECTRONIC_SIGNATURE",signatureArtifactRef:"blob://consents/firma-1.png"} as const;
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 async function mk(t:string){const id=crypto.randomUUID();const r=await co.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({consentId:id,patientId:await freshPatient(TA),scopeType:"PROCEDURE",documentRef:"CI-2026-001",occurredAt:ISO})}));return{id,r};}
 const B=(t:string,v:number,body:Record<string,unknown>={})=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:ISO,...body})});
 try{
@@ -67,4 +67,4 @@ try{
  ok(r.status===403,"MISSING_WRITE_SCOPE_403");
 }catch(e){result.status="FAIL";result.error=String(e);}
 await sql.end({timeout:5});
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+fin();

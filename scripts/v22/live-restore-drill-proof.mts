@@ -18,11 +18,10 @@
 // con «tabla de control ausente».
 import crypto from"node:crypto";import{spawnSync}from"node:child_process";
 import{directEndpoint as direct}from"../../packages/pg-endpoint/src";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 import{readMigrationFiles}from"../../packages/db-migrations/src";
 const{default:postgres}=await import("postgres");
-const result:{status:string;checks:string[];target?:string;proof?:unknown;error?:string}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro<{target:string;proof:unknown}>();
 
 const SOURCE=direct(process.env.DATABASE_URL!); // ya redirigido a TEST_DATABASE_URL por _live-env
 /** Cambia SOLO el nombre de base de la URL, conservando credenciales, puerto y parámetros (sslmode…). */
@@ -73,10 +72,5 @@ try{
  }finally{await tgt.end();}
  const chk=spawnSync("pnpm",["-s","exec","tsx","scripts/db/check.mts"],{encoding:"utf8",env:{...process.env,DATABASE_URL:TARGET}});
  ok((chk.status??1)===0,`pnpm db:check PASA sobre la base restaurada (cola: ${(chk.stdout??"").trim().slice(-300)})`);
-
- console.log(JSON.stringify(result,null,2));
-}catch(e){
- result.status="FAIL";result.error=e instanceof Error?e.message:String(e);
- console.log(JSON.stringify(result,null,2));
-}
-process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

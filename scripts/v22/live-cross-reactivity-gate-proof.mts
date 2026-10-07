@@ -1,7 +1,7 @@
 // EPIC AP — Evidencia física: gate de alergia por CLASE + reactividad cruzada beta-lactámicos contra Neon.
 // Demuestra lo que el match por subcadena NO detectaba: alergia a penicilina bloquea amoxicilina Y cefalexina.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 const SECRET=SIGNING_SECRET;
@@ -16,7 +16,7 @@ const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});const ISO="2
 // Contrato de la remediación (auditoría C-03/C-05, lote 1): con barreras NO verificables (paciente sintético sin edad, peso o
 // eGFR) PRESCRIBE responde 428 hasta que el médico confirma y justifica. Las barreras BLOQUEADAS siguen devolviendo 403.
 const ACK={acknowledgeUnverified:true,unverifiedJustification:"Prueba en vivo: paciente sintético sin datos para verificar"};
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 async function proposeRx(t:string,pat:string,drugCode:string){
  const med=crypto.randomUUID();
  await meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:med,patientId:pat,drugCode,dose:"500mg",route:"VO",frequency:"c/8h",occurredAt:ISO})}));
@@ -38,5 +38,5 @@ try{
  r=await proposeRx(phys,pat2,"ibuprofeno-400");ok(r.status===403,"IBUPROFEN_BLOCKED_NSAID_CLASS");
  // ...pero amoxicilina se permite para pat2 (sin conflicto con AINE).
  r=await proposeRx(phys,pat2,"amoxicilina-500");ok(r.status===201,"AMOXICILLIN_ALLOWED_FOR_NSAID_ALLERGIC");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

@@ -1,7 +1,7 @@
 // EPIC AZ — Evidencia física: rechazar una orden cuya dosis diaria total excede el máximo del fármaco
 // (dose ceiling / sobredosis) en el propose. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -10,7 +10,7 @@ const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(scopes=["medication:propose","medication:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const ISO="2026-09-13T09:00:00.000Z";const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 async function propose(t:string,pat:string,drugCode:string,dose:string,frequency:string){return meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:crypto.randomUUID(),patientId:pat,drugCode,dose,route:"VO",frequency,occurredAt:ISO})}));}
 try{
  const phys=tok();const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
@@ -32,5 +32,5 @@ try{
  // 6) unidad no-masa (gotas) -> no acotable -> PERMITIDO
  r=await propose(phys,pat,"ibuprofeno-gotas","10 gotas","c/6h");
  ok(r.status===201,"NON_MASS_UNIT_ALLOWED_201");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

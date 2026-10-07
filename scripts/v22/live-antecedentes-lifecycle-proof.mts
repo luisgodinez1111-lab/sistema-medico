@@ -2,7 +2,7 @@
 // Singleton por paciente: capturar una vez (RECORDED v1), re-capturar choca (409), enmendar con If-Match (AMENDED),
 // enmendar con versión vieja choca (409), enmendar sin existir es 404, aislamiento por tenant y gate de scope.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -14,7 +14,7 @@ function H(t:string,x:Record<string,string>={}){return{"content-type":"applicati
 const PP=(pid:string)=>({params:Promise.resolve({patientId:pid})});const ISO="2026-09-11T11:00:00.000Z";const idem=()=>crypto.randomUUID();
 const CONTENT={noPatologicos:{tabaquismo:true,alcoholismo:false,toxicomanias:false,notas:"fuma 5/día"},heredofamiliares:{flags:["DIABETES","HTA"],notas:"madre DM2"}};
 const CONTENT2={noPatologicos:{tabaquismo:false,alcoholismo:false,toxicomanias:false},heredofamiliares:{flags:["DIABETES"]}};
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 const recordReq=(t:string,body:unknown,key=idem())=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":key}),body:JSON.stringify(body)});
 const amendReq=(t:string,v:number,body:unknown)=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify(body)});
 try{
@@ -46,5 +46,5 @@ try{
  // sin scope antecedentes:write -> 403
  const noScope=tok(TA,["PHYSICIAN"],["patient:read"]);
  r=await ant.POST(recordReq(noScope,{content:CONTENT,occurredAt:ISO}),PP(await freshPatient(TA)));ok(r.status===403,"MISSING_WRITE_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

@@ -44,8 +44,16 @@ describe("cobertura de rutas por prueba en vivo (R07-05)",()=>{
   expect(prologo).toMatch(/TEST_DATABASE_URL/);
   expect(prologo,"debe negarse si apunta a la base de la aplicación").toMatch(/TEST_DATABASE_URL_IS_APP_DATABASE/);
   // Y todas las pruebas tienen que importarlo: una que no lo haga escribiría donde no debe.
+  // R11-06 (lote 35): el prólogo puede llegar DIRECTO o a través del andamiaje compartido (`_proof.mts`, que lo importa
+  // estáticamente y por tanto lo ejecuta antes de que cualquier módulo de la app se cargue con `await import`). Lo que
+  // este guardarraíl protege es la PROPIEDAD —ninguna prueba en vivo puede correr contra la base de la aplicación—, no
+  // la forma del import. Se comprueba que el andamiaje lo arrastre, para que aceptar la vía indirecta no abra un hueco.
+  const andamiaje=fs.readFileSync(path.join(PROOFS,"_proof.mts"),"utf8");
+  expect(andamiaje,"si el andamiaje deja de importar el prólogo, las pruebas que solo lo importan a él quedan sin protección")
+   .toContain('from"./_live-env.mts"');
   const sinPrologo=fs.readdirSync(PROOFS).filter(f=>/^live-.*-proof\.mts$/.test(f))
-   .filter(f=>!fs.readFileSync(path.join(PROOFS,f),"utf8").includes('"./_live-env.mts"'));
-  expect(sinPrologo,"prueba en vivo sin el prólogo que impone la base desechable").toEqual([]);
+   .filter(f=>{const src=fs.readFileSync(path.join(PROOFS,f),"utf8");
+    return !src.includes('"./_live-env.mts"')&&!src.includes('from"./_proof.mts"');});
+  expect(sinPrologo,"prueba en vivo sin el prólogo que impone la base desechable, ni directo ni por el andamiaje").toEqual([]);
  });
 });

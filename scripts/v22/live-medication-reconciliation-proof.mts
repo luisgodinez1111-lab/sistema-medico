@@ -15,7 +15,7 @@
 // que una discrepancia sin explicación se RECHAZA, y que el fold no inventa un resultado cuando el vocabulario no cuadra.
 import crypto from"node:crypto";
 import type{HttpTenantContext}from"../../packages/http-principal/src";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -41,8 +41,7 @@ let ts=Date.parse("2026-10-02T15:00:00.000Z");const at=()=>new Date(ts+=60000).t
  * cualquiera con `never[]` —contravarianza— y hace UNA sola conversión aquí dentro en lugar de una por llamada.
  */
 type RutaPost={POST:(...a:never[])=>Promise<Response>};
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-const ok=(c:boolean,l:string)=>{if(!c)throw new Error("FAIL:"+l);result.checks.push(l);};
+const{result,ok,fin}=libro();
 const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});
 const post=async(r:RutaPost,body:unknown,t:string,extra:Record<string,string>={},ctx?:unknown)=>{
  const res=await (r.POST as unknown as (q:Request,c?:unknown)=>Promise<Response>)(
@@ -123,5 +122,5 @@ try{
   scopes:["medication:write"],purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);
  const cross=await post(recR,{outcome:"CONTINUED",verifiedAgainst:"PATIENT",context:"OUTPATIENT_VISIT",occurredAt:at()},otro,{"if-match":"6"},MP(med));
  ok(cross.status===404,`CROSS_TENANT_404_${cross.status}`);
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

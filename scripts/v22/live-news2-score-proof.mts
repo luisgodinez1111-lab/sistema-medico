@@ -1,7 +1,7 @@
 // EPIC BC — Evidencia física: NEWS2 computado desde los últimos signos vitales del paciente (RLS-scoped).
 // Registra vitales vía la ruta real y consulta GET /patients/:id/news2. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const vitals=await import("../../apps/web/app/api/v1/vitals/route");
@@ -15,7 +15,7 @@ const PP=(id:string)=>({params:Promise.resolve({patientId:id})});
 // Con una fecha fija la prueba caducaba al día siguiente de escribirla.
 let seq=0;const T0=Date.now()-2*3_600_000;const at=()=>new Date(T0+(seq++)*60000).toISOString();
 const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 const U:Record<string,string>={BP:"mmHg",HR:"lpm",TEMP:"C",SPO2:"%",RESP:"rpm"};
 async function rec(t:string,pat:string,vitalType:string,value:string,when?:string){await vitals.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:pat,vitalType,value,unit:U[vitalType]??"u",occurredAt:when??at()})}));}
 // Auditoría C-09: el O₂ suplementario y el nivel de conciencia se DECLARAN (?o2=&avpu=); NEWS2 exige un adulto registrado.
@@ -60,5 +60,5 @@ try{
  ok(g.body.inputs.length===5&&g.body.inputs.every((i:{unit:string;ageHours:number})=>i.unit.length>0&&i.ageHours<8),"FRESH_PROVENANCE");
  // 6) sin scope patient:read -> 403
  const noScope=tok(["vital:write"]);g=await getNews2(noScope,p1);ok(g.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

@@ -4,7 +4,7 @@
 // transición + conteos + DIRECTORIO de destinatarios distintos. Retrocompatible (interconsulta sin destinatario).
 // RLS-scoped. vs Postgres local.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -22,7 +22,7 @@ function trans(mod:{POST:(r:Request,c:{params:Promise<{referralId:string}>})=>Pr
 async function registry(t:string){const r=await refR.GET(new Request("http://l/api/v1/referrals",{headers:H(t)}));return{status:r.status,body:await r.json()};}
 type Row={referralId:string;specialty:string;recipientName:string;recipientInstitution:string;priority:string;referralType:string;status:string};
 type Dir={name:string;specialty:string;institution:string;count:number};
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok();
  const p1=crypto.randomUUID();await reg(phys,p1,`Ana Ref ${p1.slice(0,8)}`);
@@ -55,5 +55,5 @@ try{
  ok(g.body.recipientsCount===1,"DISTINCT_RECIPIENTS");
  // sin scope de interconsulta -> 403.
  const noScope=await registry(tok(["patient:write"]));ok(noScope.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

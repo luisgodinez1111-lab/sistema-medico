@@ -11,7 +11,7 @@
 //    misma definición: sha256 del objeto {tenant,sequence,id,previousHash,actor,action,resource,payload}) y se compara.
 //    Es la verificación independiente que faltaba, y queda como VECTOR GOLDEN versionado en el repositorio.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 import postgres from"postgres";
 import{directEndpoint}from"../../packages/pg-endpoint/src";
 const{executeAtomicClinicalCommand}=await import("../../packages/atomic-clinical-transaction-v3/src");
@@ -22,8 +22,7 @@ const URL_DB=process.env.TEST_DATABASE_URL!;
 const sql=postgres(directEndpoint(URL_DB),{max:4,prepare:false,onnotice:()=>{}});
 const TENANT=crypto.randomUUID(),ACTOR=crypto.randomUUID();
 const ctx={tenantId:TENANT,actorId:ACTOR,actorType:"SYSTEM" as const,purpose:"TREATMENT",requestId:crypto.randomUUID()};
-const result:{status:string;checks:string[];error?:string;vector?:unknown}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro<{vector:unknown}>();
 const cmd=(agg:string,expectedVersion:number,seed:string)=>({
  commandId:deterministicUuid(seed+":cmd"),idempotencyKey:seed,aggregateId:agg,aggregateType:"Encounter",expectedVersion,
  eventId:deterministicUuid(seed+":ev"),eventType:"ENCOUNTER_OPENED",payload:{kind:"OPENED",patientId:deterministicUuid(seed+":pat"),seed},
@@ -103,4 +102,4 @@ try{
  ok(mutacionRechazada,"AUDIT_CHAIN_IS_APPEND_ONLY");
 }catch(e){result.status="FAIL";result.error=String(e);}
 finally{await sql.end();}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+fin();

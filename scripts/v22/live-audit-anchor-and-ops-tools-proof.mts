@@ -11,7 +11,7 @@
 // independiente —recálculo en Node— y el ANCLA fuera de la base, que es lo que detecta una reescritura completa de la cadena.
 import crypto from"node:crypto";
 import{spawnSync}from"node:child_process";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{directEndpoint}=await import("../../packages/pg-endpoint/src");
 const postgres=(await import("postgres")).default;
 const{verifyTenantAuditChain,verifyChainIndependently,verifyAgainstAnchor,verifyChain,pgJsonbText,AUDIT_GENESIS}=
@@ -20,8 +20,7 @@ const URL_DB=process.env.TEST_DATABASE_URL!;
 const owner=postgres(directEndpoint(URL_DB),{max:2,prepare:false,onnotice:()=>{}});
 const TA=crypto.randomUUID();
 const sha256=(s:string)=>crypto.createHash("sha256").update(Buffer.from(s,"utf8")).digest("hex");
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 const ctx={tenantId:TA,actorId:crypto.randomUUID(),purpose:"OPERATIONS",requestId:crypto.randomUUID()};
 /** Añade una entrada a la cadena con la MISMA función que usa el kernel. */
 async function anotar(action:string,payload:Record<string,unknown>):Promise<string>{
@@ -162,4 +161,4 @@ try{
  ok(vacio.code===0&&/"checked": 0/.test(vacio.out),`AUDIT_VERIFY_EMPTY_CHAIN_IS_INTACT:${vacio.code}`);
 }catch(e){result.status="FAIL";result.error=String(e);}
 finally{await owner.end();}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+fin();

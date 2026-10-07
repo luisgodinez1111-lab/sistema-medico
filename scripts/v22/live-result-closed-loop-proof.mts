@@ -1,7 +1,7 @@
 // EPIC G — Evidencia física del closed-loop de resultados + Zero Lost Follow-Up end-to-end.
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-result-closed-loop-proof.mts
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 const SECRET=SIGNING_SECRET;
@@ -30,8 +30,7 @@ const ISO="2026-03-03T09:00:00.000Z";
 const HASH_AP=crypto.createHash("sha256").update("a\np").digest("hex");
 const idem=()=>crypto.randomUUID();
 
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const physA=tok(TENANT_A,["PHYSICIAN"]);await registerPhysicianCredentials(physA);
 
@@ -167,6 +166,5 @@ try{
  const nurse=tok(TENANT_A,["NURSE"]);
  r=await results.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:await freshPatient(TENANT_A),orderId:crypto.randomUUID(),analyte:"GLUCOSE",value:"100",unit:"mg/dL",occurredAt:ISO})}));
  ok(r.status===403,"ROLE_FORBIDDEN_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));
-process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

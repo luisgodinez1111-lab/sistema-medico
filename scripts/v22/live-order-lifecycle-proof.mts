@@ -1,6 +1,6 @@
 // EPIC M — Evidencia física del ciclo de vida de la orden clínica contra Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -12,7 +12,7 @@ const TA=crypto.randomUUID(),TB=crypto.randomUUID();const now=Math.floor(Date.no
 function tok(t:string,roles:string[],scopes:string[]){return signSession({sub:crypto.randomUUID(),tenantId:t,roles,scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string|null,x:Record<string,string>={}){const h:Record<string,string>={"content-type":"application/json",...x};if(t)h["authorization"]="Bearer "+t;return h;}
 const OP=(id:string)=>({params:Promise.resolve({orderId:id})});const ISO="2026-06-06T06:00:00.000Z";const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok(TA,["PHYSICIAN"],["order:write"]);
  const o=crypto.randomUUID(),pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
@@ -46,5 +46,5 @@ try{
  const noScope=tok(TA,["PHYSICIAN"],["encounter:read"]);
  r=await ords.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({orderId:crypto.randomUUID(),patientId:await freshPatient(TA),orderType:"LAB",detail:"x",occurredAt:ISO})}));
  ok(r.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

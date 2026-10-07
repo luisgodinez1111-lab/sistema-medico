@@ -1,7 +1,7 @@
 // EPIC BU — Evidencia física: interpretación del INR en contexto del anticoagulante activo. Cross-vertical
 // resultado(INR)↔medicación(anticoagulante). vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 const SECRET=SIGNING_SECRET;
@@ -19,7 +19,7 @@ let ts=Date.now()-3_600_000/* reloj RELATIVO: las calculadoras rechazan datos ob
 // Contrato de la remediación (auditoría C-03/C-05, lote 1): con barreras NO verificables (paciente sintético sin edad, peso o
 // eGFR) PRESCRIBE responde 428 hasta que el médico confirma y justifica. Las barreras BLOQUEADAS siguen devolviendo 403.
 const ACK={acknowledgeUnverified:true,unverifiedJustification:"Prueba en vivo: paciente sintético sin datos para verificar"};
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 const B=(t:string,v:number)=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:at(),...ACK})});
 async function activateWarfarin(t:string,pat:string){const id=crypto.randomUUID();await meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:pat,drugCode:"warfarina-5",dose:"5mg",route:"VO",frequency:"c/24h",occurredAt:at()})}));await rx.POST(new Request("http://l/",B(t,1)),MP(id));await act.POST(new Request("http://l/",B(t,2)),MP(id));}
 async function inr(t:string,pat:string,v:string){await resR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({resultId:crypto.randomUUID(),patientId:pat,orderId:crypto.randomUUID(),analyte:"INR",value:v,unit:"INR",occurredAt:at()})}));}
@@ -41,5 +41,5 @@ try{
  const p3=crypto.randomUUID();await ensurePatientIn(TA,p3); /* L-07 */g=await get(phys,p3);ok(g.body.computable===false,"NO_INR_NOT_COMPUTABLE");
  // 6) sin scope patient:read -> 403
  const noScope=tok(["result:write"]);g=await get(noScope,p1);ok(g.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

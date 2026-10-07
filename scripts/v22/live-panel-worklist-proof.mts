@@ -1,6 +1,6 @@
 // EPIC AC — Evidencia física del worklist poblacional del panel (care gaps de todos los pacientes) contra Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -14,7 +14,7 @@ function tok(t:string,scopes=SCOPES){return signSession({sub:crypto.randomUUID()
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const ISO="2026-07-07T07:00:00.000Z";const idem=()=>crypto.randomUUID();
 const P=(t:string,body:Record<string,unknown>)=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({...body,occurredAt:ISO})});
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const t=tok(TA);const patX=crypto.randomUUID(),patY=crypto.randomUUID();await ensurePatientIn(TA,patX); /* L-07 */await ensurePatientIn(TA,patY); /* L-07 */
  // paciente X: vacuna DUE (MEDIUM). paciente Y: interconsulta REQUESTED (LOW).
@@ -42,5 +42,5 @@ try{
  const noScope=tok(TA,["immunization:write"]);
  r=await wl.GET(new Request("http://l/",{headers:H(noScope)}));
  ok(r.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

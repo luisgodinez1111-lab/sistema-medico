@@ -3,7 +3,7 @@
 // sube sello -> re-sube firma (nuevo hash, misma ruta) -> tipo no permitido (400) -> sin scope (403) -> kind
 // desconocido (404) -> quita firma (blob borrado + ASSET_REMOVED; sello sigue). Determinista, RLS-scoped. vs Neon + Blob.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 if(!process.env.BLOB_READ_WRITE_TOKEN){console.log(JSON.stringify({status:"NOT_RUN",reason:"BLOB_READ_WRITE_TOKEN_MISSING"}));process.exit(3);}
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -16,7 +16,7 @@ async function getProfile(t:string){const r=await profR.GET(new Request("http://
 async function upload(t:string,kind:string,bytes:Uint8Array,filename:string,mime:string){const fd=new FormData();fd.append("file",new File([bytes as unknown as BlobPart],filename,{type:mime}));const r=await assetR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":crypto.randomUUID()}),body:fd}),{params:Promise.resolve({kind})});return{status:r.status,body:await r.json() as Record<string,unknown>};}
 async function download(t:string,kind:string){const r=await assetR.GET(new Request("http://l/",{method:"GET",headers:H(t)}),{params:Promise.resolve({kind})});const buf=r.status===200?new Uint8Array(await r.arrayBuffer()):new Uint8Array();return{status:r.status,ctype:r.headers.get("content-type"),bytes:buf};}
 async function remove(t:string,kind:string){const r=await assetR.DELETE(new Request("http://l/",{method:"DELETE",headers:H(t,{"idempotency-key":crypto.randomUUID()})}),{params:Promise.resolve({kind})});return{status:r.status,body:await r.json() as Record<string,unknown>};}
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 // PNG mínimo (firma) y otro distinto (sello) — solo importan bytes/mime deterministas.
 const sig=new Uint8Array([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,1,2,3,4,5,6,7,8]);
 const stamp=new Uint8Array([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,9,9,9,9,9,9]);
@@ -64,5 +64,5 @@ try{
  ok((await download(phys,"signature")).status===404,"DOWNLOAD_AFTER_REMOVE_404");
  // limpieza: quitar sello
  await remove(phys,"stamp");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

@@ -3,7 +3,7 @@
 // otra como capturada por error (NO debe aparecer). GET /api/v1/vitals -> filas clínica-wide + conteos coherentes
 // (críticos/anormales/pacientes) calculados en la base. RLS-scoped. vs Postgres local.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -21,7 +21,7 @@ async function amend(t:string,id:string,ver:number,value:string,unit:string){ret
 async function errorMark(t:string,id:string,ver:number){return emR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(ver)}),body:JSON.stringify({reason:"Paciente equivocado",occurredAt:at})}),{params:Promise.resolve({vitalId:id})});}
 async function registry(t:string){const r=await vitR.GET(new Request("http://l/api/v1/vitals",{headers:H(t)}));return{status:r.status,body:await r.json()};}
 type Row={vitalId:string;patientId:string;vitalType:string;value:string;unit:string;status:string;critical:boolean};
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok();
  const p1=crypto.randomUUID();await reg(phys,p1,`Ana Registro ${p1.slice(0,8)}`);
@@ -55,5 +55,5 @@ try{
  ok(crit+abn>=1,"HAS_FLAGGED");
  // sin scope de signos vitales -> 403.
  const noScope=await registry(tok(["patient:write"]));ok(noScope.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

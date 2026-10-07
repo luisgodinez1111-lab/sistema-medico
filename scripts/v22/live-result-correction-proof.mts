@@ -8,7 +8,7 @@
 //     atómica (comando multi-agregado): si un leg falla el chequeo optimista, la transacción entera revierte y no queda
 //     estado parcial —se prueba forzando un conflicto en el segundo leg y comprobando que el primero NO se escribió.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatientIn}=await import("./_patient.mts");
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -26,7 +26,7 @@ const phys=signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],
 const H=(x:Record<string,string>={})=>({"content-type":"application/json",authorization:"Bearer "+phys,...x});
 const idem=()=>crypto.randomUUID();const RP=(id:string)=>({params:Promise.resolve({resultId:id})});
 let ts=Date.now()-3_600_000;const at=()=>new Date(ts+=60000).toISOString();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const pat=crypto.randomUUID();await ensurePatientIn(TA,pat);const ctx=resolveVerified(new Request("http://l/",{headers:H()})).ctx;
  const r1=crypto.randomUUID();
@@ -116,5 +116,5 @@ try{
  // un resultado anulado tampoco se corrige: se registra uno nuevo
  r=await correction.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({correctedResultId:crypto.randomUUID(),value:"4.0",unit:"mEq/L",reason:"No procede",occurredAt:at()})}),RP(r3));
  ok(r.status===409,"VOIDED_CANNOT_BE_CORRECTED_409");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

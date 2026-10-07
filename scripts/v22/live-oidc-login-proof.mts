@@ -3,7 +3,7 @@
 // apuntando a ese issuer local; firma tokens RS256 y prueba login->abrir encuentro end-to-end.
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-oidc-login-proof.mts
 import crypto from"node:crypto";import http from"node:http";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 
 const{SignJWT,exportJWK,generateKeyPair}=await import("jose");
@@ -42,8 +42,7 @@ async function mkToken(claims:Record<string,unknown>={},opts:{iss?:string;aud?:s
 const RUN_IP=`203.0.113.${1+Math.floor(Math.random()*250)}`; // rango de documentación (RFC 5737): nunca es una IP real
 const loginReq=(token:string)=>new Request("http://l/api/v1/sessions",{method:"POST",headers:{"content-type":"application/json","x-medos-token-delivery":"body","x-forwarded-for":RUN_IP},body:JSON.stringify({token})});
 
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  // 1) Token OIDC RS256 válido (verificado contra el JWKS remoto) -> 201 sesión.
  let r:Response=await sessions.POST(loginReq(await mkToken()));
@@ -74,5 +73,4 @@ try{
  r=await sessions.POST(loginReq(await mkToken({tenant_id:undefined})));
  ok(r.status===401,"MISSING_TENANT_401");
 }catch(e){result.status="FAIL";result.error=String(e);}finally{server.close();}
-console.log(JSON.stringify(result,null,2));
-process.exit(result.status==="PASS"?0:1);
+fin();

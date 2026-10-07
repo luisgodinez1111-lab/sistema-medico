@@ -1,7 +1,7 @@
 // EPIC CM — Evidencia física: agenda del día. Agenda citas (con consultorio/tipo/fin), transiciona
 // estados, y consulta GET /appointments?date= con conteos + nombre del paciente. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -15,7 +15,7 @@ function tok(scopes=["patient:write","appointment:write","appointment:read"]){re
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const idem=()=>crypto.randomUUID();const at=new Date().toISOString();
 const DATE="2026-11-20";
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 async function reg(t:string,p:string,name:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name,birthDate:"1990-01-01",sexAtBirth:"FEMALE",occurredAt:at})}));}
 async function sched(t:string,id:string,p:string,startAt:string,reason:string,consultorio:string,apptType:string){return apR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({appointmentId:id,patientId:p,startAt,reason,consultorio,apptType,endAt:new Date(Date.parse(startAt)+30*60000).toISOString(),occurredAt:at})}));}
 async function agenda(t:string,date:string){const r=await apR.GET(new Request(`http://l/api/v1/appointments?date=${date}`,{headers:H(t)}));return{status:r.status,body:await r.json()};}
@@ -63,5 +63,5 @@ try{
  const bad3=await range(phys,"2026-01-01","2026-12-31");ok(bad3.status===400,"RANGE_TOO_WIDE_400");
  // sin scope -> 403
  const noScope=await agenda(tok(["patient:write"]),DATE);ok(noScope.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

@@ -1,6 +1,6 @@
 // EPIC S — Evidencia física del registro de pacientes (registrar/listar/estado) contra Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const pt=await import("../../apps/web/app/api/v1/patients/route");
@@ -10,7 +10,7 @@ const TA=crypto.randomUUID(),TB=crypto.randomUUID();const now=Math.floor(Date.no
 function tok(t:string,scopes=["patient:read","patient:write"]){return signSession({sub:crypto.randomUUID(),tenantId:t,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const PP=(id:string)=>({params:Promise.resolve({patientId:id})});const ISO="2026-09-11T11:00:00.000Z";const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok(TA);const p1=crypto.randomUUID();const uniq="P-"+crypto.randomUUID().slice(0,8);
  let r:Response=await pt.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p1,name:uniq+" García",birthDate:"1975-03-03",sexAtBirth:"FEMALE",occurredAt:ISO})}));
@@ -55,5 +55,5 @@ try{
  g=await get("q=or");ok(g.body.patients.map(x=>x.name).join("|")==="Bruno Ortiz","SEARCH_SECOND_WORD_PREFIX");
  g=await get("q=RUCA80");ok(g.body.patients.map(x=>x.name).join("|")==="Carla Ruiz","SEARCH_BY_CURP_PREFIX");
  g=await get("q=zzz");ok(g.body.patients.length===0&&g.body.total===5,"SEARCH_NO_MATCH_KEEPS_TOTAL");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

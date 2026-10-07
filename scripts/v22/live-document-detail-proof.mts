@@ -2,7 +2,7 @@
 // lo finaliza, lo FIRMA (physician) y lo ENMIENDA (addendum append-only); luego GET devuelve el CONTENIDO real,
 // el estado, la firma (contentHash/signatureDigest) y la adenda. Mas 404 (inexistente) y 403 (sin scope). vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -24,7 +24,7 @@ async function finalize(t:string,id:string,v:number){return finR.POST(new Reques
 async function sign(t:string,id:string,v:number){return sigR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:at(),contentHash:crypto.createHash("sha256").update("Paciente estable. Continúa tratamiento.").digest("hex")})}),{params:Promise.resolve({documentId:id})});}
 async function amend(t:string,id:string,v:number){return amdR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({addendum:"Se agrega resultado de laboratorio.",occurredAt:at()})}),{params:Promise.resolve({documentId:id})});}
 async function get(t:string,id:string){const r=await getR.GET(new Request("http://l/",{method:"GET",headers:H(t)}),{params:Promise.resolve({documentId:id})});return{status:r.status,body:await r.json()};}
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok();await registerPhysicianCredentials(phys);const pid=crypto.randomUUID();await reg(phys,pid);
  const c=await create(phys,pid);ok(c.status===201,"CREATE_201");
@@ -44,5 +44,5 @@ try{
  ok((await get(phys,crypto.randomUUID())).status===404,"UNKNOWN_404");
  // sin scope -> 403
  ok((await get(tok(["patient:read"]),c.id)).status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

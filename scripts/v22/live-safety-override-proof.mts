@@ -9,7 +9,7 @@
 //   · un bloqueo DURO responde 403 con `hard` y NINGUNA justificación lo levanta: el techo diario ya se aplica al PROPONER
 //     (403 antes de llegar a PRESCRIBE) y la dosis pediátrica por peso bloquea al prescribir cuando el peso se registró después.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 const SECRET=SIGNING_SECRET;
@@ -26,7 +26,7 @@ function tok(scopes=["allergy:write","medication:propose","medication:write","pa
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});const ISO="2026-09-10T10:00:00.000Z";const idem=()=>crypto.randomUUID();
 const ACK={acknowledgeUnverified:true,unverifiedJustification:"Prueba en vivo: paciente sintético sin datos para verificar"};
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 type Err={error:{code:string;message:string;details?:{barriers?:string[];hard?:string[];overridable?:string[];missing?:string[];unmatched?:string[]}}};
 async function proposeRaw(t:string,pat:string,drugCode:string,order:{dose:string;frequency:string}){
  const med=crypto.randomUUID();
@@ -89,5 +89,5 @@ try{
  r=await prescribe(phys,med3,{overrideBarriers:["allergy","interaction","duplicate","contraindication","renal"],overrideJustification:"Intento de anular todo lo anulable: no debe levantar la dosis pediátrica"});e=await r.json() as Err;
  ok(r.status===403&&e.error.code==="SAFETY_BLOCKED"&&JSON.stringify(e.error.details?.hard)===JSON.stringify(["pediatricDose"]),"PEDIATRIC_DOSE_NOT_OVERRIDABLE");
  ok((await readAggregateEvents(ctx,med3)).length===1,"HARD_BLOCK_WROTE_NOTHING");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

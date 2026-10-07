@@ -2,7 +2,7 @@
 // Recibe resultados con valores normales, críticos y de imagen, transiciona uno a ACTIONED, y consulta
 // GET /results -> estado-UI derivado (Hallazgos/Normal/En seguimiento) + tipo + KPIs + join del paciente. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
@@ -33,7 +33,7 @@ async function res(t:string,p:string,analyte:string,value:string,orderId?:string
 async function verify(t:string,id:string){return resVer.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({resultId:id})});}
 async function action(t:string,id:string){return resAct.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({ownerId:crypto.randomUUID(),dueAt:new Date(Date.now()+7*86400000).toISOString(),occurredAt:at()})}),{params:Promise.resolve({resultId:id})});}
 async function list(t:string){const r=await resR.GET(new Request("http://l/",{method:"GET",headers:H(t)}));return{status:r.status,body:await r.json()};}
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok();const p1=crypto.randomUUID(),p2=crypto.randomUUID();
  await reg(phys,p1,"Ana López García");await reg(phys,p2,"Carlos Mendoza");
@@ -98,5 +98,5 @@ try{
  // sin scope -> 403
  const noScope=await list(tok(["patient:read"]));
  ok(noScope.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

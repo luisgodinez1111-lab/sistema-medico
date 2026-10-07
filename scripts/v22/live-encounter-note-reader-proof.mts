@@ -11,7 +11,7 @@
 // que esto sea un expediente y no un formulario: que el texto vuelva íntegro, que la firma viaje con él, y que leer PHI
 // quede registrado.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{freshPatient}=await import("./_patient.mts");
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts");
 const SECRET=SIGNING_SECRET;
@@ -34,8 +34,7 @@ const PE=(id:string)=>({params:Promise.resolve({encounterId:id})});
 const PP=(id:string)=>({params:Promise.resolve({patientId:id})});
 const idem=()=>crypto.randomUUID();
 const sha256=(s:string)=>crypto.createHash("sha256").update(s).digest("hex");
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 
 // Dos notas con texto DISTINTO y reconocible: lo que se lee tiene que ser lo que se escribió, no «una nota».
 const NOTA_1={assessment:"Hipertensión esencial en control. TA 128/82 hoy, mejor que 148/94 de la visita previa.",
@@ -140,4 +139,4 @@ try{
  ok(listaOtro.status===200&&lo.items.length===0,"INDICE_CROSS_TENANT_VACIO");
 }catch(e){result.status="FAIL";result.error=String(e);}
 finally{await sql.end();}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+fin();

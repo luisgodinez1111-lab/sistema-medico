@@ -3,7 +3,7 @@
 // GET /api/v1/care-plans -> filas clínica-wide con ESTADO por última transición + conteos coherentes
 // (activos/en pausa/logrados/pacientes) calculados en la base. RLS-scoped. vs Postgres local.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -21,7 +21,7 @@ async function propose(t:string,p:string,category:string,goal:string){const id=c
 function trans(mod:{POST:(r:Request,c:{params:Promise<{carePlanId:string}>})=>Promise<Response>},t:string,id:string,ver:number,body:Record<string,unknown>={}){return mod.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(ver)}),body:JSON.stringify({occurredAt:at,...body})}),{params:Promise.resolve({carePlanId:id})});}
 async function registry(t:string){const r=await cpR.GET(new Request("http://l/api/v1/care-plans",{headers:H(t)}));return{status:r.status,body:await r.json()};}
 type Row={carePlanId:string;patientId:string;category:string;goal:string;status:string};
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok();
  const p1=crypto.randomUUID();await reg(phys,p1,`Ana Plan ${p1.slice(0,8)}`);
@@ -56,5 +56,5 @@ try{
  const one=items.find(r=>r.carePlanId===a.id)!;ok(one.category==="DIABETES"&&one.goal==="HbA1c < 7% en 3 meses"&&one.status==="ACTIVE","CATEGORY_GOAL_STATUS");
  // sin scope de plan de cuidado -> 403.
  const noScope=await registry(tok(["patient:write"]));ok(noScope.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

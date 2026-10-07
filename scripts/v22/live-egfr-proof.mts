@@ -1,6 +1,6 @@
 // EPIC BL — Evidencia física: eGFR (CKD-EPI 2021) + estadio ERC desde creatinina + edad/sexo del paciente. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
@@ -14,7 +14,7 @@ function H(t:string,x:Record<string,string>={}){return{"content-type":"applicati
 const PP=(id:string)=>({params:Promise.resolve({patientId:id})});
 const ISO=new Date(Date.now()-3_600_000).toISOString()/* reloj RELATIVO: la creatinina obsoleta ya no se usa para el eGFR */;const idem=()=>crypto.randomUUID();
 let ts=Date.parse(ISO);const nextAt=()=>new Date(ts+=60000).toISOString(); // timestamps crecientes (la más reciente gana)
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 // La fecha de nacimiento se deriva de ISO —el mismo instante con el que se REGISTRA al paciente—, no de `new Date()`.
 // Con `new Date()` esta prueba fallaba SEGÚN LA HORA DEL DÍA: cerca de la medianoche UTC `toISOString()` ya devuelve la
 // fecha de MAÑANA, así que el lactante (`yearsAgo:0`) se registraba con nacimiento POSTERIOR a su propio registro, el
@@ -80,5 +80,5 @@ try{
  g=await egfr(phys,crypto.randomUUID());ok(g.status===404,"UNREGISTERED_404");
  // 7) sin scope patient:read -> 403
  const noScope=tok(["result:write"]);g=await egfr(noScope,p1);ok(g.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

@@ -9,7 +9,7 @@
 //   · solo el médico que prescribió emite la receta (otro médico del mismo tenant: 403); un fármaco que no está prescrito
 //     ni activo no se imprime (409).
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{resolveVerified}=await import("../../apps/web/lib/http-command");
@@ -32,7 +32,7 @@ function H(t:string,x:Record<string,string>={}){return{"content-type":"applicati
 const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});const PP=(id:string)=>({params:Promise.resolve({patientId:id})});const EP=(id:string)=>({params:Promise.resolve({encounterId:id})});
 const ISO="2026-09-10T10:00:00.000Z";const idem=()=>crypto.randomUUID();
 const ACK={acknowledgeUnverified:true,unverifiedJustification:"Prueba en vivo: paciente sintético sin datos para verificar"};
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 type Err={error:{code:string;message:string;details?:{reason?:string;missing?:string[]}}};
 const post=(mod:{POST:(r:Request,c?:never)=>Promise<Response>},t:string,body:Record<string,unknown>)=>mod.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify(body)}));
 async function propose(t:string,pat:string,drugCode:string,extra:Record<string,unknown>={}){
@@ -103,5 +103,5 @@ try{
  r=await print(phys,pat,[med3]);ok(r.status===409,"PROPOSED_ONLY_NOT_PRINTABLE_409");
  // 8) enfermería no registra cédula (Physician Control)
  r=await post(credR,tok(["NURSE"]),{fullName:"Enf. Prueba",cedulaProfesional:"1234567",institution:"UNAM"});ok(r.status===403,"NURSE_CANNOT_SET_CREDENTIALS_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

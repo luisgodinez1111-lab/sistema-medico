@@ -1,7 +1,7 @@
 // EPIC BA — Evidencia física: al prescribir un fármaco que exige vigilancia, el sistema crea automáticamente
 // una obligación de monitoreo (Zero-Lost-Follow-Up). Cross-vertical medicación→obligación. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 const SECRET=SIGNING_SECRET;
@@ -19,7 +19,7 @@ const ISO="2026-09-14T09:00:00.000Z";const idem=()=>crypto.randomUUID();
 // Contrato de la remediación (auditoría C-03/C-05, lote 1): con barreras NO verificables (paciente sintético sin edad, peso o
 // eGFR) PRESCRIBE responde 428 hasta que el médico confirma y justifica. Las barreras BLOQUEADAS siguen devolviendo 403.
 const ACK={acknowledgeUnverified:true,unverifiedJustification:"Prueba en vivo: paciente sintético sin datos para verificar"};
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 async function propose(t:string,pat:string,drugCode:string,dose:string,frequency:string){const id=crypto.randomUUID();await meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:pat,drugCode,dose,route:"VO",frequency,occurredAt:ISO})}));return id;}
 // prescribe con una idempotency-key CONOCIDA para poder derivar el id de la obligación auto-creada.
 async function prescribe(t:string,medId:string,key:string){return rx.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":key,"if-match":"1"}),body:JSON.stringify({occurredAt:ISO,...ACK})}),MP(medId));}
@@ -47,5 +47,5 @@ try{
  ok(r.status===404,"NO_MONITORING_NO_OBLIGATION_404");
  // 4) idempotencia: re-prescribir (replay) NO duplica la obligación (sigue operable en su versión, no re-crea)
  r=await prescribe(phys,w,kW);ok(r.status===200&&(await r.json()).replayed===true,"PRESCRIBE_REPLAY_200_NO_DUP");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

@@ -21,7 +21,7 @@
 // algo que el servidor rechaza, esta prueba falla. No hay costura en la que esconderse.
 import crypto from"node:crypto";
 import type{HttpTenantContext}from"../../packages/http-principal/src";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const UI=await import("../../apps/web/app/workspace/shared");
@@ -46,8 +46,7 @@ const sha256=(s:string)=>crypto.createHash("sha256").update(s,"utf8").digest("he
  * cualquiera con `never[]` —contravarianza— y hace UNA sola conversión aquí dentro en lugar de una por llamada.
  */
 type RutaPost={POST:(...a:never[])=>Promise<Response>};
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-const ok=(c:boolean,l:string)=>{if(!c)throw new Error("FAIL:"+l);result.checks.push(l);};
+const{result,ok,fin}=libro();
 const POST=async(r:RutaPost,body:unknown,t:string,extra:Record<string,string>={},ctx?:unknown)=>{
  const res=await (r.POST as unknown as (q:Request,c?:unknown)=>Promise<Response>)(
   new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),...extra}),body:JSON.stringify(body)}),ctx);
@@ -144,5 +143,5 @@ try{
  const evs=await readAggregateEvents(rctx,vId);
  ok(evs.some(e=>String(e.payload["kind"])==="RECORDED"&&String(e.payload["value"])==="142"),"EL_VALOR_ORIGINAL_SIGUE_EN_EL_EXPEDIENTE");
  ok(evs.some(e=>String(e.payload["kind"])==="AMENDED"&&String(e.payload["value"])==="88"&&String(e.payload["reason"]).includes("transcripción")),"LA_ENMIENDA_GUARDA_SU_MOTIVO");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

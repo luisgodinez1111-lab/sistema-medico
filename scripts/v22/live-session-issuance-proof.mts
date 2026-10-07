@@ -1,7 +1,7 @@
 // EPIC E — Evidencia física del boundary de emisión de sesión + round-trip login->abrir encuentro.
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-session-issuance-proof.mts
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 // Entorno de desarrollo controlado para este proof (verificador dev opt-in explícito).
 process.env.AUTH_MODE="development";
@@ -19,8 +19,7 @@ function idpAssertion(secret=IDP_SECRET,over={}){return signSession({sub:SUB,ten
 // R01-013: el token solo viaja en el cuerpo si el cliente de API lo pide con la cabecera; el navegador usa la cookie.
 function loginReq(body:unknown,deliverToken=true){const headers:Record<string,string>={"content-type":"application/json"};if(deliverToken)headers["x-medos-token-delivery"]="body";return new Request("http://l/api/v1/sessions",{method:"POST",headers,body:JSON.stringify(body)});}
 
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  // 1) Sin verificador (DEV_IDENTITY_SECRET ausente) -> 503 deny-closed.
  delete process.env.DEV_IDENTITY_SECRET;
@@ -57,6 +56,5 @@ try{
  r=await sessions.POST(loginReq({assertion:idpAssertion()}));
  ok(r.status===503,"DEV_VERIFIER_DISABLED_IN_PROD_503");
  delete process.env.VERCEL_ENV;
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));
-process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

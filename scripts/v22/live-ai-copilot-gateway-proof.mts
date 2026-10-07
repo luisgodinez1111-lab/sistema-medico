@@ -2,7 +2,7 @@
 // Verifica: kill-switch OFF por defecto, autoridad humana (PRESCRIBE bloqueado), presupuesto (críticos abiertos),
 // y stub DETERMINISTA (SUMMARIZE devuelve el resumen, provenance AI_SUGGESTED, no promovido, no generativo).
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -12,7 +12,7 @@ const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(scopes=["ai:invoke","patient:write","vital:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 let ts=Date.parse("2026-09-14T09:00:00.000Z");const at=()=>new Date(ts+=60000).toISOString();const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 async function assist(t:string,body:unknown){const r=await ai.POST(new Request("http://l/",{method:"POST",headers:H(t),body:JSON.stringify(body)}));return{status:r.status,body:await r.json()};}
 async function reg(t:string,p:string){await patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:`Prueba ${p.slice(0,8)}`,birthDate:"1980-01-01",sexAtBirth:"MALE",occurredAt:at()})}));}
 async function critVital(t:string,p:string){await vit.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:p,vitalType:"SPO2",value:"85",unit:"%",occurredAt:at()})}));}
@@ -45,4 +45,4 @@ try{
  ok(JSON.stringify(off.body)===JSON.stringify(on.body),"SHADOW_DOES_NOT_LEAK_TO_CLINICIAN");
 }catch(e){result.status="FAIL";result.error=String(e);}
 finally{delete process.env.AI_COPILOT_ENABLED;delete process.env.AI_COPILOT_SHADOW;}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+fin();

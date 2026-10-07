@@ -1,7 +1,7 @@
 // EPIC I — Evidencia física del ciclo de vida del documento clínico contra Neon.
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-document-lifecycle-proof.mts
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 const SECRET=SIGNING_SECRET;
@@ -20,8 +20,7 @@ const DP=(id:string)=>({params:Promise.resolve({documentId:id})});
 const ISO="2026-05-05T07:00:00.000Z";
 const idem=()=>crypto.randomUUID();
 
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin:cerrar}=libro(); // `fin` ya es una variable de esta prueba
 try{
  const nurse=tok(TENANT_A,["NURSE"],["document:write"]);
  const physA=tok(TENANT_A,["PHYSICIAN"],["document:write"]);await registerPhysicianCredentials(physA);
@@ -93,6 +92,5 @@ try{
  const noScope=tok(TENANT_A,["PHYSICIAN"],[]);
  r=await docs.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({documentId:crypto.randomUUID(),patientId:await freshPatient(TENANT_A),docType:"OTHER",title:"t",content:"c",occurredAt:ISO})}));
  ok(r.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));
-process.exit(result.status==="PASS"?0:1);
+}catch(e){cerrar(e);}
+cerrar();

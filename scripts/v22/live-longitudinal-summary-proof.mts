@@ -1,7 +1,7 @@
 // EPIC P+ — Evidencia física de que el resumen longitudinal integra los verticales S–Z contra Neon:
 // se crean ítems de varios verticales para UN paciente, se lee su timeline y summarizePatient los cuenta.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -19,7 +19,7 @@ function tok(scopes=SCOPES){return signSession({sub:crypto.randomUUID(),tenantId
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const TP=(id:string)=>({params:Promise.resolve({patientId:id})});const ISO="2026-07-07T07:00:00.000Z";const idem=()=>crypto.randomUUID();
 const P=(t:string,body:Record<string,unknown>)=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({...body,occurredAt:ISO})});
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const t=tok();const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
  await ref.POST(P(t,{referralId:crypto.randomUUID(),patientId:pat,specialty:"Cardiología",reason:"Soplo"}));
@@ -41,5 +41,5 @@ try{
  ok(s.openClaims===1,"SUMMARY_CLAIM");
  ok(s.grantedConsents===0,"SUMMARY_CONSENT_DRAFTED_NOT_GRANTED"); // aún DRAFTED, no GRANTED
  ok(s.totalItems===6,"SUMMARY_TOTAL_6");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

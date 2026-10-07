@@ -16,13 +16,12 @@
 // Ahora el valor sintético se deriva del CHECK de la columna, las columnas generadas se excluyen y el texto lleva marca de
 // corrida (sin ella, el segundo run chocaba con los índices únicos): 33 de 33.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 import postgres from"postgres";
 import{directEndpoint}from"../../packages/pg-endpoint/src";
 const URL_DB=process.env.TEST_DATABASE_URL!;
 const A=crypto.randomUUID(),B=crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string;detail?:unknown}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro<{detail:unknown}>();
 // CLAVE de esta prueba: se conecta CON EL ROL DE LA APLICACIÓN (`medical_os_runtime`, sin BYPASSRLS), no con el dueño de
 // la base. Un superusuario —o el propietario de la tabla sin FORCE— ignora las políticas: una prueba de RLS ejecutada como
 // dueño pasa por la razón equivocada. El rol se toma con `-c role=...` sobre la conexión del dueño, igual que el restore
@@ -198,4 +197,4 @@ try{
  ok(Number(sinContexto[0]!.n)===0,"NO_TENANT_CONTEXT_READS_NOTHING");
 }catch(e){result.status="FAIL";result.error=String(e);}
 finally{await sql.end();await owner.end();}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+fin();

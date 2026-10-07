@@ -1,6 +1,6 @@
 // EPIC BK — Evidencia física: pronóstico de vacunación por edad desde el nacimiento + vacunas aplicadas. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const pat=await import("../../apps/web/app/api/v1/patients/route");
@@ -12,7 +12,7 @@ function tok(scopes=["patient:write","patient:read","immunization:write"]){retur
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const PP=(id:string)=>({params:Promise.resolve({patientId:id})});const IP=(id:string)=>({params:Promise.resolve({immunizationId:id})});
 const ISO="2026-09-14T09:00:00.000Z";const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 // bebé de ~24 meses respecto a "hoy" (fecha del servidor).
 const d=new Date();d.setUTCMonth(d.getUTCMonth()-24);const BIRTH=d.toISOString().slice(0,10);
 async function administer(t:string,pat_:string,code:string){const id=crypto.randomUUID();await imm.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({immunizationId:id,patientId:pat_,vaccineCode:code,dose:"1",occurredAt:ISO})}));await adm.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({lot:"L1",site:"deltoides",occurredAt:ISO})}),IP(id));}
@@ -39,5 +39,5 @@ try{
  const g2=await getFc(phys,crypto.randomUUID());ok(g2.status===404,"UNREGISTERED_404");
  // sin scope patient:read -> 403
  const noScope=tok(["immunization:write"]);const g3=await getFc(noScope,p);ok(g3.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

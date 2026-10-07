@@ -3,7 +3,7 @@
 // lo DESCARGA a través de la Function (bytes idénticos + content-type), rechaza tipo no permitido (400), exige
 // scope (403), y ELIMINA el adjunto (borra el blob + evento ATTACHMENT_REMOVED). Determinista, RLS-scoped. vs Neon + Blob.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 if(!process.env.BLOB_READ_WRITE_TOKEN){console.log(JSON.stringify({status:"NOT_RUN",reason:"BLOB_READ_WRITE_TOKEN_MISSING"}));process.exit(3);}
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -22,7 +22,7 @@ async function attach(t:string,d:string,bytes:Uint8Array,filename:string,mime:st
 async function download(t:string,d:string,a:string){const r=await attId.GET(new Request("http://l/",{method:"GET",headers:H(t)}),{params:Promise.resolve({documentId:d,attachmentId:a})});const buf=r.status===200?new Uint8Array(await r.arrayBuffer()):new Uint8Array();return{status:r.status,ctype:r.headers.get("content-type"),bytes:buf};}
 async function getDoc(t:string,d:string){const r=await docGet.GET(new Request("http://l/",{method:"GET",headers:H(t)}),{params:Promise.resolve({documentId:d})});return{status:r.status,body:await r.json() as Record<string,unknown>};}
 async function remove(t:string,d:string,a:string){const r=await attId.DELETE(new Request("http://l/",{method:"DELETE",headers:H(t,{"idempotency-key":idem()})}),{params:Promise.resolve({documentId:d,attachmentId:a})});return{status:r.status,body:await r.json() as Record<string,unknown>};}
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok();const p=crypto.randomUUID(),d=crypto.randomUUID();
  await reg(phys,p);await createDoc(phys,d,p);
@@ -58,5 +58,5 @@ try{
  const rm=await remove(phys,d,aId);ok(rm.status===200&&rm.body.removed===true,"REMOVE_200");
  const g2=await getDoc(phys,d);ok((g2.body.attachments as unknown[]).length===0,"DETAIL_ATTACHMENT_GONE");
  const dl2=await download(phys,d,aId);ok(dl2.status===404,"DOWNLOAD_AFTER_REMOVE_404");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

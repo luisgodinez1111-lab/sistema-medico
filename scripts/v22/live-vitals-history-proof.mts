@@ -2,7 +2,7 @@
 // varias tomas (BP/HR/RESP/TEMP/SPO2/WEIGHT/HEIGHT con el mismo occurredAt por toma) y consulta
 // GET /patients/:id/vitals -> filas agrupadas por toma + IMC derivado + series de tendencia. RLS-scoped. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -21,7 +21,7 @@ async function toma(t:string,p:string,at:string,bp:string,hr:string,resp:string,
  await vital(t,p,"TEMP",temp,"°C",at);await vital(t,p,"SPO2",spo2,"%",at);await vital(t,p,"WEIGHT",weight,"kg",at);await vital(t,p,"HEIGHT",height,"cm",at);
 }
 async function hist(t:string,p:string){const r=await vhR.GET(new Request("http://l/",{method:"GET",headers:H(t)}),{params:Promise.resolve({patientId:p})});return{status:r.status,body:await r.json()};}
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok();const p=crypto.randomUUID();await reg(phys,p);
  // 3 tomas en fechas distintas
@@ -49,5 +49,5 @@ try{
  // sin scope -> 403
  const noScope=await hist(tok(["vital:write"]),p);
  ok(noScope.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

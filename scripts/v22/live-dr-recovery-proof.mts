@@ -7,15 +7,14 @@
 // A diferencia de restore-drill.mts (source vs target), corre contra un solo DB con un tenant aleatorio -> apto para CI.
 import crypto from"node:crypto";
 import{directEndpoint as direct}from"../../packages/pg-endpoint/src";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 import{deterministicUuid}from"../../packages/canonical-json/src";
 const RUNTIME_ROLE="medical_os_runtime";
 const{default:postgres}=await import("postgres");
 const{executeAtomicClinicalCommand}=await import("../../packages/atomic-clinical-transaction-v3/src");
 const{canonicalize}=await import("../../packages/canonical-json/src");
 const{restoreErrors}=await import("../../packages/restore-proof/src");
-const result:{status:string;checks:string[];proof?:unknown;error?:string}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro<{proof:unknown}>();
 const det=(seed:string):string=>deterministicUuid(seed); // R01-015: única derivación de UUID del repo
 // tenant aleatorio (seguro en DB compartida); aggregate = el tenant, versiones incrementales.
 const RUN=crypto.randomUUID();const TENANT=det("dr-tenant-"+RUN);const AGG=det("dr-agg-"+RUN);
@@ -53,4 +52,4 @@ try{
  const errs=restoreErrors(proof);result.proof={errors:errs};ok(errs.length===0,"RESTORE_PROOF_CLEAN");
 }catch(e){result.status="FAIL";result.error=String(e);}
 finally{await rt.end();}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+fin();

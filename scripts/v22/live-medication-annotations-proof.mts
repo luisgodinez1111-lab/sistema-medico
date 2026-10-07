@@ -3,7 +3,7 @@
 // siempre), no tenían ruta, y un evento guardado habría dejado el agregado ilegible. Además, "activa" se derivaba del ÚLTIMO
 // evento: una medicación reanudada o modificada dejaba de contar para las barreras de interacción y duplicidad.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -26,7 +26,7 @@ function tok(roles=["PHYSICIAN"],scopes=["patient:write","patient:read","result:
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});const PP=(id:string)=>({params:Promise.resolve({problemId:id})});
 let ts=Date.now()-3_600_000;const at=()=>new Date(ts+=60000).toISOString();const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 function birth(y:number){const d=new Date();d.setUTCFullYear(d.getUTCFullYear()-y);return d.toISOString().slice(0,10);}
 const post=(mod:{POST:(r:Request,c:never)=>Promise<Response>},t:string,v:number,body:Record<string,unknown>,params:unknown)=>mod.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:at(),...body})}),params as never);
 async function propose(t:string,p:string,drugCode:string,o:{dose:string;route:string;frequency:string}){const id=crypto.randomUUID();const r=await meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:id,patientId:p,drugCode,...o,occurredAt:at()})}));if(r.status!==201)throw new Error("propose "+r.status);return id;}
@@ -95,5 +95,5 @@ try{
  // === C) Registro de pacientes: corregir un dato NO cambia el estado (AMENDED es anotación en Patient) ===
  const lst=await patientsList.GET(new Request("http://l/",{headers:H(phys)}));const lj=await lst.json();
  ok(lst.status===200&&Array.isArray(lj.patients)&&lj.patients.some((x:{patientId:string;status:string})=>x.patientId===p&&x.status==="ACTIVE"),"PATIENT_LISTED_ACTIVE");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

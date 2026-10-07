@@ -2,7 +2,7 @@
 // bloquean la prescripción, y la DURACIÓN es una barrera propia. Antes, las reglas del embarazo existían en el catálogo
 // y la barrera nunca recibía el factor: eran código inalcanzable. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatientIn}=await import("./_patient.mts");
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: PRESCRIBE exige cédula
 const SECRET=SIGNING_SECRET;
@@ -16,7 +16,7 @@ const phys=signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],
 const H=(x:Record<string,string>={})=>({"content-type":"application/json",authorization:"Bearer "+phys,...x});
 const idem=()=>crypto.randomUUID();const PP=(id:string)=>({params:Promise.resolve({patientId:id})});const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});
 let ts=Date.now()-3_600_000;const at=()=>new Date(ts+=60000).toISOString();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 async function dx(p:string,code:string){const r=await prob.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":idem()}),body:JSON.stringify({problemId:crypto.randomUUID(),patientId:p,code,occurredAt:at()})}));if(r.status>=400)throw new Error("DX_FAILED:"+r.status+":"+await r.text());}
 async function propose(p:string,drugCode:string,dose:string,frequency:string,duration?:string){
  const id=crypto.randomUUID();
@@ -84,5 +84,5 @@ try{
  // 8) La cobertura del catálogo viaja con el veredicto (R03-23)
  const cov=d.body["catalog"] as {ingredients:number;sourceNote:string};
  ok(cov.ingredients>=60&&/NO es un vademécum oficial/.test(cov.sourceNote),"CATALOG_COVERAGE_IN_RESPONSE");
-}catch(err){result.status="FAIL";result.error=String(err);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(err){fin(err);}
+fin();

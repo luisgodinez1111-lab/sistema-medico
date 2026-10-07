@@ -4,7 +4,7 @@
 // tenant: RLS + verificación), 201 tras registrarlo, y un paciente INACTIVO sigue admitiendo registros (un resultado que
 // llega tras la baja no se pierde).
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -21,7 +21,7 @@ const SCOPES=["patient:write","patient:read","vital:write","allergy:write","medi
 function tok(tenant:string){return signSession({sub:crypto.randomUUID(),tenantId:tenant,roles:["PHYSICIAN"],scopes:SCOPES,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const ISO="2026-09-22T15:00:00.000Z";const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 const post=(mod:{POST:(r:Request,c?:never)=>Promise<Response>},t:string,body:Record<string,unknown>)=>mod.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({occurredAt:ISO,...body})}));
 type Cmd=[string,{POST:(r:Request,c?:never)=>Promise<Response>},(pat:string)=>Record<string,unknown>];
 const CMDS:Cmd[]=[
@@ -48,5 +48,5 @@ try{
  const r4=await deact.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({reason:"Cambio de consultorio",occurredAt:ISO})}),{params:Promise.resolve({patientId:pat})} as never);
  ok(r4.status===200||r4.status===201,"PATIENT_DEACTIVATED");
  const r5=await post(res,physA,{resultId:crypto.randomUUID(),patientId:pat,orderId:crypto.randomUUID(),analyte:"POTASSIUM",value:"4.4",unit:"mEq/L"});ok(r5.status===201,"INACTIVE_PATIENT_STILL_ACCEPTS_RESULTS");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

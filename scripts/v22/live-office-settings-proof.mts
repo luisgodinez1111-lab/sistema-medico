@@ -4,7 +4,7 @@
 // activos con merge profundo, rechazo de hora inválida y de módulo desconocido) -> conflicto de versión (409) ->
 // aislamiento por tenant -> scope faltante (403). vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const R=await import("../../apps/web/app/api/v1/office-settings/route");
@@ -14,7 +14,7 @@ function H(t:string,x:Record<string,string>={}){return{"content-type":"applicati
 const idem=()=>crypto.randomUUID();
 async function get(t:string){const r=await R.GET(new Request("http://l/",{method:"GET",headers:H(t)}));return{status:r.status,body:await r.json() as{settings:Record<string,unknown>;version:number}};}
 async function put(t:string,settings:Record<string,unknown>,ifMatch:number){const r=await R.PUT(new Request("http://l/",{method:"PUT",headers:H(t,{"idempotency-key":idem(),"if-match":String(ifMatch)}),body:JSON.stringify({settings,occurredAt:new Date().toISOString()})}));return{status:r.status,body:await r.json() as{settings:Record<string,unknown>;version:number}};}
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const TA=crypto.randomUUID();const phys=tok(TA);
  // 1) GET inicial: defaults + version 0
@@ -74,5 +74,5 @@ try{
  // 7) scope faltante -> 403 (GET y PUT)
  const noScopeGet=await get(tok(TA,["patient:read"]));ok(noScopeGet.status===403,"GET_MISSING_SCOPE_403");
  const noScopePut=await put(tok(TA,["patient:read"]),{officeName:"X"},2);ok(noScopePut.status===403,"PUT_MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

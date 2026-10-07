@@ -16,7 +16,7 @@
 // `docs/adjudication/not-wired-registry.json` y encenderla es la decisión del dueño L-10/L-11. Esta prueba ejerce los
 // manejadores DIRECTAMENTE, que es la única forma honesta de medirlos hoy, y no pretende que exista un camino de usuario.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable)
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable)
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{foldObligation}=await import("../../packages/obligation-fold/src");
@@ -33,8 +33,7 @@ const tok=(scopes=["patient:write","patient:read","imaging:write","obligation:re
 const H=(t:string,x:Record<string,string>={})=>({"content-type":"application/json",authorization:"Bearer "+t,...x});
 const idem=()=>crypto.randomUUID();
 let ts=Date.parse("2026-10-03T14:00:00.000Z");const at=()=>new Date(ts+=60000).toISOString();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-const ok=(c:boolean,l:string)=>{if(!c)throw new Error("FAIL:"+l);result.checks.push(l);};
+const{result,ok,fin}=libro();
 const req=(body:unknown,t:string,extra:Record<string,string>={})=>
  new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),...extra}),body:JSON.stringify(body)});
 const leer=async(r:Response)=>({status:r.status,body:await r.json() as Record<string,unknown>});
@@ -125,5 +124,5 @@ try{
  ok(normal.status===201,`INFORME_NORMAL_${normal.status}`);
  const sinObl=foldObligation(await readAggregateEvents(rctx,img.criticalImagingObligationId(ord2)));
  ok(!sinObl.exists,"UN_ESTUDIO_NORMAL_NO_CREA_PENDIENTE");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

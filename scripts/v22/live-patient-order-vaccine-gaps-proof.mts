@@ -9,7 +9,7 @@
 //   IMM-01  `vaccineCode` era texto libre y no había ningún cruce con las alergias registradas antes de administrar.
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-patient-order-vaccine-gaps-proof.mts
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts";
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env
 import{directEndpoint}from"../../packages/pg-endpoint/src";
 const{freshPatient}=await import("./_patient.mts");
 const postgres=(await import("postgres")).default;
@@ -31,8 +31,7 @@ const token=signSession({sub:SUB,tenantId:TENANT,roles:["PHYSICIAN"],scopes:["pa
 const H=(extra:Record<string,string>={}):Record<string,string>=>({"content-type":"application/json",authorization:"Bearer "+token,"idempotency-key":crypto.randomUUID(),...extra});
 const ctx={tenantId:TENANT,actorId:SUB,actorType:"HUMAN" as const,purpose:"TREATMENT",requestId:crypto.randomUUID()};
 const at=():string=>new Date().toISOString();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-const ok=(c:boolean,l:string):void=>{if(!c)throw new Error("FAIL:"+l);result.checks.push(l);};
+const{result,ok,fin}=libro();
 
 try{
  // ---------- PAT-03: registro de defunción ----------
@@ -130,5 +129,4 @@ try{
  ok(r.status===403,"ALERGIA_GRAVE_BLOQUEA_Y_NO_SE_ANULA");
 }catch(e){result.status="FAIL";result.error=e instanceof Error?e.message:String(e);}
 finally{await sql.end({timeout:5});}
-console.log(JSON.stringify(result,null,2));
-process.exit(result.status==="PASS"?0:1);
+fin();

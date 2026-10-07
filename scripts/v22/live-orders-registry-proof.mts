@@ -2,7 +2,7 @@
 // Solicitudes). Crea órdenes de varios tipos, coloca y cumple algunas, y consulta GET /orders -> tipo-UI +
 // estado por transición + join del paciente + conteos. RLS-scoped. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -21,7 +21,7 @@ async function place(t:string,id:string){return ordPlace.POST(new Request("http:
 async function fulfill(t:string,id:string){return ordFul.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"2"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({orderId:id})});}
 async function cancel(t:string,id:string){return ordCancel.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({reason:"Cancelada por el médico",occurredAt:at()})}),{params:Promise.resolve({orderId:id})});}
 async function list(t:string){const r=await ordR.GET(new Request("http://l/",{method:"GET",headers:H(t)}));return{status:r.status,body:await r.json()};}
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok();const p1=crypto.randomUUID(),p2=crypto.randomUUID();
  await reg(phys,p1,"Ana López García");await reg(phys,p2,"Carlos Mendoza");
@@ -51,5 +51,5 @@ try{
  ok(b.solicitadas===1&&b.enviadas===1&&b.completadas===1,"COUNTS");
 
  const noScope=await list(tok(["patient:read"]));ok(noScope.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

@@ -2,7 +2,7 @@
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-encounter-lifecycle-proof.mts
 import crypto from"node:crypto";
 import{directEndpoint}from"../../packages/pg-endpoint/src";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 const SECRET=SIGNING_SECRET;
@@ -26,8 +26,7 @@ const ISO="2026-02-02T10:00:00.000Z";
 const hashOf=(assessment:string,plan:string)=>crypto.createHash("sha256").update(`${assessment}\n${plan}`).digest("hex");
 const OP=(id:string)=>({params:Promise.resolve({obligationId:id})});
 
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 
 const raw=directEndpoint(process.env.DATABASE_URL??"");
 const sql=postgres(raw,{max:2,prepare:false,onnotice:()=>{}});
@@ -133,5 +132,4 @@ try{
  r=await signEnc3();bj=await r.json();ok(r.status===201&&bj.status==="SIGNED","ROUTINE_FUTURE_OBLIGATION_DOES_NOT_BLOCK_201");
  void routine;
 }catch(e){result.status="FAIL";result.error=String(e);}finally{await sql.end();}
-console.log(JSON.stringify(result,null,2));
-process.exit(result.status==="PASS"?0:1);
+fin();

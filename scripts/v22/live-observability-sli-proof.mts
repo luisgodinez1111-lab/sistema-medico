@@ -1,7 +1,7 @@
 // EPIC BG (ENG-054) — Evidencia física: un comando clínico real (vía ruta) emite un SLI del commit con
 // correlación + latencia, y el evento es PHI-free por construcción (allowlist). vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -11,7 +11,7 @@ const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(scopes=["encounter:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const ISO="2026-09-14T09:00:00.000Z";const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 const captured:import("../../packages/observability/src").SliEvent[]=[];
 const off=obs.onSli(e=>captured.push(e));
 try{
@@ -31,4 +31,4 @@ try{
  ok(!json.includes("dolor")&&!json.includes(TA),"SLI_NO_PHI_NO_RAW_TENANT");
 }catch(e){result.status="FAIL";result.error=String(e);}
 finally{off();}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+fin();

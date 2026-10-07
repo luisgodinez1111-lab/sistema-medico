@@ -5,7 +5,7 @@
 // exportar el expediente (manifiesto + hash) → aislamiento por tenant. Verifica los invariantes de seguridad de punta a
 // punta. RLS-scoped, vs Postgres local desechable.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatientIn}=await import("./_patient.mts"); // L-07: el paciente debe existir en el tenant
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 const SECRET=SIGNING_SECRET;
@@ -40,7 +40,7 @@ const P=(k:string,id:string)=>({params:Promise.resolve({[k]:id})}) as never;
 const POST=(t:string,body:Record<string,unknown>,ifm?:number)=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),...(ifm!==undefined?{"if-match":String(ifm)}:{})}),body:JSON.stringify(body)});
 const ACK={acknowledgeUnverified:true,unverifiedJustification:"Golden path: paciente sintético sin datos para verificar todas las barreras"};
 const SIGN={contentHash:crypto.createHash("sha256").update("Dx\nPlan").digest("hex"),occurredAt:ISO}; // L-03: huella del contenido mostrado
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok(TA);await registerPhysicianCredentials(phys);
  const pat=crypto.randomUUID();await ensurePatientIn(TA,pat);
@@ -111,5 +111,5 @@ try{
  const physB=tok(TB);await registerPhysicianCredentials(physB);
  r=await exp.GET(new Request("http://l/",{headers:H(physB)}),P("patientId",pat));const exB=await r.json();
  ok(r.status===200&&exB.manifest.aggregateCount===0&&exB.manifest.eventCount===0,"TENANT_ISOLATION_EMPTY_EXPORT");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

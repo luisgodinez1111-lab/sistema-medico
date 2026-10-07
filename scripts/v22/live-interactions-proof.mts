@@ -2,7 +2,7 @@
 // Evalúa fármacos entre sí + factores del paciente, con severidad de 4 niveles + mecanismo + recomendación.
 // Sin estado / sin PHI, pero se ejecuta con el arnés en vivo (auth real, RLS irrelevante aquí). vs Neon.
 import fs from"node:fs";import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const ixR=await import("../../apps/web/app/api/v1/interactions/route");
@@ -12,7 +12,7 @@ function H(t:string){return{"content-type":"application/json",authorization:"Bea
 async function verify(t:string,drugs:string[],factors:string[]=[]){const r=await ixR.POST(new Request("http://l/",{method:"POST",headers:H(t),body:JSON.stringify({drugs,factors})}));return{status:r.status,body:await r.json()};}
 type Finding={kind:string;severity:string;severityLabel:string;a:string;b:string;mechanism:string;recommendation:string};
 const has=(fs:Finding[],a:string,b:string,sev:string)=>fs.some(f=>((f.a===a&&f.b===b)||(f.a===b&&f.b===a))&&f.severity===sev);
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok();
 
@@ -61,5 +61,5 @@ try{
  // 6) Sin scope -> 403.
  const noScope=await verify(tok(["patient:read"]),["sertralina","ibuprofeno"]);
  ok(noScope.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

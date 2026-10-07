@@ -1,6 +1,6 @@
 // EPIC AE — Evidencia física del internamiento (admitir/trasladar/alta/cancelar) contra Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -12,7 +12,7 @@ const TA=crypto.randomUUID(),TB=crypto.randomUUID();const now=Math.floor(Date.no
 function tok(t:string,roles=["NURSE"],scopes=["admission:write"]){return signSession({sub:crypto.randomUUID(),tenantId:t,roles,scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const PP=(id:string)=>({params:Promise.resolve({admissionId:id})});const ISO="2026-09-11T11:00:00.000Z";const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 async function mk(t:string){const id=crypto.randomUUID();const r=await ad.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({admissionId:id,patientId:await freshPatient(TA),unit:"ER",reason:"Dolor torácico",occurredAt:ISO})}));return{id,r};}
 const B=(t:string,v:number,body:Record<string,unknown>)=>({method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:ISO,...body})});
 try{
@@ -37,5 +37,5 @@ try{
  const noScope=tok(TA,["NURSE"],["patient:read"]);
  r=await ad.POST(new Request("http://l/",{method:"POST",headers:H(noScope,{"idempotency-key":idem()}),body:JSON.stringify({admissionId:crypto.randomUUID(),patientId:await freshPatient(TA),unit:"ER",reason:"x",occurredAt:ISO})}));
  ok(r.status===403,"MISSING_WRITE_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

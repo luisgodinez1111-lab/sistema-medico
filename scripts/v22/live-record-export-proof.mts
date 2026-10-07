@@ -1,6 +1,6 @@
 // EPIC AB — Evidencia física del export del expediente (manifiesto + hash reproducible, RLS) contra Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -14,7 +14,7 @@ function tok(t:string,scopes=SCOPES){return signSession({sub:crypto.randomUUID()
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const TP=(id:string)=>({params:Promise.resolve({patientId:id})});const IP=(id:string)=>({params:Promise.resolve({immunizationId:id})});const ISO="2026-07-07T07:00:00.000Z";const idem=()=>crypto.randomUUID();
 const P=(t:string,body:Record<string,unknown>)=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({...body,occurredAt:ISO})});
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const t=tok(TA);const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
  // dos agregados con varios eventos: interconsulta (1) + vacuna (2: DUE->ADMINISTERED)
@@ -44,5 +44,5 @@ try{
  const noScope=tok(TA,["patient:read"]);
  r=await exp.GET(new Request("http://l/",{headers:H(noScope)}),TP(pat));
  ok(r.status===403,"MISSING_EXPORT_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

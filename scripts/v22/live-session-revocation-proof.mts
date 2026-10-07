@@ -8,7 +8,7 @@
 //   5) la lista de denegación no permite borrar filas al rol de la aplicación (append-only para la app).
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-session-revocation-proof.mts
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 import{directEndpoint}from"../../packages/pg-endpoint/src";
 const{freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir en el tenant
 process.env.AUTH_MODE="development";
@@ -25,8 +25,7 @@ const timeline=await import("../../apps/web/app/api/v1/patients/[patientId]/time
 const sql=postgres(directEndpoint(process.env.DATABASE_URL??""),{max:2,prepare:false,onnotice:()=>{}});
 const now=Math.floor(Date.now()/1000);
 const TENANT=crypto.randomUUID(),SUB=crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-const ok=(c:boolean,l:string):void=>{if(!c)throw new Error("FAIL:"+l);result.checks.push(l);};
+const{result,ok,fin}=libro();
 const assertion=():string=>signSession({sub:SUB,tenantId:TENANT,roles:["PHYSICIAN"],scopes:["encounter:write","encounter:read","patient:write","patient:read"],purpose:"TREATMENT",iat:now-5,exp:now+900,sessionId:crypto.randomUUID()},IDP_SECRET);
 const login=async():Promise<{token:string;sessionId:string}>=>{
  const r=await sessions.POST(new Request("http://l/api/v1/sessions",{method:"POST",headers:{"content-type":"application/json","x-medos-token-delivery":"body"},body:JSON.stringify({assertion:assertion()})}));
@@ -97,5 +96,4 @@ try{
  ok(Number(visibles[0]?.n)===0,"RLS_AISLA_LA_REVOCACION");
 }catch(e){result.status="FAIL";result.error=e instanceof Error?e.message:String(e);}
 finally{await sql.end({timeout:5});}
-console.log(JSON.stringify(result,null,2));
-process.exit(result.status==="PASS"?0:1);
+fin();

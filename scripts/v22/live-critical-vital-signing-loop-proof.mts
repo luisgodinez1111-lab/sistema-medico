@@ -1,7 +1,7 @@
 // EPIC AS — Evidencia física: un signo vital CRÍTICO bloquea la firma del encuentro, y crear una obligación
 // de seguimiento ligada al vital (sourceVitalId) la DESBLOQUEA (cierra el lazo Zero Lost Follow-Up). vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
 const SECRET=SIGNING_SECRET;
@@ -19,7 +19,7 @@ const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(scopes=["encounter:write","encounter:read","vital:write","obligation:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const EP=(id:string)=>({params:Promise.resolve({encounterId:id})});const ISO="2026-09-11T11:00:00.000Z";const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 // Auditoría L-03: la firma exige la huella del contenido mostrado (sha256 de `${assessment}\n${plan}`).
 const SIGN={contentHash:crypto.createHash("sha256").update("Dx\nPlan").digest("hex")};
 const B=(t:string,v:number,body:Record<string,unknown>={})=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({occurredAt:ISO,...body})});
@@ -99,5 +99,5 @@ try{
  await assess.POST(B(phys,1,{assessment:"Dx",plan:"Plan"}),EP(enc11));
  await obl.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({obligationId:crypto.randomUUID(),patientId:pat11,ownerId:crypto.randomUUID(),dueAt:new Date(Date.now()+86_400_000).toISOString(),kind:"CRITICAL_VITAL_FOLLOWUP",priority:"ROUTINE",sourceVitalId:vid11,occurredAt:ISO})}));
  r=await sign.POST(B(phys,2,SIGN),EP(enc11));const b11=await r.json();ok(r.status===403&&/vital/i.test(b11.error.message),"ROUTINE_FOLLOWUP_DOES_NOT_CLEAR_CRITICAL_VITAL_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

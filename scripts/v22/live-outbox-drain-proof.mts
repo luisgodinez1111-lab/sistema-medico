@@ -11,7 +11,7 @@
 //   4. el lease impide que dos workers entreguen el mismo mensaje;
 //   5. el aislamiento por tenant se mantiene: un worker drenando el tenant A no ve ni toca la cola del tenant B.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{directEndpoint}=await import("../../packages/pg-endpoint/src");
 const postgres=(await import("postgres")).default;
 const{drainOutboxForTenant}=await import("../../apps/web/lib/outbox-drain");
@@ -23,8 +23,7 @@ const owner=postgres(directEndpoint(URL_DB),{max:2,prepare:false,onnotice:()=>{}
 // de tenant, que es justo la restricción que da forma al diseño (por eso es por tenant y no global).
 const worker=postgres(directEndpoint(URL_DB),{max:2,prepare:false,onnotice:()=>{},connection:{options:`-c role=${WORKER_ROLE}`}});
 const TA=crypto.randomUUID(),TB=crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 /** Inserta un mensaje en la cola como lo hace el kernel (mismo INSERT que atomic-clinical-transaction-v3). */
 async function encolar(tenantId:string,topic:string,maxAttempts=8):Promise<string>{
  const id=crypto.randomUUID();
@@ -115,4 +114,4 @@ try{
  ok(Number(aCiegas[0]!.n)===0,"WITHOUT_TENANT_CONTEXT_WORKER_SEES_NOTHING");
 }catch(e){result.status="FAIL";result.error=String(e);}
 finally{await worker.end();await owner.end();}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+fin();

@@ -10,13 +10,12 @@
 // después. Eso no es una regresión de rendimiento, es una FUGA de datos entre expedientes del mismo tenant. Así que la
 // invariante se ejercita con dos pacientes distintos en el mismo tenant y datos en ambos.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 import{deterministicUuid}from"../../packages/canonical-json/src";
 const{allergyRegistry,problemRegistry,resultsRegistry,ordersRegistry,immunizationRegistry,claimsRegistry}=await import("../../apps/web/lib/clinical-runtime");
 const{runClinicalCommand}=await import("../../apps/web/lib/runtime/command");
 const{buildCommand}=await import("../../apps/web/lib/http-command");
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 const det=(s:string):string=>deterministicUuid(s); // R01-015: única derivación de UUID del repo
 const RUN=crypto.randomUUID();
 const TENANT=det("scope-tenant-"+RUN);
@@ -74,10 +73,5 @@ try{
  // 3) Un paciente inexistente no devuelve nada (el filtro no se ignora en silencio cuando no hay coincidencias).
  const fantasma=await problemRegistry(ctx,{patientId:det("scope-pac-inexistente-"+RUN)});
  ok(fantasma.items.length===0,`un paciente sin datos devuelve vacío, no el registro completo (devolvió ${fantasma.items.length})`);
-
- console.log(JSON.stringify(result,null,2));
-}catch(e){
- result.status="FAIL";result.error=e instanceof Error?e.message:String(e);
- console.log(JSON.stringify(result,null,2));
-}
-process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

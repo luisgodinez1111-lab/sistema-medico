@@ -1,7 +1,7 @@
 // Auditoría 2026-09-19, anexo R03 (R03-09, R03-11) — Evidencia física de la GUARDA de signos vitales:
 // unidad canónica obligatoria, conversión real, tomas anuladas fuera, enmiendas dentro y vigencia exigida. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatientIn}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -14,7 +14,7 @@ const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(scopes=["vital:write","patient:read","patient:write"]){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 type Post={status:number;body:Record<string,unknown>};
 async function post(t:string,p:string,vt:string,v:string,unit:string,when=new Date().toISOString(),vitalId=crypto.randomUUID()):Promise<Post&{vitalId:string}>{
  const r=await vit.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId,patientId:p,vitalType:vt,value:v,unit,occurredAt:when})}));
@@ -75,5 +75,5 @@ try{
  // 11) Aislamiento por tenant: otro tenant no ve estas tomas
  const otro={...CTX,tenantId:crypto.randomUUID()};
  ok(Object.keys(await latestVitalReadings(otro,p1)).length===0,"TENANT_ISOLATED");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

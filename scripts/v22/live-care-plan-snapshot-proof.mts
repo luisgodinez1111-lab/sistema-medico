@@ -2,7 +2,7 @@
 // problemas asociados (descripción+estado) + conteos (problemas/medicamentos/alergias) + metas del plan
 // (CarePlan) + métricas (HbA1c de labs, TA/Peso/IMC de vitales). Determinista, RLS-scoped. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
@@ -27,7 +27,7 @@ async function vital(t:string,p:string,vt:string,v:string,u:string,a:string){awa
 async function goal(t:string,p:string,category:string,g:string){const id=crypto.randomUUID();await cpR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({carePlanId:id,patientId:p,category,goal:g,occurredAt:at()})}));return id;}
 async function activateGoal(t:string,id:string){return cpActR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:at()})}),{params:Promise.resolve({carePlanId:id})});}
 async function snap(t:string,p:string){const r=await snapR.GET(new Request("http://l/",{method:"GET",headers:H(t)}),{params:Promise.resolve({patientId:p})});return{status:r.status,body:await r.json()};}
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok();const p=crypto.randomUUID();await reg(phys,p);
  await prob(phys,p,"E11.9");await prob(phys,p,"I10");await prob(phys,p,"E66.9"); // Diabetes / HTA / Obesidad
@@ -64,5 +64,5 @@ try{
  // sin scope -> 403
  const noScope=await snap(tok(["patient:read"]),p);
  ok(noScope.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

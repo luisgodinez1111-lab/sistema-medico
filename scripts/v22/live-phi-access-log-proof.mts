@@ -8,7 +8,7 @@
 //   5) la app no puede modificar ni borrar el registro, y RLS lo aísla por tenant.
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-phi-access-log-proof.mts
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable)
+import{libro}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable)
 import{directEndpoint}from"../../packages/pg-endpoint/src";
 const{freshPatient}=await import("./_patient.mts");
 const postgres=(await import("postgres")).default;
@@ -17,8 +17,7 @@ const{patientDemographics,patientVitals,readPatientTimeline,readPatientRecordRow
 const sql=postgres(directEndpoint(process.env.DATABASE_URL??""),{max:2,prepare:false,onnotice:()=>{}});
 const TENANT=crypto.randomUUID(),ACTOR=crypto.randomUUID(),SESSION=crypto.randomUUID();
 const ctx={tenantId:TENANT,actorId:ACTOR,actorType:"HUMAN" as const,purpose:"TREATMENT",requestId:crypto.randomUUID(),sessionId:SESSION};
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
-const ok=(c:boolean,l:string):void=>{if(!c)throw new Error("FAIL:"+l);result.checks.push(l);};
+const{result,ok,fin}=libro();
 const filas=async():Promise<{resource_type:string;action:string;patient_id:string|null;actor_id:string;session_id:string|null;purpose:string}[]>=>
  (await sql`select resource_type,action,patient_id,actor_id,session_id,purpose from phi_access_log where tenant_id=${TENANT} order by at`) as never;
 
@@ -92,5 +91,4 @@ try{
  ok((await filas()).every(r=>r.patient_id!==pacienteOtro),"CONSTANCIA_EN_EL_TENANT_CORRECTO");
 }catch(e){result.status="FAIL";result.error=e instanceof Error?e.message:String(e);}
 finally{await sql.end({timeout:5});}
-console.log(JSON.stringify(result,null,2));
-process.exit(result.status==="PASS"?0:1);
+fin();

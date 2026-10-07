@@ -4,7 +4,7 @@
 // firmar tokens de prueba consistentes con el verificador del endpoint.
 import crypto from"node:crypto";
 
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatientIn}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=SIGNING_SECRET;
 
@@ -27,7 +27,7 @@ function getReq(tok:string,encounterId:string){
  return new Request("http://local/api/v1/encounters?encounterId="+encounterId,{headers:{authorization:"Bearer "+tok}});
 }
 
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
+const{result,fin}=libro();
 function assert(cond:boolean,label:string){if(!cond)throw new Error("FAIL:"+label);result.checks.push(label);}
 
 try{
@@ -76,6 +76,5 @@ try{
  // P8 — payload inválido => 400
  const r8=await POST(postReq(physA,crypto.randomUUID(),{encounterId:"not-a-uuid",patientId}));
  assert(r8.status===400,"VALIDATION_400");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));
-process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

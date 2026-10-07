@@ -5,13 +5,13 @@
 // append-only (no se puede alterar ni borrar una entrada) y que la verificación respeta el aislamiento por tenant.
 import crypto from"node:crypto";
 import{directEndpoint as direct}from"../../packages/pg-endpoint/src";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 import{deterministicUuid}from"../../packages/canonical-json/src";
 const RUNTIME_ROLE="medical_os_runtime";
 const{default:postgres}=await import("postgres");
 const{executeAtomicClinicalCommand}=await import("../../packages/atomic-clinical-transaction-v3/src");
 const{verifyTenantAuditChain,verifyChain,AUDIT_GENESIS}=await import("../../packages/audit-verifier/src");
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 const rt=postgres(direct(process.env.DATABASE_URL!),{max:2,prepare:false,onnotice:()=>{},connection:{options:`-c role=${RUNTIME_ROLE}`}});
 const TENANT=crypto.randomUUID(),OTHER=crypto.randomUUID();
 const ctx={tenantId:TENANT,actorId:crypto.randomUUID(),actorType:"SYSTEM" as const,purpose:"TREATMENT",requestId:crypto.randomUUID()};
@@ -43,4 +43,4 @@ try{
  // 6) aislamiento: otro tenant no ve (ni verifica) esta cadena
  const o=await verifyTenantAuditChain(rt,{...ctx,tenantId:OTHER});ok(o.ok&&o.checked===0,"OTHER_TENANT_SEES_NOTHING");
 }catch(e){result.status="FAIL";result.error=String(e);}finally{await rt.end();}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+fin();

@@ -6,7 +6,7 @@
 //     registrado por enmienda y signerRole GUARDIAN se concede y el evento lleva al tutor; un menor no firma como PATIENT;
 //   · una enmienda no puede reasignar la CURP de otro paciente (409).
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{resolveVerified}=await import("../../apps/web/lib/http-command");
@@ -22,7 +22,7 @@ const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);
 function tok(){return signSession({sub:crypto.randomUUID(),tenantId:TA,roles:["PHYSICIAN"],scopes:["patient:write","patient:read","consent:write"],purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const ISO="2026-09-22T15:00:00.000Z";const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 type Err={error:{code:string;message:string;details?:{curpIssue?:string;duplicateOf?:string;duplicateBy?:string;reason?:string}}};
 const reg=(t:string,body:Record<string,unknown>,key=idem())=>patR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":key}),body:JSON.stringify({occurredAt:ISO,...body})}));
 const PP=(id:string)=>({params:Promise.resolve({patientId:id})});const CP=(id:string)=>({params:Promise.resolve({consentId:id})});
@@ -63,5 +63,5 @@ try{
  // 6) una enmienda no reasigna la CURP de otro paciente
  r=await amend.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({curp:"HEGG560427MVZRRL04",birthDate:"1956-04-27",sexAtBirth:"FEMALE",occurredAt:ISO})}),PP(p2));
  e=await r.json() as Err;ok(r.status===409&&e.error.details?.duplicateBy==="CURP","AMEND_CANNOT_STEAL_CURP_409");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

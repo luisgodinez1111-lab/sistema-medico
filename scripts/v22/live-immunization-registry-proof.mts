@@ -2,7 +2,7 @@
 // de varios pacientes/vacunas, administra algunas (lote+sitio), y consulta GET /immunizations -> estado + lote
 // + fecha de aplicación + conteos (aplicadas/pendientes/pacientes) + cobertura por vacuna + join del nombre. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -17,7 +17,7 @@ async function reg(t:string,p:string,name:string,y:number,sex:string){await patR
 async function due(t:string,p:string,vaccineCode:string,dose:string){const id=crypto.randomUUID();const r=await imR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({immunizationId:id,patientId:p,vaccineCode,dose,occurredAt:at()})}));return{id,status:r.status};}
 async function admin(t:string,id:string,lot:string,v:number){return admR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":String(v)}),body:JSON.stringify({lot,site:"Brazo izquierdo",occurredAt:at()})}),{params:Promise.resolve({immunizationId:id})});}
 async function list(t:string){const r=await imR.GET(new Request("http://l/",{method:"GET",headers:H(t)}));return{status:r.status,body:await r.json()};}
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 try{
  const phys=tok();
  const p1=crypto.randomUUID(),p2=crypto.randomUUID(),p3=crypto.randomUUID();
@@ -56,5 +56,5 @@ try{
  // sin scope -> 403
  const noScope=await list(tok(["patient:read"]));
  ok(noScope.status===403,"MISSING_SCOPE_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();

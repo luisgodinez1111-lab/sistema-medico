@@ -1,7 +1,7 @@
 // EPIC BD — Evidencia física: en un paciente pediátrico (peso registrado), rechazar una orden cuya dosis
 // mg/kg/día excede el máximo pediátrico del fármaco. Cross-vertical vitales(peso)→medicación. vs Neon.
 import crypto from"node:crypto";
-import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{libro,SIGNING_SECRET}from"./_proof.mts"; // R11-06: andamiaje compartido; aplica el prólogo de _live-env // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
@@ -12,7 +12,7 @@ function tok(scopes=["vital:write","medication:propose","medication:write"]){ret
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 let seq=0;const at=()=>new Date(Date.parse("2026-09-14T08:00:00.000Z")+(seq++)*60000).toISOString();
 const idem=()=>crypto.randomUUID();
-const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
+const{result,ok,fin}=libro();
 async function recWeight(t:string,pat:string,kg:string){await vitals.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({vitalId:crypto.randomUUID(),patientId:pat,vitalType:"WEIGHT",value:kg,unit:"kg",occurredAt:at()})}));}
 async function propose(t:string,pat:string,drugCode:string,dose:string,frequency:string){return meds.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:crypto.randomUUID(),patientId:pat,drugCode,dose,route:"VO",frequency,occurredAt:at()})}));}
 try{
@@ -36,5 +36,5 @@ try{
  const c3=crypto.randomUUID();await ensurePatientIn(TA,c3); /* L-07 */await recWeight(phys,c3,"12");
  r=await propose(phys,c3,"ibuprofeno-800","800mg","c/4h"); // 160 mg/kg/día peds y 4800mg/día absoluto
  ok(r.status===403,"PEDS_AND_ABSOLUTE_BOTH_BLOCK_403");
-}catch(e){result.status="FAIL";result.error=String(e);}
-console.log(JSON.stringify(result,null,2));process.exit(result.status==="PASS"?0:1);
+}catch(e){fin(e);}
+fin();
