@@ -18,6 +18,15 @@ export type BarrierStatus=
  |"NOT_EVALUATED";  // debía evaluarse y no se pudo (fármaco fuera de catálogo, falta peso/eGFR, dosis no interpretable)
 export type BarrierReason=
  "DRUG_NOT_IN_CATALOG"|"ACTIVE_DRUGS_NOT_IN_CATALOG"|"NO_RULE_IN_CATALOG"|"NO_EGFR"|"NO_WEIGHT"|"WEIGHT_REQUIRED"|"NO_DURATION"|"DOSE_NOT_PARSEABLE"|"ADULT_PATIENT";
+// Auditoría 2026-09-19, anexo R09 (R09-034) — EL VOCABULARIO, EN TIEMPO DE EJECUCIÓN.
+//
+// Estos tres vocabularios son lo que el sistema le MUESTRA a un médico, y hasta ahora solo existían como tipos: medibles
+// por el compilador, invisibles para una prueba. El manual del clínico (`docs/manual-clinico.md`) tiene que explicar cada
+// uno, y la única forma de garantizar que no se queda corto cuando alguien añade un estado es comprobarlo contra una
+// LISTA, no contra una copia escrita a mano. `satisfies` ata cada lista a su tipo: si el tipo gana un miembro y la lista
+// no, el compilador avisa aquí; si la lista gana uno y el manual no lo explica, falla la prueba del manual.
+export const BARRIER_STATUSES=["PASSED","CAUTION","BLOCKED","NOT_APPLICABLE","NOT_COVERED","NOT_EVALUATED"] as const satisfies readonly BarrierStatus[];
+export const BARRIER_REASONS=["DRUG_NOT_IN_CATALOG","ACTIVE_DRUGS_NOT_IN_CATALOG","NO_RULE_IN_CATALOG","NO_EGFR","NO_WEIGHT","WEIGHT_REQUIRED","NO_DURATION","DOSE_NOT_PARSEABLE","ADULT_PATIENT"] as const satisfies readonly BarrierReason[];
 export type BarrierResult=Readonly<{id:BarrierId;label:string;status:BarrierStatus;detail:string;reason?:BarrierReason;overridable:boolean}>;
 // Auditoría 2026-09-19 (U-19): un BLOQUEO no es siempre una negación absoluta. Hay bloqueos que la práctica clínica anula
 // bajo criterio y responsabilidad del médico (alergia documentada sin alternativa, interacción mayor con monitorización,
@@ -44,6 +53,7 @@ export type PrescriptionSafetyInput=Readonly<{
 }>;
 // BLOCK: no se puede prescribir. REVIEW: hay advertencias o barreras sin evaluar. CLEAR: todo lo evaluable pasó.
 export type SafetyVerdict="BLOCK"|"REVIEW"|"CLEAR";
+export const SAFETY_VERDICTS=["BLOCK","REVIEW","CLEAR"] as const satisfies readonly SafetyVerdict[];
 export type PrescriptionSafetyEvaluation=Readonly<{
  verdict:SafetyVerdict;catalogResolved:boolean;ingredient:string|null;
  requiresAcknowledgement:boolean; // el médico debe confirmar EXPLÍCITAMENTE que prescribe sin verificación automática
