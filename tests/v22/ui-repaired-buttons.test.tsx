@@ -116,6 +116,58 @@ describe("Los botones reparados: el formulario pide lo que el servidor exige (au
   expect(String(b["reason"])).toContain("transcripción");
  });
 
+ // Auditoría 2026-09-19, anexo R02a (R02a-MED-02) — LA CONCILIACIÓN DE MEDICAMENTOS, QUE NO TENÍA RUTA.
+ //
+ // `handleMedicationReconciliation` estaba completo —esquema, barreras, `commitAnnotation`— y NINGUNA ruta lo exponía:
+ // una capacidad declarada e inalcanzable. Y su contrato pedía `status: ADMITTED|DISCHARGED|TRANSFERRED|UNCHANGED`, que
+ // es cuándo se concilió y no QUÉ se concilió. Conciliar es comparar lo prescrito con lo que el paciente realmente toma.
+ it("Medicación: un fármaco en curso SIN conciliar lo dice, y conciliar pide resultado y fuente",async()=>{
+  render(<Workspace/>);
+  const sec=await irA("Expediente","Medicación");
+  // «Sin conciliar» es un dato clínico: el médico no sabe si el paciente lo sigue tomando, y suponer que sí es la
+  // suposición peligrosa. La pantalla lo declara en vez de callarlo.
+  const fila=(await within(sec).findByText(/losartán 50 mg/)).closest("div")!.parentElement!.parentElement!;
+  expect(fila.textContent).toContain("Sin conciliar");
+  fireEvent.click(within(fila).getByRole("button",{name:"Conciliar"}));
+  // Nada viene precargado: el resultado y la fuente son justo lo que la conciliación debe averiguar.
+  const resultado=await within(sec).findByLabelText("Resultado de la conciliación") as HTMLSelectElement;
+  expect(resultado.value,"precargar «lo sigue tomando» sería afirmarlo por el médico").toBe("");
+  const fuente=within(sec).getByLabelText("Fuente de la conciliación") as HTMLSelectElement;
+  expect(fuente.value,"precargar una fuente sería inventar contra qué se comprobó").toBe("");
+  // Sin fuente no se envía: una conciliación sin fuente no se puede auditar.
+  fireEvent.change(resultado,{target:{value:"CONTINUED"}});
+  const antes=posted.filter(p=>p.path.includes("/reconciliation")).length;
+  fireEvent.click(within(sec).getByRole("button",{name:"Registrar la conciliación"}));
+  expect(await within(sec).findByText(/sin fuente, la conciliación no se puede auditar/)).toBeTruthy();
+  expect(posted.filter(p=>p.path.includes("/reconciliation")).length,"sin fuente no se envía nada").toBe(antes);
+  // Con fuente, se envía con las tres piezas que lo hacen verificable.
+  fireEvent.change(fuente,{target:{value:"PATIENT"}});
+  fireEvent.click(within(sec).getByRole("button",{name:"Registrar la conciliación"}));
+  const env=await vi.waitFor(()=>{const x=posted.filter(q=>q.path.includes("/reconciliation")).at(-1);expect(x).toBeTruthy();return x!;});
+  const b=env.body as Record<string,unknown>;
+  expect(b["outcome"]).toBe("CONTINUED");
+  expect(b["verifiedAgainst"]).toBe("PATIENT");
+  expect(b["context"]).toBe("OUTPATIENT_VISIT");
+ });
+
+ it("Medicación: una discrepancia sin explicación no se envía, y la ya registrada se ve en la fila",async()=>{
+  render(<Workspace/>);
+  // `posted` es del módulo y acumula entre pruebas: se cuenta desde AQUÍ, no desde cero.
+  const antes=posted.filter(p=>p.path.includes("/reconciliation")).length;
+  const sec=await irA("Expediente","Medicación");
+  // La discrepancia YA registrada se lee en la propia fila: es el hallazgo entero del acto de conciliar.
+  const conDiscrepancia=(await within(sec).findByText(/atorvastatina 20 mg/)).closest("div")!.parentElement!.parentElement!;
+  expect(conDiscrepancia.textContent).toContain("NO lo está tomando");
+  expect(conDiscrepancia.textContent).toContain("Lo que refiere el cuidador");
+  // Y al conciliar de nuevo, «no lo está tomando» sin motivo no se envía: sin el porqué no se puede decidir nada.
+  fireEvent.click(within(conDiscrepancia).getByRole("button",{name:"Volver a conciliar"}));
+  fireEvent.change(await within(sec).findByLabelText("Resultado de la conciliación"),{target:{value:"NOT_TAKING"}});
+  fireEvent.change(within(sec).getByLabelText("Fuente de la conciliación"),{target:{value:"PATIENT"}});
+  fireEvent.click(within(sec).getByRole("button",{name:"Registrar la conciliación"}));
+  expect(await within(sec).findByText(/Explica por qué el paciente no lo está tomando/)).toBeTruthy();
+  expect(posted.filter(p=>p.path.includes("/reconciliation")).length,"no se manda una discrepancia sin explicación").toBe(antes);
+ });
+
  it("accesibilidad: los dos formularios nuevos no tienen violaciones axe serias o críticas",async()=>{
   const{container}=render(<Workspace/>);
   const sec=await irA("Plan","Consentimiento informado");

@@ -69,7 +69,10 @@ describe("Cockpit del expediente + paneles de presentación (jsdom) — parte 5/
   const rxSent=posted.filter(p=>p.path.endsWith("/prescription")).at(-1)?.body as {overrideBarriers?:string[];overrideJustification?:string}|undefined;
   expect(rxSent?.overrideBarriers).toEqual(["allergy"]);expect(rxSent?.overrideJustification).toBe("Desensibilización programada con alergología");
   fireEvent.click(await screen.findByRole("button",{name:"Activar"}));
-  fireEvent.click(await screen.findByRole("button",{name:"Suspender"}));
+  // El expediente hidratado trae OTROS fármacos activos (cada uno con su «Suspender»), así que se toma el de la fila
+  // que esta prueba acaba de crear: la fusión del expediente pone las del servidor primero y las de la sesión al final.
+  const suspender=await screen.findAllByRole("button",{name:"Suspender"});
+  fireEvent.click(suspender[suspender.length-1]!);
   const dlg=within(await screen.findByRole("dialog",{name:/Motivo de la suspensión/}));
   const registrar=dlg.getByRole("button",{name:"Registrar"}) as HTMLButtonElement;
   expect(registrar.disabled).toBe(true); // sin texto no se puede enviar

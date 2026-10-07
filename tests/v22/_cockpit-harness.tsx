@@ -141,11 +141,12 @@ export function makeSessionClientMock(posted:{path:string;body:unknown}[]){
    // alergia, que nadie tocó: son los dos casos que la pantalla distingue.
    if(/\/consents\/[^/]+\/presentation$/.test(path))return{status:201,body:{state:"PRESENTED",version:2}};
    if(/\/consents\/[^/]+\/grant$/.test(path))return{status:201,body:{state:"GRANTED",version:3}};
+   if(/\/medications\/[^/]+\/reconciliation$/.test(path))return{status:201,body:{state:"ACTIVE",annotation:"RECONCILED",version:4}};
    if(/\/vitals\/[^/]+\/amendment$/.test(path))return{status:201,body:{state:"AMENDED",version:2,status:"NORMAL",interpretation:"Frecuencia cardíaca normal"}};
    if(path.includes("/chart"))return{status:200,body:{
     problems:[{id:"pb1",label:"Diabetes mellitus tipo 2 (E11.9)",state:"CHRONIC",version:2,createdAt:"2019-03-12T16:00:00.000Z",at:"2019-03-12T16:00:00.000Z"}],
     allergies:[{id:"al1",label:"penicilina — exantema",state:"ACTIVE",version:1,createdAt:"2017-07-04T15:30:00.000Z",at:"2017-07-04T15:30:00.000Z"}],
-    medications:[{id:"md1",label:"metformina 850 mg",state:"STOPPED",version:4,createdAt:"2026-03-02T16:10:00.000Z",at:"2026-09-18T15:40:00.000Z"}],
+    medications:[{id:"md1",label:"metformina 850 mg",state:"STOPPED",version:4,createdAt:"2026-03-02T16:10:00.000Z",at:"2026-09-18T15:40:00.000Z"},{id:"md2",label:"losartán 50 mg",state:"ACTIVE",version:3,createdAt:"2026-05-04T15:00:00.000Z",at:"2026-05-04T15:00:00.000Z"},{id:"md3",label:"atorvastatina 20 mg",state:"ACTIVE",version:5,createdAt:"2026-01-12T16:00:00.000Z",at:"2026-09-20T15:00:00.000Z",reconOutcome:"NOT_TAKING",reconSource:"CAREGIVER",reconAt:"2026-09-20T15:00:00.000Z"}],
     vitals:[{id:"vt1",vitalType:"BP",value:"128/78",unit:"mmHg",state:"RECORDED",version:1,vstatus:"NORMAL",interp:"",createdAt:"2026-09-18T15:25:00.000Z",at:"2026-09-18T15:25:00.000Z"}],
     immunizations:[{id:"im1",label:"Influenza · dosis 1",state:"DUE",version:1,createdAt:"2026-09-01T14:00:00.000Z",at:"2026-09-01T14:00:00.000Z"}],
     orders:[{id:"or1",label:"LAB: HbA1c",state:"FULFILLED",version:3,createdAt:"2026-09-18T15:30:00.000Z",at:"2026-09-25T14:00:00.000Z"}],

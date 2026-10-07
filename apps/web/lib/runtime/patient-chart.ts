@@ -30,9 +30,11 @@ export type ChartRow=Readonly<{id:string;label:string;state:string;version:numbe
 export type ChartVital=Readonly<{id:string;vitalType:string;value:string;unit:string;state:string;version:number;createdAt:string;at:string;vstatus:string;interp:string;encounterId?:string}>;
 /** Fila de CONSENTIMIENTO: además de lo común, qué documento es y la huella con que se presentó (la exige el otorgamiento). */
 export type ChartConsent=ChartRow&Readonly<{documentRef?:string;documentHash?:string}>;
+/** Fila de MEDICACIÓN: además de lo común, la última conciliación — qué se decidió, contra qué se comprobó y cuándo. */
+export type ChartMedication=ChartRow&Readonly<{reconOutcome?:string;reconSource?:string;reconAt?:string}>;
 export type ChartResult=Readonly<{id:string;label:string;critical:boolean;state:string;version:number;createdAt:string;at:string}>;
 export type PatientChart=Readonly<{
- problems:ChartRow[];allergies:ChartRow[];medications:ChartRow[];vitals:ChartVital[];
+ problems:ChartRow[];allergies:ChartRow[];medications:ChartMedication[];vitals:ChartVital[];
  immunizations:ChartRow[];orders:ChartRow[];results:ChartResult[];
  // Coordinación + Plan (hidratados para que el expediente no sea islas y las obligaciones que bloquean la firma sean accionables):
  obligations:ChartRow[];referrals:ChartRow[];appointments:ChartRow[];consents:ChartConsent[];carePlans:ChartRow[];
@@ -91,12 +93,24 @@ export async function patientChart(ctx:HttpTenantContext,patientId:string):Promi
    order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const sub=str(o,"substance"),reac=str(o,"reaction");
    return{id:str(o,"id"),label:reac?`${sub} — ${reac}`:(sub||"Alergia"),state:ALG[str(o,"last_kind")||"RECORDED"]??"ACTIVE",version:Number(o.version??1),...fechas(o)};});
   // MEDICACIÓN — base MEDICATION_PROPOSED; nombre legible del catálogo (resolveDrug), no el código crudo.
+  //
+  // Auditoría R02a-MED-02: la CONCILIACIÓN llega a la pantalla. Un fármaco activo sin conciliar es un dato clínico —el
+  // médico no sabe si el paciente lo sigue tomando— y «el paciente no lo está tomando» es el hallazgo entero del acto.
+  // Sin estos tres campos la conciliación quedaría registrada y la pantalla no podría decir nada de ella.
   const medications=(await tx`
-   select a.aggregate_id as id, a.payload->>'drugCode' as drug, a.payload->>'dose' as dose, a.payload->>'encounterId' as encounter_id, lk.kind as last_kind, vr.version as version, vr.created_at as created_at, lk.at as last_at, prob.pcode as pcode, prob.pdesc as pdesc
+   select a.aggregate_id as id, a.payload->>'drugCode' as drug, a.payload->>'dose' as dose, a.payload->>'encounterId' as encounter_id, lk.kind as last_kind, vr.version as version, vr.created_at as created_at, lk.at as last_at, prob.pcode as pcode, prob.pdesc as pdesc,
+     rec.outcome as recon_outcome, rec.verified as recon_source, rec.at as recon_at
    from clinical_events a ${ultimaTransicion(tx,t,Object.keys(MED))} ${versionDelAgregado(tx,t)} ${probLink}
+   left join lateral (
+    select r.payload->>'outcome' as outcome, r.payload->>'verifiedAgainst' as verified, r.occurred_at as at
+    from clinical_events r
+    where r.tenant_id=${t} and r.aggregate_id=a.aggregate_id and r.payload->>'kind'='RECONCILED'
+    order by r.sequence desc limit 1) rec on true
    where a.tenant_id=${t} and a.aggregate_type='Medication' and a.payload->>'kind'='PROPOSED' and a.payload->>'patientId'=${patientId}
    order by a.occurred_at desc`).map(r=>{const o=r as Record<string,unknown>;const code=str(o,"drug");const name=resolveDrug(code)?.ingredient??code;const dose=str(o,"dose");const pl=problemLabelOf(o);
-   return{id:str(o,"id"),label:[name,dose].filter(Boolean).join(" "),state:MED[str(o,"last_kind")||"PROPOSED"]??"PROPOSED",version:Number(o.version??1),...fechas(o),...(pl?{problemLabel:pl}:{}),...encSpread(o)};});
+   const ro=str(o,"recon_outcome");
+   return{id:str(o,"id"),label:[name,dose].filter(Boolean).join(" "),state:MED[str(o,"last_kind")||"PROPOSED"]??"PROPOSED",version:Number(o.version??1),...fechas(o),...(pl?{problemLabel:pl}:{}),...encSpread(o),
+    ...(ro?{reconOutcome:ro,reconSource:str(o,"recon_source"),reconAt:iso(o["recon_at"])}:{})};});
   // VACUNAS — base IMMUNIZATION_DUE; nombre legible del esquema.
   const immunizations=(await tx`
    select a.aggregate_id as id, a.payload->>'vaccineCode' as vaccine, a.payload->>'dose' as dose, lk.kind as last_kind, vr.version as version, vr.created_at as created_at, lk.at as last_at

@@ -4,7 +4,7 @@
 import {summarizePatient} from "../../../../../packages/patient-summary/src";
 import {labReferenceRanges,acceptedUnitsOf,canonicalUnitOf,vitalForDisplay} from "../../../../../packages/lab-reference/src";
 import{PatientHeader,AllergyBanner}from"../../../../../packages/design-system/src";
-import{Check,ESI_FORM_EMPTY,esiListo,unidadesDe,defaultUnitFor,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,fechaHora,fechaCorta,fechaFila,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,CS_METHODS,EXP_TABS,EXP_TAB_SECTIONS,ANT_HEREDO,ANT_CRONICOS,ANT_PRENATAL,ANT_PERINATAL,ANT_ALIMENTACION,ANT_DESARROLLO,ANT_INMUNIZA,isPediatricAge,antFreshness,type AntContent,type ExpTab,type TrendKey}from"../shared";
+import{Check,ESI_FORM_EMPTY,esiListo,unidadesDe,defaultUnitFor,avisoDeZona,SOLO_ESTA_PANTALLA,anchor,P,mono,ghost,DX_LABEL,LINE,card,Skeleton,SEX_ES,scrollToSection,scrollTop,UI,SEV,FOLLOW_TYPES,TYPE_LABEL,followState,relTime,fechaHora,fechaCorta,fechaFila,CANCEL_KINDS,input,btn,stateBadge,lbl,DOSE_UNITS,medNext,resNext,CHART,trendChart,alActions,probActions,orderNext,referralNext,apptNext,immActions,vitActions,cpActions,clmActions,csActions,admActions,spNext,incActions,trActions,wnActions,tfNext,sgNext,dzActions,docNext,obNext,BARRIER_LABEL,CS_METHODS,RECON_OUTCOMES,RECON_SOURCES,RECON_CONTEXTS,reconLabel,reconSourceLabel,EXP_TABS,EXP_TAB_SECTIONS,ANT_HEREDO,ANT_CRONICOS,ANT_PRENATAL,ANT_PERINATAL,ANT_ALIMENTACION,ANT_DESARROLLO,ANT_INMUNIZA,isPediatricAge,antFreshness,type AntContent,type ExpTab,type TrendKey}from"../shared";
 import{searchIcd10}from"../../../../../packages/terminology/src";
 // R2B-019: el plazo de reevaluación es de CTAS, no de ESI (ESI no publica tiempos). La pantalla lo dice para que nadie lo
 // lea como un número del algoritmo ESI.
@@ -15,7 +15,7 @@ import{useFocusTrap}from"../shared";
 import EncounterForm from"./_encounter";
 import PacientesView from"./pacientes";
 export default function ExpView(){
- const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,safetyUnknown,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,encList,encNote,encMsg,openEncounterNote,closeEncounterNote,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,vitAmend,vitAmendForm,setVitAmendForm,openVitAmend,closeVitAmend,submitVitAmend,vitAmendMsg,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,csPresent,setCsPresent,openCsPresent,closeCsPresent,submitCsPresent,csGrant,csGrantForm,setCsGrantForm,openCsGrant,closeCsGrant,submitCsGrant,csMsg,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab,setView,openConsulta,antSnap,antForm,setAntForm,antBusy,antMsg,antReason,setAntReason,antEditing,setAntEditing,saveAntecedentes,openEdit,patEdit,setPatEdit,editForm,setEditForm,amendPatient,editBusy,patMsg,setPatMsg,medProblem,setMedProblem,ordProblem,setOrdProblem,docsSnap,docDetail,docDetBusy,loadDoc,setDocDetail,attInputRef,attBusy,attMsg,ATT_MIME,onPickAttachment,viewAttachment,removeAttachment,fmtBytes}=useWorkspace();
+ const{cfgSettings,consTabs,patientName,patientId,summary,anyAlert,safetyUnknown,highGaps,safetyChip,alertGlyph,reset,snap,chartState,tl,gaps,followTab,setFollowTab,busy,loadPanel,panel,selectPatientRaw,regName,setRegName,regDob,setRegDob,regSex,setRegSex,registerPatient,guardianFields,dupPanel,regExtra,setRegExtra,patientQuery,setPatientQuery,loadPatients,patientTotal,patientList,patientMore,exportRecord,loadTimeline,exportInfo,encList,encNote,encMsg,openEncounterNote,closeEncounterNote,enc,setPatientId,openEncounter,assessment,setAssessment,plan,setPlan,saveAssessment,signEncounter,drug,setDrug,doseAmt,setDoseAmt,doseUnit,setDoseUnit,route,setRoute,freq,setFreq,dose,proposeMed,meds,printPrescription,advanceMed,recon,reconForm,setReconForm,openRecon,closeRecon,submitRecon,reconMsg,rxDrug,setRxDrug,setRxCheck,rxDoseAmt,setRxDoseAmt,rxDoseUnit,setRxDoseUnit,rxRoute,setRxRoute,rxFreq,setRxFreq,rxDose,verifyRx,rxMsg,rxCheck,sendRx,resQuick,setResQuick,receiveResult,results,advanceResult,setTrendKey,trendKey,trends,alSub,setAlSub,alSev,setAlSev,alReac,setAlReac,createAllergy,allergies,doAllergyAction,probCode,setProbCode,createProblem,problems,doProblemAction,orderType,setOrderType,orderDetail,setOrderDetail,createOrder,orders,advanceOrder,refSpecialty,setRefSpecialty,refReason,setRefReason,createReferral,referrals,advanceReferral,cancelReferral,apptStart,setApptStart,apptReason,setApptReason,apptCons,setApptCons,apptType,setApptType,createAppointment,appts,advanceAppt,closeAppt,immCode,setImmCode,immDose,setImmDose,createImmunization,imms,doImmAction,vitType,setVitType,vitValue,setVitValue,vitUnit,setVitUnit,createVital,vitals,doVitAction,vitAmend,vitAmendForm,setVitAmendForm,openVitAmend,closeVitAmend,submitVitAmend,vitAmendMsg,planCat,setPlanCat,planGoal,setPlanGoal,createPlan,plans,doPlanAction,clmAmount,setClmAmount,clmCurrency,setClmCurrency,createClaim,claims,doClaimAction,csType,setCsType,csRef,setCsRef,createConsent,consents,doConsentAction,csPresent,setCsPresent,openCsPresent,closeCsPresent,submitCsPresent,csGrant,csGrantForm,setCsGrantForm,openCsGrant,closeCsGrant,submitCsGrant,csMsg,hospitalOn,admUnit,setAdmUnit,admReason,setAdmReason,createAdmission,adms,doAdmAction,specType,setSpecType,createSpecimen,specs,advanceSpecimen,rejectSpecimen,incCat,setIncCat,incSev,setIncSev,incDesc,setIncDesc,createIncident,incs,doIncAction,trComplaint,setTrComplaint,createTriage,triages,doTriageAction,trEsiFor,setTrEsiFor,trEsi,setTrEsi,trEsiMsg,setTrEsiMsg,classifyTriage,wnLoc,setWnLoc,wnStage,setWnStage,createWound,wounds,doWoundAction,tfProduct,setTfProduct,tfUnits,setTfUnits,createTransfusion,transfs,advanceTransfusion,transfusionReaction,sgProc,setSgProc,sgLat,setSgLat,createSurgery,surgs,advanceSurgery,cancelSurgery,dzMod,setDzMod,dzAcc,setDzAcc,createDialysis,dialz,doDialysisAction,docTitle,setDocTitle,docType,setDocType,docContent,setDocContent,createDoc,docs,advanceDoc,obKind,setObKind,createObligation,obligations,advanceObligation,overrideMed,overrideWhy,setOverrideWhy,setOverrideMed,confirmOverrideMed,pendingIrreversible,confirmIrreversible,cancelIrreversible,ackMed,ackWhy,setAckWhy,setAckMed,confirmAckMed,error,expTab,setExpTab,setView,openConsulta,antSnap,antForm,setAntForm,antBusy,antMsg,antReason,setAntReason,antEditing,setAntEditing,saveAntecedentes,openEdit,patEdit,setPatEdit,editForm,setEditForm,amendPatient,editBusy,patMsg,setPatMsg,medProblem,setMedProblem,ordProblem,setOrdProblem,docsSnap,docDetail,docDetBusy,loadDoc,setDocDetail,attInputRef,attBusy,attMsg,ATT_MIME,onPickAttachment,viewAttachment,removeAttachment,fmtBytes}=useWorkspace();
  // Confirmación de dos pasos para quitar un adjunto (UI efímera; quitar borra el blob privado, acción registrada en bitácora).
  const[attConfirm,setAttConfirm]=useState<string|null>(null);
  // Diálogos de seguridad (anular bloqueo de Rx / reconocer verificación incompleta / acción irreversible): focus-trap y
@@ -190,7 +190,10 @@ export default function ExpView(){
      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:12,borderBottom:`1px solid ${LINE}`}}>
       {tabs.map(([k,l,n])=><button key={k} onClick={()=>setFollowTab(k)} style={{background:"transparent",border:0,borderBottom:followTab===k?`2px solid ${P.blue}`:"2px solid transparent",color:followTab===k?P.blue:P.muted,fontWeight:followTab===k?700:500,fontSize:13,fontFamily:UI,padding:"7px 10px",cursor:"pointer"}}>{l} {n>0&&<span style={{fontVariantNumeric:"tabular-nums"}}>({n})</span>}</button>)}
      </div>
-     {shown.length?<div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{shown.slice(0,8).map((x,i)=>{const s=sb(x.status);const stripe=x.status==="pend"?"#C87B12":x.status==="prog"?"#1769E0":P.greenOnPale;return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"10px 12px 10px 14px",border:`1px solid ${LINE}`,borderLeft:`3px solid ${stripe}`,borderRadius:10}}>
+     {/* La raya de color de 3px a la izquierda de cada fila se retiró (06-oct-2026): codificaba el estado SOLO con color,
+         y el estado ya viene escrito en la pastilla de la derecha («Pendiente» / «Programado» / «Completado»). Dos
+         señales para el mismo dato, una de ellas invisible para quien no distingue el ámbar del azul. */}
+     {shown.length?<div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{shown.slice(0,8).map((x,i)=>{const s=sb(x.status);return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"10px 14px",border:`1px solid ${LINE}`,borderRadius:10}}>
       <div style={{minWidth:0}}><div style={{fontSize:13.5,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{x.label}</div><div style={{fontSize:11.5,color:P.muted}}>{x.at?relTime(x.at):"seguimiento clínico"}</div></div>
       <span style={{background:s.bg,color:s.fg,fontWeight:700,fontSize:11,padding:"3px 10px",borderRadius:999,whiteSpace:"nowrap"}}>{s.t}</span>
      </div>;})}</div>:<div style={{marginTop:12,padding:"12px 14px",borderRadius:12,background:"var(--c-green-bg)",border:"1px solid var(--c-green-bg)",fontSize:13,color:P.greenOnPale}}>✓ Sin seguimientos {followTab==="pend"?"pendientes":followTab==="prog"?"programados":followTab==="done"?"completados":"registrados"}.</div>}
@@ -300,13 +303,70 @@ export default function ExpView(){
 
    {meds.length===0&&<div style={{marginTop:14,fontSize:11.5,color:P.muted}}>{SOLO_ESTA_PANTALLA}</div>}
    {meds.length>0&&<div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-    {meds.map(m=>{const n=medNext(m);return <div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:"1px solid var(--c-line)",borderRadius:12}}>
-     <div><b style={{fontSize:14}}>{m.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(m)} · v{m.version}{m.problemLabel?<> · <span style={{color:P.purple,fontWeight:600}}>↳ {m.problemLabel}</span></>:null}</div></div>
-     <div style={{display:"flex",gap:10,alignItems:"center"}}>
+    {meds.map(m=>{const n=medNext(m);const enCurso=m.state==="ACTIVE"||m.state==="HELD";const discrepa=m.reconOutcome==="NOT_TAKING";
+     return <div key={m.id} style={{border:`1px solid ${discrepa?"var(--c-amber-bd)":"var(--c-line)"}`,borderRadius:12,overflow:"hidden",background:discrepa?"var(--c-amber-bg)":"transparent"}}>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",gap:10,flexWrap:"wrap"}}>
+     <div><b style={{fontSize:14}}>{m.label}</b><div style={{fontSize:12,color:P.muted}}>{fechaFila(m)} · v{m.version}{m.problemLabel?<> · <span style={{color:P.purple,fontWeight:600}}>↳ {m.problemLabel}</span></>:null}</div>
+      {/* Auditoría R02a-MED-02: la conciliación, LEGIBLE. «Sin conciliar» es un dato clínico: el médico no sabe si el
+          paciente lo sigue tomando, y suponer que sí es la suposición que mata. */}
+      {enCurso&&(m.reconOutcome
+       ?<div style={{fontSize:12,marginTop:3,color:discrepa?P.amberOnPale:P.muted,fontWeight:discrepa?700:400}}>
+         {discrepa?"⚑ ":""}{reconLabel(m.reconOutcome)} · {reconSourceLabel(m.reconSource??"")}{m.reconAt?<> · conciliado {fechaCorta(m.reconAt)}</>:null}
+        </div>
+       :<div style={{fontSize:12,marginTop:3,color:P.muted}}>Sin conciliar: no consta si el paciente lo sigue tomando</div>)}
+     </div>
+     <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
       <span style={stateBadge(m.state)}>{m.state}</span>
+      {enCurso&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} aria-expanded={recon?.id===m.id}
+       onClick={()=>recon?.id===m.id?closeRecon():openRecon(m)}>{recon?.id===m.id?"Cancelar":m.reconOutcome?"Volver a conciliar":"Conciliar"}</button>}
       {(m.state==="PRESCRIBED"||m.state==="ACTIVE")&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>printPrescription([m.id])} title="Receta con los datos legales (cédula, institución, domicilio)">Imprimir receta</button>}
       {n&&<button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>advanceMed(m)}>{busy==="med-"+m.id?"…":n.label}</button>}
      </div>
+     </div>
+     {recon?.id===m.id&&<div style={{padding:"12px 14px",borderTop:"1px solid var(--c-line)",background:"var(--c-wash)"}}>
+      <p style={{fontSize:12,color:P.muted,margin:"0 0 10px"}}>
+       Conciliar es comparar lo prescrito con lo que el paciente <b>realmente</b> toma. No cambia el estado del fármaco:
+       si no lo está tomando, la decisión de suspenderlo o reeducar la tomas aparte.
+      </p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(210px,1fr))",gap:10}}>
+       <div>
+        <label style={lbl} htmlFor={"rec-out-"+m.id}>¿Qué pasa con este medicamento? <span style={{color:P.redOnPale}}>*</span></label>
+        <select id={"rec-out-"+m.id} style={input} aria-label="Resultado de la conciliación" value={reconForm.outcome}
+         onChange={e=>setReconForm(f=>({...f,outcome:e.target.value as typeof f.outcome}))}>
+         <option value="">— elige —</option>
+         {RECON_OUTCOMES.map(o=><option key={o.v} value={o.v}>{o.label}</option>)}
+        </select>
+       </div>
+       <div>
+        <label style={lbl} htmlFor={"rec-src-"+m.id}>¿Contra qué lo comprobaste? <span style={{color:P.redOnPale}}>*</span></label>
+        <select id={"rec-src-"+m.id} style={input} aria-label="Fuente de la conciliación" value={reconForm.verifiedAgainst}
+         onChange={e=>setReconForm(f=>({...f,verifiedAgainst:e.target.value as typeof f.verifiedAgainst}))}>
+         <option value="">— elige —</option>
+         {RECON_SOURCES.map(o=><option key={o.v} value={o.v}>{o.label}</option>)}
+        </select>
+       </div>
+       <div>
+        <label style={lbl} htmlFor={"rec-ctx-"+m.id}>¿En qué momento?</label>
+        <select id={"rec-ctx-"+m.id} style={input} aria-label="Contexto de la conciliación" value={reconForm.context}
+         onChange={e=>setReconForm(f=>({...f,context:e.target.value as typeof f.context}))}>
+         {RECON_CONTEXTS.map(o=><option key={o.v} value={o.v}>{o.label}</option>)}
+        </select>
+       </div>
+      </div>
+      <div style={{marginTop:10}}>
+       <label style={lbl} htmlFor={"rec-note-"+m.id}>
+        {reconForm.outcome==="NOT_TAKING"?<>¿Por qué no lo está tomando? <span style={{color:P.redOnPale}}>*</span></>:<>Observación (opcional)</>}
+       </label>
+       <input id={"rec-note-"+m.id} style={input} aria-label="Observación de la conciliación"
+        placeholder={reconForm.outcome==="NOT_TAKING"?"p. ej. no lo surtió; lo dejó por náusea; no entendió la indicación":"p. ej. lo toma por la noche en vez de por la mañana"}
+        value={reconForm.note} onChange={e=>setReconForm(f=>({...f,note:e.target.value.slice(0,500)}))}/>
+      </div>
+      {reconMsg&&<div role="alert" style={{marginTop:10,fontSize:12.5,fontWeight:600,color:P.redOnPale}}>{reconMsg}</div>}
+      <div style={{display:"flex",gap:10,marginTop:12}}>
+       <button style={btn} disabled={busy!==""} onClick={submitRecon}>{busy==="recon"?"Registrando…":"Registrar la conciliación"}</button>
+       <button style={{...ghost,padding:"9px 16px"}} disabled={busy!==""} onClick={closeRecon}>Cancelar</button>
+      </div>
+     </div>}
     </div>;})}
     {meds.filter(m=>m.state==="PRESCRIBED"||m.state==="ACTIVE").length>1&&<div style={{display:"flex",justifyContent:"flex-end"}}><button style={{...ghost,padding:"7px 12px"}} disabled={busy!==""} onClick={()=>printPrescription(meds.filter(m=>m.state==="PRESCRIBED"||m.state==="ACTIVE").map(m=>m.id))}>Imprimir receta con todas las prescritas</button></div>}
    </div>}

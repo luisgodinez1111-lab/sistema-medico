@@ -15,7 +15,7 @@ import{AmendBody as document__AmendBody,CreateBody as document__CreateBody,SignB
 import{AssessBody as encounter__AssessBody,SignBody as encounter__SignBody}from"./encounter-lifecycle";
 import{AdminBody as immunization__AdminBody,AdverseBody as immunization__AdverseBody,DueBody as immunization__DueBody,ReasonBody as immunization__ReasonBody}from"./immunization-lifecycle";
 import{ReasonBody as incident__ReasonBody,ReportBody as incident__ReportBody,ResolveBody as incident__ResolveBody,WhenBody as incident__WhenBody}from"./incident-lifecycle";
-import{HoldBody as medication__HoldBody,ModifyBody as medication__ModifyBody,PrescribeBody as medication__PrescribeBody,ProposeBody as medication__ProposeBody,ResumeBody as medication__ResumeBody,StopBody as medication__StopBody,WhenBody as medication__WhenBody}from"./medication-lifecycle";
+import{HoldBody as medication__HoldBody,ModifyBody as medication__ModifyBody,PrescribeBody as medication__PrescribeBody,ProposeBody as medication__ProposeBody,ReconcileBody as medication__ReconcileBody,ResumeBody as medication__ResumeBody,StopBody as medication__StopBody,WhenBody as medication__WhenBody}from"./medication-lifecycle";
 import{CancelBody as obligation__CancelBody,CompleteBody as obligation__CompleteBody,CreateBody as obligation__CreateBody,WhenBody as obligation__WhenBody}from"./obligation-lifecycle";
 import{UpdateBody as office_settings__UpdateBody}from"./office-settings-lifecycle";
 import{CancelBody as order__CancelBody,CreateBody as order__CreateBody,PlaceBody as order__PlaceBody,WhenBody as order__WhenBody}from"./order-lifecycle";
@@ -93,6 +93,7 @@ export const API_BODY_SCHEMAS:Readonly<Record<string,ZodType>>={
  "POST /api/v1/medications/{medicationId}/hold":medication__HoldBody,
  "POST /api/v1/medications/{medicationId}/modification":medication__ModifyBody,
  "POST /api/v1/medications/{medicationId}/prescription":medication__PrescribeBody,
+ "POST /api/v1/medications/{medicationId}/reconciliation":medication__ReconcileBody,
  "POST /api/v1/medications/{medicationId}/resumption":medication__ResumeBody,
  "POST /api/v1/obligations":obligation__CreateBody,
  "POST /api/v1/obligations/{obligationId}/cancellation":obligation__CancelBody,

@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-06T18:15:30.451Z",
+  "generatedAt": "2026-10-07T00:01:56.219Z",
   "target": "local-ephemeral",
-  "total": 120,
+  "total": 121,
   "results": [
     {
       "proof": "scripts/v22/live-aa-gradient-proof.mts",
@@ -309,6 +309,11 @@
       "exitCode": 0
     },
     {
+      "proof": "scripts/v22/live-medication-reconciliation-proof.mts",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
       "proof": "scripts/v22/live-meld-proof.mts",
       "status": "PASS",
       "exitCode": 0
@@ -608,8 +613,8 @@
     {
       "gate": "scripts/ci/live-smoke.mts",
       "status": "PASS",
-      "passed": 120,
-      "total": 120
+      "passed": 121,
+      "total": 121
     }
   ]
 }

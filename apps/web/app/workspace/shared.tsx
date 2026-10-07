@@ -59,7 +59,9 @@ export const ahora=():Fechado=>{const t=new Date().toISOString();return{createdA
 export type EncState="OPEN"|"READY_TO_SIGN"|"SIGNED";
 export type Encounter=Readonly<{id:string;state:EncState;version:number;signatureDigest?:string}>;
 export type MedState="PROPOSED"|"PRESCRIBED"|"ACTIVE"|"HELD"|"STOPPED";
-export type Med=Readonly<{id:string;label:string;state:MedState;version:number;problemLabel?:string;encounterId?:string}>&Fechado;// POMR: problema que trata · acto en que se propuso
+// Auditoría R02a-MED-02: la última conciliación de este fármaco. Opcional porque «nunca conciliado» es un estado real y
+// la pantalla lo dice en lugar de suponer que el paciente lo sigue tomando.
+export type Med=Readonly<{id:string;label:string;state:MedState;version:number;problemLabel?:string;encounterId?:string;reconOutcome?:string;reconSource?:string;reconAt?:string}>&Fechado;// POMR: problema que trata · acto en que se propuso
 export type ResState="RECEIVED"|"VERIFIED"|"ACTIONED"|"CLOSED";
 export type Result=Readonly<{id:string;label:string;critical:boolean;state:ResState;version:number}>&Fechado;
 export type DocState="DRAFT"|"FINALIZED"|"SIGNED"|"AMENDED";
@@ -1229,6 +1231,51 @@ export function csActions(c:{id:string;state:CsSt}):{label:string;path:string;bo
  if(c.state==="GRANTED")return[{label:"Revocar",path:base+"/revocation",body:{reason:ASK("Motivo de la revocación",5),occurredAt:nowIso()},to:"REVOKED"}];
  return[];
 }
+// Auditoría 2026-09-19, anexo R02a (R02a-MED-02) — CONCILIACIÓN DE MEDICAMENTOS, EN PANTALLA.
+//
+// El manejador existía completo y sin ruta: la conciliación era una capacidad declarada e inalcanzable. Conciliar es
+// comparar lo PRESCRITO con lo que el paciente REALMENTE toma, y el valor del acto está en detectar la discrepancia —el
+// fármaco que dejó de tomarse sin que nadie lo supiera—, no en confirmar lo obvio.
+export const RECON_OUTCOMES=[
+ {v:"CONTINUED",label:"Lo sigue tomando igual"},
+ {v:"MODIFIED",label:"Lo toma distinto a lo prescrito"},
+ {v:"SUSPENDED",label:"Se suspende en esta conciliación"},
+ {v:"NOT_TAKING",label:"NO lo está tomando",discrepancia:true},
+] as const;
+/** Contra qué se comprobó la lista. Sin fuente, una conciliación es una afirmación del clínico sobre sí misma. */
+export const RECON_SOURCES=[
+ {v:"PATIENT",label:"Lo que refiere el paciente"},
+ {v:"CAREGIVER",label:"Lo que refiere el cuidador o familiar"},
+ {v:"PREVIOUS_PRESCRIPTION",label:"La receta anterior"},
+ {v:"PHARMACY_RECORD",label:"El registro de la farmacia"},
+ {v:"MEDICATION_PACKAGING",label:"Las cajas que trae el paciente"},
+] as const;
+export const RECON_CONTEXTS=[
+ {v:"OUTPATIENT_VISIT",label:"Consulta externa"},
+ {v:"ADMISSION",label:"Ingreso hospitalario"},
+ {v:"DISCHARGE",label:"Alta hospitalaria"},
+ {v:"TRANSFER",label:"Traslado entre servicios"},
+] as const;
+export type ReconOutcome=typeof RECON_OUTCOMES[number]["v"];
+export type ReconSource=typeof RECON_SOURCES[number]["v"];
+export type ReconContext=typeof RECON_CONTEXTS[number]["v"];
+export type ReconForm=Readonly<{outcome:ReconOutcome|"";verifiedAgainst:ReconSource|"";context:ReconContext;note:string}>;
+export const RECON_EMPTY:ReconForm={outcome:"",verifiedAgainst:"",context:"OUTPATIENT_VISIT",note:""};
+/**
+ * Cuerpo de la conciliación, o `null` si falta algo. El resultado y la fuente NO tienen valor por omisión a propósito:
+ * precargar «lo sigue tomando igual» sería afirmar por el médico justo lo que la conciliación debe averiguar, y precargar
+ * una fuente sería inventar contra qué se comprobó. Una discrepancia exige explicación: «no lo está tomando» sin motivo
+ * no permite decidir nada, y el servidor también la rechaza.
+ */
+export function reconBody(f:ReconForm):Record<string,unknown>|null{
+ if(!f.outcome||!f.verifiedAgainst)return null;
+ const note=f.note.trim();
+ if(f.outcome==="NOT_TAKING"&&note.length<5)return null;
+ return{outcome:f.outcome,verifiedAgainst:f.verifiedAgainst,context:f.context,...(note?{note}:{}),occurredAt:nowIso()};
+}
+/** Etiqueta legible de un resultado de conciliación guardado (el expediente trae el código del servidor). */
+export const reconLabel=(v:string):string=>RECON_OUTCOMES.find(o=>o.v===v)?.label??v;
+export const reconSourceLabel=(v:string):string=>RECON_SOURCES.find(o=>o.v===v)?.label??v;
 /** Modalidades con que se puede recabar un consentimiento. Mismo vocabulario que `CONSENT_METHODS` del servidor. */
 export const CS_METHODS=[
  {v:"WET_SIGNATURE",label:"Firma autógrafa (papel escaneado)",artefacto:true},

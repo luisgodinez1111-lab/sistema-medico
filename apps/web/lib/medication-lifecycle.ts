@@ -317,13 +317,47 @@ export async function handleMedicationDiscontinuation(req:Request,medicationId:s
   return await commitTransition(ctx,idempotencyKey,expectedVersion,medicationId,folded,"STOPPED","MEDICATION_STOPPED",{kind:"STOPPED",reason:b.reason,stoppedAt:b.occurredAt},b.occurredAt,"medication.stopped");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
-// RECONCILE = Marcar estado de reconciliación (ADMITTED/DISCHARGED/TRANSFER).
-const ReconcileBody=z.object({status:z.enum(["ADMITTED","DISCHARGED","TRANSFERRED","UNCHANGED"]),note:z.string().optional(),occurredAt:z.string().datetime()});
+// Auditoría 2026-09-19, anexo R02a (R02a-MED-02) — CONCILIACIÓN DE MEDICAMENTOS.
+//
+// EL HALLAZGO, en dos mitades. La primera se cerró hace semanas: MODIFY y RECONCILE exigían la «transición» ACTIVE→ACTIVE
+// y devolvían 409 siempre; se introdujeron los eventos de ANOTACIÓN y dejaron de ser imposibles. La segunda sobrevivió
+// hasta hoy: **este manejador no tenía ruta**. Estaba completo, con su esquema y su `commitAnnotation`, y ninguna ruta lo
+// exponía, así que ni un médico ni una prueba podían alcanzarlo. Código completo e inalcanzable que respalda una
+// capacidad declarada: el patrón exacto que esta campaña persigue.
+//
+// Y AL CABLEARLO APARECIÓ UN DEFECTO DE MODELO. El cuerpo pedía `status: ADMITTED|DISCHARGED|TRANSFERRED|UNCHANGED`, que
+// es CUÁNDO se concilió, no QUÉ se concilió. Conciliar un medicamento es comparar lo prescrito con lo que el paciente
+// realmente toma; el registro necesita las tres cosas que lo hacen verificable:
+//
+//   · `outcome`         — qué se decidió sobre ESTE fármaco. `NOT_TAKING` es el hallazgo que da valor al acto: el
+//                         paciente no lo está tomando. Confirmar lo obvio no previene nada; detectar la discrepancia sí.
+//   · `verifiedAgainst` — CONTRA QUÉ se comprobó la lista (el paciente, un cuidador, la receta previa, el registro de
+//                         farmacia, las cajas que trae). Sin fuente, una conciliación es una afirmación del clínico
+//                         sobre sí misma, y no se puede auditar.
+//   · `context`         — el punto del trayecto: consulta externa, ingreso, alta o traslado. Conciliar en consulta
+//                         externa es tan válido como al ingreso, y el `status` viejo ni lo contemplaba.
+//
+// `NOT_TAKING` NO cambia el estado del fármaco a propósito: encontrar que el paciente no lo toma no es suspenderlo. La
+// decisión clínica —suspender, reeducar, cambiar el esquema— la toma el médico después, y pasa por sus propias barreras.
+// Aquí se registra el hallazgo; la pantalla lo muestra como la discrepancia que es.
+//
+// El vocabulario viejo no se migra porque NO EXISTEN eventos con él: sin ruta, nunca se pudo emitir uno.
+export const ReconcileBody=z.object({
+ outcome:z.enum(["CONTINUED","MODIFIED","SUSPENDED","NOT_TAKING"]),
+ verifiedAgainst:z.enum(["PATIENT","CAREGIVER","PREVIOUS_PRESCRIPTION","PHARMACY_RECORD","MEDICATION_PACKAGING"]),
+ context:z.enum(["OUTPATIENT_VISIT","ADMISSION","DISCHARGE","TRANSFER"]),
+ note:z.string().trim().min(1).max(500).optional(),
+ occurredAt:z.string().datetime(),
+});
 export async function handleMedicationReconciliation(req:Request,medicationId:string):Promise<Response>{
  try{
   const{ctx,idempotencyKey,expectedVersion,folded}=await loadForTransition(req,medicationId,true);
   const b=await parseJson(req,ReconcileBody);
-  const payload:Record<string,unknown>={kind:"RECONCILED",reconciliationStatus:b.status};if(b.note!==undefined)payload["note"]=b.note;
+  // Una discrepancia sin explicación no sirve para actuar: si el paciente NO lo está tomando, el motivo es obligatorio.
+  if(b.outcome==="NOT_TAKING"&&b.note===undefined)
+   throw new ClinicalError("VALIDATION_ERROR","Indique por qué el paciente no está tomando el medicamento: una discrepancia sin explicación no permite decidir",{conflictReason:"DISCREPANCY_NOTE_REQUIRED"});
+  const payload:Record<string,unknown>={kind:"RECONCILED",outcome:b.outcome,verifiedAgainst:b.verifiedAgainst,context:b.context,occurredAt:b.occurredAt};
+  if(b.note!==undefined)payload["note"]=b.note;
   return await commitAnnotation(ctx,idempotencyKey,expectedVersion,medicationId,folded,"RECONCILED","MEDICATION_RECONCILED",payload,b.occurredAt,"medication.reconciled");
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }
