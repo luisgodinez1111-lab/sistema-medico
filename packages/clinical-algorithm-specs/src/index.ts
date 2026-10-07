@@ -16,6 +16,8 @@ import{EGFR_BOUNDS,SCHWARTZ_AGE_RANGE,SCHWARTZ_HEIGHT_CM_RANGE}from"../../renal-
 import{GAS_BOUNDS,HH_TOLERANCE}from"../../acid-base/src";
 import{CURB65_MIN_AGE_YEARS,CURB65_BOUNDS}from"../../pneumonia-severity/src";
 import{MELD_NA_SODIUM_BOUNDS}from"../../meld/src";
+import{DELTA_WINDOW_DAYS,VITAL_UNITS,labReferenceRanges}from"../../lab-reference/src";
+import{CARE_GOALS,INDIVIDUALIZATION_NOTICE}from"../../care-goals/src";
 
 export type AlgorithmSpec=Readonly<{
  /** Identificador que viaja en el recibo de cálculo (`calcReceipt`). Es la clave que ata ficha, código y auditoría. */
@@ -137,6 +139,55 @@ export const ALGORITHM_SPECS:readonly AlgorithmSpec[]=[
   source:"Kamath PS et al., Hepatology 2001;33:464-470; tramos de mortalidad de Wiesner RH et al., Gastroenterology 2003;124:91-96; corrección por sodio de Kim WR et al., NEJM 2008;359:1018-1026",
   validatedIn:"Adultos con hepatopatía crónica avanzada.",
   limits:"ADVERTENCIA PERMANENTE: la ASIGNACIÓN de hígado para trasplante usa MELD 3.0 (Kim WR et al., Gastroenterology 2021) desde 2023, que añade albúmina, sodio y sexo y acota la creatinina a 3.0. Este sistema NO implementa MELD 3.0 y su resultado no debe usarse para priorizar trasplante. Implementarlo es una decisión del dueño.",
+ },
+ // Auditoría 2026-09-19, anexo R09 (R09-F02) — LOS CUATRO QUE FALTABAN.
+ //
+ // El inventario cubría los once CALCULADORES (los que emiten recibo de cálculo) y dejaba fuera los CLASIFICADORES por
+ // umbral y las metas de tendencia, que son justamente lo que un médico ve a diario: el color de un resultado, el aviso
+ // de un delta, el estado de un signo vital y la meta de un gráfico. Eran las cuatro filas que el anexo llamaba
+ // «nivel 3». Sus umbrales se IMPORTAN, igual que el resto: `labReferenceRanges()`, `DELTA_WINDOW_DAYS`, `VITAL_UNITS`
+ // y `CARE_GOALS` son los mismos objetos que ejecuta el sistema, no copias.
+ {
+  id:"CLASSIFY-LAB",name:"Clasificación de un resultado de laboratorio contra su rango de referencia",
+  formula:"Se elige la fila de referencia que corresponde al estrato del paciente (edad, sexo, embarazo, ayuno) y se compara el valor convertido a la unidad canónica contra los cuatro cortes [críticoBajo, normalBajo, normalAlto, críticoAlto]. Los bordes son INCLUSIVOS: el valor exacto del corte crítico ya es crítico.",
+  units:{valor:"la unidad canónica del analito (se convierte si llega en otra); sin unidad interpretable el resultado es UNKNOWN"},
+  bounds:{analitos:labReferenceRanges().length,cortesPorAnalito:4},
+  output:"NORMAL | ABNORMAL | CRITICAL | UNKNOWN, con el rango aplicado, el estrato elegido, su fuente y los datos del paciente que FALTABAN para estratificar mejor. UNKNOWN no es NORMAL: es que no se pudo clasificar.",
+  source:"Fuente POR ANALITO Y POR ESTRATO, declarada en cada fila de `lab-reference` (WHO 2011, Tietz Clinical Guide to Laboratory Tests, Nathan & Oski para neonato, ADA 2024 para glucosa, EASL 2016 para transaminasas, entre otras). No hay una fuente única del clasificador: la tiene cada rango.",
+  validatedIn:"Los rangos son de población general adulta salvo los estratos declarados (pediátrico, embarazo, neonato). Un valor fuera del estrato cubierto se clasifica con el estrato por omisión y la salida DICE qué dato faltaba.",
+  limits:"No interpreta el resultado en contexto clínico: un potasio de 6,0 en una muestra hemolizada es un artefacto, y el clasificador no lo sabe. Tampoco aplica factores de corrección (calcio por albúmina). La validación clínica de los cortes para la población atendida sigue pendiente (R09-020, R09-025).",
+ },
+ {
+  id:"DELTA-CHECK",name:"Cambio agudo entre dos resultados del mismo analito",
+  formula:"Se compara el resultado nuevo con el previo por diferencia absoluta y por razón (nuevo/previo), cada criterio dentro de SU ventana temporal. La magnitud se redondea a la precisión con que el laboratorio reporta el analito antes de comparar, para que dos deltas clínicamente idénticos no den veredictos distintos por la aritmética de coma flotante.",
+  units:{previo:"la unidad canónica del analito",nuevo:"la misma unidad",ventana:"días"},
+  bounds:{ventanaPorAnalito:DELTA_WINDOW_DAYS,criterioAbsolutoCreatininaDias:2},
+  output:"CRITICAL con la nota clínica y LA FUENTE del umbral que se cumplió, o NONE. Fuera de ventana NO se evalúa y se dice: una creatinina que se duplica en siete días es lesión aguda; en tres años es progresión crónica, y el aviso sería ruido.",
+  source:"Creatinina: KDIGO 2012, Clinical Practice Guideline for Acute Kidney Injury §2.1. Sodio: límite de velocidad de corrección de la hiponatremia (guía europea, Spasovski et al. 2014). Plaquetas: criterio de recuento del score 4T (Lo, Juhl & Warkentin, 2006). Hemoglobina, potasio, calcio y glucosa: criterios OPERATIVOS de este sistema, declarados como tales en el código porque NO existe un corte publicado de delta para ellos.",
+  validatedIn:"KDIGO se validó en adultos hospitalizados y ambulatorios; los criterios operativos no están validados en ninguna población y así se declaran.",
+  limits:"Compara dos puntos, no una tendencia. No sabe si el previo era el basal del paciente o ya era patológico, lo que importa en el criterio relativo de KDIGO. Un delta de calcio sin albúmina es orientativo.",
+ },
+ {
+  id:"CLASSIFY-VITAL",name:"Clasificación de un signo vital por franja de edad",
+  formula:"Se convierte el valor a la unidad canónica del signo y se compara contra la franja que corresponde a la edad del paciente. Sin edad se aplica la franja adulta y la salida lo declara.",
+  // `VITAL_UNITS` lleva la unidad canónica y las aceptadas por signo; la ficha publica la CANÓNICA, que es la que el
+  // valor tiene cuando se compara. Se deriva del mismo objeto en lugar de transcribirla.
+  units:Object.fromEntries(Object.entries(VITAL_UNITS).map(([k,v])=>[k,v.canonical])),
+  bounds:{signosConRegla:Object.keys(VITAL_UNITS).length},
+  output:"NORMAL | ABNORMAL | CRITICAL | UNKNOWN con su interpretación en texto. Un tipo de signo SIN regla devuelve UNKNOWN, nunca NORMAL.",
+  source:"Franjas pediátricas: American Heart Association, 2020 Guidelines for CPR and Emergency Cardiovascular Care, sección pediátrica (PALS) — referencia ORIENTATIVA, así declarada en el código. Franjas adultas: valores de alarma de uso corriente en monitorización clínica, SIN una guía única que las fije; se declara así en lugar de atribuirles una fuente que no tienen, y es la mitad de esta ficha que más necesita validación médica (R09-020, R09-025).",
+  validatedIn:"NO validado. Es la limitación más importante de esta ficha y está declarada en el propio módulo desde el primer día.",
+  limits:"PESO y TALLA no se clasifican a propósito: un peso «normal» exige percentiles por edad y sexo en pediatría, y criterio de IMC en adulto, así que fabricar un rango único sería peor que declarar que no se clasifica. La clasificación no considera el contexto (fiebre, dolor, ansiedad) ni la medicación (betabloqueo).",
+ },
+ {
+  id:"TREND-GOALS",name:"Metas de los gráficos de tendencia",
+  formula:"Cada métrica de tendencia lleva su meta por omisión y la población en que esa meta aplica. La pantalla NO pinta una franja de meta cuando la métrica no tiene umbral universal.",
+  units:{HbA1c:"%",glucosa:"mg/dL",LDL:"mg/dL",creatinina:"mg/dL",presionArterial:"mmHg",IMC:"kg/m²"},
+  bounds:{metas:CARE_GOALS.length,avisoDeIndividualizacion:INDIVIDUALIZATION_NOTICE},
+  output:"La meta por omisión y su fuente, con el aviso de que la meta del paciente la fija su médico. Donde no hay meta universal (LDL, creatinina) se declara y no se dibuja ninguna franja.",
+  source:"HbA1c y glucosa preprandial: American Diabetes Association, Standards of Care in Diabetes (Glycemic Targets). Presión arterial: ACC/AHA 2017. IMC: clasificación de la OMS. LDL: las guías (ACC/AHA y ESC/EAS) estratifican por categoría de riesgo y NO existe umbral único, así que no se publica uno. Creatinina: sin meta universal — es una tendencia, no un objetivo.",
+  validatedIn:"Adultos no embarazados, que es la población de las guías citadas. En embarazo, pediatría y adulto mayor frágil las metas son distintas y este sistema no las individualiza.",
+  limits:"Son metas POR OMISIÓN, no del paciente. Una meta de HbA1c <7 % es inapropiada en un adulto mayor con hipoglucemias, y el sistema no lo sabe: por eso cada meta viaja con el aviso de individualización en vez de presentarse como la meta del paciente.",
  },
 ];
 

@@ -299,7 +299,7 @@ export function classifyLab(analyte: string, value: string, unit?: string, ctx: 
 // del rango "bajo pero no pánico"). Un delta CRÍTICO eleva el resultado a `critical` -> participa del
 // gate de firma (Zero Lost Follow-Up). Puro, sin PHI. Umbrales de demostración.
 export type DeltaSeverity = "CRITICAL" | "NONE";
-export type DeltaAssessment = Readonly<{ flagged: boolean; severity: DeltaSeverity; changeAbs: number; changePct: number; note: string; windowDays?: number; gapDays?: number; outOfWindow?: boolean }>;
+export type DeltaAssessment = Readonly<{ flagged: boolean; severity: DeltaSeverity; changeAbs: number; changePct: number; note: string; windowDays?: number; gapDays?: number; outOfWindow?: boolean; source?: string }>;
 // Auditoría 2026-09-19, anexo R03 (vector F09): el delta check no tenía VENTANA TEMPORAL, así que comparaba el resultado
 // de hoy con uno de hace tres años y lo presentaba como «cambio agudo». Un delta solo significa algo dentro del plazo en
 // el que ese analito puede cambiar de forma clínicamente relevante: una creatinina que se duplica en 7 días es una lesión
@@ -310,16 +310,45 @@ export const DELTA_WINDOW_DAYS: Readonly<Record<string, number>> = {
   CREATININE: 7, HEMOGLOBIN: 14, SODIUM: 3, POTASSIUM: 3, PLATELETS: 14, CALCIUM: 7, GLUCOSE: 3,
 };
 export type DeltaOptions = Readonly<{ priorAt?: string; newAt?: string; now?: Date }>;
-type DeltaRule = Readonly<{ direction: "up" | "down" | "any"; criticalAbs?: number; criticalRatio?: number; note: string }>;
+/**
+ * Auditoría 2026-09-19, anexo R02a (R02a-ALG-02) — «deltaCheck nivel 3: sin vectores golden NI FUENTE».
+ *
+ * Era cierto: ninguna de las siete reglas declaraba de dónde salía su umbral. `source` es ahora OBLIGATORIO en el tipo,
+ * así que una regla nueva no puede nacer sin decirlo — y donde el umbral es un criterio OPERATIVO de este sistema en vez
+ * de un corte publicado, se escribe así, con esas palabras. Inventarle una guía a un umbral sería peor que no citarlo.
+ *
+ * `absWindowDays` permite que un criterio tenga su propia ventana: KDIGO define el aumento ABSOLUTO en 48 h y el
+ * RELATIVO en 7 días, y meter los dos en una sola ventana obligaba a elegir cuál falsear.
+ */
+type DeltaRule = Readonly<{ direction: "up" | "down" | "any"; criticalAbs?: number; criticalRatio?: number; note: string;
+  source: string; absWindowDays?: number }>;
 // direction = dirección clínicamente peligrosa; criticalRatio se evalúa como new/old.
 const DELTA_RULES: Record<string, DeltaRule> = {
-  CREATININE: { direction: "up", criticalAbs: 0.5, criticalRatio: 2, note: "aumento agudo de creatinina: posible lesión renal aguda (AKI)" },
-  HEMOGLOBIN: { direction: "down", criticalAbs: 2, note: "caída de hemoglobina >=2 g/dL: posible hemorragia aguda" },
-  SODIUM: { direction: "any", criticalAbs: 10, note: "cambio rápido de sodio: riesgo de corrección peligrosa (mielinólisis/edema)" },
-  POTASSIUM: { direction: "any", criticalAbs: 1, note: "cambio agudo de potasio: riesgo de arritmia" },
-  PLATELETS: { direction: "down", criticalRatio: 0.5, note: "caída de plaquetas >=50%: posible consumo/HIT" },
-  CALCIUM: { direction: "any", criticalAbs: 2, note: "cambio rápido de calcio" },
-  GLUCOSE: { direction: "any", criticalAbs: 200, note: "variación glucémica extrema" },
+  // R02a-ALG-02 — AQUÍ HABÍA UNA PÉRDIDA CLÍNICA, no solo una cita ausente.
+  //
+  // El umbral era `criticalAbs: 0.5` con `criticalRatio: 2` sobre una ventana única de 7 días. Sin fuente. Comparado con
+  // KDIGO 2012 —la definición internacional de lesión renal aguda— eso corresponde aproximadamente al **estadio 2**
+  // (2,0–2,9× el basal), así que el sistema NO DETECTABA el estadio 1: un aumento de 0,3–0,49 mg/dL en 48 h, o de
+  // 1,5–1,9× en 7 días. El estadio 1 es precisamente donde intervenir cambia el desenlace.
+  //
+  // Se implementa KDIGO con sus DOS criterios y sus DOS ventanas. **Esto aumenta la sensibilidad**: marcará resultados
+  // que antes pasaban. Es el objetivo —un sistema cuya tesis es detectar lo que se pierde no puede ser menos sensible
+  // que la definición estándar de la enfermedad— y se declara aquí para que el aumento de avisos no sorprenda a nadie.
+  CREATININE: { direction: "up", criticalAbs: 0.3, absWindowDays: 2, criticalRatio: 1.5,
+    note: "aumento agudo de creatinina: cumple criterio de lesión renal aguda (KDIGO estadio 1 o superior)",
+    source: "KDIGO 2012 Clinical Practice Guideline for Acute Kidney Injury, sección 2.1: AKI = aumento de creatinina ≥0,3 mg/dL en 48 h, o ≥1,5× el basal en 7 días" },
+  HEMOGLOBIN: { direction: "down", criticalAbs: 2, note: "caída de hemoglobina >=2 g/dL: posible hemorragia aguda",
+    source: "Criterio OPERATIVO de este sistema, no un corte publicado: 2 g/dL es la magnitud que en la práctica obliga a buscar un sangrado activo. Ninguna guía fija un delta universal de hemoglobina." },
+  SODIUM: { direction: "any", criticalAbs: 10, note: "cambio rápido de sodio: riesgo de corrección peligrosa (mielinólisis/edema)",
+    source: "Límite de velocidad de corrección de la hiponatremia: ≤8–10 mEq/L en 24 h para evitar síndrome de desmielinización osmótica (Spasovski et al., Guía europea de hiponatremia, 2014). Se aplica como delta en cualquier dirección porque el riesgo está en la VELOCIDAD, no en el sentido." },
+  POTASSIUM: { direction: "any", criticalAbs: 1, note: "cambio agudo de potasio: riesgo de arritmia",
+    source: "Criterio OPERATIVO de este sistema: 1 mEq/L de cambio agudo es la magnitud que altera la excitabilidad miocárdica de forma clínicamente relevante. No hay un delta de potasio publicado con valor de corte." },
+  PLATELETS: { direction: "down", criticalRatio: 0.5, note: "caída de plaquetas >=50%: posible consumo/HIT",
+    source: "Criterio de recuento del score 4T para trombocitopenia inducida por heparina (Lo, Juhl & Warkentin, J Thromb Haemost 2006): caída >50% puntúa 2 de 2." },
+  CALCIUM: { direction: "any", criticalAbs: 2, note: "cambio rápido de calcio",
+    source: "Criterio OPERATIVO de este sistema: 2 mg/dL de cambio agudo de calcio total. Sin corte publicado; además el calcio total depende de la albúmina, así que un delta sin albúmina es orientativo." },
+  GLUCOSE: { direction: "any", criticalAbs: 200, note: "variación glucémica extrema",
+    source: "Criterio OPERATIVO de este sistema: 200 mg/dL de variación entre dos mediciones es un salto que obliga a revisar la técnica o el contexto (ayuno, infusión) antes que al paciente. Sin corte publicado." },
 };
 function round2(n: number): number { return Math.round(n * 100) / 100; }
 export function deltaCheck(analyte: string, priorValue: string, newValue: string, opts: DeltaOptions = {}): DeltaAssessment {
@@ -344,14 +373,34 @@ export function deltaCheck(analyte: string, priorValue: string, newValue: string
   const changePct = oldV !== 0 ? round2((changeAbs / Math.abs(oldV)) * 100) : 0;
   let hit = false;
   if (rule.criticalAbs !== undefined) {
-    const mag = rule.direction === "up" ? rise : rule.direction === "down" ? drop : Math.abs(changeAbs);
-    if (mag >= rule.criticalAbs) hit = true;
+    // R02a-ALG-02 (07-oct-2026) — DEFECTO QUE ENCONTRARON LOS VECTORES GOLDEN, y es la razón de tenerlos.
+    //
+    // La comparación era sobre la resta en coma flotante: `1.2 - 0.9` vale 0.29999999999999993 y NO alcanzaba el umbral
+    // de 0,3, mientras `1.3 - 1.0` vale 0.30000000000000004 y sí. El MISMO delta clínico —tres décimas de creatinina—
+    // producía dos veredictos distintos según qué par de números lo produjera: uno cumplía el criterio KDIGO de lesión
+    // renal aguda y el otro pasaba en silencio.
+    //
+    // Se redondea el cambio a la precisión con la que el laboratorio REPORTA el analito (dos decimales) antes de
+    // comparar. No es aflojar el umbral: es recuperar la aritmética que el clínico hace de cabeza, que es la que la guía
+    // supone cuando escribe «≥0,3 mg/dL».
+    const mag = round2(rule.direction === "up" ? rise : rule.direction === "down" ? drop : Math.abs(changeAbs));
+    // R02a-ALG-02: el criterio ABSOLUTO puede tener su propia ventana, más corta que la del analito. KDIGO define el
+    // aumento de 0,3 mg/dL de creatinina **en 48 h**: aplicarlo sobre los 7 días de la ventana general lo convertiría en
+    // otro criterio —uno más laxo que el publicado— y el sistema diría «KDIGO» midiendo algo distinto.
+    let absEnVentana = true;
+    if (rule.absWindowDays !== undefined && opts.priorAt !== undefined && opts.newAt !== undefined) {
+      const a2 = Date.parse(opts.priorAt), b2 = Date.parse(opts.newAt);
+      if (Number.isFinite(a2) && Number.isFinite(b2)) absEnVentana = Math.abs(b2 - a2) / 86_400_000 <= rule.absWindowDays;
+    }
+    if (mag >= rule.criticalAbs && absEnVentana) hit = true;
   }
   if (!hit && rule.criticalRatio !== undefined && oldV > 0) {
     const ratio = newV / oldV;
     if (rule.direction === "down" ? ratio <= rule.criticalRatio : ratio >= rule.criticalRatio) hit = true;
   }
-  return hit ? { flagged: true, severity: "CRITICAL", changeAbs: round2(changeAbs), changePct, note: rule.note } : { ...none, changeAbs: round2(changeAbs), changePct };
+  // R02a-ALG-02: el veredicto lleva la FUENTE del umbral que se cumplió. Un aviso clínico que no dice de dónde sale su
+  // corte no se puede valorar: el médico no sabe si está mirando KDIGO o el criterio operativo de un programador.
+  return hit ? { flagged: true, severity: "CRITICAL", changeAbs: round2(changeAbs), changePct, note: rule.note, source: rule.source } : { ...none, changeAbs: round2(changeAbs), changePct };
 }
 
 // ---------- NEWS2 — National Early Warning Score 2 (EPIC BC) ----------

@@ -264,6 +264,108 @@ trasplante. Si no, la advertencia actual es suficiente.
 
 ---
 
+## 11. `CLASSIFY-LAB` — clasificación de un resultado de laboratorio
+
+**Qué hace.** Elige la fila de referencia del estrato del paciente (edad, sexo, embarazo, ayuno) y compara el valor —convertido
+a la unidad canónica— contra cuatro cortes. Los bordes son **inclusivos**: un potasio en el corte crítico exacto ya es crítico.
+
+| Aspecto | Fuente declarada | Veredicto |
+| --- | --- | --- |
+| Rangos por analito | **Una fuente por analito y por estrato** (WHO 2011, Tietz, Nathan & Oski para neonato, ADA 2024 para glucosa, EASL 2016 para transaminasas) | **Coincide.** Los 30 analitos tienen fuente; ninguno queda con un umbral «de demostración». Verificado por prueba automática. |
+| Borde crítico inclusivo | Decisión de este sistema | **Correcto y es lo que un médico espera:** un valor en el corte no es «casi» crítico. |
+| Valor no interpretable | — | **Devuelve UNKNOWN, no NORMAL.** Es la propiedad que más importa de un clasificador. |
+
+**Lo que falta y es del médico (R09-020, R09-025):** confirmar que los rangos elegidos son los apropiados para la población
+atendida y para el laboratorio que procesa las muestras. Un rango de referencia es **del método analítico**, no universal:
+dos laboratorios pueden reportar rangos distintos para el mismo analito y los dos tener razón.
+
+
+**Guía de referencia:** una **por analito y por estrato**, declarada en cada fila de `packages/lab-reference`: WHO, *Haemoglobin
+concentrations for the diagnosis of anaemia* (2011); Tietz *Clinical Guide to Laboratory Tests*; Nathan & Oski, *Hematology of
+Infancy and Childhood* (neonato); ADA, *Standards of Care in Diabetes* 2024 (glucosa); EASL (2016, transaminasas).
+
+**Veredicto: COINCIDE con las fuentes citadas.** Los 30 analitos tienen fuente —verificado por prueba automática— y ninguno
+conserva un umbral «de demostración». El borde crítico inclusivo y el `UNKNOWN` ante un valor no interpretable son correctos.
+
+**Decisión pendiente (del médico, R09-020/R09-025):** confirmar que estos rangos son los del laboratorio que procesa las
+muestras. Un rango de referencia es **del método analítico**, no universal: dos laboratorios pueden reportar rangos distintos
+para el mismo analito y los dos tener razón.
+
+---
+
+## 12. `DELTA-CHECK` — cambio agudo entre dos resultados
+
+**Qué hace.** Compara el resultado nuevo con el previo por diferencia absoluta y por razón, cada criterio dentro de **su**
+ventana. Fuera de ventana NO evalúa y lo dice.
+
+| Regla | Fuente declarada | Veredicto |
+| --- | --- | --- |
+| Creatinina: ≥0,3 mg/dL en 48 h, o ≥1,5× en 7 días | **KDIGO 2012 §2.1** | **Coincide con la definición de lesión renal aguda.** Hasta el 07-oct-2026 el sistema usaba 0,5 mg/dL y ×2 **sin fuente** —el estadio 2 aproximado—, así que **no detectaba el estadio 1**, que es donde intervenir cambia el desenlace. Corregido. **Aumenta la sensibilidad: marcará resultados que antes pasaban.** |
+| Plaquetas: caída ≥50 % | Score **4T** para trombocitopenia inducida por heparina (Lo, Juhl & Warkentin, 2006) | **Coincide** con el criterio de recuento del score. |
+| Sodio: cambio ≥10 mEq/L | Límite de velocidad de corrección de la hiponatremia (guía europea, Spasovski et al., 2014) | **Coincide en magnitud.** El riesgo está en la VELOCIDAD, de ahí que se aplique en cualquier dirección. |
+| Hemoglobina ≥2 g/dL; potasio ≥1 mEq/L; calcio ≥2 mg/dL; glucosa ≥200 mg/dL | **Criterios OPERATIVOS de este sistema** | **No hay corte publicado** para estos deltas y el código lo declara con esas palabras en lugar de atribuirles una guía. **Decisión del médico:** confirmarlos o cambiarlos. |
+
+**Defecto encontrado por los vectores golden, y es la razón de tenerlos:** la comparación se hacía sobre la resta en coma
+flotante, así que `1,2 − 0,9` daba 0,29999999999999993 y **no** alcanzaba el umbral de 0,3, mientras `1,3 − 1,0` daba
+0,30000000000000004 y sí. El mismo delta clínico, dos veredictos. Ahora la magnitud se redondea a la precisión con que el
+laboratorio reporta el analito antes de comparar.
+
+
+**Guía de referencia:** KDIGO 2012, *Clinical Practice Guideline for Acute Kidney Injury* §2.1 (creatinina); score 4T
+(Lo, Juhl & Warkentin, *J Thromb Haemost* 2006, plaquetas); Spasovski et al., guía europea de hiponatremia (2014, sodio). Para
+hemoglobina, potasio, calcio y glucosa **no existe corte publicado** y el código los declara como criterios operativos.
+
+**Veredicto: COINCIDE tras la corrección del 07-oct-2026.** Antes **no coincidía**: el umbral de creatinina (0,5 mg/dL y ×2,
+sin fuente) correspondía aproximadamente al estadio 2 de KDIGO, así que el sistema **no detectaba el estadio 1** —≥0,3 mg/dL en
+48 h o ≥1,5× en 7 días—, que es donde intervenir cambia el desenlace.
+
+**Decisión pendiente (del médico):** confirmar los cuatro criterios operativos (hemoglobina, potasio, calcio, glucosa), y
+aceptar que la corrección de creatinina **aumenta la sensibilidad**: marcará resultados que antes pasaban en silencio.
+
+---
+
+## 13. `CLASSIFY-VITAL` — clasificación de un signo vital por edad
+
+| Aspecto | Fuente declarada | Veredicto |
+| --- | --- | --- |
+| Franjas pediátricas | AHA, *2020 Guidelines for CPR and ECC*, sección pediátrica (PALS) — **orientativa** | **Aceptable como orientación.** PALS publica rangos por edad, no cortes de alarma normativos. |
+| Franjas adultas | **Sin guía única.** Valores de alarma de uso corriente en monitorización | **Es la mitad de este algoritmo que más necesita validación médica.** El código lo declara en vez de atribuirles una fuente. |
+| PESO y TALLA | — | **No se clasifican, a propósito.** Un peso «normal» exige percentiles por edad y sexo en pediatría y criterio de IMC en adulto; fabricar un rango único sería peor que declarar que no se clasifica. |
+
+
+**Guía de referencia:** AHA, *2020 Guidelines for CPR and Emergency Cardiovascular Care*, sección pediátrica (PALS), como
+referencia **orientativa** de rangos por edad. Para las franjas **adultas no hay guía única** y el código lo declara.
+
+**Veredicto: PARCIAL.** Las franjas pediátricas son razonables como orientación; las adultas son valores de alarma de uso
+corriente **sin fuente normativa**, y ésa es la mitad de este algoritmo que más necesita validación médica. PESO y TALLA no se
+clasifican a propósito, lo cual es correcto: fabricar un rango único sería peor que declarar que no se clasifica.
+
+**Decisión pendiente (del médico, R09-020/R09-025):** fijar y firmar las franjas adultas, o aceptarlas como orientativas con
+esa etiqueta visible al clínico.
+
+---
+
+## 14. `TREND-GOALS` — metas de los gráficos de tendencia
+
+Cotejado en detalle en la sección «Metas de cuidado» de más abajo, que es el mismo conjunto (`packages/care-goals`). Lo que
+esta ficha añade es la regla de presentación: **donde no hay meta universal (LDL, creatinina) la pantalla no pinta ninguna
+franja**, porque una franja verde es la afirmación más fuerte que puede hacer un gráfico y sobre LDL sería falsa para buena
+parte de los pacientes.
+
+
+**Guía de referencia:** ADA, *Standards of Care in Diabetes* (HbA1c y glucosa preprandial); ACC/AHA 2017 (presión
+arterial); OMS (IMC). Para **LDL no existe meta universal** —ACC/AHA y ESC/EAS estratifican por categoría de riesgo— y para
+creatinina no hay meta: es una tendencia.
+
+**Veredicto: COINCIDE.** Cada meta viaja con su fuente y con el aviso de que la del paciente la fija su médico. Y la regla de
+presentación es la correcta: donde no hay meta universal **la pantalla no pinta ninguna franja**, porque una franja verde es la
+afirmación más fuerte que puede hacer un gráfico y sobre LDL sería falsa para buena parte de los pacientes.
+
+**Decisión pendiente:** ninguna en ingeniería. La individualización por paciente (anciano frágil, embarazo, pediatría) es
+clínica y el sistema la declara en vez de simularla.
+
+---
+
 ## Contenido clínico fuera de los diez algoritmos
 
 ### Metas de cuidado (`packages/care-goals`)

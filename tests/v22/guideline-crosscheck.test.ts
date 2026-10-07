@@ -64,6 +64,10 @@ describe("cotejo de guías clínicas (preparación de la validación clínica)",
   // El inventario se genera del código; si divergen, uno de los dos miente.
   const inv=fs.readFileSync("docs/compliance/inventario-de-algoritmos.md","utf8");
   for(const s of ALGORITHM_SPECS)expect(inv,`${s.id} no está en el inventario`).toContain(s.id);
-  expect(ALGORITHM_SPECS.length).toBe(10);
+  // R09-F02 (lote 37): el conteo estaba CONGELADO en 10, así que añadir un algoritmo rompía la prueba —castigaba hacer
+  // lo correcto— y un número fijo en una prueba es el patrón de «veredicto congelado» que esta auditoría persigue. El
+  // riesgo real es que el inventario ENCOJA en silencio, no que crezca: se convierte en piso. Lo sustantivo sigue
+  // arriba, en la comprobación de que cada ficha aparezca en el documento generado.
+  expect(ALGORITHM_SPECS.length,"si el inventario encoge, alguien retiró una ficha sin decirlo").toBeGreaterThanOrEqual(14);
  });
 });

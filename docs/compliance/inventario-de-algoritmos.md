@@ -121,9 +121,53 @@ las condiciones de admisión a producción de ADR-0300 que solo el dueño puede 
 - **Lo que NO hace:** ADVERTENCIA PERMANENTE: la ASIGNACIÓN de hígado para trasplante usa MELD 3.0 (Kim WR et al., Gastroenterology 2021) desde 2023, que añade albúmina, sodio y sexo y acota la creatinina a 3.0. Este sistema NO implementa MELD 3.0 y su resultado no debe usarse para priorizar trasplante. Implementarlo es una decisión del dueño.
 - **Expuesto por:** `apps/web/app/api/v1/patients/[patientId]/meld/route.ts`
 
+## Clasificación de un resultado de laboratorio contra su rango de referencia — `CLASSIFY-LAB`
+
+- **Fórmula:** Se elige la fila de referencia que corresponde al estrato del paciente (edad, sexo, embarazo, ayuno) y se compara el valor convertido a la unidad canónica contra los cuatro cortes [críticoBajo, normalBajo, normalAlto, críticoAlto]. Los bordes son INCLUSIVOS: el valor exacto del corte crítico ya es crítico.
+- **Unidades esperadas:** `valor` en la unidad canónica del analito (se convierte si llega en otra); sin unidad interpretable el resultado es UNKNOWN
+- **Cotas y umbrales (importados del código):** `{"analitos":30,"cortesPorAnalito":4}`
+- **Qué devuelve:** NORMAL | ABNORMAL | CRITICAL | UNKNOWN, con el rango aplicado, el estrato elegido, su fuente y los datos del paciente que FALTABAN para estratificar mejor. UNKNOWN no es NORMAL: es que no se pudo clasificar.
+- **Fuente primaria:** Fuente POR ANALITO Y POR ESTRATO, declarada en cada fila de `lab-reference` (WHO 2011, Tietz Clinical Guide to Laboratory Tests, Nathan & Oski para neonato, ADA 2024 para glucosa, EASL 2016 para transaminasas, entre otras). No hay una fuente única del clasificador: la tiene cada rango.
+- **Población en que se validó:** Los rangos son de población general adulta salvo los estratos declarados (pediátrico, embarazo, neonato). Un valor fuera del estrato cubierto se clasifica con el estrato por omisión y la salida DICE qué dato faltaba.
+- **Lo que NO hace:** No interpreta el resultado en contexto clínico: un potasio de 6,0 en una muestra hemolizada es un artefacto, y el clasificador no lo sabe. Tampoco aplica factores de corrección (calcio por albúmina). La validación clínica de los cortes para la población atendida sigue pendiente (R09-020, R09-025).
+- **Expuesto por:** **ninguna ruta emite recibo con este id**
+
+## Cambio agudo entre dos resultados del mismo analito — `DELTA-CHECK`
+
+- **Fórmula:** Se compara el resultado nuevo con el previo por diferencia absoluta y por razón (nuevo/previo), cada criterio dentro de SU ventana temporal. La magnitud se redondea a la precisión con que el laboratorio reporta el analito antes de comparar, para que dos deltas clínicamente idénticos no den veredictos distintos por la aritmética de coma flotante.
+- **Unidades esperadas:** `previo` en la unidad canónica del analito; `nuevo` en la misma unidad; `ventana` en días
+- **Cotas y umbrales (importados del código):** `{"ventanaPorAnalito":{"CREATININE":7,"HEMOGLOBIN":14,"SODIUM":3,"POTASSIUM":3,"PLATELETS":14,"CALCIUM":7,"GLUCOSE":3},"criterioAbsolutoCreatininaDias":2}`
+- **Qué devuelve:** CRITICAL con la nota clínica y LA FUENTE del umbral que se cumplió, o NONE. Fuera de ventana NO se evalúa y se dice: una creatinina que se duplica en siete días es lesión aguda; en tres años es progresión crónica, y el aviso sería ruido.
+- **Fuente primaria:** Creatinina: KDIGO 2012, Clinical Practice Guideline for Acute Kidney Injury §2.1. Sodio: límite de velocidad de corrección de la hiponatremia (guía europea, Spasovski et al. 2014). Plaquetas: criterio de recuento del score 4T (Lo, Juhl & Warkentin, 2006). Hemoglobina, potasio, calcio y glucosa: criterios OPERATIVOS de este sistema, declarados como tales en el código porque NO existe un corte publicado de delta para ellos.
+- **Población en que se validó:** KDIGO se validó en adultos hospitalizados y ambulatorios; los criterios operativos no están validados en ninguna población y así se declaran.
+- **Lo que NO hace:** Compara dos puntos, no una tendencia. No sabe si el previo era el basal del paciente o ya era patológico, lo que importa en el criterio relativo de KDIGO. Un delta de calcio sin albúmina es orientativo.
+- **Expuesto por:** **ninguna ruta emite recibo con este id**
+
+## Clasificación de un signo vital por franja de edad — `CLASSIFY-VITAL`
+
+- **Fórmula:** Se convierte el valor a la unidad canónica del signo y se compara contra la franja que corresponde a la edad del paciente. Sin edad se aplica la franja adulta y la salida lo declara.
+- **Unidades esperadas:** `BP` en mmHg; `HR` en lpm; `RESP` en rpm; `SPO2` en %; `WEIGHT` en kg; `HEIGHT` en cm; `TEMP` en °C
+- **Cotas y umbrales (importados del código):** `{"signosConRegla":7}`
+- **Qué devuelve:** NORMAL | ABNORMAL | CRITICAL | UNKNOWN con su interpretación en texto. Un tipo de signo SIN regla devuelve UNKNOWN, nunca NORMAL.
+- **Fuente primaria:** Franjas pediátricas: American Heart Association, 2020 Guidelines for CPR and Emergency Cardiovascular Care, sección pediátrica (PALS) — referencia ORIENTATIVA, así declarada en el código. Franjas adultas: valores de alarma de uso corriente en monitorización clínica, SIN una guía única que las fije; se declara así en lugar de atribuirles una fuente que no tienen, y es la mitad de esta ficha que más necesita validación médica (R09-020, R09-025).
+- **Población en que se validó:** NO validado. Es la limitación más importante de esta ficha y está declarada en el propio módulo desde el primer día.
+- **Lo que NO hace:** PESO y TALLA no se clasifican a propósito: un peso «normal» exige percentiles por edad y sexo en pediatría, y criterio de IMC en adulto, así que fabricar un rango único sería peor que declarar que no se clasifica. La clasificación no considera el contexto (fiebre, dolor, ansiedad) ni la medicación (betabloqueo).
+- **Expuesto por:** **ninguna ruta emite recibo con este id**
+
+## Metas de los gráficos de tendencia — `TREND-GOALS`
+
+- **Fórmula:** Cada métrica de tendencia lleva su meta por omisión y la población en que esa meta aplica. La pantalla NO pinta una franja de meta cuando la métrica no tiene umbral universal.
+- **Unidades esperadas:** `HbA1c` en %; `glucosa` en mg/dL; `LDL` en mg/dL; `creatinina` en mg/dL; `presionArterial` en mmHg; `IMC` en kg/m²
+- **Cotas y umbrales (importados del código):** `{"metas":6,"avisoDeIndividualizacion":"Meta por omisión; la del paciente la fija su médico."}`
+- **Qué devuelve:** La meta por omisión y su fuente, con el aviso de que la meta del paciente la fija su médico. Donde no hay meta universal (LDL, creatinina) se declara y no se dibuja ninguna franja.
+- **Fuente primaria:** HbA1c y glucosa preprandial: American Diabetes Association, Standards of Care in Diabetes (Glycemic Targets). Presión arterial: ACC/AHA 2017. IMC: clasificación de la OMS. LDL: las guías (ACC/AHA y ESC/EAS) estratifican por categoría de riesgo y NO existe umbral único, así que no se publica uno. Creatinina: sin meta universal — es una tendencia, no un objetivo.
+- **Población en que se validó:** Adultos no embarazados, que es la población de las guías citadas. En embarazo, pediatría y adulto mayor frágil las metas son distintas y este sistema no las individualiza.
+- **Lo que NO hace:** Son metas POR OMISIÓN, no del paciente. Una meta de HbA1c <7 % es inapropiada en un adulto mayor con hipoglucemias, y el sistema no lo sabe: por eso cada meta viaja con el aviso de individualización en vez de presentarse como la meta del paciente.
+- **Expuesto por:** **ninguna ruta emite recibo con este id**
+
 ## Huecos declarados
 
-Algoritmos con ficha: **10**. Ids que el código emite en un recibo de cálculo: **8**.
+Algoritmos con ficha: **14**. Ids que el código emite en un recibo de cálculo: **8**.
 
 Todo id que viaja en un recibo de cálculo tiene su ficha.
 
