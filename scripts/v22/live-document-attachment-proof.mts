@@ -3,9 +3,9 @@
 // lo DESCARGA a través de la Function (bytes idénticos + content-type), rechaza tipo no permitido (400), exige
 // scope (403), y ELIMINA el adjunto (borra el blob + evento ATTACHMENT_REMOVED). Determinista, RLS-scoped. vs Neon + Blob.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 if(!process.env.BLOB_READ_WRITE_TOKEN){console.log(JSON.stringify({status:"NOT_RUN",reason:"BLOB_READ_WRITE_TOKEN_MISSING"}));process.exit(3);}
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const docR=await import("../../apps/web/app/api/v1/documents/route");
@@ -18,7 +18,7 @@ function H(t:string,x:Record<string,string>={}){return{authorization:"Bearer "+t
 const idem=()=>crypto.randomUUID();let ts=Date.parse("2026-09-01T09:00:00.000Z");const at=()=>new Date(ts+=3600000).toISOString();
 async function reg(t:string,p:string){await patR.POST(new Request("http://l/",{method:"POST",headers:{...H(t,{"idempotency-key":idem()}),"content-type":"application/json"},body:JSON.stringify({patientId:p,name:`Ana ${p.slice(0,8)}`,birthDate:"1986-01-01",sexAtBirth:"FEMALE",occurredAt:at()})}));}
 async function createDoc(t:string,d:string,p:string){await docR.POST(new Request("http://l/",{method:"POST",headers:{...H(t,{"idempotency-key":idem()}),"content-type":"application/json"},body:JSON.stringify({documentId:d,patientId:p,docType:"OTHER",title:"Estudio externo",content:"Contenido de la nota.",occurredAt:at()})}));}
-async function attach(t:string,d:string,bytes:Uint8Array,filename:string,mime:string){const fd=new FormData();fd.append("file",new File([bytes],filename,{type:mime}));const r=await attR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:fd}),{params:Promise.resolve({documentId:d})});return{status:r.status,body:await r.json() as Record<string,unknown>};}
+async function attach(t:string,d:string,bytes:Uint8Array,filename:string,mime:string){const fd=new FormData();fd.append("file",new File([bytes as unknown as BlobPart],filename,{type:mime}));const r=await attR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem()}),body:fd}),{params:Promise.resolve({documentId:d})});return{status:r.status,body:await r.json() as Record<string,unknown>};}
 async function download(t:string,d:string,a:string){const r=await attId.GET(new Request("http://l/",{method:"GET",headers:H(t)}),{params:Promise.resolve({documentId:d,attachmentId:a})});const buf=r.status===200?new Uint8Array(await r.arrayBuffer()):new Uint8Array();return{status:r.status,ctype:r.headers.get("content-type"),bytes:buf};}
 async function getDoc(t:string,d:string){const r=await docGet.GET(new Request("http://l/",{method:"GET",headers:H(t)}),{params:Promise.resolve({documentId:d})});return{status:r.status,body:await r.json() as Record<string,unknown>};}
 async function remove(t:string,d:string,a:string){const r=await attId.DELETE(new Request("http://l/",{method:"DELETE",headers:H(t,{"idempotency-key":idem()})}),{params:Promise.resolve({documentId:d,attachmentId:a})});return{status:r.status,body:await r.json() as Record<string,unknown>};}

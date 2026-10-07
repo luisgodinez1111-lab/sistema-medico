@@ -3,8 +3,8 @@
 // otra como capturada por error (NO debe aparecer). GET /api/v1/vitals -> filas clínica-wide + conteos coherentes
 // (críticos/anormales/pacientes) calculados en la base. RLS-scoped. vs Postgres local.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const vitR=await import("../../apps/web/app/api/v1/vitals/route");

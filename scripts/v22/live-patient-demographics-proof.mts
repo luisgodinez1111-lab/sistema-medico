@@ -1,8 +1,8 @@
 // EPIC CL — Evidencia física: modelo de Paciente ampliado (CURP + contacto). Registra con los campos
 // nuevos y los lee de vuelta por la lista (CURP) y por el snapshot de consulta (todos). vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const snapR=await import("../../apps/web/app/api/v1/patients/[patientId]/consultation-snapshot/route");

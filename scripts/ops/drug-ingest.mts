@@ -74,27 +74,34 @@ async function main(){
  let processed=0,fetched=0;
  for(const key of pending){
   if(processed>=LIMIT)break;processed++;
-  let snap=snapshot[key];
-  if(!snap||REFRESH){try{snap=await resolveOne(key);fetched++;}catch(e){snap={rxcui:null,rxName:null,tty:null,atc:[],error:String(e)};}snapshot[key]=snap;if(fetched%25===0)fs.writeFileSync(SNAPSHOT,JSON.stringify(snapshot,null,1));}
-  if(snap.error){curation.push({name:key,reason:"FETCH_FAILED"});continue;}
-  if(!snap.rxcui){curation.push({name:key,reason:"NO_RXCUI"});continue;}
-  if(!snap.confident){curation.push({name:key,reason:"LOW_CONFIDENCE_MATCH",detail:`"${key}" ↮ RxNav "${snap.matchedName??""}"`});continue;}
-  if(snap.atc.length===0){curation.push({name:key,reason:"NO_ATC"});continue;}
+  // `snapshot[key]` es `Snap|undefined` (noUncheckedIndexedAccess) y el `catch` construía un objeto con claves que NO
+  // existen en `Snap` (`rxName`, `tty`) y sin las que sí (`matchedName`, `confident`): en un fallo de red la instantánea
+  // se guardaba con la forma equivocada, y solo no se notaba porque justo después se lee `error` y se continúa.
+  let snap:Snap|undefined=snapshot[key];
+  if(!snap||REFRESH){
+   try{snap=await resolveOne(key);fetched++;}
+   catch(e){snap={rxcui:null,matchedName:null,confident:false,atc:[],error:String(e)};}
+   snapshot[key]=snap;if(fetched%25===0)fs.writeFileSync(SNAPSHOT,JSON.stringify(snapshot,null,1));}
+  const sn:Snap=snap;
+  if(sn.error){curation.push({name:key,reason:"FETCH_FAILED"});continue;}
+  if(!sn.rxcui){curation.push({name:key,reason:"NO_RXCUI"});continue;}
+  if(!sn.confident){curation.push({name:key,reason:"LOW_CONFIDENCE_MATCH",detail:`"${key}" ↮ RxNav "${sn.matchedName??""}"`});continue;}
+  if(sn.atc.length===0){curation.push({name:key,reason:"NO_ATC"});continue;}
   // 3) crosswalk con verificación de nombre de clase ATC
   const classes=new Set<string>();const usedAtc:string[]=[];
-  for(const a of snap.atc){
+  for(const a of sn.atc){
    const cw=ATC_TO_INTERNAL.get(a.classId);
    if(!cw)continue;
    if(!(norm(cw.atcName).includes(norm(a.className))||norm(a.className).includes(norm(cw.atcName)))){curation.push({name:key,reason:"ATC_NAME_MISMATCH",detail:`${a.classId}: esperado "${cw.atcName}", RxNav "${a.className}"`});continue;}
    for(const c of cw.internal)classes.add(c);usedAtc.push(a.classId);
   }
-  if(classes.size===0){curation.push({name:key,reason:"CLASS_NOT_CROSSWALKED",detail:snap.atc.map(a=>`${a.classId} ${a.className}`).join("; ")});continue;}
+  if(classes.size===0){curation.push({name:key,reason:"CLASS_NOT_CROSSWALKED",detail:sn.atc.map(a=>`${a.classId} ${a.className}`).join("; ")});continue;}
   // Excepción renal documentada: miembro renalmente eliminado de una clase noAdjustment → NO heredar un "sin ajuste"
   // falso. Se deja NOT_EVALUATED (REVIEW), que es más seguro que admitirlo sin su regla renal real.
   if(RENAL_EXCEPTION_INGREDIENTS.has(key)){curation.push({name:key,reason:"RENAL_EXCEPTION_NEEDS_CURATION",detail:[...classes].join(",")});continue;}
   // 4) invariante renal: admitir solo si alguna clase interna tiene regla renal (si no, rompería la barrera)
   if(![...classes].some(classHasRenalRule)){curation.push({name:key,reason:"NO_RENAL_RULE_FOR_CLASS",detail:[...classes].join(",")});continue;}
-  admitted[key]={ingredient:key,classes:[...classes].sort(),source:`RxNorm rxcui:${snap.rxcui} · ATC ${usedAtc.join("+")} · RxNav ${new Date().toISOString().slice(0,10)}`,atc:usedAtc.join("+")};
+  admitted[key]={ingredient:key,classes:[...classes].sort(),source:`RxNorm rxcui:${sn.rxcui} · ATC ${usedAtc.join("+")} · RxNav ${new Date().toISOString().slice(0,10)}`,atc:usedAtc.join("+")};
  }
  fs.writeFileSync(SNAPSHOT,JSON.stringify(snapshot,null,1));
  // — emitir el archivo generado (ordenado y estable) —

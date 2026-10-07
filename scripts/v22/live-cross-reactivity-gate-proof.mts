@@ -1,10 +1,10 @@
 // EPIC AP — Evidencia física: gate de alergia por CLASE + reactividad cruzada beta-lactámicos contra Neon.
 // Demuestra lo que el match por subcadena NO detectaba: alergia a penicilina bloquea amoxicilina Y cefalexina.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const al=await import("../../apps/web/app/api/v1/allergies/route");
 const meds=await import("../../apps/web/app/api/v1/medications/route");

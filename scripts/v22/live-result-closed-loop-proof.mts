@@ -1,10 +1,10 @@
 // EPIC G — Evidencia física del closed-loop de resultados + Zero Lost Follow-Up end-to-end.
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-result-closed-loop-proof.mts
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 
 const{signSession}=await import("../../packages/session/src");
 const{resolveVerified}=await import("../../apps/web/lib/http-command");
@@ -37,7 +37,7 @@ try{
 
  // === A) Ciclo de vida del resultado (camino feliz) ===
  const res=crypto.randomUUID(),pat=crypto.randomUUID(),ord=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat); /* L-07 */
- let r=await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:res,patientId:pat,orderId:ord,analyte:"POTASSIUM",value:"7.0",unit:"mEq/L",occurredAt:ISO})}));
+ let r:Response=await results.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem()}),body:JSON.stringify({resultId:res,patientId:pat,orderId:ord,analyte:"POTASSIUM",value:"7.0",unit:"mEq/L",occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).version===1,"RESULT_RECEIVED_201_v1");
  r=await rVerify.POST(new Request("http://l/",{method:"POST",headers:H(physA,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),RP(res));
  ok(r.status===201&&(await r.json()).state==="VERIFIED","RESULT_VERIFIED_201_v2");

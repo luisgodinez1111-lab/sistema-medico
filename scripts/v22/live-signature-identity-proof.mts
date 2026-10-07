@@ -10,7 +10,7 @@
 //   5) un documento que declara un encuentro inexistente o de OTRO paciente se rechaza (404 / 409).
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-signature-identity-proof.mts
 import crypto from"node:crypto";
-import"./_live-env.mts";
+import{SIGNING_SECRET}from"./_live-env.mts";
 import{directEndpoint}from"../../packages/pg-endpoint/src";
 const{freshPatient}=await import("./_patient.mts");
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts");
@@ -25,7 +25,7 @@ const documents=await import("../../apps/web/app/api/v1/documents/route");
 const sql=postgres(directEndpoint(process.env.DATABASE_URL??""),{max:2,prepare:false,onnotice:()=>{}});
 const now=Math.floor(Date.now()/1000);
 const TENANT=crypto.randomUUID(),SUB=crypto.randomUUID();
-const token=signSession({sub:SUB,tenantId:TENANT,roles:["PHYSICIAN"],scopes:["encounter:write","encounter:read","patient:write","patient:read","document:write","document:read"],purpose:"TREATMENT",iat:now-5,exp:now+900,sessionId:crypto.randomUUID()},process.env.SESSION_SIGNING_SECRET);
+const token=signSession({sub:SUB,tenantId:TENANT,roles:["PHYSICIAN"],scopes:["encounter:write","encounter:read","patient:write","patient:read","document:write","document:read"],purpose:"TREATMENT",iat:now-5,exp:now+900,sessionId:crypto.randomUUID()},SIGNING_SECRET);
 const H=(extra:Record<string,string>={}):Record<string,string>=>({"content-type":"application/json",authorization:"Bearer "+token,"idempotency-key":crypto.randomUUID(),...extra});
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
 const ok=(c:boolean,l:string):void=>{if(!c)throw new Error("FAIL:"+l);result.checks.push(l);};
@@ -39,7 +39,7 @@ try{
  // --- Encuentro: abrir, valorar, firmar
  const encounterId=crypto.randomUUID();
  const HORA_CLIENTE="2026-02-01T08:00:00.000Z"; // fecha del cliente deliberadamente en el pasado
- let r=await encounters.POST(new Request("http://l/",{method:"POST",headers:H(),body:JSON.stringify({encounterId,patientId,occurredAt:new Date().toISOString()})}));
+ let r:Response=await encounters.POST(new Request("http://l/",{method:"POST",headers:H(),body:JSON.stringify({encounterId,patientId,occurredAt:new Date().toISOString()})}));
  ok(r.status===201,"ENCUENTRO_ABIERTO");
  const P=(id:string)=>({params:Promise.resolve({encounterId:id})});
  r=await assess.POST(new Request("http://l/",{method:"POST",headers:H({"if-match":"1"}),body:JSON.stringify({assessment:"Faringitis aguda","plan":"Amoxicilina 500 mg cada 8 h por 7 días",occurredAt:new Date().toISOString()})}),P(encounterId));

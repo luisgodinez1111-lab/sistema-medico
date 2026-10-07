@@ -36,7 +36,8 @@ try{
   const existe=await sql`select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=${t.tabla} and c.relkind='r'`;
   if(!existe.length)continue; // la tabla pudo retirarse en una limpieza posterior
   const cnt=await sql.unsafe(`select count(*)::int n from ${t.tabla} where ${t.condicion}`,[days] as never[]);
-  const candidatos=Number((cnt[0] as{n:number}).n);
+  const c0=cnt[0];if(c0===undefined)throw new Error("la consulta de conteo no devolvió fila");
+  const candidatos=Number((c0 as unknown as{n:number}).n);
   let borradas=0;
   if(aplicar&&candidatos>0){
    // En lotes: un DELETE de cientos de miles de filas mantiene un lock largo sobre una tabla del camino de escritura.

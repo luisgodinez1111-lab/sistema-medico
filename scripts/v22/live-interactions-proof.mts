@@ -2,8 +2,8 @@
 // Evalúa fármacos entre sí + factores del paciente, con severidad de 4 niveles + mecanismo + recomendación.
 // Sin estado / sin PHI, pero se ejecuta con el arnés en vivo (auth real, RLS irrelevante aquí). vs Neon.
 import fs from"node:fs";import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const ixR=await import("../../apps/web/app/api/v1/interactions/route");
 const TA=crypto.randomUUID();const now=Math.floor(Date.now()/1000);

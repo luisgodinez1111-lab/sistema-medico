@@ -1,8 +1,8 @@
 // EPIC AB — Evidencia física del export del expediente (manifiesto + hash reproducible, RLS) contra Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const ref=await import("../../apps/web/app/api/v1/referrals/route");
 const im=await import("../../apps/web/app/api/v1/immunizations/route");
@@ -23,7 +23,7 @@ try{
  await im.POST(P(t,{immunizationId:iid,patientId:pat,vaccineCode:"SRP",dose:"1"}));
  await adm.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({lot:"L-1",site:"deltoides",occurredAt:ISO})}),IP(iid));
  // export
- let r=await exp.GET(new Request("http://l/",{headers:H(t)}),TP(pat));
+ let r:Response=await exp.GET(new Request("http://l/",{headers:H(t)}),TP(pat));
  ok(r.status===200,"EXPORT_200");
  const b1=await r.json();
  ok(b1.manifest.aggregateCount===2,"MANIFEST_2_AGGREGATES");

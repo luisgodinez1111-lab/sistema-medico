@@ -1,10 +1,10 @@
 // EPIC I — Evidencia física del ciclo de vida del documento clínico contra Neon.
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-document-lifecycle-proof.mts
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 
 const{signSession}=await import("../../packages/session/src");
 const docs=await import("../../apps/web/app/api/v1/documents/route");
@@ -30,7 +30,7 @@ try{
  const expectedHash=crypto.createHash("sha256").update(content).digest("hex");
 
  // 1) La enfermera crea el borrador -> 201 DRAFT v1.
- let r=await docs.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({documentId:doc,patientId:pat,docType:"PROGRESS_NOTE",title:"Evolución",content,occurredAt:ISO})}));
+ let r:Response=await docs.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({documentId:doc,patientId:pat,docType:"PROGRESS_NOTE",title:"Evolución",content,occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).state==="DRAFT","CREATE_DRAFT_201_v1");
 
  // 2) Finalizar -> 201 FINALIZED v2.

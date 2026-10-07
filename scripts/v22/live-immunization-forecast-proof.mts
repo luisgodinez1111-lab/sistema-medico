@@ -1,7 +1,7 @@
 // EPIC BK — Evidencia física: pronóstico de vacunación por edad desde el nacimiento + vacunas aplicadas. vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const pat=await import("../../apps/web/app/api/v1/patients/route");
 const imm=await import("../../apps/web/app/api/v1/immunizations/route");
@@ -21,7 +21,7 @@ try{
  const phys=tok();
  // paciente de 24 meses con BCG aplicada, sin el resto
  const p=crypto.randomUUID();
- let r=await pat.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:"Bebé Prueba",birthDate:BIRTH,sexAtBirth:"FEMALE",occurredAt:ISO})}));
+ let r:Response=await pat.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p,name:"Bebé Prueba",birthDate:BIRTH,sexAtBirth:"FEMALE",occurredAt:ISO})}));
  ok(r.status===201||r.status===200,"PATIENT_REGISTERED");
  await administer(phys,p,"BCG");
  const g=await getFc(phys,p);ok(g.status===200,"FORECAST_200");

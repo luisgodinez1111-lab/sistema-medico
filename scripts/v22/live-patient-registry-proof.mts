@@ -1,7 +1,7 @@
 // EPIC S — Evidencia física del registro de pacientes (registrar/listar/estado) contra Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const pt=await import("../../apps/web/app/api/v1/patients/route");
 const deact=await import("../../apps/web/app/api/v1/patients/[patientId]/deactivation/route");
@@ -13,7 +13,7 @@ const PP=(id:string)=>({params:Promise.resolve({patientId:id})});const ISO="2026
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
  const phys=tok(TA);const p1=crypto.randomUUID();const uniq="P-"+crypto.randomUUID().slice(0,8);
- let r=await pt.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p1,name:uniq+" García",birthDate:"1975-03-03",sexAtBirth:"FEMALE",occurredAt:ISO})}));
+ let r:Response=await pt.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({patientId:p1,name:uniq+" García",birthDate:"1975-03-03",sexAtBirth:"FEMALE",occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).status==="ACTIVE","REGISTER_ACTIVE_201");
  // list incluye al paciente con nombre + estado
  r=await pt.GET(new Request("http://l/",{headers:H(phys)}));

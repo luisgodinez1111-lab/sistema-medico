@@ -1,9 +1,9 @@
 // EPIC AX — Evidencia física: no prescribir un fármaco con interacción MAJOR con uno ya activo. vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const meds=await import("../../apps/web/app/api/v1/medications/route");
 const rx=await import("../../apps/web/app/api/v1/medications/[medicationId]/prescription/route");
@@ -25,7 +25,7 @@ try{
  // 1) warfarina activa -> prescribir ibuprofeno (anticoagulante + AINE) = MAJOR -> BLOQUEADO
  const p1=crypto.randomUUID();await ensurePatientIn(TA,p1); /* L-07 */await activate(phys,"warfarina-5",p1);
  const ib=await propose(phys,p1,"ibuprofeno-400");
- let r=await rx.POST(new Request("http://l/",B(phys,1)),MP(ib));ok(r.status===403&&(await r.json()).error.code==="SAFETY_BLOCKED","WARFARIN_NSAID_BLOCKED_403");
+ let r:Response=await rx.POST(new Request("http://l/",B(phys,1)),MP(ib));ok(r.status===403&&(await r.json()).error.code==="SAFETY_BLOCKED","WARFARIN_NSAID_BLOCKED_403");
  // 2) enalapril activo -> espironolactona (IECA + ahorrador K) = MAJOR -> BLOQUEADO
  const p2=crypto.randomUUID();await ensurePatientIn(TA,p2); /* L-07 */await activate(phys,"enalapril-10",p2);
  const sp=await propose(phys,p2,"espironolactona-25");

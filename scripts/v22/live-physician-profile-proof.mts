@@ -3,9 +3,9 @@
 // sube sello -> re-sube firma (nuevo hash, misma ruta) -> tipo no permitido (400) -> sin scope (403) -> kind
 // desconocido (404) -> quita firma (blob borrado + ASSET_REMOVED; sello sigue). Determinista, RLS-scoped. vs Neon + Blob.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 if(!process.env.BLOB_READ_WRITE_TOKEN){console.log(JSON.stringify({status:"NOT_RUN",reason:"BLOB_READ_WRITE_TOKEN_MISSING"}));process.exit(3);}
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const profR=await import("../../apps/web/app/api/v1/physician-profile/route");
 const assetR=await import("../../apps/web/app/api/v1/physician-profile/assets/[kind]/route");
@@ -13,7 +13,7 @@ const TA=crypto.randomUUID();const SUB=crypto.randomUUID();const now=Math.floor(
 function tok(scopes=["settings:write"],sub=SUB){return signSession({sub,tenantId:TA,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{authorization:"Bearer "+t,...x};}
 async function getProfile(t:string){const r=await profR.GET(new Request("http://l/",{method:"GET",headers:H(t)}));return{status:r.status,body:await r.json() as Record<string,unknown>};}
-async function upload(t:string,kind:string,bytes:Uint8Array,filename:string,mime:string){const fd=new FormData();fd.append("file",new File([bytes],filename,{type:mime}));const r=await assetR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":crypto.randomUUID()}),body:fd}),{params:Promise.resolve({kind})});return{status:r.status,body:await r.json() as Record<string,unknown>};}
+async function upload(t:string,kind:string,bytes:Uint8Array,filename:string,mime:string){const fd=new FormData();fd.append("file",new File([bytes as unknown as BlobPart],filename,{type:mime}));const r=await assetR.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":crypto.randomUUID()}),body:fd}),{params:Promise.resolve({kind})});return{status:r.status,body:await r.json() as Record<string,unknown>};}
 async function download(t:string,kind:string){const r=await assetR.GET(new Request("http://l/",{method:"GET",headers:H(t)}),{params:Promise.resolve({kind})});const buf=r.status===200?new Uint8Array(await r.arrayBuffer()):new Uint8Array();return{status:r.status,ctype:r.headers.get("content-type"),bytes:buf};}
 async function remove(t:string,kind:string){const r=await assetR.DELETE(new Request("http://l/",{method:"DELETE",headers:H(t,{"idempotency-key":crypto.randomUUID()})}),{params:Promise.resolve({kind})});return{status:r.status,body:await r.json() as Record<string,unknown>};}
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}

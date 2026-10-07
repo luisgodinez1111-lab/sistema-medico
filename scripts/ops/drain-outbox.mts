@@ -30,7 +30,7 @@ try{
  // La enumeración de tenants es lo que la migración 0029 hizo posible: antes no había forma de saber a quién drenar sin
  // relajar el aislamiento del worker, y relajarlo habría sido peor que no drenar.
  const tenants=await sql<{id:string}[]>`select id from tenants where status='ACTIVE' order by id`;
- const reports=[];
+ const reports:Awaited<ReturnType<typeof drainOutboxForTenant>>[]=[];
  for(const t of tenants){
   const r=await drainOutboxForTenant(sql,String(t.id),{worker:WORKER,batch:BATCH});
   reports.push(r);

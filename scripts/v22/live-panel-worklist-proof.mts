@@ -1,8 +1,8 @@
 // EPIC AC — Evidencia física del worklist poblacional del panel (care gaps de todos los pacientes) contra Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const im=await import("../../apps/web/app/api/v1/immunizations/route");
 const ref=await import("../../apps/web/app/api/v1/referrals/route");
@@ -20,7 +20,7 @@ try{
  // paciente X: vacuna DUE (MEDIUM). paciente Y: interconsulta REQUESTED (LOW).
  await im.POST(P(t,{immunizationId:crypto.randomUUID(),patientId:patX,vaccineCode:"SRP",dose:"1"}));
  await ref.POST(P(t,{referralId:crypto.randomUUID(),patientId:patY,specialty:"Cardiología",reason:"Soplo"}));
- let r=await wl.GET(new Request("http://l/",{headers:H(t)}));
+ let r:Response=await wl.GET(new Request("http://l/",{headers:H(t)}));
  ok(r.status===200,"WORKLIST_200");
  const b=await r.json();const gaps=(b.gaps||[]) as {patientId:string;code:string;priority:string}[];
  ok(b.patientCount===2,"PANEL_TWO_PATIENTS");

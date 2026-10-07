@@ -1,8 +1,8 @@
 // EPIC Q — Evidencia física del ciclo de vida del problema clínico contra Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const pr=await import("../../apps/web/app/api/v1/problems/route");
 const res=await import("../../apps/web/app/api/v1/problems/[problemId]/resolution/route");
@@ -15,7 +15,7 @@ const PP=(id:string)=>({params:Promise.resolve({problemId:id})});const ISO="2026
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
  const phys=tok(TA);const p=crypto.randomUUID(),pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
- let r=await pr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({problemId:p,patientId:pat,code:"J06.9",occurredAt:ISO})}));
+ let r:Response=await pr.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({problemId:p,patientId:pat,code:"J06.9",occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).state==="ACTIVE","ADD_ACTIVE_201");
  // resolver sin nota -> 400
  r=await res.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),PP(p));

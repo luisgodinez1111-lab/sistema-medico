@@ -1,9 +1,9 @@
 // EPIC AW — Evidencia física: no prescribir un fármaco de la MISMA clase que uno ya activo (duplicación terapéutica). vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const meds=await import("../../apps/web/app/api/v1/medications/route");
 const rx=await import("../../apps/web/app/api/v1/medications/[medicationId]/prescription/route");
@@ -23,7 +23,7 @@ try{
  const phys=tok();await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
  // 1) ibuprofeno (AINE): proponer -> prescribir -> ACTIVAR
  const a=await propose(phys,pat,"ibuprofeno-400");
- let r=await rx.POST(new Request("http://l/",B(phys,1)),MP(a));ok(r.status===201,"IBUPROFEN_PRESCRIBED_201");
+ let r:Response=await rx.POST(new Request("http://l/",B(phys,1)),MP(a));ok(r.status===201,"IBUPROFEN_PRESCRIBED_201");
  r=await act.POST(new Request("http://l/",B(phys,2)),MP(a));ok(r.status===201&&(await r.json()).state==="ACTIVE","IBUPROFEN_ACTIVE_201");
  // 2) naproxeno (AINE, misma clase): proponer -> prescribir -> BLOQUEADO por duplicación
  const b=await propose(phys,pat,"naproxeno-500");

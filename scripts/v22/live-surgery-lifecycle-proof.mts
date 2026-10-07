@@ -1,11 +1,11 @@
 // EPIC AK — Evidencia física del caso quirúrgico (agendar/time-out/iniciar/completar/cancelar) contra Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{directEndpoint}=await import("../../packages/pg-endpoint/src");
 const postgres=(await import("postgres")).default;
 const sql=postgres(directEndpoint(process.env.DATABASE_URL??""),{max:2,prepare:false,onnotice:()=>{}});
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const sg=await import("../../apps/web/app/api/v1/surgeries/route");
 const to=await import("../../apps/web/app/api/v1/surgeries/[surgeryId]/timeout/route");

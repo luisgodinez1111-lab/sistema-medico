@@ -5,10 +5,10 @@
 // exportar el expediente (manifiesto + hash) → aislamiento por tenant. Verifica los invariantes de seguridad de punta a
 // punta. RLS-scoped, vs Postgres local desechable.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatientIn}=await import("./_patient.mts"); // L-07: el paciente debe existir en el tenant
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const pb=await import("../../apps/web/app/api/v1/problems/route");
 const al=await import("../../apps/web/app/api/v1/allergies/route");
@@ -32,7 +32,11 @@ const SCOPES=["patient:write","patient:read","allergy:write","problem:write","me
 function tok(t:string,scopes=SCOPES){return signSession({sub:crypto.randomUUID(),tenantId:t,roles:["PHYSICIAN"],scopes,purpose:"TREATMENT",iat:now-10,exp:now+3600,sessionId:crypto.randomUUID()},SECRET);}
 function H(t:string,x:Record<string,string>={}){return{"content-type":"application/json",authorization:"Bearer "+t,...x};}
 const ISO="2026-09-12T10:00:00.000Z";const idem=()=>crypto.randomUUID();
-const P=(k:string,id:string)=>({params:Promise.resolve({[k]:id})});
+// El contexto de ruta con la clave que cada ruta espera. Cada `route.ts` declara la suya
+// (`{params:Promise<{patientId:string}>}`, `{medicationId}`, …), así que un objeto con clave computada no encaja con
+// ninguna firma concreta aunque en ejecución sea exactamente lo que recibe. Se tipa como `never` para que el llamador
+// use la firma de su ruta: la conversión está AQUÍ, una vez, en lugar de quince veces repartidas.
+const P=(k:string,id:string)=>({params:Promise.resolve({[k]:id})}) as never;
 const POST=(t:string,body:Record<string,unknown>,ifm?:number)=>new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),...(ifm!==undefined?{"if-match":String(ifm)}:{})}),body:JSON.stringify(body)});
 const ACK={acknowledgeUnverified:true,unverifiedJustification:"Golden path: paciente sintético sin datos para verificar todas las barreras"};
 const SIGN={contentHash:crypto.createHash("sha256").update("Dx\nPlan").digest("hex"),occurredAt:ISO}; // L-03: huella del contenido mostrado
@@ -42,7 +46,7 @@ try{
  const pat=crypto.randomUUID();await ensurePatientIn(TA,pat);
 
  // 1) PROBLEMA codificado en CIE-10 (dx)
- let r=await pb.POST(POST(phys,{problemId:crypto.randomUUID(),patientId:pat,code:"E11.9",epistemic:"CONFIRMED",occurredAt:ISO}));
+ let r:Response=await pb.POST(POST(phys,{problemId:crypto.randomUUID(),patientId:pat,code:"E11.9",epistemic:"CONFIRMED",occurredAt:ISO}));
  ok(r.status===201,"PROBLEM_ADDED_201");
 
  // 2) ALERGIA que BLOQUEA la prescripción, luego se inactiva y ya se puede prescribir

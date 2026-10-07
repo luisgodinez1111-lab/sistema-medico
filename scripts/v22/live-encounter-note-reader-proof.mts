@@ -11,10 +11,10 @@
 // que esto sea un expediente y no un formulario: que el texto vuelva íntegro, que la firma viaje con él, y que leer PHI
 // quede registrado.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{freshPatient}=await import("./_patient.mts");
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts");
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{directEndpoint}=await import("../../packages/pg-endpoint/src");
 const postgres=(await import("postgres")).default;

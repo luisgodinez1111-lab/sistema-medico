@@ -1,8 +1,8 @@
 // EPIC BX — Evidencia física: interpretación ácido-base (trastorno primario + Winters) desde pH/pCO2/HCO3. vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
 const resR=await import("../../apps/web/app/api/v1/results/route");

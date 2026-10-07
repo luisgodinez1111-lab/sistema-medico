@@ -20,8 +20,9 @@
 // al servidor lo que ellos producen. Si alguien endurece el servidor y olvida la pantalla, o cambia la pantalla y manda
 // algo que el servidor rechaza, esta prueba falla. No hay costura en la que esconderse.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import type{HttpTenantContext}from"../../packages/http-principal/src";
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const UI=await import("../../apps/web/app/workspace/shared");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -39,10 +40,16 @@ const H=(t:string,x:Record<string,string>={})=>({"content-type":"application/jso
 const idem=()=>crypto.randomUUID();
 let ts=Date.parse("2026-10-01T15:00:00.000Z");const at=()=>new Date(ts+=60000).toISOString();
 const sha256=(s:string)=>crypto.createHash("sha256").update(s,"utf8").digest("hex");
+/**
+ * Un módulo de ruta de Next: su `POST` recibe la petición y, cuando la ruta tiene parámetros, su contexto. Los firman con
+ * tipos distintos (`{params:Promise<{medicationId}>}`, `{params:Promise<{consentId}>}`…), así que el adaptador acepta
+ * cualquiera con `never[]` —contravarianza— y hace UNA sola conversión aquí dentro en lugar de una por llamada.
+ */
+type RutaPost={POST:(...a:never[])=>Promise<Response>};
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
 const ok=(c:boolean,l:string)=>{if(!c)throw new Error("FAIL:"+l);result.checks.push(l);};
-const POST=async(r:{POST:(q:Request,c?:never)=>Promise<Response>},body:unknown,t:string,extra:Record<string,string>={},ctx?:unknown)=>{
- const res=await (r.POST as (q:Request,c?:unknown)=>Promise<Response>)(
+const POST=async(r:RutaPost,body:unknown,t:string,extra:Record<string,string>={},ctx?:unknown)=>{
+ const res=await (r.POST as unknown as (q:Request,c?:unknown)=>Promise<Response>)(
   new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),...extra}),body:JSON.stringify(body)}),ctx);
  return{status:res.status,body:await res.json() as Record<string,unknown>};
 };
@@ -70,7 +77,7 @@ try{
 
  // La huella presentada llega a la PANTALLA por el expediente vivo: sin esto el formulario de otorgamiento no tendría
  // qué firmar, y es justo el dato que no existía (el botón mandaba `signerName` a secas).
- const chart=await (chartR.GET as (q:Request,c:unknown)=>Promise<Response>)(new Request("http://l/",{headers:H(phys)}),{params:Promise.resolve({patientId:p})});
+ const chart=await (chartR.GET as unknown as (q:Request,c:unknown)=>Promise<Response>)(new Request("http://l/",{headers:H(phys)}),{params:Promise.resolve({patientId:p})});
  const cb=await chart.json() as{consents:Array<{id:string;documentRef?:string;documentHash?:string;state:string}>};
  const fila=cb.consents.find(x=>x.id===csId);
  ok(fila!==undefined,"EL_CONSENTIMIENTO_ESTA_EN_EL_EXPEDIENTE");
@@ -123,7 +130,7 @@ try{
  ok(amended.status===201,`EL_SERVIDOR_ACEPTA_LA_ENMIENDA_${amended.status}:${JSON.stringify(amended.body).slice(0,180)}`);
 
  // Y la corrección se ve en el expediente: el valor cambió y su clasificación se recalculó (142 lpm es taquicardia; 88 no).
- const chart2=await (chartR.GET as (q:Request,c:unknown)=>Promise<Response>)(new Request("http://l/",{headers:H(phys)}),{params:Promise.resolve({patientId:p})});
+ const chart2=await (chartR.GET as unknown as (q:Request,c:unknown)=>Promise<Response>)(new Request("http://l/",{headers:H(phys)}),{params:Promise.resolve({patientId:p})});
  const vb=await chart2.json() as{vitals:Array<{id:string;value:string;unit:string;state:string;vstatus:string}>};
  const fv=vb.vitals.find(x=>x.id===vId);
  ok(fv?.value==="88",`EL_EXPEDIENTE_MUESTRA_EL_VALOR_CORREGIDO:${fv?.value}`);
@@ -132,8 +139,9 @@ try{
 
  // El valor ORIGINAL no se borra: sigue en el flujo de eventos, que es lo que hace de esto una enmienda y no un borrado.
  const{readAggregateEvents}=await import("../../apps/web/lib/clinical-runtime");
- const evs=await readAggregateEvents({tenantId:TA,actorId:crypto.randomUUID(),actorType:"PHYSICIAN",
-  purpose:"TREATMENT",requestId:crypto.randomUUID(),sessionId:crypto.randomUUID()},vId);
+ const rctx:HttpTenantContext={tenantId:TA,actorId:crypto.randomUUID(),actorType:"HUMAN",
+  purpose:"TREATMENT",requestId:crypto.randomUUID(),sessionId:crypto.randomUUID()};
+ const evs=await readAggregateEvents(rctx,vId);
  ok(evs.some(e=>String(e.payload["kind"])==="RECORDED"&&String(e.payload["value"])==="142"),"EL_VALOR_ORIGINAL_SIGUE_EN_EL_EXPEDIENTE");
  ok(evs.some(e=>String(e.payload["kind"])==="AMENDED"&&String(e.payload["value"])==="88"&&String(e.payload["reason"]).includes("transcripción")),"LA_ENMIENDA_GUARDA_SU_MOTIVO");
 }catch(e){result.status="FAIL";result.error=String(e);}

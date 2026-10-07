@@ -35,7 +35,7 @@ export async function GET(req:Request){
   const{claims,ctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"obligation:read",purpose:"TREATMENT"});
   const now=new Date();
-  const rows=await regulatoryObligations(ctx);
+  const{rows,truncated}=await regulatoryObligations(ctx);
   const items=rows.map(r=>{const estado=computeStatus(r.dueDate,now);const days=r.dueDate?Math.floor((new Date(r.dueDate).getTime()-now.getTime())/86400000):null;
    // Estado del ciclo + versión (If-Match) + evidencia: la UI puede CUMPLIR/RENOVAR (acción→evento), no solo leer.
    return{obligationId:r.obligationId,name:r.name,category:r.category,periodicity:r.periodicity,dueDate:r.dueDate,estado,daysUntil:days,lifecycleState:r.lifecycleState,version:r.version,evidenceRef:r.evidenceRef,compliedAt:r.compliedAt};});
@@ -48,7 +48,10 @@ export async function GET(req:Request){
   for(const it of items){const c=byCat[it.category]??{ok:0,total:0};c.total++;if(it.estado!=="Vencida")c.ok++;byCat[it.category]=c;}
   const compliance:Record<string,number>={};
   for(const[c,v]of Object.entries(byCat))compliance[c]=v.total?Math.round(v.ok/v.total*100):0;
+  // R04-008: si el tope de lectura muerde, el porcentaje de cumplimiento se habría calculado sobre un conjunto PARCIAL y
+  // se presentaría como el del consultorio. Se DICE, en vez de publicar un número falso con apariencia de medición.
   return NextResponse.json({
-   proximaThreshold:{days:PROXIMA_DIAS,basis:PROXIMA_BASIS},items,total,alDia,proximas,vencidas,compliance},{status:200});
+   proximaThreshold:{days:PROXIMA_DIAS,basis:PROXIMA_BASIS},items,total,alDia,proximas,vencidas,compliance,truncated,
+   ...(truncated?{truncatedNote:"Este consultorio supera el techo de lectura: los KPI y el cumplimiento por categoría se calcularon sobre una lista PARCIAL y no representan el total."}:{})},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

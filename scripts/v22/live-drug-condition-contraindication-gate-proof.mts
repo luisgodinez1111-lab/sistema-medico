@@ -1,10 +1,10 @@
 // EPIC AY — Evidencia física: no prescribir un fármaco contraindicado por una condición ACTIVA del
 // paciente (lista de problemas CIE-10). Cross-vertical problema↔prescripción. vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const meds=await import("../../apps/web/app/api/v1/medications/route");
 const rx=await import("../../apps/web/app/api/v1/medications/[medicationId]/prescription/route");
@@ -26,7 +26,7 @@ try{
  // 1) ERC activa (N18.3) -> prescribir ibuprofeno (AINE) = MAJOR -> BLOQUEADO 403
  const p1=crypto.randomUUID();await ensurePatientIn(TA,p1); /* L-07 */await addProblem(phys,p1,"N18.3");
  const ib=await propose(phys,p1,"ibuprofeno-400");
- let r=await rx.POST(new Request("http://l/",B(phys)),MP(ib));ok(r.status===403&&(await r.json()).error.code==="SAFETY_BLOCKED","NSAID_CKD_BLOCKED_403");
+ let r:Response=await rx.POST(new Request("http://l/",B(phys)),MP(ib));ok(r.status===403&&(await r.json()).error.code==="SAFETY_BLOCKED","NSAID_CKD_BLOCKED_403");
  // 2) insuficiencia cardíaca (I50.9) -> naproxeno (AINE) = MAJOR -> BLOQUEADO
  const p2=crypto.randomUUID();await ensurePatientIn(TA,p2); /* L-07 */await addProblem(phys,p2,"I50.9");
  const np=await propose(phys,p2,"naproxeno-500",{dose:"500mg",route:"VO",frequency:"c/12h"});

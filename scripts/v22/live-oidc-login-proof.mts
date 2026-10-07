@@ -46,7 +46,7 @@ const result:{status:string;checks:string[];error?:string}={status:"PASS",checks
 function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
  // 1) Token OIDC RS256 válido (verificado contra el JWKS remoto) -> 201 sesión.
- let r=await sessions.POST(loginReq(await mkToken()));
+ let r:Response=await sessions.POST(loginReq(await mkToken()));
  const b=await r.json();
  ok(r.status===201&&typeof b.token==="string","OIDC_LOGIN_201");
 

@@ -37,3 +37,13 @@ process.env.DATABASE_URL=test;
 // suficiente —y es mejor: no existe fuera de la corrida, no se puede filtrar y no puede coincidir por accidente con el de
 // ningún entorno real.
 if(!process.env["SESSION_SIGNING_SECRET"])process.env["SESSION_SIGNING_SECRET"]=crypto.randomBytes(32).toString("hex");
+// Auditoría R04-008 (lote 31): el secreto se EXPORTA tipado como `string`.
+//
+// Las 111 pruebas hacían `const SECRET=process.env.SESSION_SIGNING_SECRET;`, que para TypeScript es `string|undefined`, y
+// lo pasaban a `signSession`, que exige `string`. Nunca falló en ejecución —la línea de arriba lo garantiza— pero el
+// repositorio arrastraba 143 errores de tipo que impedían typechequear `scripts/`, y por eso las pruebas en vivo
+// quedaban FUERA de `tsc`: un cambio de firma en un lector del runtime las rompía en silencio hasta correr el humo
+// completo. Exportarlo desde aquí da el tipo correcto en un solo sitio y permite cerrar esa puerta.
+const firmaSecreto=process.env["SESSION_SIGNING_SECRET"];
+if(!firmaSecreto)throw new Error("SESSION_SIGNING_SECRET no quedó configurado: la línea anterior debía garantizarlo");
+export const SIGNING_SECRET:string=firmaSecreto;

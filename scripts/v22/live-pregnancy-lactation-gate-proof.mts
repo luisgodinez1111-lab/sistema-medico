@@ -2,10 +2,10 @@
 // bloquean la prescripción, y la DURACIÓN es una barrera propia. Antes, las reglas del embarazo existían en el catálogo
 // y la barrera nunca recibía el factor: eran código inalcanzable. vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatientIn}=await import("./_patient.mts");
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: PRESCRIBE exige cédula
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const prob=await import("../../apps/web/app/api/v1/problems/route");
 const meds=await import("../../apps/web/app/api/v1/medications/route");

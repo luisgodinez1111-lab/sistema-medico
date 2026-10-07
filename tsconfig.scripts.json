@@ -1,0 +1,16 @@
+{
+  "//": "Auditoría R04-008 (lote 31, 06-oct-2026) — LOS 121 PROOFS EN VIVO NO SE TYPECHEQUEABAN.",
+  "//2": "El `include` del tsconfig raíz cubre packages, tests y apps, pero NO `scripts/`. Las pruebas en vivo —la",
+  "//3": "evidencia principal de este repo— quedaban fuera de `tsc`, así que un cambio de firma en un lector del runtime",
+  "//4": "las rompía EN SILENCIO hasta que alguien corriera el humo completo, que tarda minutos. Pasó exactamente eso al",
+  "//5": "cambiar `readTenantOpenAggregates` para acotar su lectura: typecheck quedó verde y dos proofs se cayeron.",
+  "//6": "Se mantiene `moduleResolution: Bundler` del raíz, que es como los resuelve `tsx` en ejecución: medirlos con",
+  "//7": "`NodeNext` daría 820 errores de extensión que NO existen cuando el script corre, o sea mediría otra cosa.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["scripts/**/*.mts", "scripts/**/*.ts"]
+}

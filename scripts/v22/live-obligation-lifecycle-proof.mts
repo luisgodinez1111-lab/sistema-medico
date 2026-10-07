@@ -1,8 +1,8 @@
 // EPIC O — Evidencia física del ciclo de vida de la obligación contra Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const obs=await import("../../apps/web/app/api/v1/obligations/route");
 const prog=await import("../../apps/web/app/api/v1/obligations/[obligationId]/progress/route");
@@ -15,7 +15,7 @@ const OP=(id:string)=>({params:Promise.resolve({obligationId:id})});const ISO="2
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.push(l);}
 try{
  const phys=tok(TA);const ob=crypto.randomUUID(),pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
- let r=await obs.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({obligationId:ob,patientId:pat,ownerId:crypto.randomUUID(),dueAt:"2026-08-15T00:00:00.000Z",kind:"CRITICAL_RESULT_FOLLOWUP",occurredAt:ISO})}));
+ let r:Response=await obs.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({obligationId:ob,patientId:pat,ownerId:crypto.randomUUID(),dueAt:"2026-08-15T00:00:00.000Z",kind:"CRITICAL_RESULT_FOLLOWUP",occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).state==="OPEN","CREATE_OPEN_201");
  r=await prog.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),OP(ob));
  ok(r.status===201&&(await r.json()).state==="IN_PROGRESS","PROGRESS_201_v2");

@@ -1,5 +1,6 @@
 import{describe,it,expect}from"vitest";
-import{computeCareGaps,computePanelWorklist,computePreventiveGaps}from"../../packages/care-gaps/src";
+import fs from"node:fs";
+import{computeCareGaps,computePanelWorklist,computePreventiveGaps,WORKLIST_AGGREGATE_TYPES}from"../../packages/care-gaps/src";
 const A=(aggregateType:string,latestKind:string,aggregateId="x")=>({aggregateType,aggregateId,latestKind});
 const PR=(patientId:string,aggregateType:string,latestKind:string,aggregateId=patientId+aggregateType)=>({patientId,aggregateType,aggregateId,latestKind});
 describe("care gaps engine (EPIC AA)",()=>{
@@ -113,5 +114,60 @@ describe("brechas de cuidado preventivo (C-20)",()=>{
   expect(due.find(x=>x.domain==="historia")).toMatchObject({code:"HISTORY_REVERIFY_DUE",priority:"LOW"});
   // sin el dato de antecedentes no se inventa pendiente (retrocompatible)
   expect(computePreventiveGaps(base).some(x=>x.domain==="historia")).toBe(false);
+ });
+
+ // Auditoría 2026-09-19, anexo R04 (R04-008) — «paginar la LECTURA, no solo la respuesta».
+ //
+ // El worklist poblacional leía TODOS los agregados del consultorio con `patientId` —la historia clínica entera, sin
+ // cota, con dos subconsultas correlacionadas POR FILA— y después descartaba en memoria los tipos que ninguna regla
+ // mira. Y los tipos de MÁS volumen en un expediente real (medicación, problemas, alergias, encuentros, documentos,
+ // órdenes) no tienen regla: se leían para tirarlos.
+ it("la lista de tipos que acota la lectura se DERIVA de las reglas, no se escribe a mano",()=>{
+  // Si fuera una lista paralela, la primera regla nueva no aparecería en el panel y nadie lo notaría: un pendiente
+  // clínico invisible. Se comprueba que cada tipo de la lista tiene regla y que cada regla está en la lista.
+  const conRegla=["DiagnosticResult","ClinicalObligation","Consent","Immunization","CarePlan","Referral","Appointment",
+   "Claim","Specimen","Incident","Triage","Transfusion","Dialysis","VitalSign"];
+  expect([...WORKLIST_AGGREGATE_TYPES].sort()).toEqual([...conRegla].sort());
+  // Y la prueba de fuego: un tipo de la lista produce pendiente para ALGÚN estado (si no, no debería estar).
+  for(const t of WORKLIST_AGGREGATE_TYPES){
+   // `exactOptionalPropertyTypes`: `status` ausente y `status:undefined` no son lo mismo, así que se omite la clave.
+   const critico=t==="DiagnosticResult"||t==="VitalSign";
+   const algunEstado=["RECEIVED","CREATED","PRESENTED","DUE","HELD","REQUESTED","NO_SHOW","REJECTED","REPORTED","ARRIVED","REACTION","INTERRUPTED","RECORDED"]
+    .some(k=>computeCareGaps([{aggregateType:t,aggregateId:"a",latestKind:k,...(critico?{status:"CRITICAL"}:{})}]).length>0);
+   expect(algunEstado,`${t} está en la lista pero ninguna regla le genera pendiente`).toBe(true);
+  }
+  // Los tipos de MÁS volumen quedan FUERA a propósito: es lo que hace que la lectura deje de crecer con el expediente.
+  for(const t of ["Medication","ClinicalProblem","Allergy","Encounter","Document","Order","Patient"])
+   expect(WORKLIST_AGGREGATE_TYPES,`${t} no tiene regla: leerlo era traer la historia para tirarla`).not.toContain(t);
+ });
+ it("el lector del worklist acota en SQL con esa lista y declara su techo",()=>{
+  const src=fs.readFileSync("apps/web/lib/runtime/records.ts","utf8");
+  // Sin el filtro en SQL, el acotado se perdería y volvería la lectura sin cota.
+  expect(src,"el filtro por tipo tiene que estar EN la consulta").toContain("r.aggregate_type = any(${WORKLIST_AGGREGATE_TYPES");
+  expect(src,"el techo de lectura tiene que estar en la consulta").toMatch(/limit \$\{max\+1\}/);
+  // Y el truncamiento se DICE: un panel que oculta pendientes sin avisar es peor que uno lento.
+  expect(src).toContain("truncated");
+  const ruta=fs.readFileSync("apps/web/app/api/v1/worklist/route.ts","utf8");
+  expect(ruta,"la respuesta debe declarar si la lista está incompleta").toContain("truncated");
+ });
+ it("las obligaciones regulatorias dicen cuándo su tope muerde, porque publican un porcentaje",()=>{
+  const src=fs.readFileSync("apps/web/lib/runtime/office.ts","utf8");
+  expect(src,"se lee una fila de más para saber si el tope mordió").toMatch(/REGULATORY_OBLIGATIONS_MAX\)\)\+1/);
+  const ruta=fs.readFileSync("apps/web/app/api/v1/regulatory-obligations/route.ts","utf8");
+  // El % de cumplimiento sobre una lista parcial presentado como el del consultorio sería un número falso.
+  expect(ruta).toContain("truncated");
+  expect(ruta).toMatch(/lista PARCIAL/);
+ });
+ it("las pruebas en vivo están DENTRO del typecheck: su proyecto existe y CI lo corre",()=>{
+  // El `include` del tsconfig raíz cubre packages, tests y apps pero NO `scripts/`, así que las 121 pruebas en vivo —la
+  // evidencia principal de este repo— quedaban fuera de `tsc`. Un cambio de firma en un lector del runtime las rompía
+  // EN SILENCIO hasta correr el humo completo, que tarda minutos. Pasó exactamente eso al acotar la lectura del
+  // worklist: typecheck verde y dos proofs caídos. Sin este guardarraíl, la puerta se podría retirar sin que nadie lo note.
+  const cfg=JSON.parse(fs.readFileSync("tsconfig.scripts.json","utf8").split("\n").filter(l=>!l.trim().startsWith("//")).join("\n")) as {include?:string[]};
+  expect(cfg.include,"el proyecto debe cubrir los .mts de scripts/").toContain("scripts/**/*.mts");
+  const pkg=JSON.parse(fs.readFileSync("package.json","utf8")) as {scripts:Record<string,string>};
+  expect(pkg.scripts["typecheck:scripts"],"la puerta tiene que existir como script").toContain("tsconfig.scripts.json");
+  const ci=fs.readFileSync(".github/workflows/ci.yml","utf8");
+  expect(ci,"CI tiene que correr la puerta, o no es una puerta").toContain("pnpm typecheck:scripts");
  });
 });

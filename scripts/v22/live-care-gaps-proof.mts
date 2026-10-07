@@ -1,8 +1,8 @@
 // EPIC AA — Evidencia física del worklist de care gaps (reglas sobre el timeline) contra Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const im=await import("../../apps/web/app/api/v1/immunizations/route");
 const ref=await import("../../apps/web/app/api/v1/referrals/route");
@@ -27,7 +27,7 @@ try{
  await co.POST(P(t,{consentId:csId,patientId:pat,scopeType:"PROCEDURE",documentRef:"CI-1"}));
  await pre.POST(new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),({params:Promise.resolve({consentId:csId})} as never));
  // worklist
- let r=await gaps.GET(new Request("http://l/",{headers:H(t)}),TP(pat));
+ let r:Response=await gaps.GET(new Request("http://l/",{headers:H(t)}),TP(pat));
  ok(r.status===200,"CARE_GAPS_200");
  const list=((await r.json()).gaps||[]) as {code:string;priority:string;aggregateType:string}[];
  ok(list.length===3,"THREE_GAPS");

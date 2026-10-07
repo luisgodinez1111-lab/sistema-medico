@@ -1,8 +1,8 @@
 // EPIC N — Evidencia física del timeline del paciente (lectura/proyección RLS-scoped) contra Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const open=await import("../../apps/web/app/api/v1/encounters/route");
 const ords=await import("../../apps/web/app/api/v1/orders/route");
@@ -21,7 +21,7 @@ try{
  await ords.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({orderId:crypto.randomUUID(),patientId:pat,orderType:"LAB",detail:"Hemograma",occurredAt:ISO})}));
  await meds.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:crypto.randomUUID(),patientId:pat,drugCode:"amox",dose:"500mg",route:"VO",frequency:"c/8h",occurredAt:ISO})}));
  // Timeline
- let r=await timeline.GET(new Request("http://l/",{headers:H(phys)}),TP(pat));
+ let r:Response=await timeline.GET(new Request("http://l/",{headers:H(phys)}),TP(pat));
  const b=await r.json();
  ok(r.status===200,"TIMELINE_200");
  const types=(b.items||[]).map((x:{aggregateType:string})=>x.aggregateType).sort();

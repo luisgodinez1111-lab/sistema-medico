@@ -1,9 +1,9 @@
 // EPIC Y — Evidencia física del ciclo de reclamación (draft/code/submit/reject/resubmit/pay/void) contra Neon.
 // Seguimiento de ESTADO; no mueve dinero.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const cl=await import("../../apps/web/app/api/v1/claims/route");
 const cod=await import("../../apps/web/app/api/v1/claims/[claimId]/coding/route");

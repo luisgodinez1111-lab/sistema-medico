@@ -2,9 +2,9 @@
 // Singleton por paciente: capturar una vez (RECORDED v1), re-capturar choca (409), enmendar con If-Match (AMENDED),
 // enmendar con versión vieja choca (409), enmendar sin existir es 404, aislamiento por tenant y gate de scope.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const ant=await import("../../apps/web/app/api/v1/patients/[patientId]/antecedentes/route");
 const amd=await import("../../apps/web/app/api/v1/patients/[patientId]/antecedentes/amendment/route");
@@ -21,7 +21,7 @@ try{
  const phys=tok(TA);
  const pid=await freshPatient(TA);
  // capturar (RECORDED v1)
- let r=await ant.POST(recordReq(phys,{content:CONTENT,occurredAt:ISO}),PP(pid));ok(r.status===201&&(await r.json()).state==="RECORDED","RECORD_201");
+ let r:Response=await ant.POST(recordReq(phys,{content:CONTENT,occurredAt:ISO}),PP(pid));ok(r.status===201&&(await r.json()).state==="RECORDED","RECORD_201");
  // leer: recorded:true, contenido y versión vigentes
  r=await ant.GET(new Request("http://l/",{headers:H(phys)}),PP(pid));const g=await r.json();
  ok(r.status===200&&g.recorded===true&&g.version===1&&g.content.noPatologicos.tabaquismo===true,"GET_RECORDED");

@@ -2,10 +2,10 @@
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-encounter-lifecycle-proof.mts
 import crypto from"node:crypto";
 import{directEndpoint}from"../../packages/pg-endpoint/src";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 
 const{signSession}=await import("../../packages/session/src");
 const open=await import("../../apps/web/app/api/v1/encounters/route");
@@ -36,7 +36,7 @@ try{
  const enc=crypto.randomUUID(),pat=crypto.randomUUID();await ensurePatientIn(TENANT_A,pat); /* L-07 */
 
  // 1) Abrir
- let r=await open.POST(new Request("http://l/",{method:"POST",headers:h(physA,{"idempotency-key":crypto.randomUUID()}),body:JSON.stringify({encounterId:enc,patientId:pat,occurredAt:ISO})}));
+ let r:Response=await open.POST(new Request("http://l/",{method:"POST",headers:h(physA,{"idempotency-key":crypto.randomUUID()}),body:JSON.stringify({encounterId:enc,patientId:pat,occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).version===1,"OPEN_201_v1");
 
  // 2) Firmar sin assessment -> 403 (nada que firmar)

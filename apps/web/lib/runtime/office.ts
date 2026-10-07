@@ -31,9 +31,14 @@ export type RegulatoryObligationRow=Readonly<{obligationId:string;name:string;ca
  * se paginaron en R06-20— y un consultorio con años de trámites lo notaría. El tope es alto a propósito: estas obligaciones
  * son decenas, no miles, y partir la lista en páginas complicaría el cálculo de cumplimiento por categoría sin necesidad.
  * Lo que importa es que exista una cota declarada en vez de ninguna.
+ *
+ * R04-008 (lote 31, 06-oct-2026): el tope existía y TRUNCABA EN SILENCIO. Con más de 500 obligaciones, el porcentaje de
+ * cumplimiento por categoría que esta vista publica se calcularía sobre un conjunto PARCIAL y se presentaría como el del
+ * consultorio: un número falso con apariencia de medición. Ahora se lee una fila de más y, si el tope muerde, se DICE
+ * (`truncated`). El mismo criterio que el worklist: una cota es correcta, ocultar que se alcanzó no lo es.
  */
 export const REGULATORY_OBLIGATIONS_MAX=500;
-export async function regulatoryObligations(ctx:HttpTenantContext,limit=REGULATORY_OBLIGATIONS_MAX):Promise<RegulatoryObligationRow[]>{
+export async function regulatoryObligations(ctx:HttpTenantContext,limit=REGULATORY_OBLIGATIONS_MAX):Promise<{rows:RegulatoryObligationRow[];truncated:boolean}>{
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    with ultimo as (
@@ -59,8 +64,10 @@ export async function regulatoryObligations(ctx:HttpTenantContext,limit=REGULATO
    left join estado e on e.aggregate_id=a.aggregate_id and e.rn=1
    where a.tenant_id=${ctx.tenantId} and a.aggregate_type='RegulatoryObligation' and a.payload->>'kind'='CREATED'
    order by coalesce(r.due_date, a.payload->>'dueDate') asc nulls last
-   limit ${Math.max(1,Math.min(limit,REGULATORY_OBLIGATIONS_MAX))}`;
-  return rows.map(r=>{const o=r as Record<string,unknown>;
+   limit ${Math.max(1,Math.min(limit,REGULATORY_OBLIGATIONS_MAX))+1}`;
+  const tope=Math.max(1,Math.min(limit,REGULATORY_OBLIGATIONS_MAX));
+  const truncated=rows.length>tope;
+  const filas=rows.slice(0,tope).map(r=>{const o=r as Record<string,unknown>;
    const last=String(o.last_kind??"CREATED");
    // El estado del ciclo se deriva del ÚLTIMO evento: renovar devuelve la obligación a abierta, y por eso `RENEWED` es OPEN.
    const lifecycleState=last==="COMPLIED"?"COMPLIED":last==="WAIVED"?"WAIVED":"OPEN";
@@ -72,6 +79,7 @@ export async function regulatoryObligations(ctx:HttpTenantContext,limit=REGULATO
    evidenceRef:o.evidence_ref?String(o.evidence_ref):null,
    compliedAt:o.complied_at?new Date(String(o.complied_at)).toISOString():null,
    version:Number(o.version??1)};});
+  return{rows:filas,truncated};
  });
 }
 // EPIC S-CONFIG — Ajustes del consultorio (singleton por tenant, no PHI). Mismo kernel event-sourced:

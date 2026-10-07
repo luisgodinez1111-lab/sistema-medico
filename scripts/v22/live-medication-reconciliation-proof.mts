@@ -14,9 +14,10 @@
 // Esta prueba mide las tres cosas que hacen de esto un control y no un adorno: que la conciliación se guarda y se LEE,
 // que una discrepancia sin explicación se RECHAZA, y que el fold no inventa un resultado cuando el vocabulario no cuadra.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import type{HttpTenantContext}from"../../packages/http-principal/src";
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{foldMedication}=await import("../../packages/medication-fold/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
@@ -34,11 +35,17 @@ const tok=(scopes=["patient:write","patient:read","medication:propose","medicati
 const H=(t:string,x:Record<string,string>={})=>({"content-type":"application/json",authorization:"Bearer "+t,...x});
 const idem=()=>crypto.randomUUID();
 let ts=Date.parse("2026-10-02T15:00:00.000Z");const at=()=>new Date(ts+=60000).toISOString();
+/**
+ * Un módulo de ruta de Next: su `POST` recibe la petición y, cuando la ruta tiene parámetros, su contexto. Los firman con
+ * tipos distintos (`{params:Promise<{medicationId}>}`, `{params:Promise<{consentId}>}`…), así que el adaptador acepta
+ * cualquiera con `never[]` —contravarianza— y hace UNA sola conversión aquí dentro en lugar de una por llamada.
+ */
+type RutaPost={POST:(...a:never[])=>Promise<Response>};
 const result:{status:string;checks:string[];error?:string}={status:"PASS",checks:[]};
 const ok=(c:boolean,l:string)=>{if(!c)throw new Error("FAIL:"+l);result.checks.push(l);};
 const MP=(id:string)=>({params:Promise.resolve({medicationId:id})});
-const post=async(r:{POST:(q:Request,c?:never)=>Promise<Response>},body:unknown,t:string,extra:Record<string,string>={},ctx?:unknown)=>{
- const res=await (r.POST as (q:Request,c?:unknown)=>Promise<Response>)(
+const post=async(r:RutaPost,body:unknown,t:string,extra:Record<string,string>={},ctx?:unknown)=>{
+ const res=await (r.POST as unknown as (q:Request,c?:unknown)=>Promise<Response>)(
   new Request("http://l/",{method:"POST",headers:H(t,{"idempotency-key":idem(),...extra}),body:JSON.stringify(body)}),ctx);
  return{status:res.status,body:await res.json() as Record<string,unknown>};
 };
@@ -68,7 +75,7 @@ try{
 
  // ───────── SE LEE: antes el fold la descartaba con un `continue` sin leer un campo ─────────
  const{readAggregateEvents}=await import("../../apps/web/lib/clinical-runtime");
- const rctx={tenantId:TA,actorId:crypto.randomUUID(),actorType:"PHYSICIAN" as const,purpose:"TREATMENT",
+ const rctx:HttpTenantContext={tenantId:TA,actorId:crypto.randomUUID(),actorType:"HUMAN",purpose:"TREATMENT",
   requestId:crypto.randomUUID(),sessionId:crypto.randomUUID()};
  const f1=foldMedication(await readAggregateEvents(rctx,med));
  ok(f1.reconciliation!==null,"EL_FOLD_LEE_LA_CONCILIACION");
@@ -92,7 +99,7 @@ try{
  ok(f2.state==="ACTIVE","UNA_DISCREPANCIA_NO_SUSPENDE_EL_FARMACO");
 
  // ───────── EN EL EXPEDIENTE, que es donde el médico la ve ─────────
- const chart=await (chartR.GET as (q:Request,c:unknown)=>Promise<Response>)(new Request("http://l/",{headers:H(phys)}),{params:Promise.resolve({patientId:p})});
+ const chart=await (chartR.GET as unknown as (q:Request,c:unknown)=>Promise<Response>)(new Request("http://l/",{headers:H(phys)}),{params:Promise.resolve({patientId:p})});
  const cb=await chart.json() as{medications:Array<{id:string;reconOutcome?:string;reconSource?:string;reconAt?:string}>};
  const fila=cb.medications.find(x=>x.id===med);
  ok(fila?.reconOutcome==="NOT_TAKING",`EL_EXPEDIENTE_MUESTRA_LA_DISCREPANCIA:${String(fila?.reconOutcome)}`);

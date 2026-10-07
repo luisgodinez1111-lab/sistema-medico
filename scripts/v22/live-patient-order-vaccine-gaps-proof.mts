@@ -9,7 +9,7 @@
 //   IMM-01  `vaccineCode` era texto libre y no había ningún cruce con las alergias registradas antes de administrar.
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-patient-order-vaccine-gaps-proof.mts
 import crypto from"node:crypto";
-import"./_live-env.mts";
+import{SIGNING_SECRET}from"./_live-env.mts";
 import{directEndpoint}from"../../packages/pg-endpoint/src";
 const{freshPatient}=await import("./_patient.mts");
 const postgres=(await import("postgres")).default;
@@ -27,7 +27,7 @@ const allergies=await import("../../apps/web/app/api/v1/allergies/route");
 const sql=postgres(directEndpoint(process.env.DATABASE_URL??""),{max:2,prepare:false,onnotice:()=>{}});
 const now=Math.floor(Date.now()/1000);
 const TENANT=crypto.randomUUID(),SUB=crypto.randomUUID();
-const token=signSession({sub:SUB,tenantId:TENANT,roles:["PHYSICIAN"],scopes:["patient:write","patient:read","encounter:write","order:write","order:read","result:write","result:read","immunization:write","immunization:read","allergy:write","allergy:read"],purpose:"TREATMENT",iat:now-5,exp:now+900,sessionId:crypto.randomUUID()},process.env.SESSION_SIGNING_SECRET);
+const token=signSession({sub:SUB,tenantId:TENANT,roles:["PHYSICIAN"],scopes:["patient:write","patient:read","encounter:write","order:write","order:read","result:write","result:read","immunization:write","immunization:read","allergy:write","allergy:read"],purpose:"TREATMENT",iat:now-5,exp:now+900,sessionId:crypto.randomUUID()},SIGNING_SECRET);
 const H=(extra:Record<string,string>={}):Record<string,string>=>({"content-type":"application/json",authorization:"Bearer "+token,"idempotency-key":crypto.randomUUID(),...extra});
 const ctx={tenantId:TENANT,actorId:SUB,actorType:"HUMAN" as const,purpose:"TREATMENT",requestId:crypto.randomUUID()};
 const at=():string=>new Date().toISOString();
@@ -37,7 +37,7 @@ const ok=(c:boolean,l:string):void=>{if(!c)throw new Error("FAIL:"+l);result.che
 try{
  // ---------- PAT-03: registro de defunción ----------
  const paciente=await freshPatient(TENANT);
- let r=await deceased.POST(new Request("http://l/",{method:"POST",headers:H({"if-match":"1"}),
+ let r:Response=await deceased.POST(new Request("http://l/",{method:"POST",headers:H({"if-match":"1"}),
   body:JSON.stringify({deceasedAt:new Date(Date.now()+7*86_400_000).toISOString(),occurredAt:at()})}),{params:Promise.resolve({patientId:paciente})});
  ok(r.status===400,"DEFUNCION_FUTURA_RECHAZADA");
 

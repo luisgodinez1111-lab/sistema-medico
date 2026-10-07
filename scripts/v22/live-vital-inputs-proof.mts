@@ -1,9 +1,9 @@
 // Auditoría 2026-09-19, anexo R03 (R03-09, R03-11) — Evidencia física de la GUARDA de signos vitales:
 // unidad canónica obligatoria, conversión real, tomas anuladas fuera, enmiendas dentro y vigencia exigida. vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatientIn}=await import("./_patient.mts"); // L-07: el paciente debe existir
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const vit=await import("../../apps/web/app/api/v1/vitals/route");
 const vitAm=await import("../../apps/web/app/api/v1/vitals/[vitalId]/amendment/route");

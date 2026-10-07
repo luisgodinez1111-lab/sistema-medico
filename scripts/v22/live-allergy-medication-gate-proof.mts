@@ -1,9 +1,9 @@
 // EPIC R — Evidencia física: ciclo de vida de alergia + GATE alergia->prescripción contra Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const al=await import("../../apps/web/app/api/v1/allergies/route");
 const alInact=await import("../../apps/web/app/api/v1/allergies/[allergyId]/inactivation/route");
@@ -24,7 +24,7 @@ try{
  const phys=tok(TA);await registerPhysicianCredentials(phys);const pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
  // Registrar alergia a amoxicilina
  const alg=crypto.randomUUID();
- let r=await al.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({allergyId:alg,patientId:pat,substance:"amoxicilina",severity:"SEVERE",reaction:"anafilaxia",occurredAt:ISO})}));
+ let r:Response=await al.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({allergyId:alg,patientId:pat,substance:"amoxicilina",severity:"SEVERE",reaction:"anafilaxia",occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).state==="ACTIVE","ALLERGY_ACTIVE_201");
  // Proponer amoxicilina-500 para ese paciente
  const med=crypto.randomUUID();

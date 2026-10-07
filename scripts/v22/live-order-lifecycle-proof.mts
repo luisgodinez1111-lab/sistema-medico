@@ -1,8 +1,8 @@
 // EPIC M — Evidencia física del ciclo de vida de la orden clínica contra Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const ords=await import("../../apps/web/app/api/v1/orders/route");
 const place=await import("../../apps/web/app/api/v1/orders/[orderId]/placement/route");
@@ -16,7 +16,7 @@ const result:{status:string;checks:string[];error?:string}={status:"PASS",checks
 try{
  const phys=tok(TA,["PHYSICIAN"],["order:write"]);
  const o=crypto.randomUUID(),pat=crypto.randomUUID();await ensurePatientIn(TA,pat); /* L-07 */
- let r=await ords.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({orderId:o,patientId:pat,orderType:"LAB",detail:"Hemograma completo",occurredAt:ISO})}));
+ let r:Response=await ords.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem()}),body:JSON.stringify({orderId:o,patientId:pat,orderType:"LAB",detail:"Hemograma completo",occurredAt:ISO})}));
  ok(r.status===201&&(await r.json()).state==="DRAFT","CREATE_DRAFT_201");
  // SM ilegal: cumplir sin colocar
  r=await fulfill.POST(new Request("http://l/",{method:"POST",headers:H(phys,{"idempotency-key":idem(),"if-match":"1"}),body:JSON.stringify({occurredAt:ISO})}),OP(o));

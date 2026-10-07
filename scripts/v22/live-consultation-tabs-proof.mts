@@ -2,9 +2,9 @@
 // medicamentos activos, metas de plan, documentos y obligaciones de un paciente, y verifica GET
 // /patients/:id/consultation-tabs -> cada pestaña con sus datos reales del paciente. RLS-scoped. vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{canonicalUnitOf}=await import("../../packages/lab-reference/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");

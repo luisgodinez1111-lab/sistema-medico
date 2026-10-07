@@ -4,9 +4,9 @@
 //   D2) AYUNO en glucosa: declarar ayuno usa el corte de ayuno (≥126 anormal); sin declararlo usa el de aleatoria (200) y lo
 //       DICE ("sin declarar ayuno"); el ayuno declarado se PERSISTE en el evento del resultado.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatientIn}=await import("./_patient.mts");
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{readAggregateEvents}=await import("../../apps/web/lib/clinical-runtime");
 const{resolveVerified}=await import("../../apps/web/lib/http-command");

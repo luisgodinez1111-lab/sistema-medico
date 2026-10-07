@@ -51,9 +51,22 @@ describe("secretos de firma fuera del código (R11-07)",()=>{
    return /process\.env\.SESSION_SIGNING_SECRET\s*=\s*process\.env\.SESSION_SIGNING_SECRET/.test(src);
   });
   expect(conSecreto,"prueba que vuelve a fijar su propio secreto").toEqual([]);
-  // Y siguen leyéndolo: si nadie lo leyera, el prólogo no serviría de nada.
-  const lectores=archivos("scripts",[".mts"]).filter(f=>fs.readFileSync(f,"utf8").includes("process.env.SESSION_SIGNING_SECRET"));
-  expect(lectores.length,"las pruebas tienen que seguir firmando con el secreto del entorno").toBeGreaterThanOrEqual(90);
+  // Y siguen firmando con el secreto del PRÓLOGO: si nadie lo usara, el prólogo no serviría de nada.
+  //
+  // Lote 31 (06-oct-2026): el idioma cambió y este guardarraíl se actualizó con su razón. Antes cada prueba hacía
+  // `const SECRET=process.env.SESSION_SIGNING_SECRET`, que para TypeScript es `string|undefined` y arrastraba 143
+  // errores de tipo —la causa de que `scripts/` quedara fuera de `tsc` y de que un cambio de firma rompiera las pruebas
+  // en silencio—. Ahora el prólogo lo exporta tipado (`SIGNING_SECRET`) y las pruebas lo importan: UN solo sitio lee el
+  // entorno, que es más estricto que antes, no menos. Lo que se mide es que sigan usándolo, no cómo se escribe.
+  const lectores=archivos("scripts",[".mts"]).filter(f=>{
+   const src=fs.readFileSync(f,"utf8");
+   return src.includes("SIGNING_SECRET")||src.includes("process.env.SESSION_SIGNING_SECRET");
+  });
+  expect(lectores.length,"las pruebas tienen que seguir firmando con el secreto del prólogo").toBeGreaterThanOrEqual(90);
+  // Y el prólogo es el ÚNICO que toca el entorno: si otra prueba vuelve a leerlo, vuelve el `string|undefined`.
+  const leenElEntorno=archivos("scripts",[".mts"]).filter(f=>
+   !f.endsWith("_live-env.mts")&&/process\.env(\.|\[")SESSION_SIGNING_SECRET/.test(fs.readFileSync(f,"utf8")));
+  expect(leenElEntorno,"solo el prólogo lee SESSION_SIGNING_SECRET del entorno").toEqual([]);
  });
  it("ni el prólogo ni los libros de evidencia guardan una cadena de conexión",()=>{
   // El prólogo manipula DATABASE_URL: es el sitio más fácil para que se cuele una credencial en un commit.

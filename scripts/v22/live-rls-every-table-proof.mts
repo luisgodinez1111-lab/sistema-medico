@@ -159,9 +159,9 @@ try{
    noProbadas.push(t);motivoNoInsertable.set(t,String((e as{code?:string}).code??"?"));continue;
   }
   // El tenant B NO ve la fila del tenant A…
-  const vistasB=await comoTenant(B,async tx=>{const r=await tx.unsafe(`select count(*)::int n from ${t} where tenant_id=$1`,[A] as never[]);return Number((r[0] as{n:number}).n);});
+  const vistasB=await comoTenant(B,async tx=>{const r=await tx.unsafe(`select count(*)::int n from ${t} where tenant_id=$1`,[A] as never[]);const f0=r[0];if(f0===undefined)throw new Error("la consulta de conteo no devolvió fila");return Number((f0 as unknown as{n:number}).n);});
   // …y el tenant A SÍ la ve (sin esto, una política que niega TODO pasaría la prueba por la razón equivocada).
-  const vistasA=await comoTenant(A,async tx=>{const r=await tx.unsafe(`select count(*)::int n from ${t} where tenant_id=$1`,[A] as never[]);return Number((r[0] as{n:number}).n);});
+  const vistasA=await comoTenant(A,async tx=>{const r=await tx.unsafe(`select count(*)::int n from ${t} where tenant_id=$1`,[A] as never[]);const f0=r[0];if(f0===undefined)throw new Error("la consulta de conteo no devolvió fila");return Number((f0 as unknown as{n:number}).n);});
   if(vistasB>0)fugas.push(`${t}:${vistasB}`);
   else if(vistasA===0)ciegas.push(t);
   else probadas.push(t);

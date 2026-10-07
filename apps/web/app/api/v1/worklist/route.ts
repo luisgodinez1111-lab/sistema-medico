@@ -11,7 +11,9 @@ export async function GET(req:Request){
  try{
   const{claims,ctx}=resolveVerified(req);
   authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
-  const rows=await readTenantOpenAggregates(ctx);
+  // Auditoría R04-008 — la LECTURA está acotada, no solo la respuesta: la consulta se limita a los tipos de agregado que
+  // alguna regla mira (derivado de las reglas, no escrito a mano) y lleva un techo declarado.
+  const{rows,truncated}=await readTenantOpenAggregates(ctx);
   const all=computePanelWorklist(rows);
   const patientCount=new Set(all.map(g=>g.patientId)).size;
   // Auditoría S-08: la lista completa se calcula en memoria (es determinista) pero la RESPUESTA se pagina:
@@ -19,6 +21,10 @@ export async function GET(req:Request){
   const u=new URL(req.url);const limit=clampLimit(u.searchParams.get("limit"));
   const c=decodeCursor(u.searchParams.get("cursor"),1);const offset=c&&Number.isInteger(c[0])&&Number(c[0])>=0?Number(c[0]):0;
   const gaps=all.slice(offset,offset+limit);
-  return NextResponse.json({gaps,gapCount:all.length,patientCount,nextCursor:offset+limit<all.length?encodeCursor([offset+limit]):null},{status:200});
+  // `truncated` se DICE: si el consultorio supera el techo de lectura, el panel no está completo y el médico debe
+  // saberlo. Un panel que oculta pendientes sin avisar es peor que uno lento — y `gapCount` dejaría de ser un total.
+  return NextResponse.json({gaps,gapCount:all.length,patientCount,truncated,
+   ...(truncated?{truncatedNote:"El consultorio supera el techo de lectura del panel: esta lista NO está completa. Filtra por paciente o pide la ampliación del techo."}:{}),
+   nextCursor:offset+limit<all.length?encodeCursor([offset+limit]):null},{status:200});
  }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
 }

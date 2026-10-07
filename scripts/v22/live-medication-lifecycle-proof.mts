@@ -1,10 +1,10 @@
 // EPIC H — Evidencia física del ciclo de vida de medicación (Physician Control) contra Neon.
 // Ejecuta: pnpm exec tsx ./scripts/v22/live-medication-lifecycle-proof.mts
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 
 const{signSession}=await import("../../packages/session/src");
 const meds=await import("../../apps/web/app/api/v1/medications/route");
@@ -32,7 +32,7 @@ try{
  const drug={drugCode:"amoxicilina-500",dose:"500mg",route:"PO",frequency:"c/8h"};
 
  // 0) EPIC AV: orden con vía/dosis/frecuencia inválidas -> 400 VALIDATION_ERROR.
- let r=await meds.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:crypto.randomUUID(),patientId:pat,drugCode:"x",dose:"mucho",route:"boca",frequency:"a veces",occurredAt:ISO})}));
+ let r:Response=await meds.POST(new Request("http://l/",{method:"POST",headers:H(nurse,{"idempotency-key":idem()}),body:JSON.stringify({medicationId:crypto.randomUUID(),patientId:pat,drugCode:"x",dose:"mucho",route:"boca",frequency:"a veces",occurredAt:ISO})}));
  ok(r.status===400&&(await r.json()).error.code==="VALIDATION_ERROR","INVALID_MED_ORDER_400");
 
  // 1) La ENFERMERA propone (no requiere ser médico) -> 201 PROPOSED v1.

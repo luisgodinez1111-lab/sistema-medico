@@ -2,8 +2,8 @@
 // Verifica: kill-switch OFF por defecto, autoridad humana (PRESCRIBE bloqueado), presupuesto (críticos abiertos),
 // y stub DETERMINISTA (SUMMARIZE devuelve el resumen, provenance AI_SUGGESTED, no promovido, no generativo).
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const vit=await import("../../apps/web/app/api/v1/vitals/route");

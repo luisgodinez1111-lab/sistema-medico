@@ -30,6 +30,19 @@ const RULES:Record<string,Rule>={
  // Un signo vital CRÍTICO vigente (no corregido/anulado) es un pendiente accionable de alta prioridad.
  VitalSign:it=>((it.latestKind==="RECORDED"||it.latestKind==="AMENDED")&&it.status==="CRITICAL")?{code:"VITAL_CRITICAL",label:"Signo vital crítico sin atender",priority:"HIGH"}:null,
 };
+/**
+ * Los tipos de agregado que PUEDEN generar un pendiente. Derivado de `RULES`, no escrito a mano.
+ *
+ * Auditoría 2026-09-19, anexo R04 (R04-008) — «paginar la LECTURA, no solo la respuesta». El worklist poblacional leía
+ * TODOS los agregados del consultorio con un `patientId` —toda la historia clínica, sin cota— y después descartaba en
+ * memoria los que ninguna regla mira. Y los tipos de MÁS volumen en un expediente real (medicación, problemas, alergias,
+ * encuentros, documentos, órdenes) no tienen regla: se leían para tirarlos.
+ *
+ * Esta lista permite acotar la consulta SQL a los candidatos. Se exporta DERIVADA de las reglas a propósito: una lista
+ * paralela escrita a mano se desincronizaría en silencio la primera vez que alguien añadiera una regla, y el pendiente
+ * nuevo nunca aparecería —un fallo invisible, que es la clase de defecto que esta campaña persigue.
+ */
+export const WORKLIST_AGGREGATE_TYPES:readonly string[]=Object.freeze(Object.keys(RULES).sort());
 export function computeCareGaps(items:readonly TimelineLike[]):CareGap[]{
  const gaps:CareGap[]=[];
  for(const it of items){

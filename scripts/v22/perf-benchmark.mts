@@ -4,12 +4,13 @@
 // evalúa contra un presupuesto con el gate real `performanceGate`. Escribe filas de prueba
 // aditivas (tenants aleatorios) en el Neon actual.
 import fs from"node:fs";import path from"node:path";import crypto from"node:crypto";
+import{SIGNING_SECRET}from"./_live-env.mts";
 try{
  const envRaw=fs.readFileSync(path.resolve(".env.local"),"utf8");
  for(const line of envRaw.split("\n")){const m=/^([A-Za-z0-9_]+)=(.*)$/.exec(line.trim());if(m&&m[1]&&!process.env[m[1]])process.env[m[1]]=m[2]!.replace(/^["']|["']$/g,"");}
 }catch{/* env ya cargado */}
 if(!process.env.DATABASE_URL){console.log(JSON.stringify({status:"NOT_RUN",reason:"DATABASE_URL_MISSING"}));process.exit(3);}
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 
 const{signSession}=await import("../../packages/session/src");
 const{POST,GET}=await import("../../apps/web/app/api/v1/encounters/route");

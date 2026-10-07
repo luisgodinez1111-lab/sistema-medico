@@ -4,8 +4,8 @@
 // transición + conteos + DIRECTORIO de destinatarios distintos. Retrocompatible (interconsulta sin destinatario).
 // RLS-scoped. vs Postgres local.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const refR=await import("../../apps/web/app/api/v1/referrals/route");

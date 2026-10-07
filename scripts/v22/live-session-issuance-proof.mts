@@ -24,7 +24,7 @@ function ok(c:boolean,l:string){if(!c)throw new Error("FAIL:"+l);result.checks.p
 try{
  // 1) Sin verificador (DEV_IDENTITY_SECRET ausente) -> 503 deny-closed.
  delete process.env.DEV_IDENTITY_SECRET;
- let r=await sessions.POST(loginReq({assertion:idpAssertion()}));
+ let r:Response=await sessions.POST(loginReq({assertion:idpAssertion()}));
  ok(r.status===503,"NO_VERIFIER_503");
  process.env.DEV_IDENTITY_SECRET=IDP_SECRET;
 

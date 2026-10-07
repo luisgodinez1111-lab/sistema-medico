@@ -2,8 +2,8 @@
 // con fechas límite variadas y verifica GET -> estado COMPUTADO (Al día/Próxima/Vencida/Vigente) + KPIs +
 // cumplimiento por categoría. Aggregate nuevo RegulatoryObligation sobre el kernel event-sourced. vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const roR=await import("../../apps/web/app/api/v1/regulatory-obligations/route");
 const roComply=await import("../../apps/web/app/api/v1/regulatory-obligations/[obligationId]/compliance/route");
@@ -53,7 +53,7 @@ try{
   const anual=await create(phys,"Revisión anual del aviso de privacidad","Administrativa","ANUAL","2026-01-31");
   ok(anual.status===201,"CREATE_ANNUAL_201");
   // Cumplir SIN evidencia se rechaza: «cumplida» sin nada que lo respalde es una opinión.
-  let r=await roComply.POST(new Request("http://l/",B(1,{})),PP(anual.id));
+  let r:Response=await roComply.POST(new Request("http://l/",B(1,{})),PP(anual.id));
   ok(r.status===400,"COMPLY_WITHOUT_EVIDENCE_REJECTED:"+r.status);
   r=await roComply.POST(new Request("http://l/",B(1,{evidenceRef:"ACUSE-2026-0091",notes:"Publicado en recepción y en el portal"})),PP(anual.id));
   ok(r.status===201,"COMPLY_201:"+r.status);

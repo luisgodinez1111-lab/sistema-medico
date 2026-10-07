@@ -27,7 +27,7 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - name: Typecheck estricto (raíz) y de la app que se despliega
-        run: pnpm typecheck && pnpm typecheck:web
+        run: pnpm typecheck && pnpm typecheck:web && pnpm typecheck:scripts
       - name: Suite de tests
         run: pnpm test
       - name: Build de producción (lo que se despliega en Vercel debe compilar en CI, no solo en el deploy)

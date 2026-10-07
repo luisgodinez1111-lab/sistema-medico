@@ -9,8 +9,8 @@
 //   · solo el médico que prescribió emite la receta (otro médico del mismo tenant: 403); un fármaco que no está prescrito
 //     ni activo no se imprime (409).
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{resolveVerified}=await import("../../apps/web/lib/http-command");
 const{readAggregateEvents}=await import("../../apps/web/lib/clinical-runtime");

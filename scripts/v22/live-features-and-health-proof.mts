@@ -5,8 +5,8 @@
 // triviales por igual: `/api/v1/features` decide QUÉ PINTA la interfaz —si devolviera las banderas a un anónimo, filtraría
 // la configuración del consultorio— y la cancelación de una sesión de diálisis es una transición terminal de una vertical.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{ensurePatientIn}=await import("./_patient.mts");
 const feat=await import("../../apps/web/app/api/v1/features/route");
@@ -33,7 +33,7 @@ try{
  ok(!JSON.stringify(rdb).match(/patient|curp|nombre/i),"READY_NO_PHI");
 
  // === /api/v1/features — exige sesión: la configuración del consultorio no se revela a un anónimo ===
- let r=await feat.GET(new Request("http://l/",{headers:H()}));
+ let r:Response=await feat.GET(new Request("http://l/",{headers:H()}));
  ok(r.status===401,"FEATURES_ANONYMOUS_401");
  r=await feat.GET(new Request("http://l/",{headers:H(tok(["patient:read"]))}));
  const fb=await r.json() as Record<string,unknown>;

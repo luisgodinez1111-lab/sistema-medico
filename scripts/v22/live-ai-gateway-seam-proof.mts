@@ -7,8 +7,8 @@
 //   4) sin scope ai:write -> 403.
 // Así, el día que se implemente `callAiProvider` con un modelo real, los gates ya se ejercitan de verdad. vs local PG.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable)
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable)
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const exec=await import("../../apps/web/app/api/v1/ai/execute/route");
 const cards=await import("../../apps/web/app/api/v1/ai/task-cards/route");
@@ -27,7 +27,7 @@ try{
  const phys=tok();
  // 1) kill-switch OFF (variable ausente) -> 503 AI_NOT_ENABLED
  delete process.env.AI_GATEWAY_ENABLED;
- let r=await exec.POST(POST(phys,execBody("AI-TASK-0002")));
+ let r:Response=await exec.POST(POST(phys,execBody("AI-TASK-0002")));
  ok(r.status===503&&(await r.json()).error.code==="AI_NOT_ENABLED","KILLSWITCH_OFF_503");
  // Encender el kill-switch para el resto
  process.env.AI_GATEWAY_ENABLED="true";

@@ -8,9 +8,9 @@
 //     atómica (comando multi-agregado): si un leg falla el chequeo optimista, la transacción entera revierte y no queda
 //     estado parcial —se prueba forzando un conflicto en el segundo leg y comprobando que el primero NO se escribió.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatientIn}=await import("./_patient.mts");
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const{resolveVerified}=await import("../../apps/web/lib/http-command");
 const{readAggregateEvents,latestAnalyteReading,analyteSeries,countOpenCriticalResults,readTenantOpenAggregates}=await import("../../apps/web/lib/clinical-runtime");
@@ -30,7 +30,7 @@ const result:{status:string;checks:string[];error?:string}={status:"PASS",checks
 try{
  const pat=crypto.randomUUID();await ensurePatientIn(TA,pat);const ctx=resolveVerified(new Request("http://l/",{headers:H()})).ctx;
  const r1=crypto.randomUUID();
- let r=await results.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":idem()}),body:JSON.stringify({resultId:r1,patientId:pat,orderId:crypto.randomUUID(),analyte:"POTASSIUM",value:"7.0",unit:"mEq/L",occurredAt:at()})}));
+ let r:Response=await results.POST(new Request("http://l/",{method:"POST",headers:H({"idempotency-key":idem()}),body:JSON.stringify({resultId:r1,patientId:pat,orderId:crypto.randomUUID(),analyte:"POTASSIUM",value:"7.0",unit:"mEq/L",occurredAt:at()})}));
  ok(r.status===201&&(await r.json()).critical===true,"CRITICAL_RECEIVED");
  ok(await countOpenCriticalResults(ctx,pat)===1,"CRITICAL_COUNTS_BEFORE_CORRECTION");
  // sin razón -> 400
@@ -55,7 +55,7 @@ try{
  ok(summ.total===1&&summ.abnormal===0,"CORRECTED_NOT_COUNTED_IN_SUMMARY");
  // El worklist poblacional (readTenantOpenAggregates) tampoco debe listar el resultado corregido como agregado "abierto"
  // (si además estuvo ACTIONED, generaría un gap crítico fantasma); el corregido vigente (r2) sí es una fila legítima.
- const openAggs=await readTenantOpenAggregates(ctx);
+ const openAggs=(await readTenantOpenAggregates(ctx)).rows; // R04-008: el lector devuelve {rows,truncated}
  ok(!openAggs.some(x=>x.aggregateId===r1)&&openAggs.some(x=>x.aggregateId===r2),"CORRECTED_ORIGINAL_NOT_IN_WORKLIST_AGGREGATES");
  ok(foldObligation(await readAggregateEvents(ctx,criticalObligationId(r1))).state==="COMPLETED","DERIVED_OBLIGATION_COMPLETED_WITH_REASON");
  // reintento idempotente -> 200 replayed, sin eventos nuevos
@@ -105,7 +105,7 @@ try{
  ok(await countOpenCriticalResults(ctx,pat2)===0,"VOIDED_CRITICAL_NO_LONGER_BLOCKS");
  // R06-20: el registro devuelve una página (items + cursor + total) en lugar de todas las filas del tenant.
  ok(!(await resultsRegistry(ctx)).items.some(x=>x.resultId===r3),"VOIDED_NOT_IN_REGISTRY");
- ok(!(await readTenantOpenAggregates(ctx)).some(x=>x.aggregateId===r3),"VOIDED_NOT_IN_WORKLIST_AGGREGATES");
+ ok(!(await readTenantOpenAggregates(ctx)).rows.some(x=>x.aggregateId===r3),"VOIDED_NOT_IN_WORKLIST_AGGREGATES");
  ok((await readAggregateEvents(ctx,r3)).length===2,"VOID_EVENT_PERSISTS_IN_CHAIN");
  ok(foldObligation(await readAggregateEvents(ctx,criticalObligationId(r3))).state==="COMPLETED","VOID_COMPLETES_DERIVED_OBLIGATION");
  // reintento idempotente y segunda anulación

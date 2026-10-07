@@ -8,6 +8,7 @@ import{logPhiAccess,patientAccessLog,type PhiAccessEntry,type PhiAccessAction,ty
 import{withTenantTx}from"./connection";
 import{PAGE_LIMIT_MAX,Page,decodeCursor,encodeCursor}from"./pagination";
 import{OBLIGATION_STATUS}from"./patient-facts";
+import{WORKLIST_AGGREGATE_TYPES}from"../../../../packages/care-gaps/src";
 
 // EPIC D — Replay idempotente previo a la validación de state-machine: si este Idempotency-Key
 // ya produjo ESTE comando exacto (mismo hash) y quedó COMPLETED, devuelve la respuesta guardada.
@@ -48,7 +49,26 @@ export async function readPatientTimeline(ctx:HttpTenantContext,patientId:string
 // EPIC AC — Worklist poblacional: un renglón por agregado clínico del tenant (todos los pacientes),
 // con su patientId y su último kind (estado). RLS-scoped al tenant. SIN PHI: solo tipo/estado/ids.
 export type PanelRowData=Readonly<{aggregateType:string;aggregateId:string;patientId:string;latestKind:string;status:string}>;
-export async function readTenantOpenAggregates(ctx:HttpTenantContext):Promise<ReadonlyArray<PanelRowData>>{
+/**
+ * Agregados CANDIDATOS a generar un pendiente del worklist poblacional.
+ *
+ * Auditoría R04-008 — «paginar la LECTURA, no solo la respuesta». Esta consulta leía TODOS los agregados del consultorio
+ * con `patientId`: la historia clínica entera, sin cota, con dos subconsultas correlacionadas POR FILA, para que después
+ * el motor de reglas descartara en memoria la mayoría. Los tipos de más volumen en un expediente real —medicación,
+ * problemas, alergias, encuentros, documentos, órdenes— no tienen regla y se leían para tirarlos.
+ *
+ * Ahora se acota a los tipos que SÍ tienen regla, y la lista viene derivada de las propias reglas
+ * (`WORKLIST_AGGREGATE_TYPES`), no escrita aquí: una copia a mano se desincronizaría la primera vez que alguien añadiera
+ * una regla y el pendiente nuevo no aparecería nunca. El resultado es idéntico —`computePanelWorklist` ignora los tipos
+ * sin regla— pero la lectura deja de crecer con la parte del expediente que el worklist no mira.
+ *
+ * `max` es un TECHO declarado, no una paginación: el orden del worklist lo decide la PRIORIDAD, que se deriva en el
+ * motor de reglas y no existe en SQL, así que no se puede paginar en la base sin una proyección materializada de
+ * pendientes (decisión de arquitectura, no un parche). Cuando el techo se alcanza se DICE —`truncated:true`— en vez de
+ * devolver una lista corta que parezca completa: un panel que oculta pendientes sin avisar es peor que uno lento.
+ */
+export async function readTenantOpenAggregates(ctx:HttpTenantContext,opts:{max?:number}={}):Promise<{rows:ReadonlyArray<PanelRowData>;truncated:boolean}>{
+ const max=Math.max(1,Math.min(opts.max??20000,50000));
  return withTenantTx(ctx,async tx=>{
   const rows=await tx`
    select r.aggregate_id, r.aggregate_type, r.payload->>'patientId' as patient_id,
@@ -56,12 +76,16 @@ export async function readTenantOpenAggregates(ctx:HttpTenantContext):Promise<Re
      (select payload->>'status' from clinical_events c where c.tenant_id=${ctx.tenantId} and c.aggregate_id=r.aggregate_id order by sequence desc limit 1) as latest_status
    from clinical_events r
    where r.tenant_id=${ctx.tenantId} and r.sequence=1 and r.payload->>'patientId' is not null
+     -- Solo los tipos que alguna regla mira: el resto se leía para descartarlo en memoria (R04-008).
+     and r.aggregate_type = any(${WORKLIST_AGGREGATE_TYPES as string[]})
      -- Coherencia de lectores: un resultado ANULADO (ENTERED_IN_ERROR) o CORREGIDO (supersedido) no es un pendiente vivo
      -- del worklist. Sin esto generaba un gap como si siguiera abierto. Solo aplica a DiagnosticResult; el resto no cambia.
      and not (r.aggregate_type='DiagnosticResult' and (
        exists(select 1 from clinical_events e where e.tenant_id=${ctx.tenantId} and e.aggregate_id=r.aggregate_id and e.payload->>'kind'='ENTERED_IN_ERROR')
-       or exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text)))`;
-  return rows.map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),patientId:String(x.patient_id),latestKind:String(x.latest_kind??""),status:String(x.latest_status??"")}));
+       or exists(select 1 from clinical_events s where s.tenant_id=${ctx.tenantId} and s.aggregate_type='DiagnosticResult' and s.payload->>'kind'='RECEIVED' and s.payload->>'supersedes'=r.aggregate_id::text)))
+   limit ${max+1}`;
+  const truncated=rows.length>max;
+  return{rows:rows.slice(0,max).map(x=>({aggregateType:String(x.aggregate_type),aggregateId:String(x.aggregate_id),patientId:String(x.patient_id),latestKind:String(x.latest_kind??""),status:String(x.latest_status??"")})),truncated};
  });
 }
 // EPIC AB — Manifiesto del expediente: filas estructurales (agregado/secuencia/kind/fecha) de TODOS

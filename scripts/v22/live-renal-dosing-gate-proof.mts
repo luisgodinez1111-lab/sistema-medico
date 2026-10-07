@@ -1,9 +1,9 @@
 // EPIC BM — Evidencia física: el gate renal por eGFR MEDIDO bloquea fármacos contraindicados por función
 // renal en la prescripción (metformina/AINE con TFG<30). Cross-vertical medicación←creatinina+demografía. vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{registerPhysicianCredentials}=await import("./_physician-credentials.mts"); // L-05: cédula del médico sintético
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const patR=await import("../../apps/web/app/api/v1/patients/route");
 const resR=await import("../../apps/web/app/api/v1/results/route");
@@ -25,7 +25,7 @@ try{
  // 1) hombre 70a con creatinina 4.0 -> TFG ~15 (<30): metformina BLOQUEADA 403
  const p1=crypto.randomUUID();await register(phys,p1,70);await creat(phys,p1,"4.0");
  const mf=await propose(phys,p1,"metformina-850");
- let r=await rx.POST(new Request("http://l/",B(phys)),MP(mf));ok(r.status===403&&(await r.json()).error.code==="SAFETY_BLOCKED","METFORMIN_LOW_EGFR_BLOCKED_403");
+ let r:Response=await rx.POST(new Request("http://l/",B(phys)),MP(mf));ok(r.status===403&&(await r.json()).error.code==="SAFETY_BLOCKED","METFORMIN_LOW_EGFR_BLOCKED_403");
  // 2) mismo paciente: AINE (ibuprofeno) también contraindicado con TFG<30 -> BLOQUEADO
  const ib=await propose(phys,p1,"ibuprofeno-400",{dose:"400mg",route:"VO",frequency:"c/8h"});
  r=await rx.POST(new Request("http://l/",B(phys)),MP(ib));ok(r.status===403,"NSAID_LOW_EGFR_BLOCKED_403");

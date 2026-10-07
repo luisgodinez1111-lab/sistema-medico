@@ -1,9 +1,9 @@
 // EPIC BD — Evidencia física: en un paciente pediátrico (peso registrado), rechazar una orden cuya dosis
 // mg/kg/día excede el máximo pediátrico del fármaco. Cross-vertical vitales(peso)→medicación. vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
 const{ensurePatient,ensurePatientIn,freshPatient}=await import("./_patient.mts"); // L-07: el paciente debe existir
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const vitals=await import("../../apps/web/app/api/v1/vitals/route");
 const meds=await import("../../apps/web/app/api/v1/medications/route");

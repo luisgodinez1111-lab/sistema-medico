@@ -1,8 +1,8 @@
 // EPIC BC — Evidencia física: NEWS2 computado desde los últimos signos vitales del paciente (RLS-scoped).
 // Registra vitales vía la ruta real y consulta GET /patients/:id/news2. vs Neon.
 import crypto from"node:crypto";
-import"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
-const SECRET=process.env.SESSION_SIGNING_SECRET;
+import{SIGNING_SECRET}from"./_live-env.mts"; // P-07: exige TEST_DATABASE_URL (base desechable) y redirige DATABASE_URL a ella
+const SECRET=SIGNING_SECRET;
 const{signSession}=await import("../../packages/session/src");
 const vitals=await import("../../apps/web/app/api/v1/vitals/route");
 const news2=await import("../../apps/web/app/api/v1/patients/[patientId]/news2/route");
