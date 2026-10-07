@@ -54,6 +54,17 @@ encontró en el esquema (dos definiciones de la misma tabla) y en los paquetes d
 | D5–D10 — Resto del cotejo | Cotejo de guías | Guía de presión arterial (ACC/AHA vs ESC), CURB-65 como cribado o PSI/PORT, pesos de Charlson, eGFR pediátrico U25, MELD 3.0, nomenclatura MASLD | `docs/compliance/cotejo-de-guias-clinicas.md` |
 | Plazos de seguimiento (techos operativos) | R05a-F04 | Confirmar o cambiar las 72 h de prioridad ALTA (decisión operativa, sin norma citada) y decidir si el seguimiento de un **vital crítico** debe heredar el techo urgente de 24 h: hoy nace como rutina (`kind:"CRITICAL_VITAL_FOLLOWUP"`, sin tipo declarado), y declararlo urgente cambiaría el gate de firma para los vitales registrados con más de 24 h de retraso | `packages/obligation-domain/src/index.ts` (`PRIORITY_DUE_WINDOWS`, `OBLIGATION_DUE_WINDOWS`) |
 
+## Alternativas consideradas
+
+1. **Dejar las condiciones repartidas entre ADR-0130, ADR-0150 y ADR-0160.** Era el estado de partida y se descartó
+   porque tres listas parciales no son una lista: nadie podía responder «¿qué falta para producción?» sin leer tres
+   documentos y reconciliarlos a mano.
+2. **Reescribir esos tres ADR para unificarlos.** Se descartó porque **un ADR no se reescribe**: su valor es registrar lo
+   que se decidió cuando se decidió. Conservan su texto y remiten aquí.
+3. **Condiciones verificadas por revisión documental.** Se descartó con el criterio que este ADR declara: «una condición
+   cuya verificación es un documento que alguien tiene que leer es una intención con más pasos». Las condiciones de
+   ingeniería se ejecutan en cada commit; las de decisión son del dueño y la ingeniería **no puede** declararlas cerradas.
+
 ## Consecuencias
 
 - **La producción clínica sigue bloqueada**, y ahora se puede decir por qué en una frase: las condiciones de ingeniería se

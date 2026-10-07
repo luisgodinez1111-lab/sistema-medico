@@ -44,6 +44,19 @@ riesgo: dos modelos sin decidir cuál manda.
    paquete declarado sin llamador, o un vigente se queda sin importadores, el build falla. Lo ya retirado se registra en
    `docs/adjudication/retired-paths.json`.
 
+## Alternativas consideradas
+
+1. **Tablas relacionales de dominio como fuente de verdad, con los eventos como bitácora.** Es el modelo que este
+   repositorio tenía a medias —de ahí las tablas de proyección de la migración 0002, que quedaron muertas— y se descartó
+   porque obliga a mantener dos verdades sobre el mismo hecho clínico: la fila y el evento. Cuando divergen, y divergen,
+   no hay criterio para decidir cuál manda. El stream no puede divergir de sí mismo.
+2. **Payload con columnas tipadas en vez de `jsonb` con discriminador.** Daría validación en la base, pero cada tipo de
+   evento clínico nuevo exigiría una migración de esquema, y hay decenas por vertical. Se descartó a favor de validar el
+   payload en el borde (zod) y versionarlo (`schema_version`), que mueve el coste del cambio de la base al código.
+3. **Guardar el estado plegado como verdad, recalculándolo solo al escribir.** Más rápido de leer, y se descartó porque
+   un fold con un defecto dejaría el estado persistido mal **para siempre**: con el stream como verdad, corregir el fold
+   corrige la historia entera al releerla.
+
 ## Consecuencias
 
 - Toda regla clínica es reproducible desde el stream; una calculadora no puede "arreglar" datos: solo interpreta eventos.

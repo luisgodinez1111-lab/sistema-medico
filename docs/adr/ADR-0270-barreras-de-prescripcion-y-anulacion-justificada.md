@@ -1,6 +1,12 @@
 # ADR-0270 — Barreras de seguridad de prescripción: seis estados, confirmación de lo no evaluado y anulación justificada
 Status: ACEPTADO (2026-09-22) — decisiones de los lotes 1, 4, 8 y 9b de la remediación (C-03/C-04/C-14, U-15, U-19)
 
+
+> **Decidido por:** la remediación de la auditoría del 19-sep-2026, bajo la autorización del dueño del repositorio. El
+> lote que lo introdujo y su hash están en `docs/reviews/2026-09-20-remediacion-auditoria.md`, así que la decisión es
+> **rastreable a un cambio concreto** — a diferencia de los 25 ADR heredados, cuyo decisor no consta en ninguna parte.
+> **Alternativas consideradas:** las que el apartado «Decisión» descarta explícitamente más abajo.
+
 ## Contexto
 
 La auditoría encontró que un fármaco fuera del catálogo omitía todas las barreras en silencio, que la verificación

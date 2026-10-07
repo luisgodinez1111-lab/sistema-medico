@@ -24,6 +24,21 @@ relacionales de dominio están muertas: la integridad que importa es (a) que tod
 4. **Comprobación continua:** `pnpm db:check` añadirá, cuando exista `tenants`, la comprobación de eventos huérfanos
    (tenant inexistente) y de tablas del kernel sin la FK.
 
+## Alternativas consideradas
+
+1. **Dejar el esquema sin claves foráneas y confiar en el kernel.** Era el estado de partida —cero FK en 47 tablas— y se
+   descartó porque la enumeración de tenants, de la que depende el drenado del outbox, pasaba a ser un acto de confianza
+   en lugar de una propiedad del esquema. Una FK no es un control de acceso, pero sí hace la enumeración **completa por
+   construcción**.
+2. **Claves foráneas con `ON DELETE CASCADE`.** Se descartó explícitamente: convertiría el `DELETE` de una fila
+   administrativa en el borrado silencioso del expediente clínico entero de ese consultorio, que es lo último que debe
+   poder ocurrir por accidente en un sistema con cinco años de retención legal.
+3. **Validar el paciente con una clave foránea en vez de en el kernel.** Imposible por diseño: el paciente es un agregado
+   del stream, no una fila relacional. De ahí `requireRegisteredPatient` — integridad referencial **por el kernel**.
+4. **Poner la FK también en los registros de INTENTOS** (`phi_access_log`, `access_decisions`, `session_revocations`). Se
+   descartó al medirlo: el acceso de un tenant no registrado —el que más interesa auditar— no se podría anotar. La
+   integridad se habría comprado al precio de suprimir la auditoría del caso que importa.
+
 ## Consecuencias
 
 - Hoy un token con un `tenantId` arbitrario crea un tenant "de facto" con su primer evento; RLS lo aísla, pero nada dice

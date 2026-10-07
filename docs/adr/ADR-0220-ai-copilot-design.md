@@ -1,6 +1,18 @@
 # ADR-0220 — Diseño del AI Copilot: IA de apoyo sobre un núcleo determinista
 Status: PROPUESTO (R6 EN PAUSA — este ADR es diseño/gobernanza; no activa IA)
 
+
+> **Encabezado de gobierno añadido el 2026-10-06 (auditoría R09-003).** El ADR original no declaraba fecha, autor ni
+> alternativas. Lo que sigue se DERIVA de evidencia verificable o se declara ausente; **nada se reconstruye de memoria**:
+> inventar una fecha de decisión o un decisor sería fabricar un registro de gobierno, que es justo el defecto que esta
+> auditoría persigue en otros sitios (la tabla de firmas C5 vacía, `Mapping_Adjudication.csv` con cero filas).
+>
+> · **Fecha de incorporación al repositorio:** 2026-09-17 (del historial de git, `--diff-filter=A`). **No es la fecha de la
+>   decisión**, que no consta en ninguna parte.
+> · **Decidido por:** **no consta.** El repositorio registra quién hizo el commit, no quién tomó la decisión, y son cosas
+>   distintas. Lo llena el dueño del producto; hasta entonces este ADR documenta una decisión sin decisor registrado.
+> · **Alternativas consideradas:** Las alternativas **no constan** en el documento original.
+
 ## Contexto
 
 El sistema tiene un núcleo clínico DETERMINISTA amplio: kernel event-sourced con RLS forzado y cadena de

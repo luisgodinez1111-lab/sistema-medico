@@ -1,6 +1,12 @@
 # ADR-0250 — PostgreSQL (Neon) con postgres.js, rol `medical_os_runtime` NOBYPASSRLS y RLS forzada por tenant
 Status: ACEPTADO (2026-09-22) — documenta la decisión vigente en el código (auditoría G-07; D-01/D-04 del lote 7)
 
+
+> **Decidido por:** la remediación de la auditoría del 19-sep-2026, bajo la autorización del dueño del repositorio. El
+> lote que lo introdujo y su hash están en `docs/reviews/2026-09-20-remediacion-auditoria.md`, así que la decisión es
+> **rastreable a un cambio concreto** — a diferencia de los 25 ADR heredados, cuyo decisor no consta en ninguna parte.
+> **Alternativas consideradas:** las que el apartado «Decisión» descarta explícitamente más abajo.
+
 ## Contexto
 
 Multi-tenant con PHI: el aislamiento entre clínicas no puede depender de que cada consulta recuerde un `WHERE

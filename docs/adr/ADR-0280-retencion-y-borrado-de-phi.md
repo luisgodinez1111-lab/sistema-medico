@@ -43,6 +43,18 @@ rol de aplicación no puede modificar ni borrar nada. Dos obligaciones legales t
 - Tratamiento de menores (la retención cuenta desde la mayoría de edad en varias interpretaciones) y de fallecidos.
 - Procedimiento de atención ARCO (plazos de 20 días de respuesta y 15 de ejecución; responsable designado; aviso de privacidad).
 
+## Alternativas consideradas
+
+1. **Borrado físico de los eventos del paciente (`DELETE`).** Es lo que una lectura literal del derecho de cancelación
+   sugiere, y se descartó porque rompe la **cadena de auditoría append-only**: borrar un evento invalida el hash de todos
+   los posteriores y destruye la propiedad que hace verificable el expediente. Además choca con la retención mínima de
+   cinco años (NOM-004), que es una obligación, no una opción.
+2. **No hacer nada y declarar que la retención legal lo exime todo.** Se descartó porque la LFPDPPP concede derechos que
+   la NOM-004 no suspende: lo que procede es **acotar el ejercicio**, no negarlo.
+3. **Criptoborrado por paciente (clave por paciente, se destruye la clave).** Es la opción que este ADR deja **abierta
+   para el dueño**, no descartada: cumple el derecho sin romper la cadena, pero exige decidir dónde viven las claves y
+   quién las custodia, y esa decisión no es de ingeniería.
+
 ## Consecuencias
 
 - Mientras esta decisión esté PROPUESTA, la UI no afirma cumplimiento de la LFPDPPP (U-18 ya retiró esas afirmaciones) y

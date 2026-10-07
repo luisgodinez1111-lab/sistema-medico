@@ -1,6 +1,18 @@
 # ADR-0040 — Manufacturable Clinical Domain Core
 Status: ACCEPTED — cláusula de persistencia ENMENDADA por ADR-0240 (ver nota al pie)
 
+
+> **Encabezado de gobierno añadido el 2026-10-06 (auditoría R09-003).** El ADR original no declaraba fecha, autor ni
+> alternativas. Lo que sigue se DERIVA de evidencia verificable o se declara ausente; **nada se reconstruye de memoria**:
+> inventar una fecha de decisión o un decisor sería fabricar un registro de gobierno, que es justo el defecto que esta
+> auditoría persigue en otros sitios (la tabla de firmas C5 vacía, `Mapping_Adjudication.csv` con cero filas).
+>
+> · **Fecha de incorporación al repositorio:** 2026-09-15 (del historial de git, `--diff-filter=A`). **No es la fecha de la
+>   decisión**, que no consta en ninguna parte.
+> · **Decidido por:** **no consta.** El repositorio registra quién hizo el commit, no quién tomó la decisión, y son cosas
+>   distintas. Lo llena el dueño del producto; hasta entonces este ADR documenta una decisión sin decisor registrado.
+> · **Alternativas consideradas:** Un núcleo de dominio anémico — el texto fija el núcleo de dominio.
+
 v4 converts architectural boundaries into domain packages with executable state rules and a relational persistence baseline.
 The database remains an authority boundary, not a passive storage bucket. Critical domain state must have explicit versioning,
 legal transitions, provenance/authority, and fail-closed semantics.

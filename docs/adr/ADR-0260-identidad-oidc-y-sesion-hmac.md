@@ -1,6 +1,12 @@
 # ADR-0260 — Identidad por OIDC (Auth0/SSO) y sesión clínica propia firmada con HMAC en cookie `httpOnly`
 Status: ACEPTADO (2026-09-22) — documenta la decisión vigente (EPIC E/F/J/L; auditoría G-07, S-01/S-02 en ADR-0230)
 
+
+> **Decidido por:** la remediación de la auditoría del 19-sep-2026, bajo la autorización del dueño del repositorio. El
+> lote que lo introdujo y su hash están en `docs/reviews/2026-09-20-remediacion-auditoria.md`, así que la decisión es
+> **rastreable a un cambio concreto** — a diferencia de los 25 ADR heredados, cuyo decisor no consta en ninguna parte.
+> **Alternativas consideradas:** las que el apartado «Decisión» descarta explícitamente más abajo.
+
 ## Contexto
 
 El sistema necesita (a) identidad verificable del profesional, (b) una sesión con tenant, roles y scopes decididos por

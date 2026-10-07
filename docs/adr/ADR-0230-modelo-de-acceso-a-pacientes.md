@@ -1,6 +1,12 @@
 # ADR-0230 — Modelo de acceso a pacientes dentro del tenant y modelo de scopes
 Status: ACEPTADO (2026-09-22) — remediación de la auditoría del 19-sep-2026 (hallazgos S-01, S-02)
 
+
+> **Decidido por:** la remediación de la auditoría del 19-sep-2026, bajo la autorización del dueño del repositorio. El
+> lote que lo introdujo y su hash están en `docs/reviews/2026-09-20-remediacion-auditoria.md`, así que la decisión es
+> **rastreable a un cambio concreto** — a diferencia de los 25 ADR heredados, cuyo decisor no consta en ninguna parte.
+> **Alternativas consideradas:** las que el apartado «Decisión» descarta explícitamente más abajo.
+
 ## Contexto
 
 La auditoría encontró que `authorize()` recibía `{tenantId, role?, scope?, purpose?}` con los tres últimos
