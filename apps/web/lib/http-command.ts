@@ -123,3 +123,44 @@ export async function parseJson<T>(req:Request,schema:z.ZodType<T>):Promise<T>{
  if(!parsed.success)throw new ClinicalError("VALIDATION_ERROR","Invalid payload",{issues:parsed.error.issues.length});
  return parsed.data;
 }
+
+// Auditoría 2026-09-19, anexo R04 (R04-019) — EL CONTRATO DE AUTORIZACIÓN, UNA SOLA VEZ.
+//
+// EL HALLAZGO: «ausencia de un wrapper HTTP común: boilerplate try/resolveVerified/authorize/toHttpError repetido en cada
+// route.ts de vista».
+//
+// MEDIDO antes de escribir esto, sobre las 174 rutas: **49 inlinean el contrato** y 125 delegan en un handler de
+// `lib/*-lifecycle.ts` que lo aplica. De las 49, solo **13 siguen el patrón canónico** exacto; las otras 36 varían el
+// formato del `catch`, mezclan métodos o añaden lógica propia. Así que la premisa del hallazgo —«en cada route.ts»— es
+// cierta para 49, no para 174, y conviene decirlo.
+//
+// Y LO PRIMERO FUE MEDIR EL RIESGO, no la forma: se comprobó ruta por ruta si alguna copia **ya había olvidado**
+// `authorize`. Nueve GET no lo llaman literalmente; siete delegan en un handler que sí autoriza, y `health` y
+// `health/ready` son sondas públicas por diseño. **Ninguna copia estaba mal.** El riesgo es PROSPECTIVO: una ruta nueva
+// que olvide autorizar sería un agujero y nada lo comprobaría. Eso lo cierra el guardarraíl
+// `tests/v22/route-authorization.test.ts`, que cubre las 174 —también las que delegan, donde un wrapper no llega—; este
+// wrapper es la otra mitad: que una ruta nueva tenga UNA forma correcta a mano en lugar de copiar la de al lado.
+//
+// `X-Request-Id` NO se emite aquí, aunque el anexo lo propusiera como punto natural: ya lo emite `middleware.ts` para
+// TODAS las respuestas (R04-F09), y hacerlo también en el wrapper daría dos fuentes para la misma cabecera.
+type ClaimsDeSesion={sub:string;tenantId:string;roles:readonly string[];scopes:readonly string[];purpose:string;sessionId:string};
+/**
+ * Resuelve la sesión, autoriza y traduce cualquier fallo de dominio a HTTP. El cuerpo recibe los claims verificados y el
+ * contexto del tenant, y solo se ejecuta si la autorización pasó.
+ *
+ * Fail-closed por construcción: `scope` es obligatorio en el tipo —`authorize` ya rechaza un llamador que lo omita, pero
+ * aquí no se puede ni escribir—, y si el cuerpo lanza, la respuesta la produce `toHttpError`, nunca un 500 crudo.
+ */
+export async function withClinicalAuth(
+ req:Request,
+ exige:{scope:string;purpose?:string|readonly string[];role?:string},
+ cuerpo:(a:{claims:ClaimsDeSesion;ctx:HttpTenantContext})=>Promise<Response>|Response,
+):Promise<Response>{
+ const{toHttpError}=await import("./http-errors");
+ try{
+  const{authorize}=await import("../../../packages/runtime-auth/src");
+  const{claims,ctx}=resolveVerified(req);
+  authorize(principalFrom(claims),exige);
+  return await cuerpo({claims,ctx});
+ }catch(e){const h=toHttpError(e);const{NextResponse}=await import("next/server");return NextResponse.json(h.body,{status:h.status});}
+}

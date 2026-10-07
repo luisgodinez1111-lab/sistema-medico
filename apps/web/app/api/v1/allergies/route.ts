@@ -1,10 +1,8 @@
 import{NextResponse}from"next/server";
 import{handleAllergyCreate}from"../../../../lib/allergy-lifecycle";
-import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{classifyAllergen,type AllergenType}from"../../../../../../packages/drug-catalog/src";
 import{allergyRegistry,registrySummary,clampLimit,PAGE_LIMIT_MAX}from"../../../../lib/clinical-runtime";
-import{toHttpError}from"../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../lib/http-command";
+import{withClinicalAuth}from"../../../../lib/http-command";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function POST(req:Request){return handleAllergyCreate(req);}
@@ -15,9 +13,8 @@ export async function POST(req:Request){return handleAllergyCreate(req);}
 const SEV_ES:Record<string,string>={SEVERE:"Grave",MODERATE:"Moderada",MILD:"Leve"};
 const STATUS_ES:Record<string,string>={ACTIVE:"Activa",REFUTED:"Refutada",INACTIVE:"Inactiva"};
 export async function GET(req:Request){
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{scope:"allergy:read",purpose:"TREATMENT"});
+ // R04-019: el contrato (sesión → autorización → traducción del fallo) lo aplica `withClinicalAuth`.
+ return withClinicalAuth(req,{scope:"allergy:read",purpose:"TREATMENT"},async({claims,ctx})=>{
   // R06-20: lista acotada por página; los indicadores, contados en la base.
   const url=new URL(req.url);
   const page=await allergyRegistry(ctx,{limit:clampLimit(url.searchParams.get("limit"),PAGE_LIMIT_MAX,PAGE_LIMIT_MAX),cursor:url.searchParams.get("cursor")});
@@ -43,5 +40,5 @@ export async function GET(req:Request){
   for(const[sustancia,n]of Object.entries(porSustancia.byGroup))byType[classifyAllergen(sustancia)]+=Number(n);
   const activeCount=(porGravedad.byStatus["RECORDED"]??0)+(porGravedad.byStatus["REACTIVATED"]??0);
   return NextResponse.json({items,nextCursor:page.nextCursor,total,patientsWithAllergies:porGravedad.patients,bySeverity,byType,activeCount},{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }

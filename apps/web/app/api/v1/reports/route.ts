@@ -1,11 +1,9 @@
 import{NextResponse}from"next/server";
-import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{listPatients,registrySummary,reportAggregates,claimsIncome,resultsSummary,encounterAnalytics,medicationsPrescribed,appointmentsByType,appointmentOutcomes,HBA1C_CONTROL_THRESHOLD}from"../../../../lib/clinical-runtime";
 import type{ReportWindow}from"../../../../lib/runtime/analytics";
 import{CLINIC_TZ,periodOf,dayWindow}from"../../../../lib/clinic-time";
 import{ClinicalError}from"../../../../../../packages/runtime-errors/src";
-import{toHttpError}from"../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../lib/http-command";
+import{withClinicalAuth}from"../../../../lib/http-command";
 // EPIC AD/UI — GET /api/v1/reports -> tablero analítico del consultorio (vista Reportes).
 // Compone métricas REALES desde el event stream (registros clínica-wide, RLS-scoped): pacientes atendidos
 // (padrón), ingresos (facturas pagadas), diagnósticos principales (CIE-10), órdenes totales y POR TIPO,
@@ -18,9 +16,8 @@ export const dynamic="force-dynamic";
 const ORDER_TYPE_LBL:Record<string,string>={LAB:"Laboratorio",IMAGING:"Imagenología",PROCEDURE:"Procedimiento",REFERRAL:"Interconsulta",PATHOLOGY:"Patología"};
 const APPT_TYPE_LBL:Record<string,string>={CONSULTA_GENERAL:"Consulta general",CONTROL:"Control",PRIMERA_VEZ:"Primera vez",PROCEDIMIENTO:"Procedimiento",VACUNACION:"Vacunación",RESULTADOS:"Revisión de resultados",URGENCIA:"Urgencia",SIN_TIPO:"Sin especificar"};
 export async function GET(req:Request){
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{scope:"record:export",purpose:"TREATMENT"});
+ // R04-019: el contrato (sesión → autorización → traducción del fallo) lo aplica `withClinicalAuth`.
+ return withClinicalAuth(req,{scope:"record:export",purpose:"TREATMENT"},async({claims,ctx})=>{
   // Auditoría R04-010: RANGO DE FECHAS. `?from=YYYY-MM-DD&to=YYYY-MM-DD` acota el tablero; sin parámetros, toda la
   // historia (comportamiento anterior). La ventana se aplica sobre `occurred_at`, la fecha del HECHO clínico, nunca sobre
   // `recorded_at`: un resultado de ayer capturado hoy pertenece a ayer para cualquier indicador, y mezclar las dos fechas
@@ -110,5 +107,5 @@ export async function GET(req:Request){
    appointmentsByType:appointmentsByTypeOut,
    qualityIndicators,
   },{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }

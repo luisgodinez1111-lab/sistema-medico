@@ -1,16 +1,13 @@
 import{NextResponse}from"next/server";
-import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{computePanelWorklist}from"../../../../../../packages/care-gaps/src";
 import{readTenantOpenAggregates,clampLimit,decodeCursor,encodeCursor}from"../../../../lib/clinical-runtime";
-import{toHttpError}from"../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../lib/http-command";
+import{withClinicalAuth}from"../../../../lib/http-command";
 // EPIC AC — GET /api/v1/worklist  (worklist poblacional del panel: care gaps de todos los pacientes del tenant)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function GET(req:Request){
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{scope:"patient:read",purpose:"TREATMENT"});
+ // R04-019: el contrato (sesión → autorización → traducción del fallo) lo aplica `withClinicalAuth`.
+ return withClinicalAuth(req,{scope:"patient:read",purpose:"TREATMENT"},async({claims,ctx})=>{
   // Auditoría R04-008 — la LECTURA está acotada, no solo la respuesta: la consulta se limita a los tipos de agregado que
   // alguna regla mira (derivado de las reglas, no escrito a mano) y lleva un techo declarado.
   const{rows,truncated}=await readTenantOpenAggregates(ctx);
@@ -26,5 +23,5 @@ export async function GET(req:Request){
   return NextResponse.json({gaps,gapCount:all.length,patientCount,truncated,
    ...(truncated?{truncatedNote:"El consultorio supera el techo de lectura del panel: esta lista NO está completa. Filtra por paciente o pide la ampliación del techo."}:{}),
    nextCursor:offset+limit<all.length?encodeCursor([offset+limit]):null},{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }

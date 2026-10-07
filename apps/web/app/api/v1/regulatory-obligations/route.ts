@@ -1,9 +1,7 @@
 import{NextResponse}from"next/server";
 import{handleRegulatoryObligationCreate}from"../../../../lib/regulatory-obligation-lifecycle";
-import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{regulatoryObligations}from"../../../../lib/clinical-runtime";
-import{toHttpError}from"../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../lib/http-command";
+import{withClinicalAuth}from"../../../../lib/http-command";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function POST(req:Request){return handleRegulatoryObligationCreate(req);}
@@ -31,9 +29,8 @@ function computeStatus(dueDate:string|null,now:Date):Estado{
  return"Al día";
 }
 export async function GET(req:Request){
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{scope:"obligation:read",purpose:"TREATMENT"});
+ // R04-019: el contrato (sesión → autorización → traducción del fallo) lo aplica `withClinicalAuth`.
+ return withClinicalAuth(req,{scope:"obligation:read",purpose:"TREATMENT"},async({claims,ctx})=>{
   const now=new Date();
   const{rows,truncated}=await regulatoryObligations(ctx);
   const items=rows.map(r=>{const estado=computeStatus(r.dueDate,now);const days=r.dueDate?Math.floor((new Date(r.dueDate).getTime()-now.getTime())/86400000):null;
@@ -53,5 +50,5 @@ export async function GET(req:Request){
   return NextResponse.json({
    proximaThreshold:{days:PROXIMA_DIAS,basis:PROXIMA_BASIS},items,total,alDia,proximas,vencidas,compliance,truncated,
    ...(truncated?{truncatedNote:"Este consultorio supera el techo de lectura: los KPI y el cumplimiento por categoría se calcularon sobre una lista PARCIAL y no representan el total."}:{})},{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }

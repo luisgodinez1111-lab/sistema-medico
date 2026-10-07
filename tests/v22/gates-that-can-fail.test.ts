@@ -144,8 +144,16 @@ describe("R2B-025: el propósito de uso SE COMPRUEBA",()=>{
      if(!/const opts[^=]*=\{[^}]*purpose:/.test(src))sinPurpose.push(p);
      continue;
     }
+    // R04-019 (lote 36): el wrapper pasa a `authorize` el objeto `exige` que recibe del llamador, así que el propósito
+    // se declara en CADA sitio que llama a `withClinicalAuth` y se comprueba allí (abajo), no en esta línea.
+    if(/,\s*exige\s*\)/.test(call))continue;
     if(!/purpose:/.test(call))sinPurpose.push(`${p} :: ${call.slice(0,80)}`);
    }
+   // Y el wrapper no es una puerta de escape: cada llamada a `withClinicalAuth` tiene que declarar su propósito, igual
+   // que una llamada directa a `authorize`. Esto es MÁS estricto que antes, no menos: antes el propósito solo se
+   // comprobaba donde se escribía `authorize` a mano.
+   for(const m of src.matchAll(/withClinicalAuth\(req,(\{[^}]*\})/g))
+    if(!/purpose:/.test(m[1]!))sinPurpose.push(`${p} :: withClinicalAuth sin propósito :: ${m[1]!.slice(0,60)}`);
   }};
   walk("apps/web/lib");walk("apps/web/app/api");
   expect([...new Set(sinPurpose)],"autorización sin propósito declarado").toEqual([]);

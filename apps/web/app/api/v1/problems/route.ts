@@ -1,9 +1,7 @@
 import{NextResponse}from"next/server";
 import{handleProblemCreate}from"../../../../lib/problem-lifecycle";
-import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{problemRegistry,registrySummary,topPatientsOfRegistry,clampLimit,PAGE_LIMIT_MAX}from"../../../../lib/clinical-runtime";
-import{toHttpError}from"../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../lib/http-command";
+import{withClinicalAuth}from"../../../../lib/http-command";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function POST(req:Request){return handleProblemCreate(req);}
@@ -17,9 +15,8 @@ const CAT_UI:Record<string,string>={Endocrino:"Endocrinológicos",Cardiovascular
 // Transiciones que cambian el estado del problema (las anotaciones EPISTEMIC/EVIDENCE no lo cambian: ADR-0240 §2).
 const LIFECYCLE=["ADDED","REACTIVATED","MARKED_CHRONIC","RESOLVED","ENTERED_IN_ERROR"] as const;
 export async function GET(req:Request){
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{scope:"problem:read",purpose:"TREATMENT"});
+ // R04-019: el contrato (sesión → autorización → traducción del fallo) lo aplica `withClinicalAuth`.
+ return withClinicalAuth(req,{scope:"problem:read",purpose:"TREATMENT"},async({claims,ctx})=>{
   // R06-20: la lista va ACOTADA (página con cursor) y los indicadores se calculan EN LA BASE. Antes se traía el tenant
   // entero y se contaba en Node, así que acotar la página sin mover los recuentos habría falseado todos los KPI.
   const url=new URL(req.url);
@@ -45,5 +42,5 @@ export async function GET(req:Request){
   for(const[cat,n]of Object.entries(resumen.byGroup)){const etiqueta=CAT_UI[cat]??"Otros";byCategory[etiqueta]=(byCategory[etiqueta]??0)+Number(n);}
   const topPatients=top.map(t=>({name:t.name,count:t.count}));
   return NextResponse.json({items,nextCursor:page.nextCursor,total,byStatus,byCategory,topPatients},{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }

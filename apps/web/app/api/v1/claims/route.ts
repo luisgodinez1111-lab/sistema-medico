@@ -1,9 +1,7 @@
 import{NextResponse}from"next/server";
 import{handleClaimDraft,parseMoney}from"../../../../lib/claim-lifecycle";
-import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{claimsRegistry,claimsIncome,PAGE_LIMIT_MAX}from"../../../../lib/clinical-runtime";
-import{toHttpError}from"../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../lib/http-command";
+import{withClinicalAuth}from"../../../../lib/http-command";
 import{CLINIC_TZ,periodOf}from"../../../../lib/clinic-time";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -19,9 +17,8 @@ const STATUS_ES:Record<string,string>={PENDING:"Pendiente",PAID:"Pagada",REJECTE
 const num=parseMoney;
 
 export async function GET(req:Request){
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{scope:"billing:read",purpose:"TREATMENT"});
+ // R04-019: el contrato (sesión → autorización → traducción del fallo) lo aplica `withClinicalAuth`.
+ return withClinicalAuth(req,{scope:"billing:read",purpose:"TREATMENT"},async({claims,ctx})=>{
   // R06-20: los indicadores se suman EN LA BASE (antes se traían todas las facturas del tenant y se sumaban en Node).
   //
   // El FOLIO queda sin paginar a propósito, y es una cuestión de fondo, no técnica: hoy se deriva de la POSICIÓN en la
@@ -52,5 +49,5 @@ export async function GET(req:Request){
    pendingCount:kpi.pendingCount,pendingAmount:kpi.pendingAmount,
    cancellations:kpi.cancellations,
   },{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }

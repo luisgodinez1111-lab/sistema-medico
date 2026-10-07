@@ -1,9 +1,7 @@
 import{NextResponse}from"next/server";
 import{handleResultReceived}from"../../../../lib/result-lifecycle";
-import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{resultsRegistry,resultsSummary,clampLimit,PAGE_LIMIT_MAX}from"../../../../lib/clinical-runtime";
-import{toHttpError}from"../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../lib/http-command";
+import{withClinicalAuth}from"../../../../lib/http-command";
 // EPIC G — POST /api/v1/results  (recibir un resultado diagnóstico -> RECEIVED)
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -33,9 +31,8 @@ function estadoOf(critical:boolean,status:string,lifecycle:string):"Hallazgos"|"
  return"Normal";
 }
 export async function GET(req:Request){
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{scope:"result:read",purpose:"TREATMENT"});
+ // R04-019: el contrato (sesión → autorización → traducción del fallo) lo aplica `withClinicalAuth`.
+ return withClinicalAuth(req,{scope:"result:read",purpose:"TREATMENT"},async({claims,ctx})=>{
   // R06-20: lista acotada por página; los indicadores, contados en la base con la misma regla que la lista.
   const url=new URL(req.url);
   const page=await resultsRegistry(ctx,{limit:clampLimit(url.searchParams.get("limit"),PAGE_LIMIT_MAX,PAGE_LIMIT_MAX),cursor:url.searchParams.get("cursor")});
@@ -45,5 +42,5 @@ export async function GET(req:Request){
    tipo:tipoOf(r.orderType),estado,lifecycle:r.lifecycle,receivedAt:r.receivedAt};});
   const{total,abnormal,enSeguimiento,pendientes}=await resultsSummary(ctx);
   return NextResponse.json({items,nextCursor:page.nextCursor,total,abnormal,enSeguimiento,pendientes},{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }

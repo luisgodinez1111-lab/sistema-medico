@@ -1,9 +1,7 @@
 import{NextResponse}from"next/server";
 import{handleImmunizationDue}from"../../../../lib/immunization-lifecycle";
-import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{immunizationRegistry,registrySummary,clampLimit,PAGE_LIMIT_MAX}from"../../../../lib/clinical-runtime";
-import{toHttpError}from"../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../lib/http-command";
+import{withClinicalAuth}from"../../../../lib/http-command";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function POST(req:Request){return handleImmunizationDue(req);}
@@ -13,9 +11,8 @@ export async function POST(req:Request){return handleImmunizationDue(req);}
 // vacunados) y cobertura por vacuna (para el donut). RLS-scoped.
 const STATUS_ES:Record<string,string>={COMPLETE:"Completa",PENDING:"Pendiente",REFUSED:"Rechazada",ADVERSE:"Evento adverso"};
 export async function GET(req:Request){
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{scope:"immunization:read",purpose:"TREATMENT"});
+ // R04-019: el contrato (sesión → autorización → traducción del fallo) lo aplica `withClinicalAuth`.
+ return withClinicalAuth(req,{scope:"immunization:read",purpose:"TREATMENT"},async({claims,ctx})=>{
   // R06-20: la lista va ACOTADA (página con cursor) y los indicadores se calculan EN LA BASE. Antes se traía el tenant
   // entero y se contaba en Node, así que acotar la página sin mover los recuentos habría falseado todos los KPI.
   const url=new URL(req.url);
@@ -39,5 +36,5 @@ export async function GET(req:Request){
    incompleteSchemes:resumen.patientsByStatus["DUE"]??0,
    byVaccine,
   },{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }

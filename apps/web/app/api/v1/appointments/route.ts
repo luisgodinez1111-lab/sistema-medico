@@ -1,10 +1,8 @@
 import{ClinicalError}from"../../../../../../packages/runtime-errors/src";
 import{NextResponse}from"next/server";
 import{handleAppointmentSchedule}from"../../../../lib/appointment-lifecycle";
-import{authorize}from"../../../../../../packages/runtime-auth/src";
 import{agendaForDate}from"../../../../lib/clinical-runtime";
-import{toHttpError}from"../../../../lib/http-errors";
-import{resolveVerified,principalFrom}from"../../../../lib/http-command";
+import{withClinicalAuth}from"../../../../lib/http-command";
 import{dayOf,dayWindow}from"../../../../lib/clinic-time";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -15,9 +13,8 @@ export async function POST(req:Request){return handleAppointmentSchedule(req);}
 // El día de agenda es el día CIVIL del consultorio (zona de México), no el día UTC (auditoría L-12).
 const RANGE_MAX_DAYS=62;
 export async function GET(req:Request){
- try{
-  const{claims,ctx}=resolveVerified(req);
-  authorize(principalFrom(claims),{scope:"appointment:read",purpose:"TREATMENT"});
+ // R04-019: el contrato (sesión → autorización → traducción del fallo) lo aplica `withClinicalAuth`.
+ return withClinicalAuth(req,{scope:"appointment:read",purpose:"TREATMENT"},async({claims,ctx})=>{
   const url=new URL(req.url);
   const fromStr=url.searchParams.get("from"),toStr=url.searchParams.get("to");
   if(fromStr||toStr){
@@ -35,7 +32,7 @@ export async function GET(req:Request){
   const{fromIso,toIso}=dayWindow(dateStr);
   const appointments=await agendaForDate(ctx,fromIso,toIso);
   return NextResponse.json({date:dateStr,appointments,counts:agendaCounts(appointments)},{status:200});
- }catch(e){const h=toHttpError(e);return NextResponse.json(h.body,{status:h.status});}
+ });
 }
 function agendaCounts(appointments:Awaited<ReturnType<typeof agendaForDate>>){
  return{programadas:appointments.length,

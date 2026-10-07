@@ -95,9 +95,15 @@ describe("ninguna llamada vuelve a comparar los claims consigo mismos (R01-019)"
     const src=fs.readFileSync(p,"utf8");
     // Una llamada puede ocupar varias líneas y llevar el objeto en una variable (`opts`): se mira la línea completa.
     for(const linea of src.split("\n")){
+     // R04-019 (lote 36): `withClinicalAuth(req,{scope,purpose},cuerpo)` ES una autorización con scope —el wrapper
+     // llama a `authorize` con ese objeto antes de ejecutar el cuerpo—, así que cuenta como tal. Se añade en lugar de
+     // bajar el umbral: el modelo no se debilitó, cambió el sitio donde se escribe.
+     if(/withClinicalAuth\(/.test(linea)&&/scope:/.test(linea)){total++;conScope++;continue;}
      if(!/\bauthorize\(/.test(linea)||/export function authorize|\* /.test(linea))continue;
      total++;
-     if(/scope:/.test(linea)||/\bopts\b/.test(linea))conScope++;
+     // `exige` es el objeto que el wrapper recibe del llamador y pasa a `authorize`: lleva el scope por su tipo
+     // (`exige:{scope:string;...}`), que el compilador obliga a rellenar.
+     if(/scope:/.test(linea)||/\bopts\b/.test(linea)||/\bexige\b/.test(linea))conScope++;
     }
    }}};
   walk("apps/web");
